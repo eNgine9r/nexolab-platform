@@ -127,6 +127,21 @@ class Settings(BaseSettings):
         le=86_400,
     )
 
+    # Read-only LOCAL_LAN equipment discovery is fail-closed until at least one
+    # RFC1918 CIDR is explicitly configured. Port defaults are inert while the
+    # CIDR allowlist is empty.
+    equipment_discovery_allowed_cidrs: str = ""
+    equipment_discovery_allowed_ports: str = "80,443,502,1883,8080,8081,8082"
+    equipment_discovery_max_hosts: int = Field(default=256, ge=1, le=4096)
+    equipment_discovery_max_ports: int = Field(default=8, ge=1, le=32)
+    equipment_discovery_connect_timeout_seconds: float = Field(
+        default=0.35, ge=0.05, le=5.0
+    )
+    equipment_discovery_concurrency: int = Field(default=32, ge=1, le=128)
+    # Optional scheduled discovery remains disabled unless explicitly enabled.
+    # A five-minute floor prevents accidental high-frequency LAN scanning.
+    equipment_discovery_schedule_interval_seconds: int = Field(default=0, ge=0, le=86_400)
+
     auth_mode: Literal["disabled", "jwt"] = "disabled"
     auth_default_organization_id: str = (
         "00000000-0000-0000-0000-000000000001"
@@ -168,6 +183,11 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_runtime_secrets(self) -> "Settings":
+        if 0 < self.equipment_discovery_schedule_interval_seconds < 300:
+            raise ValueError(
+                "EQUIPMENT_DISCOVERY_SCHEDULE_INTERVAL_SECONDS must be 0 or at least 300"
+            )
+
         has_username = bool(self.mqtt_username and self.mqtt_username.strip())
         has_password_file = bool(
             self.mqtt_password_file and self.mqtt_password_file.strip()

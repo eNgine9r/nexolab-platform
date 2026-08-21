@@ -1,6 +1,6 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-20
+Updated: 2026-08-21
 
 ## Issue #584 — complete
 
@@ -60,13 +60,22 @@ PR #622 merged as `9f54faa25c2f6c0d7e0f1bf84e772c0e3fa6ab6f` under the single Pr
 
 PR #621 merged as `ad2a49473c9798dc8e4f374ec031b2144c0606e2` after fully GREEN exact-head CI. There is no remaining #605 product blocker. The Raspberry Pi full-ESLint resource incident remains a verification-host constraint only; heavy repository-wide lint/build should continue on GitHub CI.
 
-## Issue #606 — active PR #632; hardware/LAN acceptance pending
+## Issue #606 — GREEN; state reconciliation and merge only
 
-Issue #606 is published as PR #632 at exact state head `4b3b9a081e859f5de58deb3f791d2bde754e741a` with hardening implementation head `628e34725fe116c4f38e2b0862769d296afa3666`. Focused backend discovery tests are 20/20 PASS and focused frontend tests are 12/12 PASS. Product/browser/acquisition CI is GREEN; the Capacity Release Gate passed a policy-authorized exact-job rerun after one latency-only hosted-runner failure. The independent Container Supply Chain failure on final head is Debian base-image drift tracked by #637, not a discovery regression. Real Raspberry Pi/approved-LAN discovery acceptance is still required before #606 can be called production-verified. No real scan has run; exact CIDR(s)/TCP port(s) require Product Owner authorization. Public-network scanning, unrestricted scanning, credential guessing, acquisition mutation and Modbus/device writes remain prohibited.
+PR #632 product head `804d0b44045a5099c59149c87b70cbf63ca047f8` is GREEN in all 22 pull-request
+workflows. Real Product Owner-authorized bounded Raspberry Pi / LOCAL_LAN
+acceptance is PASS: five explicit hosts, two allowed TCP ports, 10 connect
+attempts, zero application payload, production healthy before/after and no
+increase in physical acquisition cadence. Raspberry Pi boot continuity also
+passed.
 
-## Issue #637 / PR #638 — security remediation implementation GREEN; state/final-head gate pending
+There is no remaining product, software, LAN or hardware-acceptance blocker
+for #606. Remaining work is state-only: commit reconciliation, resolve the
+stale sprint-state review thread, verify the resulting state-head checks and
+merge PR #632.
 
-PR #638 implementation head `167149ea447e40618c68e1e0e7a4080d99772bb6` is GREEN in all 11 triggered workflows, including Container Supply Chain `32450852390`, Telemetry Service `32450852369`, Offline Bundle `32450852368`, Core CI `32450852393` and Capacity Release Gate `32450852377`. The fresh telemetry image installs the fixed Debian util-linux family packages and the nine now-stale `CVE-2026-53615` exceptions are removed without weakening policy. This is no longer a code/security blocker; only state reconciliation and exact final-state-head CI remain before merge. No production cutover or hardware action is part of #637.
+No Modbus read/write command, hardware write, unrestricted scan, credential
+attempt, production deployment or site cutover was performed.
 
 ## Issue #626 — completed, no longer blocking
 
@@ -100,8 +109,7 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 - #618 Saved Dashboard CSV export — independent reliability lane;
 - #626 atomic/resource-safe Raspberry Pi frontend deployment — complete GREEN in PR #629;
 - #627 monitoring/display boundary — complete GREEN in PR #628;
-- #637 telemetry container security drift — implementation GREEN in PR #638; state/final-head CI pending;
-- #606 discovery/adoption inbox — active PR #632 at `4b3b9a08`; security interrupt #637 must merge first, then exact-head CI and real LAN acceptance remain;
+- #606 discovery/adoption inbox — software and real Pi/LAN acceptance GREEN; state reconciliation/final checks before merge;
 - #633 frontend candidate cleanup — Ready after #606;
 - #607 dual RS-485 KK1/KK2 bus isolation — software architecture before #589; hardware cutover remains unapproved;
 - #589 persisted cadence/capacity — held behind #607;
@@ -112,8 +120,7 @@ The authenticated-dashboard runner's default generated `COMPOSE_PROJECT_NAME` co
 - #588 Energy Monitoring chart parity — complete in PR #602;
 - #604 Equipment workspace — complete in PR #616;
 - #605 Equipment metadata editing — complete GREEN in PR #621;
-- #637 telemetry container security drift — implementation GREEN; final state-head gate pending;
-- #606 LOCAL_LAN discovery inbox — active PR #632; real Pi/LAN acceptance pending after #637 merge;
+- #606 LOCAL_LAN discovery inbox — software and real Pi/LAN acceptance GREEN; state reconciliation/final checks before merge;
 - #626 atomic/resource-safe Raspberry Pi frontend deployment — complete GREEN in PR #629;
 - #627 monitoring/display boundary — complete GREEN in PR #628;
 - #633 frontend candidate cleanup — queued after #606;

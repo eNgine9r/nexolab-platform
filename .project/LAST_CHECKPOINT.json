@@ -3,10 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-21T05:41:23Z",
+  "timestamp": "2026-08-21T07:33:54Z",
   "actor": "ChatGPT",
-  "event": "issue_637_security_remediation_implementation_green_state_reconciliation",
-  "repository_main_sha": "f8bd22f061c49d17bea4e7ee9bb9e0db9a121d5f",
+  "event": "issue_606_software_and_real_pi_lan_acceptance_green_state_reconciliation",
+  "repository_main_sha": "bf9105cbdef6f614d50d8bff60d245980b89c100",
   "deployed_repository_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
   "completed_work": {
     "issue_608": {
@@ -197,6 +197,16 @@
       "final_state_authenticated_dashboard": "PASS_32415131935",
       "final_state_offline_bundle": "PASS_32415132995",
       "final_state_required_checks": "PASS_ALL_GREEN"
+    },
+    "issue_637": {
+      "issue": 637,
+      "pull_request": 638,
+      "status": "COMPLETED_GREEN_SUPPLY_CHAIN_REPAIR",
+      "merge_sha": "bf9105cbdef6f614d50d8bff60d245980b89c100",
+      "exact_head_sha": "969c121bd0e766c21356f8b1997d82955fbe13e4",
+      "production_cutover": false,
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "blocked_work": {
@@ -214,14 +224,14 @@
     }
   },
   "current_boundary": {
-    "issue": 637,
-    "title": "Restore telemetry container supply-chain gate after Debian security drift",
-    "status": "PR_638_IMPLEMENTATION_GREEN_STATE_RECONCILIATION",
-    "pull_request": 638,
-    "exact_implementation_sha": "167149ea447e40618c68e1e0e7a4080d99772bb6"
+    "issue": 606,
+    "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
+    "status": "PR_632_PRODUCT_AND_REAL_PI_LAN_ACCEPTANCE_GREEN_STATE_RECONCILIATION",
+    "pull_request": 632,
+    "implementation_head_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8"
   },
-  "next_action": "Publish the #637 state-only reconciliation, require exact final-state-head CI GREEN, merge PR #638, update main, then sync PR #632 from repaired main and resume Issue #606 software/runtime acceptance. Do not run real LAN discovery until the Product Owner approves exact CIDR(s) and TCP port(s).",
-  "planned_queue": [637, 606, 633, 607, 589, 590],
+  "next_action": "Publish this state-only reconciliation, resolve the stale ACTIVE_SPRINT review thread, verify the resulting PR #632 state-head checks, merge #632, close Issue #606, then perform a fresh Ready audit with Issue #633 expected next.",
+  "planned_queue": [606, 633, 607, 589, 590],
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -236,30 +246,36 @@
     "issue_633": "Successful production cutover left an orphan frontend candidate on 127.0.0.1:3100. It was manually stopped with production remaining healthy; Issue #633 tracks deterministic cleanup before the next deployment."
   },
   "in_progress_work": {
-    "issue_637": {
-      "issue": 637,
-      "branch": "fix/637-telemetry-debian-security-drift",
-      "pull_request": 638,
-      "exact_implementation_sha": "167149ea447e40618c68e1e0e7a4080d99772bb6",
-      "status": "PR_IMPLEMENTATION_CI_GREEN_STATE_RECONCILIATION"
-    },
     "issue_606": {
       "issue": 606,
       "branch": "feat/606-local-lan-discovery",
       "pull_request": 632,
-      "exact_head_sha": "4b3b9a081e859f5de58deb3f791d2bde754e741a",
-      "status": "PAUSED_FOR_SECURITY_INTERRUPT_637_THEN_RUNTIME_ACCEPTANCE"
+      "implementation_head_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8",
+      "status": "PRODUCT_AND_REAL_PI_LAN_ACCEPTANCE_GREEN_STATE_RECONCILIATION",
+      "focused_backend_tests": "PASS_20_OF_20",
+      "focused_frontend_tests": "PASS_12_OF_12",
+      "all_product_head_workflows": "PASS_22_OF_22",
+      "real_pi_lan_acceptance": "PASS_BOUNDED_ZERO_PAYLOAD",
+      "network_connect_attempts": 10,
+      "network_payload_bytes": 0,
+      "acquisition_invariant": "PASS_NO_RATE_INCREASE",
+      "production_non_regression": "PASS",
+      "boot_continuity": "PASS",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "production_cutover": false
     }
   },
   "active_work": {
-    "issue_637": {
-      "issue": 637,
-      "status": "PR_IMPLEMENTATION_CI_GREEN_STATE_RECONCILIATION",
-      "branch": "fix/637-telemetry-debian-security-drift",
-      "pull_request": 638,
-      "exact_implementation_sha": "167149ea447e40618c68e1e0e7a4080d99772bb6",
+    "issue_606": {
+      "issue": 606,
+      "status": "PRODUCT_AND_REAL_PI_LAN_ACCEPTANCE_GREEN_STATE_RECONCILIATION",
+      "branch": "feat/606-local-lan-discovery",
+      "pull_request": 632,
+      "implementation_head_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8",
       "modbus_write": "none",
-      "hardware_write": "none"
+      "hardware_write": "none",
+      "real_network_scan": "PASS_BOUNDED_ZERO_PAYLOAD"
     }
   },
   "production_cutover": {
@@ -282,27 +298,14 @@
     "hardware_write": "none"
   },
   "issue_606_ci": {
-    "exact_head_sha": "4b3b9a081e859f5de58deb3f791d2bde754e741a",
-    "hardening_implementation_sha": "628e34725fe116c4f38e2b0862769d296afa3666",
-    "product_software_gates": "PASS",
-    "capacity_release_gate": "PASS_POLICY_AUTHORIZED_RERUN_32449653140",
-    "container_supply_chain": "FAIL_32449653153_INDEPENDENT_SECURITY_DRIFT_ISSUE_637",
-    "real_pi_lan_acceptance": "PENDING_PRODUCT_OWNER_APPROVED_SCOPE"
-  },
-  "issue_637_ci": {
-    "exact_implementation_sha": "167149ea447e40618c68e1e0e7a4080d99772bb6",
-    "core_ci": "PASS_32450852393",
-    "container_supply_chain": "PASS_32450852390",
-    "telemetry_service": "PASS_32450852369",
-    "offline_bundle": "PASS_32450852368",
-    "capacity_release_gate": "PASS_32450852377",
-    "offline_auth": "PASS_32450852403",
-    "device_agent_fleet": "PASS_32450852440",
-    "mqtt_tls_fleet": "PASS_32450852376",
-    "disaster_recovery_tls": "PASS_32450852461",
-    "disaster_recovery_browser": "PASS_32450852394",
-    "broker_control": "PASS_32450852367",
-    "all_implementation_head_workflows": "PASS",
-    "final_state_head_ci": "PENDING"
+    "core_ci": "PASS_32421147273",
+    "authenticated_dashboard_acceptance": "PASS_32421147345",
+    "offline_bundle": "PASS_32421147237",
+    "telemetry_service": "PASS_32421147379",
+    "acquisition_scale": "PASS_32421147349",
+    "device_agent_fleet": "PASS_32421147234",
+    "container_supply_chain": "PASS_32421147290",
+    "offline_auth": "PASS_32421147289",
+    "all_exact_head_workflows": "PASS"
   }
 }

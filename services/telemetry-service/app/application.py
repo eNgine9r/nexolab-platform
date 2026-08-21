@@ -9,6 +9,10 @@ from app.climate_catalog.api import create_climate_catalog_router
 from app.climate_catalog.repository import PostgresClimateCatalogRepository
 from app.config import Settings
 from app.durable_spool import DurableIngestionSpool
+from app.equipment_discovery.api import create_equipment_discovery_router
+from app.equipment_discovery.policy import DiscoveryPolicy
+from app.equipment_discovery.repository import EquipmentDiscoveryRepository
+from app.equipment_discovery.service import EquipmentDiscoveryService
 from app.latest_projection_reconcile import reconcile_latest_projection
 from app.main import create_app as create_base_app
 from app.refrigeration.sensor_configuration_api import (
@@ -30,8 +34,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.database,
         climate_catalog_repository=climate_catalog_repository,
     )
+    discovery_repository = EquipmentDiscoveryRepository(
+        app.state.database,
+        security_repository=app.state.security_repository,
+    )
+    discovery_policy = DiscoveryPolicy.from_settings(resolved)
+    discovery_service = EquipmentDiscoveryService(
+        discovery_repository,
+        discovery_policy,
+        schedule_interval_seconds=resolved.equipment_discovery_schedule_interval_seconds,
+        scheduled_organization_id=resolved.auth_default_organization_id,
+    )
     app.state.climate_catalog_repository = climate_catalog_repository
     app.state.sensor_configuration_repository = sensor_configuration_repository
+    app.state.equipment_discovery_repository = discovery_repository
+    app.state.equipment_discovery_policy = discovery_policy
+    app.state.equipment_discovery_service = discovery_service
     app.include_router(
         create_climate_catalog_router(
             climate_catalog_repository,
@@ -50,6 +68,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             default_organization_id=resolved.auth_default_organization_id,
         )
     )
+    app.include_router(
+        create_equipment_discovery_router(
+            discovery_repository,
+            discovery_service,
+            discovery_policy,
+            app.state.security_dependencies,
+            default_organization_id=resolved.auth_default_organization_id,
+        )
+    )
+    _install_equipment_discovery_lifespan(app)
     _install_latest_projection_reconciliation_lifespan(app)
     _install_durable_ingestion_lifespan(app)
     return app
@@ -96,6 +124,23 @@ def _install_durable_ingestion_lifespan(app: FastAPI) -> None:
             spool.close()
 
     app.router.lifespan_context = durable_lifespan
+
+
+def _install_equipment_discovery_lifespan(app: FastAPI) -> None:
+    service: EquipmentDiscoveryService = app.state.equipment_discovery_service
+    original_lifespan = app.router.lifespan_context
+
+    @asynccontextmanager
+    async def discovery_lifespan(application: FastAPI) -> AsyncIterator[None]:
+        service.reconcile_interrupted_scans()
+        service.start_scheduler()
+        try:
+            async with original_lifespan(application):
+                yield
+        finally:
+            await service.shutdown()
+
+    app.router.lifespan_context = discovery_lifespan
 
 
 app = create_app()

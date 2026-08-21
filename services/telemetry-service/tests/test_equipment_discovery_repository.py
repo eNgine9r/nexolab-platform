@@ -1,0 +1,727 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+
+import jwt
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from sqlalchemy import event, func, select
+from sqlalchemy.orm import Session
+
+from app.climate_catalog.models import MeasurementDevice
+from app.climate_catalog.repository import PostgresClimateCatalogRepository
+from app.db import Database
+from app.equipment_discovery.api import create_equipment_discovery_router
+from app.equipment_discovery.models import (
+    EquipmentDiscoveryCandidate,
+    EquipmentDiscoveryObservation,
+    EquipmentNetworkAsset,
+)
+from app.equipment_discovery.policy import DiscoveryPolicy
+from app.equipment_discovery.repository import EquipmentDiscoveryRepository
+from app.equipment_discovery.scanner import DiscoveryObservationInput, DiscoveryScanResult
+from app.model_registry import register_models
+from app.security.authentication import JwtAuthenticator, VerifiedIdentityClaims
+from app.security.authorization import Role
+from app.security.dependencies import SecurityDependencies
+from app.security.repository import AuditEventInput, SecurityRepository
+from app.config import Settings
+
+
+SECRET = "test-only-secret-with-sufficient-length"
+ISSUER = "https://identity.example.test"
+AUDIENCE = "nexolab-api"
+ORGANIZATION_ID = "11111111-1111-1111-1111-111111111111"
+
+
+def token(subject: str) -> str:
+    now = datetime.now(UTC)
+    return jwt.encode(
+        {
+            "sub": subject,
+            "iss": ISSUER,
+            "aud": AUDIENCE,
+            "iat": now,
+            "exp": now + timedelta(minutes=5),
+        },
+        SECRET,
+        algorithm="HS256",
+    )
+
+
+def headers(subject: str) -> dict[str, str]:
+    return {
+        "Authorization": f"Bearer {token(subject)}",
+        "X-Organization-ID": ORGANIZATION_ID,
+    }
+
+
+class StubDiscoveryService:
+    def __init__(self, policy: DiscoveryPolicy) -> None:
+        self.policy = policy
+        self.schedule_interval_seconds = 0
+        self.launched: list[tuple[str, str, tuple[str, ...], tuple[int, ...]]] = []
+
+    def launch(self, scan_id: str, *, organization_id: str, scope: object) -> None:
+        self.launched.append(
+            (
+                scan_id,
+                organization_id,
+                tuple(str(item) for item in scope.networks),
+                tuple(scope.ports),
+            )
+        )
+
+
+def build_fixture(tmp_path: Path) -> tuple[
+    TestClient,
+    Database,
+    SecurityRepository,
+    EquipmentDiscoveryRepository,
+    StubDiscoveryService,
+]:
+    register_models()
+    database = Database(f"sqlite:///{tmp_path / 'discovery.db'}")
+    database.create_schema()
+    security = SecurityRepository(database)
+    security.provision_organization(
+        organization_id=ORGANIZATION_ID,
+        slug="nexolab-lab",
+        name="NEXOLAB Lab",
+    )
+    for subject, role in (("engineer", Role.ENGINEER), ("viewer", Role.VIEWER)):
+        security.provision_membership(
+            organization_id=ORGANIZATION_ID,
+            claims=VerifiedIdentityClaims(
+                provider="test-oidc",
+                subject=subject,
+                email=None,
+                display_name=subject,
+            ),
+            roles={role},
+        )
+    climate = PostgresClimateCatalogRepository(database, security_repository=security)
+    climate.seed_default_catalog(organization_id=ORGANIZATION_ID)
+    repository = EquipmentDiscoveryRepository(database, security_repository=security)
+    policy = DiscoveryPolicy.from_settings(
+        Settings(
+            equipment_discovery_allowed_cidrs="192.168.50.0/29",
+            equipment_discovery_allowed_ports="80,443",
+            equipment_discovery_max_hosts=16,
+            equipment_discovery_max_ports=2,
+        )
+    )
+    service = StubDiscoveryService(policy)
+    dependencies = SecurityDependencies(
+        security,
+        mode="jwt",
+        authenticator=JwtAuthenticator(
+            public_key=SECRET,
+            algorithm="HS256",
+            issuer=ISSUER,
+            audience=AUDIENCE,
+            provider="test-oidc",
+        ),
+        default_organization_id=ORGANIZATION_ID,
+    )
+    app = FastAPI()
+    app.include_router(
+        create_equipment_discovery_router(
+            repository,
+            service,  # type: ignore[arg-type]
+            policy,
+            dependencies,
+            default_organization_id=ORGANIZATION_ID,
+        )
+    )
+    return TestClient(app), database, security, repository, service
+
+
+def audit(action: str, entity_type: str, entity_id: str) -> AuditEventInput:
+    return AuditEventInput(
+        organization_id=ORGANIZATION_ID,
+        actor_identity_id=None,
+        actor_subject="engineer",
+        actor_roles=frozenset({Role.ENGINEER}),
+        action=action,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
+
+
+def observation(
+    ip: str,
+    *,
+    fingerprint: str,
+    port: int = 443,
+    mac_address: str | None = None,
+    when: datetime | None = None,
+) -> DiscoveryObservationInput:
+    return DiscoveryObservationInput(
+        ip_address=ip,
+        mac_address=mac_address,
+        hostname=None,
+        source_interface=None,
+        source_subnet="192.168.50.0/29",
+        services=(
+            {
+                "port": port,
+                "transport": "tcp",
+                "service": "https" if port == 443 else "http",
+                "evidence": "connect_succeeded",
+            },
+        ),
+        evidence={
+            "neighbor_table": False,
+            "tcp_connect_only": True,
+            "payload_bytes_sent": 0,
+            "open_ports": [port],
+        },
+        observed_at=when or datetime.now(UTC),
+        fingerprint_sha256=fingerprint,
+    )
+
+
+def neighbor_observation(
+    ip: str,
+    *,
+    fingerprint: str,
+    when: datetime | None = None,
+) -> DiscoveryObservationInput:
+    return DiscoveryObservationInput(
+        ip_address=ip,
+        mac_address="aa:bb:cc:dd:ee:10",
+        hostname=None,
+        source_interface="eth0",
+        source_subnet="192.168.50.0/29",
+        services=(),
+        evidence={
+            "neighbor_table": True,
+            "tcp_connect_only": True,
+            "payload_bytes_sent": 0,
+            "open_ports": [],
+        },
+        observed_at=when or datetime.now(UTC),
+        fingerprint_sha256=fingerprint,
+    )
+
+
+def start_repo_scan(
+    repository: EquipmentDiscoveryRepository,
+    *,
+    actor: str = "engineer",
+    ports: tuple[int, ...] = (80, 443),
+) -> str:
+    row = repository.start_scan(
+        organization_id=ORGANIZATION_ID,
+        requested_cidrs=("192.168.50.0/29",),
+        requested_ports=ports,
+        host_budget=6,
+        probe_budget=6 * len(ports),
+        actor_subject=actor,
+        audit_event=audit("equipment_discovery.scan_started", "equipment_discovery_scan", "pending"),
+    )
+    return row.id
+
+
+def test_discovery_api_is_readable_but_mutations_require_equipment_manage(tmp_path: Path) -> None:
+    api, _, security, _, service = build_fixture(tmp_path)
+
+    overview = api.get("/api/v1/equipment-discovery", headers=headers("viewer"))
+    assert overview.status_code == 200
+    assert overview.json()["policy"]["enabled"] is True
+    assert overview.json()["policy"]["probe_mode"] == "tcp-connect-only"
+    assert overview.json()["policy"]["payload_bytes_sent_per_probe"] == 0
+    assert overview.json()["policy"]["schedule_interval_seconds"] == 0
+    assert overview.json()["candidate_total"] == 0
+    assert overview.json()["candidate_offset"] == 0
+    assert overview.json()["candidate_limit"] == 100
+
+    denied = api.post(
+        "/api/v1/equipment-discovery/scans",
+        headers=headers("viewer"),
+        json={"cidrs": ["192.168.50.0/30"], "ports": [443]},
+    )
+    assert denied.status_code == 403
+    assert service.launched == []
+
+    missing_cidrs = api.post(
+        "/api/v1/equipment-discovery/scans",
+        headers=headers("engineer"),
+        json={"cidrs": [], "ports": [443]},
+    )
+    assert missing_cidrs.status_code == 422
+    missing_ports = api.post(
+        "/api/v1/equipment-discovery/scans",
+        headers=headers("engineer"),
+        json={"cidrs": ["192.168.50.0/30"], "ports": []},
+    )
+    assert missing_ports.status_code == 422
+    assert service.launched == []
+
+    accepted = api.post(
+        "/api/v1/equipment-discovery/scans",
+        headers=headers("engineer"),
+        json={"cidrs": ["192.168.50.0/30"], "ports": [443]},
+    )
+    assert accepted.status_code == 202
+    scan_id = accepted.json()["id"]
+    assert service.launched == [
+        (scan_id, ORGANIZATION_ID, ("192.168.50.0/30",), (443,))
+    ]
+    events = security.list_audit_events(
+        organization_id=ORGANIZATION_ID,
+        entity_type="equipment_discovery_scan",
+        entity_id=scan_id,
+        limit=10,
+    )
+    assert len(events) == 1
+    assert events[0].action == "equipment_discovery.scan_started"
+
+
+def test_repository_persists_scan_diff_and_disappeared_lifecycle(tmp_path: Path) -> None:
+    _, database, _, repository, _ = build_fixture(tmp_path)
+    first_id = start_repo_scan(repository)
+    first_time = datetime.now(UTC)
+    first = repository.apply_scan_result(
+        first_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(
+                observation("192.168.50.2", fingerprint="a" * 64, when=first_time),
+                observation("192.168.50.3", fingerprint="b" * 64, when=first_time),
+            ),
+            hosts_considered=6,
+            probes_attempted=12,
+            duration_ms=25,
+            process_cpu_ms=4,
+            network_connect_attempts=12,
+            network_payload_bytes=0,
+        ),
+    )
+    assert first.status == "completed"
+    assert first.duration_ms == 25
+    assert first.process_cpu_ms == 4
+    assert first.network_connect_attempts == 12
+    assert first.network_payload_bytes == 0
+    assert first.trigger == "manual"
+    assert first.new_candidates == 2
+    assert first.changed_candidates == 0
+    assert first.disappeared_candidates == 0
+
+    second_id = start_repo_scan(repository)
+    second = repository.apply_scan_result(
+        second_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(
+                observation(
+                    "192.168.50.2",
+                    fingerprint="c" * 64,
+                    port=80,
+                    when=first_time + timedelta(minutes=1),
+                ),
+            ),
+            hosts_considered=6,
+            probes_attempted=12,
+        ),
+    )
+    assert second.new_candidates == 0
+    assert second.changed_candidates == 1
+    assert second.disappeared_candidates == 1
+    candidates = repository.list_candidates(organization_id=ORGANIZATION_ID)
+    by_ip = {item.ip_address: item for item in candidates}
+    assert by_ip["192.168.50.2"].present is True
+    assert by_ip["192.168.50.2"].changed_since_previous_scan is True
+    assert by_ip["192.168.50.3"].present is False
+    assert by_ip["192.168.50.3"].lifecycle == "disappeared"
+
+    with Session(database.engine) as session:
+        observation_count = int(
+            session.scalar(select(func.count()).select_from(EquipmentDiscoveryObservation)) or 0
+        )
+    assert observation_count == 3
+
+
+def test_mac_evidence_enriches_ip_candidate_without_duplicate_identity(tmp_path: Path) -> None:
+    _, _, _, repository, _ = build_fixture(tmp_path)
+    first_id = start_repo_scan(repository)
+    repository.apply_scan_result(
+        first_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(observation("192.168.50.2", fingerprint="4" * 64),),
+            hosts_considered=6,
+            probes_attempted=12,
+        ),
+    )
+    original = repository.list_candidates(organization_id=ORGANIZATION_ID)[0]
+    assert original.candidate_key == "ip:192.168.50.2"
+
+    second_id = start_repo_scan(repository)
+    repository.apply_scan_result(
+        second_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(
+                observation(
+                    "192.168.50.2",
+                    fingerprint="5" * 64,
+                    mac_address="aa:bb:cc:dd:ee:02",
+                ),
+            ),
+            hosts_considered=6,
+            probes_attempted=12,
+        ),
+    )
+    candidates = repository.list_candidates(organization_id=ORGANIZATION_ID)
+    assert len(candidates) == 1
+    enriched = candidates[0]
+    assert enriched.id == original.id
+    assert enriched.candidate_key == "ip:192.168.50.2"
+    assert enriched.mac_address == "aa:bb:cc:dd:ee:02"
+    assert enriched.present is True
+
+
+def test_same_mac_on_two_ips_remains_two_candidates(tmp_path: Path) -> None:
+    _, _, _, repository, _ = build_fixture(tmp_path)
+    scan_id = start_repo_scan(repository)
+    repository.apply_scan_result(
+        scan_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(
+                observation(
+                    "192.168.50.2",
+                    fingerprint="6" * 64,
+                    mac_address="aa:bb:cc:dd:ee:ff",
+                ),
+                observation(
+                    "192.168.50.3",
+                    fingerprint="7" * 64,
+                    mac_address="aa:bb:cc:dd:ee:ff",
+                ),
+            ),
+            hosts_considered=6,
+            probes_attempted=12,
+        ),
+    )
+    candidates = repository.list_candidates(organization_id=ORGANIZATION_ID)
+    assert {item.candidate_key for item in candidates} == {
+        "ip:192.168.50.2",
+        "ip:192.168.50.3",
+    }
+    assert {item.mac_address for item in candidates} == {"aa:bb:cc:dd:ee:ff"}
+
+
+def test_partial_port_scan_does_not_mark_unobserved_candidate_disappeared(tmp_path: Path) -> None:
+    _, _, _, repository, _ = build_fixture(tmp_path)
+    first_id = start_repo_scan(repository, ports=(80,))
+    repository.apply_scan_result(
+        first_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(observation("192.168.50.2", fingerprint="1" * 64, port=80),),
+            hosts_considered=6,
+            probes_attempted=6,
+        ),
+    )
+
+    partial_id = start_repo_scan(repository, ports=(443,))
+    partial = repository.apply_scan_result(
+        partial_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(observations=(), hosts_considered=6, probes_attempted=6),
+    )
+    candidate = repository.list_candidates(organization_id=ORGANIZATION_ID)[0]
+    assert partial.disappeared_candidates == 0
+    assert candidate.present is True
+    assert candidate.lifecycle == "new"
+
+    comparable_id = start_repo_scan(repository, ports=(80,))
+    comparable = repository.apply_scan_result(
+        comparable_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(observations=(), hosts_considered=6, probes_attempted=6),
+    )
+    candidate = repository.list_candidates(organization_id=ORGANIZATION_ID)[0]
+    assert comparable.disappeared_candidates == 1
+    assert candidate.present is False
+    assert candidate.lifecycle == "disappeared"
+
+
+def test_change_detection_compares_only_equivalent_scan_scope(tmp_path: Path) -> None:
+    _, _, _, repository, _ = build_fixture(tmp_path)
+    first_id = start_repo_scan(repository, ports=(80, 443))
+    repository.apply_scan_result(
+        first_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(observation("192.168.50.2", fingerprint="a" * 64, port=443),),
+            hosts_considered=6,
+            probes_attempted=12,
+        ),
+    )
+
+    partial_id = start_repo_scan(repository, ports=(443,))
+    partial = repository.apply_scan_result(
+        partial_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(observation("192.168.50.2", fingerprint="b" * 64, port=443),),
+            hosts_considered=6,
+            probes_attempted=6,
+        ),
+    )
+    assert partial.changed_candidates == 0
+    candidate = repository.list_candidates(organization_id=ORGANIZATION_ID)[0]
+    assert candidate.changed_since_previous_scan is False
+
+    comparable_id = start_repo_scan(repository, ports=(80, 443))
+    comparable = repository.apply_scan_result(
+        comparable_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(observation("192.168.50.2", fingerprint="c" * 64, port=443),),
+            hosts_considered=6,
+            probes_attempted=12,
+        ),
+    )
+    assert comparable.changed_candidates == 1
+    candidate = repository.list_candidates(organization_id=ORGANIZATION_ID)[0]
+    assert candidate.changed_since_previous_scan is True
+
+
+def test_neighbor_only_candidate_expires_when_neighbor_evidence_disappears(tmp_path: Path) -> None:
+    _, _, _, repository, _ = build_fixture(tmp_path)
+    first_id = start_repo_scan(repository, ports=(80,))
+    repository.apply_scan_result(
+        first_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(neighbor_observation("192.168.50.2", fingerprint="d" * 64),),
+            hosts_considered=6,
+            probes_attempted=6,
+        ),
+    )
+    candidate = repository.list_candidates(organization_id=ORGANIZATION_ID)[0]
+    assert candidate.present is True
+    assert candidate.services == ()
+
+    second_id = start_repo_scan(repository, ports=(443,))
+    second = repository.apply_scan_result(
+        second_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(observations=(), hosts_considered=6, probes_attempted=6),
+    )
+    candidate = repository.list_candidates(organization_id=ORGANIZATION_ID)[0]
+    assert second.disappeared_candidates == 1
+    assert candidate.present is False
+    assert candidate.lifecycle == "disappeared"
+
+
+def test_overview_paginates_candidates_beyond_first_500_rows(tmp_path: Path) -> None:
+    api, database, _, repository, _ = build_fixture(tmp_path)
+    scan_id = start_repo_scan(repository)
+    observed_at = datetime.now(UTC)
+    with Session(database.engine) as session, session.begin():
+        session.add_all(
+            [
+                EquipmentDiscoveryCandidate(
+                    id=f"candidate-{index:04d}",
+                    organization_id=ORGANIZATION_ID,
+                    candidate_key=f"ip:10.0.{index // 250}.{index % 250 + 1}",
+                    ip_address=f"10.0.{index // 250}.{index % 250 + 1}",
+                    mac_address=None,
+                    hostname=None,
+                    source_interface=None,
+                    source_subnet="10.0.0.0/16",
+                    lifecycle="new",
+                    present=True,
+                    first_seen_at=observed_at,
+                    last_seen_at=observed_at,
+                    last_scan_id=scan_id,
+                    linked_equipment_key=None,
+                    version=1,
+                )
+                for index in range(501)
+            ]
+        )
+
+    first_page = api.get(
+        "/api/v1/equipment-discovery?candidate_offset=0&candidate_limit=500",
+        headers=headers("viewer"),
+    )
+    assert first_page.status_code == 200
+    assert first_page.json()["candidate_total"] == 501
+    assert len(first_page.json()["candidates"]) == 500
+
+    second_page = api.get(
+        "/api/v1/equipment-discovery?candidate_offset=500&candidate_limit=100",
+        headers=headers("viewer"),
+    )
+    assert second_page.status_code == 200
+    assert second_page.json()["candidate_total"] == 501
+    assert second_page.json()["candidate_offset"] == 500
+    assert second_page.json()["candidate_limit"] == 100
+    assert len(second_page.json()["candidates"]) == 1
+
+
+def test_list_candidates_batches_recent_observation_lookup(tmp_path: Path) -> None:
+    _, database, _, repository, _ = build_fixture(tmp_path)
+    scan_id = start_repo_scan(repository)
+    repository.apply_scan_result(
+        scan_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(
+                observation("192.168.50.2", fingerprint="2" * 64),
+                observation("192.168.50.3", fingerprint="3" * 64),
+            ),
+            hosts_considered=6,
+            probes_attempted=12,
+        ),
+    )
+    observation_selects: list[str] = []
+
+    def capture_observation_select(
+        _connection: object,
+        _cursor: object,
+        statement: str,
+        _parameters: object,
+        _context: object,
+        _executemany: bool,
+    ) -> None:
+        normalized = statement.lower().lstrip()
+        if normalized.startswith("select") and "equipment_discovery_observations" in normalized:
+            observation_selects.append(statement)
+
+    event.listen(database.engine, "before_cursor_execute", capture_observation_select)
+    try:
+        candidates = repository.list_candidates(organization_id=ORGANIZATION_ID)
+    finally:
+        event.remove(database.engine, "before_cursor_execute", capture_observation_select)
+
+    assert len(candidates) == 2
+    assert len(observation_selects) == 1
+
+
+def test_candidate_actions_are_versioned_audited_and_adoption_is_admin_only(tmp_path: Path) -> None:
+    api, database, security, repository, _ = build_fixture(tmp_path)
+    scan_id = start_repo_scan(repository)
+    repository.apply_scan_result(
+        scan_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(observation("192.168.50.2", fingerprint="d" * 64),),
+            hosts_considered=6,
+            probes_attempted=12,
+        ),
+    )
+    candidate = repository.list_candidates(organization_id=ORGANIZATION_ID)[0]
+
+    viewer = api.patch(
+        f"/api/v1/equipment-discovery/candidates/{candidate.id}",
+        headers={**headers("viewer"), "If-Match": f'W/"equipment-discovery-candidate-v{candidate.version}"'},
+        json={"action": "review"},
+    )
+    assert viewer.status_code == 403
+
+    reviewed = api.patch(
+        f"/api/v1/equipment-discovery/candidates/{candidate.id}",
+        headers={
+            **headers("engineer"),
+            "If-Match": f'W/"equipment-discovery-candidate-v{candidate.version}"',
+            "X-Audit-Reason": "Reviewed discovery evidence",
+        },
+        json={"action": "review"},
+    )
+    assert reviewed.status_code == 200
+    reviewed_candidate = reviewed.json()["candidate"]
+    assert reviewed_candidate["lifecycle"] == "reviewed"
+    assert reviewed.headers["etag"] == 'W/"equipment-discovery-candidate-v2"'
+
+    stale = api.patch(
+        f"/api/v1/equipment-discovery/candidates/{candidate.id}",
+        headers={**headers("engineer"), "If-Match": 'W/"equipment-discovery-candidate-v1"'},
+        json={"action": "ignore"},
+    )
+    assert stale.status_code == 409
+    assert stale.json()["detail"]["code"] == "equipment_discovery_candidate_version_conflict"
+
+    with Session(database.engine) as session:
+        device_count_before = int(session.scalar(select(func.count()).select_from(MeasurementDevice)) or 0)
+
+    blank_name = api.patch(
+        f"/api/v1/equipment-discovery/candidates/{candidate.id}",
+        headers={**headers("engineer"), "If-Match": 'W/"equipment-discovery-candidate-v2"'},
+        json={"action": "adopt", "display_name": "   "},
+    )
+    assert blank_name.status_code == 422
+
+    adopted = api.patch(
+        f"/api/v1/equipment-discovery/candidates/{candidate.id}",
+        headers={**headers("engineer"), "If-Match": 'W/"equipment-discovery-candidate-v2"'},
+        json={"action": "adopt", "display_name": "  LAB network device  "},
+    )
+    assert adopted.status_code == 200
+    assert adopted.json()["candidate"]["lifecycle"] == "adopted"
+    network_asset = adopted.json()["network_asset"]
+    assert network_asset["asset_key"].startswith("network:")
+    assert network_asset["display_name"] == "LAB network device"
+
+    with Session(database.engine) as session:
+        device_count_after = int(session.scalar(select(func.count()).select_from(MeasurementDevice)) or 0)
+        network_count = int(session.scalar(select(func.count()).select_from(EquipmentNetworkAsset)) or 0)
+    assert device_count_after == device_count_before
+    assert network_count == 1
+
+    events = security.list_audit_events(
+        organization_id=ORGANIZATION_ID,
+        entity_type="equipment_discovery_candidate",
+        entity_id=candidate.id,
+        limit=10,
+    )
+    assert [event.action for event in events] == [
+        "equipment_discovery.candidate_adopt",
+        "equipment_discovery.candidate_review",
+    ]
+
+
+def test_link_existing_accepts_only_real_canonical_registry_keys(tmp_path: Path) -> None:
+    api, _, _, repository, _ = build_fixture(tmp_path)
+    scan_id = start_repo_scan(repository)
+    repository.apply_scan_result(
+        scan_id,
+        organization_id=ORGANIZATION_ID,
+        result=DiscoveryScanResult(
+            observations=(observation("192.168.50.4", fingerprint="e" * 64),),
+            hosts_considered=6,
+            probes_attempted=12,
+        ),
+    )
+    candidate = repository.list_candidates(organization_id=ORGANIZATION_ID)[0]
+
+    invalid = api.patch(
+        f"/api/v1/equipment-discovery/candidates/{candidate.id}",
+        headers={**headers("engineer"), "If-Match": f'W/"equipment-discovery-candidate-v{candidate.version}"'},
+        json={"action": "link_existing", "linked_equipment_key": "device:not-real"},
+    )
+    assert invalid.status_code == 404
+    assert invalid.json()["detail"]["code"] == "equipment_discovery_link_target_not_found"
+
+    with Session(repository._engine) as session:  # noqa: SLF001 - test verifies canonical storage directly
+        real_device = session.scalar(
+            select(MeasurementDevice).where(MeasurementDevice.organization_id == ORGANIZATION_ID).limit(1)
+        )
+    assert real_device is not None
+    linked = api.patch(
+        f"/api/v1/equipment-discovery/candidates/{candidate.id}",
+        headers={**headers("engineer"), "If-Match": f'W/"equipment-discovery-candidate-v{candidate.version}"'},
+        json={"action": "link_existing", "linked_equipment_key": f"device:{real_device.id}"},
+    )
+    assert linked.status_code == 200
+    assert linked.json()["candidate"]["lifecycle"] == "matched_existing"
+    assert linked.json()["candidate"]["linked_equipment_key"] == f"device:{real_device.id}"
+    assert linked.json()["network_asset"] is None
