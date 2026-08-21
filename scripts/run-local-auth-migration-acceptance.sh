@@ -47,7 +47,7 @@ postgres_diagnostics() {
     'network={{.Name}} driver={{.Driver}} scope={{.Scope}}' >&2 || true
   docker inspect "$POSTGRES_CONTAINER" --format \
     'container={{.Name}} status={{.State.Status}} exit_code={{.State.ExitCode}} error={{json .State.Error}}' >&2 || true
-  docker logs --tail 50 "$POSTGRES_CONTAINER" >&2 2>/dev/null || true
+  docker logs --tail 50 "$POSTGRES_CONTAINER" >&2 || true
 }
 
 start_postgres_container() {
