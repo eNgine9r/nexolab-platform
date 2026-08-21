@@ -170,6 +170,7 @@ class EquipmentDiscoveryObservation(Base):
             "organization_id",
             "candidate_id",
             "observed_at",
+            "id",
         ),
     )
 
