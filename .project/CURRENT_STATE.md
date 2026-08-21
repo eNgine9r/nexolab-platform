@@ -70,9 +70,9 @@ The controlled 2026-08-21 LOCAL_LAN cutover is healthy. No #606 production deplo
 
 ## Current planning boundary
 
-There is **no active product Work Package** after completion of #606. Product Owner planning / Ready audit is the next decision point.
+There is **no active product Work Package** after completion of #606 while state-only Issue #641 / PR #642 is being reconciled.
 
-Known queue state:
+Known product queue state:
 
 - #633 — Ready/high: deterministically stop the isolated frontend candidate after successful Raspberry Pi deployment; **not started**;
 - #618 — independent Saved Dashboard CSV browser-download reliability lane;
@@ -81,7 +81,15 @@ Known queue state:
 - #590 — blocked on #589;
 - #585 — blocked pending explicit physical W2 / Unit 201 handback confirmation.
 
-Do not infer that #633 or any other item has been selected merely because it is Ready. The next Work Package will be chosen after the Product Owner reviews priorities.
+Required maintenance/evidence lanes remain visible and are not completed by #606:
+
+- #598 follow-up — four temporary `CVE-2026-14456` exceptions expire **2026-08-26**; remove earlier if Debian publishes a fixed package or QUIC runtime reachability changes;
+- #444 — `status:needs-validation`, priority critical: LOCAL_LAN user-administration API acceptance;
+- #245 — `status:needs-validation`, priority critical: actual standalone loopback-only Raspberry Pi acceptance;
+- #201 — `status:needs-validation`, priority high: approved LE-01MP restart/power-cycle boundary;
+- #189 — `status:blocked`, priority high: actual-host backup/restore/rollback/power-loss recovery evidence.
+
+After #641 is merged, perform a fresh Ready audit across GitHub and the machine-readable Sprint state before selecting the next Work Package. #633 is the current expected Ready candidate, not a pre-authorized hardware/deployment action.
 
 ## Safety boundaries
 
