@@ -482,7 +482,10 @@ class EquipmentDiscoveryRepository:
                     parsed_ip = ip_address(candidate.ip_address)
                     if not isinstance(parsed_ip, IPv4Address):
                         continue
-                    if not any(parsed_ip in network for network in scan_networks):
+                    if not any(
+                        _network_includes_scannable_host(network, parsed_ip)
+                        for network in scan_networks
+                    ):
                         continue
                     latest = previous_observations.get(candidate.id, ())
                     if not latest:
@@ -937,6 +940,14 @@ class EquipmentDiscoveryRepository:
                     row.process_cpu_ms = result.process_cpu_ms
                     row.network_connect_attempts = result.network_connect_attempts
                     row.network_payload_bytes = result.network_payload_bytes
+
+
+def _network_includes_scannable_host(network: IPv4Network, address: IPv4Address) -> bool:
+    if address not in network:
+        return False
+    if network.prefixlen >= 31:
+        return True
+    return address != network.network_address and address != network.broadcast_address
 
 
 def _scan_scope_key(requested_cidrs: tuple[str, ...], requested_ports: tuple[int, ...]) -> str:
