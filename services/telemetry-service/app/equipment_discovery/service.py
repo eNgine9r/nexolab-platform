@@ -4,7 +4,8 @@ import asyncio
 import logging
 from collections.abc import Callable
 
-from sqlalchemy.exc import DBAPIError
+from psycopg import OperationalError as PsycopgOperationalError
+from sqlalchemy.exc import DBAPIError, OperationalError as SqlAlchemyOperationalError
 
 from app.equipment_discovery.policy import DiscoveryPolicy, ResolvedDiscoveryScope
 from app.equipment_discovery.repository import (
@@ -222,6 +223,8 @@ def _is_retryable_database_error(error: DBAPIError) -> bool:
     if error.connection_invalidated:
         return True
     sqlstate = getattr(error.orig, "sqlstate", None) or getattr(error.orig, "pgcode", None)
-    if not isinstance(sqlstate, str):
-        return False
-    return sqlstate.startswith("08") or sqlstate in _RETRYABLE_TRANSACTION_SQLSTATES
+    if isinstance(sqlstate, str):
+        return sqlstate.startswith("08") or sqlstate in _RETRYABLE_TRANSACTION_SQLSTATES
+    return isinstance(error, SqlAlchemyOperationalError) and isinstance(
+        error.orig, PsycopgOperationalError
+    )
