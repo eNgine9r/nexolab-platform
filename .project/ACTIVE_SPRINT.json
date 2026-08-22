@@ -18,14 +18,14 @@
     "max_parallel_implementation_tasks": 1,
     "verification_policy": "proportional_to_changed_product_surface"
   },
-  "repository_product_baseline_sha": "7bb2115ef739daf2406c71110162b6d68c713f95",
-  "accepted_product_sha": "7bb2115ef739daf2406c71110162b6d68c713f95",
-  "last_reconciled_repository_sha": "7bb2115ef739daf2406c71110162b6d68c713f95",
+  "repository_product_baseline_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
+  "accepted_product_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
+  "last_reconciled_repository_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
   "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
   "selection_state": {
-    "selected_issue": 633,
-    "selection_status": "issue_633_in_progress_final_exact_head_gate",
-    "reason": "Issue #633 is the single active Work Package in PR #643. Latest software refinement is 0436c0a6: candidate cleanup retains structural liveness guards before Bash wait without globally overriding wait semantics. Exact-head CI and fresh review on the final state-checkpoint head remain the merge gates. Raspberry Pi runtime verification remains unverified while the Pi is offline."
+    "selected_issue": null,
+    "selection_status": "issue_633_completed_post_merge_reconciliation_in_progress",
+    "reason": "Issue #633 is GREEN merged and closed status:done. Issue #644 is state-only reconciliation. No product Work Package is selected until the fresh GitHub Ready audit after #644 merges."
   },
   "tasks": [
     {
@@ -44,30 +44,20 @@
       "id": "NEXOLAB-633",
       "issue": 633,
       "title": "Stop isolated frontend candidate after successful Raspberry Pi deployment",
-      "status": "in_progress_final_exact_head_gate",
+      "status": "completed_green_merged",
       "priority": "high",
       "pull_request": 643,
-      "branch": "fix/633-frontend-candidate-cleanup",
-      "latest_software_refinement_sha": "0436c0a663d9d7416a487cb61a69626cf1f786dd",
-      "initial_ci": "PASS_32514504593_AT_87AFC111",
-      "intermediate_ci": [
-        "PASS_32517056093_AT_08884615",
-        "PASS_32519957941_AT_A7D91AF1",
-        "PASS_32521673945_AT_B3420A3B",
-        "PASS_32523415155_AT_C2873686",
-        "PASS_32563481255_AT_7BF2604C"
-      ],
-      "final_exact_head_ci": "PENDING_FINAL_STATE_CHECKPOINT_HEAD",
-      "review": "PENDING_FRESH_REVIEW_ON_FINAL_STATE_CHECKPOINT_HEAD",
-      "candidate_startup_gate": "SOFTWARE_IMPLEMENTED",
-      "candidate_process_isolation": "SOFTWARE_IMPLEMENTED",
-      "candidate_pgid_handshake": "SOFTWARE_IMPLEMENTED",
-      "prepublication_cleanup_recheck": "SOFTWARE_IMPLEMENTED",
-      "zombie_only_group_handling": "SOFTWARE_IMPLEMENTED",
-      "candidate_wait_liveness_guard": "SOFTWARE_IMPLEMENTED_AND_REGRESSION_TESTED",
+      "final_pr_head_sha": "5d1f1f82ad555b68cab8ce9205283cf939d3be09",
+      "merge_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
+      "exact_head_ci": "PASS_32564575388_AT_5D1F1F82",
+      "review_threads": "PASS_ALL_EXISTING_P1_P2_RESOLVED",
+      "fresh_codex_review": "UNAVAILABLE_USAGE_LIMIT",
+      "team_lead_final_review": "PASS_NO_MERGE_BLOCKING_FINDING",
+      "candidate_startup_gate": "SOFTWARE_VERIFIED",
+      "candidate_process_isolation": "SOFTWARE_VERIFIED",
+      "candidate_pgid_handshake": "SOFTWARE_VERIFIED",
+      "candidate_wait_liveness_guard": "SOFTWARE_VERIFIED",
       "bash_wait_override": "NONE",
-      "exit_cleanup_failure_reporting": "SOFTWARE_IMPLEMENTED",
-      "candidate_cleanup_regression_in_ci": "SOFTWARE_IMPLEMENTED",
       "runtime_pi_verification": "UNVERIFIED_PI_OFFLINE",
       "production_cutover": false,
       "modbus_write": "NONE",
@@ -151,42 +141,18 @@
       "priority": "high"
     }
   ],
-  "active_work_package": {
-    "issue": 633,
-    "title": "Stop isolated frontend candidate after successful Raspberry Pi deployment",
-    "pull_request": 643,
-    "branch": "fix/633-frontend-candidate-cleanup",
-    "status": "final_exact_head_ci_review_gate",
-    "latest_software_refinement_sha": "0436c0a663d9d7416a487cb61a69626cf1f786dd",
-    "runtime_pi_verification": "unverified_pi_offline",
-    "production_cutover_authorized": false
-  },
+  "active_work_package": null,
   "next_work_package": null,
   "verification": {
-    "repository_main_sha": "7bb2115ef739daf2406c71110162b6d68c713f95",
+    "repository_main_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
     "runtime_repository_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
     "issue_633_pull_request": 643,
-    "issue_633_latest_software_refinement_sha": "0436c0a663d9d7416a487cb61a69626cf1f786dd",
-    "issue_633_initial_ci": "PASS_32514504593_AT_87AFC111",
-    "issue_633_intermediate_ci": [
-      "PASS_32517056093_AT_08884615",
-      "PASS_32519957941_AT_A7D91AF1",
-      "PASS_32521673945_AT_B3420A3B",
-      "PASS_32523415155_AT_C2873686",
-      "PASS_32563481255_AT_7BF2604C"
-    ],
-    "issue_633_final_exact_head_ci": "PENDING_FINAL_STATE_CHECKPOINT_HEAD",
-    "issue_633_review": "PENDING_FRESH_REVIEW",
-    "issue_633_candidate_startup_gate": "SOFTWARE_IMPLEMENTED",
-    "issue_633_candidate_process_isolation": "SOFTWARE_IMPLEMENTED",
-    "issue_633_candidate_pgid_handshake": "SOFTWARE_IMPLEMENTED",
-    "issue_633_prepublication_cleanup_recheck": "SOFTWARE_IMPLEMENTED",
-    "issue_633_zombie_only_group_handling": "SOFTWARE_IMPLEMENTED",
-    "issue_633_candidate_wait_liveness_guard": "SOFTWARE_IMPLEMENTED_AND_REGRESSION_TESTED",
-    "issue_633_bash_wait_override": "NONE",
-    "issue_633_exit_cleanup_failure_reporting": "SOFTWARE_IMPLEMENTED",
-    "issue_633_candidate_cleanup_regression_in_ci": "SOFTWARE_IMPLEMENTED",
-    "issue_633_candidate_port_release": "SOFTWARE_IMPLEMENTED",
+    "issue_633_final_pr_head_sha": "5d1f1f82ad555b68cab8ce9205283cf939d3be09",
+    "issue_633_merge_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
+    "issue_633_exact_head_ci": "PASS_32564575388_AT_5D1F1F82",
+    "issue_633_review_threads": "PASS_ALL_EXISTING_P1_P2_RESOLVED",
+    "issue_633_fresh_codex_review": "UNAVAILABLE_USAGE_LIMIT",
+    "issue_633_team_lead_final_review": "PASS_NO_MERGE_BLOCKING_FINDING",
     "issue_633_runtime_pi_verification": "UNVERIFIED_PI_OFFLINE",
     "issue_633_production_cutover": "NOT_PERFORMED"
   },
@@ -201,50 +167,17 @@
     }
   ],
   "independent_pending_lanes": [
-    {
-      "issue": 618,
-      "status": "open_independent_reliability_lane"
-    },
-    {
-      "issue": 607,
-      "status": "queued_before_589"
-    },
-    {
-      "issue": 589,
-      "status": "blocked_bus_architecture_607"
-    },
-    {
-      "issue": 590,
-      "status": "blocked_dependency_589"
-    },
-    {
-      "issue": 585,
-      "status": "blocked"
-    },
-    {
-      "issue": 444,
-      "status": "needs_validation"
-    },
-    {
-      "issue": 245,
-      "status": "needs_validation"
-    },
-    {
-      "issue": 200,
-      "status": "hardware_validation_pending_topology_envelope"
-    },
-    {
-      "issue": 201,
-      "status": "needs_validation_hardware_power_cycle"
-    },
-    {
-      "issue": 202,
-      "status": "hardware_validation_pending_unit_115_kk2"
-    },
-    {
-      "issue": 189,
-      "status": "blocked_actual_host_recovery_evidence"
-    }
+    {"issue": 618, "status": "open_independent_reliability_lane"},
+    {"issue": 607, "status": "queued_before_589"},
+    {"issue": 589, "status": "blocked_bus_architecture_607"},
+    {"issue": 590, "status": "blocked_dependency_589"},
+    {"issue": 585, "status": "blocked"},
+    {"issue": 444, "status": "needs_validation"},
+    {"issue": 245, "status": "needs_validation"},
+    {"issue": 200, "status": "hardware_validation_pending_topology_envelope"},
+    {"issue": 201, "status": "needs_validation_hardware_power_cycle"},
+    {"issue": 202, "status": "hardware_validation_pending_unit_115_kk2"},
+    {"issue": 189, "status": "blocked_actual_host_recovery_evidence"}
   ],
   "safety": {
     "modbus_write": "none",

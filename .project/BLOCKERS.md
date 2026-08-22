@@ -4,22 +4,13 @@ Updated: 2026-08-22
 
 ## Current Work Package boundary
 
-Issue #633 is active `status:in-progress` in PR #643 (`fix/633-frontend-candidate-cleanup`). Latest software refinement before the final state checkpoint is `0436c0a663d9d7416a487cb61a69626cf1f786dd`.
+Issue #633 is complete. PR #643 squash-merged GREEN into `main` as `6d223415deebf1a44bb52ba4fcaa3c5db9b03697`; Issue #633 is closed `status:done`.
 
-The candidate lifecycle uses a parent/child startup gate so Next.js cannot execute before the parent records the exact background PID. After release, PGID publication is confirmed with `ps`; cleanup re-checks an unpublished PID for an already-established exact process group before using exact-PID fallback. Established groups use bounded TERM → KILL cleanup. Both exact-PID and process-group paths verify the candidate is no longer live before invoking Bash `wait`; if it remains live after the bounded TERM/KILL windows, cleanup returns failure instead of hanging indefinitely. Bash `wait` is not globally overridden. Zombie-only members do not count as executable work, EXIT cleanup failures are surfaced, and the focused cleanup regression suite is part of the standalone runtime CI entry point.
+Issue #644 is a state-only post-merge reconciliation package. It changes only `.project/CURRENT_STATE.md`, `.project/ACTIVE_SPRINT.json`, `.project/BLOCKERS.md`, and `.project/LAST_CHECKPOINT.json`. It introduces no product/runtime, dependency, migration, Modbus, hardware, or deployment behavior.
 
-Verified software gates:
+There is no remaining #633 software/CI/review blocker. Real Raspberry Pi post-deployment runtime verification remains `UNVERIFIED_PI_OFFLINE` and must not be represented as completed hardware acceptance.
 
-- Core CI `32514504593` on `87afc111...`: PASS;
-- Core CI `32517056093` on `08884615...`: PASS;
-- Core CI `32519957941` on `a7d91af1...`: PASS;
-- Core CI `32521673945` on `b3420a3b...`: PASS;
-- Core CI `32523415155` on `c2873686...`: PASS;
-- Core CI `32563481255` on `7bf2604c...`: PASS.
-
-Fresh review on GREEN head `7bf2604c...` found one final maintainability risk: `scripts/lib/frontend-candidate-liveness.sh` globally shadowed Bash `wait` although the deployment cleanup already guards `wait` behind explicit liveness checks. Refinement `0436c0a6...` removes that global override without broadening process matching or changing production Dashboard semantics. Final exact-head CI and fresh review on the new state-checkpoint head remain the only software merge gates.
-
-The remote Raspberry Pi `nexolab-edge-01` is currently offline. This is a soft blocker only for real post-deployment runtime evidence. No production/site cutover is authorized by #633, so no deployment is being attempted.
+The requested final Codex automated review for #633 could not run because the code-review usage limit was reached. This is a tooling limitation, not a software/runtime failure; all existing P1/P2 review threads are resolved and the exact final diff received Team Lead review before GREEN merge.
 
 ## Security maintenance — CVE-2026-14456 deadline
 
@@ -31,11 +22,11 @@ Required maintenance action: re-check Debian/fixed-package availability and remo
 
 ## Issue #618 — independent reliability lane
 
-Saved Dashboard CSV browser-download reliability remains an independent open lane. It does not block #633 unless a required verification gate demonstrates a direct dependency.
+Saved Dashboard CSV browser-download reliability remains an independent open lane. Its formal Ready status must be established by the post-#644 GitHub Ready audit before implementation starts.
 
-## Issue #607 — queued architecture prerequisite
+## Issue #607 — architecture prerequisite lane
 
-Dual RS-485 KK1/KK2 software isolation is queued before #589. Software architecture may proceed independently when selected, but any physical bus cutover/hardware action remains unapproved.
+Dual RS-485 KK1/KK2 software isolation is queued before #589. Its formal Ready status must be established by the post-#644 GitHub Ready audit. Any physical bus cutover/hardware action remains unapproved.
 
 ## Issue #589 — blocked on #607
 
@@ -61,8 +52,8 @@ Restoring LE-01MP W2 / Unit 201 remains blocked until the Product Owner confirms
 ## Non-blocking maintenance
 
 - #615 tracks the authenticated-dashboard generated Compose project-name defect; explicit lowercase overrides remain the local workaround.
-- Existing production remains deployed from `6e387485b68fb862d9f82ae7f6000b1f5b672764` until a separately authorized deployment/cutover.
+- Production remains deployed from `6e387485b68fb862d9f82ae7f6000b1f5b672764` until a separately authorized deployment/cutover.
 
 ## Safety boundaries
 
-No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover, or mandatory cloud runtime dependency is authorized by Issue #633.
+No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover, or mandatory cloud runtime dependency is authorized by Issue #644 or any unselected queued lane.
