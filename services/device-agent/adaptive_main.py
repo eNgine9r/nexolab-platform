@@ -57,7 +57,9 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
 
     def acquisition_snapshot(self) -> dict[str, Any]:
         payload = super().acquisition_snapshot()
-        payload["polling_policy"] = "priority_adaptive_v1"
+        payload["polling_policy"] = "persisted_device_cadence_v2"
+        payload["cadence_policy_revision"] = self._registry_snapshot().revision
+        payload["capacity_validation"] = self.capacity_configuration()
         payload["scheduler"] = self.scheduler.snapshot()
         return payload
 
@@ -99,6 +101,16 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
         actor: str,
     ) -> dict[str, Any]:
         result = super().update_registry(payload, actor=actor)
+        self.scheduler.reconcile(self._registry_snapshot())
+        return result
+
+    def update_cadence(
+        self,
+        payload: dict[str, Any],
+        *,
+        actor: str,
+    ) -> dict[str, Any]:
+        result = super().update_cadence(payload, actor=actor)
         self.scheduler.reconcile(self._registry_snapshot())
         return result
 
