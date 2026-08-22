@@ -47,7 +47,7 @@ Register `7`, observed as a cumulative-energy candidate, is deliberately exclude
 
 ### Combined Modbus acquisition
 
-`DEVICE_MODE=modbus` schedules both configured driver families through the same read-only serial client and one serialized worker per registry bus:
+`DEVICE_MODE=modbus` schedules both configured driver families through the read-only adaptive acquisition runtime. In legacy single-bus mode both families use the configured `SERIAL_DEVICE`. In explicit multi-bus mode each registry device is dispatched to the `ModbusRTUClient` owned by its logical `bus_id`.
 
 ```dotenv
 DEVICE_MODE=modbus
@@ -94,6 +94,8 @@ Reading these endpoints never initiates Modbus acquisition. See `docs/operations
 
 ## Serial configuration
 
+### Legacy single-bus configuration
+
 ```dotenv
 SERIAL_DEVICE=/dev/rs485
 SERIAL_BAUDRATE=9600
@@ -102,6 +104,50 @@ SERIAL_STOPBITS=1
 SERIAL_TIMEOUT_SECONDS=0.30
 SERIAL_RETRIES=1
 ```
+
+### Explicit isolated buses
+
+The hardware Compose overlay uses `dual_bus_main.py`. When `RS485_BUS_CONFIG_JSON` is empty, the entrypoint preserves the exact legacy `SERIAL_DEVICE` / `rs485-main` path.
+
+When the variable is set, it must describe every physical bus explicitly. Production device paths must be stable `/dev/serial/by-id/...` identities as visible in the container under `/host/dev/serial/by-id/...`.
+
+Example shape:
+
+```json
+[
+  {
+    "bus_id": "rs485-kk1",
+    "serial_device": "/host/dev/serial/by-id/REPLACE_WITH_KK1_ADAPTER",
+    "unit_ids": [126, 127, 128],
+    "baudrate": 9600,
+    "parity": "N",
+    "stopbits": 1,
+    "timeout_seconds": 0.3,
+    "retries": 1
+  },
+  {
+    "bus_id": "rs485-kk2",
+    "serial_device": "/host/dev/serial/by-id/REPLACE_WITH_KK2_ADAPTER",
+    "unit_ids": [101, 102, 103],
+    "baudrate": 9600,
+    "parity": "N",
+    "stopbits": 1,
+    "timeout_seconds": 0.3,
+    "retries": 1
+  }
+]
+```
+
+The current XJP60D catalog maps KK2 to Unit IDs `101..115` and KK1 to `126..138`. LE-01MP Unit IDs `200..203` have no repository-backed KK1/KK2 ownership yet and must be assigned explicitly before combined dual-bus operation.
+
+Duplicate bus IDs, duplicate stable paths, ambiguous Unit ownership, malformed serial settings and unassigned registry devices fail closed. Discovery is partitioned by bus and newly responsive controllers are persisted as `discovery_only` on the bus where they were read.
+
+`GET /metrics` and health payloads expose per-bus scheduler state plus bounded physical request rate, retry/timeout/error counters and recent latency average/p95/max. A missing configured bus with active targets fails health closed. A configured bus with no active targets remains hardware-unverified without failing the active runtime.
+
+See:
+
+- `docs/architecture/dual-rs485-bus-isolation.md`;
+- `infrastructure/compose/.env.dual-rs485.example`.
 
 ## Telemetry
 
@@ -162,4 +208,4 @@ docker compose \
 
 `compose.hardware.yaml` defaults to `HARDWARE_DEVICE_MODE=xjp60d` for backward compatibility. Set `HARDWARE_DEVICE_MODE=modbus` only for an explicit combined validation of XJP60D and LE-01MP.
 
-Before cutover, stop every other Modbus master on the same RS-485 segment and confirm `RS485_HOST_DEVICE` points to the stable `/dev/serial/by-id/...` adapter path.
+Before any physical cutover, stop every other Modbus master on the affected RS-485 segment and confirm every configured adapter path is the intended stable `/dev/serial/by-id/...` identity. Issue #607 does not authorize wiring changes, hardware writes or site cutover.
