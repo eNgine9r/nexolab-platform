@@ -1,7 +1,7 @@
 # AI Development Operating Standard
 
-Version: 1.0  
-Effective date: 2026-07-31
+Version: 1.1  
+Effective date: 2026-08-22
 
 This document is the shared operating model for product planning, implementation, verification and continuity across ChatGPT, Codex, PowerShell and GitHub.
 
@@ -90,6 +90,9 @@ A task is not Done without required code, runtime and user-flow evidence.
 - One Issue maps to one branch and one focused Pull Request.
 - Unrelated cleanup is not bundled into a feature PR.
 - Architecture changes require a recorded decision.
+- Local commits and targeted checks may be frequent; pushes that trigger expensive remote CI should represent a coherent candidate, not every micro-fix.
+- After a remote review/CI cycle, batch related fixes when safe and rerun the smallest relevant local/targeted checks before publishing the next candidate.
+- A final exact-head gate is required after the last code-affecting change. Do not repeatedly rerun a full matrix on unchanged product code merely to re-prove already anchored evidence.
 
 ## 6. Autonomous Sprint Mode
 
@@ -118,7 +121,7 @@ Stop only for destructive production changes, data deletion, secret exposure, bi
 
 Normal file edits, local tests, branches, commits, PR preparation, CI inspection and documentation updates are not hard blockers.
 
-## 8. Verification ladder
+## 8. Verification ladder and change-impact policy
 
 During implementation: targeted tests and touched-file checks.
 
@@ -129,6 +132,34 @@ Before PR approval: integration tests, production build, security/isolation chec
 Before merge/release: required CI, local/offline runtime evidence, and rollback/recovery evidence for high-risk changes.
 
 Never claim a check passed unless it actually ran against the referenced state.
+
+### Change-impact orchestration
+
+Pull requests targeting `main` are classified from their exact changed-file set by repository-owned deterministic tooling. Verification must be proportional to the changed product surface and fail closed when classification is unknown or ambiguous.
+
+Current policy:
+
+- an exact canonical state-only diff under `.project/CURRENT_STATE.md`, `.project/ACTIVE_SPRINT.json`, `.project/BLOCKERS.md` and `.project/LAST_CHECKPOINT.json` uses the dependency-free state-integrity lane and must not install the frontend dependency graph;
+- documentation-only changes remain on full repository quality until an equivalent deterministic dependency-free formatting gate exists;
+- product, backend, Device Agent, deployment/runtime, dependency/toolchain, security/supply-chain and CI-governance changes retain full Core quality verification;
+- cross-surface or previously unknown paths broaden verification rather than silently skipping checks;
+- specialized browser/backend/edge/offline/security workflows keep their domain-specific path filters and exact-head semantics;
+- for non-state PRs, the stable `NEXOLAB Merge Gate` must first require the correct Core lane and then wait for every other PR workflow that actually triggered on the same exact head; any failed, cancelled, skipped, missing-through-timeout or still-running required workflow keeps the gate RED;
+- state-only PRs use only the canonical state-integrity path because no product/runtime surface changed; the first post-#646 state reconciliation is the real acceptance proof for this fast lane.
+
+This policy is an optimization of verification selection, not a reduction of acceptance criteria. Software checks never substitute for required hardware/runtime evidence.
+
+### Evidence anchoring
+
+Record distinct evidence identities where relevant:
+
+- product/reviewed source SHA;
+- final PR head SHA;
+- hardware/runtime evidence SHA;
+- deployed SHA;
+- state/checkpoint SHA.
+
+A state-only commit does not invalidate already completed product or hardware evidence when the repository proves that no product/runtime path changed. Conversely, any product/runtime change after evidence was collected requires the affected evidence to be rerun.
 
 ## 9. Offline readiness
 
@@ -157,6 +188,8 @@ External AI/cloud functions must be optional and isolated unless a local runtime
 - Do not ask Codex to fix everything.
 - Use stronger reasoning only where justified.
 - Do not attempt to bypass usage limits.
+- Do not spend a Codex implementation session re-auditing unrelated backlog or architecture when the Work Package already provides the execution contract.
+- Prefer one coherent implementation/review candidate over repeated remote pushes that only trigger the same expensive verification matrix.
 
 ## 11. Git and GitHub rules
 
@@ -167,6 +200,8 @@ External AI/cloud functions must be optional and isolated unless a local runtime
 - Required checks are green before merge.
 - Review conversations are resolved.
 - Secrets and personal/production data never enter commits, logs or PR descriptions.
+- `main` must be technically protected when repository capabilities permit it; normal merges must pass the stable required merge gate rather than relying only on operator discipline.
+- A controlled administrative recovery path may exist, but it must not become the normal development path or a routine bypass around required verification.
 
 ## 12. State continuity protocol
 
@@ -182,10 +217,12 @@ At session start:
 At Work Package end:
 
 - update task status;
-- record checks/evidence;
+- record checks/evidence and the exact SHA each evidence item applies to;
 - update current state and next action;
 - record blockers;
 - leave a recoverable commit/checkpoint.
+
+Prefer delta Ready audits after normal Work Package completion: re-evaluate changed blockers, dependencies, new critical issues and maintenance deadlines. Run a full backlog/Ready audit when the queue is exhausted, architecture changes materially, a new critical defect changes priority, or Sprint boundaries change.
 
 ## 13. Standard result report
 

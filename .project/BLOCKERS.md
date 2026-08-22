@@ -2,15 +2,19 @@
 
 Updated: 2026-08-22
 
-## Current Work Package boundary
+## Current Work Package boundary — Issue #646
 
-Issue #633 is complete. PR #643 squash-merged GREEN into `main` as `6d223415deebf1a44bb52ba4fcaa3c5db9b03697`; Issue #633 is closed `status:done`.
+Issue #646 — **Add change-impact CI orchestration and protected main merge gate** — is active `status:in-progress` in branch `chore/646-impact-aware-ci`.
 
-Issue #644 is a state-only post-merge reconciliation package. It changes only `.project/CURRENT_STATE.md`, `.project/ACTIVE_SPRINT.json`, `.project/BLOCKERS.md`, and `.project/LAST_CHECKPOINT.json`. It introduces no product/runtime, dependency, migration, Modbus, hardware, or deployment behavior.
+Repository-side implementation can proceed independently. The current connected GitHub tool surface supports repository files, branches, Pull Requests, CI inspection and merge operations, but it does not expose a mutation for branch protection/rules. This is a **soft access blocker** for the final repository-settings acceptance criterion only; it does not block implementing or verifying the classifier, state-only lane, deterministic Node install, stable Core merge gate, tests or documentation.
 
-There is no remaining #633 software/CI/review blocker. Real Raspberry Pi post-deployment runtime verification remains `UNVERIFIED_PI_OFFLINE` and must not be represented as completed hardware acceptance.
+`main` remains unprotected until branch/rules settings are actually changed and verified. Do not report technical branch protection as complete before that evidence exists.
 
-The requested final Codex automated review for #633 could not run because the code-review usage limit was reached. This is a tooling limitation, not a software/runtime failure; all existing P1/P2 review threads are resolved and the exact final diff received Team Lead review before GREEN merge.
+The remote `nexolab-edge-01` is offline. Issue #646 requires no Raspberry Pi or hardware acceptance, so this is not a blocker for the active Work Package.
+
+## Completed state boundary
+
+Issue #644 / PR #645 is complete and GREEN merged as `bd2a0a56b8c3e67cdf960419076b154302da9e2f`. The accepted #633 product source remains `6d223415deebf1a44bb52ba4fcaa3c5db9b03697`; the #645 state-only merge did not change product/runtime code.
 
 ## Security maintenance — CVE-2026-14456 deadline
 
@@ -22,11 +26,11 @@ Required maintenance action: re-check Debian/fixed-package availability and remo
 
 ## Issue #618 — independent reliability lane
 
-Saved Dashboard CSV browser-download reliability remains an independent open lane. Its formal Ready status must be established by the post-#644 GitHub Ready audit before implementation starts.
+Saved Dashboard CSV browser-download reliability remains an independent open lane. It is not mixed into #646.
 
 ## Issue #607 — architecture prerequisite lane
 
-Dual RS-485 KK1/KK2 software isolation is queued before #589. Its formal Ready status must be established by the post-#644 GitHub Ready audit. Any physical bus cutover/hardware action remains unapproved.
+Dual RS-485 KK1/KK2 software isolation remains queued before #589. Any physical bus cutover/hardware action remains unapproved.
 
 ## Issue #589 — blocked on #607
 
@@ -56,4 +60,4 @@ Restoring LE-01MP W2 / Unit 201 remains blocked until the Product Owner confirms
 
 ## Safety boundaries
 
-No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover, or mandatory cloud runtime dependency is authorized by Issue #644 or any unselected queued lane.
+No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover, or mandatory cloud runtime dependency is authorized by Issue #646.
