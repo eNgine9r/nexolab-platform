@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-22T08:31:00Z",
+  "timestamp": "2026-08-22T09:07:00Z",
   "actor": "ChatGPT",
-  "event": "issue_633_candidate_cleanup_final_exact_head_gate",
+  "event": "issue_633_candidate_cleanup_final_review_refinement_gate",
   "repository_product_baseline_sha": "7bb2115ef739daf2406c71110162b6d68c713f95",
   "deployed_repository_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
   "active_work": {
@@ -13,7 +13,7 @@
     "pull_request": 643,
     "branch": "fix/633-frontend-candidate-cleanup",
     "status": "FINAL_EXACT_HEAD_CI_REVIEW_GATE",
-    "final_software_head_before_state_checkpoint_sha": "68835e14798d49c01ff4a2bd4de98e6c8e8fdc22",
+    "latest_software_refinement_sha": "0436c0a663d9d7416a487cb61a69626cf1f786dd",
     "implemented": [
       "parent-child startup gate prevents candidate execution before exact PID publication",
       "child abandons startup if deployment parent disappears before gate release",
@@ -23,7 +23,8 @@
       "cleanup re-checks an unpublished PID for an already-established exact process group",
       "exact-PID fallback only when the candidate group is not established",
       "bounded TERM to KILL group cleanup after handshake",
-      "exact-PID and process-group paths verify liveness before wait and return failure when still live after bounded escalation",
+      "exact-PID and process-group paths verify liveness before invoking Bash wait and return failure when still live after bounded escalation",
+      "Bash wait semantics remain unmodified outside candidate cleanup",
       "zombie-only process groups classified as terminated",
       "EXIT cleanup failures surfaced while preserving the original deployment failure code",
       "candidate port 3100 release verification",
@@ -36,7 +37,8 @@
       "PASS_32517056093_AT_08884615",
       "PASS_32519957941_AT_A7D91AF1",
       "PASS_32521673945_AT_B3420A3B",
-      "PASS_32523415155_AT_C2873686"
+      "PASS_32523415155_AT_C2873686",
+      "PASS_32563481255_AT_7BF2604C"
     ],
     "review_findings": {
       "P1_state_sync": "ADDRESSED",
@@ -48,6 +50,7 @@
       "P2_cleanup_suite_ci_integration": "ADDRESSED",
       "P2_pre_pid_publication_startup_window": "ADDRESSED_IN_24390EA3",
       "P2_unbounded_candidate_reap": "ADDRESSED_AND_REGRESSION_TESTED_IN_68835E14",
+      "P2_global_wait_override": "ADDRESSED_IN_0436C0A6",
       "P2_final_state_checkpoint": "ADDRESSED_IN_FINAL_STATE_CHECKPOINT"
     },
     "final_exact_head_ci": "PENDING_FINAL_STATE_CHECKPOINT_HEAD",
