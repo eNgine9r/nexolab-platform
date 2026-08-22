@@ -200,19 +200,20 @@ foreach ($task in $readyTasks) {
             "--timestamp", $checkpointTime,
             "--actor", "Codex Sprint Runner"
         )
-        Write-Host "Completed $taskId; moved to review."
+        Write-Host "Completed $taskId; moved to review. Team Lead review is required before another Work Package starts."
+        $processed++
+        break
     }
-    else {
-        Invoke-StateTool -Arguments @(
-            "checkpoint",
-            "--event", "issue_$($task.issue)_codex_failed",
-            "--next-action", "Inspect $logPath, record the blocker, then continue with another independent Ready Work Package.",
-            "--timestamp", $checkpointTime,
-            "--actor", "Codex Sprint Runner"
-        )
-        Invoke-StateTool -Arguments @("transition", "--issue", [string]$task.issue, "--to", "blocked")
-        Write-Warning "$taskId failed with exit code $exitCode and was marked blocked."
-    }
+
+    Invoke-StateTool -Arguments @(
+        "checkpoint",
+        "--event", "issue_$($task.issue)_codex_failed",
+        "--next-action", "Inspect $logPath, record the blocker, then continue with another independent Ready Work Package.",
+        "--timestamp", $checkpointTime,
+        "--actor", "Codex Sprint Runner"
+    )
+    Invoke-StateTool -Arguments @("transition", "--issue", [string]$task.issue, "--to", "blocked")
+    Write-Warning "$taskId failed with exit code $exitCode and was marked blocked."
     $processed++
 }
 
