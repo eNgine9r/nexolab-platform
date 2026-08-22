@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from http.server import ThreadingHTTPServer
 from typing import Any
 
+from acquisition_capacity import BusCapacityProfile
 from adaptive_main import (
     AdaptiveRegistryDeviceAgent,
     AdaptiveRegistryHealthHandler,
@@ -141,6 +142,40 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             stop_event=self.stop_event,
             bus_locks=self._bus_operation_locks,
         )
+
+    def capacity_profiles(self) -> dict[str, BusCapacityProfile]:
+        topology = getattr(self, "rs485_topology", None)
+        metrics = getattr(self, "rs485_bus_metrics", None)
+        if topology is None or metrics is None or not topology.explicit:
+            return super().capacity_profiles()
+
+        profiles: dict[str, BusCapacityProfile] = {}
+        for binding in topology.bindings:
+            snapshot = metrics.snapshot(binding.bus_id)
+            latency = snapshot["latency_ms"]
+            sample_count = int(latency["sample_count"])
+            physical_requests = int(snapshot["physical_requests_total"])
+            retry_attempts = int(snapshot["retry_attempts_total"])
+            profiles[binding.bus_id] = BusCapacityProfile(
+                bus_id=binding.bus_id,
+                baudrate=binding.baudrate,
+                parity=binding.parity,
+                stopbits=binding.stopbits,
+                timeout_seconds=binding.timeout_seconds,
+                retries=binding.retries,
+                observed_p95_seconds=(
+                    float(latency["p95"]) / 1000.0
+                    if sample_count > 0
+                    else None
+                ),
+                observed_retry_rate=(
+                    retry_attempts / physical_requests
+                    if physical_requests > 0
+                    else None
+                ),
+                observed_sample_count=sample_count,
+            )
+        return profiles
 
     def _logical_bus_observer(self, bus_id: str):  # type: ignore[no-untyped-def]
         def observe(measurement: ModbusRequestMeasurement) -> None:
