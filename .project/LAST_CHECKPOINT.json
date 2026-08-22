@@ -3,34 +3,35 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-22T12:06:00Z",
+  "timestamp": "2026-08-22T12:51:00Z",
   "actor": "ChatGPT",
-  "event": "issue_618_csv_browser_handoff_candidate",
+  "event": "issue_607_dual_rs485_candidate_ready_for_pr",
   "baselines": {
-    "accepted_product_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
+    "accepted_product_sha": "a2fd9496959764691860106c2f0625587fc707a2",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
   },
   "active_work": {
-    "issue": 618,
-    "title": "Restore Saved Dashboard CSV export browser acceptance on LOCAL_LAN",
-    "branch": "fix/618-saved-dashboard-csv-download"
+    "issue": 607,
+    "title": "Add dual RS-485 bus isolation for KK1 and KK2",
+    "branch": "feat/607-dual-rs485-bus-isolation"
   },
   "evidence_snapshot": {
-    "issue_650": {
-      "pull_request": 651,
-      "verified_head_sha": "b0c7ae3efbb7a0364c7b6d59a356e858afe74be2",
-      "checks": {
-        "core_ci": "PASS_32571068430",
-        "external_telemetry_ci": "PASS_32571068439",
-        "merge_gate": "PASS",
-        "review_threads": "PASS_ZERO_UNRESOLVED"
-      }
-    },
     "issue_618": {
+      "pull_request": 652,
+      "verified_head_sha": "3982e901f6732713fa23ea1650299eb6738a9f79",
+      "checks": {
+        "core_ci": "PASS_32572681394",
+        "authenticated_dashboard_acceptance": "PASS_32572681396",
+        "offline_bundle": "PASS_32572681390",
+        "merge_gate": "PASS"
+      },
+      "merge_sha": "a2fd9496959764691860106c2f0625587fc707a2"
+    },
+    "issue_607": {
       "status": "IMPLEMENTATION_CANDIDATE_PRE_PR",
-      "diagnosis": "CSV API contract is present; browser Blob handoff synchronously revoked the object URL immediately after a detached anchor click.",
-      "candidate": "DOM-attached anchor plus bounded delayed Blob URL revocation with deterministic unit regression coverage.",
-      "runtime_pi_verification": "UNVERIFIED_REMOTE_PI_OFFLINE"
+      "architecture": "Existing adaptive scheduler is already bus-aware; explicit physical bus bindings, per-bus transports/locks/readers, topology-aware discovery enrollment and diagnostics are composed above it.",
+      "hardware_verification": "UNVERIFIED_REMOTE_PI_OFFLINE",
+      "safety": "READ_ONLY_NO_HARDWARE_CUTOVER"
     },
     "maintenance_actions": [
       {
@@ -46,16 +47,16 @@
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-08-22T11:57:40Z",
+      "observed_at": "2026-08-22T12:30:11Z",
       "kind": "historical_merge",
       "data": {
-        "issue": 650,
-        "pull_request": 651,
-        "merge_sha": "2112c1004cdcbf08631b71ad48c7a59a930ec77f"
+        "issue": 618,
+        "pull_request": 652,
+        "merge_sha": "a2fd9496959764691860106c2f0625587fc707a2"
       }
     }
   ],
-  "next_action": "Open one focused PR for Issue #618, verify the exact diff, require the browser-handoff unit regression, Core CI and Authenticated Dashboard Acceptance to pass on the exact head, then repeat the Saved Dashboard CSV flow on Raspberry Pi when the remote host is reachable before claiming LOCAL_LAN host acceptance.",
+  "next_action": "Review the exact Issue #607 diff against main, open one focused PR, require Device Agent/Core/offline and every exact-head path-triggered workflow plus NEXOLAB Merge Gate to pass, then merge only after GREEN while keeping Raspberry Pi dual-bus hardware acceptance explicitly unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
