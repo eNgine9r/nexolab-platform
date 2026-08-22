@@ -50,7 +50,6 @@
       "title": "Stop isolated frontend candidate after successful Raspberry Pi deployment",
       "priority": "high",
       "lifecycle": "completed",
-      "branch": "fix/618-saved-dashboard-csv-download",
       "evidence": {
         "pull_request": 643,
         "verified_head_sha": "5d1f1f82ad555b68cab8ce9205283cf939d3be09",
