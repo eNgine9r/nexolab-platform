@@ -72,9 +72,7 @@ describe("acquisition cadence proxy", () => {
       request("PUT", {
         expected_revision: 7,
         reason: "Set XJP60D cadence to 30 seconds",
-        family_defaults: [
-          { bus_id: "rs485-main", device_family: "xjp60d", interval_seconds: 30 },
-        ],
+        family_defaults: [{ bus_id: "rs485-main", device_family: "xjp60d", interval_seconds: 30 }],
       }),
     );
 
@@ -104,9 +102,7 @@ describe("acquisition cadence proxy", () => {
     const payload = {
       expected_revision: 7,
       reason: "Try XJP60D cadence at 10 seconds",
-      family_defaults: [
-        { bus_id: "rs485-main", device_family: "xjp60d", interval_seconds: 10 },
-      ],
+      family_defaults: [{ bus_id: "rs485-main", device_family: "xjp60d", interval_seconds: 10 }],
     };
 
     const response = await PUT(request("PUT", payload));

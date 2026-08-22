@@ -167,10 +167,16 @@ export function normalizeCadenceConfiguration(value: unknown): AcquisitionCadenc
   const root = record(value);
   const policy = root ? record(root.policy) : null;
   if (!root || !policy || !Array.isArray(policy.family_defaults) || !Array.isArray(policy.device_overrides)) {
-    throw new CadenceClientError("invalid_response", "Device Agent повернув некоректну cadence configuration.");
+    throw new CadenceClientError(
+      "invalid_response",
+      "Device Agent повернув некоректну cadence configuration.",
+    );
   }
   if (!Array.isArray(policy.presets_seconds) || !Array.isArray(root.effective_devices)) {
-    throw new CadenceClientError("invalid_response", "Cadence configuration не містить обов’язкових списків.");
+    throw new CadenceClientError(
+      "invalid_response",
+      "Cadence configuration не містить обов’язкових списків.",
+    );
   }
 
   return {
@@ -251,7 +257,11 @@ export function createCadenceClient(organizationId: string | null) {
     const payload = await responsePayload(response);
     if (!response.ok) {
       throw new CadenceClientError(
-        response.status === 403 ? "access_denied" : response.status === 503 ? "device_agent_unavailable" : "request_failed",
+        response.status === 403
+          ? "access_denied"
+          : response.status === 503
+            ? "device_agent_unavailable"
+            : "request_failed",
         errorMessage(payload, `Не вдалося отримати cadence policy (HTTP ${response.status}).`),
         { status: response.status },
       );
@@ -291,7 +301,11 @@ export function createCadenceClient(organizationId: string | null) {
         );
       }
       throw new CadenceClientError(
-        response.status === 403 ? "access_denied" : response.status === 503 ? "device_agent_unavailable" : "request_failed",
+        response.status === 403
+          ? "access_denied"
+          : response.status === 503
+            ? "device_agent_unavailable"
+            : "request_failed",
         errorMessage(payload, `Не вдалося зберегти cadence policy (HTTP ${response.status}).`),
         { status: response.status },
       );

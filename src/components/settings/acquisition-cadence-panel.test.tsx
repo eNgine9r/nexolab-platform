@@ -71,9 +71,7 @@ describe("AcquisitionCadencePanel", () => {
     render(<AcquisitionCadencePanel controller={value} canManage />);
 
     expect(screen.getByRole("heading", { name: "Фізичний інтервал опитування" })).toBeVisible();
-    expect(
-      screen.getByText(/Refresh графіків.*не змінюють фізичне опитування/),
-    ).toBeVisible();
+    expect(screen.getByText(/Refresh графіків.*не змінюють фізичне опитування/)).toBeVisible();
     expect(screen.getByText("Registry revision: 7")).toBeVisible();
 
     const xjpCard = screen.getByText("Dixell XJP60D", { exact: true }).closest("article");
@@ -109,9 +107,7 @@ describe("AcquisitionCadencePanel", () => {
     const deviceCard = screen.getByText("xjp60d-106", { exact: true }).closest("article");
     expect(deviceCard).not.toBeNull();
     expect(within(deviceCard as HTMLElement).getByText("Override 60 с")).toBeVisible();
-    fireEvent.click(
-      within(deviceCard as HTMLElement).getByRole("button", { name: "Успадкувати 10 с" }),
-    );
+    fireEvent.click(within(deviceCard as HTMLElement).getByRole("button", { name: "Успадкувати 10 с" }));
 
     expect(value.setDeviceOverride).toHaveBeenCalledWith("xjp60d-106", null);
   });
@@ -157,6 +153,10 @@ describe("AcquisitionCadencePanel", () => {
     render(<AcquisitionCadencePanel controller={controller()} canManage={false} />);
 
     expect(screen.getByText(/Доступ лише для перегляду/)).toBeVisible();
-    expect(screen.getAllByRole("button", { name: "Застосувати" }).every((button) => button.hasAttribute("disabled"))).toBe(true);
+    expect(
+      screen
+        .getAllByRole("button", { name: "Застосувати" })
+        .every((button) => button.hasAttribute("disabled")),
+    ).toBe(true);
   });
 });

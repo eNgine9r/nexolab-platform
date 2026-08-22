@@ -130,7 +130,7 @@ function IntervalEditor({
         </label>
       ) : null}
 
-      {localError ?? parsed.error ? (
+      {(localError ?? parsed.error) ? (
         <p className="text-xs text-rose-300" role="alert">
           {localError ?? parsed.error}
         </p>
@@ -225,7 +225,9 @@ function DeviceCard({
           </p>
         </div>
         <span className="w-fit rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-[11px] text-slate-300">
-          {overridden ? `Override ${device.effectiveIntervalSeconds} с` : `Успадковано ${inheritedInterval} с`}
+          {overridden
+            ? `Override ${device.effectiveIntervalSeconds} с`
+            : `Успадковано ${inheritedInterval} с`}
         </span>
       </div>
       <IntervalEditor
@@ -318,7 +320,8 @@ export function AcquisitionCadencePanel({
                 .filter((bus) => !bus.safe)
                 .map((bus) => (
                   <p key={bus.busId} className="mt-2 text-xs text-rose-100/80">
-                    {bus.busId}: оцінка {bus.estimatedUtilizationPercent}% при дозволених {bus.maximumAllowedUtilizationPercent}%
+                    {bus.busId}: оцінка {bus.estimatedUtilizationPercent}% при дозволених{" "}
+                    {bus.maximumAllowedUtilizationPercent}%
                     {bus.recommendedMinimumIntervalSeconds
                       ? ` · рекомендовано не швидше ${bus.recommendedMinimumIntervalSeconds} с`
                       : ""}
@@ -338,7 +341,9 @@ export function AcquisitionCadencePanel({
             <span>•</span>
             <span>Оновлено: {configuration.updatedAt}</span>
             <span>•</span>
-            <span>Custom: {configuration.customMinSeconds}–{configuration.maximumSeconds} с</span>
+            <span>
+              Custom: {configuration.customMinSeconds}–{configuration.maximumSeconds} с
+            </span>
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -360,7 +365,8 @@ export function AcquisitionCadencePanel({
                   <div>
                     <p className="text-sm font-medium text-slate-100">{bus.busId}</p>
                     <p className="mt-1 text-xs text-slate-500">
-                      Bus load {bus.estimatedUtilizationPercent}% / {bus.maximumAllowedUtilizationPercent}% · {bus.activeDeviceCount} devices
+                      Bus load {bus.estimatedUtilizationPercent}% / {bus.maximumAllowedUtilizationPercent}% ·{" "}
+                      {bus.activeDeviceCount} devices
                     </p>
                     <p className="mt-1 text-[11px] text-slate-600">Timing: {bus.requestBudgetSource}</p>
                   </div>
@@ -372,7 +378,8 @@ export function AcquisitionCadencePanel({
           <div className="mt-7">
             <h3 className="text-sm font-medium text-white">Defaults за фізичною шиною та family</h3>
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              Усі логічні канали одного physical device використовують effective device cadence; окремого channel polling control немає.
+              Усі логічні канали одного physical device використовують effective device cadence; окремого
+              channel polling control немає.
             </p>
             <div className="mt-4 grid gap-4 xl:grid-cols-2">
               {configuration.familyDefaults.map((item) => (
@@ -391,12 +398,14 @@ export function AcquisitionCadencePanel({
           <div className="mt-7">
             <h3 className="text-sm font-medium text-white">Overrides фізичних devices</h3>
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              Override застосовується до physical device, не до temperature/electrical UI channel. Його можна повернути до inherited family default.
+              Override застосовується до physical device, не до temperature/electrical UI channel. Його можна
+              повернути до inherited family default.
             </p>
             <div className="mt-4 grid gap-4 xl:grid-cols-2">
               {configuration.effectiveDevices.map((device) => {
                 const inheritedInterval =
-                  defaultsByKey.get(`${device.busId}:${device.deviceFamily}`) ?? device.effectiveIntervalSeconds;
+                  defaultsByKey.get(`${device.busId}:${device.deviceFamily}`) ??
+                  device.effectiveIntervalSeconds;
                 return (
                   <DeviceCard
                     key={device.deviceId}

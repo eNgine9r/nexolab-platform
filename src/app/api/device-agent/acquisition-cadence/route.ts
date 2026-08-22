@@ -122,9 +122,12 @@ async function authorize(request: NextRequest, permission: string): Promise<Auth
   };
 }
 
-async function relayAgent(
-  options: { method: "GET" | "PUT"; timeoutMs: number; body?: string; actor?: string },
-): Promise<NextResponse> {
+async function relayAgent(options: {
+  method: "GET" | "PUT";
+  timeoutMs: number;
+  body?: string;
+  actor?: string;
+}): Promise<NextResponse> {
   let response: Response;
   try {
     const headers = new Headers({ Accept: "application/json" });

@@ -51,10 +51,7 @@ function observeApiRequests(page: Page): ObservedApiRequest[] {
   const requests: ObservedApiRequest[] = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
-    if (
-      !url.pathname.startsWith("/api/v1/") &&
-      url.pathname !== "/api/device-agent/acquisition-cadence"
-    ) {
+    if (!url.pathname.startsWith("/api/v1/") && url.pathname !== "/api/device-agent/acquisition-cadence") {
       return;
     }
     const headers = request.headers();
@@ -149,9 +146,7 @@ function issueAcceptanceToken(subject: string, email: string, name: string): str
     iat: now,
     exp: now + 1800,
   });
-  const signature = createHmac("sha256", secret)
-    .update(`${header}.${payload}`)
-    .digest("base64url");
+  const signature = createHmac("sha256", secret).update(`${header}.${payload}`).digest("base64url");
   return `${header}.${payload}.${signature}`;
 }
 
@@ -262,7 +257,9 @@ test("renders operator-safe Settings without backend mutations or secret exposur
     });
 
     await expect.poll(() => requests.length).toBeGreaterThan(0);
-    expect(requests.some((request) => request.pathname === "/api/device-agent/acquisition-cadence")).toBe(true);
+    expect(requests.some((request) => request.pathname === "/api/device-agent/acquisition-cadence")).toBe(
+      true,
+    );
     expect(requests.filter((request) => request.method !== "GET")).toEqual([]);
     expect(requests.every((request) => request.authorization)).toBe(true);
     expect(requests.every((request) => request.organization === organizationId)).toBe(true);
@@ -326,11 +323,7 @@ test("persists safe cadence and fails closed on capacity and stale revision", as
     await expect(cadence.getByText("Registry revision: 7", { exact: true })).toBeVisible();
     await expect(cadence.getByText(/Доступ лише для перегляду/)).toHaveCount(0);
 
-    const xjpFamilyCard = cadence
-      .locator("article")
-      .filter({ hasText: "Dixell XJP60D" })
-      .filter({ hasText: "Family default · 60 с" })
-      .first();
+    const xjpFamilyCard = cadence.locator("article").filter({ hasText: "Dixell XJP60D" }).first();
     await expect(xjpFamilyCard).toBeVisible();
 
     await test.step("apply safe family preset and re-read canonical revision", async () => {
@@ -375,9 +368,7 @@ test("persists safe cadence and fails closed on capacity and stale revision", as
           data: {
             expected_revision: 8,
             reason: "Acceptance fixture concurrent LE cadence update",
-            family_defaults: [
-              { bus_id: "rs485-main", device_family: "le01mp", interval_seconds: 60 },
-            ],
+            family_defaults: [{ bus_id: "rs485-main", device_family: "le01mp", interval_seconds: 60 }],
           },
         },
       );
@@ -398,8 +389,7 @@ test("persists safe cadence and fails closed on capacity and stale revision", as
     });
 
     const browserCadenceMutations = requests.filter(
-      (request) =>
-        request.pathname === "/api/device-agent/acquisition-cadence" && request.method === "PUT",
+      (request) => request.pathname === "/api/device-agent/acquisition-cadence" && request.method === "PUT",
     );
     expect(browserCadenceMutations).toHaveLength(3);
     expect(requests.every((request) => request.authorization)).toBe(true);

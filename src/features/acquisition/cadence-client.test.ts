@@ -10,11 +10,7 @@ vi.mock("@/features/security/supabase-auth", () => ({
   createRuntimeCredentialProvider: () => ({ getCredential: vi.fn() }),
 }));
 
-import {
-  CadenceClientError,
-  createCadenceClient,
-  normalizeCadenceConfiguration,
-} from "./cadence-client";
+import { CadenceClientError, createCadenceClient, normalizeCadenceConfiguration } from "./cadence-client";
 
 function payload(revision = 7, xjpInterval = 60) {
   return {
@@ -95,9 +91,7 @@ describe("acquisition cadence client", () => {
     const result = await client.mutate({
       expected_revision: 7,
       reason: "Operator updated xjp60d physical polling cadence in NEXOLAB Settings",
-      family_defaults: [
-        { bus_id: "rs485-main", device_family: "xjp60d", interval_seconds: 30 },
-      ],
+      family_defaults: [{ bus_id: "rs485-main", device_family: "xjp60d", interval_seconds: 30 }],
     });
 
     expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(2);
@@ -140,9 +134,7 @@ describe("acquisition cadence client", () => {
       client.mutate({
         expected_revision: 7,
         reason: "Unsafe acceptance fixture",
-        family_defaults: [
-          { bus_id: "rs485-main", device_family: "xjp60d", interval_seconds: 10 },
-        ],
+        family_defaults: [{ bus_id: "rs485-main", device_family: "xjp60d", interval_seconds: 10 }],
       }),
     ).rejects.toMatchObject({
       code: "acquisition_capacity_exceeded",
