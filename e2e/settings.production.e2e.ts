@@ -335,7 +335,7 @@ test("persists safe cadence and fails closed on capacity and stale revision", as
       await page.reload({ waitUntil: "domcontentloaded" });
       const reloadedCadence = page.getByRole("region", { name: "Фізичний інтервал опитування" });
       await expect(reloadedCadence.getByText("Registry revision: 8", { exact: true })).toBeVisible();
-      await expect(reloadedCadence.getByText("Family default · 30 с", { exact: true })).toBeVisible();
+      await expect(xjpFamilyCard.getByText("Family default · 30 с", { exact: true })).toBeVisible();
     });
 
     await test.step("reject unsafe 10-second preset without changing persisted revision", async () => {

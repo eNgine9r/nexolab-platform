@@ -132,6 +132,7 @@ describe("acquisition cadence proxy", () => {
 
     expect(response.status).toBe(409);
     await expect(response.json()).resolves.toEqual({ detail: "Registry revision conflict" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("fails closed when the Device Agent endpoint is not loopback", async () => {

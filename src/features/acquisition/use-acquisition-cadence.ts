@@ -63,13 +63,20 @@ export function useAcquisitionCadence(options: Options): AcquisitionCadenceContr
   }, [client, options.enabled]);
 
   useEffect(() => {
-    if (!options.enabled) {
-      setConfiguration(null);
-      setIsLoading(false);
-      setError(null);
-      return;
-    }
-    void refresh();
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (cancelled) return;
+      if (!options.enabled) {
+        setConfiguration(null);
+        setIsLoading(false);
+        setError(null);
+        return;
+      }
+      void refresh();
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [options.enabled, refresh]);
 
   const mutate = useCallback(

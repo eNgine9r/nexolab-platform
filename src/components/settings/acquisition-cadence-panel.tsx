@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, CheckCircle2, Gauge, RefreshCcw, TimerReset } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import type {
   CadenceFamily,
@@ -63,12 +63,6 @@ function IntervalEditor({
   const [choice, setChoice] = useState<CadenceChoice>(cadenceChoice(intervalSeconds));
   const [customValue, setCustomValue] = useState(String(intervalSeconds));
   const [localError, setLocalError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setChoice(cadenceChoice(intervalSeconds));
-    setCustomValue(String(intervalSeconds));
-    setLocalError(null);
-  }, [intervalSeconds]);
 
   const parsed = parseInterval(choice, customValue, minimum, maximum);
   const dirty = parsed.value !== null && parsed.value !== intervalSeconds;
@@ -187,6 +181,7 @@ function FamilyDefaultCard({
         <p className="mt-1 text-xs text-slate-500">Family default · {item.intervalSeconds} с</p>
       </div>
       <IntervalEditor
+        key={item.intervalSeconds}
         intervalSeconds={item.intervalSeconds}
         minimum={minimum}
         maximum={maximum}
@@ -231,6 +226,7 @@ function DeviceCard({
         </span>
       </div>
       <IntervalEditor
+        key={`${device.cadenceSource}:${device.effectiveIntervalSeconds}`}
         intervalSeconds={device.effectiveIntervalSeconds}
         minimum={minimum}
         maximum={maximum}
