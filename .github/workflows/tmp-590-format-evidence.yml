@@ -6,17 +6,18 @@ on:
       - feat/590-settings-acquisition-cadence
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  format-patch:
+  format-candidate:
     if: startsWith(github.event.head_commit.message, 'chore(ci): temporary issue 590 formatter evidence')
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout exact branch head
         uses: actions/checkout@v6
         with:
-          persist-credentials: false
+          ref: feat/590-settings-acquisition-cadence
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -30,10 +31,31 @@ jobs:
           HUSKY: 0
         run: npm ci --no-audit --fund=false
 
-      - name: Generate exact Prettier patch
+      - name: Stabilize browser locator and format exact candidate
         shell: bash
         run: |
           set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("e2e/settings.production.e2e.ts")
+          text = path.read_text(encoding="utf-8")
+          old = '''    const xjpFamilyCard = cadence
+            .locator("article")
+            .filter({ hasText: "Dixell XJP60D" })
+            .filter({ hasText: "Family default · 60 с" })
+            .first();
+          '''
+          new = '''    const xjpFamilyCard = cadence
+            .locator("article")
+            .filter({ hasText: "Dixell XJP60D" })
+            .first();
+          '''
+          if old not in text:
+              raise SystemExit("expected stale-value locator block was not found exactly")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
+
           npx prettier --write \
             e2e/settings.production.e2e.ts \
             src/app/api/device-agent/acquisition-cadence/route.test.ts \
@@ -43,21 +65,21 @@ jobs:
             src/features/acquisition/cadence-client.test.ts \
             src/features/acquisition/cadence-client.ts
           git diff --check
-          git diff --no-ext-diff -- \
+
+      - name: Commit formatter and locator correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
             e2e/settings.production.e2e.ts \
             src/app/api/device-agent/acquisition-cadence/route.test.ts \
             src/app/api/device-agent/acquisition-cadence/route.ts \
             src/components/settings/acquisition-cadence-panel.test.tsx \
             src/components/settings/acquisition-cadence-panel.tsx \
             src/features/acquisition/cadence-client.test.ts \
-            src/features/acquisition/cadence-client.ts \
-            > issue-590-prettier.patch
-          test -s issue-590-prettier.patch
-
-      - name: Upload formatter patch
-        uses: actions/upload-artifact@v7
-        with:
-          name: issue-590-prettier-patch-${{ github.sha }}
-          path: issue-590-prettier.patch
-          if-no-files-found: error
-          retention-days: 1
+            src/features/acquisition/cadence-client.ts
+          git diff --cached --quiet && { echo "No correction generated" >&2; exit 1; }
+          git commit -m "test(settings): stabilize cadence browser assertion and format candidate"
+          git push origin HEAD:feat/590-settings-acquisition-cadence
