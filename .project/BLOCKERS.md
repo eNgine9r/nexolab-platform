@@ -2,23 +2,19 @@
 
 Updated: 2026-08-22
 
-## Issue #589 — no software hard blocker
+## Issue #590 — no software hard blocker
 
-Issue #589 is active in `feat/589-persisted-acquisition-cadence`.
+Issue #590 is active in `feat/590-settings-acquisition-cadence`.
 
-The implementation is repository-side and can be verified without Raspberry Pi access, Modbus writes, hardware writes, site cutover, secrets, billing/DNS changes or an external runtime service.
+The implementation is a Settings/control-plane integration over the completed #589 persisted cadence/capacity API. It can be verified repository-side without Raspberry Pi access, Modbus writes, hardware writes, site cutover, secrets, billing/DNS changes or an external runtime service.
 
-The Remote Desktop connector still reports `nexolab-edge-01` offline. This is a **soft hardware-evidence blocker** only. Do not claim the selected cadence is physically accepted for KK1/KK2 until the real Raspberry Pi and adapters are reachable and read-only site evidence is collected.
+The browser must use the authenticated Next.js proxy only. Direct browser access to the Device Agent, direct Modbus/driver access, force/bypass controls and per-logical-channel physical cadence controls remain prohibited.
 
-Issue #589 does not authorize wiring changes, adapter installation, controller configuration changes or Modbus writes.
-
-The software capacity model is intentionally conservative: it uses timeout fallback until sufficient physical latency samples exist, retains a 25% utilization safety margin, never counts cooldown as capacity credit and rejects unsafe activation/cadence changes before persistence.
+The Remote Desktop connector still reports `nexolab-edge-01` offline. This is a **soft hardware-evidence blocker** only. The UI may expose server-authoritative 10/30/60/Custom cadence controls, but it must not claim that a selected interval is physically accepted on KK1/KK2 until read-only evidence from the real Pi and intended adapters exists.
 
 ## Issue #607 — software completed, hardware evidence pending
 
-Dual RS-485 isolation was accepted through PR #653 and merged into the accepted source baseline.
-
-Physical two-adapter verification remains unavailable while the Raspberry Pi connector is offline. This does not block #589 software development, but real simultaneous KK1/KK2 polling, reboot-stable adapter mapping and disconnect-isolation acceptance remain unverified.
+Dual RS-485 isolation was accepted through PR #653. Physical two-adapter verification remains unavailable while the Raspberry Pi connector is offline.
 
 Repository evidence maps XJP60D KK2 to Unit IDs `101..115` and KK1 to `126..138`. LE-01MP Unit IDs `200..203` still have no repository-backed KK1/KK2 ownership and must not be guessed.
 
@@ -41,11 +37,8 @@ Owner: `platform-security`.
 
 Re-check fixed Debian package availability and remove the exceptions immediately when a fix becomes available, or review before expiry. Any change that makes QUIC/HTTP3 reachable invalidates the current reachability justification.
 
-The separate `CVE-2026-67215` prerequisite was handled through Issue #654 and merged before the #607 accepted baseline; it is not part of #589.
-
 ## Product and validation dependencies
 
-- #590 — blocked on completion of #589 persisted cadence/capacity API.
 - #585 — blocked until explicit physical W2 / Unit 201 handback approval.
 - #444 — LOCAL_LAN user-administration API acceptance remains `needs_validation`.
 - #245 — standalone loopback-only Raspberry Pi acceptance remains `needs_validation`.
@@ -56,4 +49,4 @@ The separate `CVE-2026-67215` prerequisite was handled through Issue #654 and me
 
 ## Safety boundaries
 
-No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover or mandatory cloud runtime dependency is authorized by Issue #589.
+No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover or mandatory cloud runtime dependency is authorized by Issue #590.

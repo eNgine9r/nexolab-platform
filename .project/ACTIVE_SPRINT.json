@@ -19,14 +19,14 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "61aeaa430075d4caa5d7164cae2866fcabc57108",
+    "accepted_product_sha": "24d6d039fb11366ab589ec3cb039e76bb7e565d7",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
   },
   "selection": {
     "active_work_package": {
-      "issue": 589,
-      "title": "Add persistent device-scoped acquisition cadence with RS-485 capacity validation",
-      "branch": "feat/589-persisted-acquisition-cadence"
+      "issue": 590,
+      "title": "Add operator acquisition cadence controls to NEXOLAB Settings",
+      "branch": "feat/590-settings-acquisition-cadence"
     },
     "next_work_package": null
   },
@@ -160,18 +160,37 @@
       "issue": 589,
       "title": "Add persistent device-scoped acquisition cadence with RS-485 capacity validation",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "feat/589-persisted-acquisition-cadence",
       "evidence": {
-        "hardware_verification": "UNVERIFIED_PI_OFFLINE"
+        "pull_request": 656,
+        "verified_head_sha": "69a6eff795bd275372dd2588ef56bd2bd1e12704",
+        "checks": {
+          "core_ci": "PASS_32585746454",
+          "acquisition_scale_acceptance": "PASS_32585746507",
+          "edge_image": "PASS_32585746469",
+          "device_agent_fleet": "PASS_32585746497",
+          "mqtt_tls_fleet": "PASS_32585746510",
+          "disaster_recovery_tls_fleet": "PASS_32585746501",
+          "telemetry_service": "PASS_32585746522",
+          "authenticated_dashboard": "PASS_32585746451",
+          "container_supply_chain": "PASS_32585746595",
+          "offline_bundle": "PASS_32585746509",
+          "merge_gate": "PASS",
+          "review_threads": "PASS_ZERO_UNRESOLVED",
+          "hardware_verification": "UNVERIFIED_PI_OFFLINE"
+        }
       }
     },
     {
       "issue": 590,
       "title": "Add operator acquisition cadence controls to NEXOLAB Settings",
       "priority": "high",
-      "lifecycle": "blocked",
-      "evidence": {}
+      "lifecycle": "in_progress",
+      "branch": "feat/590-settings-acquisition-cadence",
+      "evidence": {
+        "hardware_verification": "UNVERIFIED_PI_OFFLINE"
+      }
     },
     {
       "issue": 585,
@@ -312,6 +331,16 @@
         "issue": 607,
         "pull_request": 653,
         "merge_sha": "61aeaa430075d4caa5d7164cae2866fcabc57108"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-22T16:57:46Z",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 589,
+        "pull_request": 656,
+        "merge_sha": "24d6d039fb11366ab589ec3cb039e76bb7e565d7"
       }
     }
   ],
