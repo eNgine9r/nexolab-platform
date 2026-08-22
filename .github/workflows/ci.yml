@@ -15,8 +15,121 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  classify:
+    name: Change impact
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      classes: ${{ steps.impact.outputs.classes }}
+      state_only: ${{ steps.impact.outputs.state_only }}
+      docs_only: ${{ steps.impact.outputs.docs_only }}
+      needs_full_quality: ${{ steps.impact.outputs.needs_full_quality }}
+      fail_closed: ${{ steps.impact.outputs.fail_closed }}
+
+    steps:
+      - name: Checkout with history
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve changed files
+        id: changed
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base="$PR_BASE_SHA"
+            head="$PR_HEAD_SHA"
+          elif [[ "$EVENT_NAME" == "push" && -n "$PUSH_BEFORE_SHA" && ! "$PUSH_BEFORE_SHA" =~ ^0+$ ]]; then
+            base="$PUSH_BEFORE_SHA"
+            head="$CURRENT_SHA"
+          else
+            # Manual/ambiguous execution is intentionally broad. Treating the CI
+            # workflow itself as changed makes classification fail-safe.
+            printf '%s\n' '.github/workflows/ci.yml' > changed-files.txt
+            printf 'base=%s\nhead=%s\n' "" "$CURRENT_SHA" >> "$GITHUB_OUTPUT"
+            cat changed-files.txt
+            exit 0
+          fi
+
+          git diff --name-only "$base" "$head" -- > changed-files.txt
+          printf 'base=%s\nhead=%s\n' "$base" "$head" >> "$GITHUB_OUTPUT"
+          printf '%s\n' 'Changed files:'
+          cat changed-files.txt
+
+      - name: Classify change impact
+        id: impact
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/classify-ci-impact.py \
+            --files-file changed-files.txt \
+            --github-output "$GITHUB_OUTPUT"
+
+  state_integrity:
+    name: State integrity
+    needs: classify
+    if: ${{ needs.classify.outputs.state_only == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout with history
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate canonical project state
+        shell: bash
+        run: python3 scripts/validate-project-state.py
+
+      - name: Validate exact state-only diff
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base="$PR_BASE_SHA"
+            head="$PR_HEAD_SHA"
+          elif [[ "$EVENT_NAME" == "push" && -n "$PUSH_BEFORE_SHA" && ! "$PUSH_BEFORE_SHA" =~ ^0+$ ]]; then
+            base="$PUSH_BEFORE_SHA"
+            head="$CURRENT_SHA"
+          else
+            printf '%s\n' 'State-only lane is not valid for an ambiguous/manual change set.' >&2
+            exit 1
+          fi
+
+          git diff --check "$base" "$head"
+          git diff --name-only "$base" "$head" -- > changed-files.txt
+          python3 scripts/classify-ci-impact.py --files-file changed-files.txt > impact.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          result = json.loads(Path('impact.json').read_text(encoding='utf-8'))
+          if result.get('classes') != ['state_only'] or result.get('needs_full_quality'):
+              raise SystemExit(f"Expected exact state_only classification, got {result}")
+          print('Exact state-only diff verified without Node dependency installation.')
+          PY
+
   quality:
     name: Quality and build
+    needs: classify
+    if: ${{ needs.classify.outputs.needs_full_quality == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -25,6 +138,16 @@ jobs:
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+
+      - name: Validate CI change-impact policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover \
+            -s tests \
+            -p 'test_ci_change_impact.py' \
+            -v
+          python3 scripts/validate-project-state.py
 
       - name: Validate standalone Raspberry Pi runtime contracts
         shell: bash
@@ -53,7 +176,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          package-manager-cache: false
+          cache: npm
+          cache-dependency-path: package-lock.json
           node-version-file: .nvmrc
 
       - name: Verify exact Node baseline
@@ -69,10 +193,10 @@ jobs:
           printf 'Verified Node baseline: %s\n' "$actual"
           printf 'npm version: %s\n' "$(npm --version)"
 
-      - name: Install dependencies
+      - name: Install dependencies deterministically
         env:
           HUSKY: 0
-        run: npm install --no-audit
+        run: npm ci --no-audit --fund=false
 
       - name: Check repository formatting
         shell: bash
@@ -102,6 +226,60 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: 1
         run: npm run build
+
+  merge_gate:
+    name: NEXOLAB Merge Gate
+    if: ${{ always() }}
+    needs: [classify, state_integrity, quality]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Enforce required verification lane
+        shell: bash
+        env:
+          IMPACT_CLASSES: ${{ needs.classify.outputs.classes }}
+          STATE_ONLY: ${{ needs.classify.outputs.state_only }}
+          NEEDS_FULL_QUALITY: ${{ needs.classify.outputs.needs_full_quality }}
+          FAIL_CLOSED: ${{ needs.classify.outputs.fail_closed }}
+          CLASSIFY_RESULT: ${{ needs.classify.result }}
+          STATE_RESULT: ${{ needs.state_integrity.result }}
+          QUALITY_RESULT: ${{ needs.quality.result }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+
+          classes = os.environ.get('IMPACT_CLASSES', '')
+          state_only = os.environ.get('STATE_ONLY') == 'true'
+          needs_full = os.environ.get('NEEDS_FULL_QUALITY') == 'true'
+          fail_closed = os.environ.get('FAIL_CLOSED') == 'true'
+          classify_result = os.environ.get('CLASSIFY_RESULT', '')
+          state_result = os.environ.get('STATE_RESULT', '')
+          quality_result = os.environ.get('QUALITY_RESULT', '')
+
+          print(f'Impact classes: {classes}')
+          print(f'Classifier: {classify_result}; state: {state_result}; quality: {quality_result}')
+          print(f'Fail-closed classification: {fail_closed}')
+
+          if classify_result != 'success':
+              raise SystemExit('Change-impact classification did not succeed.')
+
+          if state_only:
+              if needs_full:
+                  raise SystemExit('Invalid policy: state_only cannot also require full quality.')
+              if state_result != 'success':
+                  raise SystemExit('State-only change did not pass State integrity.')
+              if quality_result not in {'skipped', ''}:
+                  raise SystemExit(f'Unexpected full quality result for state-only change: {quality_result}')
+              print('NEXOLAB Merge Gate PASS: exact state-only fast lane is GREEN.')
+          else:
+              if not needs_full:
+                  raise SystemExit('Non-state change attempted to bypass full quality verification.')
+              if quality_result != 'success':
+                  raise SystemExit('Required Quality and build lane is not GREEN.')
+              print('NEXOLAB Merge Gate PASS: required full quality lane is GREEN.')
+          PY
 
   recovery_frontend_artifact:
     name: Raspberry Pi live frontend recovery artifact
