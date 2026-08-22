@@ -39,7 +39,12 @@ function observeApiRequests(page: Page): ObservedApiRequest[] {
   const requests: ObservedApiRequest[] = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
-    if (!url.pathname.startsWith("/api/v1/")) return;
+    if (
+      !url.pathname.startsWith("/api/v1/") &&
+      url.pathname !== "/api/device-agent/acquisition-cadence"
+    ) {
+      return;
+    }
     const headers = request.headers();
     requests.push({
       method: request.method(),
@@ -58,7 +63,7 @@ test("renders operator-safe Settings without backend mutations or secret exposur
   const requests = observeApiRequests(page);
 
   try {
-    await test.step("render verified organization context and sanitized runtime diagnostics", async () => {
+    await test.step("render verified organization context, persisted cadence and sanitized runtime diagnostics", async () => {
       await page.goto("/settings", { waitUntil: "domcontentloaded" });
       await expect(page.getByText("Viewer Acceptance", { exact: true }).first()).toBeVisible();
       await expect(page.getByRole("heading", { name: "Налаштування", exact: true })).toBeVisible();
@@ -75,10 +80,19 @@ test("renders operator-safe Settings without backend mutations or secret exposur
       await expect(readyStatus).toHaveCount(2);
       await expect(readyStatus.first()).toBeVisible();
 
+      const cadence = page.getByRole("region", { name: "Фізичний інтервал опитування" });
+      await expect(cadence).toBeVisible();
+      await expect(cadence.getByText("Registry revision: 7", { exact: true })).toBeVisible();
+      await expect(cadence.getByText(/Доступ лише для перегляду/)).toBeVisible();
+      await expect(cadence.getByText("Dixell XJP60D", { exact: true }).first()).toBeVisible();
+      await expect(cadence.getByText("LE-01MP / енергомоніторинг", { exact: true }).first()).toBeVisible();
+      await expect(cadence.getByText(/Refresh графіків.*не змінюють фізичне/)).toBeVisible();
+
       const bodyText = await page.locator("body").innerText();
       expect(bodyText).not.toContain(viewerToken);
       expect(bodyText).not.toContain("access_token");
       expect(bodyText).not.toContain("password=");
+      expect(bodyText).not.toContain("127.0.0.1:18081");
     });
 
     await test.step("recover malformed local preferences, persist approved values and reset", async () => {
@@ -102,6 +116,7 @@ test("renders operator-safe Settings without backend mutations or secret exposur
       await expect(page.getByLabel("Щільність таблиць")).toHaveValue("compact");
       await expect(page.getByLabel("Анімація")).toHaveValue("reduced");
       await expect(page.getByLabel("Стандартне вікно телеметрії")).toHaveValue("24h");
+      await expect(page.getByText("Registry revision: 7", { exact: true })).toBeVisible();
 
       await page.getByRole("button", { name: "Скинути локальні налаштування" }).click();
       await expect(page.getByLabel("Часові позначки")).toHaveValue("local");
@@ -144,9 +159,11 @@ test("renders operator-safe Settings without backend mutations or secret exposur
       await page.goBack({ waitUntil: "domcontentloaded" });
       await expect(page).toHaveURL(/\/settings$/);
       await expect(page.getByRole("heading", { name: "Налаштування", exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Фізичний інтервал опитування" })).toBeVisible();
     });
 
     await expect.poll(() => requests.length).toBeGreaterThan(0);
+    expect(requests.some((request) => request.pathname === "/api/device-agent/acquisition-cadence")).toBe(true);
     expect(requests.filter((request) => request.method !== "GET")).toEqual([]);
     expect(requests.every((request) => request.authorization)).toBe(true);
     expect(requests.every((request) => request.organization === organizationId)).toBe(true);
@@ -169,6 +186,12 @@ test("renders operator-safe Settings without backend mutations or secret exposur
             malformedRecoveryVerified: true,
             persistenceVerified: true,
             resetVerified: true,
+          },
+          acquisitionCadence: {
+            readThroughAuthenticatedLoopbackProxy: true,
+            registryRevision: 7,
+            viewerMutationControlsDisabled: true,
+            physicalPollingSeparatedFromPresentation: true,
           },
           canonicalNavigation: "/equipment",
           apiRequests: requests,
