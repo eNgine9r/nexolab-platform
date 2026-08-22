@@ -11,16 +11,18 @@ describe("triggerBrowserBlobDownload", () => {
   it("keeps the blob URL alive until after Chromium can commit the download", () => {
     const createObjectURL = vi.fn(() => "blob:nexolab-csv");
     const revokeObjectURL = vi.fn();
-    let scheduledRevoke: (() => void) | null = null;
+    const scheduledRevokes: Array<() => void> = [];
     const scheduleRevoke = vi.fn((callback: () => void, delayMs: number) => {
       expect(delayMs).toBe(1_000);
-      scheduledRevoke = callback;
+      scheduledRevokes.push(callback);
     });
-    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function () {
-      expect(this.isConnected).toBe(true);
-      expect(this.href).toBe("blob:nexolab-csv");
-      expect(this.download).toBe("saved-dashboard.csv");
-    });
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(function (this: HTMLAnchorElement) {
+        expect(this.isConnected).toBe(true);
+        expect(this.href).toBe("blob:nexolab-csv");
+        expect(this.download).toBe("saved-dashboard.csv");
+      });
     const blob = new Blob(["timestamp_utc,value\n2026-08-22T08:00:00Z,4.2\n"], {
       type: "text/csv",
     });
@@ -34,9 +36,9 @@ describe("triggerBrowserBlobDownload", () => {
     expect(click).toHaveBeenCalledTimes(1);
     expect(document.querySelector("a[download]")).toBeNull();
     expect(revokeObjectURL).not.toHaveBeenCalled();
-    expect(scheduledRevoke).not.toBeNull();
+    expect(scheduledRevokes).toHaveLength(1);
 
-    scheduledRevoke?.();
+    scheduledRevokes[0]!();
 
     expect(revokeObjectURL).toHaveBeenCalledOnce();
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:nexolab-csv");
