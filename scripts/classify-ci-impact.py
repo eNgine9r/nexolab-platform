@@ -2,8 +2,8 @@
 """Classify NEXOLAB changed files into deterministic CI impact classes.
 
 The classifier is intentionally fail-closed. Unknown paths broaden verification rather
-than silently skipping checks. It has no third-party dependencies so the state/docs
-lanes can run without installing the frontend dependency graph.
+than silently skipping checks. It has no third-party dependencies so canonical state
+changes can be validated without installing the frontend dependency graph.
 """
 
 from __future__ import annotations
@@ -79,10 +79,9 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
     docs_only = all(_is_docs(path) for path in normalized) and not state_only
 
     if state_only:
-        classes = ["state_only"]
         return {
             "files": normalized,
-            "classes": classes,
+            "classes": ["state_only"],
             "state_only": True,
             "docs_only": False,
             "needs_full_quality": False,
@@ -90,13 +89,15 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
         }
 
     if docs_only:
-        classes = ["docs_only"]
+        # Markdown formatting is still enforced by the repository Prettier gate.
+        # Until a dependency-free formatter with equivalent semantics exists, docs
+        # remain on the full quality lane rather than silently weakening formatting.
         return {
             "files": normalized,
-            "classes": classes,
+            "classes": ["docs_only"],
             "state_only": False,
             "docs_only": True,
-            "needs_full_quality": False,
+            "needs_full_quality": True,
             "fail_closed": False,
         }
 
@@ -155,19 +156,18 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
             classes.add("security_supply_chain")
             matched = True
 
-        # Documentation accompanying a product/engineering change is not a separate
-        # docs-only lane. It is accepted as supporting scope while the substantive
-        # path controls verification.
+        # Documentation accompanying a product/engineering change is supporting
+        # scope; the substantive changed paths determine the required verification.
         if _is_docs(path):
             matched = True
 
-        # The canonical state files can accompany a product PR without broadening it.
+        # Canonical state files can accompany a product PR without broadening it.
         if path in STATE_PATHS:
             matched = True
 
-        # Generic tests/scripts/config are deliberately fail-closed unless they were
-        # matched above. This prevents a new verification-sensitive path from
-        # accidentally receiving a lighter lane.
+        # Generic tests/scripts/config are deliberately fail-closed unless matched
+        # above. New verification-sensitive paths therefore cannot receive a lighter
+        # lane accidentally.
         if not matched:
             unknown.append(path)
 
@@ -201,8 +201,7 @@ def main() -> int:
             files.extend(line.rstrip("\n") for line in handle)
 
     result = classify(files)
-    payload = json.dumps(result, ensure_ascii=False, sort_keys=True)
-    print(payload)
+    print(json.dumps(result, ensure_ascii=False, sort_keys=True))
 
     if args.github_output:
         with open(args.github_output, "a", encoding="utf-8") as handle:
