@@ -59,11 +59,12 @@
       "status": "in_progress_coherent_candidate_pre_pr",
       "priority": "high",
       "branch": "chore/646-impact-aware-ci",
-      "latest_pre_checkpoint_implementation_sha": "965213346ae952c115bba49bf4d2e27361df207c",
+      "latest_pre_checkpoint_implementation_sha": "2ba35d01e51d5bea6c3b78edfa218438a1e9b0ac",
       "pull_request": null,
       "state_only_fast_lane": "SOFTWARE_IMPLEMENTED_UNVERIFIED",
       "fail_closed_classifier": "SOFTWARE_IMPLEMENTED_UNVERIFIED",
       "stable_merge_gate": "SOFTWARE_IMPLEMENTED_UNVERIFIED",
+      "external_exact_head_workflow_aggregation": "SOFTWARE_IMPLEMENTED_UNVERIFIED",
       "deterministic_npm_ci": "SOFTWARE_IMPLEMENTED_UNVERIFIED",
       "main_branch_protection": "PENDING_TOOL_ACCESS",
       "production_cutover": false,
@@ -153,7 +154,7 @@
     "title": "Add change-impact CI orchestration and protected main merge gate",
     "branch": "chore/646-impact-aware-ci",
     "status": "coherent_candidate_pre_pr",
-    "latest_pre_checkpoint_implementation_sha": "965213346ae952c115bba49bf4d2e27361df207c",
+    "latest_pre_checkpoint_implementation_sha": "2ba35d01e51d5bea6c3b78edfa218438a1e9b0ac",
     "main_branch_protection": "pending_tool_access",
     "production_cutover_authorized": false
   },
@@ -166,7 +167,8 @@
     "issue_644_merge_sha": "bd2a0a56b8c3e67cdf960419076b154302da9e2f",
     "issue_644_exact_head_ci": "PASS_32566870352_AT_9DB540EF",
     "issue_646_targeted_ci": "PENDING_COHERENT_PR_CANDIDATE",
-    "issue_646_state_only_fast_lane_proof": "PENDING",
+    "issue_646_state_only_fast_lane_proof": "PENDING_POST_MERGE_STATE_RECONCILIATION",
+    "issue_646_external_workflow_aggregation": "PENDING_COHERENT_PR_CANDIDATE",
     "issue_646_main_branch_protection": "PENDING_TOOL_ACCESS"
   },
   "maintenance_actions": [
