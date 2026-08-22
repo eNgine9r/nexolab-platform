@@ -12,6 +12,13 @@ from http import HTTPStatus
 from http.server import ThreadingHTTPServer
 from typing import Any
 
+from acquisition_cadence import parse_cadence_mutation
+from acquisition_capacity import (
+    BusCapacityProfile,
+    CapacityValidationError,
+    evaluate_capacity,
+    validate_capacity,
+)
 from acquisition_registry import (
     AcquisitionRegistry,
     AcquisitionRegistryStore,
@@ -39,6 +46,7 @@ from modbus_rtu import ModbusError
 from xjp60d import XJP60DReader
 
 REGISTRY_PATH = "/api/v1/acquisition-registry"
+CADENCE_PATH = "/api/v1/acquisition-cadence"
 
 
 class RegistryManagedDeviceAgent(ManagedDeviceAgent):
@@ -88,9 +96,97 @@ class RegistryManagedDeviceAgent(ManagedDeviceAgent):
         with self._configuration_lock:
             self.settings = replace(self.settings, xjp60d_points=active_points)
 
+    def capacity_profiles(self) -> dict[str, BusCapacityProfile]:
+        """Return conservative timing evidence for the active physical buses.
+
+        The base registry runtime owns one legacy serial transport. Explicit
+        multi-bus runtimes override this method with one profile per binding.
+        """
+
+        registry = self._registry_snapshot()
+        buses = registry.document.buses
+        if len(buses) != 1:
+            raise ValueError(
+                "Multi-bus acquisition requires topology-aware capacity profiles"
+            )
+        bus_id = buses[0].bus_id
+        return {
+            bus_id: BusCapacityProfile(
+                bus_id=bus_id,
+                baudrate=self.settings.serial_baudrate,
+                parity=self.settings.serial_parity,
+                stopbits=self.settings.serial_stopbits,
+                timeout_seconds=self.settings.serial_timeout_seconds,
+                retries=self.settings.serial_retries,
+            )
+        }
+
+    def capacity_configuration(
+        self,
+        registry: AcquisitionRegistry | None = None,
+        *,
+        changed_device_ids: set[str] | tuple[str, ...] = (),
+    ) -> dict[str, Any]:
+        current = self._registry_snapshot() if registry is None else registry
+        return evaluate_capacity(
+            current,
+            self.capacity_profiles(),
+            changed_device_ids=changed_device_ids,
+        )
+
+    @staticmethod
+    def _newly_eligible_device_ids(
+        current: AcquisitionRegistry,
+        candidate: AcquisitionRegistry,
+    ) -> set[str]:
+        before = {target.target_id for target in current.eligible_targets()}
+        after = {
+            target.target_id: target.device_id
+            for target in candidate.eligible_targets()
+        }
+        return {device_id for target_id, device_id in after.items() if target_id not in before}
+
+    def _validate_new_eligibility(
+        self,
+        current: AcquisitionRegistry,
+        candidate: AcquisitionRegistry,
+    ) -> dict[str, Any] | None:
+        affected = self._newly_eligible_device_ids(current, candidate)
+        if not affected:
+            return None
+        return validate_capacity(
+            candidate,
+            self.capacity_profiles(),
+            changed_device_ids=affected,
+        )
+
     def registry_configuration(self) -> dict[str, Any]:
         registry = self._registry_snapshot()
         return registry.sanitized(audit=self._registry_store.recent_audit())
+
+    def cadence_configuration(self) -> dict[str, Any]:
+        registry = self._registry_snapshot()
+        registry_payload = registry.sanitized()
+        return {
+            "schema_version": 1,
+            "registry_revision": registry.revision,
+            "updated_at": registry.document.updated_at,
+            "policy": registry_payload["cadence"],
+            "effective_devices": [
+                {
+                    "device_id": item["device_id"],
+                    "bus_id": item["bus_id"],
+                    "device_family": item["device_family"],
+                    "lifecycle": item["lifecycle"],
+                    "effective_interval_seconds": item[
+                        "effective_interval_seconds"
+                    ],
+                    "cadence_source": item["cadence_source"],
+                }
+                for item in registry_payload["devices"]
+            ],
+            "capacity": self.capacity_configuration(registry),
+        }
 
     def registry_summary(self) -> dict[str, Any]:
         registry = self._registry_snapshot()
@@ -99,6 +195,7 @@ class RegistryManagedDeviceAgent(ManagedDeviceAgent):
             "schema_version": payload["schema_version"],
             "revision": payload["revision"],
             "updated_at": payload["updated_at"],
+            "cadence_policy_revision": payload["revision"],
             **payload["summary"],
         }
 
@@ -240,6 +337,12 @@ class RegistryManagedDeviceAgent(ManagedDeviceAgent):
                     )
 
             if target_mutations or device_mutations:
+                candidate_document, _ = registry.with_mutations(
+                    device_mutations=tuple(device_mutations),
+                    target_mutations=tuple(target_mutations),
+                )
+                candidate = AcquisitionRegistry(candidate_document)
+                self._validate_new_eligibility(registry, candidate)
                 registry = self._registry_store.update(
                     registry,
                     expected_revision=registry.revision,
@@ -263,8 +366,15 @@ class RegistryManagedDeviceAgent(ManagedDeviceAgent):
     ) -> dict[str, Any]:
         expected_revision, reason, devices, targets = parse_registry_mutation(payload)
         with self._bus_operation_lock, self._registry_lock:
+            current = self._registry
+            candidate_document, _ = current.with_mutations(
+                device_mutations=devices,
+                target_mutations=targets,
+            )
+            candidate = AcquisitionRegistry(candidate_document)
+            self._validate_new_eligibility(current, candidate)
             registry = self._registry_store.update(
-                self._registry,
+                current,
                 expected_revision=expected_revision,
                 actor=actor,
                 reason=reason,
@@ -277,6 +387,37 @@ class RegistryManagedDeviceAgent(ManagedDeviceAgent):
         if self.operational is not None and self.state.mqtt_connected:
             self.operational.publish_health_if_due(force=True)
         return self.registry_configuration()
+
+    def update_cadence(
+        self,
+        payload: dict[str, Any],
+        *,
+        actor: str,
+    ) -> dict[str, Any]:
+        expected_revision, reason, mutation = parse_cadence_mutation(payload)
+        with self._bus_operation_lock, self._registry_lock:
+            current = self._registry
+            candidate_document, _changes, affected = current.with_cadence_mutation(
+                mutation
+            )
+            candidate = AcquisitionRegistry(candidate_document)
+            validate_capacity(
+                candidate,
+                self.capacity_profiles(),
+                changed_device_ids=affected,
+            )
+            registry = self._registry_store.update_cadence(
+                current,
+                expected_revision=expected_revision,
+                actor=actor,
+                reason=reason,
+                mutation=mutation,
+            )
+            self._registry = registry
+        self.state.update(last_error=None)
+        if self.operational is not None and self.state.mqtt_connected:
+            self.operational.publish_health_if_due(force=True)
+        return self.cadence_configuration()
 
     def _sample_xjp60d(
         self,
@@ -415,11 +556,14 @@ class RegistryManagedHealthHandler(ManagedHealthHandler):
         if path == REGISTRY_PATH:
             self._send_json(HTTPStatus.OK, self.agent.registry_configuration())
             return
+        if path == CADENCE_PATH:
+            self._send_json(HTTPStatus.OK, self.agent.cadence_configuration())
+            return
         super().do_GET()
 
     def do_PUT(self) -> None:  # noqa: N802
         path = self.path.split("?", maxsplit=1)[0]
-        if path != REGISTRY_PATH:
+        if path not in {REGISTRY_PATH, CADENCE_PATH}:
             super().do_PUT()
             return
         try:
@@ -427,9 +571,16 @@ class RegistryManagedHealthHandler(ManagedHealthHandler):
             actor = self.headers.get(
                 "X-NEXOLAB-Actor", "authorized-control-plane"
             )
-            result = self.agent.update_registry(payload, actor=actor)
+            result = (
+                self.agent.update_registry(payload, actor=actor)
+                if path == REGISTRY_PATH
+                else self.agent.update_cadence(payload, actor=actor)
+            )
         except RegistryRevisionConflict as error:
             self._send_json(HTTPStatus.CONFLICT, {"detail": str(error)})
+            return
+        except CapacityValidationError as error:
+            self._send_json(HTTPStatus.UNPROCESSABLE_ENTITY, error.payload())
             return
         except (json.JSONDecodeError, UnicodeDecodeError, ValueError) as error:
             self._send_json(HTTPStatus.UNPROCESSABLE_ENTITY, {"detail": str(error)})
