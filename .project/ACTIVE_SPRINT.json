@@ -167,17 +167,50 @@
     }
   ],
   "independent_pending_lanes": [
-    {"issue": 618, "status": "open_independent_reliability_lane"},
-    {"issue": 607, "status": "queued_before_589"},
-    {"issue": 589, "status": "blocked_bus_architecture_607"},
-    {"issue": 590, "status": "blocked_dependency_589"},
-    {"issue": 585, "status": "blocked"},
-    {"issue": 444, "status": "needs_validation"},
-    {"issue": 245, "status": "needs_validation"},
-    {"issue": 200, "status": "hardware_validation_pending_topology_envelope"},
-    {"issue": 201, "status": "needs_validation_hardware_power_cycle"},
-    {"issue": 202, "status": "hardware_validation_pending_unit_115_kk2"},
-    {"issue": 189, "status": "blocked_actual_host_recovery_evidence"}
+    {
+      "issue": 618,
+      "status": "open_independent_reliability_lane"
+    },
+    {
+      "issue": 607,
+      "status": "queued_before_589"
+    },
+    {
+      "issue": 589,
+      "status": "blocked_bus_architecture_607"
+    },
+    {
+      "issue": 590,
+      "status": "blocked_dependency_589"
+    },
+    {
+      "issue": 585,
+      "status": "blocked"
+    },
+    {
+      "issue": 444,
+      "status": "needs_validation"
+    },
+    {
+      "issue": 245,
+      "status": "needs_validation"
+    },
+    {
+      "issue": 200,
+      "status": "hardware_validation_pending_topology_envelope"
+    },
+    {
+      "issue": 201,
+      "status": "needs_validation_hardware_power_cycle"
+    },
+    {
+      "issue": 202,
+      "status": "hardware_validation_pending_unit_115_kk2"
+    },
+    {
+      "issue": 189,
+      "status": "blocked_actual_host_recovery_evidence"
+    }
   ],
   "safety": {
     "modbus_write": "none",
