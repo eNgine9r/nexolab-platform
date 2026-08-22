@@ -9,6 +9,7 @@ from acquisition_registry import AcquisitionRegistry, RegistryTarget
 
 DEFAULT_MAX_UTILIZATION = 0.75
 DEFAULT_RETRY_RESERVE_FRACTION = 0.10
+MIN_MEASURED_P95_SAMPLES = 20
 SCHEDULER_OVERHEAD_SECONDS_PER_TARGET = 0.002
 
 
@@ -30,8 +31,12 @@ class BusCapacityProfile:
         return 3.5 * bits_per_character / self.baudrate
 
     def request_budget_seconds(self) -> tuple[float, str]:
-        if self.observed_p95_seconds is not None and self.observed_p95_seconds > 0:
-            base = min(self.timeout_seconds, self.observed_p95_seconds)
+        if (
+            self.observed_p95_seconds is not None
+            and self.observed_p95_seconds > 0
+            and self.observed_sample_count >= MIN_MEASURED_P95_SAMPLES
+        ):
+            base = self.observed_p95_seconds
             source = "measured_p95"
         else:
             base = self.timeout_seconds
@@ -51,7 +56,9 @@ class CapacityValidationError(ValueError):
             item for item in summary.get("buses", []) if not item.get("safe", False)
         ]
         rendered = ", ".join(str(item.get("bus_id")) for item in overloaded)
-        super().__init__(f"Requested acquisition cadence exceeds RS-485 capacity: {rendered}")
+        super().__init__(
+            f"Requested acquisition cadence exceeds RS-485 capacity: {rendered}"
+        )
 
     def payload(self) -> dict[str, Any]:
         return {
@@ -96,11 +103,16 @@ def evaluate_capacity(
 
     changed = set(changed_device_ids)
     devices = {item.device_id: item for item in registry.document.devices}
+    eligible_targets = registry.eligible_targets()
     device_requests: dict[str, int] = {}
-    for target in registry.eligible_targets():
+    device_target_counts: dict[str, int] = {}
+    for target in eligible_targets:
         device_requests[target.device_id] = (
             device_requests.get(target.device_id, 0)
             + physical_requests_per_target(target)
+        )
+        device_target_counts[target.device_id] = (
+            device_target_counts.get(target.device_id, 0) + 1
         )
 
     buses: list[dict[str, Any]] = []
@@ -118,7 +130,9 @@ def evaluate_capacity(
                     "active_device_count": 0,
                     "active_target_count": 0,
                     "estimated_utilization_percent": 0.0,
-                    "maximum_allowed_utilization_percent": round(max_utilization * 100, 3),
+                    "maximum_allowed_utilization_percent": round(
+                        max_utilization * 100, 3
+                    ),
                     "recommended_minimum_interval_seconds": None,
                     "request_budget_source": "not_required",
                     "cooldown_capacity_credit": False,
@@ -128,10 +142,16 @@ def evaluate_capacity(
 
         profile = profiles.get(bus_id)
         if profile is None:
-            raise ValueError(f"Missing RS-485 capacity profile for active bus: {bus_id}")
+            raise ValueError(
+                f"Missing RS-485 capacity profile for active bus: {bus_id}"
+            )
         if profile.bus_id != bus_id:
             raise ValueError(f"RS-485 capacity profile bus mismatch: {bus_id}")
-        if profile.baudrate <= 0 or profile.timeout_seconds <= 0 or profile.retries < 0:
+        if (
+            profile.baudrate <= 0
+            or profile.timeout_seconds <= 0
+            or profile.retries < 0
+        ):
             raise ValueError(f"Invalid RS-485 capacity profile for bus: {bus_id}")
         if profile.parity not in {"N", "E", "O"} or profile.stopbits not in {1, 2}:
             raise ValueError(f"Invalid RS-485 serial framing for bus: {bus_id}")
@@ -144,12 +164,10 @@ def evaluate_capacity(
         device_rows: list[dict[str, Any]] = []
         for device in sorted(bus_devices, key=lambda item: item.device_id):
             request_count = device_requests[device.device_id]
-            active_targets += sum(
-                1
-                for target in registry.eligible_targets()
-                if target.device_id == device.device_id
+            active_targets += device_target_counts[device.device_id]
+            interval, cadence_source = registry.effective_cadence_for_device(
+                device.device_id
             )
-            interval, cadence_source = registry.effective_cadence_for_device(device.device_id)
             work_seconds = (
                 request_count * request_budget
                 + SCHEDULER_OVERHEAD_SECONDS_PER_TARGET * request_count
@@ -168,7 +186,9 @@ def evaluate_capacity(
                     "effective_interval_seconds": interval,
                     "cadence_source": cadence_source,
                     "estimated_work_seconds_per_pass": round(work_seconds, 6),
-                    "estimated_utilization_percent": round(contribution * 100, 3),
+                    "estimated_utilization_percent": round(
+                        contribution * 100, 3
+                    ),
                 }
             )
 
@@ -179,12 +199,19 @@ def evaluate_capacity(
             recommendation = _recommend_uniform_changed_interval(
                 allowed_utilization=max_utilization,
                 fixed_utilization=(fixed_utilization if changed else 0.0),
-                changed_work_seconds=(changed_work if changed else sum(
-                    item["estimated_work_seconds_per_pass"] for item in device_rows
-                )),
+                changed_work_seconds=(
+                    changed_work
+                    if changed
+                    else sum(
+                        item["estimated_work_seconds_per_pass"]
+                        for item in device_rows
+                    )
+                ),
             )
             recommendation_scope = (
-                "changed_devices_uniform_interval" if changed else "all_active_devices_uniform_interval"
+                "changed_devices_uniform_interval"
+                if changed
+                else "all_active_devices_uniform_interval"
             )
 
         buses.append(
@@ -194,11 +221,14 @@ def evaluate_capacity(
                 "active_device_count": len(bus_devices),
                 "active_target_count": active_targets,
                 "estimated_utilization_percent": round(utilization * 100, 3),
-                "maximum_allowed_utilization_percent": round(max_utilization * 100, 3),
+                "maximum_allowed_utilization_percent": round(
+                    max_utilization * 100, 3
+                ),
                 "recommended_minimum_interval_seconds": recommendation,
                 "recommendation_scope": recommendation_scope,
                 "request_budget_seconds": round(request_budget, 6),
                 "request_budget_source": budget_source,
+                "measured_p95_minimum_samples": MIN_MEASURED_P95_SAMPLES,
                 "observed_sample_count": profile.observed_sample_count,
                 "serial_timeout_seconds": profile.timeout_seconds,
                 "retry_allowance": profile.retries,
