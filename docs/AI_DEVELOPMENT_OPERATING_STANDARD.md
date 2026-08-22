@@ -1,25 +1,26 @@
 # AI Development Operating Standard
 
-Version: 1.1  
+Version: 1.2  
 Effective date: 2026-08-22
 
 This document is the shared operating model for product planning, implementation, verification and continuity across ChatGPT, Codex, PowerShell and GitHub.
 
 ## 1. Core principle
 
-The conversation is a working interface, not the permanent project memory.
+The conversation is a working interface, not permanent project memory.
 
-The repository and GitHub are the source of truth:
+The repository and GitHub together are the source of truth:
 
 - `PROJECT_PROFILE.yaml` — runtime and infrastructure constraints;
-- `.project/CURRENT_STATE.md` — verified current state and next action;
-- `.project/ACTIVE_SPRINT.json` — ordered, machine-readable Sprint queue;
+- `.project/CURRENT_STATE.md` — durable offline-readable current planning/evidence summary;
+- `.project/ACTIVE_SPRINT.json` — ordered machine-readable Sprint queue and durable evidence;
 - `.project/BLOCKERS.md` — unresolved blockers and required decisions;
-- GitHub Issues — complete Work Packages;
-- Pull Requests — reviewed implementation units;
+- `.project/LAST_CHECKPOINT.json` — recoverable execution checkpoint;
+- GitHub Issues — complete Work Packages and current issue lifecycle when online;
+- Pull Requests — reviewed implementation units and merge outcome when online;
 - architecture decisions and runbooks — durable technical knowledge.
 
-A new chat or Codex session must be able to resume work from these sources without reconstructing the whole conversation history.
+Repository state must remain sufficient to resume safely offline, but it must not duplicate volatile GitHub facts as timeless invariants.
 
 ## 2. Roles
 
@@ -41,7 +42,7 @@ Responsible for reading the active queue, selecting unblocked Ready work, launch
 
 ### GitHub — durable control plane
 
-Responsible for Issues, branches, Pull Requests, CI status, release evidence, versioned documentation and recovery after chat or agent interruption.
+Responsible for Issues, branches, Pull Requests, CI status, merge history, release evidence and recovery after chat or agent interruption.
 
 ## 3. Project profiles
 
@@ -98,14 +99,17 @@ A task is not Done without required code, runtime and user-flow evidence.
 
 The Sprint queue lives in `.project/ACTIVE_SPRINT.json`.
 
-After each Work Package:
+For each Work Package:
 
-1. run targeted verification;
-2. record result and changed scope;
-3. update current state;
-4. write the last checkpoint;
-5. create/update a focused Pull Request when publishing is enabled;
-6. continue to the next independent Ready task.
+1. run targeted verification during implementation;
+2. publish one coherent PR candidate when ready;
+3. collect exact-head verification/review/hardware evidence that is known before merge;
+4. update the durable state/checkpoint when planning, blockers, baselines or evidence materially changed;
+5. merge only on required GREEN checks;
+6. query GitHub for the current merge/Issue result when online;
+7. continue directly to the next independent Ready Work Package.
+
+A dedicated post-merge state Issue/branch/PR is **not required** merely to record a new `main` SHA, squash merge SHA or GitHub Issue closure. Create a genuine state-only PR only when durable planning/evidence content materially changes.
 
 Continuity is implemented as a chain of small resumable sessions, not one unbounded conversation.
 
@@ -127,7 +131,7 @@ During implementation: targeted tests and touched-file checks.
 
 At Work Package completion: module tests, lint, typecheck/compile and migration consistency where applicable.
 
-Before PR approval: integration tests, production build, security/isolation checks, browser/API verification, state and checkpoint update.
+Before PR approval: integration tests, production build, security/isolation checks, browser/API verification and exact-head evidence.
 
 Before merge/release: required CI, local/offline runtime evidence, and rollback/recovery evidence for high-risk changes.
 
@@ -144,22 +148,24 @@ Current policy:
 - product, backend, Device Agent, deployment/runtime, dependency/toolchain, security/supply-chain and CI-governance changes retain full Core quality verification;
 - cross-surface or previously unknown paths broaden verification rather than silently skipping checks;
 - specialized browser/backend/edge/offline/security workflows keep their domain-specific path filters and exact-head semantics;
-- for non-state PRs, the stable `NEXOLAB Merge Gate` must first require the correct Core lane and then wait for every other PR workflow that actually triggered on the same exact head; any failed, cancelled, skipped, missing-through-timeout or still-running required workflow keeps the gate RED;
-- state-only PRs use only the canonical state-integrity path because no product/runtime surface changed; the first post-#646 state reconciliation is the real acceptance proof for this fast lane.
+- for non-state PRs, the stable `NEXOLAB Merge Gate` requires the correct Core lane and waits for every other PR workflow actually triggered on the same exact head;
+- state-only PRs use only the canonical state-integrity path because no product/runtime surface changed.
 
-This policy is an optimization of verification selection, not a reduction of acceptance criteria. Software checks never substitute for required hardware/runtime evidence.
+This policy optimizes verification selection; it does not reduce acceptance criteria. Software checks never substitute for required hardware/runtime evidence.
 
 ### Evidence anchoring
 
-Record distinct evidence identities where relevant:
+State Model v2 distinguishes:
 
-- product/reviewed source SHA;
-- final PR head SHA;
-- hardware/runtime evidence SHA;
-- deployed SHA;
-- state/checkpoint SHA.
+- `accepted_product_sha` — latest accepted product/runtime source baseline;
+- `deployed_product_sha` — source actually deployed;
+- `verified_head_sha` — exact PR head to which review/CI evidence applies;
+- `hardware_evidence_sha` — exact source physically accepted, when applicable;
+- timestamped GitHub observations — optional snapshots such as merge SHA, current `main` HEAD or branch-protection state.
 
-A state-only commit does not invalidate already completed product or hardware evidence when the repository proves that no product/runtime path changed. Conversely, any product/runtime change after evidence was collected requires the affected evidence to be rerun.
+A future squash merge SHA is **not required** to complete repository-side Work Package evidence. GitHub is authoritative for merge status and merge SHA when online.
+
+A state-only change does not invalidate already completed product/hardware evidence when no product/runtime path changed. Any product/runtime change after evidence was collected requires affected evidence to be rerun.
 
 ## 9. Offline readiness
 
@@ -205,24 +211,44 @@ External AI/cloud functions must be optional and isolated unless a local runtime
 
 ## 12. State continuity protocol
 
-At session start:
+State Model v2 separates durable offline state from volatile online observations.
+
+### Durable state
+
+Keep in version control:
+
+- project/profile and Sprint identity;
+- accepted/deployed baselines;
+- active/next Work Package intent;
+- blockers, safety and maintenance deadlines;
+- final exact-head verification/review evidence;
+- hardware/runtime evidence anchored to an exact SHA.
+
+### Volatile observations
+
+Current `main` HEAD, PR/Issue lifecycle, squash merge SHA and repository settings are queried from GitHub when online. If copied into repository state, they must live under explicit `observations` with `source`, `observed_at`, `kind` and `data`. They must not become invariants that force a follow-up commit.
+
+### Session start
 
 1. read `PROJECT_PROFILE.yaml`;
 2. read this standard;
 3. read applicable `AGENTS.md` files;
-4. read current state and active Sprint;
-5. inspect linked Issues, PRs and current branch;
-6. reconcile docs with code before claiming status.
+4. validate and read current state/Sprint/checkpoint;
+5. inspect linked GitHub Issues, PRs and current branch when online;
+6. reconcile observations with durable state before claiming current status.
 
-At Work Package end:
+### Work Package end
 
-- update task status;
-- record checks/evidence and the exact SHA each evidence item applies to;
-- update current state and next action;
-- record blockers;
-- leave a recoverable commit/checkpoint.
+- record exact-head checks/evidence before merge when known;
+- leave a recoverable checkpoint;
+- merge only after required GREEN verification;
+- use GitHub for current merge/Issue observations;
+- run a delta Ready audit;
+- start the next independent Ready Work Package without a mandatory reconciliation PR unless durable state materially changed.
 
-Prefer delta Ready audits after normal Work Package completion: re-evaluate changed blockers, dependencies, new critical issues and maintenance deadlines. Run a full backlog/Ready audit when the queue is exhausted, architecture changes materially, a new critical defect changes priority, or Sprint boundaries change.
+Use dependency-free `scripts/project-state.py` / `scripts/validate-project-state.py` for deterministic state operations. Mutation commands must support dry-run and must never require network access.
+
+Prefer delta Ready audits after normal Work Package completion. Run a full backlog/Ready audit when the queue is exhausted, architecture changes materially, a new critical defect changes priority, or Sprint boundaries change.
 
 ## 13. Standard result report
 
