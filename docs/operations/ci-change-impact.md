@@ -20,9 +20,7 @@ external exact-head PR workflow matrix (non-state PRs)
 
 Specialized domain workflows keep their own repository path filters. For non-state pull requests, the stable merge gate waits for every other PR workflow that actually triggered on the same exact head and fails if any latest workflow run is not GREEN.
 
-## Initial rollout policy
-
-### Canonical state-only fast lane
+## Canonical state-only fast lane
 
 A pull request is `state_only` only when every changed path is one of:
 
@@ -33,17 +31,25 @@ A pull request is `state_only` only when every changed path is one of:
 .project/LAST_CHECKPOINT.json
 ```
 
-The lane performs dependency-free project-state validation and exact diff checks. It deliberately does **not** install Node dependencies, run repository-wide ESLint/Vitest or create a Next.js production build because those product/runtime inputs did not change.
+The lane performs dependency-free State Model validation and exact diff checks. It deliberately does **not** install Node dependencies, run repository-wide ESLint/Vitest or create a Next.js production build because those product/runtime inputs did not change.
 
 If any other file is present, the PR is not state-only.
 
-State-only pull requests skip external workflow aggregation because canonical state paths are explicitly outside product/runtime acceptance surfaces. The first real proof of this lane is the post-merge state reconciliation after Issue #646 itself.
+Issue #648 / PR #649 is the real acceptance evidence for this lane:
 
-### Documentation-only changes
+- classifier = `state_only`;
+- State integrity = PASS;
+- Quality and build = SKIPPED;
+- Node/npm/full frontend quality = NOT RUN;
+- Merge Gate = PASS.
+
+State Model v2 changes the _frequency_ of state-only PRs: they remain valid for material planning/evidence/schema changes but are no longer mandatory after every normal product merge.
+
+## Documentation-only changes
 
 Documentation is classified explicitly but remains on full `Quality and build` during the initial rollout. This preserves the repository Prettier contract until an equivalent deterministic lightweight formatting gate exists.
 
-### Product and engineering changes
+## Product and engineering changes
 
 Frontend, backend, Device Agent, deployment/runtime, dependency/toolchain, security/supply-chain, CI-governance and cross-surface changes continue through full Core quality verification.
 
@@ -65,7 +71,7 @@ The repository classifier reports one or more of:
 - `ci_governance`;
 - `cross_surface_or_unknown`.
 
-A class describes the changed surface. It does not by itself replace specialized acceptance requirements from the Work Package.
+A class describes the changed surface. It does not replace specialized acceptance requirements from the Work Package.
 
 ## Node dependency installation
 
@@ -88,12 +94,12 @@ It fails when:
 - a non-state PR did not pass `Quality and build`;
 - a required Core lane was failed, cancelled, absent or unexpectedly skipped;
 - a non-state change attempts to claim the lightweight lane;
-- for a non-state PR, any latest external workflow run that actually triggered on the exact PR head is failed, cancelled, skipped or otherwise non-successful;
+- for a non-state PR, any latest external workflow run actually triggered on the exact PR head is failed, cancelled, skipped or otherwise non-successful;
 - external exact-head workflows remain queued/in-progress beyond the bounded aggregation timeout.
 
-The aggregator groups repeated runs by workflow and uses the latest run for the exact head, so an older failed attempt does not permanently poison a later successful rerun. It excludes its own current Core workflow run and requires a stable observation window before declaring the external matrix GREEN.
+The aggregator groups repeated runs by workflow and uses the latest run for the exact head. It excludes its own current Core workflow and requires a stable observation window before declaring the external matrix GREEN.
 
-The gate intentionally does not convert software CI into Raspberry Pi or real-hardware acceptance. Hardware/runtime evidence remains separately anchored to the exact source that was physically tested.
+Software CI does not substitute for Raspberry Pi or real-hardware acceptance.
 
 ## Development cadence
 
@@ -104,9 +110,19 @@ During implementation:
 3. batch related review findings when safe;
 4. publish a coherent PR candidate rather than every micro-fix;
 5. use remote CI for candidate/final gates, not as the primary edit-test loop;
-6. after the last code-affecting change, require one exact-head GREEN merge gate.
+6. after the last code-affecting change, require one exact-head GREEN merge gate;
+7. record durable exact-head evidence before merge when it materially changes project state;
+8. after merge, query GitHub and continue to the next Work Package without an automatic reconciliation PR.
 
-A later state-only checkpoint does not invalidate already anchored product/hardware evidence if the diff proves no product/runtime path changed.
+A state-only checkpoint does not invalidate anchored product/hardware evidence when no product/runtime path changed.
+
+## State Model v2 interaction
+
+`State integrity` validates `schema_version: 2` through dependency-free tooling.
+
+Current `main` HEAD, merge SHA and GitHub lifecycle are not canonical state invariants. See `docs/operations/project-state-model-v2.md`.
+
+Changing state tooling/schema/governance itself is a CI-governance change and must receive full Core verification. Only exact four-file canonical state diffs receive the fast lane.
 
 ## Extending the classifier
 
@@ -118,7 +134,7 @@ When adding a new top-level repository area or verification-sensitive path:
 4. broaden verification if ownership is ambiguous;
 5. never make an unknown path lightweight merely to reduce CI time.
 
-When adding or changing a specialized PR workflow, preserve exact-head semantics and path filters. The merge gate aggregates workflows that actually start; therefore path-filter correctness remains part of the specialized workflow contract and must be tested when those filters change.
+When adding or changing a specialized PR workflow, preserve exact-head semantics and path filters.
 
 ## Branch protection
 

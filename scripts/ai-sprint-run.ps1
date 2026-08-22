@@ -9,45 +9,87 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-function Save-JsonFile {
+function Get-OptionalProperty {
     param(
-        [Parameter(Mandatory)]$Value,
-        [Parameter(Mandatory)][string]$Path
+        [Parameter(Mandatory)]$Object,
+        [Parameter(Mandatory)][string]$Name
     )
 
-    $directory = Split-Path -Parent $Path
-    if ($directory -and -not (Test-Path $directory)) {
-        New-Item -ItemType Directory -Path $directory -Force | Out-Null
+    $property = $Object.PSObject.Properties[$Name]
+    if ($null -eq $property) {
+        return $null
     }
+    return $property.Value
+}
 
-    $Value | ConvertTo-Json -Depth 30 | Set-Content -Path $Path -Encoding utf8
+function Get-PythonCommand {
+    foreach ($candidate in @("python3", "python")) {
+        $command = Get-Command $candidate -ErrorAction SilentlyContinue
+        if ($command) {
+            return $command.Source
+        }
+    }
+    throw "Python 3 is required for deterministic State Model v2 mutations."
+}
+
+$script:PythonCommand = Get-PythonCommand
+$script:StateTool = Join-Path $PSScriptRoot "project-state.py"
+
+function Invoke-StateTool {
+    param([Parameter(Mandatory)][string[]]$Arguments)
+
+    & $script:PythonCommand $script:StateTool @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "State Model v2 command failed: $($Arguments -join ' ')"
+    }
 }
 
 function Test-TaskDependencies {
     param(
         [Parameter(Mandatory)]$Task,
-        [Parameter(Mandatory)]$Tasks
+        [Parameter(Mandatory)]$WorkPackages
     )
 
-    foreach ($dependencyId in @($Task.depends_on)) {
-        $dependency = $Tasks | Where-Object { $_.id -eq $dependencyId } | Select-Object -First 1
-        if (-not $dependency) {
-            throw "Task '$($Task.id)' references missing dependency '$dependencyId'."
+    $dependencies = @(Get-OptionalProperty -Object $Task -Name "depends_on")
+    foreach ($dependencyIssue in $dependencies) {
+        if ($null -eq $dependencyIssue) {
+            continue
         }
-
-        if ($dependency.status -notin @("done", "review")) {
+        $dependency = $WorkPackages |
+            Where-Object { $_.issue -eq [int]$dependencyIssue } |
+            Select-Object -First 1
+        if (-not $dependency) {
+            throw "Issue #$($Task.issue) references missing dependency Issue #$dependencyIssue."
+        }
+        if ($dependency.lifecycle -ne "completed") {
             return $false
         }
     }
-
     return $true
 }
 
 function New-TaskPrompt {
     param([Parameter(Mandatory)]$Task)
 
-    $scope = (@($Task.scope) | ForEach-Object { "- $_" }) -join "`n"
-    $verification = (@($Task.verification) | ForEach-Object { "- $_" }) -join "`n"
+    $taskId = Get-OptionalProperty -Object $Task -Name "id"
+    if (-not $taskId) {
+        $taskId = "NEXOLAB-$($Task.issue)"
+    }
+
+    $scopeValues = @(Get-OptionalProperty -Object $Task -Name "scope")
+    $verificationValues = @(Get-OptionalProperty -Object $Task -Name "verification")
+    $scope = if ($scopeValues.Count -gt 0 -and $null -ne $scopeValues[0]) {
+        ($scopeValues | ForEach-Object { "- $_" }) -join "`n"
+    }
+    else {
+        "- Follow the permitted directories and scope in GitHub Issue #$($Task.issue)."
+    }
+    $verification = if ($verificationValues.Count -gt 0 -and $null -ne $verificationValues[0]) {
+        ($verificationValues | ForEach-Object { "- $_" }) -join "`n"
+    }
+    else {
+        "- Follow the verification plan in GitHub Issue #$($Task.issue)."
+    }
 
     return @"
 You are implementing one scoped NEXOLAB Work Package.
@@ -60,7 +102,7 @@ Before editing:
 5. Inspect GitHub Issue #$($Task.issue) if GitHub access is available.
 6. Reconcile the task with the current branch and git diff.
 
-Work Package: $($Task.id)
+Work Package: $taskId
 Title: $($Task.title)
 GitHub Issue: #$($Task.issue)
 
@@ -79,7 +121,7 @@ Rules:
 - Do not perform production/site cutover or destructive data operations.
 - Missing real-hardware evidence must be reported as unverified.
 - Run targeted checks before broad checks.
-- Update .project/CURRENT_STATE.md and .project/LAST_CHECKPOINT.json before finishing.
+- Use State Model v2 tooling for canonical state transitions/checkpoints.
 - End with Outcome, Files changed, Checks actually run, Offline/safety evidence, Blockers, Risks and Next action.
 "@
 }
@@ -87,87 +129,97 @@ Rules:
 if (-not (Test-Path $QueuePath)) {
     throw "Sprint queue not found: $QueuePath"
 }
+if (-not (Test-Path $script:StateTool)) {
+    throw "State Model v2 tool not found: $script:StateTool"
+}
 
+Invoke-StateTool -Arguments @("validate")
 $queue = Get-Content -Path $QueuePath -Raw | ConvertFrom-Json
-$tasks = @($queue.tasks)
-$processed = 0
+if ($queue.schema_version -ne 2) {
+    throw "Autonomous Sprint Runner requires State Model v2."
+}
 
-$readyTasks = $tasks |
-    Where-Object { $_.status -eq "ready" } |
+$workPackages = @($queue.work_packages)
+$processed = 0
+$readyTasks = $workPackages |
+    Where-Object { $_.lifecycle -eq "ready" } |
     Sort-Object priority
 
 foreach ($task in $readyTasks) {
     if ($MaxTasks -gt 0 -and $processed -ge $MaxTasks) {
         break
     }
-
-    if (-not (Test-TaskDependencies -Task $task -Tasks $tasks)) {
-        Write-Host "Skipping $($task.id): dependencies are not complete."
+    if (-not (Test-TaskDependencies -Task $task -WorkPackages $workPackages)) {
+        Write-Host "Skipping Issue #$($task.issue): dependencies are not complete."
         continue
     }
 
+    $branch = Get-OptionalProperty -Object $task -Name "branch"
+    if (-not $branch) {
+        throw "Ready Issue #$($task.issue) must define its feature branch before autonomous execution."
+    }
+
+    $taskId = Get-OptionalProperty -Object $task -Name "id"
+    if (-not $taskId) {
+        $taskId = "NEXOLAB-$($task.issue)"
+    }
     $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
     $runDirectory = ".project/runs"
     New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
-
-    $promptPath = Join-Path $runDirectory "$timestamp-$($task.id)-prompt.md"
-    $logPath = Join-Path $runDirectory "$timestamp-$($task.id)-codex.log"
+    $promptPath = Join-Path $runDirectory "$timestamp-$taskId-prompt.md"
+    $logPath = Join-Path $runDirectory "$timestamp-$taskId-codex.log"
     $prompt = New-TaskPrompt -Task $task
     $prompt | Set-Content -Path $promptPath -Encoding utf8
 
     if ($DryRun) {
-        Write-Host "[DRY RUN] Would execute $($task.id) using $promptPath"
+        Write-Host "[DRY RUN] Would execute Issue #$($task.issue) using $promptPath"
         $processed++
         continue
     }
-
     if (-not (Get-Command codex -ErrorAction SilentlyContinue)) {
         throw "Codex CLI is not available in PATH. Install/configure Codex or use -DryRun."
     }
 
-    $task.status = "in_progress"
-    $task | Add-Member -NotePropertyName started_at -NotePropertyValue (Get-Date).ToString("o") -Force
-    Save-JsonFile -Value $queue -Path $QueuePath
+    Invoke-StateTool -Arguments @(
+        "begin", "--issue", [string]$task.issue,
+        "--title", [string]$task.title,
+        "--branch", [string]$branch
+    )
 
-    Write-Host "Starting $($task.id): $($task.title)"
+    Write-Host "Starting ${taskId}: $($task.title)"
     $prompt | & codex @CodexArguments 2>&1 | Tee-Object -FilePath $logPath
     $exitCode = $LASTEXITCODE
-
-    $checkpoint = [ordered]@{
-        schema_version = 1
-        project = $queue.project
-        sprint = $queue.sprint.id
-        task = $task.id
-        issue = $task.issue
-        timestamp = (Get-Date).ToString("o")
-        prompt_path = $promptPath
-        log_path = $logPath
-        codex_exit_code = $exitCode
-    }
+    $checkpointTime = (Get-Date).ToUniversalTime().ToString("o")
 
     if ($exitCode -eq 0) {
-        $task.status = "review"
-        $task | Add-Member -NotePropertyName finished_at -NotePropertyValue (Get-Date).ToString("o") -Force
-        $checkpoint.status = "review"
-        $checkpoint.next_action = "Review diff, checks and offline/safety evidence, then publish a focused Pull Request or mark Done."
-        Write-Host "Completed $($task.id); moved to review."
-    }
-    else {
-        $task.status = "blocked"
-        $task | Add-Member -NotePropertyName blocked_at -NotePropertyValue (Get-Date).ToString("o") -Force
-        $checkpoint.status = "blocked"
-        $checkpoint.next_action = "Inspect the Codex log, record the blocker, then continue with another independent Ready task."
-        Write-Warning "$($task.id) failed with exit code $exitCode and was marked blocked."
+        Invoke-StateTool -Arguments @("transition", "--issue", [string]$task.issue, "--to", "review")
+        Invoke-StateTool -Arguments @(
+            "checkpoint",
+            "--event", "issue_$($task.issue)_codex_review",
+            "--next-action", "Review diff and exact checks, then publish or update the focused Pull Request.",
+            "--timestamp", $checkpointTime,
+            "--actor", "Codex Sprint Runner"
+        )
+        Write-Host "Completed $taskId; moved to review. Team Lead review is required before another Work Package starts."
+        $processed++
+        break
     }
 
-    Save-JsonFile -Value $checkpoint -Path ".project/LAST_CHECKPOINT.json"
-    Save-JsonFile -Value $queue -Path $QueuePath
+    Invoke-StateTool -Arguments @(
+        "checkpoint",
+        "--event", "issue_$($task.issue)_codex_failed",
+        "--next-action", "Inspect $logPath, record the blocker, then continue with another independent Ready Work Package.",
+        "--timestamp", $checkpointTime,
+        "--actor", "Codex Sprint Runner"
+    )
+    Invoke-StateTool -Arguments @("transition", "--issue", [string]$task.issue, "--to", "blocked")
+    Write-Warning "$taskId failed with exit code $exitCode and was marked blocked."
     $processed++
 }
 
 if ($processed -eq 0) {
-    Write-Host "No unblocked Ready tasks were executed."
+    Write-Host "No unblocked Ready Work Packages were executed."
 }
 else {
-    Write-Host "Sprint runner processed $processed task(s)."
+    Write-Host "Sprint runner processed $processed Work Package(s)."
 }

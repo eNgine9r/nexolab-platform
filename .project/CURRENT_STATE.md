@@ -2,87 +2,72 @@
 
 Updated: 2026-08-22
 
-## Repository baseline
+## State Model v2 boundary
 
-Repository `main` is `19c053e0f197a4ccd925af19a6c40881ec56d348`, the GREEN squash merge of PR #647 implementing the repository-side portion of Issue #646.
+NEXOLAB repository continuity now uses a **durable state + online observations** model.
 
-The accepted product/runtime source remains `6d223415deebf1a44bb52ba4fcaa3c5db9b03697`. PR #647 changed CI/governance, tests, documentation and project-state metadata only; it did not change NEXOLAB product/runtime behavior and therefore does not invalidate the previously anchored product evidence.
+Durable repository state records facts that remain meaningful in an offline checkout:
 
-Production remains intentionally deployed from source `6e387485b68fb862d9f82ae7f6000b1f5b672764` using immutable frontend release `runtime/frontend-releases/6e387485b68fb862d9f82ae7f6000b1f5b672764-20260820T214127Z`, BUILD_ID `wb6SYt8RD2_XAcyPcyZP2`.
+- project/profile and Sprint identity;
+- accepted product source;
+- deployed product source;
+- active/next Work Package intent;
+- immutable exact-head verification and hardware evidence;
+- blockers, maintenance deadlines and safety boundaries.
 
-## Issue #646 repository-side implementation
+Current GitHub facts such as `main` HEAD, Issue/PR open/merged state, squash merge SHA and branch-protection state are **not durable invariants**. GitHub is authoritative for those facts when online. If a repository snapshot records one, it is a timestamped observation and never a reason by itself to create another reconciliation PR.
 
-Issue #646 — **Add change-impact CI orchestration and protected main merge gate** — remains open only because the real state-only acceptance and repository branch-protection settings must still be completed.
+This removes the self-referential cycle where every product merge required a second state Issue/branch/PR just to record the merge.
 
-Repository-side implementation was merged through PR #647:
+## Durable baselines
 
-- final PR head: `623a72a0fdec8b8ddb15c5a7e145d0ba60a6a135`;
-- squash merge: `19c053e0f197a4ccd925af19a6c40881ec56d348`;
-- Core CI run `32567703388`: PASS;
-- exact-head Telemetry service run `32567703424`: PASS;
-- `NEXOLAB Merge Gate`: PASS after waiting for the external exact-head workflow;
-- change impact on PR #647: `ci_governance`, full Core quality required;
-- deterministic `npm ci --no-audit --fund=false`, formatting, lint, typecheck, tests and production build: PASS;
-- no unresolved review threads or blocking review remained before merge.
+Accepted product source: `6d223415deebf1a44bb52ba4fcaa3c5db9b03697`.
 
-Implemented behavior now in `main`:
+Deployed product source: `6e387485b68fb862d9f82ae7f6000b1f5b672764`.
 
-- dependency-free deterministic changed-file classification;
-- exact four-file canonical `state_only` fast lane;
-- unknown/cross-surface changes fail closed to full Core verification;
-- dependency-free project-state integrity validation;
-- docs-only changes deliberately retain full Core quality during the conservative rollout;
-- Node quality jobs use lockfile-enforcing `npm ci` plus npm download caching;
-- stable `NEXOLAB Merge Gate` enforces the required Core lane;
-- non-state PRs aggregate every other GitHub Actions PR workflow that actually triggered on the same exact head and remain non-GREEN until those workflows are GREEN.
+These identities are intentionally distinct from repository `main` and from state/checkpoint commits.
 
-## Active Work Package — Issue #648
+## Active Work Package — Issue #650
 
-Issue #648 — **Prove Issue #646 state-only fast lane after CI merge** — is the single active Work Package in branch `chore/648-prove-state-fast-lane`.
+Issue #650 — **Introduce State Model v2 and remove mandatory post-merge reconciliation PRs** — is active in branch `chore/650-state-model-v2`.
 
-Its scope is exactly the four canonical state files:
+The package introduces:
 
-- `.project/CURRENT_STATE.md`;
-- `.project/ACTIVE_SPRINT.json`;
-- `.project/BLOCKERS.md`;
-- `.project/LAST_CHECKPOINT.json`.
+- `schema_version: 2` for canonical machine-readable state;
+- dependency-free validation that rejects volatile repository/GitHub facts as durable invariants;
+- explicit timestamped `observations` for optional GitHub snapshots;
+- deterministic local state tooling for migration, Work Package selection, exact-head evidence, checkpointing and completion;
+- completion semantics based on final verified PR head evidence rather than a future merge SHA;
+- operating rules allowing the next Work Package to start directly after a GREEN merge when no material planning/state change is needed.
 
-This mandatory post-merge reconciliation is also the first real operational acceptance of the new fast lane. The PR must prove:
+## Preserved evidence
 
-- `Change impact` reports exactly `state_only`;
-- `State integrity` passes;
-- `Quality and build` is skipped;
-- Node setup, `npm ci`, repository-wide lint/Vitest and Next production build do not run;
-- `NEXOLAB Merge Gate` passes from the state-only lane;
-- no external product/runtime workflow is required by the state-only diff.
+Issue #606 retains final software head `83abc9b4a0056a2709c33a627b203785eeefff79`, hardware-accepted head `804d0b44045a5099c59149c87b70cbf63ca047f8`, PR #632 and the `PASS_22_OF_22` exact-head workflow result.
+
+Issue #633 retains final verified head `5d1f1f82ad555b68cab8ce9205283cf939d3be09`, PR #643 and Core CI `32564575388`. Raspberry Pi post-deployment acceptance remains `UNVERIFIED_PI_OFFLINE`.
+
+Issue #646 retains final verified head `623a72a0fdec8b8ddb15c5a7e145d0ba60a6a135`, PR #647, Core CI `32567703388`, external Telemetry CI `32567703424`, and the GREEN merge-gate evidence.
+
+Issue #648 retains exact state-proof head `d5a1d57de876a94bb90449ad5cb4e21ba1b6e7ee`, PR #649 and Core CI `32568953282`: `state_only`, State integrity PASS, Quality and build SKIPPED, Node/npm/full frontend quality NOT RUN, Merge Gate PASS.
+
+Historical merge SHAs are preserved only in timestamped GitHub observations, not as durable lifecycle requirements.
 
 ## Current blocker boundary
 
-GitHub reports `main` as `protected: false` with required status-check enforcement off. The connected GitHub tool surface still does not expose a repository-rules/branch-protection mutation action. This remains a **soft access blocker** for the final #646 repository-settings acceptance criterion only.
+Issue #646 is soft-blocked only on repository settings. A GitHub observation captured on 2026-08-22 reports `main` as unprotected with required status checks disabled, while the connected GitHub tool surface exposes no branch-protection/rules mutation action.
 
-Do not report branch protection as complete until repository settings are actually changed and verified. After #648 proves the fast lane, #646 may be marked blocked on this settings access while independent Ready work continues.
+This settings blocker does not stop independent Work Packages.
 
-The remote `nexolab-edge-01` state is irrelevant to #648: no Raspberry Pi, Modbus or hardware acceptance is required for a canonical state-only reconciliation.
+Known product/validation dependencies remain:
 
-## Queue after #648
+- #589 blocked on #607 dual RS-485 architecture;
+- #590 blocked on #589;
+- #585 blocked pending explicit physical W2 / Unit 201 handback approval;
+- #444 and #245 remain validation lanes;
+- #200 / #201 / #202 remain hardware/validation evidence lanes;
+- #189 remains blocked on controlled actual-host recovery evidence.
 
-After #648 is GREEN and merged:
-
-- record the state-only fast-lane evidence in #646;
-- if repository-settings mutation remains unavailable, mark only the branch-protection portion of #646 blocked rather than blocking the Sprint;
-- proceed to the separate planned **State Model v2 / automated reconciliation** Work Package;
-- then return to the repository-backed product queue using delta Ready audits.
-
-Independent product/validation lanes remain visible:
-
-- #618 — Saved Dashboard CSV browser-download reliability;
-- #607 — dual RS-485 KK1/KK2 software architecture prerequisite before #589;
-- #589 — blocked on #607;
-- #590 — blocked on #589;
-- #585 — blocked pending explicit physical W2 / Unit 201 handback confirmation;
-- #444 / #245 / #200 / #201 / #202 / #189 — explicit validation/hardware/recovery lanes.
-
-Security maintenance remains time-bounded: the Issue #598 follow-up for four temporary `CVE-2026-14456` exceptions is due **2026-08-26** and must be rechecked before expiry or earlier if Debian publishes a fixed package or the reachability assumptions change.
+Security maintenance remains time-bounded: the four temporary `CVE-2026-14456` exceptions from Issue #598 are due for review/removal by **2026-08-26**, or earlier if a fixed Debian package becomes available or reachability assumptions change.
 
 ## Safety boundaries
 
