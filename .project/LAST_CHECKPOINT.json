@@ -3,79 +3,60 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-22T09:07:00Z",
+  "timestamp": "2026-08-22T09:26:00Z",
   "actor": "ChatGPT",
-  "event": "issue_633_candidate_cleanup_final_review_refinement_gate",
-  "repository_product_baseline_sha": "7bb2115ef739daf2406c71110162b6d68c713f95",
+  "event": "issue_633_completed_green_merged_post_merge_state_reconciliation",
+  "repository_main_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
   "deployed_repository_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
-  "active_work": {
-    "issue": 633,
-    "pull_request": 643,
-    "branch": "fix/633-frontend-candidate-cleanup",
-    "status": "FINAL_EXACT_HEAD_CI_REVIEW_GATE",
-    "latest_software_refinement_sha": "0436c0a663d9d7416a487cb61a69626cf1f786dd",
-    "implemented": [
-      "parent-child startup gate prevents candidate execution before exact PID publication",
-      "child abandons startup if deployment parent disappears before gate release",
-      "dedicated candidate session/process group",
-      "exact candidate PID tracking",
-      "PGID publication only after ps handshake confirms the isolated group",
-      "cleanup re-checks an unpublished PID for an already-established exact process group",
-      "exact-PID fallback only when the candidate group is not established",
-      "bounded TERM to KILL group cleanup after handshake",
-      "exact-PID and process-group paths verify liveness before invoking Bash wait and return failure when still live after bounded escalation",
-      "Bash wait semantics remain unmodified outside candidate cleanup",
-      "zombie-only process groups classified as terminated",
-      "EXIT cleanup failures surfaced while preserving the original deployment failure code",
-      "candidate port 3100 release verification",
-      "candidate cleanup regression suite executed by standalone runtime CI",
-      "regression asserts cleanup never waits while a candidate remains live",
-      "regression coverage preserves unrelated production fixture process"
-    ],
-    "ci_history": [
-      "PASS_32514504593_AT_87AFC111",
-      "PASS_32517056093_AT_08884615",
-      "PASS_32519957941_AT_A7D91AF1",
-      "PASS_32521673945_AT_B3420A3B",
-      "PASS_32523415155_AT_C2873686",
-      "PASS_32563481255_AT_7BF2604C"
-    ],
-    "review_findings": {
-      "P1_state_sync": "ADDRESSED",
-      "P2_zombie_group_liveness": "ADDRESSED",
-      "P2_pre_setsid_pgid_race": "ADDRESSED",
-      "P2_handshake_window_group_cleanup": "ADDRESSED",
-      "P2_fixture_exit_trap_inheritance": "ADDRESSED",
-      "P2_exit_cleanup_failure_reporting": "ADDRESSED",
-      "P2_cleanup_suite_ci_integration": "ADDRESSED",
-      "P2_pre_pid_publication_startup_window": "ADDRESSED_IN_24390EA3",
-      "P2_unbounded_candidate_reap": "ADDRESSED_AND_REGRESSION_TESTED_IN_68835E14",
-      "P2_global_wait_override": "ADDRESSED_IN_0436C0A6",
-      "P2_final_state_checkpoint": "ADDRESSED_IN_FINAL_STATE_CHECKPOINT"
-    },
-    "final_exact_head_ci": "PENDING_FINAL_STATE_CHECKPOINT_HEAD",
-    "final_review": "PENDING_FRESH_REVIEW_ON_FINAL_STATE_CHECKPOINT_HEAD",
-    "runtime_pi_verification": "UNVERIFIED_PI_OFFLINE",
-    "production_cutover_authorized": false,
-    "modbus_write": "none",
-    "hardware_write": "none"
-  },
   "completed_work": {
+    "issue_633": {
+      "issue": 633,
+      "pull_request": 643,
+      "status": "COMPLETED_GREEN_MERGED",
+      "final_pr_head_sha": "5d1f1f82ad555b68cab8ce9205283cf939d3be09",
+      "merge_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
+      "exact_head_ci": "PASS_32564575388_AT_5D1F1F82",
+      "review_threads": "PASS_ALL_EXISTING_P1_P2_RESOLVED",
+      "fresh_codex_review": "UNAVAILABLE_USAGE_LIMIT",
+      "team_lead_final_review": "PASS_NO_MERGE_BLOCKING_FINDING",
+      "implemented": [
+        "parent-child startup gate prevents candidate execution before exact PID publication",
+        "child abandons startup if deployment parent disappears before gate release",
+        "dedicated candidate session/process group",
+        "exact candidate PID tracking",
+        "PGID publication only after ps confirms the isolated group",
+        "cleanup re-checks an unpublished PID for an established exact process group",
+        "exact-PID fallback only when the candidate group is not established",
+        "bounded TERM to KILL group cleanup",
+        "candidate liveness verified before Bash wait",
+        "Bash wait semantics remain globally unmodified",
+        "zombie-only group members are not classified as live executable work",
+        "EXIT cleanup failures are surfaced while preserving original failure codes",
+        "candidate port 3100 release is verified before backend activation",
+        "focused candidate cleanup regression suite runs in standalone runtime CI"
+      ],
+      "runtime_pi_verification": "UNVERIFIED_PI_OFFLINE",
+      "production_cutover": false,
+      "modbus_write": "none",
+      "hardware_write": "none"
+    },
     "issue_606": {
       "issue": 606,
       "pull_request": 632,
       "status": "COMPLETED_GREEN_MERGED",
       "final_software_head_sha": "83abc9b4a0056a2709c33a627b203785eeefff79",
       "merge_sha": "dc2b130cbd0f9f6e84dcfec1dc8ee045b18ab8cc",
-      "exact_head_workflows": "PASS_22_OF_22",
       "hardware_accepted_head_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8"
-    },
-    "issue_641": {
-      "issue": 641,
-      "pull_request": 642,
-      "status": "COMPLETED_GREEN_MERGED",
-      "merge_sha": "7bb2115ef739daf2406c71110162b6d68c713f95"
     }
+  },
+  "current_boundary": {
+    "state_reconciliation_issue": 644,
+    "active_product_work_package": null,
+    "status": "ISSUE_633_COMPLETE_READY_AUDIT_PENDING",
+    "repository_main_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
+    "runtime_repository_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
+    "next_ready_candidate_issue": null,
+    "next_ready_candidate_selected": false
   },
   "maintenance_actions": {
     "cve_2026_14456": {
@@ -94,15 +75,15 @@
   "validation_work": {
     "issue_444": "LOCAL_LAN user-administration API acceptance remains status:needs-validation",
     "issue_245": "Standalone loopback-only Raspberry Pi acceptance remains status:needs-validation",
-    "issue_200": "Physical RS-485 topology, stable adapter paths, active Unit IDs, termination/biasing, latency and safe polling envelope remain hardware-unverified beyond narrow pilot evidence",
+    "issue_200": "Physical RS-485 topology and safe polling envelope remain hardware-unverified beyond narrow pilot evidence",
     "issue_201": "LE-01MP approved restart/power-cycle hardware boundary remains status:needs-validation",
-    "issue_202": "Extended XJP60D portability, representative KK2 evidence, and actual Unit ID 115 presence/absence remain hardware-unverified"
+    "issue_202": "Extended XJP60D portability, representative KK2 evidence, and Unit ID 115 presence/absence remain hardware-unverified"
   },
   "independent_work": {
-    "issue_618": "Saved Dashboard CSV browser-download reliability lane",
-    "issue_607": "Dual RS-485 KK1/KK2 software architecture prerequisite"
+    "issue_618": "Saved Dashboard CSV browser-download reliability lane; Ready status must be re-audited",
+    "issue_607": "Dual RS-485 KK1/KK2 software architecture prerequisite; Ready status must be re-audited"
   },
-  "next_action": "Publish the final state-checkpoint head, run exact-head CI and fresh review for PR #643, resolve only findings actually fixed, and squash merge only if GREEN and review-clean. Keep Raspberry Pi runtime verification explicitly unverified; do not perform a production deployment or hardware action without separate authorization.",
+  "next_action": "Complete state-only Issue #644, then run a fresh GitHub Ready audit and select exactly one independent Ready Work Package if one exists.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
