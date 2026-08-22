@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
 
+from acquisition_cadence import build_bootstrap_policy
 from acquisition_registry import (
     LE01MP_PROFILE_VERSION,
     AcquisitionRegistryStore,
@@ -14,57 +16,145 @@ from acquisition_registry import (
     RegistryTarget,
     _le_target,
     _reconcile_le01mp_profile,
-    document_to_json,
 )
+from main import Settings
 
 
 class LE01MPEnergyRegistryTests(unittest.TestCase):
-    def _legacy_document(self) -> RegistryDocument:
+    @staticmethod
+    def _settings(database: Path) -> Settings:
+        return Settings(
+            node_id="edge-01",
+            organization_id=None,
+            mqtt_host="mqtt",
+            mqtt_port=1883,
+            mqtt_topic="nexolab/telemetry",
+            health_interval_seconds=30,
+            software_version="test",
+            sample_interval_seconds=5,
+            database_path=database,
+            health_host="127.0.0.1",
+            health_port=8081,
+            device_mode="le01mp",
+            serial_device="/dev/serial/by-id/test",
+            serial_baudrate=9600,
+            serial_parity="N",
+            serial_stopbits=1,
+            serial_timeout_seconds=0.3,
+            serial_retries=1,
+            xjp60d_points=(),
+            xjp60d_scale=0.1,
+            le01mp_unit_ids=(201,),
+        )
+
+    @staticmethod
+    def _legacy_profile_rows() -> tuple[
+        tuple[RegistryBus, ...],
+        tuple[RegistryDevice, ...],
+        tuple[RegistryTarget, ...],
+    ]:
         legacy_profile = "f-and-f-le01mp-fc03-v1"
+        buses = (RegistryBus("rs485-main", "modbus_rtu", True),)
+        devices = (
+            RegistryDevice(
+                device_id="le01mp-201",
+                bus_id="rs485-main",
+                device_family="le01mp",
+                unit_id=201,
+                profile_version=legacy_profile,
+                lifecycle="active",
+            ),
+        )
+        targets = (
+            RegistryTarget(
+                target_id="le01mp:201-voltage",
+                device_id="le01mp-201",
+                kind="metric",
+                key="voltage",
+                telemetry_channel_id="201-voltage",
+                metric="electrical.voltage",
+                unit="V",
+                profile_version=legacy_profile,
+                lifecycle="active",
+                function=3,
+                addresses=(0,),
+            ),
+            RegistryTarget(
+                target_id="le01mp:201-active-power",
+                device_id="le01mp-201",
+                kind="metric",
+                key="active_power",
+                telemetry_channel_id="201-active-power",
+                metric="electrical.power.active",
+                unit="W",
+                profile_version=legacy_profile,
+                lifecycle="disabled",
+                function=3,
+                addresses=(3,),
+            ),
+        )
+        return buses, devices, targets
+
+    def _legacy_profile_v2_document(self) -> RegistryDocument:
+        buses, devices, targets = self._legacy_profile_rows()
+        cadence = build_bootstrap_policy(
+            legacy_interval_seconds=5,
+            bus_family_keys=(("rs485-main", "le01mp"),),
+            environ={},
+        )
         return RegistryDocument(
-            schema_version=1,
+            schema_version=2,
             revision=4,
-            buses=(RegistryBus("rs485-main", "modbus_rtu", True),),
-            devices=(
-                RegistryDevice(
-                    device_id="le01mp-201",
-                    bus_id="rs485-main",
-                    device_family="le01mp",
-                    unit_id=201,
-                    profile_version=legacy_profile,
-                    lifecycle="active",
-                ),
-            ),
-            targets=(
-                RegistryTarget(
-                    target_id="le01mp:201-voltage",
-                    device_id="le01mp-201",
-                    kind="metric",
-                    key="voltage",
-                    telemetry_channel_id="201-voltage",
-                    metric="electrical.voltage",
-                    unit="V",
-                    profile_version=legacy_profile,
-                    lifecycle="active",
-                    function=3,
-                    addresses=(0,),
-                ),
-                RegistryTarget(
-                    target_id="le01mp:201-active-power",
-                    device_id="le01mp-201",
-                    kind="metric",
-                    key="active_power",
-                    telemetry_channel_id="201-active-power",
-                    metric="electrical.power.active",
-                    unit="W",
-                    profile_version=legacy_profile,
-                    lifecycle="disabled",
-                    function=3,
-                    addresses=(3,),
-                ),
-            ),
+            buses=buses,
+            devices=devices,
+            targets=targets,
+            cadence=cadence,
             updated_at="2026-08-17T00:00:00+00:00",
         )
+
+    def _persisted_v1_json(self) -> str:
+        buses, devices, targets = self._legacy_profile_rows()
+        payload = {
+            "schema_version": 1,
+            "revision": 4,
+            "buses": [
+                {
+                    "bus_id": item.bus_id,
+                    "protocol": item.protocol,
+                    "read_only": item.read_only,
+                }
+                for item in buses
+            ],
+            "devices": [
+                {
+                    "device_id": item.device_id,
+                    "bus_id": item.bus_id,
+                    "device_family": item.device_family,
+                    "unit_id": item.unit_id,
+                    "profile_version": item.profile_version,
+                    "lifecycle": item.lifecycle,
+                }
+                for item in devices
+            ],
+            "targets": [
+                {
+                    "target_id": item.target_id,
+                    "device_id": item.device_id,
+                    "kind": item.kind,
+                    "key": item.key,
+                    "telemetry_channel_id": item.telemetry_channel_id,
+                    "metric": item.metric,
+                    "unit": item.unit,
+                    "profile_version": item.profile_version,
+                    "lifecycle": item.lifecycle,
+                    "function": item.function,
+                    "addresses": list(item.addresses),
+                }
+                for item in targets
+            ],
+            "updated_at": "2026-08-17T00:00:00+00:00",
+        }
+        return json.dumps(payload, separators=(",", ":"))
 
     def test_cumulative_energy_target_records_both_atomic_addresses(self) -> None:
         target = _le_target(201, "active_energy", "active")
@@ -83,10 +173,12 @@ class LE01MPEnergyRegistryTests(unittest.TestCase):
         self.assertEqual(target.addresses, (0,))
         self.assertEqual(target.function, 3)
 
-    def test_reconciles_persisted_v1_profile_without_losing_lifecycle(self) -> None:
-        reconciled, changes = _reconcile_le01mp_profile(self._legacy_document())
+    def test_reconciles_persisted_profile_without_losing_cadence_or_lifecycle(self) -> None:
+        source = self._legacy_profile_v2_document()
+        reconciled, changes = _reconcile_le01mp_profile(source)
 
         self.assertEqual(reconciled.revision, 5)
+        self.assertEqual(reconciled.cadence, source.cadence)
         device = reconciled.devices[0]
         self.assertEqual(device.profile_version, LE01MP_PROFILE_VERSION)
         by_key = {
@@ -107,11 +199,11 @@ class LE01MPEnergyRegistryTests(unittest.TestCase):
         self.assertEqual(unchanged, reconciled)
         self.assertEqual(second_changes, [])
 
-    def test_store_persists_profile_upgrade_and_audit_once(self) -> None:
+    def test_store_migrates_v1_then_profile_and_audits_each_revision_once(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database = Path(directory) / "edge.db"
             store = AcquisitionRegistryStore(database)
-            legacy = self._legacy_document()
+            raw_v1 = self._persisted_v1_json()
             with sqlite3.connect(database) as connection:
                 connection.execute(
                     """
@@ -120,40 +212,54 @@ class LE01MPEnergyRegistryTests(unittest.TestCase):
                     ) VALUES (1, ?, ?, ?, ?)
                     """,
                     (
-                        legacy.schema_version,
-                        legacy.revision,
-                        document_to_json(legacy),
-                        legacy.updated_at,
+                        1,
+                        4,
+                        raw_v1,
+                        "2026-08-17T00:00:00+00:00",
                     ),
                 )
 
+            current_settings = self._settings(database)
             migrated = store.load_or_migrate(
-                None,  # Existing registry path does not read Settings.
+                current_settings,
                 discovery_units=(),
                 legacy_active_points=(),
             )
 
-            self.assertEqual(migrated.revision, 5)
+            # v1 -> v2 is revision 5; LE profile reconciliation is revision 6.
+            self.assertEqual(migrated.revision, 6)
+            self.assertEqual(migrated.document.schema_version, 2)
+            self.assertEqual(
+                migrated.effective_cadence_for_device("le01mp-201"),
+                (30.0, "family_default"),
+            )
             self.assertIn(
                 (201, "active_energy"),
                 migrated.eligible_le01mp_metrics(),
             )
             audit = store.recent_audit()
-            self.assertEqual(len(audit), 1)
-            self.assertEqual(audit[0]["revision"], 5)
-            self.assertEqual(audit[0]["actor"], "system:migration")
+            self.assertEqual(len(audit), 2)
+            self.assertEqual([item["revision"] for item in audit], [6, 5])
+            self.assertTrue(all(item["actor"] == "system:migration" for item in audit))
 
-            restarted = AcquisitionRegistryStore(database).load_or_migrate(
-                None,
+            restarted_store = AcquisitionRegistryStore(database)
+            restarted = restarted_store.load_or_migrate(
+                current_settings,
                 discovery_units=(),
                 legacy_active_points=(),
             )
-            self.assertEqual(restarted.revision, 5)
-            self.assertEqual(len(AcquisitionRegistryStore(database).recent_audit()), 1)
+            self.assertEqual(restarted.revision, 6)
+            self.assertEqual(restarted.document.cadence, migrated.document.cadence)
+            self.assertEqual(len(restarted_store.recent_audit()), 2)
 
     def test_unknown_profile_is_not_rewritten(self) -> None:
+        cadence = build_bootstrap_policy(
+            legacy_interval_seconds=5,
+            bus_family_keys=(("rs485-main", "le01mp"),),
+            environ={},
+        )
         document = RegistryDocument(
-            schema_version=1,
+            schema_version=2,
             revision=2,
             buses=(RegistryBus("rs485-main", "modbus_rtu", True),),
             devices=(
@@ -181,6 +287,7 @@ class LE01MPEnergyRegistryTests(unittest.TestCase):
                     addresses=(0,),
                 ),
             ),
+            cadence=cadence,
             updated_at="2026-08-17T00:00:00+00:00",
         )
 
