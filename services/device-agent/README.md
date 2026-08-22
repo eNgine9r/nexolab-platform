@@ -58,28 +58,40 @@ LE01MP_UNIT_IDS=200,201,202,203
 
 The legacy `xjp60d` mode remains supported for the already validated two-channel hardware smoke test.
 
-## Adaptive acquisition
+## Persisted adaptive acquisition
 
-Hardware modes derive recurring jobs only from registry-eligible targets. The default local policy is:
+Hardware modes derive recurring jobs only from registry-eligible targets.
 
-- XJP60D temperature/status targets: `high`;
-- operational LE-01MP metrics: `medium`;
-- slower LE-01MP diagnostics: `low`;
-- discovery and configuration service operations: `on_demand`.
+Acquisition Registry schema v2 is the durable cadence authority. Effective cadence resolves as:
 
-```dotenv
-ACQUISITION_HIGH_INTERVAL_SECONDS=5
-ACQUISITION_MEDIUM_INTERVAL_SECONDS=10
-ACQUISITION_LOW_INTERVAL_SECONDS=30
-ACQUISITION_STARTUP_SPREAD_SECONDS=5
-ACQUISITION_FAILURE_THRESHOLD=3
-ACQUISITION_COOLDOWN_INITIAL_SECONDS=30
-ACQUISITION_COOLDOWN_MAX_SECONDS=300
-ACQUISITION_FAIRNESS_HIGH_BURST=8
-ACQUISITION_FAIRNESS_LOW_BURST=12
+1. device-specific override;
+2. logical bus + device-family default.
+
+Supported operator presets are `10`, `30` and `60` seconds. Custom values are bounded to `10..3600` seconds. Values below 10 seconds fail closed.
+
+Scheduler priority remains separate from cadence:
+
+- XJP60D temperature/status targets are `high` priority;
+- operational LE-01MP metrics are `medium` priority;
+- slower LE-01MP diagnostics are `low` priority;
+- discovery/configuration operations are `on_demand`.
+
+Priority controls ordering and bounded fairness among due jobs only. It does not determine the recurring polling interval.
+
+Legacy acquisition interval environment values are used only when bootstrapping an old registry into schema v2. Migration never accelerates the historical polling policy, increments the registry revision and records a one-time audit event.
+
+Cadence is available through the local Device Agent control plane:
+
+```text
+GET /api/v1/acquisition-cadence
+PUT /api/v1/acquisition-cadence
 ```
 
-Defaults never accelerate high-priority targets below the existing `SAMPLE_INTERVAL_SECONDS` baseline. Final physical intervals remain unverified until measured on the actual Raspberry Pi and RS-485 topology.
+A PUT requires optimistic `expected_revision`, an audit reason and the existing authorized actor boundary. The proposed candidate is evaluated against the RS-485 capacity model before SQLite commit. Unsafe cadence returns `422 acquisition_capacity_exceeded` without changing revision, audit or scheduler state.
+
+Capacity is evaluated per physical `bus_id` with a 75% maximum estimated utilization and 25% safety margin. The model includes production request count, retry reserve, Modbus RTU inter-frame silence and timeout or sufficiently sampled measured p95 latency. Measured p95 becomes authoritative only after at least 20 physical request samples on that bus. Cooldown is never counted as spare capacity.
+
+A lifecycle change that adds new poll-eligible targets also receives the same pre-commit capacity check. Deactivation remains permitted even when the current baseline is overloaded.
 
 Scheduler and latest-value evidence is available locally:
 
@@ -88,9 +100,17 @@ GET /metrics
 GET /health
 GET /ready
 GET /api/v1/acquisition-latest
+GET /api/v1/acquisition-cadence
 ```
 
-Reading these endpoints never initiates Modbus acquisition. See `docs/operations/adaptive-acquisition-scheduler.md` for policy, cooldown, fairness, restart and hardware-acceptance details.
+Reading these endpoints never initiates Modbus acquisition.
+
+See:
+
+- `docs/architecture/persisted-acquisition-cadence.md`;
+- `docs/operations/adaptive-acquisition-scheduler.md`.
+
+Final physical site cadence remains hardware-unverified until measured on the actual Raspberry Pi, adapters and RS-485 topology.
 
 ## Serial configuration
 
@@ -208,4 +228,4 @@ docker compose \
 
 `compose.hardware.yaml` defaults to `HARDWARE_DEVICE_MODE=xjp60d` for backward compatibility. Set `HARDWARE_DEVICE_MODE=modbus` only for an explicit combined validation of XJP60D and LE-01MP.
 
-Before any physical cutover, stop every other Modbus master on the affected RS-485 segment and confirm every configured adapter path is the intended stable `/dev/serial/by-id/...` identity. Issue #607 does not authorize wiring changes, hardware writes or site cutover.
+Before any physical cutover, stop every other Modbus master on the affected RS-485 segment and confirm every configured adapter path is the intended stable `/dev/serial/by-id/...` identity. Issue #589 does not authorize wiring changes, hardware writes or site cutover.
