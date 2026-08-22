@@ -43,7 +43,7 @@ Issue #648 / PR #649 is the real acceptance evidence for this lane:
 - Node/npm/full frontend quality = NOT RUN;
 - Merge Gate = PASS.
 
-State Model v2 changes the *frequency* of state-only PRs: they remain valid for material planning/evidence/schema changes but are no longer mandatory after every normal product merge.
+State Model v2 changes the _frequency_ of state-only PRs: they remain valid for material planning/evidence/schema changes but are no longer mandatory after every normal product merge.
 
 ## Documentation-only changes
 
