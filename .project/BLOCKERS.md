@@ -4,9 +4,9 @@ Updated: 2026-08-22
 
 ## Current Work Package boundary
 
-Issue #633 is active `status:in-progress` in PR #643 (`fix/633-frontend-candidate-cleanup`). Final software and regression behavior before the state checkpoint is `68835e14798d49c01ff4a2bd4de98e6c8e8fdc22`.
+Issue #633 is active `status:in-progress` in PR #643 (`fix/633-frontend-candidate-cleanup`). Latest software refinement before the final state checkpoint is `0436c0a663d9d7416a487cb61a69626cf1f786dd`.
 
-The candidate lifecycle uses a parent/child startup gate so Next.js cannot execute before the parent records the exact background PID. After release, PGID publication is confirmed with `ps`; cleanup re-checks an unpublished PID for an already-established exact process group before using exact-PID fallback. Established groups use bounded TERM → KILL cleanup. Both exact-PID and process-group paths verify the candidate is no longer live before calling `wait`; if it remains live after the bounded TERM/KILL windows, cleanup returns failure instead of hanging indefinitely. Zombie-only members do not count as executable work, EXIT cleanup failures are surfaced, and the focused cleanup regression suite is part of the standalone runtime CI entry point.
+The candidate lifecycle uses a parent/child startup gate so Next.js cannot execute before the parent records the exact background PID. After release, PGID publication is confirmed with `ps`; cleanup re-checks an unpublished PID for an already-established exact process group before using exact-PID fallback. Established groups use bounded TERM → KILL cleanup. Both exact-PID and process-group paths verify the candidate is no longer live before invoking Bash `wait`; if it remains live after the bounded TERM/KILL windows, cleanup returns failure instead of hanging indefinitely. Bash `wait` is not globally overridden. Zombie-only members do not count as executable work, EXIT cleanup failures are surfaced, and the focused cleanup regression suite is part of the standalone runtime CI entry point.
 
 Verified software gates:
 
@@ -14,9 +14,10 @@ Verified software gates:
 - Core CI `32517056093` on `08884615...`: PASS;
 - Core CI `32519957941` on `a7d91af1...`: PASS;
 - Core CI `32521673945` on `b3420a3b...`: PASS;
-- Core CI `32523415155` on `c2873686...`: PASS.
+- Core CI `32523415155` on `c2873686...`: PASS;
+- Core CI `32563481255` on `7bf2604c...`: PASS.
 
-Fresh review on GREEN head `c2873686...` identified the remaining unbounded child-reap wait; it is fixed and regression-covered in `68835e14...`. Final exact-head CI and fresh review on the new state-checkpoint head remain the only software merge gates.
+Fresh review on GREEN head `7bf2604c...` found one final maintainability risk: `scripts/lib/frontend-candidate-liveness.sh` globally shadowed Bash `wait` although the deployment cleanup already guards `wait` behind explicit liveness checks. Refinement `0436c0a6...` removes that global override without broadening process matching or changing production Dashboard semantics. Final exact-head CI and fresh review on the new state-checkpoint head remain the only software merge gates.
 
 The remote Raspberry Pi `nexolab-edge-01` is currently offline. This is a soft blocker only for real post-deployment runtime evidence. No production/site cutover is authorized by #633, so no deployment is being attempted.
 
