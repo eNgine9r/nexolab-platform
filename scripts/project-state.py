@@ -8,6 +8,7 @@ import copy
 import difflib
 import importlib.util
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,17 @@ if _SPEC is None or _SPEC.loader is None:
     raise RuntimeError(f"Unable to load {VALIDATOR_PATH}")
 _VALIDATOR = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(_VALIDATOR)
+
+TRANSITIONS: dict[str, set[str]] = {
+    "queued": {"ready"},
+    "ready": {"blocked"},
+    "in_progress": {"review", "blocked"},
+    "review": {"in_progress", "blocked"},
+    "blocked": {"ready"},
+    "needs_validation": {"ready"},
+    "hardware_validation": {"ready"},
+    "completed": set(),
+}
 
 
 def canonical(document: dict[str, Any]) -> str:
@@ -37,8 +49,12 @@ def load(path: Path) -> dict[str, Any]:
 
 def _lifecycle_from_v1(status: object) -> str:
     value = str(status or "").lower()
-    if "completed" in value or "green_merged" in value:
+    if "completed" in value or "green_merged" in value or value == "done":
         return "completed"
+    if value == "review":
+        return "review"
+    if value == "ready":
+        return "ready"
     if "blocked" in value:
         return "blocked"
     if "needs_validation" in value:
@@ -59,47 +75,34 @@ def _first_sha(task: dict[str, Any], *keys: str) -> str | None:
 
 
 def _checks_from_v1(task: dict[str, Any]) -> dict[str, str]:
+    structural = {
+        "id", "issue", "title", "priority", "status", "branch", "pull_request",
+        "final_pr_head_sha", "final_software_head_sha", "hardware_accepted_head_sha",
+        "merge_sha", "scope", "verification", "depends_on", "production_cutover",
+        "production_cutover_authorized", "modbus_write", "hardware_write",
+    }
     checks: dict[str, str] = {}
     for key, value in task.items():
-        lower = key.lower()
-        if (
-            key
-            in {
-                "exact_head_ci",
-                "core_ci",
-                "external_telemetry_ci",
-                "all_exact_head_workflows",
-                "review_threads",
-                "fresh_codex_review",
-                "team_lead_final_review",
-                "state_only_fast_lane",
-                "stable_merge_gate",
-                "external_exact_head_workflow_aggregation",
-                "deterministic_npm_ci",
-            }
-            or lower.endswith("_ci")
-            or lower.endswith("_workflows")
-        ):
-            if isinstance(value, (str, int, float, bool)):
-                checks[key] = str(value)
+        if key in structural:
+            continue
+        if isinstance(value, (str, int, float, bool)):
+            checks[key] = str(value)
     return checks
 
 
 def migrate_active_v1(document: dict[str, Any], *, observed_at: str) -> dict[str, Any]:
     if document.get("schema_version") != 1:
         raise ValueError("migrate_active_v1 requires schema_version 1")
-
-    accepted = document.get("accepted_product_sha") or document.get(
-        "repository_product_baseline_sha"
-    )
+    accepted = document.get("accepted_product_sha") or document.get("repository_product_baseline_sha")
     deployed = document.get("deployed_product_sha")
     _VALIDATOR._require_sha(accepted, "v1 accepted product SHA")
     _VALIDATOR._require_sha(deployed, "v1 deployed product SHA")
-
     work_packages: list[dict[str, Any]] = []
     observations: list[dict[str, Any]] = []
-
-    for task in document.get("tasks", []):
+    tasks = document.get("tasks", [])
+    if not isinstance(tasks, list):
+        raise ValueError("v1 tasks must be a list")
+    for task in tasks:
         if not isinstance(task, dict) or not isinstance(task.get("issue"), int):
             raise ValueError("v1 task must contain integer issue")
         evidence: dict[str, Any] = {}
@@ -114,64 +117,48 @@ def migrate_active_v1(document: dict[str, Any], *, observed_at: str) -> dict[str
         checks = _checks_from_v1(task)
         if checks:
             evidence["checks"] = checks
-
         item: dict[str, Any] = {
             "issue": task["issue"],
             "title": str(task.get("title") or f"Issue #{task['issue']}"),
             "priority": str(task.get("priority") or "unspecified"),
             "lifecycle": _lifecycle_from_v1(task.get("status")),
-            "legacy_status": str(task.get("status") or ""),
             "evidence": evidence,
         }
-        if isinstance(task.get("branch"), str):
-            item["branch"] = task["branch"]
+        for key in ("id", "branch", "scope", "verification"):
+            if key in task:
+                item[key] = copy.deepcopy(task[key])
+        depends_on = task.get("depends_on", [])
+        if isinstance(depends_on, list):
+            normalized = [int(value) for value in depends_on if isinstance(value, int) or (isinstance(value, str) and value.isdigit())]
+            if normalized:
+                item["depends_on"] = normalized
         work_packages.append(item)
-
         merge_sha = task.get("merge_sha")
         if isinstance(merge_sha, str) and _VALIDATOR.SHA_RE.fullmatch(merge_sha):
-            observations.append(
-                {
-                    "source": "github",
-                    "observed_at": observed_at,
-                    "kind": "historical_merge",
-                    "data": {"issue": task["issue"], "merge_sha": merge_sha},
-                }
-            )
-
+            data: dict[str, Any] = {"issue": task["issue"], "merge_sha": merge_sha}
+            if isinstance(task.get("pull_request"), int):
+                data["pull_request"] = task["pull_request"]
+            observations.append({"source": "github", "observed_at": observed_at, "kind": "historical_merge", "data": data})
     selected_issue = None
     selection_state = document.get("selection_state")
     if isinstance(selection_state, dict) and isinstance(selection_state.get("selected_issue"), int):
         selected_issue = selection_state["selected_issue"]
     active_v1 = document.get("active_work_package")
-    if selected_issue is None and isinstance(active_v1, dict) and isinstance(
-        active_v1.get("issue"), int
-    ):
+    if selected_issue is None and isinstance(active_v1, dict) and isinstance(active_v1.get("issue"), int):
         selected_issue = active_v1["issue"]
-
     active = None
     if selected_issue is not None:
         matching = next((item for item in work_packages if item["issue"] == selected_issue), None)
-        if matching is not None and matching["lifecycle"] == "in_progress":
-            active = {
-                "issue": matching["issue"],
-                "title": matching["title"],
-                "branch": matching.get("branch"),
-            }
-
+        if matching is not None and matching["lifecycle"] in _VALIDATOR.ACTIVE_LIFECYCLES:
+            active = {"issue": matching["issue"], "title": matching["title"], "branch": matching.get("branch")}
     result: dict[str, Any] = {
         "schema_version": 2,
         "project": "NEXOLAB",
         "profile": "LOCAL_LAN",
         "sprint": copy.deepcopy(document.get("sprint", {})),
         "execution_policy": copy.deepcopy(document.get("execution_policy", {})),
-        "baselines": {
-            "accepted_product_sha": accepted,
-            "deployed_product_sha": deployed,
-        },
-        "selection": {
-            "active_work_package": active,
-            "next_work_package": None,
-        },
+        "baselines": {"accepted_product_sha": accepted, "deployed_product_sha": deployed},
+        "selection": {"active_work_package": active, "next_work_package": None},
         "work_packages": work_packages,
         "maintenance_actions": copy.deepcopy(document.get("maintenance_actions", [])),
         "observations": observations,
@@ -188,16 +175,10 @@ def migrate_checkpoint_v1(document: dict[str, Any], *, observed_at: str) -> dict
     deployed = document.get("deployed_repository_sha")
     _VALIDATOR._require_sha(accepted, "v1 checkpoint accepted product SHA")
     _VALIDATOR._require_sha(deployed, "v1 checkpoint deployed product SHA")
-
     active_v1 = document.get("active_work")
     active = None
     if isinstance(active_v1, dict) and isinstance(active_v1.get("issue"), int):
-        active = {
-            "issue": active_v1["issue"],
-            "branch": active_v1.get("branch"),
-            "status": str(active_v1.get("status") or ""),
-        }
-
+        active = {"issue": active_v1["issue"], "branch": active_v1.get("branch"), "status": str(active_v1.get("status") or "")}
     observations: list[dict[str, Any]] = []
     completed = document.get("completed_work", {})
     completed_evidence: dict[str, Any] = {}
@@ -205,19 +186,10 @@ def migrate_checkpoint_v1(document: dict[str, Any], *, observed_at: str) -> dict
         for key, item in completed.items():
             if not isinstance(item, dict):
                 continue
-            preserved = {k: copy.deepcopy(v) for k, v in item.items() if k != "merge_sha"}
-            completed_evidence[key] = preserved
+            completed_evidence[key] = {k: copy.deepcopy(v) for k, v in item.items() if k != "merge_sha"}
             merge_sha = item.get("merge_sha")
             if isinstance(merge_sha, str) and _VALIDATOR.SHA_RE.fullmatch(merge_sha):
-                observations.append(
-                    {
-                        "source": "github",
-                        "observed_at": observed_at,
-                        "kind": "historical_merge",
-                        "data": {"record": key, "merge_sha": merge_sha},
-                    }
-                )
-
+                observations.append({"source": "github", "observed_at": observed_at, "kind": "historical_merge", "data": {"record": key, "merge_sha": merge_sha}})
     result: dict[str, Any] = {
         "schema_version": 2,
         "project": "NEXOLAB",
@@ -226,10 +198,7 @@ def migrate_checkpoint_v1(document: dict[str, Any], *, observed_at: str) -> dict
         "timestamp": str(document.get("timestamp") or ""),
         "actor": str(document.get("actor") or ""),
         "event": str(document.get("event") or "v1_migration"),
-        "baselines": {
-            "accepted_product_sha": accepted,
-            "deployed_product_sha": deployed,
-        },
+        "baselines": {"accepted_product_sha": accepted, "deployed_product_sha": deployed},
         "active_work": active,
         "evidence_snapshot": {
             "completed_work": completed_evidence,
@@ -251,70 +220,87 @@ def find_work_package(active: dict[str, Any], issue: int) -> dict[str, Any]:
     raise ValueError(f"Issue #{issue} is absent from work_packages")
 
 
+def _selection_for(item: dict[str, Any]) -> dict[str, Any]:
+    return {"issue": item["issue"], "title": item["title"], "branch": item.get("branch")}
+
+
 def begin_work(active: dict[str, Any], *, issue: int, title: str, branch: str) -> dict[str, Any]:
     result = copy.deepcopy(active)
     current = result["selection"].get("active_work_package")
     if current is not None and current.get("issue") != issue:
         current_item = find_work_package(result, current["issue"])
-        if current_item.get("lifecycle") == "in_progress":
+        if current_item.get("lifecycle") in _VALIDATOR.ACTIVE_LIFECYCLES:
             raise ValueError(f"Issue #{current['issue']} is still active")
-
     try:
         item = find_work_package(result, issue)
+        if item.get("lifecycle") == "in_progress" and current and current.get("issue") == issue:
+            return result
+        if item.get("lifecycle") != "ready":
+            raise ValueError(f"Issue #{issue} must be lifecycle ready before begin; got {item.get('lifecycle')!r}")
         item["title"] = title
         item["branch"] = branch
         item["lifecycle"] = "in_progress"
-    except ValueError:
-        item = {
-            "issue": issue,
-            "title": title,
-            "priority": "unspecified",
-            "lifecycle": "in_progress",
-            "branch": branch,
-            "evidence": {},
-        }
+    except ValueError as exc:
+        if "absent from work_packages" not in str(exc):
+            raise
+        item = {"issue": issue, "title": title, "priority": "unspecified", "lifecycle": "in_progress", "branch": branch, "evidence": {}}
         result["work_packages"].append(item)
-
-    result["selection"]["active_work_package"] = {
-        "issue": issue,
-        "title": title,
-        "branch": branch,
-    }
+    result["selection"]["active_work_package"] = _selection_for(item)
     result["selection"]["next_work_package"] = None
     _VALIDATOR.validate_active(result)
     return result
 
 
-def record_evidence(
-    active: dict[str, Any],
-    *,
-    issue: int,
-    verified_head_sha: str,
-    pull_request: int | None,
-    checks: list[str],
-    hardware_evidence_sha: str | None,
-) -> dict[str, Any]:
+def transition_work(active: dict[str, Any], *, issue: int, target: str) -> dict[str, Any]:
+    if target not in _VALIDATOR.ALLOWED_LIFECYCLES or target == "completed":
+        raise ValueError(f"Unsupported transition target {target!r}")
+    result = copy.deepcopy(active)
+    item = find_work_package(result, issue)
+    source = item.get("lifecycle")
+    if source == target:
+        return result
+    if target not in TRANSITIONS.get(str(source), set()):
+        raise ValueError(f"Issue #{issue} cannot transition {source!r} -> {target!r}")
+    item["lifecycle"] = target
+    if target in _VALIDATOR.ACTIVE_LIFECYCLES:
+        result["selection"]["active_work_package"] = _selection_for(item)
+    else:
+        current = result["selection"].get("active_work_package")
+        if isinstance(current, dict) and current.get("issue") == issue:
+            result["selection"]["active_work_package"] = None
+    _VALIDATOR.validate_active(result)
+    return result
+
+
+def _set_immutable(mapping: dict[str, Any], key: str, value: Any) -> None:
+    if key in mapping and mapping[key] != value:
+        raise ValueError(f"Immutable evidence {key} already exists with a different value")
+    mapping[key] = value
+
+
+def record_evidence(active: dict[str, Any], *, issue: int, verified_head_sha: str, pull_request: int | None, checks: list[str], hardware_evidence_sha: str | None) -> dict[str, Any]:
     _VALIDATOR._require_sha(verified_head_sha, "verified_head_sha")
     if hardware_evidence_sha is not None:
         _VALIDATOR._require_sha(hardware_evidence_sha, "hardware_evidence_sha")
     result = copy.deepcopy(active)
     item = find_work_package(result, issue)
     evidence = item.setdefault("evidence", {})
-    evidence["verified_head_sha"] = verified_head_sha
+    _set_immutable(evidence, "verified_head_sha", verified_head_sha)
     if pull_request is not None:
-        evidence["pull_request"] = pull_request
+        _set_immutable(evidence, "pull_request", pull_request)
     if hardware_evidence_sha is not None:
-        evidence["hardware_evidence_sha"] = hardware_evidence_sha
+        _set_immutable(evidence, "hardware_evidence_sha", hardware_evidence_sha)
     if checks:
-        parsed: dict[str, str] = dict(evidence.get("checks", {}))
+        parsed = evidence.setdefault("checks", {})
+        if not isinstance(parsed, dict):
+            raise ValueError("evidence.checks must be an object")
         for entry in checks:
             if "=" not in entry:
                 raise ValueError("--check values must use NAME=VALUE")
             name, value = entry.split("=", 1)
             if not name or not value:
                 raise ValueError("--check values must use non-empty NAME=VALUE")
-            parsed[name] = value
-        evidence["checks"] = parsed
+            _set_immutable(parsed, name, value)
     _VALIDATOR.validate_active(result)
     return result
 
@@ -322,9 +308,15 @@ def record_evidence(
 def complete_work(active: dict[str, Any], *, issue: int) -> dict[str, Any]:
     result = copy.deepcopy(active)
     item = find_work_package(result, issue)
-    verified = item.get("evidence", {}).get("verified_head_sha")
+    evidence = item.get("evidence", {})
+    verified = evidence.get("verified_head_sha") if isinstance(evidence, dict) else None
+    checks = evidence.get("checks") if isinstance(evidence, dict) else None
     if verified is None:
         raise ValueError("Work Package cannot complete without verified_head_sha evidence")
+    if not isinstance(checks, dict) or not checks:
+        raise ValueError("Work Package cannot complete without exact-head check evidence")
+    if item.get("lifecycle") not in {"review", "in_progress"}:
+        raise ValueError("Work Package can complete only from review/in_progress lifecycle")
     item["lifecycle"] = "completed"
     current = result["selection"].get("active_work_package")
     if isinstance(current, dict) and current.get("issue") == issue:
@@ -333,15 +325,7 @@ def complete_work(active: dict[str, Any], *, issue: int) -> dict[str, Any]:
     return result
 
 
-def make_checkpoint(
-    *,
-    active: dict[str, Any],
-    current: dict[str, Any] | None,
-    event: str,
-    next_action: str,
-    timestamp: str,
-    actor: str,
-) -> dict[str, Any]:
+def make_checkpoint(*, active: dict[str, Any], current: dict[str, Any] | None, event: str, next_action: str, timestamp: str, actor: str) -> dict[str, Any]:
     result: dict[str, Any] = {
         "schema_version": 2,
         "project": "NEXOLAB",
@@ -352,13 +336,7 @@ def make_checkpoint(
         "event": event,
         "baselines": copy.deepcopy(active["baselines"]),
         "active_work": copy.deepcopy(active["selection"].get("active_work_package")),
-        "evidence_snapshot": {
-            "active_issue_evidence": (
-                copy.deepcopy(find_work_package(active, current["issue"]).get("evidence", {}))
-                if current is not None
-                else {}
-            )
-        },
+        "evidence_snapshot": {"active_issue_evidence": copy.deepcopy(find_work_package(active, current["issue"]).get("evidence", {})) if current is not None else {}},
         "observations": [],
         "next_action": next_action,
         "safety": copy.deepcopy(active["safety"]),
@@ -367,44 +345,35 @@ def make_checkpoint(
     return result
 
 
-def _write_or_preview(
-    path: Path, old: dict[str, Any], new: dict[str, Any], *, dry_run: bool
-) -> None:
+def _write_or_preview(path: Path, old: dict[str, Any], new: dict[str, Any], *, dry_run: bool) -> None:
     before = canonical(old).splitlines(keepends=True)
-    after = canonical(new).splitlines(keepends=True)
+    after_text = canonical(new)
+    after = after_text.splitlines(keepends=True)
     if dry_run:
-        print(
-            "".join(
-                difflib.unified_diff(
-                    before,
-                    after,
-                    fromfile=str(path),
-                    tofile=str(path),
-                )
-            ),
-            end="",
-        )
+        print("".join(difflib.unified_diff(before, after, fromfile=str(path), tofile=str(path))), end="")
         return
-    path.write_text(canonical(new), encoding="utf-8")
+    temporary = path.with_name(f".{path.name}.tmp")
+    temporary.write_text(after_text, encoding="utf-8")
+    os.replace(temporary, path)
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=ROOT)
     sub = parser.add_subparsers(dest="command", required=True)
-
     sub.add_parser("validate")
-
     migrate = sub.add_parser("migrate-v1")
     migrate.add_argument("--observed-at", required=True)
     migrate.add_argument("--dry-run", action="store_true")
-
     begin = sub.add_parser("begin")
     begin.add_argument("--issue", type=int, required=True)
     begin.add_argument("--title", required=True)
     begin.add_argument("--branch", required=True)
     begin.add_argument("--dry-run", action="store_true")
-
+    transition = sub.add_parser("transition")
+    transition.add_argument("--issue", type=int, required=True)
+    transition.add_argument("--to", required=True)
+    transition.add_argument("--dry-run", action="store_true")
     evidence = sub.add_parser("record-evidence")
     evidence.add_argument("--issue", type=int, required=True)
     evidence.add_argument("--verified-head-sha", required=True)
@@ -412,18 +381,15 @@ def parse_args() -> argparse.Namespace:
     evidence.add_argument("--check", action="append", default=[])
     evidence.add_argument("--hardware-evidence-sha")
     evidence.add_argument("--dry-run", action="store_true")
-
     complete = sub.add_parser("complete")
     complete.add_argument("--issue", type=int, required=True)
     complete.add_argument("--dry-run", action="store_true")
-
     checkpoint = sub.add_parser("checkpoint")
     checkpoint.add_argument("--event", required=True)
     checkpoint.add_argument("--next-action", required=True)
     checkpoint.add_argument("--timestamp", required=True)
     checkpoint.add_argument("--actor", default="ChatGPT")
     checkpoint.add_argument("--dry-run", action="store_true")
-
     return parser.parse_args()
 
 
@@ -431,60 +397,42 @@ def main() -> int:
     args = parse_args()
     active_path = args.root / ACTIVE_REL
     checkpoint_path = args.root / CHECKPOINT_REL
-
     if args.command == "validate":
         _VALIDATOR.validate_repository(args.root)
         print("NEXOLAB State Model v2 validation passed.")
         return 0
-
     active = load(active_path)
     checkpoint = load(checkpoint_path)
-
     if args.command == "migrate-v1":
         new_active = migrate_active_v1(active, observed_at=args.observed_at)
         new_checkpoint = migrate_checkpoint_v1(checkpoint, observed_at=args.observed_at)
         _write_or_preview(active_path, active, new_active, dry_run=args.dry_run)
         _write_or_preview(checkpoint_path, checkpoint, new_checkpoint, dry_run=args.dry_run)
         return 0
-
+    _VALIDATOR.validate_repository(args.root)
     if active.get("schema_version") != 2:
         raise ValueError("Mutation commands require State Model v2; run migrate-v1 first")
-
     if args.command == "begin":
         updated = begin_work(active, issue=args.issue, title=args.title, branch=args.branch)
         _write_or_preview(active_path, active, updated, dry_run=args.dry_run)
         return 0
-
-    if args.command == "record-evidence":
-        updated = record_evidence(
-            active,
-            issue=args.issue,
-            verified_head_sha=args.verified_head_sha,
-            pull_request=args.pull_request,
-            checks=args.check,
-            hardware_evidence_sha=args.hardware_evidence_sha,
-        )
+    if args.command == "transition":
+        updated = transition_work(active, issue=args.issue, target=args.to)
         _write_or_preview(active_path, active, updated, dry_run=args.dry_run)
         return 0
-
+    if args.command == "record-evidence":
+        updated = record_evidence(active, issue=args.issue, verified_head_sha=args.verified_head_sha, pull_request=args.pull_request, checks=args.check, hardware_evidence_sha=args.hardware_evidence_sha)
+        _write_or_preview(active_path, active, updated, dry_run=args.dry_run)
+        return 0
     if args.command == "complete":
         updated = complete_work(active, issue=args.issue)
         _write_or_preview(active_path, active, updated, dry_run=args.dry_run)
         return 0
-
     if args.command == "checkpoint":
         current = active["selection"].get("active_work_package")
-        updated = make_checkpoint(
-            active=active,
-            current=current,
-            event=args.event,
-            next_action=args.next_action,
-            timestamp=args.timestamp,
-            actor=args.actor,
-        )
+        updated = make_checkpoint(active=active, current=current, event=args.event, next_action=args.next_action, timestamp=args.timestamp, actor=args.actor)
         _write_or_preview(checkpoint_path, checkpoint, updated, dry_run=args.dry_run)
         return 0
-
     raise AssertionError(args.command)
 
 
