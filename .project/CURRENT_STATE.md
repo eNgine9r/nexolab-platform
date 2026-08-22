@@ -4,44 +4,63 @@ Updated: 2026-08-22
 
 ## Repository baseline
 
-Repository `main` is `6d223415deebf1a44bb52ba4fcaa3c5db9b03697`, the GREEN squash merge of PR #643 for Issue #633.
+Repository `main` is `bd2a0a56b8c3e67cdf960419076b154302da9e2f`, the GREEN state-only squash merge of PR #645 / Issue #644 after completion of Issue #633.
 
-Issue #633 — **Stop isolated frontend candidate after successful Raspberry Pi deployment** — is complete and closed `status:done`.
+The accepted product/runtime source introduced by Issue #633 remains `6d223415deebf1a44bb52ba4fcaa3c5db9b03697`. PR #645 changed only canonical `.project/**` state files, so it did not invalidate the #633 product verification anchored to final PR head `5d1f1f82ad555b68cab8ce9205283cf939d3be09` and Core CI run `32564575388`.
 
-Final Issue #633 evidence:
+Production remains intentionally deployed from source `6e387485b68fb862d9f82ae7f6000b1f5b672764` using immutable frontend release `runtime/frontend-releases/6e387485b68fb862d9f82ae7f6000b1f5b672764-20260820T214127Z`, BUILD_ID `wb6SYt8RD2_XAcyPcyZP2`.
 
-- PR #643 final head: `5d1f1f82ad555b68cab8ce9205283cf939d3be09`;
-- merge SHA: `6d223415deebf1a44bb52ba4fcaa3c5db9b03697`;
-- exact-head Core CI run `32564575388`: PASS, including standalone Raspberry Pi runtime contracts, formatting, lint, typecheck, tests and production build;
-- all existing P1/P2 inline review threads: resolved;
-- requested fresh Codex automated review could not run because the code-review usage limit was reached; Team Lead fresh review of the exact final diff found no remaining merge-blocking finding;
-- candidate cleanup uses exact PID/process-group ownership, startup gating, PGID handshake, bounded TERM → KILL escalation, zombie-aware liveness and liveness checks before Bash `wait`;
-- Bash built-in `wait` is not globally overridden;
-- production Dashboard process matching or port/bind semantics were not broadened.
+## Active Work Package — Issue #646
 
-Real Raspberry Pi post-deployment verification for the merged #633 behavior remains **hardware/runtime unverified** because `nexolab-edge-01` is offline. This is not software acceptance evidence and is not represented as such.
+Issue #646 — **Add change-impact CI orchestration and protected main merge gate** — is active `status:in-progress` in branch `chore/646-impact-aware-ci`.
 
-Production remains intentionally deployed from source `6e387485b68fb862d9f82ae7f6000b1f5b672764` using immutable frontend release `runtime/frontend-releases/6e387485b68fb862d9f82ae7f6000b1f5b672764-20260820T214127Z`, BUILD_ID `wb6SYt8RD2_XAcyPcyZP2`. No #633 deployment/site cutover was performed.
+Latest pre-checkpoint implementation commit is `965213346ae952c115bba49bf4d2e27361df207c`.
 
-## Current planning boundary
+Implemented on the feature branch so far:
 
-There is **no active product Work Package** while Issue #644 performs the state-only post-merge reconciliation. The next product Work Package must be selected only by a fresh GitHub Ready audit after #644 merges.
+- dependency-free deterministic changed-file classifier with explicit state/frontend/backend/Device Agent/deployment/migration/dependency/security/CI-governance classes;
+- unknown paths fail closed to full Core quality rather than silently receiving a light lane;
+- canonical state-only detection is restricted to the four repository state files;
+- dependency-free project-state validator checks project/profile identity, Sprint/task integrity, proportional verification policy, canonical JSON shape and read-only safety boundary;
+- Core CI now has `Change impact`, `State integrity`, `Quality and build`, and stable `NEXOLAB Merge Gate` jobs;
+- state-only PRs are designed to skip Node setup/dependency installation, repository-wide lint/Vitest and Next production build;
+- documentation-only changes deliberately remain on full Core quality until an equivalent dependency-free formatting gate exists;
+- non-state and CI-governance changes remain on full Core quality during this conservative first rollout;
+- Node quality jobs use lockfile-enforcing `npm ci --no-audit --fund=false` and npm download caching rather than generic `npm install`;
+- repository operating standard and CI runbook now define coherent-candidate pushes, proportional verification, exact evidence SHA anchoring and delta Ready audits;
+- classifier and project-state invariants have focused Python regression tests.
 
-Known unresolved lanes that must remain visible during that audit:
+No Pull Request has been opened yet. This is intentional: implementation and state/doc updates are being batched into one coherent candidate before triggering expensive remote CI.
+
+## Verification status
+
+- #644 / PR #645: GREEN merged as `bd2a0a56...` after exact-head CI `32566870352` passed formatting, lint, typecheck, 121 test files / 555 tests and production build;
+- #646 targeted GitHub CI has not run yet because the PR is intentionally not published until the coherent candidate is ready;
+- the #646 workflow changes are CI-governance changes and therefore must pass the full pre-change-equivalent Core matrix on the PR head before merge;
+- a dedicated state-only proof PR/branch is still required to demonstrate that the new fast lane reaches `NEXOLAB Merge Gate` without Node dependency installation;
+- specialized domain workflows keep their existing path filters and are not removed by #646;
+- Raspberry Pi/hardware evidence is not required for CI orchestration; no production deployment/site cutover is in scope.
+
+## Current blocker boundary
+
+The connected GitHub tooling exposes repository/PR/CI/content operations but currently does not expose a branch-protection/rules mutation action. This is a soft access blocker only for the final repository-settings acceptance criterion. All repository-side #646 implementation and CI validation can proceed independently.
+
+The remote `nexolab-edge-01` remains offline; this does not block #646 because no Raspberry Pi action is required.
+
+## Queue after #646
+
+After #646 is GREEN and merged, the next process-hardening package is the planned **State Model v2 / automated reconciliation** Work Package, kept separate from #646 so CI orchestration and state-model redesign do not share one PR.
+
+After the process-hardening sequence, product work returns to the repository-backed queue, including:
 
 - #618 — independent Saved Dashboard CSV browser-download reliability lane;
 - #607 — dual RS-485 KK1/KK2 software architecture prerequisite before #589;
 - #589 — blocked on #607;
 - #590 — blocked on #589;
 - #585 — blocked pending explicit physical W2 / Unit 201 handback confirmation;
-- #444 — `status:needs-validation`, priority critical: LOCAL_LAN user-administration API acceptance;
-- #245 — `status:needs-validation`, priority critical: standalone loopback-only Raspberry Pi acceptance;
-- #200 — hardware-validation lane: physical RS-485 topology, stable adapter paths, Unit IDs, termination/biasing, latency and safe polling envelope;
-- #201 — `status:needs-validation`: LE-01MP restart/power-cycle evidence;
-- #202 — hardware-validation lane: XJP60D portability, representative KK2 evidence and Unit ID 115 presence/absence;
-- #189 — `status:blocked`: actual-host backup/restore/rollback/power-loss recovery evidence.
+- #444 / #245 / #200 / #201 / #202 / #189 — explicit validation/hardware/recovery lanes.
 
-Security maintenance remains time-bounded: Issue #598 follow-up tracks four temporary `CVE-2026-14456` exceptions that expire **2026-08-26** and must be removed earlier if a fixed Debian package becomes available or the reachability assumptions change.
+Security maintenance remains time-bounded: the Issue #598 follow-up for four temporary `CVE-2026-14456` exceptions is due **2026-08-26** and must be rechecked before expiry or earlier if Debian publishes a fixed package/reachability assumptions change.
 
 ## Safety boundaries
 
