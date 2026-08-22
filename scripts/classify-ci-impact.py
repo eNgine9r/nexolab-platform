@@ -49,8 +49,10 @@ CI_GOVERNANCE_PATHS = {
     "docs/AI_DEVELOPMENT_OPERATING_STANDARD.md",
     "scripts/classify-ci-impact.py",
     "scripts/validate-project-state.py",
+    "scripts/verify-pr-workflow-matrix.py",
     "tests/test_ci_change_impact.py",
-    "tests/test_project_state_validation.py",
+    "tests/test_ci_project_state_validation.py",
+    "tests/test_ci_workflow_matrix.py",
 }
 
 
