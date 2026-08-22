@@ -3,12 +3,53 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-22T09:26:00Z",
+  "timestamp": "2026-08-22T10:19:00Z",
   "actor": "ChatGPT",
-  "event": "issue_633_completed_green_merged_post_merge_state_reconciliation",
-  "repository_main_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
+  "event": "issue_646_impact_aware_ci_coherent_candidate_pre_pr",
+  "repository_main_sha": "bd2a0a56b8c3e67cdf960419076b154302da9e2f",
+  "accepted_product_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
   "deployed_repository_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
+  "active_work": {
+    "issue": 646,
+    "branch": "chore/646-impact-aware-ci",
+    "pull_request": null,
+    "status": "COHERENT_CANDIDATE_PRE_PR",
+    "latest_code_affecting_sha": "2ba35d01e51d5bea6c3b78edfa218438a1e9b0ac",
+    "latest_operating_standard_sha": "3a313cd68cc36b9a5299b47763776950fe559cb4",
+    "implemented": [
+      "dependency-free exact changed-file classifier",
+      "fail-closed unknown and cross-surface classification",
+      "canonical four-file state-only fast lane",
+      "dependency-free project-state integrity validation",
+      "documentation-only changes retain full Core quality",
+      "non-state changes retain full Core quality during conservative rollout",
+      "lockfile-enforcing npm ci with npm download caching",
+      "stable NEXOLAB Merge Gate",
+      "read-only exact-head GitHub Actions workflow aggregation for non-state PRs",
+      "latest-run-per-workflow semantics for reruns",
+      "bounded external workflow wait and fail-closed conclusions",
+      "coherent-candidate remote CI discipline",
+      "product/runtime/hardware/state SHA evidence separation",
+      "delta Ready audit policy",
+      "focused classifier/project-state/workflow-matrix regression tests"
+    ],
+    "targeted_ci": "PENDING_PR_PUBLICATION",
+    "state_only_fast_lane_acceptance": "PENDING_POST_MERGE_STATE_RECONCILIATION",
+    "main_branch_protection": "PENDING_TOOL_ACCESS",
+    "runtime_pi_verification": "NOT_REQUIRED_FOR_CI_GOVERNANCE",
+    "production_cutover_authorized": false,
+    "modbus_write": "none",
+    "hardware_write": "none"
+  },
   "completed_work": {
+    "issue_644": {
+      "issue": 644,
+      "pull_request": 645,
+      "status": "COMPLETED_GREEN_MERGED",
+      "final_pr_head_sha": "9db540ef8cd491327eccb1af303f7e1aa4b41760",
+      "merge_sha": "bd2a0a56b8c3e67cdf960419076b154302da9e2f",
+      "exact_head_ci": "PASS_32566870352"
+    },
     "issue_633": {
       "issue": 633,
       "pull_request": 643,
@@ -16,47 +57,8 @@
       "final_pr_head_sha": "5d1f1f82ad555b68cab8ce9205283cf939d3be09",
       "merge_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
       "exact_head_ci": "PASS_32564575388_AT_5D1F1F82",
-      "review_threads": "PASS_ALL_EXISTING_P1_P2_RESOLVED",
-      "fresh_codex_review": "UNAVAILABLE_USAGE_LIMIT",
-      "team_lead_final_review": "PASS_NO_MERGE_BLOCKING_FINDING",
-      "implemented": [
-        "parent-child startup gate prevents candidate execution before exact PID publication",
-        "child abandons startup if deployment parent disappears before gate release",
-        "dedicated candidate session/process group",
-        "exact candidate PID tracking",
-        "PGID publication only after ps confirms the isolated group",
-        "cleanup re-checks an unpublished PID for an established exact process group",
-        "exact-PID fallback only when the candidate group is not established",
-        "bounded TERM to KILL group cleanup",
-        "candidate liveness verified before Bash wait",
-        "Bash wait semantics remain globally unmodified",
-        "zombie-only group members are not classified as live executable work",
-        "EXIT cleanup failures are surfaced while preserving original failure codes",
-        "candidate port 3100 release is verified before backend activation",
-        "focused candidate cleanup regression suite runs in standalone runtime CI"
-      ],
-      "runtime_pi_verification": "UNVERIFIED_PI_OFFLINE",
-      "production_cutover": false,
-      "modbus_write": "none",
-      "hardware_write": "none"
-    },
-    "issue_606": {
-      "issue": 606,
-      "pull_request": 632,
-      "status": "COMPLETED_GREEN_MERGED",
-      "final_software_head_sha": "83abc9b4a0056a2709c33a627b203785eeefff79",
-      "merge_sha": "dc2b130cbd0f9f6e84dcfec1dc8ee045b18ab8cc",
-      "hardware_accepted_head_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8"
+      "runtime_pi_verification": "UNVERIFIED_PI_OFFLINE"
     }
-  },
-  "current_boundary": {
-    "state_reconciliation_issue": 644,
-    "active_product_work_package": null,
-    "status": "ISSUE_633_COMPLETE_READY_AUDIT_PENDING",
-    "repository_main_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
-    "runtime_repository_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
-    "next_ready_candidate_issue": null,
-    "next_ready_candidate_selected": false
   },
   "maintenance_actions": {
     "cve_2026_14456": {
@@ -67,23 +69,13 @@
     }
   },
   "blocked_work": {
+    "issue_646_branch_protection": "Connected GitHub tool surface does not expose branch-protection/rules mutation; repository-side implementation and CI validation continue independently",
     "issue_585": "Product Owner confirmation and explicit physical W2/Unit 201 handback approval required",
     "issue_589": "Depends on Issue #607 dual RS-485 bus architecture",
     "issue_590": "Depends on Issue #589 persisted cadence/capacity contract",
     "issue_189": "Controlled central-host/Raspberry Pi backup, restore, rollback and power-loss recovery evidence remains outstanding"
   },
-  "validation_work": {
-    "issue_444": "LOCAL_LAN user-administration API acceptance remains status:needs-validation",
-    "issue_245": "Standalone loopback-only Raspberry Pi acceptance remains status:needs-validation",
-    "issue_200": "Physical RS-485 topology and safe polling envelope remain hardware-unverified beyond narrow pilot evidence",
-    "issue_201": "LE-01MP approved restart/power-cycle hardware boundary remains status:needs-validation",
-    "issue_202": "Extended XJP60D portability, representative KK2 evidence, and Unit ID 115 presence/absence remain hardware-unverified"
-  },
-  "independent_work": {
-    "issue_618": "Saved Dashboard CSV browser-download reliability lane; Ready status must be re-audited",
-    "issue_607": "Dual RS-485 KK1/KK2 software architecture prerequisite; Ready status must be re-audited"
-  },
-  "next_action": "Complete state-only Issue #644, then run a fresh GitHub Ready audit and select exactly one independent Ready Work Package if one exists.",
+  "next_action": "Open one focused PR for the coherent #646 candidate, inspect the exact changed-file list, let the new CI-governance path receive full Core quality, diagnose only actual failures, verify NEXOLAB Merge Gate exact-head workflow aggregation, and do not merge until GREEN and review-clean. After implementation merge, use the mandatory state-only reconciliation as the real fast-lane acceptance before closing #646. Branch protection remains a separate final settings action requiring available repository-settings access.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
