@@ -3,45 +3,49 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-22T10:19:00Z",
+  "timestamp": "2026-08-22T10:53:00Z",
   "actor": "ChatGPT",
-  "event": "issue_646_impact_aware_ci_coherent_candidate_pre_pr",
-  "repository_main_sha": "bd2a0a56b8c3e67cdf960419076b154302da9e2f",
+  "event": "issue_648_state_only_fast_lane_proof_candidate",
+  "repository_main_sha": "19c053e0f197a4ccd925af19a6c40881ec56d348",
   "accepted_product_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
   "deployed_repository_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
   "active_work": {
-    "issue": 646,
-    "branch": "chore/646-impact-aware-ci",
+    "issue": 648,
+    "branch": "chore/648-prove-state-fast-lane",
     "pull_request": null,
-    "status": "COHERENT_CANDIDATE_PRE_PR",
-    "latest_code_affecting_sha": "2ba35d01e51d5bea6c3b78edfa218438a1e9b0ac",
-    "latest_operating_standard_sha": "3a313cd68cc36b9a5299b47763776950fe559cb4",
-    "implemented": [
-      "dependency-free exact changed-file classifier",
-      "fail-closed unknown and cross-surface classification",
-      "canonical four-file state-only fast lane",
-      "dependency-free project-state integrity validation",
-      "documentation-only changes retain full Core quality",
-      "non-state changes retain full Core quality during conservative rollout",
-      "lockfile-enforcing npm ci with npm download caching",
-      "stable NEXOLAB Merge Gate",
-      "read-only exact-head GitHub Actions workflow aggregation for non-state PRs",
-      "latest-run-per-workflow semantics for reruns",
-      "bounded external workflow wait and fail-closed conclusions",
-      "coherent-candidate remote CI discipline",
-      "product/runtime/hardware/state SHA evidence separation",
-      "delta Ready audit policy",
-      "focused classifier/project-state/workflow-matrix regression tests"
+    "status": "STATE_ONLY_CANDIDATE_PRE_PR",
+    "scope": [
+      ".project/CURRENT_STATE.md",
+      ".project/ACTIVE_SPRINT.json",
+      ".project/BLOCKERS.md",
+      ".project/LAST_CHECKPOINT.json"
     ],
-    "targeted_ci": "PENDING_PR_PUBLICATION",
-    "state_only_fast_lane_acceptance": "PENDING_POST_MERGE_STATE_RECONCILIATION",
-    "main_branch_protection": "PENDING_TOOL_ACCESS",
-    "runtime_pi_verification": "NOT_REQUIRED_FOR_CI_GOVERNANCE",
+    "expected_ci": {
+      "change_impact": "state_only",
+      "state_integrity": "PASS",
+      "quality_and_build": "SKIPPED",
+      "node_setup": "NOT_RUN",
+      "npm_ci": "NOT_RUN",
+      "repository_lint_vitest": "NOT_RUN",
+      "next_build": "NOT_RUN",
+      "merge_gate": "PASS"
+    },
     "production_cutover_authorized": false,
     "modbus_write": "none",
     "hardware_write": "none"
   },
   "completed_work": {
+    "issue_646_repository_implementation": {
+      "issue": 646,
+      "pull_request": 647,
+      "status": "REPOSITORY_IMPLEMENTATION_GREEN_MERGED",
+      "final_pr_head_sha": "623a72a0fdec8b8ddb15c5a7e145d0ba60a6a135",
+      "merge_sha": "19c053e0f197a4ccd925af19a6c40881ec56d348",
+      "core_ci": "PASS_32567703388",
+      "external_telemetry_ci": "PASS_32567703424",
+      "merge_gate": "PASS_WAITED_FOR_EXTERNAL_EXACT_HEAD_WORKFLOW",
+      "main_branch_protection": "PENDING_TOOL_ACCESS"
+    },
     "issue_644": {
       "issue": 644,
       "pull_request": 645,
@@ -69,13 +73,13 @@
     }
   },
   "blocked_work": {
-    "issue_646_branch_protection": "Connected GitHub tool surface does not expose branch-protection/rules mutation; repository-side implementation and CI validation continue independently",
+    "issue_646_branch_protection": "GitHub reports main protected:false and the connected GitHub tool surface does not expose branch-protection/rules mutation; after #648 this remains a soft settings-access blocker only",
     "issue_585": "Product Owner confirmation and explicit physical W2/Unit 201 handback approval required",
     "issue_589": "Depends on Issue #607 dual RS-485 bus architecture",
     "issue_590": "Depends on Issue #589 persisted cadence/capacity contract",
     "issue_189": "Controlled central-host/Raspberry Pi backup, restore, rollback and power-loss recovery evidence remains outstanding"
   },
-  "next_action": "Open one focused PR for the coherent #646 candidate, inspect the exact changed-file list, let the new CI-governance path receive full Core quality, diagnose only actual failures, verify NEXOLAB Merge Gate exact-head workflow aggregation, and do not merge until GREEN and review-clean. After implementation merge, use the mandatory state-only reconciliation as the real fast-lane acceptance before closing #646. Branch protection remains a separate final settings action requiring available repository-settings access.",
+  "next_action": "Open one focused state-only PR for Issue #648, confirm the exact diff contains only the four canonical .project files, observe Change impact=state_only, State integrity PASS, Quality and build SKIPPED, no Node/npm/full frontend quality execution, and NEXOLAB Merge Gate PASS. Merge only on exact-head GREEN. Then record the fast-lane evidence in Issue #646; if repository-settings mutation remains unavailable, mark only the branch-protection acceptance blocked and continue the next independent Ready process-hardening Work Package.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
