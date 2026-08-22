@@ -143,8 +143,9 @@ Current policy:
 - documentation-only changes remain on full repository quality until an equivalent deterministic dependency-free formatting gate exists;
 - product, backend, Device Agent, deployment/runtime, dependency/toolchain, security/supply-chain and CI-governance changes retain full Core quality verification;
 - cross-surface or previously unknown paths broaden verification rather than silently skipping checks;
-- specialized browser/backend/edge/offline/security workflows keep their domain-specific path filters and remain authoritative where applicable;
-- the stable `NEXOLAB Merge Gate` must fail when the required Core lane is failed, cancelled, missing or unjustifiably skipped.
+- specialized browser/backend/edge/offline/security workflows keep their domain-specific path filters and exact-head semantics;
+- for non-state PRs, the stable `NEXOLAB Merge Gate` must first require the correct Core lane and then wait for every other PR workflow that actually triggered on the same exact head; any failed, cancelled, skipped, missing-through-timeout or still-running required workflow keeps the gate RED;
+- state-only PRs use only the canonical state-integrity path because no product/runtime surface changed; the first post-#646 state reconciliation is the real acceptance proof for this fast lane.
 
 This policy is an optimization of verification selection, not a reduction of acceptance criteria. Software checks never substitute for required hardware/runtime evidence.
 
