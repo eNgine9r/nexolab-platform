@@ -8,73 +8,86 @@ NEXOLAB continuity uses durable repository state plus current GitHub observation
 
 ## Durable baselines
 
-Accepted product source: `6d223415deebf1a44bb52ba4fcaa3c5db9b03697`.
+Accepted product source: `a2fd9496959764691860106c2f0625587fc707a2`.
 
 Deployed product source: `6e387485b68fb862d9f82ae7f6000b1f5b672764`.
 
-These identities remain distinct from repository `main`, governance-only commits and the currently unaccepted #618 candidate.
+The accepted product baseline includes Issue #618 / PR #652. The deployed Raspberry Pi baseline is intentionally older and must not be represented as containing #618 or #607 until an actual controlled deployment occurs.
 
-## Completed process hardening — Issue #650
+## Completed process hardening — Issues #646 / #648 / #650
 
-Issue #650 — **Introduce State Model v2 and remove mandatory post-merge reconciliation PRs** — completed through PR #651.
+Impact-aware CI, deterministic `npm ci`, exact-head external workflow aggregation, the state-only fast lane and State Model v2 are repository-side verified.
 
-Exact accepted repository-side evidence:
+Issue #646 remains soft-blocked only on the repository setting that would technically protect `main`; the retained GitHub observation still reports branch protection disabled.
 
-- final PR head `b0c7ae3efbb7a0364c7b6d59a356e858afe74be2`;
-- Core CI `32571068430`: PASS;
-- Telemetry service `32571068439`: PASS;
+State Model v2 removes mandatory post-merge reconciliation PRs. Product Work Packages may ingest the previous accepted Work Package evidence when the next material state change occurs.
+
+## Completed product Work Package — Issue #618
+
+Issue #618 — **Restore Saved Dashboard CSV export browser acceptance on LOCAL_LAN** — completed through PR #652.
+
+Accepted evidence:
+
+- final verified PR head `3982e901f6732713fa23ea1650299eb6738a9f79`;
+- Core CI run `32572681394`: PASS;
+- Authenticated Dashboard Acceptance run `32572681396`: PASS;
+- Offline Bundle run `32572681390`: PASS;
 - `NEXOLAB Merge Gate`: PASS;
-- unresolved review threads: zero;
-- GitHub recorded squash merge `2112c1004cdcbf08631b71ad48c7a59a930ec77f` at 2026-08-22T11:57:40Z.
+- production Chromium observed a real CSV download and the acceptance artifact contained the exported CSV;
+- browser evidence retained `publicRequests: []` and `acquisitionMutations: []`;
+- GitHub recorded squash merge `a2fd9496959764691860106c2f0625587fc707a2` on 2026-08-22.
 
-No separate reconciliation PR was created. This #618 material state update ingests the historical #650 evidence as intended by State Model v2.
+Raspberry Pi repetition of the CSV acceptance remains unverified because `nexolab-edge-01` is offline in the Remote Desktop connector. This does not invalidate the accepted GitHub-hosted production-browser evidence.
 
-## Active Work Package — Issue #618
+## Active Work Package — Issue #607
 
-Issue #618 — **Restore Saved Dashboard CSV export browser acceptance on LOCAL_LAN** — is active in branch `fix/618-saved-dashboard-csv-download`.
+Issue #607 — **Add dual RS-485 bus isolation for KK1 and KK2** — is active in branch `feat/607-dual-rs485-bus-isolation`.
 
-Repository-backed diagnosis:
+Repository-backed architecture result:
 
-- the CSV API client already performs the authenticated local GET with the selected UTC range and browser timezone and parses `Content-Disposition` / CSV content;
-- the production E2E already registers `page.waitForEvent("download")` before clicking `Export CSV`, so the known failure is not a simple Playwright listener-order race;
-- the browser handoff fetched the Blob, created a detached `<a>`, clicked it and synchronously revoked the Blob URL;
-- Chromium may commit the download asynchronously, so immediate revocation can invalidate the handoff before the browser download manager observes it.
+- `AdaptiveAcquisitionScheduler` already owns jobs, workers, cooldown and scheduler metrics by `bus_id` and does not require a scheduler rewrite;
+- the real single-bus restriction is the runtime composition layer: one serial setting/client/readers and one global operation lock;
+- XJP60D catalog evidence maps KK2 to Unit IDs `101..115` and KK1 to `126..138`;
+- repository evidence does not establish KK1/KK2 ownership for LE-01MP Unit IDs `200..203`, so the runtime must not guess it.
 
-Current implementation candidate:
+Current software candidate:
 
-- introduces a small browser-download helper in `src/features/live-dashboards/`;
-- appends the download anchor to the DOM during click;
-- removes the anchor immediately after click;
-- keeps the Blob URL alive for a bounded 1 second before revocation;
-- includes a deterministic unit regression proving DOM presence during click and delayed URL revocation;
-- `DashboardLiveView` delegates the authenticated Blob handoff to this helper.
+- adds explicit validated `RS485_BUS_CONFIG_JSON` bus bindings with stable `/dev/serial/by-id/...` identities;
+- preserves legacy `SERIAL_DEVICE` / `rs485-main` behavior when explicit topology is absent;
+- creates one `ModbusRTUClient`, reader set and physical operation lock per configured bus;
+- preserves scheduler serialization within one bus while allowing separate bus workers to execute concurrently;
+- uses an all-bus mutation guard for registry/topology mutations so configuration changes cannot race physical reads;
+- partitions explicit XJP60D discovery by bus and persists newly responsive controllers as `discovery_only` on the bus where they were read;
+- exposes bounded per-bus physical request rate, retry/timeout/error counters and latency average/p95/max;
+- fails health closed when a configured bus with active targets has no stable device path;
+- keeps configured-but-unused future buses `hardware_unverified` without pretending they are accepted;
+- introduces no Modbus write function, cloud dependency or hardware cutover.
 
-The existing `Authenticated Dashboard Acceptance` workflow is path-triggered by these changes and runs the production Chromium / acquisition-invariant stack, including `e2e/live.production.e2e.ts`. That workflow is the required software/browser acceptance for the candidate.
+Architecture and operator contract: `docs/architecture/dual-rs485-bus-isolation.md` and `infrastructure/compose/.env.dual-rs485.example`.
 
 ## Runtime and hardware boundary
 
-`nexolab-edge-01` is currently offline in the Remote Desktop connector. Therefore the historical Raspberry Pi LOCAL_LAN failure cannot yet be re-run on the actual host.
+Issue #607 is currently **software candidate / hardware unverified**.
 
-This is a soft evidence blocker only: GitHub-hosted production Chromium acceptance can verify the software/browser contract. Final real Raspberry Pi confirmation remains **hardware/runtime unverified** until the host is reachable again.
+`nexolab-edge-01` remains offline in the Remote Desktop connector. No physical second adapter installation, field wiring move, site cutover, controller configuration write or Modbus write has been performed.
 
-No Modbus or hardware write is required by #618.
+Future hardware acceptance requires the exact two stable `/dev/serial/by-id/...` adapter identities, simultaneous read-only polling evidence, one-bus disconnect isolation and reboot-stable bus mapping.
 
 ## Current blocker boundary
 
-Issue #646 remains soft-blocked only on repository settings: the latest retained observation reports `main` unprotected with required status checks disabled, and the connected GitHub tool surface does not expose branch-protection/rules mutation.
+- #607: no software hard blocker; real hardware acceptance is unavailable while the Raspberry Pi connector is offline and physical cutover is not authorized.
+- #646: branch-protection repository setting remains a soft access blocker.
+- Security maintenance: four temporary `CVE-2026-14456` exceptions from Issue #598 are due for review/removal by **2026-08-26**, or earlier if a fixed Debian package becomes available or reachability assumptions change.
 
-Security maintenance remains time-bounded: four temporary `CVE-2026-14456` exceptions from Issue #598 are due for review/removal by **2026-08-26**, or earlier if a fixed Debian package becomes available or reachability assumptions change.
+Known dependencies:
 
-Known dependencies remain:
-
-- #607 — next queued architecture lane, dual RS-485 KK1/KK2 isolation;
-- #589 blocked on #607;
-- #590 blocked on #589;
-- #585 blocked pending explicit physical W2 / Unit 201 handback approval;
+- #589 remains blocked on completion of #607 bus-aware architecture;
+- #590 remains blocked on #589;
+- #585 remains blocked pending explicit physical W2 / Unit 201 handback approval;
 - #444 and #245 remain validation lanes;
 - #200 / #201 / #202 remain hardware/validation evidence lanes;
 - #189 remains blocked on controlled actual-host recovery evidence.
 
 ## Safety boundaries
 
-`LOCAL_LAN`, offline-first runtime and read-only industrial boundaries remain unchanged. No Modbus/controller write, hardware write, production/site cutover, persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation or mandatory cloud runtime dependency is authorized by Issue #618.
+`LOCAL_LAN`, offline-first runtime and read-only industrial boundaries remain unchanged. No Modbus/controller write, hardware write, production/site cutover, persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation or mandatory cloud runtime dependency is authorized by Issue #607.
