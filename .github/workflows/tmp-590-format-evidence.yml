@@ -40,20 +40,10 @@ jobs:
 
           path = Path("e2e/settings.production.e2e.ts")
           text = path.read_text(encoding="utf-8")
-          old = '''    const xjpFamilyCard = cadence
-            .locator("article")
-            .filter({ hasText: "Dixell XJP60D" })
-            .filter({ hasText: "Family default · 60 с" })
-            .first();
-          '''
-          new = '''    const xjpFamilyCard = cadence
-            .locator("article")
-            .filter({ hasText: "Dixell XJP60D" })
-            .first();
-          '''
-          if old not in text:
-              raise SystemExit("expected stale-value locator block was not found exactly")
-          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          needle = '      .filter({ hasText: "Family default · 60 с" })\n'
+          if text.count(needle) != 1:
+              raise SystemExit(f"expected exactly one stale-value locator filter, found {text.count(needle)}")
+          path.write_text(text.replace(needle, "", 1), encoding="utf-8")
           PY
 
           npx prettier --write \
