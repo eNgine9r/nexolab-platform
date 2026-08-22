@@ -14,7 +14,7 @@ Production remains intentionally deployed from source `6e387485b68fb862d9f82ae7f
 
 Issue #633 — **Stop isolated frontend candidate after successful Raspberry Pi deployment** — is active `status:in-progress` in branch `fix/633-frontend-candidate-cleanup` with PR #643.
 
-Final software implementation and regression boundary before this state checkpoint is `68835e14798d49c01ff4a2bd4de98e6c8e8fdc22`.
+Latest software refinement before this state checkpoint is `0436c0a663d9d7416a487cb61a69626cf1f786dd`.
 
 Implemented behavior:
 
@@ -24,11 +24,12 @@ Implemented behavior:
 - after gate release, PGID publication occurs only after `ps` confirms the tracked PID is the isolated group leader;
 - cleanup re-checks an unpublished PID for an already-established exact process group before exact-PID fallback;
 - established candidate groups use bounded TERM → KILL cleanup;
-- both exact-PID and process-group cleanup verify that the candidate is no longer live before calling `wait`, so a process stuck in uninterruptible I/O cannot create an indefinite deployment hang after the bounded TERM/KILL windows;
+- both exact-PID and process-group cleanup verify that the candidate is no longer live before invoking Bash `wait`, so a process stuck in uninterruptible I/O cannot create an indefinite deployment hang after the bounded TERM/KILL windows;
+- Bash `wait` is not globally overridden; normal shell wait semantics remain unchanged outside the candidate cleanup path;
 - zombie-only group members are classified as terminated rather than executable work;
 - EXIT cleanup failures are surfaced while preserving the original deployment failure code;
 - candidate port `3100` is verified free before backend/activation work proceeds;
-- the candidate-cleanup regression module is executed by the standalone runtime CI entry point and now asserts that no live candidate reaches an unbounded `wait`;
+- the candidate-cleanup regression module is executed by the standalone runtime CI entry point and asserts that no live candidate reaches `wait`;
 - broad `pkill`/process-name matching is not introduced and production Dashboard process semantics are unchanged.
 
 Verification status:
@@ -38,7 +39,8 @@ Verification status:
 - exact-head `a7d91af104474c0fec604767a818bd9cfb6a27dd` Core CI run `32519957941`: PASS;
 - exact-head `b3420a3be7b1b7b3060d484ca30c0aa4fa4c21ee` Core CI run `32521673945`: PASS;
 - exact-head state checkpoint `c28736864d91f521a02101a3d2ca7e8448dea3f1` Core CI run `32523415155`: PASS;
-- fresh review on `c2873686...` identified the remaining unbounded child-reap wait; `68835e14...` implements and regression-tests the bounded reaping fix;
+- exact-head `7bf2604c4b823cc4f3643c230dc58b16624384c3` Core CI run `32563481255`: PASS;
+- fresh code review on `7bf2604c...` identified an unnecessary global Bash `wait` override in the liveness helper; `0436c0a6...` removes that global semantic change while preserving the structural liveness guards already regression-tested in the deployment cleanup;
 - final exact-head CI and fresh review on the new state-checkpoint head remain the merge gates;
 - real Raspberry Pi post-deployment verification is **hardware/runtime unverified** because `nexolab-edge-01` is currently offline;
 - no production deployment/site cutover has been authorized or performed by #633.
