@@ -81,8 +81,6 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         self._bus_operation_locks: dict[str, threading.Lock] = {}
         self._topology_enrollment_store: TopologyAwareEnrollmentStore | None = None
 
-        # No explicit topology means exact legacy behavior: the superclass owns
-        # the existing singular client, reader, lock and scheduler path.
         if not self.rs485_topology.explicit:
             return
 
@@ -93,10 +91,6 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             binding.bus_id: threading.Lock()
             for binding in self.rs485_topology.bindings
         }
-        # Inherited registry/configuration mutation methods still use the
-        # singular _bus_operation_lock attribute. Replace it with a composite
-        # guard so a topology/lifecycle change can never race a read on either
-        # physical bus.
         self._bus_operation_lock = _AllBusOperationLock(  # type: ignore[assignment]
             self._bus_operation_locks
         )
@@ -125,8 +119,6 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             if mode_uses_le01mp(self.settings.device_mode):
                 self._bus_le01mp_readers[binding.bus_id] = LE01MPReader(client)
 
-        # The base client is deliberately retired in explicit multi-bus mode so
-        # no code path can accidentally serialize both buses through one port.
         if self.modbus_client is not None:
             self.modbus_client.close()
         self.modbus_client = None
@@ -143,11 +135,14 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             bus_locks=self._bus_operation_locks,
         )
 
-    def capacity_profiles(self) -> dict[str, BusCapacityProfile]:
+    def capacity_profiles(
+        self,
+        registry: Any = None,
+    ) -> dict[str, BusCapacityProfile]:
         topology = getattr(self, "rs485_topology", None)
         metrics = getattr(self, "rs485_bus_metrics", None)
         if topology is None or metrics is None or not topology.explicit:
-            return super().capacity_profiles()
+            return super().capacity_profiles(registry)
 
         profiles: dict[str, BusCapacityProfile] = {}
         for binding in topology.bindings:
