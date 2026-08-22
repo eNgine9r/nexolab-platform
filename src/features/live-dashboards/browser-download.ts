@@ -5,6 +5,24 @@ export interface BrowserBlobDownload {
   filename: string;
 }
 
+interface BrowserDownloadEnvironment {
+  document: Document;
+  createObjectURL: (blob: Blob) => string;
+  revokeObjectURL: (url: string) => void;
+  scheduleRevoke: (callback: () => void, delayMs: number) => void;
+}
+
+function browserDownloadEnvironment(): BrowserDownloadEnvironment {
+  return {
+    document,
+    createObjectURL: (blob) => URL.createObjectURL(blob),
+    revokeObjectURL: (url) => URL.revokeObjectURL(url),
+    scheduleRevoke: (callback, delayMs) => {
+      globalThis.setTimeout(callback, delayMs);
+    },
+  };
+}
+
 /**
  * Hand an already-authenticated Blob to the browser download manager.
  *
@@ -12,18 +30,21 @@ export interface BrowserBlobDownload {
  * commit the download asynchronously, so synchronously revoking the URL can
  * invalidate the handoff before the browser observes it.
  */
-export function triggerBrowserBlobDownload(download: BrowserBlobDownload): void {
-  const url = URL.createObjectURL(download.blob);
-  const anchor = document.createElement("a");
+export function triggerBrowserBlobDownload(
+  download: BrowserBlobDownload,
+  environment = browserDownloadEnvironment(),
+): void {
+  const url = environment.createObjectURL(download.blob);
+  const anchor = environment.document.createElement("a");
   anchor.href = url;
   anchor.download = download.filename;
   anchor.hidden = true;
-  document.body.appendChild(anchor);
+  environment.document.body.appendChild(anchor);
 
   try {
     anchor.click();
   } finally {
     anchor.remove();
-    globalThis.setTimeout(() => URL.revokeObjectURL(url), BLOB_URL_REVOKE_DELAY_MS);
+    environment.scheduleRevoke(() => environment.revokeObjectURL(url), BLOB_URL_REVOKE_DELAY_MS);
   }
 }
