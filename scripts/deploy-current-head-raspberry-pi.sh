@@ -138,12 +138,18 @@ cleanup_frontend_candidate() {
       done
       if kill -0 "$pid" >/dev/null 2>&1; then
         kill -KILL "$pid" >/dev/null 2>&1 || true
+        for attempt in $(seq 1 10); do
+          if ! kill -0 "$pid" >/dev/null 2>&1; then
+            break
+          fi
+          sleep 0.1
+        done
       fi
-      wait "$pid" >/dev/null 2>&1 || true
       if kill -0 "$pid" >/dev/null 2>&1; then
         log "ERROR: frontend candidate process did not terminate: $pid"
         return 1
       fi
+      wait "$pid" >/dev/null 2>&1 || true
     fi
     FRONTEND_CANDIDATE_PID=""
     FRONTEND_CANDIDATE_PGID=""
@@ -168,12 +174,12 @@ cleanup_frontend_candidate() {
     done
   fi
 
-  if [[ -n "$pid" ]]; then
-    wait "$pid" >/dev/null 2>&1 || true
-  fi
   if nexolab_frontend_candidate_group_has_live_processes "$pgid"; then
     log "ERROR: frontend candidate process group did not terminate: $pgid"
     return 1
+  fi
+  if [[ -n "$pid" ]]; then
+    wait "$pid" >/dev/null 2>&1 || true
   fi
 
   FRONTEND_CANDIDATE_PID=""
