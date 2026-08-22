@@ -9,6 +9,8 @@ source "$SCRIPT_DIR/lib/raspberry-pi-runtime-mode.sh"
 source "$SCRIPT_DIR/deploy-capacity-guard.sh"
 # shellcheck source=lib/raspberry-pi-frontend-release.sh
 source "$SCRIPT_DIR/lib/raspberry-pi-frontend-release.sh"
+# shellcheck source=lib/frontend-candidate-liveness.sh
+source "$SCRIPT_DIR/lib/frontend-candidate-liveness.sh"
 
 usage() {
   cat <<'USAGE'
@@ -76,6 +78,9 @@ SUMMARY="$AUDIT_DIR/summary.txt"
 RUNTIME_MODE_FILE="$REPO/runtime/runtime-mode"
 FRONTEND_RELEASES_DIR="$REPO/runtime/frontend-releases"
 FRONTEND_RELEASE_DIR=""
+FRONTEND_CANDIDATE_PID=""
+FRONTEND_CANDIDATE_PGID=""
+FRONTEND_CANDIDATE_START_GATE=""
 
 CENTRAL_COMPOSE_ARGS=(
   -f "$CENTRAL_DIR/compose.central.yaml"
@@ -103,8 +108,106 @@ fail() {
   exit 1
 }
 
+cleanup_frontend_candidate() {
+  local pid="${FRONTEND_CANDIDATE_PID:-}"
+  local pgid="${FRONTEND_CANDIDATE_PGID:-}"
+  local actual_pgid=""
+  local attempt
+
+  if [[ -n "${FRONTEND_CANDIDATE_START_GATE:-}" ]]; then
+    rm -f -- "$FRONTEND_CANDIDATE_START_GATE"
+    FRONTEND_CANDIDATE_START_GATE=""
+  fi
+
+  if [[ -z "$pgid" && -n "$pid" ]]; then
+    actual_pgid="$(ps -o pgid= -p "$pid" 2>/dev/null | awk 'NF {print $1; exit}')"
+    if [[ "$actual_pgid" == "$pid" ]]; then
+      pgid="$actual_pgid"
+      FRONTEND_CANDIDATE_PGID="$actual_pgid"
+    fi
+  fi
+
+  if [[ -z "$pgid" ]]; then
+    if [[ -n "$pid" ]]; then
+      kill -TERM "$pid" >/dev/null 2>&1 || true
+      for attempt in $(seq 1 20); do
+        if ! kill -0 "$pid" >/dev/null 2>&1; then
+          break
+        fi
+        sleep 0.1
+      done
+      if kill -0 "$pid" >/dev/null 2>&1; then
+        kill -KILL "$pid" >/dev/null 2>&1 || true
+        for attempt in $(seq 1 10); do
+          if ! kill -0 "$pid" >/dev/null 2>&1; then
+            break
+          fi
+          sleep 0.1
+        done
+      fi
+      if kill -0 "$pid" >/dev/null 2>&1; then
+        log "ERROR: frontend candidate process did not terminate: $pid"
+        return 1
+      fi
+      wait "$pid" >/dev/null 2>&1 || true
+    fi
+    FRONTEND_CANDIDATE_PID=""
+    FRONTEND_CANDIDATE_PGID=""
+    return 0
+  fi
+
+  kill -TERM -- "-$pgid" >/dev/null 2>&1 || true
+  for attempt in $(seq 1 20); do
+    if ! nexolab_frontend_candidate_group_has_live_processes "$pgid"; then
+      break
+    fi
+    sleep 0.1
+  done
+
+  if nexolab_frontend_candidate_group_has_live_processes "$pgid"; then
+    kill -KILL -- "-$pgid" >/dev/null 2>&1 || true
+    for attempt in $(seq 1 10); do
+      if ! nexolab_frontend_candidate_group_has_live_processes "$pgid"; then
+        break
+      fi
+      sleep 0.1
+    done
+  fi
+
+  if nexolab_frontend_candidate_group_has_live_processes "$pgid"; then
+    log "ERROR: frontend candidate process group did not terminate: $pgid"
+    return 1
+  fi
+  if [[ -n "$pid" ]]; then
+    wait "$pid" >/dev/null 2>&1 || true
+  fi
+
+  FRONTEND_CANDIDATE_PID=""
+  FRONTEND_CANDIDATE_PGID=""
+  return 0
+}
+
+on_exit() {
+  local rc=$?
+  local cleanup_rc=0
+  trap - EXIT ERR
+  if cleanup_frontend_candidate; then
+    cleanup_rc=0
+  else
+    cleanup_rc=$?
+  fi
+  if ((cleanup_rc != 0)); then
+    log "ERROR: frontend candidate cleanup failed during exit; original exit code: $rc"
+    if ((rc == 0)); then
+      rc=$cleanup_rc
+    fi
+  fi
+  exit "$rc"
+}
+
 on_error() {
   local rc=$?
+  cleanup_frontend_candidate || true
   if [[ "${NEXOLAB_FRONTEND_ACTIVATED:-0}" != "1" && -n "${FRONTEND_RELEASE_DIR:-}" ]]; then
     nexolab_frontend_discard_unactivated_release "$FRONTEND_RELEASES_DIR" "$FRONTEND_RELEASE_DIR" || true
   fi
@@ -134,12 +237,13 @@ on_error() {
   exit "$rc"
 }
 trap on_error ERR
+trap on_exit EXIT
 
 require() {
   command -v "$1" >/dev/null 2>&1 || fail "required command is missing: $1"
 }
 
-for command in git docker curl python3 openssl npm node flock ip sudo tar du df find sort stat mv rm ss sha256sum cp cmp install; do
+for command in git docker curl python3 openssl npm node flock ip sudo tar du df find sort stat mv rm ss sha256sum cp cmp install setsid ps awk; do
   require "$command"
 done
 
@@ -555,18 +659,51 @@ if ss -ltn | awk '{print $4}' | grep -Eq "(^|:)$FRONTEND_CANDIDATE_PORT$"; then
   fail "frontend candidate verification port is already in use: $FRONTEND_CANDIDATE_PORT"
 fi
 log "Starting frontend candidate on isolated port $FRONTEND_CANDIDATE_PORT"
+FRONTEND_CANDIDATE_START_GATE="$AUDIT_DIR/frontend-candidate-start.gate"
+rm -f -- "$FRONTEND_CANDIDATE_START_GATE"
+FRONTEND_CANDIDATE_PARENT_PID="$BASHPID"
 (
+  trap - EXIT ERR
+  for _ in $(seq 1 100); do
+    if [[ -f "$FRONTEND_CANDIDATE_START_GATE" ]]; then
+      break
+    fi
+    if ! kill -0 "$FRONTEND_CANDIDATE_PARENT_PID" >/dev/null 2>&1; then
+      exit 75
+    fi
+    sleep 0.01
+  done
+  [[ -f "$FRONTEND_CANDIDATE_START_GATE" ]] || exit 75
   cd "$FRONTEND_RELEASE_DIR"
-  NEXT_PUBLIC_NEXOLAB_DATA_MODE=live \
-  NEXT_PUBLIC_NEXOLAB_API_BASE_URL="$NEXOLAB_API_BASE_URL" \
-  NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL="$NEXOLAB_WEBSOCKET_URL" \
-  NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER="$FRONTEND_AUTH_PROVIDER" \
-  NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID="$FRONTEND_ORGANIZATION_ID" \
-  NEXT_TELEMETRY_DISABLED=1 \
-  "$FRONTEND_RELEASE_DIR/node_modules/.bin/next" start \
-    --hostname 127.0.0.1 --port "$FRONTEND_CANDIDATE_PORT"
+  exec setsid env \
+    NEXT_PUBLIC_NEXOLAB_DATA_MODE=live \
+    NEXT_PUBLIC_NEXOLAB_API_BASE_URL="$NEXOLAB_API_BASE_URL" \
+    NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL="$NEXOLAB_WEBSOCKET_URL" \
+    NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER="$FRONTEND_AUTH_PROVIDER" \
+    NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID="$FRONTEND_ORGANIZATION_ID" \
+    NEXT_TELEMETRY_DISABLED=1 \
+    "$FRONTEND_RELEASE_DIR/node_modules/.bin/next" start \
+      --hostname 127.0.0.1 --port "$FRONTEND_CANDIDATE_PORT"
 ) > "$AUDIT_DIR/frontend-candidate.txt" 2>&1 &
 FRONTEND_CANDIDATE_PID=$!
+: > "$FRONTEND_CANDIDATE_START_GATE"
+FRONTEND_CANDIDATE_PGID=""
+for _ in $(seq 1 20); do
+  FRONTEND_CANDIDATE_ACTUAL_PGID="$(ps -o pgid= -p "$FRONTEND_CANDIDATE_PID" 2>/dev/null | awk 'NF {print $1; exit}')"
+  if [[ "$FRONTEND_CANDIDATE_ACTUAL_PGID" == "$FRONTEND_CANDIDATE_PID" ]]; then
+    FRONTEND_CANDIDATE_PGID="$FRONTEND_CANDIDATE_ACTUAL_PGID"
+    break
+  fi
+  if ! kill -0 "$FRONTEND_CANDIDATE_PID" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.05
+done
+rm -f -- "$FRONTEND_CANDIDATE_START_GATE"
+FRONTEND_CANDIDATE_START_GATE=""
+if [[ -z "$FRONTEND_CANDIDATE_PGID" ]]; then
+  fail "frontend candidate did not establish its isolated process group; active dashboard was not touched"
+fi
 FRONTEND_CANDIDATE_READY=false
 for _ in $(seq 1 30); do
   if curl -fsS --max-time 2 "http://127.0.0.1:$FRONTEND_CANDIDATE_PORT/" >/dev/null; then
@@ -579,18 +716,19 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 if [[ "$FRONTEND_CANDIDATE_READY" != true ]]; then
-  kill "$FRONTEND_CANDIDATE_PID" >/dev/null 2>&1 || true
-  wait "$FRONTEND_CANDIDATE_PID" >/dev/null 2>&1 || true
   fail "frontend candidate did not become ready; active dashboard was not touched"
 fi
 for route in / /nodes /live /energy /sessions; do
   curl -fsS --max-time 5 "http://127.0.0.1:$FRONTEND_CANDIDATE_PORT$route" >/dev/null \
-    || { kill "$FRONTEND_CANDIDATE_PID" >/dev/null 2>&1 || true; wait "$FRONTEND_CANDIDATE_PID" >/dev/null 2>&1 || true; fail "frontend candidate route failed: $route"; }
+    || fail "frontend candidate route failed: $route"
 done
-kill "$FRONTEND_CANDIDATE_PID" >/dev/null 2>&1 || true
-wait "$FRONTEND_CANDIDATE_PID" >/dev/null 2>&1 || true
-FRONTEND_CANDIDATE_PID=""
-log "Frontend candidate verified without mutating the active dashboard"
+if ! cleanup_frontend_candidate; then
+  fail "frontend candidate cleanup failed; active dashboard was not touched"
+fi
+if ss -ltn | awk '{print $4}' | grep -Eq "(^|:)$FRONTEND_CANDIDATE_PORT$"; then
+  fail "frontend candidate cleanup left verification port in use: $FRONTEND_CANDIDATE_PORT"
+fi
+log "Frontend candidate verified and terminated without mutating the active dashboard"
 
 log "Starting central backend, MinIO and observability"
 docker compose --env-file "$CENTRAL_ENV" \

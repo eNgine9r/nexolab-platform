@@ -1,14 +1,25 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-21
+Updated: 2026-08-22
 
 ## Current Work Package boundary
 
-Issue #606 is complete. PR #632 merged GREEN into `main` as `dc2b130cbd0f9f6e84dcfec1dc8ee045b18ab8cc`; Issue #606 is closed `status:done`.
+Issue #633 is active `status:in-progress` in PR #643 (`fix/633-frontend-candidate-cleanup`). Latest software refinement before the final state checkpoint is `0436c0a663d9d7416a487cb61a69626cf1f786dd`.
 
-Issue #641 is a state-only post-merge reconciliation package. It changes only `.project/CURRENT_STATE.md`, `.project/ACTIVE_SPRINT.json`, `.project/BLOCKERS.md`, and `.project/LAST_CHECKPOINT.json`. It introduces no product/runtime, dependency, migration, Modbus, hardware, or deployment behavior.
+The candidate lifecycle uses a parent/child startup gate so Next.js cannot execute before the parent records the exact background PID. After release, PGID publication is confirmed with `ps`; cleanup re-checks an unpublished PID for an already-established exact process group before using exact-PID fallback. Established groups use bounded TERM → KILL cleanup. Both exact-PID and process-group paths verify the candidate is no longer live before invoking Bash `wait`; if it remains live after the bounded TERM/KILL windows, cleanup returns failure instead of hanging indefinitely. Bash `wait` is not globally overridden. Zombie-only members do not count as executable work, EXIT cleanup failures are surfaced, and the focused cleanup regression suite is part of the standalone runtime CI entry point.
 
-There is no remaining #606 product, software, CI, review, LAN, or hardware-acceptance blocker.
+Verified software gates:
+
+- Core CI `32514504593` on `87afc111...`: PASS;
+- Core CI `32517056093` on `08884615...`: PASS;
+- Core CI `32519957941` on `a7d91af1...`: PASS;
+- Core CI `32521673945` on `b3420a3b...`: PASS;
+- Core CI `32523415155` on `c2873686...`: PASS;
+- Core CI `32563481255` on `7bf2604c...`: PASS.
+
+Fresh review on GREEN head `7bf2604c...` found one final maintainability risk: `scripts/lib/frontend-candidate-liveness.sh` globally shadowed Bash `wait` although the deployment cleanup already guards `wait` behind explicit liveness checks. Refinement `0436c0a6...` removes that global override without broadening process matching or changing production Dashboard semantics. Final exact-head CI and fresh review on the new state-checkpoint head remain the only software merge gates.
+
+The remote Raspberry Pi `nexolab-edge-01` is currently offline. This is a soft blocker only for real post-deployment runtime evidence. No production/site cutover is authorized by #633, so no deployment is being attempted.
 
 ## Security maintenance — CVE-2026-14456 deadline
 
@@ -18,17 +29,9 @@ Owner: `platform-security`.
 
 Required maintenance action: re-check Debian/fixed-package availability and remove the exceptions immediately when a fixed package becomes available, or review before 2026-08-26. If the exceptions expire unchanged, the Container Supply Chain policy gate is expected to fail closed. Any introduction of a QUIC/HTTP3 listener also invalidates the current reachability justification.
 
-## Issue #633 — Ready
-
-The successful 2026-08-21 Raspberry Pi production deployment left an isolated frontend candidate listening on `127.0.0.1:3100` after `DEPLOYMENT PASSED`. It was manually stopped and production remained healthy.
-
-Issue #633 is Ready/high and is the expected next Work Package after #641 is merged and the Ready audit confirms no higher-priority dependency change.
-
-No production cutover is required to implement the deterministic cleanup behavior. Any real deployment/cutover remains separately controlled.
-
 ## Issue #618 — independent reliability lane
 
-Saved Dashboard CSV browser-download reliability remains an independent open lane. It does not block #641 or #633 unless a required verification gate demonstrates a direct dependency.
+Saved Dashboard CSV browser-download reliability remains an independent open lane. It does not block #633 unless a required verification gate demonstrates a direct dependency.
 
 ## Issue #607 — queued architecture prerequisite
 
@@ -46,18 +49,14 @@ Operator cadence controls remain blocked on the authoritative persisted cadence/
 
 Restoring LE-01MP W2 / Unit 201 remains blocked until the Product Owner confirms that the external controller no longer owns the W2 RS-485 interface and explicitly approves any required physical handback.
 
-The review window is not authorization for hardware changes.
-
 ## Required evidence / validation lanes
 
 - #444 — `status:needs-validation`, priority critical: LOCAL_LAN user-administration API acceptance remains open.
 - #245 — `status:needs-validation`, priority critical: actual standalone loopback-only Raspberry Pi acceptance remains open.
-- #200 — open hardware-validation lane: full physical RS-485 topology, stable adapter paths, active Unit IDs, duplicate-ID isolation, termination/biasing, latency and safe polling envelope remain unverified beyond the narrow retained pilot evidence.
+- #200 — physical RS-485 topology, stable adapter paths, active Unit IDs, duplicate-ID isolation, termination/biasing, latency and safe polling envelope remain unverified beyond narrow retained pilot evidence.
 - #201 — `status:needs-validation`, priority high: approved restart/power-cycle boundary for LE-01MP cumulative energy remains unverified.
-- #202 — open hardware-validation lane: representative KK1/KK2 XJP60D evidence, firmware portability, and actual Unit ID 115 presence/absence remain unverified; no unsupported semantics may be assumed.
-- #189 — `status:blocked`, priority high: full backup/restore/rollback/power-loss recovery requires controlled central-host/Raspberry Pi evidence; missing hardware evidence must remain explicit.
-
-These lanes are not silently completed by unrelated software CI and must remain visible in Sprint planning.
+- #202 — representative KK1/KK2 XJP60D evidence, firmware portability, and actual Unit ID 115 presence/absence remain unverified.
+- #189 — `status:blocked`, priority high: full backup/restore/rollback/power-loss recovery requires controlled central-host/Raspberry Pi evidence.
 
 ## Non-blocking maintenance
 
@@ -66,4 +65,4 @@ These lanes are not silently completed by unrelated software CI and must remain 
 
 ## Safety boundaries
 
-No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover, or mandatory cloud runtime dependency is authorized by the current state-only reconciliation.
+No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover, or mandatory cloud runtime dependency is authorized by Issue #633.
