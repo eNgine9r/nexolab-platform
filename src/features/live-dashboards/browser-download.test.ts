@@ -16,13 +16,13 @@ describe("triggerBrowserBlobDownload", () => {
       expect(delayMs).toBe(1_000);
       scheduledRevokes.push(callback);
     });
-    const click = vi
-      .spyOn(HTMLAnchorElement.prototype, "click")
-      .mockImplementation(function (this: HTMLAnchorElement) {
-        expect(this.isConnected).toBe(true);
-        expect(this.href).toBe("blob:nexolab-csv");
-        expect(this.download).toBe("saved-dashboard.csv");
-      });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {
+      const anchor = document.querySelector<HTMLAnchorElement>("a[download]");
+      expect(anchor).not.toBeNull();
+      expect(anchor?.isConnected).toBe(true);
+      expect(anchor?.href).toBe("blob:nexolab-csv");
+      expect(anchor?.download).toBe("saved-dashboard.csv");
+    });
     const blob = new Blob(["timestamp_utc,value\n2026-08-22T08:00:00Z,4.2\n"], {
       type: "text/csv",
     });
