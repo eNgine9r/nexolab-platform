@@ -186,7 +186,7 @@ foreach ($task in $readyTasks) {
         "--branch", [string]$branch
     )
 
-    Write-Host "Starting $taskId: $($task.title)"
+    Write-Host "Starting ${taskId}: $($task.title)"
     $prompt | & codex @CodexArguments 2>&1 | Tee-Object -FilePath $logPath
     $exitCode = $LASTEXITCODE
     $checkpointTime = (Get-Date).ToUniversalTime().ToString("o")
