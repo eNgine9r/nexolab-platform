@@ -2,197 +2,174 @@
 
 ## Purpose
 
-Issue #285 replaces the hardware Device Agent's monolithic full-cycle loop with deterministic, read-only jobs derived exclusively from the active acquisition registry.
+The adaptive scheduler executes only read-only Acquisition Registry targets and protects each physical RS-485 bus with one serialized worker.
 
-The scheduler protects the physical RS-485 bus while keeping critical temperature channels responsive:
+After Issue #589, recurring cadence is no longer owned by priority classes. The durable Acquisition Registry is the cadence authority. Scheduler priority remains only an ordering and bounded-fairness mechanism among jobs that are already due.
 
-- one worker per physical registry bus;
-- one request sequence at a time on that bus;
-- monotonic, jitter-free target deadlines;
-- bounded `high`, `medium` and `low` normal-acquisition classes;
-- explicit service operations such as discovery remain on demand;
-- bounded fairness prevents permanent starvation;
-- repeatedly unavailable endpoints enter cooldown;
-- successful latest values remain readable while the next poll is pending or communication is degraded.
-
-This implementation does not perform Modbus writes, commissioning, browser-driven polling or cloud synchronization.
+This runtime performs no Modbus writes, browser-driven polling or mandatory cloud synchronization.
 
 ## Eligibility boundary
 
-Only targets for which both the registry device and registry target have lifecycle `active` enter normal scheduling. The target must also use read-only FC03.
+Only targets for which both the registry device and registry target have lifecycle `active` enter normal scheduling. Normal acquisition remains FC03 read-only.
 
-Inventory targets in these states remain visible but create no normal scheduler job:
+Inventory targets in `disabled`, `reserve`, `retired`, `uninstalled`, `discovery_only` or `invalid` remain visible but create no recurring scheduler job.
 
-- `disabled`;
-- `reserve`;
-- `retired`;
-- `uninstalled`;
-- `discovery_only`;
-- `invalid`.
+A successful registry mutation reconciles scheduler state only after the atomic SQLite transaction commits. Deactivation always remains possible even when the existing capacity baseline is unsafe.
 
-A registry mutation reconciles the scheduler in memory after the atomic SQLite registry transaction. A newly ineligible target is removed from future scheduling. A request already holding the bus lock may finish before the mutation completes; no second or parallel request is started.
+## Cadence authority
 
-## Default policy
+Cadence is persisted in Acquisition Registry schema v2.
 
-Defaults deliberately do not promise a faster high-priority interval than the previously configured `SAMPLE_INTERVAL_SECONDS` baseline.
+Effective cadence precedence is:
 
-| Class       |                             Default | Current target mapping                                             |
-| ----------- | ----------------------------------: | ------------------------------------------------------------------ |
-| `high`      | `max(5 s, SAMPLE_INTERVAL_SECONDS)` | XJP60D temperature and status target                               |
-| `medium`    |                   `max(10 s, high)` | LE-01MP voltage, current, frequency, active power and power factor |
-| `low`       |                 `max(30 s, medium)` | LE-01MP reactive/apparent power and internal diagnostics           |
-| `on_demand` |                    no recurring job | explicit discovery/configuration service operations                |
+1. device override;
+2. bus + device-family default.
 
-All normal intervals are bounded to `1..3600` seconds and must satisfy `high <= medium <= low`.
+Supported operator presets are `10`, `30` and `60` seconds. Custom values are accepted from `10` through `3600` seconds.
 
-Final site intervals remain hardware-unverified until measured on the real Raspberry Pi, adapter and RS-485 topology. A local override is configuration, not evidence that the bus can sustain the selected rate.
+The scheduler exposes `cadence_policy_revision` so diagnostics identify the registry revision that supplied the current intervals.
 
-## Local configuration
+Priority mapping remains:
 
-```dotenv
-ACQUISITION_HIGH_INTERVAL_SECONDS=5
-ACQUISITION_MEDIUM_INTERVAL_SECONDS=10
-ACQUISITION_LOW_INTERVAL_SECONDS=30
-ACQUISITION_STARTUP_SPREAD_SECONDS=5
-ACQUISITION_FAILURE_THRESHOLD=3
-ACQUISITION_COOLDOWN_INITIAL_SECONDS=30
-ACQUISITION_COOLDOWN_MAX_SECONDS=300
-ACQUISITION_FAIRNESS_HIGH_BURST=8
-ACQUISITION_FAIRNESS_LOW_BURST=12
-```
+- `high`: XJP60D temperature/status targets;
+- `medium`: operational LE-01MP metrics;
+- `low`: slower LE-01MP diagnostics;
+- `on_demand`: explicit discovery/configuration operations.
 
-Validation is fail closed:
+Priority does **not** change the configured polling interval.
 
-- interval and cooldown values must be `1..3600` seconds;
-- failure threshold must be `1..20`;
-- high fairness burst must be `1..100`;
-- low fairness burst must be `1..200` and cannot be smaller than the high burst;
-- initial cooldown cannot exceed maximum cooldown.
+Legacy `ACQUISITION_HIGH_INTERVAL_SECONDS`, `ACQUISITION_MEDIUM_INTERVAL_SECONDS` and `ACQUISITION_LOW_INTERVAL_SECONDS` remain relevant only to backward-compatible v1→v2 bootstrap semantics and the internal priority policy object. They are not an operator cadence control after migration.
 
-No remote configuration service is required. These values are local runtime configuration and remain usable without internet access.
+See `docs/architecture/persisted-acquisition-cadence.md` for persistence, API, migration and capacity-validation rules.
 
 ## Deadline and fairness model
 
-Each registry-eligible target receives an explicit priority, interval and monotonic next deadline.
+Each registry-eligible target receives an explicit persisted interval and monotonic next deadline.
 
 Selection rules on each bus are:
 
 1. choose the highest-priority due target;
 2. within a class, choose the oldest effective deadline;
-3. after the configured consecutive high-priority burst, force a due non-high target;
-4. after the configured consecutive non-low burst, force the oldest due low target.
+3. after the configured high-priority burst, force a due non-high target;
+4. after the configured non-low burst, force the oldest due low target.
 
-A deadline advances from its previous monotonic value rather than from completion time. If a slow read finishes after one or more future intervals, expired occurrences are counted as skipped and the target advances to the next future deadline. The scheduler never launches a catch-up burst.
+A deadline advances from its prior monotonic value rather than completion time. When a read finishes after one or more future intervals, expired occurrences are counted as skipped and the job advances to the next future deadline. The scheduler never performs catch-up bursts.
 
-## Bus serialization and service operations
+When a persisted cadence changes, reconcile installs the new interval and computes a new bounded next deadline instead of replaying historical missed periods.
 
-Every normal worker and explicit service operation uses the same bus-operation lock. This preserves:
+## Bus serialization and multi-bus isolation
 
-- one active Modbus master request sequence per physical bus;
-- existing timeout and retry behavior;
-- existing serial inter-frame behavior;
-- separation between normal acquisition and discovery accounting.
+Every normal worker and explicit service operation uses the operation lock for its physical `bus_id`.
 
-Opening Overview, Live Data, REST routes or WebSocket connections does not create jobs, change priorities or change intervals. Subscription isolation is a separate Work Package, Issue #286; Issue #285 introduces no browser-controlled physical polling path.
+In legacy mode there is one `rs485-main` bus. In explicit #607 topology mode KK1 and KK2 own distinct transports, readers and locks, so requests remain serialized within one bus while different buses may execute concurrently.
+
+Opening Overview, Live Data, REST or WebSocket consumers does not create scheduler jobs or alter physical polling cadence.
+
+## Capacity validation
+
+Cadence changes and newly poll-eligible activations are validated **before** SQLite commit.
+
+The capacity model is per bus and conservatively accounts for:
+
+- production physical request count per target pass;
+- serial timeout or sufficiently sampled measured p95 latency;
+- configured retry allowance and reserve;
+- Modbus RTU inter-frame silence;
+- bounded scheduler overhead;
+- heterogeneous per-device cadence.
+
+The accepted estimated utilization ceiling is 75%, retaining a 25% safety margin. Cooldown is never counted as spare capacity.
+
+Measured p95 may replace the timeout fallback only after at least 20 physical request samples exist for that bus.
+
+Unsafe changes fail with structured `acquisition_capacity_exceeded` evidence and leave registry revision, audit and scheduler state unchanged.
 
 ## Cooldown and circuit breaker
 
-Failure state is tracked by `(bus_id, unit_id)`, not by browser session or telemetry subscriber.
+Communication failure state is tracked by `(bus_id, unit_id)`.
 
 When consecutive communication failures reach the configured threshold:
 
 - the endpoint enters cooldown;
-- all normal jobs for that Unit ID are deferred to the cooldown deadline;
-- another Unit ID on the same bus remains eligible;
-- cooldown grows exponentially from the initial duration to the configured maximum;
-- a successful post-cooldown read resets the failure streak and trip count.
+- all normal jobs for that Unit ID are deferred;
+- other Unit IDs remain eligible;
+- cooldown grows exponentially to its configured maximum;
+- a successful post-cooldown read resets failure state.
 
-A sensor-quality state such as `sensor_error` is a successful communication attempt. It remains truthful telemetry but does not trip the communication circuit breaker.
+A sensor-quality value such as `sensor_error` is a successful communication attempt and does not trip the communication circuit breaker.
 
 ## Latest-value cache
 
-The existing edge SQLite database gains `acquisition_latest_values`.
+The local SQLite `acquisition_latest_values` read model preserves the last successful value while separately recording current communication quality and attempt metadata.
 
-Each attempt stores:
+On communication failure the prior successful value and `captured_at` remain available while `quality`, `last_attempt_at` and `last_error` reflect the current failure.
 
-- target and source identity;
-- value and measurement capture time from the last successful communication;
-- current quality;
-- last attempt time;
-- last success time;
-- alarm/raw fields where available;
-- the most recent communication error.
-
-On communication failure, the prior successful value and its `captured_at` timestamp are preserved while `quality`, `last_attempt_at` and `last_error` are updated. Consumers can therefore distinguish an older retained value from a live successful sample.
-
-The read-only local endpoint is:
+Read-only local endpoint:
 
 ```text
 GET /api/v1/acquisition-latest
 ```
 
-It returns at most 500 items by default and never causes a Modbus request.
+Reading diagnostics or latest values never causes a Modbus request.
 
 ## Restart behavior
 
-At startup, jobs are deterministically spread across the bounded startup window. When the latest-value table contains a recent attempt, the first deadline uses the remaining target interval.
+At startup jobs are deterministically spread across the bounded startup window. A recent persisted last-attempt timestamp delays the first deadline by the remaining effective device interval.
 
-Restart therefore does not trigger:
+Restart does not trigger:
 
 - a full discovery scan;
 - one immediate request per inventory target;
-- a catch-up burst for missed downtime intervals.
+- a catch-up burst for downtime.
 
-The cache is rebuilt from the durable local SQLite read model, not from an uncontrolled full-bus scan.
+Persisted cadence itself is loaded from Acquisition Registry schema v2 and survives restart independently of browser state.
 
 ## Metrics and health evidence
 
-`/metrics`, `/health` and `/ready` include `acquisition.scheduler` evidence:
+`/metrics`, `/health` and `/ready` include acquisition scheduler evidence for:
 
-- configured target count and explicit target priority/interval;
-- one worker count per bus;
-- current and maximum due queue depth;
-- executions and successes;
-- communication failures and internal callback errors;
-- missed deadlines;
-- skipped expired deadlines;
-- overruns;
-- deferred work;
-- cooldown entries and active cooldown endpoint count;
-- fairness-forced selections;
-- scheduler lag;
-- bounded rolling bus-load percentage;
-- executions by priority.
+- current registry cadence revision;
+- effective target intervals;
+- target priorities;
+- worker state per bus;
+- queue depth and executions;
+- communication failures and callback errors;
+- missed/skipped deadlines and overruns;
+- cooldown and fairness counters;
+- scheduler lag and rolling bus-load evidence.
 
-The JSON evidence uses bounded categories. It adds no secret labels and no remote telemetry dependency.
+Explicit dual-bus diagnostics additionally expose bounded physical request count/rate, retries/timeouts/errors and recent latency average/p95/max for each logical bus.
+
+No secret labels or remote telemetry dependency are introduced.
+
+## Local control plane
+
+Cadence inspection and mutation are local Device Agent operations:
+
+```text
+GET /api/v1/acquisition-cadence
+PUT /api/v1/acquisition-cadence
+```
+
+Mutation uses the existing registry revision/audit boundary and is capacity-validated before commit.
 
 ## Verification
 
-Targeted software verification:
+Targeted software checks include the Device Agent unit suite and deterministic acquisition scale matrix. Exact-head completion also requires every path-triggered Edge, authenticated acquisition-invariant, offline, security and Core workflow plus `NEXOLAB Merge Gate`.
 
-```bash
-PYTHONPATH=services/device-agent \
-  python -m unittest discover -s services/device-agent/tests -v
-
-python -m py_compile \
-  services/device-agent/adaptive_scheduler.py \
-  services/device-agent/latest_values.py \
-  services/device-agent/registry_main.py
-```
-
-Required completion gates also include the Edge image, Device Agent fleet, MQTT TLS, telemetry, authenticated browser acquisition invariant and disconnected Offline Bundle workflows.
+Software checks prove deterministic scheduling behavior, persistence and conservative capacity rejection. They do not prove the actual site bus can sustain a selected cadence.
 
 ## Hardware acceptance boundary
 
-Software acceptance can prove deterministic ordering, no parallel bus worker, cooldown, fairness, cache persistence and restart behavior with fake clock/serial tests.
+Physical acceptance remains pending until real read-only evidence is collected from the intended Raspberry Pi, adapters and RS-485 topology.
 
-Physical acceptance remains pending until the Product Owner can provide the real Raspberry Pi and RS-485 environment. The hardware procedure must remain read-only and collect:
+Required evidence includes:
 
-- per-target and total physical request counters;
-- measured request latency and retries;
-- bus utilization;
-- scheduler lag and missed deadlines;
-- high-priority deadline behavior under absent/slow endpoints;
-- confirmation that UI activity does not change request rate.
+- per-bus request latency and retries;
+- bus utilization and scheduler lag;
+- simultaneous KK1/KK2 polling;
+- behavior with an absent/slow endpoint;
+- one-bus disconnect isolation;
+- confirmation that UI activity does not change physical request rate.
 
-No Modbus write, controller configuration or production cutover is part of this Work Package.
+No Modbus/controller write or production/site cutover is part of this Work Package.
