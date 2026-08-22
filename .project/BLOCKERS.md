@@ -2,11 +2,15 @@
 
 Updated: 2026-08-22
 
-## Issue #650 — no hard blocker
+## Issue #618 — no hard blocker
 
-State Model v2 implementation is active and repository-local. It requires no Raspberry Pi, hardware, production cutover, secret, billing/DNS or external runtime service.
+Issue #618 is active in `fix/618-saved-dashboard-csv-download`.
 
-The migration must preserve the accepted/deployed baselines, known exact-head/hardware evidence, the current Sprint queue, blockers and the 2026-08-26 security maintenance deadline.
+Repository-side implementation and GitHub-hosted production Chromium acceptance do not require Raspberry Pi access, Modbus writes, hardware writes, production cutover, secrets, billing/DNS changes or an external runtime service.
+
+The Remote Desktop connector currently reports `nexolab-edge-01` offline. This is a **soft evidence blocker** only for repeating the historical CSV download acceptance on the actual Raspberry Pi LOCAL_LAN host. Do not claim Raspberry Pi runtime acceptance until that test is actually repeated on the host.
+
+The path-triggered `Authenticated Dashboard Acceptance` workflow remains available for software/browser verification and includes production Chromium plus acquisition-invariant coverage.
 
 ## Issue #646 — branch protection settings access
 
@@ -14,12 +18,12 @@ Repository-side change-impact CI, deterministic `npm ci`, exact-head external-wo
 
 The remaining acceptance criterion is technical branch protection for `main`.
 
-A timestamped GitHub observation on 2026-08-22 reports:
+The retained GitHub observation reports:
 
 - `main` protected: false;
 - required status checks: disabled.
 
-The connected GitHub tool surface does not expose branch-protection/rules mutation. This is a **soft access blocker** only. Do not represent branch protection as complete until the repository setting is actually changed and verified.
+The connected GitHub tool surface does not expose a branch-protection/rules mutation. This is a **soft access blocker** only. Do not represent branch protection as complete until the repository setting is actually changed and verified.
 
 ## Security maintenance — CVE-2026-14456
 
@@ -31,8 +35,7 @@ Re-check fixed Debian package availability and remove the exceptions immediately
 
 ## Product and validation dependencies
 
-- #618 — independent Saved Dashboard CSV browser-download reliability lane.
-- #607 — dual RS-485 KK1/KK2 software architecture is queued before #589; no physical bus cutover is approved.
+- #607 — dual RS-485 KK1/KK2 software architecture is queued after #618 and before #589; no physical bus cutover is approved.
 - #589 — blocked on #607.
 - #590 — blocked on #589.
 - #585 — blocked until explicit physical W2 / Unit 201 handback approval.
@@ -45,4 +48,4 @@ Re-check fixed Debian package availability and remove the exceptions immediately
 
 ## Safety boundaries
 
-No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover or mandatory cloud runtime dependency is authorized by Issue #650.
+No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover or mandatory cloud runtime dependency is authorized by Issue #618.
