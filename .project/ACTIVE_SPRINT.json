@@ -25,7 +25,7 @@
   "selection_state": {
     "selected_issue": 633,
     "selection_status": "issue_633_in_progress_final_exact_head_gate",
-    "reason": "Issue #633 is the single active Work Package in PR #643. Final software behavior is implemented through 2e7a88de; exact-head CI and fresh review on the state-checkpoint head remain the merge gates. Raspberry Pi runtime verification remains unverified while the Pi is offline."
+    "reason": "Issue #633 is the single active Work Package in PR #643. Final software and regression behavior is implemented through 68835e14, including bounded candidate reaping before wait. Exact-head CI and fresh review on the final state-checkpoint head remain the merge gates. Raspberry Pi runtime verification remains unverified while the Pi is offline."
   },
   "tasks": [
     {
@@ -48,21 +48,22 @@
       "priority": "high",
       "pull_request": 643,
       "branch": "fix/633-frontend-candidate-cleanup",
-      "final_software_head_before_state_checkpoint_sha": "2e7a88ded70afee31760747ac402bb7dd7dde306",
+      "final_software_head_before_state_checkpoint_sha": "68835e14798d49c01ff4a2bd4de98e6c8e8fdc22",
       "initial_ci": "PASS_32514504593_AT_87AFC111",
       "intermediate_ci": [
         "PASS_32517056093_AT_08884615",
         "PASS_32519957941_AT_A7D91AF1",
-        "PASS_32521673945_AT_B3420A3B"
+        "PASS_32521673945_AT_B3420A3B",
+        "PASS_32523415155_AT_C2873686"
       ],
-      "final_exact_head_ci": "PENDING_STATE_CHECKPOINT_HEAD",
-      "review": "PENDING_FRESH_REVIEW_ON_STATE_CHECKPOINT_HEAD",
+      "final_exact_head_ci": "PENDING_FINAL_STATE_CHECKPOINT_HEAD",
+      "review": "PENDING_FRESH_REVIEW_ON_FINAL_STATE_CHECKPOINT_HEAD",
       "candidate_startup_gate": "SOFTWARE_IMPLEMENTED",
       "candidate_process_isolation": "SOFTWARE_IMPLEMENTED",
       "candidate_pgid_handshake": "SOFTWARE_IMPLEMENTED",
       "prepublication_cleanup_recheck": "SOFTWARE_IMPLEMENTED",
       "zombie_only_group_handling": "SOFTWARE_IMPLEMENTED",
-      "bounded_candidate_reap": "SOFTWARE_IMPLEMENTED",
+      "bounded_candidate_reap": "SOFTWARE_IMPLEMENTED_AND_REGRESSION_TESTED",
       "exit_cleanup_failure_reporting": "SOFTWARE_IMPLEMENTED",
       "candidate_cleanup_regression_in_ci": "SOFTWARE_IMPLEMENTED",
       "runtime_pi_verification": "UNVERIFIED_PI_OFFLINE",
@@ -154,7 +155,7 @@
     "pull_request": 643,
     "branch": "fix/633-frontend-candidate-cleanup",
     "status": "final_exact_head_ci_review_gate",
-    "final_software_head_before_state_checkpoint_sha": "2e7a88ded70afee31760747ac402bb7dd7dde306",
+    "final_software_head_before_state_checkpoint_sha": "68835e14798d49c01ff4a2bd4de98e6c8e8fdc22",
     "runtime_pi_verification": "unverified_pi_offline",
     "production_cutover_authorized": false
   },
@@ -163,21 +164,22 @@
     "repository_main_sha": "7bb2115ef739daf2406c71110162b6d68c713f95",
     "runtime_repository_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
     "issue_633_pull_request": 643,
-    "issue_633_final_software_head_before_state_checkpoint_sha": "2e7a88ded70afee31760747ac402bb7dd7dde306",
+    "issue_633_final_software_head_before_state_checkpoint_sha": "68835e14798d49c01ff4a2bd4de98e6c8e8fdc22",
     "issue_633_initial_ci": "PASS_32514504593_AT_87AFC111",
     "issue_633_intermediate_ci": [
       "PASS_32517056093_AT_08884615",
       "PASS_32519957941_AT_A7D91AF1",
-      "PASS_32521673945_AT_B3420A3B"
+      "PASS_32521673945_AT_B3420A3B",
+      "PASS_32523415155_AT_C2873686"
     ],
-    "issue_633_final_exact_head_ci": "PENDING_STATE_CHECKPOINT_HEAD",
+    "issue_633_final_exact_head_ci": "PENDING_FINAL_STATE_CHECKPOINT_HEAD",
     "issue_633_review": "PENDING_FRESH_REVIEW",
     "issue_633_candidate_startup_gate": "SOFTWARE_IMPLEMENTED",
     "issue_633_candidate_process_isolation": "SOFTWARE_IMPLEMENTED",
     "issue_633_candidate_pgid_handshake": "SOFTWARE_IMPLEMENTED",
     "issue_633_prepublication_cleanup_recheck": "SOFTWARE_IMPLEMENTED",
     "issue_633_zombie_only_group_handling": "SOFTWARE_IMPLEMENTED",
-    "issue_633_bounded_candidate_reap": "SOFTWARE_IMPLEMENTED",
+    "issue_633_bounded_candidate_reap": "SOFTWARE_IMPLEMENTED_AND_REGRESSION_TESTED",
     "issue_633_exit_cleanup_failure_reporting": "SOFTWARE_IMPLEMENTED",
     "issue_633_candidate_cleanup_regression_in_ci": "SOFTWARE_IMPLEMENTED",
     "issue_633_candidate_port_release": "SOFTWARE_IMPLEMENTED",
