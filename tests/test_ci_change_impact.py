@@ -28,11 +28,12 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertFalse(result["needs_full_quality"])
         self.assertFalse(result["fail_closed"])
 
-    def test_docs_only_is_lightweight(self) -> None:
+    def test_docs_only_keeps_full_formatting_quality(self) -> None:
         result = classify(["docs/operations/runbook.md", "README.md"])
         self.assertEqual(result["classes"], ["docs_only"])
         self.assertTrue(result["docs_only"])
-        self.assertFalse(result["needs_full_quality"])
+        self.assertTrue(result["needs_full_quality"])
+        self.assertFalse(result["fail_closed"])
 
     def test_frontend_requires_full_quality(self) -> None:
         result = classify(["src/features/live/export.ts"])
