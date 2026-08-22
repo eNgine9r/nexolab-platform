@@ -20,12 +20,12 @@
   },
   "repository_product_baseline_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
   "accepted_product_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
-  "last_reconciled_repository_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
+  "last_reconciled_repository_sha": "bd2a0a56b8c3e67cdf960419076b154302da9e2f",
   "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
   "selection_state": {
-    "selected_issue": null,
-    "selection_status": "issue_633_completed_post_merge_reconciliation_in_progress",
-    "reason": "Issue #633 is GREEN merged and closed status:done. Issue #644 is state-only reconciliation. No product Work Package is selected until the fresh GitHub Ready audit after #644 merges."
+    "selected_issue": 646,
+    "selection_status": "issue_646_in_progress_coherent_candidate_pre_pr",
+    "reason": "Product Owner approved the process optimization after #644/#645 completed GREEN. Issue #646 is the single active Work Package and is being implemented without intermediate PR-triggering pushes until a coherent CI-governance candidate is ready."
   },
   "tasks": [
     {
@@ -50,15 +50,22 @@
       "final_pr_head_sha": "5d1f1f82ad555b68cab8ce9205283cf939d3be09",
       "merge_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
       "exact_head_ci": "PASS_32564575388_AT_5D1F1F82",
-      "review_threads": "PASS_ALL_EXISTING_P1_P2_RESOLVED",
-      "fresh_codex_review": "UNAVAILABLE_USAGE_LIMIT",
-      "team_lead_final_review": "PASS_NO_MERGE_BLOCKING_FINDING",
-      "candidate_startup_gate": "SOFTWARE_VERIFIED",
-      "candidate_process_isolation": "SOFTWARE_VERIFIED",
-      "candidate_pgid_handshake": "SOFTWARE_VERIFIED",
-      "candidate_wait_liveness_guard": "SOFTWARE_VERIFIED",
-      "bash_wait_override": "NONE",
-      "runtime_pi_verification": "UNVERIFIED_PI_OFFLINE",
+      "runtime_pi_verification": "UNVERIFIED_PI_OFFLINE"
+    },
+    {
+      "id": "NEXOLAB-646",
+      "issue": 646,
+      "title": "Add change-impact CI orchestration and protected main merge gate",
+      "status": "in_progress_coherent_candidate_pre_pr",
+      "priority": "high",
+      "branch": "chore/646-impact-aware-ci",
+      "latest_pre_checkpoint_implementation_sha": "965213346ae952c115bba49bf4d2e27361df207c",
+      "pull_request": null,
+      "state_only_fast_lane": "SOFTWARE_IMPLEMENTED_UNVERIFIED",
+      "fail_closed_classifier": "SOFTWARE_IMPLEMENTED_UNVERIFIED",
+      "stable_merge_gate": "SOFTWARE_IMPLEMENTED_UNVERIFIED",
+      "deterministic_npm_ci": "SOFTWARE_IMPLEMENTED_UNVERIFIED",
+      "main_branch_protection": "PENDING_TOOL_ACCESS",
       "production_cutover": false,
       "modbus_write": "NONE",
       "hardware_write": "NONE"
@@ -141,20 +148,26 @@
       "priority": "high"
     }
   ],
-  "active_work_package": null,
+  "active_work_package": {
+    "issue": 646,
+    "title": "Add change-impact CI orchestration and protected main merge gate",
+    "branch": "chore/646-impact-aware-ci",
+    "status": "coherent_candidate_pre_pr",
+    "latest_pre_checkpoint_implementation_sha": "965213346ae952c115bba49bf4d2e27361df207c",
+    "main_branch_protection": "pending_tool_access",
+    "production_cutover_authorized": false
+  },
   "next_work_package": null,
   "verification": {
-    "repository_main_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
+    "repository_main_sha": "bd2a0a56b8c3e67cdf960419076b154302da9e2f",
+    "accepted_product_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
     "runtime_repository_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764",
-    "issue_633_pull_request": 643,
-    "issue_633_final_pr_head_sha": "5d1f1f82ad555b68cab8ce9205283cf939d3be09",
-    "issue_633_merge_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
-    "issue_633_exact_head_ci": "PASS_32564575388_AT_5D1F1F82",
-    "issue_633_review_threads": "PASS_ALL_EXISTING_P1_P2_RESOLVED",
-    "issue_633_fresh_codex_review": "UNAVAILABLE_USAGE_LIMIT",
-    "issue_633_team_lead_final_review": "PASS_NO_MERGE_BLOCKING_FINDING",
-    "issue_633_runtime_pi_verification": "UNVERIFIED_PI_OFFLINE",
-    "issue_633_production_cutover": "NOT_PERFORMED"
+    "issue_644_pull_request": 645,
+    "issue_644_merge_sha": "bd2a0a56b8c3e67cdf960419076b154302da9e2f",
+    "issue_644_exact_head_ci": "PASS_32566870352_AT_9DB540EF",
+    "issue_646_targeted_ci": "PENDING_COHERENT_PR_CANDIDATE",
+    "issue_646_state_only_fast_lane_proof": "PENDING",
+    "issue_646_main_branch_protection": "PENDING_TOOL_ACCESS"
   },
   "maintenance_actions": [
     {
