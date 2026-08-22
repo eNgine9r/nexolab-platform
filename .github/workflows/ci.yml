@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -145,7 +146,7 @@ jobs:
           set -euo pipefail
           python3 -m unittest discover \
             -s tests \
-            -p 'test_ci_change_impact.py' \
+            -p 'test_ci_*.py' \
             -v
           python3 scripts/validate-project-state.py
 
@@ -232,10 +233,10 @@ jobs:
     if: ${{ always() }}
     needs: [classify, state_integrity, quality]
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 35
 
     steps:
-      - name: Enforce required verification lane
+      - name: Enforce required Core verification lane
         shell: bash
         env:
           IMPACT_CLASSES: ${{ needs.classify.outputs.classes }}
@@ -272,14 +273,34 @@ jobs:
                   raise SystemExit('State-only change did not pass State integrity.')
               if quality_result not in {'skipped', ''}:
                   raise SystemExit(f'Unexpected full quality result for state-only change: {quality_result}')
-              print('NEXOLAB Merge Gate PASS: exact state-only fast lane is GREEN.')
+              print('Core gate PASS: exact state-only fast lane is GREEN.')
           else:
               if not needs_full:
                   raise SystemExit('Non-state change attempted to bypass full quality verification.')
               if quality_result != 'success':
                   raise SystemExit('Required Quality and build lane is not GREEN.')
-              print('NEXOLAB Merge Gate PASS: required full quality lane is GREEN.')
+              print('Core gate PASS: required full quality lane is GREEN.')
           PY
+
+      - name: Aggregate all external exact-head PR workflows
+        if: ${{ github.event_name == 'pull_request' && needs.classify.outputs.state_only != 'true' }}
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          python3 scripts/verify-pr-workflow-matrix.py \
+            --head-sha "$PR_HEAD_SHA" \
+            --timeout-seconds 1800 \
+            --poll-seconds 10 \
+            --stable-rounds 2
+
+      - name: Record merge-gate success
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s\n' 'NEXOLAB Merge Gate PASS for the exact required verification surface.'
 
   recovery_frontend_artifact:
     name: Raspberry Pi live frontend recovery artifact
