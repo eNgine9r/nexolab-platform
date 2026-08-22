@@ -84,6 +84,16 @@ class ProjectStateValidationTests(unittest.TestCase):
     def test_active_state_accepts_v2_contract(self) -> None:
         MODULE.validate_active(active_document())
 
+    def test_active_state_accepts_ready_and_review_lifecycles(self) -> None:
+        ready = active_document()
+        ready["selection"]["active_work_package"] = None
+        ready["work_packages"][0]["lifecycle"] = "ready"
+        MODULE.validate_active(ready)
+
+        review = active_document()
+        review["work_packages"][0]["lifecycle"] = "review"
+        MODULE.validate_active(review)
+
     def test_active_state_rejects_v1_schema(self) -> None:
         document = active_document()
         document["schema_version"] = 1
@@ -114,9 +124,15 @@ class ProjectStateValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "volatile GitHub/repository observation"):
             MODULE.validate_active(document)
 
+    def test_active_state_rejects_equivalent_main_head_invariant(self) -> None:
+        document = active_document()
+        document["main_head_sha"] = SHA_A
+        with self.assertRaisesRegex(ValueError, "volatile GitHub/repository observation"):
+            MODULE.validate_active(document)
+
     def test_active_state_rejects_durable_merge_sha(self) -> None:
         document = active_document()
-        document["work_packages"][0]["evidence"]["merge_sha"] = SHA_A
+        document["work_packages"][0]["evidence"]["release_merge_sha"] = SHA_A
         with self.assertRaisesRegex(ValueError, "volatile GitHub/repository observation"):
             MODULE.validate_active(document)
 
@@ -132,10 +148,18 @@ class ProjectStateValidationTests(unittest.TestCase):
         )
         MODULE.validate_active(document)
 
-    def test_active_selection_must_reference_in_progress_work(self) -> None:
+    def test_active_selection_must_reference_active_lifecycle(self) -> None:
         document = active_document()
         document["work_packages"][0]["lifecycle"] = "completed"
-        with self.assertRaisesRegex(ValueError, "must have lifecycle in_progress"):
+        with self.assertRaisesRegex(ValueError, "in_progress or review"):
+            MODULE.validate_active(document)
+
+    def test_dependencies_must_reference_other_known_issues(self) -> None:
+        document = active_document()
+        document["selection"]["active_work_package"] = None
+        document["work_packages"][0]["lifecycle"] = "ready"
+        document["work_packages"][0]["depends_on"] = [99]
+        with self.assertRaisesRegex(ValueError, "invalid dependency 99"):
             MODULE.validate_active(document)
 
     def test_checkpoint_rejects_hardware_or_modbus_write_boundary(self) -> None:
