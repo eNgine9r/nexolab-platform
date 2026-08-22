@@ -1,0 +1,63 @@
+name: Temporary Issue 590 formatter evidence
+
+on:
+  push:
+    branches:
+      - feat/590-settings-acquisition-cadence
+
+permissions:
+  contents: read
+
+jobs:
+  format-patch:
+    if: startsWith(github.event.head_commit.message, 'chore(ci): temporary issue 590 formatter evidence')
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies deterministically
+        env:
+          HUSKY: 0
+        run: npm ci --no-audit --fund=false
+
+      - name: Generate exact Prettier patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx prettier --write \
+            e2e/settings.production.e2e.ts \
+            src/app/api/device-agent/acquisition-cadence/route.test.ts \
+            src/app/api/device-agent/acquisition-cadence/route.ts \
+            src/components/settings/acquisition-cadence-panel.test.tsx \
+            src/components/settings/acquisition-cadence-panel.tsx \
+            src/features/acquisition/cadence-client.test.ts \
+            src/features/acquisition/cadence-client.ts
+          git diff --check
+          git diff --no-ext-diff -- \
+            e2e/settings.production.e2e.ts \
+            src/app/api/device-agent/acquisition-cadence/route.test.ts \
+            src/app/api/device-agent/acquisition-cadence/route.ts \
+            src/components/settings/acquisition-cadence-panel.test.tsx \
+            src/components/settings/acquisition-cadence-panel.tsx \
+            src/features/acquisition/cadence-client.test.ts \
+            src/features/acquisition/cadence-client.ts \
+            > issue-590-prettier.patch
+          test -s issue-590-prettier.patch
+
+      - name: Upload formatter patch
+        uses: actions/upload-artifact@v7
+        with:
+          name: issue-590-prettier-patch-${{ github.sha }}
+          path: issue-590-prettier.patch
+          if-no-files-found: error
+          retention-days: 1
