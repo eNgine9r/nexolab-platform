@@ -282,6 +282,13 @@ jobs:
               print('Core gate PASS: required full quality lane is GREEN.')
           PY
 
+      - name: Checkout exact PR head for merge-gate scripts
+        if: ${{ github.event_name == 'pull_request' && needs.classify.outputs.state_only != 'true' }}
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
       - name: Aggregate all external exact-head PR workflows
         if: ${{ github.event_name == 'pull_request' && needs.classify.outputs.state_only != 'true' }}
         shell: bash
