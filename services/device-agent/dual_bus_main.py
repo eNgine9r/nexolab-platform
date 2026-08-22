@@ -20,6 +20,7 @@ from adaptive_scheduler import (
     ScheduledResult,
     SchedulerTarget,
 )
+from dual_bus_registry import TopologyAwareEnrollmentStore
 from le01mp import LE01MPReader
 from main import (
     Settings,
@@ -34,8 +35,33 @@ from managed_main import (
     XJP60DDiscoveryScanner,
 )
 from modbus_rtu import ModbusError, ModbusRTUClient, ModbusRequestMeasurement
+from rs485_bus_metrics import RS485BusRequestMetrics
 from rs485_buses import RS485BusTopology
 from xjp60d import XJP60DReader
+
+
+class _AllBusOperationLock:
+    """Acquire every configured physical bus lock in deterministic order."""
+
+    def __init__(self, locks: dict[str, threading.Lock]) -> None:
+        self._locks = tuple(locks[bus_id] for bus_id in sorted(locks))
+
+    def __enter__(self) -> "_AllBusOperationLock":
+        acquired: list[threading.Lock] = []
+        try:
+            for lock in self._locks:
+                lock.acquire()
+                acquired.append(lock)
+        except BaseException:
+            for lock in reversed(acquired):
+                lock.release()
+            raise
+        return self
+
+    def __exit__(self, exc_type: object, exc: object, traceback: object) -> None:
+        del exc_type, exc, traceback
+        for lock in reversed(self._locks):
+            lock.release()
 
 
 class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
@@ -47,13 +73,15 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             self.settings,
             self._registry_snapshot(),
         )
+        self.rs485_bus_metrics = RS485BusRequestMetrics()
         self._bus_clients: dict[str, ModbusRTUClient] = {}
         self._bus_xjp60d_readers: dict[str, XJP60DReader] = {}
         self._bus_le01mp_readers: dict[str, LE01MPReader] = {}
         self._bus_operation_locks: dict[str, threading.Lock] = {}
+        self._topology_enrollment_store: TopologyAwareEnrollmentStore | None = None
 
         # No explicit topology means exact legacy behavior: the superclass owns
-        # the existing singular client, reader and scheduler path.
+        # the existing singular client, reader, lock and scheduler path.
         if not self.rs485_topology.explicit:
             return
 
@@ -64,6 +92,18 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             binding.bus_id: threading.Lock()
             for binding in self.rs485_topology.bindings
         }
+        # Inherited registry/configuration mutation methods still use the
+        # singular _bus_operation_lock attribute. Replace it with a composite
+        # guard so a topology/lifecycle change can never race a read on either
+        # physical bus.
+        self._bus_operation_lock = _AllBusOperationLock(  # type: ignore[assignment]
+            self._bus_operation_locks
+        )
+        self._topology_enrollment_store = TopologyAwareEnrollmentStore(
+            settings.database_path,
+            bus_for_unit=self.rs485_topology.bus_for_unit,
+        )
+
         for binding in self.rs485_topology.bindings:
             client = ModbusRTUClient(
                 binding.serial_device,
@@ -104,9 +144,9 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
 
     def _logical_bus_observer(self, bus_id: str):  # type: ignore[no-untyped-def]
         def observe(measurement: ModbusRequestMeasurement) -> None:
-            self.acquisition_metrics.observe(
-                replace(measurement, bus=bus_id)
-            )
+            logical = replace(measurement, bus=bus_id)
+            self.acquisition_metrics.observe(logical)
+            self.rs485_bus_metrics.observe(logical)
 
         return observe
 
@@ -116,10 +156,48 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         if topology is None:
             return payload
         scheduler = payload.get("scheduler")
-        payload["rs485_buses"] = topology.diagnostics(
+        buses = topology.diagnostics(
             self._registry_snapshot(),
             scheduler_snapshot=(scheduler if isinstance(scheduler, dict) else None),
         )
+        if topology.explicit:
+            for bus in buses:
+                bus["requests"] = self.rs485_bus_metrics.snapshot(bus["bus_id"])
+        payload["rs485_buses"] = buses
+        return payload
+
+    def health_snapshot(self) -> dict[str, Any]:
+        payload = super().health_snapshot()
+        topology = getattr(self, "rs485_topology", None)
+        if topology is None or not topology.explicit:
+            return payload
+        acquisition = payload.get("acquisition")
+        buses = (
+            acquisition.get("rs485_buses", [])
+            if isinstance(acquisition, dict)
+            else []
+        )
+        missing_active = [
+            item["bus_id"]
+            for item in buses
+            if isinstance(item, dict)
+            and item.get("active_target_count", 0) > 0
+            and item.get("device_path_present") is False
+        ]
+        if missing_active:
+            payload["status"] = "error"
+            bus_error = (
+                "active RS-485 bus device unavailable: "
+                + ", ".join(sorted(missing_active))
+            )
+            current_error = payload.get("last_error")
+            payload["last_error"] = "; ".join(
+                dict.fromkeys(
+                    value
+                    for value in (bus_error, current_error)
+                    if isinstance(value, str) and value
+                )
+            )
         return payload
 
     def _read_scheduled_target(
@@ -222,6 +300,37 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             communication_failed=False,
         )
 
+    @staticmethod
+    def _responsive_bus_assignments(
+        discovery: dict[str, Any],
+    ) -> dict[int, str]:
+        assignments: dict[int, str] = {}
+        for key in ("available_points", "unavailable_points"):
+            points = discovery.get(key, [])
+            if not isinstance(points, list):
+                continue
+            for point in points:
+                if not isinstance(point, dict):
+                    continue
+                unit_id = point.get("unit_id")
+                bus_id = point.get("bus_id")
+                raw_status = point.get("raw_status")
+                if (
+                    not isinstance(unit_id, int)
+                    or isinstance(unit_id, bool)
+                    or not isinstance(bus_id, str)
+                    or not bus_id
+                    or raw_status is None
+                ):
+                    continue
+                previous = assignments.get(unit_id)
+                if previous is not None and previous != bus_id:
+                    raise ValueError(
+                        f"Discovery returned Unit ID {unit_id} on multiple buses"
+                    )
+                assignments[unit_id] = bus_id
+        return assignments
+
     def discover_xjp60d(self) -> dict[str, Any]:
         if not self.rs485_topology.explicit:
             return super().discover_xjp60d()
@@ -289,7 +398,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                 ),
                 "reachable_controller_count": len(
                     {
-                        item["unit_id"]
+                        (item["bus_id"], item["unit_id"])
                         for item in available_points + unavailable_points
                     }
                 ),
@@ -298,9 +407,29 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                 "controller_errors": controller_errors,
                 "buses": bus_results,
             }
-            # Explicit topology owns bus assignment. Discovery remains read-only
-            # evidence and never performs a hidden cross-bus enrollment/rebind.
             self._point_store.save_last_discovery(result)
+
+            assignments = self._responsive_bus_assignments(result)
+            changed = False
+            enrollment_store = self._topology_enrollment_store
+            if assignments and enrollment_store is not None:
+                with self._bus_operation_lock, self._registry_lock:
+                    current = self._registry
+                    enrolled = enrollment_store.enroll_xjp60d(
+                        current,
+                        expected_revision=current.revision,
+                        unit_ids=tuple(sorted(assignments)),
+                        actor="service:xjp60d-discovery",
+                        reason=(
+                            "Enroll responsive XJP60D units on explicit read-only RS-485 buses"
+                        ),
+                    )
+                    changed = enrolled.revision != current.revision
+                    if changed:
+                        self._registry = enrolled
+                        self._sync_legacy_xjp60d_state(enrolled)
+            if changed:
+                self.scheduler.reconcile(self._registry_snapshot())
             return {**self.configuration(), "last_discovery": result}
         finally:
             self._discovery_lock.release()
