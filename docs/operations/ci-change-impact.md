@@ -14,9 +14,11 @@ Change impact
 State integrity OR Quality and build
     ↓
 NEXOLAB Merge Gate
+    ↓
+external exact-head PR workflow matrix (non-state PRs)
 ```
 
-Specialized domain workflows keep their own repository path filters and remain authoritative for the surfaces they cover.
+Specialized domain workflows keep their own repository path filters. For non-state pull requests, the stable merge gate waits for every other PR workflow that actually triggered on the same exact head and fails if any latest workflow run is not GREEN.
 
 ## Initial rollout policy
 
@@ -34,6 +36,8 @@ A pull request is `state_only` only when every changed path is one of:
 The lane performs dependency-free project-state validation and exact diff checks. It deliberately does **not** install Node dependencies, run repository-wide ESLint/Vitest or create a Next.js production build because those product/runtime inputs did not change.
 
 If any other file is present, the PR is not state-only.
+
+State-only pull requests skip external workflow aggregation because canonical state paths are explicitly outside product/runtime acceptance surfaces. The first real proof of this lane is the post-merge state reconciliation after Issue #646 itself.
 
 ### Documentation-only changes
 
@@ -83,7 +87,11 @@ It fails when:
 - a state-only PR did not pass `State integrity`;
 - a non-state PR did not pass `Quality and build`;
 - a required Core lane was failed, cancelled, absent or unexpectedly skipped;
-- a non-state change attempts to claim the lightweight lane.
+- a non-state change attempts to claim the lightweight lane;
+- for a non-state PR, any latest external workflow run that actually triggered on the exact PR head is failed, cancelled, skipped or otherwise non-successful;
+- external exact-head workflows remain queued/in-progress beyond the bounded aggregation timeout.
+
+The aggregator groups repeated runs by workflow and uses the latest run for the exact head, so an older failed attempt does not permanently poison a later successful rerun. It excludes its own current Core workflow run and requires a stable observation window before declaring the external matrix GREEN.
 
 The gate intentionally does not convert software CI into Raspberry Pi or real-hardware acceptance. Hardware/runtime evidence remains separately anchored to the exact source that was physically tested.
 
@@ -109,6 +117,8 @@ When adding a new top-level repository area or verification-sensitive path:
 3. choose the conservative required lane;
 4. broaden verification if ownership is ambiguous;
 5. never make an unknown path lightweight merely to reduce CI time.
+
+When adding or changing a specialized PR workflow, preserve exact-head semantics and path filters. The merge gate aggregates workflows that actually start; therefore path-filter correctness remains part of the specialized workflow contract and must be tested when those filters change.
 
 ## Branch protection
 
