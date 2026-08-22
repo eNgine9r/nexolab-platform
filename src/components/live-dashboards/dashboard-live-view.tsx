@@ -17,6 +17,7 @@ import {
 
 import { DashboardChartPanel } from "@/components/live-dashboards/dashboard-chart-panel";
 import type { ChartXDomain } from "@/features/charts/domain";
+import { triggerBrowserBlobDownload } from "@/features/live-dashboards/browser-download";
 import { buildSavedDashboardChartGroups } from "@/features/live-dashboards/chart";
 import { LIVE_DASHBOARD_HISTORY_PRESETS } from "@/features/live-dashboards/history-range";
 import type { LiveDashboard, LiveDashboardTelemetryStatus } from "@/features/live-dashboards/types";
@@ -206,12 +207,7 @@ export function DashboardLiveView({
   const downloadCsv = async () => {
     try {
       const download = await telemetry.exportCsv();
-      const url = URL.createObjectURL(download.blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = download.filename;
-      anchor.click();
-      URL.revokeObjectURL(url);
+      triggerBrowserBlobDownload(download);
     } catch {
       // The hook owns the truthful export error state rendered below the controls.
     }
