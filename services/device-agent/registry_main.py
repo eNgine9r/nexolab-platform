@@ -96,15 +96,20 @@ class RegistryManagedDeviceAgent(ManagedDeviceAgent):
         with self._configuration_lock:
             self.settings = replace(self.settings, xjp60d_points=active_points)
 
-    def capacity_profiles(self) -> dict[str, BusCapacityProfile]:
+    def capacity_profiles(
+        self,
+        registry: AcquisitionRegistry | None = None,
+    ) -> dict[str, BusCapacityProfile]:
         """Return conservative timing evidence for the active physical buses.
 
         The base registry runtime owns one legacy serial transport. Explicit
         multi-bus runtimes override this method with one profile per binding.
+        Callers may already hold ``_registry_lock``; therefore this method must
+        not reacquire it and instead uses the supplied immutable snapshot.
         """
 
-        registry = self._registry_snapshot()
-        buses = registry.document.buses
+        current = self._registry if registry is None else registry
+        buses = current.document.buses
         if len(buses) != 1:
             raise ValueError(
                 "Multi-bus acquisition requires topology-aware capacity profiles"
@@ -130,7 +135,7 @@ class RegistryManagedDeviceAgent(ManagedDeviceAgent):
         current = self._registry_snapshot() if registry is None else registry
         return evaluate_capacity(
             current,
-            self.capacity_profiles(),
+            self.capacity_profiles(current),
             changed_device_ids=changed_device_ids,
         )
 
@@ -144,7 +149,11 @@ class RegistryManagedDeviceAgent(ManagedDeviceAgent):
             target.target_id: target.device_id
             for target in candidate.eligible_targets()
         }
-        return {device_id for target_id, device_id in after.items() if target_id not in before}
+        return {
+            device_id
+            for target_id, device_id in after.items()
+            if target_id not in before
+        }
 
     def _validate_new_eligibility(
         self,
@@ -156,7 +165,7 @@ class RegistryManagedDeviceAgent(ManagedDeviceAgent):
             return None
         return validate_capacity(
             candidate,
-            self.capacity_profiles(),
+            self.capacity_profiles(candidate),
             changed_device_ids=affected,
         )
 
@@ -403,7 +412,7 @@ class RegistryManagedDeviceAgent(ManagedDeviceAgent):
             candidate = AcquisitionRegistry(candidate_document)
             validate_capacity(
                 candidate,
-                self.capacity_profiles(),
+                self.capacity_profiles(candidate),
                 changed_device_ids=affected,
             )
             registry = self._registry_store.update_cadence(
