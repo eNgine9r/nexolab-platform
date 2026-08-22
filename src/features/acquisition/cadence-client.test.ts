@@ -10,7 +10,7 @@ vi.mock("@/features/security/supabase-auth", () => ({
   createRuntimeCredentialProvider: () => ({ getCredential: vi.fn() }),
 }));
 
-import { CadenceClientError, createCadenceClient, normalizeCadenceConfiguration } from "./cadence-client";
+import { createCadenceClient, normalizeCadenceConfiguration } from "./cadence-client";
 
 function payload(revision = 7, xjpInterval = 60) {
   return {
@@ -143,7 +143,7 @@ describe("acquisition cadence client", () => {
         safe: false,
         buses: [{ recommendedMinimumIntervalSeconds: 30 }],
       },
-    } satisfies Partial<CadenceClientError>);
+    });
     expect(mocks.authenticatedFetch).toHaveBeenCalledTimes(1);
   });
 
