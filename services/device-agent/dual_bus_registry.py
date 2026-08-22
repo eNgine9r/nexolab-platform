@@ -169,7 +169,7 @@ class TopologyAwareEnrollmentStore(AcquisitionRegistryStore):
                     raise RegistryRevisionConflict(
                         f"Expected revision {expected_revision}, database revision is {database_revision}"
                     )
-                self._connection.execute(
+                cursor = self._connection.execute(
                     """
                     UPDATE acquisition_registry_state
                     SET schema_version = ?, revision = ?, document = ?, updated_at = ?
@@ -183,7 +183,7 @@ class TopologyAwareEnrollmentStore(AcquisitionRegistryStore):
                         expected_revision,
                     ),
                 )
-                if self._connection.total_changes <= 0:
+                if cursor.rowcount != 1:
                     raise RegistryRevisionConflict(
                         f"Expected revision {expected_revision}, registry update did not apply"
                     )
