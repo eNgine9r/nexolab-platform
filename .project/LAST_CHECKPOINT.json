@@ -24,8 +24,7 @@
         "authenticated_dashboard_acceptance": "PASS_32572681396",
         "offline_bundle": "PASS_32572681390",
         "merge_gate": "PASS"
-      },
-      "merge_sha": "a2fd9496959764691860106c2f0625587fc707a2"
+      }
     },
     "issue_607": {
       "status": "IMPLEMENTATION_CANDIDATE_PRE_PR",
