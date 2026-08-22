@@ -16,19 +16,23 @@ BLOCKERS = ROOT / ".project" / "BLOCKERS.md"
 
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 ALLOWED_LIFECYCLES = {
+    "queued",
+    "ready",
     "in_progress",
+    "review",
     "completed",
     "blocked",
-    "queued",
     "needs_validation",
     "hardware_validation",
 }
+ACTIVE_LIFECYCLES = {"in_progress", "review"}
 FORBIDDEN_DURABLE_KEYS = {
     "repository_main_sha",
     "last_reconciled_repository_sha",
     "repository_product_baseline_sha",
     "runtime_repository_sha",
     "deployed_repository_sha",
+    "main_head_sha",
     "merge_sha",
 }
 
@@ -55,13 +59,23 @@ def _require_sha(value: object, label: str) -> None:
         raise ValueError(f"{label}: expected lowercase 40-character git SHA")
 
 
+def _is_volatile_key(key: str) -> bool:
+    lowered = key.lower()
+    return key in FORBIDDEN_DURABLE_KEYS or "merge_sha" in lowered or lowered in {
+        "main_sha",
+        "main_head",
+        "current_main_sha",
+        "current_main_head_sha",
+    }
+
+
 def _reject_volatile_invariants(value: object, path: str = "$") -> None:
     """Volatile GitHub facts may exist only inside explicit observation records."""
     if isinstance(value, dict):
         if path.endswith(".observations") or ".observations[" in path:
             return
         for key, child in value.items():
-            if key in FORBIDDEN_DURABLE_KEYS:
+            if _is_volatile_key(key):
                 raise ValueError(
                     f"{path}.{key}: volatile GitHub/repository observation cannot be a durable invariant"
                 )
@@ -151,9 +165,21 @@ def validate_active(document: dict[str, Any]) -> None:
         for key in ("verified_head_sha", "hardware_evidence_sha"):
             if key in evidence and evidence[key] is not None:
                 _require_sha(evidence[key], f"{label}.{key}")
+        checks = evidence.get("checks", {})
+        if not isinstance(checks, dict):
+            raise ValueError(f"{label}: evidence.checks must be an object")
+        depends_on = work_package.get("depends_on", [])
+        if not isinstance(depends_on, list) or any(not isinstance(value, int) for value in depends_on):
+            raise ValueError(f"{label}: depends_on must be a list of integer Issue numbers")
 
     if len(issues) != len(set(issues)):
         raise ValueError(f"{ACTIVE}: duplicate issue entries are forbidden")
+
+    for work_package in work_packages:
+        issue = work_package["issue"]
+        for dependency in work_package.get("depends_on", []):
+            if dependency == issue or dependency not in by_issue:
+                raise ValueError(f"{ACTIVE}: Issue {issue} has invalid dependency {dependency}")
 
     selection = document.get("selection")
     if not isinstance(selection, dict):
@@ -165,8 +191,10 @@ def validate_active(document: dict[str, Any]) -> None:
         issue = active["issue"]
         if issue not in by_issue:
             raise ValueError(f"{ACTIVE}: active issue {issue} is absent from work_packages")
-        if by_issue[issue].get("lifecycle") != "in_progress":
-            raise ValueError(f"{ACTIVE}: active issue {issue} must have lifecycle in_progress")
+        if by_issue[issue].get("lifecycle") not in ACTIVE_LIFECYCLES:
+            raise ValueError(
+                f"{ACTIVE}: active issue {issue} must have lifecycle in_progress or review"
+            )
     next_work = selection.get("next_work_package")
     if next_work is not None:
         if not isinstance(next_work, dict) or not isinstance(next_work.get("issue"), int):
