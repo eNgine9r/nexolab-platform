@@ -2,30 +2,36 @@
 
 Updated: 2026-08-22
 
-## Issue #607 — no software hard blocker
+## Issue #589 — no software hard blocker
 
-Issue #607 is active in `feat/607-dual-rs485-bus-isolation`.
+Issue #589 is active in `feat/589-persisted-acquisition-cadence`.
 
-Repository-side implementation and GitHub-hosted verification do not require Raspberry Pi access, Modbus writes, hardware writes, production cutover, secrets, billing/DNS changes or an external runtime service.
+The implementation is repository-side and can be verified without Raspberry Pi access, Modbus writes, hardware writes, site cutover, secrets, billing/DNS changes or an external runtime service.
 
-The Remote Desktop connector currently reports `nexolab-edge-01` offline. This is a **soft hardware-evidence blocker** only. Do not claim real dual-adapter, field-bus, reboot-stability or disconnect-isolation acceptance until the actual Raspberry Pi and adapters are reachable and a separately approved hardware action is performed.
+The Remote Desktop connector still reports `nexolab-edge-01` offline. This is a **soft hardware-evidence blocker** only. Do not claim the selected cadence is physically accepted for KK1/KK2 until the real Raspberry Pi and adapters are reachable and read-only site evidence is collected.
 
-No second-adapter installation, field wiring migration or site cutover is authorized by Issue #607.
+Issue #589 does not authorize wiring changes, adapter installation, controller configuration changes or Modbus writes.
 
-Repository evidence establishes XJP60D controller ownership as KK2 Unit IDs `101..115` and KK1 Unit IDs `126..138`. Current repository evidence does **not** establish whether LE-01MP Unit IDs `200..203` belong to KK1 or KK2. The explicit multi-bus runtime therefore requires their bus ownership to be configured rather than guessed. This does not block the XJP60D dual-bus software candidate.
+The software capacity model is intentionally conservative: it uses timeout fallback until sufficient physical latency samples exist, retains a 25% utilization safety margin, never counts cooldown as capacity credit and rejects unsafe activation/cadence changes before persistence.
+
+## Issue #607 — software completed, hardware evidence pending
+
+Dual RS-485 isolation was accepted through PR #653 and merged into the accepted source baseline.
+
+Physical two-adapter verification remains unavailable while the Raspberry Pi connector is offline. This does not block #589 software development, but real simultaneous KK1/KK2 polling, reboot-stable adapter mapping and disconnect-isolation acceptance remain unverified.
+
+Repository evidence maps XJP60D KK2 to Unit IDs `101..115` and KK1 to `126..138`. LE-01MP Unit IDs `200..203` still have no repository-backed KK1/KK2 ownership and must not be guessed.
 
 ## Issue #646 — branch protection settings access
 
-Repository-side change-impact CI, deterministic `npm ci`, exact-head external-workflow aggregation and the canonical state-only fast lane are software-verified.
+Repository-side change-impact CI, exact-head external-workflow aggregation and the stable merge gate are software-verified.
 
-The remaining acceptance criterion is technical branch protection for `main`.
-
-The retained GitHub observation reports:
+The retained observation still reports:
 
 - `main` protected: false;
 - required status checks: disabled.
 
-The connected GitHub tool surface does not expose a branch-protection/rules mutation. This is a **soft access blocker** only. Do not represent branch protection as complete until the repository setting is actually changed and verified.
+The connected GitHub tool surface does not expose the required branch-protection/rules mutation. This remains a **soft access blocker** only. Do not represent technical branch protection as complete until the setting is actually changed and verified.
 
 ## Security maintenance — CVE-2026-14456
 
@@ -35,10 +41,11 @@ Owner: `platform-security`.
 
 Re-check fixed Debian package availability and remove the exceptions immediately when a fix becomes available, or review before expiry. Any change that makes QUIC/HTTP3 reachable invalidates the current reachability justification.
 
+The separate `CVE-2026-67215` prerequisite was handled through Issue #654 and merged before the #607 accepted baseline; it is not part of #589.
+
 ## Product and validation dependencies
 
-- #589 — blocked on completion of #607 bus-aware acquisition architecture.
-- #590 — blocked on #589.
+- #590 — blocked on completion of #589 persisted cadence/capacity API.
 - #585 — blocked until explicit physical W2 / Unit 201 handback approval.
 - #444 — LOCAL_LAN user-administration API acceptance remains `needs_validation`.
 - #245 — standalone loopback-only Raspberry Pi acceptance remains `needs_validation`.
@@ -49,4 +56,4 @@ Re-check fixed Debian package availability and remove the exceptions immediately
 
 ## Safety boundaries
 
-No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover or mandatory cloud runtime dependency is authorized by Issue #607.
+No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover or mandatory cloud runtime dependency is authorized by Issue #589.

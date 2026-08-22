@@ -44,7 +44,7 @@ class _Endpoint:
 
 
 class AdaptiveAcquisitionScheduler:
-    """One serialized worker per bus with bounded priority and cooldown."""
+    """One serialized worker per bus with persisted device cadence and bounded priority."""
 
     def __init__(
         self,
@@ -65,9 +65,7 @@ class AdaptiveAcquisitionScheduler:
         self._record_result = record_result
         self._stop_event = stop_event
         self._clock = clock
-        self._wall_clock = wall_clock or (
-            lambda: datetime.now(timezone.utc)
-        )
+        self._wall_clock = wall_clock or (lambda: datetime.now(timezone.utc))
         self._condition = threading.Condition()
         self._jobs: dict[str, _Job] = {}
         self._bus_jobs: dict[str, set[str]] = {}
@@ -82,20 +80,18 @@ class AdaptiveAcquisitionScheduler:
         self._worker_last_recovered_at: dict[str, str | None] = {}
         self._sequence = 0
         self._started = False
+        self._registry_revision = registry.revision
         self._install(registry, preserve=False)
 
-    def _specs(
-        self,
-        registry: AcquisitionRegistry,
-    ) -> list[SchedulerTarget]:
-        devices = {
-            device.device_id: device
-            for device in registry.document.devices
-        }
+    def _specs(self, registry: AcquisitionRegistry) -> list[SchedulerTarget]:
+        devices = {device.device_id: device for device in registry.document.devices}
         result: list[SchedulerTarget] = []
         for target in registry.eligible_targets():
             device = devices[target.device_id]
             priority = self.policy.priority_for(target)
+            interval_seconds, _cadence_source = registry.effective_cadence_for_device(
+                device.device_id
+            )
             result.append(
                 SchedulerTarget(
                     target_id=target.target_id,
@@ -108,7 +104,7 @@ class AdaptiveAcquisitionScheduler:
                     metric=target.metric,
                     unit=target.unit,
                     priority=priority,
-                    interval_seconds=self.policy.interval_for(priority),
+                    interval_seconds=interval_seconds,
                 )
             )
         return sorted(
@@ -134,29 +130,17 @@ class AdaptiveAcquisitionScheduler:
         deadlines: dict[str, float] = {}
         for group in groups.values():
             for index, spec in enumerate(group):
-                spread = min(
-                    spec.interval_seconds,
-                    self.policy.startup_spread_seconds,
-                )
-                delay = max(
-                    0.05,
-                    spread * (index + 1) / (len(group) + 1),
-                )
+                spread = min(spec.interval_seconds, self.policy.startup_spread_seconds)
+                delay = max(0.05, spread * (index + 1) / (len(group) + 1))
                 attempted = last_attempts.get(spec.target_id)
                 if attempted:
                     try:
                         parsed = datetime.fromisoformat(attempted)
                         if parsed.tzinfo is None:
                             parsed = parsed.replace(tzinfo=timezone.utc)
-                        age = max(
-                            0.0,
-                            (wall_now - parsed).total_seconds(),
-                        )
+                        age = max(0.0, (wall_now - parsed).total_seconds())
                         if age < spec.interval_seconds:
-                            delay = max(
-                                0.05,
-                                spec.interval_seconds - age,
-                            )
+                            delay = max(0.05, spec.interval_seconds - age)
                     except ValueError:
                         LOG.warning(
                             "Ignoring invalid latest-value timestamp for %s",
@@ -190,27 +174,27 @@ class AdaptiveAcquisitionScheduler:
                     sequence=self._sequence,
                 )
             else:
+                cadence_changed = job.target.interval_seconds != spec.interval_seconds
                 job = _Job(
                     target=spec,
-                    next_deadline=job.next_deadline,
+                    next_deadline=(
+                        deadlines[spec.target_id]
+                        if cadence_changed
+                        else job.next_deadline
+                    ),
                     sequence=job.sequence,
                 )
             jobs[spec.target_id] = job
             bus_jobs.setdefault(spec.bus_id, set()).add(spec.target_id)
             self._bus_locks.setdefault(spec.bus_id, threading.Lock())
             endpoint_key = (spec.bus_id, spec.unit_id)
-            endpoints[endpoint_key] = previous_endpoints.get(
-                endpoint_key,
-                _Endpoint(),
-            )
-            self._metrics.setdefault(
-                spec.bus_id,
-                BusSchedulerMetrics(),
-            )
+            endpoints[endpoint_key] = previous_endpoints.get(endpoint_key, _Endpoint())
+            self._metrics.setdefault(spec.bus_id, BusSchedulerMetrics())
 
         self._jobs = jobs
         self._bus_jobs = bus_jobs
         self._endpoints = endpoints
+        self._registry_revision = registry.revision
 
     def reconcile(self, registry: AcquisitionRegistry) -> None:
         with self._condition:
@@ -249,52 +233,36 @@ class AdaptiveAcquisitionScheduler:
             self._worker_restarts_total[bus_id] = (
                 self._worker_restarts_total.get(bus_id, 0) + 1
             )
-            self._worker_last_recovered_at[bus_id] = (
-                self._wall_clock().isoformat()
-            )
+            self._worker_last_recovered_at[bus_id] = self._wall_clock().isoformat()
         return True
 
-    def _advance_overdue_deadlines_for_recovery(
-        self,
-        bus_id: str,
-        now: float,
-    ) -> None:
+    def _advance_overdue_deadlines_for_recovery(self, bus_id: str, now: float) -> None:
         metrics = self._metrics[bus_id]
         for target_id in self._bus_jobs.get(bus_id, set()):
             job = self._jobs.get(target_id)
             if job is None:
                 continue
-            endpoint = self._endpoints[
-                (job.target.bus_id, job.target.unit_id)
-            ]
+            endpoint = self._endpoints[(job.target.bus_id, job.target.unit_id)]
             if endpoint.cooldown_until > now or job.next_deadline > now:
                 continue
-
             interval = job.target.interval_seconds
             skipped = int((now - job.next_deadline) // interval) + 1
             job.next_deadline += skipped * interval
             metrics.observe_skipped(skipped)
 
-    def _record_worker_failure(
-        self,
-        bus_id: str,
-        error: Exception,
-    ) -> None:
+    def _record_worker_failure(self, bus_id: str, error: Exception) -> None:
         with self._condition:
             self._worker_failures_total[bus_id] = (
                 self._worker_failures_total.get(bus_id, 0) + 1
             )
             self._worker_last_failure_type[bus_id] = type(error).__name__
-            self._worker_last_failure_at[bus_id] = (
-                self._wall_clock().isoformat()
-            )
+            self._worker_last_failure_at[bus_id] = self._wall_clock().isoformat()
             self._condition.notify_all()
 
     def supervise_workers(self) -> int:
         with self._condition:
             if not self._started or self._stop_event.is_set():
                 return 0
-
             now = self._clock()
             recovered = 0
             for bus_id in sorted(self._bus_jobs):
@@ -303,11 +271,9 @@ class AdaptiveAcquisitionScheduler:
                 thread = self._threads.get(bus_id)
                 if thread is not None and thread.is_alive():
                     continue
-
                 self._advance_overdue_deadlines_for_recovery(bus_id, now)
                 if self._start_bus(bus_id, recovery=True):
                     recovered += 1
-
             if recovered:
                 self._condition.notify_all()
             return recovered
@@ -320,9 +286,7 @@ class AdaptiveAcquisitionScheduler:
             thread.join(timeout=10)
 
     def _effective_deadline(self, job: _Job) -> float:
-        endpoint = self._endpoints[
-            (job.target.bus_id, job.target.unit_id)
-        ]
+        endpoint = self._endpoints[(job.target.bus_id, job.target.unit_id)]
         return max(job.next_deadline, endpoint.cooldown_until)
 
     def _due(self, bus_id: str, now: float) -> list[_Job]:
@@ -347,40 +311,19 @@ class AdaptiveAcquisitionScheduler:
         if not due:
             return None
 
-        low_due = [
-            job for job in due if job.target.priority == PRIORITY_LOW
-        ]
-        if (
-            metrics.consecutive_non_low
-            >= self.policy.fairness_low_burst
-            and low_due
-        ):
-            metrics.force_fairness(
-                low=True,
-                deferred=len(due) - 1,
-            )
+        low_due = [job for job in due if job.target.priority == PRIORITY_LOW]
+        if metrics.consecutive_non_low >= self.policy.fairness_low_burst and low_due:
+            metrics.force_fairness(low=True, deferred=len(due) - 1)
             return min(
                 low_due,
-                key=lambda job: (
-                    self._effective_deadline(job),
-                    job.sequence,
-                ),
+                key=lambda job: (self._effective_deadline(job), job.sequence),
             )
 
-        non_high = [
-            job for job in due if job.target.priority != PRIORITY_HIGH
-        ]
-        if (
-            metrics.consecutive_high
-            >= self.policy.fairness_high_burst
-            and non_high
-        ):
+        non_high = [job for job in due if job.target.priority != PRIORITY_HIGH]
+        if metrics.consecutive_high >= self.policy.fairness_high_burst and non_high:
             metrics.force_fairness(
                 low=False,
-                deferred=sum(
-                    job.target.priority == PRIORITY_HIGH
-                    for job in due
-                ),
+                deferred=sum(job.target.priority == PRIORITY_HIGH for job in due),
             )
             return non_high[0]
         return due[0]
@@ -469,25 +412,19 @@ class AdaptiveAcquisitionScheduler:
                 callback_error=callback_error,
             )
 
-            endpoint = self._endpoints[
-                (job.target.bus_id, job.target.unit_id)
-            ]
+            endpoint = self._endpoints[(job.target.bus_id, job.target.unit_id)]
             if failed:
                 endpoint.failure_streak += 1
                 if endpoint.failure_streak >= self.policy.failure_threshold:
                     endpoint.trip_count += 1
                     cooldown = min(
                         self.policy.cooldown_max_seconds,
-                        self.policy.cooldown_initial_seconds
-                        * 2 ** (endpoint.trip_count - 1),
+                        self.policy.cooldown_initial_seconds * 2 ** (endpoint.trip_count - 1),
                     )
                     endpoint.cooldown_until = completed + cooldown
                     endpoint.failure_streak = 0
                     deferred = 0
-                    for target_id in self._bus_jobs.get(
-                        job.target.bus_id,
-                        set(),
-                    ):
+                    for target_id in self._bus_jobs.get(job.target.bus_id, set()):
                         candidate = self._jobs[target_id]
                         if candidate.target.unit_id == job.target.unit_id:
                             candidate.next_deadline = max(
@@ -506,10 +443,7 @@ class AdaptiveAcquisitionScheduler:
             while next_deadline <= completed:
                 next_deadline += job.target.interval_seconds
                 skipped += 1
-            current.next_deadline = max(
-                next_deadline,
-                endpoint.cooldown_until,
-            )
+            current.next_deadline = max(next_deadline, endpoint.cooldown_until)
             metrics.observe_skipped(skipped)
             self._condition.notify_all()
 
@@ -525,23 +459,14 @@ class AdaptiveAcquisitionScheduler:
                         if target_id in self._jobs
                     ]
                     wait = (
-                        min(
-                            1.0,
-                            max(
-                                0.01,
-                                min(deadlines) - self._clock(),
-                            ),
-                        )
+                        min(1.0, max(0.01, min(deadlines) - self._clock()))
                         if deadlines
                         else 1.0
                     )
                     self._condition.wait(timeout=wait)
         except Exception as error:  # noqa: BLE001
             self._record_worker_failure(bus_id, error)
-            LOG.exception(
-                "Adaptive acquisition worker failed for bus %s",
-                bus_id,
-            )
+            LOG.exception("Adaptive acquisition worker failed for bus %s", bus_id)
 
     def current_error(self) -> str | None:
         now = self._clock()
@@ -553,13 +478,10 @@ class AdaptiveAcquisitionScheduler:
                 thread = self._threads.get(bus_id)
                 if thread is None or not thread.is_alive():
                     inactive_workers += 1
-
             degraded = sum(
-                endpoint.failure_streak > 0
-                or endpoint.cooldown_until > now
+                endpoint.failure_streak > 0 or endpoint.cooldown_until > now
                 for endpoint in self._endpoints.values()
             )
-
         if inactive_workers:
             return (
                 "adaptive acquisition worker unavailable: "
@@ -582,11 +504,12 @@ class AdaptiveAcquisitionScheduler:
             jobs = [
                 job
                 for job in self._jobs.values()
-                if device_family is None
-                or job.target.device_family == device_family
+                if device_family is None or job.target.device_family == device_family
             ]
             runtime = {
                 job.target.target_id: {
+                    "priority": job.target.priority,
+                    "effective_interval_seconds": job.target.interval_seconds,
                     "cooldown": self._endpoints[
                         (job.target.bus_id, job.target.unit_id)
                     ].cooldown_until
@@ -594,9 +517,7 @@ class AdaptiveAcquisitionScheduler:
                     "cooldown_remaining_seconds": round(
                         max(
                             0.0,
-                            self._endpoints[
-                                (job.target.bus_id, job.target.unit_id)
-                            ].cooldown_until
+                            self._endpoints[(job.target.bus_id, job.target.unit_id)].cooldown_until
                             - now,
                         ),
                         6,
@@ -623,17 +544,14 @@ class AdaptiveAcquisitionScheduler:
                 quality = item.get("quality")
                 state = (
                     str(quality)
-                    if quality
-                    in {"valid", "sensor_error", "communication_error"}
+                    if quality in {"valid", "sensor_error", "communication_error"}
                     else "unknown"
                 )
                 if target_runtime["cooldown"]:
                     recovery_state = "cooldown"
                 elif int(item.get("consecutive_failures", 0)) > 0:
                     recovery_state = "failing"
-                elif item.get("last_recovered_at") == item.get(
-                    "last_attempt_at"
-                ):
+                elif item.get("last_recovered_at") == item.get("last_attempt_at"):
                     recovery_state = "recovered"
                 else:
                     recovery_state = "steady"
@@ -643,29 +561,17 @@ class AdaptiveAcquisitionScheduler:
                     "channel_id": target.telemetry_channel_id,
                     "state": state,
                     "recovery_state": recovery_state,
-                    "last_attempt_at": (
-                        item.get("last_attempt_at") if item else None
-                    ),
-                    "last_success_at": (
-                        item.get("last_success_at") if item else None
-                    ),
+                    "last_attempt_at": item.get("last_attempt_at") if item else None,
+                    "last_success_at": item.get("last_success_at") if item else None,
                     "last_error": item.get("last_error") if item else None,
                     "consecutive_failures": int(
-                        item.get("consecutive_failures", 0)
-                        if item
-                        else 0
+                        item.get("consecutive_failures", 0) if item else 0
                     ),
                     "outcomes": {
-                        "attempts": int(
-                            item.get("attempts_total", 0) if item else 0
-                        ),
-                        "successes": int(
-                            item.get("successes_total", 0) if item else 0
-                        ),
+                        "attempts": int(item.get("attempts_total", 0) if item else 0),
+                        "successes": int(item.get("successes_total", 0) if item else 0),
                         "communication_failures": int(
-                            item.get("communication_failures_total", 0)
-                            if item
-                            else 0
+                            item.get("communication_failures_total", 0) if item else 0
                         ),
                     },
                     **target_runtime,
@@ -679,20 +585,14 @@ class AdaptiveAcquisitionScheduler:
             active_workers = 0
             expected_workers = 0
             buses: dict[str, dict[str, Any]] = {}
-
             for bus_id, metrics in sorted(self._metrics.items()):
-                configured_targets = len(
-                    self._bus_jobs.get(bus_id, set())
-                )
+                configured_targets = len(self._bus_jobs.get(bus_id, set()))
                 thread = self._threads.get(bus_id)
-                worker_alive = (
-                    thread is not None and thread.is_alive()
-                )
+                worker_alive = thread is not None and thread.is_alive()
                 if configured_targets:
                     expected_workers += 1
                     if worker_alive:
                         active_workers += 1
-
                 if not configured_targets:
                     worker_state = "idle"
                 elif worker_alive:
@@ -706,9 +606,7 @@ class AdaptiveAcquisitionScheduler:
 
                 bus_payload = metrics.snapshot(
                     now=now,
-                    load_window_seconds=(
-                        self.policy.bus_load_window_seconds
-                    ),
+                    load_window_seconds=self.policy.bus_load_window_seconds,
                     worker_count=1 if worker_alive else 0,
                     configured_targets=configured_targets,
                     queue_depth=len(self._due(bus_id, now)),
@@ -716,21 +614,11 @@ class AdaptiveAcquisitionScheduler:
                 bus_payload.update(
                     {
                         "worker_state": worker_state,
-                        "worker_failures_total": (
-                            self._worker_failures_total.get(bus_id, 0)
-                        ),
-                        "worker_restarts_total": (
-                            self._worker_restarts_total.get(bus_id, 0)
-                        ),
-                        "last_worker_failure_type": (
-                            self._worker_last_failure_type.get(bus_id)
-                        ),
-                        "last_worker_failure_at": (
-                            self._worker_last_failure_at.get(bus_id)
-                        ),
-                        "last_worker_recovered_at": (
-                            self._worker_last_recovered_at.get(bus_id)
-                        ),
+                        "worker_failures_total": self._worker_failures_total.get(bus_id, 0),
+                        "worker_restarts_total": self._worker_restarts_total.get(bus_id, 0),
+                        "last_worker_failure_type": self._worker_last_failure_type.get(bus_id),
+                        "last_worker_failure_at": self._worker_last_failure_at.get(bus_id),
+                        "last_worker_recovered_at": self._worker_last_recovered_at.get(bus_id),
                     }
                 )
                 buses[bus_id] = bus_payload
@@ -739,23 +627,19 @@ class AdaptiveAcquisitionScheduler:
                 {
                     "target_id": job.target.target_id,
                     "bus_id": job.target.bus_id,
+                    "device_id": job.target.device_id,
                     "device_family": job.target.device_family,
                     "unit_id": job.target.unit_id,
                     "priority": job.target.priority,
                     "interval_seconds": job.target.interval_seconds,
                     "next_due_in_seconds": round(
-                        max(
-                            0.0,
-                            self._effective_deadline(job) - now,
-                        ),
+                        max(0.0, self._effective_deadline(job) - now),
                         6,
                     ),
-                    "cooldown": (
-                        self._endpoints[
-                            (job.target.bus_id, job.target.unit_id)
-                        ].cooldown_until
-                        > now
-                    ),
+                    "cooldown": self._endpoints[
+                        (job.target.bus_id, job.target.unit_id)
+                    ].cooldown_until
+                    > now,
                 }
                 for job in sorted(
                     self._jobs.values(),
@@ -767,8 +651,11 @@ class AdaptiveAcquisitionScheduler:
                 )
             ]
             return {
-                "schema_version": 1,
-                "polling_policy": "priority_adaptive_v1",
+                "schema_version": 2,
+                "polling_policy": "persisted_device_cadence_v2",
+                "cadence_authority": "acquisition_registry",
+                "cadence_policy_revision": self._registry_revision,
+                "priority_role": "ordering_and_fairness_only",
                 "clock": "monotonic",
                 "serialized_worker_per_bus": True,
                 "policy": self.policy.sanitized(),
@@ -776,20 +663,14 @@ class AdaptiveAcquisitionScheduler:
                 "expected_bus_workers": expected_workers,
                 "active_bus_workers": active_workers,
                 "workers_healthy": active_workers == expected_workers,
-                "worker_failures_total": sum(
-                    self._worker_failures_total.values()
-                ),
-                "worker_restarts_total": sum(
-                    self._worker_restarts_total.values()
-                ),
+                "worker_failures_total": sum(self._worker_failures_total.values()),
+                "worker_restarts_total": sum(self._worker_restarts_total.values()),
                 "degraded_endpoints": sum(
-                    endpoint.failure_streak > 0
-                    or endpoint.cooldown_until > now
+                    endpoint.failure_streak > 0 or endpoint.cooldown_until > now
                     for endpoint in self._endpoints.values()
                 ),
                 "cooldown_endpoints": sum(
-                    endpoint.cooldown_until > now
-                    for endpoint in self._endpoints.values()
+                    endpoint.cooldown_until > now for endpoint in self._endpoints.values()
                 ),
                 "targets": targets,
                 "buses": buses,

@@ -8,11 +8,23 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
+from acquisition_cadence import (
+    CadenceMutation,
+    CadencePolicy,
+    apply_mutation as apply_cadence_mutation,
+    build_bootstrap_policy,
+    cadence_from_payload,
+    cadence_to_payload,
+    effective_interval,
+    ensure_defaults_for_devices,
+    validate_policy as validate_cadence_policy,
+)
 from le01mp import REGISTERS as LE01MP_REGISTERS
 from main import Settings, mode_uses_le01mp, mode_uses_xjp60d
 from xjp60d import PROBE_REGISTERS
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+LEGACY_SCHEMA_VERSION = 1
 BUS_ID = "rs485-main"
 READ_FUNCTION = 3
 XJP60D_PROFILE_VERSION = "dixell-xjp60d-fc03-v1"
@@ -71,6 +83,7 @@ class RegistryDocument:
     buses: tuple[RegistryBus, ...]
     devices: tuple[RegistryDevice, ...]
     targets: tuple[RegistryTarget, ...]
+    cadence: CadencePolicy
     updated_at: str
 
 
@@ -141,6 +154,12 @@ def _validate_document(document: RegistryDocument) -> RegistryDocument:
         _validate_lifecycle(device.lifecycle)
         devices[device.device_id] = device
 
+    validate_cadence_policy(
+        document.cadence,
+        bus_ids=buses,
+        devices=document.devices,
+    )
+
     target_ids: set[str] = set()
     telemetry_ids: set[tuple[str, str]] = set()
     for target in document.targets:
@@ -155,9 +174,7 @@ def _validate_document(document: RegistryDocument) -> RegistryDocument:
         if target.kind not in {"channel", "metric"}:
             raise ValueError(f"Unsupported target kind: {target.kind}")
         if target.function != READ_FUNCTION:
-            raise ValueError(
-                f"Registry target {target.target_id} is not read-only FC03"
-            )
+            raise ValueError(f"Registry target {target.target_id} is not read-only FC03")
         if not target.addresses or any(
             not 0 <= address <= 0xFFFF for address in target.addresses
         ):
@@ -165,9 +182,7 @@ def _validate_document(document: RegistryDocument) -> RegistryDocument:
         _validate_lifecycle(target.lifecycle)
         telemetry_identity = (device.device_family, target.telemetry_channel_id)
         if telemetry_identity in telemetry_ids:
-            raise ValueError(
-                f"Duplicate telemetry channel identity: {telemetry_identity}"
-            )
+            raise ValueError(f"Duplicate telemetry channel identity: {telemetry_identity}")
         telemetry_ids.add(telemetry_identity)
 
     return document
@@ -183,29 +198,89 @@ def document_to_json(document: RegistryDocument) -> str:
             {**asdict(item), "addresses": list(item.addresses)}
             for item in document.targets
         ],
+        "cadence": {
+            "family_defaults": cadence_to_payload(document.cadence)["family_defaults"],
+            "device_overrides": cadence_to_payload(document.cadence)["device_overrides"],
+        },
         "updated_at": document.updated_at,
     }
     return json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+
+
+def _parse_buses(payload: dict[str, Any]) -> tuple[RegistryBus, ...]:
+    return tuple(RegistryBus(**item) for item in payload.get("buses", []))
+
+
+def _parse_devices(payload: dict[str, Any]) -> tuple[RegistryDevice, ...]:
+    return tuple(RegistryDevice(**item) for item in payload.get("devices", []))
+
+
+def _parse_targets(payload: dict[str, Any]) -> tuple[RegistryTarget, ...]:
+    return tuple(
+        RegistryTarget(**{**item, "addresses": tuple(item.get("addresses", []))})
+        for item in payload.get("targets", [])
+    )
 
 
 def document_from_json(value: str) -> RegistryDocument:
     payload = json.loads(value)
     if not isinstance(payload, dict):
         raise ValueError("Acquisition registry payload must be an object")
+    if int(payload.get("schema_version", 0)) != SCHEMA_VERSION:
+        raise ValueError(
+            f"Unsupported acquisition registry schema_version={payload.get('schema_version', 0)}"
+        )
     document = RegistryDocument(
-        schema_version=int(payload.get("schema_version", 0)),
+        schema_version=SCHEMA_VERSION,
         revision=int(payload.get("revision", 0)),
-        buses=tuple(RegistryBus(**item) for item in payload.get("buses", [])),
-        devices=tuple(RegistryDevice(**item) for item in payload.get("devices", [])),
-        targets=tuple(
-            RegistryTarget(
-                **{**item, "addresses": tuple(item.get("addresses", []))}
-            )
-            for item in payload.get("targets", [])
-        ),
+        buses=_parse_buses(payload),
+        devices=_parse_devices(payload),
+        targets=_parse_targets(payload),
+        cadence=cadence_from_payload(payload.get("cadence")),
         updated_at=str(payload.get("updated_at", "")),
     )
     return _validate_document(document)
+
+
+def _migrate_v1_document(
+    value: str,
+    settings: Settings,
+) -> tuple[RegistryDocument, list[dict[str, str]]]:
+    payload = json.loads(value)
+    if not isinstance(payload, dict):
+        raise ValueError("Acquisition registry payload must be an object")
+    if int(payload.get("schema_version", 0)) != LEGACY_SCHEMA_VERSION:
+        raise ValueError("Acquisition registry is not a v1 document")
+    buses = _parse_buses(payload)
+    devices = _parse_devices(payload)
+    cadence = build_bootstrap_policy(
+        legacy_interval_seconds=settings.sample_interval_seconds,
+        bus_family_keys=(
+            (device.bus_id, device.device_family) for device in devices
+        ),
+    )
+    document = RegistryDocument(
+        schema_version=SCHEMA_VERSION,
+        revision=int(payload.get("revision", 0)) + 1,
+        buses=buses,
+        devices=devices,
+        targets=_parse_targets(payload),
+        cadence=cadence,
+        updated_at=_now(),
+    )
+    changes: list[dict[str, str]] = [
+        {"entity": "registry_schema", "id": "root", "from": "v1", "to": "v2"}
+    ]
+    for item in cadence.family_defaults:
+        changes.append(
+            {
+                "entity": "cadence_family_default",
+                "id": f"{item.bus_id}/{item.device_family}",
+                "from": "legacy_priority_policy",
+                "to": str(item.interval_seconds),
+            }
+        )
+    return _validate_document(document), changes
 
 
 def _xjp_target(unit_id: int, channel: int, lifecycle: str) -> RegistryTarget:
@@ -247,19 +322,11 @@ def _le_target(unit_id: int, key: str, lifecycle: str) -> RegistryTarget:
 def _reconcile_le01mp_profile(
     document: RegistryDocument,
 ) -> tuple[RegistryDocument, list[dict[str, str]]]:
-    """Upgrade the known LE-01MP v1 registry to the evidence-backed v2 profile."""
-
-    migratable_versions = {
-        _LEGACY_LE01MP_PROFILE_VERSION,
-        LE01MP_PROFILE_VERSION,
-    }
+    migratable_versions = {_LEGACY_LE01MP_PROFILE_VERSION, LE01MP_PROFILE_VERSION}
     le_devices = {
         device.device_id: device
         for device in document.devices
-        if (
-            device.device_family == "le01mp"
-            and device.profile_version in migratable_versions
-        )
+        if device.device_family == "le01mp" and device.profile_version in migratable_versions
     }
     if not le_devices:
         return document, []
@@ -267,7 +334,6 @@ def _reconcile_le01mp_profile(
     canonical_registers = {item.key: item for item in LE01MP_REGISTERS}
     changes: list[dict[str, str]] = []
     devices: list[RegistryDevice] = []
-
     for device in document.devices:
         if device.device_id not in le_devices:
             devices.append(device)
@@ -285,14 +351,11 @@ def _reconcile_le01mp_profile(
         devices.append(updated)
 
     targets: list[RegistryTarget] = []
-    existing_keys: dict[str, set[str]] = {
-        device_id: set() for device_id in le_devices
-    }
+    existing_keys: dict[str, set[str]] = {device_id: set() for device_id in le_devices}
     for target in document.targets:
         if target.device_id not in le_devices:
             targets.append(target)
             continue
-
         existing_keys[target.device_id].add(target.key)
         register = canonical_registers.get(target.key)
         updated = replace(target, profile_version=LE01MP_PROFILE_VERSION)
@@ -323,21 +386,14 @@ def _reconcile_le01mp_profile(
             target = _le_target(device.unit_id, register.key, "active")
             targets.append(target)
             changes.append(
-                {
-                    "entity": "target",
-                    "id": target.target_id,
-                    "from": "absent",
-                    "to": "active",
-                }
+                {"entity": "target", "id": target.target_id, "from": "absent", "to": "active"}
             )
 
     if not changes:
         return document, []
-
-    reconciled = RegistryDocument(
-        schema_version=document.schema_version,
+    reconciled = replace(
+        document,
         revision=document.revision + 1,
-        buses=document.buses,
         devices=tuple(devices),
         targets=tuple(targets),
         updated_at=_now(),
@@ -351,22 +407,14 @@ def build_initial_document(
     discovery_units: Iterable[int],
     legacy_active_points: tuple[tuple[int, int], ...],
 ) -> RegistryDocument:
-    active_points = (
-        set(legacy_active_points)
-        if mode_uses_xjp60d(settings.device_mode)
-        else set()
-    )
+    active_points = set(legacy_active_points) if mode_uses_xjp60d(settings.device_mode) else set()
     xjp_units = (
         {int(unit_id) for unit_id in discovery_units}
         | {unit_id for unit_id, _ in active_points}
         if mode_uses_xjp60d(settings.device_mode)
         else set()
     )
-    le_units = (
-        set(settings.le01mp_unit_ids)
-        if mode_uses_le01mp(settings.device_mode)
-        else set()
-    )
+    le_units = set(settings.le01mp_unit_ids) if mode_uses_le01mp(settings.device_mode) else set()
     duplicate_units = xjp_units & le_units
     if duplicate_units:
         rendered = ", ".join(str(item) for item in sorted(duplicate_units))
@@ -387,9 +435,7 @@ def build_initial_document(
             )
         )
         for channel in range(1, 7):
-            lifecycle = (
-                "active" if (unit_id, channel) in active_points else "discovery_only"
-            )
+            lifecycle = "active" if (unit_id, channel) in active_points else "discovery_only"
             targets.append(_xjp_target(unit_id, channel, lifecycle))
 
     for unit_id in sorted(le_units):
@@ -406,19 +452,18 @@ def build_initial_document(
         for register in LE01MP_REGISTERS:
             targets.append(_le_target(unit_id, register.key, "active"))
 
+    cadence = build_bootstrap_policy(
+        legacy_interval_seconds=settings.sample_interval_seconds,
+        bus_family_keys=((device.bus_id, device.device_family) for device in devices),
+    )
     return _validate_document(
         RegistryDocument(
             schema_version=SCHEMA_VERSION,
             revision=1,
-            buses=(
-                RegistryBus(
-                    bus_id=BUS_ID,
-                    protocol="modbus_rtu",
-                    read_only=True,
-                ),
-            ),
+            buses=(RegistryBus(bus_id=BUS_ID, protocol="modbus_rtu", read_only=True),),
             devices=tuple(devices),
             targets=tuple(targets),
+            cadence=cadence,
             updated_at=_now(),
         )
     )
@@ -442,17 +487,11 @@ class AcquisitionRegistry:
             and target.function == READ_FUNCTION
         )
 
-    def eligible_targets(
-        self,
-        family: str | None = None,
-    ) -> tuple[RegistryTarget, ...]:
+    def eligible_targets(self, family: str | None = None) -> tuple[RegistryTarget, ...]:
         return tuple(
             target
             for target in self.document.targets
-            if (
-                family is None
-                or self._devices[target.device_id].device_family == family
-            )
+            if (family is None or self._devices[target.device_id].device_family == family)
             and self.effective_poll_eligible(target)
         )
 
@@ -470,43 +509,52 @@ class AcquisitionRegistry:
             for target in self.eligible_targets("le01mp")
         )
 
+    def effective_cadence_for_device(self, device_id: str) -> tuple[float, str]:
+        try:
+            device = self._devices[device_id]
+        except KeyError as error:
+            raise ValueError(f"Unknown registry device: {device_id}") from error
+        return effective_interval(
+            self.document.cadence,
+            device_id=device.device_id,
+            bus_id=device.bus_id,
+            device_family=device.device_family,
+        )
+
     def lifecycle_counts(self) -> dict[str, int]:
         counts = {value: 0 for value in sorted(LIFECYCLES)}
         for target in self.document.targets:
             counts[target.lifecycle] += 1
         return counts
 
-    def sanitized(
-        self,
-        *,
-        audit: list[dict[str, Any]] | None = None,
-    ) -> dict[str, Any]:
+    def sanitized(self, *, audit: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         devices = []
         for device in self.document.devices:
-            device_targets = [
-                target
-                for target in self.document.targets
-                if target.device_id == device.device_id
-            ]
+            device_targets = [target for target in self.document.targets if target.device_id == device.device_id]
+            interval, cadence_source = self.effective_cadence_for_device(device.device_id)
             devices.append(
                 {
                     **asdict(device),
                     "poll_eligible_targets": sum(
-                        1
-                        for target in device_targets
-                        if self.effective_poll_eligible(target)
+                        1 for target in device_targets if self.effective_poll_eligible(target)
                     ),
                     "inventory_targets": len(device_targets),
+                    "effective_interval_seconds": interval,
+                    "cadence_source": cadence_source,
                 }
             )
-        targets = [
-            {
-                **asdict(target),
-                "addresses": list(target.addresses),
-                "poll_eligible": self.effective_poll_eligible(target),
-            }
-            for target in self.document.targets
-        ]
+        targets = []
+        for target in self.document.targets:
+            interval, cadence_source = self.effective_cadence_for_device(target.device_id)
+            targets.append(
+                {
+                    **asdict(target),
+                    "addresses": list(target.addresses),
+                    "poll_eligible": self.effective_poll_eligible(target),
+                    "effective_interval_seconds": interval,
+                    "cadence_source": cadence_source,
+                }
+            )
         return {
             "schema_version": self.document.schema_version,
             "revision": self.document.revision,
@@ -514,6 +562,7 @@ class AcquisitionRegistry:
             "buses": [asdict(item) for item in self.document.buses],
             "devices": devices,
             "targets": targets,
+            "cadence": cadence_to_payload(self.document.cadence),
             "summary": {
                 "inventory_devices": len(self.document.devices),
                 "inventory_targets": len(self.document.targets),
@@ -535,15 +584,8 @@ class AcquisitionRegistry:
             raise ValueError("Duplicate device mutation")
         if len(target_ids) != len(set(target_ids)):
             raise ValueError("Duplicate target mutation")
-
-        device_changes = {
-            item.device_id: _validate_lifecycle(item.lifecycle)
-            for item in device_mutations
-        }
-        target_changes = {
-            item.target_id: _validate_lifecycle(item.lifecycle)
-            for item in target_mutations
-        }
+        device_changes = {item.device_id: _validate_lifecycle(item.lifecycle) for item in device_mutations}
+        target_changes = {item.target_id: _validate_lifecycle(item.lifecycle) for item in target_mutations}
         unknown_devices = sorted(set(device_changes) - set(self._devices))
         unknown_targets = sorted(set(target_changes) - set(self._targets))
         if unknown_devices:
@@ -557,40 +599,45 @@ class AcquisitionRegistry:
             lifecycle = device_changes.get(device.device_id, device.lifecycle)
             if lifecycle != device.lifecycle:
                 changes.append(
-                    {
-                        "entity": "device",
-                        "id": device.device_id,
-                        "from": device.lifecycle,
-                        "to": lifecycle,
-                    }
+                    {"entity": "device", "id": device.device_id, "from": device.lifecycle, "to": lifecycle}
                 )
             devices.append(replace(device, lifecycle=lifecycle))
-
         targets: list[RegistryTarget] = []
         for target in self.document.targets:
             lifecycle = target_changes.get(target.target_id, target.lifecycle)
             if lifecycle != target.lifecycle:
                 changes.append(
-                    {
-                        "entity": "target",
-                        "id": target.target_id,
-                        "from": target.lifecycle,
-                        "to": lifecycle,
-                    }
+                    {"entity": "target", "id": target.target_id, "from": target.lifecycle, "to": lifecycle}
                 )
             targets.append(replace(target, lifecycle=lifecycle))
-
         if not changes:
             raise ValueError("Registry mutation does not change acquisition eligibility")
-        document = RegistryDocument(
-            schema_version=SCHEMA_VERSION,
+        document = replace(
+            self.document,
             revision=self.document.revision + 1,
-            buses=self.document.buses,
             devices=tuple(devices),
             targets=tuple(targets),
             updated_at=_now(),
         )
         return _validate_document(document), changes
+
+    def with_cadence_mutation(
+        self,
+        mutation: CadenceMutation,
+    ) -> tuple[RegistryDocument, list[dict[str, str]], set[str]]:
+        cadence, changes, affected = apply_cadence_mutation(
+            self.document.cadence,
+            mutation,
+            bus_ids=(bus.bus_id for bus in self.document.buses),
+            devices=self.document.devices,
+        )
+        document = replace(
+            self.document,
+            revision=self.document.revision + 1,
+            cadence=cadence,
+            updated_at=_now(),
+        )
+        return _validate_document(document), changes, affected
 
     def with_xjp60d_enrollment(
         self,
@@ -599,37 +646,22 @@ class AcquisitionRegistry:
         profile_version: str = XJP60D_PROFILE_VERSION,
     ) -> tuple[RegistryDocument, list[dict[str, str]]]:
         if profile_version != XJP60D_PROFILE_VERSION:
-            raise ValueError(
-                f"Unsupported XJP60D profile: {profile_version!r}"
-            )
+            raise ValueError(f"Unsupported XJP60D profile: {profile_version!r}")
         requested_values = tuple(unit_ids)
-        if any(
-            not isinstance(unit_id, int) or isinstance(unit_id, bool)
-            for unit_id in requested_values
-        ):
+        if any(not isinstance(unit_id, int) or isinstance(unit_id, bool) for unit_id in requested_values):
             raise ValueError("XJP60D Modbus Unit IDs must be integers")
         requested = set(requested_values)
         if any(not 1 <= unit_id <= 247 for unit_id in requested):
             raise ValueError("Invalid XJP60D Modbus Unit ID")
-
-        existing_by_identity = {
-            (device.bus_id, device.unit_id): device
-            for device in self.document.devices
-        }
+        existing_by_identity = {(device.bus_id, device.unit_id): device for device in self.document.devices}
         additions: list[int] = []
         for unit_id in sorted(requested):
             existing = existing_by_identity.get((BUS_ID, unit_id))
             if existing is None:
                 additions.append(unit_id)
                 continue
-            if (
-                existing.device_family != "xjp60d"
-                or existing.profile_version != XJP60D_PROFILE_VERSION
-            ):
-                raise ValueError(
-                    f"Conflicting Modbus bus/Unit identity: {BUS_ID}/{unit_id}"
-                )
-
+            if existing.device_family != "xjp60d" or existing.profile_version != XJP60D_PROFILE_VERSION:
+                raise ValueError(f"Conflicting Modbus bus/Unit identity: {BUS_ID}/{unit_id}")
         if not additions:
             return self.document, []
 
@@ -649,31 +681,34 @@ class AcquisitionRegistry:
                 )
             )
             changes.append(
-                {
-                    "entity": "device",
-                    "id": device_id,
-                    "from": "absent",
-                    "to": "discovery_only",
-                }
+                {"entity": "device", "id": device_id, "from": "absent", "to": "discovery_only"}
             )
             for channel in range(1, 7):
                 target = _xjp_target(unit_id, channel, "discovery_only")
                 targets.append(target)
                 changes.append(
+                    {"entity": "target", "id": target.target_id, "from": "absent", "to": "discovery_only"}
+                )
+        cadence = ensure_defaults_for_devices(self.document.cadence, devices)
+        existing_default_keys = {
+            (item.bus_id, item.device_family) for item in self.document.cadence.family_defaults
+        }
+        for item in cadence.family_defaults:
+            if (item.bus_id, item.device_family) not in existing_default_keys:
+                changes.append(
                     {
-                        "entity": "target",
-                        "id": target.target_id,
+                        "entity": "cadence_family_default",
+                        "id": f"{item.bus_id}/{item.device_family}",
                         "from": "absent",
-                        "to": "discovery_only",
+                        "to": str(item.interval_seconds),
                     }
                 )
-
-        document = RegistryDocument(
-            schema_version=SCHEMA_VERSION,
+        document = replace(
+            self.document,
             revision=self.document.revision + 1,
-            buses=self.document.buses,
             devices=tuple(devices),
             targets=tuple(targets),
+            cadence=cadence,
             updated_at=_now(),
         )
         return _validate_document(document), changes
@@ -682,10 +717,7 @@ class AcquisitionRegistry:
 class AcquisitionRegistryStore:
     def __init__(self, database_path: Path) -> None:
         database_path.parent.mkdir(parents=True, exist_ok=True)
-        self._connection = sqlite3.connect(
-            database_path,
-            check_same_thread=False,
-        )
+        self._connection = sqlite3.connect(database_path, check_same_thread=False)
         self._connection.execute("PRAGMA busy_timeout = 5000")
         self._lock = threading.Lock()
         with self._connection:
@@ -713,6 +745,108 @@ class AcquisitionRegistryStore:
                 """
             )
 
+    def _write_state_locked(self, document: RegistryDocument, expected_revision: int | None = None) -> None:
+        if expected_revision is None:
+            self._connection.execute(
+                """
+                UPDATE acquisition_registry_state
+                SET schema_version = ?, revision = ?, document = ?, updated_at = ?
+                WHERE singleton = 1
+                """,
+                (
+                    document.schema_version,
+                    document.revision,
+                    document_to_json(document),
+                    document.updated_at,
+                ),
+            )
+            return
+        cursor = self._connection.execute(
+            """
+            UPDATE acquisition_registry_state
+            SET schema_version = ?, revision = ?, document = ?, updated_at = ?
+            WHERE singleton = 1 AND revision = ?
+            """,
+            (
+                document.schema_version,
+                document.revision,
+                document_to_json(document),
+                document.updated_at,
+                expected_revision,
+            ),
+        )
+        if cursor.rowcount != 1:
+            raise RegistryRevisionConflict(
+                f"Expected revision {expected_revision}, registry update did not apply"
+            )
+
+    def _write_audit_locked(
+        self,
+        document: RegistryDocument,
+        *,
+        actor: str,
+        reason: str,
+        changes: list[dict[str, str]],
+    ) -> None:
+        self._connection.execute(
+            """
+            INSERT INTO acquisition_registry_audit(
+                revision, actor, reason, changes, changed_at
+            ) VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                document.revision,
+                actor,
+                reason,
+                json.dumps(changes, separators=(",", ":"), ensure_ascii=False),
+                document.updated_at,
+            ),
+        )
+
+    def _commit_candidate(
+        self,
+        registry: AcquisitionRegistry,
+        document: RegistryDocument,
+        changes: list[dict[str, str]],
+        *,
+        expected_revision: int,
+        actor: str,
+        reason: str,
+    ) -> AcquisitionRegistry:
+        normalized_actor = actor.strip()[:200]
+        normalized_reason = reason.strip()[:500]
+        if not normalized_actor:
+            raise ValueError("Registry mutation actor is required")
+        if not normalized_reason:
+            raise ValueError("Registry mutation reason is required")
+        if expected_revision != registry.revision:
+            raise RegistryRevisionConflict(
+                f"Expected revision {expected_revision}, current revision is {registry.revision}"
+            )
+        with self._lock:
+            self._connection.execute("BEGIN IMMEDIATE")
+            try:
+                row = self._connection.execute(
+                    "SELECT revision FROM acquisition_registry_state WHERE singleton = 1"
+                ).fetchone()
+                database_revision = int(row[0]) if row else 0
+                if database_revision != expected_revision:
+                    raise RegistryRevisionConflict(
+                        f"Expected revision {expected_revision}, database revision is {database_revision}"
+                    )
+                self._write_state_locked(document, expected_revision)
+                self._write_audit_locked(
+                    document,
+                    actor=normalized_actor,
+                    reason=normalized_reason,
+                    changes=changes,
+                )
+                self._connection.commit()
+            except Exception:
+                self._connection.rollback()
+                raise
+        return AcquisitionRegistry(document)
+
     def load_or_migrate(
         self,
         settings: Settings,
@@ -725,41 +859,36 @@ class AcquisitionRegistryStore:
                 "SELECT document FROM acquisition_registry_state WHERE singleton = 1"
             ).fetchone()
             if row is not None:
-                document = document_from_json(str(row[0]))
+                raw = str(row[0])
+                payload = json.loads(raw)
+                if not isinstance(payload, dict):
+                    raise ValueError("Acquisition registry payload must be an object")
+                schema = int(payload.get("schema_version", 0))
+                if schema == LEGACY_SCHEMA_VERSION:
+                    document, migration_changes = _migrate_v1_document(raw, settings)
+                    self._write_state_locked(document)
+                    self._write_audit_locked(
+                        document,
+                        actor="system:migration",
+                        reason="Migrate acquisition registry v1 to persisted device cadence v2",
+                        changes=migration_changes,
+                    )
+                elif schema == SCHEMA_VERSION:
+                    document = document_from_json(raw)
+                else:
+                    raise ValueError(f"Unsupported acquisition registry schema_version={schema}")
+
                 reconciled, changes = _reconcile_le01mp_profile(document)
                 if changes:
-                    self._connection.execute(
-                        """
-                        UPDATE acquisition_registry_state
-                        SET schema_version = ?, revision = ?, document = ?, updated_at = ?
-                        WHERE singleton = 1
-                        """,
-                        (
-                            reconciled.schema_version,
-                            reconciled.revision,
-                            document_to_json(reconciled),
-                            reconciled.updated_at,
-                        ),
-                    )
-                    self._connection.execute(
-                        """
-                        INSERT INTO acquisition_registry_audit(
-                            revision, actor, reason, changes, changed_at
-                        ) VALUES (?, ?, ?, ?, ?)
-                        """,
-                        (
-                            reconciled.revision,
-                            "system:migration",
-                            "Upgrade LE-01MP read-only profile with cumulative active energy",
-                            json.dumps(
-                                changes,
-                                separators=(",", ":"),
-                                ensure_ascii=False,
-                            ),
-                            reconciled.updated_at,
-                        ),
+                    self._write_state_locked(reconciled)
+                    self._write_audit_locked(
+                        reconciled,
+                        actor="system:migration",
+                        reason="Upgrade LE-01MP read-only profile with cumulative active energy",
+                        changes=changes,
                     )
                 return AcquisitionRegistry(reconciled)
+
             document = build_initial_document(
                 settings,
                 discovery_units=discovery_units,
@@ -778,29 +907,22 @@ class AcquisitionRegistryStore:
                     document.updated_at,
                 ),
             )
-            self._connection.execute(
-                """
-                INSERT INTO acquisition_registry_audit(
-                    revision, actor, reason, changes, changed_at
-                ) VALUES (?, ?, ?, ?, ?)
-                """,
-                (
-                    document.revision,
-                    "system:migration",
-                    "Migrate legacy XJP60D active points and configured LE-01MP units",
-                    json.dumps(
-                        [
-                            {
-                                "entity": "registry",
-                                "id": "root",
-                                "from": "absent",
-                                "to": "v1",
-                            }
-                        ],
-                        separators=(",", ":"),
-                    ),
-                    document.updated_at,
-                ),
+            self._write_audit_locked(
+                document,
+                actor="system:migration",
+                reason="Migrate legacy acquisition topology into registry v2",
+                changes=[
+                    {"entity": "registry", "id": "root", "from": "absent", "to": "v2"},
+                    *[
+                        {
+                            "entity": "cadence_family_default",
+                            "id": f"{item.bus_id}/{item.device_family}",
+                            "from": "legacy_priority_policy",
+                            "to": str(item.interval_seconds),
+                        }
+                        for item in document.cadence.family_defaults
+                    ],
+                ],
             )
             return AcquisitionRegistry(document)
 
@@ -814,68 +936,37 @@ class AcquisitionRegistryStore:
         device_mutations: tuple[DeviceLifecycleMutation, ...],
         target_mutations: tuple[LifecycleMutation, ...],
     ) -> AcquisitionRegistry:
-        normalized_actor = actor.strip()[:200]
-        normalized_reason = reason.strip()[:500]
-        if not normalized_actor:
-            raise ValueError("Registry mutation actor is required")
-        if not normalized_reason:
-            raise ValueError("Registry mutation reason is required")
-        if expected_revision != registry.revision:
-            raise RegistryRevisionConflict(
-                f"Expected revision {expected_revision}, current revision is {registry.revision}"
-            )
         document, changes = registry.with_mutations(
             device_mutations=device_mutations,
             target_mutations=target_mutations,
         )
-        with self._lock:
-            self._connection.execute("BEGIN IMMEDIATE")
-            try:
-                row = self._connection.execute(
-                    "SELECT revision FROM acquisition_registry_state WHERE singleton = 1"
-                ).fetchone()
-                database_revision = int(row[0]) if row else 0
-                if database_revision != expected_revision:
-                    raise RegistryRevisionConflict(
-                        f"Expected revision {expected_revision}, database revision is {database_revision}"
-                    )
-                self._connection.execute(
-                    """
-                    UPDATE acquisition_registry_state
-                    SET schema_version = ?, revision = ?, document = ?, updated_at = ?
-                    WHERE singleton = 1 AND revision = ?
-                    """,
-                    (
-                        document.schema_version,
-                        document.revision,
-                        document_to_json(document),
-                        document.updated_at,
-                        expected_revision,
-                    ),
-                )
-                self._connection.execute(
-                    """
-                    INSERT INTO acquisition_registry_audit(
-                        revision, actor, reason, changes, changed_at
-                    ) VALUES (?, ?, ?, ?, ?)
-                    """,
-                    (
-                        document.revision,
-                        normalized_actor,
-                        normalized_reason,
-                        json.dumps(
-                            changes,
-                            separators=(",", ":"),
-                            ensure_ascii=False,
-                        ),
-                        document.updated_at,
-                    ),
-                )
-                self._connection.commit()
-            except Exception:
-                self._connection.rollback()
-                raise
-        return AcquisitionRegistry(document)
+        return self._commit_candidate(
+            registry,
+            document,
+            changes,
+            expected_revision=expected_revision,
+            actor=actor,
+            reason=reason,
+        )
+
+    def update_cadence(
+        self,
+        registry: AcquisitionRegistry,
+        *,
+        expected_revision: int,
+        actor: str,
+        reason: str,
+        mutation: CadenceMutation,
+    ) -> AcquisitionRegistry:
+        document, changes, _affected = registry.with_cadence_mutation(mutation)
+        return self._commit_candidate(
+            registry,
+            document,
+            changes,
+            expected_revision=expected_revision,
+            actor=actor,
+            reason=reason,
+        )
 
     def enroll_xjp60d(
         self,
@@ -887,71 +978,20 @@ class AcquisitionRegistryStore:
         reason: str,
         profile_version: str = XJP60D_PROFILE_VERSION,
     ) -> AcquisitionRegistry:
-        normalized_actor = actor.strip()[:200]
-        normalized_reason = reason.strip()[:500]
-        if not normalized_actor:
-            raise ValueError("Registry enrollment actor is required")
-        if not normalized_reason:
-            raise ValueError("Registry enrollment reason is required")
-        if expected_revision != registry.revision:
-            raise RegistryRevisionConflict(
-                f"Expected revision {expected_revision}, current revision is {registry.revision}"
-            )
         document, changes = registry.with_xjp60d_enrollment(
             unit_ids,
             profile_version=profile_version,
         )
         if not changes:
             return registry
-
-        with self._lock:
-            self._connection.execute("BEGIN IMMEDIATE")
-            try:
-                row = self._connection.execute(
-                    "SELECT revision FROM acquisition_registry_state WHERE singleton = 1"
-                ).fetchone()
-                database_revision = int(row[0]) if row else 0
-                if database_revision != expected_revision:
-                    raise RegistryRevisionConflict(
-                        f"Expected revision {expected_revision}, database revision is {database_revision}"
-                    )
-                self._connection.execute(
-                    """
-                    UPDATE acquisition_registry_state
-                    SET schema_version = ?, revision = ?, document = ?, updated_at = ?
-                    WHERE singleton = 1 AND revision = ?
-                    """,
-                    (
-                        document.schema_version,
-                        document.revision,
-                        document_to_json(document),
-                        document.updated_at,
-                        expected_revision,
-                    ),
-                )
-                self._connection.execute(
-                    """
-                    INSERT INTO acquisition_registry_audit(
-                        revision, actor, reason, changes, changed_at
-                    ) VALUES (?, ?, ?, ?, ?)
-                    """,
-                    (
-                        document.revision,
-                        normalized_actor,
-                        normalized_reason,
-                        json.dumps(
-                            changes,
-                            separators=(",", ":"),
-                            ensure_ascii=False,
-                        ),
-                        document.updated_at,
-                    ),
-                )
-                self._connection.commit()
-            except Exception:
-                self._connection.rollback()
-                raise
-        return AcquisitionRegistry(document)
+        return self._commit_candidate(
+            registry,
+            document,
+            changes,
+            expected_revision=expected_revision,
+            actor=actor,
+            reason=reason,
+        )
 
     def recent_audit(self, limit: int = 20) -> list[dict[str, Any]]:
         bounded = min(100, max(1, limit))
@@ -987,7 +1027,7 @@ def parse_registry_mutation(
 ]:
     expected_revision = payload.get("expected_revision")
     reason = payload.get("reason")
-    if not isinstance(expected_revision, int) or expected_revision < 1:
+    if not isinstance(expected_revision, int) or isinstance(expected_revision, bool) or expected_revision < 1:
         raise ValueError("expected_revision must be a positive integer")
     if not isinstance(reason, str):
         raise ValueError("reason must be a string")

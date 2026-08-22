@@ -7,11 +7,8 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Mapping
 
-from acquisition_registry import (
-    AcquisitionRegistry,
-    RegistryBus,
-    RegistryDocument,
-)
+from acquisition_cadence import rebind_policy
+from acquisition_registry import AcquisitionRegistry, RegistryBus
 from main import Settings
 
 BUS_CONFIG_ENV = "RS485_BUS_CONFIG_JSON"
@@ -125,9 +122,7 @@ class RS485BusTopology:
         unit_owners: dict[int, str] = {}
         for index, item in enumerate(payload):
             if not isinstance(item, dict):
-                raise ValueError(
-                    f"{BUS_CONFIG_ENV}[{index}] must be an object"
-                )
+                raise ValueError(f"{BUS_CONFIG_ENV}[{index}] must be an object")
             unknown = sorted(set(item) - _ALLOWED_FIELDS)
             if unknown:
                 raise ValueError(
@@ -137,9 +132,7 @@ class RS485BusTopology:
 
             bus_id = str(item.get("bus_id", "")).strip().casefold()
             if not _BUS_ID_PATTERN.fullmatch(bus_id):
-                raise ValueError(
-                    f"{BUS_CONFIG_ENV}[{index}].bus_id is invalid"
-                )
+                raise ValueError(f"{BUS_CONFIG_ENV}[{index}].bus_id is invalid")
             if bus_id in bus_ids:
                 raise ValueError(f"Duplicate RS-485 bus_id: {bus_id}")
             bus_ids.add(bus_id)
@@ -158,19 +151,13 @@ class RS485BusTopology:
 
             raw_units = item.get("unit_ids")
             if not isinstance(raw_units, list):
-                raise ValueError(
-                    f"RS-485 bus {bus_id} unit_ids must be an array"
-                )
+                raise ValueError(f"RS-485 bus {bus_id} unit_ids must be an array")
             units: list[int] = []
             for raw_unit in raw_units:
                 if not isinstance(raw_unit, int) or isinstance(raw_unit, bool):
-                    raise ValueError(
-                        f"RS-485 bus {bus_id} Unit IDs must be integers"
-                    )
+                    raise ValueError(f"RS-485 bus {bus_id} Unit IDs must be integers")
                 if not 1 <= raw_unit <= 247:
-                    raise ValueError(
-                        f"RS-485 bus {bus_id} Unit ID must be 1..247"
-                    )
+                    raise ValueError(f"RS-485 bus {bus_id} Unit ID must be 1..247")
                 if raw_unit in units:
                     raise ValueError(
                         f"Duplicate Unit ID {raw_unit} inside RS-485 bus {bus_id}"
@@ -178,8 +165,7 @@ class RS485BusTopology:
                 previous = unit_owners.get(raw_unit)
                 if previous is not None:
                     raise ValueError(
-                        f"Modbus Unit ID {raw_unit} is assigned to both "
-                        f"{previous} and {bus_id}"
+                        f"Modbus Unit ID {raw_unit} is assigned to both {previous} and {bus_id}"
                     )
                 units.append(raw_unit)
                 unit_owners[raw_unit] = bus_id
@@ -190,17 +176,13 @@ class RS485BusTopology:
             )
             parity = str(item.get("parity", settings.serial_parity)).strip().upper()
             if parity not in {"N", "E", "O"}:
-                raise ValueError(
-                    f"RS-485 bus {bus_id} parity must be N, E, or O"
-                )
+                raise ValueError(f"RS-485 bus {bus_id} parity must be N, E, or O")
             stopbits = _positive_int(
                 item.get("stopbits", settings.serial_stopbits),
                 label=f"RS-485 bus {bus_id} stopbits",
             )
             if stopbits not in {1, 2}:
-                raise ValueError(
-                    f"RS-485 bus {bus_id} stopbits must be 1 or 2"
-                )
+                raise ValueError(f"RS-485 bus {bus_id} stopbits must be 1 or 2")
             timeout_seconds = _positive_float(
                 item.get("timeout_seconds", settings.serial_timeout_seconds),
                 label=f"RS-485 bus {bus_id} timeout_seconds",
@@ -256,9 +238,13 @@ class RS485BusTopology:
             replace(device, bus_id=self.bus_for_unit(device.unit_id))
             for device in registry.document.devices
         )
-        document = RegistryDocument(
-            schema_version=registry.document.schema_version,
-            revision=registry.document.revision,
+        cadence = rebind_policy(
+            registry.document.cadence,
+            old_devices=registry.document.devices,
+            new_devices=devices,
+        )
+        document = replace(
+            registry.document,
             buses=tuple(
                 RegistryBus(
                     bus_id=item.bus_id,
@@ -268,8 +254,7 @@ class RS485BusTopology:
                 for item in self.bindings
             ),
             devices=devices,
-            targets=registry.document.targets,
-            updated_at=registry.document.updated_at,
+            cadence=cadence,
         )
         return AcquisitionRegistry(document)
 
@@ -292,9 +277,7 @@ class RS485BusTopology:
                 for item in registry.document.devices
                 if item.bus_id == binding.bus_id
             ]
-            active_devices = [
-                item for item in bus_devices if item.lifecycle == "active"
-            ]
+            active_devices = [item for item in bus_devices if item.lifecycle == "active"]
             active_targets = [
                 target
                 for target in registry.eligible_targets()
@@ -307,15 +290,11 @@ class RS485BusTopology:
                     "serial_device": binding.serial_device,
                     "device_path_present": path_present,
                     "hardware_state": (
-                        "present_unverified"
-                        if path_present
-                        else "configured_unavailable"
+                        "present_unverified" if path_present else "configured_unavailable"
                     ),
                     "acceptance_state": "hardware_unverified",
                     "configuration_source": (
-                        "explicit_multi_bus"
-                        if self.explicit
-                        else "legacy_single_bus"
+                        "explicit_multi_bus" if self.explicit else "legacy_single_bus"
                     ),
                     "configured_unit_count": len(binding.unit_ids),
                     "registry_device_count": len(bus_devices),

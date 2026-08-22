@@ -3,32 +3,40 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-22T12:51:00Z",
+  "timestamp": "2026-08-22T16:37:00Z",
   "actor": "ChatGPT",
-  "event": "issue_607_dual_rs485_candidate_ready_for_pr",
+  "event": "issue_589_persisted_cadence_candidate_pre_pr",
   "baselines": {
-    "accepted_product_sha": "a2fd9496959764691860106c2f0625587fc707a2",
+    "accepted_product_sha": "61aeaa430075d4caa5d7164cae2866fcabc57108",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
   },
   "active_work": {
-    "issue": 607,
-    "title": "Add dual RS-485 bus isolation for KK1 and KK2",
-    "branch": "feat/607-dual-rs485-bus-isolation"
+    "issue": 589,
+    "title": "Add persistent device-scoped acquisition cadence with RS-485 capacity validation",
+    "branch": "feat/589-persisted-acquisition-cadence"
   },
   "evidence_snapshot": {
-    "issue_618": {
-      "pull_request": 652,
-      "verified_head_sha": "3982e901f6732713fa23ea1650299eb6738a9f79",
-      "checks": {
-        "core_ci": "PASS_32572681394",
-        "authenticated_dashboard_acceptance": "PASS_32572681396",
-        "offline_bundle": "PASS_32572681390",
-        "merge_gate": "PASS"
-      }
-    },
     "issue_607": {
+      "pull_request": 653,
+      "verified_head_sha": "4889bae7d942be407d5df1412daae2cbf7c9a2ae",
+      "checks": {
+        "core_ci": "PASS_32576635748",
+        "device_agent_fleet": "PASS_32576635775",
+        "edge_image": "PASS_32576635778",
+        "offline_bundle": "PASS_32576635742",
+        "authenticated_dashboard": "PASS_32576635799",
+        "mqtt_tls_fleet": "PASS_32576635745",
+        "disaster_recovery_tls_fleet": "PASS_32576635744",
+        "container_supply_chain": "PASS_32576635747",
+        "merge_gate": "PASS",
+        "review_threads": "PASS_ZERO_UNRESOLVED"
+      },
+      "hardware_verification": "UNVERIFIED_REMOTE_PI_OFFLINE"
+    },
+    "issue_589": {
       "status": "IMPLEMENTATION_CANDIDATE_PRE_PR",
-      "architecture": "Existing adaptive scheduler is already bus-aware; explicit physical bus bindings, per-bus transports/locks/readers, topology-aware discovery enrollment and diagnostics are composed above it.",
+      "architecture": "Acquisition Registry schema v2 owns durable device cadence; adaptive scheduler consumes persisted intervals; per-bus capacity validation rejects unsafe cadence or newly eligible polling before SQLite commit.",
+      "targeted_test_coverage": "ADDED_NOT_YET_EXECUTED",
       "hardware_verification": "UNVERIFIED_REMOTE_PI_OFFLINE",
       "safety": "READ_ONLY_NO_HARDWARE_CUTOVER"
     },
@@ -46,16 +54,16 @@
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-08-22T12:30:11Z",
+      "observed_at": "2026-08-22T16:37:00Z",
       "kind": "historical_merge",
       "data": {
-        "issue": 618,
-        "pull_request": 652,
-        "merge_sha": "a2fd9496959764691860106c2f0625587fc707a2"
+        "issue": 607,
+        "pull_request": 653,
+        "merge_sha": "61aeaa430075d4caa5d7164cae2866fcabc57108"
       }
     }
   ],
-  "next_action": "Review the exact Issue #607 diff against main, open one focused PR, require Device Agent/Core/offline and every exact-head path-triggered workflow plus NEXOLAB Merge Gate to pass, then merge only after GREEN while keeping Raspberry Pi dual-bus hardware acceptance explicitly unverified.",
+  "next_action": "Audit the exact Issue #589 diff against main, validate State Model v2 and scope, open one focused PR, then require Device Agent unit/compile, Acquisition Scale, Core, offline and every other exact-head path-triggered workflow plus NEXOLAB Merge Gate to pass before merge while keeping Raspberry Pi hardware acceptance explicitly unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

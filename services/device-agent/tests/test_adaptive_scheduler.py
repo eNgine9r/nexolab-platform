@@ -216,7 +216,7 @@ class AdaptiveSchedulerTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
-    def test_registry_jobs_have_explicit_priority_and_interval(self) -> None:
+    def test_registry_jobs_use_persisted_cadence_while_priority_only_orders(self) -> None:
         current = registry(self.database_path)
         harness = SchedulerHarness(current, self.database_path)
 
@@ -232,16 +232,25 @@ class AdaptiveSchedulerTests(unittest.TestCase):
         )
         self.assertEqual(
             targets["xjp60d:106-03"]["interval_seconds"],
-            5,
+            10,
         )
         self.assertEqual(
             targets["le01mp:200-voltage"]["priority"],
             "medium",
         )
         self.assertEqual(
+            targets["le01mp:200-voltage"]["interval_seconds"],
+            30,
+        )
+        self.assertEqual(
             targets["le01mp:200-reactive-power"]["priority"],
             "low",
         )
+        self.assertEqual(
+            targets["le01mp:200-reactive-power"]["interval_seconds"],
+            30,
+        )
+        self.assertEqual(snapshot["priority_role"], "ordering_and_fairness_only")
         self.assertNotIn("xjp60d:106-01", targets)
 
     def test_enrollment_adds_no_job_until_explicit_running_activation(self) -> None:
@@ -393,8 +402,8 @@ class AdaptiveSchedulerTests(unittest.TestCase):
 
         bus = harness.scheduler.snapshot()["buses"]["rs485-main"]
         self.assertEqual(bus["overrun_total"], 1)
-        self.assertEqual(bus["deadline_skipped_total"], 3)
-        self.assertEqual(bus["skipped_total"], 3)
+        self.assertEqual(bus["deadline_skipped_total"], 1)
+        self.assertEqual(bus["skipped_total"], 1)
         next_due = harness.scheduler.snapshot()["targets"][0][
             "next_due_in_seconds"
         ]
@@ -498,7 +507,7 @@ class AdaptiveSchedulerTests(unittest.TestCase):
         }
         self.assertEqual(
             snapshot["xjp60d:106-03"]["next_due_in_seconds"],
-            4,
+            9,
         )
         self.assertGreater(
             snapshot["xjp60d:106-04"]["next_due_in_seconds"],
@@ -533,7 +542,6 @@ class AdaptiveSchedulerTests(unittest.TestCase):
             for item in harness.scheduler.snapshot()["targets"]
         }
         self.assertEqual(target_ids, {"xjp60d:106-03"})
-
 
     def test_dead_worker_is_recovered_once_without_catch_up_burst(
         self,

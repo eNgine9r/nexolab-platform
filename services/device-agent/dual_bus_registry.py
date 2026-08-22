@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Iterable
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 
+from acquisition_cadence import ensure_defaults_for_devices
 from acquisition_registry import (
     AcquisitionRegistry,
     AcquisitionRegistryStore,
     RegistryDevice,
-    RegistryDocument,
     RegistryRevisionConflict,
     RegistryTarget,
     XJP60D_PROFILE_VERSION,
@@ -146,14 +147,29 @@ class TopologyAwareEnrollmentStore(AcquisitionRegistryStore):
                     }
                 )
 
+        cadence = ensure_defaults_for_devices(registry.document.cadence, devices)
+        old_defaults = {
+            (item.bus_id, item.device_family) for item in registry.document.cadence.family_defaults
+        }
+        for item in cadence.family_defaults:
+            if (item.bus_id, item.device_family) not in old_defaults:
+                changes.append(
+                    {
+                        "entity": "cadence_family_default",
+                        "id": f"{item.bus_id}/{item.device_family}",
+                        "from": "absent",
+                        "to": str(item.interval_seconds),
+                    }
+                )
+
         updated_at = datetime.now(timezone.utc).isoformat()
         updated = AcquisitionRegistry(
-            RegistryDocument(
-                schema_version=registry.document.schema_version,
+            replace(
+                registry.document,
                 revision=registry.document.revision + 1,
-                buses=registry.document.buses,
                 devices=tuple(devices),
                 targets=tuple(targets),
+                cadence=cadence,
                 updated_at=updated_at,
             )
         )
@@ -197,11 +213,7 @@ class TopologyAwareEnrollmentStore(AcquisitionRegistryStore):
                         updated.document.revision,
                         normalized_actor,
                         normalized_reason,
-                        json.dumps(
-                            changes,
-                            separators=(",", ":"),
-                            ensure_ascii=False,
-                        ),
+                        json.dumps(changes, separators=(",", ":"), ensure_ascii=False),
                         updated.document.updated_at,
                     ),
                 )

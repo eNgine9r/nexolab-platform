@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Run the deterministic Issue #289 acquisition scale matrix.
+"""Run deterministic NEXOLAB acquisition scale acceptance.
 
-This script uses production registry, scheduler, latest-value and policy code with
-fake monotonic time and read-only fake serial callbacks. It never opens a serial
-port and cannot issue Modbus writes.
+The runner uses production registry, persisted cadence, scheduler, latest-value
+and fairness/cooldown code with fake monotonic time and read-only callbacks. It
+never opens a serial port and cannot issue Modbus writes.
 """
 
 from __future__ import annotations
@@ -170,7 +170,9 @@ class MatrixHarness:
             if next_deadline >= finish:
                 self.clock.advance(finish - self.clock.value)
                 break
-            self.clock.advance(max(0.000001, next_deadline - self.clock.value))
+            self.clock.advance(
+                max(0.000001, next_deadline - self.clock.value)
+            )
         return self.scheduler.snapshot()
 
     def make_due(self, target_ids: Iterable[str] | None = None) -> None:
@@ -184,6 +186,8 @@ class MatrixHarness:
 
 
 def default_policy() -> SchedulerPolicy:
+    # Priority intervals remain configured to prove they do not become hidden
+    # cadence authority. Scheduler jobs use persisted registry intervals.
     return SchedulerPolicy(
         high_interval_seconds=5,
         medium_interval_seconds=10,
@@ -212,7 +216,7 @@ def settings(
         mqtt_port=1883,
         mqtt_topic="nexolab/telemetry",
         health_interval_seconds=30,
-        software_version="issue-289",
+        software_version="issue-589",
         sample_interval_seconds=5,
         database_path=database_path,
         health_host="127.0.0.1",
@@ -230,7 +234,10 @@ def settings(
     )
 
 
-def build_registry(profile: InventoryProfile, database_path: Path) -> AcquisitionRegistry:
+def build_registry(
+    profile: InventoryProfile,
+    database_path: Path,
+) -> AcquisitionRegistry:
     xjp_units = tuple(sorted({unit_id for unit_id, _ in profile.xjp_points}))
     document = build_initial_document(
         settings(
@@ -244,7 +251,10 @@ def build_registry(profile: InventoryProfile, database_path: Path) -> Acquisitio
     return AcquisitionRegistry(document)
 
 
-def success_result(target: SchedulerTarget, captured_at: str) -> ScheduledResult:
+def success_result(
+    target: SchedulerTarget,
+    captured_at: str,
+) -> ScheduledResult:
     return ScheduledResult(
         record=TelemetryRecord(
             event_id=f"success-{target.target_id}-{captured_at}",
@@ -262,7 +272,10 @@ def success_result(target: SchedulerTarget, captured_at: str) -> ScheduledResult
     )
 
 
-def failure_result(target: SchedulerTarget, captured_at: str) -> ScheduledResult:
+def failure_result(
+    target: SchedulerTarget,
+    captured_at: str,
+) -> ScheduledResult:
     return ScheduledResult(
         record=TelemetryRecord(
             event_id=f"failure-{target.target_id}-{captured_at}",
@@ -328,8 +341,9 @@ def run_healthy_profile(
     directory: Path,
     collector: EvidenceCollector,
 ) -> dict[str, Any]:
-    registry = build_registry(profile, directory / f"{profile.name}.db")
-    harness = MatrixHarness(registry, directory / f"{profile.name}.db")
+    database = directory / f"{profile.name}.db"
+    current = build_registry(profile, database)
+    harness = MatrixHarness(current, database)
     snapshot = harness.simulate(SIMULATION_HORIZON_SECONDS)
     bus = snapshot["buses"][BUS_ID]
     theoretical = theoretical_load_percent(
@@ -392,6 +406,29 @@ def run_healthy_profile(
         f"<= {profile.expected_targets}",
     )
 
+    xjp_intervals = {
+        item["interval_seconds"]
+        for item in snapshot["targets"]
+        if item["device_family"] == "xjp60d"
+    }
+    le_intervals = {
+        item["interval_seconds"]
+        for item in snapshot["targets"]
+        if item["device_family"] == "le01mp"
+    }
+    collector.check(
+        f"{profile.name}.persisted_xjp_floor",
+        not xjp_intervals or min(xjp_intervals) >= 10,
+        sorted(xjp_intervals),
+        ">= 10 seconds",
+    )
+    collector.check(
+        f"{profile.name}.priority_not_cadence_authority",
+        snapshot["priority_role"] == "ordering_and_fairness_only",
+        snapshot["priority_role"],
+        "ordering_and_fairness_only",
+    )
+
     return {
         "profile": profile.name,
         "active_targets": profile.expected_targets,
@@ -399,6 +436,10 @@ def run_healthy_profile(
         "fake_request_duration_seconds": FAST_DURATION_SECONDS,
         "theoretical_bus_load_percent": theoretical,
         "maximum_concurrent_reads": harness.maximum_concurrent_reads,
+        "effective_intervals": {
+            "xjp60d": sorted(xjp_intervals),
+            "le01mp": sorted(le_intervals),
+        },
         "bus": bus,
     }
 
@@ -408,14 +449,15 @@ def run_ineligible_filter(
     directory: Path,
     collector: EvidenceCollector,
 ) -> dict[str, Any]:
-    registry = build_registry(profile, directory / "inactive.db")
-    eligible = registry.eligible_targets()
+    database = directory / "inactive.db"
+    current = build_registry(profile, database)
+    eligible = current.eligible_targets()
     disabled_ids = {
         target.target_id
         for index, target in enumerate(eligible)
         if index % 4 == 0
     }
-    document, _ = registry.with_mutations(
+    document, _ = current.with_mutations(
         device_mutations=(),
         target_mutations=tuple(
             LifecycleMutation(target_id=target_id, lifecycle="disabled")
@@ -423,7 +465,7 @@ def run_ineligible_filter(
         ),
     )
     filtered = AcquisitionRegistry(document)
-    harness = MatrixHarness(filtered, directory / "inactive.db")
+    harness = MatrixHarness(filtered, database)
     snapshot = harness.simulate(60)
     called = set(harness.calls)
     configured = snapshot["configured_targets"]
@@ -453,8 +495,9 @@ def run_failure_isolation(
     collector: EvidenceCollector,
 ) -> dict[str, Any]:
     profile = profiles()[0]
-    registry = build_registry(profile, directory / "failure.db")
-    harness = MatrixHarness(registry, directory / "failure.db")
+    database = directory / "failure.db"
+    current = build_registry(profile, database)
+    harness = MatrixHarness(current, database)
     failing_id = "le01mp:200-voltage"
     healthy_id = "xjp60d:106-03"
     failing_target = harness.scheduler._jobs[failing_id].target  # noqa: SLF001
@@ -567,7 +610,8 @@ def run_fairness_and_overrun(
     collector: EvidenceCollector,
 ) -> dict[str, Any]:
     profile = profiles()[0]
-    source = build_registry(profile, directory / "fairness.db")
+    fairness_database = directory / "fairness.db"
+    source = build_registry(profile, fairness_database)
     fairness_targets = {
         "xjp60d:106-03",
         "le01mp:200-voltage",
@@ -588,7 +632,7 @@ def run_fairness_and_overrun(
     )
     fairness = MatrixHarness(
         only_targets(source, fairness_targets),
-        directory / "fairness.db",
+        fairness_database,
         policy=fairness_policy,
     )
     for _ in range(4):
@@ -618,32 +662,46 @@ def run_fairness_and_overrun(
         {"total": 2, "low": 1},
     )
 
-    overrun_source = build_registry(profile, directory / "overrun.db")
+    overrun_database = directory / "overrun.db"
+    overrun_source = build_registry(profile, overrun_database)
     overrun = MatrixHarness(
         only_targets(overrun_source, {"xjp60d:106-03"}),
-        directory / "overrun.db",
+        overrun_database,
     )
-    overrun.duration_by_unit[106] = 16.0
+    overrun_duration = 16.0
+    target_interval = overrun.scheduler._jobs[  # noqa: SLF001
+        "xjp60d:106-03"
+    ].target.interval_seconds
+    overrun.duration_by_unit[106] = overrun_duration
     overrun.make_due()
     overrun.scheduler.run_once(BUS_ID)
     overrun_snapshot = overrun.scheduler.snapshot()
     overrun_bus = overrun_snapshot["buses"][BUS_ID]
     next_due = overrun_snapshot["targets"][0]["next_due_in_seconds"]
+    expected_skipped = int(overrun_duration // target_interval)
+    expected_next_due = (
+        (expected_skipped + 1) * target_interval - overrun_duration
+    )
     collector.check(
         "overrun.counters",
         overrun_bus["overrun_total"] == 1
-        and overrun_bus["deadline_skipped_total"] == 3,
+        and overrun_bus["deadline_skipped_total"] == expected_skipped,
         {
             "overrun_total": overrun_bus["overrun_total"],
             "deadline_skipped_total": overrun_bus["deadline_skipped_total"],
+            "effective_interval_seconds": target_interval,
         },
-        {"overrun_total": 1, "deadline_skipped_total": 3},
+        {
+            "overrun_total": 1,
+            "deadline_skipped_total": expected_skipped,
+            "effective_interval_seconds": target_interval,
+        },
     )
     collector.check(
         "overrun.no_catch_up_burst",
-        next_due == 4.0,
+        abs(next_due - expected_next_due) < 1e-9,
         next_due,
-        4.0,
+        expected_next_due,
     )
     return {
         "fairness": {
@@ -651,6 +709,9 @@ def run_fairness_and_overrun(
             "bus": fairness_bus,
         },
         "overrun": {
+            "effective_interval_seconds": target_interval,
+            "duration_seconds": overrun_duration,
+            "expected_skipped": expected_skipped,
             "bus": overrun_bus,
             "next_due_in_seconds": next_due,
         },
@@ -659,7 +720,9 @@ def run_fairness_and_overrun(
 
 def run_matrix(output: Path) -> dict[str, Any]:
     collector = EvidenceCollector()
-    with tempfile.TemporaryDirectory(prefix="nexolab-acquisition-scale-") as temporary:
+    with tempfile.TemporaryDirectory(
+        prefix="nexolab-acquisition-scale-"
+    ) as temporary:
         directory = Path(temporary)
         healthy = [
             run_healthy_profile(profile, directory, collector)
@@ -670,15 +733,18 @@ def run_matrix(output: Path) -> dict[str, Any]:
         fairness = run_fairness_and_overrun(directory, collector)
 
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "classification": "deterministic_software",
         "source_commit": "provided_by_ci_environment",
+        "cadence_authority": "acquisition_registry",
         "safety": {
             "serial_port_opened": False,
             "modbus_write_attempts": 0,
             "production_data_used": False,
         },
-        "declared_targets_document": "docs/operations/acquisition-scale-acceptance.md",
+        "declared_targets_document": (
+            "docs/operations/acquisition-scale-acceptance.md"
+        ),
         "profiles": healthy,
         "ineligible_filter": inactive,
         "failure_isolation": failure,
@@ -704,21 +770,33 @@ def main() -> int:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("acquisition-scale-evidence/acquisition-scale-matrix.json"),
+        default=Path(
+            "acquisition-scale-evidence/acquisition-scale-matrix.json"
+        ),
     )
     args = parser.parse_args()
     payload = run_matrix(args.output)
-    print(json.dumps({
-        "passed": payload["passed"],
-        "output": str(args.output),
-        "completion_classification": payload["completion_classification"],
-        "assertion_count": len(payload["assertions"]),
-    }, sort_keys=True))
+    print(
+        json.dumps(
+            {
+                "passed": payload["passed"],
+                "output": str(args.output),
+                "completion_classification": payload[
+                    "completion_classification"
+                ],
+                "assertion_count": len(payload["assertions"]),
+            },
+            sort_keys=True,
+        )
+    )
     if not payload["passed"]:
         failed = [
             item for item in payload["assertions"] if not item["passed"]
         ]
-        print(json.dumps({"failed_assertions": failed}, indent=2), file=sys.stderr)
+        print(
+            json.dumps({"failed_assertions": failed}, indent=2),
+            file=sys.stderr,
+        )
         return 1
     return 0
 
