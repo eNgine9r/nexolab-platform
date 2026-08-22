@@ -1,21 +1,22 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-21
+Updated: 2026-08-22
 
 ## Current Work Package boundary
 
-Issue #633 is active `status:in-progress` in PR #643 (`fix/633-frontend-candidate-cleanup`). Final software behavior before the state checkpoint is `2e7a88ded70afee31760747ac402bb7dd7dde306`.
+Issue #633 is active `status:in-progress` in PR #643 (`fix/633-frontend-candidate-cleanup`). Final software and regression behavior before the state checkpoint is `68835e14798d49c01ff4a2bd4de98e6c8e8fdc22`.
 
-The candidate lifecycle uses a parent/child startup gate so Next.js cannot execute before the parent records the exact background PID. After release, PGID publication is confirmed with `ps`; cleanup re-checks an unpublished PID for an already-established exact process group before using exact-PID fallback. Established groups use bounded TERM → KILL cleanup, candidate child reaping is bounded so uninterruptible I/O cannot cause an indefinite `wait`, zombie-only members do not count as executable work, EXIT cleanup failures are surfaced, and the focused cleanup regression suite is part of the standalone runtime CI entry point.
+The candidate lifecycle uses a parent/child startup gate so Next.js cannot execute before the parent records the exact background PID. After release, PGID publication is confirmed with `ps`; cleanup re-checks an unpublished PID for an already-established exact process group before using exact-PID fallback. Established groups use bounded TERM → KILL cleanup. Both exact-PID and process-group paths verify the candidate is no longer live before calling `wait`; if it remains live after the bounded TERM/KILL windows, cleanup returns failure instead of hanging indefinitely. Zombie-only members do not count as executable work, EXIT cleanup failures are surfaced, and the focused cleanup regression suite is part of the standalone runtime CI entry point.
 
-Verified intermediate software gates:
+Verified software gates:
 
 - Core CI `32514504593` on `87afc111...`: PASS;
 - Core CI `32517056093` on `08884615...`: PASS;
 - Core CI `32519957941` on `a7d91af1...`: PASS;
-- Core CI `32521673945` on `b3420a3b...`: PASS.
+- Core CI `32521673945` on `b3420a3b...`: PASS;
+- Core CI `32523415155` on `c2873686...`: PASS.
 
-Fresh review after `b3420a3b...` identified the unbounded child-reap wait; it is addressed in `2e7a88de...`. Final exact-head CI and fresh review on the state-checkpoint head remain the only software merge gates.
+Fresh review on GREEN head `c2873686...` identified the remaining unbounded child-reap wait; it is fixed and regression-covered in `68835e14...`. Final exact-head CI and fresh review on the new state-checkpoint head remain the only software merge gates.
 
 The remote Raspberry Pi `nexolab-edge-01` is currently offline. This is a soft blocker only for real post-deployment runtime evidence. No production/site cutover is authorized by #633, so no deployment is being attempted.
 
