@@ -24,9 +24,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 650,
-      "title": "Introduce State Model v2 and remove mandatory post-merge reconciliation PRs",
-      "branch": "chore/650-state-model-v2"
+      "issue": 618,
+      "title": "Restore Saved Dashboard CSV export browser acceptance on LOCAL_LAN",
+      "branch": "fix/618-saved-dashboard-csv-download"
     },
     "next_work_package": null
   },
@@ -101,15 +101,25 @@
       "issue": 650,
       "title": "Introduce State Model v2 and remove mandatory post-merge reconciliation PRs",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "chore/650-state-model-v2",
-      "evidence": {}
+      "evidence": {
+        "pull_request": 651,
+        "verified_head_sha": "b0c7ae3efbb7a0364c7b6d59a356e858afe74be2",
+        "checks": {
+          "core_ci": "PASS_32571068430",
+          "external_telemetry_ci": "PASS_32571068439",
+          "merge_gate": "PASS",
+          "review_threads": "PASS_ZERO_UNRESOLVED"
+        }
+      }
     },
     {
       "issue": 618,
       "title": "Restore Saved Dashboard CSV export browser acceptance on LOCAL_LAN",
       "priority": "high",
-      "lifecycle": "queued",
+      "lifecycle": "in_progress",
+      "branch": "fix/618-saved-dashboard-csv-download",
       "evidence": {}
     },
     {
@@ -242,6 +252,16 @@
         "branch": "main",
         "protected": false,
         "required_status_checks": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-22T11:57:40Z",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 650,
+        "pull_request": 651,
+        "merge_sha": "2112c1004cdcbf08631b71ad48c7a59a930ec77f"
       }
     }
   ],

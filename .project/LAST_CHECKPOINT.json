@@ -3,41 +3,34 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-22T11:02:23Z",
+  "timestamp": "2026-08-22T12:06:00Z",
   "actor": "ChatGPT",
-  "event": "issue_650_state_model_v2_started",
+  "event": "issue_618_csv_browser_handoff_candidate",
   "baselines": {
     "accepted_product_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
   },
   "active_work": {
-    "issue": 650,
-    "title": "Introduce State Model v2 and remove mandatory post-merge reconciliation PRs",
-    "branch": "chore/650-state-model-v2"
+    "issue": 618,
+    "title": "Restore Saved Dashboard CSV export browser acceptance on LOCAL_LAN",
+    "branch": "fix/618-saved-dashboard-csv-download"
   },
   "evidence_snapshot": {
-    "issue_648": {
-      "pull_request": 649,
-      "verified_head_sha": "d5a1d57de876a94bb90449ad5cb4e21ba1b6e7ee",
+    "issue_650": {
+      "pull_request": 651,
+      "verified_head_sha": "b0c7ae3efbb7a0364c7b6d59a356e858afe74be2",
       "checks": {
-        "core_ci": "PASS_32568953282",
-        "change_impact": "state_only",
-        "state_integrity": "PASS",
-        "quality_and_build": "SKIPPED",
-        "node_npm_frontend_quality": "NOT_RUN",
-        "merge_gate": "PASS"
+        "core_ci": "PASS_32571068430",
+        "external_telemetry_ci": "PASS_32571068439",
+        "merge_gate": "PASS",
+        "review_threads": "PASS_ZERO_UNRESOLVED"
       }
     },
-    "issue_646": {
-      "pull_request": 647,
-      "verified_head_sha": "623a72a0fdec8b8ddb15c5a7e145d0ba60a6a135",
-      "checks": {
-        "core_ci": "PASS_32567703388",
-        "external_telemetry_ci": "PASS_32567703424",
-        "merge_gate": "PASS_WAITED_FOR_EXTERNAL_EXACT_HEAD_WORKFLOW",
-        "state_only_fast_lane": "PASS_ISSUE_648_PR_649",
-        "main_branch_protection": "BLOCKED_TOOL_ACCESS"
-      }
+    "issue_618": {
+      "status": "IMPLEMENTATION_CANDIDATE_PRE_PR",
+      "diagnosis": "CSV API contract is present; browser Blob handoff synchronously revoked the object URL immediately after a detached anchor click.",
+      "candidate": "DOM-attached anchor plus bounded delayed Blob URL revocation with deterministic unit regression coverage.",
+      "runtime_pi_verification": "UNVERIFIED_REMOTE_PI_OFFLINE"
     },
     "maintenance_actions": [
       {
@@ -53,16 +46,16 @@
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-08-22T11:02:23Z",
-      "kind": "branch_protection",
+      "observed_at": "2026-08-22T11:57:40Z",
+      "kind": "historical_merge",
       "data": {
-        "branch": "main",
-        "protected": false,
-        "required_status_checks": false
+        "issue": 650,
+        "pull_request": 651,
+        "merge_sha": "2112c1004cdcbf08631b71ad48c7a59a930ec77f"
       }
     }
   ],
-  "next_action": "Implement and verify State Model v2 migration, validator and deterministic state mutation tooling in Issue #650; publish one coherent CI-governance candidate only after focused tests are GREEN.",
+  "next_action": "Open one focused PR for Issue #618, verify the exact diff, require the browser-handoff unit regression, Core CI and Authenticated Dashboard Acceptance to pass on the exact head, then repeat the Saved Dashboard CSV flow on Raspberry Pi when the remote host is reachable before claiming LOCAL_LAN host acceptance.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
