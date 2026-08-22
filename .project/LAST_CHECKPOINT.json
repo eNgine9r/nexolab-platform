@@ -43,7 +43,7 @@
         "ui": "physical polling panel with 10/30/60/Custom family defaults and physical-device inherited overrides",
         "validation": "client minimum mirror plus server-authoritative 409 revision conflict and 422 capacity rejection",
         "canonical_reread": true,
-        "browser_acceptance": "existing settings.production.e2e.ts wired into authenticated acquisition-invariant workflow with real cadence GET through loopback fixture"
+        "browser_acceptance": "settings.production.e2e.ts covers viewer read-only state plus engineer safe mutation, reload persistence, unsafe-capacity rejection and stale-revision conflict through the authenticated loopback proxy fixture"
       },
       "targeted_test_coverage": "ADDED_NOT_YET_EXECUTED",
       "hardware_verification": "UNVERIFIED_REMOTE_PI_OFFLINE",
@@ -69,16 +69,6 @@
         "issue": 589,
         "pull_request": 656,
         "merge_sha": "24d6d039fb11366ab589ec3cb039e76bb7e565d7"
-      }
-    },
-    {
-      "source": "remote_desktop",
-      "observed_at": "2026-08-22T17:41:00Z",
-      "kind": "device_connectivity",
-      "data": {
-        "device": "nexolab-edge-01",
-        "online": false,
-        "hardware_acceptance": "unverified"
       }
     }
   ],
