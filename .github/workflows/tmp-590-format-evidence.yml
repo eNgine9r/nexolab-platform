@@ -1,23 +1,23 @@
 name: Temporary Issue 590 formatter evidence
 
 on:
-  push:
-    branches:
-      - feat/590-settings-acquisition-cadence
+  pull_request:
+    branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  format-candidate:
-    if: startsWith(github.event.head_commit.message, 'chore(ci): temporary issue 590 formatter evidence')
+  format-evidence:
+    if: ${{ github.event.pull_request.number == 657 && github.head_ref == 'feat/590-settings-acquisition-cadence' }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - name: Checkout exact branch head
+      - name: Checkout exact PR head
         uses: actions/checkout@v6
         with:
-          ref: feat/590-settings-acquisition-cadence
-          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -31,7 +31,7 @@ jobs:
           HUSKY: 0
         run: npm ci --no-audit --fund=false
 
-      - name: Stabilize browser locator and format exact candidate
+      - name: Stabilize locator and format exact files
         shell: bash
         run: |
           set -euo pipefail
@@ -66,20 +66,26 @@ jobs:
             src/features/acquisition/cadence-client.ts
           git diff --check
 
-      - name: Commit formatter and locator correction
+      - name: Stage exact formatted evidence directory
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
+          mkdir -p issue-590-formatted-files
+          cp --parents \
             e2e/settings.production.e2e.ts \
             src/app/api/device-agent/acquisition-cadence/route.test.ts \
             src/app/api/device-agent/acquisition-cadence/route.ts \
             src/components/settings/acquisition-cadence-panel.test.tsx \
             src/components/settings/acquisition-cadence-panel.tsx \
             src/features/acquisition/cadence-client.test.ts \
-            src/features/acquisition/cadence-client.ts
-          git diff --cached --quiet && { echo "No correction generated" >&2; exit 1; }
-          git commit -m "test(settings): stabilize cadence browser assertion and format candidate"
-          git push origin HEAD:feat/590-settings-acquisition-cadence
+            src/features/acquisition/cadence-client.ts \
+            issue-590-formatted-files/
+          printf '%s\n' "${{ github.event.pull_request.head.sha }}" > issue-590-formatted-files/source-head.txt
+
+      - name: Upload exact formatted files
+        uses: actions/upload-artifact@v7
+        with:
+          name: issue-590-formatted-files-${{ github.event.pull_request.head.sha }}
+          path: issue-590-formatted-files
+          if-no-files-found: error
+          retention-days: 1
