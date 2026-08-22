@@ -73,6 +73,24 @@ class RaspberryPiCandidateCleanupTests(unittest.TestCase):
         self.assertLess(cleanup, port_check)
         self.assertLess(port_check, backend_start)
 
+    def test_cleanup_never_waits_while_candidate_is_still_live(self) -> None:
+        cleanup = _extract_cleanup_function(DEPLOY.read_text(encoding="utf-8"))
+
+        exact_kill = cleanup.index('kill -KILL "$pid"')
+        exact_final_check = cleanup.index(
+            'if kill -0 "$pid" >/dev/null 2>&1; then', exact_kill + 1
+        )
+        exact_wait = cleanup.index('wait "$pid"', exact_final_check)
+        self.assertIn("return 1", cleanup[exact_final_check:exact_wait])
+
+        group_kill = cleanup.index('kill -KILL -- "-$pgid"')
+        group_final_check = cleanup.index(
+            'if nexolab_frontend_candidate_group_has_live_processes "$pgid"; then',
+            group_kill + 1,
+        )
+        group_wait = cleanup.index('wait "$pid"', group_final_check)
+        self.assertIn("return 1", cleanup[group_final_check:group_wait])
+
     def test_start_gate_blocks_child_until_parent_publication(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             gate = Path(tmp) / "start.gate"
