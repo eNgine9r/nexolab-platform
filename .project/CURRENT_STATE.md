@@ -14,31 +14,34 @@ Production remains intentionally deployed from source `6e387485b68fb862d9f82ae7f
 
 Issue #646 — **Add change-impact CI orchestration and protected main merge gate** — is active `status:in-progress` in branch `chore/646-impact-aware-ci`.
 
-Latest pre-checkpoint implementation commit is `965213346ae952c115bba49bf4d2e27361df207c`.
+Latest code-affecting implementation commit before the repository-state checkpoint is `2ba35d01e51d5bea6c3b78edfa218438a1e9b0ac`.
 
-Implemented on the feature branch so far:
+Implemented on the feature branch:
 
 - dependency-free deterministic changed-file classifier with explicit state/frontend/backend/Device Agent/deployment/migration/dependency/security/CI-governance classes;
 - unknown paths fail closed to full Core quality rather than silently receiving a light lane;
 - canonical state-only detection is restricted to the four repository state files;
 - dependency-free project-state validator checks project/profile identity, Sprint/task integrity, proportional verification policy, canonical JSON shape and read-only safety boundary;
 - Core CI now has `Change impact`, `State integrity`, `Quality and build`, and stable `NEXOLAB Merge Gate` jobs;
-- state-only PRs are designed to skip Node setup/dependency installation, repository-wide lint/Vitest and Next production build;
+- state-only PRs skip Node setup/dependency installation, repository-wide lint/Vitest and Next production build;
 - documentation-only changes deliberately remain on full Core quality until an equivalent dependency-free formatting gate exists;
 - non-state and CI-governance changes remain on full Core quality during this conservative first rollout;
 - Node quality jobs use lockfile-enforcing `npm ci --no-audit --fund=false` and npm download caching rather than generic `npm install`;
-- repository operating standard and CI runbook now define coherent-candidate pushes, proportional verification, exact evidence SHA anchoring and delta Ready audits;
-- classifier and project-state invariants have focused Python regression tests.
+- for non-state PRs, `NEXOLAB Merge Gate` uses read-only GitHub Actions API access to wait for and aggregate every other PR workflow that actually triggered on the same exact head, failing on non-GREEN or bounded-timeout outcomes;
+- repeated external runs are grouped by workflow and the latest exact-head run is authoritative, so an older failed attempt does not poison a later successful rerun;
+- repository operating standard and CI runbook define coherent-candidate pushes, proportional verification, exact evidence SHA anchoring, exact-head workflow aggregation and delta Ready audits;
+- classifier, project-state and workflow-matrix invariants have focused dependency-free Python regression tests.
 
-No Pull Request has been opened yet. This is intentional: implementation and state/doc updates are being batched into one coherent candidate before triggering expensive remote CI.
+No Pull Request has been opened yet. This is intentional: implementation, documentation and state/checkpoint work are being batched into one coherent candidate before triggering remote CI.
 
 ## Verification status
 
 - #644 / PR #645: GREEN merged as `bd2a0a56...` after exact-head CI `32566870352` passed formatting, lint, typecheck, 121 test files / 555 tests and production build;
-- #646 targeted GitHub CI has not run yet because the PR is intentionally not published until the coherent candidate is ready;
+- #646 targeted GitHub CI has not run yet because the coherent candidate has not been published as a PR;
 - the #646 workflow changes are CI-governance changes and therefore must pass the full pre-change-equivalent Core matrix on the PR head before merge;
-- a dedicated state-only proof PR/branch is still required to demonstrate that the new fast lane reaches `NEXOLAB Merge Gate` without Node dependency installation;
+- the first real state-only fast-lane proof will be the mandatory post-#646 state reconciliation after the implementation PR merges; no artificial test-only PR is required;
 - specialized domain workflows keep their existing path filters and are not removed by #646;
+- non-state merge-gate aggregation must prove that every actually triggered external exact-head PR workflow is GREEN before the stable gate succeeds;
 - Raspberry Pi/hardware evidence is not required for CI orchestration; no production deployment/site cutover is in scope.
 
 ## Current blocker boundary
@@ -49,7 +52,7 @@ The remote `nexolab-edge-01` remains offline; this does not block #646 because n
 
 ## Queue after #646
 
-After #646 is GREEN and merged, the next process-hardening package is the planned **State Model v2 / automated reconciliation** Work Package, kept separate from #646 so CI orchestration and state-model redesign do not share one PR.
+After #646 implementation is GREEN and merged, its state-only reconciliation will serve as the real fast-lane acceptance. The next process-hardening package is the planned **State Model v2 / automated reconciliation** Work Package, kept separate from #646 so CI orchestration and state-model redesign do not share one PR.
 
 After the process-hardening sequence, product work returns to the repository-backed queue, including:
 
