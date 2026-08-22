@@ -19,14 +19,14 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "6d223415deebf1a44bb52ba4fcaa3c5db9b03697",
+    "accepted_product_sha": "a2fd9496959764691860106c2f0625587fc707a2",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
   },
   "selection": {
     "active_work_package": {
-      "issue": 618,
-      "title": "Restore Saved Dashboard CSV export browser acceptance on LOCAL_LAN",
-      "branch": "fix/618-saved-dashboard-csv-download"
+      "issue": 607,
+      "title": "Add dual RS-485 bus isolation for KK1 and KK2",
+      "branch": "feat/607-dual-rs485-bus-isolation"
     },
     "next_work_package": null
   },
@@ -118,16 +118,29 @@
       "issue": 618,
       "title": "Restore Saved Dashboard CSV export browser acceptance on LOCAL_LAN",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/618-saved-dashboard-csv-download",
-      "evidence": {}
+      "evidence": {
+        "pull_request": 652,
+        "verified_head_sha": "3982e901f6732713fa23ea1650299eb6738a9f79",
+        "checks": {
+          "core_ci": "PASS_32572681394",
+          "authenticated_dashboard_acceptance": "PASS_32572681396",
+          "offline_bundle": "PASS_32572681390",
+          "merge_gate": "PASS",
+          "runtime_pi_verification": "UNVERIFIED_PI_OFFLINE"
+        }
+      }
     },
     {
       "issue": 607,
       "title": "Add dual RS-485 bus isolation for KK1 and KK2",
       "priority": "high",
-      "lifecycle": "queued",
-      "evidence": {}
+      "lifecycle": "in_progress",
+      "branch": "feat/607-dual-rs485-bus-isolation",
+      "evidence": {
+        "hardware_verification": "UNVERIFIED_PI_OFFLINE"
+      }
     },
     {
       "issue": 589,
@@ -262,6 +275,16 @@
         "issue": 650,
         "pull_request": 651,
         "merge_sha": "2112c1004cdcbf08631b71ad48c7a59a930ec77f"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-22T12:30:11Z",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 618,
+        "pull_request": 652,
+        "merge_sha": "a2fd9496959764691860106c2f0625587fc707a2"
       }
     }
   ],
