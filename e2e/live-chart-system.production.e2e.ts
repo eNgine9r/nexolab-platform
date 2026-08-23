@@ -325,6 +325,75 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await expect(inspector).toContainText(/\d+\.\d{2} degC/);
     await expect(inspector).toContainText(/\d+\.\d{2} V/);
 
+    const inspectorTimestamp = inspector.locator("p").nth(1);
+    const panProbe = {
+      x: equipmentBox.x + equipmentBox.width * 0.72,
+      y: equipmentBox.y + equipmentBox.height * 0.5,
+    };
+    await page.mouse.move(panProbe.x, panProbe.y);
+    const initialInspectorTimestamp = (await inspectorTimestamp.textContent())?.trim();
+    expect(initialInspectorTimestamp).toBeTruthy();
+
+    const historyRequestsBeforePan = runtime.telemetry.filter((request) =>
+      request.url.includes("/history"),
+    ).length;
+    const acquisitionMutationsBeforePan = runtime.acquisitionMutations.length;
+    const layoutBeforePan = await equipmentHost.evaluate((host) => {
+      const bounds = host.getBoundingClientRect();
+      const surface = host.querySelector('[data-testid="chart-renderer-surface"]');
+      const canvas = surface?.querySelector("canvas") ?? null;
+      Reflect.set(window, "__nexolabIssue415Refs", { host, surface, canvas });
+      return { top: bounds.top, height: bounds.height, scrollY: window.scrollY };
+    });
+
+    await page.mouse.wheel(0, -600);
+    await expect(page.getByText("Paused view", { exact: true })).toBeVisible();
+    await page.mouse.move(panProbe.x, panProbe.y);
+    const inspectorTimestampBeforePan = (await inspectorTimestamp.textContent())?.trim();
+    expect(inspectorTimestampBeforePan).toBeTruthy();
+
+    await page.mouse.down({ button: "left" });
+    await page.mouse.move(equipmentBox.x + equipmentBox.width * 0.42, panProbe.y, { steps: 8 });
+    await expect(inspectorTimestamp).toHaveText(inspectorTimestampBeforePan!);
+    await page.mouse.up({ button: "left" });
+
+    await page.mouse.move(panProbe.x, panProbe.y);
+    await expect
+      .poll(async () => (await inspectorTimestamp.textContent())?.trim())
+      .not.toBe(inspectorTimestampBeforePan);
+
+    await page.getByRole("button", { name: "Reset zoom" }).click();
+    await page.mouse.move(panProbe.x, panProbe.y);
+    await expect
+      .poll(async () => (await inspectorTimestamp.textContent())?.trim())
+      .toBe(initialInspectorTimestamp);
+
+    const layoutAfterPan = await equipmentHost.evaluate((host) => {
+      const bounds = host.getBoundingClientRect();
+      const surface = host.querySelector('[data-testid="chart-renderer-surface"]');
+      const canvas = surface?.querySelector("canvas") ?? null;
+      const refs = Reflect.get(window, "__nexolabIssue415Refs") as
+        { host: Element; surface: Element | null; canvas: Element | null } | undefined;
+      return {
+        top: bounds.top,
+        height: bounds.height,
+        scrollY: window.scrollY,
+        sameHost: refs?.host === host,
+        sameSurface: refs?.surface === surface,
+        sameCanvas: refs?.canvas === canvas,
+      };
+    });
+    expect(layoutAfterPan.sameHost).toBe(true);
+    expect(layoutAfterPan.sameSurface).toBe(true);
+    expect(layoutAfterPan.sameCanvas).toBe(true);
+    expect(Math.abs(layoutAfterPan.top - layoutBeforePan.top)).toBeLessThan(1);
+    expect(Math.abs(layoutAfterPan.height - layoutBeforePan.height)).toBeLessThan(1);
+    expect(layoutAfterPan.scrollY).toBe(layoutBeforePan.scrollY);
+    expect(runtime.telemetry.filter((request) => request.url.includes("/history"))).toHaveLength(
+      historyRequestsBeforePan,
+    );
+    expect(runtime.acquisitionMutations).toHaveLength(acquisitionMutationsBeforePan);
+
     const historyRequestsBeforeLivePoint = runtime.telemetry.filter((request) =>
       request.url.includes("/history"),
     ).length;

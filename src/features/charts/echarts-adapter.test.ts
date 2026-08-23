@@ -91,6 +91,17 @@ describe("ECharts renderer adapter lifecycle", () => {
         confine: true,
         transitionDuration: 0,
       },
+      dataZoom: [
+        {
+          type: "inside",
+          xAxisIndex: 0,
+          filterMode: "none",
+          zoomOnMouseWheel: true,
+          moveOnMouseMove: true,
+          moveOnMouseWheel: false,
+          preventDefaultMouseMove: true,
+        },
+      ],
     });
   });
 
@@ -185,6 +196,60 @@ describe("ECharts renderer adapter lifecycle", () => {
     expect(instance.handlers).toHaveLength(0);
     expect(instance.disposeCount).toBe(1);
     expect(adapter.isDisposed()).toBe(true);
+  });
+
+  it("freezes Exact Inspector callbacks during primary-button native pan and resumes after release", () => {
+    const instance = new FakeEChartsInstance();
+    const onCursor = vi.fn();
+    const onXDomainChange = vi.fn();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = createBenchmarkScene(1);
+    const container = document.createElement("div");
+    vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 320,
+      bottom: 200,
+      width: 320,
+      height: 200,
+      toJSON: () => ({}),
+    });
+    adapter.initialize({
+      container,
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor,
+      onXDomainChange,
+    });
+    adapter.setScene(scene);
+
+    container.dispatchEvent(new MouseEvent("mousemove", { clientX: 20, clientY: 120 }));
+    expect(onCursor).toHaveBeenCalledTimes(1);
+
+    container.dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: 20, clientY: 120 }));
+    const callsBeforeDrag = onCursor.mock.calls.length;
+    container.dispatchEvent(new MouseEvent("mousemove", { buttons: 1, clientX: 80, clientY: 120 }));
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 80 }] });
+    expect(onCursor).toHaveBeenCalledTimes(callsBeforeDrag);
+
+    instance.handlers.get("dataZoom")?.({ start: 10, end: 90 });
+    expect(onXDomainChange).toHaveBeenCalledTimes(1);
+
+    window.dispatchEvent(new MouseEvent("mouseup", { button: 0 }));
+    container.dispatchEvent(new MouseEvent("mousemove", { clientX: 80, clientY: 120 }));
+    expect(onCursor).toHaveBeenCalledTimes(callsBeforeDrag + 1);
+
+    container.dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: 80, clientY: 120 }));
+    container.dispatchEvent(new MouseEvent("mousemove", { buttons: 0, clientX: 90, clientY: 120 }));
+    expect(onCursor).toHaveBeenCalledTimes(callsBeforeDrag + 2);
+
+    container.dispatchEvent(new MouseEvent("mousedown", { button: 2, clientX: 90, clientY: 120 }));
+    container.dispatchEvent(new MouseEvent("mousemove", { clientX: 100, clientY: 120 }));
+    expect(onCursor).toHaveBeenCalledTimes(callsBeforeDrag + 3);
+
+    adapter.dispose();
   });
 
   it("keeps the shared cursor while marking explicitly out-of-tolerance samples unavailable", () => {

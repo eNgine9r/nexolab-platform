@@ -302,6 +302,8 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
         filterMode: "none",
         zoomOnMouseWheel: true,
         moveOnMouseMove: true,
+        moveOnMouseWheel: false,
+        preventDefaultMouseMove: true,
       },
     ],
     series: lineSeries,
@@ -314,11 +316,25 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   private scene: ChartRendererScene | null = null;
   private options: ChartRendererInitOptions | null = null;
   private maximumLivePoints = 240;
+  private primaryDragActive = false;
 
   constructor(private readonly runtime: EChartsRuntimePort = defaultRuntime) {}
 
+  private readonly handleContainerMouseDown = (event: MouseEvent) => {
+    if (event.button !== 0 || !this.instance || !this.container) return;
+    const bounds = this.container.getBoundingClientRect();
+    const pixel: [number, number] = [event.clientX - bounds.left, event.clientY - bounds.top];
+    if (this.instance.containPixel({ gridIndex: 0 }, pixel)) this.primaryDragActive = true;
+  };
+
+  private readonly handleWindowMouseUp = (event: MouseEvent) => {
+    if (event.button === 0) this.primaryDragActive = false;
+  };
+
   private readonly handleContainerPointer = (event: MouseEvent) => {
     if (!this.scene || !this.instance || !this.container) return;
+    if (this.primaryDragActive && (event.buttons & 1) === 0) this.primaryDragActive = false;
+    if (this.primaryDragActive || (event.buttons & 1) === 1) return;
     const bounds = this.container.getBoundingClientRect();
     const pixel: [number, number] = [event.clientX - bounds.left, event.clientY - bounds.top];
     if (!this.instance.containPixel({ gridIndex: 0 }, pixel)) {
@@ -332,11 +348,11 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   };
 
   private readonly handleContainerLeave = () => {
-    this.options?.onCursor(null);
+    if (!this.primaryDragActive) this.options?.onCursor(null);
   };
 
   private readonly handleAxisPointer = (event: unknown) => {
-    if (!this.scene) return;
+    if (!this.scene || this.primaryDragActive) return;
     const timestampMs = axisPointerTimestamp(event);
     if (timestampMs === null) return;
     this.options?.onCursor(inspectChartAtTimestamp(this.scene, timestampMs));
@@ -356,8 +372,10 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.instance = this.runtime.init(options.container, options.renderer);
     this.instance.on("updateAxisPointer", this.handleAxisPointer);
     this.instance.on("dataZoom", this.handleDataZoom);
+    this.container.addEventListener("mousedown", this.handleContainerMouseDown, true);
     this.container.addEventListener("mousemove", this.handleContainerPointer);
     this.container.addEventListener("mouseleave", this.handleContainerLeave);
+    this.container.ownerDocument.defaultView?.addEventListener("mouseup", this.handleWindowMouseUp, true);
   }
 
   setScene(scene: ChartRendererScene): void {
@@ -441,8 +459,11 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     if (!this.instance) return;
     this.instance.off("updateAxisPointer", this.handleAxisPointer);
     this.instance.off("dataZoom", this.handleDataZoom);
+    this.container?.removeEventListener("mousedown", this.handleContainerMouseDown, true);
     this.container?.removeEventListener("mousemove", this.handleContainerPointer);
     this.container?.removeEventListener("mouseleave", this.handleContainerLeave);
+    this.container?.ownerDocument.defaultView?.removeEventListener("mouseup", this.handleWindowMouseUp, true);
+    this.primaryDragActive = false;
     this.instance.dispose();
     this.instance = null;
     this.container = null;

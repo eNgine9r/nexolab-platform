@@ -3,11 +3,11 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": {
-    "id": "ENGINEERING-HARDENING-1",
-    "title": "Engineering governance, critical operator defects and toolchain hardening",
+    "id": "CHART-RELIABILITY-1",
+    "title": "Canonical chart interaction and reliability",
     "status": "in_progress",
-    "started_at": "2026-08-06",
-    "epic_issue": 326
+    "started_at": "2026-08-23",
+    "epic_issue": 450
   },
   "execution_policy": {
     "autonomous": true,
@@ -23,268 +23,21 @@
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 415,
+      "title": "Add left-button drag panning to canonical NEXOLAB charts",
+      "branch": "feat/415-canonical-left-drag-pan"
+    },
     "next_work_package": null
   },
   "work_packages": [
     {
-      "issue": 606,
-      "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
-      "priority": "high",
-      "lifecycle": "completed",
-      "evidence": {
-        "pull_request": 632,
-        "verified_head_sha": "83abc9b4a0056a2709c33a627b203785eeefff79",
-        "hardware_evidence_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8",
-        "checks": {
-          "exact_head_workflows": "PASS_22_OF_22"
-        }
-      }
-    },
-    {
-      "issue": 633,
-      "title": "Stop isolated frontend candidate after successful Raspberry Pi deployment",
-      "priority": "high",
-      "lifecycle": "completed",
-      "evidence": {
-        "pull_request": 643,
-        "verified_head_sha": "5d1f1f82ad555b68cab8ce9205283cf939d3be09",
-        "checks": {
-          "core_ci": "PASS_32564575388",
-          "review_threads": "PASS_ALL_EXISTING_P1_P2_RESOLVED",
-          "runtime_pi_verification": "UNVERIFIED_PI_OFFLINE"
-        }
-      }
-    },
-    {
-      "issue": 646,
-      "title": "Add change-impact CI orchestration and protected main merge gate",
-      "priority": "high",
-      "lifecycle": "blocked",
-      "branch": "chore/646-impact-aware-ci",
-      "evidence": {
-        "pull_request": 647,
-        "verified_head_sha": "623a72a0fdec8b8ddb15c5a7e145d0ba60a6a135",
-        "checks": {
-          "core_ci": "PASS_32567703388",
-          "external_telemetry_ci": "PASS_32567703424",
-          "merge_gate": "PASS_WAITED_FOR_EXTERNAL_EXACT_HEAD_WORKFLOW",
-          "state_only_fast_lane": "PASS_ISSUE_648_PR_649",
-          "main_branch_protection": "BLOCKED_TOOL_ACCESS"
-        }
-      }
-    },
-    {
-      "issue": 648,
-      "title": "Prove Issue #646 state-only fast lane after CI merge",
-      "priority": "high",
-      "lifecycle": "completed",
-      "branch": "chore/648-prove-state-fast-lane",
-      "evidence": {
-        "pull_request": 649,
-        "verified_head_sha": "d5a1d57de876a94bb90449ad5cb4e21ba1b6e7ee",
-        "checks": {
-          "core_ci": "PASS_32568953282",
-          "change_impact": "state_only",
-          "state_integrity": "PASS",
-          "quality_and_build": "SKIPPED",
-          "node_npm_frontend_quality": "NOT_RUN",
-          "merge_gate": "PASS"
-        }
-      }
-    },
-    {
-      "issue": 650,
-      "title": "Introduce State Model v2 and remove mandatory post-merge reconciliation PRs",
-      "priority": "high",
-      "lifecycle": "completed",
-      "branch": "chore/650-state-model-v2",
-      "evidence": {
-        "pull_request": 651,
-        "verified_head_sha": "b0c7ae3efbb7a0364c7b6d59a356e858afe74be2",
-        "checks": {
-          "core_ci": "PASS_32571068430",
-          "external_telemetry_ci": "PASS_32571068439",
-          "merge_gate": "PASS",
-          "review_threads": "PASS_ZERO_UNRESOLVED"
-        }
-      }
-    },
-    {
-      "issue": 618,
-      "title": "Restore Saved Dashboard CSV export browser acceptance on LOCAL_LAN",
-      "priority": "high",
-      "lifecycle": "completed",
-      "branch": "fix/618-saved-dashboard-csv-download",
-      "evidence": {
-        "pull_request": 652,
-        "verified_head_sha": "3982e901f6732713fa23ea1650299eb6738a9f79",
-        "checks": {
-          "core_ci": "PASS_32572681394",
-          "authenticated_dashboard_acceptance": "PASS_32572681396",
-          "offline_bundle": "PASS_32572681390",
-          "merge_gate": "PASS",
-          "runtime_pi_verification": "UNVERIFIED_PI_OFFLINE"
-        }
-      }
-    },
-    {
-      "issue": 607,
-      "title": "Add dual RS-485 bus isolation for KK1 and KK2",
-      "priority": "high",
-      "lifecycle": "completed",
-      "branch": "feat/607-dual-rs485-bus-isolation",
-      "evidence": {
-        "pull_request": 653,
-        "verified_head_sha": "4889bae7d942be407d5df1412daae2cbf7c9a2ae",
-        "checks": {
-          "core_ci": "PASS_32576635748",
-          "device_agent_fleet": "PASS_32576635775",
-          "edge_image": "PASS_32576635778",
-          "offline_bundle": "PASS_32576635742",
-          "authenticated_dashboard": "PASS_32576635799",
-          "mqtt_tls_fleet": "PASS_32576635745",
-          "disaster_recovery_tls_fleet": "PASS_32576635744",
-          "container_supply_chain": "PASS_32576635747",
-          "merge_gate": "PASS",
-          "review_threads": "PASS_ZERO_UNRESOLVED",
-          "hardware_verification": "UNVERIFIED_PI_OFFLINE"
-        }
-      }
-    },
-    {
-      "issue": 589,
-      "title": "Add persistent device-scoped acquisition cadence with RS-485 capacity validation",
-      "priority": "critical",
-      "lifecycle": "completed",
-      "branch": "feat/589-persisted-acquisition-cadence",
-      "evidence": {
-        "pull_request": 656,
-        "verified_head_sha": "69a6eff795bd275372dd2588ef56bd2bd1e12704",
-        "checks": {
-          "core_ci": "PASS_32585746454",
-          "acquisition_scale_acceptance": "PASS_32585746507",
-          "edge_image": "PASS_32585746469",
-          "device_agent_fleet": "PASS_32585746497",
-          "mqtt_tls_fleet": "PASS_32585746510",
-          "disaster_recovery_tls_fleet": "PASS_32585746501",
-          "telemetry_service": "PASS_32585746522",
-          "authenticated_dashboard": "PASS_32585746451",
-          "container_supply_chain": "PASS_32585746595",
-          "offline_bundle": "PASS_32585746509",
-          "merge_gate": "PASS",
-          "review_threads": "PASS_ZERO_UNRESOLVED",
-          "hardware_verification": "UNVERIFIED_PI_OFFLINE"
-        }
-      }
-    },
-    {
-      "issue": 590,
-      "title": "Add operator acquisition cadence controls to NEXOLAB Settings",
-      "priority": "high",
-      "lifecycle": "completed",
-      "branch": "feat/590-settings-acquisition-cadence",
-      "evidence": {
-        "pull_request": 657,
-        "verified_head_sha": "b4b8608d82e90844ae9905c60b083232e68ef689",
-        "checks": {
-          "core_ci": "PASS_32606407885",
-          "acquisition_scale_acceptance": "PASS_32606407863",
-          "refrigeration_browser_acceptance": "PASS_32606407879",
-          "authenticated_dashboard": "PASS_32606407875",
-          "offline_bundle": "PASS_32606407871",
-          "merge_gate": "PASS",
-          "review_threads": "PASS_ZERO_UNRESOLVED",
-          "hardware_verification": "UNVERIFIED_PI_OFFLINE"
-        }
-      }
-    },
-    {
-      "issue": 615,
-      "title": "Fix authenticated dashboard acceptance Compose project-name generation",
+      "issue": 415,
+      "title": "Add left-button drag panning to canonical NEXOLAB charts",
       "priority": "medium",
-      "lifecycle": "completed",
-      "branch": "fix/615-dashboard-compose-project-name",
-      "evidence": {
-        "pull_request": 658,
-        "verified_head_sha": "107935b7ab08ca48878b73603a6d1a9e683985f0",
-        "checks": {
-          "targeted_project_name_tests": "PASS_3_OF_3_CORE_32607900557",
-          "core_ci": "PASS_32607900557",
-          "authenticated_dashboard": "PASS_32607900561",
-          "merge_gate": "PASS",
-          "review_threads": "PASS_ZERO_UNRESOLVED",
-          "hardware_verification": "NOT_REQUIRED_TOOLING_ONLY"
-        }
-      }
-    },
-    {
-      "issue": 585,
-      "title": "Restore LE-01MP W2 / Unit 201 after external RS-485 ownership",
-      "priority": "high",
-      "lifecycle": "blocked",
-      "evidence": {}
-    },
-    {
-      "issue": 444,
-      "title": "Restore LOCAL_LAN user administration API availability",
-      "priority": "critical",
-      "lifecycle": "needs_validation",
-      "evidence": {}
-    },
-    {
-      "issue": 245,
-      "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
-      "priority": "critical",
-      "lifecycle": "needs_validation",
-      "evidence": {}
-    },
-    {
-      "issue": 200,
-      "title": "Verify the physical RS-485 topology and portable polling envelope",
-      "priority": "high",
-      "lifecycle": "hardware_validation",
-      "evidence": {}
-    },
-    {
-      "issue": 201,
-      "title": "Validate LE-01MP cumulative energy, scale and rollover",
-      "priority": "high",
-      "lifecycle": "needs_validation",
-      "evidence": {}
-    },
-    {
-      "issue": 202,
-      "title": "Validate extended XJP60D semantics and firmware portability",
-      "priority": "high",
-      "lifecycle": "hardware_validation",
-      "evidence": {}
-    },
-    {
-      "issue": 189,
-      "title": "Prove backup, restore, rollback and power-loss recovery",
-      "priority": "high",
-      "lifecycle": "blocked",
-      "evidence": {}
-    },
-    {
-      "issue": 660,
-      "title": "Revalidate expiring CVE-2026-14456 OpenSSL QUIC exceptions",
-      "priority": "critical",
-      "lifecycle": "completed",
-      "branch": "chore/660-revalidate-openssl-quic-exception",
-      "evidence": {
-        "verified_head_sha": "f03aea0ba790c038b2f7a3d32f3f5fcb971bd005",
-        "pull_request": 661,
-        "checks": {
-          "core_ci": "PASS_32626031714",
-          "telemetry_service": "PASS_32626031687",
-          "container_supply_chain": "PASS_32626031695",
-          "merge_gate": "PASS",
-          "review_threads": "PASS_ZERO_UNRESOLVED",
-          "hardware_verification": "NOT_REQUIRED_SECURITY_POLICY_ONLY"
-        }
-      }
+      "lifecycle": "review",
+      "depends_on": [],
+      "branch": "feat/415-canonical-left-drag-pan"
     }
   ],
   "maintenance_actions": [
@@ -294,7 +47,7 @@
       "status": "renewed",
       "due_on": "2026-08-30",
       "owner": "platform-security",
-      "rule": "Fresh run 32625474615 still reports the four exact HIGH/no-fix tuples; remove earlier if Debian publishes a supported fixed Trixie package, the findings disappear, QUIC runtime reachability changes, or severity becomes Critical."
+      "rule": "Final PR #661 exact-head Container Supply Chain run 32626324921 retained only the four exact HIGH/no-fix CVE-2026-14456 tuples through 2026-08-30; remove earlier if Debian publishes a supported fixed Trixie package, the findings disappear, QUIC runtime reachability changes, or severity becomes Critical."
     }
   ],
   "observations": [
@@ -386,6 +139,26 @@
         "issue": 589,
         "pull_request": 656,
         "merge_sha": "24d6d039fb11366ab589ec3cb039e76bb7e565d7"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-23T08:14:30Z",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 615,
+        "pull_request": 658,
+        "merge_sha": "4f76c3683a5a6e47d1a1115c9caa20989d28f8ee"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-23T08:14:30Z",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 660,
+        "pull_request": 661,
+        "merge_sha": "9b4a2cf73febc78c63d1b9c05a000826923ed6a0"
       }
     }
   ],
