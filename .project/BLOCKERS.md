@@ -2,11 +2,13 @@
 
 Updated: 2026-08-23
 
-## Issue #615 — no hard blocker
+## Issue #615 — implementation verified, final state-head pending
 
-Issue #615 is active in `fix/615-dashboard-compose-project-name` and is repository-only. The defect is isolated to the authenticated-dashboard acceptance runner's generated Docker Compose project name.
+Issue #615 is software/tooling-complete in PR #658. Verified head `107935b7ab08ca48878b73603a6d1a9e683985f0` passed Core CI, the three focused project-name regression tests, Authenticated Dashboard Acceptance without a manual Compose project-name override and `NEXOLAB Merge Gate`; unresolved review threads are zero.
 
-No Raspberry Pi access, secrets, product-runtime mutation, Modbus operation, hardware action or site cutover is required. Verification can proceed through dependency-free tests and GitHub exact-head acceptance/CI.
+There is no product/software hard blocker. Only the final state-recording head must repeat its exact-head checks before merge.
+
+No Raspberry Pi access, secrets, product-runtime mutation, Modbus operation, hardware action or site cutover is required for this tooling-only Work Package.
 
 ## Issue #590 — software completed, hardware evidence pending
 
