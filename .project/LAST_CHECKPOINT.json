@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "CHART-RELIABILITY-1",
-  "timestamp": "2026-08-23T10:17:13Z",
+  "timestamp": "2026-08-23T10:44:18Z",
   "actor": "ChatGPT",
-  "event": "issue_415_final_inspector_resume_candidate",
+  "event": "issue_415_mouseup_ordering_candidate",
   "baselines": {
     "accepted_product_sha": "286a219611f95413b5580d8099a7c5665416d1ad",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
@@ -19,7 +19,7 @@
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Exact head 170e3100 proved the interaction-domain product fix: Core Quality/Build and Offline Bundle were GREEN, Refrigeration Browser was GREEN, and Authenticated Dashboard reached the post-pan Inspector-resume assertion after passing domain shift and constant-span checks. The remaining failure was an E2E measurement error comparing timestamps at different pixel coordinates after pan. The test now verifies Inspector resumption by moving between two separated points within the already-panned viewport. Local touched ESLint, Prettier, diff-check and focused Playwright discovery are GREEN. Commit/push this final test-only correction, rerun exact-head PR workflows, and merge #662 only if Authenticated Dashboard, Core Merge Gate, Offline Bundle and browser gates are GREEN.",
+  "next_action": "Exact head f42ddaf6 passed Core Quality/Build, Offline Bundle and Refrigeration Browser but Authenticated Dashboard run 32633359416 failed only the post-pan Exact Inspector resume assertion after domain shift and constant-span checks had passed. Production trace plus installed ECharts RoamController source identified the race: NEXOLAB handled window mouseup in capture phase before ECharts/ZRender cleared its native dragging state; subsequent renderer mousemove could remain propagation-stopped. The candidate moves only the NEXOLAB window mouseup listener to bubble phase so renderer release completes before the final React x-domain commit, with a unit regression proving renderer mouseup precedes onXDomainChange. Local adapter tests 11/11, chart slice 59/59, touched ESLint, full TypeScript, Prettier, State Model and diff-check are GREEN. Commit/push and require exact-head Authenticated Dashboard, Core, Offline Bundle, Refrigeration Browser and Merge Gate GREEN before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -401,7 +401,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.container.addEventListener("mousedown", this.handleContainerMouseDown, true);
     this.container.addEventListener("mousemove", this.handleContainerPointer);
     this.container.addEventListener("mouseleave", this.handleContainerLeave);
-    this.container.ownerDocument.defaultView?.addEventListener("mouseup", this.handleWindowMouseUp, true);
+    this.container.ownerDocument.defaultView?.addEventListener("mouseup", this.handleWindowMouseUp);
   }
 
   setScene(scene: ChartRendererScene): void {
@@ -488,7 +488,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.container?.removeEventListener("mousedown", this.handleContainerMouseDown, true);
     this.container?.removeEventListener("mousemove", this.handleContainerPointer);
     this.container?.removeEventListener("mouseleave", this.handleContainerLeave);
-    this.container?.ownerDocument.defaultView?.removeEventListener("mouseup", this.handleWindowMouseUp, true);
+    this.container?.ownerDocument.defaultView?.removeEventListener("mouseup", this.handleWindowMouseUp);
     this.primaryDragActive = false;
     this.primaryDragBaseDomain = null;
     this.pendingPrimaryDragDomain = null;

@@ -268,6 +268,52 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.dispose();
   });
 
+  it("commits the pending primary-drag domain after renderer mouseup bubbling completes", () => {
+    const instance = new FakeEChartsInstance();
+    let rendererReleased = false;
+    const onXDomainChange = vi.fn(() => {
+      expect(rendererReleased).toBe(true);
+    });
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = createBenchmarkScene(1);
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 320,
+      bottom: 200,
+      width: 320,
+      height: 200,
+      toJSON: () => ({}),
+    });
+    container.addEventListener("mouseup", () => {
+      rendererReleased = true;
+    });
+    adapter.initialize({
+      container,
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor: vi.fn(),
+      onXDomainChange,
+    });
+    adapter.setScene(scene);
+
+    container.dispatchEvent(
+      new MouseEvent("mousedown", { button: 0, clientX: 20, clientY: 120, bubbles: true }),
+    );
+    instance.handlers.get("dataZoom")?.({ start: 20, end: 80 });
+    expect(onXDomainChange).not.toHaveBeenCalled();
+
+    container.dispatchEvent(new MouseEvent("mouseup", { button: 0, bubbles: true }));
+    expect(onXDomainChange).toHaveBeenCalledTimes(1);
+
+    adapter.dispose();
+    container.remove();
+  });
+
   it("keeps a constant pan span against the stable interaction domain after zoom", () => {
     const instance = new FakeEChartsInstance();
     const onXDomainChange = vi.fn();
