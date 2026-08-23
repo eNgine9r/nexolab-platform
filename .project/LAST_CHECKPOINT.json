@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "CHART-RELIABILITY-1",
-  "timestamp": "2026-08-23T09:59:06Z",
+  "timestamp": "2026-08-23T10:17:13Z",
   "actor": "ChatGPT",
-  "event": "issue_415_stable_value_domain_candidate",
+  "event": "issue_415_final_inspector_resume_candidate",
   "baselines": {
     "accepted_product_sha": "286a219611f95413b5580d8099a7c5665416d1ad",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
@@ -19,7 +19,7 @@
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Exact heads 3dd11fa7 and dbba0f84 proved native left-drag changed the visible domain but also changed its span because scene.xDomain was both viewport and dataZoom base. The new candidate separates interactionDomain (reset/base window) from visible xDomain, uses ECharts value-mode startValue/endValue, preserves the interaction base across synchronized consumers, and retains deferred drag commit. Local chart tests 58/58, touched ESLint, full TypeScript, Prettier, State Model, and diff-check are GREEN. Commit/push, then rerun exact-head Core CI, Offline Bundle, Refrigeration Browser Acceptance, and manual Authenticated Dashboard Acceptance; merge only if the live-chart-system pan span, inspector, reset, zero-history, and zero-acquisition assertions all pass.",
+  "next_action": "Exact head 170e3100 proved the interaction-domain product fix: Core Quality/Build and Offline Bundle were GREEN, Refrigeration Browser was GREEN, and Authenticated Dashboard reached the post-pan Inspector-resume assertion after passing domain shift and constant-span checks. The remaining failure was an E2E measurement error comparing timestamps at different pixel coordinates after pan. The test now verifies Inspector resumption by moving between two separated points within the already-panned viewport. Local touched ESLint, Prettier, diff-check and focused Playwright discovery are GREEN. Commit/push this final test-only correction, rerun exact-head PR workflows, and merge #662 only if Authenticated Dashboard, Core Merge Gate, Offline Bundle and browser gates are GREEN.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

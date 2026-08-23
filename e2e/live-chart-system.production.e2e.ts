@@ -330,8 +330,12 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
       x: equipmentBox.x + equipmentBox.width * 0.72,
       y: equipmentBox.y + equipmentBox.height * 0.5,
     };
-    const resumeProbe = {
-      x: equipmentBox.x + equipmentBox.width * 0.58,
+    const resumeProbeLeft = {
+      x: equipmentBox.x + equipmentBox.width * 0.3,
+      y: panProbe.y,
+    };
+    const resumeProbeRight = {
+      x: equipmentBox.x + equipmentBox.width * 0.82,
       y: panProbe.y,
     };
     const readDomain = () =>
@@ -386,10 +390,13 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     const pannedSpan = pannedDomain.toMs - pannedDomain.fromMs;
     expect(Math.abs(pannedSpan - zoomedSpan)).toBeLessThan(zoomedSpan * 0.02);
 
-    await page.mouse.move(resumeProbe.x, resumeProbe.y);
+    await page.mouse.move(resumeProbeLeft.x, resumeProbeLeft.y);
+    const resumedInspectorTimestamp = (await inspectorTimestamp.textContent())?.trim();
+    expect(resumedInspectorTimestamp).toBeTruthy();
+    await page.mouse.move(resumeProbeRight.x, resumeProbeRight.y);
     await expect
       .poll(async () => (await inspectorTimestamp.textContent())?.trim())
-      .not.toBe(inspectorTimestampBeforePan);
+      .not.toBe(resumedInspectorTimestamp);
 
     await page.getByRole("button", { name: "Reset zoom" }).click();
     await expect.poll(readDomain).toEqual(initialDomain);
