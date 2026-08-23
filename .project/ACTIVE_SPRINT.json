@@ -19,11 +19,15 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "24d6d039fb11366ab589ec3cb039e76bb7e565d7",
+    "accepted_product_sha": "286a219611f95413b5580d8099a7c5665416d1ad",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 615,
+      "title": "Fix authenticated dashboard acceptance Compose project-name generation",
+      "branch": "fix/615-dashboard-compose-project-name"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -198,6 +202,14 @@
           "hardware_verification": "UNVERIFIED_PI_OFFLINE"
         }
       }
+    },
+    {
+      "issue": 615,
+      "title": "Fix authenticated dashboard acceptance Compose project-name generation",
+      "priority": "medium",
+      "lifecycle": "in_progress",
+      "branch": "fix/615-dashboard-compose-project-name",
+      "evidence": {}
     },
     {
       "issue": 585,
