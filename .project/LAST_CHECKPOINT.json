@@ -3,7 +3,7 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-23T00:22:30Z",
+  "timestamp": "2026-08-23T00:27:00Z",
   "actor": "ChatGPT",
   "event": "issue_615_compose_project_name_candidate",
   "baselines": {
@@ -18,19 +18,18 @@
   "evidence_snapshot": {
     "issue_590": {
       "pull_request": 657,
-      "merge_sha": "286a219611f95413b5580d8099a7c5665416d1ad",
       "status": "GREEN_MERGED",
       "hardware_verification": "UNVERIFIED_REMOTE_PI_OFFLINE"
     },
     "issue_615": {
-      "status": "IMPLEMENTATION_CANDIDATE_PRE_PR",
+      "status": "IMPLEMENTATION_CANDIDATE_PR_658",
       "root_cause": "default RUN_SUFFIX contained uppercase T/Z characters rejected by current Docker Compose project-name validation",
       "candidate": {
         "generated_suffix": "%Y%m%dt%H%M%Sz-PID",
         "explicit_override_preserved": true,
         "dependency_free_regression_test": "tests/test_ci_authenticated_dashboard_compose_project_name.py"
       },
-      "checks": "NOT_YET_EXECUTED",
+      "targeted_ci_tests": "PASS_3_OF_3_ON_PRIOR_HEAD_C38CD4DE",
       "runtime_change": "NONE_ACCEPTANCE_TOOLING_ONLY",
       "hardware_verification": "NOT_REQUIRED"
     },
@@ -56,7 +55,7 @@
       }
     }
   ],
-  "next_action": "Remove the runner EOF-only diff artifact, run targeted project-name and shell checks through exact-head CI, open one focused PR for Issue #615, require Authenticated Dashboard Acceptance and NEXOLAB Merge Gate GREEN, then record exact-head evidence and merge only while GREEN.",
+  "next_action": "Verify the repaired exact PR head through State Model v2/Core CI and Authenticated Dashboard Acceptance, resolve any exact-head failure narrowly, then record final Issue #615 evidence and merge PR #658 only after NEXOLAB Merge Gate is GREEN.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
