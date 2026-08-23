@@ -23,7 +23,11 @@
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 660,
+      "title": "Revalidate expiring CVE-2026-14456 OpenSSL QUIC exceptions",
+      "branch": "chore/660-revalidate-openssl-quic-exception"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -265,6 +269,14 @@
       "title": "Prove backup, restore, rollback and power-loss recovery",
       "priority": "high",
       "lifecycle": "blocked",
+      "evidence": {}
+    },
+    {
+      "issue": 660,
+      "title": "Revalidate expiring CVE-2026-14456 OpenSSL QUIC exceptions",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "branch": "chore/660-revalidate-openssl-quic-exception",
       "evidence": {}
     }
   ],
