@@ -9,7 +9,9 @@ import { SecurityGate } from "@/components/dashboard/security-gate";
 import { SensorManagementDialog } from "@/components/dashboard/sensor-management-dialog";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
+import { AcquisitionCadencePanel } from "@/components/settings/acquisition-cadence-panel";
 import { SettingsWorkspace } from "@/components/settings/settings-workspace";
+import { useAcquisitionCadence } from "@/features/acquisition/use-acquisition-cadence";
 import {
   buildSettingsRuntimeDiagnostics,
   readSettingsRuntimeInput,
@@ -79,6 +81,10 @@ export function SettingsScreen() {
     enabled: securityReady,
     organizationId,
   });
+  const acquisitionCadence = useAcquisitionCadence({
+    enabled: securityReady,
+    organizationId,
+  });
   const browserOrigin = useSyncExternalStore(
     subscribeBrowserOrigin,
     readBrowserOrigin,
@@ -127,6 +133,7 @@ export function SettingsScreen() {
   }
 
   const canManageSensorMonitoring = security.membership.permissions.includes("equipment.manage");
+  const canManageAcquisitionCadence = security.membership.permissions.includes("equipment.manage");
   const sensorMonitoringReady = sensorMonitoring.configuration !== null && !sensorMonitoring.isLoading;
 
   return (
@@ -153,6 +160,10 @@ export function SettingsScreen() {
           <div className="pointer-events-none absolute -top-40 -right-24 h-[420px] w-[420px] rounded-full bg-blue-500/[0.07] blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-cyan-400/[0.035] blur-3xl" />
           <div className="relative mx-auto max-w-[1900px]">
+            <AcquisitionCadencePanel
+              controller={acquisitionCadence}
+              canManage={canManageAcquisitionCadence}
+            />
             <SettingsWorkspace
               session={security.session}
               membership={security.membership}

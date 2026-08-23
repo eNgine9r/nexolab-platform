@@ -3,42 +3,31 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-22T16:37:00Z",
+  "timestamp": "2026-08-23T00:05:25Z",
   "actor": "ChatGPT",
-  "event": "issue_589_persisted_cadence_candidate_pre_pr",
+  "event": "issue_590_exact_head_verified_awaiting_merge",
   "baselines": {
-    "accepted_product_sha": "61aeaa430075d4caa5d7164cae2866fcabc57108",
+    "accepted_product_sha": "24d6d039fb11366ab589ec3cb039e76bb7e565d7",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
   },
-  "active_work": {
-    "issue": 589,
-    "title": "Add persistent device-scoped acquisition cadence with RS-485 capacity validation",
-    "branch": "feat/589-persisted-acquisition-cadence"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "issue_607": {
-      "pull_request": 653,
-      "verified_head_sha": "4889bae7d942be407d5df1412daae2cbf7c9a2ae",
+    "issue_590": {
+      "pull_request": 657,
+      "verified_head_sha": "b4b8608d82e90844ae9905c60b083232e68ef689",
+      "status": "SOFTWARE_COMPLETE_AWAITING_STATE_ONLY_GATE_AND_MERGE",
       "checks": {
-        "core_ci": "PASS_32576635748",
-        "device_agent_fleet": "PASS_32576635775",
-        "edge_image": "PASS_32576635778",
-        "offline_bundle": "PASS_32576635742",
-        "authenticated_dashboard": "PASS_32576635799",
-        "mqtt_tls_fleet": "PASS_32576635745",
-        "disaster_recovery_tls_fleet": "PASS_32576635744",
-        "container_supply_chain": "PASS_32576635747",
+        "core_ci": "PASS_32606407885",
+        "acquisition_scale_acceptance": "PASS_32606407863",
+        "refrigeration_browser_acceptance": "PASS_32606407879",
+        "authenticated_dashboard": "PASS_32606407875",
+        "offline_bundle": "PASS_32606407871",
         "merge_gate": "PASS",
         "review_threads": "PASS_ZERO_UNRESOLVED"
       },
-      "hardware_verification": "UNVERIFIED_REMOTE_PI_OFFLINE"
-    },
-    "issue_589": {
-      "status": "IMPLEMENTATION_CANDIDATE_PRE_PR",
-      "architecture": "Acquisition Registry schema v2 owns durable device cadence; adaptive scheduler consumes persisted intervals; per-bus capacity validation rejects unsafe cadence or newly eligible polling before SQLite commit.",
-      "targeted_test_coverage": "ADDED_NOT_YET_EXECUTED",
+      "runtime_offline_evidence": "PASS_BLOCKED_EGRESS_PULL_DISABLED_STARTUP_AND_PERSISTENCE_PRESERVING_UPDATE_ROLLBACK",
       "hardware_verification": "UNVERIFIED_REMOTE_PI_OFFLINE",
-      "safety": "READ_ONLY_NO_HARDWARE_CUTOVER"
+      "safety": "READ_ONLY_MODBUS_BOUNDARY_NO_HARDWARE_CUTOVER"
     },
     "maintenance_actions": [
       {
@@ -46,24 +35,23 @@
         "title": "Review/remove CVE-2026-14456 temporary exceptions",
         "status": "due",
         "due_on": "2026-08-26",
-        "owner": "platform-security",
-        "rule": "Remove earlier if Debian publishes a fixed package or QUIC runtime reachability changes."
+        "owner": "platform-security"
       }
     ]
   },
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-08-22T16:37:00Z",
+      "observed_at": "2026-08-22T16:57:46Z",
       "kind": "historical_merge",
       "data": {
-        "issue": 607,
-        "pull_request": 653,
-        "merge_sha": "61aeaa430075d4caa5d7164cae2866fcabc57108"
+        "issue": 589,
+        "pull_request": 656,
+        "merge_sha": "24d6d039fb11366ab589ec3cb039e76bb7e565d7"
       }
     }
   ],
-  "next_action": "Audit the exact Issue #589 diff against main, validate State Model v2 and scope, open one focused PR, then require Device Agent unit/compile, Acquisition Scale, Core, offline and every other exact-head path-triggered workflow plus NEXOLAB Merge Gate to pass before merge while keeping Raspberry Pi hardware acceptance explicitly unverified.",
+  "next_action": "Verify the final state-only PR head through State Model v2 fast-lane CI and NEXOLAB Merge Gate, then merge PR #657 only while GREEN and perform the post-merge delta Ready audit; keep Raspberry Pi hardware acceptance explicitly unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
