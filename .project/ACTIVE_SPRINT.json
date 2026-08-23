@@ -23,13 +23,13 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 667,
-      "title": "Reconcile CVE-2026-14456 lifecycle date after #660 renewal",
-      "branch": "chore/667-cve-lifecycle-reconcile"
+      "issue": 669,
+      "title": "Reconcile #444 acceptance and advance PRODUCTION-READINESS-1 to #245",
+      "branch": "chore/669-production-readiness-state"
     },
     "next_work_package": {
-      "issue": 444,
-      "title": "Restore LOCAL_LAN user administration API availability"
+      "issue": 245,
+      "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback"
     }
   },
   "work_packages": [
@@ -53,9 +53,19 @@
       "issue": 444,
       "title": "Restore LOCAL_LAN user administration API availability",
       "priority": "critical",
-      "lifecycle": "needs_validation",
+      "lifecycle": "completed",
       "depends_on": [],
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "efd190a70309039d498e2a9bab2cf47c3598e8b7",
+        "pull_request": 501,
+        "checks": {
+          "software_matrix": "success",
+          "local_lan_admin_list": "success",
+          "local_lan_user_create": "success",
+          "local_lan_user_login": "success",
+          "non_admin_forbidden_contract": "success"
+        }
+      }
     },
     {
       "issue": 245,
@@ -124,8 +134,24 @@
       "issue": 667,
       "title": "Reconcile CVE-2026-14456 lifecycle date after #660 renewal",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "chore/667-cve-lifecycle-reconcile",
+      "evidence": {
+        "verified_head_sha": "eee92a0e9b0e33c6d19a498046894b8319689117",
+        "pull_request": 668,
+        "checks": {
+          "core_quality_build": "success",
+          "telemetry_service": "success",
+          "nexolab_merge_gate": "success"
+        }
+      }
+    },
+    {
+      "issue": 669,
+      "title": "Reconcile #444 acceptance and advance PRODUCTION-READINESS-1 to #245",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "chore/669-production-readiness-state",
       "evidence": {}
     }
   ],
@@ -282,6 +308,16 @@
         "allow_deletions": false,
         "enforce_admins": false,
         "required_status_check": "NEXOLAB Merge Gate"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-23T16:13:48Z",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 667,
+        "pull_request": 668,
+        "merge_sha": "1402b91b4941386e74fbbd0c00fc53650de2a40d"
       }
     }
   ],
