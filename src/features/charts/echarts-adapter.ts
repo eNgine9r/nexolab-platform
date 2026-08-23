@@ -323,7 +323,6 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   private primaryDragActive = false;
   private primaryDragBaseDomain: ChartRendererScene["xDomain"] | null = null;
   private pendingPrimaryDragDomain: ChartRendererScene["xDomain"] | null = null;
-  private nativePointerEventActive = false;
 
   constructor(private readonly runtime: EChartsRuntimePort = defaultRuntime) {}
 
@@ -359,11 +358,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       this.options?.onCursor(null);
       return;
     }
-    this.nativePointerEventActive = true;
-    queueMicrotask(() => {
-      this.nativePointerEventActive = false;
-    });
-    const converted = this.instance.convertFromPixel({ xAxisIndex: 0 }, pixel);
+    const converted = this.instance.convertFromPixel({ gridIndex: 0 }, pixel);
     const timestampMs = Array.isArray(converted) ? Number(converted[0]) : Number(converted);
     if (!Number.isFinite(timestampMs)) return;
     this.options?.onCursor(inspectChartAtTimestamp(this.scene, timestampMs));
@@ -374,7 +369,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   };
 
   private readonly handleAxisPointer = (event: unknown) => {
-    if (!this.scene || this.primaryDragActive || this.nativePointerEventActive) return;
+    if (!this.scene || this.primaryDragActive) return;
     const timestampMs = axisPointerTimestamp(event);
     if (timestampMs === null) return;
     this.options?.onCursor(inspectChartAtTimestamp(this.scene, timestampMs));
@@ -404,9 +399,9 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.instance.on("updateAxisPointer", this.handleAxisPointer);
     this.instance.on("dataZoom", this.handleDataZoom);
     this.container.addEventListener("mousedown", this.handleContainerMouseDown, true);
-    this.container.addEventListener("mousemove", this.handleContainerPointer, true);
+    this.container.addEventListener("mousemove", this.handleContainerPointer);
     this.container.addEventListener("mouseleave", this.handleContainerLeave);
-    this.container.ownerDocument.defaultView?.addEventListener("mouseup", this.handleWindowMouseUp);
+    this.container.ownerDocument.defaultView?.addEventListener("mouseup", this.handleWindowMouseUp, true);
   }
 
   setScene(scene: ChartRendererScene): void {
@@ -491,13 +486,12 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.instance.off("updateAxisPointer", this.handleAxisPointer);
     this.instance.off("dataZoom", this.handleDataZoom);
     this.container?.removeEventListener("mousedown", this.handleContainerMouseDown, true);
-    this.container?.removeEventListener("mousemove", this.handleContainerPointer, true);
+    this.container?.removeEventListener("mousemove", this.handleContainerPointer);
     this.container?.removeEventListener("mouseleave", this.handleContainerLeave);
-    this.container?.ownerDocument.defaultView?.removeEventListener("mouseup", this.handleWindowMouseUp);
+    this.container?.ownerDocument.defaultView?.removeEventListener("mouseup", this.handleWindowMouseUp, true);
     this.primaryDragActive = false;
     this.primaryDragBaseDomain = null;
     this.pendingPrimaryDragDomain = null;
-    this.nativePointerEventActive = false;
     this.instance.dispose();
     this.instance = null;
     this.container = null;
