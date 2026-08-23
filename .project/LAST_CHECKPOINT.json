@@ -2,20 +2,24 @@
   "schema_version": 2,
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
-  "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-23T07:41:30Z",
+  "sprint": "CHART-RELIABILITY-1",
+  "timestamp": "2026-08-23T12:19:55Z",
   "actor": "ChatGPT",
-  "event": "issue_660_exact_head_verified_awaiting_merge",
+  "event": "issue_415_nearest_sample_resume_candidate",
   "baselines": {
     "accepted_product_sha": "286a219611f95413b5580d8099a7c5665416d1ad",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 415,
+    "title": "Add left-button drag panning to canonical NEXOLAB charts",
+    "branch": "feat/415-canonical-left-drag-pan"
+  },
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Verify the final state-recording PR head through exact-head Core CI, Telemetry Service, Container Supply Chain and NEXOLAB Merge Gate; if GREEN with zero unresolved review threads, squash-merge PR #661, then perform the post-merge Ready audit.",
+  "next_action": "Push focused candidate: preserve ECharts updateAxisPointer nearest-sample inspection, use data-bearing resume probes, then trust only exact-head Authenticated Dashboard plus required merge gates.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

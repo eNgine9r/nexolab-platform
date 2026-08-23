@@ -55,6 +55,7 @@ export function DashboardChartPanel({
           // Rolling display refreshes must preserve the mounted Canvas without animated blank transitions.
           reducedMotion
           sharedCursorMs={sharedCursorMs}
+          interactionDomain={resetDomain}
           onCursor={(nextInspection) => {
             setInspection(nextInspection);
             onSharedCursorChange(nextInspection?.timestampMs ?? null);

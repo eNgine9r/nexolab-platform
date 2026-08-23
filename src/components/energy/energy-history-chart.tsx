@@ -108,6 +108,7 @@ export function EnergyHistoryChart({
           scene={scene}
           reducedMotion
           sharedCursorMs={sharedCursorMs}
+          interactionDomain={baseScene.xDomain}
           onCursor={(nextInspection) => {
             setInspection(nextInspection);
             setSharedCursorMs(nextInspection?.timestampMs ?? null);

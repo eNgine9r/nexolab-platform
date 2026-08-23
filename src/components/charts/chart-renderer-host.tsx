@@ -12,6 +12,7 @@ export function ChartRendererHost({
   renderer = "canvas",
   reducedMotion = false,
   sharedCursorMs = null,
+  interactionDomain = scene.xDomain,
   onCursor,
   onXDomainChange,
 }: {
@@ -20,6 +21,7 @@ export function ChartRendererHost({
   renderer?: "canvas" | "svg";
   reducedMotion?: boolean;
   sharedCursorMs?: number | null;
+  interactionDomain?: ChartXDomain;
   onCursor: (inspection: ChartCursorInspection | null) => void;
   onXDomainChange: (domain: ChartXDomain) => void;
 }) {
@@ -50,8 +52,8 @@ export function ChartRendererHost({
   }, [adapter, reducedMotion, renderer]);
 
   useEffect(() => {
-    if (!adapter.isDisposed()) adapter.setScene(scene);
-  }, [adapter, scene]);
+    if (!adapter.isDisposed()) adapter.setScene({ ...scene, interactionDomain });
+  }, [adapter, interactionDomain, scene]);
 
   useEffect(() => {
     if (!adapter.isDisposed()) adapter.setSharedCursor(sharedCursorMs);
@@ -85,6 +87,8 @@ export function ChartRendererHost({
     <div
       className="h-[320px] min-h-64 w-full min-w-0"
       data-testid="chart-renderer-host"
+      data-chart-x-domain-from-ms={scene.xDomain.fromMs}
+      data-chart-x-domain-to-ms={scene.xDomain.toMs}
       role="application"
       aria-label="Interactive telemetry plot"
       aria-keyshortcuts="ArrowLeft ArrowRight Home End Escape"
