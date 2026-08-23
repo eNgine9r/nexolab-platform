@@ -235,14 +235,27 @@ describe("ECharts renderer adapter lifecycle", () => {
     expect(onCursor).toHaveBeenCalledTimes(callsBeforeDrag);
 
     instance.handlers.get("dataZoom")?.({ start: 10, end: 90 });
-    expect(onXDomainChange).toHaveBeenCalledTimes(1);
+    instance.handlers.get("dataZoom")?.({ start: 20, end: 100 });
+    expect(onXDomainChange).not.toHaveBeenCalled();
 
+    const duration = scene.xDomain.toMs - scene.xDomain.fromMs;
     window.dispatchEvent(new MouseEvent("mouseup", { button: 0 }));
+    expect(onXDomainChange).toHaveBeenCalledTimes(1);
+    expect(onXDomainChange).toHaveBeenLastCalledWith({
+      fromMs: scene.xDomain.fromMs + duration * 0.2,
+      toMs: scene.xDomain.toMs,
+    });
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 80, clientY: 120 }));
     expect(onCursor).toHaveBeenCalledTimes(callsBeforeDrag + 1);
 
     container.dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: 80, clientY: 120 }));
+    instance.handlers.get("dataZoom")?.({ start: 30, end: 90 });
     container.dispatchEvent(new MouseEvent("mousemove", { buttons: 0, clientX: 90, clientY: 120 }));
+    expect(onXDomainChange).toHaveBeenCalledTimes(2);
+    expect(onXDomainChange).toHaveBeenLastCalledWith({
+      fromMs: scene.xDomain.fromMs + duration * 0.3,
+      toMs: scene.xDomain.fromMs + duration * 0.9,
+    });
     expect(onCursor).toHaveBeenCalledTimes(callsBeforeDrag + 2);
 
     container.dispatchEvent(new MouseEvent("mousedown", { button: 2, clientX: 90, clientY: 120 }));

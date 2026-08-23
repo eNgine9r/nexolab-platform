@@ -317,23 +317,36 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   private options: ChartRendererInitOptions | null = null;
   private maximumLivePoints = 240;
   private primaryDragActive = false;
+  private primaryDragBaseDomain: ChartRendererScene["xDomain"] | null = null;
+  private pendingPrimaryDragDomain: ChartRendererScene["xDomain"] | null = null;
 
   constructor(private readonly runtime: EChartsRuntimePort = defaultRuntime) {}
 
   private readonly handleContainerMouseDown = (event: MouseEvent) => {
-    if (event.button !== 0 || !this.instance || !this.container) return;
+    if (event.button !== 0 || !this.instance || !this.container || !this.scene) return;
     const bounds = this.container.getBoundingClientRect();
     const pixel: [number, number] = [event.clientX - bounds.left, event.clientY - bounds.top];
-    if (this.instance.containPixel({ gridIndex: 0 }, pixel)) this.primaryDragActive = true;
+    if (!this.instance.containPixel({ gridIndex: 0 }, pixel)) return;
+    this.primaryDragActive = true;
+    this.primaryDragBaseDomain = { ...this.scene.xDomain };
+    this.pendingPrimaryDragDomain = null;
   };
 
+  private finishPrimaryDrag(): void {
+    const pendingDomain = this.pendingPrimaryDragDomain;
+    this.primaryDragActive = false;
+    this.primaryDragBaseDomain = null;
+    this.pendingPrimaryDragDomain = null;
+    if (pendingDomain) this.options?.onXDomainChange(pendingDomain);
+  }
+
   private readonly handleWindowMouseUp = (event: MouseEvent) => {
-    if (event.button === 0) this.primaryDragActive = false;
+    if (event.button === 0) this.finishPrimaryDrag();
   };
 
   private readonly handleContainerPointer = (event: MouseEvent) => {
     if (!this.scene || !this.instance || !this.container) return;
-    if (this.primaryDragActive && (event.buttons & 1) === 0) this.primaryDragActive = false;
+    if (this.primaryDragActive && (event.buttons & 1) === 0) this.finishPrimaryDrag();
     if (this.primaryDragActive || (event.buttons & 1) === 1) return;
     const bounds = this.container.getBoundingClientRect();
     const pixel: [number, number] = [event.clientX - bounds.left, event.clientY - bounds.top];
@@ -360,8 +373,19 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
 
   private readonly handleDataZoom = (event: unknown) => {
     if (!this.scene) return;
-    const domain = zoomDomain(event, this.scene);
-    if (domain) this.options?.onXDomainChange(domain);
+    const interactionScene = this.primaryDragBaseDomain
+      ? { ...this.scene, xDomain: this.primaryDragBaseDomain }
+      : this.scene;
+    const domain = zoomDomain(event, interactionScene);
+    if (!domain) return;
+    if (this.primaryDragActive) {
+      // ECharts already renders the native pan while the pointer moves. Deferring the React
+      // domain callback until release avoids feeding each intermediate percentage range back
+      // through a newly narrowed x-axis, which would otherwise make the visible span drift.
+      this.pendingPrimaryDragDomain = domain;
+      return;
+    }
+    this.options?.onXDomainChange(domain);
   };
 
   initialize(options: ChartRendererInitOptions): void {
@@ -464,6 +488,8 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.container?.removeEventListener("mouseleave", this.handleContainerLeave);
     this.container?.ownerDocument.defaultView?.removeEventListener("mouseup", this.handleWindowMouseUp, true);
     this.primaryDragActive = false;
+    this.primaryDragBaseDomain = null;
+    this.pendingPrimaryDragDomain = null;
     this.instance.dispose();
     this.instance = null;
     this.container = null;
