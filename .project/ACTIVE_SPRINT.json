@@ -3,11 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": {
-    "id": "CHART-RELIABILITY-1",
-    "title": "Canonical chart interaction and reliability",
+    "id": "PRODUCTION-READINESS-1",
+    "title": "Production readiness and controlled acceptance",
     "status": "in_progress",
-    "started_at": "2026-08-23",
-    "epic_issue": 450
+    "started_at": "2026-08-23"
   },
   "execution_policy": {
     "autonomous": true,
@@ -24,28 +23,88 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 663,
-      "title": "Trigger authenticated chart acceptance for canonical Chart System changes",
-      "branch": "chore/663-authenticated-chart-acceptance-routing"
+      "issue": 665,
+      "title": "Start PRODUCTION-READINESS-1 after chart Sprint completion",
+      "branch": "chore/665-production-readiness-state"
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 444,
+      "title": "Restore LOCAL_LAN user administration API availability"
+    }
   },
   "work_packages": [
     {
-      "issue": 415,
-      "title": "Add left-button drag panning to canonical NEXOLAB charts",
-      "priority": "medium",
-      "lifecycle": "completed",
-      "depends_on": [],
-      "branch": "feat/415-canonical-left-drag-pan"
-    },
-    {
-      "issue": 663,
-      "title": "Trigger authenticated chart acceptance for canonical Chart System changes",
+      "issue": 665,
+      "title": "Start PRODUCTION-READINESS-1 after chart Sprint completion",
       "priority": "high",
       "lifecycle": "in_progress",
       "depends_on": [],
-      "branch": "chore/663-authenticated-chart-acceptance-routing"
+      "branch": "chore/665-production-readiness-state",
+      "evidence": {}
+    },
+    {
+      "issue": 444,
+      "title": "Restore LOCAL_LAN user administration API availability",
+      "priority": "critical",
+      "lifecycle": "needs_validation",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 245,
+      "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
+      "priority": "critical",
+      "lifecycle": "needs_validation",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 189,
+      "title": "Prove backup, restore, rollback and power-loss recovery",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 200,
+      "title": "Verify the physical RS-485 topology and portable polling envelope",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 201,
+      "title": "Validate LE-01MP cumulative energy, scale and rollover",
+      "priority": "high",
+      "lifecycle": "needs_validation",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 202,
+      "title": "Validate extended XJP60D semantics and firmware portability",
+      "priority": "high",
+      "lifecycle": "hardware_validation",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 585,
+      "title": "Return LE-01MP W2 / Unit 201 to NEXOLAB after temporary external RS-485 ownership",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "depends_on": [],
+      "evidence": {}
+    },
+    {
+      "issue": 646,
+      "title": "Add change-impact CI orchestration and protected main merge gate",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "depends_on": [],
+      "evidence": {}
     }
   ],
   "maintenance_actions": [
@@ -177,6 +236,16 @@
         "issue": 415,
         "pull_request": 662,
         "merge_sha": "42543dab5660902975c9eaaa734e30a026cc1e3b"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-23T14:25:28Z",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 663,
+        "pull_request": 664,
+        "merge_sha": "25abc7e4bcc9cd9718fc9359bbfb862695d6825b"
       }
     }
   ],
