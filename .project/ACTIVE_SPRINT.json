@@ -284,10 +284,10 @@
     {
       "source_issue": 598,
       "title": "Review/remove CVE-2026-14456 temporary exceptions",
-      "status": "due",
-      "due_on": "2026-08-26",
+      "status": "renewed",
+      "due_on": "2026-08-30",
       "owner": "platform-security",
-      "rule": "Remove earlier if Debian publishes a fixed package or QUIC runtime reachability changes."
+      "rule": "Fresh run 32625474615 still reports the four exact HIGH/no-fix tuples; remove earlier if Debian publishes a supported fixed Trixie package, the findings disappear, QUIC runtime reachability changes, or severity becomes Critical."
     }
   ],
   "observations": [
