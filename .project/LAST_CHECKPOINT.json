@@ -3,18 +3,14 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-23T00:27:00Z",
+  "timestamp": "2026-08-23T00:34:00Z",
   "actor": "ChatGPT",
-  "event": "issue_615_compose_project_name_candidate",
+  "event": "issue_615_exact_head_verified_awaiting_merge",
   "baselines": {
     "accepted_product_sha": "286a219611f95413b5580d8099a7c5665416d1ad",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
   },
-  "active_work": {
-    "issue": 615,
-    "title": "Fix authenticated dashboard acceptance Compose project-name generation",
-    "branch": "fix/615-dashboard-compose-project-name"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_590": {
       "pull_request": 657,
@@ -22,14 +18,17 @@
       "hardware_verification": "UNVERIFIED_REMOTE_PI_OFFLINE"
     },
     "issue_615": {
-      "status": "IMPLEMENTATION_CANDIDATE_PR_658",
+      "pull_request": 658,
+      "verified_head_sha": "107935b7ab08ca48878b73603a6d1a9e683985f0",
+      "status": "SOFTWARE_TOOLING_COMPLETE_AWAITING_FINAL_STATE_HEAD_AND_MERGE",
       "root_cause": "default RUN_SUFFIX contained uppercase T/Z characters rejected by current Docker Compose project-name validation",
-      "candidate": {
-        "generated_suffix": "%Y%m%dt%H%M%Sz-PID",
-        "explicit_override_preserved": true,
-        "dependency_free_regression_test": "tests/test_ci_authenticated_dashboard_compose_project_name.py"
+      "checks": {
+        "targeted_project_name_tests": "PASS_3_OF_3_CORE_32607900557",
+        "core_ci": "PASS_32607900557",
+        "authenticated_dashboard": "PASS_32607900561",
+        "merge_gate": "PASS",
+        "review_threads": "PASS_ZERO_UNRESOLVED"
       },
-      "targeted_ci_tests": "PASS_3_OF_3_ON_PRIOR_HEAD_C38CD4DE",
       "runtime_change": "NONE_ACCEPTANCE_TOOLING_ONLY",
       "hardware_verification": "NOT_REQUIRED"
     },
@@ -55,7 +54,7 @@
       }
     }
   ],
-  "next_action": "Verify the repaired exact PR head through State Model v2/Core CI and Authenticated Dashboard Acceptance, resolve any exact-head failure narrowly, then record final Issue #615 evidence and merge PR #658 only after NEXOLAB Merge Gate is GREEN.",
+  "next_action": "Verify the final state-recording PR head through exact-head Core CI, Authenticated Dashboard Acceptance and NEXOLAB Merge Gate; if all are GREEN and review threads remain zero, squash-merge PR #658 with expected-head locking, then perform the post-merge delta Ready audit.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
