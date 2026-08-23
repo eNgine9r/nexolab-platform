@@ -1,14 +1,12 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-22
+Updated: 2026-08-23
 
-## Issue #590 — no software hard blocker
+## Issue #590 — software complete, hardware evidence pending
 
-Issue #590 is active in `feat/590-settings-acquisition-cadence`.
+Issue #590 is software-complete in PR #657. Exact product head `b4b8608d82e90844ae9905c60b083232e68ef689` passed Core CI, Acquisition Scale Acceptance, Refrigeration Browser Acceptance, Authenticated Dashboard Acceptance, Offline Bundle and `NEXOLAB Merge Gate`; unresolved review threads are zero.
 
-The implementation is a Settings/control-plane integration over the completed #589 persisted cadence/capacity API. It can be verified repository-side without Raspberry Pi access, Modbus writes, hardware writes, site cutover, secrets, billing/DNS changes or an external runtime service.
-
-The browser must use the authenticated Next.js proxy only. Direct browser access to the Device Agent, direct Modbus/driver access, force/bypass controls and per-logical-channel physical cadence controls remain prohibited.
+The browser uses the authenticated Next.js proxy only. Direct browser access to the Device Agent, direct Modbus/driver access, force/bypass controls and per-logical-channel physical cadence controls remain prohibited.
 
 The Remote Desktop connector still reports `nexolab-edge-01` offline. This is a **soft hardware-evidence blocker** only. The UI may expose server-authoritative 10/30/60/Custom cadence controls, but it must not claim that a selected interval is physically accepted on KK1/KK2 until read-only evidence from the real Pi and intended adapters exists.
 

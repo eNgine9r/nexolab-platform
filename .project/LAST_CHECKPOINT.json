@@ -3,49 +3,29 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-22T17:41:00Z",
+  "timestamp": "2026-08-23T00:05:25Z",
   "actor": "ChatGPT",
-  "event": "issue_590_settings_cadence_candidate_pre_pr",
+  "event": "issue_590_exact_head_verified_awaiting_merge",
   "baselines": {
     "accepted_product_sha": "24d6d039fb11366ab589ec3cb039e76bb7e565d7",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
   },
-  "active_work": {
-    "issue": 590,
-    "title": "Add operator acquisition cadence controls to NEXOLAB Settings",
-    "branch": "feat/590-settings-acquisition-cadence"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "issue_589": {
-      "pull_request": 656,
-      "verified_head_sha": "69a6eff795bd275372dd2588ef56bd2bd1e12704",
+    "issue_590": {
+      "pull_request": 657,
+      "verified_head_sha": "b4b8608d82e90844ae9905c60b083232e68ef689",
+      "status": "SOFTWARE_COMPLETE_AWAITING_STATE_ONLY_GATE_AND_MERGE",
       "checks": {
-        "core_ci": "PASS_32585746454",
-        "acquisition_scale_acceptance": "PASS_32585746507",
-        "edge_image": "PASS_32585746469",
-        "device_agent_fleet": "PASS_32585746497",
-        "mqtt_tls_fleet": "PASS_32585746510",
-        "disaster_recovery_tls_fleet": "PASS_32585746501",
-        "telemetry_service": "PASS_32585746522",
-        "authenticated_dashboard": "PASS_32585746451",
-        "container_supply_chain": "PASS_32585746595",
-        "offline_bundle": "PASS_32585746509",
+        "core_ci": "PASS_32606407885",
+        "acquisition_scale_acceptance": "PASS_32606407863",
+        "refrigeration_browser_acceptance": "PASS_32606407879",
+        "authenticated_dashboard": "PASS_32606407875",
+        "offline_bundle": "PASS_32606407871",
         "merge_gate": "PASS",
         "review_threads": "PASS_ZERO_UNRESOLVED"
       },
-      "hardware_verification": "UNVERIFIED_REMOTE_PI_OFFLINE"
-    },
-    "issue_590": {
-      "status": "IMPLEMENTATION_CANDIDATE_PRE_PR",
-      "architecture": "Settings uses an authenticated Next.js loopback proxy over the completed Issue #589 cadence API; browser state is never authoritative and no direct browser-to-Device-Agent or Modbus path exists.",
-      "candidate": {
-        "proxy": "GET dashboard.read / PUT equipment.manage with organization-scoped actor propagation",
-        "ui": "physical polling panel with 10/30/60/Custom family defaults and physical-device inherited overrides",
-        "validation": "client minimum mirror plus server-authoritative 409 revision conflict and 422 capacity rejection",
-        "canonical_reread": true,
-        "browser_acceptance": "settings.production.e2e.ts covers viewer read-only state plus engineer safe mutation, reload persistence, unsafe-capacity rejection and stale-revision conflict through the authenticated loopback proxy fixture"
-      },
-      "targeted_test_coverage": "ADDED_NOT_YET_EXECUTED",
+      "runtime_offline_evidence": "PASS_BLOCKED_EGRESS_PULL_DISABLED_STARTUP_AND_PERSISTENCE_PRESERVING_UPDATE_ROLLBACK",
       "hardware_verification": "UNVERIFIED_REMOTE_PI_OFFLINE",
       "safety": "READ_ONLY_MODBUS_BOUNDARY_NO_HARDWARE_CUTOVER"
     },
@@ -55,8 +35,7 @@
         "title": "Review/remove CVE-2026-14456 temporary exceptions",
         "status": "due",
         "due_on": "2026-08-26",
-        "owner": "platform-security",
-        "rule": "Remove earlier if Debian publishes a fixed package or QUIC runtime reachability changes."
+        "owner": "platform-security"
       }
     ]
   },
@@ -72,7 +51,7 @@
       }
     }
   ],
-  "next_action": "Audit exact Issue #590 diff and State Model v2, open one focused PR, then require route/client/component tests, production Settings browser acceptance, acquisition invariant, Core quality/build, Offline Bundle and every other exact-head path-triggered workflow plus NEXOLAB Merge Gate to pass before merge; keep Raspberry Pi hardware acceptance explicitly unverified.",
+  "next_action": "Verify the final state-only PR head through State Model v2 fast-lane CI and NEXOLAB Merge Gate, then merge PR #657 only while GREEN and perform the post-merge delta Ready audit; keep Raspberry Pi hardware acceptance explicitly unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
