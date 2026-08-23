@@ -358,7 +358,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       this.options?.onCursor(null);
       return;
     }
-    const converted = this.instance.convertFromPixel({ gridIndex: 0 }, pixel);
+    const converted = this.instance.convertFromPixel({ xAxisIndex: 0 }, pixel);
     const timestampMs = Array.isArray(converted) ? Number(converted[0]) : Number(converted);
     if (!Number.isFinite(timestampMs)) return;
     this.options?.onCursor(inspectChartAtTimestamp(this.scene, timestampMs));

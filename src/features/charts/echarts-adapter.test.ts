@@ -171,7 +171,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.setScene(scene);
 
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 0, clientY: 120 }));
-    expect(instance.convertFinders.at(-1)).toEqual({ gridIndex: 0 });
+    expect(instance.convertFinders.at(-1)).toEqual({ xAxisIndex: 0 });
     expect(onCursor).toHaveBeenCalledWith({
       timestampMs: BENCHMARK_START_MS,
       series: scene.series.map((series) => ({

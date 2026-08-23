@@ -331,11 +331,11 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
       y: equipmentBox.y + equipmentBox.height * 0.5,
     };
     const resumeProbeLeft = {
-      x: equipmentBox.x + equipmentBox.width * 0.3,
+      x: equipmentBox.x + equipmentBox.width * 0.82,
       y: panProbe.y,
     };
     const resumeProbeRight = {
-      x: equipmentBox.x + equipmentBox.width * 0.82,
+      x: equipmentBox.x + equipmentBox.width * 0.9,
       y: panProbe.y,
     };
     const readDomain = () =>

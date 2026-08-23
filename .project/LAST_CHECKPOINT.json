@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "CHART-RELIABILITY-1",
-  "timestamp": "2026-08-23T11:44:30Z",
+  "timestamp": "2026-08-23T12:19:55Z",
   "actor": "ChatGPT",
-  "event": "issue_415_correct_echarts_pixel_finder_candidate",
+  "event": "issue_415_nearest_sample_resume_candidate",
   "baselines": {
     "accepted_product_sha": "286a219611f95413b5580d8099a7c5665416d1ad",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
@@ -19,7 +19,7 @@
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Publish the cleaned Issue #415 candidate. Isolated real-Chromium ECharts proof showed convertFromPixel({xAxisIndex:0}, pixel) returns NaN for in-grid points while convertFromPixel({gridIndex:0}, pixel) returns a valid [timestamp,y] pair under value-mode dataZoom. Replace the incorrect finder with gridIndex:0 and remove the three speculative cursor event workarounds that did not change production behavior. Focused adapter tests 10/10, touched ESLint, TypeScript, diff-check and State Model are GREEN. Do not rerun broad local suites. Merge PR #662 only after one exact-head remote cycle is fully GREEN.",
+  "next_action": "Push focused candidate: preserve ECharts updateAxisPointer nearest-sample inspection, use data-bearing resume probes, then trust only exact-head Authenticated Dashboard plus required merge gates.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
