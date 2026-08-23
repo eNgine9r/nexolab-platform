@@ -172,7 +172,7 @@ def test_current_openssl_quic_exceptions_are_exact_and_short_lived() -> None:
         ("telemetry-service", "openssl-provider-legacy"),
     }
     assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-08-26" for entry in matches)
+    assert all(entry["expires_on"] == "2026-08-30" for entry in matches)
     assert all("QUIC" in entry["reason"] for entry in matches)
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",

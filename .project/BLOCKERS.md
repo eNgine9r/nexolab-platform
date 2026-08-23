@@ -2,55 +2,56 @@
 
 Updated: 2026-08-23
 
-## Issue #615 — implementation verified, final state-head pending
+## Issue #660 — implementation verified, final state-head pending
 
-Issue #615 is software/tooling-complete in PR #658. Verified head `107935b7ab08ca48878b73603a6d1a9e683985f0` passed Core CI, the three focused project-name regression tests, Authenticated Dashboard Acceptance without a manual Compose project-name override and `NEXOLAB Merge Gate`; unresolved review threads are zero.
+Issue #660 is software/security-complete in PR #661. Verified implementation head `f03aea0ba790c038b2f7a3d32f3f5fcb971bd005` passed Core CI `32626031714`, Telemetry Service `32626031687`, Container Supply Chain `32626031695`, `NEXOLAB Merge Gate`, and has zero unresolved review threads.
 
-There is no product/software hard blocker. Only the final state-recording head must repeat its exact-head checks before merge.
+The fresh image scan still reports the same four exact `CVE-2026-14456` HIGH/no-fix tuples at OpenSSL `3.5.6-1~deb13u2`; no QUIC/HTTP3/OpenSSL QUIC listener path is present in NEXOLAB. The reviewed exceptions now expire on **2026-08-30**. Remove them earlier if a supported Debian Trixie fix becomes available, findings disappear, reachability changes, or severity becomes Critical.
 
-No Raspberry Pi access, secrets, product-runtime mutation, Modbus operation, hardware action or site cutover is required for this tooling-only Work Package.
+There is no product/software hard blocker. Only final state-head CI and merge remain.
 
-## Issue #590 — software completed, hardware evidence pending
+## Issue #200 — physical RS-485 topology evidence blocked
 
-Issue #590 merged through PR #657. Its authenticated Settings control plane remains software-verified, while physical cadence acceptance on the real KK1/KK2 installation remains unavailable because the Remote Desktop/Raspberry Pi connector is offline.
+Read-only Raspberry Pi evidence on 2026-08-23 sees only one stable CP2104 adapter `0133F090` / `/dev/ttyUSB0`, one persisted `rs485-main` bus, and production Device Agent `9600 8N1` with timeout `0.30 s` and one retry.
 
-Do not convert software capacity evidence into a hardware acceptance claim.
+A passive 60-second window observed 402 physical requests, 306 successes, 96 timeout/retries and bus load `75.591% -> 76.942%` without starting another Modbus master. Unit `115` is absent from the persisted registry but remains physically unverified.
 
-## Issue #607 — software completed, hardware evidence pending
+Full Issue #200 acceptance is blocked on safe physical topology inspection, termination/biasing/shielding/grounding evidence, duplicate-ID proof, and/or the intended second isolated adapter. Draft PR #659 retains the recoverable evidence and must not be merged as completion.
 
-Dual RS-485 isolation was accepted through PR #653. Physical two-adapter verification remains unavailable while the Raspberry Pi connector is offline.
+## Issue #607 — dual RS-485 hardware acceptance pending
 
-Repository evidence maps XJP60D KK2 to Unit IDs `101..115` and KK1 to `126..138`. LE-01MP Unit IDs `200..203` still have no repository-backed KK1/KK2 ownership and must not be guessed.
+Dual-bus isolation is software-verified, but current hardware enumerates only one RS-485 adapter. Physical simultaneous KK1/KK2 acceptance, reboot-stable two-adapter mapping and one-bus disconnect isolation remain unverified.
+
+Repository evidence maps XJP60D KK2 to Unit IDs `101..115` and KK1 to `126..138`. LE-01MP Unit IDs `200..203` still require explicit bus ownership; do not guess it.
+
+## Issue #444 — local user administration final acceptance
+
+The original production 404 no longer reproduces: `/api/v1/admin/users` is mounted and appears in deployed OpenAPI. An unauthenticated request reaches the security layer instead of returning route-not-found.
+
+Remaining acceptance requires an authorized administrator identity and controlled create/authenticate/403 permission checks. Do not expose or invent credentials.
+
+## Issue #245 — standalone offline acceptance
+
+Actual acceptance requires intentional Ethernet/Wi-Fi isolation, no default route, reboot, standalone deployment/runtime verification and recovery checks. These are cutover/physical actions and require explicit approval before execution.
+
+## Issue #201 — LE-01MP power-cycle evidence
+
+Normal-operation cumulative-energy semantics are already hardware-evidenced and software-merged. Remaining acceptance is the explicitly approved restart/power-cycle observation and consequent discontinuity classification.
+
+## Issue #202 — extended XJP60D hardware evidence
+
+Representative KK1/KK2 portability, display correlation, Unit `115` presence/absence and extended state semantics remain hardware-unverified. Do not infer physical absence from registry absence.
 
 ## Issue #646 — branch protection settings access
 
-Repository-side change-impact CI, exact-head external-workflow aggregation and the stable merge gate are software-verified.
+Repository-side change-impact CI and merge-gate behavior are software-verified. Current GitHub observation still reports `main` protection/required checks disabled; connected mutation access remains unavailable. This is a soft access blocker.
 
-Current GitHub observation still reports:
-
-- `main` protected: false;
-- required status checks: disabled.
-
-The connected GitHub surface does not expose the required branch-protection/rules mutation. This remains a **soft access blocker** only.
-
-## Security maintenance — CVE-2026-14456
-
-Issue #598 is closed, but four temporary `CVE-2026-14456` exceptions expire on **2026-08-26**.
-
-Owner: `platform-security`.
-
-Re-check fixed Debian package availability and remove the exceptions immediately when a fix becomes available, or review before expiry. Any change that makes QUIC/HTTP3 reachable invalidates the current reachability justification.
-
-## Product and validation dependencies
+## Other dependencies
 
 - #585 — blocked until explicit physical W2 / Unit 201 handback approval.
-- #444 — LOCAL_LAN user-administration API acceptance remains `needs_validation`.
-- #245 — standalone loopback-only Raspberry Pi acceptance remains `needs_validation`.
-- #200 — physical RS-485 topology and safe polling envelope remain hardware-unverified beyond retained evidence.
-- #201 — LE-01MP restart/power-cycle evidence remains pending.
-- #202 — XJP60D KK1/KK2 portability and Unit ID 115 presence/absence remain hardware-unverified.
-- #189 — controlled backup/restore/rollback/power-loss recovery evidence remains outstanding.
+- #590 — physical cadence acceptance pending.
+- #189 — controlled backup/restore/rollback/power-loss recovery evidence outstanding.
 
 ## Safety boundaries
 
-No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover or mandatory cloud runtime dependency is authorized by Issue #615.
+No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover or mandatory cloud runtime dependency is authorized by Issue #660.

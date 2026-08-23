@@ -266,16 +266,35 @@
       "priority": "high",
       "lifecycle": "blocked",
       "evidence": {}
+    },
+    {
+      "issue": 660,
+      "title": "Revalidate expiring CVE-2026-14456 OpenSSL QUIC exceptions",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "branch": "chore/660-revalidate-openssl-quic-exception",
+      "evidence": {
+        "verified_head_sha": "f03aea0ba790c038b2f7a3d32f3f5fcb971bd005",
+        "pull_request": 661,
+        "checks": {
+          "core_ci": "PASS_32626031714",
+          "telemetry_service": "PASS_32626031687",
+          "container_supply_chain": "PASS_32626031695",
+          "merge_gate": "PASS",
+          "review_threads": "PASS_ZERO_UNRESOLVED",
+          "hardware_verification": "NOT_REQUIRED_SECURITY_POLICY_ONLY"
+        }
+      }
     }
   ],
   "maintenance_actions": [
     {
       "source_issue": 598,
       "title": "Review/remove CVE-2026-14456 temporary exceptions",
-      "status": "due",
-      "due_on": "2026-08-26",
+      "status": "renewed",
+      "due_on": "2026-08-30",
       "owner": "platform-security",
-      "rule": "Remove earlier if Debian publishes a fixed package or QUIC runtime reachability changes."
+      "rule": "Fresh run 32625474615 still reports the four exact HIGH/no-fix tuples; remove earlier if Debian publishes a supported fixed Trixie package, the findings disappear, QUIC runtime reachability changes, or severity becomes Critical."
     }
   ],
   "observations": [
