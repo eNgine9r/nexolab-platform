@@ -268,6 +268,54 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.dispose();
   });
 
+  it("resumes Exact Inspector through descendant mousemove propagation stops after primary pan", () => {
+    const instance = new FakeEChartsInstance();
+    const onCursor = vi.fn();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = createBenchmarkScene(1);
+    const container = document.createElement("div");
+    const rendererSurface = document.createElement("div");
+    container.appendChild(rendererSurface);
+    document.body.appendChild(container);
+    vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 320,
+      bottom: 200,
+      width: 320,
+      height: 200,
+      toJSON: () => ({}),
+    });
+    rendererSurface.addEventListener("mousemove", (event) => event.stopPropagation());
+    adapter.initialize({
+      container,
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor,
+      onXDomainChange: vi.fn(),
+    });
+    adapter.setScene(scene);
+
+    rendererSurface.dispatchEvent(
+      new MouseEvent("mousedown", { button: 0, clientX: 20, clientY: 120, bubbles: true }),
+    );
+    rendererSurface.dispatchEvent(
+      new MouseEvent("mousemove", { buttons: 1, clientX: 80, clientY: 120, bubbles: true }),
+    );
+    expect(onCursor).not.toHaveBeenCalled();
+
+    rendererSurface.dispatchEvent(new MouseEvent("mouseup", { button: 0, bubbles: true }));
+    rendererSurface.dispatchEvent(
+      new MouseEvent("mousemove", { buttons: 0, clientX: 100, clientY: 120, bubbles: true }),
+    );
+    expect(onCursor).toHaveBeenCalledTimes(1);
+
+    adapter.dispose();
+    container.remove();
+  });
+
   it("commits the pending primary-drag domain after renderer mouseup bubbling completes", () => {
     const instance = new FakeEChartsInstance();
     let rendererReleased = false;

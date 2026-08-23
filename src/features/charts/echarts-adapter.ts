@@ -399,7 +399,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.instance.on("updateAxisPointer", this.handleAxisPointer);
     this.instance.on("dataZoom", this.handleDataZoom);
     this.container.addEventListener("mousedown", this.handleContainerMouseDown, true);
-    this.container.addEventListener("mousemove", this.handleContainerPointer);
+    this.container.addEventListener("mousemove", this.handleContainerPointer, true);
     this.container.addEventListener("mouseleave", this.handleContainerLeave);
     this.container.ownerDocument.defaultView?.addEventListener("mouseup", this.handleWindowMouseUp);
   }
@@ -486,7 +486,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.instance.off("updateAxisPointer", this.handleAxisPointer);
     this.instance.off("dataZoom", this.handleDataZoom);
     this.container?.removeEventListener("mousedown", this.handleContainerMouseDown, true);
-    this.container?.removeEventListener("mousemove", this.handleContainerPointer);
+    this.container?.removeEventListener("mousemove", this.handleContainerPointer, true);
     this.container?.removeEventListener("mouseleave", this.handleContainerLeave);
     this.container?.ownerDocument.defaultView?.removeEventListener("mouseup", this.handleWindowMouseUp);
     this.primaryDragActive = false;

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "CHART-RELIABILITY-1",
-  "timestamp": "2026-08-23T10:44:18Z",
+  "timestamp": "2026-08-23T11:03:11Z",
   "actor": "ChatGPT",
-  "event": "issue_415_mouseup_ordering_candidate",
+  "event": "issue_415_capture_mousemove_candidate",
   "baselines": {
     "accepted_product_sha": "286a219611f95413b5580d8099a7c5665416d1ad",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
@@ -19,7 +19,7 @@
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Exact head f42ddaf6 passed Core Quality/Build, Offline Bundle and Refrigeration Browser but Authenticated Dashboard run 32633359416 failed only the post-pan Exact Inspector resume assertion after domain shift and constant-span checks had passed. Production trace plus installed ECharts RoamController source identified the race: NEXOLAB handled window mouseup in capture phase before ECharts/ZRender cleared its native dragging state; subsequent renderer mousemove could remain propagation-stopped. The candidate moves only the NEXOLAB window mouseup listener to bubble phase so renderer release completes before the final React x-domain commit, with a unit regression proving renderer mouseup precedes onXDomainChange. Local adapter tests 11/11, chart slice 59/59, touched ESLint, full TypeScript, Prettier, State Model and diff-check are GREEN. Commit/push and require exact-head Authenticated Dashboard, Core, Offline Bundle, Refrigeration Browser and Merge Gate GREEN before merge.",
+  "next_action": "Exact head c758f7a6 preserved constant-span native pan and passed local/remote Core and Refrigeration gates, but Authenticated Dashboard still failed only the post-pan Exact Inspector resume assertion. A minimal Chromium experiment confirmed canceled pointermove still emits compatibility mousemove, while installed ECharts/ZRender code can stop descendant/native move propagation during renderer interaction. The new candidate makes only the canonical NEXOLAB Inspector mousemove listener capture-phase, retaining buttons-based drag suppression and lost-mouseup recovery, so post-release cursor inspection is independent of descendant bubble propagation. Regression coverage proves drag remains frozen and the first buttons=0 mousemove resumes onCursor even when a renderer child stops propagation. Local adapter tests 12/12, chart slice 60/60, touched ESLint, full TypeScript, Prettier, State Model and diff-check are GREEN. Commit/push and require exact-head Authenticated Dashboard, Core, Offline Bundle, Refrigeration Browser and Merge Gate GREEN before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
