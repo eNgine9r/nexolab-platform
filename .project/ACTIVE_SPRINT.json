@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 665,
-      "title": "Start PRODUCTION-READINESS-1 after chart Sprint completion",
-      "branch": "chore/665-production-readiness-state"
+      "issue": 667,
+      "title": "Reconcile CVE-2026-14456 lifecycle date after #660 renewal",
+      "branch": "chore/667-cve-lifecycle-reconcile"
     },
     "next_work_package": {
       "issue": 444,
@@ -37,10 +37,17 @@
       "issue": 665,
       "title": "Start PRODUCTION-READINESS-1 after chart Sprint completion",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "chore/665-production-readiness-state",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "8b900a90bdee75c87be48825c8deb43c52c0e897",
+        "pull_request": 666,
+        "checks": {
+          "state_integrity": "success",
+          "nexolab_merge_gate": "success"
+        }
+      }
     },
     {
       "issue": 444,
@@ -102,8 +109,23 @@
       "issue": 646,
       "title": "Add change-impact CI orchestration and protected main merge gate",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "completed",
       "depends_on": [],
+      "evidence": {
+        "verified_head_sha": "623a72a0fdec8b8ddb15c5a7e145d0ba60a6a135",
+        "pull_request": 647,
+        "checks": {
+          "repository_ci": "success",
+          "state_fast_lane_proof": "success"
+        }
+      }
+    },
+    {
+      "issue": 667,
+      "title": "Reconcile CVE-2026-14456 lifecycle date after #660 renewal",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "chore/667-cve-lifecycle-reconcile",
       "evidence": {}
     }
   ],
@@ -246,6 +268,22 @@
         "issue": 663,
         "pull_request": 664,
         "merge_sha": "25abc7e4bcc9cd9718fc9359bbfb862695d6825b"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-23T15:21:34Z",
+      "kind": "branch_protection",
+      "data": {
+        "branch": "main",
+        "protected": true,
+        "required_status_checks": [
+          "NEXOLAB Merge Gate"
+        ],
+        "required_approving_review_count": 0,
+        "allow_force_pushes": false,
+        "allow_deletions": false,
+        "enforce_admins": false
       }
     }
   ],
