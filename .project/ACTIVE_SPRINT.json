@@ -44,9 +44,7 @@
       "title": "Trigger authenticated chart acceptance for canonical Chart System changes",
       "priority": "high",
       "lifecycle": "in_progress",
-      "depends_on": [
-        415
-      ],
+      "depends_on": [],
       "branch": "chore/663-authenticated-chart-acceptance-routing"
     }
   ],
