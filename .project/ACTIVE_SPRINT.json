@@ -23,11 +23,7 @@
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 660,
-      "title": "Revalidate expiring CVE-2026-14456 OpenSSL QUIC exceptions",
-      "branch": "chore/660-revalidate-openssl-quic-exception"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -275,9 +271,20 @@
       "issue": 660,
       "title": "Revalidate expiring CVE-2026-14456 OpenSSL QUIC exceptions",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "chore/660-revalidate-openssl-quic-exception",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "f03aea0ba790c038b2f7a3d32f3f5fcb971bd005",
+        "pull_request": 661,
+        "checks": {
+          "core_ci": "PASS_32626031714",
+          "telemetry_service": "PASS_32626031687",
+          "container_supply_chain": "PASS_32626031695",
+          "merge_gate": "PASS",
+          "review_threads": "PASS_ZERO_UNRESOLVED",
+          "hardware_verification": "NOT_REQUIRED_SECURITY_POLICY_ONLY"
+        }
+      }
     }
   ],
   "maintenance_actions": [
