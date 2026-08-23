@@ -53,6 +53,7 @@ export function OverviewChartPanel({
           scene={group.scene}
           reducedMotion
           sharedCursorMs={sharedCursorMs}
+          interactionDomain={resetDomain}
           onCursor={(nextInspection) => {
             setInspection(nextInspection);
             onSharedCursorChange(nextInspection?.timestampMs ?? null);

@@ -111,6 +111,7 @@ function zoomDomain(event: unknown, scene: ChartRendererScene): ChartRendererSce
 }
 
 function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): EChartsCoreOption {
+  const interactionDomain = scene.interactionDomain ?? scene.xDomain;
   const visibleSeries = scene.series.filter((series) => series.visible);
   const axisModel = buildChartYAxisModel(scene.series);
   const legendNames = visibleSeries.map((series) => series.name);
@@ -256,8 +257,8 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
     },
     xAxis: {
       type: "time",
-      min: scene.xDomain.fromMs,
-      max: scene.xDomain.toMs,
+      min: interactionDomain.fromMs,
+      max: interactionDomain.toMs,
       axisLine: { lineStyle: { color: "rgba(148,163,184,.34)" } },
       axisLabel: {
         color: "#94A3B8",
@@ -300,6 +301,9 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
         type: "inside",
         xAxisIndex: 0,
         filterMode: "none",
+        rangeMode: ["value", "value"],
+        startValue: scene.xDomain.fromMs,
+        endValue: scene.xDomain.toMs,
         zoomOnMouseWheel: true,
         moveOnMouseMove: true,
         moveOnMouseWheel: false,
@@ -328,7 +332,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     const pixel: [number, number] = [event.clientX - bounds.left, event.clientY - bounds.top];
     if (!this.instance.containPixel({ gridIndex: 0 }, pixel)) return;
     this.primaryDragActive = true;
-    this.primaryDragBaseDomain = { ...this.scene.xDomain };
+    this.primaryDragBaseDomain = { ...(this.scene.interactionDomain ?? this.scene.xDomain) };
     this.pendingPrimaryDragDomain = null;
   };
 
@@ -373,10 +377,8 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
 
   private readonly handleDataZoom = (event: unknown) => {
     if (!this.scene) return;
-    const interactionScene = this.primaryDragBaseDomain
-      ? { ...this.scene, xDomain: this.primaryDragBaseDomain }
-      : this.scene;
-    const domain = zoomDomain(event, interactionScene);
+    const baseDomain = this.primaryDragBaseDomain ?? this.scene.interactionDomain ?? this.scene.xDomain;
+    const domain = zoomDomain(event, { ...this.scene, xDomain: baseDomain });
     if (!domain) return;
     if (this.primaryDragActive) {
       // ECharts already renders the native pan while the pointer moves. Deferring the React

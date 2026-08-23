@@ -49,6 +49,7 @@ export function LiveChartPanel({
         adapter={adapter}
         scene={group.scene}
         sharedCursorMs={sharedCursorMs}
+        interactionDomain={resetDomain}
         onCursor={(nextInspection) => {
           setInspection(nextInspection);
           onSharedCursorChange(nextInspection?.timestampMs ?? null);
