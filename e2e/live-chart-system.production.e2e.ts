@@ -330,9 +330,20 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
       x: equipmentBox.x + equipmentBox.width * 0.72,
       y: equipmentBox.y + equipmentBox.height * 0.5,
     };
+    const resumeProbe = {
+      x: equipmentBox.x + equipmentBox.width * 0.58,
+      y: panProbe.y,
+    };
+    const readDomain = () =>
+      equipmentHost.evaluate((host) => ({
+        fromMs: Number(host.getAttribute("data-chart-x-domain-from-ms")),
+        toMs: Number(host.getAttribute("data-chart-x-domain-to-ms")),
+      }));
     await page.mouse.move(panProbe.x, panProbe.y);
     const initialInspectorTimestamp = (await inspectorTimestamp.textContent())?.trim();
     expect(initialInspectorTimestamp).toBeTruthy();
+    const initialDomain = await readDomain();
+    expect(initialDomain.toMs).toBeGreaterThan(initialDomain.fromMs);
 
     const historyRequestsBeforePan = runtime.telemetry.filter((request) =>
       request.url.includes("/history"),
@@ -348,6 +359,13 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
 
     await page.mouse.wheel(0, -600);
     await expect(page.getByText("Paused view", { exact: true })).toBeVisible();
+    await expect
+      .poll(async () => {
+        const domain = await readDomain();
+        return domain.toMs - domain.fromMs;
+      })
+      .toBeLessThan(initialDomain.toMs - initialDomain.fromMs);
+    const zoomedDomain = await readDomain();
     await page.mouse.move(panProbe.x, panProbe.y);
     const inspectorTimestampBeforePan = (await inspectorTimestamp.textContent())?.trim();
     expect(inspectorTimestampBeforePan).toBeTruthy();
@@ -357,12 +375,24 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await expect(inspectorTimestamp).toHaveText(inspectorTimestampBeforePan!);
     await page.mouse.up({ button: "left" });
 
-    await page.mouse.move(panProbe.x, panProbe.y);
+    await expect
+      .poll(async () => {
+        const domain = await readDomain();
+        return `${domain.fromMs}:${domain.toMs}`;
+      })
+      .not.toBe(`${zoomedDomain.fromMs}:${zoomedDomain.toMs}`);
+    const pannedDomain = await readDomain();
+    const zoomedSpan = zoomedDomain.toMs - zoomedDomain.fromMs;
+    const pannedSpan = pannedDomain.toMs - pannedDomain.fromMs;
+    expect(Math.abs(pannedSpan - zoomedSpan)).toBeLessThan(zoomedSpan * 0.02);
+
+    await page.mouse.move(resumeProbe.x, resumeProbe.y);
     await expect
       .poll(async () => (await inspectorTimestamp.textContent())?.trim())
       .not.toBe(inspectorTimestampBeforePan);
 
     await page.getByRole("button", { name: "Reset zoom" }).click();
+    await expect.poll(readDomain).toEqual(initialDomain);
     await page.mouse.move(panProbe.x, panProbe.y);
     await expect
       .poll(async () => (await inspectorTimestamp.textContent())?.trim())

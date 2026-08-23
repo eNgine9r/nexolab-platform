@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "CHART-RELIABILITY-1",
-  "timestamp": "2026-08-23T08:42:20Z",
+  "timestamp": "2026-08-23T09:04:27Z",
   "actor": "ChatGPT",
-  "event": "issue_415_local_candidate_ready",
+  "event": "issue_415_browser_retest_candidate",
   "baselines": {
     "accepted_product_sha": "286a219611f95413b5580d8099a7c5665416d1ad",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
@@ -19,7 +19,7 @@
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Commit and push the focused #415 candidate, open one PR, then require exact-head Core CI, production build, focused authenticated dashboard browser acceptance and NEXOLAB Merge Gate before merge.",
+  "next_action": "First exact head 66341378 failed only the Live Chart System post-pan inspector assertion in Authenticated Dashboard run 32629245515 (18/19 passed). The next candidate exposes canonical scene x-domain on the shared renderer host and verifies zoom/pan/reset domain changes separately from inspector freeze/resume. Commit/push, rerun exact-head Core CI, Offline Bundle and manual Authenticated Dashboard Acceptance, and merge only if all are GREEN.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

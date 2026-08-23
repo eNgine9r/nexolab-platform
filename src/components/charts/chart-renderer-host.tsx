@@ -85,6 +85,8 @@ export function ChartRendererHost({
     <div
       className="h-[320px] min-h-64 w-full min-w-0"
       data-testid="chart-renderer-host"
+      data-chart-x-domain-from-ms={scene.xDomain.fromMs}
+      data-chart-x-domain-to-ms={scene.xDomain.toMs}
       role="application"
       aria-label="Interactive telemetry plot"
       aria-keyshortcuts="ArrowLeft ArrowRight Home End Escape"
