@@ -3,23 +3,23 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-23T14:25:28Z",
+  "timestamp": "2026-08-23T15:25:00Z",
   "actor": "ChatGPT",
-  "event": "production_readiness_sprint_reconciliation",
+  "event": "issue_667_cve_lifecycle_reconcile_candidate",
   "baselines": {
     "accepted_product_sha": "286a219611f95413b5580d8099a7c5665416d1ad",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
   },
   "active_work": {
-    "issue": 665,
-    "title": "Start PRODUCTION-READINESS-1 after chart Sprint completion",
-    "branch": "chore/665-production-readiness-state"
+    "issue": 667,
+    "title": "Reconcile CVE-2026-14456 lifecycle date after #660 renewal",
+    "branch": "chore/667-cve-lifecycle-reconcile"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Validate Issue #665 state-only diff, open focused PR, merge only after state-integrity and NEXOLAB Merge Gate are GREEN; then resume #444 authenticated operator validation or request the minimal operator action required.",
+  "next_action": "Run focused docs/state checks, commit/push Issue #667, merge exact-head GREEN, then return to Issue #444 authenticated operator validation boundary.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

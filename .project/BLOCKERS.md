@@ -2,9 +2,9 @@
 
 Updated: 2026-08-23
 
-## Issue #665 — Sprint reconciliation
+## Issue #667 — CVE lifecycle reconciliation
 
-No hard implementation blocker. This Work Package is state-only and must not change runtime, deployment, credentials, networking or hardware.
+No hard implementation blocker. This Work Package only aligns the stale current-decision expiry sentence with the already accepted #660/#661 Stage 2 date of 2026-08-30 and updates project continuity. It does not renew or broaden an exception.
 
 ## Issue #444 — LOCAL_LAN user administration validation
 
@@ -45,15 +45,15 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
 
-## Issue #646 — main branch protection
+## Issue #646 — completed main branch protection
 
-Repository-side change-impact CI and `NEXOLAB Merge Gate` are implemented. GitHub branch/rules settings remain a soft settings-access blocker.
+The settings-access blocker is cleared. GitHub `main` is protected with required `NEXOLAB Merge Gate`, pull-request enforcement with zero mandatory approvals, force pushes/deletions disabled, and `enforce_admins=false` for controlled administrative recovery.
 
 ## Security maintenance — CVE-2026-14456
 
 Four exact reviewed HIGH/no-fix decisions are retained through **2026-08-30**. Debian Trixie still reports OpenSSL 3.5.6 vulnerable/postponed and upstream fixes the affected 3.5 line in 3.5.8. Rebuild/review again at expiry or earlier if a fixed Trixie package appears, the findings disappear, QUIC reachability changes or severity becomes Critical.
 
-The lifecycle document still contains an older 2026-08-26 sentence before its Stage 2 renewal text. Treat Stage 2 plus the Sprint maintenance action as current; fix the stale sentence only in a focused security/documentation WP.
+Issue #667 corrects the stale **Current decision** sentence to 2026-08-30. The separate Stage 1 statement that the entries still expired on 2026-08-26 at that earlier stage remains historical evidence and must not be rewritten as if Stage 1 had already renewed the decision.
 
 ## Safety boundaries
 
