@@ -6,9 +6,9 @@ Updated: 2026-08-23
 
 `CHART-RELIABILITY-1` is active under Epic #450 — canonical chart interaction and reliability.
 
-Active Work Package: Issue #415 — **Add left-button drag panning to canonical NEXOLAB charts** on branch `feat/415-canonical-left-drag-pan`.
+Issue #415 is completed and squash-merged through PR #662. Exact-head Core CI, Authenticated Dashboard Acceptance, Refrigeration Browser Acceptance, Offline Bundle and NEXOLAB Merge Gate were GREEN before merge. The production Live Chart System acceptance proved zoom → left-button drag pan → constant visible span → Exact Inspector resume → reset with no history/acquisition side effects.
 
-The prior `ENGINEERING-HARDENING-1` queue was exhausted with no independent `status:ready` item. Product Owner continuation on 2026-08-23 selected the recommended Chart reliability / operator UX direction rather than silently unblocking hardware/validation work.
+Active Work Package: Issue #663 — **Trigger authenticated chart acceptance for canonical Chart System changes** on branch `chore/663-authenticated-chart-acceptance-routing`. It closes the CI routing gap exposed by #415 without changing chart product behavior.
 
 ## Durable baselines
 
@@ -18,19 +18,16 @@ Deployed product source: `6e387485b68fb862d9f82ae7f6000b1f5b672764`.
 
 The Raspberry Pi Git checkout is synchronized with current GitHub `main`, but the running Dashboard remains pinned to the immutable deployed release above. Repository synchronization is not a deployment or cutover.
 
-## Issue #415 architecture boundary
+## Issue #663 architecture boundary
 
-Current installed ECharts already provides primary-button drag panning through `dataZoom.inside` / `RoamController`: middle/right mousedown is rejected, primary drag emits `pan`, and ECharts owns `grab`/`grabbing` cursor behavior.
+Authenticated Dashboard Acceptance already executes `live-chart-system.production.e2e.ts` and `equipment-multi-axis-chart.production.e2e.ts`, but its `pull_request.paths` contract omitted the canonical shared chart directories and both chart E2E files.
 
-NEXOLAB must not duplicate that pan implementation. The focused integration change is to:
+Issue #663 is CI-governance only:
 
-- make the native `moveOnMouseMove` / wheel behavior explicit in the canonical adapter contract;
-- freeze NEXOLAB Exact Inspector callbacks while the primary-button native pan is active;
-- resume normal cursor inspection after release, including a lost-mouseup recovery path;
-- verify the same renderer host/canvas remains mounted;
-- verify zoom/pan/reset does not request a new history window or mutate acquisition state.
-
-No route-local pan implementation is permitted.
+- add `src/features/charts/**` and `src/components/charts/**` to the existing dashboard trigger contract;
+- add the two canonical chart E2E files already executed by `playwright.dashboard.config.ts`;
+- add dependency-free policy regression coverage;
+- preserve the workflow body, isolated Compose stack, Playwright configuration, runtime behavior and hardware boundaries.
 
 ## Recently completed security maintenance
 
@@ -57,10 +54,10 @@ Do not start a second Modbus master/scanner while the production Device Agent ow
 
 ## Runtime and offline boundary
 
-Issue #415 is presentation-only. It must not change telemetry acquisition, persistence, polling cadence, WebSocket topology, offline operation, authentication, database schema, deployment or device configuration.
+Issue #663 is CI-governance only. It must not change chart product behavior, telemetry acquisition, persistence, polling cadence, WebSocket topology, offline operation, authentication, database schema, deployment or device configuration.
 
 Core NEXOLAB runtime remains LOCAL_LAN/offline-first with no mandatory public internet, paid service, CDN, remote font or external runtime API.
 
 ## Safety boundaries
 
-No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation or production/site cutover is authorized by Issue #415.
+No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation or production/site cutover is authorized by Issue #663.

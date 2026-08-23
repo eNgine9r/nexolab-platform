@@ -24,9 +24,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 415,
-      "title": "Add left-button drag panning to canonical NEXOLAB charts",
-      "branch": "feat/415-canonical-left-drag-pan"
+      "issue": 663,
+      "title": "Trigger authenticated chart acceptance for canonical Chart System changes",
+      "branch": "chore/663-authenticated-chart-acceptance-routing"
     },
     "next_work_package": null
   },
@@ -35,9 +35,17 @@
       "issue": 415,
       "title": "Add left-button drag panning to canonical NEXOLAB charts",
       "priority": "medium",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "feat/415-canonical-left-drag-pan"
+    },
+    {
+      "issue": 663,
+      "title": "Trigger authenticated chart acceptance for canonical Chart System changes",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "branch": "chore/663-authenticated-chart-acceptance-routing"
     }
   ],
   "maintenance_actions": [
@@ -159,6 +167,16 @@
         "issue": 660,
         "pull_request": 661,
         "merge_sha": "9b4a2cf73febc78c63d1b9c05a000826923ed6a0"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-23T12:49:51Z",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 415,
+        "pull_request": 662,
+        "merge_sha": "42543dab5660902975c9eaaa734e30a026cc1e3b"
       }
     }
   ],

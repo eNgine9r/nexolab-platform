@@ -2,13 +2,11 @@
 
 Updated: 2026-08-23
 
-## Active Issue #415
+## Active Issue #663
 
-Issue #415 has **no implementation hard blocker**.
+Issue #663 has **no implementation hard blocker**.
 
-The native ECharts primary-button pan contract already exists. Remaining work is focused NEXOLAB integration and verification: Exact Inspector drag suppression, focused unit coverage, production browser proof, Core CI and relevant exact-head browser/offline gates.
-
-A Raspberry Pi production deployment is not required to implement or merge this shared presentation-layer Work Package. Any later Pi UX observation must be reported separately from software/browser verification.
+The required authenticated dashboard browser suite already exists and is GREEN for the accepted #415 head. The remaining work is deterministic PR path routing plus focused policy regression coverage. No Raspberry Pi deployment, browser stack rerun on the Pi, Modbus action or production cutover is required.
 
 ## Issue #200 — physical RS-485 topology
 
