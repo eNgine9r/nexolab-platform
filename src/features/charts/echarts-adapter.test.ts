@@ -268,6 +268,48 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.dispose();
   });
 
+  it("keeps native DOM pointer inspection authoritative over same-turn ECharts axis updates", async () => {
+    const instance = new FakeEChartsInstance();
+    const onCursor = vi.fn();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = createBenchmarkScene(1);
+    const container = document.createElement("div");
+    vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 320,
+      bottom: 200,
+      width: 320,
+      height: 200,
+      toJSON: () => ({}),
+    });
+    adapter.initialize({
+      container,
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor,
+      onXDomainChange: vi.fn(),
+    });
+    adapter.setScene(scene);
+
+    container.dispatchEvent(new MouseEvent("mousemove", { clientX: 100, clientY: 120 }));
+    const domTimestamp = BENCHMARK_START_MS + 100;
+    expect(onCursor.mock.calls.at(-1)?.[0]).toMatchObject({ timestampMs: domTimestamp });
+
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 20 }] });
+    expect(onCursor).toHaveBeenCalledTimes(1);
+    expect(onCursor.mock.calls.at(-1)?.[0]).toMatchObject({ timestampMs: domTimestamp });
+
+    await Promise.resolve();
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 40 }] });
+    expect(onCursor).toHaveBeenCalledTimes(2);
+    expect(onCursor.mock.calls.at(-1)?.[0]).toMatchObject({ timestampMs: BENCHMARK_START_MS + 40 });
+
+    adapter.dispose();
+  });
+
   it("resumes Exact Inspector through descendant mousemove propagation stops after primary pan", () => {
     const instance = new FakeEChartsInstance();
     const onCursor = vi.fn();
