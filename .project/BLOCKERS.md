@@ -2,23 +2,27 @@
 
 Updated: 2026-08-23
 
-## Issue #615 — implementation verified, final state-head pending
+## Issue #200 — physical topology evidence blocked
 
-Issue #615 is software/tooling-complete in PR #658. Verified head `107935b7ab08ca48878b73603a6d1a9e683985f0` passed Core CI, the three focused project-name regression tests, Authenticated Dashboard Acceptance without a manual Compose project-name override and `NEXOLAB Merge Gate`; unresolved review threads are zero.
+Passive evidence on 2026-08-23 confirms exactly one stable CP2104 RS-485 adapter on `nexolab-edge-01`, with the production Device Agent using legacy `rs485-main` at `9600 8N1`, `0.30 s` timeout and one retry. A 60-second non-invasive observation recorded 402 physical requests, 306 successes, 96 timeout/retry outcomes and bus load rising from 75.591% to 76.942%. No service operation or independent Modbus scan was introduced.
 
-There is no product/software hard blocker. Only the final state-recording head must repeat its exact-head checks before merge.
+Full Issue #200 acceptance remains blocked because remote software evidence cannot establish cable topology, termination, biasing, shielding/grounding, electrical duplicate Unit IDs or physical presence/absence of Unit ID 115. The intended #607 two-adapter KK1/KK2 topology is also not physically available: only one serial adapter is enumerated.
 
-No Raspberry Pi access, secrets, product-runtime mutation, Modbus operation, hardware action or site cutover is required for this tooling-only Work Package.
+Resume #200 only with safe physical inspection and/or the intended isolated second adapter. Do not start a parallel Modbus master on the active production segment.
+
+## Issue #444 — route availability restored, full admin acceptance still gated
+
+A read-only production probe on 2026-08-23 shows `/api/v1/admin/users` is mounted in OpenAPI and reaches the security layer (`HTTP 400 organization_header_required` without auth context), rather than the historical HTTP 404. Full acceptance still requires an authorized administrator identity and local-user creation/authentication checks, which are not performed without the required credential/security-mutation approval.
 
 ## Issue #590 — software completed, hardware evidence pending
 
-Issue #590 merged through PR #657. Its authenticated Settings control plane remains software-verified, while physical cadence acceptance on the real KK1/KK2 installation remains unavailable because the Remote Desktop/Raspberry Pi connector is offline.
+Issue #590 merged through PR #657. Its authenticated Settings control plane remains software-verified. The Raspberry Pi connector is online, but the deployed product source remains older and no controlled #589/#590 deployment or physical cadence acceptance has been performed.
 
 Do not convert software capacity evidence into a hardware acceptance claim.
 
 ## Issue #607 — software completed, hardware evidence pending
 
-Dual RS-485 isolation was accepted through PR #653. Physical two-adapter verification remains unavailable while the Raspberry Pi connector is offline.
+Dual RS-485 isolation was accepted through PR #653. The Raspberry Pi connector is online, but physical two-adapter verification remains blocked because the host currently enumerates only one CP2104 serial adapter and the deployed runtime is still the older single-bus release.
 
 Repository evidence maps XJP60D KK2 to Unit IDs `101..115` and KK1 to `126..138`. LE-01MP Unit IDs `200..203` still have no repository-backed KK1/KK2 ownership and must not be guessed.
 

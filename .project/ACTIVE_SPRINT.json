@@ -243,8 +243,9 @@
       "issue": 200,
       "title": "Verify the physical RS-485 topology and portable polling envelope",
       "priority": "high",
-      "lifecycle": "hardware_validation",
-      "evidence": {}
+      "lifecycle": "blocked",
+      "evidence": {},
+      "branch": "chore/200-rs485-topology-evidence"
     },
     {
       "issue": 201,
