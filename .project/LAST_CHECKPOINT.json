@@ -3,31 +3,34 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "ENGINEERING-HARDENING-1",
-  "timestamp": "2026-08-23T00:05:25Z",
+  "timestamp": "2026-08-23T00:34:00Z",
   "actor": "ChatGPT",
-  "event": "issue_590_exact_head_verified_awaiting_merge",
+  "event": "issue_615_exact_head_verified_awaiting_merge",
   "baselines": {
-    "accepted_product_sha": "24d6d039fb11366ab589ec3cb039e76bb7e565d7",
+    "accepted_product_sha": "286a219611f95413b5580d8099a7c5665416d1ad",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
   },
   "active_work": null,
   "evidence_snapshot": {
     "issue_590": {
       "pull_request": 657,
-      "verified_head_sha": "b4b8608d82e90844ae9905c60b083232e68ef689",
-      "status": "SOFTWARE_COMPLETE_AWAITING_STATE_ONLY_GATE_AND_MERGE",
+      "status": "GREEN_MERGED",
+      "hardware_verification": "UNVERIFIED_REMOTE_PI_OFFLINE"
+    },
+    "issue_615": {
+      "pull_request": 658,
+      "verified_head_sha": "107935b7ab08ca48878b73603a6d1a9e683985f0",
+      "status": "SOFTWARE_TOOLING_COMPLETE_AWAITING_FINAL_STATE_HEAD_AND_MERGE",
+      "root_cause": "default RUN_SUFFIX contained uppercase T/Z characters rejected by current Docker Compose project-name validation",
       "checks": {
-        "core_ci": "PASS_32606407885",
-        "acquisition_scale_acceptance": "PASS_32606407863",
-        "refrigeration_browser_acceptance": "PASS_32606407879",
-        "authenticated_dashboard": "PASS_32606407875",
-        "offline_bundle": "PASS_32606407871",
+        "targeted_project_name_tests": "PASS_3_OF_3_CORE_32607900557",
+        "core_ci": "PASS_32607900557",
+        "authenticated_dashboard": "PASS_32607900561",
         "merge_gate": "PASS",
         "review_threads": "PASS_ZERO_UNRESOLVED"
       },
-      "runtime_offline_evidence": "PASS_BLOCKED_EGRESS_PULL_DISABLED_STARTUP_AND_PERSISTENCE_PRESERVING_UPDATE_ROLLBACK",
-      "hardware_verification": "UNVERIFIED_REMOTE_PI_OFFLINE",
-      "safety": "READ_ONLY_MODBUS_BOUNDARY_NO_HARDWARE_CUTOVER"
+      "runtime_change": "NONE_ACCEPTANCE_TOOLING_ONLY",
+      "hardware_verification": "NOT_REQUIRED"
     },
     "maintenance_actions": [
       {
@@ -42,16 +45,16 @@
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-08-22T16:57:46Z",
+      "observed_at": "2026-08-23T00:16:34Z",
       "kind": "historical_merge",
       "data": {
-        "issue": 589,
-        "pull_request": 656,
-        "merge_sha": "24d6d039fb11366ab589ec3cb039e76bb7e565d7"
+        "issue": 590,
+        "pull_request": 657,
+        "merge_sha": "286a219611f95413b5580d8099a7c5665416d1ad"
       }
     }
   ],
-  "next_action": "Verify the final state-only PR head through State Model v2 fast-lane CI and NEXOLAB Merge Gate, then merge PR #657 only while GREEN and perform the post-merge delta Ready audit; keep Raspberry Pi hardware acceptance explicitly unverified.",
+  "next_action": "Verify the final state-recording PR head through exact-head Core CI, Authenticated Dashboard Acceptance and NEXOLAB Merge Gate; if all are GREEN and review threads remain zero, squash-merge PR #658 with expected-head locking, then perform the post-merge delta Ready audit.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

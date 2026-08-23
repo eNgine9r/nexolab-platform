@@ -19,7 +19,7 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "24d6d039fb11366ab589ec3cb039e76bb7e565d7",
+    "accepted_product_sha": "286a219611f95413b5580d8099a7c5665416d1ad",
     "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
   },
   "selection": {
@@ -196,6 +196,25 @@
           "merge_gate": "PASS",
           "review_threads": "PASS_ZERO_UNRESOLVED",
           "hardware_verification": "UNVERIFIED_PI_OFFLINE"
+        }
+      }
+    },
+    {
+      "issue": 615,
+      "title": "Fix authenticated dashboard acceptance Compose project-name generation",
+      "priority": "medium",
+      "lifecycle": "completed",
+      "branch": "fix/615-dashboard-compose-project-name",
+      "evidence": {
+        "pull_request": 658,
+        "verified_head_sha": "107935b7ab08ca48878b73603a6d1a9e683985f0",
+        "checks": {
+          "targeted_project_name_tests": "PASS_3_OF_3_CORE_32607900557",
+          "core_ci": "PASS_32607900557",
+          "authenticated_dashboard": "PASS_32607900561",
+          "merge_gate": "PASS",
+          "review_threads": "PASS_ZERO_UNRESOLVED",
+          "hardware_verification": "NOT_REQUIRED_TOOLING_ONLY"
         }
       }
     },

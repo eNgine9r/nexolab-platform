@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_DIR="$ROOT_DIR/infrastructure/compose"
 BASE_COMPOSE="$COMPOSE_DIR/compose.central.yaml"
 ACCEPTANCE_COMPOSE="$COMPOSE_DIR/compose.browser-acceptance.yaml"
-RUN_SUFFIX="$(date -u +%Y%m%dT%H%M%SZ)-$$"
+RUN_SUFFIX="$(date -u +%Y%m%dt%H%M%Sz)-$$"
 
 random_secret() {
   if command -v openssl >/dev/null 2>&1; then

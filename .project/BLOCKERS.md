@@ -2,13 +2,19 @@
 
 Updated: 2026-08-23
 
-## Issue #590 — software complete, hardware evidence pending
+## Issue #615 — implementation verified, final state-head pending
 
-Issue #590 is software-complete in PR #657. Exact product head `b4b8608d82e90844ae9905c60b083232e68ef689` passed Core CI, Acquisition Scale Acceptance, Refrigeration Browser Acceptance, Authenticated Dashboard Acceptance, Offline Bundle and `NEXOLAB Merge Gate`; unresolved review threads are zero.
+Issue #615 is software/tooling-complete in PR #658. Verified head `107935b7ab08ca48878b73603a6d1a9e683985f0` passed Core CI, the three focused project-name regression tests, Authenticated Dashboard Acceptance without a manual Compose project-name override and `NEXOLAB Merge Gate`; unresolved review threads are zero.
 
-The browser uses the authenticated Next.js proxy only. Direct browser access to the Device Agent, direct Modbus/driver access, force/bypass controls and per-logical-channel physical cadence controls remain prohibited.
+There is no product/software hard blocker. Only the final state-recording head must repeat its exact-head checks before merge.
 
-The Remote Desktop connector still reports `nexolab-edge-01` offline. This is a **soft hardware-evidence blocker** only. The UI may expose server-authoritative 10/30/60/Custom cadence controls, but it must not claim that a selected interval is physically accepted on KK1/KK2 until read-only evidence from the real Pi and intended adapters exists.
+No Raspberry Pi access, secrets, product-runtime mutation, Modbus operation, hardware action or site cutover is required for this tooling-only Work Package.
+
+## Issue #590 — software completed, hardware evidence pending
+
+Issue #590 merged through PR #657. Its authenticated Settings control plane remains software-verified, while physical cadence acceptance on the real KK1/KK2 installation remains unavailable because the Remote Desktop/Raspberry Pi connector is offline.
+
+Do not convert software capacity evidence into a hardware acceptance claim.
 
 ## Issue #607 — software completed, hardware evidence pending
 
@@ -20,12 +26,12 @@ Repository evidence maps XJP60D KK2 to Unit IDs `101..115` and KK1 to `126..138`
 
 Repository-side change-impact CI, exact-head external-workflow aggregation and the stable merge gate are software-verified.
 
-The retained observation still reports:
+Current GitHub observation still reports:
 
 - `main` protected: false;
 - required status checks: disabled.
 
-The connected GitHub tool surface does not expose the required branch-protection/rules mutation. This remains a **soft access blocker** only. Do not represent technical branch protection as complete until the setting is actually changed and verified.
+The connected GitHub surface does not expose the required branch-protection/rules mutation. This remains a **soft access blocker** only.
 
 ## Security maintenance — CVE-2026-14456
 
@@ -47,4 +53,4 @@ Re-check fixed Debian package availability and remove the exceptions immediately
 
 ## Safety boundaries
 
-No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover or mandatory cloud runtime dependency is authorized by Issue #590.
+No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover or mandatory cloud runtime dependency is authorized by Issue #615.
