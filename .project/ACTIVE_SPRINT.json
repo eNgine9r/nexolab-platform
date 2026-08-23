@@ -277,13 +277,11 @@
       "data": {
         "branch": "main",
         "protected": true,
-        "required_status_checks": [
-          "NEXOLAB Merge Gate"
-        ],
         "required_approving_review_count": 0,
         "allow_force_pushes": false,
         "allow_deletions": false,
-        "enforce_admins": false
+        "enforce_admins": false,
+        "required_status_check": "NEXOLAB Merge Gate"
       }
     }
   ],
