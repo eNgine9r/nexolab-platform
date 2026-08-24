@@ -29,6 +29,8 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertIn("- linux/amd64", self.workflow)
         self.assertIn("- linux/arm64", self.workflow)
         self.assertIn("git merge-base --is-ancestor", self.workflow)
+        self.assertIn("_ = parsed.port", self.workflow)
+        self.assertIn("dashboard_origin must be a canonical origin without path, parameters or query", self.workflow)
 
     def test_pull_request_lane_keeps_existing_safe_defaults(self) -> None:
         self.assertIn('platform="linux/amd64"', self.workflow)
