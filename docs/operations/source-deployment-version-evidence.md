@@ -110,10 +110,18 @@ sudo python3 scripts/nexolab-version-manager.py establish-package-authority \
 
 It accepts only the exact staged validated package whose `source_commit`, host
 platform, schema, runtime and local-auth contracts match the verified source
-deployment. The package carries the hardware/bridge/standalone runtime overlays
-needed by the accepted Raspberry Pi topology. The transition holds both the host
-worker lock and update-plane lock, verifies capacity and PostgreSQL backup,
-snapshots persistent-volume identities, performs a rollback-aware handoff from the
+deployment. If the source deployment predates the recovery tooling, the bundle is
+built from the current clean tooling checkout with
+`--runtime-source-ref <deployed-source-sha>`: runtime images and schema are taken
+from that exact source tree, while installer/overlay tooling is taken from the
+current checkout. Digest-bound provenance records a distinct `tooling_commit` and
+required split-runtime capability evidence, preventing an old source revision from
+silently supplying incompatible recovery tooling. The package carries the
+hardware/bridge/standalone runtime overlays needed by the accepted Raspberry Pi
+topology. The transition holds both the host
+worker lock and update-plane lock, loads the verified manifest image references
+into the Compose environment before any backup command, verifies capacity and
+PostgreSQL backup, snapshots persistent-volume identities, performs a rollback-aware handoff from the
 source systemd Dashboard to the packaged Dashboard, runs the existing offline
 installer, revalidates the package marker and manifest, requires exactly one
 expected Alembic head, proves real Modbus requests on the same stable

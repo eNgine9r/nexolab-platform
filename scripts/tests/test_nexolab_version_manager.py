@@ -24,6 +24,44 @@ verifier = importlib.util.module_from_spec(VERIFIER_SPEC)
 VERIFIER_SPEC.loader.exec_module(verifier)
 
 
+def offline_images(label: str) -> list[dict[str, str]]:
+    return [
+        {"id": logical_id, "reference": f"nexolab-test/{logical_id}:{label}"}
+        for logical_id in manager.OFFLINE_IMAGE_ENV
+    ]
+
+
+def write_tooling_fixture(bundle_root: Path, source_commit: str) -> None:
+    (bundle_root / "scripts").mkdir(parents=True, exist_ok=True)
+    (bundle_root / "scripts" / "install-offline-bundle.sh").write_text(
+        "#!/bin/sh\nexit 0\n", encoding="utf-8"
+    )
+    (bundle_root / "evidence").mkdir(parents=True, exist_ok=True)
+    (bundle_root / "evidence" / "provenance.json").write_text(
+        json.dumps(
+            {
+                "source_commit": source_commit,
+                "tooling_commit": "f" * 40,
+                "tooling_capabilities": [
+                    "runtime-mode",
+                    "hardware",
+                    "split-runtime-tooling",
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    compose = bundle_root / "deploy" / "compose"
+    compose.mkdir(parents=True, exist_ok=True)
+    for name in (
+        "compose.hardware.yaml",
+        "compose.edge-central-bridge.yaml",
+        "compose.edge-standalone.yaml",
+        "compose.central-standalone.yaml",
+    ):
+        (compose / name).write_text("services: {}\n", encoding="utf-8")
+
+
 def fixture_state(tmp_path: Path, operation_id: str) -> tuple[Path, Path, Path, dict[str, object], argparse.Namespace]:
     root = tmp_path / "versions"
     request_dir = root / "requests"
@@ -34,8 +72,7 @@ def fixture_state(tmp_path: Path, operation_id: str) -> tuple[Path, Path, Path, 
     target_root = root / "catalog" / "release-2"
     (current_root / "deploy" / "compose").mkdir(parents=True)
     (current_root / "deploy" / "offline").mkdir()
-    (target_root / "scripts").mkdir(parents=True)
-    (target_root / "scripts" / "install-offline-bundle.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+    write_tooling_fixture(target_root, "2" * 40)
     current: dict[str, object] = {
         "bundle_id": "release-1",
         "bundle_root": str(current_root),
@@ -81,6 +118,7 @@ def manifests(target_root: Path):
         "source_commit": "2" * 40,
         "created_at": "2026-08-13T09:00:00Z",
         "platform": "linux/arm64",
+        "images": offline_images("target"),
         "version_management": {
             "database_schema": {
                 "head": "schema-2",
@@ -89,7 +127,11 @@ def manifests(target_root: Path):
             }
         },
     }
-    current_manifest = {"bundle_version": "1.0.0", "source_commit": "1" * 40}
+    current_manifest = {
+        "bundle_version": "1.0.0",
+        "source_commit": "1" * 40,
+        "images": offline_images("current"),
+    }
 
     def verified_manifest(path: Path, _expected_id: str) -> dict[str, object]:
         return target_manifest if path == target_root else current_manifest
@@ -381,16 +423,14 @@ def test_offline_verifier_rejects_unsafe_version_management_contract(
 def transition_fixture(tmp_path: Path):
     root = tmp_path / "versions"
     target_root = root / "catalog" / "release-current"
-    (target_root / "scripts").mkdir(parents=True)
-    (target_root / "scripts" / "install-offline-bundle.sh").write_text(
-        "#!/bin/sh\nexit 0\n", encoding="utf-8"
-    )
+    write_tooling_fixture(target_root, "c" * 40)
     target = {
         "schema_version": 1,
         "bundle_version": "2026.08.24",
         "source_commit": "c" * 40,
         "created_at": "2026-08-24T09:00:00+00:00",
         "platform": "linux/arm64",
+        "images": offline_images("transition"),
         "dashboard": {
             "origin": "http://172.18.48.66:3000",
             "api_base_url": "http://172.18.48.66:8082",
@@ -509,6 +549,12 @@ def test_update_plane_lock_blocks_source_transition(tmp_path: Path) -> None:
 def test_backup_failure_preserves_source_authority_and_skips_install(tmp_path: Path) -> None:
     root, _, target, current, args, volumes = transition_fixture(tmp_path)
     installer_run = Mock()
+
+    def fail_backup_after_image_env(*_: object, **__: object):
+        for logical_id, variable in manager.OFFLINE_IMAGE_ENV.items():
+            assert manager.os.environ[variable] == f"nexolab-test/{logical_id}:transition"
+        raise manager.VersionManagerFailure("backup failed")
+
     with (
         patch.object(manager, "verify_staged_bundle", return_value=target),
         patch.object(manager, "verify_real_hardware_runtime", return_value={"status": "verified", "device_mode": "modbus", "observed_buses": ["/host/dev/serial/by-id/usb-test"]}),
@@ -519,7 +565,7 @@ def test_backup_failure_preserves_source_authority_and_skips_install(tmp_path: P
         patch.object(
             manager,
             "create_postgresql_backup",
-            side_effect=manager.VersionManagerFailure("backup failed"),
+            side_effect=fail_backup_after_image_env,
         ),
         patch.object(manager.subprocess, "run", installer_run),
     ):
@@ -749,6 +795,43 @@ def test_offline_bundle_contract_carries_hardware_and_runtime_overlays() -> None
     assert "--runtime-mode" in installer
     assert "RS485_HOST_DEVICE" in installer
     assert "simulator/demo/mock" in installer
+    assert "--runtime-source-ref" in builder
+    assert "git archive" in builder
+    assert "git diff --cached --quiet" in builder
+    assert "tooling_commit" in builder
+    assert "split-runtime-tooling" in builder
+
+
+def test_package_tooling_allows_runtime_commit_to_differ_from_tooling_commit(tmp_path: Path) -> None:
+    bundle_root = tmp_path / "bundle"
+    source_commit = "a" * 40
+    write_tooling_fixture(bundle_root, source_commit)
+    manifest = {"source_commit": source_commit}
+
+    evidence = manager.validate_package_tooling(bundle_root, manifest)
+
+    assert evidence["source_commit"] == source_commit
+    assert evidence["tooling_commit"] == "f" * 40
+    assert evidence["tooling_commit"] != evidence["source_commit"]
+    assert evidence["tooling_capabilities"] == [
+        "hardware",
+        "runtime-mode",
+        "split-runtime-tooling",
+    ]
+
+
+def test_package_tooling_rejects_legacy_same_tree_without_split_capability(tmp_path: Path) -> None:
+    bundle_root = tmp_path / "bundle"
+    source_commit = "a" * 40
+    write_tooling_fixture(bundle_root, source_commit)
+    provenance_path = bundle_root / "evidence" / "provenance.json"
+    provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+    provenance["tooling_commit"] = source_commit
+    provenance["tooling_capabilities"] = ["runtime-mode", "hardware"]
+    provenance_path.write_text(json.dumps(provenance), encoding="utf-8")
+
+    with pytest.raises(manager.VersionManagerFailure, match="capability evidence is incomplete"):
+        manager.validate_package_tooling(bundle_root, {"source_commit": source_commit})
 
 
 def test_installer_failure_restores_source_dashboard(tmp_path: Path) -> None:

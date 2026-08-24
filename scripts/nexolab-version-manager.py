@@ -34,6 +34,15 @@ DEFAULT_POST_UPDATE_POLL_SECONDS = 3
 SOURCE_DEPLOYMENT_AUTHORITY = "controlled_source_deployment"
 PACKAGED_DEPLOYMENT_AUTHORITY = "validated_package"
 SOURCE_DASHBOARD_SERVICE = "nexolab-dashboard.service"
+OFFLINE_IMAGE_ENV = {
+    "dashboard": "OFFLINE_DASHBOARD_IMAGE",
+    "telemetry-service": "OFFLINE_TELEMETRY_IMAGE",
+    "device-agent": "OFFLINE_DEVICE_AGENT_IMAGE",
+    "mqtt": "OFFLINE_MQTT_IMAGE",
+    "postgres": "OFFLINE_POSTGRES_IMAGE",
+    "minio": "OFFLINE_MINIO_IMAGE",
+    "minio-client": "OFFLINE_MINIO_CLIENT_IMAGE",
+}
 CENTRAL_PERSISTENT_VOLUMES = (
     "nexolab-central-postgres-data",
     "nexolab-central-mqtt-data",
@@ -595,6 +604,67 @@ def create_postgresql_backup(
     return backup_path
 
 
+def activate_offline_image_environment(manifest: dict[str, Any]) -> dict[str, str]:
+    images = manifest.get("images")
+    if not isinstance(images, list):
+        raise VersionManagerFailure("offline package image inventory is missing")
+    references: dict[str, str] = {}
+    for item in images:
+        if not isinstance(item, dict):
+            continue
+        logical_id = item.get("id")
+        reference = item.get("reference")
+        if logical_id in OFFLINE_IMAGE_ENV:
+            if logical_id in references or not isinstance(reference, str) or not reference:
+                raise VersionManagerFailure("offline package image inventory is invalid")
+            references[str(logical_id)] = reference
+    missing = sorted(set(OFFLINE_IMAGE_ENV) - set(references))
+    if missing:
+        raise VersionManagerFailure(f"offline package image inventory is incomplete: {missing}")
+    applied: dict[str, str] = {}
+    for logical_id, variable in OFFLINE_IMAGE_ENV.items():
+        reference = references[logical_id]
+        os.environ[variable] = reference
+        applied[variable] = reference
+    return applied
+
+
+def validate_package_tooling(bundle_root: Path, manifest: dict[str, Any]) -> dict[str, Any]:
+    provenance = load_json(bundle_root / "evidence" / "provenance.json")
+    source_commit = manifest.get("source_commit")
+    if provenance.get("source_commit") != source_commit:
+        raise VersionManagerFailure("package provenance source commit does not match manifest")
+    tooling_commit = provenance.get("tooling_commit")
+    if not isinstance(tooling_commit, str) or len(tooling_commit) != 40 or any(
+        char not in "0123456789abcdef" for char in tooling_commit.lower()
+    ):
+        raise VersionManagerFailure("package tooling commit evidence is missing or invalid")
+    capabilities = provenance.get("tooling_capabilities")
+    required_capabilities = {"runtime-mode", "hardware", "split-runtime-tooling"}
+    if not isinstance(capabilities, list) or not required_capabilities.issubset(set(capabilities)):
+        raise VersionManagerFailure("package tooling capability evidence is incomplete")
+    installer = bundle_root / "scripts" / "install-offline-bundle.sh"
+    if not installer.is_file():
+        raise VersionManagerFailure("package installer is missing")
+    required_overlays = (
+        "compose.hardware.yaml",
+        "compose.edge-central-bridge.yaml",
+        "compose.edge-standalone.yaml",
+        "compose.central-standalone.yaml",
+    )
+    missing = [
+        name for name in required_overlays
+        if not (bundle_root / "deploy" / "compose" / name).is_file()
+    ]
+    if missing:
+        raise VersionManagerFailure(f"package runtime overlays are incomplete: {missing}")
+    return {
+        "source_commit": source_commit,
+        "tooling_commit": tooling_commit,
+        "tooling_capabilities": sorted(required_capabilities),
+    }
+
+
 def offline_installer_command(
     bundle_root: Path,
     args: argparse.Namespace,
@@ -772,6 +842,8 @@ def establish_package_authority(args: argparse.Namespace) -> None:
         current = source_deployment_identity(recorded_current, args)
         target_root = root / "catalog" / args.bundle_id
         target = verify_staged_bundle(target_root, args.bundle_id)
+        target_tooling = validate_package_tooling(target_root, target)
+        activate_offline_image_environment(target)
         current_schema = validate_source_transition(current, target, args)
         source_hardware = verify_real_hardware_runtime(args)
         dashboard_state = source_dashboard_state(current)
@@ -796,6 +868,7 @@ def establish_package_authority(args: argparse.Namespace) -> None:
             "target_bundle_id": args.bundle_id,
             "target_release": target.get("bundle_version"),
             "target_manifest_sha256": manifest_digest(target_root),
+            "target_tooling": target_tooling,
             "backup_evidence_id": None,
             "capacity_evidence_id": None,
             "runtime_verification": None,
@@ -966,6 +1039,7 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
     try:
         enter_phase(operation_path, operation, "verifying_package")
         target = verify_staged_bundle(target_root, target_id)
+        operation["target_tooling"] = validate_package_tooling(target_root, target)
         schema = target["version_management"]["database_schema"]
         current_schema = str(current["schema_head"])
         compatibility_field = (
@@ -981,6 +1055,7 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
             or current_manifest.get("source_commit") != current.get("source_commit")
         ):
             raise VersionManagerFailure("current deployment evidence does not match its staged package")
+        activate_offline_image_environment(current_manifest)
 
         hardware_required = current.get("edge_hardware_required") is True
         hardware_contract = current.get("hardware_contract")
@@ -1022,6 +1097,7 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         atomic_json(operation_path, operation)
 
         enter_phase(operation_path, operation, "verifying_runtime")
+        activate_offline_image_environment(target)
         target_central = compose_args(
             target_root, args.central_env.resolve(), central=True, local_auth=args.local_auth
         )

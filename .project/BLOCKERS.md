@@ -4,7 +4,7 @@ Updated: 2026-08-24
 
 ## Issue #675 — source-to-packaged authority
 
-No software implementation blocker. The full transition/version-manager matrix passes 61/61, with Python compile, shell syntax and `git diff --check` also GREEN. Source→package handoff now preserves local auth, stable real-hardware topology and persistent hardware authority for later update/rollback. Actual Raspberry Pi execution of `establish-package-authority` is intentionally out of scope for the implementation WP and remains a separate production cutover approval after exact-head software GREEN.
+No software implementation blocker. The full transition/version-manager matrix passes 63/63, with Python compile, shell syntax and `git diff --check` also GREEN. The latest exact-head review findings are addressed locally by split runtime/tooling provenance and pre-backup verified image-environment activation. Source→package handoff now preserves local auth, stable real-hardware topology and persistent hardware authority for later update/rollback. Actual Raspberry Pi execution of `establish-package-authority` is intentionally out of scope for the implementation WP and remains a separate production cutover approval after exact-head software GREEN.
 
 ## Issue #189 — actual-host recovery acceptance
 

@@ -7,11 +7,13 @@ Usage: build-offline-bundle.sh --version VERSION --platform linux/amd64|linux/ar
   --dashboard-origin URL --api-base-url URL --websocket-url URL \
   [--schema-head REVISION] [--upgrade-from-schema-head REVISION] \
   [--runtime-compatible-schema-head REVISION] \
-  [--auth-provider disabled|local|acceptance|supabase] [--output DIR]
+  [--auth-provider disabled|local|acceptance|supabase] [--runtime-source-ref REF] [--output DIR]
 
 Builds a versioned NEXOLAB offline bundle. This command is intentionally run on a
 connected build host; the resulting archive is self-contained for disconnected
-installation. Secrets and site .env files are never included.
+installation. `--runtime-source-ref` selects the exact Git tree used for runtime
+images while installer/overlay tooling comes from the current clean checkout.
+Secrets and site .env files are never included.
 EOF
 }
 
@@ -21,6 +23,7 @@ DASHBOARD_ORIGIN=""
 API_BASE_URL=""
 WEBSOCKET_URL=""
 AUTH_PROVIDER="disabled"
+RUNTIME_SOURCE_REF="HEAD"
 SCHEMA_HEAD=""
 UPGRADE_FROM_SCHEMA_HEADS=()
 RUNTIME_COMPATIBLE_SCHEMA_HEADS=()
@@ -35,6 +38,7 @@ while (($#)); do
     --api-base-url) API_BASE_URL="${2:?}"; shift 2 ;;
     --websocket-url) WEBSOCKET_URL="${2:?}"; shift 2 ;;
     --auth-provider) AUTH_PROVIDER="${2:?}"; shift 2 ;;
+    --runtime-source-ref) RUNTIME_SOURCE_REF="${2:?}"; shift 2 ;;
     --schema-head) SCHEMA_HEAD="${2:?}"; shift 2 ;;
     --upgrade-from-schema-head) UPGRADE_FROM_SCHEMA_HEADS+=("${2:?}"); shift 2 ;;
     --runtime-compatible-schema-head) RUNTIME_COMPATIBLE_SCHEMA_HEADS+=("${2:?}"); shift 2 ;;
@@ -66,16 +70,31 @@ git diff --quiet -- . ':!dist' || {
   echo "Refusing to build from a dirty working tree" >&2
   exit 1
 }
+git diff --cached --quiet -- . ':!dist' || {
+  echo "Refusing to build from a staged tooling diff" >&2
+  exit 1
+}
 
-SOURCE_COMMIT="$(git rev-parse HEAD)"
+TOOLING_COMMIT="$(git rev-parse HEAD)"
+SOURCE_COMMIT="$(git rev-parse "${RUNTIME_SOURCE_REF}^{commit}")"
+RUNTIME_SOURCE_ROOT="$PWD"
+RUNTIME_SOURCE_TMP=""
+if [[ "$SOURCE_COMMIT" != "$TOOLING_COMMIT" ]]; then
+  RUNTIME_SOURCE_TMP="$(mktemp -d "${TMPDIR:-/tmp}/nexolab-runtime-source.XXXXXX")"
+  trap 'rm -rf "$RUNTIME_SOURCE_TMP"' EXIT
+  git archive "$SOURCE_COMMIT" | tar -x -C "$RUNTIME_SOURCE_TMP"
+  RUNTIME_SOURCE_ROOT="$RUNTIME_SOURCE_TMP"
+fi
 if [[ -z "$SCHEMA_HEAD" ]]; then
-  SCHEMA_HEAD="$(python3 - <<'PY'
+  SCHEMA_HEAD="$(python3 - "$RUNTIME_SOURCE_ROOT" <<'PY'
 import ast
+import sys
 from pathlib import Path
 
+root = Path(sys.argv[1])
 revisions = set()
 parents = set()
-for path in Path("services/telemetry-service/migrations/versions").glob("*.py"):
+for path in (root / "services/telemetry-service/migrations/versions").glob("*.py"):
     tree = ast.parse(path.read_text(encoding="utf-8"))
     values = {}
     for node in tree.body:
@@ -137,14 +156,14 @@ build_image() {
     "$context"
 }
 
-build_image "$DASHBOARD_IMAGE" infrastructure/offline/Dockerfile.dashboard . \
+build_image "$DASHBOARD_IMAGE" "$RUNTIME_SOURCE_ROOT/infrastructure/offline/Dockerfile.dashboard" "$RUNTIME_SOURCE_ROOT" \
   --build-arg "NEXT_PUBLIC_NEXOLAB_DATA_MODE=live" \
   --build-arg "NEXT_PUBLIC_NEXOLAB_API_BASE_URL=${API_BASE_URL}" \
   --build-arg "NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL=${WEBSOCKET_URL}" \
   --build-arg "NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=${AUTH_PROVIDER}" \
   --build-arg "NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID=00000000-0000-0000-0000-000000000001"
-build_image "$TELEMETRY_IMAGE" services/telemetry-service/Dockerfile services/telemetry-service
-build_image "$DEVICE_AGENT_IMAGE" services/device-agent/Dockerfile services/device-agent
+build_image "$TELEMETRY_IMAGE" "$RUNTIME_SOURCE_ROOT/services/telemetry-service/Dockerfile" "$RUNTIME_SOURCE_ROOT/services/telemetry-service"
+build_image "$DEVICE_AGENT_IMAGE" "$RUNTIME_SOURCE_ROOT/services/device-agent/Dockerfile" "$RUNTIME_SOURCE_ROOT/services/device-agent"
 
 for image in "$MQTT_IMAGE" "$POSTGRES_IMAGE" "$MINIO_IMAGE" "$MINIO_CLIENT_IMAGE"; do
   docker pull --platform "$PLATFORM" "$image"
@@ -219,17 +238,19 @@ cp docs/operations/local-version-management.md "$STAGING/docs/"
 cp docs/security/local-operator-authentication.md "$STAGING/docs/"
 chmod 0755 "$STAGING/scripts/"*.sh "$STAGING/scripts/"*.py
 
-python3 - "$STAGING/evidence/provenance.json" "$SOURCE_COMMIT" "$VERSION" "$PLATFORM" "$TRIVY_IMAGE" "$AUTH_PROVIDER" <<'PY'
+python3 - "$STAGING/evidence/provenance.json" "$SOURCE_COMMIT" "$TOOLING_COMMIT" "$VERSION" "$PLATFORM" "$TRIVY_IMAGE" "$AUTH_PROVIDER" <<'PY'
 import json
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
-output, commit, version, platform, trivy_image, auth_provider = sys.argv[1:]
+output, source_commit, tooling_commit, version, platform, trivy_image, auth_provider = sys.argv[1:]
 payload = {
     "schema_version": 1,
     "source_repository": "eNgine9r/nexolab-platform",
-    "source_commit": commit,
+    "source_commit": source_commit,
+    "tooling_commit": tooling_commit,
+    "tooling_capabilities": ["runtime-mode", "hardware", "split-runtime-tooling"],
     "bundle_version": version,
     "platform": platform,
     "builder": "scripts/build-offline-bundle.sh",

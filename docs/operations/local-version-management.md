@@ -111,13 +111,24 @@ the production Raspberry Pi. The transition fails closed unless the current
 source lineage is verified ready, no update/rollback operation is active, the
 staged package matches the exact source commit/platform/schema/runtime/auth
 boundary, capacity is sufficient and a non-empty PostgreSQL backup is verified.
+
+When the verified source deployment predates the recovery tooling, build the
+package from the current clean tooling checkout with
+`--runtime-source-ref <deployed-source-sha>`. Runtime images and the schema head
+come from that exact Git tree, while the installer and runtime overlays come from
+the current tooling checkout. Digest-bound provenance records both `source_commit`
+and `tooling_commit` plus the required split-runtime tooling capabilities; legacy
+packages without that capability evidence are rejected before mutation.
 It reuses `install-offline-bundle.sh`, preserves the existing named volumes and
 edge SQLite, and carries the source runtime hardware/bridge/standalone overlays
 into the immutable package. The target must preserve local authentication, exact
 Dashboard origin/runtime mode, and stable `/dev/serial/by-id/...` hardware identity.
 The source systemd Dashboard is stopped only immediately before packaged activation;
 failed activation stops the packaged Dashboard and restores the source Dashboard.
-Runtime verification requires API/database/MQTT readiness, exactly one Alembic head,
+Before any Compose-based backup or verification command, the version manager
+activates the exact `OFFLINE_*_IMAGE` references from the already verified staged
+manifest, so Compose interpolation cannot depend on installer-side environment
+mutation. Runtime verification requires API/database/MQTT readiness, exactly one Alembic head,
 real Modbus request evidence on the same RS-485 topology, advancing telemetry, and
 identical persistent-volume identities before and after installation.
 

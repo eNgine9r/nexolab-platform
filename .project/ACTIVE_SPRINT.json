@@ -194,11 +194,14 @@
       "lifecycle": "in_progress",
       "branch": "feat/675-source-to-packaged-authority",
       "evidence": {
-        "version_management_matrix": "61_passed",
+        "version_management_matrix": "63_passed",
         "python_compile": "success",
         "shell_syntax": "success",
         "git_diff_check": "success",
-        "actual_package_cutover": "not_executed_requires_approval"
+        "actual_package_cutover": "not_executed_requires_approval",
+        "codex_exact_head_e7cba2b6": "two_p1_found_and_addressed_locally",
+        "runtime_tooling_split": "verified_by_regression_tests",
+        "pre_backup_image_environment": "verified_by_regression_tests"
       }
     }
   ],
