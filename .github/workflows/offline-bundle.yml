@@ -132,6 +132,7 @@ jobs:
           }
           python3 - "$dashboard_origin" "$api_base_url" "$websocket_url" <<'PYURL'
           import sys
+          from ipaddress import ip_address
           from urllib.parse import urlparse
 
           expected = (
@@ -176,6 +177,23 @@ jobs:
           hosts = {item.hostname.lower() for item in parsed_urls.values()}
           if len(hosts) != 1:
               raise SystemExit("Dashboard, API and WebSocket URLs must use the same LOCAL_LAN host")
+
+          local_host = dashboard.hostname.lower().rstrip(".")
+          try:
+              address = ip_address(local_host)
+          except ValueError:
+              local_dns = (
+                  "." not in local_host
+                  or local_host.endswith(".local")
+                  or local_host.endswith(".lan")
+                  or local_host.endswith(".home.arpa")
+              )
+              if not local_dns:
+                  raise SystemExit("Runtime URLs must use a LOCAL_LAN hostname, not a public DNS name")
+          else:
+              if address.is_global or address.is_unspecified or address.is_multicast:
+                  raise SystemExit("Runtime URLs must use a non-global LOCAL_LAN IP address")
+
           if api.scheme != dashboard.scheme:
               raise SystemExit("Dashboard and API URLs must use the same HTTP security scheme")
           expected_ws_scheme = "wss" if dashboard.scheme == "https" else "ws"
