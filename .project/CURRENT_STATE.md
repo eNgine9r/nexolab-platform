@@ -1,14 +1,14 @@
 # NEXOLAB Current State
 
-Updated: 2026-08-23
+Updated: 2026-08-24
 
 ## Current Sprint
 
 `PRODUCTION-READINESS-1` is active: production readiness and controlled acceptance.
 
-Issue #669 is the active state-continuity Work Package. It reconciles completed #667 security maintenance and final #444 LOCAL_LAN user-administration acceptance.
+Issue #673 is the active state-continuity Work Package. It records completed real Raspberry Pi hardware acceptance for #245 and advances production readiness to #189.
 
-Next critical validation target: Issue #245 — **Support standalone offline Raspberry Pi 5 monitoring over loopback**.
+Next recovery boundary: Issue #189 — **Prove backup, restore, rollback and power-loss recovery**.
 
 ## Recently completed production-readiness boundaries
 
@@ -20,19 +20,17 @@ Issue #646 is completed. GitHub `main` is protected with required `NEXOLAB Merge
 
 ## Durable baselines
 
-Accepted product source: `286a219611f95413b5580d8099a7c5665416d1ad`.
+Accepted product source: `750a5b8cba02add472f1aa7ca7a2b077e809c3c3`.
 
-Deployed product source: `6e387485b68fb862d9f82ae7f6000b1f5b672764`.
+Deployed product source: `750a5b8cba02add472f1aa7ca7a2b077e809c3c3`.
 
 The Raspberry Pi Git checkout may be synchronized with current `main`; repository synchronization is not deployment or cutover.
 
-## Issue #245 standalone boundary
+## Issue #245 standalone acceptance
 
-Standalone runtime software is already merged and software-verified. Current LAN runtime health is good and the previous central-service startup blocker is no longer present.
+Issue #245 is completed with real Raspberry Pi evidence anchored to `750a5b8cba02add472f1aa7ca7a2b077e809c3c3`. The controlled standalone run proved physical Ethernet carrier loss, Wi-Fi disabled, no default route, loopback Dashboard/API/Device Agent readiness, authenticated offline verification, 15 minutes of advancing telemetry, Telemetry Service restart recovery, a second offline reboot, preserved named-volume identities, migration success and post-reboot telemetry progression.
 
-The next meaningful action changes runtime mode to `standalone`, then requires Ethernet/Wi-Fi isolation, no default route, loopback browser verification, Telemetry Service restart and reboot evidence. The deployment script has no dry-run/preflight-only mode.
-
-Therefore #245 remains `needs_validation`. Production/network cutover and reboot are not authorized by repository state and require explicit Product Owner approval immediately before execution.
+Evidence: `/home/nexolab/nexolab-platform/runtime/evidence/standalone-offline-acceptance-20260824T065756Z` completed at `2026-08-24T10:17:49+03:00`. Ethernet was then restored and all core services returned healthy.
 
 ## Issue #189 recovery boundary
 
@@ -53,4 +51,4 @@ Four exact OpenSSL QUIC `CVE-2026-14456` temporary decisions remain reviewed thr
 
 Core NEXOLAB remains `LOCAL_LAN` / offline-first with no mandatory public internet, paid runtime service, CDN, remote font or external runtime API.
 
-No Modbus/controller write, hardware write, product persistent-data deletion, named-volume deletion, secret exposure, DNS/billing mutation, production deployment, network isolation or reboot is authorized by Issue #669.
+Issue #673 is state-only and authorizes no runtime mutation. #189 remains blocked on controlled reboot/update-rollback and optional power-loss actions; no destructive restore, persistent-data deletion, named-volume deletion, Modbus/controller write or hardware write is authorized.

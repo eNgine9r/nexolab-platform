@@ -18,18 +18,18 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "286a219611f95413b5580d8099a7c5665416d1ad",
-    "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
+    "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
+    "deployed_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3"
   },
   "selection": {
     "active_work_package": {
-      "issue": 669,
-      "title": "Reconcile #444 acceptance and advance PRODUCTION-READINESS-1 to #245",
-      "branch": "chore/669-production-readiness-state"
+      "issue": 673,
+      "title": "Reconcile #245 hardware acceptance and advance PRODUCTION-READINESS-1 to #189",
+      "branch": "chore/673-production-readiness-state"
     },
     "next_work_package": {
-      "issue": 245,
-      "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback"
+      "issue": 189,
+      "title": "Prove backup, restore, rollback and power-loss recovery"
     }
   },
   "work_packages": [
@@ -71,9 +71,23 @@
       "issue": 245,
       "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
       "priority": "critical",
-      "lifecycle": "needs_validation",
+      "lifecycle": "completed",
       "depends_on": [],
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
+        "hardware_evidence_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
+        "checks": {
+          "standalone_deployment": "success",
+          "authenticated_offline_verifier": "success",
+          "disconnected_15m_telemetry": "success",
+          "telemetry_service_restart": "success",
+          "second_reboot_persistence": "success",
+          "named_volume_identity": "success"
+        },
+        "runtime_evidence_path": "/home/nexolab/nexolab-platform/runtime/evidence/standalone-offline-acceptance-20260824T065756Z",
+        "completed_at": "2026-08-24T10:17:49+03:00"
+      },
+      "branch": "feat/245-standalone-offline-pi-runtime"
     },
     {
       "issue": 189,
@@ -150,8 +164,23 @@
       "issue": 669,
       "title": "Reconcile #444 acceptance and advance PRODUCTION-READINESS-1 to #245",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "chore/669-production-readiness-state",
+      "evidence": {
+        "verified_head_sha": "d26b2e4cb2e82ba003e959a7ebb67e0a804b3ce3",
+        "pull_request": 670,
+        "checks": {
+          "state_integrity": "success",
+          "nexolab_merge_gate": "success"
+        }
+      }
+    },
+    {
+      "issue": 673,
+      "title": "Reconcile #245 hardware acceptance and advance PRODUCTION-READINESS-1 to #189",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "chore/673-production-readiness-state",
       "evidence": {}
     }
   ],
