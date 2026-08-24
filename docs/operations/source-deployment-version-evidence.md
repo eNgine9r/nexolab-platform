@@ -94,6 +94,57 @@ For a new/uninitialized installation, automatic updates remain OFF. The host tim
 
 Do not hand-edit `current.json` to convert a source deployment into a packaged release.
 
-When NEXOLAB is later installed through an exact staged validated package, the canonical version-manager package flow becomes authoritative. Any transition from source-lineage evidence to packaged current-release evidence must be implemented and verified explicitly; it must not overwrite trustworthy current state merely to make an update button available.
+When NEXOLAB is later installed through an exact staged validated package, the canonical version-manager package flow becomes authoritative. A source-lineage record must never be hand-edited or passed through `bootstrap` to manufacture packaged authority.
 
-Preserve source deployment evidence, package validation markers, operation history and PostgreSQL backups for audit and recovery.
+The explicit transition is:
+
+```bash
+sudo python3 scripts/nexolab-version-manager.py establish-package-authority \
+  --root /var/lib/nexolab/version-management \
+  --bundle-id <exact-staged-bundle-id> \
+  --central-env /etc/nexolab/central.env \
+  --edge-env /etc/nexolab/edge.env \
+  --backup-dir /var/backups/nexolab \
+  --local-auth
+```
+
+It accepts only the exact staged validated package whose `source_commit`, host
+platform, schema, runtime and local-auth contracts match the verified source
+deployment. If the source deployment predates the recovery tooling, the bundle is
+built from the current clean tooling checkout with
+`--runtime-source-ref <deployed-source-sha>`: runtime images and schema are taken
+from that exact source tree, while installer/overlay tooling is taken from the
+current checkout. Digest-bound provenance records a distinct `tooling_commit` and
+required split-runtime capability evidence, preventing an old source revision from
+silently supplying incompatible recovery tooling. The package carries the
+hardware/bridge/standalone runtime overlays needed by the accepted Raspberry Pi
+topology. The transition holds both the host
+worker lock and update-plane lock, loads the verified manifest image references
+into the Compose environment before any backup command, verifies capacity and
+PostgreSQL backup, snapshots persistent-volume identities, performs a rollback-aware handoff from the
+source systemd Dashboard to the packaged Dashboard, runs the existing offline
+installer, revalidates the package marker and manifest, requires exactly one
+expected Alembic head, proves real Modbus requests on the same stable
+`/dev/serial/by-id/...` topology, checks advancing telemetry, and requires identical
+volume identities afterward.
+
+Only then may catalog-backed packaged `current.json` replace the source record.
+The packaged record persists hardware authority and its verified RS-485 contract;
+subsequent update and rollback operations must keep the hardware overlay and
+re-prove that contract before committing `ready`. The previous source commit and
+deployment evidence remain auditable. Any pre-install failure preserves the source
+record unchanged. A failure after installation starts preserves source-lineage
+authority but marks runtime state unverified; when Dashboard handoff began, the
+packaged Dashboard is stopped and the source Dashboard is restored.
+
+For legacy controlled-source records that do not yet carry the explicit Dashboard
+and auth identity fields, the transition may derive them only from the referenced
+immutable `runtime/deployments/**/final-state.txt` evidence. The evidence must remain
+under that deployment-evidence root and must match both the exact recorded source
+commit and runtime mode. A mismatch or missing fact fails closed rather than
+rewriting the legacy record.
+
+Actual execution on the controlled Raspberry Pi is a cutover action and remains
+separate from software verification. Preserve source deployment evidence, package
+validation markers, operation history and PostgreSQL backups for audit and
+recovery.

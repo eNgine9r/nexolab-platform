@@ -19,18 +19,15 @@
   },
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
-    "deployed_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3"
+    "deployed_product_sha": "cc27b609eea2917b97da96003a08e5c84a7edbb1"
   },
   "selection": {
     "active_work_package": {
-      "issue": 673,
-      "title": "Reconcile #245 hardware acceptance and advance PRODUCTION-READINESS-1 to #189",
-      "branch": "chore/673-production-readiness-state"
+      "issue": 675,
+      "title": "Establish safe source-to-packaged version authority for Raspberry Pi recovery drills",
+      "branch": "feat/675-source-to-packaged-authority"
     },
-    "next_work_package": {
-      "issue": 189,
-      "title": "Prove backup, restore, rollback and power-loss recovery"
-    }
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -179,9 +176,33 @@
       "issue": 673,
       "title": "Reconcile #245 hardware acceptance and advance PRODUCTION-READINESS-1 to #189",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "chore/673-production-readiness-state",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "caa00280824bf55b52f0d600eacf3725f1eb962b",
+        "pull_request": 674,
+        "checks": {
+          "state_integrity": "success",
+          "nexolab_merge_gate": "success"
+        }
+      }
+    },
+    {
+      "issue": 675,
+      "title": "Establish safe source-to-packaged version authority for Raspberry Pi recovery drills",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "feat/675-source-to-packaged-authority",
+      "evidence": {
+        "version_management_matrix": "63_passed",
+        "python_compile": "success",
+        "shell_syntax": "success",
+        "git_diff_check": "success",
+        "actual_package_cutover": "not_executed_requires_approval",
+        "codex_exact_head_e7cba2b6": "two_p1_found_and_addressed_locally",
+        "runtime_tooling_split": "verified_by_regression_tests",
+        "pre_backup_image_environment": "verified_by_regression_tests"
+      }
     }
   ],
   "maintenance_actions": [

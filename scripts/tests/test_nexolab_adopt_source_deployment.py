@@ -45,6 +45,7 @@ def make_deployment_fixture(
                 "deployed_at=2026-08-18T16:22:48+03:00",
                 f"commit={evidence_commit or commit}",
                 "runtime_mode=lan",
+                "dashboard=http://172.18.48.34:3000",
                 "api=http://172.18.48.34:8082",
                 f"auth_mode={auth_mode}",
                 "local_auth_overlay=true",
@@ -108,6 +109,10 @@ def test_adoption_records_exact_source_lineage_without_package_authority(
     assert current["runtime_state_known"] is True
     assert current["health"] == "degraded"
     assert current["source_deployment_evidence"] == "runtime/deployments/20260818T131726Z"
+    assert current["source_dashboard_origin"] == "http://172.18.48.34:3000"
+    assert current["source_auth_mode"] == "jwt"
+    assert current["source_local_auth_overlay"] is True
+    assert current["source_dashboard_auth_provider"] == "local"
     assert not (root / "catalog").exists()
 
     assert orchestrator.current_source_commit(root) == commit

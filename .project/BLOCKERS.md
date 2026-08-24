@@ -2,13 +2,13 @@
 
 Updated: 2026-08-24
 
-## Issue #673 — state reconciliation
+## Issue #675 — source-to-packaged authority
 
-No hard implementation blocker. This Work Package is state-only and records completed #245 hardware acceptance without changing runtime, deployment, credentials, networking or hardware.
+No software implementation blocker. The full transition/version-manager matrix passes 63/63, with Python compile, shell syntax and `git diff --check` also GREEN. The latest exact-head review findings are addressed locally by split runtime/tooling provenance and pre-backup verified image-environment activation. Source→package handoff now preserves local auth, stable real-hardware topology and persistent hardware authority for later update/rollback. Actual Raspberry Pi execution of `establish-package-authority` is intentionally out of scope for the implementation WP and remains a separate production cutover approval after exact-head software GREEN.
 
 ## Issue #189 — actual-host recovery acceptance
 
-Software/isolated backup-restore and real MQTT/SQLite outage replay are verified. Remaining evidence requires controlled central/Pi reboot, actual update/rollback drill and optional power-loss testing. No destructive restore over production and no named-volume deletion are authorized.
+Backup/isolated restore, MQTT/SQLite outage replay and reboot persistence are verified. The remaining update→rollback drill is blocked until #675 safely establishes catalog-backed package authority and a compatible current/previous ARM64 package pair is staged. No destructive restore over production and no named-volume deletion are authorized.
 
 ## Issue #200 — physical RS-485 topology
 
@@ -32,11 +32,12 @@ Four exact reviewed HIGH/no-fix decisions are retained through **2026-08-30**. R
 
 ## Cleared boundaries
 
-- #444 LOCAL_LAN user administration — completed with actual operator create/login evidence plus merged non-admin 403 authorization contract.
-- #646 main branch protection — completed; `main` is protected and requires `NEXOLAB Merge Gate`.
+- #444 LOCAL_LAN user administration — completed.
+- #646 main branch protection — completed; `main` requires `NEXOLAB Merge Gate`.
 - #667 CVE lifecycle date reconciliation — completed and merged.
-- #245 standalone offline Raspberry Pi acceptance — completed on real hardware at source `750a5b8cba02add472f1aa7ca7a2b077e809c3c3`, including disconnected telemetry, Telemetry Service restart and second reboot persistence.
+- #245 standalone offline Raspberry Pi acceptance — completed on real hardware.
+- #673 production-readiness state reconciliation — completed and merged.
 
 ## Safety boundaries
 
-No blocker may be bypassed by Modbus/controller write, hardware write, production/site cutover, persistent-data deletion, named-volume deletion, secret exposure or mandatory cloud dependency.
+No blocker may be bypassed by Modbus/controller write, hardware write, production/site cutover without approval, persistent-data deletion, named-volume deletion, secret exposure or mandatory cloud dependency.

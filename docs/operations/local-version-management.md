@@ -87,6 +87,67 @@ bundle, live containers and database revision requires a separately reviewed
 recovery procedure outside the UI. Until trustworthy current evidence exists,
 the UI remains readable but all mutations hard-stop.
 
+## Convert a verified source deployment to packaged authority
+
+`bootstrap` must not be used when `current.json` already records
+`deployment_authority=controlled_source_deployment`. A source deployment is not
+a package merely because a later bundle was built from the same Git commit.
+
+After the exact source commit has been built, verified and staged in the local
+catalog, use the bounded host transition:
+
+```bash
+sudo python3 scripts/nexolab-version-manager.py establish-package-authority \
+  --root /var/lib/nexolab/version-management \
+  --bundle-id <exact-staged-bundle-id> \
+  --central-env /etc/nexolab/central.env \
+  --edge-env /etc/nexolab/edge.env \
+  --backup-dir /var/backups/nexolab \
+  --local-auth
+```
+
+This is a controlled runtime mutation and requires explicit cutover approval on
+the production Raspberry Pi. The transition fails closed unless the current
+source lineage is verified ready, no update/rollback operation is active, the
+staged package matches the exact source commit/platform/schema/runtime/auth
+boundary, capacity is sufficient and a non-empty PostgreSQL backup is verified.
+
+When the verified source deployment predates the recovery tooling, build the
+package from the current clean tooling checkout with
+`--runtime-source-ref <deployed-source-sha>`. Runtime images and the schema head
+come from that exact Git tree, while the installer and runtime overlays come from
+the current tooling checkout. Digest-bound provenance records both `source_commit`
+and `tooling_commit` plus the required split-runtime tooling capabilities; legacy
+packages without that capability evidence are rejected before mutation.
+It reuses `install-offline-bundle.sh`, preserves the existing named volumes and
+edge SQLite, and carries the source runtime hardware/bridge/standalone overlays
+into the immutable package. The target must preserve local authentication, exact
+Dashboard origin/runtime mode, and stable `/dev/serial/by-id/...` hardware identity.
+The source systemd Dashboard is stopped only immediately before packaged activation;
+failed activation stops the packaged Dashboard and restores the source Dashboard.
+Before any Compose-based backup or verification command, the version manager
+activates the exact `OFFLINE_*_IMAGE` references from the already verified staged
+manifest, so Compose interpolation cannot depend on installer-side environment
+mutation. Runtime verification requires API/database/MQTT readiness, exactly one Alembic head,
+real Modbus request evidence on the same RS-485 topology, advancing telemetry, and
+identical persistent-volume identities before and after installation.
+
+Only after every gate passes is `current.json` atomically replaced with the
+catalog-backed packaged release. The prior source commit and deployment evidence
+remain referenced for audit. The packaged record also persists the verified
+hardware authority and RS-485 contract so every later update or rollback must keep
+the hardware overlay and re-prove the same real Modbus topology before becoming
+`ready`. Installer, migration, health, auth, hardware-topology, exact-schema or
+data-preservation failure leaves source/package authority unadvanced and marks the
+runtime state unverified after any install mutation; if Dashboard handoff started,
+the source Dashboard is restored.
+
+Legacy controlled-source records that predate the explicit Dashboard/auth fields
+may recover those fields only from their immutable `runtime/deployments/**/final-state.txt`
+evidence. The evidence path must stay under the repository deployment-evidence
+root and its exact source commit and runtime mode must match the current lineage;
+otherwise the transition fails closed.
+
 ## Compatibility metadata
 
 The offline manifest records:
