@@ -190,6 +190,10 @@ done
 
 cp infrastructure/compose/compose.central.yaml "$STAGING/deploy/compose/"
 cp infrastructure/compose/compose.edge.yaml "$STAGING/deploy/compose/"
+cp infrastructure/compose/compose.hardware.yaml "$STAGING/deploy/compose/"
+cp infrastructure/compose/compose.edge-central-bridge.yaml "$STAGING/deploy/compose/"
+cp infrastructure/compose/compose.edge-standalone.yaml "$STAGING/deploy/compose/"
+cp infrastructure/compose/compose.central-standalone.yaml "$STAGING/deploy/compose/"
 cp infrastructure/compose/compose.local-auth.yaml "$STAGING/deploy/compose/"
 cp infrastructure/compose/mosquitto.central.conf "$STAGING/deploy/compose/"
 cp infrastructure/compose/mosquitto.conf "$STAGING/deploy/compose/"

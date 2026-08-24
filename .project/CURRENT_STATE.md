@@ -24,9 +24,9 @@ The accepted baseline remains anchored to #245 real-hardware acceptance. Reposit
 
 ## Issue #675 source-to-packaged authority
 
-Software implementation adds one bounded `establish-package-authority` host command. It accepts only trusted `controlled_source_deployment` lineage and an exact host-validated staged bundle with matching source commit, platform, schema, runtime mode and auth boundary. It holds the worker and update-plane locks, requires capacity and a verified non-empty PostgreSQL backup, records persistent-volume identities, reuses `install-offline-bundle.sh`, verifies API/database/MQTT readiness, exact Alembic head and Device Agent telemetry progression, and commits catalog-backed packaged authority only after volume identities remain unchanged.
+Software implementation adds one bounded `establish-package-authority` host command. It accepts only trusted `controlled_source_deployment` lineage and an exact host-validated staged bundle with matching source commit, platform, schema, runtime mode and local-auth boundary. It holds the worker and update-plane locks, requires capacity and a verified non-empty PostgreSQL backup, records persistent-volume identities, preserves hardware/bridge/standalone overlays, performs a rollback-aware source-to-packaged Dashboard handoff, requires exactly one Alembic head, proves the real Modbus path on the same stable RS-485 topology, and commits catalog-backed packaged authority only after volume identities remain unchanged. The packaged record carries forward hardware authority so later update/rollback operations must retain the hardware overlay and re-prove the same hardware contract.
 
-Targeted version-management tests currently pass 26/26. Actual packaged installation has not been executed on the Raspberry Pi in #675 and remains a separate approved cutover after software merge.
+Legacy controlled-source records may derive missing Dashboard/auth identity only from their exact immutable deployment evidence with matching source commit and runtime mode. The full version-management matrix passes 61/61; Python compile, shell syntax and `git diff --check` also pass. Actual packaged installation has not been executed on the Raspberry Pi in #675 and remains a separate approved cutover after software merge.
 
 ## Issue #189 recovery boundary
 

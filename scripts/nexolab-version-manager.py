@@ -33,6 +33,7 @@ DEFAULT_POST_UPDATE_OBSERVATION_SECONDS = 60
 DEFAULT_POST_UPDATE_POLL_SECONDS = 3
 SOURCE_DEPLOYMENT_AUTHORITY = "controlled_source_deployment"
 PACKAGED_DEPLOYMENT_AUTHORITY = "validated_package"
+SOURCE_DASHBOARD_SERVICE = "nexolab-dashboard.service"
 CENTRAL_PERSISTENT_VOLUMES = (
     "nexolab-central-postgres-data",
     "nexolab-central-mqtt-data",
@@ -270,8 +271,8 @@ def read_local_json(url: str, *, timeout: float = 5.0) -> dict[str, Any]:
 
 
 def _device_agent_facts(payload: dict[str, Any]) -> tuple[int, int, bool, str | None]:
-    if payload.get("status") != "ok":
-        raise VersionManagerFailure("Device Agent health is not ok after version activation")
+    if payload.get("status") not in {"ok", "degraded"}:
+        raise VersionManagerFailure("Device Agent health is not usable after version activation")
     acquisition = payload.get("acquisition")
     scheduler = acquisition.get("scheduler") if isinstance(acquisition, dict) else None
     if not isinstance(scheduler, dict):
@@ -331,6 +332,85 @@ def verify_device_agent_progress(
 
 
 
+def require_exact_alembic_head(output: str, expected: str) -> None:
+    revisions = [line.strip().split()[0] for line in output.splitlines() if line.strip()]
+    if revisions != [expected]:
+        raise VersionManagerFailure(
+            f"deployed database revision must be exactly one expected head: {expected}"
+        )
+
+
+def wait_http_success(url: str, *, attempts: int = 30, delay_seconds: float = 1.0) -> None:
+    for _ in range(max(1, attempts)):
+        try:
+            with urllib.request.urlopen(url, timeout=3) as response:
+                if 200 <= response.status < 400:
+                    return
+        except (OSError, TimeoutError, urllib.error.URLError):
+            pass
+        time.sleep(delay_seconds)
+    raise VersionManagerFailure(f"HTTP readiness did not recover: {url}")
+
+
+def expected_real_hardware_contract(args: argparse.Namespace) -> dict[str, str]:
+    if args.skip_edge or args.edge_env is None:
+        raise VersionManagerFailure("source-to-package authority requires the real edge runtime")
+    env = parse_env_file(args.edge_env.resolve())
+    serial = env.get("RS485_HOST_DEVICE", "")
+    if not serial.startswith("/dev/serial/by-id/"):
+        raise VersionManagerFailure("real hardware transition requires stable RS485_HOST_DEVICE identity")
+    configured_mode = env.get("HARDWARE_DEVICE_MODE", "xjp60d").strip().lower()
+    if configured_mode in {"simulator", "simulation", "demo", "mock", "disabled"}:
+        raise VersionManagerFailure("real hardware transition refuses simulator/demo/mock device mode")
+    return {
+        "configured_mode": configured_mode,
+        "host_serial_device": serial,
+        "container_serial_device": f"/host{serial}",
+    }
+
+
+def verify_real_hardware_runtime(args: argparse.Namespace) -> dict[str, Any]:
+    expected = expected_real_hardware_contract(args)
+    payload = read_local_json(DEVICE_AGENT_HEALTH_URL)
+    if payload.get("status") not in {"ok", "degraded"}:
+        raise VersionManagerFailure("Device Agent real-hardware health is unavailable")
+    if payload.get("device_mode") != "modbus":
+        raise VersionManagerFailure("Device Agent is not running the real Modbus hardware path")
+    acquisition = payload.get("acquisition")
+    request_series = acquisition.get("request_series") if isinstance(acquisition, dict) else None
+    if not isinstance(request_series, list) or not request_series:
+        raise VersionManagerFailure("Device Agent real-hardware request evidence is missing")
+    buses: set[str] = set()
+    successful_requests = 0
+    for item in request_series:
+        if not isinstance(item, dict):
+            continue
+        bus = item.get("bus")
+        if isinstance(bus, str) and bus.startswith("/host/dev/serial/by-id/"):
+            buses.add(bus)
+        outcome = item.get("outcome")
+        requests_total = item.get("requests_total")
+        if outcome == "success" and isinstance(requests_total, int) and not isinstance(requests_total, bool):
+            successful_requests += requests_total
+        outcomes = item.get("outcomes")
+        if isinstance(outcomes, dict):
+            success = outcomes.get("success")
+            if isinstance(success, int) and not isinstance(success, bool):
+                successful_requests += success
+    if expected["container_serial_device"] not in buses:
+        raise VersionManagerFailure("Device Agent is not using the expected stable RS-485 identity")
+    if successful_requests <= 0:
+        raise VersionManagerFailure("Device Agent has no successful real-hardware request evidence")
+    return {
+        "status": "verified",
+        "device_mode": "modbus",
+        "configured_mode": expected["configured_mode"],
+        "host_serial_device": expected["host_serial_device"],
+        "observed_buses": sorted(buses),
+        "successful_requests": successful_requests,
+    }
+
+
 def parse_env_file(path: Path) -> dict[str, str]:
     values: dict[str, str] = {}
     for raw in path.read_text(encoding="utf-8").splitlines():
@@ -340,6 +420,104 @@ def parse_env_file(path: Path) -> dict[str, str]:
         key, value = line.split("=", 1)
         values[key.strip()] = value.strip()
     return values
+
+
+def source_deployment_identity(current: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
+    required = (
+        "source_dashboard_origin",
+        "source_auth_mode",
+        "source_local_auth_overlay",
+        "source_dashboard_auth_provider",
+    )
+    if all(key in current for key in required):
+        return dict(current)
+
+    evidence = current.get("source_deployment_evidence")
+    if not isinstance(evidence, str) or not evidence:
+        raise VersionManagerFailure("source deployment evidence path is missing")
+    source_repo = Path(
+        getattr(args, "source_repo", Path(__file__).resolve().parents[1])
+    ).resolve()
+    deployments_root = (source_repo / "runtime" / "deployments").resolve()
+    evidence_path = (source_repo / evidence).resolve()
+    try:
+        evidence_path.relative_to(deployments_root)
+    except ValueError as error:
+        raise VersionManagerFailure("source deployment evidence must remain under runtime/deployments") from error
+    facts_path = evidence_path / "final-state.txt"
+    if not facts_path.is_file():
+        raise VersionManagerFailure("source deployment final-state evidence is missing")
+    facts = parse_env_file(facts_path)
+    if facts.get("commit") != current.get("source_commit"):
+        raise VersionManagerFailure("source deployment evidence commit does not match current lineage")
+    if facts.get("runtime_mode") != current.get("runtime_mode"):
+        raise VersionManagerFailure("source deployment evidence runtime mode does not match current lineage")
+    required_facts = {
+        "dashboard",
+        "auth_mode",
+        "local_auth_overlay",
+        "dashboard_auth_provider",
+    }
+    missing = sorted(required_facts - facts.keys())
+    if missing:
+        raise VersionManagerFailure(f"source deployment authentication evidence is incomplete: {missing}")
+
+    enriched = dict(current)
+    enriched["source_dashboard_origin"] = facts["dashboard"]
+    enriched["source_auth_mode"] = facts["auth_mode"]
+    enriched["source_local_auth_overlay"] = facts["local_auth_overlay"] == "true"
+    enriched["source_dashboard_auth_provider"] = facts["dashboard_auth_provider"]
+    return enriched
+
+
+def source_dashboard_state(current: dict[str, Any]) -> dict[str, Any]:
+    origin = current.get("source_dashboard_origin")
+    if not isinstance(origin, str) or not origin.startswith("http"):
+        raise VersionManagerFailure("source dashboard origin evidence is missing")
+    active = subprocess.run(
+        ["systemctl", "is-active", "--quiet", SOURCE_DASHBOARD_SERVICE], check=False
+    ).returncode == 0
+    enabled = subprocess.run(
+        ["systemctl", "is-enabled", "--quiet", SOURCE_DASHBOARD_SERVICE], check=False
+    ).returncode == 0
+    if not active:
+        raise VersionManagerFailure("controlled source dashboard service is not active")
+    return {"active": active, "enabled": enabled, "origin": origin}
+
+
+def stop_source_dashboard() -> None:
+    subprocess.run(["systemctl", "stop", SOURCE_DASHBOARD_SERVICE], check=True)
+    if subprocess.run(
+        ["systemctl", "is-active", "--quiet", SOURCE_DASHBOARD_SERVICE], check=False
+    ).returncode == 0:
+        raise VersionManagerFailure("source dashboard service did not stop before packaged activation")
+
+
+def stop_packaged_dashboard(target_root: Path, args: argparse.Namespace) -> None:
+    central = compose_args(
+        target_root, args.central_env.resolve(), central=True, local_auth=args.local_auth
+    )
+    subprocess.run(
+        central + ["stop", "dashboard"],
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def restore_source_dashboard(
+    target_root: Path, args: argparse.Namespace, state: dict[str, Any]
+) -> dict[str, Any]:
+    stop_packaged_dashboard(target_root, args)
+    if state.get("enabled") is True:
+        subprocess.run(["systemctl", "enable", SOURCE_DASHBOARD_SERVICE], check=True)
+    subprocess.run(["systemctl", "start", SOURCE_DASHBOARD_SERVICE], check=True)
+    wait_http_success(str(state["origin"]))
+    return {"status": "restored", "service": SOURCE_DASHBOARD_SERVICE}
+
+
+def commit_source_dashboard_handoff() -> None:
+    subprocess.run(["systemctl", "disable", SOURCE_DASHBOARD_SERVICE], check=True)
 
 
 def assert_no_active_version_operation(root: Path) -> None:
@@ -417,7 +595,13 @@ def create_postgresql_backup(
     return backup_path
 
 
-def offline_installer_command(bundle_root: Path, args: argparse.Namespace) -> list[str]:
+def offline_installer_command(
+    bundle_root: Path,
+    args: argparse.Namespace,
+    *,
+    runtime_mode: str | None = None,
+    hardware: bool = False,
+) -> list[str]:
     installer = bundle_root / "scripts" / "install-offline-bundle.sh"
     if not installer.is_file():
         raise VersionManagerFailure("offline bundle installer is missing")
@@ -428,6 +612,14 @@ def offline_installer_command(bundle_root: Path, args: argparse.Namespace) -> li
         command.extend(["--edge-env", str(args.edge_env.resolve())])
     if args.local_auth:
         command.append("--local-auth")
+    if runtime_mode is not None:
+        if runtime_mode not in {"lan", "standalone"}:
+            raise VersionManagerFailure("offline installer runtime mode is invalid")
+        command.extend(["--runtime-mode", runtime_mode])
+    if hardware:
+        if args.skip_edge:
+            raise VersionManagerFailure("hardware package install cannot skip the edge runtime")
+        command.append("--hardware")
     return command
 
 
@@ -468,12 +660,20 @@ def validate_source_transition(
     dashboard = target.get("dashboard")
     local_auth = target.get("local_auth")
     provider = dashboard.get("auth_provider") if isinstance(dashboard, dict) else None
+    origin = dashboard.get("origin") if isinstance(dashboard, dict) else None
     selected = local_auth.get("selected") if isinstance(local_auth, dict) else None
-    if args.local_auth:
-        if provider != "local" or selected is not True or env.get("AUTH_MODE", "disabled") == "disabled":
-            raise VersionManagerFailure("local-auth package/runtime boundary is not verified")
-    elif selected is True:
-        raise VersionManagerFailure("staged package requires the local-auth overlay")
+    source_provider = current.get("source_dashboard_auth_provider")
+    source_overlay = current.get("source_local_auth_overlay")
+    source_auth_mode = current.get("source_auth_mode")
+    source_origin = current.get("source_dashboard_origin")
+    if source_provider != "local" or source_overlay is not True or not isinstance(source_auth_mode, str) or source_auth_mode == "disabled":
+        raise VersionManagerFailure("controlled source authentication evidence is not verified local auth")
+    if not args.local_auth:
+        raise VersionManagerFailure("source-to-package transition requires the local-auth overlay")
+    if provider != "local" or selected is not True or env.get("AUTH_MODE", "disabled") == "disabled":
+        raise VersionManagerFailure("local-auth package/runtime boundary is not verified")
+    if origin != source_origin:
+        raise VersionManagerFailure("staged package dashboard origin does not match source deployment evidence")
     return current_schema
 
 
@@ -482,12 +682,17 @@ def verify_transition_runtime(
     target: dict[str, Any],
     current: dict[str, Any],
     args: argparse.Namespace,
+    *,
+    source_hardware: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     validate_source_transition(current, target, args)
     dashboard = target.get("dashboard")
     api_base = dashboard.get("api_base_url") if isinstance(dashboard, dict) else None
+    dashboard_origin = dashboard.get("origin") if isinstance(dashboard, dict) else None
     if not isinstance(api_base, str) or not api_base:
         raise VersionManagerFailure("staged package API base URL is missing")
+    if not isinstance(dashboard_origin, str) or not dashboard_origin:
+        raise VersionManagerFailure("staged package dashboard origin is missing")
     readiness = read_local_json(f"{api_base.rstrip('/')}/health/ready")
     if (
         readiness.get("status") != "ready"
@@ -495,6 +700,7 @@ def verify_transition_runtime(
         or readiness.get("mqtt") != "ready"
     ):
         raise VersionManagerFailure("Telemetry API/database/MQTT readiness is not fully ready")
+    wait_http_success(dashboard_origin)
 
     central = compose_args(
         target_root, args.central_env.resolve(), central=True, local_auth=args.local_auth
@@ -506,13 +712,21 @@ def verify_transition_runtime(
         text=True,
     ).stdout.strip()
     expected_schema = str(target["version_management"]["database_schema"]["head"])
-    if expected_schema not in revision:
-        raise VersionManagerFailure("deployed database revision does not match staged package")
+    require_exact_alembic_head(revision, expected_schema)
 
     device: dict[str, Any]
+    hardware: dict[str, Any]
     if args.skip_edge:
         device = {"status": "not_applicable", "reason": "edge_skipped"}
+        hardware = {"status": "not_applicable", "reason": "edge_skipped"}
     else:
+        hardware = verify_real_hardware_runtime(args)
+        if source_hardware is None:
+            raise VersionManagerFailure("source real-hardware baseline is missing")
+        if hardware.get("device_mode") != source_hardware.get("device_mode"):
+            raise VersionManagerFailure("Device Agent hardware mode changed during package transition")
+        if hardware.get("observed_buses") != source_hardware.get("observed_buses"):
+            raise VersionManagerFailure("Device Agent RS-485 topology changed during package transition")
         observation_seconds = int(
             os.environ.get(
                 "NEXOLAB_POST_UPDATE_OBSERVATION_SECONDS",
@@ -520,8 +734,13 @@ def verify_transition_runtime(
             )
         )
         device = verify_device_agent_progress(observation_seconds=observation_seconds)
-    return {"readiness": readiness, "schema_head": expected_schema, "device_agent": device}
-
+    return {
+        "readiness": readiness,
+        "schema_head": expected_schema,
+        "device_agent": device,
+        "hardware": hardware,
+        "dashboard": {"status": "ready", "origin": dashboard_origin},
+    }
 
 def source_transition_id(bundle_id: str) -> str:
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
@@ -549,16 +768,20 @@ def establish_package_authority(args: argparse.Namespace) -> None:
 
         assert_no_active_version_operation(root)
         current_path = root / "current.json"
-        current = load_json(current_path)
+        recorded_current = load_json(current_path)
+        current = source_deployment_identity(recorded_current, args)
         target_root = root / "catalog" / args.bundle_id
         target = verify_staged_bundle(target_root, args.bundle_id)
         current_schema = validate_source_transition(current, target, args)
+        source_hardware = verify_real_hardware_runtime(args)
+        dashboard_state = source_dashboard_state(current)
         transition_id = source_transition_id(args.bundle_id)
         evidence_dir = root / "operation-evidence" / transition_id
         evidence_dir.mkdir(parents=True, exist_ok=False, mode=0o750)
         transition_path = evidence_dir / "transition.json"
-        atomic_json(evidence_dir / "source-lineage-before.json", current)
+        atomic_json(evidence_dir / "source-lineage-before.json", recorded_current)
         mutation_started = False
+        dashboard_handoff_started = False
         transition: dict[str, Any] = {
             "schema_version": 1,
             "type": "source_to_packaged_authority",
@@ -568,6 +791,8 @@ def establish_package_authority(args: argparse.Namespace) -> None:
             "ended_at": None,
             "source_commit": current.get("source_commit"),
             "source_deployment_evidence": current.get("source_deployment_evidence"),
+            "source_hardware_before": source_hardware,
+            "source_dashboard_before": dashboard_state,
             "target_bundle_id": args.bundle_id,
             "target_release": target.get("bundle_version"),
             "target_manifest_sha256": manifest_digest(target_root),
@@ -581,9 +806,10 @@ def establish_package_authority(args: argparse.Namespace) -> None:
             transition["volume_identities_before"] = capture_volume_identities(
                 skip_edge=args.skip_edge
             )
-            atomic_json(evidence_dir / "volume-identities-before.json", {
-                "volumes": transition["volume_identities_before"]
-            })
+            atomic_json(
+                evidence_dir / "volume-identities-before.json",
+                {"volumes": transition["volume_identities_before"]},
+            )
             transition["capacity_evidence_id"] = run_capacity_preflight(root, transition_id)
             atomic_json(transition_path, transition)
 
@@ -599,12 +825,28 @@ def establish_package_authority(args: argparse.Namespace) -> None:
             atomic_json(transition_path, transition)
 
             mutation_started = True
-            subprocess.run(offline_installer_command(target_root, args), check=True)
+            dashboard_handoff_started = True
+            stop_source_dashboard()
+            transition["dashboard_handoff"] = {"status": "source_stopped"}
+            atomic_json(transition_path, transition)
+            subprocess.run(
+                offline_installer_command(
+                    target_root,
+                    args,
+                    runtime_mode=str(current["runtime_mode"]),
+                    hardware=not args.skip_edge,
+                ),
+                check=True,
+            )
             verified_target = verify_staged_bundle(target_root, args.bundle_id)
             if manifest_digest(target_root) != transition["target_manifest_sha256"]:
                 raise VersionManagerFailure("staged package manifest changed during installation")
             transition["runtime_verification"] = verify_transition_runtime(
-                target_root, verified_target, current, args
+                target_root,
+                verified_target,
+                current,
+                args,
+                source_hardware=source_hardware,
             )
             after = capture_volume_identities(skip_edge=args.skip_edge)
             atomic_json(evidence_dir / "volume-identities-after.json", {"volumes": after})
@@ -613,6 +855,12 @@ def establish_package_authority(args: argparse.Namespace) -> None:
 
             transition["volume_identities_after"] = after
             transition["status"] = "verified_for_authority_commit"
+            atomic_json(transition_path, transition)
+            commit_source_dashboard_handoff()
+            transition["dashboard_handoff"] = {
+                "status": "packaged_active_source_disabled",
+                "service": SOURCE_DASHBOARD_SERVICE,
+            }
             atomic_json(transition_path, transition)
             atomic_json(
                 current_path,
@@ -633,6 +881,8 @@ def establish_package_authority(args: argparse.Namespace) -> None:
                     "previous_release": None,
                     "last_operation_id": None,
                     "deployment_authority": PACKAGED_DEPLOYMENT_AUTHORITY,
+                    "edge_hardware_required": True,
+                    "hardware_contract": source_hardware,
                     "transition_evidence_id": transition_id,
                     "previous_source_commit": current.get("source_commit"),
                     "previous_source_deployment_evidence": current.get(
@@ -645,8 +895,19 @@ def establish_package_authority(args: argparse.Namespace) -> None:
             transition["ended_at"] = now()
             atomic_json(transition_path, transition)
         except Exception as error:
+            if dashboard_handoff_started:
+                try:
+                    transition["dashboard_restore"] = restore_source_dashboard(
+                        target_root, args, dashboard_state
+                    )
+                except Exception as restore_error:
+                    transition["dashboard_restore"] = {
+                        "status": "failed",
+                        "failure_type": type(restore_error).__name__,
+                        "safe_message": str(restore_error)[:300],
+                    }
             if mutation_started:
-                uncertain = dict(current)
+                uncertain = dict(recorded_current)
                 uncertain["health"] = "verification_failed"
                 uncertain["runtime_state_known"] = False
                 uncertain["last_operation_id"] = transition_id
@@ -721,6 +982,18 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         ):
             raise VersionManagerFailure("current deployment evidence does not match its staged package")
 
+        hardware_required = current.get("edge_hardware_required") is True
+        hardware_contract = current.get("hardware_contract")
+        if hardware_required:
+            if args.skip_edge:
+                raise VersionManagerFailure(
+                    "packaged hardware authority cannot skip the edge runtime"
+                )
+            if not isinstance(hardware_contract, dict):
+                raise VersionManagerFailure(
+                    "packaged hardware authority is missing its verified hardware contract"
+                )
+
         enter_phase(operation_path, operation, "checking_capacity")
         operation["capacity_evidence_id"] = run_capacity_preflight(root, operation_id)
         atomic_json(operation_path, operation)
@@ -736,7 +1009,15 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
 
         enter_phase(operation_path, operation, "applying_update")
         mutation_started = True
-        subprocess.run(offline_installer_command(target_root, args), check=True)
+        subprocess.run(
+            offline_installer_command(
+                target_root,
+                args,
+                runtime_mode=str(current["runtime_mode"]),
+                hardware=hardware_required,
+            ),
+            check=True,
+        )
         operation["offline_bundle_smoke_verified"] = True
         atomic_json(operation_path, operation)
 
@@ -755,15 +1036,37 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
             current_schema,
             str(schema["head"]),
         )
-        if str(expected_schema) not in revision:
-            raise VersionManagerFailure("deployed database revision does not match target manifest")
+        require_exact_alembic_head(revision, str(expected_schema))
 
         if args.skip_edge:
             operation["device_agent_verification"] = {
                 "status": "not_applicable",
                 "reason": "edge_skipped",
             }
+            operation["hardware_verification"] = {
+                "status": "not_applicable",
+                "reason": "edge_skipped",
+            }
         else:
+            if hardware_required:
+                observed_hardware = verify_real_hardware_runtime(args)
+                assert isinstance(hardware_contract, dict)
+                for key, label in (
+                    ("device_mode", "hardware mode"),
+                    ("configured_mode", "configured hardware mode"),
+                    ("host_serial_device", "stable RS-485 identity"),
+                    ("observed_buses", "RS-485 topology"),
+                ):
+                    if observed_hardware.get(key) != hardware_contract.get(key):
+                        raise VersionManagerFailure(
+                            f"Device Agent {label} changed during version operation"
+                        )
+                operation["hardware_verification"] = observed_hardware
+            else:
+                operation["hardware_verification"] = {
+                    "status": "not_required",
+                    "reason": "current_release_has_no_hardware_authority",
+                }
             observation_seconds = int(
                 os.environ.get(
                     "NEXOLAB_POST_UPDATE_OBSERVATION_SECONDS",
@@ -775,26 +1078,34 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
             )
         atomic_json(operation_path, operation)
 
-        atomic_json(
-            root / "current.json",
-            {
-                "schema_version": 1,
-                "bundle_id": target_id,
-                "bundle_root": str(target_root),
-                "release": target["bundle_version"],
-                "source_commit": target["source_commit"],
-                "build_timestamp": target["created_at"],
-                "runtime_mode": current["runtime_mode"],
-                "platform": target["platform"],
-                "schema_head": expected_schema,
-                "deployed_at": now(),
-                "health": "ready",
-                "runtime_state_known": True,
-                "previous_bundle_id": current["bundle_id"],
-                "previous_release": current["release"],
-                "last_operation_id": operation_id,
-            },
-        )
+        deployed_current = {
+            "schema_version": 1,
+            "bundle_id": target_id,
+            "bundle_root": str(target_root),
+            "release": target["bundle_version"],
+            "source_commit": target["source_commit"],
+            "build_timestamp": target["created_at"],
+            "runtime_mode": current["runtime_mode"],
+            "platform": target["platform"],
+            "schema_head": expected_schema,
+            "deployed_at": now(),
+            "health": "ready",
+            "runtime_state_known": True,
+            "previous_bundle_id": current["bundle_id"],
+            "previous_release": current["release"],
+            "last_operation_id": operation_id,
+        }
+        for authority_key in (
+            "deployment_authority",
+            "edge_hardware_required",
+            "hardware_contract",
+            "transition_evidence_id",
+            "previous_source_commit",
+            "previous_source_deployment_evidence",
+        ):
+            if authority_key in current:
+                deployed_current[authority_key] = current[authority_key]
+        atomic_json(root / "current.json", deployed_current)
         operation["status"] = "succeeded"
         operation["result_code"] = "verified_ready"
         enter_phase(operation_path, operation, "done")
@@ -840,6 +1151,12 @@ def parser() -> argparse.ArgumentParser:
     transition.add_argument("--central-env", type=Path, required=True)
     transition.add_argument("--edge-env", type=Path)
     transition.add_argument("--backup-dir", type=Path, required=True)
+    transition.add_argument(
+        "--source-repo",
+        type=Path,
+        default=Path(__file__).resolve().parents[1],
+        help="Repository containing immutable source deployment evidence",
+    )
     transition.add_argument("--skip-edge", action="store_true")
     transition.add_argument("--local-auth", action="store_true")
     transition.set_defaults(handler=establish_package_authority)

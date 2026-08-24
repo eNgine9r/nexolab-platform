@@ -109,16 +109,32 @@ sudo python3 scripts/nexolab-version-manager.py establish-package-authority \
 ```
 
 It accepts only the exact staged validated package whose `source_commit`, host
-platform and schema contract match the verified source deployment. It holds both
-the host worker lock and update-plane lock, verifies capacity and PostgreSQL
-backup, snapshots persistent-volume identities, runs the existing offline
-installer, revalidates the package marker and manifest, checks runtime/schema/
-Device Agent telemetry, and requires identical volume identities afterward.
+platform, schema, runtime and local-auth contracts match the verified source
+deployment. The package carries the hardware/bridge/standalone runtime overlays
+needed by the accepted Raspberry Pi topology. The transition holds both the host
+worker lock and update-plane lock, verifies capacity and PostgreSQL backup,
+snapshots persistent-volume identities, performs a rollback-aware handoff from the
+source systemd Dashboard to the packaged Dashboard, runs the existing offline
+installer, revalidates the package marker and manifest, requires exactly one
+expected Alembic head, proves real Modbus requests on the same stable
+`/dev/serial/by-id/...` topology, checks advancing telemetry, and requires identical
+volume identities afterward.
+
 Only then may catalog-backed packaged `current.json` replace the source record.
-The previous source commit and deployment evidence remain auditable. Any pre-install failure preserves the source record unchanged. A failure after
-installation starts preserves source-lineage authority but marks runtime state
-unverified until controlled recovery proves what is running; transition evidence
-is retained in both cases.
+The packaged record persists hardware authority and its verified RS-485 contract;
+subsequent update and rollback operations must keep the hardware overlay and
+re-prove that contract before committing `ready`. The previous source commit and
+deployment evidence remain auditable. Any pre-install failure preserves the source
+record unchanged. A failure after installation starts preserves source-lineage
+authority but marks runtime state unverified; when Dashboard handoff began, the
+packaged Dashboard is stopped and the source Dashboard is restored.
+
+For legacy controlled-source records that do not yet carry the explicit Dashboard
+and auth identity fields, the transition may derive them only from the referenced
+immutable `runtime/deployments/**/final-state.txt` evidence. The evidence must remain
+under that deployment-evidence root and must match both the exact recorded source
+commit and runtime mode. A mismatch or missing fact fails closed rather than
+rewriting the legacy record.
 
 Actual execution on the controlled Raspberry Pi is a cutover action and remains
 separate from software verification. Preserve source deployment evidence, package

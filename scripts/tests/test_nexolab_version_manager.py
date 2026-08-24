@@ -231,6 +231,80 @@ def test_worker_records_verified_success_or_truthful_post_mutation_failure(
     ]
 
 
+@pytest.mark.parametrize(
+    ("action", "expected_schema"),
+    [("update", "schema-2"), ("rollback", "schema-1")],
+)
+def test_packaged_hardware_authority_persists_across_version_operation(
+    tmp_path: Path, action: str, expected_schema: str
+) -> None:
+    root, _, target_root, current, args = fixture_state(tmp_path, "operation-hardware")
+    request_path = root / "requests" / "operation-hardware.json"
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    request["action"] = action
+    request_path.write_text(json.dumps(request), encoding="utf-8")
+    hardware_contract = {
+        "status": "verified",
+        "device_mode": "modbus",
+        "configured_mode": "xjp60d",
+        "host_serial_device": "/dev/serial/by-id/usb-test",
+        "observed_buses": ["/host/dev/serial/by-id/usb-test"],
+        "successful_requests": 42,
+    }
+    current.update(
+        deployment_authority=manager.PACKAGED_DEPLOYMENT_AUTHORITY,
+        edge_hardware_required=True,
+        hardware_contract=hardware_contract,
+        transition_evidence_id="transition-source",
+        previous_source_commit="c" * 40,
+        previous_source_deployment_evidence="runtime/deployments/source",
+    )
+    (root / "current.json").write_text(json.dumps(current), encoding="utf-8")
+    args.skip_edge = False
+    args.edge_env = tmp_path / "edge.env"
+    args.edge_env.write_text(
+        "RS485_HOST_DEVICE=/dev/serial/by-id/usb-test\nHARDWARE_DEVICE_MODE=xjp60d\n",
+        encoding="utf-8",
+    )
+    target_manifest, verified_manifest = manifests(target_root)
+    if action == "rollback":
+        target_manifest["version_management"]["database_schema"][
+            "runtime_compatible_schema_heads"
+        ].append("schema-1")
+    calls: list[list[str]] = []
+
+    def successful_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        calls.append(command)
+        output = kwargs.get("stdout")
+        if output is not None and hasattr(output, "write"):
+            output.write(b"verified-postgresql-dump")
+        if command[-2:] == ["alembic", "current"]:
+            return subprocess.CompletedProcess(
+                command, 0, stdout=f"{expected_schema} (head)\n"
+            )
+        return subprocess.CompletedProcess(command, 0, stdout="")
+
+    with (
+        patch.object(manager, "verify_staged_bundle", side_effect=verified_manifest),
+        patch.object(manager, "run_capacity_preflight", return_value="capacity.txt"),
+        patch.object(manager, "verify_real_hardware_runtime", return_value=hardware_contract),
+        patch.object(manager, "verify_device_agent_progress", return_value={"status": "verified"}),
+        patch.object(manager.subprocess, "run", side_effect=successful_run),
+    ):
+        manager.execute_request(args, request_path)
+
+    installer_call = next(command for command in calls if command[0].endswith("install-offline-bundle.sh"))
+    assert "--hardware" in installer_call
+    deployed = json.loads((root / "current.json").read_text(encoding="utf-8"))
+    assert deployed["deployment_authority"] == manager.PACKAGED_DEPLOYMENT_AUTHORITY
+    assert deployed["edge_hardware_required"] is True
+    assert deployed["hardware_contract"] == hardware_contract
+    assert deployed["schema_head"] == expected_schema
+    assert deployed["transition_evidence_id"] == "transition-source"
+    completed = json.loads((root / "operations" / "operation-hardware.json").read_text(encoding="utf-8"))
+    assert completed["hardware_verification"] == hardware_contract
+
+
 def test_capacity_preflight_requires_pass_evidence(tmp_path: Path) -> None:
     root = tmp_path / "versions"
     guard = tmp_path / "deploy-capacity-guard.sh"
@@ -354,6 +428,10 @@ def transition_fixture(tmp_path: Path):
         "deployment_authority": manager.SOURCE_DEPLOYMENT_AUTHORITY,
         "known_packaged_release": False,
         "source_deployment_evidence": "runtime/deployments/current",
+        "source_dashboard_origin": "http://172.18.48.66:3000",
+        "source_auth_mode": "jwt",
+        "source_local_auth_overlay": True,
+        "source_dashboard_auth_provider": "local",
     }
     root.mkdir(parents=True, exist_ok=True)
     (root / "current.json").write_text(json.dumps(current), encoding="utf-8")
@@ -364,7 +442,12 @@ def transition_fixture(tmp_path: Path):
         "CENTRAL_BIND_ADDRESS=172.18.48.66\nAUTH_MODE=jwt\n", encoding="utf-8"
     )
     edge_env = tmp_path / "edge.env"
-    edge_env.write_text("MQTT_HOST=mqtt\n", encoding="utf-8")
+    edge_env.write_text(
+        "MQTT_HOST=mqtt\n"
+        "RS485_HOST_DEVICE=/dev/serial/by-id/usb-test\n"
+        "HARDWARE_DEVICE_MODE=xjp60d\n",
+        encoding="utf-8",
+    )
     args = argparse.Namespace(
         root=root,
         bundle_id="release-current",
@@ -428,6 +511,8 @@ def test_backup_failure_preserves_source_authority_and_skips_install(tmp_path: P
     installer_run = Mock()
     with (
         patch.object(manager, "verify_staged_bundle", return_value=target),
+        patch.object(manager, "verify_real_hardware_runtime", return_value={"status": "verified", "device_mode": "modbus", "observed_buses": ["/host/dev/serial/by-id/usb-test"]}),
+        patch.object(manager, "source_dashboard_state", return_value={"active": True, "enabled": True, "origin": "http://172.18.48.66:3000"}),
         patch.object(manager, "source_transition_id", return_value="transition-backup-fail"),
         patch.object(manager, "capture_volume_identities", return_value=volumes),
         patch.object(manager, "run_capacity_preflight", return_value="capacity.txt"),
@@ -462,6 +547,10 @@ def test_installer_failure_preserves_source_authority(tmp_path: Path) -> None:
 
     with (
         patch.object(manager, "verify_staged_bundle", return_value=target),
+        patch.object(manager, "verify_real_hardware_runtime", return_value={"status": "verified", "device_mode": "modbus", "observed_buses": ["/host/dev/serial/by-id/usb-test"]}),
+        patch.object(manager, "source_dashboard_state", return_value={"active": True, "enabled": True, "origin": "http://172.18.48.66:3000"}),
+        patch.object(manager, "stop_source_dashboard"),
+        patch.object(manager, "restore_source_dashboard", return_value={"status": "restored"}),
         patch.object(manager, "source_transition_id", return_value="transition-install-fail"),
         patch.object(manager, "capture_volume_identities", return_value=volumes),
         patch.object(manager, "run_capacity_preflight", return_value="capacity.txt"),
@@ -484,6 +573,10 @@ def test_volume_identity_drift_blocks_authority_commit(tmp_path: Path) -> None:
     changed[0]["created_at"] = "2026-08-24T10:00:00Z"
     with (
         patch.object(manager, "verify_staged_bundle", return_value=target),
+        patch.object(manager, "verify_real_hardware_runtime", return_value={"status": "verified", "device_mode": "modbus", "observed_buses": ["/host/dev/serial/by-id/usb-test"]}),
+        patch.object(manager, "source_dashboard_state", return_value={"active": True, "enabled": True, "origin": "http://172.18.48.66:3000"}),
+        patch.object(manager, "stop_source_dashboard"),
+        patch.object(manager, "restore_source_dashboard", return_value={"status": "restored"}),
         patch.object(manager, "source_transition_id", return_value="transition-volume-fail"),
         patch.object(manager, "capture_volume_identities", side_effect=[volumes, changed]),
         patch.object(manager, "run_capacity_preflight", return_value="capacity.txt"),
@@ -510,6 +603,10 @@ def test_success_commits_catalog_backed_authority_and_preserves_source_evidence(
     }
     with (
         patch.object(manager, "verify_staged_bundle", return_value=target),
+        patch.object(manager, "verify_real_hardware_runtime", return_value={"status": "verified", "device_mode": "modbus", "observed_buses": ["/host/dev/serial/by-id/usb-test"]}),
+        patch.object(manager, "source_dashboard_state", return_value={"active": True, "enabled": True, "origin": "http://172.18.48.66:3000"}),
+        patch.object(manager, "stop_source_dashboard"),
+        patch.object(manager, "commit_source_dashboard_handoff"),
         patch.object(manager, "source_transition_id", return_value="transition-success"),
         patch.object(manager, "capture_volume_identities", side_effect=[volumes, volumes]),
         patch.object(manager, "run_capacity_preflight", return_value="capacity.txt"),
@@ -525,6 +622,11 @@ def test_success_commits_catalog_backed_authority_and_preserves_source_evidence(
     assert deployed["source_commit"] == current["source_commit"]
     assert deployed["deployment_authority"] == manager.PACKAGED_DEPLOYMENT_AUTHORITY
     assert deployed["runtime_state_known"] is True
+    assert deployed["edge_hardware_required"] is True
+    assert deployed["hardware_contract"]["device_mode"] == "modbus"
+    assert deployed["hardware_contract"]["observed_buses"] == [
+        "/host/dev/serial/by-id/usb-test"
+    ]
     assert deployed["transition_evidence_id"] == "transition-success"
     assert deployed["previous_source_commit"] == current["source_commit"]
     assert deployed["previous_source_deployment_evidence"] == current["source_deployment_evidence"]
@@ -537,3 +639,140 @@ def test_success_commits_catalog_backed_authority_and_preserves_source_evidence(
     assert evidence["backup_evidence_id"].endswith("-postgresql.dump")
     assert evidence["runtime_verification"] == runtime_evidence
     assert evidence["volume_identities_before"] == evidence["volume_identities_after"]
+
+
+def test_source_transition_rejects_non_local_target_auth_provider(tmp_path: Path) -> None:
+    _, _, target, current, args, _ = transition_fixture(tmp_path)
+    target["dashboard"]["auth_provider"] = "supabase"
+    with pytest.raises(manager.VersionManagerFailure, match="local-auth"):
+        manager.validate_source_transition(current, target, args)
+
+
+def test_exact_alembic_head_rejects_substring_and_multiple_heads() -> None:
+    manager.require_exact_alembic_head("schema-current (head)\n", "schema-current")
+    with pytest.raises(manager.VersionManagerFailure, match="exactly one expected head"):
+        manager.require_exact_alembic_head("prefix-schema-current (head)\n", "schema-current")
+    with pytest.raises(manager.VersionManagerFailure, match="exactly one expected head"):
+        manager.require_exact_alembic_head(
+            "schema-current (head)\nother-head (head)\n", "schema-current"
+        )
+
+
+def test_source_identity_recovers_legacy_fields_from_immutable_evidence(tmp_path: Path) -> None:
+    _, _, _, current, args, _ = transition_fixture(tmp_path)
+    legacy = dict(current)
+    for key in (
+        "source_dashboard_origin",
+        "source_auth_mode",
+        "source_local_auth_overlay",
+        "source_dashboard_auth_provider",
+    ):
+        legacy.pop(key)
+    args.source_repo = tmp_path
+    evidence = tmp_path / str(legacy["source_deployment_evidence"])
+    evidence.mkdir(parents=True)
+    (evidence / "final-state.txt").write_text(
+        f"commit={legacy['source_commit']}\n"
+        f"runtime_mode={legacy['runtime_mode']}\n"
+        "dashboard=http://172.18.48.66:3000\n"
+        "auth_mode=jwt\n"
+        "local_auth_overlay=true\n"
+        "dashboard_auth_provider=local\n",
+        encoding="utf-8",
+    )
+
+    enriched = manager.source_deployment_identity(legacy, args)
+
+    assert enriched["source_dashboard_origin"] == "http://172.18.48.66:3000"
+    assert enriched["source_auth_mode"] == "jwt"
+    assert enriched["source_local_auth_overlay"] is True
+    assert enriched["source_dashboard_auth_provider"] == "local"
+    assert "source_dashboard_origin" not in legacy
+
+
+def test_source_identity_rejects_legacy_evidence_commit_mismatch(tmp_path: Path) -> None:
+    _, _, _, current, args, _ = transition_fixture(tmp_path)
+    legacy = dict(current)
+    legacy.pop("source_dashboard_origin")
+    args.source_repo = tmp_path
+    evidence = tmp_path / str(legacy["source_deployment_evidence"])
+    evidence.mkdir(parents=True)
+    (evidence / "final-state.txt").write_text(
+        "commit=dddddddddddddddddddddddddddddddddddddddd\n"
+        f"runtime_mode={legacy['runtime_mode']}\n"
+        "dashboard=http://172.18.48.66:3000\n"
+        "auth_mode=jwt\n"
+        "local_auth_overlay=true\n"
+        "dashboard_auth_provider=local\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(manager.VersionManagerFailure, match="commit does not match"):
+        manager.source_deployment_identity(legacy, args)
+
+
+def test_real_hardware_runtime_requires_stable_bus_and_successful_requests(tmp_path: Path) -> None:
+    _, _, _, _, args, _ = transition_fixture(tmp_path)
+    payload = {
+        "status": "degraded",
+        "device_mode": "modbus",
+        "acquisition": {
+            "request_series": [
+                {
+                    "bus": "/host/dev/serial/by-id/usb-test",
+                    "outcome": "success",
+                    "requests_total": 12,
+                }
+            ]
+        },
+    }
+    with patch.object(manager, "read_local_json", return_value=payload):
+        evidence = manager.verify_real_hardware_runtime(args)
+    assert evidence["device_mode"] == "modbus"
+    assert evidence["observed_buses"] == ["/host/dev/serial/by-id/usb-test"]
+    assert evidence["successful_requests"] == 12
+
+
+def test_offline_bundle_contract_carries_hardware_and_runtime_overlays() -> None:
+    repo = Path(__file__).resolve().parents[2]
+    builder = (repo / "scripts" / "build-offline-bundle.sh").read_text(encoding="utf-8")
+    installer = (repo / "scripts" / "install-offline-bundle.sh").read_text(encoding="utf-8")
+    for overlay in (
+        "compose.hardware.yaml",
+        "compose.edge-central-bridge.yaml",
+        "compose.edge-standalone.yaml",
+        "compose.central-standalone.yaml",
+    ):
+        assert overlay in builder
+        assert overlay in installer
+    assert "--hardware" in installer
+    assert "--runtime-mode" in installer
+    assert "RS485_HOST_DEVICE" in installer
+    assert "simulator/demo/mock" in installer
+
+
+def test_installer_failure_restores_source_dashboard(tmp_path: Path) -> None:
+    _, target_root, target, _, args, volumes = transition_fixture(tmp_path)
+    installer = target_root / "scripts" / "install-offline-bundle.sh"
+
+    def fail_installer(command: list[str], **_: object):
+        assert command[0] == str(installer)
+        raise subprocess.CalledProcessError(1, command)
+
+    with (
+        patch.object(manager, "verify_staged_bundle", return_value=target),
+        patch.object(manager, "verify_real_hardware_runtime", return_value={"status": "verified", "device_mode": "modbus", "observed_buses": ["/host/dev/serial/by-id/usb-test"]}),
+        patch.object(manager, "source_dashboard_state", return_value={"active": True, "enabled": True, "origin": "http://172.18.48.66:3000"}),
+        patch.object(manager, "stop_source_dashboard") as stop_source,
+        patch.object(manager, "restore_source_dashboard", return_value={"status": "restored"}) as restore_source,
+        patch.object(manager, "source_transition_id", return_value="transition-dashboard-restore"),
+        patch.object(manager, "capture_volume_identities", return_value=volumes),
+        patch.object(manager, "run_capacity_preflight", return_value="capacity.txt"),
+        patch.object(manager, "create_postgresql_backup", return_value=args.backup_dir / "backup.dump"),
+        patch.object(manager.subprocess, "run", side_effect=fail_installer),
+    ):
+        with pytest.raises(subprocess.CalledProcessError):
+            manager.establish_package_authority(args)
+
+    stop_source.assert_called_once_with()
+    restore_source.assert_called_once()

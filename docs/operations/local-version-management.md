@@ -112,15 +112,30 @@ source lineage is verified ready, no update/rollback operation is active, the
 staged package matches the exact source commit/platform/schema/runtime/auth
 boundary, capacity is sufficient and a non-empty PostgreSQL backup is verified.
 It reuses `install-offline-bundle.sh`, preserves the existing named volumes and
-edge SQLite, verifies API/database/MQTT readiness, exact Alembic head, Device
-Agent worker health with advancing telemetry, and identical persistent-volume
-identities before and after installation.
+edge SQLite, and carries the source runtime hardware/bridge/standalone overlays
+into the immutable package. The target must preserve local authentication, exact
+Dashboard origin/runtime mode, and stable `/dev/serial/by-id/...` hardware identity.
+The source systemd Dashboard is stopped only immediately before packaged activation;
+failed activation stops the packaged Dashboard and restores the source Dashboard.
+Runtime verification requires API/database/MQTT readiness, exactly one Alembic head,
+real Modbus request evidence on the same RS-485 topology, advancing telemetry, and
+identical persistent-volume identities before and after installation.
 
 Only after every gate passes is `current.json` atomically replaced with the
 catalog-backed packaged release. The prior source commit and deployment evidence
-remain referenced for audit. Installer, health, schema or data-preservation
-failure leaves source-lineage authority unchanged but marks the runtime state
-unverified after any install mutation, so stale source evidence cannot remain `ready`.
+remain referenced for audit. The packaged record also persists the verified
+hardware authority and RS-485 contract so every later update or rollback must keep
+the hardware overlay and re-prove the same real Modbus topology before becoming
+`ready`. Installer, migration, health, auth, hardware-topology, exact-schema or
+data-preservation failure leaves source/package authority unadvanced and marks the
+runtime state unverified after any install mutation; if Dashboard handoff started,
+the source Dashboard is restored.
+
+Legacy controlled-source records that predate the explicit Dashboard/auth fields
+may recover those fields only from their immutable `runtime/deployments/**/final-state.txt`
+evidence. The evidence path must stay under the repository deployment-evidence
+root and its exact source commit and runtime mode must match the current lineage;
+otherwise the transition fails closed.
 
 ## Compatibility metadata
 
