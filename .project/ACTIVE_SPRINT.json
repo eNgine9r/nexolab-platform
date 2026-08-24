@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 675,
-      "title": "Establish safe source-to-packaged version authority for Raspberry Pi recovery drills",
-      "branch": "feat/675-source-to-packaged-authority"
+      "issue": 677,
+      "title": "Enable parameterized ARM64 offline bundle staging for recovery acceptance",
+      "branch": "feat/677-arm64-offline-bundle-staging"
     },
     "next_work_package": null
   },
@@ -191,7 +191,7 @@
       "issue": 675,
       "title": "Establish safe source-to-packaged version authority for Raspberry Pi recovery drills",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "feat/675-source-to-packaged-authority",
       "evidence": {
         "version_management_matrix": "63_passed",
@@ -201,8 +201,24 @@
         "actual_package_cutover": "not_executed_requires_approval",
         "codex_exact_head_e7cba2b6": "two_p1_found_and_addressed_locally",
         "runtime_tooling_split": "verified_by_regression_tests",
-        "pre_backup_image_environment": "verified_by_regression_tests"
+        "pre_backup_image_environment": "verified_by_regression_tests",
+        "verified_head_sha": "c15e745b2db40dd5a45229db5ae2770236258c5a",
+        "pull_request": 676,
+        "checks": {
+          "CI": "success",
+          "Telemetry service": "success",
+          "Offline Bundle": "success",
+          "NEXOLAB Merge Gate": "success"
+        }
       }
+    },
+    {
+      "issue": 677,
+      "title": "Enable parameterized ARM64 offline bundle staging for recovery acceptance",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "feat/677-arm64-offline-bundle-staging",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [

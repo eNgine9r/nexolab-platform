@@ -119,6 +119,13 @@ come from that exact Git tree, while the installer and runtime overlays come fro
 the current tooling checkout. Digest-bound provenance records both `source_commit`
 and `tooling_commit` plus the required split-runtime tooling capabilities; legacy
 packages without that capability evidence are rejected before mutation.
+For Raspberry Pi recovery acceptance, the repository `Offline Bundle` workflow can
+materialize this split-source package on a hosted runner via `workflow_dispatch`.
+Supply `linux/arm64`, the exact deployed source ref, the source deployment's public
+Dashboard/API/WebSocket endpoints, and `auth_provider=local`. The runner uses QEMU
+for the ARM64 disconnected proof and keeps temporary local-auth signing keys outside
+the uploaded bundle/evidence. Do not substitute a native production-Pi Docker build
+when the hosted build path is available.
 It reuses `install-offline-bundle.sh`, preserves the existing named volumes and
 edge SQLite, and carries the source runtime hardware/bridge/standalone overlays
 into the immutable package. The target must preserve local authentication, exact

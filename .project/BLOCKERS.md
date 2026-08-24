@@ -2,13 +2,13 @@
 
 Updated: 2026-08-24
 
-## Issue #675 — source-to-packaged authority
+## Issue #677 — ARM64 offline package staging
 
-No software implementation blocker. The full transition/version-manager matrix passes 63/63, with Python compile, shell syntax and `git diff --check` also GREEN. The latest exact-head review findings are addressed locally by split runtime/tooling provenance and pre-backup verified image-environment activation. Source→package handoff now preserves local auth, stable real-hardware topology and persistent hardware authority for later update/rollback. Actual Raspberry Pi execution of `establish-package-authority` is intentionally out of scope for the implementation WP and remains a separate production cutover approval after exact-head software GREEN.
+No implementation blocker. The current controlled Pi has an empty version-management catalog and no full ARM64 bundle, while native Docker bundle construction on the 4 GiB production Pi is an avoidable stability risk. #677 is the active software prerequisite: build and fully validate the ARM64/local-auth package on a hosted GitHub runner without mutating the Pi.
 
 ## Issue #189 — actual-host recovery acceptance
 
-Backup/isolated restore, MQTT/SQLite outage replay and reboot persistence are verified. The remaining update→rollback drill is blocked until #675 safely establishes catalog-backed package authority and a compatible current/previous ARM64 package pair is staged. No destructive restore over production and no named-volume deletion are authorized.
+Backup/isolated restore, MQTT/SQLite outage replay and reboot persistence are verified. #675 software authority transition is complete. The remaining update→rollback drill is blocked until #677 produces a compatible ARM64 package for the deployed source lineage and that package is staged for the controlled Pi. Staging/activation, `establish-package-authority`, update/rollback and any power-loss drill remain separately approved runtime actions. No destructive restore over production and no named-volume deletion are authorized.
 
 ## Issue #200 — physical RS-485 topology
 
@@ -37,6 +37,7 @@ Four exact reviewed HIGH/no-fix decisions are retained through **2026-08-30**. R
 - #667 CVE lifecycle date reconciliation — completed and merged.
 - #245 standalone offline Raspberry Pi acceptance — completed on real hardware.
 - #673 production-readiness state reconciliation — completed and merged.
+- #675 source-to-packaged authority tooling — completed with exact-head review and required GREEN workflows.
 
 ## Safety boundaries
 

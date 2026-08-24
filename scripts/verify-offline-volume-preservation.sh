@@ -7,7 +7,8 @@ Usage: verify-offline-volume-preservation.sh \
   --bundle-root PATH \
   --central-env PATH \
   --edge-env PATH \
-  --evidence-dir PATH
+  --evidence-dir PATH \
+  [--local-auth]
 
 Seeds service-level persistence markers, recreates the disconnected NEXOLAB
 stack with update image tags, rolls back to the original tags, and proves that
@@ -19,12 +20,14 @@ BUNDLE_ROOT=""
 CENTRAL_ENV=""
 EDGE_ENV=""
 EVIDENCE_DIR=""
+LOCAL_AUTH=false
 while (($#)); do
   case "$1" in
     --bundle-root) BUNDLE_ROOT="${2:?}"; shift 2 ;;
     --central-env) CENTRAL_ENV="${2:?}"; shift 2 ;;
     --edge-env) EDGE_ENV="${2:?}"; shift 2 ;;
     --evidence-dir) EVIDENCE_DIR="${2:?}"; shift 2 ;;
+    --local-auth) LOCAL_AUTH=true; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -48,9 +51,16 @@ export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MIN
 CENTRAL=(docker compose --env-file "$CENTRAL_ENV" \
   -f "$BUNDLE_ROOT/deploy/compose/compose.central.yaml" \
   -f "$BUNDLE_ROOT/deploy/offline/compose.central.offline.yaml")
+if [[ "$LOCAL_AUTH" == true ]]; then
+  CENTRAL+=( -f "$BUNDLE_ROOT/deploy/compose/compose.local-auth.yaml" )
+fi
 EDGE=(docker compose --env-file "$EDGE_ENV" \
   -f "$BUNDLE_ROOT/deploy/compose/compose.edge.yaml" \
   -f "$BUNDLE_ROOT/deploy/offline/compose.edge.offline.yaml")
+SMOKE_ARGS=(--central-env "$CENTRAL_ENV" --edge-env "$EDGE_ENV")
+if [[ "$LOCAL_AUTH" == true ]]; then
+  SMOKE_ARGS+=(--local-auth)
+fi
 
 volume_name_for_destination() {
   local container_id="$1"
@@ -188,8 +198,7 @@ snapshot_required_volumes > "$AFTER_UPDATE"
 assert_snapshot "$AFTER_UPDATE"
 cmp "$BEFORE" "$AFTER_UPDATE"
 verify_markers
-bash "$BUNDLE_ROOT/scripts/offline-bundle-smoke.sh" \
-  --central-env "$CENTRAL_ENV" --edge-env "$EDGE_ENV"
+bash "$BUNDLE_ROOT/scripts/offline-bundle-smoke.sh" "${SMOKE_ARGS[@]}"
 echo "Update recreation preserved all required volumes and markers."
 
 export OFFLINE_DASHBOARD_IMAGE="$ORIGINAL_DASHBOARD"
@@ -201,6 +210,5 @@ snapshot_required_volumes > "$AFTER_ROLLBACK"
 assert_snapshot "$AFTER_ROLLBACK"
 cmp "$BEFORE" "$AFTER_ROLLBACK"
 verify_markers
-bash "$BUNDLE_ROOT/scripts/offline-bundle-smoke.sh" \
-  --central-env "$CENTRAL_ENV" --edge-env "$EDGE_ENV"
+bash "$BUNDLE_ROOT/scripts/offline-bundle-smoke.sh" "${SMOKE_ARGS[@]}"
 echo "Rollback recreation preserved all required volumes and markers."
