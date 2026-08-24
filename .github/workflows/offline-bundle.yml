@@ -154,6 +154,22 @@ jobs:
               if parsed.scheme not in schemes or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
                   raise SystemExit(f"{name} is not a valid bounded public runtime URL")
               host = parsed.hostname.lower()
+              if host.endswith("."):
+                  raise SystemExit(f"{name} must not use a trailing-dot hostname")
+              try:
+                  parsed_address = ip_address(host)
+              except ValueError:
+                  try:
+                      browser_host = host.encode("idna").decode("ascii").lower()
+                  except UnicodeError as exc:
+                      raise SystemExit(f"{name} hostname is not browser-canonical: {exc}") from exc
+                  if browser_host != host:
+                      raise SystemExit(f"{name} hostname must use browser-canonical ASCII serialization: {browser_host}")
+              else:
+                  browser_host = parsed_address.compressed.lower()
+                  if browser_host != host:
+                      raise SystemExit(f"{name} IP host must use canonical browser serialization: {browser_host}")
+              host = browser_host
               authority_host = f"[{host}]" if ":" in host else host
               authority = authority_host
               if port is not None and port != default_ports[parsed.scheme]:

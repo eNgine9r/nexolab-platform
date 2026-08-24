@@ -33,6 +33,8 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertIn("git merge-base --is-ancestor", self.workflow)
         self.assertIn("default_ports =", self.workflow)
         self.assertIn("must use canonical browser serialization", self.workflow)
+        self.assertIn("hostname must use browser-canonical ASCII serialization", self.workflow)
+        self.assertIn("IP host must use canonical browser serialization", self.workflow)
         self.assertIn("must use the same LOCAL_LAN host", self.workflow)
         self.assertIn("Runtime URLs must use a LOCAL_LAN hostname", self.workflow)
         self.assertIn("Runtime URLs must use a non-global LOCAL_LAN IP address", self.workflow)
@@ -72,6 +74,8 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
             ("http://nexolab.local/", "http://nexolab.local:8082", "ws://nexolab.local:8082/api/v1/telemetry/live"),
             ("https://example.com", "https://example.com:8082", "wss://example.com:8082/api/v1/telemetry/live"),
             ("https://8.8.8.8", "https://8.8.8.8:8082", "wss://8.8.8.8:8082/api/v1/telemetry/live"),
+            ("http://[fd00:0:0:0:0:0:0:1]:3000", "http://[fd00:0:0:0:0:0:0:1]:8082", "ws://[fd00:0:0:0:0:0:0:1]:8082/api/v1/telemetry/live"),
+            ("http://nexoláb.local:3000", "http://nexoláb.local:8082", "ws://nexoláb.local:8082/api/v1/telemetry/live"),
         )
         for dashboard, api, websocket in invalid_cases:
             with self.subTest(dashboard=dashboard, api=api, websocket=websocket):
