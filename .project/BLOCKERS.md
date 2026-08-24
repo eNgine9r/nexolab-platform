@@ -1,18 +1,10 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-23
+Updated: 2026-08-24
 
-## Issue #669 — state reconciliation
+## Issue #673 — state reconciliation
 
-No hard implementation blocker. This Work Package is state-only and must not change runtime, deployment, credentials, networking or hardware.
-
-## Issue #245 — standalone offline Raspberry Pi validation
-
-Standalone software is verified and current LAN services are healthy. The deployment script has no dry-run/preflight-only mode.
-
-Final acceptance requires a controlled runtime-mode change to `standalone`, Ethernet/Wi-Fi isolation, no default route, loopback browser verification, Telemetry Service restart and reboot evidence.
-
-This is a production/network cutover boundary. Explicit Product Owner approval is required before the first runtime mutation or network/reboot action.
+No hard implementation blocker. This Work Package is state-only and records completed #245 hardware acceptance without changing runtime, deployment, credentials, networking or hardware.
 
 ## Issue #189 — actual-host recovery acceptance
 
@@ -43,6 +35,7 @@ Four exact reviewed HIGH/no-fix decisions are retained through **2026-08-30**. R
 - #444 LOCAL_LAN user administration — completed with actual operator create/login evidence plus merged non-admin 403 authorization contract.
 - #646 main branch protection — completed; `main` is protected and requires `NEXOLAB Merge Gate`.
 - #667 CVE lifecycle date reconciliation — completed and merged.
+- #245 standalone offline Raspberry Pi acceptance — completed on real hardware at source `750a5b8cba02add472f1aa7ca7a2b077e809c3c3`, including disconnected telemetry, Telemetry Service restart and second reboot persistence.
 
 ## Safety boundaries
 
