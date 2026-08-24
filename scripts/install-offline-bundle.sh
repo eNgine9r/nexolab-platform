@@ -99,17 +99,29 @@ if env.get("AUTH_MODE", "disabled") != "disabled" and env.get("AUTH_JWT_JWKS_URL
     )
 PY
 
-DASHBOARD_BIND_ADDRESS="$(python3 - "$MANIFEST" <<'PYBIND'
+DASHBOARD_BIND_ADDRESS="$(python3 - "$MANIFEST" "$CENTRAL_ENV" <<'PYBIND'
 import json
 import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
 manifest = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
-host = urlparse(manifest["dashboard"]["origin"]).hostname
-if not host:
-    raise SystemExit("dashboard origin in manifest has no bindable host")
-print(host)
+env = {}
+for raw in Path(sys.argv[2]).read_text(encoding="utf-8").splitlines():
+    line = raw.strip()
+    if not line or line.startswith("#") or "=" not in line:
+        continue
+    key, value = line.split("=", 1)
+    env[key.strip()] = value.strip()
+
+configured_bind = env.get("DASHBOARD_BIND_ADDRESS", "")
+if configured_bind:
+    print(configured_bind)
+else:
+    host = urlparse(manifest["dashboard"]["origin"]).hostname
+    if not host:
+        raise SystemExit("dashboard origin in manifest has no bindable host")
+    print(host)
 PYBIND
 )"
 export DASHBOARD_BIND_ADDRESS

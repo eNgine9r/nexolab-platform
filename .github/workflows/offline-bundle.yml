@@ -198,9 +198,9 @@ jobs:
             public_key_file="$auth_dir/public.pem"
             openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out "$private_key_file" >/dev/null 2>&1
             openssl pkey -in "$private_key_file" -pubout -out "$public_key_file" >/dev/null 2>&1
-            sudo chown 10001:10001 "$private_key_file" "$public_key_file"
             chmod 0400 "$private_key_file"
             chmod 0444 "$public_key_file"
+            sudo chown 10001:10001 "$private_key_file" "$public_key_file"
             auth_mode=jwt
           fi
           cat > "$CENTRAL_ENV" <<EOF
@@ -496,14 +496,23 @@ jobs:
             "${central[@]}" down --remove-orphans
           fi
 
-      - name: Upload offline bundle and verification evidence
-        if: always()
+      - name: Upload accepted offline bundle and verification evidence
+        if: ${{ success() }}
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.contract.outputs.artifact_name || 'nexolab-offline-validation-failed' }}
+          name: ${{ steps.contract.outputs.artifact_name }}
           path: |
             dist/offline/*.tar.gz
             dist/offline/*.tar.gz.sha256
             .ci/offline-bundle/evidence
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Upload failed validation diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.contract.outputs.artifact_name || 'nexolab-offline-validation' }}-failed-diagnostics
+          path: .ci/offline-bundle/evidence
           if-no-files-found: warn
           retention-days: 3

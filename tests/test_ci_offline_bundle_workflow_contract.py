@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "offline-bundle.yml"
 PRESERVATION = ROOT / "scripts" / "verify-offline-volume-preservation.sh"
+INSTALLER = ROOT / "scripts" / "install-offline-bundle.sh"
 
 
 class OfflineBundleWorkflowContractTests(unittest.TestCase):
@@ -13,6 +14,7 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.workflow = WORKFLOW.read_text(encoding="utf-8")
         cls.preservation = PRESERVATION.read_text(encoding="utf-8")
+        cls.installer = INSTALLER.read_text(encoding="utf-8")
 
     def test_dispatch_exposes_bounded_recovery_inputs(self) -> None:
         for input_name in (
@@ -53,9 +55,26 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertIn("$RUNNER_TEMP/nexolab-offline-local-auth", self.workflow)
         self.assertIn("install_args+=(--local-auth)", self.workflow)
         self.assertIn("preservation_args+=(--local-auth)", self.workflow)
-        upload = self.workflow.split("- name: Upload offline bundle and verification evidence", 1)[1]
-        self.assertNotIn("RUNNER_TEMP", upload)
-        self.assertNotIn("private.pem", upload)
+        accepted_upload = self.workflow.split("- name: Upload accepted offline bundle and verification evidence", 1)[1]
+        self.assertNotIn("RUNNER_TEMP", accepted_upload)
+        self.assertNotIn("private.pem", accepted_upload)
+        chmod_index = self.workflow.index('chmod 0400 "$private_key_file"')
+        chown_index = self.workflow.index('sudo chown 10001:10001 "$private_key_file" "$public_key_file"')
+        self.assertLess(chmod_index, chown_index)
+
+    def test_installer_allows_runner_local_dashboard_bind_override(self) -> None:
+        self.assertIn('python3 - "$MANIFEST" "$CENTRAL_ENV"', self.installer)
+        self.assertIn('configured_bind = env.get("DASHBOARD_BIND_ADDRESS", "")', self.installer)
+        self.assertIn('host = urlparse(manifest["dashboard"]["origin"]).hostname', self.installer)
+
+    def test_failed_runtime_proof_does_not_publish_stageable_bundle(self) -> None:
+        accepted = self.workflow.split("- name: Upload accepted offline bundle and verification evidence", 1)[1].split("- name: Upload failed validation diagnostics", 1)[0]
+        failed = self.workflow.split("- name: Upload failed validation diagnostics", 1)[1]
+        self.assertIn("if: ${{ success() }}", accepted)
+        self.assertIn("dist/offline/*.tar.gz", accepted)
+        self.assertIn("if: ${{ failure() }}", failed)
+        self.assertNotIn("dist/offline/*.tar.gz", failed)
+        self.assertIn("-failed-diagnostics", failed)
 
     def test_persistence_helper_preserves_local_auth_overlay(self) -> None:
         self.assertIn("--local-auth) LOCAL_AUTH=true", self.preservation)
