@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -29,8 +31,42 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertIn("- linux/amd64", self.workflow)
         self.assertIn("- linux/arm64", self.workflow)
         self.assertIn("git merge-base --is-ancestor", self.workflow)
-        self.assertIn("_ = parsed.port", self.workflow)
-        self.assertIn("dashboard_origin must be a canonical origin without path, parameters or query", self.workflow)
+        self.assertIn("default_ports =", self.workflow)
+        self.assertIn("must use canonical browser serialization", self.workflow)
+        self.assertIn("must use the same LOCAL_LAN host", self.workflow)
+        self.assertIn("WebSocket scheme must be", self.workflow)
+
+
+    def _run_url_contract(self, dashboard: str, api: str, websocket: str) -> subprocess.CompletedProcess[str]:
+        marker = 'python3 - "$dashboard_origin" "$api_base_url" "$websocket_url" <<\'PYURL\'\n'
+        code = self.workflow.split(marker, 1)[1].split('\n          PYURL', 1)[0]
+        code = "\n".join(line[10:] if line.startswith("          ") else line for line in code.splitlines())
+        return subprocess.run(
+            [sys.executable, "-c", code, dashboard, api, websocket],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    def test_runtime_urls_require_canonical_same_host_local_lan_contract(self) -> None:
+        valid = self._run_url_contract(
+            "http://172.18.48.66:3000",
+            "http://172.18.48.66:8082",
+            "ws://172.18.48.66:8082/api/v1/telemetry/live",
+        )
+        self.assertEqual(valid.returncode, 0, valid.stderr)
+
+        invalid_cases = (
+            ("http://NEXOLAB.local:80", "http://nexolab.local:8082", "ws://nexolab.local:8082/api/v1/telemetry/live"),
+            ("http://nexolab.local", "http://api.example.com:8082", "ws://nexolab.local:8082/api/v1/telemetry/live"),
+            ("http://nexolab.local", "https://nexolab.local:8082", "ws://nexolab.local:8082/api/v1/telemetry/live"),
+            ("https://nexolab.local", "https://nexolab.local:8082", "ws://nexolab.local:8082/api/v1/telemetry/live"),
+            ("http://nexolab.local/", "http://nexolab.local:8082", "ws://nexolab.local:8082/api/v1/telemetry/live"),
+        )
+        for dashboard, api, websocket in invalid_cases:
+            with self.subTest(dashboard=dashboard, api=api, websocket=websocket):
+                result = self._run_url_contract(dashboard, api, websocket)
+                self.assertNotEqual(result.returncode, 0)
 
     def test_pull_request_lane_keeps_existing_safe_defaults(self) -> None:
         self.assertIn('platform="linux/amd64"', self.workflow)

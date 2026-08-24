@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-24T21:03:00Z",
-  "actor": "ChatGPT",
-  "event": "issue_677_second_codex_review_fix",
+  "timestamp": "2026-08-24T21:13:30Z",
+  "actor": "chatgpt",
+  "event": "issue_677_third_review_url_contract_hardening",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "cc27b609eea2917b97da96003a08e5c84a7edbb1"
@@ -19,7 +19,7 @@
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Run formatting/security gates, commit and push canonical dashboard-origin validation, then require another exact-head Codex review and all triggered GitHub workflows GREEN before merge. Manual ARM64/local-auth workflow_dispatch remains post-merge proof before any Pi staging or cutover.",
+  "next_action": "Commit and push canonical LOCAL_LAN endpoint validation, then require fresh exact-head Codex review plus CI, Telemetry service, Offline Bundle and NEXOLAB Merge Gate GREEN before merge. After merge, verify a real ARM64/local-auth workflow_dispatch artifact before any Pi staging or cutover.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

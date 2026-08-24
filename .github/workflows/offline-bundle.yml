@@ -134,19 +134,53 @@ jobs:
           import sys
           from urllib.parse import urlparse
 
-          expected = (("dashboard_origin", {"http", "https"}), ("api_base_url", {"http", "https"}), ("websocket_url", {"ws", "wss"}))
+          expected = (
+              ("dashboard_origin", {"http", "https"}),
+              ("api_base_url", {"http", "https"}),
+              ("websocket_url", {"ws", "wss"}),
+          )
+          parsed_urls = {}
+          canonical_urls = {}
+          default_ports = {"http": 80, "https": 443, "ws": 80, "wss": 443}
           for (name, schemes), raw in zip(expected, sys.argv[1:], strict=True):
               if any(char.isspace() for char in raw) or any(ord(char) < 32 for char in raw):
                   raise SystemExit(f"{name} must be a single-line URL without whitespace")
               parsed = urlparse(raw)
               try:
-                  _ = parsed.port
+                  port = parsed.port
               except ValueError as exc:
                   raise SystemExit(f"{name} has an invalid port: {exc}") from exc
               if parsed.scheme not in schemes or not parsed.hostname or parsed.username or parsed.password or parsed.fragment:
                   raise SystemExit(f"{name} is not a valid bounded public runtime URL")
-              if name == "dashboard_origin" and (parsed.path or parsed.params or parsed.query):
-                  raise SystemExit("dashboard_origin must be a canonical origin without path, parameters or query")
+              host = parsed.hostname.lower()
+              authority_host = f"[{host}]" if ":" in host else host
+              authority = authority_host
+              if port is not None and port != default_ports[parsed.scheme]:
+                  authority = f"{authority_host}:{port}"
+              if name in {"dashboard_origin", "api_base_url"}:
+                  if parsed.path or parsed.params or parsed.query:
+                      raise SystemExit(f"{name} must be a canonical origin without path, parameters or query")
+                  canonical = f"{parsed.scheme}://{authority}"
+              else:
+                  if parsed.params or parsed.query or parsed.path != "/api/v1/telemetry/live":
+                      raise SystemExit("websocket_url must use the canonical /api/v1/telemetry/live path without parameters or query")
+                  canonical = f"{parsed.scheme}://{authority}/api/v1/telemetry/live"
+              if raw != canonical:
+                  raise SystemExit(f"{name} must use canonical browser serialization: {canonical}")
+              parsed_urls[name] = parsed
+              canonical_urls[name] = canonical
+
+          dashboard = parsed_urls["dashboard_origin"]
+          api = parsed_urls["api_base_url"]
+          websocket = parsed_urls["websocket_url"]
+          hosts = {item.hostname.lower() for item in parsed_urls.values()}
+          if len(hosts) != 1:
+              raise SystemExit("Dashboard, API and WebSocket URLs must use the same LOCAL_LAN host")
+          if api.scheme != dashboard.scheme:
+              raise SystemExit("Dashboard and API URLs must use the same HTTP security scheme")
+          expected_ws_scheme = "wss" if dashboard.scheme == "https" else "ws"
+          if websocket.scheme != expected_ws_scheme:
+              raise SystemExit(f"WebSocket scheme must be {expected_ws_scheme} for {dashboard.scheme} Dashboard/API URLs")
           PYURL
 
           arch="${platform#linux/}"
