@@ -31,6 +31,18 @@ OPERATION_PHASES = (
 DEVICE_AGENT_HEALTH_URL = "http://127.0.0.1:8081/health"
 DEFAULT_POST_UPDATE_OBSERVATION_SECONDS = 60
 DEFAULT_POST_UPDATE_POLL_SECONDS = 3
+SOURCE_DEPLOYMENT_AUTHORITY = "controlled_source_deployment"
+PACKAGED_DEPLOYMENT_AUTHORITY = "validated_package"
+CENTRAL_PERSISTENT_VOLUMES = (
+    "nexolab-central-postgres-data",
+    "nexolab-central-mqtt-data",
+    "nexolab-central-object-storage-data",
+    "nexolab-central-telemetry-ingestion-data",
+)
+EDGE_PERSISTENT_VOLUMES = (
+    "nexolab-edge_edge-data",
+    "nexolab-edge_mqtt-data",
+)
 
 
 class VersionManagerFailure(RuntimeError):
@@ -318,6 +330,345 @@ def verify_device_agent_progress(
     raise VersionManagerFailure("Device Agent telemetry did not advance during post-update observation")
 
 
+
+def parse_env_file(path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip()
+    return values
+
+
+def assert_no_active_version_operation(root: Path) -> None:
+    if any((root / "requests").glob("*.json")):
+        raise VersionManagerFailure("a version update or rollback request is already queued")
+    for path in (root / "operations").glob("*.json"):
+        operation = load_json(path)
+        if operation.get("status") in {"queued", "running"}:
+            raise VersionManagerFailure("a version update or rollback operation is active")
+
+
+def persistent_volume_names(*, skip_edge: bool) -> tuple[str, ...]:
+    return CENTRAL_PERSISTENT_VOLUMES if skip_edge else CENTRAL_PERSISTENT_VOLUMES + EDGE_PERSISTENT_VOLUMES
+
+
+def capture_volume_identities(*, skip_edge: bool) -> list[dict[str, Any]]:
+    names = persistent_volume_names(skip_edge=skip_edge)
+    result = subprocess.run(
+        ["docker", "volume", "inspect", *names],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    payload = json.loads(result.stdout)
+    if not isinstance(payload, list):
+        raise VersionManagerFailure("Docker volume identity output is invalid")
+    identities: list[dict[str, Any]] = []
+    for item in payload:
+        if not isinstance(item, dict) or item.get("Name") not in names:
+            raise VersionManagerFailure("Docker volume identity output contains an unexpected volume")
+        identities.append(
+            {
+                "name": item.get("Name"),
+                "driver": item.get("Driver"),
+                "mountpoint": item.get("Mountpoint"),
+                "created_at": item.get("CreatedAt"),
+                "scope": item.get("Scope"),
+            }
+        )
+    if {item["name"] for item in identities} != set(names):
+        raise VersionManagerFailure("one or more required persistent volume identities are missing")
+    return sorted(identities, key=lambda item: str(item["name"]))
+
+
+def create_postgresql_backup(
+    central: list[str], backup_dir: Path, backup_id: str
+) -> Path:
+    backup_path = backup_dir.resolve() / backup_id
+    partial_backup_path = backup_path.with_suffix(".dump.partial")
+    backup_path.parent.mkdir(parents=True, exist_ok=True, mode=0o750)
+    with partial_backup_path.open("xb") as output:
+        subprocess.run(
+            central
+            + [
+                "exec",
+                "-T",
+                "postgres",
+                "sh",
+                "-ec",
+                'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc',
+            ],
+            check=True,
+            stdout=output,
+        )
+    if partial_backup_path.stat().st_size == 0:
+        raise VersionManagerFailure("PostgreSQL backup is empty")
+    with partial_backup_path.open("rb") as backup_input:
+        subprocess.run(
+            central + ["exec", "-T", "postgres", "pg_restore", "--list"],
+            check=True,
+            stdin=backup_input,
+            stdout=subprocess.DEVNULL,
+        )
+    os.replace(partial_backup_path, backup_path)
+    return backup_path
+
+
+def offline_installer_command(bundle_root: Path, args: argparse.Namespace) -> list[str]:
+    installer = bundle_root / "scripts" / "install-offline-bundle.sh"
+    if not installer.is_file():
+        raise VersionManagerFailure("offline bundle installer is missing")
+    command = [str(installer), "--central-env", str(args.central_env.resolve())]
+    if args.skip_edge:
+        command.append("--skip-edge")
+    else:
+        command.extend(["--edge-env", str(args.edge_env.resolve())])
+    if args.local_auth:
+        command.append("--local-auth")
+    return command
+
+
+def validate_source_transition(
+    current: dict[str, Any], target: dict[str, Any], args: argparse.Namespace
+) -> str:
+    if current.get("deployment_authority") != SOURCE_DEPLOYMENT_AUTHORITY:
+        raise VersionManagerFailure("current deployment is not trusted controlled source lineage")
+    if current.get("runtime_state_known") is not True or current.get("health") != "ready":
+        raise VersionManagerFailure("current source runtime is not verified ready")
+    if current.get("bundle_root") not in {None, ""}:
+        raise VersionManagerFailure("current source lineage unexpectedly references a package root")
+    if target.get("source_commit") != current.get("source_commit"):
+        raise VersionManagerFailure("staged package source commit does not match current source deployment")
+    if target.get("platform") != current.get("platform"):
+        raise VersionManagerFailure("staged package platform does not match current source deployment")
+    management = target.get("version_management")
+    schema = management.get("database_schema") if isinstance(management, dict) else None
+    if not isinstance(schema, dict):
+        raise VersionManagerFailure("staged package database compatibility metadata is missing")
+    current_schema = str(current.get("schema_head", ""))
+    if not current_schema or schema.get("head") != current_schema:
+        raise VersionManagerFailure("source-to-package transition requires the exact current schema head")
+    compatible = schema.get("runtime_compatible_schema_heads")
+    if not isinstance(compatible, list) or current_schema not in compatible:
+        raise VersionManagerFailure("staged package does not explicitly support the current schema")
+
+    env = parse_env_file(args.central_env.resolve())
+    runtime_mode = current.get("runtime_mode")
+    bind = env.get("CENTRAL_BIND_ADDRESS", "127.0.0.1")
+    if runtime_mode == "standalone" and bind not in {"127.0.0.1", "localhost"}:
+        raise VersionManagerFailure("standalone source lineage does not match loopback runtime bind")
+    if runtime_mode == "lan" and bind in {"127.0.0.1", "localhost"}:
+        raise VersionManagerFailure("LAN source lineage does not match trusted-LAN runtime bind")
+    if runtime_mode not in {"lan", "standalone"}:
+        raise VersionManagerFailure("current source runtime mode is invalid")
+
+    dashboard = target.get("dashboard")
+    local_auth = target.get("local_auth")
+    provider = dashboard.get("auth_provider") if isinstance(dashboard, dict) else None
+    selected = local_auth.get("selected") if isinstance(local_auth, dict) else None
+    if args.local_auth:
+        if provider != "local" or selected is not True or env.get("AUTH_MODE", "disabled") == "disabled":
+            raise VersionManagerFailure("local-auth package/runtime boundary is not verified")
+    elif selected is True:
+        raise VersionManagerFailure("staged package requires the local-auth overlay")
+    return current_schema
+
+
+def verify_transition_runtime(
+    target_root: Path,
+    target: dict[str, Any],
+    current: dict[str, Any],
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    validate_source_transition(current, target, args)
+    dashboard = target.get("dashboard")
+    api_base = dashboard.get("api_base_url") if isinstance(dashboard, dict) else None
+    if not isinstance(api_base, str) or not api_base:
+        raise VersionManagerFailure("staged package API base URL is missing")
+    readiness = read_local_json(f"{api_base.rstrip('/')}/health/ready")
+    if (
+        readiness.get("status") != "ready"
+        or readiness.get("database") != "ready"
+        or readiness.get("mqtt") != "ready"
+    ):
+        raise VersionManagerFailure("Telemetry API/database/MQTT readiness is not fully ready")
+
+    central = compose_args(
+        target_root, args.central_env.resolve(), central=True, local_auth=args.local_auth
+    )
+    revision = subprocess.run(
+        central + ["exec", "-T", "telemetry-service", "alembic", "current"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    expected_schema = str(target["version_management"]["database_schema"]["head"])
+    if expected_schema not in revision:
+        raise VersionManagerFailure("deployed database revision does not match staged package")
+
+    device: dict[str, Any]
+    if args.skip_edge:
+        device = {"status": "not_applicable", "reason": "edge_skipped"}
+    else:
+        observation_seconds = int(
+            os.environ.get(
+                "NEXOLAB_POST_UPDATE_OBSERVATION_SECONDS",
+                str(DEFAULT_POST_UPDATE_OBSERVATION_SECONDS),
+            )
+        )
+        device = verify_device_agent_progress(observation_seconds=observation_seconds)
+    return {"readiness": readiness, "schema_head": expected_schema, "device_agent": device}
+
+
+def source_transition_id(bundle_id: str) -> str:
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    digest = hashlib.sha256(f"{stamp}:{bundle_id}:{os.getpid()}".encode()).hexdigest()[:12]
+    return f"source-to-packaged-{stamp}-{digest}"
+
+
+def establish_package_authority(args: argparse.Namespace) -> None:
+    root = args.root.resolve()
+    root.mkdir(parents=True, exist_ok=True, mode=0o750)
+    lock_path = root / "worker.lock"
+    update_lock_path = root / "update-plane.lock"
+    with (
+        lock_path.open("a+", encoding="utf-8") as lock,
+        update_lock_path.open("a+", encoding="utf-8") as update_lock,
+    ):
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as error:
+            raise VersionManagerFailure("another version-manager worker is active") from error
+        try:
+            fcntl.flock(update_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as error:
+            raise VersionManagerFailure("the version update plane is active") from error
+
+        assert_no_active_version_operation(root)
+        current_path = root / "current.json"
+        current = load_json(current_path)
+        target_root = root / "catalog" / args.bundle_id
+        target = verify_staged_bundle(target_root, args.bundle_id)
+        current_schema = validate_source_transition(current, target, args)
+        transition_id = source_transition_id(args.bundle_id)
+        evidence_dir = root / "operation-evidence" / transition_id
+        evidence_dir.mkdir(parents=True, exist_ok=False, mode=0o750)
+        transition_path = evidence_dir / "transition.json"
+        atomic_json(evidence_dir / "source-lineage-before.json", current)
+        mutation_started = False
+        transition: dict[str, Any] = {
+            "schema_version": 1,
+            "type": "source_to_packaged_authority",
+            "id": transition_id,
+            "status": "running",
+            "started_at": now(),
+            "ended_at": None,
+            "source_commit": current.get("source_commit"),
+            "source_deployment_evidence": current.get("source_deployment_evidence"),
+            "target_bundle_id": args.bundle_id,
+            "target_release": target.get("bundle_version"),
+            "target_manifest_sha256": manifest_digest(target_root),
+            "backup_evidence_id": None,
+            "capacity_evidence_id": None,
+            "runtime_verification": None,
+        }
+        atomic_json(transition_path, transition)
+
+        try:
+            transition["volume_identities_before"] = capture_volume_identities(
+                skip_edge=args.skip_edge
+            )
+            atomic_json(evidence_dir / "volume-identities-before.json", {
+                "volumes": transition["volume_identities_before"]
+            })
+            transition["capacity_evidence_id"] = run_capacity_preflight(root, transition_id)
+            atomic_json(transition_path, transition)
+
+            central = compose_args(
+                target_root,
+                args.central_env.resolve(),
+                central=True,
+                local_auth=args.local_auth,
+            )
+            backup_id = f"{transition_id}-postgresql.dump"
+            create_postgresql_backup(central, args.backup_dir.resolve(), backup_id)
+            transition["backup_evidence_id"] = backup_id
+            atomic_json(transition_path, transition)
+
+            mutation_started = True
+            subprocess.run(offline_installer_command(target_root, args), check=True)
+            verified_target = verify_staged_bundle(target_root, args.bundle_id)
+            if manifest_digest(target_root) != transition["target_manifest_sha256"]:
+                raise VersionManagerFailure("staged package manifest changed during installation")
+            transition["runtime_verification"] = verify_transition_runtime(
+                target_root, verified_target, current, args
+            )
+            after = capture_volume_identities(skip_edge=args.skip_edge)
+            atomic_json(evidence_dir / "volume-identities-after.json", {"volumes": after})
+            if after != transition["volume_identities_before"]:
+                raise VersionManagerFailure("persistent volume identities changed during package installation")
+
+            transition["volume_identities_after"] = after
+            transition["status"] = "verified_for_authority_commit"
+            atomic_json(transition_path, transition)
+            atomic_json(
+                current_path,
+                {
+                    "schema_version": 1,
+                    "bundle_id": args.bundle_id,
+                    "bundle_root": str(target_root),
+                    "release": verified_target["bundle_version"],
+                    "source_commit": verified_target["source_commit"],
+                    "build_timestamp": verified_target["created_at"],
+                    "runtime_mode": current["runtime_mode"],
+                    "platform": verified_target["platform"],
+                    "schema_head": current_schema,
+                    "deployed_at": now(),
+                    "health": "ready",
+                    "runtime_state_known": True,
+                    "previous_bundle_id": None,
+                    "previous_release": None,
+                    "last_operation_id": None,
+                    "deployment_authority": PACKAGED_DEPLOYMENT_AUTHORITY,
+                    "transition_evidence_id": transition_id,
+                    "previous_source_commit": current.get("source_commit"),
+                    "previous_source_deployment_evidence": current.get(
+                        "source_deployment_evidence"
+                    ),
+                },
+            )
+            transition["status"] = "succeeded"
+            transition["result_code"] = "packaged_authority_established"
+            transition["ended_at"] = now()
+            atomic_json(transition_path, transition)
+        except Exception as error:
+            if mutation_started:
+                uncertain = dict(current)
+                uncertain["health"] = "verification_failed"
+                uncertain["runtime_state_known"] = False
+                uncertain["last_operation_id"] = transition_id
+                atomic_json(current_path, uncertain)
+            transition["status"] = "failed"
+            transition["ended_at"] = now()
+            transition["failure_type"] = type(error).__name__
+            transition["safe_message"] = str(error)[:500]
+            atomic_json(transition_path, transition)
+            raise
+
+    print(
+        json.dumps(
+            {
+                "status": "packaged_authority_established",
+                "bundle_id": args.bundle_id,
+                "transition_evidence_id": transition_id,
+            },
+            sort_keys=True,
+        )
+    )
+
 def run_once(args: argparse.Namespace) -> None:
     root = args.root.resolve()
     root.mkdir(parents=True, exist_ok=True, mode=0o750)
@@ -376,50 +727,16 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
 
         enter_phase(operation_path, operation, "creating_backup")
         backup_id = f"{operation_id}-postgresql.dump"
-        backup_path = args.backup_dir.resolve() / backup_id
-        partial_backup_path = backup_path.with_suffix(".dump.partial")
-        backup_path.parent.mkdir(parents=True, exist_ok=True, mode=0o750)
         central = compose_args(
             current_root, args.central_env.resolve(), central=True, local_auth=args.local_auth
         )
-        with partial_backup_path.open("xb") as output:
-            subprocess.run(
-                central
-                + [
-                    "exec",
-                    "-T",
-                    "postgres",
-                    "sh",
-                    "-ec",
-                    'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc',
-                ],
-                check=True,
-                stdout=output,
-            )
-        if partial_backup_path.stat().st_size == 0:
-            raise VersionManagerFailure("PostgreSQL backup is empty")
-        with partial_backup_path.open("rb") as backup_input:
-            subprocess.run(
-                central + ["exec", "-T", "postgres", "pg_restore", "--list"],
-                check=True,
-                stdin=backup_input,
-                stdout=subprocess.DEVNULL,
-            )
-        os.replace(partial_backup_path, backup_path)
+        create_postgresql_backup(central, args.backup_dir.resolve(), backup_id)
         operation["backup_evidence_id"] = backup_id
         atomic_json(operation_path, operation)
 
         enter_phase(operation_path, operation, "applying_update")
-        installer = target_root / "scripts" / "install-offline-bundle.sh"
-        command = [str(installer), "--central-env", str(args.central_env.resolve())]
-        if args.skip_edge:
-            command.append("--skip-edge")
-        else:
-            command.extend(["--edge-env", str(args.edge_env.resolve())])
-        if args.local_auth:
-            command.append("--local-auth")
         mutation_started = True
-        subprocess.run(command, check=True)
+        subprocess.run(offline_installer_command(target_root, args), check=True)
         operation["offline_bundle_smoke_verified"] = True
         atomic_json(operation_path, operation)
 
@@ -517,6 +834,16 @@ def parser() -> argparse.ArgumentParser:
     bootstrap_parser.add_argument("--health", choices=("ready", "degraded"), default="ready")
     bootstrap_parser.set_defaults(handler=bootstrap)
 
+    transition = subcommands.add_parser("establish-package-authority")
+    transition.add_argument("--root", type=Path, required=True)
+    transition.add_argument("--bundle-id", required=True)
+    transition.add_argument("--central-env", type=Path, required=True)
+    transition.add_argument("--edge-env", type=Path)
+    transition.add_argument("--backup-dir", type=Path, required=True)
+    transition.add_argument("--skip-edge", action="store_true")
+    transition.add_argument("--local-auth", action="store_true")
+    transition.set_defaults(handler=establish_package_authority)
+
     worker = subcommands.add_parser("run-once")
     worker.add_argument("--root", type=Path, required=True)
     worker.add_argument("--central-env", type=Path, required=True)
@@ -530,7 +857,11 @@ def parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = parser().parse_args()
-    if args.command == "run-once" and not args.skip_edge and args.edge_env is None:
+    if (
+        args.command in {"run-once", "establish-package-authority"}
+        and not args.skip_edge
+        and args.edge_env is None
+    ):
         raise VersionManagerFailure("--edge-env is required unless --skip-edge is used")
     args.handler(args)
     return 0

@@ -87,6 +87,41 @@ bundle, live containers and database revision requires a separately reviewed
 recovery procedure outside the UI. Until trustworthy current evidence exists,
 the UI remains readable but all mutations hard-stop.
 
+## Convert a verified source deployment to packaged authority
+
+`bootstrap` must not be used when `current.json` already records
+`deployment_authority=controlled_source_deployment`. A source deployment is not
+a package merely because a later bundle was built from the same Git commit.
+
+After the exact source commit has been built, verified and staged in the local
+catalog, use the bounded host transition:
+
+```bash
+sudo python3 scripts/nexolab-version-manager.py establish-package-authority \
+  --root /var/lib/nexolab/version-management \
+  --bundle-id <exact-staged-bundle-id> \
+  --central-env /etc/nexolab/central.env \
+  --edge-env /etc/nexolab/edge.env \
+  --backup-dir /var/backups/nexolab \
+  --local-auth
+```
+
+This is a controlled runtime mutation and requires explicit cutover approval on
+the production Raspberry Pi. The transition fails closed unless the current
+source lineage is verified ready, no update/rollback operation is active, the
+staged package matches the exact source commit/platform/schema/runtime/auth
+boundary, capacity is sufficient and a non-empty PostgreSQL backup is verified.
+It reuses `install-offline-bundle.sh`, preserves the existing named volumes and
+edge SQLite, verifies API/database/MQTT readiness, exact Alembic head, Device
+Agent worker health with advancing telemetry, and identical persistent-volume
+identities before and after installation.
+
+Only after every gate passes is `current.json` atomically replaced with the
+catalog-backed packaged release. The prior source commit and deployment evidence
+remain referenced for audit. Installer, health, schema or data-preservation
+failure leaves source-lineage authority unchanged but marks the runtime state
+unverified after any install mutation, so stale source evidence cannot remain `ready`.
+
 ## Compatibility metadata
 
 The offline manifest records:

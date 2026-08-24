@@ -94,6 +94,33 @@ For a new/uninitialized installation, automatic updates remain OFF. The host tim
 
 Do not hand-edit `current.json` to convert a source deployment into a packaged release.
 
-When NEXOLAB is later installed through an exact staged validated package, the canonical version-manager package flow becomes authoritative. Any transition from source-lineage evidence to packaged current-release evidence must be implemented and verified explicitly; it must not overwrite trustworthy current state merely to make an update button available.
+When NEXOLAB is later installed through an exact staged validated package, the canonical version-manager package flow becomes authoritative. A source-lineage record must never be hand-edited or passed through `bootstrap` to manufacture packaged authority.
 
-Preserve source deployment evidence, package validation markers, operation history and PostgreSQL backups for audit and recovery.
+The explicit transition is:
+
+```bash
+sudo python3 scripts/nexolab-version-manager.py establish-package-authority \
+  --root /var/lib/nexolab/version-management \
+  --bundle-id <exact-staged-bundle-id> \
+  --central-env /etc/nexolab/central.env \
+  --edge-env /etc/nexolab/edge.env \
+  --backup-dir /var/backups/nexolab \
+  --local-auth
+```
+
+It accepts only the exact staged validated package whose `source_commit`, host
+platform and schema contract match the verified source deployment. It holds both
+the host worker lock and update-plane lock, verifies capacity and PostgreSQL
+backup, snapshots persistent-volume identities, runs the existing offline
+installer, revalidates the package marker and manifest, checks runtime/schema/
+Device Agent telemetry, and requires identical volume identities afterward.
+Only then may catalog-backed packaged `current.json` replace the source record.
+The previous source commit and deployment evidence remain auditable. Any pre-install failure preserves the source record unchanged. A failure after
+installation starts preserves source-lineage authority but marks runtime state
+unverified until controlled recovery proves what is running; transition evidence
+is retained in both cases.
+
+Actual execution on the controlled Raspberry Pi is a cutover action and remains
+separate from software verification. Preserve source deployment evidence, package
+validation markers, operation history and PostgreSQL backups for audit and
+recovery.
