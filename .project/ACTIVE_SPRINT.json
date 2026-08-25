@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 677,
-      "title": "Enable parameterized ARM64 offline bundle staging for recovery acceptance",
-      "branch": "feat/677-arm64-offline-bundle-staging"
+      "issue": 679,
+      "title": "Make ARM64 QEMU offline acceptance use application health without weakening production health",
+      "branch": "fix/679-arm64-qemu-edge-health"
     },
     "next_work_package": null
   },
@@ -216,8 +216,27 @@
       "issue": 677,
       "title": "Enable parameterized ARM64 offline bundle staging for recovery acceptance",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "feat/677-arm64-offline-bundle-staging",
+      "evidence": {
+        "verified_head_sha": "6dc92f32181d911c55ba3edd253ff3307a50cce1",
+        "pull_request": 678,
+        "checks": {
+          "CI": "success",
+          "Telemetry service": "success",
+          "Offline Bundle PR lane": "success",
+          "NEXOLAB Merge Gate": "success",
+          "fresh Codex review": "clean",
+          "post-merge ARM64 local-auth dispatch 32812878575": "failed_device_agent_qemu_health_gate"
+        }
+      }
+    },
+    {
+      "issue": 679,
+      "title": "Make ARM64 QEMU offline acceptance use application health without weakening production health",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "fix/679-arm64-qemu-edge-health",
       "evidence": {}
     }
   ],

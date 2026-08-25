@@ -3,6 +3,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -10,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "offline-bundle.yml"
 PRESERVATION = ROOT / "scripts" / "verify-offline-volume-preservation.sh"
 INSTALLER = ROOT / "scripts" / "install-offline-bundle.sh"
+SMOKE = ROOT / "scripts" / "offline-bundle-smoke.sh"
 
 
 class OfflineBundleWorkflowContractTests(unittest.TestCase):
@@ -18,6 +20,7 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         cls.workflow = WORKFLOW.read_text(encoding="utf-8")
         cls.preservation = PRESERVATION.read_text(encoding="utf-8")
         cls.installer = INSTALLER.read_text(encoding="utf-8")
+        cls.smoke = SMOKE.read_text(encoding="utf-8")
 
     def test_dispatch_exposes_bounded_recovery_inputs(self) -> None:
         for input_name in (
@@ -190,6 +193,59 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertIn('$RUNNER_TEMP/nexolab-offline-edge-compose.json', self.workflow)
         self.assertNotIn('$CI_ROOT/evidence/central-compose.json', self.workflow)
         self.assertNotIn('$CI_ROOT/evidence/edge-compose.json', self.workflow)
+
+
+    def test_arm64_qemu_uses_bounded_application_health_without_weakening_native_wait(self) -> None:
+        self.assertIn('install_args+=(--qemu-arm64-validation)', self.workflow)
+        self.assertIn('preservation_args+=(--qemu-arm64-validation)', self.workflow)
+        self.assertIn('if [[ "$PLATFORM" == "linux/arm64" ]]', self.workflow)
+        self.assertIn('--qemu-arm64-validation) QEMU_ARM64_VALIDATION=true', self.installer)
+        self.assertIn('"$(uname -m)" == "x86_64"', self.installer)
+        self.assertIn('manifest.get("platform") != "linux/arm64"', self.installer)
+        self.assertIn('"${EDGE[@]}" up -d --no-build --pull never --wait', self.installer)
+        self.assertIn('SMOKE_ARGS+=(--edge-health-timeout-seconds 120)', self.installer)
+        self.assertIn('recreate_edge', self.preservation)
+        self.assertIn('SMOKE_ARGS+=(--edge-health-timeout-seconds 120)', self.preservation)
+        update = self.preservation.split('export OFFLINE_DASHBOARD_IMAGE="$UPDATE_DASHBOARD"', 1)[1].split(
+            'echo "Update recreation preserved', 1
+        )[0]
+        rollback = self.preservation.split('export OFFLINE_DASHBOARD_IMAGE="$ORIGINAL_DASHBOARD"', 1)[1].split(
+            'echo "Rollback recreation preserved', 1
+        )[0]
+        for phase in (update, rollback):
+            self.assertLess(phase.index('recreate_edge'), phase.index('offline-bundle-smoke.sh'))
+            self.assertLess(phase.index('offline-bundle-smoke.sh'), phase.index('snapshot_required_volumes'))
+        self.assertIn('curl --fail --silent --show-error --max-time 10', self.smoke)
+        self.assertIn('payload.get("status") not in {"ok", "degraded"}', self.smoke)
+
+    def test_edge_health_timeout_parser_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            central = root / "central.env"
+            edge = root / "edge.env"
+            central.write_text("CENTRAL_BIND_ADDRESS=127.0.0.1\n", encoding="utf-8")
+            edge.write_text("DEVICE_MODE=simulator\n", encoding="utf-8")
+            result = subprocess.run(
+                [
+                    "bash", str(SMOKE),
+                    "--central-env", str(central),
+                    "--edge-env", str(edge),
+                    "--edge-health-timeout-seconds", "invalid",
+                ],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("must be an integer", result.stderr)
+
+    def test_failed_diagnostics_capture_device_agent_health_without_environment_dump(self) -> None:
+        capture = self.workflow.split("- name: Capture final disconnected evidence", 1)[1].split(
+            "- name: Stop validation containers without deleting volumes", 1
+        )[0]
+        self.assertIn("device-agent-health.json", capture)
+        self.assertIn("device-agent.log", capture)
+        self.assertIn("{{json .State.Health}}", capture)
+        self.assertIn("logs --no-color --tail 200 device-agent", capture)
+        self.assertNotIn("docker inspect", capture.split("{{json .State.Health}}", 1)[1])
 
     def test_persistence_helper_preserves_local_auth_overlay(self) -> None:
         self.assertIn("--local-auth) LOCAL_AUTH=true", self.preservation)
