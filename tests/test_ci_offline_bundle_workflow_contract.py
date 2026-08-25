@@ -39,6 +39,8 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertIn("Runtime URLs must use a LOCAL_LAN hostname", self.workflow)
         self.assertIn("Runtime URLs must use a non-global LOCAL_LAN IP address", self.workflow)
         self.assertIn("Runtime URLs must not use browser-recognized numeric IPv4 aliases", self.workflow)
+        self.assertIn("must not use percent-escaped host syntax", self.workflow)
+        self.assertIn("must use a usable destination port, not port 0", self.workflow)
         self.assertIn("WebSocket scheme must be", self.workflow)
 
 
@@ -79,6 +81,10 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
             ("http://nexoláb.local:3000", "http://nexoláb.local:8082", "ws://nexoláb.local:8082/api/v1/telemetry/live"),
             ("http://134744072:3000", "http://134744072:8082", "ws://134744072:8082/api/v1/telemetry/live"),
             ("http://0x08080808:3000", "http://0x08080808:8082", "ws://0x08080808:8082/api/v1/telemetry/live"),
+            ("http://nexolab%2elocal:3000", "http://nexolab%2elocal:8082", "ws://nexolab%2elocal:8082/api/v1/telemetry/live"),
+            ("http://nexolab.local:0", "http://nexolab.local:8082", "ws://nexolab.local:8082/api/v1/telemetry/live"),
+            ("http://nexolab.local:3000", "http://nexolab.local:0", "ws://nexolab.local:8082/api/v1/telemetry/live"),
+            ("http://nexolab.local:3000", "http://nexolab.local:8082", "ws://nexolab.local:0/api/v1/telemetry/live"),
         )
         for dashboard, api, websocket in invalid_cases:
             with self.subTest(dashboard=dashboard, api=api, websocket=websocket):
