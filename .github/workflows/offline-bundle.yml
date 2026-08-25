@@ -290,7 +290,7 @@ jobs:
             openssl rand -hex 24 > "$password_file"
             chmod 0400 "$private_key_file" "$password_file"
             chmod 0444 "$public_key_file"
-            sudo chown 10001:10001 "$private_key_file" "$public_key_file" "$password_file"
+            sudo chown 10001:10001 "$private_key_file" "$public_key_file"
             auth_mode=jwt
           fi
           cat > "$CENTRAL_ENV" <<EOF
@@ -364,14 +364,16 @@ jobs:
           if [[ "$LOCAL_AUTH" == "true" ]]; then
             central+=( -f infrastructure/compose/compose.local-auth.yaml )
           fi
-          "${central[@]}" config --format json > "$CI_ROOT/evidence/central-compose.json"
+          central_config="$RUNNER_TEMP/nexolab-offline-central-compose.json"
+          edge_config="$RUNNER_TEMP/nexolab-offline-edge-compose.json"
+          "${central[@]}" config --format json > "$central_config"
           docker compose \
             --env-file "$EDGE_ENV" \
             -f infrastructure/compose/compose.edge.yaml \
             -f infrastructure/offline/compose.edge.offline.yaml \
-            config --format json > "$CI_ROOT/evidence/edge-compose.json"
+            config --format json > "$edge_config"
 
-          python - "$CI_ROOT/evidence/central-compose.json" "$CI_ROOT/evidence/edge-compose.json" <<'PY'
+          python - "$central_config" "$edge_config" <<'PY'
           import json
           import sys
           from pathlib import Path
@@ -384,6 +386,7 @@ jobs:
                   if service.get("pull_policy") != "never":
                       raise SystemExit(f"Offline service does not use pull_policy=never: {path}:{name}")
           PY
+          rm -f "$central_config" "$edge_config"
 
           ! grep -R --line-number --fixed-strings "docker compose down -v" \
             scripts/install-offline-bundle.sh \
@@ -510,6 +513,83 @@ jobs:
           docker run --rm --pull never --network "$network" "$OFFLINE_DASHBOARD_IMAGE" \
             node -e "fetch('https://example.com').then(()=>process.exit(1)).catch(()=>process.exit(0))"
 
+      - name: Seed local authentication continuity state
+        if: ${{ steps.contract.outputs.local_auth == 'true' }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bundle_root="${{ steps.clean_host.outputs.bundle_root }}"
+          auth_dir="$RUNNER_TEMP/nexolab-offline-local-auth"
+          password_file="$auth_dir/operator-password"
+          refresh_token_file="$auth_dir/refresh-token"
+          test -s "$password_file"
+
+          eval "$(python "$bundle_root/scripts/verify-offline-bundle.py" \
+            "$bundle_root" --check-loaded-images --emit-shell-env)"
+          export OFFLINE_DASHBOARD_IMAGE OFFLINE_TELEMETRY_IMAGE OFFLINE_DEVICE_AGENT_IMAGE
+          export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
+
+          central=(docker compose --env-file "$PWD/$CENTRAL_ENV" \
+            -f "$bundle_root/deploy/compose/compose.central.yaml" \
+            -f "$bundle_root/deploy/offline/compose.central.offline.yaml" \
+            -f "$bundle_root/deploy/compose/compose.local-auth.yaml")
+
+          "${central[@]}" run --rm --no-deps --user 0:0 \
+            -v "$password_file:/run/operator-password:ro" \
+            telemetry-service \
+            python -m app.security.local_cli create-account \
+            --username offline-bundle-admin \
+            --password-file /run/operator-password \
+            --display-name "Offline Bundle Administrator" \
+            --organization-id 00000000-0000-0000-0000-000000000001 \
+            --organization-slug nexolab-offline-bundle \
+            --organization-name "NEXOLAB Offline Bundle Acceptance" \
+            --role administrator
+
+          python3 - "$password_file" "$refresh_token_file" <<'PYAUTHSEED'
+          import json
+          import sys
+          import urllib.error
+          import urllib.request
+          from pathlib import Path
+
+          password = Path(sys.argv[1]).read_text(encoding="utf-8").strip()
+          refresh_path = Path(sys.argv[2])
+          base = "http://127.0.0.1:8082"
+          org = "00000000-0000-0000-0000-000000000001"
+
+          def request(method, path, payload=None, token=None, expected=(200,)):
+              data = None if payload is None else json.dumps(payload).encode("utf-8")
+              headers = {"Content-Type": "application/json"}
+              if token:
+                  headers["Authorization"] = f"Bearer {token}"
+                  headers["X-Organization-ID"] = org
+              req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
+              try:
+                  with urllib.request.urlopen(req, timeout=10) as response:
+                      status = response.status
+                      body = response.read()
+              except urllib.error.HTTPError as exc:
+                  status = exc.code
+                  body = exc.read()
+              if status not in expected:
+                  raise SystemExit(f"{method} {path} returned unexpected HTTP {status}")
+              return json.loads(body) if body else None
+
+          login = request(
+              "POST", "/api/v1/auth/local/login",
+              {"username": "offline-bundle-admin", "password": password},
+          )
+          session = request("GET", "/api/v1/auth/session", token=login["access_token"])
+          if session["identity"]["provider"] != "nexolab-local":
+              raise SystemExit("Local auth provider mismatch before recovery drill")
+          roles = session["memberships"][0]["roles"]
+          if "administrator" not in roles:
+              raise SystemExit("Seeded local auth account lost administrator role")
+          refresh_path.write_text(login["refresh_token"], encoding="utf-8")
+          refresh_path.chmod(0o600)
+          PYAUTHSEED
+
       - name: Prove update and rollback preserve persistent data
         shell: bash
         env:
@@ -523,129 +603,12 @@ jobs:
             --evidence-dir "$PWD/$CI_ROOT/evidence"
           )
           if [[ "$LOCAL_AUTH" == "true" ]]; then
-            preservation_args+=(--local-auth)
+            preservation_args+=(
+              --local-auth
+              --local-auth-refresh-token-file "$RUNNER_TEMP/nexolab-offline-local-auth/refresh-token"
+            )
           fi
           bash scripts/verify-offline-volume-preservation.sh "${preservation_args[@]}"
-
-      - name: Prove local authentication session lifecycle
-        if: ${{ steps.contract.outputs.local_auth == 'true' }}
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          bundle_root="${{ steps.clean_host.outputs.bundle_root }}"
-          auth_dir="$RUNNER_TEMP/nexolab-offline-local-auth"
-          password_file="$auth_dir/operator-password"
-          test -s "$password_file"
-
-          eval "$(python "$bundle_root/scripts/verify-offline-bundle.py" \
-            "$bundle_root" --check-loaded-images --emit-shell-env)"
-          export OFFLINE_DASHBOARD_IMAGE OFFLINE_TELEMETRY_IMAGE OFFLINE_DEVICE_AGENT_IMAGE
-          export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
-
-          central=(docker compose --env-file "$PWD/$CENTRAL_ENV" \
-            -f "$bundle_root/deploy/compose/compose.central.yaml" \
-            -f "$bundle_root/deploy/offline/compose.central.offline.yaml" \
-            -f "$bundle_root/deploy/compose/compose.local-auth.yaml")
-
-          "${central[@]}" run --rm --no-deps \
-            -v "$password_file:/run/operator-password:ro" \
-            telemetry-service \
-            python -m app.security.local_cli create-account \
-            --username offline-bundle-admin \
-            --password-file /run/operator-password \
-            --display-name "Offline Bundle Administrator" \
-            --organization-id 00000000-0000-0000-0000-000000000001 \
-            --organization-slug nexolab-offline-bundle \
-            --organization-name "NEXOLAB Offline Bundle Acceptance" \
-            --role administrator
-
-          python3 - "$password_file" "$CI_ROOT/evidence/local-auth-session.json" <<'PYAUTH'
-          import json
-          import sys
-          import urllib.error
-          import urllib.request
-          from pathlib import Path
-
-          password = Path(sys.argv[1]).read_text(encoding="utf-8").strip()
-          evidence_path = Path(sys.argv[2])
-          base = "http://127.0.0.1:8082"
-          organization_id = "00000000-0000-0000-0000-000000000001"
-
-          def request(method, path, payload=None, token=None, expected=(200,)):
-              data = None if payload is None else json.dumps(payload).encode("utf-8")
-              headers = {"Content-Type": "application/json"}
-              if token is not None:
-                  headers["Authorization"] = f"Bearer {token}"
-                  headers["X-Organization-ID"] = organization_id
-              req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
-              try:
-                  with urllib.request.urlopen(req, timeout=10) as response:
-                      status = response.status
-                      body = response.read()
-              except urllib.error.HTTPError as exc:
-                  status = exc.code
-                  body = exc.read()
-              if status not in expected:
-                  raise SystemExit(f"{method} {path} returned unexpected HTTP {status}")
-              return status, (json.loads(body) if body else None)
-
-          _, login = request(
-              "POST",
-              "/api/v1/auth/local/login",
-              {"username": "offline-bundle-admin", "password": password},
-          )
-          access = login["access_token"]
-          initial_refresh = login["refresh_token"]
-
-          _, session = request("GET", "/api/v1/auth/session", token=access)
-          memberships = session.get("memberships", [])
-          if not memberships or "administrator" not in memberships[0].get("roles", []):
-              raise SystemExit("Local-auth session did not preserve administrator RBAC")
-
-          _, refreshed = request(
-              "POST",
-              "/api/v1/auth/local/refresh",
-              {"refresh_token": initial_refresh},
-          )
-          if refreshed["refresh_token"] == initial_refresh:
-              raise SystemExit("Local-auth refresh token did not rotate")
-
-          request(
-              "POST",
-              "/api/v1/auth/local/refresh",
-              {"refresh_token": initial_refresh},
-              expected=(401,),
-          )
-          request(
-              "POST",
-              "/api/v1/auth/local/logout",
-              {"refresh_token": refreshed["refresh_token"]},
-              expected=(204,),
-          )
-          request(
-              "GET",
-              "/api/v1/auth/session",
-              token=refreshed["access_token"],
-              expected=(401,),
-          )
-
-          evidence_path.write_text(
-              json.dumps(
-                  {
-                      "account_provisioned": True,
-                      "login": "success",
-                      "administrator_rbac": True,
-                      "refresh_rotated": True,
-                      "refresh_replay_rejected": True,
-                      "logout": "success",
-                      "revoked_session_rejected": True,
-                  },
-                  sort_keys=True,
-              )
-              + "\n",
-              encoding="utf-8",
-          )
-          PYAUTH
 
       - name: Capture final disconnected evidence
         if: always()

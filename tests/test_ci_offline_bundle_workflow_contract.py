@@ -115,7 +115,7 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertIn("openssl genpkey -algorithm RSA", self.workflow)
         self.assertIn("$RUNNER_TEMP/nexolab-offline-local-auth", self.workflow)
         self.assertIn("install_args+=(--local-auth)", self.workflow)
-        self.assertIn("preservation_args+=(--local-auth)", self.workflow)
+        self.assertIn("--local-auth-refresh-token-file", self.workflow)
         accepted_upload = self.workflow.split("- name: Upload accepted offline bundle and verification evidence", 1)[1]
         self.assertNotIn("RUNNER_TEMP", accepted_upload)
         self.assertNotIn("private.pem", accepted_upload)
@@ -137,27 +137,31 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertNotIn("dist/offline/*.tar.gz", failed)
         self.assertIn("-failed-diagnostics", failed)
 
-    def test_local_auth_session_lifecycle_is_proven_before_artifact_publication(self) -> None:
-        proof = self.workflow.split("- name: Prove local authentication session lifecycle", 1)[1]
-        accepted = self.workflow.split("- name: Upload accepted offline bundle and verification evidence", 1)[1]
-        self.assertIn("python -m app.security.local_cli create-account", proof)
-        self.assertIn("/api/v1/auth/local/login", proof)
-        self.assertIn("/api/v1/auth/session", proof)
-        self.assertIn("/api/v1/auth/local/refresh", proof)
-        self.assertIn("/api/v1/auth/local/logout", proof)
-        self.assertIn("refresh_replay_rejected", proof)
-        self.assertIn("revoked_session_rejected", proof)
-        self.assertIn("local-auth-session.json", proof)
-        self.assertLess(
-            self.workflow.index("- name: Prove local authentication session lifecycle"),
-            self.workflow.index("- name: Upload accepted offline bundle and verification evidence"),
-        )
-        self.assertNotIn("operator-password", accepted)
-        self.assertNotIn("access_token", accepted)
-        self.assertNotIn("refresh_token", accepted)
+    def test_local_auth_continuity_spans_update_and_rollback(self) -> None:
+        seed_index = self.workflow.index("- name: Seed local authentication continuity state")
+        drill_index = self.workflow.index("- name: Prove update and rollback preserve persistent data")
+        accepted_index = self.workflow.index("- name: Upload accepted offline bundle and verification evidence")
+        self.assertLess(seed_index, drill_index)
+        self.assertLess(drill_index, accepted_index)
+        self.assertIn("python -m app.security.local_cli create-account", self.workflow)
+        self.assertIn("/api/v1/auth/local/login", self.workflow)
+        self.assertIn("--local-auth-refresh-token-file", self.workflow)
+        self.assertIn("refresh_local_auth_session update false", self.preservation)
+        self.assertIn("refresh_local_auth_session rollback true", self.preservation)
+        self.assertIn("/api/v1/auth/local/refresh", self.preservation)
+        self.assertIn("/api/v1/auth/session", self.preservation)
+        self.assertIn("/api/v1/auth/local/logout", self.preservation)
+        self.assertIn("local-auth-continuity.txt", self.preservation)
+
+    def test_compose_contract_evidence_does_not_upload_credentials(self) -> None:
+        self.assertIn('$RUNNER_TEMP/nexolab-offline-central-compose.json', self.workflow)
+        self.assertIn('$RUNNER_TEMP/nexolab-offline-edge-compose.json', self.workflow)
+        self.assertNotIn('$CI_ROOT/evidence/central-compose.json', self.workflow)
+        self.assertNotIn('$CI_ROOT/evidence/edge-compose.json', self.workflow)
 
     def test_persistence_helper_preserves_local_auth_overlay(self) -> None:
         self.assertIn("--local-auth) LOCAL_AUTH=true", self.preservation)
+        self.assertIn("--local-auth-refresh-token-file", self.preservation)
         self.assertIn("compose.local-auth.yaml", self.preservation)
         self.assertEqual(self.preservation.count('"${SMOKE_ARGS[@]}"'), 2)
 
