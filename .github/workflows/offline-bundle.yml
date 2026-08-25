@@ -198,6 +198,16 @@ jobs:
           try:
               address = ip_address(local_host)
           except ValueError:
+              numeric_ipv4_alias = (
+                  local_host.isdigit()
+                  or (
+                      local_host.startswith("0x")
+                      and len(local_host) > 2
+                      and all(char in "0123456789abcdef" for char in local_host[2:])
+                  )
+              )
+              if numeric_ipv4_alias:
+                  raise SystemExit("Runtime URLs must not use browser-recognized numeric IPv4 aliases")
               local_dns = (
                   "." not in local_host
                   or local_host.endswith(".local")
@@ -270,11 +280,13 @@ jobs:
             mkdir -p "$auth_dir"
             private_key_file="$auth_dir/private.pem"
             public_key_file="$auth_dir/public.pem"
+            password_file="$auth_dir/operator-password"
             openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out "$private_key_file" >/dev/null 2>&1
             openssl pkey -in "$private_key_file" -pubout -out "$public_key_file" >/dev/null 2>&1
-            chmod 0400 "$private_key_file"
+            openssl rand -hex 24 > "$password_file"
+            chmod 0400 "$private_key_file" "$password_file"
             chmod 0444 "$public_key_file"
-            sudo chown 10001:10001 "$private_key_file" "$public_key_file"
+            sudo chown 10001:10001 "$private_key_file" "$public_key_file" "$password_file"
             auth_mode=jwt
           fi
           cat > "$CENTRAL_ENV" <<EOF
@@ -510,6 +522,126 @@ jobs:
             preservation_args+=(--local-auth)
           fi
           bash scripts/verify-offline-volume-preservation.sh "${preservation_args[@]}"
+
+      - name: Prove local authentication session lifecycle
+        if: ${{ steps.contract.outputs.local_auth == 'true' }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bundle_root="${{ steps.clean_host.outputs.bundle_root }}"
+          auth_dir="$RUNNER_TEMP/nexolab-offline-local-auth"
+          password_file="$auth_dir/operator-password"
+          test -s "$password_file"
+
+          eval "$(python "$bundle_root/scripts/verify-offline-bundle.py" \
+            "$bundle_root" --check-loaded-images --emit-shell-env)"
+          export OFFLINE_DASHBOARD_IMAGE OFFLINE_TELEMETRY_IMAGE OFFLINE_DEVICE_AGENT_IMAGE
+          export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
+
+          central=(docker compose --env-file "$PWD/$CENTRAL_ENV" \
+            -f "$bundle_root/deploy/compose/compose.central.yaml" \
+            -f "$bundle_root/deploy/offline/compose.central.offline.yaml" \
+            -f "$bundle_root/deploy/compose/compose.local-auth.yaml")
+
+          "${central[@]}" run --rm --no-deps \
+            -v "$password_file:/run/operator-password:ro" \
+            telemetry-service \
+            python -m app.security.local_cli create-account \
+            --username offline-bundle-admin \
+            --password-file /run/operator-password \
+            --display-name "Offline Bundle Administrator" \
+            --organization-id 00000000-0000-0000-0000-000000000001 \
+            --organization-slug nexolab-offline-bundle \
+            --organization-name "NEXOLAB Offline Bundle Acceptance" \
+            --role administrator
+
+          python3 - "$password_file" "$CI_ROOT/evidence/local-auth-session.json" <<'PYAUTH'
+          import json
+          import sys
+          import urllib.error
+          import urllib.request
+          from pathlib import Path
+
+          password = Path(sys.argv[1]).read_text(encoding="utf-8").strip()
+          evidence_path = Path(sys.argv[2])
+          base = "http://127.0.0.1:8082"
+          organization_id = "00000000-0000-0000-0000-000000000001"
+
+          def request(method, path, payload=None, token=None, expected=(200,)):
+              data = None if payload is None else json.dumps(payload).encode("utf-8")
+              headers = {"Content-Type": "application/json"}
+              if token is not None:
+                  headers["Authorization"] = f"Bearer {token}"
+                  headers["X-Organization-ID"] = organization_id
+              req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
+              try:
+                  with urllib.request.urlopen(req, timeout=10) as response:
+                      status = response.status
+                      body = response.read()
+              except urllib.error.HTTPError as exc:
+                  status = exc.code
+                  body = exc.read()
+              if status not in expected:
+                  raise SystemExit(f"{method} {path} returned unexpected HTTP {status}")
+              return status, (json.loads(body) if body else None)
+
+          _, login = request(
+              "POST",
+              "/api/v1/auth/local/login",
+              {"username": "offline-bundle-admin", "password": password},
+          )
+          access = login["access_token"]
+          initial_refresh = login["refresh_token"]
+
+          _, session = request("GET", "/api/v1/auth/session", token=access)
+          memberships = session.get("memberships", [])
+          if not memberships or "administrator" not in memberships[0].get("roles", []):
+              raise SystemExit("Local-auth session did not preserve administrator RBAC")
+
+          _, refreshed = request(
+              "POST",
+              "/api/v1/auth/local/refresh",
+              {"refresh_token": initial_refresh},
+          )
+          if refreshed["refresh_token"] == initial_refresh:
+              raise SystemExit("Local-auth refresh token did not rotate")
+
+          request(
+              "POST",
+              "/api/v1/auth/local/refresh",
+              {"refresh_token": initial_refresh},
+              expected=(401,),
+          )
+          request(
+              "POST",
+              "/api/v1/auth/local/logout",
+              {"refresh_token": refreshed["refresh_token"]},
+              expected=(204,),
+          )
+          request(
+              "GET",
+              "/api/v1/auth/session",
+              token=refreshed["access_token"],
+              expected=(401,),
+          )
+
+          evidence_path.write_text(
+              json.dumps(
+                  {
+                      "account_provisioned": True,
+                      "login": "success",
+                      "administrator_rbac": True,
+                      "refresh_rotated": True,
+                      "refresh_replay_rejected": True,
+                      "logout": "success",
+                      "revoked_session_rejected": True,
+                  },
+                  sort_keys=True,
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+          PYAUTH
 
       - name: Capture final disconnected evidence
         if: always()
