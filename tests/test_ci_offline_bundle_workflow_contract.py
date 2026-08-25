@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 import unittest
@@ -31,52 +32,67 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertIn("- linux/amd64", self.workflow)
         self.assertIn("- linux/arm64", self.workflow)
         self.assertIn("git merge-base --is-ancestor", self.workflow)
-        self.assertIn("default_ports =", self.workflow)
+        self.assertIn("Setup Node.js for WHATWG URL validation", self.workflow)
+        self.assertIn("node-version-file: .nvmrc", self.workflow)
+        self.assertIn("new URL(raw)", self.workflow)
         self.assertIn("must use canonical browser serialization", self.workflow)
-        self.assertIn("hostname must use browser-canonical ASCII serialization", self.workflow)
-        self.assertIn("IP host must use canonical browser serialization", self.workflow)
         self.assertIn("must use the same LOCAL_LAN host", self.workflow)
         self.assertIn("Runtime URLs must use a LOCAL_LAN hostname", self.workflow)
         self.assertIn("Runtime URLs must use a non-global LOCAL_LAN IP address", self.workflow)
-        self.assertIn("Runtime URLs must not use browser-recognized numeric IPv4 aliases", self.workflow)
-        self.assertIn("must not use percent-escaped host syntax", self.workflow)
+        self.assertIn("is not a valid WHATWG browser URL", self.workflow)
         self.assertIn("must use a usable destination port, not port 0", self.workflow)
-        self.assertIn("must not use backslashes in browser runtime URLs", self.workflow)
         self.assertIn("must use canonical ASCII DNS labels", self.workflow)
-        self.assertIn("invalid punycode A-label", self.workflow)
         self.assertIn("WebSocket scheme must be", self.workflow)
 
 
     def _run_url_contract(self, dashboard: str, api: str, websocket: str) -> subprocess.CompletedProcess[str]:
-        marker = 'python3 - "$dashboard_origin" "$api_base_url" "$websocket_url" <<\'PYURL\'\n'
-        code = self.workflow.split(marker, 1)[1].split('\n          PYURL', 1)[0]
-        code = "\n".join(line[10:] if line.startswith("          ") else line for line in code.splitlines())
+        node_marker = "            node - \"$dashboard_origin\" \"$api_base_url\" \"$websocket_url\" <<'JSURL'\n"
+        node_code = self.workflow.split(node_marker, 1)[1].split("\n          JSURL", 1)[0]
+        node_code = "\n".join(
+            line[10:] if line.startswith("          " ) else line
+            for line in node_code.splitlines()
+        )
+        node_binary = shutil.which("node")
+        if node_binary is None:
+            node_version = (ROOT / ".nvmrc").read_text(encoding="utf-8").strip()
+            candidate = Path.home() / ".nvm" / "versions" / "node" / f"v{node_version}" / "bin" / "node"
+            if not candidate.is_file():
+                self.fail(f"Exact Node {node_version} is unavailable for WHATWG contract validation")
+            node_binary = str(candidate)
+        node_result = subprocess.run(
+            [node_binary, "-", dashboard, api, websocket],
+            input=node_code,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if node_result.returncode != 0:
+            return node_result
+
+        python_marker = '          python3 - "$local_host" <<\'PYIP\'\n'
+        python_code = self.workflow.split(python_marker, 1)[1].split("\n          PYIP", 1)[0]
+        python_code = "\n".join(
+            line[10:] if line.startswith("          " ) else line
+            for line in python_code.splitlines()
+        )
         return subprocess.run(
-            [sys.executable, "-c", code, dashboard, api, websocket],
+            [sys.executable, "-c", python_code, node_result.stdout],
             capture_output=True,
             text=True,
             check=False,
         )
 
     def test_runtime_urls_require_canonical_same_host_local_lan_contract(self) -> None:
-        valid = self._run_url_contract(
-            "http://172.18.48.66:3000",
-            "http://172.18.48.66:8082",
-            "ws://172.18.48.66:8082/api/v1/telemetry/live",
+        valid_cases = (
+            ("http://172.18.48.66:3000", "http://172.18.48.66:8082", "ws://172.18.48.66:8082/api/v1/telemetry/live"),
+            ("http://nexolab.local:3000", "http://nexolab.local:8082", "ws://nexolab.local:8082/api/v1/telemetry/live"),
+            ("http://xn--bcher-kva.local:3000", "http://xn--bcher-kva.local:8082", "ws://xn--bcher-kva.local:8082/api/v1/telemetry/live"),
+            ("http://xn--zca.local:3000", "http://xn--zca.local:8082", "ws://xn--zca.local:8082/api/v1/telemetry/live"),
         )
-        self.assertEqual(valid.returncode, 0, valid.stderr)
-        local_dns = self._run_url_contract(
-            "http://nexolab.local:3000",
-            "http://nexolab.local:8082",
-            "ws://nexolab.local:8082/api/v1/telemetry/live",
-        )
-        self.assertEqual(local_dns.returncode, 0, local_dns.stderr)
-        local_punycode = self._run_url_contract(
-            "http://xn--bcher-kva.local:3000",
-            "http://xn--bcher-kva.local:8082",
-            "ws://xn--bcher-kva.local:8082/api/v1/telemetry/live",
-        )
-        self.assertEqual(local_punycode.returncode, 0, local_punycode.stderr)
+        for dashboard, api, websocket in valid_cases:
+            with self.subTest(dashboard=dashboard):
+                result = self._run_url_contract(dashboard, api, websocket)
+                self.assertEqual(result.returncode, 0, result.stderr)
 
         invalid_cases = (
             ("http://NEXOLAB.local:80", "http://nexolab.local:8082", "ws://nexolab.local:8082/api/v1/telemetry/live"),
@@ -100,6 +116,7 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
             ("http://foo_bar.local:3000", "http://foo_bar.local:8082", "ws://foo_bar.local:8082/api/v1/telemetry/live"),
             ("http://-nexolab.local:3000", "http://-nexolab.local:8082", "ws://-nexolab.local:8082/api/v1/telemetry/live"),
             ("http://xn--a.local:3000", "http://xn--a.local:8082", "ws://xn--a.local:8082/api/v1/telemetry/live"),
+            ("http://xn--rv6q.local:3000", "http://xn--rv6q.local:8082", "ws://xn--rv6q.local:8082/api/v1/telemetry/live"),
         )
         for dashboard, api, websocket in invalid_cases:
             with self.subTest(dashboard=dashboard, api=api, websocket=websocket):
