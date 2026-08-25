@@ -214,6 +214,19 @@ jobs:
               )
               if numeric_ipv4_alias:
                   raise SystemExit("Runtime URLs must not use browser-recognized numeric IPv4 aliases")
+              labels = local_host.split(".")
+              valid_dns_labels = (
+                  len(local_host) <= 253
+                  and all(
+                      1 <= len(label) <= 63
+                      and label[0] != "-"
+                      and label[-1] != "-"
+                      and all(char in "abcdefghijklmnopqrstuvwxyz0123456789-" for char in label)
+                      for label in labels
+                  )
+              )
+              if not valid_dns_labels:
+                  raise SystemExit("Runtime URLs must use canonical ASCII DNS labels")
               local_dns = (
                   "." not in local_host
                   or local_host.endswith(".local")
