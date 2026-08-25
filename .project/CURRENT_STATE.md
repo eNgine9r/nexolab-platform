@@ -6,9 +6,9 @@ Updated: 2026-08-25
 
 `PRODUCTION-READINESS-1` is active: production readiness and controlled acceptance.
 
-Issue #681 is the active state-reconciliation Work Package. Issue #679 is completed after real post-merge `linux/arm64` + local-auth dispatch `32832798392` passed the QEMU application-health, disconnected runtime, persistent-volume and auth-continuity gates and published a checksum-verified accepted recovery artifact for the exact deployed source lineage.
+Issue #681 state reconciliation is completed. Issue #679 is completed after real post-merge `linux/arm64` + local-auth dispatch `32832798392` passed the QEMU application-health, disconnected runtime, persistent-volume and auth-continuity gates and published a checksum-verified accepted recovery artifact for the exact deployed source lineage.
 
-Issue #189 is now the remaining recovery boundary. Software/package acceptance is ready, but Raspberry Pi package authority/staging/activation, source→packaged transition and the actual-host update→rollback drill remain blocked on separate Product Owner approval; no repository synchronization is treated as deployment or cutover.
+No independent Ready Work Package remains. Issue #189 is the remaining recovery boundary: software/package acceptance is ready, but Raspberry Pi package authority/staging/activation, source→packaged transition and the actual-host update→rollback drill remain blocked on separate Product Owner approval; no repository synchronization is treated as deployment or cutover.
 
 ## Recently completed production-readiness boundaries
 
