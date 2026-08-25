@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: install-offline-bundle.sh --central-env PATH [--edge-env PATH] [--skip-edge] [--local-auth] [--runtime-mode lan|standalone] [--hardware]
+Usage: install-offline-bundle.sh --central-env PATH [--edge-env PATH] [--skip-edge] [--local-auth] [--runtime-mode lan|standalone] [--hardware] [--qemu-arm64-validation]
 
 Loads the verified image archive and starts NEXOLAB with Docker Compose
 `--pull never`. Existing named volumes are preserved. This script never adds
@@ -17,6 +17,7 @@ SKIP_EDGE=false
 LOCAL_AUTH=false
 RUNTIME_MODE=""
 HARDWARE=false
+QEMU_ARM64_VALIDATION=false
 while (($#)); do
   case "$1" in
     --central-env) CENTRAL_ENV="${2:?}"; shift 2 ;;
@@ -25,6 +26,7 @@ while (($#)); do
     --local-auth) LOCAL_AUTH=true; shift ;;
     --runtime-mode) RUNTIME_MODE="${2:?}"; shift 2 ;;
     --hardware) HARDWARE=true; shift ;;
+    --qemu-arm64-validation) QEMU_ARM64_VALIDATION=true; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -48,6 +50,11 @@ if [[ "$HARDWARE" == true ]]; then
   [[ "$SKIP_EDGE" == false ]] || { echo "--hardware cannot be combined with --skip-edge" >&2; exit 2; }
   [[ -n "$RUNTIME_MODE" ]] || { echo "--hardware requires --runtime-mode" >&2; exit 2; }
 fi
+if [[ "$QEMU_ARM64_VALIDATION" == true ]]; then
+  [[ "$SKIP_EDGE" == false ]] || { echo "--qemu-arm64-validation requires the edge stack" >&2; exit 2; }
+  [[ "$HARDWARE" == false ]] || { echo "--qemu-arm64-validation cannot be combined with --hardware" >&2; exit 2; }
+  [[ "$(uname -m)" == "x86_64" ]] || { echo "--qemu-arm64-validation is restricted to an x86_64 emulation host" >&2; exit 2; }
+fi
 
 for command in docker python3; do
   command -v "$command" >/dev/null || { echo "Missing required command: $command" >&2; exit 1; }
@@ -67,6 +74,18 @@ CENTRAL_STANDALONE="$BUNDLE_ROOT/deploy/compose/compose.central-standalone.yaml"
 EDGE_HARDWARE="$BUNDLE_ROOT/deploy/compose/compose.hardware.yaml"
 EDGE_BRIDGE="$BUNDLE_ROOT/deploy/compose/compose.edge-central-bridge.yaml"
 EDGE_STANDALONE="$BUNDLE_ROOT/deploy/compose/compose.edge-standalone.yaml"
+
+if [[ "$QEMU_ARM64_VALIDATION" == true ]]; then
+  python3 - "$MANIFEST" <<'PYQEMU'
+import json
+import sys
+from pathlib import Path
+
+manifest = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+if manifest.get("platform") != "linux/arm64":
+    raise SystemExit("--qemu-arm64-validation requires a linux/arm64 bundle")
+PYQEMU
+fi
 
 python3 "$VERIFY" "$BUNDLE_ROOT"
 docker load --input "$IMAGE_ARCHIVE"
@@ -163,7 +182,11 @@ PYHW
     fi
   fi
   "${EDGE[@]}" config --quiet
-  "${EDGE[@]}" up -d --no-build --pull never --wait
+  if [[ "$QEMU_ARM64_VALIDATION" == true ]]; then
+    "${EDGE[@]}" up -d --no-build --pull never
+  else
+    "${EDGE[@]}" up -d --no-build --pull never --wait
+  fi
 fi
 
 SMOKE_ARGS=(--central-env "$CENTRAL_ENV")
@@ -174,6 +197,9 @@ if [[ "$SKIP_EDGE" == true ]]; then
   SMOKE_ARGS+=(--skip-edge)
 else
   SMOKE_ARGS+=(--edge-env "$EDGE_ENV")
+  if [[ "$QEMU_ARM64_VALIDATION" == true ]]; then
+    SMOKE_ARGS+=(--edge-health-timeout-seconds 120)
+  fi
 fi
 "$BUNDLE_ROOT/scripts/offline-bundle-smoke.sh" "${SMOKE_ARGS[@]}"
 

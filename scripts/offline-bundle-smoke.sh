@@ -5,12 +5,14 @@ CENTRAL_ENV=""
 EDGE_ENV=""
 SKIP_EDGE=false
 LOCAL_AUTH=false
+EDGE_HEALTH_TIMEOUT_SECONDS=0
 while (($#)); do
   case "$1" in
     --central-env) CENTRAL_ENV="${2:?}"; shift 2 ;;
     --edge-env) EDGE_ENV="${2:?}"; shift 2 ;;
     --skip-edge) SKIP_EDGE=true; shift ;;
     --local-auth) LOCAL_AUTH=true; shift ;;
+    --edge-health-timeout-seconds) EDGE_HEALTH_TIMEOUT_SECONDS="${2:?}"; shift 2 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -19,6 +21,8 @@ done
 if [[ "$SKIP_EDGE" == false ]]; then
   [[ -f "$EDGE_ENV" ]] || { echo "Missing --edge-env" >&2; exit 2; }
 fi
+[[ "$EDGE_HEALTH_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] || { echo "--edge-health-timeout-seconds must be an integer" >&2; exit 2; }
+(( EDGE_HEALTH_TIMEOUT_SECONDS <= 300 )) || { echo "--edge-health-timeout-seconds must be <= 300" >&2; exit 2; }
 for command in docker curl python3; do
   command -v "$command" >/dev/null || { echo "Missing required command: $command" >&2; exit 1; }
 done
@@ -91,10 +95,35 @@ socket.addEventListener("error", () => {
 });
 NODE
 
+wait_for_edge_health() {
+  local path=/tmp/nexolab-offline-edge-health.json
+  local deadline=$((SECONDS + EDGE_HEALTH_TIMEOUT_SECONDS))
+  while true; do
+    if curl --fail --silent --show-error --max-time 10 \
+      http://127.0.0.1:8081/health >"$path"; then
+      python3 - "$path" <<'PYEDGEHEALTH'
+import json
+import sys
+from pathlib import Path
+
+payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+if payload.get("status") not in {"ok", "degraded"}:
+    raise SystemExit(f"Unexpected Device Agent health payload: {payload}")
+PYEDGEHEALTH
+      return 0
+    fi
+    if (( EDGE_HEALTH_TIMEOUT_SECONDS == 0 || SECONDS >= deadline )); then
+      echo "Device Agent application health did not become ready within ${EDGE_HEALTH_TIMEOUT_SECONDS}s" >&2
+      return 1
+    fi
+    sleep 2
+  done
+}
+
 if [[ "$SKIP_EDGE" == false ]]; then
   EDGE=(docker compose --env-file "$EDGE_ENV" -f "$EDGE_BASE" -f "$EDGE_OFFLINE")
   "${EDGE[@]}" ps --format json > /tmp/nexolab-offline-edge-ps.json
-  curl --fail --silent --show-error http://127.0.0.1:8081/health >/tmp/nexolab-offline-edge-health.json
+  wait_for_edge_health
 fi
 
 python3 - /tmp/nexolab-offline-ready.json <<'PY'

@@ -9,7 +9,8 @@ Usage: verify-offline-volume-preservation.sh \
   --edge-env PATH \
   --evidence-dir PATH \
   [--local-auth] \
-  [--local-auth-refresh-token-file PATH]
+  [--local-auth-refresh-token-file PATH] \
+  [--qemu-arm64-validation]
 
 Seeds service-level persistence markers, recreates the disconnected NEXOLAB
 stack with update image tags, rolls back to the original tags, and proves that
@@ -23,6 +24,7 @@ EDGE_ENV=""
 EVIDENCE_DIR=""
 LOCAL_AUTH=false
 LOCAL_AUTH_REFRESH_TOKEN_FILE=""
+QEMU_ARM64_VALIDATION=false
 while (($#)); do
   case "$1" in
     --bundle-root) BUNDLE_ROOT="${2:?}"; shift 2 ;;
@@ -31,6 +33,7 @@ while (($#)); do
     --evidence-dir) EVIDENCE_DIR="${2:?}"; shift 2 ;;
     --local-auth) LOCAL_AUTH=true; shift ;;
     --local-auth-refresh-token-file) LOCAL_AUTH_REFRESH_TOKEN_FILE="${2:?}"; shift 2 ;;
+    --qemu-arm64-validation) QEMU_ARM64_VALIDATION=true; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -46,6 +49,18 @@ if [[ "$LOCAL_AUTH" == true ]]; then
     echo "--local-auth-refresh-token-file is required with --local-auth" >&2
     exit 2
   }
+fi
+if [[ "$QEMU_ARM64_VALIDATION" == true ]]; then
+  [[ "$(uname -m)" == "x86_64" ]] || { echo "--qemu-arm64-validation is restricted to an x86_64 emulation host" >&2; exit 2; }
+  python3 - "$BUNDLE_ROOT/manifest.json" <<'PYQEMU'
+import json
+import sys
+from pathlib import Path
+
+manifest = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+if manifest.get("platform") != "linux/arm64":
+    raise SystemExit("--qemu-arm64-validation requires a linux/arm64 bundle")
+PYQEMU
 fi
 
 for command in docker python3 cmp; do
@@ -70,6 +85,17 @@ SMOKE_ARGS=(--central-env "$CENTRAL_ENV" --edge-env "$EDGE_ENV")
 if [[ "$LOCAL_AUTH" == true ]]; then
   SMOKE_ARGS+=(--local-auth)
 fi
+if [[ "$QEMU_ARM64_VALIDATION" == true ]]; then
+  SMOKE_ARGS+=(--edge-health-timeout-seconds 120)
+fi
+
+recreate_edge() {
+  if [[ "$QEMU_ARM64_VALIDATION" == true ]]; then
+    "${EDGE[@]}" up -d --no-build --pull never --force-recreate
+  else
+    "${EDGE[@]}" up -d --no-build --pull never --force-recreate --wait
+  fi
+}
 
 volume_name_for_destination() {
   local container_id="$1"
@@ -316,12 +342,12 @@ export OFFLINE_DASHBOARD_IMAGE="$UPDATE_DASHBOARD"
 export OFFLINE_TELEMETRY_IMAGE="$UPDATE_TELEMETRY"
 export OFFLINE_DEVICE_AGENT_IMAGE="$UPDATE_DEVICE_AGENT"
 "${CENTRAL[@]}" up -d --no-build --pull never --force-recreate --wait
-"${EDGE[@]}" up -d --no-build --pull never --force-recreate --wait
+recreate_edge
+bash "$BUNDLE_ROOT/scripts/offline-bundle-smoke.sh" "${SMOKE_ARGS[@]}"
 snapshot_required_volumes > "$AFTER_UPDATE"
 assert_snapshot "$AFTER_UPDATE"
 cmp "$BEFORE" "$AFTER_UPDATE"
 verify_markers
-bash "$BUNDLE_ROOT/scripts/offline-bundle-smoke.sh" "${SMOKE_ARGS[@]}"
 if [[ "$LOCAL_AUTH" == true ]]; then
   refresh_local_auth_session update false
 fi
@@ -331,12 +357,12 @@ export OFFLINE_DASHBOARD_IMAGE="$ORIGINAL_DASHBOARD"
 export OFFLINE_TELEMETRY_IMAGE="$ORIGINAL_TELEMETRY"
 export OFFLINE_DEVICE_AGENT_IMAGE="$ORIGINAL_DEVICE_AGENT"
 "${CENTRAL[@]}" up -d --no-build --pull never --force-recreate --wait
-"${EDGE[@]}" up -d --no-build --pull never --force-recreate --wait
+recreate_edge
+bash "$BUNDLE_ROOT/scripts/offline-bundle-smoke.sh" "${SMOKE_ARGS[@]}"
 snapshot_required_volumes > "$AFTER_ROLLBACK"
 assert_snapshot "$AFTER_ROLLBACK"
 cmp "$BEFORE" "$AFTER_ROLLBACK"
 verify_markers
-bash "$BUNDLE_ROOT/scripts/offline-bundle-smoke.sh" "${SMOKE_ARGS[@]}"
 if [[ "$LOCAL_AUTH" == true ]]; then
   refresh_local_auth_session rollback true
 fi

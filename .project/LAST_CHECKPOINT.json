@@ -3,23 +3,23 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-25T07:53:58+03:00",
+  "timestamp": "2026-08-25T06:32:30Z",
   "actor": "ChatGPT",
-  "event": "issue_677_whatwg_url_validation_refactor",
+  "event": "issue_679_pre_pr_candidate",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "cc27b609eea2917b97da96003a08e5c84a7edbb1"
   },
   "active_work": {
-    "issue": 677,
-    "title": "Enable parameterized ARM64 offline bundle staging for recovery acceptance",
-    "branch": "feat/677-arm64-offline-bundle-staging"
+    "issue": 679,
+    "title": "Make ARM64 QEMU offline acceptance use application health without weakening production health",
+    "branch": "fix/679-arm64-qemu-edge-health"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Commit and push the WHATWG URL validation refactor, then require fresh exact-head Codex review plus CI, Telemetry service, Offline Bundle and NEXOLAB Merge Gate GREEN before merge. After merge, verify a real ARM64/local-auth workflow_dispatch artifact before any Raspberry Pi staging or cutover.",
+  "next_action": "Commit and push the focused QEMU acceptance fix, open PR, require exact-head Codex review plus CI/Offline Bundle/Merge Gate GREEN, then rerun the real ARM64 local-auth dispatch from main before any Raspberry Pi package staging or cutover.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

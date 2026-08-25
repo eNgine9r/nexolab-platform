@@ -1,14 +1,14 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-24
+Updated: 2026-08-25
 
-## Issue #677 — ARM64 offline package staging
+## Issue #679 — ARM64 QEMU Device Agent acceptance
 
-No implementation blocker. The current controlled Pi has an empty version-management catalog and no full ARM64 bundle, while native Docker bundle construction on the 4 GiB production Pi is an avoidable stability risk. #677 is the active software prerequisite: build and fully validate the ARM64/local-auth package on a hosted GitHub runner without mutating the Pi.
+The first real ARM64/local-auth dispatch (`32812878575`) failed closed after successful bundle build, clean-host transfer, egress block and central startup because the Device Agent process remained running but its in-container Python Docker healthcheck became unhealthy under amd64→arm64 QEMU. Native ARM64 Pi health evidence is GREEN and the runtime source is intentionally pinned, so #679 is the active software blocker: use an explicit bounded application `/health` proof only for QEMU acceptance, preserve native production `docker compose --wait`, and improve failed health diagnostics.
 
 ## Issue #189 — actual-host recovery acceptance
 
-Backup/isolated restore, MQTT/SQLite outage replay and reboot persistence are verified. #675 software authority transition is complete. The remaining update→rollback drill is blocked until #677 produces a compatible ARM64 package for the deployed source lineage and that package is staged for the controlled Pi. Staging/activation, `establish-package-authority`, update/rollback and any power-loss drill remain separately approved runtime actions. No destructive restore over production and no named-volume deletion are authorized.
+Backup/isolated restore, MQTT/SQLite outage replay and reboot persistence are verified. #675 authority tooling and #677 hosted ARM64 staging implementation are complete. The remaining update→rollback drill is blocked until #679 is GREEN and a real ARM64/local-auth dispatch publishes a fully accepted package for deployed source `cc27b609...`. Staging/activation, `establish-package-authority`, update/rollback and any power-loss drill remain separately approved runtime actions. No destructive restore over production and no named-volume deletion are authorized.
 
 ## Issue #200 — physical RS-485 topology
 

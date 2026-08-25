@@ -492,6 +492,7 @@ jobs:
         shell: bash
         env:
           LOCAL_AUTH: ${{ steps.contract.outputs.local_auth }}
+          PLATFORM: ${{ steps.contract.outputs.platform }}
         run: |
           set -Eeuo pipefail
           bundle_root="${{ steps.clean_host.outputs.bundle_root }}"
@@ -501,6 +502,9 @@ jobs:
           )
           if [[ "$LOCAL_AUTH" == "true" ]]; then
             install_args+=(--local-auth)
+          fi
+          if [[ "$PLATFORM" == "linux/arm64" ]]; then
+            install_args+=(--qemu-arm64-validation)
           fi
           bash "$bundle_root/scripts/install-offline-bundle.sh" "${install_args[@]}"
 
@@ -601,6 +605,7 @@ jobs:
         shell: bash
         env:
           LOCAL_AUTH: ${{ steps.contract.outputs.local_auth }}
+          PLATFORM: ${{ steps.contract.outputs.platform }}
         run: |
           set -Eeuo pipefail
           preservation_args=(
@@ -614,6 +619,9 @@ jobs:
               --local-auth
               --local-auth-refresh-token-file "$RUNNER_TEMP/nexolab-offline-local-auth/refresh-token"
             )
+          fi
+          if [[ "$PLATFORM" == "linux/arm64" ]]; then
+            preservation_args+=(--qemu-arm64-validation)
           fi
           bash scripts/verify-offline-volume-preservation.sh "${preservation_args[@]}"
 
@@ -639,10 +647,17 @@ jobs:
               central+=( -f "$bundle_root/deploy/compose/compose.local-auth.yaml" )
             fi
             "${central[@]}" ps --format json > "$CI_ROOT/evidence/central-final-ps.json"
-            docker compose --env-file "$PWD/$EDGE_ENV" \
+            edge=(docker compose --env-file "$PWD/$EDGE_ENV" \
               -f "$bundle_root/deploy/compose/compose.edge.yaml" \
-              -f "$bundle_root/deploy/offline/compose.edge.offline.yaml" \
-              ps --format json > "$CI_ROOT/evidence/edge-final-ps.json"
+              -f "$bundle_root/deploy/offline/compose.edge.offline.yaml")
+            "${edge[@]}" ps --format json > "$CI_ROOT/evidence/edge-final-ps.json"
+            device_agent_id="$("${edge[@]}" ps -q device-agent 2>/dev/null)"
+            if [[ -n "$device_agent_id" ]]; then
+              docker inspect "$device_agent_id" --format '{{json .State.Health}}' \
+                > "$CI_ROOT/evidence/device-agent-health.json"
+              "${edge[@]}" logs --no-color --tail 200 device-agent \
+                > "$CI_ROOT/evidence/device-agent.log" 2>&1
+            fi
             cp "$bundle_root/manifest.json" "$CI_ROOT/evidence/manifest.json"
             cp "$bundle_root/SHA256SUMS" "$CI_ROOT/evidence/SHA256SUMS"
           fi
