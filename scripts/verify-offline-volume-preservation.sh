@@ -7,7 +7,9 @@ Usage: verify-offline-volume-preservation.sh \
   --bundle-root PATH \
   --central-env PATH \
   --edge-env PATH \
-  --evidence-dir PATH
+  --evidence-dir PATH \
+  [--local-auth] \
+  [--local-auth-refresh-token-file PATH]
 
 Seeds service-level persistence markers, recreates the disconnected NEXOLAB
 stack with update image tags, rolls back to the original tags, and proves that
@@ -19,12 +21,16 @@ BUNDLE_ROOT=""
 CENTRAL_ENV=""
 EDGE_ENV=""
 EVIDENCE_DIR=""
+LOCAL_AUTH=false
+LOCAL_AUTH_REFRESH_TOKEN_FILE=""
 while (($#)); do
   case "$1" in
     --bundle-root) BUNDLE_ROOT="${2:?}"; shift 2 ;;
     --central-env) CENTRAL_ENV="${2:?}"; shift 2 ;;
     --edge-env) EDGE_ENV="${2:?}"; shift 2 ;;
     --evidence-dir) EVIDENCE_DIR="${2:?}"; shift 2 ;;
+    --local-auth) LOCAL_AUTH=true; shift ;;
+    --local-auth-refresh-token-file) LOCAL_AUTH_REFRESH_TOKEN_FILE="${2:?}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -35,6 +41,12 @@ done
 [[ -f "$EDGE_ENV" ]] || { echo "Edge environment file not found: $EDGE_ENV" >&2; exit 2; }
 [[ -n "$EVIDENCE_DIR" ]] || { echo "--evidence-dir is required" >&2; exit 2; }
 mkdir -p "$EVIDENCE_DIR"
+if [[ "$LOCAL_AUTH" == true ]]; then
+  [[ -f "$LOCAL_AUTH_REFRESH_TOKEN_FILE" ]] || {
+    echo "--local-auth-refresh-token-file is required with --local-auth" >&2
+    exit 2
+  }
+fi
 
 for command in docker python3 cmp; do
   command -v "$command" >/dev/null || { echo "Missing required command: $command" >&2; exit 1; }
@@ -48,9 +60,16 @@ export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MIN
 CENTRAL=(docker compose --env-file "$CENTRAL_ENV" \
   -f "$BUNDLE_ROOT/deploy/compose/compose.central.yaml" \
   -f "$BUNDLE_ROOT/deploy/offline/compose.central.offline.yaml")
+if [[ "$LOCAL_AUTH" == true ]]; then
+  CENTRAL+=( -f "$BUNDLE_ROOT/deploy/compose/compose.local-auth.yaml" )
+fi
 EDGE=(docker compose --env-file "$EDGE_ENV" \
   -f "$BUNDLE_ROOT/deploy/compose/compose.edge.yaml" \
   -f "$BUNDLE_ROOT/deploy/offline/compose.edge.offline.yaml")
+SMOKE_ARGS=(--central-env "$CENTRAL_ENV" --edge-env "$EDGE_ENV")
+if [[ "$LOCAL_AUTH" == true ]]; then
+  SMOKE_ARGS+=(--local-auth)
+fi
 
 volume_name_for_destination() {
   local container_id="$1"
@@ -133,6 +152,120 @@ verify_markers() {
   [[ "$edge_marker" == "offline-bundle-v1" ]] || { echo "Edge marker mismatch: $edge_marker" >&2; return 1; }
 }
 
+central_env_value() {
+  python3 - "$CENTRAL_ENV" "$1" <<'PYENV'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+key = sys.argv[2]
+for raw in path.read_text(encoding="utf-8").splitlines():
+    line = raw.strip()
+    if not line or line.startswith("#") or "=" not in line:
+        continue
+    name, value = line.split("=", 1)
+    if name.strip() == key:
+        print(value.strip().strip('"').strip("'"))
+        raise SystemExit(0)
+raise SystemExit(f"Missing {key} in {path}")
+PYENV
+}
+
+CENTRAL_API_PORT=""
+AUTH_ORGANIZATION_ID=""
+if [[ "$LOCAL_AUTH" == true ]]; then
+  CENTRAL_API_PORT="$(central_env_value CENTRAL_API_PORT)"
+  AUTH_ORGANIZATION_ID="$(central_env_value AUTH_DEFAULT_ORGANIZATION_ID)"
+  [[ "$CENTRAL_API_PORT" =~ ^[1-9][0-9]{0,4}$ ]] || { echo "Invalid CENTRAL_API_PORT" >&2; exit 2; }
+  (( CENTRAL_API_PORT <= 65535 )) || { echo "Invalid CENTRAL_API_PORT" >&2; exit 2; }
+fi
+
+refresh_local_auth_session() {
+  local phase="$1"
+  local finalize="${2:-false}"
+  python3 - \
+    "$LOCAL_AUTH_REFRESH_TOKEN_FILE" \
+    "http://127.0.0.1:$CENTRAL_API_PORT" \
+    "$AUTH_ORGANIZATION_ID" \
+    "$phase" \
+    "$finalize" \
+    "$EVIDENCE_DIR/local-auth-continuity.txt" <<'PYAUTH'
+import json
+import sys
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+refresh_path = Path(sys.argv[1])
+base = sys.argv[2]
+organization_id = sys.argv[3]
+phase = sys.argv[4]
+finalize = sys.argv[5] == "true"
+evidence = Path(sys.argv[6])
+old_refresh = refresh_path.read_text(encoding="utf-8").strip()
+if not old_refresh:
+    raise SystemExit("Local auth refresh token continuity file is empty")
+
+def request(method, path, payload=None, token=None, expected=(200,)):
+    data = None if payload is None else json.dumps(payload).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+        headers["X-Organization-ID"] = organization_id
+    req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            status = response.status
+            body = response.read()
+    except urllib.error.HTTPError as exc:
+        status = exc.code
+        body = exc.read()
+    if status not in expected:
+        raise SystemExit(f"{method} {path} returned unexpected HTTP {status}")
+    parsed = json.loads(body) if body else None
+    return status, parsed
+
+_, refreshed = request(
+    "POST", "/api/v1/auth/local/refresh", {"refresh_token": old_refresh}
+)
+new_refresh = refreshed["refresh_token"]
+if new_refresh == old_refresh:
+    raise SystemExit("Local auth refresh token did not rotate")
+_, session = request(
+    "GET", "/api/v1/auth/session", token=refreshed["access_token"]
+)
+if session["identity"]["provider"] != "nexolab-local":
+    raise SystemExit(f"Local auth provider mismatch after {phase}")
+memberships = session.get("memberships", [])
+matching = [item for item in memberships if item.get("organization_id") == organization_id]
+if len(matching) != 1 or "administrator" not in matching[0].get("roles", []):
+    raise SystemExit(f"Local auth membership/RBAC continuity failed after {phase}")
+
+if finalize:
+    request(
+        "POST", "/api/v1/auth/local/logout",
+        {"refresh_token": new_refresh}, expected=(204,)
+    )
+    status, revoked = request(
+        "GET", "/api/v1/auth/session",
+        token=refreshed["access_token"], expected=(401,)
+    )
+    code = (revoked or {}).get("detail", {}).get("code")
+    if status != 401 or code != "local_session_invalid":
+        raise SystemExit("Local auth logout did not revoke persisted session")
+    refresh_path.unlink(missing_ok=True)
+else:
+    refresh_path.write_text(new_refresh, encoding="utf-8")
+    refresh_path.chmod(0o600)
+
+with evidence.open("a", encoding="utf-8") as handle:
+    handle.write(f"{phase}=refresh-session-ok")
+    if finalize:
+        handle.write(";logout-revocation-ok")
+    handle.write("\n")
+PYAUTH
+}
+
 BEFORE="$EVIDENCE_DIR/volumes-before.txt"
 AFTER_UPDATE="$EVIDENCE_DIR/volumes-after-update.txt"
 AFTER_ROLLBACK="$EVIDENCE_DIR/volumes-after-rollback.txt"
@@ -188,9 +321,11 @@ snapshot_required_volumes > "$AFTER_UPDATE"
 assert_snapshot "$AFTER_UPDATE"
 cmp "$BEFORE" "$AFTER_UPDATE"
 verify_markers
-bash "$BUNDLE_ROOT/scripts/offline-bundle-smoke.sh" \
-  --central-env "$CENTRAL_ENV" --edge-env "$EDGE_ENV"
-echo "Update recreation preserved all required volumes and markers."
+bash "$BUNDLE_ROOT/scripts/offline-bundle-smoke.sh" "${SMOKE_ARGS[@]}"
+if [[ "$LOCAL_AUTH" == true ]]; then
+  refresh_local_auth_session update false
+fi
+echo "Update recreation preserved all required volumes, markers and auth continuity."
 
 export OFFLINE_DASHBOARD_IMAGE="$ORIGINAL_DASHBOARD"
 export OFFLINE_TELEMETRY_IMAGE="$ORIGINAL_TELEMETRY"
@@ -201,6 +336,8 @@ snapshot_required_volumes > "$AFTER_ROLLBACK"
 assert_snapshot "$AFTER_ROLLBACK"
 cmp "$BEFORE" "$AFTER_ROLLBACK"
 verify_markers
-bash "$BUNDLE_ROOT/scripts/offline-bundle-smoke.sh" \
-  --central-env "$CENTRAL_ENV" --edge-env "$EDGE_ENV"
-echo "Rollback recreation preserved all required volumes and markers."
+bash "$BUNDLE_ROOT/scripts/offline-bundle-smoke.sh" "${SMOKE_ARGS[@]}"
+if [[ "$LOCAL_AUTH" == true ]]; then
+  refresh_local_auth_session rollback true
+fi
+echo "Rollback recreation preserved all required volumes, markers and auth continuity."

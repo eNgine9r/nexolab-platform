@@ -3,34 +3,23 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-24T18:59:35Z",
+  "timestamp": "2026-08-25T07:53:58+03:00",
   "actor": "ChatGPT",
-  "event": "issue_675_second_exact_head_review_fixes_green_candidate",
+  "event": "issue_677_whatwg_url_validation_refactor",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "cc27b609eea2917b97da96003a08e5c84a7edbb1"
   },
   "active_work": {
-    "issue": 675,
-    "title": "Establish safe source-to-packaged version authority for Raspberry Pi recovery drills",
-    "branch": "feat/675-source-to-packaged-authority"
+    "issue": 677,
+    "title": "Enable parameterized ARM64 offline bundle staging for recovery acceptance",
+    "branch": "feat/677-arm64-offline-bundle-staging"
   },
   "evidence_snapshot": {
-    "active_issue_evidence": {
-      "version_management_matrix": "63_passed",
-      "python_compile": "success",
-      "shell_syntax": "success",
-      "git_diff_check": "success",
-      "lan_runtime_mode": "lan",
-      "lan_deployment_evidence": "runtime/deployments/20260824T091838Z",
-      "actual_package_cutover": "not_executed_requires_approval",
-      "codex_exact_head_e7cba2b6": "two_p1_found_and_addressed_locally",
-      "runtime_tooling_split": "verified_by_regression_tests",
-      "pre_backup_image_environment": "verified_by_regression_tests"
-    }
+    "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Run formatting/state validation, commit and push the two exact-head P1 fixes, then require a fresh exact-head Codex review and all triggered GitHub workflows GREEN before merge. Do not execute package cutover or update/rollback until separate approval.",
+  "next_action": "Commit and push the WHATWG URL validation refactor, then require fresh exact-head Codex review plus CI, Telemetry service, Offline Bundle and NEXOLAB Merge Gate GREEN before merge. After merge, verify a real ARM64/local-auth workflow_dispatch artifact before any Raspberry Pi staging or cutover.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

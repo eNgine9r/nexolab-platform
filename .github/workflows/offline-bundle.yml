@@ -22,6 +22,40 @@ on:
       - "public/**"
       - "src/**"
   workflow_dispatch:
+    inputs:
+      platform:
+        description: Target offline bundle platform
+        required: true
+        default: linux/arm64
+        type: choice
+        options:
+          - linux/amd64
+          - linux/arm64
+      runtime_source_ref:
+        description: Git ref whose exact tree supplies runtime images and schema
+        required: true
+        default: main
+        type: string
+      dashboard_origin:
+        description: Public LOCAL_LAN dashboard origin compiled into the bundle
+        required: true
+        type: string
+      api_base_url:
+        description: Public LOCAL_LAN API base URL compiled into the bundle
+        required: true
+        type: string
+      websocket_url:
+        description: Public LOCAL_LAN telemetry WebSocket URL compiled into the bundle
+        required: true
+        type: string
+      auth_provider:
+        description: Offline dashboard authentication provider
+        required: true
+        default: local
+        type: choice
+        options:
+          - local
+          - disabled
 
 concurrency:
   group: offline-bundle-${{ github.ref }}
@@ -43,26 +77,230 @@ jobs:
     timeout-minutes: 90
 
     steps:
-      - name: Checkout exact source commit
+      - name: Checkout exact tooling commit
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+          fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Setup Node.js for WHATWG URL validation
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Resolve bounded build contract
+        id: contract
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_PLATFORM: ${{ inputs.platform }}
+          DISPATCH_RUNTIME_SOURCE_REF: ${{ inputs.runtime_source_ref }}
+          DISPATCH_DASHBOARD_ORIGIN: ${{ inputs.dashboard_origin }}
+          DISPATCH_API_BASE_URL: ${{ inputs.api_base_url }}
+          DISPATCH_WEBSOCKET_URL: ${{ inputs.websocket_url }}
+          DISPATCH_AUTH_PROVIDER: ${{ inputs.auth_provider }}
+        run: |
+          set -Eeuo pipefail
+          tooling_sha="$(git rev-parse HEAD)"
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            platform="$DISPATCH_PLATFORM"
+            runtime_source_ref="$DISPATCH_RUNTIME_SOURCE_REF"
+            dashboard_origin="$DISPATCH_DASHBOARD_ORIGIN"
+            api_base_url="$DISPATCH_API_BASE_URL"
+            websocket_url="$DISPATCH_WEBSOCKET_URL"
+            auth_provider="$DISPATCH_AUTH_PROVIDER"
+          else
+            platform="linux/amd64"
+            runtime_source_ref="$tooling_sha"
+            dashboard_origin="http://127.0.0.1:3000"
+            api_base_url="http://127.0.0.1:8082"
+            websocket_url="ws://127.0.0.1:8082/api/v1/telemetry/live"
+            auth_provider="disabled"
+          fi
+
+          case "$platform" in
+            linux/amd64|linux/arm64) ;;
+            *) echo "Unsupported offline bundle platform: $platform" >&2; exit 2 ;;
+          esac
+          case "$auth_provider" in
+            local|disabled) ;;
+            *) echo "Unsupported offline auth provider: $auth_provider" >&2; exit 2 ;;
+          esac
+          runtime_source_sha="$(git rev-parse --verify "${runtime_source_ref}^{commit}")" || {
+            echo "Runtime source ref cannot be resolved: $runtime_source_ref" >&2
+            exit 2
+          }
+          git merge-base --is-ancestor "$runtime_source_sha" "$tooling_sha" || {
+            echo "Runtime source must be an ancestor of the reviewed tooling commit" >&2
+            exit 2
+          }
+          local_host="$(
+            node - "$dashboard_origin" "$api_base_url" "$websocket_url" <<'JSURL'
+          const { isIP } = require("node:net");
+
+          const [dashboardRaw, apiRaw, websocketRaw] = process.argv.slice(2);
+
+          function fail(message) {
+            console.error(message);
+            process.exit(2);
+          }
+
+          function parseBounded(name, raw, protocols, kind) {
+            let url;
+            try {
+              url = new URL(raw);
+            } catch (error) {
+              fail(`${name} is not a valid WHATWG browser URL: ${error.message}`);
+            }
+            if (!protocols.includes(url.protocol)) {
+              fail(`${name} uses an unsupported scheme`);
+            }
+            if (url.username || url.password || url.hash || url.search) {
+              fail(`${name} must not contain credentials, query or fragment`);
+            }
+            if (url.port === "0") {
+              fail(`${name} must use a usable destination port, not port 0`);
+            }
+            if (url.hostname.endsWith(".")) {
+              fail(`${name} must not use a trailing-dot hostname`);
+            }
+
+            let canonical;
+            if (kind === "origin") {
+              canonical = url.origin;
+            } else {
+              if (url.pathname !== "/api/v1/telemetry/live") {
+                fail("websocket_url must use the canonical /api/v1/telemetry/live path");
+              }
+              canonical = `${url.origin}/api/v1/telemetry/live`;
+            }
+            if (raw !== canonical) {
+              fail(`${name} must use canonical browser serialization: ${canonical}`);
+            }
+            return url;
+          }
+
+          const dashboard = parseBounded("dashboard_origin", dashboardRaw, ["http:", "https:"], "origin");
+          const api = parseBounded("api_base_url", apiRaw, ["http:", "https:"], "origin");
+          const websocket = parseBounded("websocket_url", websocketRaw, ["ws:", "wss:"], "websocket");
+
+          if (dashboard.hostname !== api.hostname || dashboard.hostname !== websocket.hostname) {
+            fail("Dashboard, API and WebSocket URLs must use the same LOCAL_LAN host");
+          }
+          if (dashboard.protocol !== api.protocol) {
+            fail("Dashboard and API URLs must use the same HTTP security scheme");
+          }
+          const expectedWs = dashboard.protocol === "https:" ? "wss:" : "ws:";
+          if (websocket.protocol !== expectedWs) {
+            fail(`WebSocket scheme must be ${expectedWs.slice(0, -1)} for ${dashboard.protocol.slice(0, -1)} Dashboard/API URLs`);
+          }
+
+          let host = dashboard.hostname;
+          if (host.startsWith("[") && host.endsWith("]")) {
+            host = host.slice(1, -1);
+          }
+          if (isIP(host) === 0) {
+            const labels = host.split(".");
+            const validDnsLabels = host.length <= 253 && labels.every((label) =>
+              label.length >= 1 &&
+              label.length <= 63 &&
+              !label.startsWith("-") &&
+              !label.endsWith("-") &&
+              /^[a-z0-9-]+$/.test(label)
+            );
+            if (!validDnsLabels) {
+              fail("Runtime URLs must use canonical ASCII DNS labels");
+            }
+            const localDns = !host.includes(".") ||
+              host.endsWith(".local") ||
+              host.endsWith(".lan") ||
+              host.endsWith(".home.arpa");
+            if (!localDns) {
+              fail("Runtime URLs must use a LOCAL_LAN hostname, not a public DNS name");
+            }
+          }
+          process.stdout.write(host);
+          JSURL
+          )"
+
+          python3 - "$local_host" <<'PYIP'
+          import sys
+          from ipaddress import ip_address
+
+          host = sys.argv[1]
+          try:
+              address = ip_address(host)
+          except ValueError:
+              pass
+          else:
+              if address.is_global or address.is_unspecified or address.is_multicast:
+                  raise SystemExit("Runtime URLs must use a non-global LOCAL_LAN IP address")
+          PYIP
+
+          arch="${platform#linux/}"
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            version="recovery-${runtime_source_sha:0:12}-tooling-${tooling_sha:0:12}"
+            artifact_name="nexolab-offline-${arch}-runtime-${runtime_source_sha:0:12}-tooling-${tooling_sha:0:12}"
+          else
+            version="ci-${tooling_sha:0:12}"
+            artifact_name="nexolab-offline-amd64-${tooling_sha}"
+          fi
+          local_auth=false
+          [[ "$auth_provider" == "local" ]] && local_auth=true
+
+          {
+            echo "tooling_sha=$tooling_sha"
+            echo "runtime_source_sha=$runtime_source_sha"
+            echo "platform=$platform"
+            echo "arch=$arch"
+            echo "version=$version"
+            echo "artifact_name=$artifact_name"
+            echo "dashboard_origin=$dashboard_origin"
+            echo "api_base_url=$api_base_url"
+            echo "websocket_url=$websocket_url"
+            echo "auth_provider=$auth_provider"
+            echo "local_auth=$local_auth"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
+      - name: Setup QEMU for ARM64 runtime proof
+        if: ${{ steps.contract.outputs.platform == 'linux/arm64' }}
+        uses: docker/setup-qemu-action@v4
+
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v4
 
       - name: Prepare isolated validation configuration
         shell: bash
+        env:
+          DASHBOARD_ORIGIN: ${{ steps.contract.outputs.dashboard_origin }}
+          LOCAL_AUTH: ${{ steps.contract.outputs.local_auth }}
         run: |
           set -Eeuo pipefail
           mkdir -p "$CI_ROOT" "$CI_ROOT/evidence" "$CI_ROOT/clean-host"
-          cat > "$CENTRAL_ENV" <<'EOF'
+          auth_mode=disabled
+          private_key_file=
+          public_key_file=
+          if [[ "$LOCAL_AUTH" == "true" ]]; then
+            auth_dir="$RUNNER_TEMP/nexolab-offline-local-auth"
+            mkdir -p "$auth_dir"
+            private_key_file="$auth_dir/private.pem"
+            public_key_file="$auth_dir/public.pem"
+            password_file="$auth_dir/operator-password"
+            openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out "$private_key_file" >/dev/null 2>&1
+            openssl pkey -in "$private_key_file" -pubout -out "$public_key_file" >/dev/null 2>&1
+            openssl rand -hex 24 > "$password_file"
+            chmod 0400 "$private_key_file" "$password_file"
+            chmod 0444 "$public_key_file"
+            sudo chown 10001:10001 "$private_key_file" "$public_key_file"
+            auth_mode=jwt
+          fi
+          cat > "$CENTRAL_ENV" <<EOF
           COMPOSE_PROJECT_NAME=nexolab-offline-central-ci
           CENTRAL_RESOURCE_PREFIX=nexolab-offline-central-ci
           CENTRAL_BIND_ADDRESS=127.0.0.1
@@ -81,12 +319,16 @@ jobs:
           OBJECT_STORAGE_PUBLIC_ENDPOINT_URL=http://127.0.0.1:9000
           MQTT_TOPIC=nexolab/telemetry
           MQTT_CLIENT_ID=nexolab-offline-ci-ingestion
-          CORS_ALLOWED_ORIGINS=http://127.0.0.1:3000
+          CORS_ALLOWED_ORIGINS=$DASHBOARD_ORIGIN
           CORS_ALLOW_CREDENTIALS=false
-          AUTH_MODE=disabled
+          AUTH_MODE=$auth_mode
           AUTH_DEFAULT_ORGANIZATION_ID=00000000-0000-0000-0000-000000000001
           AUTH_JWT_PUBLIC_KEY=
           AUTH_JWT_JWKS_URL=
+          AUTH_LOCAL_PRIVATE_KEY_HOST_FILE=$private_key_file
+          AUTH_LOCAL_PUBLIC_KEY_HOST_FILE=$public_key_file
+          AUTH_LOCAL_ISSUER=urn:nexolab:offline-bundle-ci
+          AUTH_LOCAL_AUDIENCE=nexolab-api
           EOF
           cat > "$EDGE_ENV" <<'EOF'
           COMPOSE_PROJECT_NAME=nexolab-offline-edge-ci
@@ -100,6 +342,8 @@ jobs:
 
       - name: Validate scripts and offline Compose contract
         shell: bash
+        env:
+          LOCAL_AUTH: ${{ steps.contract.outputs.local_auth }}
         run: |
           set -Eeuo pipefail
           bash -n \
@@ -110,6 +354,7 @@ jobs:
           python -m py_compile \
             scripts/generate-offline-bundle-manifest.py \
             scripts/verify-offline-bundle.py
+          python -m unittest tests.test_ci_offline_bundle_workflow_contract -v
 
           export OFFLINE_DASHBOARD_IMAGE=nexolab/dashboard:contract
           export OFFLINE_TELEMETRY_IMAGE=nexolab/telemetry-service:contract
@@ -119,18 +364,23 @@ jobs:
           export OFFLINE_MINIO_IMAGE=minio/minio:RELEASE.2025-09-07T16-13-09Z
           export OFFLINE_MINIO_CLIENT_IMAGE=minio/mc:RELEASE.2025-08-13T08-35-41Z
 
-          docker compose \
+          central=(docker compose \
             --env-file "$CENTRAL_ENV" \
             -f infrastructure/compose/compose.central.yaml \
-            -f infrastructure/offline/compose.central.offline.yaml \
-            config --format json > "$CI_ROOT/evidence/central-compose.json"
+            -f infrastructure/offline/compose.central.offline.yaml)
+          if [[ "$LOCAL_AUTH" == "true" ]]; then
+            central+=( -f infrastructure/compose/compose.local-auth.yaml )
+          fi
+          central_config="$RUNNER_TEMP/nexolab-offline-central-compose.json"
+          edge_config="$RUNNER_TEMP/nexolab-offline-edge-compose.json"
+          "${central[@]}" config --format json > "$central_config"
           docker compose \
             --env-file "$EDGE_ENV" \
             -f infrastructure/compose/compose.edge.yaml \
             -f infrastructure/offline/compose.edge.offline.yaml \
-            config --format json > "$CI_ROOT/evidence/edge-compose.json"
+            config --format json > "$edge_config"
 
-          python - "$CI_ROOT/evidence/central-compose.json" "$CI_ROOT/evidence/edge-compose.json" <<'PY'
+          python - "$central_config" "$edge_config" <<'PY'
           import json
           import sys
           from pathlib import Path
@@ -143,35 +393,48 @@ jobs:
                   if service.get("pull_policy") != "never":
                       raise SystemExit(f"Offline service does not use pull_policy=never: {path}:{name}")
           PY
+          rm -f "$central_config" "$edge_config"
 
           ! grep -R --line-number --fixed-strings "docker compose down -v" \
             scripts/install-offline-bundle.sh \
             scripts/offline-bundle-smoke.sh \
             scripts/verify-offline-volume-preservation.sh
 
-      - name: Build linux amd64 bundle on connected builder
+      - name: Build selected offline bundle on connected builder
         id: bundle
         shell: bash
+        env:
+          VERSION: ${{ steps.contract.outputs.version }}
+          PLATFORM: ${{ steps.contract.outputs.platform }}
+          ARCH: ${{ steps.contract.outputs.arch }}
+          RUNTIME_SOURCE_SHA: ${{ steps.contract.outputs.runtime_source_sha }}
+          TOOLING_SHA: ${{ steps.contract.outputs.tooling_sha }}
+          DASHBOARD_ORIGIN: ${{ steps.contract.outputs.dashboard_origin }}
+          API_BASE_URL: ${{ steps.contract.outputs.api_base_url }}
+          WEBSOCKET_URL: ${{ steps.contract.outputs.websocket_url }}
+          AUTH_PROVIDER: ${{ steps.contract.outputs.auth_provider }}
         run: |
           set -Eeuo pipefail
-          source_sha="$(git rev-parse HEAD)"
-          version="ci-${source_sha:0:12}"
           ./scripts/build-offline-bundle.sh \
-            --version "$version" \
-            --platform linux/amd64 \
-            --dashboard-origin http://127.0.0.1:3000 \
-            --api-base-url http://127.0.0.1:8082 \
-            --websocket-url ws://127.0.0.1:8082/api/v1/telemetry/live \
+            --version "$VERSION" \
+            --platform "$PLATFORM" \
+            --runtime-source-ref "$RUNTIME_SOURCE_SHA" \
+            --dashboard-origin "$DASHBOARD_ORIGIN" \
+            --api-base-url "$API_BASE_URL" \
+            --websocket-url "$WEBSOCKET_URL" \
+            --auth-provider "$AUTH_PROVIDER" \
             --output "$PWD/dist/offline"
-          archive="$PWD/dist/offline/nexolab-offline-${version}-amd64.tar.gz"
+          archive="$PWD/dist/offline/nexolab-offline-${VERSION}-${ARCH}.tar.gz"
           test -f "$archive"
           test -f "${archive}.sha256"
           (
             cd "$(dirname "$archive")"
             sha256sum --check "$(basename "${archive}.sha256")"
           )
-          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "runtime_source_sha=$RUNTIME_SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          echo "tooling_sha=$TOOLING_SHA" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "arch=$ARCH" >> "$GITHUB_OUTPUT"
           echo "archive=$archive" >> "$GITHUB_OUTPUT"
 
       - name: Simulate clean transferred host and remove runtime images
@@ -181,10 +444,11 @@ jobs:
           set -Eeuo pipefail
           archive="${{ steps.bundle.outputs.archive }}"
           version="${{ steps.bundle.outputs.version }}"
-          staging="$PWD/dist/offline/nexolab-offline-${version}-amd64"
+          arch="${{ steps.bundle.outputs.arch }}"
+          staging="$PWD/dist/offline/nexolab-offline-${version}-${arch}"
           rm -rf "$staging" "$CI_ROOT/clean-host"/*
           tar --extract --gzip --file "$archive" --directory "$CI_ROOT/clean-host"
-          bundle_root="$PWD/$CI_ROOT/clean-host/nexolab-offline-${version}-amd64"
+          bundle_root="$PWD/$CI_ROOT/clean-host/nexolab-offline-${version}-${arch}"
           test -d "$bundle_root"
           python "$bundle_root/scripts/verify-offline-bundle.py" "$bundle_root"
 
@@ -226,12 +490,19 @@ jobs:
 
       - name: Load archive and start disconnected stack with pull disabled
         shell: bash
+        env:
+          LOCAL_AUTH: ${{ steps.contract.outputs.local_auth }}
         run: |
           set -Eeuo pipefail
           bundle_root="${{ steps.clean_host.outputs.bundle_root }}"
-          bash "$bundle_root/scripts/install-offline-bundle.sh" \
-            --central-env "$PWD/$CENTRAL_ENV" \
+          install_args=(
+            --central-env "$PWD/$CENTRAL_ENV"
             --edge-env "$PWD/$EDGE_ENV"
+          )
+          if [[ "$LOCAL_AUTH" == "true" ]]; then
+            install_args+=(--local-auth)
+          fi
+          bash "$bundle_root/scripts/install-offline-bundle.sh" "${install_args[@]}"
 
           eval "$(python "$bundle_root/scripts/verify-offline-bundle.py" \
             "$bundle_root" --check-loaded-images --emit-shell-env)"
@@ -241,24 +512,118 @@ jobs:
           central=(docker compose --env-file "$PWD/$CENTRAL_ENV" \
             -f "$bundle_root/deploy/compose/compose.central.yaml" \
             -f "$bundle_root/deploy/offline/compose.central.offline.yaml")
+          if [[ "$LOCAL_AUTH" == "true" ]]; then
+            central+=( -f "$bundle_root/deploy/compose/compose.local-auth.yaml" )
+          fi
           dashboard_id="$("${central[@]}" ps -q dashboard)"
           network="$(docker inspect "$dashboard_id" --format '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{end}}')"
           docker run --rm --pull never --network "$network" "$OFFLINE_DASHBOARD_IMAGE" \
             node -e "fetch('https://example.com').then(()=>process.exit(1)).catch(()=>process.exit(0))"
 
-      - name: Prove update and rollback preserve persistent data
+      - name: Seed local authentication continuity state
+        if: ${{ steps.contract.outputs.local_auth == 'true' }}
         shell: bash
         run: |
           set -Eeuo pipefail
-          bash scripts/verify-offline-volume-preservation.sh \
-            --bundle-root "${{ steps.clean_host.outputs.bundle_root }}" \
-            --central-env "$PWD/$CENTRAL_ENV" \
-            --edge-env "$PWD/$EDGE_ENV" \
+          bundle_root="${{ steps.clean_host.outputs.bundle_root }}"
+          auth_dir="$RUNNER_TEMP/nexolab-offline-local-auth"
+          password_file="$auth_dir/operator-password"
+          refresh_token_file="$auth_dir/refresh-token"
+          test -s "$password_file"
+
+          eval "$(python "$bundle_root/scripts/verify-offline-bundle.py" \
+            "$bundle_root" --check-loaded-images --emit-shell-env)"
+          export OFFLINE_DASHBOARD_IMAGE OFFLINE_TELEMETRY_IMAGE OFFLINE_DEVICE_AGENT_IMAGE
+          export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
+
+          central=(docker compose --env-file "$PWD/$CENTRAL_ENV" \
+            -f "$bundle_root/deploy/compose/compose.central.yaml" \
+            -f "$bundle_root/deploy/offline/compose.central.offline.yaml" \
+            -f "$bundle_root/deploy/compose/compose.local-auth.yaml")
+
+          "${central[@]}" run --rm --no-deps --user 0:0 \
+            -v "$password_file:/run/operator-password:ro" \
+            telemetry-service \
+            python -m app.security.local_cli create-account \
+            --username offline-bundle-admin \
+            --password-file /run/operator-password \
+            --display-name "Offline Bundle Administrator" \
+            --organization-id 00000000-0000-0000-0000-000000000001 \
+            --organization-slug nexolab-offline-bundle \
+            --organization-name "NEXOLAB Offline Bundle Acceptance" \
+            --role administrator
+
+          python3 - "$password_file" "$refresh_token_file" <<'PYAUTHSEED'
+          import json
+          import sys
+          import urllib.error
+          import urllib.request
+          from pathlib import Path
+
+          password = Path(sys.argv[1]).read_text(encoding="utf-8").strip()
+          refresh_path = Path(sys.argv[2])
+          base = "http://127.0.0.1:8082"
+          org = "00000000-0000-0000-0000-000000000001"
+
+          def request(method, path, payload=None, token=None, expected=(200,)):
+              data = None if payload is None else json.dumps(payload).encode("utf-8")
+              headers = {"Content-Type": "application/json"}
+              if token:
+                  headers["Authorization"] = f"Bearer {token}"
+                  headers["X-Organization-ID"] = org
+              req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
+              try:
+                  with urllib.request.urlopen(req, timeout=10) as response:
+                      status = response.status
+                      body = response.read()
+              except urllib.error.HTTPError as exc:
+                  status = exc.code
+                  body = exc.read()
+              if status not in expected:
+                  raise SystemExit(f"{method} {path} returned unexpected HTTP {status}")
+              return json.loads(body) if body else None
+
+          login = request(
+              "POST", "/api/v1/auth/local/login",
+              {"username": "offline-bundle-admin", "password": password},
+          )
+          session = request("GET", "/api/v1/auth/session", token=login["access_token"])
+          if session["identity"]["provider"] != "nexolab-local":
+              raise SystemExit("Local auth provider mismatch before recovery drill")
+          roles = session["memberships"][0]["roles"]
+          if "administrator" not in roles:
+              raise SystemExit("Seeded local auth account lost administrator role")
+          refresh_path.write_text(login["refresh_token"], encoding="utf-8")
+          refresh_path.chmod(0o600)
+          PYAUTHSEED
+
+      - name: Prove update and rollback preserve persistent data
+        shell: bash
+        env:
+          LOCAL_AUTH: ${{ steps.contract.outputs.local_auth }}
+        run: |
+          set -Eeuo pipefail
+          preservation_args=(
+            --bundle-root "${{ steps.clean_host.outputs.bundle_root }}"
+            --central-env "$PWD/$CENTRAL_ENV"
+            --edge-env "$PWD/$EDGE_ENV"
             --evidence-dir "$PWD/$CI_ROOT/evidence"
+          )
+          if [[ "$LOCAL_AUTH" == "true" ]]; then
+            preservation_args+=(
+              --local-auth
+              --local-auth-refresh-token-file "$RUNNER_TEMP/nexolab-offline-local-auth/refresh-token"
+            )
+          fi
+          bash scripts/verify-offline-volume-preservation.sh "${preservation_args[@]}"
 
       - name: Capture final disconnected evidence
         if: always()
         shell: bash
+        env:
+          LOCAL_AUTH: ${{ steps.contract.outputs.local_auth }}
+          RUNTIME_SOURCE_SHA: ${{ steps.contract.outputs.runtime_source_sha }}
+          TOOLING_SHA: ${{ steps.contract.outputs.tooling_sha }}
         run: |
           set +e
           bundle_root="${{ steps.clean_host.outputs.bundle_root }}"
@@ -267,10 +632,13 @@ jobs:
               "$bundle_root" --emit-shell-env 2>/dev/null)"
             export OFFLINE_DASHBOARD_IMAGE OFFLINE_TELEMETRY_IMAGE OFFLINE_DEVICE_AGENT_IMAGE
             export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
-            docker compose --env-file "$PWD/$CENTRAL_ENV" \
+            central=(docker compose --env-file "$PWD/$CENTRAL_ENV" \
               -f "$bundle_root/deploy/compose/compose.central.yaml" \
-              -f "$bundle_root/deploy/offline/compose.central.offline.yaml" \
-              ps --format json > "$CI_ROOT/evidence/central-final-ps.json"
+              -f "$bundle_root/deploy/offline/compose.central.offline.yaml")
+            if [[ "$LOCAL_AUTH" == "true" ]]; then
+              central+=( -f "$bundle_root/deploy/compose/compose.local-auth.yaml" )
+            fi
+            "${central[@]}" ps --format json > "$CI_ROOT/evidence/central-final-ps.json"
             docker compose --env-file "$PWD/$EDGE_ENV" \
               -f "$bundle_root/deploy/compose/compose.edge.yaml" \
               -f "$bundle_root/deploy/offline/compose.edge.offline.yaml" \
@@ -278,13 +646,16 @@ jobs:
             cp "$bundle_root/manifest.json" "$CI_ROOT/evidence/manifest.json"
             cp "$bundle_root/SHA256SUMS" "$CI_ROOT/evidence/SHA256SUMS"
           fi
-          git rev-parse HEAD > "$CI_ROOT/evidence/source-head.txt"
+          printf '%s\n' "$RUNTIME_SOURCE_SHA" > "$CI_ROOT/evidence/runtime-source-head.txt"
+          printf '%s\n' "$TOOLING_SHA" > "$CI_ROOT/evidence/tooling-head.txt"
           docker image ls --digests > "$CI_ROOT/evidence/docker-images.txt"
           docker volume ls > "$CI_ROOT/evidence/docker-volumes.txt"
 
       - name: Stop validation containers without deleting volumes
         if: always()
         shell: bash
+        env:
+          LOCAL_AUTH: ${{ steps.contract.outputs.local_auth }}
         run: |
           set +e
           bundle_root="${{ steps.clean_host.outputs.bundle_root }}"
@@ -296,19 +667,32 @@ jobs:
             docker compose --env-file "$PWD/$EDGE_ENV" \
               -f "$bundle_root/deploy/compose/compose.edge.yaml" \
               -f "$bundle_root/deploy/offline/compose.edge.offline.yaml" down --remove-orphans
-            docker compose --env-file "$PWD/$CENTRAL_ENV" \
+            central=(docker compose --env-file "$PWD/$CENTRAL_ENV" \
               -f "$bundle_root/deploy/compose/compose.central.yaml" \
-              -f "$bundle_root/deploy/offline/compose.central.offline.yaml" down --remove-orphans
+              -f "$bundle_root/deploy/offline/compose.central.offline.yaml")
+            if [[ "$LOCAL_AUTH" == "true" ]]; then
+              central+=( -f "$bundle_root/deploy/compose/compose.local-auth.yaml" )
+            fi
+            "${central[@]}" down --remove-orphans
           fi
 
-      - name: Upload offline bundle and verification evidence
-        if: always()
+      - name: Upload accepted offline bundle and verification evidence
+        if: ${{ success() }}
         uses: actions/upload-artifact@v7
         with:
-          name: nexolab-offline-amd64-${{ steps.bundle.outputs.source_sha || github.sha }}
+          name: ${{ steps.contract.outputs.artifact_name }}
           path: |
             dist/offline/*.tar.gz
             dist/offline/*.tar.gz.sha256
             .ci/offline-bundle/evidence
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Upload failed validation diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.contract.outputs.artifact_name || 'nexolab-offline-validation' }}-failed-diagnostics
+          path: .ci/offline-bundle/evidence
           if-no-files-found: warn
           retention-days: 3
