@@ -22,11 +22,7 @@
     "deployed_product_sha": "cc27b609eea2917b97da96003a08e5c84a7edbb1"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 679,
-      "title": "Make ARM64 QEMU offline acceptance use application health without weakening production health",
-      "branch": "fix/679-arm64-qemu-edge-health"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -235,9 +231,50 @@
       "issue": 679,
       "title": "Make ARM64 QEMU offline acceptance use application health without weakening production health",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/679-arm64-qemu-edge-health",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "efe6413611b7e455e4de9f7f5f06cca9a79c70bf",
+        "pull_request": 680,
+        "checks": {
+          "Core Quality and build": "success",
+          "Offline Bundle PR lane": "success",
+          "NEXOLAB Merge Gate": "success",
+          "fresh Codex review": "clean",
+          "post-merge ARM64 local-auth dispatch 32832798392": "success"
+        },
+        "post_merge_arm64_acceptance": {
+          "run_id": 32832798392,
+          "tooling_sha": "431f2a28a8ebf7b86536e5059b381b75d2c5b1a3",
+          "runtime_source_sha": "cc27b609eea2917b97da96003a08e5c84a7edbb1",
+          "platform": "linux/arm64",
+          "auth_provider": "local",
+          "artifact_id": 9558305055,
+          "artifact_size_bytes": 562688808,
+          "artifact_sha256": "25057b85a6b096275d3cadef8f03f3dfa8e608e1a3160932aec73d3a368fe74f",
+          "bundle_sha256": "587b88b53634084be89f1d1fd96c96eb77549655a6f8dbe76d57c16e8c818517",
+          "manifest_sha256": "8da30144a4ccf0a5671af552c236b350e1b50fbeb748d94a36dc46eda6468123",
+          "local_auth_continuity": "success",
+          "persistent_volume_identity": "preserved",
+          "non_runtime_staging_verification": "success",
+          "production_cutover": "not_executed_requires_approval"
+        }
+      }
+    },
+    {
+      "issue": 681,
+      "title": "Reconcile #679 ARM64 acceptance and advance #189 to controlled cutover approval",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "chore/681-reconcile-arm64-recovery-state",
+      "evidence": {
+        "verified_head_sha": "04e8f69ab2a18615ad194df8ac323281f3e3c278",
+        "pull_request": 682,
+        "checks": {
+          "State integrity": "success",
+          "NEXOLAB Merge Gate": "success"
+        }
+      }
     }
   ],
   "maintenance_actions": [

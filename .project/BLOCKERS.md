@@ -2,13 +2,9 @@
 
 Updated: 2026-08-25
 
-## Issue #679 — ARM64 QEMU Device Agent acceptance
-
-The first real ARM64/local-auth dispatch (`32812878575`) failed closed after successful bundle build, clean-host transfer, egress block and central startup because the Device Agent process remained running but its in-container Python Docker healthcheck became unhealthy under amd64→arm64 QEMU. Native ARM64 Pi health evidence is GREEN and the runtime source is intentionally pinned, so #679 is the active software blocker: use an explicit bounded application `/health` proof only for QEMU acceptance, preserve native production `docker compose --wait`, and improve failed health diagnostics.
-
 ## Issue #189 — actual-host recovery acceptance
 
-Backup/isolated restore, MQTT/SQLite outage replay and reboot persistence are verified. #675 authority tooling and #677 hosted ARM64 staging implementation are complete. The remaining update→rollback drill is blocked until #679 is GREEN and a real ARM64/local-auth dispatch publishes a fully accepted package for deployed source `cc27b609...`. Staging/activation, `establish-package-authority`, update/rollback and any power-loss drill remain separately approved runtime actions. No destructive restore over production and no named-volume deletion are authorized.
+Backup/isolated restore, MQTT/SQLite outage replay, reboot persistence and hosted ARM64/local-auth package acceptance are verified. #679 is complete: run `32832798392` published checksum-verified accepted artifact `9558305055` for deployed source `cc27b609...`, with preserved volume identities and auth continuity through update/rollback under QEMU. The remaining actual-host update→rollback drill is blocked only on separate Product Owner approval for Raspberry Pi package authority/staging/activation, `establish-package-authority` and source→packaged transition. Any power-loss drill remains separately approved. No destructive restore over production and no named-volume deletion are authorized.
 
 ## Issue #200 — physical RS-485 topology
 
@@ -38,6 +34,7 @@ Four exact reviewed HIGH/no-fix decisions are retained through **2026-08-30**. R
 - #245 standalone offline Raspberry Pi acceptance — completed on real hardware.
 - #673 production-readiness state reconciliation — completed and merged.
 - #675 source-to-packaged authority tooling — completed with exact-head review and required GREEN workflows.
+- #679 ARM64 QEMU package acceptance — completed with GREEN post-merge ARM64/local-auth run `32832798392` and independently verified artifact/provenance.
 
 ## Safety boundaries
 
