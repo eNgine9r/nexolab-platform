@@ -43,6 +43,7 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertIn("must use a usable destination port, not port 0", self.workflow)
         self.assertIn("must not use backslashes in browser runtime URLs", self.workflow)
         self.assertIn("must use canonical ASCII DNS labels", self.workflow)
+        self.assertIn("invalid punycode A-label", self.workflow)
         self.assertIn("WebSocket scheme must be", self.workflow)
 
 
@@ -70,6 +71,12 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
             "ws://nexolab.local:8082/api/v1/telemetry/live",
         )
         self.assertEqual(local_dns.returncode, 0, local_dns.stderr)
+        local_punycode = self._run_url_contract(
+            "http://xn--bcher-kva.local:3000",
+            "http://xn--bcher-kva.local:8082",
+            "ws://xn--bcher-kva.local:8082/api/v1/telemetry/live",
+        )
+        self.assertEqual(local_punycode.returncode, 0, local_punycode.stderr)
 
         invalid_cases = (
             ("http://NEXOLAB.local:80", "http://nexolab.local:8082", "ws://nexolab.local:8082/api/v1/telemetry/live"),
@@ -92,6 +99,7 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
             ("http://foo|bar.local:3000", "http://foo|bar.local:8082", "ws://foo|bar.local:8082/api/v1/telemetry/live"),
             ("http://foo_bar.local:3000", "http://foo_bar.local:8082", "ws://foo_bar.local:8082/api/v1/telemetry/live"),
             ("http://-nexolab.local:3000", "http://-nexolab.local:8082", "ws://-nexolab.local:8082/api/v1/telemetry/live"),
+            ("http://xn--a.local:3000", "http://xn--a.local:8082", "ws://xn--a.local:8082/api/v1/telemetry/live"),
         )
         for dashboard, api, websocket in invalid_cases:
             with self.subTest(dashboard=dashboard, api=api, websocket=websocket):

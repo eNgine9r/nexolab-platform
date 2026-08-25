@@ -227,6 +227,15 @@ jobs:
               )
               if not valid_dns_labels:
                   raise SystemExit("Runtime URLs must use canonical ASCII DNS labels")
+              for label in labels:
+                  if label.startswith("xn--"):
+                      try:
+                          decoded_label = label.encode("ascii").decode("idna")
+                          canonical_alabel = decoded_label.encode("idna").decode("ascii").lower()
+                      except UnicodeError as exc:
+                          raise SystemExit(f"Runtime URLs contain an invalid punycode A-label: {label}") from exc
+                      if canonical_alabel != label:
+                          raise SystemExit(f"Runtime URLs must use canonical punycode A-labels: {canonical_alabel}")
               local_dns = (
                   "." not in local_host
                   or local_host.endswith(".local")
