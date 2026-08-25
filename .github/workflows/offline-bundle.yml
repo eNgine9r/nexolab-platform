@@ -146,6 +146,8 @@ jobs:
           for (name, schemes), raw in zip(expected, sys.argv[1:], strict=True):
               if any(char.isspace() for char in raw) or any(ord(char) < 32 for char in raw):
                   raise SystemExit(f"{name} must be a single-line URL without whitespace")
+              if "\\" in raw:
+                  raise SystemExit(f"{name} must not use backslashes in browser runtime URLs")
               parsed = urlparse(raw)
               try:
                   port = parsed.port

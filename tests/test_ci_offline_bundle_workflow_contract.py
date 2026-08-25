@@ -41,6 +41,7 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertIn("Runtime URLs must not use browser-recognized numeric IPv4 aliases", self.workflow)
         self.assertIn("must not use percent-escaped host syntax", self.workflow)
         self.assertIn("must use a usable destination port, not port 0", self.workflow)
+        self.assertIn("must not use backslashes in browser runtime URLs", self.workflow)
         self.assertIn("WebSocket scheme must be", self.workflow)
 
 
@@ -85,6 +86,7 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
             ("http://nexolab.local:0", "http://nexolab.local:8082", "ws://nexolab.local:8082/api/v1/telemetry/live"),
             ("http://nexolab.local:3000", "http://nexolab.local:0", "ws://nexolab.local:8082/api/v1/telemetry/live"),
             ("http://nexolab.local:3000", "http://nexolab.local:8082", "ws://nexolab.local:0/api/v1/telemetry/live"),
+            ("http://foo\\bar.local:3000", "http://foo\\bar.local:8082", "ws://foo\\bar.local:8082/api/v1/telemetry/live"),
         )
         for dashboard, api, websocket in invalid_cases:
             with self.subTest(dashboard=dashboard, api=api, websocket=websocket):
