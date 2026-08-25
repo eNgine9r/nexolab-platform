@@ -6,9 +6,9 @@ Updated: 2026-08-25
 
 `PRODUCTION-READINESS-1` is active: production readiness and controlled acceptance.
 
-Issue #679 is the active Work Package. A real post-merge `linux/arm64` + local-auth dispatch proved bundle construction, QEMU registration, clean-host transfer and central disconnected startup, then failed only because the emulated Device Agent Docker health probe became `unhealthy` while the process remained running. #679 makes hosted QEMU acceptance use a bounded application `/health` proof without weakening native production health semantics.
+Issue #681 is the active state-reconciliation Work Package. Issue #679 is completed after real post-merge `linux/arm64` + local-auth dispatch `32832798392` passed the QEMU application-health, disconnected runtime, persistent-volume and auth-continuity gates and published a checksum-verified accepted recovery artifact for the exact deployed source lineage.
 
-Issues #675 and #677 software implementation are completed. Issue #189 remains the parent recovery boundary and is blocked until #679 fixes the QEMU acceptance gate and a real ARM64/local-auth dispatch publishes a fully accepted package for the controlled source lineage; staging/activation and the actual Raspberry Pi package transition remain a separate cutover approval boundary.
+Issue #189 is now the remaining recovery boundary. Software/package acceptance is ready, but Raspberry Pi package authority/staging/activation, source→packaged transition and the actual-host update→rollback drill remain blocked on separate Product Owner approval; no repository synchronization is treated as deployment or cutover.
 
 ## Recently completed production-readiness boundaries
 
@@ -30,11 +30,11 @@ Legacy controlled-source records may derive missing Dashboard/auth identity only
 
 ## Issues #677 / #679 ARM64 package acceptance
 
-#677 is merged and completed at PR #678. The real post-merge dispatch `32812878575` used tooling `f9c7165b63bed6aa25e3a105bb5ea8e6d40a7d9e`, exact deployed runtime source `cc27b609eea2917b97da96003a08e5c84a7edbb1`, `linux/arm64`, the immutable LOCAL_LAN endpoints and local auth. It successfully built and checksum-verified the ARM64 bundle, simulated a clean transferred host, blocked egress and started the full central stack under QEMU. The edge MQTT became healthy and the Device Agent process stayed running with exit code 0, but its emulated in-container Python healthcheck became `unhealthy`, so accepted artifact publication correctly failed closed. Native ARM64 Pi evidence shows the same production healthcheck repeatedly succeeds, and Device Agent runtime source files are unchanged across the deployed source/tooling boundary. #679 is the focused tooling defect that must prove the actual application `/health` endpoint under QEMU while preserving native production `--wait` behavior.
+#677 is merged and completed at PR #678. Its first real post-merge ARM64/local-auth run `32812878575` correctly failed closed on the QEMU-specific Device Agent Docker health timing gap, which was fixed by #679 without changing the pinned runtime source or native production health semantics. #679 merged at PR #680 and replacement run `32832798392` is GREEN for tooling `431f2a28a8ebf7b86536e5059b381b75d2c5b1a3`, exact deployed runtime source `cc27b609eea2917b97da96003a08e5c84a7edbb1`, `linux/arm64`, immutable LOCAL_LAN endpoints and local auth. Accepted artifact `9558305055` has GitHub/local SHA256 `25057b85a6b096275d3cadef8f03f3dfa8e608e1a3160932aec73d3a368fe74f`; the inner recovery bundle SHA256 is `587b88b53634084be89f1d1fd96c96eb77549655a6f8dbe76d57c16e8c818517`. Manifest/provenance record ARM64, runtime source `cc27b609...`, tooling `431f2a28...`, local auth, no packaged secrets, no mandatory runtime network/paid service and no volume deletion. Hosted update/rollback preserved named-volume identities and local-auth refresh/session/RBAC continuity, including rollback logout revocation.
 
 ## Issue #189 recovery boundary
 
-Software/isolated backup-restore, real MQTT/SQLite outage replay and actual-host reboot persistence are verified. Remaining acceptance is blocked on #679 and then a fully GREEN ARM64/local-auth package dispatch for exact deployed source lineage. Package staging, `establish-package-authority`, source→packaged transition and the actual Raspberry Pi update→rollback drill remain separately approved runtime actions. Optional controlled power-loss evidence remains separately gated. Destructive production restore and named-volume deletion remain forbidden.
+Software/isolated backup-restore, real MQTT/SQLite outage replay, actual-host reboot persistence and the hosted ARM64/local-auth package acceptance are verified. The remaining update→rollback acceptance now requires an explicitly approved actual-host package authority/staging/activation and source→packaged transition on the controlled Raspberry Pi. Optional controlled power-loss evidence remains a later separately approved hardware boundary. Destructive production restore and named-volume deletion remain forbidden.
 
 ## Hardware validation backlog
 
@@ -51,4 +51,4 @@ Four exact OpenSSL QUIC `CVE-2026-14456` temporary decisions remain reviewed thr
 
 Core NEXOLAB remains `LOCAL_LAN` / offline-first with no mandatory public internet, paid runtime service, CDN, remote font or external runtime API.
 
-#679 authorizes only hosted-QEMU acceptance tooling and verification; it does not authorize Raspberry Pi runtime mutation. Package staging/activation, `establish-package-authority`, source→packaged transition and update/rollback remain production cutover boundaries requiring separate approval. No destructive restore, persistent-data deletion, named-volume deletion, Modbus/controller write or hardware write is authorized.
+#679 hosted-QEMU acceptance is completed; its GREEN evidence does not authorize Raspberry Pi runtime mutation. Package authority/staging/activation, `establish-package-authority`, source→packaged transition and actual-host update/rollback remain production cutover boundaries requiring separate approval. No destructive restore, persistent-data deletion, named-volume deletion, Modbus/controller write or hardware write is authorized.
