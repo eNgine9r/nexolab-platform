@@ -3,43 +3,23 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-26T08:35:38+03:00",
+  "timestamp": "2026-08-26T09:25:00+03:00",
   "actor": "ChatGPT",
-  "event": "issue_683_local_verification_passed",
+  "event": "issue_686_started",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "cc27b609eea2917b97da96003a08e5c84a7edbb1"
   },
   "active_work": {
-    "issue": 683,
-    "title": "Fail-safe local-auth path relocation and full source recovery during packaged cutover",
-    "branch": "fix/683-local-auth-package-relocation"
+    "issue": 686,
+    "title": "Keep ARM64 local-auth acceptance key readable across installer and runtime identities",
+    "branch": "fix/686-arm64-local-auth-fixture-permissions"
   },
   "evidence_snapshot": {
-    "active_issue_evidence": {
-      "focused_version_manager_tests": "35 passed",
-      "offline_bundle_contract_tests": "13 passed",
-      "version_runtime_regression_tests": "6 passed",
-      "state_ci_tests": "27 passed, 1 skipped",
-      "python_compile": "success",
-      "shell_syntax": "success",
-      "state_model": "success",
-      "git_diff_check": "success"
-    }
+    "active_issue_evidence": {}
   },
-  "observations": [
-    {
-      "source": "github",
-      "observed_at": "2026-08-26T08:35:38+03:00",
-      "kind": "dependency",
-      "data": {
-        "blocked_issue": 189,
-        "blocked_by": 683,
-        "additional_requirement": "new accepted ARM64/local-auth artifact"
-      }
-    }
-  ],
-  "next_action": "Push final #683 state, open PR and require exact-head CI/offline-bundle GREEN. After #683 merges, activate GitHub Issue #684 as the next Ready frontend Work Package; #189 remains blocked on a new accepted ARM64/local-auth artifact and re-staging.",
+  "observations": [],
+  "next_action": "Fix ARM64/local-auth workflow fixture permissions, run focused verification, open PR, require exact-head GREEN, merge, then re-dispatch post-merge ARM64/local-auth acceptance.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

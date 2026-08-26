@@ -4,11 +4,11 @@ Updated: 2026-08-26
 
 ## Issue #189 — actual-host recovery acceptance
 
-Blocked on critical defect #683. The first approved source→packaged transition created its PostgreSQL backup, then failed after partial central recreation because repo-relative local-auth host paths were re-resolved under the relocated package catalog. Source central, Dashboard and edge runtime were restored; all six named-volume identities were preserved and telemetry resumed advancing. Resume #189 only after #683 merges, a new ARM64/local-auth artifact passes acceptance and that artifact is re-staged. Power-loss remains separately gated.
+Blocked on replacement accepted ARM64/local-auth artifact after critical fixture defect #686. #683 is merged and its fail-before-mutation preflight worked as designed, but post-merge dispatch `32936515558` exposed a hosted CI key-permission mismatch before disconnected runtime startup. Resume #189 only after #686 merges, a replacement ARM64/local-auth artifact passes acceptance and that artifact is re-staged. Power-loss remains separately gated.
 
-## Issue #683 — local-auth relocation and full source recovery
+## Issue #686 — ARM64/local-auth acceptance fixture permissions
 
-Active critical bugfix. Required outcome: canonical external local-auth host paths before mutation, direct-installer fail-fast, and full source-central + Dashboard recovery after post-mutation failure without secret packaging or volume deletion.
+Active critical bugfix. The hosted workflow must keep the ephemeral private key readable by the invoking host installer and runtime GID 10001 without making it world-readable or exposing key bytes. The replacement post-merge ARM64/local-auth dispatch must be GREEN before #189 resumes.
 
 ## Issue #200 — physical RS-485 topology
 
@@ -39,6 +39,7 @@ Four exact reviewed HIGH/no-fix decisions are retained through **2026-08-30**. R
 - #673 production-readiness state reconciliation — completed and merged.
 - #675 source-to-packaged authority tooling — completed with exact-head review and required GREEN workflows.
 - #679 ARM64 QEMU package acceptance — completed with GREEN post-merge ARM64/local-auth run `32832798392` and independently verified artifact/provenance.
+- #683 local-auth relocation/full source recovery — merged at PR #685 with exact-head required workflows GREEN; its post-merge acceptance correctly failed before mutation on the separate #686 hosted fixture-permission defect.
 
 ## Safety boundaries
 

@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 683,
-      "title": "Fail-safe local-auth path relocation and full source recovery during packaged cutover",
-      "branch": "fix/683-local-auth-package-relocation"
+      "issue": 686,
+      "title": "Keep ARM64 local-auth acceptance key readable across installer and runtime identities",
+      "branch": "fix/686-arm64-local-auth-fixture-permissions"
     },
     "next_work_package": null
   },
@@ -284,8 +284,25 @@
       "issue": 683,
       "title": "Fail-safe local-auth path relocation and full source recovery during packaged cutover",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/683-local-auth-package-relocation",
+      "evidence": {
+        "verified_head_sha": "e5964bab54c2e91573e60759da2f6c0844b2ef11",
+        "pull_request": 685,
+        "checks": {
+          "ci": "success",
+          "telemetry_service": "success",
+          "offline_bundle_pr": "success",
+          "nexolab_merge_gate": "success"
+        }
+      }
+    },
+    {
+      "issue": 686,
+      "title": "Keep ARM64 local-auth acceptance key readable across installer and runtime identities",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "fix/686-arm64-local-auth-fixture-permissions",
       "evidence": {}
     }
   ],
