@@ -19,15 +19,15 @@
   },
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
-    "deployed_product_sha": "cc27b609eea2917b97da96003a08e5c84a7edbb1"
+    "deployed_product_sha": "a929144a2cbfa7c192e5e04cae6e02291cbef2cc"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 690,
       "title": "Make PR verification risk-aware and path-targeted",
       "branch": "feat/690-risk-aware-verification"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -350,10 +350,25 @@
       "issue": 690,
       "title": "Make PR verification risk-aware and path-targeted",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [],
       "branch": "feat/690-risk-aware-verification",
       "evidence": {}
+    },
+    {
+      "issue": 695,
+      "title": "Reconcile #684 controlled deployment and current recovery baseline",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "chore/695-reconcile-settings-deployment-state",
+      "evidence": {
+        "verified_head_sha": "0a84a77bfc10e544a5c15943859112564b32cb30",
+        "pull_request": 699,
+        "checks": {
+          "State integrity": "success",
+          "NEXOLAB Merge Gate": "success"
+        }
+      }
     }
   ],
   "maintenance_actions": [
