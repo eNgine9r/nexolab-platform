@@ -431,6 +431,32 @@ def parse_env_file(path: Path) -> dict[str, str]:
     return values
 
 
+def resolve_local_auth_host_paths(central_env: Path) -> dict[str, str]:
+    env_path = central_env.resolve()
+    values = parse_env_file(env_path)
+    resolved: dict[str, str] = {}
+    for key in ("AUTH_LOCAL_PRIVATE_KEY_HOST_FILE", "AUTH_LOCAL_PUBLIC_KEY_HOST_FILE"):
+        raw = values.get(key, "").strip()
+        if not raw:
+            raise VersionManagerFailure(f"local-auth external host path is missing: {key}")
+        candidate = Path(raw)
+        if not candidate.is_absolute():
+            candidate = env_path.parent / candidate
+        candidate = candidate.resolve()
+        if not candidate.is_file() or not os.access(candidate, os.R_OK):
+            raise VersionManagerFailure(f"local-auth external host file is not readable: {key}")
+        resolved[key] = str(candidate)
+    return resolved
+
+
+def local_auth_subprocess_env(args: argparse.Namespace) -> dict[str, str] | None:
+    if not args.local_auth:
+        return None
+    environment = os.environ.copy()
+    environment.update(resolve_local_auth_host_paths(args.central_env))
+    return environment
+
+
 def source_deployment_identity(current: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
     required = (
         "source_dashboard_origin",
@@ -502,7 +528,9 @@ def stop_source_dashboard() -> None:
         raise VersionManagerFailure("source dashboard service did not stop before packaged activation")
 
 
-def stop_packaged_dashboard(target_root: Path, args: argparse.Namespace) -> None:
+def stop_packaged_dashboard(
+    target_root: Path, args: argparse.Namespace, *, compose_env: dict[str, str] | None = None
+) -> None:
     central = compose_args(
         target_root, args.central_env.resolve(), central=True, local_auth=args.local_auth
     )
@@ -511,18 +539,71 @@ def stop_packaged_dashboard(target_root: Path, args: argparse.Namespace) -> None
         check=False,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        env=compose_env,
     )
 
 
 def restore_source_dashboard(
-    target_root: Path, args: argparse.Namespace, state: dict[str, Any]
+    target_root: Path,
+    args: argparse.Namespace,
+    state: dict[str, Any],
+    *,
+    compose_env: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    stop_packaged_dashboard(target_root, args)
+    stop_packaged_dashboard(target_root, args, compose_env=compose_env)
     if state.get("enabled") is True:
         subprocess.run(["systemctl", "enable", SOURCE_DASHBOARD_SERVICE], check=True)
     subprocess.run(["systemctl", "start", SOURCE_DASHBOARD_SERVICE], check=True)
     wait_http_success(str(state["origin"]))
     return {"status": "restored", "service": SOURCE_DASHBOARD_SERVICE}
+
+
+def source_central_compose_args(
+    source_repo: Path, env_path: Path, *, runtime_mode: str, local_auth: bool
+) -> list[str]:
+    compose_dir = source_repo.resolve() / "infrastructure" / "compose"
+    command = [
+        "docker",
+        "compose",
+        "--env-file",
+        str(env_path.resolve()),
+        "-f",
+        str(compose_dir / "compose.central.yaml"),
+        "-f",
+        str(compose_dir / "compose.observability.yaml"),
+    ]
+    if runtime_mode == "standalone":
+        command.extend(["-f", str(compose_dir / "compose.central-standalone.yaml")])
+    if local_auth:
+        command.extend(["-f", str(compose_dir / "compose.local-auth.yaml")])
+    return command
+
+
+def restore_source_runtime(
+    target_root: Path, target: dict[str, Any], current: dict[str, Any],
+    args: argparse.Namespace, dashboard_state: dict[str, Any],
+    *, compose_env: dict[str, str] | None,
+) -> dict[str, Any]:
+    source_repo = Path(getattr(args, "source_repo", Path(__file__).resolve().parents[1]))
+    central = source_central_compose_args(
+        source_repo, args.central_env, runtime_mode=str(current["runtime_mode"]),
+        local_auth=args.local_auth,
+    )
+    subprocess.run(central + ["up", "-d", "--no-build", "--pull", "never"],
+                   check=True, env=compose_env)
+    dashboard = target.get("dashboard")
+    api_base = dashboard.get("api_base_url") if isinstance(dashboard, dict) else None
+    if not isinstance(api_base, str) or not api_base:
+        raise VersionManagerFailure("source recovery API base URL is missing")
+    wait_http_success(f"{api_base.rstrip('/')}/health/ready")
+    readiness = read_local_json(f"{api_base.rstrip('/')}/health/ready")
+    if readiness.get("status") != "ready" or readiness.get("database") != "ready" or readiness.get("mqtt") != "ready":
+        raise VersionManagerFailure("source central runtime did not recover readiness")
+    dashboard_restore = restore_source_dashboard(
+        target_root, args, dashboard_state, compose_env=compose_env
+    )
+    return {"status": "restored", "central_readiness": readiness,
+            "dashboard": dashboard_restore}
 
 
 def commit_source_dashboard_handoff() -> None:
@@ -572,7 +653,8 @@ def capture_volume_identities(*, skip_edge: bool) -> list[dict[str, Any]]:
 
 
 def create_postgresql_backup(
-    central: list[str], backup_dir: Path, backup_id: str
+    central: list[str], backup_dir: Path, backup_id: str,
+    *, compose_env: dict[str, str] | None = None,
 ) -> Path:
     backup_path = backup_dir.resolve() / backup_id
     partial_backup_path = backup_path.with_suffix(".dump.partial")
@@ -590,6 +672,7 @@ def create_postgresql_backup(
             ],
             check=True,
             stdout=output,
+            env=compose_env,
         )
     if partial_backup_path.stat().st_size == 0:
         raise VersionManagerFailure("PostgreSQL backup is empty")
@@ -599,6 +682,7 @@ def create_postgresql_backup(
             check=True,
             stdin=backup_input,
             stdout=subprocess.DEVNULL,
+            env=compose_env,
         )
     os.replace(partial_backup_path, backup_path)
     return backup_path
@@ -754,6 +838,7 @@ def verify_transition_runtime(
     args: argparse.Namespace,
     *,
     source_hardware: dict[str, Any] | None = None,
+    compose_env: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     validate_source_transition(current, target, args)
     dashboard = target.get("dashboard")
@@ -780,6 +865,7 @@ def verify_transition_runtime(
         check=True,
         capture_output=True,
         text=True,
+        env=compose_env,
     ).stdout.strip()
     expected_schema = str(target["version_management"]["database_schema"]["head"])
     require_exact_alembic_head(revision, expected_schema)
@@ -845,6 +931,7 @@ def establish_package_authority(args: argparse.Namespace) -> None:
         target_tooling = validate_package_tooling(target_root, target)
         activate_offline_image_environment(target)
         current_schema = validate_source_transition(current, target, args)
+        compose_env = local_auth_subprocess_env(args)
         source_hardware = verify_real_hardware_runtime(args)
         dashboard_state = source_dashboard_state(current)
         transition_id = source_transition_id(args.bundle_id)
@@ -893,7 +980,9 @@ def establish_package_authority(args: argparse.Namespace) -> None:
                 local_auth=args.local_auth,
             )
             backup_id = f"{transition_id}-postgresql.dump"
-            create_postgresql_backup(central, args.backup_dir.resolve(), backup_id)
+            create_postgresql_backup(
+                central, args.backup_dir.resolve(), backup_id, compose_env=compose_env
+            )
             transition["backup_evidence_id"] = backup_id
             atomic_json(transition_path, transition)
 
@@ -910,6 +999,7 @@ def establish_package_authority(args: argparse.Namespace) -> None:
                     hardware=not args.skip_edge,
                 ),
                 check=True,
+                env=compose_env,
             )
             verified_target = verify_staged_bundle(target_root, args.bundle_id)
             if manifest_digest(target_root) != transition["target_manifest_sha256"]:
@@ -920,6 +1010,7 @@ def establish_package_authority(args: argparse.Namespace) -> None:
                 current,
                 args,
                 source_hardware=source_hardware,
+                compose_env=compose_env,
             )
             after = capture_volume_identities(skip_edge=args.skip_edge)
             atomic_json(evidence_dir / "volume-identities-after.json", {"volumes": after})
@@ -968,23 +1059,26 @@ def establish_package_authority(args: argparse.Namespace) -> None:
             transition["ended_at"] = now()
             atomic_json(transition_path, transition)
         except Exception as error:
+            source_restored = False
             if dashboard_handoff_started:
                 try:
-                    transition["dashboard_restore"] = restore_source_dashboard(
-                        target_root, args, dashboard_state
+                    transition["source_restore"] = restore_source_runtime(
+                        target_root, target, current, args, dashboard_state,
+                        compose_env=compose_env,
                     )
+                    source_restored = transition["source_restore"].get("status") == "restored"
                 except Exception as restore_error:
-                    transition["dashboard_restore"] = {
+                    transition["source_restore"] = {
                         "status": "failed",
                         "failure_type": type(restore_error).__name__,
                         "safe_message": str(restore_error)[:300],
                     }
             if mutation_started:
-                uncertain = dict(recorded_current)
-                uncertain["health"] = "verification_failed"
-                uncertain["runtime_state_known"] = False
-                uncertain["last_operation_id"] = transition_id
-                atomic_json(current_path, uncertain)
+                recovered = dict(recorded_current)
+                recovered["health"] = "ready" if source_restored else "verification_failed"
+                recovered["runtime_state_known"] = source_restored
+                recovered["last_operation_id"] = transition_id
+                atomic_json(current_path, recovered)
             transition["status"] = "failed"
             transition["ended_at"] = now()
             transition["failure_type"] = type(error).__name__
@@ -1056,6 +1150,7 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         ):
             raise VersionManagerFailure("current deployment evidence does not match its staged package")
         activate_offline_image_environment(current_manifest)
+        compose_env = local_auth_subprocess_env(args)
 
         hardware_required = current.get("edge_hardware_required") is True
         hardware_contract = current.get("hardware_contract")
@@ -1078,7 +1173,9 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         central = compose_args(
             current_root, args.central_env.resolve(), central=True, local_auth=args.local_auth
         )
-        create_postgresql_backup(central, args.backup_dir.resolve(), backup_id)
+        create_postgresql_backup(
+            central, args.backup_dir.resolve(), backup_id, compose_env=compose_env
+        )
         operation["backup_evidence_id"] = backup_id
         atomic_json(operation_path, operation)
 
@@ -1092,6 +1189,7 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
                 hardware=hardware_required,
             ),
             check=True,
+            env=compose_env,
         )
         operation["offline_bundle_smoke_verified"] = True
         atomic_json(operation_path, operation)
@@ -1106,6 +1204,7 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
             check=True,
             capture_output=True,
             text=True,
+            env=compose_env,
         ).stdout.strip()
         expected_schema = deployed_schema_after(
             str(operation["action"]),

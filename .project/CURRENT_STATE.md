@@ -1,6 +1,6 @@
 # NEXOLAB Current State
 
-Updated: 2026-08-25
+Updated: 2026-08-26
 
 ## Current Sprint
 
@@ -8,7 +8,7 @@ Updated: 2026-08-25
 
 Issue #681 state reconciliation is completed. Issue #679 is completed after real post-merge `linux/arm64` + local-auth dispatch `32832798392` passed the QEMU application-health, disconnected runtime, persistent-volume and auth-continuity gates and published a checksum-verified accepted recovery artifact for the exact deployed source lineage.
 
-No independent Ready Work Package remains. Issue #189 is the remaining recovery boundary: software/package acceptance is ready, but Raspberry Pi package authority/staging/activation, source→packaged transition and the actual-host update→rollback drill remain blocked on separate Product Owner approval; no repository synchronization is treated as deployment or cutover.
+Issue #683 is the active critical recovery bugfix after the first actual-host source→packaged transition exposed a relocated local-auth host-path defect. The source runtime was restored and re-verified with preserved volumes and advancing telemetry. Issue #189 is blocked on #683, a new accepted ARM64/local-auth artifact, and re-staging before the approved actual-host recovery drill resumes.
 
 ## Recently completed production-readiness boundaries
 
@@ -34,7 +34,7 @@ Legacy controlled-source records may derive missing Dashboard/auth identity only
 
 ## Issue #189 recovery boundary
 
-Software/isolated backup-restore, real MQTT/SQLite outage replay, actual-host reboot persistence and the hosted ARM64/local-auth package acceptance are verified. The remaining update→rollback acceptance now requires an explicitly approved actual-host package authority/staging/activation and source→packaged transition on the controlled Raspberry Pi. Optional controlled power-loss evidence remains a later separately approved hardware boundary. Destructive production restore and named-volume deletion remain forbidden.
+Software/isolated backup-restore, real MQTT/SQLite outage replay, actual-host reboot persistence and hosted ARM64/local-auth package acceptance are verified. The first approved actual-host package transition failed safely on #683 after backup and partial central recreation; source central, Dashboard, edge, all six persistent-volume identities and advancing telemetry were restored. #189 remains blocked until #683 is merged and a new accepted ARM64/local-auth artifact is re-staged. Optional power-loss evidence remains separately gated.
 
 ## Hardware validation backlog
 

@@ -22,7 +22,11 @@
     "deployed_product_sha": "cc27b609eea2917b97da96003a08e5c84a7edbb1"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 683,
+      "title": "Fail-safe local-auth path relocation and full source recovery during packaged cutover",
+      "branch": "fix/683-local-auth-package-relocation"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -275,6 +279,14 @@
           "NEXOLAB Merge Gate": "success"
         }
       }
+    },
+    {
+      "issue": 683,
+      "title": "Fail-safe local-auth path relocation and full source recovery during packaged cutover",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "branch": "fix/683-local-auth-package-relocation",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [

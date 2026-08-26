@@ -61,6 +61,37 @@ for command in docker python3; do
 done
 docker compose version >/dev/null
 
+if [[ "$LOCAL_AUTH" == true ]]; then
+  LOCAL_AUTH_EXPORTS="$(python3 - "$CENTRAL_ENV" <<'PYLOCALAUTH'
+import os
+import shlex
+import sys
+from pathlib import Path
+
+env_path = Path(sys.argv[1]).resolve()
+values = {}
+for raw in env_path.read_text(encoding="utf-8").splitlines():
+    line = raw.strip()
+    if not line or line.startswith("#") or "=" not in line:
+        continue
+    key, value = line.split("=", 1)
+    values[key.strip()] = value.strip()
+for key in ("AUTH_LOCAL_PRIVATE_KEY_HOST_FILE", "AUTH_LOCAL_PUBLIC_KEY_HOST_FILE"):
+    raw = values.get(key, "").strip()
+    if not raw:
+        raise SystemExit(f"local-auth external host path is missing: {key}")
+    candidate = Path(raw)
+    if not candidate.is_absolute():
+        candidate = env_path.parent / candidate
+    candidate = candidate.resolve()
+    if not candidate.is_file() or not os.access(candidate, os.R_OK):
+        raise SystemExit(f"local-auth external host file is not readable: {key}")
+    print(f"export {key}={shlex.quote(str(candidate))}")
+PYLOCALAUTH
+  )" || exit $?
+  eval "$LOCAL_AUTH_EXPORTS"
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUNDLE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 VERIFY="$BUNDLE_ROOT/scripts/verify-offline-bundle.py"
