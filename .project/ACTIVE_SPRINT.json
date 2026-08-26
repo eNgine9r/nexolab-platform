@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 695,
-      "title": "Reconcile #684 controlled deployment and current recovery baseline",
-      "branch": "chore/695-reconcile-settings-deployment-state"
+      "issue": 690,
+      "title": "Make PR verification risk-aware and path-targeted",
+      "branch": "feat/690-risk-aware-verification"
     },
     "next_work_package": null
   },
@@ -350,7 +350,7 @@
       "issue": 690,
       "title": "Make PR verification risk-aware and path-targeted",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [],
       "branch": "feat/690-risk-aware-verification",
       "evidence": {}
@@ -359,9 +359,16 @@
       "issue": 695,
       "title": "Reconcile #684 controlled deployment and current recovery baseline",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "chore/695-reconcile-settings-deployment-state",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "0a84a77bfc10e544a5c15943859112564b32cb30",
+        "pull_request": 699,
+        "checks": {
+          "State integrity": "success",
+          "NEXOLAB Merge Gate": "success"
+        }
+      }
     }
   ],
   "maintenance_actions": [

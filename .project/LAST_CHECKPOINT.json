@@ -3,23 +3,23 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-26T20:56:29+03:00",
+  "timestamp": "2026-08-26T21:27:03+03:00",
   "actor": "ChatGPT",
-  "event": "issue_695_runtime_reconciliation_candidate",
+  "event": "issue_695_completed_issue_690_started",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "a929144a2cbfa7c192e5e04cae6e02291cbef2cc"
   },
   "active_work": {
-    "issue": 695,
-    "title": "Reconcile #684 controlled deployment and current recovery baseline",
-    "branch": "chore/695-reconcile-settings-deployment-state"
+    "issue": 690,
+    "title": "Make PR verification risk-aware and path-targeted",
+    "branch": "feat/690-risk-aware-verification"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Validate state-only candidate, commit and publish PR #695; keep #697 blocked until exact-head GitHub hosted-runner checks execute GREEN; then continue independent Ready #690.",
+  "next_action": "Continue Issue #690 risk-aware PR verification while PR #697 remains soft-blocked on intermittent GitHub hosted-runner allocation; return to #697 immediately when its exact-head required checks can execute GREEN, then merge and perform controlled deployment/real refrigeration timing.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
