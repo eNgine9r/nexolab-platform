@@ -4,11 +4,7 @@ Updated: 2026-08-26
 
 ## Issue #189 — actual-host recovery acceptance
 
-Blocked on replacement accepted ARM64/local-auth artifact after critical fixture defect #686. #683 is merged and its fail-before-mutation preflight worked as designed, but post-merge dispatch `32936515558` exposed a hosted CI key-permission mismatch before disconnected runtime startup. Resume #189 only after #686 merges, a replacement ARM64/local-auth artifact passes acceptance and that artifact is re-staged. Power-loss remains separately gated.
-
-## Issue #686 — ARM64/local-auth acceptance fixture permissions
-
-Active critical bugfix. The hosted workflow must keep the ephemeral private key readable by the invoking host installer and runtime GID 10001 without making it world-readable or exposing key bytes. The replacement post-merge ARM64/local-auth dispatch must be GREEN before #189 resumes.
+Blocked on controlled re-staging of accepted ARM64/local-auth artifact `9584581740` from GREEN run `32939760743` before the actual-host recovery drill resumes. #683 and #686 are completed; the replacement hosted acceptance passed disconnected startup, local-auth continuity and update/rollback persistent-data preservation. Actual-host cutover/recovery remains separately governed, and power-loss remains separately gated.
 
 ## Issue #200 — physical RS-485 topology
 
@@ -40,6 +36,8 @@ Four exact reviewed HIGH/no-fix decisions are retained through **2026-08-30**. R
 - #675 source-to-packaged authority tooling — completed with exact-head review and required GREEN workflows.
 - #679 ARM64 QEMU package acceptance — completed with GREEN post-merge ARM64/local-auth run `32832798392` and independently verified artifact/provenance.
 - #683 local-auth relocation/full source recovery — merged at PR #685 with exact-head required workflows GREEN; its post-merge acceptance correctly failed before mutation on the separate #686 hosted fixture-permission defect.
+- #686 ARM64/local-auth acceptance fixture permissions — completed at PR #687; replacement run `32939760743` GREEN and accepted artifact `9584581740` published without production runtime mutation.
+- #684 task-oriented Settings workspace — implementation and exact-head CI/browser/offline/merge-gate verification completed in PR #689; no hardware or production cutover evidence required for this presentation-only Work Package.
 
 ## Safety boundaries
 
