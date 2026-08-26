@@ -295,9 +295,10 @@ jobs:
             openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out "$private_key_file" >/dev/null 2>&1
             openssl pkey -in "$private_key_file" -pubout -out "$public_key_file" >/dev/null 2>&1
             openssl rand -hex 24 > "$password_file"
-            chmod 0400 "$private_key_file" "$password_file"
+            chmod 0400 "$password_file"
             chmod 0444 "$public_key_file"
-            sudo chown 10001:10001 "$private_key_file" "$public_key_file"
+            sudo chgrp 10001 "$private_key_file"
+            chmod 0440 "$private_key_file"
             auth_mode=jwt
           fi
           cat > "$CENTRAL_ENV" <<EOF

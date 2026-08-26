@@ -154,9 +154,13 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         accepted_upload = self.workflow.split("- name: Upload accepted offline bundle and verification evidence", 1)[1]
         self.assertNotIn("RUNNER_TEMP", accepted_upload)
         self.assertNotIn("private.pem", accepted_upload)
-        chmod_index = self.workflow.index('chmod 0400 "$private_key_file"')
-        chown_index = self.workflow.index('sudo chown 10001:10001 "$private_key_file" "$public_key_file"')
-        self.assertLess(chmod_index, chown_index)
+        group_index = self.workflow.index('sudo chgrp 10001 "$private_key_file"')
+        private_mode_index = self.workflow.index('chmod 0440 "$private_key_file"')
+        self.assertLess(group_index, private_mode_index)
+        self.assertIn('chmod 0400 "$password_file"', self.workflow)
+        self.assertIn('chmod 0444 "$public_key_file"', self.workflow)
+        self.assertNotIn('chmod 0444 "$private_key_file"', self.workflow)
+        self.assertNotIn('chown 10001:10001 "$private_key_file"', self.workflow)
 
     def test_installer_allows_runner_local_dashboard_bind_override(self) -> None:
         self.assertIn('python3 - "$MANIFEST" "$CENTRAL_ENV"', self.installer)
