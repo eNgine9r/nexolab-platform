@@ -242,12 +242,12 @@ test("renders operator-safe Settings without backend mutations or secret exposur
     });
 
     await test.step("keep Settings task-local and verify narrow navigation", async () => {
-      const settingsMain = page.getByRole("main");
-      await expect(settingsMain.getByRole("link", { name: /^Вузли/ })).toHaveCount(0);
-      await expect(settingsMain.getByRole("link", { name: /^Обладнання/ })).toHaveCount(0);
-      await expect(settingsMain.getByRole("link", { name: /^Холодильне обладнання/ })).toHaveCount(0);
-      await expect(settingsMain.getByRole("link", { name: /^Тривоги/ })).toHaveCount(0);
-      await expect(settingsMain.getByRole("link", { name: /^Звіти/ })).toHaveCount(0);
+      const settingsWorkspace = page.getByRole("region", { name: "Вміст налаштувань" });
+      await expect(settingsWorkspace.getByRole("link", { name: /^Вузли/ })).toHaveCount(0);
+      await expect(settingsWorkspace.getByRole("link", { name: /^Обладнання/ })).toHaveCount(0);
+      await expect(settingsWorkspace.getByRole("link", { name: /^Холодильне обладнання/ })).toHaveCount(0);
+      await expect(settingsWorkspace.getByRole("link", { name: /^Тривоги/ })).toHaveCount(0);
+      await expect(settingsWorkspace.getByRole("link", { name: /^Звіти/ })).toHaveCount(0);
 
       await page.setViewportSize({ width: 390, height: 844 });
       const compactNavigation = page.getByLabel("Розділ налаштувань");

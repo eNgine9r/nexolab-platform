@@ -336,7 +336,7 @@ export function SettingsWorkspace({
           </div>
         </aside>
 
-        <main className="min-w-0" aria-live="polite">
+        <section className="min-w-0" aria-label="Вміст налаштувань" aria-live="polite">
           <section className="mb-4 rounded-2xl border border-white/[0.08] bg-[#091a31]/70 px-5 py-4 sm:px-6">
             <p className="text-xs tracking-[0.16em] text-cyan-300 uppercase">Поточний розділ</p>
             <h2 className="mt-1 text-xl font-semibold text-white">{selectedSection.title}</h2>
@@ -380,7 +380,7 @@ export function SettingsWorkspace({
           {effectiveSection === "system" ? (
             <SystemSection diagnostics={diagnostics} membership={membership} status={status} />
           ) : null}
-        </main>
+        </section>
       </div>
     </div>
   );
