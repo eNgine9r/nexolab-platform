@@ -3,23 +3,36 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-26T09:25:00+03:00",
+  "timestamp": "2026-08-26T10:37:12+03:00",
   "actor": "ChatGPT",
-  "event": "issue_686_started",
+  "event": "issue_684_settings_workspace_implementation_in_progress",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "cc27b609eea2917b97da96003a08e5c84a7edbb1"
   },
   "active_work": {
-    "issue": 686,
-    "title": "Keep ARM64 local-auth acceptance key readable across installer and runtime identities",
-    "branch": "fix/686-arm64-local-auth-fixture-permissions"
+    "issue": 684,
+    "title": "Restructure Settings into a task-oriented workspace",
+    "branch": "feat/684-settings-task-workspace"
   },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "completed_dependency_686": {
+      "pull_request": 687,
+      "post_merge_arm64_local_auth_run": 32939760743,
+      "artifact_id": 9584581740,
+      "artifact_sha256": "c22199292fd5f272810e7a893ccec02fe7313f39f518434d86d90bfee234178f",
+      "result": "success"
+    },
+    "active_issue_evidence": {
+      "settings_source_tests": "12 passed",
+      "touched_eslint": "success",
+      "settings_source_typecheck": "success",
+      "git_diff_check": "success",
+      "local_full_build": "frontend compiled; final typecheck blocked by ignored historical runtime snapshot dependency gap"
+    }
   },
   "observations": [],
-  "next_action": "Fix ARM64/local-auth workflow fixture permissions, run focused verification, open PR, require exact-head GREEN, merge, then re-dispatch post-merge ARM64/local-auth acceptance.",
+  "next_action": "Finish #684 local verification, commit/push, open focused PR, require clean-checkout Core/Authenticated Dashboard/Offline Bundle exact-head GREEN, then merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

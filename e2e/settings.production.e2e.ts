@@ -65,6 +65,19 @@ function observeApiRequests(page: Page): ObservedApiRequest[] {
   return requests;
 }
 
+async function openSettingsSection(
+  page: Page,
+  title: string,
+  sectionId: "general" | "appearance" | "data-collection" | "monitoring" | "system",
+): Promise<void> {
+  const desktopButton = page.getByRole("button", { name: new RegExp(`^${title}`) }).first();
+  if (await desktopButton.isVisible()) {
+    await desktopButton.click();
+  } else {
+    await page.getByLabel("Розділ налаштувань").selectOption(sectionId);
+  }
+}
+
 function seedCadenceEngineer(): void {
   const project = requiredEnvironment("COMPOSE_PROJECT_NAME");
   const baseCompose = requiredEnvironment("NEXOLAB_DASHBOARD_BASE_COMPOSE");
@@ -157,23 +170,26 @@ test("renders operator-safe Settings without backend mutations or secret exposur
   const requests = observeApiRequests(page);
 
   try {
-    await test.step("render verified organization context, persisted cadence and sanitized runtime diagnostics", async () => {
+    await test.step("render focused General, sanitized System diagnostics and dedicated Data Collection", async () => {
       await page.goto("/settings", { waitUntil: "domcontentloaded" });
       await expect(page.getByText("Viewer Acceptance", { exact: true }).first()).toBeVisible();
       await expect(page.getByRole("heading", { name: "Налаштування", exact: true })).toBeVisible();
       const operatorContext = page.getByRole("region", { name: "Організація та оператор" });
       await expect(operatorContext.getByText("NEXOLAB Dashboard Acceptance", { exact: true })).toBeVisible();
       await expect(operatorContext.getByText("Спостерігач", { exact: true })).toBeVisible();
+      await expect(page.getByText("Конфігурація готова", { exact: true })).toHaveCount(1);
+      await expect(page.getByRole("region", { name: "Фізичний інтервал опитування" })).toHaveCount(0);
+
+      await openSettingsSection(page, "Система", "system");
       const runtimeSummary = page.getByRole("region", { name: "Підсумок runtime configuration" });
       await expect(runtimeSummary.getByText("LOCAL_LAN", { exact: true })).toBeVisible();
-      await expect(page.getByText("Live mode", { exact: true })).toBeVisible();
-      await expect(page.getByText(expectedAuthProvider, { exact: true })).toBeVisible();
+      await expect(runtimeSummary.getByText("Live mode", { exact: true })).toBeVisible();
+      await expect(runtimeSummary.getByText(expectedAuthProvider, { exact: true })).toBeVisible();
+      await page.getByText("Runtime endpoints і деталі", { exact: true }).click();
       await expect(page.getByText(expectedApi, { exact: true })).toBeVisible();
       await expect(page.getByText(expectedWebsocket, { exact: true })).toBeVisible();
-      const readyStatus = page.getByText("Конфігурація готова", { exact: true });
-      await expect(readyStatus).toHaveCount(2);
-      await expect(readyStatus.first()).toBeVisible();
 
+      await openSettingsSection(page, "Збір даних", "data-collection");
       const cadence = page.getByRole("region", { name: "Фізичний інтервал опитування" });
       await expect(cadence).toBeVisible();
       await expect(cadence.getByText("Registry revision: 7", { exact: true })).toBeVisible();
@@ -190,70 +206,54 @@ test("renders operator-safe Settings without backend mutations or secret exposur
     });
 
     await test.step("recover malformed local preferences, persist approved values and reset", async () => {
+      await openSettingsSection(page, "Загальні", "general");
       await expect(
         page.getByText("Пошкоджені локальні налаштування відновлено", { exact: true }),
       ).toBeVisible();
-
       await page.getByLabel("Часові позначки").selectOption("utc");
-      await page.getByLabel("Щільність таблиць").selectOption("compact");
-      await page.getByLabel("Анімація").selectOption("reduced");
       await page.getByLabel("Стандартне вікно телеметрії").selectOption("24h");
 
+      await openSettingsSection(page, "Вигляд", "appearance");
+      await page.getByLabel("Щільність таблиць").selectOption("compact");
+      await page.getByLabel("Анімація").selectOption("reduced");
+
       await expect
-        .poll(async () => {
-          return page.evaluate((storageKey) => window.localStorage.getItem(storageKey), preferenceStorageKey);
-        })
+        .poll(async () =>
+          page.evaluate((storageKey) => window.localStorage.getItem(storageKey), preferenceStorageKey),
+        )
         .toContain('"telemetryWindow":"24h"');
 
       await page.reload({ waitUntil: "domcontentloaded" });
       await expect(page.getByLabel("Часові позначки")).toHaveValue("utc");
+      await expect(page.getByLabel("Стандартне вікно телеметрії")).toHaveValue("24h");
+      await openSettingsSection(page, "Вигляд", "appearance");
       await expect(page.getByLabel("Щільність таблиць")).toHaveValue("compact");
       await expect(page.getByLabel("Анімація")).toHaveValue("reduced");
-      await expect(page.getByLabel("Стандартне вікно телеметрії")).toHaveValue("24h");
+      await openSettingsSection(page, "Збір даних", "data-collection");
       await expect(page.getByText("Registry revision: 7", { exact: true })).toBeVisible();
 
+      await openSettingsSection(page, "Загальні", "general");
       await page.getByRole("button", { name: "Скинути локальні налаштування" }).click();
       await expect(page.getByLabel("Часові позначки")).toHaveValue("local");
+      await expect(page.getByLabel("Стандартне вікно телеметрії")).toHaveValue("6h");
+      await openSettingsSection(page, "Вигляд", "appearance");
       await expect(page.getByLabel("Щільність таблиць")).toHaveValue("comfortable");
       await expect(page.getByLabel("Анімація")).toHaveValue("system");
-      await expect(page.getByLabel("Стандартне вікно телеметрії")).toHaveValue("6h");
     });
 
-    await test.step("expose only canonical navigation instead of duplicate administration", async () => {
-      const nodesLink = page.getByRole("link", {
-        name: "Вузли Інвентар, стан і канонічні node workflows.",
-        exact: true,
-      });
-      const equipmentLink = page.getByRole("link", {
-        name: "Обладнання Read-only asset та metrology registry.",
-        exact: true,
-      });
-      const refrigerationLink = page.getByRole("link", {
-        name: "Холодильне обладнання Підтримувані passport і layout mutations.",
-        exact: true,
-      });
-      const alertsLink = page.getByRole("link", {
-        name: "Тривоги Перегляд і дозволені alarm operations.",
-        exact: true,
-      });
-      const reportsLink = page.getByRole("link", {
-        name: "Звіти Формування, погодження та експорт доказів.",
-        exact: true,
-      });
+    await test.step("keep Settings task-local and verify narrow navigation", async () => {
+      await expect(page.getByRole("link", { name: /^Вузли/ })).toHaveCount(0);
+      await expect(page.getByRole("link", { name: /^Обладнання/ })).toHaveCount(0);
+      await expect(page.getByRole("link", { name: /^Холодильне обладнання/ })).toHaveCount(0);
+      await expect(page.getByRole("link", { name: /^Тривоги/ })).toHaveCount(0);
+      await expect(page.getByRole("link", { name: /^Звіти/ })).toHaveCount(0);
 
-      await expect(nodesLink).toHaveAttribute("href", "/nodes");
-      await expect(equipmentLink).toHaveAttribute("href", "/equipment");
-      await expect(refrigerationLink).toHaveAttribute("href", "/refrigeration");
-      await expect(alertsLink).toHaveAttribute("href", "/alerts");
-      await expect(reportsLink).toHaveAttribute("href", "/reports");
-
-      await equipmentLink.click();
-      await expect(page).toHaveURL(/\/equipment$/);
-      await expect(page.getByRole("heading", { name: "Обладнання та метрологія" })).toBeVisible();
-      await page.goBack({ waitUntil: "domcontentloaded" });
-      await expect(page).toHaveURL(/\/settings$/);
-      await expect(page.getByRole("heading", { name: "Налаштування", exact: true })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Фізичний інтервал опитування" })).toBeVisible();
+      await page.setViewportSize({ width: 390, height: 844 });
+      const compactNavigation = page.getByLabel("Розділ налаштувань");
+      await expect(compactNavigation).toBeVisible();
+      await compactNavigation.selectOption("data-collection");
+      await expect(page.getByRole("region", { name: "Фізичний інтервал опитування" })).toBeVisible();
+      await page.setViewportSize({ width: 1440, height: 900 });
     });
 
     await expect.poll(() => requests.length).toBeGreaterThan(0);
@@ -289,7 +289,8 @@ test("renders operator-safe Settings without backend mutations or secret exposur
             viewerMutationControlsDisabled: true,
             physicalPollingSeparatedFromPresentation: true,
           },
-          canonicalNavigation: "/equipment",
+          taskOrientedNavigation: true,
+          narrowNavigationVerified: true,
           apiRequests: requests,
           mutationsObserved: requests.filter((request) => request.method !== "GET").length,
           secretExposureObserved: false,
@@ -318,6 +319,7 @@ test("persists safe cadence and fails closed on capacity and stale revision", as
     await page.goto("/settings", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("Cadence Engineer", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("Інженер", { exact: true })).toBeVisible();
+    await openSettingsSection(page, "Збір даних", "data-collection");
 
     const cadence = page.getByRole("region", { name: "Фізичний інтервал опитування" });
     await expect(cadence.getByText("Registry revision: 7", { exact: true })).toBeVisible();
@@ -333,6 +335,7 @@ test("persists safe cadence and fails closed on capacity and stale revision", as
       await expect(xjpFamilyCard.getByText("Family default · 30 с", { exact: true })).toBeVisible();
 
       await page.reload({ waitUntil: "domcontentloaded" });
+      await openSettingsSection(page, "Збір даних", "data-collection");
       const reloadedCadence = page.getByRole("region", { name: "Фізичний інтервал опитування" });
       await expect(reloadedCadence.getByText("Registry revision: 8", { exact: true })).toBeVisible();
       await expect(xjpFamilyCard.getByText("Family default · 30 с", { exact: true })).toBeVisible();

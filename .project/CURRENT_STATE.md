@@ -8,7 +8,7 @@ Updated: 2026-08-26
 
 Issue #681 state reconciliation is completed. Issue #679 is completed after real post-merge `linux/arm64` + local-auth dispatch `32832798392` passed the QEMU application-health, disconnected runtime, persistent-volume and auth-continuity gates and published a checksum-verified accepted recovery artifact for the exact deployed source lineage.
 
-Issue #683 is merged and completed at PR #685 with exact-head Core, Telemetry service, Offline Bundle and NEXOLAB Merge Gate GREEN. Its required post-merge ARM64/local-auth dispatch `32936515558` then failed safely before runtime mutation because the hosted acceptance fixture made the private key readable only by runtime UID/GID 10001 and not by the host installer identity. Issue #686 is the active critical fixture-permission bugfix. Issue #189 remains blocked on a replacement GREEN ARM64/local-auth artifact and re-staging before the approved actual-host recovery drill resumes.
+Issue #683 is merged and completed at PR #685. Issue #686 is also completed at PR #687: replacement post-merge ARM64/local-auth dispatch `32939760743` passed disconnected startup, local-auth continuity, update/rollback persistent-data preservation and published accepted artifact `9584581740` for deployed runtime source `cc27b609...`. Issue #189 now remains blocked only on controlled re-staging of that accepted artifact and the separately governed actual-host recovery/cutover boundary. Issue #684 is the active Ready-derived frontend Work Package, restructuring Settings without changing acquisition, RBAC, backend or hardware semantics.
 
 ## Recently completed production-readiness boundaries
 
@@ -34,7 +34,7 @@ Legacy controlled-source records may derive missing Dashboard/auth identity only
 
 ## Issue #189 recovery boundary
 
-Software/isolated backup-restore, real MQTT/SQLite outage replay, actual-host reboot persistence and hosted ARM64/local-auth package acceptance are verified. The first approved actual-host package transition failed safely on #683 after backup and partial central recreation; source central, Dashboard, edge, all six persistent-volume identities and advancing telemetry were restored. #189 remains blocked until #686 restores GREEN ARM64/local-auth acceptance and the replacement accepted artifact is re-staged. Optional power-loss evidence remains separately gated.
+Software/isolated backup-restore, real MQTT/SQLite outage replay, actual-host reboot persistence and hosted ARM64/local-auth package acceptance are verified. The first approved actual-host package transition failed safely on #683 after backup and partial central recreation; source central, Dashboard, edge, all six persistent-volume identities and advancing telemetry were restored. #686 restored GREEN ARM64/local-auth acceptance in run `32939760743`; #189 remains blocked on controlled re-staging of accepted artifact `9584581740` before the actual-host recovery drill resumes. Optional power-loss evidence remains separately gated.
 
 ## Hardware validation backlog
 

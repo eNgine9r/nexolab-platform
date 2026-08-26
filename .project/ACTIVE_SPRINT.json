@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 686,
-      "title": "Keep ARM64 local-auth acceptance key readable across installer and runtime identities",
-      "branch": "fix/686-arm64-local-auth-fixture-permissions"
+      "issue": 684,
+      "title": "Restructure Settings into a task-oriented workspace",
+      "branch": "feat/684-settings-task-workspace"
     },
     "next_work_package": null
   },
@@ -300,9 +300,40 @@
     {
       "issue": 686,
       "title": "Keep ARM64 local-auth acceptance key readable across installer and runtime identities",
-      "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "priority": "critical",
+      "lifecycle": "completed",
       "branch": "fix/686-arm64-local-auth-fixture-permissions",
+      "evidence": {
+        "verified_head_sha": "f8f1e31f11f98649e5c5b648cfa7de6b06489812",
+        "pull_request": 687,
+        "checks": {
+          "ci": "success",
+          "offline_bundle_pr": "success",
+          "nexolab_merge_gate": "success",
+          "post_merge_arm64_local_auth_acceptance": "success"
+        },
+        "post_merge_arm64_acceptance": {
+          "run_id": 32939760743,
+          "tooling_sha": "562a177bb5bb860ae99b2d1652bc03812baa7e8a",
+          "runtime_source_sha": "cc27b609eea2917b97da96003a08e5c84a7edbb1",
+          "platform": "linux/arm64",
+          "auth_provider": "local",
+          "artifact_id": 9584581740,
+          "artifact_size_bytes": 560795449,
+          "artifact_sha256": "c22199292fd5f272810e7a893ccec02fe7313f39f518434d86d90bfee234178f",
+          "disconnected_runtime": "success",
+          "local_auth_continuity": "success",
+          "update_rollback_persistent_data": "success",
+          "production_cutover": "not_executed"
+        }
+      }
+    },
+    {
+      "issue": 684,
+      "title": "Restructure Settings into a task-oriented workspace",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "feat/684-settings-task-workspace",
       "evidence": {}
     }
   ],
