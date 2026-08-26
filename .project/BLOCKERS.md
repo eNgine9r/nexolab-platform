@@ -37,6 +37,7 @@ Four exact reviewed HIGH/no-fix decisions are retained through **2026-08-30**. R
 - #679 ARM64 QEMU package acceptance — completed with GREEN post-merge ARM64/local-auth run `32832798392` and independently verified artifact/provenance.
 - #683 local-auth relocation/full source recovery — merged at PR #685 with exact-head required workflows GREEN; its post-merge acceptance correctly failed before mutation on the separate #686 hosted fixture-permission defect.
 - #686 ARM64/local-auth acceptance fixture permissions — completed at PR #687; replacement run `32939760743` GREEN and accepted artifact `9584581740` published without production runtime mutation.
+- #684 task-oriented Settings workspace — implementation and exact-head CI/browser/offline/merge-gate verification completed in PR #689; no hardware or production cutover evidence required for this presentation-only Work Package.
 
 ## Safety boundaries
 

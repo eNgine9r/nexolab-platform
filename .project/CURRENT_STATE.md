@@ -8,7 +8,7 @@ Updated: 2026-08-26
 
 Issue #681 state reconciliation is completed. Issue #679 is completed after real post-merge `linux/arm64` + local-auth dispatch `32832798392` passed the QEMU application-health, disconnected runtime, persistent-volume and auth-continuity gates and published a checksum-verified accepted recovery artifact for the exact deployed source lineage.
 
-Issue #683 is merged and completed at PR #685. Issue #686 is also completed at PR #687: replacement post-merge ARM64/local-auth dispatch `32939760743` passed disconnected startup, local-auth continuity, update/rollback persistent-data preservation and published accepted artifact `9584581740` for deployed runtime source `cc27b609...`. Issue #189 now remains blocked only on controlled re-staging of that accepted artifact and the separately governed actual-host recovery/cutover boundary. Issue #684 is the active Ready-derived frontend Work Package, restructuring Settings without changing acquisition, RBAC, backend or hardware semantics.
+Issue #683 is merged and completed at PR #685. Issue #686 is also completed at PR #687: replacement post-merge ARM64/local-auth dispatch `32939760743` passed disconnected startup, local-auth continuity, update/rollback persistent-data preservation and published accepted artifact `9584581740` for deployed runtime source `cc27b609...`. Issue #189 now remains blocked only on controlled re-staging of that accepted artifact and the separately governed actual-host recovery/cutover boundary. Issue #684 has completed implementation and exact-head verification in PR #689; the next Ready Work Package is Issue #690, which makes PR verification risk-aware and path-targeted without weakening safety gates.
 
 ## Recently completed production-readiness boundaries
 

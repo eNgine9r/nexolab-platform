@@ -22,12 +22,11 @@
     "deployed_product_sha": "cc27b609eea2917b97da96003a08e5c84a7edbb1"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 684,
-      "title": "Restructure Settings into a task-oriented workspace",
-      "branch": "feat/684-settings-task-workspace"
-    },
-    "next_work_package": null
+    "active_work_package": null,
+    "next_work_package": {
+      "issue": 690,
+      "title": "Make PR verification risk-aware and path-targeted"
+    }
   },
   "work_packages": [
     {
@@ -332,8 +331,26 @@
       "issue": 684,
       "title": "Restructure Settings into a task-oriented workspace",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "feat/684-settings-task-workspace",
+      "evidence": {
+        "verified_head_sha": "dabcf6a84aa4be859385b6fef491661c9d66359b",
+        "pull_request": 689,
+        "checks": {
+          "ci": "success",
+          "authenticated_dashboard_acceptance": "success",
+          "offline_bundle_pr": "success",
+          "refrigeration_browser_acceptance": "success",
+          "nexolab_merge_gate": "success"
+        }
+      }
+    },
+    {
+      "issue": 690,
+      "title": "Make PR verification risk-aware and path-targeted",
+      "priority": "high",
+      "lifecycle": "ready",
+      "depends_on": [],
       "evidence": {}
     }
   ],
