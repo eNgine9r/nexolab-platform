@@ -297,7 +297,9 @@
       "title": "Restructure Settings into a task-oriented workspace",
       "priority": "high",
       "lifecycle": "ready",
-      "depends_on": [683],
+      "depends_on": [
+        683
+      ],
       "branch": "feat/684-settings-task-workspace",
       "evidence": {}
     }

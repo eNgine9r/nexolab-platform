@@ -18,15 +18,38 @@
   "evidence_snapshot": {
     "active_issue_evidence": {
       "focused_version_manager_tests": "35 passed",
-      "version_orchestration_tests": "67 passed",
-      "ci_contract_tests": "61 passed, 1 expected skip",
-      "state_model": "passed",
-      "source_runtime_recovery": "verified; six persistent volumes preserved; telemetry advancing"
+      "offline_bundle_contract_tests": "13 passed",
+      "version_runtime_regression_tests": "6 passed",
+      "state_ci_tests": "27 passed, 1 skipped",
+      "python_compile": "success",
+      "shell_syntax": "success",
+      "state_model": "success",
+      "git_diff_check": "success"
     }
   },
   "observations": [
-    "#189 is blocked on #683 and a new accepted ARM64/local-auth artifact.",
-    "#684 is Ready and depends on #683."
+    {
+      "source": "github",
+      "observed_at": "2026-08-26T08:35:38+03:00",
+      "kind": "dependency",
+      "data": {
+        "blocked_issue": 189,
+        "blocked_by": 683,
+        "additional_requirement": "new accepted ARM64/local-auth artifact"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-26T08:35:38+03:00",
+      "kind": "next_ready_work_package",
+      "data": {
+        "issue": 684,
+        "depends_on": [
+          683
+        ],
+        "status": "ready"
+      }
+    }
   ],
   "next_action": "Push final #683 state, open PR and require exact-head CI/offline-bundle GREEN. After #683 merges, produce the new ARM64/local-auth recovery artifact for #189; #684 is the next Ready frontend WP.",
   "safety": {
