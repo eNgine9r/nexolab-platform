@@ -26,9 +26,9 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
 
-## Security maintenance — CVE-2026-14456
+## Security maintenance — Issue #704
 
-Issue #704 is the active security-maintenance interrupt. Three telemetry-service OpenSSL `CVE-2026-14456` exceptions are retired because the fresh image consumes fixed OpenSSL `3.5.7-1~deb13u2`. The remaining Device Agent OpenSSL tuple expires **2026-08-30** while the supported distroless base still lags the Debian fix. Two exact Device Agent `libsqlite3-0` HIGH decisions (`CVE-2026-11822`, `CVE-2026-11824`) expire **2026-09-02**; current reachability audit finds no FTS5, arbitrary-SQL or untrusted-database import path. Any Critical finding remains release-blocking and cannot be excepted. Issue #690 is temporarily blocked only by this critical interrupt and returns to Ready after #704 completes.
+Issue #704 / PR #705 is the active security-maintenance interrupt. Three telemetry-service OpenSSL `CVE-2026-14456` exceptions are retired because the fresh image consumes fixed OpenSSL `3.5.7-1~deb13u2`. The remaining Device Agent OpenSSL tuple expires **2026-08-30** while the supported distroless base still lags the Debian fix. Exact Device Agent SQLite decisions expire **2026-09-02**. PR #705 fresh scan `33015137554` additionally found telemetry-service `libsqlite3-0/CVE-2026-11822`, `libsqlite3-0/CVE-2026-11824`, `libcjson1/CVE-2026-16554`, and `libwebsockets19t64/CVE-2026-78161`; exact short-lived candidate decisions now document absent SQLite FTS5/arbitrary-SQL/crafted-DB reachability, absent 32-bit cJSON architecture reachability, and the libwebsockets 4.3.5-versus-4.5.0/LECP-CBOR mismatch. #704 remains blocked from merge until a new corrected exact-head fresh no-cache Container Supply Chain run is GREEN. Any Critical finding remains release-blocking and cannot be excepted. Issue #690 is temporarily blocked only by this critical interrupt and returns to Ready after #704 completes.
 
 ## Cleared boundaries
 

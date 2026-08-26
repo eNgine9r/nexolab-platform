@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-26T23:56:42+03:00",
+  "timestamp": "2026-08-27T02:20:00+03:00",
   "actor": "ChatGPT",
-  "event": "issue_704_security_reconciliation_candidate",
+  "event": "issue_704_fresh_telemetry_findings_reconciled_candidate",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "a929144a2cbfa7c192e5e04cae6e02291cbef2cc"
@@ -19,7 +19,7 @@
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Validate #704 policy/state diff, commit and push exact candidate, require fresh Container Supply Chain and Merge Gate GREEN, merge #704, return #690 to Ready, then refresh PR #697 on current main.",
+  "next_action": "Run focused policy/state/compile/diff gates, commit and push corrected #705 head, require fresh no-cache Container Supply Chain plus Core/Telemetry/NEXOLAB Merge Gate GREEN; only then complete/merge #704 and return #690 to active Ready work.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

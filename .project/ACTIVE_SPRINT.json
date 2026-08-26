@@ -395,6 +395,14 @@
       "due_on": "2026-09-02",
       "owner": "platform-security",
       "rule": "Remove immediately when Debian Trixie publishes a fixed libsqlite3-0 package, findings disappear, Device Agent gains FTS5/arbitrary-SQL/untrusted-database reachability, or severity becomes Critical."
+    },
+    {
+      "source_issue": 704,
+      "title": "Review/remove telemetry-service fresh-scan exceptions",
+      "status": "due",
+      "due_on": "2026-09-02",
+      "owner": "platform-security",
+      "rule": "Remove affected exact tuples immediately when findings disappear, consumable fixes arrive, SQLite gains FTS5/arbitrary-SQL/untrusted-DB reachability, controlled images gain 32-bit cJSON reachability, libwebsockets affected-version/LECP-CBOR reachability changes, or severity becomes Critical."
     }
   ],
   "observations": [
