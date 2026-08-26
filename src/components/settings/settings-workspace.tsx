@@ -174,7 +174,8 @@ const statusCopy: Record<
 > = {
   ready: {
     title: "Конфігурація готова",
-    description: "LOCAL_LAN runtime contract узгоджений і готовий до роботи.",
+    description:
+      "Клієнтська LOCAL_LAN конфігурація узгоджена. Фактична доступність runtime та hardware перевіряється окремо.",
     icon: CheckCircle2,
     className: "border-emerald-400/20 bg-emerald-400/[0.08] text-emerald-200",
   },
