@@ -4,6 +4,7 @@ import argparse
 import fcntl
 import importlib.util
 import json
+import os
 import subprocess
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -99,8 +100,17 @@ def fixture_state(tmp_path: Path, operation_id: str) -> tuple[Path, Path, Path, 
     (root / "current.json").write_text(json.dumps(current), encoding="utf-8")
     request_path = request_dir / f"{operation_id}.json"
     request_path.write_text(json.dumps(operation), encoding="utf-8")
+    secrets = tmp_path / "secrets" / "local-auth"
+    secrets.mkdir(parents=True)
+    (secrets / "private.pem").write_text("test-private", encoding="utf-8")
+    (secrets / "public.pem").write_text("test-public", encoding="utf-8")
     central_env = tmp_path / "central.env"
-    central_env.write_text("POSTGRES_PASSWORD=test\n", encoding="utf-8")
+    central_env.write_text(
+        "POSTGRES_PASSWORD=test\n"
+        "AUTH_LOCAL_PRIVATE_KEY_HOST_FILE=./secrets/local-auth/private.pem\n"
+        "AUTH_LOCAL_PUBLIC_KEY_HOST_FILE=./secrets/local-auth/public.pem\n",
+        encoding="utf-8",
+    )
     args = argparse.Namespace(
         root=root,
         central_env=central_env,
@@ -477,9 +487,17 @@ def transition_fixture(tmp_path: Path):
     (root / "current.json").write_text(json.dumps(current), encoding="utf-8")
     (root / "requests").mkdir()
     (root / "operations").mkdir()
+    secrets = tmp_path / "secrets" / "local-auth"
+    secrets.mkdir(parents=True)
+    (secrets / "private.pem").write_text("test-private", encoding="utf-8")
+    (secrets / "public.pem").write_text("test-public", encoding="utf-8")
     central_env = tmp_path / "central.env"
     central_env.write_text(
-        "CENTRAL_BIND_ADDRESS=172.18.48.66\nAUTH_MODE=jwt\n", encoding="utf-8"
+        "CENTRAL_BIND_ADDRESS=172.18.48.66\n"
+        "AUTH_MODE=jwt\n"
+        "AUTH_LOCAL_PRIVATE_KEY_HOST_FILE=./secrets/local-auth/private.pem\n"
+        "AUTH_LOCAL_PUBLIC_KEY_HOST_FILE=./secrets/local-auth/public.pem\n",
+        encoding="utf-8",
     )
     edge_env = tmp_path / "edge.env"
     edge_env.write_text(
@@ -596,7 +614,11 @@ def test_installer_failure_preserves_source_authority(tmp_path: Path) -> None:
         patch.object(manager, "verify_real_hardware_runtime", return_value={"status": "verified", "device_mode": "modbus", "observed_buses": ["/host/dev/serial/by-id/usb-test"]}),
         patch.object(manager, "source_dashboard_state", return_value={"active": True, "enabled": True, "origin": "http://172.18.48.66:3000"}),
         patch.object(manager, "stop_source_dashboard"),
-        patch.object(manager, "restore_source_dashboard", return_value={"status": "restored"}),
+        patch.object(
+            manager,
+            "restore_source_runtime",
+            side_effect=manager.VersionManagerFailure("source recovery failed"),
+        ),
         patch.object(manager, "source_transition_id", return_value="transition-install-fail"),
         patch.object(manager, "capture_volume_identities", return_value=volumes),
         patch.object(manager, "run_capacity_preflight", return_value="capacity.txt"),
@@ -622,7 +644,11 @@ def test_volume_identity_drift_blocks_authority_commit(tmp_path: Path) -> None:
         patch.object(manager, "verify_real_hardware_runtime", return_value={"status": "verified", "device_mode": "modbus", "observed_buses": ["/host/dev/serial/by-id/usb-test"]}),
         patch.object(manager, "source_dashboard_state", return_value={"active": True, "enabled": True, "origin": "http://172.18.48.66:3000"}),
         patch.object(manager, "stop_source_dashboard"),
-        patch.object(manager, "restore_source_dashboard", return_value={"status": "restored"}),
+        patch.object(
+            manager,
+            "restore_source_runtime",
+            side_effect=manager.VersionManagerFailure("source recovery failed"),
+        ),
         patch.object(manager, "source_transition_id", return_value="transition-volume-fail"),
         patch.object(manager, "capture_volume_identities", side_effect=[volumes, changed]),
         patch.object(manager, "run_capacity_preflight", return_value="capacity.txt"),
@@ -834,7 +860,7 @@ def test_package_tooling_rejects_legacy_same_tree_without_split_capability(tmp_p
         manager.validate_package_tooling(bundle_root, {"source_commit": source_commit})
 
 
-def test_installer_failure_restores_source_dashboard(tmp_path: Path) -> None:
+def test_installer_failure_restores_full_source_runtime(tmp_path: Path) -> None:
     _, target_root, target, _, args, volumes = transition_fixture(tmp_path)
     installer = target_root / "scripts" / "install-offline-bundle.sh"
 
@@ -847,7 +873,15 @@ def test_installer_failure_restores_source_dashboard(tmp_path: Path) -> None:
         patch.object(manager, "verify_real_hardware_runtime", return_value={"status": "verified", "device_mode": "modbus", "observed_buses": ["/host/dev/serial/by-id/usb-test"]}),
         patch.object(manager, "source_dashboard_state", return_value={"active": True, "enabled": True, "origin": "http://172.18.48.66:3000"}),
         patch.object(manager, "stop_source_dashboard") as stop_source,
-        patch.object(manager, "restore_source_dashboard", return_value={"status": "restored"}) as restore_source,
+        patch.object(
+            manager,
+            "restore_source_runtime",
+            return_value={
+                "status": "restored",
+                "central_readiness": {"status": "ready", "database": "ready", "mqtt": "ready"},
+                "dashboard": {"status": "restored"},
+            },
+        ) as restore_source,
         patch.object(manager, "source_transition_id", return_value="transition-dashboard-restore"),
         patch.object(manager, "capture_volume_identities", return_value=volumes),
         patch.object(manager, "run_capacity_preflight", return_value="capacity.txt"),
@@ -859,3 +893,139 @@ def test_installer_failure_restores_source_dashboard(tmp_path: Path) -> None:
 
     stop_source.assert_called_once_with()
     restore_source.assert_called_once()
+    failed_current = json.loads((args.root / "current.json").read_text(encoding="utf-8"))
+    assert failed_current["deployment_authority"] == manager.SOURCE_DEPLOYMENT_AUTHORITY
+    assert failed_current["health"] == "ready"
+    assert failed_current["runtime_state_known"] is True
+    evidence = json.loads(
+        (args.root / "operation-evidence" / "transition-dashboard-restore" / "transition.json").read_text(encoding="utf-8")
+    )
+    assert evidence["source_restore"]["status"] == "restored"
+
+
+
+def test_local_auth_host_paths_resolve_relative_to_central_env(tmp_path: Path) -> None:
+    env_dir = tmp_path / "compose"
+    secrets = env_dir / "secrets" / "local-auth"
+    secrets.mkdir(parents=True)
+    private = secrets / "private.pem"
+    public = secrets / "public.pem"
+    private.write_text("private", encoding="utf-8")
+    public.write_text("public", encoding="utf-8")
+    central_env = env_dir / ".env.central"
+    central_env.write_text(
+        "AUTH_LOCAL_PRIVATE_KEY_HOST_FILE=./secrets/local-auth/private.pem\n"
+        "AUTH_LOCAL_PUBLIC_KEY_HOST_FILE=./secrets/local-auth/public.pem\n",
+        encoding="utf-8",
+    )
+
+    resolved = manager.resolve_local_auth_host_paths(central_env)
+
+    assert resolved["AUTH_LOCAL_PRIVATE_KEY_HOST_FILE"] == str(private.resolve())
+    assert resolved["AUTH_LOCAL_PUBLIC_KEY_HOST_FILE"] == str(public.resolve())
+
+
+def test_local_auth_missing_key_fails_before_source_transition_mutation(tmp_path: Path) -> None:
+    _, _, target, _, args, _ = transition_fixture(tmp_path)
+    (tmp_path / "secrets" / "local-auth" / "private.pem").unlink()
+
+    with (
+        patch.object(manager, "verify_staged_bundle", return_value=target),
+        patch.object(manager, "verify_real_hardware_runtime") as hardware,
+        patch.object(manager, "source_dashboard_state") as dashboard,
+        patch.object(manager, "run_capacity_preflight") as capacity,
+        patch.object(manager, "stop_source_dashboard") as stop_source,
+    ):
+        with pytest.raises(manager.VersionManagerFailure, match="external host file is not readable"):
+            manager.establish_package_authority(args)
+
+    hardware.assert_not_called()
+    dashboard.assert_not_called()
+    capacity.assert_not_called()
+    stop_source.assert_not_called()
+
+
+def test_source_runtime_recovery_uses_source_compose_without_build_or_pull(tmp_path: Path) -> None:
+    central_env = tmp_path / "compose" / ".env.central"
+    central_env.parent.mkdir(parents=True)
+    central_env.write_text("AUTH_MODE=jwt\n", encoding="utf-8")
+    args = argparse.Namespace(central_env=central_env, local_auth=True, source_repo=tmp_path)
+    target_root = tmp_path / "catalog" / "release"
+    target = {"dashboard": {"api_base_url": "http://172.18.48.66:8082"}}
+    current = {"runtime_mode": "lan"}
+
+    compose_env = {"AUTH_LOCAL_PRIVATE_KEY_HOST_FILE": "/external/private.pem"}
+    readiness = {"status": "ready", "database": "ready", "mqtt": "ready"}
+    calls: list[tuple[list[str], dict[str, object]]] = []
+
+    def capture(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        calls.append((command, kwargs))
+        return subprocess.CompletedProcess(command, 0, stdout="")
+
+    with (
+        patch.object(manager.subprocess, "run", side_effect=capture),
+        patch.object(manager, "wait_http_success"),
+        patch.object(manager, "read_local_json", return_value=readiness),
+        patch.object(
+            manager,
+            "restore_source_dashboard",
+            return_value={"status": "restored", "service": manager.SOURCE_DASHBOARD_SERVICE},
+        ) as dashboard_restore,
+    ):
+        result = manager.restore_source_runtime(
+            target_root,
+            target,
+            current,
+            args,
+            {"active": True, "enabled": True, "origin": "http://172.18.48.66:3000"},
+            compose_env=compose_env,
+        )
+
+    command, kwargs = calls[0]
+
+    assert str(tmp_path / "infrastructure" / "compose" / "compose.central.yaml") in command
+    assert str(tmp_path / "infrastructure" / "compose" / "compose.observability.yaml") in command
+    assert str(tmp_path / "infrastructure" / "compose" / "compose.local-auth.yaml") in command
+    assert command[-5:] == ["up", "-d", "--no-build", "--pull", "never"]
+    assert kwargs["env"] is compose_env
+    dashboard_restore.assert_called_once()
+    assert result["status"] == "restored"
+    assert result["central_readiness"] == readiness
+
+
+def test_direct_installer_local_auth_preflight_fails_before_docker_load(tmp_path: Path) -> None:
+    repo = Path(__file__).resolve().parents[2]
+    installer = repo / "scripts" / "install-offline-bundle.sh"
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    docker_log = tmp_path / "docker.log"
+    fake_docker = fake_bin / "docker"
+    fake_docker.write_text(
+        '#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> "$DOCKER_LOG"\nexit 0\n',
+        encoding="utf-8",
+    )
+    fake_docker.chmod(0o755)
+    central_env = tmp_path / ".env.central"
+    central_env.write_text(
+        "AUTH_LOCAL_PRIVATE_KEY_HOST_FILE=./missing/private.pem\n"
+        "AUTH_LOCAL_PUBLIC_KEY_HOST_FILE=./missing/public.pem\n",
+        encoding="utf-8",
+    )
+
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}:{env['PATH']}"
+    env["DOCKER_LOG"] = str(docker_log)
+    result = subprocess.run(
+        ["bash", str(installer), "--central-env", str(central_env), "--skip-edge", "--local-auth"],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    assert result.returncode != 0
+    assert "local-auth external host file is not readable" in result.stderr
+    docker_calls = docker_log.read_text(encoding="utf-8").splitlines()
+    assert docker_calls == ["compose version"]
+    installer_text = installer.read_text(encoding="utf-8")
+    assert installer_text.index("LOCAL_AUTH_EXPORTS=") < installer_text.index("docker load --input")

@@ -1,10 +1,14 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-25
+Updated: 2026-08-26
 
 ## Issue #189 — actual-host recovery acceptance
 
-Backup/isolated restore, MQTT/SQLite outage replay, reboot persistence and hosted ARM64/local-auth package acceptance are verified. #679 is complete: run `32832798392` published checksum-verified accepted artifact `9558305055` for deployed source `cc27b609...`, with preserved volume identities and auth continuity through update/rollback under QEMU. The remaining actual-host update→rollback drill is blocked only on separate Product Owner approval for Raspberry Pi package authority/staging/activation, `establish-package-authority` and source→packaged transition. Any power-loss drill remains separately approved. No destructive restore over production and no named-volume deletion are authorized.
+Blocked on critical defect #683. The first approved source→packaged transition created its PostgreSQL backup, then failed after partial central recreation because repo-relative local-auth host paths were re-resolved under the relocated package catalog. Source central, Dashboard and edge runtime were restored; all six named-volume identities were preserved and telemetry resumed advancing. Resume #189 only after #683 merges, a new ARM64/local-auth artifact passes acceptance and that artifact is re-staged. Power-loss remains separately gated.
+
+## Issue #683 — local-auth relocation and full source recovery
+
+Active critical bugfix. Required outcome: canonical external local-auth host paths before mutation, direct-installer fail-fast, and full source-central + Dashboard recovery after post-mutation failure without secret packaging or volume deletion.
 
 ## Issue #200 — physical RS-485 topology
 

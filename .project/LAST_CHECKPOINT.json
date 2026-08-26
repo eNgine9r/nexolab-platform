@@ -3,19 +3,29 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-25T14:29:53+03:00",
+  "timestamp": "2026-08-26T07:45:00+03:00",
   "actor": "ChatGPT",
-  "event": "issue_681_state_reconciliation_completed",
+  "event": "issue_683_local_auth_cutover_fix_candidate",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "cc27b609eea2917b97da96003a08e5c84a7edbb1"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 683,
+    "branch": "fix/683-local-auth-package-relocation",
+    "status": "in_progress"
+  },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "focused_version_manager_tests": "35 passed",
+      "version_orchestration_tests": "67 passed",
+      "ci_contract_tests": "61 passed, 1 expected skip",
+      "state_model": "passed",
+      "source_runtime_recovery": "verified"
+    }
   },
   "observations": [],
-  "next_action": "No independent Ready Work Package remains. Await explicit Product Owner approval before Issue #189 actual-host package authority/staging/activation, source-to-packaged transition or update-to-rollback; power-loss remains separately gated.",
+  "next_action": "Commit/push #683, open focused PR, require exact-head CI/offline-bundle GREEN, then merge and build a new ARM64/local-auth recovery artifact before resuming #189.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
