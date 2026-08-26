@@ -3,28 +3,19 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-26T12:09:00+03:00",
+  "timestamp": "2026-08-26T13:35:26+03:00",
   "actor": "ChatGPT",
-  "event": "issue_684_settings_workspace_completed_green",
+  "event": "issue_684_final_head_evidence_reanchored",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "cc27b609eea2917b97da96003a08e5c84a7edbb1"
   },
   "active_work": null,
   "evidence_snapshot": {
-    "completed_issue_684": {
-      "verified_head_sha": "dabcf6a84aa4be859385b6fef491661c9d66359b",
-      "pull_request": 689,
-      "ci": "success",
-      "authenticated_dashboard_acceptance": "success",
-      "offline_bundle_pr": "success",
-      "refrigeration_browser_acceptance": "success",
-      "nexolab_merge_gate": "success"
-    },
-    "next_ready_issue": 690
+    "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Commit the #684 state-only completion update, require exact-head state/merge-gate success as applicable, squash merge PR #689, sync main, then begin Ready Issue #690 on its own feature branch.",
+  "next_action": "Require exact-head state-only validation, resolve final review thread, squash merge PR #689, sync main, then begin Ready Issue #690.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

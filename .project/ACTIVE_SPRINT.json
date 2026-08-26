@@ -335,7 +335,7 @@
       "lifecycle": "completed",
       "branch": "feat/684-settings-task-workspace",
       "evidence": {
-        "verified_head_sha": "dabcf6a84aa4be859385b6fef491661c9d66359b",
+        "verified_head_sha": "6899f40cec6a935b8efd87c4c43108a92722b108",
         "pull_request": 689,
         "checks": {
           "ci": "success",
