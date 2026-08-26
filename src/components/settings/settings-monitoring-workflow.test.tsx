@@ -80,7 +80,7 @@ describe("Settings monitoring commissioning", () => {
 
   it("falls back to General when an organization switch removes monitoring permission", () => {
     const view = renderMonitoring({ sensorMonitoringReady: true });
-    expect(screen.getByRole("heading", { name: "Моніторинг", exact: true })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Моніторинг" })).toBeVisible();
 
     const restrictedMembership: SecurityMembership = {
       ...membership,
@@ -105,7 +105,7 @@ describe("Settings monitoring commissioning", () => {
     );
 
     expect(screen.queryByRole("button", { name: /Моніторинг/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Загальні", exact: true })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Загальні" })).toBeVisible();
     expect(screen.getByRole("region", { name: "Організація та оператор" })).toBeVisible();
     expect(screen.getByLabelText("Розділ налаштувань")).toHaveValue("general");
   });
