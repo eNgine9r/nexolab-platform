@@ -181,7 +181,7 @@ test("renders operator-safe Settings without backend mutations or secret exposur
       await expect(page.getByRole("region", { name: "Фізичний інтервал опитування" })).toHaveCount(0);
 
       await openSettingsSection(page, "Система", "system");
-      const runtimeSummary = page.getByRole("region", { name: "Підсумок runtime configuration" });
+      const runtimeSummary = page.getByRole("region", { name: "Стан системи" });
       await expect(runtimeSummary.getByText("LOCAL_LAN", { exact: true })).toBeVisible();
       await expect(runtimeSummary.getByText("Live mode", { exact: true })).toBeVisible();
       await expect(runtimeSummary.getByText(expectedAuthProvider, { exact: true })).toBeVisible();

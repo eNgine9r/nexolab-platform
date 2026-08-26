@@ -37,7 +37,7 @@ const diagnostics = buildSettingsRuntimeDiagnostics({
 });
 
 function renderMonitoring(overrides: Partial<React.ComponentProps<typeof SettingsWorkspace>> = {}) {
-  render(
+  const view = render(
     <SettingsWorkspace
       session={session}
       membership={membership}
@@ -53,6 +53,7 @@ function renderMonitoring(overrides: Partial<React.ComponentProps<typeof Setting
     />,
   );
   fireEvent.click(screen.getByRole("button", { name: /Моніторинг/ }));
+  return view;
 }
 
 describe("Settings monitoring commissioning", () => {
@@ -75,6 +76,38 @@ describe("Settings monitoring commissioning", () => {
     expect(action).toBeDisabled();
     fireEvent.click(action);
     expect(onOpenSensorMonitoring).not.toHaveBeenCalled();
+  });
+
+  it("falls back to General when an organization switch removes monitoring permission", () => {
+    const view = renderMonitoring({ sensorMonitoringReady: true });
+    expect(screen.getByRole("heading", { name: "Моніторинг", exact: true })).toBeVisible();
+
+    const restrictedMembership: SecurityMembership = {
+      ...membership,
+      roles: ["viewer"],
+      permissions: ["dashboard.read", "telemetry.read"],
+    };
+    const restrictedSession: SecuritySession = { ...session, memberships: [restrictedMembership] };
+
+    view.rerender(
+      <SettingsWorkspace
+        session={restrictedSession}
+        membership={restrictedMembership}
+        diagnostics={diagnostics}
+        preferences={createDefaultSettingsPreferences()}
+        preferencesLoaded
+        preferencesRecovered={false}
+        preferenceRecoveryReason={null}
+        onPreferenceChange={() => undefined}
+        onPreferencesReset={() => undefined}
+        canManageSensorMonitoring={false}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: /Моніторинг/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Загальні", exact: true })).toBeVisible();
+    expect(screen.getByRole("region", { name: "Організація та оператор" })).toBeVisible();
+    expect(screen.getByLabelText("Розділ налаштувань")).toHaveValue("general");
   });
 
   it("surfaces configuration failures with an explicit retry action", () => {

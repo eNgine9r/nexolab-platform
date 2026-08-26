@@ -214,7 +214,8 @@ export function SettingsWorkspace({
   const sections = canManageSensorMonitoring
     ? [...coreSections.slice(0, 3), monitoringSection, coreSections[3]]
     : [...coreSections];
-  const selectedSection = sections.find((item) => item.id === activeSection) ?? sections[0];
+  const effectiveSection = sections.some((item) => item.id === activeSection) ? activeSection : "general";
+  const selectedSection = sections.find((item) => item.id === effectiveSection) ?? sections[0];
   const status = statusCopy[diagnostics.status];
   const StatusIcon = status.icon;
   const identityName = session.identity.displayName ?? session.identity.email ?? "Автентифікований оператор";
@@ -267,7 +268,7 @@ export function SettingsWorkspace({
             <select
               id="settings-section"
               aria-label="Розділ налаштувань"
-              value={activeSection}
+              value={effectiveSection}
               onChange={(event) => setActiveSection(event.target.value as SettingsSectionId)}
               className="w-full rounded-xl border border-white/10 bg-[#06142a] px-3 py-2.5 text-sm text-white outline-none focus-visible:border-cyan-300/50 focus-visible:ring-2 focus-visible:ring-cyan-300/20 lg:hidden"
             >
@@ -281,7 +282,7 @@ export function SettingsWorkspace({
             <nav aria-label="Розділи налаштувань" className="hidden space-y-1 lg:block">
               {sections.map((item) => {
                 const Icon = item.icon;
-                const active = item.id === activeSection;
+                const active = item.id === effectiveSection;
                 return (
                   <button
                     key={item.id}
@@ -342,7 +343,7 @@ export function SettingsWorkspace({
             <p className="mt-1 text-sm text-slate-500">{selectedSection.description}</p>
           </section>
 
-          {activeSection === "general" ? (
+          {effectiveSection === "general" ? (
             <GeneralSection
               identityName={identityName}
               session={session}
@@ -356,7 +357,7 @@ export function SettingsWorkspace({
             />
           ) : null}
 
-          {activeSection === "appearance" ? (
+          {effectiveSection === "appearance" ? (
             <AppearanceSection
               preferences={preferences}
               preferencesLoaded={preferencesLoaded}
@@ -364,9 +365,9 @@ export function SettingsWorkspace({
             />
           ) : null}
 
-          {activeSection === "data-collection" ? acquisitionCadenceContent : null}
+          {effectiveSection === "data-collection" ? acquisitionCadenceContent : null}
 
-          {activeSection === "monitoring" && canManageSensorMonitoring ? (
+          {effectiveSection === "monitoring" && canManageSensorMonitoring ? (
             <MonitoringSection
               ready={sensorMonitoringReady}
               error={sensorMonitoringError}
@@ -376,7 +377,7 @@ export function SettingsWorkspace({
             />
           ) : null}
 
-          {activeSection === "system" ? (
+          {effectiveSection === "system" ? (
             <SystemSection diagnostics={diagnostics} membership={membership} status={status} />
           ) : null}
         </main>
