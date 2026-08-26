@@ -39,7 +39,7 @@ test("administrator reads the offline version workspace while non-admin is denie
   const nonAdmin = await login(browser, viewer);
   try {
     await admin.page.goto("/settings", { waitUntil: "networkidle" });
-    const versionLink = admin.page.getByRole("link", { name: /Версія NEXOLAB/ });
+    const versionLink = admin.page.getByRole("link", { name: /Версія та оновлення/ });
     await expect(versionLink).toHaveAttribute("href", "/settings/system/version");
     await versionLink.click();
     await expect(admin.page.getByRole("heading", { name: "Системна версія" })).toBeVisible();
