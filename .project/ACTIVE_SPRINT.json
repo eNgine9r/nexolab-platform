@@ -27,11 +27,7 @@
       "title": "Fail-safe local-auth path relocation and full source recovery during packaged cutover",
       "branch": "fix/683-local-auth-package-relocation"
     },
-    "next_work_package": {
-      "issue": 684,
-      "title": "Restructure Settings into a task-oriented workspace",
-      "branch": "feat/684-settings-task-workspace"
-    }
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -290,17 +286,6 @@
       "priority": "critical",
       "lifecycle": "in_progress",
       "branch": "fix/683-local-auth-package-relocation",
-      "evidence": {}
-    },
-    {
-      "issue": 684,
-      "title": "Restructure Settings into a task-oriented workspace",
-      "priority": "high",
-      "lifecycle": "ready",
-      "depends_on": [
-        683
-      ],
-      "branch": "feat/684-settings-task-workspace",
       "evidence": {}
     }
   ],

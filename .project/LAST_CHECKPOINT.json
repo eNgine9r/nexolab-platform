@@ -37,21 +37,9 @@
         "blocked_by": 683,
         "additional_requirement": "new accepted ARM64/local-auth artifact"
       }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-08-26T08:35:38+03:00",
-      "kind": "next_ready_work_package",
-      "data": {
-        "issue": 684,
-        "depends_on": [
-          683
-        ],
-        "status": "ready"
-      }
     }
   ],
-  "next_action": "Push final #683 state, open PR and require exact-head CI/offline-bundle GREEN. After #683 merges, produce the new ARM64/local-auth recovery artifact for #189; #684 is the next Ready frontend WP.",
+  "next_action": "Push final #683 state, open PR and require exact-head CI/offline-bundle GREEN. After #683 merges, activate GitHub Issue #684 as the next Ready frontend Work Package; #189 remains blocked on a new accepted ARM64/local-auth artifact and re-staging.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
