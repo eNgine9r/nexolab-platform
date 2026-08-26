@@ -144,6 +144,7 @@ $processed = 0
 $readyTasks = $workPackages |
     Where-Object { $_.lifecycle -eq "ready" } |
     Sort-Object priority
+Write-Host "Ready Work Packages: $(@($readyTasks).Count)"
 
 foreach ($task in $readyTasks) {
     if ($MaxTasks -gt 0 -and $processed -ge $MaxTasks) {
