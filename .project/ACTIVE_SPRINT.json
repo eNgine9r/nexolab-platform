@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 690,
-      "title": "Make PR verification risk-aware and path-targeted",
-      "branch": "feat/690-risk-aware-verification"
+      "issue": 704,
+      "title": "Reconcile fresh Device Agent SQLite findings and retired OpenSSL exceptions",
+      "branch": "fix/704-container-security-reconciliation"
     },
     "next_work_package": null
   },
@@ -350,7 +350,7 @@
       "issue": 690,
       "title": "Make PR verification risk-aware and path-targeted",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "blocked",
       "depends_on": [],
       "branch": "feat/690-risk-aware-verification",
       "evidence": {}
@@ -369,16 +369,32 @@
           "NEXOLAB Merge Gate": "success"
         }
       }
+    },
+    {
+      "issue": 704,
+      "title": "Reconcile fresh Device Agent SQLite findings and retired OpenSSL exceptions",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "branch": "fix/704-container-security-reconciliation",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [
     {
-      "source_issue": 598,
-      "title": "Review/remove CVE-2026-14456 temporary exceptions",
-      "status": "renewed",
+      "source_issue": 704,
+      "title": "Remove remaining Device Agent OpenSSL vendor-lag exception",
+      "status": "due",
       "due_on": "2026-08-30",
       "owner": "platform-security",
-      "rule": "Final PR #661 exact-head Container Supply Chain run 32626324921 retained only the four exact HIGH/no-fix CVE-2026-14456 tuples through 2026-08-30; remove earlier if Debian publishes a supported fixed Trixie package, the findings disappear, QUIC runtime reachability changes, or severity becomes Critical."
+      "rule": "Remove immediately when supported distroless consumes fixed Trixie OpenSSL, the finding disappears, QUIC/HTTP3 reachability changes, or severity becomes Critical."
+    },
+    {
+      "source_issue": 704,
+      "title": "Review/remove Device Agent SQLite FTS5 exceptions",
+      "status": "due",
+      "due_on": "2026-09-02",
+      "owner": "platform-security",
+      "rule": "Remove immediately when Debian Trixie publishes a fixed libsqlite3-0 package, findings disappear, Device Agent gains FTS5/arbitrary-SQL/untrusted-database reachability, or severity becomes Critical."
     }
   ],
   "observations": [

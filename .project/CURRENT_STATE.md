@@ -50,7 +50,7 @@ Software/isolated backup-restore, real MQTT/SQLite outage replay, actual-host re
 
 ## Security maintenance
 
-Four exact OpenSSL QUIC `CVE-2026-14456` temporary decisions remain reviewed through **2026-08-30**. Rebuild/review again at expiry or earlier if a fixed Debian Trixie package appears, findings disappear, QUIC reachability changes or severity becomes Critical.
+Security maintenance is being reconciled under Issue #704. Fresh exact-head scan evidence shows telemetry-service now consumes fixed OpenSSL `3.5.7-1~deb13u2`, so its three `CVE-2026-14456` exceptions are retired. Device Agent retains only `libssl3t64/CVE-2026-14456` through **2026-08-30** while the supported distroless base still lags the fixed Debian package. Two exact Device Agent `libsqlite3-0` HIGH decisions (`CVE-2026-11822`, `CVE-2026-11824`) are reviewed through **2026-09-02** because the current runtime exposes no FTS5, arbitrary-SQL or untrusted-database import path. Remove any decision earlier when its finding disappears, a supported fix becomes consumable, reachability changes or severity becomes Critical.
 
 ## Runtime and safety boundary
 

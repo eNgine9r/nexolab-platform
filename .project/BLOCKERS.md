@@ -28,7 +28,7 @@ Blocked until the Product Owner confirms the temporary external RS-485 owner has
 
 ## Security maintenance — CVE-2026-14456
 
-Four exact reviewed HIGH/no-fix decisions are retained through **2026-08-30**. Rebuild/review at expiry or earlier if a fixed Trixie package appears, findings disappear, QUIC reachability changes or severity becomes Critical.
+Issue #704 is the active security-maintenance interrupt. Three telemetry-service OpenSSL `CVE-2026-14456` exceptions are retired because the fresh image consumes fixed OpenSSL `3.5.7-1~deb13u2`. The remaining Device Agent OpenSSL tuple expires **2026-08-30** while the supported distroless base still lags the Debian fix. Two exact Device Agent `libsqlite3-0` HIGH decisions (`CVE-2026-11822`, `CVE-2026-11824`) expire **2026-09-02**; current reachability audit finds no FTS5, arbitrary-SQL or untrusted-database import path. Any Critical finding remains release-blocking and cannot be excepted. Issue #690 is temporarily blocked only by this critical interrupt and returns to Ready after #704 completes.
 
 ## Cleared boundaries
 
