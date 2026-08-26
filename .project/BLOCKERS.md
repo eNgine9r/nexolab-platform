@@ -4,7 +4,11 @@ Updated: 2026-08-26
 
 ## Issue #189 — actual-host recovery acceptance
 
-Blocked on controlled re-staging of accepted ARM64/local-auth artifact `9584581740` from GREEN run `32939760743` before the actual-host recovery drill resumes. #683 and #686 are completed; the replacement hosted acceptance passed disconnected startup, local-auth continuity and update/rollback persistent-data preservation. Actual-host cutover/recovery remains separately governed, and power-loss remains separately gated.
+Blocked because accepted ARM64/local-auth artifact `9584581740` from GREEN run `32939760743` is exact to runtime source `cc27b609...`, while the currently deployed LAN source is now `a929144a...` from successful deployment evidence `runtime/deployments/20260826T125356Z`. The old artifact remains historical evidence but is not exact-source authority for the current runtime. Refresh recovery/package acceptance for `a929144a...` or establish another explicitly accepted current-source recovery path before resuming the actual-host recovery drill. Actual-host cutover/recovery and power-loss remain separately gated.
+
+## Issue #696 / #698 — refrigeration latency merge blocked by hosted-runner allocation
+
+Issue #696 is implemented in PR #697 at exact head `e77b99af4bc53b9e173ff913f824f6f7dc2a71c8`. Targeted refrigeration tests and real Raspberry Pi SQL benchmarking are GREEN; the affected KK2 lookup improved from `85874.034 ms` to `1.853 ms`. Merge is soft-blocked by Issue #698: GitHub scheduler annotation states `The job was not acquired by Runner of type hosted even after multiple attempts`. Repository Actions are enabled, no other accessible repository had an in-progress Actions job during diagnosis, and Capacity Release Gate later obtained a runner and passed, so allocation is intermittent. Do not merge #697 until the exact-head required checks execute and are GREEN.
 
 ## Issue #200 — physical RS-485 topology
 

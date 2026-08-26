@@ -8,7 +8,7 @@ Updated: 2026-08-26
 
 Issue #681 state reconciliation is completed. Issue #679 is completed after real post-merge `linux/arm64` + local-auth dispatch `32832798392` passed the QEMU application-health, disconnected runtime, persistent-volume and auth-continuity gates and published a checksum-verified accepted recovery artifact for the exact deployed source lineage.
 
-Issue #683 is merged and completed at PR #685. Issue #686 is also completed at PR #687: replacement post-merge ARM64/local-auth dispatch `32939760743` passed disconnected startup, local-auth continuity, update/rollback persistent-data preservation and published accepted artifact `9584581740` for deployed runtime source `cc27b609...`. Issue #189 now remains blocked only on controlled re-staging of that accepted artifact and the separately governed actual-host recovery/cutover boundary. Issue #684 has completed implementation and exact-head verification in PR #689; the next Ready Work Package is Issue #690, which makes PR verification risk-aware and path-targeted without weakening safety gates.
+Issue #683 is merged and completed at PR #685. Issue #686 is also completed at PR #687: replacement post-merge ARM64/local-auth dispatch `32939760743` passed disconnected startup, local-auth continuity and update/rollback persistence for runtime source `cc27b609...`. Issue #684 is merged at PR #689 and its controlled LAN deployment completed successfully on source `a929144a2cbfa7c192e5e04cae6e02291cbef2cc`. The previously accepted recovery artifact `9584581740` remains valid evidence for `cc27b609...` but is no longer exact-source recovery authority for the currently deployed `a929144a...` lineage. Critical performance Issue #696 is implemented in PR #697 and locally/production-query verified, but exact-head merge is soft-blocked by GitHub hosted-runner allocation Issue #698. Issue #690 remains the next independent Ready Work Package.
 
 ## Recently completed production-readiness boundaries
 
@@ -18,7 +18,7 @@ Issue #245 is completed with real Raspberry Pi standalone hardware evidence. Iss
 
 Accepted hardware-validated product source: `750a5b8cba02add472f1aa7ca7a2b077e809c3c3`.
 
-Currently deployed source: `cc27b609eea2917b97da96003a08e5c84a7edbb1` in `lan` runtime mode. Controlled LAN deployment evidence: `/home/nexolab/nexolab-platform/runtime/deployments/20260824T091838Z` with `DEPLOYMENT PASSED`.
+Currently deployed source: `a929144a2cbfa7c192e5e04cae6e02291cbef2cc` in `lan` runtime mode. Controlled LAN deployment evidence: `/home/nexolab/nexolab-platform/runtime/deployments/20260826T125356Z` with `DEPLOYMENT PASSED`; `/settings` returned HTTP 200, API readiness and Device Agent health were GREEN, and telemetry continued advancing.
 
 The accepted baseline remains anchored to #245 real-hardware acceptance. Repository synchronization is not deployment or cutover.
 
@@ -34,7 +34,12 @@ Legacy controlled-source records may derive missing Dashboard/auth identity only
 
 ## Issue #189 recovery boundary
 
-Software/isolated backup-restore, real MQTT/SQLite outage replay, actual-host reboot persistence and hosted ARM64/local-auth package acceptance are verified. The first approved actual-host package transition failed safely on #683 after backup and partial central recreation; source central, Dashboard, edge, all six persistent-volume identities and advancing telemetry were restored. #686 restored GREEN ARM64/local-auth acceptance in run `32939760743`; #189 remains blocked on controlled re-staging of accepted artifact `9584581740` before the actual-host recovery drill resumes. Optional power-loss evidence remains separately gated.
+Software/isolated backup-restore, real MQTT/SQLite outage replay, actual-host reboot persistence and hosted ARM64/local-auth package acceptance are verified for their recorded source lineages. The first approved actual-host package transition failed safely on #683 after backup and partial central recreation; source central, Dashboard, edge, all six persistent-volume identities and advancing telemetry were restored. #686 restored GREEN ARM64/local-auth acceptance in run `32939760743` for `cc27b609...`; because the currently deployed source is now `a929144a...`, artifact `9584581740` must not be treated as exact-source recovery authority. #189 remains blocked until recovery/package acceptance is refreshed for the current deployed source or another explicitly accepted recovery path is established. Optional power-loss evidence remains separately gated.
+
+## Current soft blockers and operational observations
+
+- #696 / PR #697 removes the refrigeration structural-snapshot history scan by using `telemetry_latest`. Real Raspberry Pi SQL evidence improved the affected 84-channel KK2 lookup from `85874.034 ms` to `1.853 ms`. Merge remains soft-blocked on #698 because several GitHub-hosted jobs were not acquired by a hosted runner; Capacity Release Gate subsequently completed GREEN, so runner allocation is intermittent rather than a product-code failure.
+- Authorized telemetry-retention maintenance on 2026-08-26 created and checksum-verified a PostgreSQL backup before deletion. Confirmed completed cleanup is 3,784,832 old `telemetry_session_contexts` rows plus 250,000 old `telemetry_samples`, followed by `VACUUM FULL ANALYZE telemetry_session_contexts`. Full deletion of all sensor samples before 2026-08-20 was not completed and must not be reported as completed retention.
 
 ## Hardware validation backlog
 
