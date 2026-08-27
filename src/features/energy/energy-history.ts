@@ -65,8 +65,22 @@ function cadenceStateFromTimestamps(timestamps: readonly number[]): EnergyHistor
   };
 }
 
+function deriveEnergyHistorySourceGapMs(samples: readonly TelemetrySample[]): number {
+  return deriveChartSourceGapMs(
+    samples.filter(isRenderableEnergyHistorySample).map((sample) => ({
+      id: energyHistorySourceEventId(sample.event_id),
+      timestampMs: Date.parse(sample.captured_at),
+    })),
+  );
+}
+
 function cadenceStateFromSamples(samples: readonly TelemetrySample[]): EnergyHistoryCadenceState | null {
-  return cadenceStateFromTimestamps(renderableEnergyHistoryTimestamps(samples));
+  const cadenceState = cadenceStateFromTimestamps(renderableEnergyHistoryTimestamps(samples));
+  if (cadenceState === null) return null;
+  return {
+    ...cadenceState,
+    maximumSourceGapMs: deriveEnergyHistorySourceGapMs(samples),
+  };
 }
 
 function rememberSourceCadenceForTail(
@@ -90,15 +104,6 @@ function rememberSourceCadenceForTail(
 function sourceCadenceForTail(sample: TelemetrySample | null): EnergyHistoryCadenceState | null {
   if (sample === null) return null;
   return sourceCadenceByTailEventId.get(energyHistorySourceEventId(sample.event_id)) ?? null;
-}
-
-function deriveEnergyHistorySourceGapMs(samples: readonly TelemetrySample[]): number {
-  return deriveChartSourceGapMs(
-    samples.filter(isRenderableEnergyHistorySample).map((sample) => ({
-      id: energyHistorySourceEventId(sample.event_id),
-      timestampMs: Date.parse(sample.captured_at),
-    })),
-  );
 }
 
 function annotateSourceSegments(
