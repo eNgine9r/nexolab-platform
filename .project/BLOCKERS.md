@@ -2,6 +2,14 @@
 
 Updated: 2026-08-27
 
+## Issue #709 — post-merge Saved Dashboard runtime CSV verification
+
+PR #710 merged at `3f73e81f4d99cfcd07ba1afadf3eba9957945bd1`, but controlled Raspberry Pi deployment and runtime CSV-content re-verification remain blocked until the Product Owner explicitly approves that production/site-cutover action. Repository/software acceptance remains valid and no deployment is implied by the merge.
+
+## Issue #711 — post-merge Energy runtime verification
+
+Repository/software verification is complete for exact product head `da3569969ad39be4e409fe91bc0821e2587368a0`: local 66/66 focused tests, full lint/typecheck/build, Core CI, Authenticated Dashboard Acceptance, Offline Bundle, NEXOLAB Merge Gate and fresh Codex review are GREEN, with all review threads resolved. The corrected Energy history code has not been deployed to the Raspberry Pi. Controlled deployment and operator/runtime verification remain a production/site-cutover action and must not occur without explicit Product Owner approval. No Modbus, acquisition-cadence, hardware, database or persistent-volume write is required by the repository fix.
+
 ## Issue #189 — actual-host recovery acceptance
 
 Blocked because accepted ARM64/local-auth artifact `9584581740` from GREEN run `32939760743` is exact to runtime source `cc27b609...`, while the currently deployed LAN source is now `ff796b1f...` from successful deployment evidence `runtime/deployments/20260827T101743Z`. The old artifact remains historical evidence but is not exact-source authority for the current runtime. Refresh recovery/package acceptance for `ff796b1f...` or establish another explicitly accepted current-source recovery path before resuming the actual-host recovery drill. Actual-host cutover/recovery and power-loss remain separately gated.
