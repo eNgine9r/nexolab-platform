@@ -435,7 +435,7 @@ def test_saved_dashboard_csv_export_is_persisted_deterministic_and_bounded(
         params={
             "from": (base - timedelta(seconds=1)).isoformat(),
             "to": (base + timedelta(seconds=30)).isoformat(),
-            "timezone": "Europe/Kyiv",
+            "timezone": "Europe/Kiev",
         },
     )
     assert exported.status_code == 200, exported.text
