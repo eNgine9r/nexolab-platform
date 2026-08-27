@@ -155,7 +155,8 @@ export function buildSavedDashboardChartGroups(
   const plotted = options.series
     .filter((item) => item.item.visualization === "line" || item.item.visualization === "area")
     .sort(
-      (left, right) => left.item.position - right.item.position || left.item.id.localeCompare(right.item.id),
+      (left, right) =>
+        left.item.position - right.item.position || left.item.id.localeCompare(right.item.id),
     );
   const chartSeries = plotted.map((source, index) =>
     buildSeries(
