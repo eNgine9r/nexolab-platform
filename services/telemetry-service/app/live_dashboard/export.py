@@ -32,6 +32,13 @@ EXPORT_FIELDS = (
 DEFAULT_EXPORT_MAX_ROWS = 100_000
 EXPORT_PAGE_SIZE = 1_000
 
+# Chromium/WebKit installations can still surface historical IANA link names.
+# Normalize only explicit compatibility aliases; unknown identifiers must remain
+# fail-closed instead of silently falling back to UTC.
+_TIMEZONE_ALIASES: dict[str, str] = {
+    "Europe/Kiev": "Europe/Kyiv",
+}
+
 
 class LiveDashboardExportError(RuntimeError):
     pass
@@ -86,8 +93,9 @@ def _resolve_timezone(name: str) -> ZoneInfo:
     normalized = name.strip()
     if not normalized:
         raise LiveDashboardExportTimezoneError("timezone must not be empty")
+    canonical = _TIMEZONE_ALIASES.get(normalized, normalized)
     try:
-        return ZoneInfo(normalized)
+        return ZoneInfo(canonical)
     except ZoneInfoNotFoundError as error:
         raise LiveDashboardExportTimezoneError(
             f"Unsupported IANA timezone: {normalized}"
