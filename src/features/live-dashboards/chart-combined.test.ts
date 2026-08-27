@@ -84,10 +84,7 @@ describe("Saved Dashboard combined chart workspace", () => {
       }),
     ).toHaveLength(1);
 
-    const overBudget = [
-      ...withinBudget,
-      plottedSeries(6, "RH-1", "humidity", "%RH", "climate-1"),
-    ];
+    const overBudget = [...withinBudget, plottedSeries(6, "RH-1", "humidity", "%RH", "climate-1")];
     const groups = buildSavedDashboardChartGroups({
       dashboardId: "dashboard-over-budget",
       series: overBudget,
