@@ -22,7 +22,11 @@
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 690,
+      "title": "Make PR verification risk-aware and path-targeted",
+      "branch": "feat/690-risk-aware-verification"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -346,7 +350,7 @@
       "issue": 690,
       "title": "Make PR verification risk-aware and path-targeted",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [],
       "branch": "feat/690-risk-aware-verification",
       "evidence": {}

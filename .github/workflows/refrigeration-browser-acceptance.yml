@@ -5,11 +5,13 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/refrigeration-browser-acceptance.yml"
+      - "scripts/classify-ci-impact.py"
       - "docs/refrigeration-browser-central-acceptance.md"
-      - "e2e/**"
+      - "e2e/refrigeration-layout.production.e2e.ts"
       - "infrastructure/compose/compose.browser-acceptance.yaml"
       - "infrastructure/compose/compose.central.yaml"
       - "package.json"
+      - "package-lock.json"
       - "playwright.production.config.ts"
       - "scripts/run-refrigeration-browser-acceptance.sh"
       - "services/telemetry-service/app/refrigeration/**"

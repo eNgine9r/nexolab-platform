@@ -153,6 +153,23 @@ Current policy:
 
 This policy optimizes verification selection; it does not reduce acceptance criteria. Software checks never substitute for required hardware/runtime evidence.
 
+Risk-aware routing matrix:
+
+| Exact PR change surface                                           | Core lane                 | Authenticated Dashboard                               | Refrigeration Browser                            | Offline Bundle                                 |
+| ----------------------------------------------------------------- | ------------------------- | ----------------------------------------------------- | ------------------------------------------------ | ---------------------------------------------- |
+| canonical state-only                                              | state integrity           | no                                                    | no                                               | no                                             |
+| Settings-only UI/E2E                                              | full quality              | focused Settings test                                 | no                                               | no                                             |
+| other single dashboard domain                                     | full quality              | focused domain test when deterministic                | only if refrigeration-owned                      | no unless runtime/package contract changes     |
+| shared auth/security/telemetry/acquisition/global dashboard shell | full quality              | full matrix                                           | only when refrigeration contract is affected     | only when offline/runtime contract is affected |
+| refrigeration product/API/migration/E2E                           | full quality              | only if separately routed                             | required                                         | only when offline/runtime contract is affected |
+| Compose/offline/package/service-image/dependency runtime contract | full quality              | full when dashboard/runtime dependencies are affected | required for shared browser dependencies         | required                                       |
+| routing-classifier change or unknown/ambiguous path               | full quality, fail closed | required                                              | required                                         | required                                       |
+| other known CI-governance change                                  | full quality              | only when its dashboard contract is affected          | only when its refrigeration contract is affected | only when its offline contract is affected     |
+
+The classifier publishes the expected external workflow names for the exact changed-file set. The Merge Gate must fail if a required workflow never registers, and it must also require every additional exact-head PR workflow that did register to finish GREEN. A workflow is never skipped merely because it is slow.
+
+For local candidate verification, ignored runtime evidence or host-specific files must not leak into source checks. Use `scripts/prepare-clean-verification-worktree.sh <ref> <target-directory>` to materialize a detached clean Git worktree, run the candidate checks there, then remove that worktree explicitly. Expensive remote CI should still be triggered only for a coherent candidate, not every local micro-fix.
+
 ### Evidence anchoring
 
 State Model v2 distinguishes:

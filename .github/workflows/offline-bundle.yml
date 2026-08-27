@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/offline-bundle.yml"
+      - "scripts/classify-ci-impact.py"
       - "infrastructure/compose/**"
       - "infrastructure/offline/**"
       - "scripts/build-offline-bundle.sh"
@@ -19,8 +20,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - "next.config.ts"
-      - "public/**"
-      - "src/**"
+      - "src/app/api/**"
   workflow_dispatch:
     inputs:
       platform:

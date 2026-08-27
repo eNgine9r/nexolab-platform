@@ -63,6 +63,14 @@ def latest_by_workflow(runs: Iterable[WorkflowRun], current_run_id: int) -> list
     )
 
 
+def missing_required_workflows(
+    runs: Iterable[WorkflowRun],
+    required_names: Iterable[str],
+) -> list[str]:
+    observed = {run.name for run in runs}
+    return sorted({name for name in required_names if name and name not in observed})
+
+
 def evaluate_runs(runs: Iterable[WorkflowRun]) -> tuple[list[WorkflowRun], list[WorkflowRun]]:
     pending: list[WorkflowRun] = []
     failed: list[WorkflowRun] = []
@@ -128,6 +136,7 @@ def wait_for_green_matrix(
     poll_seconds: int,
     timeout_seconds: int,
     stable_rounds_required: int,
+    required_workflows: tuple[str, ...] = (),
 ) -> list[WorkflowRun]:
     deadline = time.monotonic() + timeout_seconds
     stable_rounds = 0
@@ -138,6 +147,7 @@ def wait_for_green_matrix(
         all_runs = fetch_runs(api_url, repository, head_sha, token)
         latest_external = latest_by_workflow(all_runs, current_run_id)
         pending, failed = evaluate_runs(latest_external)
+        missing = missing_required_workflows(latest_external, required_workflows)
 
         if failed:
             raise RuntimeError(
@@ -155,19 +165,31 @@ def wait_for_green_matrix(
 
         print(
             f"Observed {len(latest_external)} external exact-head PR workflow(s); "
-            f"pending={len(pending)}; registration_stability={stable_rounds}/{stable_rounds_required}",
+            f"pending={len(pending)}; missing_required={len(missing)}; "
+            f"registration_stability={stable_rounds}/{stable_rounds_required}",
             flush=True,
         )
         if pending:
             print(format_runs(pending), flush=True)
+        if missing:
+            print("Missing required workflow(s): " + ", ".join(missing), flush=True)
 
         if not pending and stable_rounds >= stable_rounds_required:
+            if missing:
+                raise RuntimeError(
+                    "Exact-head PR workflow registration stabilized without required workflow(s): "
+                    + ", ".join(missing)
+                )
             return latest_external
 
         if time.monotonic() >= deadline:
+            missing_detail = (
+                "\nMissing required workflow(s): " + ", ".join(missing) if missing else ""
+            )
             raise TimeoutError(
                 "Timed out waiting for the exact-head PR workflow matrix. Latest observed runs:\n"
                 + format_runs(latest_external)
+                + missing_detail
             )
 
         previous_ids = current_ids
@@ -183,6 +205,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--poll-seconds", type=int, default=10)
     parser.add_argument("--timeout-seconds", type=int, default=1800)
     parser.add_argument("--stable-rounds", type=int, default=2)
+    parser.add_argument(
+        "--required-workflows-json",
+        default="[]",
+        help="JSON array of workflow names that must be registered for this exact head",
+    )
     return parser.parse_args()
 
 
@@ -200,6 +227,17 @@ def main() -> int:
         return 2
 
     try:
+        parsed_required = json.loads(args.required_workflows_json)
+        if not isinstance(parsed_required, list) or not all(
+            isinstance(item, str) and item.strip() for item in parsed_required
+        ):
+            raise ValueError("required workflows must be a JSON array of non-empty strings")
+        required_workflows = tuple(dict.fromkeys(item.strip() for item in parsed_required))
+    except (json.JSONDecodeError, ValueError) as exc:
+        print(f"Invalid --required-workflows-json: {exc}", file=sys.stderr)
+        return 2
+
+    try:
         runs = wait_for_green_matrix(
             api_url=args.api_url,
             repository=args.repository,
@@ -209,6 +247,7 @@ def main() -> int:
             poll_seconds=max(1, args.poll_seconds),
             timeout_seconds=max(1, args.timeout_seconds),
             stable_rounds_required=max(1, args.stable_rounds),
+            required_workflows=required_workflows,
         )
     except (RuntimeError, TimeoutError) as exc:
         print(str(exc), file=sys.stderr)
