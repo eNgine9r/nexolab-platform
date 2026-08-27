@@ -13,8 +13,11 @@ import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
 const HISTORY_PAGE_SIZE = 1_000;
 const MAX_HISTORY_PAGES = 100;
+const SOURCE_GAP_TAIL_CACHE_LIMIT = 512;
 export const MAX_HISTORY_POINTS_PER_METER = 240;
 export const ENERGY_HISTORY_MAX_FUTURE_SKEW_MS = 30_000;
+
+const sourceGapByTailEventId = new Map<string, number>();
 
 export interface EnergyHistoryWindow {
   nodeId: string;
@@ -36,6 +39,26 @@ function isAcceptedEnergyHistorySample(sample: TelemetrySample): boolean {
   return isEnergySample(sample) && Number.isFinite(Date.parse(sample.captured_at));
 }
 
+function rememberSourceGapForTail(sample: TelemetrySample | null, maximumSourceGapMs: number | null): void {
+  if (sample === null || maximumSourceGapMs === null) return;
+  if (!Number.isFinite(maximumSourceGapMs) || maximumSourceGapMs <= 0) return;
+
+  const sourceEventId = energyHistorySourceEventId(sample.event_id);
+  sourceGapByTailEventId.delete(sourceEventId);
+  sourceGapByTailEventId.set(sourceEventId, maximumSourceGapMs);
+
+  while (sourceGapByTailEventId.size > SOURCE_GAP_TAIL_CACHE_LIMIT) {
+    const oldestKey = sourceGapByTailEventId.keys().next().value;
+    if (oldestKey === undefined) break;
+    sourceGapByTailEventId.delete(oldestKey);
+  }
+}
+
+function sourceGapForTail(sample: TelemetrySample | null): number | null {
+  if (sample === null) return null;
+  return sourceGapByTailEventId.get(energyHistorySourceEventId(sample.event_id)) ?? null;
+}
+
 function deriveEnergyHistorySourceGapMs(samples: readonly TelemetrySample[]): number {
   return deriveChartSourceGapMs(
     samples.filter(isRenderableEnergyHistorySample).map((sample) => ({
@@ -43,6 +66,10 @@ function deriveEnergyHistorySourceGapMs(samples: readonly TelemetrySample[]): nu
       timestampMs: Date.parse(sample.captured_at),
     })),
   );
+}
+
+function hasLearnableSourceCadence(samples: readonly TelemetrySample[]): boolean {
+  return samples.filter(isRenderableEnergyHistorySample).length >= 3;
 }
 
 function annotateSourceSegments(
@@ -196,9 +223,16 @@ export function downsampleEnergyHistory(
   return [...byMeter.entries()]
     .sort(([left], [right]) => left - right)
     .flatMap(([, meterSamples]) => {
-      const annotation = annotateSourceSegments(meterSamples);
+      const maximumSourceGapMs = deriveEnergyHistorySourceGapMs(meterSamples);
+      const annotation = annotateSourceSegments(meterSamples, null, false, maximumSourceGapMs);
       const sampled = bucketDownsampleAnnotated(annotation.samples, maximumPointsPerMeter, window);
-      return applyPendingBreak(sampled, annotation.breakPending);
+      const reduced = applyPendingBreak(sampled, annotation.breakPending);
+
+      if (hasLearnableSourceCadence(meterSamples)) {
+        rememberSourceGapForTail(reduced.filter(isRenderableEnergyHistorySample).at(-1) ?? null, maximumSourceGapMs);
+      }
+
+      return reduced;
     });
 }
 
@@ -251,14 +285,19 @@ export function mergeEnergyHistoryTail(
         .map((sample) => Date.parse(sample.captured_at))
         .filter(Number.isFinite)
         .at(-1) ?? null;
-    // The retained/current side may already be downsampled, so it cannot safely
-    // establish the physical source cadence for a single live-tail sample. Preserve
-    // explicit/quality boundaries here and let raw history annotation own silent-gap detection.
+    const incomingSamples = incomingByMeter.get(unitId) ?? [];
+    const inheritedSourceGapMs = sourceGapForTail(latestExisting);
+    const maximumSourceGapMs =
+      inheritedSourceGapMs ??
+      (hasLearnableSourceCadence(incomingSamples) ? deriveEnergyHistorySourceGapMs(incomingSamples) : null);
+    // Retained history may be heavily downsampled, so source cadence is learned only from
+    // raw samples and carried forward by the latest raw event identity. This keeps normal
+    // scheduler jitter continuous while still detecting a later silent outage immediately.
     const annotation = annotateSourceSegments(
-      incomingByMeter.get(unitId) ?? [],
+      incomingSamples,
       lastExistingAt,
       existingBreakPending,
-      null,
+      maximumSourceGapMs,
     );
     const byEventId = new Map<string, TelemetrySample>();
 
@@ -267,7 +306,14 @@ export function mergeEnergyHistoryTail(
     }
 
     const sampled = bucketDownsampleAnnotated([...byEventId.values()], MAX_HISTORY_POINTS_PER_METER, window);
-    merged.push(...applyPendingBreak(sampled, annotation.breakPending));
+    const reduced = applyPendingBreak(sampled, annotation.breakPending);
+    const latestReduced = reduced.filter(isRenderableEnergyHistorySample).at(-1) ?? null;
+
+    if (maximumSourceGapMs !== null) {
+      rememberSourceGapForTail(latestReduced, maximumSourceGapMs);
+    }
+
+    merged.push(...reduced);
   }
 
   return merged;
