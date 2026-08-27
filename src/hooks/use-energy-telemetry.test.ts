@@ -162,6 +162,69 @@ describe("useEnergyTelemetry startup coverage", () => {
     });
   });
 
+  it("does not reload history when a refreshed cadence authority fingerprint is unchanged", async () => {
+    cadenceState.read.mockResolvedValue(cadenceAuthority(1));
+
+    const mounted = renderHook(() => useEnergyTelemetry());
+    await waitFor(() => expect(adapterState.subscribe).toHaveBeenCalledOnce());
+    act(() => {
+      adapterState.handlers?.onStateChange?.("connected");
+    });
+    await waitFor(() => {
+      expect(adapterState.history).toHaveBeenCalledTimes(1);
+      expect(mounted.result.current.historyStatus).toBe("ready");
+    });
+
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(cadenceState.read).toHaveBeenCalledTimes(2);
+    expect(adapterState.history).toHaveBeenCalledTimes(1);
+    mounted.unmount();
+  });
+
+  it("ignores an older cadence refresh that resolves after a newer authority", async () => {
+    let resolveStale: (value: ReturnType<typeof cadenceAuthority>) => void = () => undefined;
+    cadenceState.read
+      .mockResolvedValueOnce(cadenceAuthority(1))
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveStale = resolve;
+          }),
+      )
+      .mockResolvedValue(cadenceAuthority(2));
+
+    const mounted = renderHook(() => useEnergyTelemetry());
+    await waitFor(() => expect(adapterState.subscribe).toHaveBeenCalledOnce());
+    act(() => {
+      adapterState.handlers?.onStateChange?.("connected");
+    });
+    await waitFor(() => expect(adapterState.history).toHaveBeenCalledTimes(1));
+
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+      window.dispatchEvent(new Event("focus"));
+    });
+    await waitFor(() => expect(cadenceState.read).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(adapterState.history).toHaveBeenCalledTimes(2));
+
+    await act(async () => {
+      resolveStale(cadenceAuthority(1));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    await waitFor(() => expect(cadenceState.read).toHaveBeenCalledTimes(4));
+    expect(adapterState.history).toHaveBeenCalledTimes(2);
+    mounted.unmount();
+  });
+
   it("reloads the full selected history when persisted cadence authority changes", async () => {
     cadenceState.read.mockResolvedValueOnce(cadenceAuthority(1)).mockResolvedValueOnce(cadenceAuthority(2));
 

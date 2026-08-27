@@ -16,6 +16,7 @@ import {
   energyHistoryRetentionKey,
   invalidateIncompatibleRetainedEnergyHistory,
   invalidateRetainedEnergyHistory,
+  invalidateRetainedEnergyHistoryScope,
   readRetainedEnergyHistory,
   retainEnergyHistory,
   type EnergyHistoryRetentionKey,
@@ -264,6 +265,7 @@ export function useEnergyTelemetry({
     );
     let disposed = false;
     let initialRead = true;
+    let refreshGeneration = 0;
 
     cadenceAuthorityRef.current = { scopeKey, authority: null };
     void Promise.resolve().then(() => {
@@ -271,6 +273,7 @@ export function useEnergyTelemetry({
     });
 
     const refresh = async () => {
+      const generation = ++refreshGeneration;
       let nextAuthority: EnergyCadenceAuthority | null;
       try {
         nextAuthority = await readEnergyCadenceAuthority(authenticatedFetch, controller.signal);
@@ -278,7 +281,7 @@ export function useEnergyTelemetry({
         if (controller.signal.aborted || disposed) return;
         nextAuthority = null;
       }
-      if (controller.signal.aborted || disposed) return;
+      if (controller.signal.aborted || disposed || generation !== refreshGeneration) return;
 
       const previous =
         cadenceAuthorityRef.current.scopeKey === scopeKey ? cadenceAuthorityRef.current.authority : null;
@@ -286,15 +289,16 @@ export function useEnergyTelemetry({
 
       if (nextAuthority !== null) {
         cadenceAuthorityRef.current = { scopeKey, authority: nextAuthority };
-        setCadenceAuthorityState({ scopeKey, ready: true, authority: nextAuthority });
+        if (initialRead || changed) {
+          setCadenceAuthorityState({ scopeKey, ready: true, authority: nextAuthority });
+        }
       } else if (initialRead) {
         cadenceAuthorityRef.current = { scopeKey, authority: null };
         setCadenceAuthorityState({ scopeKey, ready: true, authority: null });
       }
 
       if (!initialRead && changed) {
-        const retentionKey = historyRetentionRef.current;
-        if (retentionKey !== null) invalidateRetainedEnergyHistory(retentionKey);
+        invalidateRetainedEnergyHistoryScope(securityScopeKey, ENERGY_NODE_ID);
         setHistoryGeneration((value) => value + 1);
       }
       initialRead = false;
@@ -310,7 +314,7 @@ export function useEnergyTelemetry({
       window.removeEventListener("focus", refreshOnFocus);
       window.clearInterval(timer);
     };
-  }, [enabled, runtime.config, scopeKey, selectedOrganizationId]);
+  }, [enabled, runtime.config, scopeKey, securityScopeKey, selectedOrganizationId]);
 
   useEffect(() => {
     storeRef.current = store;

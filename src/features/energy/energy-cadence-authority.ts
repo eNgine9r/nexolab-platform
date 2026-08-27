@@ -1,4 +1,4 @@
-import { deriveChartSourceGapMs } from "@/features/charts/continuity";
+import { CHART_MINIMUM_SOURCE_GAP_MS, CHART_SOURCE_GAP_MULTIPLIER } from "@/features/charts/continuity";
 
 const ENERGY_DEVICE_FAMILY = "le01mp";
 const ENERGY_DEVICE_PREFIX = "le01mp-";
@@ -23,6 +23,7 @@ type AuditRecord = {
 };
 
 type CadenceCheckpoint = {
+  revision: number;
   atMs: number;
   intervalMsByUnitId: Map<number, number>;
 };
@@ -179,12 +180,41 @@ function reverseRelevantAudit(policy: CadencePolicyState, audit: AuditRecord): b
   return true;
 }
 
-function sourceGapForCadence(intervalMs: number): number {
-  return deriveChartSourceGapMs([
-    { id: "cadence:0", timestampMs: 0 },
-    { id: "cadence:1", timestampMs: intervalMs },
-    { id: "cadence:2", timestampMs: intervalMs * 2 },
-  ]);
+function maximumPiecewiseSourceGapMs(
+  checkpoints: readonly CadenceCheckpoint[],
+  intervalMsAt: (unitId: number, capturedAtMs: number) => number | null,
+  unitId: number,
+  previousAtMs: number,
+  capturedAtMs: number,
+): number | null {
+  if (!Number.isFinite(previousAtMs) || !Number.isFinite(capturedAtMs) || capturedAtMs < previousAtMs) {
+    return null;
+  }
+
+  let intervalMs = intervalMsAt(unitId, previousAtMs);
+  if (intervalMs === null) return null;
+
+  let cursorMs = previousAtMs;
+  let remainingIntervals = CHART_SOURCE_GAP_MULTIPLIER;
+  for (const checkpoint of checkpoints) {
+    if (checkpoint.atMs <= previousAtMs) continue;
+    if (checkpoint.atMs > capturedAtMs) break;
+
+    const segmentMs = checkpoint.atMs - cursorMs;
+    const consumedIntervals = segmentMs / intervalMs;
+    if (consumedIntervals >= remainingIntervals) {
+      const thresholdMs = cursorMs - previousAtMs + remainingIntervals * intervalMs;
+      return Math.max(CHART_MINIMUM_SOURCE_GAP_MS, thresholdMs);
+    }
+
+    remainingIntervals -= consumedIntervals;
+    cursorMs = checkpoint.atMs;
+    intervalMs = checkpoint.intervalMsByUnitId.get(unitId) ?? NaN;
+    if (!Number.isFinite(intervalMs) || intervalMs <= 0) return null;
+  }
+
+  const thresholdMs = cursorMs - previousAtMs + remainingIntervals * intervalMs;
+  return Math.max(CHART_MINIMUM_SOURCE_GAP_MS, thresholdMs);
 }
 
 export function buildEnergyCadenceAuthority(value: unknown): EnergyCadenceAuthority | null {
@@ -206,12 +236,16 @@ export function buildEnergyCadenceAuthority(value: unknown): EnergyCadenceAuthor
   let workingPolicy = clonePolicy(currentPolicy);
 
   if (audit.length === 0) {
-    checkpoints.push({ atMs: updatedAtMs, intervalMsByUnitId: currentIntervals });
+    checkpoints.push({ revision, atMs: updatedAtMs, intervalMsByUnitId: currentIntervals });
   } else {
     for (const item of audit) {
       const afterIntervals = effectiveIntervals(workingPolicy, devices);
       if (!afterIntervals) break;
-      checkpoints.push({ atMs: item.changedAtMs, intervalMsByUnitId: afterIntervals });
+      checkpoints.push({
+        revision: item.revision,
+        atMs: item.changedAtMs,
+        intervalMsByUnitId: afterIntervals,
+      });
       coverageStartsAtMs = item.changedAtMs;
 
       const previousPolicy = clonePolicy(workingPolicy);
@@ -220,7 +254,9 @@ export function buildEnergyCadenceAuthority(value: unknown): EnergyCadenceAuthor
     }
   }
 
-  const chronological = checkpoints.sort((left, right) => left.atMs - right.atMs);
+  const chronological = checkpoints.sort(
+    (left, right) => left.atMs - right.atMs || left.revision - right.revision,
+  );
   if (chronological.length === 0) return null;
   coverageStartsAtMs = chronological[0].atMs;
 
@@ -240,12 +276,8 @@ export function buildEnergyCadenceAuthority(value: unknown): EnergyCadenceAuthor
     fingerprint: `${revision}:${updatedAt}:${coverageStartsAtMs}`,
     coverageStartsAtMs,
     intervalMsAt,
-    maximumSourceGapMs: (unitId, previousAtMs, capturedAtMs) => {
-      const previousInterval = intervalMsAt(unitId, previousAtMs);
-      const currentInterval = intervalMsAt(unitId, capturedAtMs);
-      if (previousInterval === null || currentInterval === null) return null;
-      return sourceGapForCadence(Math.max(previousInterval, currentInterval));
-    },
+    maximumSourceGapMs: (unitId, previousAtMs, capturedAtMs) =>
+      maximumPiecewiseSourceGapMs(chronological, intervalMsAt, unitId, previousAtMs, capturedAtMs),
   };
 }
 

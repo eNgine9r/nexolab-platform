@@ -148,6 +148,20 @@ describe("energy live-tail source cadence", () => {
     expect(isEnergyHistorySegmentStart(recovery.event_id)).toBe(true);
   });
 
+  it("applies faster cadence to time after a persisted reduction boundary", () => {
+    const authority = cadenceAuthority(60, 10, 5_000);
+    const reduced = downsampleEnergyHistory(
+      [sampleAtOffsetMs(0), sampleAtOffsetMs(125_000)],
+      240,
+      window,
+      authority,
+    );
+    const recovery = findByOffset(reduced, 125_000);
+
+    expect(isEnergyHistorySegmentStart(recovery.event_id)).toBe(true);
+    expect(isEnergyHistoryInferredSegmentStart(recovery.event_id)).toBe(false);
+  });
+
   it("uses persisted faster cadence after a runtime cadence reduction", () => {
     const mixedCadence = [
       sampleAtOffsetMs(0),

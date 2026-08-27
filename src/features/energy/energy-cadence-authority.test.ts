@@ -75,7 +75,7 @@ describe("energy cadence authority", () => {
     expect(authority!.intervalMsAt(200, Date.parse("2026-08-03T10:04:00Z"))).toBe(10_000);
   });
 
-  it("uses the slower side of a persisted cadence boundary for continuity tolerance", () => {
+  it("integrates cadence time on both sides of a persisted transition boundary", () => {
     const authority = buildEnergyCadenceAuthority(basePayload)!;
 
     expect(
@@ -84,7 +84,14 @@ describe("energy cadence authority", () => {
         Date.parse("2026-08-03T10:00:50Z"),
         Date.parse("2026-08-03T10:01:50Z"),
       ),
-    ).toBe(180_000);
+    ).toBe(170_000);
+    expect(
+      authority.maximumSourceGapMs(
+        200,
+        Date.parse("2026-08-03T10:02:50Z"),
+        Date.parse("2026-08-03T10:04:50Z"),
+      ),
+    ).toBeCloseTo(38_333.333, 3);
     expect(
       authority.maximumSourceGapMs(
         200,

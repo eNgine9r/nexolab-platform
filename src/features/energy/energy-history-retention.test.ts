@@ -8,6 +8,7 @@ import {
   ENERGY_HISTORY_RETENTION_TTL_MS,
   invalidateIncompatibleRetainedEnergyHistory,
   invalidateRetainedEnergyHistory,
+  invalidateRetainedEnergyHistoryScope,
   readRetainedEnergyHistory,
   resetRetainedEnergyHistoryForTests,
   retainEnergyHistory,
@@ -96,6 +97,23 @@ describe("Energy history retention", () => {
     retainEnergyHistory(KEY, VALUE, 1_000);
     invalidateRetainedEnergyHistory(KEY);
     expect(readRetainedEnergyHistory(KEY, 1_001)).toBeNull();
+  });
+
+  it("invalidates every retained range and metric for one security scope and node", () => {
+    const sameNodeOtherMetric = { ...KEY, metric: "electrical.voltage", range: "6h" };
+    const otherNode = { ...KEY, nodeId: "edge-02" };
+    const otherScope = { ...KEY, securityScope: "user-b:org-b" };
+    retainEnergyHistory(KEY, VALUE, 1_000);
+    retainEnergyHistory(sameNodeOtherMetric, VALUE, 1_000);
+    retainEnergyHistory(otherNode, VALUE, 1_000);
+    retainEnergyHistory(otherScope, VALUE, 1_000);
+
+    invalidateRetainedEnergyHistoryScope(KEY.securityScope, KEY.nodeId);
+
+    expect(readRetainedEnergyHistory(KEY, 1_001)).toBeNull();
+    expect(readRetainedEnergyHistory(sameNodeOtherMetric, 1_001)).toBeNull();
+    expect(readRetainedEnergyHistory(otherNode, 1_001)).not.toBeNull();
+    expect(readRetainedEnergyHistory(otherScope, 1_001)).not.toBeNull();
   });
 
   it("removes entries from incompatible security scopes while preserving the current scope", () => {

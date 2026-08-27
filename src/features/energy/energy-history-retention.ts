@@ -23,6 +23,7 @@ export interface RetainedEnergyHistory {
 
 interface RetainedEnergyHistoryEntry extends RetainedEnergyHistory {
   securityScope: string;
+  nodeId: string;
   retainedAt: number;
 }
 
@@ -60,6 +61,7 @@ export function retainEnergyHistory(
 ): void {
   retainedHistory.set(energyHistoryRetentionKey(key), {
     securityScope: key.securityScope,
+    nodeId: key.nodeId,
     retainedAt: now,
     window: { ...value.window },
     loadedThrough: value.loadedThrough,
@@ -69,6 +71,12 @@ export function retainEnergyHistory(
 
 export function invalidateRetainedEnergyHistory(key: EnergyHistoryRetentionKey): void {
   retainedHistory.delete(energyHistoryRetentionKey(key));
+}
+
+export function invalidateRetainedEnergyHistoryScope(securityScope: string, nodeId: string): void {
+  for (const [key, entry] of retainedHistory) {
+    if (entry.securityScope === securityScope && entry.nodeId === nodeId) retainedHistory.delete(key);
+  }
 }
 
 export function invalidateIncompatibleRetainedEnergyHistory(securityScope: string): void {
