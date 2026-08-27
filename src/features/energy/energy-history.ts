@@ -229,7 +229,10 @@ export function downsampleEnergyHistory(
       const reduced = applyPendingBreak(sampled, annotation.breakPending);
 
       if (hasLearnableSourceCadence(meterSamples)) {
-        rememberSourceGapForTail(reduced.filter(isRenderableEnergyHistorySample).at(-1) ?? null, maximumSourceGapMs);
+        rememberSourceGapForTail(
+          reduced.filter(isRenderableEnergyHistorySample).at(-1) ?? null,
+          maximumSourceGapMs,
+        );
       }
 
       return reduced;
