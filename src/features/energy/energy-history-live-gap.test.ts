@@ -66,4 +66,22 @@ describe("energy live-tail source cadence", () => {
 
     expect(isEnergyHistorySegmentStart(recovery.event_id)).toBe(true);
   });
+
+  it("relearns a faster runtime cadence from raw live deltas", () => {
+    const slowHistory = [
+      sampleAtOffsetMs(0),
+      sampleAtOffsetMs(60_000),
+      sampleAtOffsetMs(120_000),
+      sampleAtOffsetMs(180_000),
+      sampleAtOffsetMs(240_000),
+    ];
+    let live = downsampleEnergyHistory(slowHistory, 3, window);
+
+    live = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(250_000)], window);
+    live = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(260_000)], window);
+    const recovered = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(380_000)], window);
+    const recovery = findByOffset(recovered, 380_000);
+
+    expect(isEnergyHistorySegmentStart(recovery.event_id)).toBe(true);
+  });
 });
