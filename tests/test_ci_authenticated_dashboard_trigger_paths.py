@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import fnmatch
 import re
 import unittest
 from pathlib import Path
@@ -30,7 +31,7 @@ class AuthenticatedDashboardTriggerPathTests(unittest.TestCase):
             "e2e/live-chart-system.production.e2e.ts",
             "e2e/equipment-multi-axis-chart.production.e2e.ts",
         ):
-            self.assertIn(relative, paths)
+            self.assertTrue(any(fnmatch.fnmatchcase(relative, pattern) for pattern in paths))
             self.assertIn(f'"{Path(relative).name}"', config)
 
     def test_existing_dashboard_path_is_preserved_without_broad_state_or_docs_trigger(self) -> None:
