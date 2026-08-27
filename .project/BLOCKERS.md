@@ -26,6 +26,10 @@ Blocked until the Product Owner confirms the temporary external RS-485 owner has
 
 Issue #704 has exact-head repository verification GREEN at `e2f7857e381600d76dd4100cea2c776bab8868e8`: fresh Container Supply Chain, Telemetry service, Core CI and NEXOLAB Merge Gate all passed. The security interrupt no longer blocks #690, which is Ready. Remaining maintenance is deadline-driven rather than a current merge blocker: Device Agent `libssl3t64/CVE-2026-14456` expires **2026-08-30**; exact Device Agent and telemetry-service SQLite decisions plus telemetry `libcjson1/CVE-2026-16554` and `libwebsockets19t64/CVE-2026-78161` expire **2026-09-02** and must be removed earlier if findings disappear, fixes become consumable, reachability/version evidence changes or severity becomes Critical. No production/runtime mutation is authorized by this security reconciliation.
 
+## Issue #709 — post-merge controlled deployment authorization
+
+Repository verification and PR merge are not blocked. The controlled Raspberry Pi deployment and real CSV sensor-row re-verification are a production/site cutover boundary. Durable state records `production_cutover_authorized=false`, and Issue #709 has no Product Owner authorization comment. After GREEN merge, stop before runtime mutation until the Product Owner explicitly approves that controlled deployment. No Modbus or hardware write is part of the requested runtime verification.
+
 ## Operator browser inspection — soft tooling limitation
 
 Opera Browser Connector private-address actions remain unsuitable for direct LAN/Tailscale DOM/screenshot acceptance. This did not block the controlled #707 deployment: the Product Owner directly confirmed consolidated graphs and CSV download, then identified the missing sensor-row content now owned by #709.

@@ -27,7 +27,11 @@
       "title": "Export Saved Dashboard sensor telemetry with canonical equipment identity",
       "branch": "fix/709-live-dashboard-telemetry-equipment-id"
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 690,
+      "title": "Make PR verification risk-aware and path-targeted",
+      "branch": "feat/690-risk-aware-verification"
+    }
   },
   "work_packages": [
     {
@@ -446,7 +450,24 @@
       "priority": "high",
       "lifecycle": "review",
       "branch": "fix/709-live-dashboard-telemetry-equipment-id",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "8de343198093c0c4f9b84510623df19e16d1ba87",
+        "product_code_head_sha": "e969772519d896ebe78d8ff5fb283fddfbf800e0",
+        "pull_request": 710,
+        "raspberry_pi_live_dashboard_module_suite": "27_passed_1_skipped",
+        "authenticated_dashboard_playwright": "19_passed",
+        "checks": {
+          "CI": "success",
+          "Telemetry service": "success",
+          "Authenticated Dashboard Acceptance": "success",
+          "Offline Bundle": "success",
+          "Container Supply Chain": "success",
+          "NEXOLAB Merge Gate": "success",
+          "fresh Codex review": "clean",
+          "review threads": "all_resolved"
+        },
+        "runtime_deployment": "pending_explicit_product_owner_approval"
+      }
     }
   ],
   "maintenance_actions": [
