@@ -3,19 +3,23 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-27T12:34:52+03:00",
+  "timestamp": "2026-08-27T14:31:01+03:00",
   "actor": "ChatGPT",
-  "event": "issue_707_repository_verified_ready_for_merge",
+  "event": "issue_709_runtime_regression_in_review",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
-    "deployed_product_sha": "a929144a2cbfa7c192e5e04cae6e02291cbef2cc"
+    "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 709,
+    "title": "Export Saved Dashboard sensor telemetry with canonical equipment identity",
+    "branch": "fix/709-live-dashboard-telemetry-equipment-id"
+  },
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Push the state-only reconciliation, require current-head GREEN merge policy, merge PR #708, query Issue #707 closure, then begin Ready Issue #690.",
+  "next_action": "Require exact-head GREEN CI and clean review for PR #710, record final evidence, complete #709 state, merge, then controlled Raspberry Pi deployment and real CSV content re-verification.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

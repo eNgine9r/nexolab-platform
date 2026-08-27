@@ -4,7 +4,7 @@ Updated: 2026-08-27
 
 ## Issue #189 — actual-host recovery acceptance
 
-Blocked because accepted ARM64/local-auth artifact `9584581740` from GREEN run `32939760743` is exact to runtime source `cc27b609...`, while the currently deployed LAN source is now `a929144a...` from successful deployment evidence `runtime/deployments/20260826T125356Z`. The old artifact remains historical evidence but is not exact-source authority for the current runtime. Refresh recovery/package acceptance for `a929144a...` or establish another explicitly accepted current-source recovery path before resuming the actual-host recovery drill. Actual-host cutover/recovery and power-loss remain separately gated.
+Blocked because accepted ARM64/local-auth artifact `9584581740` from GREEN run `32939760743` is exact to runtime source `cc27b609...`, while the currently deployed LAN source is now `ff796b1f...` from successful deployment evidence `runtime/deployments/20260827T101743Z`. The old artifact remains historical evidence but is not exact-source authority for the current runtime. Refresh recovery/package acceptance for `ff796b1f...` or establish another explicitly accepted current-source recovery path before resuming the actual-host recovery drill. Actual-host cutover/recovery and power-loss remain separately gated.
 
 ## Issue #200 — physical RS-485 topology
 
@@ -28,7 +28,7 @@ Issue #704 has exact-head repository verification GREEN at `e2f7857e381600d76dd4
 
 ## Operator browser inspection — soft tooling limitation
 
-Opera Browser Connector is currently not connected. During the earlier connected attempt it could enumerate the NEXOLAB tabs, but actions against the private LAN/Tailscale URLs were rejected by the connector private-address policy. This prevents direct live DOM/screenshot inspection of the operator runtime; it is not a product-code or merge-gate failure. No #707 deployment was performed solely to bypass this tooling limitation.
+Opera Browser Connector private-address actions remain unsuitable for direct LAN/Tailscale DOM/screenshot acceptance. This did not block the controlled #707 deployment: the Product Owner directly confirmed consolidated graphs and CSV download, then identified the missing sensor-row content now owned by #709.
 
 ## Cleared boundaries
 
