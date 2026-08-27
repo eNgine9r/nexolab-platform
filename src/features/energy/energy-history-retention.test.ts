@@ -45,6 +45,7 @@ const VALUE = {
     to: "2026-08-16T20:00:00.000Z",
   },
   loadedThrough: "2026-08-16T20:00:00.000Z",
+  cadenceAuthorityFingerprint: "cadence:1",
   samples: [SAMPLE],
 };
 

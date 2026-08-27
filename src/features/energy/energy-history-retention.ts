@@ -18,6 +18,7 @@ export interface EnergyHistoryRetentionWindow {
 export interface RetainedEnergyHistory {
   window: EnergyHistoryRetentionWindow;
   loadedThrough: string;
+  cadenceAuthorityFingerprint: string | null;
   samples: TelemetrySample[];
 }
 
@@ -65,6 +66,7 @@ export function retainEnergyHistory(
     retainedAt: now,
     window: { ...value.window },
     loadedThrough: value.loadedThrough,
+    cadenceAuthorityFingerprint: value.cadenceAuthorityFingerprint,
     samples: value.samples.map((sample) => ({ ...sample })),
   });
 }
@@ -97,6 +99,7 @@ function cloneEntry(entry: RetainedEnergyHistoryEntry): RetainedEnergyHistory {
   return {
     window: { ...entry.window },
     loadedThrough: entry.loadedThrough,
+    cadenceAuthorityFingerprint: entry.cadenceAuthorityFingerprint,
     samples: entry.samples.map((sample) => ({ ...sample })),
   };
 }

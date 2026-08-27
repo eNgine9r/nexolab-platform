@@ -203,12 +203,19 @@ export function useEnergyTelemetry({
     (window: EnergyHistoryWindow, samples: readonly TelemetrySample[], loadedThrough?: string) => {
       const retentionKey = historyRetentionRef.current;
       if (retentionKey === null) return;
+      const authorityScopeKey = `${retentionKey.securityScope}:${retentionKey.nodeId}`;
+      const cadenceAuthorityFingerprint =
+        cadenceAuthorityRef.current.scopeKey === authorityScopeKey
+          ? (cadenceAuthorityRef.current.authority?.fingerprint ?? null)
+          : null;
       const existing = loadedThrough === undefined ? readRetainedEnergyHistory(retentionKey) : null;
+      if (existing && existing.cadenceAuthorityFingerprint !== cadenceAuthorityFingerprint) return;
       const coverage = loadedThrough ?? existing?.loadedThrough;
       if (!coverage) return;
       retainEnergyHistory(retentionKey, {
         window,
         loadedThrough: coverage,
+        cadenceAuthorityFingerprint,
         samples: [...samples],
       });
     },
@@ -265,7 +272,6 @@ export function useEnergyTelemetry({
     );
     let disposed = false;
     let initialRead = true;
-    let refreshGeneration = 0;
 
     cadenceAuthorityRef.current = { scopeKey, authority: null };
     void Promise.resolve().then(() => {
@@ -273,7 +279,6 @@ export function useEnergyTelemetry({
     });
 
     const refresh = async () => {
-      const generation = ++refreshGeneration;
       let nextAuthority: EnergyCadenceAuthority | null;
       try {
         nextAuthority = await readEnergyCadenceAuthority(authenticatedFetch, controller.signal);
@@ -281,10 +286,19 @@ export function useEnergyTelemetry({
         if (controller.signal.aborted || disposed) return;
         nextAuthority = null;
       }
-      if (controller.signal.aborted || disposed || generation !== refreshGeneration) return;
+      if (controller.signal.aborted || disposed) return;
 
       const previous =
         cadenceAuthorityRef.current.scopeKey === scopeKey ? cadenceAuthorityRef.current.authority : null;
+      if (nextAuthority !== null && previous !== null) {
+        if (nextAuthority.revision < previous.revision) return;
+        if (
+          nextAuthority.revision === previous.revision &&
+          nextAuthority.fingerprint !== previous.fingerprint
+        ) {
+          return;
+        }
+      }
       const changed = nextAuthority !== null && previous?.fingerprint !== nextAuthority.fingerprint;
 
       if (nextAuthority !== null) {
@@ -590,7 +604,13 @@ export function useEnergyTelemetry({
       from: requested.from.toISOString(),
       to: requested.to.toISOString(),
     };
-    const retained = readRetainedEnergyHistory(historyRetention);
+    const cadenceAuthorityFingerprint = cadenceAuthority?.fingerprint ?? null;
+    const retainedCandidate = readRetainedEnergyHistory(historyRetention);
+    const retained =
+      retainedCandidate?.cadenceAuthorityFingerprint === cadenceAuthorityFingerprint
+        ? retainedCandidate
+        : null;
+    if (retainedCandidate !== null && retained === null) invalidateRetainedEnergyHistory(historyRetention);
     let disposed = false;
 
     activeHistoryKeyRef.current = historyKey;
@@ -624,6 +644,7 @@ export function useEnergyTelemetry({
         retainEnergyHistory(historyRetention, {
           window: requestedWindow,
           loadedThrough: retained.loadedThrough,
+          cadenceAuthorityFingerprint,
           samples: retainedSamples,
         });
         return () => {
@@ -666,6 +687,7 @@ export function useEnergyTelemetry({
             retainEnergyHistory(historyRetention, {
               window: currentWindow,
               loadedThrough: requestedWindow.to,
+              cadenceAuthorityFingerprint,
               samples: next,
             });
             return next;
@@ -727,6 +749,7 @@ export function useEnergyTelemetry({
           retainEnergyHistory(historyRetention, {
             window: currentWindow,
             loadedThrough: requestedWindow.to,
+            cadenceAuthorityFingerprint,
             samples: next,
           });
           return next;

@@ -225,6 +225,69 @@ describe("useEnergyTelemetry startup coverage", () => {
     mounted.unmount();
   });
 
+  it("accepts an older successful cadence refresh when a newer overlapping refresh fails", async () => {
+    let resolveSuccessfulRefresh: (value: ReturnType<typeof cadenceAuthority>) => void = () => undefined;
+    cadenceState.read
+      .mockResolvedValueOnce(cadenceAuthority(1))
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSuccessfulRefresh = resolve;
+          }),
+      )
+      .mockResolvedValueOnce(null);
+
+    const mounted = renderHook(() => useEnergyTelemetry());
+    await waitFor(() => expect(adapterState.subscribe).toHaveBeenCalledOnce());
+    act(() => {
+      adapterState.handlers?.onStateChange?.("connected");
+    });
+    await waitFor(() => expect(adapterState.history).toHaveBeenCalledTimes(1));
+
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+      window.dispatchEvent(new Event("focus"));
+    });
+    await waitFor(() => expect(cadenceState.read).toHaveBeenCalledTimes(3));
+
+    await act(async () => {
+      resolveSuccessfulRefresh(cadenceAuthority(2));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(adapterState.history).toHaveBeenCalledTimes(2));
+    mounted.unmount();
+  });
+
+  it("rejects retained history when the initial cadence authority fingerprint changed while unmounted", async () => {
+    cadenceState.read.mockResolvedValueOnce(cadenceAuthority(1)).mockResolvedValueOnce(cadenceAuthority(2));
+
+    let mounted = renderHook(() => useEnergyTelemetry());
+    await waitFor(() => expect(adapterState.subscribe).toHaveBeenCalledTimes(1));
+    act(() => {
+      adapterState.handlers?.onStateChange?.("connected");
+    });
+    await waitFor(() => {
+      expect(adapterState.history).toHaveBeenCalledTimes(1);
+      expect(mounted.result.current.historyStatus).toBe("ready");
+    });
+    mounted.unmount();
+
+    mounted = renderHook(() => useEnergyTelemetry());
+    await waitFor(() => expect(adapterState.subscribe).toHaveBeenCalledTimes(2));
+    act(() => {
+      adapterState.handlers?.onStateChange?.("connected");
+    });
+    await waitFor(() => expect(adapterState.history).toHaveBeenCalledTimes(2));
+
+    const remountQuery = adapterState.history.mock.calls[1][0] as TelemetryHistoryQuery;
+    expect(queryTime(remountQuery.to) - queryTime(remountQuery.from)).toBeGreaterThanOrEqual(
+      23 * 60 * 60 * 1000,
+    );
+    mounted.unmount();
+  });
+
   it("reloads the full selected history when persisted cadence authority changes", async () => {
     cadenceState.read.mockResolvedValueOnce(cadenceAuthority(1)).mockResolvedValueOnce(cadenceAuthority(2));
 

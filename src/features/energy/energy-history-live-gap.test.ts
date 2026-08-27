@@ -200,6 +200,21 @@ describe("energy live-tail source cadence", () => {
     expect(isEnergyHistorySegmentStart(recovery.event_id)).toBe(true);
   });
 
+  it("resets the source-gap budget when a persisted cadence increase reconciles scheduler deadlines", () => {
+    const beforeChange = [
+      sampleAtOffsetMs(0),
+      sampleAtOffsetMs(10_000),
+      sampleAtOffsetMs(20_000),
+      sampleAtOffsetMs(30_000),
+      sampleAtOffsetMs(40_000),
+    ];
+    const authority = cadenceAuthority(10, 60, 50_000);
+    const reduced = downsampleEnergyHistory(beforeChange, 240, window, authority);
+    const recovered = mergeEnergyHistoryTail(reduced, [sampleAtOffsetMs(220_000)], window, authority);
+
+    expect(isEnergyHistorySegmentStart(findByOffset(recovered, 220_000).event_id)).toBe(false);
+  });
+
   it("does not create retained-history gaps across a persisted cadence increase", () => {
     const increasedCadence = [
       sampleAtOffsetMs(0),

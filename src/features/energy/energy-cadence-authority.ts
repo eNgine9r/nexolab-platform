@@ -180,7 +180,11 @@ function reverseRelevantAudit(policy: CadencePolicyState, audit: AuditRecord): b
   return true;
 }
 
-function maximumPiecewiseSourceGapMs(
+function sourceGapForIntervalMs(intervalMs: number): number {
+  return Math.max(CHART_MINIMUM_SOURCE_GAP_MS, intervalMs * CHART_SOURCE_GAP_MULTIPLIER);
+}
+
+function maximumResetAwareSourceGapMs(
   checkpoints: readonly CadenceCheckpoint[],
   intervalMsAt: (unitId: number, capturedAtMs: number) => number | null,
   unitId: number,
@@ -194,27 +198,28 @@ function maximumPiecewiseSourceGapMs(
   let intervalMs = intervalMsAt(unitId, previousAtMs);
   if (intervalMs === null) return null;
 
-  let cursorMs = previousAtMs;
-  let remainingIntervals = CHART_SOURCE_GAP_MULTIPLIER;
+  let deadlineMs = previousAtMs + sourceGapForIntervalMs(intervalMs);
   for (const checkpoint of checkpoints) {
     if (checkpoint.atMs <= previousAtMs) continue;
     if (checkpoint.atMs > capturedAtMs) break;
 
-    const segmentMs = checkpoint.atMs - cursorMs;
-    const consumedIntervals = segmentMs / intervalMs;
-    if (consumedIntervals >= remainingIntervals) {
-      const thresholdMs = cursorMs - previousAtMs + remainingIntervals * intervalMs;
-      return Math.max(CHART_MINIMUM_SOURCE_GAP_MS, thresholdMs);
-    }
+    const nextIntervalMs = checkpoint.intervalMsByUnitId.get(unitId) ?? NaN;
+    if (!Number.isFinite(nextIntervalMs) || nextIntervalMs <= 0) return null;
+    if (nextIntervalMs === intervalMs) continue;
 
-    remainingIntervals -= consumedIntervals;
-    cursorMs = checkpoint.atMs;
-    intervalMs = checkpoint.intervalMsByUnitId.get(unitId) ?? NaN;
-    if (!Number.isFinite(intervalMs) || intervalMs <= 0) return null;
+    // A cadence mutation reconciles the Device Agent job through _initial_deadlines.
+    // If the prior regime was already beyond its canonical tolerance before the
+    // mutation, a later slower cadence must not erase that outage. Otherwise the
+    // scheduler resets the acquisition-opportunity budget for the new interval.
+    if (checkpoint.atMs > deadlineMs) break;
+
+    const ageSinceLastAttemptMs = checkpoint.atMs - previousAtMs;
+    const resetAnchorMs = ageSinceLastAttemptMs < nextIntervalMs ? previousAtMs : checkpoint.atMs;
+    deadlineMs = resetAnchorMs + sourceGapForIntervalMs(nextIntervalMs);
+    intervalMs = nextIntervalMs;
   }
 
-  const thresholdMs = cursorMs - previousAtMs + remainingIntervals * intervalMs;
-  return Math.max(CHART_MINIMUM_SOURCE_GAP_MS, thresholdMs);
+  return Math.max(CHART_MINIMUM_SOURCE_GAP_MS, deadlineMs - previousAtMs);
 }
 
 export function buildEnergyCadenceAuthority(value: unknown): EnergyCadenceAuthority | null {
@@ -277,7 +282,7 @@ export function buildEnergyCadenceAuthority(value: unknown): EnergyCadenceAuthor
     coverageStartsAtMs,
     intervalMsAt,
     maximumSourceGapMs: (unitId, previousAtMs, capturedAtMs) =>
-      maximumPiecewiseSourceGapMs(chronological, intervalMsAt, unitId, previousAtMs, capturedAtMs),
+      maximumResetAwareSourceGapMs(chronological, intervalMsAt, unitId, previousAtMs, capturedAtMs),
   };
 }
 
