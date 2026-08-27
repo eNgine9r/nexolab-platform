@@ -2,10 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { MAX_CHART_Y_AXES } from "@/features/charts";
 import { buildSavedDashboardChartGroups } from "@/features/live-dashboards/chart";
-import type {
-  LiveDashboardItem,
-  LiveDashboardSeries,
-} from "@/features/live-dashboards/types";
+import type { LiveDashboardItem, LiveDashboardSeries } from "@/features/live-dashboards/types";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 const START = Date.parse("2026-08-27T07:00:00.000Z");
@@ -61,9 +58,11 @@ describe("Saved Dashboard combined chart workspace", () => {
 
     expect(groups).toHaveLength(1);
     expect(groups[0].title).toBe("Графік Dashboard");
-    expect(
-      groups[0].scene.series.map((series) => series.identity.channelId),
-    ).toEqual(["T-101", "T-108", "T-115"]);
+    expect(groups[0].scene.series.map((series) => series.identity.channelId)).toEqual([
+      "T-101",
+      "T-108",
+      "T-115",
+    ]);
   });
 
   it("uses the axis budget as the only automatic split boundary", () => {
@@ -85,10 +84,7 @@ describe("Saved Dashboard combined chart workspace", () => {
       }),
     ).toHaveLength(1);
 
-    const overBudget = [
-      ...withinBudget,
-      plottedSeries(6, "RH-1", "humidity", "%RH", "climate-1"),
-    ];
+    const overBudget = [...withinBudget, plottedSeries(6, "RH-1", "humidity", "%RH", "climate-1")];
     const groups = buildSavedDashboardChartGroups({
       dashboardId: "dashboard-over-budget",
       series: overBudget,
@@ -97,12 +93,7 @@ describe("Saved Dashboard combined chart workspace", () => {
     });
 
     expect(groups).toHaveLength(2);
-    expect(groups.flatMap((group) => group.scene.series)).toHaveLength(
-      overBudget.length,
-    );
-    expect(groups.map((group) => group.title)).toEqual([
-      "Графік Dashboard · 1/2",
-      "Графік Dashboard · 2/2",
-    ]);
+    expect(groups.flatMap((group) => group.scene.series)).toHaveLength(overBudget.length);
+    expect(groups.map((group) => group.title)).toEqual(["Графік Dashboard · 1/2", "Графік Dashboard · 2/2"]);
   });
 });
