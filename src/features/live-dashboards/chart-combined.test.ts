@@ -65,6 +65,23 @@ describe("Saved Dashboard combined chart workspace", () => {
     ]);
   });
 
+  it("does not render an empty chart when the dashboard contains only value or gauge items", () => {
+    const value = plottedSeries(1, "T-value", "temperature", "°C", "controller-value");
+    const gauge = plottedSeries(2, "T-gauge", "temperature", "°C", "controller-gauge");
+
+    expect(
+      buildSavedDashboardChartGroups({
+        dashboardId: "dashboard-cards-only",
+        series: [
+          { ...value, item: { ...value.item, visualization: "value" } },
+          { ...gauge, item: { ...gauge.item, visualization: "gauge" } },
+        ],
+        status: "live",
+        xDomain: { fromMs: START, toMs: START + 60_000 },
+      }),
+    ).toEqual([]);
+  });
+
   it("uses the axis budget as the only automatic split boundary", () => {
     const withinBudget = [
       plottedSeries(1, "V-1", "electrical.voltage", "V", "meter-1"),
