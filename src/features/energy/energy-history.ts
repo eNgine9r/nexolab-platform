@@ -46,9 +46,11 @@ function isAcceptedEnergyHistorySample(sample: TelemetrySample): boolean {
 }
 
 function renderableEnergyHistoryTimestamps(samples: readonly TelemetrySample[]): number[] {
-  return [...new Set(samples.filter(isRenderableEnergyHistorySample).map((sample) => Date.parse(sample.captured_at)))]
-    .filter(Number.isFinite)
-    .sort((left, right) => left - right);
+  const timestamps = samples
+    .filter(isRenderableEnergyHistorySample)
+    .map((sample) => Date.parse(sample.captured_at))
+    .filter(Number.isFinite);
+  return [...new Set(timestamps)].sort((left, right) => left - right);
 }
 
 function cadenceStateFromTimestamps(timestamps: readonly number[]): EnergyHistoryCadenceState | null {
@@ -258,7 +260,8 @@ export function downsampleEnergyHistory(
     .sort(([left], [right]) => left - right)
     .flatMap(([, meterSamples]) => {
       const cadenceState = cadenceStateFromSamples(meterSamples);
-      const maximumSourceGapMs = cadenceState?.maximumSourceGapMs ?? deriveEnergyHistorySourceGapMs(meterSamples);
+      const maximumSourceGapMs =
+        cadenceState?.maximumSourceGapMs ?? deriveEnergyHistorySourceGapMs(meterSamples);
       const annotation = annotateSourceSegments(meterSamples, null, false, maximumSourceGapMs);
       const sampled = bucketDownsampleAnnotated(annotation.samples, maximumPointsPerMeter, window);
       const reduced = applyPendingBreak(sampled, annotation.breakPending);
@@ -349,7 +352,10 @@ export function mergeEnergyHistoryTail(
       ...renderableEnergyHistoryTimestamps(incomingSamples),
     ]);
 
-    rememberSourceCadenceForTail(latestReduced, nextCadenceState ?? inheritedCadenceState ?? incomingCadenceState);
+    rememberSourceCadenceForTail(
+      latestReduced,
+      nextCadenceState ?? inheritedCadenceState ?? incomingCadenceState,
+    );
     merged.push(...reduced);
   }
 
