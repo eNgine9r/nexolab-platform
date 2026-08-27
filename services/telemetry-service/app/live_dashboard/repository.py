@@ -16,6 +16,7 @@ from app.climate_catalog.models import (
 from app.db import Database
 from app.live_dashboard.models import LiveDashboard, LiveDashboardItem
 from app.live_dashboard.schemas import LiveDashboardItemWrite, LiveDashboardWrite
+from app.live_dashboard.telemetry_identity import MAX_MODBUS_UNIT_ID
 from app.nodes.models import CentralNode
 from app.security.repository import AuditEventInput, SecurityRepository
 
@@ -378,6 +379,7 @@ class LiveDashboardRepository:
                     MeasurementChannel.channel_id == item.channel_id,
                     MeasurementChannel.status == "active",
                     MeasurementDevice.status == "active",
+                    MeasurementDevice.unit_id.between(1, MAX_MODBUS_UNIT_ID),
                     MeasurementBus.status == "active",
                     ClimateChamber.status == "active",
                     CentralNode.state != "revoked",

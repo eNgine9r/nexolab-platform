@@ -165,6 +165,12 @@ def test_inventory_excludes_catalog_devices_outside_modbus_unit_range(tmp_path: 
     )
     assert page.total == 0
     assert page.items == ()
+    with pytest.raises(LiveDashboardChannelNotFoundError):
+        repository.create(
+            _payload("a-temperature-01"),
+            actor_id="operator-a",
+            organization_id=ORG_A,
+        )
 
 
 def test_inventory_and_save_validation_share_active_catalog_eligibility(
