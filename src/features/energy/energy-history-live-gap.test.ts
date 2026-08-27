@@ -27,6 +27,14 @@ function sampleAtOffsetMs(offsetMs: number): TelemetrySample {
   };
 }
 
+function communicationErrorAtOffsetMs(offsetMs: number): TelemetrySample {
+  return {
+    ...sampleAtOffsetMs(offsetMs),
+    value: null,
+    quality: "communication_error",
+  };
+}
+
 const window = {
   nodeId: "edge-01",
   metric: "electrical.power.active" as const,
@@ -112,6 +120,22 @@ describe("energy live-tail source cadence", () => {
     expect(isEnergyHistoryInferredSegmentStart(recovery.event_id)).toBe(false);
   });
 
+  it("uses accepted communication-error timestamps when learning acquisition cadence", () => {
+    const withErrors = [
+      sampleAtOffsetMs(0),
+      communicationErrorAtOffsetMs(30_000),
+      sampleAtOffsetMs(60_000),
+      communicationErrorAtOffsetMs(90_000),
+      sampleAtOffsetMs(120_000),
+      sampleAtOffsetMs(240_000),
+    ];
+
+    const reduced = downsampleEnergyHistory(withErrors, 240, window);
+    const recovery = findByOffset(reduced, 240_000);
+
+    expect(isEnergyHistorySegmentStart(recovery.event_id)).toBe(true);
+  });
+
   it("does not create retained-history gaps when cadence deliberately increases", () => {
     const increasedCadence = [
       sampleAtOffsetMs(0),
@@ -127,6 +151,23 @@ describe("energy live-tail source cadence", () => {
     const reduced = downsampleEnergyHistory(increasedCadence, 240, window);
 
     expect(reduced.some((sample) => isEnergyHistorySegmentStart(sample.event_id))).toBe(false);
+  });
+
+  it("keeps an unsettled historical tail gap tentative until live cadence settles", () => {
+    const unsettledHistory = [
+      sampleAtOffsetMs(0),
+      sampleAtOffsetMs(10_000),
+      sampleAtOffsetMs(20_000),
+      sampleAtOffsetMs(80_000),
+    ];
+    const reduced = downsampleEnergyHistory(unsettledHistory, 240, window);
+
+    expect(isEnergyHistoryInferredSegmentStart(findByOffset(reduced, 80_000).event_id)).toBe(true);
+
+    const reconciled = mergeEnergyHistoryTail(reduced, [sampleAtOffsetMs(140_000)], window);
+
+    expect(isEnergyHistorySegmentStart(findByOffset(reconciled, 80_000).event_id)).toBe(false);
+    expect(isEnergyHistorySegmentStart(findByOffset(reconciled, 140_000).event_id)).toBe(false);
   });
 
   it("reconciles tentative live gaps after a deliberate cadence increase", () => {
