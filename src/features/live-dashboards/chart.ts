@@ -48,13 +48,19 @@ function timestamp(sample: TelemetrySample): number {
   return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
 }
 
-function orderedSamples(samples: readonly TelemetrySample[]): TelemetrySample[] {
+function orderedSamples(
+  samples: readonly TelemetrySample[],
+): TelemetrySample[] {
   return [...samples].sort(
-    (left, right) => timestamp(left) - timestamp(right) || left.event_id.localeCompare(right.event_id),
+    (left, right) =>
+      timestamp(left) - timestamp(right) ||
+      left.event_id.localeCompare(right.event_id),
   );
 }
 
-export function savedDashboardChartFreshness(status: LiveDashboardTelemetryStatus): ChartFreshnessState {
+export function savedDashboardChartFreshness(
+  status: LiveDashboardTelemetryStatus,
+): ChartFreshnessState {
   if (status === "live") return "live";
   if (status === "stale") return "stale";
   if (status === "connecting") return "connecting";
@@ -76,10 +82,16 @@ export function savedDashboardChartIdentity(
 }
 
 function sourceEquipmentId(series: LiveDashboardSeries): string {
-  return series.latest?.equipment_id ?? series.history[0]?.equipment_id ?? series.item.channel_ref_id;
+  return (
+    series.latest?.equipment_id ??
+    series.history[0]?.equipment_id ??
+    series.item.channel_ref_id
+  );
 }
 
-function semanticMode(identity: ChartSeriesIdentity): ChartSeries["semanticMode"] {
+function semanticMode(
+  identity: ChartSeriesIdentity,
+): ChartSeries["semanticMode"] {
   const unit = identity.nativeUnit.toLowerCase();
   const metric = identity.metric.toLowerCase();
   return unit === "kwh" || unit === "wh" || metric.includes("energy")
@@ -87,11 +99,18 @@ function semanticMode(identity: ChartSeriesIdentity): ChartSeries["semanticMode"
     : "instantaneous";
 }
 
-function reduceTruthfully(segments: ChartSeries["segments"]): ChartSeries["segments"] {
-  const sourcePointCount = segments.reduce((sum, segment) => sum + segment.points.length, 0);
+function reduceTruthfully(
+  segments: ChartSeries["segments"],
+): ChartSeries["segments"] {
+  const sourcePointCount = segments.reduce(
+    (sum, segment) => sum + segment.points.length,
+    0,
+  );
   if (sourcePointCount === 0) return segments;
   try {
-    return reduceChartSegments(segments, { maximumPoints: DEFAULT_POINT_BUDGET });
+    return reduceChartSegments(segments, {
+      maximumPoints: DEFAULT_POINT_BUDGET,
+    });
   } catch (error) {
     if (!(error instanceof ChartReductionBudgetError)) throw error;
     return reduceChartSegments(segments, { maximumPoints: sourcePointCount });
@@ -110,27 +129,28 @@ function buildSeries(
   const key = chartSeriesKey(identity);
   const token = CHART_SERIES_TOKENS[visualIndex % CHART_SERIES_TOKENS.length];
   const samples = orderedSamples(source.history);
-  const segments = liveHistorySegments(samples).flatMap((sourceSegment, segmentIndex) =>
-    buildChartSegments(
-      identity,
-      sourceSegment.map((sample) => ({
-        id: sample.event_id,
-        timestampMs: timestamp(sample),
-        value: sample.value,
-        quality: sample.quality,
-        sourceEventId: sample.event_id,
-      })),
-    ).map((segment, index) =>
-      segmentIndex > 0 && index === 0 && segment.points[0]
-        ? {
-            ...segment,
-            precedingBreak: {
-              reason: "explicit_gap" as const,
-              atMs: segment.points[0].timestampMs,
-            },
-          }
-        : segment,
-    ),
+  const segments = liveHistorySegments(samples).flatMap(
+    (sourceSegment, segmentIndex) =>
+      buildChartSegments(
+        identity,
+        sourceSegment.map((sample) => ({
+          id: sample.event_id,
+          timestampMs: timestamp(sample),
+          value: sample.value,
+          quality: sample.quality,
+          sourceEventId: sample.event_id,
+        })),
+      ).map((segment, index) =>
+        segmentIndex > 0 && index === 0 && segment.points[0]
+          ? {
+              ...segment,
+              precedingBreak: {
+                reason: "explicit_gap" as const,
+                atMs: segment.points[0].timestampMs,
+              },
+            }
+          : segment,
+      ),
   );
 
   return {
@@ -143,7 +163,9 @@ function buildSeries(
     segments: reduceTruthfully(segments),
     visible: soloSeriesKey ? soloSeriesKey === key : !hiddenSeriesKeys.has(key),
     semanticMode: semanticMode(identity),
-    ...(source.item.visualization === "area" ? { areaFillOpacity: SAVED_AREA_FILL_OPACITY } : {}),
+    ...(source.item.visualization === "area"
+      ? { areaFillOpacity: SAVED_AREA_FILL_OPACITY }
+      : {}),
   };
 }
 
@@ -153,10 +175,15 @@ export function buildSavedDashboardChartGroups(
   const hiddenSeriesKeys = options.hiddenSeriesKeys ?? new Set<string>();
   const soloSeriesKey = options.soloSeriesKey ?? null;
   const plotted = options.series
-    .filter((item) => item.item.visualization === "line" || item.item.visualization === "area")
+    .filter(
+      (item) =>
+        item.item.visualization === "line" ||
+        item.item.visualization === "area",
+    )
     .sort(
       (left, right) =>
-        left.item.position - right.item.position || left.item.id.localeCompare(right.item.id),
+        left.item.position - right.item.position ||
+        left.item.id.localeCompare(right.item.id),
     );
   const chartSeries = plotted.map((source, index) =>
     buildSeries(
@@ -182,7 +209,9 @@ export function buildSavedDashboardChartGroups(
           : `Графік Dashboard · ${partitionIndex + 1}/${partitions.length}`,
       equipmentId,
       nativeUnits: axisModel.allAxes.map((axis) => axis.nativeUnit),
-      physicalQuantities: axisModel.allAxes.map((axis) => axis.physicalQuantity),
+      physicalQuantities: axisModel.allAxes.map(
+        (axis) => axis.physicalQuantity,
+      ),
       scene: {
         series: partition,
         xDomain: options.xDomain,
