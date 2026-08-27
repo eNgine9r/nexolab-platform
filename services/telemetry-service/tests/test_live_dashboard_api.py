@@ -451,6 +451,14 @@ def test_saved_dashboard_csv_export_is_persisted_deterministic_and_bounded(
         "2026-08-18T09:00:20Z",
     ]
     assert "+03:00" in lines[1]
+    assert lines[1].split(",")[2:8] == [
+        "edge-a",
+        "K108",
+        "a-temperature-01",
+        "temperature",
+        "4.2",
+        "°C",
+    ]
     assert ",communication_error," in lines[-1]
     assert ",,°C,communication_error," in lines[-1]
 
