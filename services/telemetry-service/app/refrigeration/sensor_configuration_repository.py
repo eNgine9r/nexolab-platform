@@ -13,7 +13,7 @@ from app.climate_catalog.repository import (
     CatalogChannel,
     PostgresClimateCatalogRepository,
 )
-from app.db import Database, TelemetrySample
+from app.db import Database, TelemetryLatest, TelemetrySample
 from app.nodes.domain import NodeState, normalize_node_id
 from app.nodes.models import CentralNode
 from app.refrigeration.equipment_repository import (
@@ -551,24 +551,23 @@ class PostgresSensorConfigurationRepository:
         *,
         node_id: str,
         channel_ids: list[str],
-    ) -> dict[str, TelemetrySample]:
+    ) -> dict[str, TelemetryLatest]:
         if not channel_ids:
             return {}
         samples = list(
             session.scalars(
-                select(TelemetrySample)
+                select(TelemetryLatest)
                 .where(
-                    TelemetrySample.node_id == node_id,
-                    TelemetrySample.channel_id.in_(channel_ids),
+                    TelemetryLatest.node_id == node_id,
+                    TelemetryLatest.channel_id.in_(channel_ids),
                 )
                 .order_by(
-                    TelemetrySample.captured_at.desc(),
-                    TelemetrySample.id.desc(),
+                    TelemetryLatest.captured_at.desc(),
+                    TelemetryLatest.id.desc(),
                 )
-                .limit(max(5000, len(channel_ids) * 4))
             )
         )
-        latest: dict[str, TelemetrySample] = {}
+        latest: dict[str, TelemetryLatest] = {}
         for sample in samples:
             latest.setdefault(sample.channel_id, sample)
         return latest
