@@ -7,7 +7,7 @@ on:
       - ".github/workflows/refrigeration-browser-acceptance.yml"
       - "scripts/classify-ci-impact.py"
       - "docs/refrigeration-browser-central-acceptance.md"
-      - "e2e/refrigeration-layout.production.e2e.ts"
+      - "e2e/refrigeration*.production.e2e.ts"
       - "infrastructure/compose/compose.browser-acceptance.yaml"
       - "infrastructure/compose/compose.central.yaml"
       - "package.json"
