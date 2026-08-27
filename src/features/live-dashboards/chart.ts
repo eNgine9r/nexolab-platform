@@ -27,7 +27,7 @@ const SAVED_AREA_FILL_OPACITY = 0.14;
 
 export interface SavedDashboardChartGroup {
   id: string;
-  equipmentId: string;
+  title: string;
   nativeUnits: readonly string[];
   physicalQuantities: readonly ChartPhysicalQuantity[];
   scene: ChartRendererScene;
@@ -72,10 +72,6 @@ export function savedDashboardChartIdentity(
     metric: series.item.metric,
     nativeUnit: series.item.native_unit,
   };
-}
-
-function sourceEquipmentId(series: LiveDashboardSeries): string {
-  return series.latest?.equipment_id ?? series.history[0]?.equipment_id ?? series.item.channel_ref_id;
 }
 
 function semanticMode(identity: ChartSeriesIdentity): ChartSeries["semanticMode"] {
@@ -156,11 +152,8 @@ export function buildSavedDashboardChartGroups(
     .sort(
       (left, right) => left.item.position - right.item.position || left.item.id.localeCompare(right.item.id),
     );
-  const entries = plotted.map((source, index) => ({
-    source,
-    equipmentId: sourceEquipmentId(source),
-    index,
-    chartSeries: buildSeries(
+  const chartSeries = plotted.map((source, index) =>
+    buildSeries(
       options.dashboardId,
       source,
       options.status,
@@ -168,27 +161,24 @@ export function buildSavedDashboardChartGroups(
       hiddenSeriesKeys,
       soloSeriesKey,
     ),
-  }));
-  const byEquipment = new Map<string, typeof entries>();
-  for (const entry of entries) {
-    byEquipment.set(entry.equipmentId, [...(byEquipment.get(entry.equipmentId) ?? []), entry]);
-  }
+  );
+  const partitions = partitionChartSeriesByAxisBudget(chartSeries);
 
-  return [...byEquipment.entries()].flatMap(([equipmentId, equipmentEntries]) => {
-    const chartSeries = equipmentEntries.map((entry) => entry.chartSeries);
-    return partitionChartSeriesByAxisBudget(chartSeries).map((partition, partitionIndex) => {
-      const axisModel = buildChartYAxisModel(partition);
-      return {
-        id: `equipment:${equipmentId.length}:${equipmentId}:axes:${partitionIndex}`,
-        equipmentId,
-        nativeUnits: axisModel.allAxes.map((axis) => axis.nativeUnit),
-        physicalQuantities: axisModel.allAxes.map((axis) => axis.physicalQuantity),
-        scene: {
-          series: partition,
-          xDomain: options.xDomain,
-        },
-      };
-    });
+  return partitions.map((partition, partitionIndex) => {
+    const axisModel = buildChartYAxisModel(partition);
+    return {
+      id: `dashboard:${options.dashboardId}:axes:${partitionIndex}`,
+      title:
+        partitions.length === 1
+          ? "Графік Dashboard"
+          : `Графік Dashboard · ${partitionIndex + 1}/${partitions.length}`,
+      nativeUnits: axisModel.allAxes.map((axis) => axis.nativeUnit),
+      physicalQuantities: axisModel.allAxes.map((axis) => axis.physicalQuantity),
+      scene: {
+        series: partition,
+        xDomain: options.xDomain,
+      },
+    };
   });
 }
 
