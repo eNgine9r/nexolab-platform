@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  readEnergyCadenceAuthority,
+  type EnergyCadenceAuthority,
+} from "@/features/energy/energy-cadence-authority";
+import {
   loadCompleteEnergyHistory,
   mergeEnergyHistoryTail,
   selectEnergyHistoryTail,
@@ -46,6 +50,7 @@ import type {
 } from "@/lib/telemetry/types";
 
 const CLOCK_TICK_MS = 5_000;
+const CADENCE_AUTHORITY_REFRESH_MS = 30_000;
 const STALE_AFTER_MS = 30_000;
 const MAX_STARTUP_LIVE_SAMPLES = 2_000;
 const DEFAULT_SCOPE = "__default_organization__";
@@ -69,6 +74,12 @@ export interface EnergyHistoryWindow {
 interface RuntimeConfigResult {
   config: TelemetryRuntimeConfig | null;
   error: Error | null;
+}
+
+interface EnergyCadenceAuthorityState {
+  scopeKey: string | null;
+  ready: boolean;
+  authority: EnergyCadenceAuthority | null;
 }
 
 export interface EnergyTelemetryModel {
@@ -153,6 +164,11 @@ export function useEnergyTelemetry({
   const [historyError, setHistoryError] = useState<Error | null>(null);
   const [activeHistoryKey, setActiveHistoryKey] = useState<string | null>(null);
   const [historyGeneration, setHistoryGeneration] = useState(0);
+  const [cadenceAuthorityState, setCadenceAuthorityState] = useState<EnergyCadenceAuthorityState>({
+    scopeKey: null,
+    ready: runtime.config?.mode !== "live",
+    authority: null,
+  });
   const historyRetention = useMemo<EnergyHistoryRetentionKey | null>(
     () =>
       scopeKey === null
@@ -177,6 +193,10 @@ export function useEnergyTelemetry({
   const pendingHistoryBreakUnitIdsRef = useRef<Set<number>>(new Set());
   const newestHistoryCapturedAtByUnitIdRef = useRef<Map<number, number>>(new Map());
   const pendingHistoryMetricRef = useRef(selectedMetric);
+  const cadenceAuthorityRef = useRef<{ scopeKey: string | null; authority: EnergyCadenceAuthority | null }>({
+    scopeKey: null,
+    authority: null,
+  });
 
   const retainActiveHistory = useCallback(
     (window: EnergyHistoryWindow, samples: readonly TelemetrySample[], loadedThrough?: string) => {
@@ -226,6 +246,73 @@ export function useEnergyTelemetry({
   }, [enabled, securityScopeKey]);
 
   useEffect(() => {
+    const config = runtime.config;
+    if (!config || config.mode === "demo" || !enabled || scopeKey === null) {
+      cadenceAuthorityRef.current = { scopeKey: null, authority: null };
+      void Promise.resolve().then(() => {
+        setCadenceAuthorityState({ scopeKey, ready: true, authority: null });
+      });
+      return;
+    }
+
+    const controller = new AbortController();
+    const resolvedOrganizationId =
+      selectedOrganizationId ?? process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() ?? null;
+    const authenticatedFetch = createAuthenticatedFetch(
+      fetch.bind(globalThis),
+      createRuntimeCredentialProvider(resolvedOrganizationId),
+    );
+    let disposed = false;
+    let initialRead = true;
+
+    cadenceAuthorityRef.current = { scopeKey, authority: null };
+    void Promise.resolve().then(() => {
+      if (!disposed) setCadenceAuthorityState({ scopeKey, ready: false, authority: null });
+    });
+
+    const refresh = async () => {
+      let nextAuthority: EnergyCadenceAuthority | null;
+      try {
+        nextAuthority = await readEnergyCadenceAuthority(authenticatedFetch, controller.signal);
+      } catch {
+        if (controller.signal.aborted || disposed) return;
+        nextAuthority = null;
+      }
+      if (controller.signal.aborted || disposed) return;
+
+      const previous =
+        cadenceAuthorityRef.current.scopeKey === scopeKey ? cadenceAuthorityRef.current.authority : null;
+      const changed = nextAuthority !== null && previous?.fingerprint !== nextAuthority.fingerprint;
+
+      if (nextAuthority !== null) {
+        cadenceAuthorityRef.current = { scopeKey, authority: nextAuthority };
+        setCadenceAuthorityState({ scopeKey, ready: true, authority: nextAuthority });
+      } else if (initialRead) {
+        cadenceAuthorityRef.current = { scopeKey, authority: null };
+        setCadenceAuthorityState({ scopeKey, ready: true, authority: null });
+      }
+
+      if (!initialRead && changed) {
+        const retentionKey = historyRetentionRef.current;
+        if (retentionKey !== null) invalidateRetainedEnergyHistory(retentionKey);
+        setHistoryGeneration((value) => value + 1);
+      }
+      initialRead = false;
+    };
+
+    void refresh();
+    const refreshOnFocus = () => void refresh();
+    window.addEventListener("focus", refreshOnFocus);
+    const timer = window.setInterval(() => void refresh(), CADENCE_AUTHORITY_REFRESH_MS);
+    return () => {
+      disposed = true;
+      controller.abort();
+      window.removeEventListener("focus", refreshOnFocus);
+      window.clearInterval(timer);
+    };
+  }, [enabled, runtime.config, scopeKey, selectedOrganizationId]);
+
+  useEffect(() => {
     storeRef.current = store;
     historySamplesRef.current = historySamples;
     selectedMetricRef.current = selectedMetric;
@@ -270,19 +357,26 @@ export function useEnergyTelemetry({
       historyWindowRef.current = nextWindow;
       setHistoryWindow(nextWindow);
       setHistorySamples((current) => {
-        const next = mergeEnergyHistoryTail(current, [], {
-          nodeId: ENERGY_NODE_ID,
-          metric: selectedMetricRef.current,
-          from: new Date(nextWindow.from),
-          to: new Date(nextWindow.to),
-        });
+        const activeCadenceAuthority =
+          cadenceAuthorityRef.current.scopeKey === scopeKey ? cadenceAuthorityRef.current.authority : null;
+        const next = mergeEnergyHistoryTail(
+          current,
+          [],
+          {
+            nodeId: ENERGY_NODE_ID,
+            metric: selectedMetricRef.current,
+            from: new Date(nextWindow.from),
+            to: new Date(nextWindow.to),
+          },
+          activeCadenceAuthority,
+        );
         historySamplesRef.current = next;
         retainActiveHistory(nextWindow, next);
         return next;
       });
     }, CLOCK_TICK_MS);
     return () => window.clearInterval(timer);
-  }, [retainActiveHistory]);
+  }, [retainActiveHistory, scopeKey]);
 
   useEffect(() => {
     const config = runtime.config;
@@ -378,12 +472,19 @@ export function useEnergyTelemetry({
         historyWindowRef.current = nextWindow;
         setHistoryWindow(nextWindow);
         setHistorySamples((current) => {
-          const next = mergeEnergyHistoryTail(current, tail, {
-            nodeId: ENERGY_NODE_ID,
-            metric: selectedHistoryMetric,
-            from: new Date(nextWindow.from),
-            to: new Date(nextWindow.to),
-          });
+          const activeCadenceAuthority =
+            cadenceAuthorityRef.current.scopeKey === scopeKey ? cadenceAuthorityRef.current.authority : null;
+          const next = mergeEnergyHistoryTail(
+            current,
+            tail,
+            {
+              nodeId: ENERGY_NODE_ID,
+              metric: selectedHistoryMetric,
+              from: new Date(nextWindow.from),
+              to: new Date(nextWindow.to),
+            },
+            activeCadenceAuthority,
+          );
           historySamplesRef.current = next;
           retainActiveHistory(nextWindow, next);
           return next;
@@ -468,7 +569,9 @@ export function useEnergyTelemetry({
       historyKey === null ||
       historyRetention === null ||
       scopeKey === null ||
-      liveCoverageScopeKey !== scopeKey
+      liveCoverageScopeKey !== scopeKey ||
+      cadenceAuthorityState.scopeKey !== scopeKey ||
+      !cadenceAuthorityState.ready
     ) {
       return;
     }
@@ -477,6 +580,7 @@ export function useEnergyTelemetry({
     const resolvedOrganizationId =
       selectedOrganizationId ?? process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() ?? null;
     const adapter = securedAdapter(config, resolvedOrganizationId);
+    const cadenceAuthority = cadenceAuthorityState.authority;
     const requested = historyWindow(historyRange);
     const requestedWindow = {
       from: requested.from.toISOString(),
@@ -489,12 +593,17 @@ export function useEnergyTelemetry({
     historyWindowRef.current = requestedWindow;
 
     if (retained) {
-      const retainedSamples = mergeEnergyHistoryTail(retained.samples, [], {
-        nodeId: ENERGY_NODE_ID,
-        metric: selectedMetric,
-        from: requested.from,
-        to: requested.to,
-      });
+      const retainedSamples = mergeEnergyHistoryTail(
+        retained.samples,
+        [],
+        {
+          nodeId: ENERGY_NODE_ID,
+          metric: selectedMetric,
+          from: requested.from,
+          to: requested.to,
+        },
+        cadenceAuthority,
+      );
       historySamplesRef.current = retainedSamples;
       void Promise.resolve().then(() => {
         if (disposed) return;
@@ -532,17 +641,23 @@ export function useEnergyTelemetry({
           to: requested.to,
         },
         controller.signal,
+        cadenceAuthority,
       )
         .then((samples) => {
           if (disposed) return;
           const currentWindow = historyWindowRef.current ?? requestedWindow;
           setHistorySamples((current) => {
-            const next = mergeEnergyHistoryTail(current, samples, {
-              nodeId: ENERGY_NODE_ID,
-              metric: selectedMetric,
-              from: new Date(currentWindow.from),
-              to: new Date(currentWindow.to),
-            });
+            const next = mergeEnergyHistoryTail(
+              current,
+              samples,
+              {
+                nodeId: ENERGY_NODE_ID,
+                metric: selectedMetric,
+                from: new Date(currentWindow.from),
+                to: new Date(currentWindow.to),
+              },
+              cadenceAuthority,
+            );
             historySamplesRef.current = next;
             retainEnergyHistory(historyRetention, {
               window: currentWindow,
@@ -587,17 +702,23 @@ export function useEnergyTelemetry({
         to: requested.to,
       },
       controller.signal,
+      cadenceAuthority,
     )
       .then((samples) => {
         if (disposed) return;
         const currentWindow = historyWindowRef.current ?? requestedWindow;
         setHistorySamples((current) => {
-          const next = mergeEnergyHistoryTail(samples, current, {
-            nodeId: ENERGY_NODE_ID,
-            metric: selectedMetric,
-            from: new Date(currentWindow.from),
-            to: new Date(currentWindow.to),
-          });
+          const next = mergeEnergyHistoryTail(
+            samples,
+            current,
+            {
+              nodeId: ENERGY_NODE_ID,
+              metric: selectedMetric,
+              from: new Date(currentWindow.from),
+              to: new Date(currentWindow.to),
+            },
+            cadenceAuthority,
+          );
           historySamplesRef.current = next;
           retainEnergyHistory(historyRetention, {
             window: currentWindow,
@@ -620,6 +741,7 @@ export function useEnergyTelemetry({
       controller.abort();
     };
   }, [
+    cadenceAuthorityState,
     enabled,
     historyGeneration,
     historyKey,

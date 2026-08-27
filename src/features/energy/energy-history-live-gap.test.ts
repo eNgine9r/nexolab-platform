@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
+import { buildEnergyCadenceAuthority } from "./energy-cadence-authority";
 import { downsampleEnergyHistory, mergeEnergyHistoryTail } from "./energy-history";
 import {
   energyHistorySourceEventId,
@@ -49,6 +50,55 @@ const rawHistory = [
   sampleAtOffsetMs(90_500),
   sampleAtOffsetMs(120_900),
 ];
+
+function cadenceAuthority(initialSeconds: number, currentSeconds: number, changedAtOffsetMs: number | null) {
+  const baseMs = Date.parse("2026-08-03T10:00:00Z");
+  const hasChange = changedAtOffsetMs !== null && initialSeconds !== currentSeconds;
+  return buildEnergyCadenceAuthority({
+    schema_version: 2,
+    revision: hasChange ? 2 : 1,
+    updated_at: new Date(baseMs + (changedAtOffsetMs ?? 0)).toISOString(),
+    devices: [{ device_id: "le01mp-200", bus_id: "rs485-main", device_family: "le01mp", unit_id: 200 }],
+    cadence: {
+      family_defaults: [{ bus_id: "rs485-main", device_family: "le01mp", interval_seconds: currentSeconds }],
+      device_overrides: [],
+    },
+    recent_audit: [
+      ...(hasChange
+        ? [
+            {
+              revision: 2,
+              actor: "operator",
+              reason: "cadence change",
+              changed_at: new Date(baseMs + changedAtOffsetMs).toISOString(),
+              changes: [
+                {
+                  entity: "cadence_family_default",
+                  id: "rs485-main/le01mp",
+                  from: String(initialSeconds),
+                  to: String(currentSeconds),
+                },
+              ],
+            },
+          ]
+        : []),
+      {
+        revision: 1,
+        actor: "system:migration",
+        reason: "bootstrap",
+        changed_at: new Date(baseMs).toISOString(),
+        changes: [
+          {
+            entity: "cadence_family_default",
+            id: "rs485-main/le01mp",
+            from: "legacy_priority_policy",
+            to: String(initialSeconds),
+          },
+        ],
+      },
+    ],
+  });
+}
 
 function findByOffset(samples: readonly TelemetrySample[], offsetMs: number): TelemetrySample {
   const expectedId = `energy-edge-01-200-${offsetMs}`;
@@ -98,7 +148,7 @@ describe("energy live-tail source cadence", () => {
     expect(isEnergyHistorySegmentStart(recovery.event_id)).toBe(true);
   });
 
-  it("uses the newer local cadence regime for retained history gaps", () => {
+  it("uses persisted faster cadence after a runtime cadence reduction", () => {
     const mixedCadence = [
       sampleAtOffsetMs(0),
       sampleAtOffsetMs(60_000),
@@ -112,8 +162,8 @@ describe("energy live-tail source cadence", () => {
       sampleAtOffsetMs(400_000),
       sampleAtOffsetMs(410_000),
     ];
-
-    const reduced = downsampleEnergyHistory(mixedCadence, 240, window);
+    const authority = cadenceAuthority(60, 10, 245_000);
+    const reduced = downsampleEnergyHistory(mixedCadence, 240, window, authority);
     const recovery = findByOffset(reduced, 390_000);
 
     expect(isEnergyHistorySegmentStart(recovery.event_id)).toBe(true);
@@ -136,7 +186,7 @@ describe("energy live-tail source cadence", () => {
     expect(isEnergyHistorySegmentStart(recovery.event_id)).toBe(true);
   });
 
-  it("does not create retained-history gaps when cadence deliberately increases", () => {
+  it("does not create retained-history gaps across a persisted cadence increase", () => {
     const increasedCadence = [
       sampleAtOffsetMs(0),
       sampleAtOffsetMs(10_000),
@@ -147,13 +197,13 @@ describe("energy live-tail source cadence", () => {
       sampleAtOffsetMs(160_000),
       sampleAtOffsetMs(220_000),
     ];
-
-    const reduced = downsampleEnergyHistory(increasedCadence, 240, window);
+    const authority = cadenceAuthority(10, 60, 50_000);
+    const reduced = downsampleEnergyHistory(increasedCadence, 240, window, authority);
 
     expect(reduced.some((sample) => isEnergyHistorySegmentStart(sample.event_id))).toBe(false);
   });
 
-  it("keeps an unsettled historical tail tentative until a slower cadence is confirmed", () => {
+  it("never erases tentative fallback gaps from ambiguous slower timestamps", () => {
     const unsettledHistory = [
       sampleAtOffsetMs(0),
       sampleAtOffsetMs(10_000),
@@ -161,36 +211,28 @@ describe("energy live-tail source cadence", () => {
       sampleAtOffsetMs(80_000),
     ];
     let live = downsampleEnergyHistory(unsettledHistory, 240, window);
-
     expect(isEnergyHistoryInferredSegmentStart(findByOffset(live, 80_000).event_id)).toBe(true);
 
     live = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(140_000)], window);
-    expect(isEnergyHistoryInferredSegmentStart(findByOffset(live, 80_000).event_id)).toBe(true);
-    expect(isEnergyHistoryInferredSegmentStart(findByOffset(live, 140_000).event_id)).toBe(true);
+    const continued = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(200_000)], window);
 
-    const reconciled = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(200_000)], window);
-
-    expect(isEnergyHistorySegmentStart(findByOffset(reconciled, 80_000).event_id)).toBe(false);
-    expect(isEnergyHistorySegmentStart(findByOffset(reconciled, 140_000).event_id)).toBe(false);
-    expect(isEnergyHistorySegmentStart(findByOffset(reconciled, 200_000).event_id)).toBe(false);
+    expect(isEnergyHistoryInferredSegmentStart(findByOffset(continued, 80_000).event_id)).toBe(true);
+    expect(isEnergyHistoryInferredSegmentStart(findByOffset(continued, 140_000).event_id)).toBe(true);
   });
 
-  it("reconciles tentative live gaps only after a slower cadence is confirmed", () => {
-    const fastHistory = [
+  it("uses persisted slower cadence instead of clearing fallback markers heuristically", () => {
+    const increasedCadence = [
       sampleAtOffsetMs(0),
       sampleAtOffsetMs(10_000),
       sampleAtOffsetMs(20_000),
       sampleAtOffsetMs(30_000),
       sampleAtOffsetMs(40_000),
+      sampleAtOffsetMs(100_000),
+      sampleAtOffsetMs(160_000),
+      sampleAtOffsetMs(220_000),
     ];
-    let live = downsampleEnergyHistory(fastHistory, 240, window);
-    live = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(100_000)], window);
-    live = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(160_000)], window);
-
-    expect(isEnergyHistoryInferredSegmentStart(findByOffset(live, 100_000).event_id)).toBe(true);
-    expect(isEnergyHistoryInferredSegmentStart(findByOffset(live, 160_000).event_id)).toBe(true);
-
-    const reconciled = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(220_000)], window);
+    const authority = cadenceAuthority(10, 60, 50_000);
+    const reconciled = downsampleEnergyHistory(increasedCadence, 240, window, authority);
 
     expect(isEnergyHistorySegmentStart(findByOffset(reconciled, 100_000).event_id)).toBe(false);
     expect(isEnergyHistorySegmentStart(findByOffset(reconciled, 160_000).event_id)).toBe(false);
@@ -215,6 +257,28 @@ describe("energy live-tail source cadence", () => {
     expect(isEnergyHistoryInferredSegmentStart(findByOffset(resumed, 160_000).event_id)).toBe(true);
     expect(isEnergyHistorySegmentStart(findByOffset(resumed, 170_000).event_id)).toBe(false);
     expect(isEnergyHistorySegmentStart(findByOffset(resumed, 180_000).event_id)).toBe(false);
+  });
+
+  it("keeps repeated 60-second outages when 10-second cadence resumes", () => {
+    const intermittent = [
+      sampleAtOffsetMs(0),
+      sampleAtOffsetMs(10_000),
+      sampleAtOffsetMs(20_000),
+      sampleAtOffsetMs(30_000),
+      sampleAtOffsetMs(40_000),
+      sampleAtOffsetMs(100_000),
+      sampleAtOffsetMs(160_000),
+      sampleAtOffsetMs(220_000),
+      sampleAtOffsetMs(230_000),
+      sampleAtOffsetMs(240_000),
+    ];
+    const reduced = downsampleEnergyHistory(intermittent, 240, window);
+
+    expect(isEnergyHistoryInferredSegmentStart(findByOffset(reduced, 100_000).event_id)).toBe(true);
+    expect(isEnergyHistoryInferredSegmentStart(findByOffset(reduced, 160_000).event_id)).toBe(true);
+    expect(isEnergyHistoryInferredSegmentStart(findByOffset(reduced, 220_000).event_id)).toBe(true);
+    expect(isEnergyHistorySegmentStart(findByOffset(reduced, 230_000).event_id)).toBe(false);
+    expect(isEnergyHistorySegmentStart(findByOffset(reduced, 240_000).event_id)).toBe(false);
   });
 
   it("keeps a genuine live outage after the next normal-cadence sample", () => {

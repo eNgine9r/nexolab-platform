@@ -14,6 +14,15 @@ const adapterState = vi.hoisted(() => ({
   handlers: null as TelemetryLiveHandlers | null,
 }));
 
+const cadenceState = vi.hoisted(() => ({
+  read: vi.fn(),
+}));
+
+vi.mock("@/features/energy/energy-cadence-authority", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/features/energy/energy-cadence-authority")>();
+  return { ...actual, readEnergyCadenceAuthority: cadenceState.read };
+});
+
 vi.mock("@/lib/telemetry/runtime-config", () => ({
   getTelemetryRuntimeConfig: () => ({
     mode: "live",
@@ -77,11 +86,23 @@ function queryTime(value: Date | string): number {
   return Date.parse(value instanceof Date ? value.toISOString() : value);
 }
 
+function cadenceAuthority(revision: number) {
+  return {
+    revision,
+    updatedAt: `2026-08-03T10:00:0${revision}.000Z`,
+    fingerprint: `cadence:${revision}`,
+    coverageStartsAtMs: 0,
+    intervalMsAt: () => 30_000,
+    maximumSourceGapMs: () => 90_000,
+  };
+}
+
 describe("useEnergyTelemetry startup coverage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetRetainedEnergyHistoryForTests();
     adapterState.handlers = null;
+    cadenceState.read.mockResolvedValue(null);
     adapterState.latest.mockResolvedValue({
       items: [],
       count: 0,
@@ -112,6 +133,59 @@ describe("useEnergyTelemetry startup coverage", () => {
       expect(adapterState.history).toHaveBeenCalledOnce();
       expect(result.current.historyStatus).toBe("ready");
     });
+  });
+
+  it("waits for the initial cadence authority read before annotating history", async () => {
+    let resolveCadence: (value: null) => void = () => undefined;
+    cadenceState.read.mockImplementationOnce(
+      () =>
+        new Promise<null>((resolve) => {
+          resolveCadence = resolve;
+        }),
+    );
+    const { result } = renderHook(() => useEnergyTelemetry());
+
+    await waitFor(() => expect(adapterState.subscribe).toHaveBeenCalledOnce());
+    act(() => {
+      adapterState.handlers?.onStateChange?.("connected");
+    });
+    await waitFor(() => expect(adapterState.latest).toHaveBeenCalledOnce());
+    expect(adapterState.history).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveCadence(null);
+      await Promise.resolve();
+    });
+    await waitFor(() => {
+      expect(adapterState.history).toHaveBeenCalledOnce();
+      expect(result.current.historyStatus).toBe("ready");
+    });
+  });
+
+  it("reloads the full selected history when persisted cadence authority changes", async () => {
+    cadenceState.read.mockResolvedValueOnce(cadenceAuthority(1)).mockResolvedValueOnce(cadenceAuthority(2));
+
+    const mounted = renderHook(() => useEnergyTelemetry());
+    await waitFor(() => expect(adapterState.subscribe).toHaveBeenCalledOnce());
+    act(() => {
+      adapterState.handlers?.onStateChange?.("connected");
+    });
+    await waitFor(() => {
+      expect(adapterState.history).toHaveBeenCalledTimes(1);
+      expect(mounted.result.current.historyStatus).toBe("ready");
+    });
+
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    await waitFor(() => expect(cadenceState.read).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(adapterState.history.mock.calls.length).toBeGreaterThanOrEqual(2));
+
+    const reloadQuery = adapterState.history.mock.calls.at(-1)![0] as TelemetryHistoryQuery;
+    expect(queryTime(reloadQuery.to) - queryTime(reloadQuery.from)).toBeGreaterThanOrEqual(
+      23 * 60 * 60 * 1000,
+    );
+    mounted.unmount();
   });
 
   it("fails history explicitly when initial WebSocket coverage is unavailable", async () => {

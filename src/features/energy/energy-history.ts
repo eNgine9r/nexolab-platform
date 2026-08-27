@@ -1,7 +1,7 @@
 import { deriveChartSourceGapMs } from "@/features/charts/continuity";
+import type { EnergyCadenceAuthority } from "@/features/energy/energy-cadence-authority";
 import {
   clearEnergyHistoryBreakPending,
-  clearEnergyHistoryInferredSegmentStart,
   clearEnergyHistoryMarkers,
   energyHistorySourceEventId,
   isEnergyHistoryBreakPending,
@@ -18,8 +18,6 @@ const HISTORY_PAGE_SIZE = 1_000;
 const MAX_HISTORY_PAGES = 100;
 const SOURCE_CADENCE_TAIL_CACHE_LIMIT = 512;
 const SOURCE_CADENCE_RECENT_TIMESTAMP_LIMIT = 4;
-const SOURCE_CADENCE_CONFIRMATION_RELATIVE_TOLERANCE = 0.2;
-const SOURCE_CADENCE_CONFIRMATION_MINIMUM_TOLERANCE_MS = 1_000;
 export const MAX_HISTORY_POINTS_PER_METER = 240;
 export const ENERGY_HISTORY_MAX_FUTURE_SKEW_MS = 30_000;
 
@@ -34,6 +32,11 @@ interface HistoricalSourceGapPolicy {
   maximumSourceGapMs: number;
   marker: SourceGapMarker;
 }
+
+type SourceGapPolicyForPair = (
+  previousAtMs: number,
+  capturedAtMs: number,
+) => HistoricalSourceGapPolicy | null;
 
 const sourceCadenceByTailEventId = new Map<string, EnergyHistoryCadenceState>();
 
@@ -119,12 +122,16 @@ function deriveHistoricalSourceGapByTimestamp(
       index,
     );
     const forwardGapMs = deriveSourceGapFromTimestamps(forward);
-    const maximumSourceGapMs = forwardGapMs ?? deriveSourceGapFromTimestamps(backward);
-    if (maximumSourceGapMs === null) continue;
+    const backwardGapMs = deriveSourceGapFromTimestamps(backward);
+    const candidates = [forwardGapMs, backwardGapMs].filter((value): value is number => value !== null);
+    if (candidates.length === 0) continue;
 
+    // Timestamp-only cadence is inherently ambiguous around runtime cadence changes.
+    // Prefer the stricter observable tolerance and keep the marker reversible. A
+    // persisted cadence authority can later recompute it deterministically.
     policyByTimestamp.set(capturedAt, {
-      maximumSourceGapMs,
-      marker: forwardGapMs !== null && forward.length >= 3 ? "durable" : "inferred",
+      maximumSourceGapMs: Math.min(...candidates),
+      marker: "inferred",
     });
   }
 
@@ -160,6 +167,7 @@ function annotateSourceSegments(
   initialBreakPending = false,
   maximumSourceGapMs: number | null | undefined = undefined,
   sourceGapMarker: SourceGapMarker = "durable",
+  sourceGapPolicyForPair: SourceGapPolicyForPair | null = null,
 ): EnergyHistorySegmentAnnotation {
   const sorted = [...samples].sort(
     (left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at),
@@ -183,25 +191,33 @@ function annotateSourceSegments(
       continue;
     }
 
+    const authoritativePolicy =
+      previousAt !== null && sourceGapPolicyForPair !== null
+        ? sourceGapPolicyForPair(previousAt, capturedAt)
+        : null;
     const historicalPolicy = historicalSourceGapByTimestamp?.get(capturedAt) ?? null;
-    const sourceGapThreshold =
-      maximumSourceGapMs === undefined ? (historicalPolicy?.maximumSourceGapMs ?? null) : maximumSourceGapMs;
+    const fallbackPolicy =
+      maximumSourceGapMs === undefined
+        ? historicalPolicy
+        : maximumSourceGapMs === null
+          ? null
+          : { maximumSourceGapMs, marker: sourceGapMarker };
+    const effectivePolicy = authoritativePolicy ?? fallbackPolicy;
     const inferredSourceGap =
       previousAt !== null &&
       capturedAt >= previousAt &&
-      sourceGapThreshold !== null &&
-      capturedAt - previousAt > sourceGapThreshold;
-    const effectiveSourceGapMarker =
-      maximumSourceGapMs === undefined ? (historicalPolicy?.marker ?? "inferred") : sourceGapMarker;
+      effectivePolicy !== null &&
+      capturedAt - previousAt > effectivePolicy.maximumSourceGapMs;
+    const preserveExistingInferredSegment = authoritativePolicy === null && inferredSegment;
 
     let annotatedSample = sample;
     if (explicitSegment || breakPending) {
       annotatedSample = markEnergyHistorySegmentStart(sample);
-    } else if (inferredSegment || inferredSourceGap) {
+    } else if (preserveExistingInferredSegment || inferredSourceGap) {
       annotatedSample =
-        effectiveSourceGapMarker === "inferred"
-          ? markEnergyHistoryInferredSegmentStart(sample)
-          : markEnergyHistorySegmentStart(sample);
+        effectivePolicy?.marker === "durable"
+          ? markEnergyHistorySegmentStart(sample)
+          : markEnergyHistoryInferredSegmentStart(sample);
     }
 
     annotated.push(annotatedSample);
@@ -300,44 +316,6 @@ function bucketDownsampleAnnotated(
   return sampled;
 }
 
-function confirmedRecentCadenceDeltas(
-  cadenceState: EnergyHistoryCadenceState | null,
-): Map<number, number> | null {
-  if (cadenceState === null || cadenceState.rawTimestampMs.length < SOURCE_CADENCE_RECENT_TIMESTAMP_LIMIT) {
-    return null;
-  }
-
-  const timestamps = cadenceState.rawTimestampMs;
-  const deltas = timestamps.slice(1).map((timestamp, index) => timestamp - timestamps[index]);
-  if (deltas.some((delta) => !Number.isFinite(delta) || delta <= 0)) return null;
-
-  const orderedDeltas = [...deltas].sort((left, right) => left - right);
-  const medianDelta = orderedDeltas[Math.floor(orderedDeltas.length / 2)];
-  const toleranceMs = Math.max(
-    SOURCE_CADENCE_CONFIRMATION_MINIMUM_TOLERANCE_MS,
-    medianDelta * SOURCE_CADENCE_CONFIRMATION_RELATIVE_TOLERANCE,
-  );
-  if (deltas.some((delta) => Math.abs(delta - medianDelta) > toleranceMs)) return null;
-
-  return new Map(deltas.map((delta, index) => [timestamps[index + 1], delta]));
-}
-
-function reconcileConfirmedRecentCadence(
-  samples: readonly TelemetrySample[],
-  nextCadenceState: EnergyHistoryCadenceState | null,
-): TelemetrySample[] {
-  const recentDeltas = confirmedRecentCadenceDeltas(nextCadenceState);
-  if (recentDeltas === null || nextCadenceState === null) return [...samples];
-
-  return samples.map((sample) => {
-    if (!isEnergyHistoryInferredSegmentStart(sample.event_id)) return sample;
-    const capturedAt = Date.parse(sample.captured_at);
-    const delta = recentDeltas.get(capturedAt);
-    if (delta === undefined || delta > nextCadenceState.maximumSourceGapMs) return sample;
-    return clearEnergyHistoryInferredSegmentStart(sample);
-  });
-}
-
 export function selectEnergyHistoryTail(
   samples: readonly TelemetrySample[],
   nodeId: string,
@@ -360,6 +338,7 @@ export function downsampleEnergyHistory(
   samples: readonly TelemetrySample[],
   maximumPointsPerMeter = MAX_HISTORY_POINTS_PER_METER,
   window?: Pick<EnergyHistoryWindow, "from" | "to">,
+  cadenceAuthority: EnergyCadenceAuthority | null = null,
 ): TelemetrySample[] {
   const byMeter = new Map<number, TelemetrySample[]>();
 
@@ -374,9 +353,25 @@ export function downsampleEnergyHistory(
 
   return [...byMeter.entries()]
     .sort(([left], [right]) => left - right)
-    .flatMap(([, meterSamples]) => {
+    .flatMap(([unitId, meterSamples]) => {
       const cadenceState = cadenceStateFromSamples(meterSamples);
-      const annotation = annotateSourceSegments(meterSamples);
+      const annotation = annotateSourceSegments(
+        meterSamples,
+        null,
+        false,
+        undefined,
+        "inferred",
+        cadenceAuthority === null
+          ? null
+          : (previousAtMs, capturedAtMs) => {
+              const maximumSourceGapMs = cadenceAuthority.maximumSourceGapMs(
+                unitId,
+                previousAtMs,
+                capturedAtMs,
+              );
+              return maximumSourceGapMs === null ? null : { maximumSourceGapMs, marker: "durable" };
+            },
+      );
       const sampled = bucketDownsampleAnnotated(annotation.samples, maximumPointsPerMeter, window);
       const reduced = applyPendingBreak(sampled, annotation.breakPending);
 
@@ -393,6 +388,7 @@ export function mergeEnergyHistoryTail(
   current: readonly TelemetrySample[],
   incoming: readonly TelemetrySample[],
   window: EnergyHistoryWindow,
+  cadenceAuthority: EnergyCadenceAuthority | null = null,
 ): TelemetrySample[] {
   const from = window.from.getTime();
   const to = window.to.getTime();
@@ -441,28 +437,41 @@ export function mergeEnergyHistoryTail(
     const incomingSamples = incomingByMeter.get(unitId) ?? [];
     const inheritedCadenceState = sourceCadenceForTail(latestExisting);
     const incomingCadenceState = cadenceStateFromSamples(incomingSamples);
-    const maximumSourceGapMs =
-      inheritedCadenceState?.maximumSourceGapMs ?? incomingCadenceState?.maximumSourceGapMs ?? null;
-    // Retained history may be heavily downsampled, so the current physical cadence is
-    // carried from a bounded raw tail rather than inferred from rendered points. Live
-    // gaps are tentative until a complete recent raw tail confirms that a slower
-    // cadence regime is stable rather than a sequence of intermittent outages.
+    const fallbackThresholds = [
+      inheritedCadenceState?.maximumSourceGapMs,
+      incomingCadenceState?.maximumSourceGapMs,
+    ].filter((value): value is number => value !== undefined);
+    const maximumSourceGapMs = fallbackThresholds.length > 0 ? Math.min(...fallbackThresholds) : null;
+    // Retained history may be heavily downsampled, so fallback cadence comes from a
+    // bounded raw tail. Timestamp-only evidence is deliberately conservative: it may
+    // retain an extra inferred break, but it never erases a real outage. Persisted
+    // cadence authority, when available for the pair, overrides this fallback.
     const annotation = annotateSourceSegments(
       incomingSamples,
       lastExistingAt,
       existingBreakPending,
       maximumSourceGapMs,
       "inferred",
+      cadenceAuthority === null
+        ? null
+        : (previousAtMs, capturedAtMs) => {
+            const authoritativeGapMs = cadenceAuthority.maximumSourceGapMs(
+              unitId,
+              previousAtMs,
+              capturedAtMs,
+            );
+            return authoritativeGapMs === null
+              ? null
+              : { maximumSourceGapMs: authoritativeGapMs, marker: "durable" };
+          },
     );
     const nextCadenceState = cadenceStateFromTimestamps([
       ...(inheritedCadenceState?.rawTimestampMs ?? []),
       ...uniqueOrderedTimestamps(incomingSamples),
     ]);
-    const reconciledExisting = reconcileConfirmedRecentCadence(normalizedExisting, nextCadenceState);
-    const reconciledIncoming = reconcileConfirmedRecentCadence(annotation.samples, nextCadenceState);
     const byEventId = new Map<string, TelemetrySample>();
 
-    for (const sample of [...reconciledExisting, ...reconciledIncoming]) {
+    for (const sample of [...normalizedExisting, ...annotation.samples]) {
       byEventId.set(energyHistorySourceEventId(sample.event_id), sample);
     }
 
@@ -484,6 +493,7 @@ export async function loadCompleteEnergyHistory(
   adapter: TelemetryAdapter,
   window: EnergyHistoryWindow,
   signal?: AbortSignal,
+  cadenceAuthority: EnergyCadenceAuthority | null = null,
 ): Promise<TelemetrySample[]> {
   const samples = new Map<string, TelemetrySample>();
   let cursorTo = new Date(window.to);
@@ -524,7 +534,12 @@ export async function loadCompleteEnergyHistory(
     }
 
     if (response.next_offset === null) {
-      return downsampleEnergyHistory([...samples.values()], MAX_HISTORY_POINTS_PER_METER, window);
+      return downsampleEnergyHistory(
+        [...samples.values()],
+        MAX_HISTORY_POINTS_PER_METER,
+        window,
+        cadenceAuthority,
+      );
     }
 
     const capturedTimes = response.items
@@ -536,7 +551,12 @@ export async function loadCompleteEnergyHistory(
 
     const oldestCapturedAt = Math.min(...capturedTimes);
     if (oldestCapturedAt <= window.from.getTime()) {
-      return downsampleEnergyHistory([...samples.values()], MAX_HISTORY_POINTS_PER_METER, window);
+      return downsampleEnergyHistory(
+        [...samples.values()],
+        MAX_HISTORY_POINTS_PER_METER,
+        window,
+        cadenceAuthority,
+      );
     }
 
     const boundaryCount = capturedTimes.filter((capturedAt) => capturedAt === oldestCapturedAt).length;
