@@ -23,7 +23,11 @@
   },
   "selection": {
     "active_work_package": null,
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 690,
+      "title": "Make PR verification risk-aware and path-targeted",
+      "branch": "feat/690-risk-aware-verification"
+    }
   },
   "work_packages": [
     {
@@ -382,6 +386,59 @@
           "NEXOLAB Merge Gate": "success"
         }
       }
+    },
+    {
+      "issue": 696,
+      "title": "Make refrigeration structural snapshot use bounded latest telemetry projection",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "fix/696-refrigeration-structural-latency",
+      "evidence": {
+        "verified_head_sha": "42dafbed9952e261a182e1e24e3380419e1369a5",
+        "pull_request": 697,
+        "checks": {
+          "CI": "success",
+          "Telemetry service": "success",
+          "Refrigeration Browser Acceptance": "success",
+          "Offline Bundle": "success",
+          "real_pi_latest_projection_benchmark": "85874.034ms_to_1.853ms"
+        }
+      }
+    },
+    {
+      "issue": 698,
+      "title": "Recover GitHub-hosted runner allocation for exact-head PR gates",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "evidence": {
+        "verified_head_sha": "42dafbed9952e261a182e1e24e3380419e1369a5",
+        "checks": {
+          "hosted_runner_allocation": "recovered",
+          "issue_696_exact_head_matrix": "success"
+        }
+      }
+    },
+    {
+      "issue": 707,
+      "title": "Restore Saved Dashboard CSV export and consolidate chart workspace",
+      "priority": "high",
+      "lifecycle": "completed",
+      "branch": "fix/707-live-dashboard-export-chart-workspace",
+      "evidence": {
+        "verified_head_sha": "1ca06521628e5936c9c00fb94ef895d6abfa1c21",
+        "pull_request": 708,
+        "checks": {
+          "CI": "success",
+          "Telemetry service": "success",
+          "Authenticated Dashboard Acceptance": "success",
+          "Offline Bundle": "success",
+          "Container Supply Chain": "success",
+          "NEXOLAB Merge Gate": "success",
+          "fresh Codex review": "clean"
+        }
+      }
     }
   ],
   "maintenance_actions": [
@@ -563,6 +620,46 @@
         "issue": 667,
         "pull_request": 668,
         "merge_sha": "1402b91b4941386e74fbbd0c00fc53650de2a40d"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-27T12:25:00+03:00",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 704,
+        "pull_request": 705,
+        "merge_sha": "81bf86f6aef9870c99948c1ee7e609b26223e102"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-27T12:25:00+03:00",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 696,
+        "pull_request": 697,
+        "merge_sha": "a389a69d00a92380bce49930750bc5a99d992bde"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-27T12:25:00+03:00",
+      "kind": "issue_closure",
+      "data": {
+        "issue": 698,
+        "state": "closed",
+        "reason": "completed"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-27T12:30:00+03:00",
+      "kind": "issue_lifecycle",
+      "data": {
+        "issue": 698,
+        "state": "closed",
+        "state_reason": "completed"
       }
     }
   ],

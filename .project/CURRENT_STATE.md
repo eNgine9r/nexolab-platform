@@ -1,6 +1,6 @@
 # NEXOLAB Current State
 
-Updated: 2026-08-26
+Updated: 2026-08-27
 
 ## Current Sprint
 
@@ -8,7 +8,7 @@ Updated: 2026-08-26
 
 Issue #681 state reconciliation is completed. Issue #679 is completed after real post-merge `linux/arm64` + local-auth dispatch `32832798392` passed the QEMU application-health, disconnected runtime, persistent-volume and auth-continuity gates and published a checksum-verified accepted recovery artifact for the exact deployed source lineage.
 
-Issue #683 is merged and completed at PR #685. Issue #686 is also completed at PR #687: replacement post-merge ARM64/local-auth dispatch `32939760743` passed disconnected startup, local-auth continuity and update/rollback persistence for runtime source `cc27b609...`. Issue #684 is merged at PR #689 and its controlled LAN deployment completed successfully on source `a929144a2cbfa7c192e5e04cae6e02291cbef2cc`. The previously accepted recovery artifact `9584581740` remains valid evidence for `cc27b609...` but is no longer exact-source recovery authority for the currently deployed `a929144a...` lineage. Critical performance Issue #696 is implemented in PR #697 and locally/production-query verified, but exact-head merge is soft-blocked by GitHub hosted-runner allocation Issue #698. Issue #690 remains the next independent Ready Work Package.
+Issue #683 and #686 recovery hardening are completed, including replacement post-merge ARM64/local-auth dispatch `32939760743` for runtime source `cc27b609...`. Issue #684 Settings workspace is completed and its controlled LAN deployment remains source `a929144a2cbfa7c192e5e04cae6e02291cbef2cc`. The previously accepted recovery artifact `9584581740` remains valid evidence for `cc27b609...` but is no longer exact-source recovery authority for the currently deployed `a929144a...` lineage. Critical performance Issue #696 and hosted-runner recovery Issue #698 are completed; the refrigeration latest-value path is verified at exact head `42dafbed9952e261a182e1e24e3380419e1369a5`. Issue #707 Saved Dashboard export/chart regression is repository-verified at exact product head `1ca06521628e5936c9c00fb94ef895d6abfa1c21`. Issue #690 remains the next independent Ready Work Package.
 
 ## Recently completed production-readiness boundaries
 
@@ -38,7 +38,7 @@ Software/isolated backup-restore, real MQTT/SQLite outage replay, actual-host re
 
 ## Current soft blockers and operational observations
 
-- #696 / PR #697 removes the refrigeration structural-snapshot history scan by using `telemetry_latest`. Real Raspberry Pi SQL evidence improved the affected 84-channel KK2 lookup from `85874.034 ms` to `1.853 ms`. Merge remains soft-blocked on #698 because several GitHub-hosted jobs were not acquired by a hosted runner; Capacity Release Gate subsequently completed GREEN, so runner allocation is intermittent rather than a product-code failure.
+- #696 replaced the refrigeration structural-snapshot history scan with the bounded `telemetry_latest` projection. Real Raspberry Pi SQL evidence improved the affected 84-channel KK2 lookup from `85874.034 ms` to `1.853 ms`; the previous #698 hosted-runner allocation blocker is cleared.
 - Authorized telemetry-retention maintenance on 2026-08-26 created and checksum-verified a PostgreSQL backup before deletion. Confirmed completed cleanup is 3,784,832 old `telemetry_session_contexts` rows plus 250,000 old `telemetry_samples`, followed by `VACUUM FULL ANALYZE telemetry_session_contexts`. Full deletion of all sensor samples before 2026-08-20 was not completed and must not be reported as completed retention.
 
 ## Hardware validation backlog
@@ -50,7 +50,13 @@ Software/isolated backup-restore, real MQTT/SQLite outage replay, actual-host re
 
 ## Security maintenance
 
-Security reconciliation for Issue #704 / PR #705 has repository-side exact-head verification complete at `e2f7857e381600d76dd4100cea2c776bab8868e8`. Fresh no-cache Container Supply Chain run `33025323284` is GREEN for device-agent, telemetry-service, mqtt-dynamic-security and the aggregate release manifest; Telemetry service run `33025323323`, Core CI run `33025323332` and the NEXOLAB Merge Gate are GREEN on the same head. Telemetry-service OpenSSL `CVE-2026-14456` exceptions remain retired; Device Agent retains only `libssl3t64/CVE-2026-14456` through **2026-08-30**. Exact Device Agent and telemetry-service SQLite decisions plus telemetry `libcjson1/CVE-2026-16554` and `libwebsockets19t64/CVE-2026-78161` remain time-bounded through **2026-09-02** with the documented reachability/version removal triggers. Issue #690 has returned to Ready. PR #705 still requires merge; this verification does not authorize or imply any runtime deployment.
+Security reconciliation for Issue #704 has repository-side exact-head verification complete at `e2f7857e381600d76dd4100cea2c776bab8868e8`. Fresh no-cache Container Supply Chain run `33025323284` is GREEN for device-agent, telemetry-service, mqtt-dynamic-security and the aggregate release manifest; Telemetry service run `33025323323`, Core CI run `33025323332` and the NEXOLAB Merge Gate are GREEN on the same product head. Telemetry-service OpenSSL `CVE-2026-14456` exceptions remain retired; Device Agent retains only `libssl3t64/CVE-2026-14456` through **2026-08-30**. Exact Device Agent and telemetry-service SQLite decisions plus telemetry `libcjson1/CVE-2026-16554` and `libwebsockets19t64/CVE-2026-78161` remain time-bounded through **2026-09-02** with the documented reachability/version removal triggers. Issue #690 is Ready; this repository verification does not authorize or imply any runtime deployment.
+
+## Issue #707 Saved Dashboard export and chart workspace
+
+Repository-side software verification is complete for exact product/test head `1ca06521628e5936c9c00fb94ef895d6abfa1c21`. The persisted CSV endpoint accepts the legacy browser identifier `Europe/Kiev` through explicit canonicalization to `Europe/Kyiv` while invalid identifiers remain fail-closed. Saved Dashboard line/area series now consolidate across equipment and split only when the canonical five-axis readability budget is exceeded, preserving persisted series order; value/gauge-only dashboards do not create empty chart panels. Core CI, Telemetry service, Authenticated Dashboard Acceptance, Offline Bundle, Container Supply Chain and NEXOLAB Merge Gate are GREEN, and the fresh Codex review is clean. Generic Live Data equipment-centric grouping remains unchanged.
+
+No #707 production/site deployment was performed. Direct operator-page inspection is currently unavailable because Opera Browser Connector is not connected; an earlier connected attempt could see the NEXOLAB private-network tabs but connector actions rejected private LAN/Tailscale page access. This limits real-runtime UI observation only and does not substitute for or invalidate the completed repository-side evidence.
 
 ## Runtime and safety boundary
 
