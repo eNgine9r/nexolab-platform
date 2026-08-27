@@ -21,6 +21,7 @@ on:
       - "infrastructure/compose/compose.central.yaml"
       - "package.json"
       - "package-lock.json"
+      - "next.config.ts"
       - "playwright.dashboard.config.ts"
       - "scripts/acquisition-invariant-fixture.py"
       - "scripts/classify-ci-impact.py"

@@ -140,6 +140,50 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         result = classify([".github/workflows/ci.yml"])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_core_only_toolchain_changes_do_not_require_unrelated_external_lanes(self) -> None:
+        for path in (
+            "eslint.config.mjs",
+            "tsconfig.json",
+            "vitest.config.ts",
+            "playwright.security.config.ts",
+        ):
+            with self.subTest(path=path):
+                result = classify([path])
+                self.assertFalse(result["fail_closed"])
+                self.assertEqual(result["verification"]["required_external_workflows"], [])
+
+    def test_dashboard_playwright_config_requires_dashboard_only(self) -> None:
+        verification = classify(["playwright.dashboard.config.ts"])["verification"]
+        self.assertEqual(
+            verification["required_external_workflows"],
+            ["Authenticated Dashboard Acceptance"],
+        )
+
+    def test_refrigeration_playwright_config_requires_refrigeration_only(self) -> None:
+        verification = classify(["playwright.production.config.ts"])["verification"]
+        self.assertEqual(
+            verification["required_external_workflows"],
+            ["Refrigeration Browser Acceptance"],
+        )
+
+    def test_next_runtime_config_requires_dashboard_and_offline_only(self) -> None:
+        verification = classify(["next.config.ts"])["verification"]
+        self.assertEqual(
+            set(verification["required_external_workflows"]),
+            {"Authenticated Dashboard Acceptance", "Offline Bundle"},
+        )
+
+    def test_package_lock_keeps_all_shared_external_lanes(self) -> None:
+        verification = classify(["package-lock.json"])["verification"]
+        self.assertEqual(
+            set(verification["required_external_workflows"]),
+            {
+                "Authenticated Dashboard Acceptance",
+                "Offline Bundle",
+                "Refrigeration Browser Acceptance",
+            },
+        )
+
     def test_routing_classifier_change_requires_all_routed_external_lanes(self) -> None:
         verification = classify(["scripts/classify-ci-impact.py"])["verification"]
         self.assertEqual(

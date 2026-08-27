@@ -47,6 +47,19 @@ AUTHENTICATED_DASHBOARD_WORKFLOW = "Authenticated Dashboard Acceptance"
 OFFLINE_BUNDLE_WORKFLOW = "Offline Bundle"
 REFRIGERATION_BROWSER_WORKFLOW = "Refrigeration Browser Acceptance"
 
+DASHBOARD_EXTERNAL_TOOLCHAIN_PATHS = {
+    "package.json",
+    "package-lock.json",
+    "next.config.ts",
+    "playwright.dashboard.config.ts",
+}
+
+OFFLINE_EXTERNAL_DEPENDENCY_PATHS = {
+    "package.json",
+    "package-lock.json",
+    "next.config.ts",
+}
+
 DASHBOARD_FOCUSED_DOMAINS = {
     "settings": (
         ("src/app/settings/**", "src/components/settings/**", "src/features/settings/**", "e2e/settings.production.e2e.ts"),
@@ -163,11 +176,9 @@ def _verification_for_paths(
             "required_external_workflows": [],
         }
 
-    dependency_toolchain = any(path in DEPENDENCY_TOOLCHAIN_PATHS for path in normalized)
-
-    offline_bundle = fail_closed or dependency_toolchain or any(
-        _matches(path, OFFLINE_BUNDLE_PATTERNS) for path in normalized
-    )
+    offline_bundle = fail_closed or any(
+        path in OFFLINE_EXTERNAL_DEPENDENCY_PATHS for path in normalized
+    ) or any(_matches(path, OFFLINE_BUNDLE_PATTERNS) for path in normalized)
     refrigeration_dependency = any(
         path in {"package.json", "package-lock.json", "playwright.production.config.ts"}
         for path in normalized
@@ -178,9 +189,9 @@ def _verification_for_paths(
         or any(_matches(path, REFRIGERATION_PATTERNS) for path in normalized)
     )
 
-    shared_dashboard = fail_closed or dependency_toolchain or any(
-        _matches(path, DASHBOARD_SHARED_PATTERNS) for path in normalized
-    )
+    shared_dashboard = fail_closed or any(
+        path in DASHBOARD_EXTERNAL_TOOLCHAIN_PATHS for path in normalized
+    ) or any(_matches(path, DASHBOARD_SHARED_PATTERNS) for path in normalized)
     focused_domains = []
     for name, (patterns, test_match) in DASHBOARD_FOCUSED_DOMAINS.items():
         if any(_matches(path, patterns) for path in normalized):

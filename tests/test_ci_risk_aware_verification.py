@@ -23,6 +23,10 @@ class RiskAwareVerificationContractTests(unittest.TestCase):
         self.assertNotIn('- "e2e/**"', trigger)
         self.assertIn('- "e2e/refrigeration-layout.production.e2e.ts"', trigger)
 
+    def test_dashboard_trigger_includes_next_runtime_config(self) -> None:
+        trigger = DASHBOARD.split("workflow_dispatch:", 1)[0]
+        self.assertIn('- "next.config.ts"', trigger)
+
     def test_authenticated_dashboard_routes_exact_pr_diff_before_acceptance(self) -> None:
         self.assertIn('name: Resolve dashboard verification route', DASHBOARD)
         self.assertIn('scripts/classify-ci-impact.py', DASHBOARD)
