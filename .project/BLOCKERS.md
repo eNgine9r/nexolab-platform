@@ -1,14 +1,14 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-26
+Updated: 2026-08-27
 
 ## Issue #189 — actual-host recovery acceptance
 
-Blocked because accepted ARM64/local-auth artifact `9584581740` from GREEN run `32939760743` is exact to runtime source `cc27b609...`, while the currently deployed LAN source is now `a929144a...` from successful deployment evidence `runtime/deployments/20260826T125356Z`. The old artifact remains historical evidence but is not exact-source authority for the current runtime. Refresh recovery/package acceptance for `a929144a...` or establish another explicitly accepted current-source recovery path before resuming the actual-host recovery drill. Actual-host cutover/recovery and power-loss remain separately gated.
+Blocked because accepted ARM64/local-auth artifact `9584581740` from GREEN run `32939760743` is exact to runtime source `cc27b609...`, while the currently accepted and deployed LAN source is `a389a69d00a92380bce49930750bc5a99d992bde` from successful deployment evidence `runtime/deployments/20260827T054754Z`. The old artifact remains historical evidence but is not exact-source authority for the current runtime. Refresh recovery/package acceptance for `a389a69d...` or establish another explicitly accepted current-source recovery path before resuming the actual-host recovery drill. Actual-host cutover/recovery and power-loss remain separately gated.
 
-## Issue #696 / #698 — refrigeration latency merge blocked by hosted-runner allocation
+## Telemetry retention maintenance — partial authorized cleanup
 
-Issue #696 is implemented in PR #697 at exact head `e77b99af4bc53b9e173ff913f824f6f7dc2a71c8`. Targeted refrigeration tests and real Raspberry Pi SQL benchmarking are GREEN; the affected KK2 lookup improved from `85874.034 ms` to `1.853 ms`. Merge is soft-blocked by Issue #698: GitHub scheduler annotation states `The job was not acquired by Runner of type hosted even after multiple attempts`. Repository Actions are enabled, no other accessible repository had an in-progress Actions job during diagnosis, and Capacity Release Gate later obtained a runner and passed, so allocation is intermittent. Do not merge #697 until the exact-head required checks execute and are GREEN.
+Authorized retention work on 2026-08-26 is only partially complete. Confirmed committed deletion is 3,784,832 old `telemetry_session_contexts` rows and 250,000 old `telemetry_samples`, with `VACUUM FULL ANALYZE telemetry_session_contexts` completed. Do not claim all sensor telemetry before 2026-08-20 was deleted, and do not expand the authorized deletion scope without a separate explicit boundary.
 
 ## Issue #200 — physical RS-485 topology
 
@@ -26,9 +26,9 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
 
-## Security maintenance — #704 verified; no current merge blocker
+## Security maintenance — deadline driven
 
-Issue #704 / PR #705 has exact-head repository verification GREEN at `e2f7857e381600d76dd4100cea2c776bab8868e8`: fresh Container Supply Chain, Telemetry service, Core CI and NEXOLAB Merge Gate all passed. The security interrupt no longer blocks #690, which has returned to Ready. Remaining maintenance is deadline-driven rather than a current merge blocker: Device Agent `libssl3t64/CVE-2026-14456` expires **2026-08-30**; exact Device Agent and telemetry-service SQLite decisions plus telemetry `libcjson1/CVE-2026-16554` and `libwebsockets19t64/CVE-2026-78161` expire **2026-09-02** and must be removed earlier if findings disappear, fixes become consumable, reachability/version evidence changes or severity becomes Critical. PR #705 still requires normal GREEN merge; no production/runtime mutation is authorized by this security reconciliation.
+Issue #704 / PR #705 is merged and completed. Remaining maintenance is deadline-driven rather than a current merge blocker: Device Agent `libssl3t64/CVE-2026-14456` expires **2026-08-30**; exact Device Agent and telemetry-service SQLite decisions plus telemetry `libcjson1/CVE-2026-16554` and `libwebsockets19t64/CVE-2026-78161` expire **2026-09-02** and must be removed earlier if findings disappear, fixes become consumable, reachability/version evidence changes or severity becomes Critical.
 
 ## Cleared boundaries
 
@@ -39,10 +39,13 @@ Issue #704 / PR #705 has exact-head repository verification GREEN at `e2f7857e38
 - #673 production-readiness state reconciliation — completed and merged.
 - #675 source-to-packaged authority tooling — completed with exact-head review and required GREEN workflows.
 - #679 ARM64 QEMU package acceptance — completed with GREEN post-merge ARM64/local-auth run `32832798392` and independently verified artifact/provenance.
-- #683 local-auth relocation/full source recovery — merged at PR #685 with exact-head required workflows GREEN; its post-merge acceptance correctly failed before mutation on the separate #686 hosted fixture-permission defect.
-- #686 ARM64/local-auth acceptance fixture permissions — completed at PR #687; replacement run `32939760743` GREEN and accepted artifact `9584581740` published without production runtime mutation.
-- #684 task-oriented Settings workspace — implementation and exact-head CI/browser/offline/merge-gate verification completed in PR #689; no hardware or production cutover evidence required for this presentation-only Work Package.
+- #683 local-auth relocation/full source recovery — merged at PR #685.
+- #686 ARM64/local-auth acceptance fixture permissions — completed at PR #687; replacement run `32939760743` GREEN.
+- #684 task-oriented Settings workspace — completed and deployed.
+- #698 GitHub-hosted runner allocation incident — resolved; fresh exact-head workflows acquired runners and completed.
+- #704 container security reconciliation — completed and merged at PR #705.
+- #696 refrigeration structural snapshot latency — completed and merged at PR #697, deployed on `a389a69d...`; cold real Pi endpoint `0.067 s`, telemetry continuity PASS, production UI confirmed fast.
 
 ## Safety boundaries
 
-No blocker may be bypassed by Modbus/controller write, hardware write, production/site cutover without approval, persistent-data deletion, named-volume deletion, secret exposure or mandatory cloud dependency.
+No blocker may be bypassed by Modbus/controller write, hardware write, production/site cutover without approval, persistent-data deletion outside the explicitly authorized retention scope, named-volume deletion, secret exposure or mandatory cloud dependency.

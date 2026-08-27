@@ -18,12 +18,12 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
-    "deployed_product_sha": "a929144a2cbfa7c192e5e04cae6e02291cbef2cc"
+    "accepted_product_sha": "a389a69d00a92380bce49930750bc5a99d992bde",
+    "deployed_product_sha": "a389a69d00a92380bce49930750bc5a99d992bde"
   },
   "selection": {
     "active_work_package": null,
-    "next_work_package": null
+    "next_work_package": 690
   },
   "work_packages": [
     {
@@ -367,6 +367,37 @@
       }
     },
     {
+      "issue": 696,
+      "title": "Make refrigeration structural snapshot use bounded latest telemetry projection",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "branch": "fix/696-refrigeration-structural-latency",
+      "evidence": {
+        "verified_head_sha": "42dafbed9952e261a182e1e24e3380419e1369a5",
+        "pull_request": 697,
+        "checks": {
+          "CI": "success",
+          "Telemetry service": "success",
+          "Container Supply Chain": "success",
+          "Refrigeration Browser Acceptance": "success",
+          "Offline Auth Acceptance": "success",
+          "Offline Bundle": "success",
+          "NEXOLAB Merge Gate": "success"
+        },
+        "runtime_acceptance": {
+          "deployed_product_sha": "a389a69d00a92380bce49930750bc5a99d992bde",
+          "deployment_evidence_path": "/home/nexolab/nexolab-platform/runtime/deployments/20260827T054754Z",
+          "equipment_id": "7d98aa06-2942-4b2a-b124-1278d8339eb3",
+          "equipment_name": "Cool jet",
+          "channels": 84,
+          "cold_backend_seconds": 0.067,
+          "warm_average_seconds": 0.059,
+          "telemetry_advanced": true,
+          "production_ui_fast": true
+        }
+      }
+    },
+    {
       "issue": 704,
       "title": "Reconcile fresh Device Agent SQLite findings and retired OpenSSL exceptions",
       "priority": "critical",
@@ -564,12 +595,23 @@
         "pull_request": 668,
         "merge_sha": "1402b91b4941386e74fbbd0c00fc53650de2a40d"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-27T06:55:12Z",
+      "kind": "production_acceptance",
+      "data": {
+        "issue": 696,
+        "pull_request": 697,
+        "merge_sha": "a389a69d00a92380bce49930750bc5a99d992bde",
+        "deployment_evidence_path": "/home/nexolab/nexolab-platform/runtime/deployments/20260827T054754Z"
+      }
     }
   ],
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
-    "product_persistent_data_deletion": "none",
+    "product_persistent_data_deletion": "none_beyond_previously_authorized_retention_scope",
     "volume_deletion": "none",
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"

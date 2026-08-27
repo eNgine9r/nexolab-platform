@@ -3,23 +3,45 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-27T03:12:00+03:00",
+  "timestamp": "2026-08-27T10:10:00+03:00",
   "actor": "ChatGPT",
-  "event": "issue_704_verified_ready_for_merge",
+  "event": "issue_696_production_acceptance_completed",
   "baselines": {
-    "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
-    "deployed_product_sha": "a929144a2cbfa7c192e5e04cae6e02291cbef2cc"
+    "accepted_product_sha": "a389a69d00a92380bce49930750bc5a99d992bde",
+    "deployed_product_sha": "a389a69d00a92380bce49930750bc5a99d992bde"
   },
   "active_work": null,
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {},
+    "completed_issue": 696,
+    "deployment_evidence_path": "/home/nexolab/nexolab-platform/runtime/deployments/20260827T054754Z",
+    "refrigeration_runtime_acceptance": {
+      "equipment_id": "7d98aa06-2942-4b2a-b124-1278d8339eb3",
+      "equipment_name": "Cool jet",
+      "channels": 84,
+      "cold_backend_seconds": 0.067,
+      "warm_average_seconds": 0.059,
+      "telemetry_advanced": true,
+      "production_ui_fast": true
+    }
   },
-  "observations": [],
-  "next_action": "Commit/push final state evidence for #704, require exact-head GREEN, merge PR #705, then begin #690 and refresh PR #697 on current main.",
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-08-27T06:55:12Z",
+      "kind": "issue_completed",
+      "data": {
+        "issue": 696,
+        "pull_request": 697,
+        "merge_sha": "a389a69d00a92380bce49930750bc5a99d992bde"
+      }
+    }
+  ],
+  "next_action": "Complete state-only Issue #706 and its exact-head state-integrity PR, then begin Ready Issue #690 risk-aware verification orchestration.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
-    "product_persistent_data_deletion": "none",
+    "product_persistent_data_deletion": "none_beyond_previously_authorized_retention_scope",
     "volume_deletion": "none",
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
