@@ -26,9 +26,9 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
 
-## Security maintenance — CVE-2026-14456
+## Security maintenance — #704 verified; no current merge blocker
 
-Four exact reviewed HIGH/no-fix decisions are retained through **2026-08-30**. Rebuild/review at expiry or earlier if a fixed Trixie package appears, findings disappear, QUIC reachability changes or severity becomes Critical.
+Issue #704 / PR #705 has exact-head repository verification GREEN at `e2f7857e381600d76dd4100cea2c776bab8868e8`: fresh Container Supply Chain, Telemetry service, Core CI and NEXOLAB Merge Gate all passed. The security interrupt no longer blocks #690, which has returned to Ready. Remaining maintenance is deadline-driven rather than a current merge blocker: Device Agent `libssl3t64/CVE-2026-14456` expires **2026-08-30**; exact Device Agent and telemetry-service SQLite decisions plus telemetry `libcjson1/CVE-2026-16554` and `libwebsockets19t64/CVE-2026-78161` expire **2026-09-02** and must be removed earlier if findings disappear, fixes become consumable, reachability/version evidence changes or severity becomes Critical. PR #705 still requires normal GREEN merge; no production/runtime mutation is authorized by this security reconciliation.
 
 ## Cleared boundaries
 

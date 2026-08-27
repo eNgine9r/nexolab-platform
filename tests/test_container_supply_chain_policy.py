@@ -152,7 +152,7 @@ def test_current_cjson_exception_is_exact_and_short_lived() -> None:
     )
 
 
-def test_current_openssl_quic_exceptions_are_exact_and_short_lived() -> None:
+def test_current_openssl_quic_exception_is_device_agent_vendor_lag_only() -> None:
     root = Path(__file__).resolve().parents[1]
     payload = json.loads(
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
@@ -163,20 +163,92 @@ def test_current_openssl_quic_exceptions_are_exact_and_short_lived() -> None:
         if entry["vulnerability"] == "CVE-2026-14456"
     ]
 
-    assert {
-        (entry["image_id"], entry["package"]) for entry in matches
-    } == {
+    assert [(entry["image_id"], entry["package"]) for entry in matches] == [
         ("device-agent", "libssl3t64"),
-        ("telemetry-service", "libssl3t64"),
-        ("telemetry-service", "openssl"),
-        ("telemetry-service", "openssl-provider-legacy"),
-    }
-    assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-08-30" for entry in matches)
-    assert all("QUIC" in entry["reason"] for entry in matches)
+    ]
+    decision = matches[0]
+    assert decision["owner"] == "platform-security"
+    assert decision["expires_on"] == "2026-08-30"
+    assert "vendor-base-lag" in decision["reason"]
+    assert "fixed OpenSSL 3.5.7-1~deb13u2" in decision["reason"]
+    assert "QUIC" in decision["reason"]
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 8, 19),
+        date(2026, 8, 26),
+    )
+
+
+def test_current_device_agent_sqlite_exceptions_are_exact_and_short_lived() -> None:
+    root = Path(__file__).resolve().parents[1]
+    payload = json.loads(
+        (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
+    )
+    matches = [
+        entry
+        for entry in payload["exceptions"]
+        if entry["image_id"] == "device-agent"
+        and entry["package"] == "libsqlite3-0"
+        and entry["vulnerability"] in {"CVE-2026-11822", "CVE-2026-11824"}
+    ]
+
+    assert {entry["vulnerability"] for entry in matches} == {
+        "CVE-2026-11822",
+        "CVE-2026-11824",
+    }
+    assert all(entry["owner"] == "platform-security" for entry in matches)
+    assert all(entry["expires_on"] == "2026-09-02" for entry in matches)
+    assert all("FTS5" in entry["reason"] for entry in matches)
+    assert all("arbitrary-SQL" in entry["reason"] for entry in matches)
+    assert all("severity becomes Critical" in entry["reason"] for entry in matches)
+    MODULE.validate_exceptions(
+        root / "security/vulnerability-exceptions.json",
+        date(2026, 8, 26),
+    )
+
+
+def test_current_telemetry_fresh_scan_exceptions_are_exact_and_short_lived() -> None:
+    root = Path(__file__).resolve().parents[1]
+    payload = json.loads(
+        (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
+    )
+    expected = {
+        ("libsqlite3-0", "CVE-2026-11822"),
+        ("libsqlite3-0", "CVE-2026-11824"),
+        ("libcjson1", "CVE-2026-16554"),
+        ("libwebsockets19t64", "CVE-2026-78161"),
+    }
+    matches = [
+        entry
+        for entry in payload["exceptions"]
+        if entry["image_id"] == "telemetry-service"
+        and (entry["package"], entry["vulnerability"]) in expected
+    ]
+
+    assert {(entry["package"], entry["vulnerability"]) for entry in matches} == expected
+    assert len(matches) == 4
+    assert all(entry["owner"] == "platform-security" for entry in matches)
+    assert all(entry["expires_on"] == "2026-09-02" for entry in matches)
+    assert all("severity becomes Critical" in entry["reason"] for entry in matches)
+
+    sqlite = [entry for entry in matches if entry["package"] == "libsqlite3-0"]
+    assert all("FTS5" in entry["reason"] for entry in sqlite)
+    assert all("arbitrary-SQL" in entry["reason"] for entry in sqlite)
+
+    cjson = next(entry for entry in matches if entry["vulnerability"] == "CVE-2026-16554")
+    assert "32-bit" in cjson["reason"]
+    assert "linux/amd64" in cjson["reason"]
+    assert "linux/arm64" in cjson["reason"]
+    assert "mosquitto_ctrl" in cjson["reason"]
+
+    websockets = next(entry for entry in matches if entry["vulnerability"] == "CVE-2026-78161")
+    assert "4.3.5-1+deb13u1" in websockets["reason"]
+    assert "4.5.0" in websockets["reason"]
+    assert "LECP CBOR Recording" in websockets["reason"]
+    assert "FastAPI/ASGI" in websockets["reason"]
+
+    MODULE.validate_exceptions(
+        root / "security/vulnerability-exceptions.json",
+        date(2026, 8, 27),
     )
 
 
