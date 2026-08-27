@@ -23,15 +23,11 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 709,
-      "title": "Export Saved Dashboard sensor telemetry with canonical equipment identity",
-      "branch": "fix/709-live-dashboard-telemetry-equipment-id"
+      "issue": 711,
+      "title": "Fix Energy history false continuity gaps at normal 30-second cadence",
+      "branch": "fix/711-energy-history-continuity"
     },
-    "next_work_package": {
-      "issue": 690,
-      "title": "Make PR verification risk-aware and path-targeted",
-      "branch": "feat/690-risk-aware-verification"
-    }
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -448,7 +444,7 @@
       "issue": 709,
       "title": "Export Saved Dashboard sensor telemetry with canonical equipment identity",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "blocked",
       "branch": "fix/709-live-dashboard-telemetry-equipment-id",
       "evidence": {
         "verified_head_sha": "8de343198093c0c4f9b84510623df19e16d1ba87",
@@ -468,6 +464,14 @@
         },
         "runtime_deployment": "pending_explicit_product_owner_approval"
       }
+    },
+    {
+      "issue": 711,
+      "title": "Fix Energy history false continuity gaps at normal 30-second cadence",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "branch": "fix/711-energy-history-continuity",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [

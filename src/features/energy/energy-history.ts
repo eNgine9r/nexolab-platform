@@ -1,3 +1,4 @@
+import { deriveChartSourceGapMs } from "@/features/charts/continuity";
 import {
   clearEnergyHistoryBreakPending,
   clearEnergyHistoryMarkers,
@@ -14,7 +15,6 @@ const HISTORY_PAGE_SIZE = 1_000;
 const MAX_HISTORY_PAGES = 100;
 export const MAX_HISTORY_POINTS_PER_METER = 240;
 export const ENERGY_HISTORY_MAX_FUTURE_SKEW_MS = 30_000;
-export const ENERGY_HISTORY_SOURCE_GAP_MS = 30_000;
 
 export interface EnergyHistoryWindow {
   nodeId: string;
@@ -36,10 +36,20 @@ function isAcceptedEnergyHistorySample(sample: TelemetrySample): boolean {
   return isEnergySample(sample) && Number.isFinite(Date.parse(sample.captured_at));
 }
 
+function deriveEnergyHistorySourceGapMs(samples: readonly TelemetrySample[]): number {
+  return deriveChartSourceGapMs(
+    samples.filter(isRenderableEnergyHistorySample).map((sample) => ({
+      id: energyHistorySourceEventId(sample.event_id),
+      timestampMs: Date.parse(sample.captured_at),
+    })),
+  );
+}
+
 function annotateSourceSegments(
   samples: readonly TelemetrySample[],
   previousRenderableAt: number | null = null,
   initialBreakPending = false,
+  maximumSourceGapMs: number | null = deriveEnergyHistorySourceGapMs(samples),
 ): EnergyHistorySegmentAnnotation {
   const sorted = [...samples].sort(
     (left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at),
@@ -64,7 +74,7 @@ function annotateSourceSegments(
       explicitSegment ||
       (previousAt !== null &&
         capturedAt >= previousAt &&
-        (breakPending || capturedAt - previousAt > ENERGY_HISTORY_SOURCE_GAP_MS));
+        (breakPending || (maximumSourceGapMs !== null && capturedAt - previousAt > maximumSourceGapMs)));
 
     annotated.push(startsSegment ? markEnergyHistorySegmentStart(sample) : sample);
     if (previousAt === null || capturedAt >= previousAt) previousAt = capturedAt;
@@ -241,10 +251,14 @@ export function mergeEnergyHistoryTail(
         .map((sample) => Date.parse(sample.captured_at))
         .filter(Number.isFinite)
         .at(-1) ?? null;
+    // The retained/current side may already be downsampled, so it cannot safely
+    // establish the physical source cadence for a single live-tail sample. Preserve
+    // explicit/quality boundaries here and let raw history annotation own silent-gap detection.
     const annotation = annotateSourceSegments(
       incomingByMeter.get(unitId) ?? [],
       lastExistingAt,
       existingBreakPending,
+      null,
     );
     const byEventId = new Map<string, TelemetrySample>();
 

@@ -3,51 +3,23 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-27T15:33:42+03:00",
+  "timestamp": "2026-08-27T16:45:09+03:00",
   "actor": "ChatGPT",
-  "event": "issue_709_verified_ready_for_merge",
+  "event": "issue_711_pre_pr_candidate_verified",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "active_work": {
-    "issue": 709,
-    "title": "Export Saved Dashboard sensor telemetry with canonical equipment identity",
-    "branch": "fix/709-live-dashboard-telemetry-equipment-id"
+    "issue": 711,
+    "title": "Fix Energy history false continuity gaps at normal 30-second cadence",
+    "branch": "fix/711-energy-history-continuity"
   },
   "evidence_snapshot": {
-    "active_issue_evidence": {
-      "verified_head_sha": "8de343198093c0c4f9b84510623df19e16d1ba87",
-      "product_code_head_sha": "e969772519d896ebe78d8ff5fb283fddfbf800e0",
-      "pull_request": 710,
-      "raspberry_pi_live_dashboard_module_suite": "27_passed_1_skipped",
-      "authenticated_dashboard_playwright": "19_passed",
-      "checks": {
-        "CI": "success",
-        "Telemetry service": "success",
-        "Authenticated Dashboard Acceptance": "success",
-        "Offline Bundle": "success",
-        "Container Supply Chain": "success",
-        "NEXOLAB Merge Gate": "success",
-        "fresh Codex review": "clean",
-        "review threads": "all_resolved"
-      }
-    }
+    "active_issue_evidence": {}
   },
-  "observations": [
-    {
-      "source": "github",
-      "observed_at": "2026-08-27T15:33:42+03:00",
-      "kind": "pr_verification",
-      "data": {
-        "pull_request": 710,
-        "head_sha": "8de343198093c0c4f9b84510623df19e16d1ba87",
-        "repository_ready_for_merge": true,
-        "runtime_deployment_authorized": false
-      }
-    }
-  ],
-  "next_action": "Merge PR #710 only if the state-only final head passes required checks. After merge, verify GitHub closure/main. Do not deploy to Raspberry Pi until explicit Product Owner production/site cutover approval; then run controlled deployment and real CSV sensor-row verification before advancing to #690.",
+  "observations": [],
+  "next_action": "Commit and push the focused #711 candidate, open PR, require exact-head GREEN CI and merge gate, then merge without any Raspberry Pi deployment.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
