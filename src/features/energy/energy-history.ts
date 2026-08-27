@@ -18,6 +18,8 @@ const HISTORY_PAGE_SIZE = 1_000;
 const MAX_HISTORY_PAGES = 100;
 const SOURCE_CADENCE_TAIL_CACHE_LIMIT = 512;
 const SOURCE_CADENCE_RECENT_TIMESTAMP_LIMIT = 4;
+const SOURCE_CADENCE_CONFIRMATION_RELATIVE_TOLERANCE = 0.2;
+const SOURCE_CADENCE_CONFIRMATION_MINIMUM_TOLERANCE_MS = 1_000;
 export const MAX_HISTORY_POINTS_PER_METER = 240;
 export const ENERGY_HISTORY_MAX_FUTURE_SKEW_MS = 30_000;
 
@@ -298,25 +300,34 @@ function bucketDownsampleAnnotated(
   return sampled;
 }
 
-function reconcileRecentCadenceIncrease(
-  samples: readonly TelemetrySample[],
-  inheritedCadenceState: EnergyHistoryCadenceState | null,
-  nextCadenceState: EnergyHistoryCadenceState | null,
-): TelemetrySample[] {
-  if (
-    inheritedCadenceState === null ||
-    nextCadenceState === null ||
-    nextCadenceState.maximumSourceGapMs <= inheritedCadenceState.maximumSourceGapMs
-  ) {
-    return [...samples];
+function confirmedRecentCadenceDeltas(
+  cadenceState: EnergyHistoryCadenceState | null,
+): Map<number, number> | null {
+  if (cadenceState === null || cadenceState.rawTimestampMs.length < SOURCE_CADENCE_RECENT_TIMESTAMP_LIMIT) {
+    return null;
   }
 
-  const timestamps = nextCadenceState.rawTimestampMs;
-  const recentDeltas = new Map<number, number>();
-  const firstCandidateIndex = Math.max(1, timestamps.length - 2);
-  for (let index = firstCandidateIndex; index < timestamps.length; index += 1) {
-    recentDeltas.set(timestamps[index], timestamps[index] - timestamps[index - 1]);
-  }
+  const timestamps = cadenceState.rawTimestampMs;
+  const deltas = timestamps.slice(1).map((timestamp, index) => timestamp - timestamps[index]);
+  if (deltas.some((delta) => !Number.isFinite(delta) || delta <= 0)) return null;
+
+  const orderedDeltas = [...deltas].sort((left, right) => left - right);
+  const medianDelta = orderedDeltas[Math.floor(orderedDeltas.length / 2)];
+  const toleranceMs = Math.max(
+    SOURCE_CADENCE_CONFIRMATION_MINIMUM_TOLERANCE_MS,
+    medianDelta * SOURCE_CADENCE_CONFIRMATION_RELATIVE_TOLERANCE,
+  );
+  if (deltas.some((delta) => Math.abs(delta - medianDelta) > toleranceMs)) return null;
+
+  return new Map(deltas.map((delta, index) => [timestamps[index + 1], delta]));
+}
+
+function reconcileConfirmedRecentCadence(
+  samples: readonly TelemetrySample[],
+  nextCadenceState: EnergyHistoryCadenceState | null,
+): TelemetrySample[] {
+  const recentDeltas = confirmedRecentCadenceDeltas(nextCadenceState);
+  if (recentDeltas === null || nextCadenceState === null) return [...samples];
 
   return samples.map((sample) => {
     if (!isEnergyHistoryInferredSegmentStart(sample.event_id)) return sample;
@@ -434,8 +445,8 @@ export function mergeEnergyHistoryTail(
       inheritedCadenceState?.maximumSourceGapMs ?? incomingCadenceState?.maximumSourceGapMs ?? null;
     // Retained history may be heavily downsampled, so the current physical cadence is
     // carried from a bounded raw tail rather than inferred from rendered points. Live
-    // gaps are tentative until later raw samples can distinguish an outage from a
-    // deliberate increase in polling interval.
+    // gaps are tentative until a complete recent raw tail confirms that a slower
+    // cadence regime is stable rather than a sequence of intermittent outages.
     const annotation = annotateSourceSegments(
       incomingSamples,
       lastExistingAt,
@@ -447,16 +458,8 @@ export function mergeEnergyHistoryTail(
       ...(inheritedCadenceState?.rawTimestampMs ?? []),
       ...uniqueOrderedTimestamps(incomingSamples),
     ]);
-    const reconciledExisting = reconcileRecentCadenceIncrease(
-      normalizedExisting,
-      inheritedCadenceState,
-      nextCadenceState,
-    );
-    const reconciledIncoming = reconcileRecentCadenceIncrease(
-      annotation.samples,
-      inheritedCadenceState,
-      nextCadenceState,
-    );
+    const reconciledExisting = reconcileConfirmedRecentCadence(normalizedExisting, nextCadenceState);
+    const reconciledIncoming = reconcileConfirmedRecentCadence(annotation.samples, nextCadenceState);
     const byEventId = new Map<string, TelemetrySample>();
 
     for (const sample of [...reconciledExisting, ...reconciledIncoming]) {
