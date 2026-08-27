@@ -153,24 +153,29 @@ describe("energy live-tail source cadence", () => {
     expect(reduced.some((sample) => isEnergyHistorySegmentStart(sample.event_id))).toBe(false);
   });
 
-  it("keeps an unsettled historical tail gap tentative until live cadence settles", () => {
+  it("keeps an unsettled historical tail tentative until a slower cadence is confirmed", () => {
     const unsettledHistory = [
       sampleAtOffsetMs(0),
       sampleAtOffsetMs(10_000),
       sampleAtOffsetMs(20_000),
       sampleAtOffsetMs(80_000),
     ];
-    const reduced = downsampleEnergyHistory(unsettledHistory, 240, window);
+    let live = downsampleEnergyHistory(unsettledHistory, 240, window);
 
-    expect(isEnergyHistoryInferredSegmentStart(findByOffset(reduced, 80_000).event_id)).toBe(true);
+    expect(isEnergyHistoryInferredSegmentStart(findByOffset(live, 80_000).event_id)).toBe(true);
 
-    const reconciled = mergeEnergyHistoryTail(reduced, [sampleAtOffsetMs(140_000)], window);
+    live = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(140_000)], window);
+    expect(isEnergyHistoryInferredSegmentStart(findByOffset(live, 80_000).event_id)).toBe(true);
+    expect(isEnergyHistoryInferredSegmentStart(findByOffset(live, 140_000).event_id)).toBe(true);
+
+    const reconciled = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(200_000)], window);
 
     expect(isEnergyHistorySegmentStart(findByOffset(reconciled, 80_000).event_id)).toBe(false);
     expect(isEnergyHistorySegmentStart(findByOffset(reconciled, 140_000).event_id)).toBe(false);
+    expect(isEnergyHistorySegmentStart(findByOffset(reconciled, 200_000).event_id)).toBe(false);
   });
 
-  it("reconciles tentative live gaps after a deliberate cadence increase", () => {
+  it("reconciles tentative live gaps only after a slower cadence is confirmed", () => {
     const fastHistory = [
       sampleAtOffsetMs(0),
       sampleAtOffsetMs(10_000),
@@ -178,15 +183,38 @@ describe("energy live-tail source cadence", () => {
       sampleAtOffsetMs(30_000),
       sampleAtOffsetMs(40_000),
     ];
-    const reduced = downsampleEnergyHistory(fastHistory, 240, window);
-    const firstSlow = mergeEnergyHistoryTail(reduced, [sampleAtOffsetMs(100_000)], window);
+    let live = downsampleEnergyHistory(fastHistory, 240, window);
+    live = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(100_000)], window);
+    live = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(160_000)], window);
 
-    expect(isEnergyHistoryInferredSegmentStart(findByOffset(firstSlow, 100_000).event_id)).toBe(true);
+    expect(isEnergyHistoryInferredSegmentStart(findByOffset(live, 100_000).event_id)).toBe(true);
+    expect(isEnergyHistoryInferredSegmentStart(findByOffset(live, 160_000).event_id)).toBe(true);
 
-    const reconciled = mergeEnergyHistoryTail(firstSlow, [sampleAtOffsetMs(160_000)], window);
+    const reconciled = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(220_000)], window);
 
     expect(isEnergyHistorySegmentStart(findByOffset(reconciled, 100_000).event_id)).toBe(false);
     expect(isEnergyHistorySegmentStart(findByOffset(reconciled, 160_000).event_id)).toBe(false);
+    expect(isEnergyHistorySegmentStart(findByOffset(reconciled, 220_000).event_id)).toBe(false);
+  });
+
+  it("keeps intermittent outages when normal fast cadence resumes", () => {
+    const fastHistory = [
+      sampleAtOffsetMs(0),
+      sampleAtOffsetMs(10_000),
+      sampleAtOffsetMs(20_000),
+      sampleAtOffsetMs(30_000),
+      sampleAtOffsetMs(40_000),
+    ];
+    let live = downsampleEnergyHistory(fastHistory, 240, window);
+    live = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(100_000)], window);
+    live = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(160_000)], window);
+    live = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(170_000)], window);
+    const resumed = mergeEnergyHistoryTail(live, [sampleAtOffsetMs(180_000)], window);
+
+    expect(isEnergyHistoryInferredSegmentStart(findByOffset(resumed, 100_000).event_id)).toBe(true);
+    expect(isEnergyHistoryInferredSegmentStart(findByOffset(resumed, 160_000).event_id)).toBe(true);
+    expect(isEnergyHistorySegmentStart(findByOffset(resumed, 170_000).event_id)).toBe(false);
+    expect(isEnergyHistorySegmentStart(findByOffset(resumed, 180_000).event_id)).toBe(false);
   });
 
   it("keeps a genuine live outage after the next normal-cadence sample", () => {
