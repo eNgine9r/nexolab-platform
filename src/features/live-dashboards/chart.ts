@@ -28,6 +28,7 @@ const SAVED_AREA_FILL_OPACITY = 0.14;
 export interface SavedDashboardChartGroup {
   id: string;
   title: string;
+  equipmentId: string | null;
   nativeUnits: readonly string[];
   physicalQuantities: readonly ChartPhysicalQuantity[];
   scene: ChartRendererScene;
@@ -72,6 +73,10 @@ export function savedDashboardChartIdentity(
     metric: series.item.metric,
     nativeUnit: series.item.native_unit,
   };
+}
+
+function sourceEquipmentId(series: LiveDashboardSeries): string {
+  return series.latest?.equipment_id ?? series.history[0]?.equipment_id ?? series.item.channel_ref_id;
 }
 
 function semanticMode(identity: ChartSeriesIdentity): ChartSeries["semanticMode"] {
@@ -162,6 +167,8 @@ export function buildSavedDashboardChartGroups(
       soloSeriesKey,
     ),
   );
+  const equipmentIds = [...new Set(plotted.map(sourceEquipmentId))];
+  const equipmentId = equipmentIds.length === 1 ? equipmentIds[0] : null;
   const partitions = partitionChartSeriesByAxisBudget(chartSeries);
 
   return partitions.map((partition, partitionIndex) => {
@@ -172,6 +179,7 @@ export function buildSavedDashboardChartGroups(
         partitions.length === 1
           ? "Графік Dashboard"
           : `Графік Dashboard · ${partitionIndex + 1}/${partitions.length}`,
+      equipmentId,
       nativeUnits: axisModel.allAxes.map((axis) => axis.nativeUnit),
       physicalQuantities: axisModel.allAxes.map((axis) => axis.physicalQuantity),
       scene: {
