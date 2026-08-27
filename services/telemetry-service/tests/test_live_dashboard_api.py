@@ -359,7 +359,7 @@ def export_event(
     value: float | None,
     quality: str = "valid",
     node_id: str = "edge-a",
-    equipment_id: str = "controller-a",
+    equipment_id: str = "K108",
 ) -> TelemetryEvent:
     return TelemetryEvent(
         event_id=uuid4(),
@@ -423,7 +423,7 @@ def test_saved_dashboard_csv_export_is_persisted_deterministic_and_bounded(
         channel_id="a-temperature-01",
         value=99.9,
         node_id="edge-b",
-        equipment_id="controller-b",
+        equipment_id="K109",
     )
     assert database.persist(
         foreign_same_series, foreign_same_series.normalized_payload()

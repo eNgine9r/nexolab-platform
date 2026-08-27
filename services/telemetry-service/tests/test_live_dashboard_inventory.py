@@ -112,7 +112,7 @@ def test_inventory_latest_lookup_is_bounded_by_catalog_identity_and_large_histor
             "unit": "°C",
             "quality": "valid",
             "source": "dixell-xjp60d",
-            "equipment_id": "controller-a",
+            "equipment_id": "K108",
             "channel_id": "a-temperature-01",
             "alarm": "high" if index == 2 else None,
             "raw_value": None,
@@ -138,6 +138,7 @@ def test_inventory_latest_lookup_is_bounded_by_catalog_identity_and_large_histor
     assert elapsed < 8.0
     assert page.total == 2
     by_channel = {item.channel_id: item for item in page.items}
+    assert by_channel["a-temperature-01"].equipment_id == "K108"
     assert by_channel["a-temperature-01"].latest is not None
     assert by_channel["a-temperature-01"].latest.value == 4.0
     assert by_channel["a-temperature-01"].quality == "valid"

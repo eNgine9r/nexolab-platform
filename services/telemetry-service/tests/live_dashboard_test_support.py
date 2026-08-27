@@ -50,6 +50,7 @@ def provision_inventory(
     bus_id = str(uuid4())
     chamber_id = str(uuid4())
     device_id = str(uuid4())
+    unit_id = 108 if suffix == "a" else 109
     with Session(database.engine) as session:
         with session.begin():
             session.add(
@@ -114,11 +115,11 @@ def provision_inventory(
                     organization_id=organization_id,
                     climate_chamber_id=chamber_id,
                     bus_id=bus_id,
-                    business_key=f"controller-{suffix}",
+                    business_key=f"DIXELL-{unit_id}",
                     device_type="temperature_controller",
                     manufacturer="Test",
                     model="XJP60D",
-                    unit_id=1,
+                    unit_id=unit_id,
                     display_name=f"Controller {suffix}",
                     designation=None,
                     connection_status="connected",
