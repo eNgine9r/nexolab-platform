@@ -23,7 +23,12 @@ def test_energy_meter_preserves_device_agent_equipment_identity() -> None:
 
 @pytest.mark.parametrize(
     ("device_type", "unit_id"),
-    [("future_device", 108), ("temperature_controller", 0)],
+    [
+        ("future_device", 108),
+        ("temperature_controller", 0),
+        ("temperature_controller", 248),
+        ("energy_meter", 248),
+    ],
 )
 def test_unknown_or_invalid_catalog_identity_fails_closed(
     device_type: str,
@@ -53,3 +58,21 @@ def test_energy_meter_sql_identity_expression_matches_device_agent_contract(tmp_
             .limit(1)
         )
     assert resolved == "LE01MP-200"
+
+
+def test_out_of_range_sql_identity_expression_fails_closed(tmp_path) -> None:
+    database, _ = database_with_inventory(tmp_path)
+    with Session(database.engine) as session:
+        with session.begin():
+            session.execute(
+                update(MeasurementDevice)
+                .where(MeasurementDevice.organization_id == ORG_A)
+                .values(unit_id=248)
+            )
+        resolved = session.scalar(
+            select(telemetry_equipment_id_expression())
+            .select_from(MeasurementDevice)
+            .where(MeasurementDevice.organization_id == ORG_A)
+            .limit(1)
+        )
+    assert resolved is None

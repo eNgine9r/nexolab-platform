@@ -14,7 +14,10 @@ from app.climate_catalog.models import (
 )
 from app.db import TelemetrySample
 from app.live_dashboard.repository import LiveDashboardRepository
-from app.live_dashboard.telemetry_identity import telemetry_equipment_id_expression
+from app.live_dashboard.telemetry_identity import (
+    MAX_MODBUS_UNIT_ID,
+    telemetry_equipment_id_expression,
+)
 from app.nodes.models import CentralNode
 from app.refrigeration.models import RefrigerationEquipmentRecord
 
@@ -321,6 +324,7 @@ def _eligible_catalog_select(organization_id: str):
             MeasurementChannel.organization_id == organization_id,
             MeasurementChannel.status == "active",
             MeasurementDevice.status == "active",
+            MeasurementDevice.unit_id.between(1, MAX_MODBUS_UNIT_ID),
             MeasurementBus.status == "active",
             ClimateChamber.status == "active",
             CentralNode.state != "revoked",

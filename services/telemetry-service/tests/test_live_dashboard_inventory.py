@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
-from app.climate_catalog.models import MeasurementChannel
+from app.climate_catalog.models import MeasurementChannel, MeasurementDevice
 from app.db import TelemetrySample
 from app.live_dashboard.inventory import list_live_dashboard_inventory
 from app.live_dashboard.repository import (
@@ -145,6 +145,26 @@ def test_inventory_latest_lookup_is_bounded_by_catalog_identity_and_large_histor
     assert by_channel["a-temperature-01"].alarm == "high"
     assert by_channel["a-temperature-02"].latest is None
     assert by_channel["a-temperature-02"].quality == "unknown"
+
+
+def test_inventory_excludes_catalog_devices_outside_modbus_unit_range(tmp_path: Path) -> None:
+    database, _ = database_with_inventory(tmp_path)
+    repository = LiveDashboardRepository(database)
+    with Session(database.engine) as session:
+        with session.begin():
+            session.execute(
+                update(MeasurementDevice)
+                .where(MeasurementDevice.organization_id == ORG_A)
+                .values(unit_id=248)
+            )
+    page = list_live_dashboard_inventory(
+        repository,
+        organization_id=ORG_A,
+        limit=500,
+        offset=0,
+    )
+    assert page.total == 0
+    assert page.items == ()
 
 
 def test_inventory_and_save_validation_share_active_catalog_eligibility(
