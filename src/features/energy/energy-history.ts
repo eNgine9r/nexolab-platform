@@ -1,20 +1,27 @@
 import { deriveChartSourceGapMs } from "@/features/charts/continuity";
 import {
   clearEnergyHistoryBreakPending,
+  clearEnergyHistoryInferredSegmentStart,
   clearEnergyHistoryMarkers,
   energyHistorySourceEventId,
   isEnergyHistoryBreakPending,
+  isEnergyHistoryInferredSegmentStart,
   isEnergyHistorySegmentStart,
   markEnergyHistoryBreakPending,
+  markEnergyHistoryInferredSegmentStart,
   markEnergyHistorySegmentStart,
 } from "@/features/energy/energy-history-segment";
-import { isEnergySample, resolveEnergyMeter, type EnergyMetricId } from "@/features/energy/energy-telemetry";
+import {
+  isEnergySample,
+  resolveEnergyMeter,
+  type EnergyMetricId,
+} from "@/features/energy/energy-telemetry";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
 const HISTORY_PAGE_SIZE = 1_000;
 const MAX_HISTORY_PAGES = 100;
 const SOURCE_CADENCE_TAIL_CACHE_LIMIT = 512;
-const SOURCE_CADENCE_RECENT_TIMESTAMP_LIMIT = 5;
+const SOURCE_CADENCE_RECENT_TIMESTAMP_LIMIT = 4;
 export const MAX_HISTORY_POINTS_PER_METER = 240;
 export const ENERGY_HISTORY_MAX_FUTURE_SKEW_MS = 30_000;
 
@@ -22,6 +29,8 @@ interface EnergyHistoryCadenceState {
   rawTimestampMs: number[];
   maximumSourceGapMs: number;
 }
+
+type SourceGapMarker = "durable" | "inferred";
 
 const sourceCadenceByTailEventId = new Map<string, EnergyHistoryCadenceState>();
 
@@ -53,6 +62,19 @@ function renderableEnergyHistoryTimestamps(samples: readonly TelemetrySample[]):
   return [...new Set(timestamps)].sort((left, right) => left - right);
 }
 
+function deriveSourceGapFromTimestamps(timestamps: readonly number[]): number | null {
+  const ordered = [...new Set(timestamps.filter(Number.isFinite))].sort((left, right) => left - right);
+  if (ordered.length < 2) return null;
+
+  const points =
+    ordered.length === 2
+      ? [ordered[0], ordered[1], ordered[1] + (ordered[1] - ordered[0])]
+      : ordered;
+  return deriveChartSourceGapMs(
+    points.map((timestampMs) => ({ id: `energy-cadence:${timestampMs}`, timestampMs })),
+  );
+}
+
 function cadenceStateFromTimestamps(timestamps: readonly number[]): EnergyHistoryCadenceState | null {
   const rawTimestampMs = [...new Set(timestamps.filter(Number.isFinite))]
     .sort((left, right) => left - right)
@@ -67,22 +89,26 @@ function cadenceStateFromTimestamps(timestamps: readonly number[]): EnergyHistor
   };
 }
 
-function deriveEnergyHistorySourceGapMs(samples: readonly TelemetrySample[]): number {
-  return deriveChartSourceGapMs(
-    samples.filter(isRenderableEnergyHistorySample).map((sample) => ({
-      id: energyHistorySourceEventId(sample.event_id),
-      timestampMs: Date.parse(sample.captured_at),
-    })),
-  );
+function cadenceStateFromSamples(samples: readonly TelemetrySample[]): EnergyHistoryCadenceState | null {
+  return cadenceStateFromTimestamps(renderableEnergyHistoryTimestamps(samples));
 }
 
-function cadenceStateFromSamples(samples: readonly TelemetrySample[]): EnergyHistoryCadenceState | null {
-  const cadenceState = cadenceStateFromTimestamps(renderableEnergyHistoryTimestamps(samples));
-  if (cadenceState === null) return null;
-  return {
-    ...cadenceState,
-    maximumSourceGapMs: deriveEnergyHistorySourceGapMs(samples),
-  };
+function deriveHistoricalSourceGapByTimestamp(samples: readonly TelemetrySample[]): Map<number, number> {
+  const timestamps = renderableEnergyHistoryTimestamps(samples);
+  const maximumGapByTimestamp = new Map<number, number>();
+
+  for (let index = 1; index < timestamps.length; index += 1) {
+    const forward = timestamps.slice(index, index + SOURCE_CADENCE_RECENT_TIMESTAMP_LIMIT);
+    const backward = timestamps.slice(
+      Math.max(0, index - SOURCE_CADENCE_RECENT_TIMESTAMP_LIMIT),
+      index,
+    );
+    const maximumSourceGapMs =
+      deriveSourceGapFromTimestamps(forward) ?? deriveSourceGapFromTimestamps(backward);
+    if (maximumSourceGapMs !== null) maximumGapByTimestamp.set(timestamps[index], maximumSourceGapMs);
+  }
+
+  return maximumGapByTimestamp;
 }
 
 function rememberSourceCadenceForTail(
@@ -112,17 +138,21 @@ function annotateSourceSegments(
   samples: readonly TelemetrySample[],
   previousRenderableAt: number | null = null,
   initialBreakPending = false,
-  maximumSourceGapMs: number | null = deriveEnergyHistorySourceGapMs(samples),
+  maximumSourceGapMs: number | null | undefined = undefined,
+  sourceGapMarker: SourceGapMarker = "durable",
 ): EnergyHistorySegmentAnnotation {
   const sorted = [...samples].sort(
     (left, right) => Date.parse(left.captured_at) - Date.parse(right.captured_at),
   );
+  const historicalSourceGapByTimestamp =
+    maximumSourceGapMs === undefined ? deriveHistoricalSourceGapByTimestamp(sorted) : null;
   const annotated: TelemetrySample[] = [];
   let previousAt = previousRenderableAt;
   let breakPending = initialBreakPending;
 
   for (const sourceSample of sorted) {
-    const explicitSegment = isEnergyHistorySegmentStart(sourceSample.event_id);
+    const inferredSegment = isEnergyHistoryInferredSegmentStart(sourceSample.event_id);
+    const explicitSegment = isEnergyHistorySegmentStart(sourceSample.event_id) && !inferredSegment;
     const pendingAfterSample = isEnergyHistoryBreakPending(sourceSample.event_id);
     const sample = clearEnergyHistoryMarkers(sourceSample);
     const capturedAt = Date.parse(sample.captured_at);
@@ -133,13 +163,27 @@ function annotateSourceSegments(
       continue;
     }
 
-    const startsSegment =
-      explicitSegment ||
-      (previousAt !== null &&
-        capturedAt >= previousAt &&
-        (breakPending || (maximumSourceGapMs !== null && capturedAt - previousAt > maximumSourceGapMs)));
+    const sourceGapThreshold =
+      maximumSourceGapMs === undefined
+        ? (historicalSourceGapByTimestamp?.get(capturedAt) ?? null)
+        : maximumSourceGapMs;
+    const inferredSourceGap =
+      previousAt !== null &&
+      capturedAt >= previousAt &&
+      sourceGapThreshold !== null &&
+      capturedAt - previousAt > sourceGapThreshold;
 
-    annotated.push(startsSegment ? markEnergyHistorySegmentStart(sample) : sample);
+    let annotatedSample = sample;
+    if (explicitSegment || breakPending) {
+      annotatedSample = markEnergyHistorySegmentStart(sample);
+    } else if (inferredSegment || inferredSourceGap) {
+      annotatedSample =
+        sourceGapMarker === "inferred"
+          ? markEnergyHistoryInferredSegmentStart(sample)
+          : markEnergyHistorySegmentStart(sample);
+    }
+
+    annotated.push(annotatedSample);
     if (previousAt === null || capturedAt >= previousAt) previousAt = capturedAt;
     breakPending = pendingAfterSample;
   }
@@ -154,10 +198,18 @@ function mergeBucketSample(
   if (!current) return candidate;
 
   const selected = Date.parse(current.captured_at) <= Date.parse(candidate.captured_at) ? candidate : current;
-  const startsSegment =
-    isEnergyHistorySegmentStart(current.event_id) || isEnergyHistorySegmentStart(candidate.event_id);
+  const explicitSegment = [current, candidate].some(
+    (sample) =>
+      isEnergyHistorySegmentStart(sample.event_id) &&
+      !isEnergyHistoryInferredSegmentStart(sample.event_id),
+  );
+  const inferredSegment = [current, candidate].some((sample) =>
+    isEnergyHistoryInferredSegmentStart(sample.event_id),
+  );
   const normalized = clearEnergyHistoryMarkers(selected);
-  return startsSegment ? markEnergyHistorySegmentStart(normalized) : normalized;
+  if (explicitSegment) return markEnergyHistorySegmentStart(normalized);
+  if (inferredSegment) return markEnergyHistoryInferredSegmentStart(normalized);
+  return normalized;
 }
 
 function applyPendingBreak(samples: readonly TelemetrySample[], breakPending: boolean): TelemetrySample[] {
@@ -203,6 +255,10 @@ function bucketDownsampleAnnotated(
     firstBucketSample !== undefined &&
     isEnergyHistorySegmentStart(firstBucketSample.event_id) &&
     energyHistorySourceEventId(firstBucketSample.event_id) !== energyHistorySourceEventId(first.event_id);
+  const firstBucketLaterSegmentIsInferred =
+    firstBucketContainsLaterSegment &&
+    firstBucketSample !== undefined &&
+    isEnergyHistoryInferredSegmentStart(firstBucketSample.event_id);
   buckets.set(firstBucket, first);
   buckets.set(lastBucket, mergeBucketSample(buckets.get(lastBucket), last));
 
@@ -215,11 +271,42 @@ function bucketDownsampleAnnotated(
       (sample) => energyHistorySourceEventId(sample.event_id) === energyHistorySourceEventId(first.event_id),
     );
     if (firstIndex >= 0 && firstIndex + 1 < sampled.length) {
-      sampled[firstIndex + 1] = markEnergyHistorySegmentStart(sampled[firstIndex + 1]);
+      sampled[firstIndex + 1] = firstBucketLaterSegmentIsInferred
+        ? markEnergyHistoryInferredSegmentStart(sampled[firstIndex + 1])
+        : markEnergyHistorySegmentStart(sampled[firstIndex + 1]);
     }
   }
 
   return sampled;
+}
+
+function reconcileRecentCadenceIncrease(
+  samples: readonly TelemetrySample[],
+  inheritedCadenceState: EnergyHistoryCadenceState | null,
+  nextCadenceState: EnergyHistoryCadenceState | null,
+): TelemetrySample[] {
+  if (
+    inheritedCadenceState === null ||
+    nextCadenceState === null ||
+    nextCadenceState.maximumSourceGapMs <= inheritedCadenceState.maximumSourceGapMs
+  ) {
+    return [...samples];
+  }
+
+  const timestamps = nextCadenceState.rawTimestampMs;
+  const recentDeltas = new Map<number, number>();
+  const firstCandidateIndex = Math.max(1, timestamps.length - 2);
+  for (let index = firstCandidateIndex; index < timestamps.length; index += 1) {
+    recentDeltas.set(timestamps[index], timestamps[index] - timestamps[index - 1]);
+  }
+
+  return samples.map((sample) => {
+    if (!isEnergyHistoryInferredSegmentStart(sample.event_id)) return sample;
+    const capturedAt = Date.parse(sample.captured_at);
+    const delta = recentDeltas.get(capturedAt);
+    if (delta === undefined || delta > nextCadenceState.maximumSourceGapMs) return sample;
+    return clearEnergyHistoryInferredSegmentStart(sample);
+  });
 }
 
 export function selectEnergyHistoryTail(
@@ -260,9 +347,7 @@ export function downsampleEnergyHistory(
     .sort(([left], [right]) => left - right)
     .flatMap(([, meterSamples]) => {
       const cadenceState = cadenceStateFromSamples(meterSamples);
-      const maximumSourceGapMs =
-        cadenceState?.maximumSourceGapMs ?? deriveEnergyHistorySourceGapMs(meterSamples);
-      const annotation = annotateSourceSegments(meterSamples, null, false, maximumSourceGapMs);
+      const annotation = annotateSourceSegments(meterSamples);
       const sampled = bucketDownsampleAnnotated(annotation.samples, maximumPointsPerMeter, window);
       const reduced = applyPendingBreak(sampled, annotation.breakPending);
 
@@ -330,27 +415,39 @@ export function mergeEnergyHistoryTail(
     const maximumSourceGapMs =
       inheritedCadenceState?.maximumSourceGapMs ?? incomingCadenceState?.maximumSourceGapMs ?? null;
     // Retained history may be heavily downsampled, so the current physical cadence is
-    // carried from a bounded raw tail rather than inferred from rendered points. Every
-    // raw live sample extends that tail and continuously relearns later cadence changes.
+    // carried from a bounded raw tail rather than inferred from rendered points. Live
+    // gaps are tentative until later raw samples can distinguish an outage from a
+    // deliberate increase in polling interval.
     const annotation = annotateSourceSegments(
       incomingSamples,
       lastExistingAt,
       existingBreakPending,
       maximumSourceGapMs,
+      "inferred",
+    );
+    const nextCadenceState = cadenceStateFromTimestamps([
+      ...(inheritedCadenceState?.rawTimestampMs ?? []),
+      ...renderableEnergyHistoryTimestamps(incomingSamples),
+    ]);
+    const reconciledExisting = reconcileRecentCadenceIncrease(
+      normalizedExisting,
+      inheritedCadenceState,
+      nextCadenceState,
+    );
+    const reconciledIncoming = reconcileRecentCadenceIncrease(
+      annotation.samples,
+      inheritedCadenceState,
+      nextCadenceState,
     );
     const byEventId = new Map<string, TelemetrySample>();
 
-    for (const sample of [...normalizedExisting, ...annotation.samples]) {
+    for (const sample of [...reconciledExisting, ...reconciledIncoming]) {
       byEventId.set(energyHistorySourceEventId(sample.event_id), sample);
     }
 
     const sampled = bucketDownsampleAnnotated([...byEventId.values()], MAX_HISTORY_POINTS_PER_METER, window);
     const reduced = applyPendingBreak(sampled, annotation.breakPending);
     const latestReduced = reduced.filter(isRenderableEnergyHistorySample).at(-1) ?? null;
-    const nextCadenceState = cadenceStateFromTimestamps([
-      ...(inheritedCadenceState?.rawTimestampMs ?? []),
-      ...renderableEnergyHistoryTimestamps(incomingSamples),
-    ]);
 
     rememberSourceCadenceForTail(
       latestReduced,
