@@ -133,6 +133,7 @@ CI_GOVERNANCE_PATHS = {
     "scripts/classify-ci-impact.py",
     "scripts/validate-project-state.py",
     "scripts/verify-pr-workflow-matrix.py",
+    "scripts/prepare-clean-verification-worktree.sh",
     "tests/test_ci_change_impact.py",
     "tests/test_ci_project_state_validation.py",
     "tests/test_ci_workflow_matrix.py",
@@ -263,7 +264,11 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
     for path in normalized:
         matched = False
 
-        if path in CI_GOVERNANCE_PATHS or path.startswith(".github/"):
+        if (
+            path in CI_GOVERNANCE_PATHS
+            or path.startswith(".github/")
+            or path.startswith("tests/test_ci_")
+        ):
             classes.add("ci_governance")
             matched = True
 

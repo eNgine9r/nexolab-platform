@@ -151,6 +151,18 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             },
         )
 
+    def test_ci_policy_tests_are_known_governance_without_expensive_external_lanes(self) -> None:
+        result = classify(["tests/test_ci_risk_aware_verification.py"])
+        self.assertIn("ci_governance", result["classes"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["verification"]["required_external_workflows"], [])
+
+    def test_clean_candidate_helper_is_known_governance_without_expensive_external_lanes(self) -> None:
+        result = classify(["scripts/prepare-clean-verification-worktree.sh"])
+        self.assertIn("ci_governance", result["classes"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["verification"]["required_external_workflows"], [])
+
     def test_unknown_path_broadens_external_verification_fail_closed(self) -> None:
         result = classify(["new-area/unknown.file"])
         verification = result["verification"]
