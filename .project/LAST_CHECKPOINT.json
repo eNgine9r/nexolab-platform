@@ -3,23 +3,19 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-27T16:45:09+03:00",
+  "timestamp": "2026-08-27T22:40:08+03:00",
   "actor": "ChatGPT",
-  "event": "issue_711_pre_pr_candidate_verified",
+  "event": "issue_711_repository_verified_ready_for_merge",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
-  "active_work": {
-    "issue": 711,
-    "title": "Fix Energy history false continuity gaps at normal 30-second cadence",
-    "branch": "fix/711-energy-history-continuity"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Commit and push the focused #711 candidate, open PR, require exact-head GREEN CI and merge gate, then merge without any Raspberry Pi deployment.",
+  "next_action": "Merge PR #712 after state-only exact-head GREEN; then refresh main and begin Issue #690.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
