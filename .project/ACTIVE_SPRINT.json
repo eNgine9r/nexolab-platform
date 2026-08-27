@@ -22,11 +22,7 @@
     "deployed_product_sha": "a929144a2cbfa7c192e5e04cae6e02291cbef2cc"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 704,
-      "title": "Reconcile fresh Device Agent SQLite findings and retired OpenSSL exceptions",
-      "branch": "fix/704-container-security-reconciliation"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -350,7 +346,7 @@
       "issue": 690,
       "title": "Make PR verification risk-aware and path-targeted",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "ready",
       "depends_on": [],
       "branch": "feat/690-risk-aware-verification",
       "evidence": {}
@@ -374,9 +370,18 @@
       "issue": 704,
       "title": "Reconcile fresh Device Agent SQLite findings and retired OpenSSL exceptions",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/704-container-security-reconciliation",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "e2f7857e381600d76dd4100cea2c776bab8868e8",
+        "pull_request": 705,
+        "checks": {
+          "Container Supply Chain": "success",
+          "Telemetry service": "success",
+          "CI": "success",
+          "NEXOLAB Merge Gate": "success"
+        }
+      }
     }
   ],
   "maintenance_actions": [
