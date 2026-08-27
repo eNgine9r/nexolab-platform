@@ -22,6 +22,7 @@ from app.live_dashboard.inventory import (
     list_live_dashboard_inventory,
 )
 from app.live_dashboard.repository import LiveDashboardRepository
+from app.live_dashboard.telemetry_identity import telemetry_equipment_id
 from app.nodes.models import CentralNode
 from app.refrigeration.models import RefrigerationEquipmentRecord
 from app.security.models import SecurityOrganization
@@ -45,7 +46,6 @@ def test_postgres_inventory_plan_is_bounded_and_has_latest_identity_index_path(
     organization_id = str(uuid4())
     unrelated_node_id = f"unrelated-{suffix}"
     catalog_node_id = f"edge-{suffix}"
-    catalog_equipment_id = f"controller-{suffix}"
     catalog_channel_id = f"{suffix}-temperature-01"
     evidence_path = Path(
         os.environ.get(
@@ -63,6 +63,15 @@ def test_postgres_inventory_plan_is_bounded_and_has_latest_identity_index_path(
         provision_inventory(database, organization_id, suffix)
 
         with Session(database.engine) as session:
+            device_identity = session.execute(
+                select(MeasurementDevice.device_type, MeasurementDevice.unit_id).where(
+                    MeasurementDevice.organization_id == organization_id
+                )
+            ).one()
+            catalog_equipment_id = telemetry_equipment_id(
+                device_type=str(device_identity.device_type),
+                unit_id=int(device_identity.unit_id),
+            )
             chamber_id = session.scalar(
                 select(ClimateChamber.id).where(
                     ClimateChamber.organization_id == organization_id,
@@ -252,6 +261,7 @@ def test_postgres_inventory_plan_is_bounded_and_has_latest_identity_index_path(
         assert index_backed_latest_lookup_path
         assert page.total == 2
         by_channel = {item.channel_id: item for item in page.items}
+        assert by_channel[catalog_channel_id].equipment_id == catalog_equipment_id
         assert by_channel[catalog_channel_id].latest is not None
         assert by_channel[catalog_channel_id].latest.value == 5.0
         assert by_channel[catalog_channel_id].alarm == "high"

@@ -14,6 +14,10 @@ from app.climate_catalog.models import (
 )
 from app.db import TelemetrySample
 from app.live_dashboard.repository import LiveDashboardRepository
+from app.live_dashboard.telemetry_identity import (
+    MAX_MODBUS_UNIT_ID,
+    telemetry_equipment_id_expression,
+)
 from app.nodes.models import CentralNode
 from app.refrigeration.models import RefrigerationEquipmentRecord
 
@@ -152,12 +156,13 @@ def inventory_query_plan_statement(
 
     del repository
     sample_candidate = aliased(TelemetrySample, name="inventory_sample_candidate")
+    telemetry_equipment_id = telemetry_equipment_id_expression()
     latest_sample = aliased(TelemetrySample, name="inventory_latest_sample")
     latest_sample_id = (
         select(sample_candidate.id)
         .where(
   sample_candidate.node_id == MeasurementBus.node_id,
-  sample_candidate.equipment_id == MeasurementDevice.business_key,
+  sample_candidate.equipment_id == telemetry_equipment_id,
   sample_candidate.channel_id == MeasurementChannel.channel_id,
   sample_candidate.metric == MeasurementChannel.metric_type,
         )
@@ -175,7 +180,7 @@ def inventory_query_plan_statement(
   MeasurementChannel.organization_id.label("organization_id"),
   MeasurementChannel.id.label("channel_ref_id"),
   MeasurementBus.node_id.label("node_id"),
-  MeasurementDevice.business_key.label("equipment_id"),
+  telemetry_equipment_id.label("equipment_id"),
   MeasurementDevice.display_name.label("equipment_name"),
   ClimateChamber.id.label("climate_chamber_id"),
   ClimateChamber.code.label("climate_chamber_code"),
@@ -198,7 +203,7 @@ def inventory_query_plan_statement(
         .outerjoin(latest_sample, latest_sample.id == latest_sample_id)
         .order_by(
   MeasurementBus.node_id.asc(),
-  MeasurementDevice.business_key.asc(),
+  telemetry_equipment_id.asc(),
   MeasurementChannel.channel_id.asc(),
   MeasurementChannel.metric_type.asc(),
   MeasurementChannel.id.asc(),
@@ -319,6 +324,7 @@ def _eligible_catalog_select(organization_id: str):
             MeasurementChannel.organization_id == organization_id,
             MeasurementChannel.status == "active",
             MeasurementDevice.status == "active",
+            MeasurementDevice.unit_id.between(1, MAX_MODBUS_UNIT_ID),
             MeasurementBus.status == "active",
             ClimateChamber.status == "active",
             CentralNode.state != "revoked",
