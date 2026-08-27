@@ -160,6 +160,8 @@ export function buildSavedDashboardChartGroups(
   const chartSeries = plotted.map((source, index) =>
     buildSeries(options.dashboardId, source, options.status, index, hiddenSeriesKeys, soloSeriesKey),
   );
+  if (chartSeries.length === 0) return [];
+
   const equipmentIds = [...new Set(plotted.map(sourceEquipmentId))];
   const equipmentId = equipmentIds.length === 1 ? equipmentIds[0] : null;
   const partitions = partitionChartSeriesByAxisBudget(chartSeries);
