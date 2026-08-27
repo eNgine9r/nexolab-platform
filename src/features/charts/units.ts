@@ -139,12 +139,12 @@ export function partitionChartSeriesByAxisBudget(
   if (!Number.isInteger(maximumAxes) || maximumAxes < 1) {
     throw new Error("Chart axis budget must be a positive integer");
   }
-  const groups = groupCompatibleChartUnits(series.map((item) => item.identity));
-  if (groups.length <= maximumAxes) return [[...series]];
+  const axisIdsInFirstOccurrenceOrder = [...new Set(series.map((item) => chartYAxisId(item.identity)))];
+  if (axisIdsInFirstOccurrenceOrder.length <= maximumAxes) return [[...series]];
 
   const partitions: ChartSeries[][] = [];
-  for (let start = 0; start < groups.length; start += maximumAxes) {
-    const axisIds = new Set(groups.slice(start, start + maximumAxes).map((group) => group.id));
+  for (let start = 0; start < axisIdsInFirstOccurrenceOrder.length; start += maximumAxes) {
+    const axisIds = new Set(axisIdsInFirstOccurrenceOrder.slice(start, start + maximumAxes));
     partitions.push(series.filter((item) => axisIds.has(chartYAxisId(item.identity))));
   }
   return partitions.filter((partition) => partition.length > 0);

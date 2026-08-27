@@ -110,6 +110,14 @@ describe("Saved Dashboard combined chart workspace", () => {
     });
 
     expect(groups).toHaveLength(2);
+    expect(groups[0].scene.series.map((series) => series.identity.channelId)).toEqual([
+      "V-1",
+      "A-1",
+      "W-1",
+      "F-1",
+      "E-1",
+    ]);
+    expect(groups[1].scene.series.map((series) => series.identity.channelId)).toEqual(["RH-1"]);
     expect(groups.flatMap((group) => group.scene.series)).toHaveLength(overBudget.length);
     expect(groups.map((group) => group.title)).toEqual(["Графік Dashboard · 1/2", "Графік Dashboard · 2/2"]);
   });

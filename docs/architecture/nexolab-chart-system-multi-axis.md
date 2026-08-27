@@ -1,6 +1,6 @@
-# NEXOLAB Chart System — equipment-centric multi-axis extension
+# NEXOLAB Chart System — multi-axis grouping and Saved Dashboard workspace
 
-Status: accepted implementation contract for Issue #453 / PR #456  
+Status: accepted implementation contract for Issue #453 / PR #456, amended by Issue #707 / PR #708
 Profile: `LOCAL_LAN`  
 Scope: frontend/read-model presentation only
 
@@ -12,7 +12,7 @@ Issue #453 intentionally extends the canonical Chart System instead of adding a 
 
 ## Decision
 
-For Live Data and Saved Live Dashboards, the first chart grouping key is the physical `equipment_id`. All selected plottable series for that equipment share one time X domain. Each distinct canonical native-unit/physical-quantity group receives one deterministic Y axis.
+For Live Data, the first chart grouping key remains the physical `equipment_id`. All selected plottable series for that equipment share one time X domain. For Saved Live Dashboards, the persisted dashboard selection is one logical chart workspace across equipment: all selected line/area series share the dashboard X domain and are split only when the canonical Y-axis readability budget is exceeded. Each distinct canonical native-unit/physical-quantity group receives one deterministic Y axis.
 
 The following invariants are mandatory:
 
@@ -29,9 +29,9 @@ The following invariants are mandatory:
 
 ## Readability budget
 
-One equipment scene may render at most five simultaneous Y axes. This is a presentation/readability limit, not an acquisition limit. If an equipment context contains more than five canonical axis groups, the series are deterministically partitioned into additional equipment scenes while preserving series identity, order and colors.
+One rendered chart scene may contain at most five simultaneous Y axes. This is a presentation/readability limit, not an acquisition limit. Live Data partitions an equipment context into additional equipment scenes when it exceeds five canonical axis groups. Saved Live Dashboards instead assign canonical axis groups to dashboard panels by the first persisted item occurrence, preserving the operator-defined dashboard order while keeping each axis group together.
 
-Different equipment contexts remain separate even when their units are compatible. NEXOLAB does not build a global multi-equipment mega-chart from this rule.
+Different equipment contexts remain separate in Live Data even when their units are compatible. Saved Live Dashboards are the deliberate exception: their persisted selection may combine multiple equipment contexts in one chart workspace, split only by the same five-axis readability budget. This presentation rule does not merge equipment identity or alter telemetry provenance.
 
 ## Renderer contract
 
@@ -71,7 +71,7 @@ More visible units must not create an additional WebSocket or any acquisition/co
 Required evidence for the Work Package is:
 
 1. unit regression coverage for deterministic V/A/W axis identity/order, hide/show/solo and the five-axis budget;
-2. Live Data and Saved Dashboard regression coverage proving equipment-centric grouping while preserving series identity/order/colors;
+2. Live Data regression coverage proving equipment-centric grouping, plus Saved Dashboard regression coverage proving cross-equipment consolidation, first-occurrence partitioning and preserved series identity/order/colors;
 3. renderer regression coverage proving `yAxisId` binding, dynamic axis removal/restoration and persistent renderer lifecycle;
 4. ChartShell accessibility coverage for visible-unit/axis semantics;
 5. production browser acceptance with a seeded mixed-unit equipment context, shared cursor, hide/show/solo and narrow/1440/1920 overflow checks;
