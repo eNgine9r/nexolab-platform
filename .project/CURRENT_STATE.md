@@ -50,7 +50,7 @@ Software/isolated backup-restore, real MQTT/SQLite outage replay, actual-host re
 
 ## Security maintenance
 
-Four exact OpenSSL QUIC `CVE-2026-14456` temporary decisions remain reviewed through **2026-08-30**. Rebuild/review again at expiry or earlier if a fixed Debian Trixie package appears, findings disappear, QUIC reachability changes or severity becomes Critical.
+Security reconciliation for Issue #704 / PR #705 has repository-side exact-head verification complete at `e2f7857e381600d76dd4100cea2c776bab8868e8`. Fresh no-cache Container Supply Chain run `33025323284` is GREEN for device-agent, telemetry-service, mqtt-dynamic-security and the aggregate release manifest; Telemetry service run `33025323323`, Core CI run `33025323332` and the NEXOLAB Merge Gate are GREEN on the same head. Telemetry-service OpenSSL `CVE-2026-14456` exceptions remain retired; Device Agent retains only `libssl3t64/CVE-2026-14456` through **2026-08-30**. Exact Device Agent and telemetry-service SQLite decisions plus telemetry `libcjson1/CVE-2026-16554` and `libwebsockets19t64/CVE-2026-78161` remain time-bounded through **2026-09-02** with the documented reachability/version removal triggers. Issue #690 has returned to Ready. PR #705 still requires merge; this verification does not authorize or imply any runtime deployment.
 
 ## Runtime and safety boundary
 
