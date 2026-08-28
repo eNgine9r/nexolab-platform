@@ -322,6 +322,7 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
 
         if (
             path.startswith("security/")
+            or path.startswith("tests/test_container_")
             or "Dockerfile" in path
             or _matches(path, ("scripts/*supply-chain*", "scripts/*security*", "scripts/*vulnerability*"))
         ):

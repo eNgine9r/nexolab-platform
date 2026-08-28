@@ -22,7 +22,11 @@
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 723,
+      "title": "Classify container supply-chain policy tests without fail-closed cross-surface escalation",
+      "branch": "fix/723-container-policy-ci-routing"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -511,6 +515,24 @@
           "fresh_codex_review": "clean",
           "review_threads": "all_resolved"
         }
+      }
+    },
+    {
+      "issue": 723,
+      "title": "Classify container supply-chain policy tests without fail-closed cross-surface escalation",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [],
+      "branch": "fix/723-container-policy-ci-routing",
+      "evidence": {
+        "trigger_pr": 721,
+        "trigger_head_sha": "78f6a68e7b9898c2f19752e2cb08d4144e6c90a5",
+        "trigger_core_run": 33156919823,
+        "root_cause": "tests/test_container_supply_chain_policy.py classified as unknown",
+        "pre_fix_regression": "2_failed_25_passed",
+        "post_fix_regression": "27_passed",
+        "pr721_simulation": "security_supply_chain_fail_closed_false_no_unrelated_external_workflows",
+        "ci_policy_tests": "91_passed_1_environment_skip"
       }
     }
   ],
