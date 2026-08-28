@@ -26,6 +26,7 @@ jobs:
       docs_only: ${{ steps.impact.outputs.docs_only }}
       needs_full_quality: ${{ steps.impact.outputs.needs_full_quality }}
       fail_closed: ${{ steps.impact.outputs.fail_closed }}
+      required_external_workflows: ${{ steps.impact.outputs.required_external_workflows }}
 
     steps:
       - name: Checkout with history
@@ -295,10 +296,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          REQUIRED_EXTERNAL_WORKFLOWS: ${{ needs.classify.outputs.required_external_workflows }}
         run: |
           set -euo pipefail
           python3 scripts/verify-pr-workflow-matrix.py \
             --head-sha "$PR_HEAD_SHA" \
+            --required-workflows-json "$REQUIRED_EXTERNAL_WORKFLOWS" \
             --timeout-seconds 1800 \
             --poll-seconds 10 \
             --stable-rounds 2

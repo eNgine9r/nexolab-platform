@@ -8,13 +8,10 @@ on:
       - "docs/authenticated-live-telemetry.md"
       - "e2e/authenticated-dashboard.production.e2e.ts"
       - "e2e/energy.production.e2e.ts"
-      - "e2e/equipment-discovery.production.e2e.ts"
-      - "e2e/equipment-layouts.production.e2e.ts"
-      - "e2e/equipment-multi-axis-chart.production.e2e.ts"
+      - "e2e/equipment*.production.e2e.ts"
       - "e2e/live.production.e2e.ts"
       - "e2e/live-terminal-offline-retry.production.e2e.ts"
       - "e2e/live-chart-system.production.e2e.ts"
-      - "e2e/refrigeration-layout.production.e2e.ts"
       - "e2e/settings.production.e2e.ts"
       - "e2e/telemetry-acquisition-invariant.production.e2e.ts"
       - "e2e/telemetry-navigation.production.e2e.ts"
@@ -22,8 +19,10 @@ on:
       - "infrastructure/compose/compose.central.yaml"
       - "package.json"
       - "package-lock.json"
+      - "next.config.ts"
       - "playwright.dashboard.config.ts"
       - "scripts/acquisition-invariant-fixture.py"
+      - "scripts/classify-ci-impact.py"
       - "scripts/run-acquisition-invariant-browser-acceptance.sh"
       - "scripts/run-authenticated-dashboard-acceptance.sh"
       - "services/device-agent/**"
@@ -43,8 +42,6 @@ on:
       - "src/components/equipment-layouts/**"
       - "src/components/live/**"
       - "src/components/live-dashboards/**"
-      - "src/components/refrigeration/camera-scoped-layout-editor-implementation.tsx"
-      - "src/components/refrigeration/sensor-placement-manager.tsx"
       - "src/components/settings/**"
       - "src/features/acquisition/**"
       - "src/features/charts/**"
@@ -53,7 +50,7 @@ on:
       - "src/features/equipment-layouts/**"
       - "src/features/live/**"
       - "src/features/live-dashboards/**"
-      - "src/features/refrigeration/sensor-telemetry-selection.ts"
+      - "src/features/settings/**"
       - "src/features/security/**"
       - "src/hooks/use-dashboard-security*"
       - "src/hooks/use-dashboard-telemetry*"
@@ -73,19 +70,71 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  route:
+    name: Resolve dashboard verification route
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      mode: ${{ steps.route.outputs.mode }}
+      test_match: ${{ steps.route.outputs.test_match }}
+
+    steps:
+      - name: Checkout exact PR head with history
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve dashboard verification route
+        id: route
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            git diff --name-only "$PR_BASE_SHA" "$PR_HEAD_SHA" -- > changed-files.txt
+          else
+            printf '%s\n' '.github/workflows/authenticated-dashboard-acceptance.yml' > changed-files.txt
+          fi
+          python3 scripts/classify-ci-impact.py --files-file changed-files.txt > impact.json
+          python3 - "$GITHUB_OUTPUT" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          result = json.loads(Path("impact.json").read_text(encoding="utf-8"))
+          verification = result["verification"]
+          mode = verification["dashboard_mode"]
+          test_match = verification["dashboard_test_match"] or ""
+          if mode not in {"none", "focused", "full"}:
+              raise SystemExit(f"Unsupported dashboard verification mode: {mode}")
+          with open(sys.argv[1], "a", encoding="utf-8") as handle:
+              handle.write(f"mode={mode}\n")
+              handle.write(f"test_match={test_match}\n")
+          print(f"Dashboard verification mode: {mode}; test_match={test_match or '(full/default)'}")
+          PY
+
   acceptance:
     name: JWT REST history WebSocket and acquisition invariant
+    needs: route
+    if: ${{ needs.route.outputs.mode != 'none' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
       COMPOSE_PROJECT_NAME: nexolab-dashboard-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
       NEXOLAB_DASHBOARD_EVIDENCE_DIR: dashboard-acceptance-evidence
+      NEXOLAB_DASHBOARD_TEST_MATCH: ${{ needs.route.outputs.test_match }}
       HUSKY: "0"
 
     steps:
-      - name: Checkout
+      - name: Checkout exact PR head
         uses: actions/checkout@v6
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
       - name: Setup Node.js

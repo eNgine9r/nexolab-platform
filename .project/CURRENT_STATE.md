@@ -1,6 +1,6 @@
 # NEXOLAB Current State
 
-Updated: 2026-08-27
+Updated: 2026-08-28
 
 ## Current Sprint
 
@@ -8,7 +8,7 @@ Updated: 2026-08-27
 
 Issue #681 state reconciliation is completed. Issue #679 is completed after real post-merge `linux/arm64` + local-auth dispatch `32832798392` passed the QEMU application-health, disconnected runtime, persistent-volume and auth-continuity gates and published a checksum-verified accepted recovery artifact for the exact deployed source lineage.
 
-Issue #683 and #686 recovery hardening are completed, including replacement post-merge ARM64/local-auth dispatch `32939760743` for runtime source `cc27b609...`. Issue #707 is merged and its controlled LAN deployment now runs source `ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d`. Issue #709 repository implementation merged in PR #710 at `3f73e81f4d99cfcd07ba1afadf3eba9957945bd1`; its controlled Raspberry Pi deployment/runtime CSV re-verification remains blocked on the separate production/site-cutover approval boundary. Critical chart defect #711 is now active after real read-only 24h Energy evidence showed the Energy-specific fixed 30 s gap threshold turning normal scheduler jitter into hundreds of renderer breaks. The previously accepted recovery artifact `9584581740` remains historical evidence for `cc27b609...` but is not exact-source recovery authority for the currently deployed `ff796b1f...` lineage. Critical performance Issue #696 and hosted-runner recovery Issue #698 are completed; Issue #690 remains the next independent Ready Work Package after #711.
+Issue #683 and #686 recovery hardening are completed, including replacement post-merge ARM64/local-auth dispatch `32939760743` for runtime source `cc27b609...`. Issue #707 is merged and its controlled LAN deployment now runs source `ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d`. Issue #709 repository implementation merged in PR #710 at `3f73e81f4d99cfcd07ba1afadf3eba9957945bd1`; its controlled Raspberry Pi deployment/runtime CSV re-verification remains blocked on the separate production/site-cutover approval boundary. Critical chart defect #711 is completed and merged in PR #712 at `ff86b10b71c8e5252c15baaf4183adbf42f30f18`; its software evidence remains anchored to reviewed product head `da356996...`, while Raspberry Pi runtime verification remains separately approval-gated. Issue #690 repository implementation is verified complete on exact product head `6b91236f87695c0901dd5498c7374657665d392c` in PR #714: Core CI, NEXOLAB Merge Gate, Authenticated Dashboard, Offline Bundle, Refrigeration Browser and Acquisition Scale Acceptance are GREEN, with 90 local CI-policy tests GREEN (one environment-only skip) and zero classifier/trigger mismatches across 1025 known tracked paths. The previously accepted recovery artifact `9584581740` remains historical evidence for `cc27b609...` but is not exact-source recovery authority for the currently deployed `ff796b1f...` lineage. Critical performance Issue #696 and hosted-runner recovery Issue #698 are completed. After the final state-only suffix and merge of PR #714, PRODUCTION-READINESS-1 can be reconciled and RFX-00 may start with the Refrigeration Architecture ADR; hardware-only blockers remain separately documented and do not block that documentation/architecture scope.
 
 ## Recently completed production-readiness boundaries
 

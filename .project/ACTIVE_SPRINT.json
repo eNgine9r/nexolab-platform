@@ -346,10 +346,25 @@
       "issue": 690,
       "title": "Make PR verification risk-aware and path-targeted",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "feat/690-risk-aware-verification",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "6b91236f87695c0901dd5498c7374657665d392c",
+        "pull_request": 714,
+        "checks": {
+          "core_ci": "success:33116513892",
+          "merge_gate": "success:33116513892",
+          "authenticated_dashboard": "success:33116513938",
+          "offline_bundle": "success:33116513898",
+          "refrigeration_browser": "success:33116513871",
+          "acquisition_scale": "success:33116513913",
+          "ci_policy": "90_green_1_env_skip",
+          "known_route_audit": "1025_known_0_mismatch",
+          "full_vitest": "609_green",
+          "production_build": "green"
+        }
+      }
     },
     {
       "issue": 695,
