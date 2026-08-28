@@ -22,11 +22,15 @@ Repository maintenance now excludes canonical `.project/*.json` State Model v2 f
 
 ## Issue #729 Embraco refrigeration digital twin
 
-Issue #729 is in **review** on `feat/729-embraco-digital-twin`. The implementation checkpoint is `c56d27ae82eaf0a27bc36bdcbe1339ba48f96d29`. The vertical slice adds a strict FC03-only Embraco Sync profile, reusable controller-to-refrigeration-equipment binding, persisted latest/history integration, operator tabs `Огляд / Схема / Графіки / Контролер`, periods `1 год / 12 год / 24 год / Кастом`, state/relay/alarm timelines, and a time-weighted compressor runtime duty calculation with explicit coverage and continuity-gap handling. Temperature/control engineering scaling remains fail-closed until real hardware correlation confirms it; raw values are not presented as verified °C.
+Issue #729 is **completed** and PR #736 is merged. The accepted exact PR head is `c30a0d3b6cdb310652f9fc11f817ca2d986f77c4`. Exact-head GitHub verification is GREEN for Core Quality/build, Telemetry service, Refrigeration Browser Acceptance, Authenticated Dashboard Acceptance after one controlled rerun of a transient unchanged-product-code failure, Offline Bundle, Disaster Recovery Browser, Security Browser Acceptance, Device Agent Fleet Acceptance, Container Supply Chain and the NEXOLAB Merge Gate. The GitHub merge result was observed on `main` at `9b9f8cb74e98d3cd0f3162c8a883f02245344333`; that volatile merge/main fact is an observation and does not replace the exact verified product head.
 
-Local software verification is GREEN: Device Agent full matrix **180/180**, Embraco decoder **6/6**, telemetry/refrigeration API **9/9**, refrigeration frontend **116/116**, ESLint, TypeScript, production build, Alembic single-head/offline SQL and `git diff --check`. The first isolated browser run reached **2/3 PASS** and exposed a truthful-display defect for unverified temperature; that defect is fixed and covered by unit tests. During the repeat heavy Docker + Next.js browser gate the Raspberry Pi rebooted. No prior-boot journal survived, `vcgencmd get_throttled` after restart was `0x0`, and no OOM/thermal/undervoltage cause can be claimed. To protect the stable host, the heavy repeat is delegated to exact-head GitHub `Refrigeration Browser Acceptance` rather than repeated locally.
+The completed vertical slice adds a strict FC03-only Embraco Sync profile, reusable controller-to-refrigeration-equipment binding, persisted latest/history integration, operator tabs `Огляд / Схема / Графіки / Контролер`, periods `1 год / 12 год / 24 год / Кастом`, state/relay/alarm timelines, and a time-weighted compressor runtime duty calculation with explicit coverage and continuity-gap handling. Temperature/control engineering scaling remains fail-closed until real hardware correlation confirms it; raw values are not presented as verified °C.
 
-No `EMBRACO_UNIT_IDS=2` production activation, production migration, runtime deployment, Modbus write, controller parameter change or hardware write has occurred. Exact-head GitHub Core/Telemetry/Browser/Offline/Merge-Gate evidence remains required before merge.
+No `EMBRACO_UNIT_IDS=2` production activation, production migration, runtime deployment, Modbus write, controller parameter change or hardware write occurred. The earlier local heavy-browser reboot risk is closed as a repository merge blocker because the full exact-head GitHub acceptance is GREEN; it does not authorize production activation.
+
+## Delta Ready selection after #729
+
+The post-merge audit found #730 / PR #731 as the next independent closure: actual host/Opera/Tailscale read-only inspection acceptance is already recorded and the remaining repository change is documentation-only, but its branch must be refreshed against current `main` and pass exact-head checks after the canonical-state formatter fix. Issue #725 (`CI-OPT-01`) is the next independent **Ready** software Work Package after #730 and will add the local pre-push candidate verification gate selected to reduce wasted GitHub Actions cycles. Hardware/evidence-gated #200/#201/#202/#585 and production-cutover-gated #709/#711 are not selected. RFX-01 through RFX-19C remain on the Product Owner hold.
 
 ## Recently completed production-readiness boundaries
 
@@ -34,11 +38,11 @@ Issue #245 is completed with real Raspberry Pi standalone hardware evidence. Iss
 
 ## Durable baselines
 
-Accepted hardware-validated product source: `750a5b8cba02add472f1aa7ca7a2b077e809c3c3`.
+Accepted repository product source: `c30a0d3b6cdb310652f9fc11f817ca2d986f77c4` (Issue #729 exact verified PR head). Embraco temperature scaling and production Bus 2 activation remain hardware/runtime-unverified and are not implied by this repository acceptance.
 
 Currently deployed source: `ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d` in `lan` runtime mode. Controlled LAN deployment evidence: `/home/nexolab/nexolab-platform/runtime/deployments/20260827T101743Z` with `DEPLOYMENT PASSED`; telemetry, Device Agent, Dashboard, Prometheus, Alertmanager, Grafana and MinIO readiness gates passed together with central smoke/API-contract verification. The Product Owner confirmed chart consolidation and CSV download, while CSV sensor-row content remains the active #709 regression.
 
-The accepted baseline remains anchored to #245 real-hardware acceptance. Repository synchronization is not deployment or cutover.
+The accepted repository baseline is newer than the deployed/hardware-validated runtime lineage. Existing #245 real-hardware evidence remains valid only for its recorded source/topology; repository synchronization is not deployment, hardware acceptance or cutover.
 
 ## Issue #675 source-to-packaged authority
 

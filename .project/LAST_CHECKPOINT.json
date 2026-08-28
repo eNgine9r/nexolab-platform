@@ -3,39 +3,55 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T22:49:30+03:00",
+  "timestamp": "2026-08-28T23:31:44+03:00",
   "actor": "ChatGPT",
-  "event": "issue_729_ready_for_exact_head_pr_verification",
+  "event": "issue_729_completed_and_next_ready_chain_reconciled",
   "baselines": {
-    "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
+    "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "active_work": {
-    "issue": 729,
-    "branch": "feat/729-embraco-digital-twin",
+    "issue": 730,
+    "branch": "docs/730-opera-tailscale-inspection",
     "lifecycle": "review"
   },
   "evidence_snapshot": {
-    "implementation_checkpoint_sha": "c56d27ae82eaf0a27bc36bdcbe1339ba48f96d29",
-    "local_checks": {
-      "device_agent": "180/180 PASS",
-      "embraco": "6/6 PASS",
-      "telemetry_api": "9/9 PASS",
-      "refrigeration_frontend": "116/116 PASS",
-      "eslint": "PASS",
-      "typecheck": "PASS",
-      "production_build": "PASS before host reboot",
-      "alembic": "single head + offline SQL PASS"
+    "completed_issue": 729,
+    "pull_request": 736,
+    "verified_head_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
+    "exact_head_github": {
+      "core_quality_build": "PASS",
+      "telemetry_service": "PASS",
+      "refrigeration_browser": "PASS",
+      "authenticated_dashboard": "PASS after controlled rerun",
+      "offline_bundle": "PASS",
+      "disaster_recovery_browser": "PASS",
+      "security_browser": "PASS",
+      "device_agent_fleet": "PASS",
+      "container_supply_chain": "PASS",
+      "nexolab_merge_gate": "PASS"
     },
-    "browser_acceptance": {
-      "first_run": "2/3 PASS; truthful unverified-temperature defect found and fixed",
-      "repeat_run": "interrupted by Raspberry Pi reboot",
-      "exact_head_github": "pending"
-    },
-    "temperature_scale": "hardware_unverified_fail_closed"
+    "temperature_scale": "hardware_unverified_fail_closed",
+    "hardware_activation": "not_executed",
+    "delta_ready_audit": {
+      "active_closure": 730,
+      "next_ready": 725,
+      "rfx_01_through_rfx_19c": "product_owner_hold"
+    }
   },
-  "observations": [],
-  "next_action": "Commit and push the canonical Issue #729 checkpoint, open a focused PR, and require exact-head GitHub Core/Telemetry/Refrigeration Browser/Offline/Merge-Gate verification GREEN. Do not activate Embraco polling, apply production migrations, deploy runtime changes, or perform Modbus/hardware writes without the separate production/hardware gate.",
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-08-28T23:31:44+03:00",
+      "kind": "post_merge_main_observation",
+      "data": {
+        "main_sha": "9b9f8cb74e98d3cd0f3162c8a883f02245344333",
+        "pull_request": 736,
+        "issue_729_state": "closed"
+      }
+    }
+  ],
+  "next_action": "Refresh PR #731 / Issue #730 against current main and require its exact-head documentation/merge-gate verification GREEN; after closure, start Ready Issue #725 local candidate verification gate. Do not resume RFX-01 through RFX-19C or perform production/Modbus/hardware writes.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
