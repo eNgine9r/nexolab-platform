@@ -3,32 +3,30 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T12:08:49+03:00",
-  "actor": "ChatGPT",
-  "event": "issue_723_review_fix_candidate",
+  "timestamp": "2026-08-28T12:34:05+03:00",
+  "actor": "Codex",
+  "event": "issue_725_local_candidate_gate_implementation",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "active_work": {
-    "issue": 723,
-    "title": "Classify container supply-chain policy tests without fail-closed cross-surface escalation",
-    "branch": "fix/723-container-policy-ci-routing"
+    "issue": 725,
+    "title": "CI-OPT-01: Add local candidate verification gate before remote GitHub CI",
+    "branch": "feat/725-local-candidate-gate"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "trigger_pr": 721,
-      "trigger_head_sha": "78f6a68e7b9898c2f19752e2cb08d4144e6c90a5",
-      "pre_fix_classifier_tests": "2_failed_25_passed",
-      "post_fix_classifier_tests": "27_passed",
-      "unknown_file_removed": "tests/test_container_supply_chain_policy.py",
-      "ci_policy_tests": "92_passed_1_environment_skip",
-      "review_p2": "resolved_with_exact_registered_test_allowlist",
-      "unregistered_container_test": "fail_closed_verified"
+      "focused_routing_tests": "9_passed",
+      "ci_policy_tests": "102_passed_1_environment_skip",
+      "state_only_fixture": "green_without_node_install",
+      "product_fixture": "full_core_plan_selected",
+      "unknown_fixture": "red_fail_closed",
+      "committed_candidate_gate": "pending"
     }
   },
   "observations": [],
-  "next_action": "Commit/push the Issue #723 review fix, resolve the addressed P2 thread, require new exact-head routed CI plus NEXOLAB Merge Gate GREEN, merge, then update PR #721 with current main and re-run exact-head verification.",
+  "next_action": "Validate canonical state, commit the Issue #725 candidate, run the new gate against the exact commit, and leave the branch unpushed for review.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

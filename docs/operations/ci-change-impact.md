@@ -116,6 +116,32 @@ During implementation:
 
 A state-only checkpoint does not invalidate anchored product/hardware evidence when no product/runtime path changed.
 
+## Local candidate gate
+
+Before pushing a coherent committed candidate, run:
+
+```bash
+python3 scripts/verify-local-candidate.py --base origin/main --candidate HEAD
+```
+
+`--base` defaults to `origin/main` and `--candidate` defaults to `HEAD`; both may be
+any unambiguous local commit ref. The command resolves and reports both SHAs, computes
+the exact `base...candidate` file set, and invokes `scripts/classify-ci-impact.py` from
+a detached clean candidate worktree.
+
+Canonical state-only candidates run the exact diff check and dependency-free project
+state validator without installing Node dependencies. Other known candidates run the
+local equivalent of Core Quality/build: CI-policy and repository-policy validation,
+the exact Node baseline, deterministic `npm ci`, format, lint, typecheck, tests and the
+production build. Unknown paths return `RED` rather than claiming incomplete local
+evidence. Add `--include-compose-validation` when Compose contract validation is part
+of the Work Package.
+
+The final summary reports the resolved SHAs, impact classes, `fail_closed`, required
+remote workflows, checks executed and `GREEN` or `RED`. A `GREEN` result is pre-push
+evidence only; GitHub exact-head required CI and `NEXOLAB Merge Gate` remain
+authoritative before merge.
+
 ## State Model v2 interaction
 
 `State integrity` validates `schema_version: 2` through dependency-free tooling.

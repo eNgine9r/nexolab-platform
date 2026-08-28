@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 723,
-      "title": "Classify container supply-chain policy tests without fail-closed cross-surface escalation",
-      "branch": "fix/723-container-policy-ci-routing"
+      "issue": 725,
+      "title": "CI-OPT-01: Add local candidate verification gate before remote GitHub CI",
+      "branch": "feat/725-local-candidate-gate"
     },
     "next_work_package": null
   },
@@ -521,10 +521,12 @@
       "issue": 723,
       "title": "Classify container supply-chain policy tests without fail-closed cross-surface escalation",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "fix/723-container-policy-ci-routing",
       "evidence": {
+        "verified_head_sha": "6a7cc473c92e3512dc04b793471a71b0af348ab3",
+        "pull_request": 724,
         "trigger_pr": 721,
         "trigger_head_sha": "78f6a68e7b9898c2f19752e2cb08d4144e6c90a5",
         "trigger_core_run": 33156919823,
@@ -534,7 +536,26 @@
         "pr721_simulation": "security_supply_chain_fail_closed_false_no_unrelated_external_workflows",
         "ci_policy_tests": "92_passed_1_environment_skip",
         "review_p2": "resolved_with_exact_registered_test_allowlist",
-        "unregistered_container_test": "fail_closed_verified"
+        "unregistered_container_test": "fail_closed_verified",
+        "checks": {
+          "core_quality_build": "success",
+          "nexolab_merge_gate": "success"
+        }
+      }
+    },
+    {
+      "issue": 725,
+      "title": "CI-OPT-01: Add local candidate verification gate before remote GitHub CI",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "branch": "feat/725-local-candidate-gate",
+      "evidence": {
+        "focused_routing_tests": "9_passed",
+        "ci_policy_tests": "102_passed_1_environment_skip",
+        "state_only_fixture": "green_without_node_install",
+        "product_fixture": "full_core_plan_selected",
+        "unknown_fixture": "red_fail_closed"
       }
     }
   ],
