@@ -3,7 +3,7 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T12:49:00+03:00",
+  "timestamp": "2026-08-28T12:58:00+03:00",
   "actor": "ChatGPT",
   "event": "issue_719_resume_after_ci_routing_merge",
   "baselines": {
@@ -26,11 +26,15 @@
       "fresh_expat_finding": "libexpat1/CVE-2026-66046 HIGH no fixed version",
       "expat_xml_reachability": "unreachable in actual Device Agent source/dependencies",
       "expat_exception_expires_on": "2026-09-02",
-      "local_supply_chain_policy_tests": "30_passed"
+      "local_supply_chain_policy_tests": "30_passed",
+      "fresh_review_p2_count": 4,
+      "fresh_review_p2_state": "addressed_pending_exact_head_ci",
+      "openssl_maintenance_action": "completed",
+      "expat_maintenance_due_on": "2026-09-02"
     }
   },
   "observations": [],
-  "next_action": "Complete the current main merge into PR #721, run state and focused supply-chain verification, push the reconciled head, require exact-head Container Supply Chain/Core/NEXOLAB Merge Gate GREEN, then merge #721. Do not merge or continue RFX-01 product code; the RFX program will be deferred by Product Owner checkpoint immediately after security maintenance is stable.",
+  "next_action": "Run focused state/security/CI-policy verification for the four addressed PR #721 review findings, commit/push one review-fix head, resolve the review threads, require exact-head Container Supply Chain/Telemetry/Core/NEXOLAB Merge Gate GREEN, then merge #721. After maintenance is stable, close/defer RFX-01 PR #718 and record the Product Owner pause of RFX-01 through RFX-19C.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

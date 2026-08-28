@@ -560,7 +560,9 @@
         "combined_supply_chain_policy_tests": "30_passed",
         "device_agent_xml_references": 0,
         "ci_routing_dependency_issue": 723,
-        "ci_routing_dependency_merged_sha": "8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb"
+        "ci_routing_dependency_merged_sha": "8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb",
+        "review_state_reconciliation": "completed",
+        "expat_maintenance_action_due_on": "2026-09-02"
       }
     }
   ],
@@ -568,10 +570,10 @@
     {
       "source_issue": 704,
       "title": "Remove remaining Device Agent OpenSSL vendor-lag exception",
-      "status": "due",
+      "status": "completed",
       "due_on": "2026-08-30",
       "owner": "platform-security",
-      "rule": "Remove immediately when supported distroless consumes fixed Trixie OpenSSL, the finding disappears, QUIC/HTTP3 reachability changes, or severity becomes Critical."
+      "rule": "Completed 2026-08-28: fresh Device Agent scan no longer reports libssl3t64/CVE-2026-14456; the stale exact exception is retired and must not be restored without a new fail-closed evidence review."
     },
     {
       "source_issue": 704,
@@ -588,6 +590,14 @@
       "due_on": "2026-09-02",
       "owner": "platform-security",
       "rule": "Remove affected exact tuples immediately when findings disappear, consumable fixes arrive, SQLite gains FTS5/arbitrary-SQL/untrusted-DB reachability, controlled images gain 32-bit cJSON reachability, libwebsockets affected-version/LECP-CBOR reachability changes, or severity becomes Critical."
+    },
+    {
+      "source_issue": 719,
+      "title": "Review/remove Device Agent Expat CVE-2026-66046 exception",
+      "status": "due",
+      "due_on": "2026-09-02",
+      "owner": "platform-security",
+      "rule": "Remove immediately when the finding disappears, a consumable fixed Debian/distroless package becomes available, XML parsing or attacker-controlled XML input becomes reachable, affected-version guidance materially changes, or severity becomes Critical."
     }
   ],
   "observations": [
