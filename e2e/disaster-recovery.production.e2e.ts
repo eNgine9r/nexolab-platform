@@ -136,6 +136,7 @@ test("restored nodes, reports and refrigeration state remain operator-visible", 
 
     await page.goto("/refrigeration/showcase-106-01");
     await expect(page.getByRole("heading", { name: "Вітрина №106-01" })).toBeVisible();
+    await page.getByRole("button", { name: "Схема", exact: true }).click();
     await expect(page.getByText("Чернетка v1 · PostgreSQL")).toBeVisible();
     await expect(page.getByText("Ревізія r1")).toBeVisible();
 

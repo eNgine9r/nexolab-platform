@@ -130,6 +130,8 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
             return "dixell-xjp60d"
         if target.device_family == "le01mp":
             return "f-and-f-le-01mp"
+        if target.device_family == "embraco":
+            return "embraco-sync"
         raise RuntimeError(
             f"Unsupported scheduled device family: {target.device_family}"
         )
@@ -140,6 +142,8 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
             return f"K{target.unit_id}"
         if target.device_family == "le01mp":
             return f"LE01MP-{target.unit_id}"
+        if target.device_family == "embraco":
+            return f"EMBRACO-{target.unit_id}"
         raise RuntimeError(
             f"Unsupported scheduled device family: {target.device_family}"
         )
@@ -193,6 +197,28 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
                             "LE-01MP reader was not initialized"
                         )
                     reading = self.le01mp_reader.read_metric(
+                        target.unit_id,
+                        target.key,
+                    )
+                    record = TelemetryRecord(
+                        event_id=str(uuid.uuid4()),
+                        node_id=self.settings.node_id,
+                        captured_at=captured_at,
+                        metric=reading.metric,
+                        value=reading.value,
+                        unit=reading.unit,
+                        quality=reading.quality,
+                        source=source,
+                        equipment_id=equipment_id,
+                        channel_id=target.telemetry_channel_id,
+                        raw_value=reading.raw_value,
+                    )
+                elif target.device_family == "embraco":
+                    if self.embraco_reader is None:
+                        raise RuntimeError(
+                            "Embraco Sync reader was not initialized"
+                        )
+                    reading = self.embraco_reader.read_metric(
                         target.unit_id,
                         target.key,
                     )

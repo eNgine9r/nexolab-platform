@@ -71,6 +71,8 @@ function runtime(): RefrigerationEquipmentRuntime {
     lifecycleRepository,
     sensorConfigurationRepository: lifecycleRepository,
     structuralSnapshotRepository: null,
+    controllerBindingRepository: null,
+    telemetryAdapter: null,
     sessionClient: null,
     organizationId: null,
     error: null,
@@ -126,6 +128,40 @@ describe("RefrigerationCatalogScreen", () => {
     });
 
     expect(screen.getByText("Обладнання не знайдено")).toBeInTheDocument();
+  });
+
+  it("adds one compact Embraco status row for a bound controller", async () => {
+    const configured = runtime();
+    const item = refrigerationEquipment[0];
+    configured.controllerBindingRepository = {
+      async get() {
+        return null;
+      },
+      async listSummaries() {
+        return [
+          {
+            equipmentId: item.id,
+            controllerFamily: "embraco",
+            controllerEquipmentId: "EMBRACO-2",
+            unitId: 2,
+            profileVersion: "embraco-sync-fc03-v1.00.04",
+            controlState: 5,
+            compressorSpeedRpm: 4500,
+            lastSeenAt: new Date().toISOString(),
+          },
+        ];
+      },
+    };
+
+    render(<RefrigerationCatalogScreen runtime={configured} />);
+
+    const summary = await screen.findByTestId(`controller-summary-${item.id}`);
+    expect(summary).toHaveTextContent("Embraco");
+    expect(summary).toHaveTextContent("Pulldown");
+    expect(summary).toHaveTextContent("4500 rpm");
+    expect(screen.getAllByText("Середня").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Датчики").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Тривоги").length).toBeGreaterThan(0);
   });
 
   it("requires a climate chamber before creating equipment", async () => {

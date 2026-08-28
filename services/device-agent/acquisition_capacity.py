@@ -75,6 +75,9 @@ def physical_requests_per_target(target: RegistryTarget) -> int:
     if target.device_id.startswith("le01mp-"):
         # LE-01MP scalar and two-register cumulative values are each one FC03.
         return 1
+    if target.device_id.startswith("embraco-"):
+        # The verified Embraco profile reads one FC03 holding register per target.
+        return 1
     raise ValueError(f"Unsupported capacity device target: {target.target_id}")
 
 

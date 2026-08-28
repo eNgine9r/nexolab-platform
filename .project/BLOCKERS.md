@@ -48,6 +48,7 @@ Opera Browser Connector private-address actions remain unsuitable for direct LAN
 
 ## Cleared boundaries
 
+- #729 Embraco refrigeration digital twin — completed and merged in PR #736; exact-head Core/Telemetry/Refrigeration/Auth/Offline/DR/Security/Device-Agent/Container/Merge-Gate verification is GREEN. Production Embraco polling activation, migration application and temperature engineering scale remain separate unapproved/unverified boundaries.
 - #444 LOCAL_LAN user administration — completed.
 - #646 main branch protection — completed; `main` requires `NEXOLAB Merge Gate`.
 - #667 CVE lifecycle date reconciliation — completed and merged.
@@ -65,6 +66,7 @@ Opera Browser Connector private-address actions remain unsuitable for direct LAN
 - #723 / PR #724 CI routing maintenance — completed and merged at `8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb`.
 - #690 risk-aware/path-targeted PR verification — completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`; post-merge Core CI and Acquisition Scale Acceptance are GREEN.
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority while RFX-01 through RFX-19C are product-deferred under #727.
+- #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
 ## Safety boundaries
 

@@ -18,12 +18,16 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
+    "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": null
+    "active_work_package": {
+      "issue": 730
+    },
+    "next_work_package": {
+      "issue": 725
+    }
   },
   "work_packages": [
     {
@@ -614,6 +618,89 @@
         "hardware_change": "none",
         "rfx00_merged_sha": "bb7a575f15ba6a00a81cc573a57586776cd511cc"
       }
+    },
+    {
+      "issue": 733,
+      "title": "Keep canonical .project JSON out of Prettier lint-staged formatting",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "fix/733-canonical-project-state-prettier",
+      "evidence": {
+        "checks": {
+          "lint_staged_v17_regression": "success",
+          "canonical_project_state_prettier_ignore": "success",
+          "state_integrity": "success",
+          "git_diff_check": "success",
+          "ci_change_impact": "29_passed",
+          "formatter_tooling_core_only_routing": "success"
+        }
+      }
+    },
+    {
+      "issue": 729,
+      "title": "Add Embraco digital twin monitoring, history and compressor runtime duty cycle for refrigeration equipment",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "feat/729-embraco-digital-twin",
+      "evidence": {
+        "implementation_checkpoint_sha": "c56d27ae82eaf0a27bc36bdcbe1339ba48f96d29",
+        "checks": {
+          "device_agent_full": "180_passed",
+          "device_agent_embraco": "6_passed",
+          "telemetry_refrigeration_api": "9_passed",
+          "refrigeration_frontend": "116_passed",
+          "eslint": "success",
+          "typecheck": "success",
+          "production_build": "success_before_host_reboot",
+          "alembic_single_head": "success",
+          "alembic_offline_sql": "success",
+          "git_diff_check": "success",
+          "exact_head_github": "success",
+          "core_quality_build": "success",
+          "telemetry_service": "success",
+          "refrigeration_browser": "success",
+          "authenticated_dashboard": "success_after_controlled_rerun",
+          "offline_bundle": "success",
+          "disaster_recovery_browser": "success",
+          "security_browser": "success",
+          "device_agent_fleet": "success",
+          "container_supply_chain": "success",
+          "nexolab_merge_gate": "success"
+        },
+        "hardware_activation": "not_executed",
+        "temperature_engineering_scale": "hardware_unverified_fail_closed",
+        "verified_head_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
+        "pull_request": 736,
+        "repository_merge_status": "merged"
+      }
+    },
+    {
+      "issue": 730,
+      "title": "Persist Opera/Tailscale inspection access with device-bound read-only auto-login",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [],
+      "branch": "docs/730-opera-tailscale-inspection",
+      "evidence": {
+        "pull_request": 731,
+        "actual_host_acceptance": "completed",
+        "repository_scope": "documentation_only",
+        "exact_head_github": "refresh_required_against_current_main",
+        "production_feature_cutover": "not_executed"
+      }
+    },
+    {
+      "issue": 725,
+      "title": "Add local candidate verification gate before remote GitHub CI",
+      "priority": "high",
+      "lifecycle": "ready",
+      "depends_on": [],
+      "evidence": {
+        "readiness": "independent_software_only",
+        "github_exact_head_remains_authoritative": true
+      }
     }
   ],
   "maintenance_actions": [
@@ -843,6 +930,18 @@
         "issue": 698,
         "state": "closed",
         "state_reason": "completed"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-28T23:31:44+03:00",
+      "kind": "issue_729_merge_reconciliation",
+      "data": {
+        "pull_request": 736,
+        "verified_head_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
+        "main_sha": "9b9f8cb74e98d3cd0f3162c8a883f02245344333",
+        "issue_729_state": "closed",
+        "exact_head_required_checks": "green"
       }
     }
   ],

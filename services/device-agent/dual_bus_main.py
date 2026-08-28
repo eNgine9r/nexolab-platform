@@ -22,10 +22,12 @@ from adaptive_scheduler import (
     SchedulerTarget,
 )
 from dual_bus_registry import TopologyAwareEnrollmentStore
+from embraco import EmbracoSyncReader
 from le01mp import LE01MPReader
 from main import (
     Settings,
     TelemetryRecord,
+    mode_uses_embraco,
     mode_uses_le01mp,
     mode_uses_xjp60d,
     run_agent_with_health_server,
@@ -78,6 +80,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         self._bus_clients: dict[str, ModbusRTUClient] = {}
         self._bus_xjp60d_readers: dict[str, XJP60DReader] = {}
         self._bus_le01mp_readers: dict[str, LE01MPReader] = {}
+        self._bus_embraco_readers: dict[str, EmbracoSyncReader] = {}
         self._bus_operation_locks: dict[str, threading.Lock] = {}
         self._topology_enrollment_store: TopologyAwareEnrollmentStore | None = None
 
@@ -118,12 +121,19 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                 )
             if mode_uses_le01mp(self.settings.device_mode):
                 self._bus_le01mp_readers[binding.bus_id] = LE01MPReader(client)
+            if mode_uses_embraco(self.settings.device_mode):
+                self._bus_embraco_readers[binding.bus_id] = EmbracoSyncReader(
+                    client,
+                    temperature_scale=self.settings.embraco_temperature_scale,
+                    control_scale=self.settings.embraco_control_scale,
+                )
 
         if self.modbus_client is not None:
             self.modbus_client.close()
         self.modbus_client = None
         self.xjp60d_reader = None
         self.le01mp_reader = None
+        self.embraco_reader = None
 
         self.scheduler = AdaptiveAcquisitionScheduler(
             self._registry_snapshot(),
@@ -281,6 +291,26 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                     if reader is None:
                         raise RuntimeError(
                             f"LE-01MP reader is unavailable for {target.bus_id}"
+                        )
+                    reading = reader.read_metric(target.unit_id, target.key)
+                    record = TelemetryRecord(
+                        event_id=str(uuid.uuid4()),
+                        node_id=self.settings.node_id,
+                        captured_at=captured_at,
+                        metric=reading.metric,
+                        value=reading.value,
+                        unit=reading.unit,
+                        quality=reading.quality,
+                        source=source,
+                        equipment_id=equipment_id,
+                        channel_id=target.telemetry_channel_id,
+                        raw_value=reading.raw_value,
+                    )
+                elif target.device_family == "embraco":
+                    reader = self._bus_embraco_readers.get(target.bus_id)
+                    if reader is None:
+                        raise RuntimeError(
+                            f"Embraco Sync reader is unavailable for {target.bus_id}"
                         )
                     reading = reader.read_metric(target.unit_id, target.key)
                     record = TelemetryRecord(

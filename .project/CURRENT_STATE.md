@@ -16,17 +16,33 @@ Security/CI interrupts discovered during the attempted RFX-01 verification were 
 
 Issue #707 remains the currently deployed LAN product lineage `ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d`. Issue #709 repository implementation and Issue #711 repository fix are complete, but their Raspberry Pi runtime verification remains separately approval-gated as production/site-cutover work. Existing hardware/recovery blockers remain documented below and are not evidence that the presentation baseline is incomplete.
 
+## Issue #733 — canonical project-state formatter boundary
+
+Repository maintenance now excludes canonical `.project/*.json` State Model v2 files from Prettier formatting while leaving all ordinary formatter behavior unchanged. `scripts/validate-project-state.py` remains the sole formatting authority for `ACTIVE_SPRINT.json` and `LAST_CHECKPOINT.json`. The lint-staged v17 regression harness now stages canonical state JSON, runs the production lint-staged configuration and verifies byte-for-byte staged-state preservation. Formatter-only paths `.prettierignore` and `scripts/tests/lint-staged-v17.mjs` are also classified as known dependency/toolchain changes: they retain full Core quality/build but no longer fail closed into unrelated dashboard/offline/refrigeration external workflow requirements. The change-impact regression matrix passes 29/29. This fixes the deterministic Husky/CI routing conflicts reproduced during Issue #729 checkpointing without changing application or runtime behavior.
+
+## Issue #729 Embraco refrigeration digital twin
+
+Issue #729 is **completed** and PR #736 is merged. The accepted exact PR head is `c30a0d3b6cdb310652f9fc11f817ca2d986f77c4`. Exact-head GitHub verification is GREEN for Core Quality/build, Telemetry service, Refrigeration Browser Acceptance, Authenticated Dashboard Acceptance after one controlled rerun of a transient unchanged-product-code failure, Offline Bundle, Disaster Recovery Browser, Security Browser Acceptance, Device Agent Fleet Acceptance, Container Supply Chain and the NEXOLAB Merge Gate. The GitHub merge result was observed on `main` at `9b9f8cb74e98d3cd0f3162c8a883f02245344333`; that volatile merge/main fact is an observation and does not replace the exact verified product head.
+
+The completed vertical slice adds a strict FC03-only Embraco Sync profile, reusable controller-to-refrigeration-equipment binding, persisted latest/history integration, operator tabs `Огляд / Схема / Графіки / Контролер`, periods `1 год / 12 год / 24 год / Кастом`, state/relay/alarm timelines, and a time-weighted compressor runtime duty calculation with explicit coverage and continuity-gap handling. Temperature/control engineering scaling remains fail-closed until real hardware correlation confirms it; raw values are not presented as verified °C.
+
+No `EMBRACO_UNIT_IDS=2` production activation, production migration, runtime deployment, Modbus write, controller parameter change or hardware write occurred. The earlier local heavy-browser reboot risk is closed as a repository merge blocker because the full exact-head GitHub acceptance is GREEN; it does not authorize production activation.
+
+## Delta Ready selection after #729
+
+The post-merge audit found #730 / PR #731 as the next independent closure: actual host/Opera/Tailscale read-only inspection acceptance is already recorded and the remaining repository change is documentation-only, but its branch must be refreshed against current `main` and pass exact-head checks after the canonical-state formatter fix. Issue #725 (`CI-OPT-01`) is the next independent **Ready** software Work Package after #730 and will add the local pre-push candidate verification gate selected to reduce wasted GitHub Actions cycles. Hardware/evidence-gated #200/#201/#202/#585 and production-cutover-gated #709/#711 are not selected. RFX-01 through RFX-19C remain on the Product Owner hold.
+
 ## Recently completed production-readiness boundaries
 
 Issue #245 is completed with real Raspberry Pi standalone hardware evidence. Issue #444 LOCAL_LAN user administration, #646 protected `main`, #667 CVE lifecycle reconciliation and #673 state reconciliation are also completed.
 
 ## Durable baselines
 
-Accepted hardware-validated product source: `750a5b8cba02add472f1aa7ca7a2b077e809c3c3`.
+Accepted repository product source: `c30a0d3b6cdb310652f9fc11f817ca2d986f77c4` (Issue #729 exact verified PR head). Embraco temperature scaling and production Bus 2 activation remain hardware/runtime-unverified and are not implied by this repository acceptance.
 
 Currently deployed source: `ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d` in `lan` runtime mode. Controlled LAN deployment evidence: `/home/nexolab/nexolab-platform/runtime/deployments/20260827T101743Z` with `DEPLOYMENT PASSED`; telemetry, Device Agent, Dashboard, Prometheus, Alertmanager, Grafana and MinIO readiness gates passed together with central smoke/API-contract verification. The Product Owner confirmed chart consolidation and CSV download, while CSV sensor-row content remains the active #709 regression.
 
-The accepted baseline remains anchored to #245 real-hardware acceptance. Repository synchronization is not deployment or cutover.
+The accepted repository baseline is newer than the deployed/hardware-validated runtime lineage. Existing #245 real-hardware evidence remains valid only for its recorded source/topology; repository synchronization is not deployment, hardware acceptance or cutover.
 
 ## Issue #675 source-to-packaged authority
 

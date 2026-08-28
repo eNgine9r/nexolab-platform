@@ -19,8 +19,9 @@ from acquisition_cadence import (
     ensure_defaults_for_devices,
     validate_policy as validate_cadence_policy,
 )
+from embraco import PROFILE_VERSION as EMBRACO_PROFILE_VERSION, REGISTERS as EMBRACO_REGISTERS
 from le01mp import REGISTERS as LE01MP_REGISTERS
-from main import Settings, mode_uses_le01mp, mode_uses_xjp60d
+from main import Settings, mode_uses_embraco, mode_uses_le01mp, mode_uses_xjp60d
 from xjp60d import PROBE_REGISTERS
 
 SCHEMA_VERSION = 2
@@ -147,7 +148,7 @@ def _validate_document(document: RegistryDocument) -> RegistryDocument:
                 f"Duplicate Modbus bus/Unit identity: {device.bus_id}/{device.unit_id}"
             )
         bus_units.add(identity)
-        if device.device_family not in {"xjp60d", "le01mp"}:
+        if device.device_family not in {"xjp60d", "le01mp", "embraco"}:
             raise ValueError(f"Unsupported device family: {device.device_family}")
         if not device.profile_version.strip():
             raise ValueError(f"Missing profile version for {device.device_id}")
@@ -319,6 +320,24 @@ def _le_target(unit_id: int, key: str, lifecycle: str) -> RegistryTarget:
     )
 
 
+
+def _embraco_target(unit_id: int, key: str, lifecycle: str) -> RegistryTarget:
+    register = next(item for item in EMBRACO_REGISTERS if item.key == key)
+    channel_id = f"{unit_id}-{key.replace('_', '-')}"
+    return RegistryTarget(
+        target_id=f"embraco:{channel_id}",
+        device_id=f"embraco-{unit_id}",
+        kind="metric",
+        key=key,
+        telemetry_channel_id=channel_id,
+        metric=register.metric,
+        unit=register.unit,
+        profile_version=EMBRACO_PROFILE_VERSION,
+        lifecycle=lifecycle,
+        function=READ_FUNCTION,
+        addresses=(register.address,),
+    )
+
 def _reconcile_le01mp_profile(
     document: RegistryDocument,
 ) -> tuple[RegistryDocument, list[dict[str, str]]]:
@@ -415,7 +434,15 @@ def build_initial_document(
         else set()
     )
     le_units = set(settings.le01mp_unit_ids) if mode_uses_le01mp(settings.device_mode) else set()
-    duplicate_units = xjp_units & le_units
+    embraco_units = (
+        set(settings.embraco_unit_ids) if mode_uses_embraco(settings.device_mode) else set()
+    )
+    family_units = {"xjp60d": xjp_units, "le01mp": le_units, "embraco": embraco_units}
+    duplicate_units: set[int] = set()
+    families = tuple(family_units)
+    for index, left in enumerate(families):
+        for right in families[index + 1 :]:
+            duplicate_units.update(family_units[left] & family_units[right])
     if duplicate_units:
         rendered = ", ".join(str(item) for item in sorted(duplicate_units))
         raise ValueError(f"Duplicate Modbus Unit IDs across device families: {rendered}")
@@ -451,6 +478,20 @@ def build_initial_document(
         )
         for register in LE01MP_REGISTERS:
             targets.append(_le_target(unit_id, register.key, "active"))
+
+    for unit_id in sorted(embraco_units):
+        devices.append(
+            RegistryDevice(
+                device_id=f"embraco-{unit_id}",
+                bus_id=BUS_ID,
+                device_family="embraco",
+                unit_id=unit_id,
+                profile_version=EMBRACO_PROFILE_VERSION,
+                lifecycle="active",
+            )
+        )
+        for register in EMBRACO_REGISTERS:
+            targets.append(_embraco_target(unit_id, register.key, "active"))
 
     cadence = build_bootstrap_policy(
         legacy_interval_seconds=settings.sample_interval_seconds,
@@ -507,6 +548,12 @@ class AcquisitionRegistry:
         return tuple(
             (self._devices[target.device_id].unit_id, target.key)
             for target in self.eligible_targets("le01mp")
+        )
+
+    def eligible_embraco_metrics(self) -> tuple[tuple[int, str], ...]:
+        return tuple(
+            (self._devices[target.device_id].unit_id, target.key)
+            for target in self.eligible_targets("embraco")
         )
 
     def effective_cadence_for_device(self, device_id: str) -> tuple[float, str]:
@@ -713,6 +760,62 @@ class AcquisitionRegistry:
         )
         return _validate_document(document), changes
 
+    def with_embraco_enrollment(
+        self,
+        unit_ids: Iterable[int],
+        *,
+        lifecycle: str = "active",
+    ) -> tuple[RegistryDocument, list[dict[str, str]]]:
+        requested_values = tuple(unit_ids)
+        if any(not isinstance(unit_id, int) or isinstance(unit_id, bool) for unit_id in requested_values):
+            raise ValueError("Embraco Modbus Unit IDs must be integers")
+        requested = set(requested_values)
+        if any(not 1 <= unit_id <= 247 for unit_id in requested):
+            raise ValueError("Invalid Embraco Modbus Unit ID")
+        desired_lifecycle = _validate_lifecycle(lifecycle)
+        existing_by_identity = {(device.bus_id, device.unit_id): device for device in self.document.devices}
+        additions: list[int] = []
+        for unit_id in sorted(requested):
+            existing = existing_by_identity.get((BUS_ID, unit_id))
+            if existing is None:
+                additions.append(unit_id)
+                continue
+            if existing.device_family != "embraco" or existing.profile_version != EMBRACO_PROFILE_VERSION:
+                raise ValueError(f"Conflicting Modbus bus/Unit identity: {BUS_ID}/{unit_id}")
+        if not additions:
+            return self.document, []
+
+        devices = list(self.document.devices)
+        targets = list(self.document.targets)
+        changes: list[dict[str, str]] = []
+        for unit_id in additions:
+            device_id = f"embraco-{unit_id}"
+            devices.append(
+                RegistryDevice(
+                    device_id=device_id,
+                    bus_id=BUS_ID,
+                    device_family="embraco",
+                    unit_id=unit_id,
+                    profile_version=EMBRACO_PROFILE_VERSION,
+                    lifecycle=desired_lifecycle,
+                )
+            )
+            changes.append({"entity": "device", "id": device_id, "from": "absent", "to": desired_lifecycle})
+            for register in EMBRACO_REGISTERS:
+                target = _embraco_target(unit_id, register.key, desired_lifecycle)
+                targets.append(target)
+                changes.append({"entity": "target", "id": target.target_id, "from": "absent", "to": desired_lifecycle})
+        cadence = ensure_defaults_for_devices(self.document.cadence, devices)
+        document = replace(
+            self.document,
+            revision=self.document.revision + 1,
+            devices=tuple(devices),
+            targets=tuple(targets),
+            cadence=cadence,
+            updated_at=_now(),
+        )
+        return _validate_document(document), changes
+
 
 class AcquisitionRegistryStore:
     def __init__(self, database_path: Path) -> None:
@@ -887,7 +990,21 @@ class AcquisitionRegistryStore:
                         reason="Upgrade LE-01MP read-only profile with cumulative active energy",
                         changes=changes,
                     )
-                return AcquisitionRegistry(reconciled)
+                registry = AcquisitionRegistry(reconciled)
+                if settings.embraco_unit_ids:
+                    candidate, embraco_changes = registry.with_embraco_enrollment(
+                        settings.embraco_unit_ids, lifecycle="active"
+                    )
+                    if embraco_changes:
+                        self._write_state_locked(candidate)
+                        self._write_audit_locked(
+                            candidate,
+                            actor="system:configuration",
+                            reason="Enroll explicitly configured read-only Embraco Sync units",
+                            changes=embraco_changes,
+                        )
+                        registry = AcquisitionRegistry(candidate)
+                return registry
 
             document = build_initial_document(
                 settings,

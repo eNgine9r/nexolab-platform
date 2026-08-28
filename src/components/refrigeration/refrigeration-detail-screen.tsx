@@ -9,6 +9,9 @@ import { AlertTriangle, ArrowLeft, FileText, RadioTower, SlidersHorizontal, X } 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { EquipmentLifecyclePanel } from "@/components/refrigeration/equipment-lifecycle-panel";
+import { RefrigerationControllerDetail } from "@/components/refrigeration/refrigeration-controller-detail";
+import { RefrigerationControllerHistory } from "@/components/refrigeration/refrigeration-controller-history";
+import { RefrigerationControllerOverview } from "@/components/refrigeration/refrigeration-controller-overview";
 import type { LayoutEditorMode } from "@/components/refrigeration/refrigeration-layout-editor";
 import { SecurityAwareRefrigerationLayoutWorkspace } from "@/components/refrigeration/security-aware-layout-workspace";
 import type {
@@ -21,6 +24,7 @@ import type {
 } from "@/data/refrigeration";
 import type { AvailableSensor, SensorBinding } from "@/features/refrigeration/equipment-lifecycle-repository";
 import { createRefrigerationEquipmentRuntime } from "@/features/refrigeration/equipment-repository-runtime";
+import { useRefrigerationController } from "@/features/refrigeration/use-refrigeration-controller";
 import type { RefrigerationStructuralSnapshot } from "@/features/refrigeration/structural-snapshot-repository";
 import { hasPermission } from "@/features/security/security-session";
 
@@ -56,6 +60,14 @@ const sideOptions: ReadonlyArray<{ value: "all" | SensorSide; label: string }> =
   { value: "rear", label: "Задній фронт" },
 ];
 const shelves = [1, 2, 3, 4] as const;
+
+type RefrigerationDetailTab = "overview" | "scheme" | "graphs" | "controller";
+const DETAIL_TABS: readonly { id: RefrigerationDetailTab; label: string }[] = [
+  { id: "overview", label: "Огляд" },
+  { id: "scheme", label: "Схема" },
+  { id: "graphs", label: "Графіки" },
+  { id: "controller", label: "Контролер" },
+];
 
 function buildBindingSensors(
   bindings: readonly SensorBinding[],
@@ -93,6 +105,13 @@ export function RefrigerationDetailScreen({
   initialSnapshot?: RefrigerationStructuralSnapshot | null;
 }) {
   const runtime = useMemo(() => createRefrigerationEquipmentRuntime(), []);
+  const [activeTab, setActiveTab] = useState<RefrigerationDetailTab>("overview");
+  const controller = useRefrigerationController({
+    equipmentId: initialEquipment.id,
+    repository: runtime.controllerBindingRepository,
+    telemetry: runtime.telemetryAdapter,
+    historyEnabled: activeTab === "graphs",
+  });
   const [equipmentRecord, setEquipmentRecord] = useState(initialEquipment);
   const [bindings, setBindings] = useState<SensorBinding[]>(initialSnapshot?.bindings ?? []);
   const [channels, setChannels] = useState<AvailableSensor[]>(initialSnapshot?.channels ?? []);
@@ -119,6 +138,18 @@ export function RefrigerationDetailScreen({
       setBindingSensors(buildBindingSensors(initialSnapshot.bindings, initialSnapshot.channels));
     }
   }, [initialEquipment, initialSnapshot]);
+
+  useEffect(() => {
+    const key = "nexolab:refrigeration-detail-tab";
+    const stored = window.localStorage.getItem(key);
+    if (stored && DETAIL_TABS.some((item) => item.id === stored)) {
+      setActiveTab(stored as RefrigerationDetailTab);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem("nexolab:refrigeration-detail-tab", activeTab);
+  }, [activeTab]);
 
   useEffect(() => {
     if (!passportOpen) return;
@@ -298,6 +329,19 @@ export function RefrigerationDetailScreen({
                       <span className="truncate">{visibleChamberLabel}</span>
                     </span>
                   ) : null}
+                  {controller.binding ? (
+                    <span
+                      className={clsx(
+                        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px]",
+                        controller.latest?.online
+                          ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
+                          : "border-slate-400/20 bg-slate-400/10 text-slate-300",
+                      )}
+                    >
+                      <RadioTower className="h-3 w-3" />
+                      Embraco {controller.latest?.online ? "Online" : "Offline"}
+                    </span>
+                  ) : null}
                 </div>
               </div>
 
@@ -305,7 +349,13 @@ export function RefrigerationDetailScreen({
                 className="ml-auto flex shrink-0 items-center gap-1.5"
                 aria-label="Дії сторінки обладнання"
               >
-                <div ref={setHeaderToolbarTarget} className="flex w-[132px] shrink-0 items-center gap-1.5" />
+                <div
+                  ref={setHeaderToolbarTarget}
+                  className={clsx(
+                    "w-[132px] shrink-0 items-center gap-1.5",
+                    activeTab === "scheme" ? "flex" : "hidden",
+                  )}
+                />
                 <button
                   type="button"
                   aria-label="Відкрити паспорт обладнання"
@@ -346,22 +396,51 @@ export function RefrigerationDetailScreen({
               </div>
             ) : null}
 
-            <SecurityAwareRefrigerationLayoutWorkspace
-              equipment={equipment}
-              visibleSensors={visibleSensors}
-              selectedId={activeSelectedId}
-              mode={layoutMode}
-              onModeChange={setLayoutMode}
-              onSelect={setSelectedId}
-              bindings={bindings}
-              availableSensors={channels}
-              sensorConfigurationRepository={runtime.sensorConfigurationRepository}
-              onEquipmentChange={setEquipmentRecord}
-              onConfigurationSaved={() => setBindingEpoch((current) => current + 1)}
-              forceReadOnly={retired}
-              toolbarTools={filterMenu}
-              toolbarTarget={headerToolbarTarget}
-            />
+            <nav
+              aria-label="Розділи холодильного обладнання"
+              className="mb-2 flex min-w-0 gap-1 overflow-x-auto rounded-2xl border border-white/[0.07] bg-[#091a31]/85 p-1.5"
+            >
+              {DETAIL_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  aria-current={activeTab === tab.id ? "page" : undefined}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={clsx(
+                    "min-h-9 shrink-0 rounded-xl px-3 text-xs font-medium transition",
+                    activeTab === tab.id
+                      ? "border border-cyan-300/20 bg-cyan-400/10 text-cyan-100"
+                      : "border border-transparent text-slate-500 hover:bg-white/[0.035] hover:text-slate-200",
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+
+            {activeTab === "overview" ? <RefrigerationControllerOverview controller={controller} /> : null}
+
+            {activeTab === "scheme" ? (
+              <SecurityAwareRefrigerationLayoutWorkspace
+                equipment={equipment}
+                visibleSensors={visibleSensors}
+                selectedId={activeSelectedId}
+                mode={layoutMode}
+                onModeChange={setLayoutMode}
+                onSelect={setSelectedId}
+                bindings={bindings}
+                availableSensors={channels}
+                sensorConfigurationRepository={runtime.sensorConfigurationRepository}
+                onEquipmentChange={setEquipmentRecord}
+                onConfigurationSaved={() => setBindingEpoch((current) => current + 1)}
+                forceReadOnly={retired}
+                toolbarTools={filterMenu}
+                toolbarTarget={headerToolbarTarget}
+              />
+            ) : null}
+
+            {activeTab === "graphs" ? <RefrigerationControllerHistory controller={controller} /> : null}
+            {activeTab === "controller" ? <RefrigerationControllerDetail controller={controller} /> : null}
           </div>
         </main>
       </div>

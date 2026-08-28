@@ -5,9 +5,15 @@ import {
   type SecurityCredentialProvider,
 } from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
+import { createTelemetryAdapter } from "@/lib/telemetry/create-adapter";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
+import type { TelemetryAdapter } from "@/lib/telemetry/types";
 
 import { HttpClimateCatalogRepository, type ClimateCatalogRepository } from "./climate-catalog-repository";
+import {
+  HttpRefrigerationControllerBindingRepository,
+  type RefrigerationControllerBindingRepository,
+} from "./controller-binding-repository";
 import {
   HttpEquipmentLifecycleRepository,
   type EquipmentLifecycleRepository,
@@ -39,6 +45,8 @@ export type RefrigerationEquipmentRuntime = {
    */
   sensorConfigurationRepository: EquipmentLifecycleRepository | null;
   climateCatalogRepository?: ClimateCatalogRepository | null;
+  controllerBindingRepository: RefrigerationControllerBindingRepository | null;
+  telemetryAdapter: TelemetryAdapter | null;
   sessionClient: HttpSecuritySessionClient | null;
   organizationId: string | null;
   error: string | null;
@@ -68,6 +76,8 @@ export function createRefrigerationEquipmentRuntime(
         structuralSnapshotRepository: null,
         sensorConfigurationRepository: null,
         climateCatalogRepository: null,
+        controllerBindingRepository: null,
+        telemetryAdapter: null,
         sessionClient: null,
         organizationId: null,
         error: null,
@@ -80,6 +90,14 @@ export function createRefrigerationEquipmentRuntime(
     const browserFetch = input.fetchImpl ?? fetch.bind(globalThis);
     const credentialProvider = input.credentialProvider ?? createRuntimeCredentialProvider(organizationId);
     const authenticatedFetch = createAuthenticatedFetch(browserFetch, credentialProvider);
+    const telemetryConfig = getTelemetryRuntimeConfig();
+    const telemetryAdapter =
+      telemetryConfig.mode === "live" && telemetryConfig.apiBaseUrl === config.apiBaseUrl
+        ? createTelemetryAdapter(telemetryConfig, {
+            rest: { fetch: authenticatedFetch },
+            websocket: { credentials: credentialProvider },
+          })
+        : null;
     const scope = `${config.apiBaseUrl}|${organizationId ?? "default"}`;
     const equipmentRepository = createCachedRefrigerationEquipmentRepository(
       new HttpRefrigerationEquipmentRepository({
@@ -110,6 +128,11 @@ export function createRefrigerationEquipmentRuntime(
         apiBaseUrl: config.apiBaseUrl,
         fetchImpl: authenticatedFetch,
       }),
+      controllerBindingRepository: new HttpRefrigerationControllerBindingRepository(
+        config.apiBaseUrl,
+        authenticatedFetch,
+      ),
+      telemetryAdapter,
       sessionClient: new HttpSecuritySessionClient({
         apiBaseUrl: config.apiBaseUrl,
         fetchImpl: authenticatedFetch,
@@ -126,6 +149,8 @@ export function createRefrigerationEquipmentRuntime(
       structuralSnapshotRepository: null,
       sensorConfigurationRepository: null,
       climateCatalogRepository: null,
+      controllerBindingRepository: null,
+      telemetryAdapter: null,
       sessionClient: null,
       organizationId: null,
       error: error instanceof Error ? error.message : "Не вдалося налаштувати каталог обладнання.",

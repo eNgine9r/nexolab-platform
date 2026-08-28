@@ -5,3 +5,5 @@ dist
 *.lock
 public/*.png
 infrastructure/observability/grafana/dashboards/*.json
+
+.project/*.json
