@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 723,
-      "title": "Classify container supply-chain policy tests without fail-closed cross-surface escalation",
-      "branch": "fix/723-container-policy-ci-routing"
+      "issue": 719,
+      "title": "Reconcile fresh Device Agent vulnerability scan delta",
+      "branch": "chore/719-retire-stale-cve-14456-exception"
     },
     "next_work_package": null
   },
@@ -521,7 +521,7 @@
       "issue": 723,
       "title": "Classify container supply-chain policy tests without fail-closed cross-surface escalation",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "fix/723-container-policy-ci-routing",
       "evidence": {
@@ -534,7 +534,35 @@
         "pr721_simulation": "security_supply_chain_fail_closed_false_no_unrelated_external_workflows",
         "ci_policy_tests": "92_passed_1_environment_skip",
         "review_p2": "resolved_with_exact_registered_test_allowlist",
-        "unregistered_container_test": "fail_closed_verified"
+        "unregistered_container_test": "fail_closed_verified",
+        "pull_request": 724,
+        "merged_sha": "8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb",
+        "nexolab_merge_gate": "success",
+        "exact_head": "6a7cc473c92e3512dc04b793471a71b0af348ab3"
+      }
+    },
+    {
+      "issue": 719,
+      "title": "Reconcile fresh Device Agent vulnerability scan delta",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [],
+      "branch": "chore/719-retire-stale-cve-14456-exception",
+      "evidence": {
+        "trigger_pr": 718,
+        "trigger_head_sha": "61bf4eac3f6c87b92786327e1b63416977057583",
+        "trigger_container_supply_chain_run": 33155218719,
+        "first_maintenance_head_sha": "93c48a576105972fcce82cd7ff5ded4a81001fde",
+        "fresh_scan_container_supply_chain_run": 33156182603,
+        "fresh_scan_blocked_finding": "device-agent libexpat1/CVE-2026-66046 HIGH no fixed version",
+        "expat_reachability": "no XML import/parser/input path in services/device-agent",
+        "expat_exception_expires_on": "2026-09-02",
+        "combined_supply_chain_policy_tests": "30_passed",
+        "device_agent_xml_references": 0,
+        "ci_routing_dependency_issue": 723,
+        "ci_routing_dependency_merged_sha": "8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb",
+        "review_state_reconciliation": "completed",
+        "expat_maintenance_action_due_on": "2026-09-02"
       }
     }
   ],
@@ -542,10 +570,10 @@
     {
       "source_issue": 704,
       "title": "Remove remaining Device Agent OpenSSL vendor-lag exception",
-      "status": "due",
+      "status": "completed",
       "due_on": "2026-08-30",
       "owner": "platform-security",
-      "rule": "Remove immediately when supported distroless consumes fixed Trixie OpenSSL, the finding disappears, QUIC/HTTP3 reachability changes, or severity becomes Critical."
+      "rule": "Completed 2026-08-28: fresh Device Agent scan no longer reports libssl3t64/CVE-2026-14456; the stale exact exception is retired and must not be restored without a new fail-closed evidence review."
     },
     {
       "source_issue": 704,
@@ -562,6 +590,14 @@
       "due_on": "2026-09-02",
       "owner": "platform-security",
       "rule": "Remove affected exact tuples immediately when findings disappear, consumable fixes arrive, SQLite gains FTS5/arbitrary-SQL/untrusted-DB reachability, controlled images gain 32-bit cJSON reachability, libwebsockets affected-version/LECP-CBOR reachability changes, or severity becomes Critical."
+    },
+    {
+      "source_issue": 719,
+      "title": "Review/remove Device Agent Expat CVE-2026-66046 exception",
+      "status": "due",
+      "due_on": "2026-09-02",
+      "owner": "platform-security",
+      "rule": "Remove immediately when the finding disappears, a consumable fixed Debian/distroless package becomes available, XML parsing or attacker-controlled XML input becomes reachable, affected-version guidance materially changes, or severity becomes Critical."
     }
   ],
   "observations": [

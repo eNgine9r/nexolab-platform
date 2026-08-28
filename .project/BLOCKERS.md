@@ -30,13 +30,13 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
 
-## CI routing maintenance — #723 blocks #721 merge
+## Security maintenance — #719 fresh Device Agent scan reconciliation
 
-PR #721 has GREEN Container Supply Chain, Telemetry service and Core Quality/build on exact head `78f6a68e...`, but its Merge Gate fails because `tests/test_container_supply_chain_policy.py` is classified as unknown and therefore incorrectly requires Dashboard/Offline/Refrigeration workflows that do not register for the security-policy diff. Issue #723 owns the narrow classifier regression; no product/runtime/security-policy behavior changes are in scope. After #723 GREEN merge, PR #721 must be updated to current `main` and re-verified.
+The CI-routing blocker #723 is cleared by GREEN PR #724 merged at `8e9333fe...`. PR #721 now remains the active soft merge blocker: it retires stale `libssl3t64/CVE-2026-14456` policy and records one exact, time-bounded `device-agent + libexpat1 + CVE-2026-66046` HIGH exception through **2026-09-02** based on no XML parser/input reachability and no consumable fixed Debian package. PR #721 must be re-verified on current `main`; no runtime/dependency/base-image change, deployment, Modbus write or hardware action is authorized.
 
 ## Security maintenance — #704 verified; no current merge blocker
 
-Issue #704 has exact-head repository verification GREEN at `e2f7857e381600d76dd4100cea2c776bab8868e8`: fresh Container Supply Chain, Telemetry service, Core CI and NEXOLAB Merge Gate all passed. The security interrupt no longer blocks repository work; #690 is completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`. Remaining maintenance is deadline-driven rather than a current merge blocker: Device Agent `libssl3t64/CVE-2026-14456` expires **2026-08-30**; exact Device Agent and telemetry-service SQLite decisions plus telemetry `libcjson1/CVE-2026-16554` and `libwebsockets19t64/CVE-2026-78161` expire **2026-09-02** and must be removed earlier if findings disappear, fixes become consumable, reachability/version evidence changes or severity becomes Critical. No production/runtime mutation is authorized by this security reconciliation.
+Issue #704 has exact-head repository verification GREEN at `e2f7857e381600d76dd4100cea2c776bab8868e8`; #690 is completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`. The final Device Agent `libssl3t64/CVE-2026-14456` exception is **retired** because the fresh 2026-08-28 scan no longer reports the finding. Deadline-driven maintenance through **2026-09-02** now consists of the exact Device Agent `libexpat1/CVE-2026-66046` decision, Device Agent/telemetry-service SQLite decisions, and telemetry `libcjson1/CVE-2026-16554` / `libwebsockets19t64/CVE-2026-78161`; each must be removed earlier if its documented finding/fix/reachability/version/severity trigger changes. No production/runtime mutation is authorized by this security reconciliation.
 
 ## Issue #709 — post-merge controlled deployment authorization
 

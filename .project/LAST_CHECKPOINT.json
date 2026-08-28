@@ -3,32 +3,38 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T12:08:49+03:00",
+  "timestamp": "2026-08-28T12:58:00+03:00",
   "actor": "ChatGPT",
-  "event": "issue_723_review_fix_candidate",
+  "event": "issue_719_resume_after_ci_routing_merge",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "active_work": {
-    "issue": 723,
-    "title": "Classify container supply-chain policy tests without fail-closed cross-surface escalation",
-    "branch": "fix/723-container-policy-ci-routing"
+    "issue": 719,
+    "title": "Reconcile fresh Device Agent vulnerability scan delta",
+    "branch": "chore/719-retire-stale-cve-14456-exception"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "trigger_pr": 721,
-      "trigger_head_sha": "78f6a68e7b9898c2f19752e2cb08d4144e6c90a5",
-      "pre_fix_classifier_tests": "2_failed_25_passed",
-      "post_fix_classifier_tests": "27_passed",
-      "unknown_file_removed": "tests/test_container_supply_chain_policy.py",
-      "ci_policy_tests": "92_passed_1_environment_skip",
-      "review_p2": "resolved_with_exact_registered_test_allowlist",
-      "unregistered_container_test": "fail_closed_verified"
+      "ci_routing_issue": 723,
+      "ci_routing_pr": 724,
+      "ci_routing_merged_sha": "8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb",
+      "security_pr": 721,
+      "security_branch_head_before_main_merge": "78f6a68e7b9898c2f19752e2cb08d4144e6c90a5",
+      "stale_openssl_exception_retired": true,
+      "fresh_expat_finding": "libexpat1/CVE-2026-66046 HIGH no fixed version",
+      "expat_xml_reachability": "unreachable in actual Device Agent source/dependencies",
+      "expat_exception_expires_on": "2026-09-02",
+      "local_supply_chain_policy_tests": "30_passed",
+      "fresh_review_p2_count": 4,
+      "fresh_review_p2_state": "addressed_pending_exact_head_ci",
+      "openssl_maintenance_action": "completed",
+      "expat_maintenance_due_on": "2026-09-02"
     }
   },
   "observations": [],
-  "next_action": "Commit/push the Issue #723 review fix, resolve the addressed P2 thread, require new exact-head routed CI plus NEXOLAB Merge Gate GREEN, merge, then update PR #721 with current main and re-run exact-head verification.",
+  "next_action": "Run focused state/security/CI-policy verification for the four addressed PR #721 review findings, commit/push one review-fix head, resolve the review threads, require exact-head Container Supply Chain/Telemetry/Core/NEXOLAB Merge Gate GREEN, then merge #721. After maintenance is stable, close/defer RFX-01 PR #718 and record the Product Owner pause of RFX-01 through RFX-19C.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
