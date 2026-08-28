@@ -246,3 +246,15 @@ Using the manual's read register map, FC03 addresses `0..12` were sampled one re
 Per the manual, address 9 is cooling control state (`5 = Pulldown`), address 10 is the relay-state bitfield, address 11 is VCC compressor speed, and address 12 is the alarm bitfield. Thus this snapshot reports Pulldown state, relay bitfield `2`, compressor speed `4500`, and no active alarm bits. Temperature/register scaling remains to be correlated against physical/display evidence before production semantics are declared.
 
 Raw discovery, strict-verification and register-profile artifacts remain under `runtime/evidence/` and are intentionally not used to activate production Bus 2. No controller parameters, setpoints, relays, baud rate or slave address were written or changed.
+
+## 2026-08-28 Dual Embraco Sync shared-bus evidence
+
+The Bus 2 segment was then operated with exactly two Embraco Sync controllers connected: the isolated test controller at unit ID `96` and the active refrigerated-display controller at unit ID `2`. Both use `9600` baud and no parity; the test controller HMI reports `Mb2=001`, while the live controller reports `Mb2=002`.
+
+Read-only discovery confirmed both endpoints on the same physical bus with zero CRC warnings: unit `96` at its native `9600 8N1` profile and unit `2` at its native `9600 8N2` profile. Cross-profile probes also produced CRC-valid responses for both devices with either one or two stop bits on this bounded short segment.
+
+Shared-bus polling was then exercised with one master alternating between units `2` and `96`. Ten passes at `9600 8N1` and ten passes at `9600 8N2` completed successfully for both endpoints: `20/20` reads per framing profile, with no timeout, CRC or collision evidence.
+
+The live refrigerated-display controller at unit `2` was strictly verified at its configured `9600 8N2` profile. Manual-defined FC03 registers `0..12` were sampled individually for three passes; all `13/13` registers answered on every pass. Observed values included cabinet `1693/1678/1678`, evaporator `2256/2236/2236`, condenser `3717`, cooling state `5` (Pulldown), relay bitfield `11`, compressor speed `4500` and alarm bitfield `0`.
+
+This bounded evidence confirms that both Embraco Sync slaves coexist on Bus 2 without observed collisions. It does not yet approve mixed stop-bit settings as the production standard, and temperature scaling remains pending physical/display correlation. No Modbus write, hardware write, parameter change or production Bus 2 activation was performed.
