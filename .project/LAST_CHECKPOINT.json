@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T07:00:00+03:00",
+  "timestamp": "2026-08-28T07:42:00+03:00",
   "actor": "ChatGPT",
-  "event": "rfx00_skew_effective_time_acceptance_findings_addressed",
+  "event": "rfx00_config_acceptance_age_semantics_addressed",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
@@ -19,7 +19,7 @@
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Verify corrected accepted ADR 0010 exact head with per-metric dependency skew, exact effective_at semantics and mandatory historical observation-time acceptance; obtain fresh Codex review, record evidence, complete #715, merge PR #716, then prepare RFX-01 for Codex.",
+  "next_action": "Verify corrected accepted ADR 0010 exact head with deterministic as-of circuit/configuration resolution, half-open acceptance-state transitions and exact maximum-age/future-skew boundaries; obtain fresh Codex review, record evidence, complete #715, merge PR #716, then prepare RFX-01 for Codex.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

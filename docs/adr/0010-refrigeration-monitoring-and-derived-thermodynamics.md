@@ -150,6 +150,16 @@ temperature or controller identity. Changing refrigerant or calculation policy c
 versioned configuration boundary; historical results retain the configuration/provenance used at
 calculation time.
 
+Authoritative circuit configuration history uses non-overlapping half-open validity intervals
+`[valid_from, valid_to)`, with `valid_to = null` for the current open-ended version. A normal or
+historical calculation resolves the **single circuit/configuration version effective at
+`observation_at`** using `valid_from <= observation_at < valid_to` (or no upper bound when
+`valid_to = null`). Zero or multiple effective versions is invalid configuration and makes derived
+metrics `unavailable`; implementations must not silently fall back to the current version. A
+replay may carry an explicit configuration-version identifier only when that version is the one
+effective at the requested `observation_at`; what-if calculations against another version are a
+separate non-authoritative capability and must not be persisted as canonical derived history.
+
 ### 6. 4–20 mA acquisition
 
 `4–20 mA` is an electrical signal class, not a refrigeration metric. The canonical acquisition
@@ -292,9 +302,24 @@ This selection algorithm is part of the versioned calculation policy. Implementa
 arrival order, database physical order or UI refresh timing as an implicit tie-breaker. Inputs do not
 need identical timestamps, but every selected required input must satisfy the policy's maximum age,
 cross-input skew and maximum future-clock-skew limits. Those limits are domain configuration and must
-not be silently borrowed from frontend polling intervals. An input timestamp later than
-`observation_at` by more than the configured maximum future-clock skew is invalid for the calculation
-and makes the derived result `unavailable`.
+not be silently borrowed from frontend polling intervals.
+
+Maximum-age and future-clock-skew are separate gates with exact boundary semantics. For each selected
+source sample define:
+
+```text
+sample_age = max(0, observation_at - captured_at)
+future_offset = max(0, captured_at - observation_at)
+```
+
+A non-future or exactly-at-observation sample passes the maximum-age gate when
+`sample_age <= maximum_age`; equality at the configured maximum is accepted. A future sample has
+`sample_age = 0` for this gate and is not evaluated with absolute age. It must independently satisfy
+`0 < future_offset <= maximum_future_clock_skew`; equality at the configured future-skew maximum is
+accepted, while any larger future offset makes the result `unavailable`. A policy that does not
+explicitly allow future candidates has an effective `maximum_future_clock_skew = 0` and therefore
+rejects them. This separation prevents signed-age or absolute-age interpretations from changing
+availability.
 
 Cross-input skew is evaluated **per derived metric dependency set**, not across every signal selected
 for the refrigeration circuit. For one derived metric instance, take the transitive set of physical
@@ -345,7 +370,13 @@ At minimum the calculation pipeline must reject or explicitly classify:
 - stale sample, excessive cross-input timestamp skew or excessive future-clock skew;
 - instrument or acquisition profile that was not accepted at `observation_at` (historical/backfill
   resolves the acceptance state at that historical `observation_at`, never the current wall-clock
-  state);
+  state). Instrument and acquisition-profile acceptance histories use non-overlapping half-open
+  `[effective_from, effective_to)` intervals. At an activation/deactivation timestamp, the state whose
+  `effective_from` equals that timestamp is the post-transition state and is effective immediately;
+  the previous state is not. Same-timestamp state-change operations are serialized by a monotonic
+  revision sequence, and only the final revision may own a non-empty interval beginning at that
+  timestamp; intermediate same-timestamp revisions are zero-width audit records. Any remaining
+  overlapping/non-unique effective state fails closed as `unavailable`;
 - missing/expired/unacceptable calibration state where the metric policy requires calibration;
 - unknown engineering unit or pressure reference;
 - missing atmospheric reference for gauge pressure;
