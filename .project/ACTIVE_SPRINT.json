@@ -22,7 +22,11 @@
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 715,
+      "title": "RFX-00: Define refrigeration monitoring architecture and thermodynamic derived metrics",
+      "branch": "arch/715-rfx00-refrigeration-architecture"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -494,6 +498,14 @@
           "codex_review": "clean"
         }
       }
+    },
+    {
+      "issue": 715,
+      "title": "RFX-00: Define refrigeration monitoring architecture and thermodynamic derived metrics",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "arch/715-rfx00-refrigeration-architecture",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [
