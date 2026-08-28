@@ -130,6 +130,7 @@ def _run_check(check: Check, worktree: Path, executed: list[str]) -> None:
     environment = os.environ.copy()
     if check.env:
         environment.update(check.env)
+    environment["PYTHONDONTWRITEBYTECODE"] = "1"
     result = subprocess.run(check.command, cwd=worktree, env=environment, check=False)
     if result.returncode != 0:
         raise VerificationError(f"Check failed: {check.name} (exit code {result.returncode})")

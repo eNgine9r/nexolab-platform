@@ -148,6 +148,25 @@ class LocalCandidateVerificationTests(unittest.TestCase):
         self.assertIn(("npm", "test"), commands)
         self.assertIn(("npm", "run", "build"), commands)
 
+    def test_run_check_disables_python_bytecode_cache(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nexolab-bytecode-test-") as temporary:
+            worktree = Path(temporary)
+            (worktree / "candidate_fixture.py").write_text("VALUE = 1\n", encoding="utf-8")
+            executed: list[str] = []
+            with mock.patch.dict(
+                MODULE.os.environ, {"PYTHONDONTWRITEBYTECODE": ""}, clear=False
+            ):
+                MODULE._run_check(
+                    MODULE.Check(
+                        "Python bytecode isolation",
+                        ("python3", "-c", "import candidate_fixture"),
+                    ),
+                    worktree,
+                    executed,
+                )
+            self.assertEqual(executed, ["Python bytecode isolation"])
+            self.assertFalse((worktree / "__pycache__").exists())
+
     def test_exact_nvmrc_node_can_be_resolved_from_user_nvm_installation(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nexolab-node-test-") as temporary:
             root = Path(temporary)
