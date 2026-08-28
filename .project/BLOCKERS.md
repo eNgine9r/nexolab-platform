@@ -32,7 +32,11 @@ Blocked until the Product Owner confirms the temporary external RS-485 owner has
 
 ## Security maintenance — #719 fresh Device Agent scan reconciliation
 
-PR #718 exact-head Container Supply Chain run `33155218719` proved `libssl3t64/CVE-2026-14456` disappeared, so its stale exception is retired. The first #719 PR #721 head `93c48a576105972fcce82cd7ff5ded4a81001fde` then surfaced one new HIGH `libexpat1/CVE-2026-66046` with no fixed version in run `33156182603`. Upstream fixes the XML-parser DoS in the 2.8.4 line, but the latest observed release remains 2.8.3 and Debian Trixie has no consumable fixed package. Actual Device Agent source/dependencies expose no XML import/parser/input path, so #719 carries one exact `platform-security` exception only through **2026-09-02**, with fail-closed early-removal triggers. Exact-head Container Supply Chain/Core/NEXOLAB Merge Gate remain required. No runtime/dependency/base-image change, deployment, Modbus write or hardware action is authorized.
+The CI-routing blocker #723 is cleared by GREEN PR #724 merged at `8e9333fe...`. PR #721 now remains the active soft merge blocker: it retires stale `libssl3t64/CVE-2026-14456` policy and records one exact, time-bounded `device-agent + libexpat1 + CVE-2026-66046` HIGH exception through **2026-09-02** based on no XML parser/input reachability and no consumable fixed Debian package. PR #721 must be re-verified on current `main`; no runtime/dependency/base-image change, deployment, Modbus write or hardware action is authorized.
+
+## Security maintenance — #704 verified; no current merge blocker
+
+Issue #704 has exact-head repository verification GREEN at `e2f7857e381600d76dd4100cea2c776bab8868e8`: fresh Container Supply Chain, Telemetry service, Core CI and NEXOLAB Merge Gate all passed. The security interrupt no longer blocks repository work; #690 is completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`. Remaining maintenance is deadline-driven rather than a current merge blocker: Device Agent `libssl3t64/CVE-2026-14456` expires **2026-08-30**; exact Device Agent and telemetry-service SQLite decisions plus telemetry `libcjson1/CVE-2026-16554` and `libwebsockets19t64/CVE-2026-78161` expire **2026-09-02** and must be removed earlier if findings disappear, fixes become consumable, reachability/version evidence changes or severity becomes Critical. No production/runtime mutation is authorized by this security reconciliation.
 
 ## Issue #709 — post-merge controlled deployment authorization
 

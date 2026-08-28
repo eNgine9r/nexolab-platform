@@ -136,6 +136,40 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             {"Authenticated Dashboard Acceptance", "Offline Bundle"},
         )
 
+    def test_container_policy_test_family_is_known_security_supply_chain(self) -> None:
+        for path in (
+            "tests/test_container_supply_chain_policy.py",
+            "tests/test_container_vulnerability_policy.py",
+            "tests/test_container_release_manifest.py",
+            "tests/test_container_release_aggregate.py",
+        ):
+            with self.subTest(path=path):
+                result = classify([path])
+                self.assertIn("security_supply_chain", result["classes"])
+                self.assertFalse(result["fail_closed"])
+                self.assertEqual(result["unknown_files"], [])
+                self.assertEqual(result["verification"]["required_external_workflows"], [])
+
+    def test_unregistered_container_test_still_fails_closed(self) -> None:
+        result = classify(["tests/test_container_unregistered.py"])
+        self.assertEqual(result["classes"], ["cross_surface_or_unknown"])
+        self.assertTrue(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], ["tests/test_container_unregistered.py"])
+
+    def test_security_policy_pr_does_not_force_unrelated_external_acceptance(self) -> None:
+        result = classify(
+            [
+                "security/vulnerability-exceptions.json",
+                "tests/test_container_supply_chain_policy.py",
+                "docs/operations/device-agent-security-note.md",
+                ".project/CURRENT_STATE.md",
+            ]
+        )
+        self.assertEqual(result["classes"], ["security_supply_chain"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(result["verification"]["required_external_workflows"], [])
+
     def test_core_ci_governance_does_not_force_unrelated_external_acceptance(self) -> None:
         result = classify([".github/workflows/ci.yml"])
         self.assertEqual(result["verification"]["required_external_workflows"], [])

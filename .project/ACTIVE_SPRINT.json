@@ -518,6 +518,30 @@
       }
     },
     {
+      "issue": 723,
+      "title": "Classify container supply-chain policy tests without fail-closed cross-surface escalation",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "fix/723-container-policy-ci-routing",
+      "evidence": {
+        "trigger_pr": 721,
+        "trigger_head_sha": "78f6a68e7b9898c2f19752e2cb08d4144e6c90a5",
+        "trigger_core_run": 33156919823,
+        "root_cause": "tests/test_container_supply_chain_policy.py classified as unknown",
+        "pre_fix_regression": "2_failed_25_passed",
+        "post_fix_regression": "27_passed",
+        "pr721_simulation": "security_supply_chain_fail_closed_false_no_unrelated_external_workflows",
+        "ci_policy_tests": "92_passed_1_environment_skip",
+        "review_p2": "resolved_with_exact_registered_test_allowlist",
+        "unregistered_container_test": "fail_closed_verified",
+        "pull_request": 724,
+        "merged_sha": "8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb",
+        "nexolab_merge_gate": "success",
+        "exact_head": "6a7cc473c92e3512dc04b793471a71b0af348ab3"
+      }
+    },
+    {
       "issue": 719,
       "title": "Reconcile fresh Device Agent vulnerability scan delta",
       "priority": "high",
@@ -528,18 +552,15 @@
         "trigger_pr": 718,
         "trigger_head_sha": "61bf4eac3f6c87b92786327e1b63416977057583",
         "trigger_container_supply_chain_run": 33155218719,
-        "trigger_failure": "stale vulnerability exception libssl3t64/CVE-2026-14456",
-        "focused_policy_tests": "17_passed",
-        "runtime_change": "none",
-        "hardware_change": "none",
         "first_maintenance_head_sha": "93c48a576105972fcce82cd7ff5ded4a81001fde",
         "fresh_scan_container_supply_chain_run": 33156182603,
         "fresh_scan_blocked_finding": "device-agent libexpat1/CVE-2026-66046 HIGH no fixed version",
         "expat_reachability": "no XML import/parser/input path in services/device-agent",
         "expat_exception_expires_on": "2026-09-02",
-        "expat_upstream_fix": "PR #1321 merged for 2.8.4 milestone; latest observed release 2.8.3",
         "combined_supply_chain_policy_tests": "30_passed",
-        "device_agent_xml_references": 0
+        "device_agent_xml_references": 0,
+        "ci_routing_dependency_issue": 723,
+        "ci_routing_dependency_merged_sha": "8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb"
       }
     }
   ],

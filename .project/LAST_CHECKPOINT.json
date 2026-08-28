@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T11:48:17+03:00",
+  "timestamp": "2026-08-28T12:49:00+03:00",
   "actor": "ChatGPT",
-  "event": "issue_719_fresh_scan_reconciliation_candidate",
+  "event": "issue_719_resume_after_ci_routing_merge",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
@@ -17,22 +17,20 @@
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "trigger_pr": 718,
-      "trigger_head_sha": "61bf4eac3f6c87b92786327e1b63416977057583",
-      "container_supply_chain_run": 33155218719,
-      "local_policy_tests": "17_passed",
-      "stale_exception_removed": true,
-      "first_maintenance_head_sha": "93c48a576105972fcce82cd7ff5ded4a81001fde",
-      "fresh_scan_container_supply_chain_run": 33156182603,
-      "fresh_scan_blocked_finding": "libexpat1/CVE-2026-66046 HIGH no fixed version",
+      "ci_routing_issue": 723,
+      "ci_routing_pr": 724,
+      "ci_routing_merged_sha": "8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb",
+      "security_pr": 721,
+      "security_branch_head_before_main_merge": "78f6a68e7b9898c2f19752e2cb08d4144e6c90a5",
+      "stale_openssl_exception_retired": true,
+      "fresh_expat_finding": "libexpat1/CVE-2026-66046 HIGH no fixed version",
       "expat_xml_reachability": "unreachable in actual Device Agent source/dependencies",
       "expat_exception_expires_on": "2026-09-02",
-      "combined_supply_chain_policy_tests": "30_passed",
-      "device_agent_xml_references": 0
+      "local_supply_chain_policy_tests": "30_passed"
     }
   },
   "observations": [],
-  "next_action": "Run focused supply-chain/evaluator/state checks for the exact Expat decision, commit and push one CI-feedback correction to PR #721, require exact-head Container Supply Chain/Core/NEXOLAB Merge Gate GREEN, merge, then resume PR #718.",
+  "next_action": "Complete the current main merge into PR #721, run state and focused supply-chain verification, push the reconciled head, require exact-head Container Supply Chain/Core/NEXOLAB Merge Gate GREEN, then merge #721. Do not merge or continue RFX-01 product code; the RFX program will be deferred by Product Owner checkpoint immediately after security maintenance is stable.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
