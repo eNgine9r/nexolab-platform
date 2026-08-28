@@ -16,6 +16,10 @@ Security/CI interrupts discovered during the attempted RFX-01 verification were 
 
 Issue #707 remains the currently deployed LAN product lineage `ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d`. Issue #709 repository implementation and Issue #711 repository fix are complete, but their Raspberry Pi runtime verification remains separately approval-gated as production/site-cutover work. Existing hardware/recovery blockers remain documented below and are not evidence that the presentation baseline is incomplete.
 
+## Issue #733 — canonical project-state formatter boundary
+
+Repository maintenance now excludes canonical `.project/*.json` State Model v2 files from Prettier formatting while leaving all ordinary formatter behavior unchanged. `scripts/validate-project-state.py` remains the sole formatting authority for `ACTIVE_SPRINT.json` and `LAST_CHECKPOINT.json`. The lint-staged v17 regression harness now stages canonical state JSON, runs the production lint-staged configuration and verifies byte-for-byte staged-state preservation. Formatter-only paths `.prettierignore` and `scripts/tests/lint-staged-v17.mjs` are also classified as known dependency/toolchain changes: they retain full Core quality/build but no longer fail closed into unrelated dashboard/offline/refrigeration external workflow requirements. The change-impact regression matrix passes 29/29. This fixes the deterministic Husky/CI routing conflicts reproduced during Issue #729 checkpointing without changing application or runtime behavior.
+
 ## Recently completed production-readiness boundaries
 
 Issue #245 is completed with real Raspberry Pi standalone hardware evidence. Issue #444 LOCAL_LAN user administration, #646 protected `main`, #667 CVE lifecycle reconciliation and #673 state reconciliation are also completed.
