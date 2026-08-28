@@ -210,3 +210,22 @@ Bus 2: /dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0
 Both adapters report USB VID:PID `10c4:ea60`, driver `cp210x`; the unique serial numbers are `0133F090` and `0133F246`. The new Bus 2 adapter is also independently addressable through its physical USB path (`xhci-hcd.0`, USB port `1-2`). No process owned either stable serial path during the inventory check.
 
 The commissioning helper recorded sanitized inventory evidence under `runtime/evidence/issue-200-bus2-inventory/rs485-bus2-20260828T105924Z/adapters.json`. No Modbus request was sent because A/B remained disconnected. Bus 2 therefore advances from `adapter absent` to `adapter present / field bus unverified`; controller and XJP60D communication remain hardware-unverified until the isolated A/B segment is connected and read-only discovery is explicitly started.
+
+## 2026-08-28 Bus 2 first energized read-only discovery
+
+After the Product Owner energized the second adapter and connected the test Bus 2 segment, the adapter re-enumerated at the same stable identity `0133F246 -> /dev/ttyUSB1` and was not owned by another process.
+
+A bounded read-only quick discovery scanned unit IDs `1..247` across `9600 8N1`, `9600 8E1`, `19200 8N1` and `19200 8E1`. Only Modbus functions `03`, `04` and `43/14` were used; no register writes or controller configuration changes were performed.
+
+Result:
+
+```text
+valid endpoints: 0
+warnings:        988 / 988 probe positions
+```
+
+Every warning contained received bytes without a valid CRC frame. A targeted raw read on units 1 and 6 then showed exactly one received byte `0x00` after each request on all four quick serial profiles. A one-second passive listen on each profile produced zero bytes.
+
+This pattern is treated as **physical-layer failure evidence**, not as evidence that the Modbus addresses are absent. The current leading checks are A/B polarity, transceiver/field wiring and common reference/GND requirements. Duplicate unit IDs are a lower-probability explanation because the observed receive pattern is a single deterministic `0x00` after transmission rather than overlapping valid-length replies.
+
+Evidence directory: `runtime/evidence/rs485-bus2-20260828T122942Z/`. Production Bus 2 remains inactive and hardware acceptance remains unverified.
