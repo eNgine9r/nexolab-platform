@@ -255,8 +255,10 @@ formula, provenance or quality contract defined here.
 
 Every calculation is evaluated at a defined observation time and against a versioned calculation
 policy. Inputs do not need identical timestamps, but every required input must satisfy the policy's
-maximum age and cross-input skew limits. Those limits are domain configuration and must not be
-silently borrowed from frontend polling intervals.
+maximum age, cross-input skew and maximum future-clock-skew limits. Those limits are domain
+configuration and must not be silently borrowed from frontend polling intervals. An input timestamp
+later than the observation time by more than the configured maximum future-clock skew is invalid for
+the calculation and makes the derived result `unavailable`.
 
 Derived availability uses three presentation states:
 
@@ -272,15 +274,18 @@ The default/fail-safe rule is `unavailable`. A future Work Package may define na
 A derived result can never have a newer effective timestamp, better freshness or better quality
 than its least-trustworthy required input. The derived contract therefore separates
 `effective_at` from `computed_at`: `effective_at` is bounded by the oldest required source sample
-used in the calculation, while `computed_at` records when NEXOLAB performed the calculation.
-Recalculation alone can never make stale physical evidence appear fresh. Provenance records every
-source sample timestamp.
+used in the calculation and must never be later than the calculation observation time, while
+`computed_at` records when NEXOLAB performed the calculation. A source timestamp that is slightly
+future-dated but still inside the explicitly accepted future-clock-skew tolerance remains preserved
+in provenance; it does not move `effective_at` into the future. Recalculation alone can never make
+stale or future-dated physical evidence appear fresh. Provenance records every source sample
+timestamp.
 
 At minimum the calculation pipeline must reject or explicitly classify:
 
 - missing required binding or sample;
 - canonical telemetry `sensor_error`, `communication_error` or `unknown` quality;
-- stale sample or excessive cross-input timestamp skew;
+- stale sample, excessive cross-input timestamp skew or excessive future-clock skew;
 - inactive/unaccepted instrument or acquisition profile;
 - missing/expired/unacceptable calibration state where the metric policy requires calibration;
 - unknown engineering unit or pressure reference;
