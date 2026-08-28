@@ -126,7 +126,7 @@ python3 scripts/verify-local-candidate.py --base origin/main --candidate HEAD
 
 `--base` defaults to `origin/main` and `--candidate` defaults to `HEAD`; both may be
 any unambiguous local commit ref. The command resolves and reports both SHAs, computes
-the exact `base...candidate` file set, and invokes `scripts/classify-ci-impact.py` from
+the exact `base_sha` → `candidate_sha` tree diff used by PR Core CI, and invokes `scripts/classify-ci-impact.py` from
 a detached clean candidate worktree. The temporary worktree is disk-backed beside the
 repository by default rather than using system `/tmp`/tmpfs; use `--worktree-root` or
 `NEXOLAB_VERIFICATION_ROOT` to select another local disk location.

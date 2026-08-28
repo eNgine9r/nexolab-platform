@@ -119,7 +119,7 @@ def resolve_commit(repo: Path, ref: str, label: str) -> str:
 
 def changed_files(repo: Path, base_sha: str, candidate_sha: str) -> list[str]:
     output = _capture(
-        ("git", "diff", "--name-only", f"{base_sha}...{candidate_sha}", "--"), repo
+        ("git", "diff", "--name-only", base_sha, candidate_sha, "--"), repo
     )
     return [line for line in output.splitlines() if line]
 
@@ -253,7 +253,7 @@ def verify(
 
             diff_check = Check(
                 "Exact candidate diff integrity",
-                ("git", "diff", "--check", f"{base_sha}...{candidate_sha}"),
+                ("git", "diff", "--check", base_sha, candidate_sha),
             )
             _run_check(diff_check, worktree, executed)
 

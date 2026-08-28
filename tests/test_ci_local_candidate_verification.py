@@ -87,6 +87,37 @@ class LocalCandidateVerificationTests(unittest.TestCase):
         }
         self.assertEqual(MODULE.verification_lane(impact), "core_quality")
 
+    def test_changed_files_matches_exact_base_and_candidate_trees_when_base_diverged(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nexolab-diverged-base-test-") as temporary:
+            repo = Path(temporary)
+
+            def git(*args: str) -> str:
+                return subprocess.check_output(("git", *args), cwd=repo, text=True).strip()
+
+            git("init", "-q")
+            git("config", "user.name", "NEXOLAB test")
+            git("config", "user.email", "nexolab-test@example.invalid")
+            (repo / "shared.txt").write_text("base\n", encoding="utf-8")
+            git("add", ".")
+            git("commit", "-q", "-m", "base")
+            common = git("rev-parse", "HEAD")
+
+            git("checkout", "-q", "-b", "candidate")
+            (repo / "candidate.txt").write_text("candidate\n", encoding="utf-8")
+            git("add", ".")
+            git("commit", "-q", "-m", "candidate")
+            candidate = git("rev-parse", "HEAD")
+
+            git("checkout", "-q", "-b", "advanced-base", common)
+            (repo / "base-only.txt").write_text("advanced base\n", encoding="utf-8")
+            git("add", ".")
+            git("commit", "-q", "-m", "advanced base")
+            advanced_base = git("rev-parse", "HEAD")
+
+            files = MODULE.changed_files(repo, advanced_base, candidate)
+
+        self.assertEqual(files, ["base-only.txt", "candidate.txt"])
+
     def test_unknown_classification_fails_closed(self) -> None:
         impact = {
             "classes": ["cross_surface_or_unknown"],
