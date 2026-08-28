@@ -229,3 +229,20 @@ Every warning contained received bytes without a valid CRC frame. A targeted raw
 This pattern is treated as **physical-layer failure evidence**, not as evidence that the Modbus addresses are absent. The current leading checks are A/B polarity, transceiver/field wiring and common reference/GND requirements. Duplicate unit IDs are a lower-probability explanation because the observed receive pattern is a single deterministic `0x00` after transmission rather than overlapping valid-length replies.
 
 Evidence directory: `runtime/evidence/rs485-bus2-20260828T122942Z/`. Production Bus 2 remains inactive and hardware acceptance remains unverified.
+
+## 2026-08-28 Embraco Sync isolated Bus 2 evidence
+
+The Bus 2 segment was reduced to the Embraco Sync controller only. The controller HMI showed `Mb0=096`, `Mb1=096`, `Mb2=001`; the uploaded v1.00.04 manual defines the Modbus interface as parity `None`, selectable baud rate, slave address and one/two stop bits.
+
+Read-only discovery on the second stable adapter (`0133F246`) found a CRC-valid endpoint at `9600 8N1`, unit ID `96`. Strict verification confirmed the same endpoint with FC03 and no write function was issued.
+
+Using the manual's read register map, FC03 addresses `0..12` were sampled one register per request, three passes. All 13 registers answered successfully in every pass. Observed signed values were:
+
+```text
+0=20, 1=4, 2=0, 3=2626/2626/2630, 4=0, 5=0, 6=0,
+7=0, 8=2, 9=5, 10=2, 11=4500, 12=0
+```
+
+Per the manual, address 9 is cooling control state (`5 = Pulldown`), address 10 is the relay-state bitfield, address 11 is VCC compressor speed, and address 12 is the alarm bitfield. Thus this snapshot reports Pulldown state, relay bitfield `2`, compressor speed `4500`, and no active alarm bits. Temperature/register scaling remains to be correlated against physical/display evidence before production semantics are declared.
+
+Raw discovery, strict-verification and register-profile artifacts remain under `runtime/evidence/` and are intentionally not used to activate production Bus 2. No controller parameters, setpoints, relays, baud rate or slave address were written or changed.
