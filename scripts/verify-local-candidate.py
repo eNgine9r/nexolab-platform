@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -88,10 +89,13 @@ def verification_lane(impact: Mapping[str, object]) -> str:
     raise VerificationError("Classifier selected neither state-only nor full Core verification")
 
 
-def _capture(command: Sequence[str], cwd: Path) -> str:
+def _capture(
+    command: Sequence[str], cwd: Path, env: Mapping[str, str] | None = None
+) -> str:
     result = subprocess.run(
         command,
         cwd=cwd,
+        env=env,
         check=False,
         text=True,
         stdout=subprocess.PIPE,
@@ -131,16 +135,32 @@ def _run_check(check: Check, worktree: Path, executed: list[str]) -> None:
         raise VerificationError(f"Check failed: {check.name} (exit code {result.returncode})")
 
 
-def _verify_node_baseline(worktree: Path, executed: list[str]) -> None:
+def _verify_node_baseline(worktree: Path, executed: list[str]) -> dict[str, str]:
     name = "Exact Node baseline"
     print(f"\n==> {name}", flush=True)
     executed.append(name)
     expected = f"v{(worktree / '.nvmrc').read_text(encoding='utf-8').strip()}"
-    actual = _capture(("node", "--version"), worktree)
+    node_path = shutil.which("node")
+    if node_path is None:
+        nvm_root = Path(os.environ.get("NVM_DIR", Path.home() / ".nvm"))
+        nvm_node = nvm_root / "versions" / "node" / expected / "bin" / "node"
+        if nvm_node.is_file():
+            node_path = str(nvm_node)
+    if node_path is None:
+        raise VerificationError(
+            f"Node {expected} is not on PATH or installed in the configured NVM directory"
+        )
+    node_bin = str(Path(node_path).resolve().parent)
+    node_environment = os.environ.copy()
+    node_environment["PATH"] = os.pathsep.join(
+        part for part in (node_bin, node_environment.get("PATH", "")) if part
+    )
+    actual = _capture(("node", "--version"), worktree, node_environment)
     if actual != expected:
         raise VerificationError(f"Expected Node {expected}, got {actual}")
-    npm_version = _capture(("npm", "--version"), worktree)
+    npm_version = _capture(("npm", "--version"), worktree, node_environment)
     print(f"Verified Node baseline: {actual}; npm version: {npm_version}")
+    return {"PATH": node_environment["PATH"]}
 
 
 def _classify(worktree: Path, files_file: Path) -> dict[str, object]:
@@ -229,9 +249,15 @@ def verify(repo: Path, base_ref: str, candidate_ref: str, include_compose: bool)
             else:
                 for check in CORE_CHECKS[:7]:
                     _run_check(check, worktree, executed)
-                _verify_node_baseline(worktree, executed)
+                node_environment = _verify_node_baseline(worktree, executed)
                 for check in CORE_CHECKS[7:]:
-                    _run_check(check, worktree, executed)
+                    check_environment = dict(check.env or {})
+                    check_environment.update(node_environment)
+                    _run_check(
+                        Check(check.name, check.command, check_environment),
+                        worktree,
+                        executed,
+                    )
 
             if include_compose:
                 for check in _compose_checks(worktree):

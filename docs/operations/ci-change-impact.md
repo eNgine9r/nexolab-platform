@@ -137,6 +137,9 @@ production build. Unknown paths return `RED` rather than claiming incomplete loc
 evidence. Add `--include-compose-validation` when Compose contract validation is part
 of the Work Package.
 
+Node is resolved from `PATH` first. On NVM-based developer hosts, the gate otherwise
+uses the exact `.nvmrc` version from `NVM_DIR` (or the user's standard `.nvm` path).
+
 The final summary reports the resolved SHAs, impact classes, `fail_closed`, required
 remote workflows, checks executed and `GREEN` or `RED`. A `GREEN` result is pre-push
 evidence only; GitHub exact-head required CI and `NEXOLAB Merge Gate` remain
