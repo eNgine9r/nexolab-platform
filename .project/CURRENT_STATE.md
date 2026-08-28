@@ -18,7 +18,7 @@ Issue #707 remains the currently deployed LAN product lineage `ff796b1f7ddcf95a9
 
 ## Issue #733 — canonical project-state formatter boundary
 
-Repository maintenance now excludes canonical `.project/*.json` State Model v2 files from Prettier formatting while leaving all ordinary formatter behavior unchanged. `scripts/validate-project-state.py` remains the sole formatting authority for `ACTIVE_SPRINT.json` and `LAST_CHECKPOINT.json`. The lint-staged v17 regression harness now stages canonical state JSON, runs the production lint-staged configuration and verifies byte-for-byte staged-state preservation. This fixes the deterministic Husky conflict reproduced during Issue #729 checkpointing without changing application or runtime behavior.
+Repository maintenance now excludes canonical `.project/*.json` State Model v2 files from Prettier formatting while leaving all ordinary formatter behavior unchanged. `scripts/validate-project-state.py` remains the sole formatting authority for `ACTIVE_SPRINT.json` and `LAST_CHECKPOINT.json`. The lint-staged v17 regression harness now stages canonical state JSON, runs the production lint-staged configuration and verifies byte-for-byte staged-state preservation. Formatter-only paths `.prettierignore` and `scripts/tests/lint-staged-v17.mjs` are also classified as known dependency/toolchain changes: they retain full Core quality/build but no longer fail closed into unrelated dashboard/offline/refrigeration external workflow requirements. The change-impact regression matrix passes 29/29. This fixes the deterministic Husky/CI routing conflicts reproduced during Issue #729 checkpointing without changing application or runtime behavior.
 
 ## Recently completed production-readiness boundaries
 

@@ -24,6 +24,8 @@ STATE_PATHS = {
 ROOT_DOCS = {"README.md"}
 
 DEPENDENCY_TOOLCHAIN_PATHS = {
+    ".prettierignore",
+    "scripts/tests/lint-staged-v17.mjs",
     "package.json",
     "package-lock.json",
     ".nvmrc",

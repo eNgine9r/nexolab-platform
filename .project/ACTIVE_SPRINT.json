@@ -627,7 +627,9 @@
           "lint_staged_v17_regression": "success",
           "canonical_project_state_prettier_ignore": "success",
           "state_integrity": "success",
-          "git_diff_check": "success"
+          "git_diff_check": "success",
+          "ci_change_impact": "29_passed",
+          "formatter_tooling_core_only_routing": "success"
         }
       }
     }

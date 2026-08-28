@@ -3,7 +3,7 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T22:23:00+03:00",
+  "timestamp": "2026-08-28T22:36:00+03:00",
   "actor": "ChatGPT",
   "event": "issue_733_canonical_project_state_prettier_boundary_completed",
   "baselines": {
@@ -18,11 +18,13 @@
       "lint_staged_v17_regression": "PASS",
       "canonical_project_state_prettier_ignore": "PASS",
       "state_integrity": "PASS",
-      "git_diff_check": "PASS"
+      "git_diff_check": "PASS",
+      "ci_change_impact": "29/29 PASS",
+      "formatter_tooling_core_only_routing": "PASS"
     }
   },
   "observations": [],
-  "next_action": "Merge the focused Issue #733 maintenance PR after exact-head GREEN checks, then return to Issue #729, reconcile its state checkpoint against updated main, push the feature branch and open the Embraco digital-twin PR. No production cutover or hardware write is authorized.",
+  "next_action": "Push the Issue #733 routing fix and require exact-head Core CI plus all external workflows triggered by the classifier change and NEXOLAB Merge Gate to be GREEN. After merge, return to Issue #729 and reconcile its state checkpoint against updated main. No production cutover or hardware write is authorized.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
