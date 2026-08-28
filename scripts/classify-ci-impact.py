@@ -139,6 +139,13 @@ OFFLINE_BUNDLE_PATTERNS = (
     "scripts/classify-ci-impact.py",
 )
 
+CONTAINER_SUPPLY_CHAIN_TEST_PATHS = {
+    "tests/test_container_supply_chain_policy.py",
+    "tests/test_container_vulnerability_policy.py",
+    "tests/test_container_release_manifest.py",
+    "tests/test_container_release_aggregate.py",
+}
+
 CI_GOVERNANCE_PATHS = {
     "PROJECT_PROFILE.yaml",
     "AGENTS.md",
@@ -322,7 +329,7 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
 
         if (
             path.startswith("security/")
-            or path.startswith("tests/test_container_")
+            or path in CONTAINER_SUPPLY_CHAIN_TEST_PATHS
             or "Dockerfile" in path
             or _matches(path, ("scripts/*supply-chain*", "scripts/*security*", "scripts/*vulnerability*"))
         ):

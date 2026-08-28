@@ -150,6 +150,12 @@ class ChangeImpactClassifierTests(unittest.TestCase):
                 self.assertEqual(result["unknown_files"], [])
                 self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_unregistered_container_test_still_fails_closed(self) -> None:
+        result = classify(["tests/test_container_unregistered.py"])
+        self.assertEqual(result["classes"], ["cross_surface_or_unknown"])
+        self.assertTrue(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], ["tests/test_container_unregistered.py"])
+
     def test_security_policy_pr_does_not_force_unrelated_external_acceptance(self) -> None:
         result = classify(
             [

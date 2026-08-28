@@ -532,7 +532,9 @@
         "pre_fix_regression": "2_failed_25_passed",
         "post_fix_regression": "27_passed",
         "pr721_simulation": "security_supply_chain_fail_closed_false_no_unrelated_external_workflows",
-        "ci_policy_tests": "91_passed_1_environment_skip"
+        "ci_policy_tests": "92_passed_1_environment_skip",
+        "review_p2": "resolved_with_exact_registered_test_allowlist",
+        "unregistered_container_test": "fail_closed_verified"
       }
     }
   ],

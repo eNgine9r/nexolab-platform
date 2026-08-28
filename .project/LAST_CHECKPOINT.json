@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T12:02:23+03:00",
+  "timestamp": "2026-08-28T12:08:49+03:00",
   "actor": "ChatGPT",
-  "event": "issue_723_review_candidate",
+  "event": "issue_723_review_fix_candidate",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
@@ -22,11 +22,13 @@
       "pre_fix_classifier_tests": "2_failed_25_passed",
       "post_fix_classifier_tests": "27_passed",
       "unknown_file_removed": "tests/test_container_supply_chain_policy.py",
-      "ci_policy_tests": "91_passed_1_environment_skip"
+      "ci_policy_tests": "92_passed_1_environment_skip",
+      "review_p2": "resolved_with_exact_registered_test_allowlist",
+      "unregistered_container_test": "fail_closed_verified"
     }
   },
   "observations": [],
-  "next_action": "Run focused CI-governance regression and state validation, commit/push Issue #723 once, require exact-head Core CI and NEXOLAB Merge Gate GREEN, merge, then update PR #721 with current main and re-run exact-head verification.",
+  "next_action": "Commit/push the Issue #723 review fix, resolve the addressed P2 thread, require new exact-head routed CI plus NEXOLAB Merge Gate GREEN, merge, then update PR #721 with current main and re-run exact-head verification.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
