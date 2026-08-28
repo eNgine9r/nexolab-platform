@@ -115,6 +115,58 @@ class RefrigerationEquipmentListResponse(BaseModel):
     items: list[RefrigerationEquipmentResponse]
 
 
+class RefrigerationControllerBindingWrite(BaseModel):
+    node_id: Annotated[str, Field(min_length=1, max_length=64)]
+    controller_family: Literal["embraco"] = "embraco"
+    controller_equipment_id: Annotated[str, Field(min_length=1, max_length=128)]
+    unit_id: Annotated[int, Field(ge=1, le=247)]
+    profile_version: Annotated[str, Field(min_length=1, max_length=64)]
+
+    @field_validator("node_id", "controller_equipment_id", "profile_version")
+    @classmethod
+    def normalize_controller_binding_text(cls, value: str) -> str:
+        normalized = " ".join(value.split())
+        if not normalized:
+            raise ValueError("value must not be blank")
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_controller_identity(self) -> "RefrigerationControllerBindingWrite":
+        expected = f"EMBRACO-{self.unit_id}"
+        if self.controller_equipment_id != expected:
+            raise ValueError(f"controller_equipment_id must be {expected}")
+        if self.profile_version != "embraco-sync-fc03-v1.00.04":
+            raise ValueError("unsupported Embraco controller profile")
+        return self
+
+
+class RefrigerationControllerBindingResponse(BaseModel):
+    id: str
+    equipment_id: str
+    node_id: str
+    controller_family: Literal["embraco"]
+    controller_equipment_id: str
+    unit_id: int
+    profile_version: str
+    bound_at: datetime
+    verified_from_telemetry: bool
+
+
+class RefrigerationControllerSummaryResponse(BaseModel):
+    equipment_id: str
+    controller_family: Literal["embraco"]
+    controller_equipment_id: str
+    unit_id: int
+    profile_version: str
+    control_state: int | None
+    compressor_speed_rpm: float | None
+    last_seen_at: datetime | None
+
+
+class RefrigerationControllerSummaryListResponse(BaseModel):
+    items: list[RefrigerationControllerSummaryResponse]
+
+
 class EquipmentNodeOptionResponse(BaseModel):
     node_id: str
     display_name: str

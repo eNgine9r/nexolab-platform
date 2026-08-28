@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getRefrigerationEquipment } from "@/data/refrigeration";
 
@@ -25,10 +25,24 @@ function referenceEquipment() {
 }
 
 async function waitForLayout() {
+  fireEvent.click(screen.getByRole("button", { name: "Схема" }));
   await screen.findByRole("button", { name: "Вибрати датчик 01F на схемі" });
 }
 
 describe("RefrigerationDetailScreen", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("uses the digital-twin tabs with Overview as the clean default", () => {
+    render(<RefrigerationDetailScreen equipment={referenceEquipment()} />);
+
+    expect(screen.getByRole("button", { name: "Огляд" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: "Схема" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Графіки" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Контролер" })).toBeInTheDocument();
+    expect(screen.queryByTestId("equipment-image-workspace")).not.toBeInTheDocument();
+  });
   it("keeps passport and lifecycle controls out of the primary canvas flow", async () => {
     const equipment = referenceEquipment();
     render(<RefrigerationDetailScreen equipment={equipment} />);

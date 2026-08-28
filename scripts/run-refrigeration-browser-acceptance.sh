@@ -5,7 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_DIR="$ROOT_DIR/infrastructure/compose"
 BASE_COMPOSE="$COMPOSE_DIR/compose.central.yaml"
 ACCEPTANCE_COMPOSE="$COMPOSE_DIR/compose.browser-acceptance.yaml"
-RUN_SUFFIX="$(date -u +%Y%m%dT%H%M%SZ)-$$"
+RUN_SUFFIX="$(date -u +%Y%m%dt%H%M%Sz)-$$"
 
 random_secret() {
   if command -v openssl >/dev/null 2>&1; then
@@ -177,6 +177,162 @@ INSERT INTO telemetry_samples (
         CURRENT_TIMESTAMP
     )
 ON CONFLICT (event_id) DO NOTHING;
+
+-- Read-only Embraco controller fixture for Issue #729. The temperature/control
+-- engineering scale intentionally remains unverified: those samples persist raw
+-- values with NULL engineering values and quality=unknown.
+WITH samples AS (
+    SELECT generate_series(0, 60) AS n
+), controller_history AS (
+    SELECT
+        '72900001-0000-4000-8000-' || lpad(n::text, 12, '0') AS event_id,
+        'edge-01' AS node_id,
+        CURRENT_TIMESTAMP - INTERVAL '60 minutes' + n * INTERVAL '60 seconds' AS captured_at,
+        'compressor.speed' AS metric,
+        CASE WHEN ((n / 10) % 2) = 0 THEN 4500.0 ELSE 0.0 END AS value,
+        'rpm' AS unit,
+        'valid' AS quality,
+        'embraco-sync' AS source,
+        'EMBRACO-2' AS equipment_id,
+        '2-compressor-speed' AS channel_id,
+        NULL::text AS alarm,
+        CASE WHEN ((n / 10) % 2) = 0 THEN 4500 ELSE 0 END AS raw_value,
+        NULL::bigint AS raw_status
+    FROM samples
+    UNION ALL
+    SELECT
+        '72900002-0000-4000-8000-' || lpad(n::text, 12, '0'),
+        'edge-01',
+        CURRENT_TIMESTAMP - INTERVAL '60 minutes' + n * INTERVAL '60 seconds',
+        'refrigeration.control_state',
+        CASE WHEN ((n / 10) % 2) = 0 THEN 5.0 ELSE 0.0 END,
+        'state',
+        'valid',
+        'embraco-sync',
+        'EMBRACO-2',
+        '2-control-state',
+        NULL::text,
+        CASE WHEN ((n / 10) % 2) = 0 THEN 5 ELSE 0 END,
+        NULL::bigint
+    FROM samples
+    UNION ALL
+    SELECT
+        '72900003-0000-4000-8000-' || lpad(n::text, 12, '0'),
+        'edge-01',
+        CURRENT_TIMESTAMP - INTERVAL '60 minutes' + n * INTERVAL '60 seconds',
+        'controller.relay_state_bits',
+        CASE WHEN ((n / 10) % 2) = 0 THEN 1.0 ELSE 0.0 END,
+        'bitfield',
+        'valid',
+        'embraco-sync',
+        'EMBRACO-2',
+        '2-relay-state-bits',
+        NULL::text,
+        CASE WHEN ((n / 10) % 2) = 0 THEN 1 ELSE 0 END,
+        NULL::bigint
+    FROM samples
+    UNION ALL
+    SELECT
+        '72900004-0000-4000-8000-' || lpad(n::text, 12, '0'),
+        'edge-01',
+        CURRENT_TIMESTAMP - INTERVAL '60 minutes' + n * INTERVAL '60 seconds',
+        'controller.alarm_state_bits',
+        0.0,
+        'bitfield',
+        'valid',
+        'embraco-sync',
+        'EMBRACO-2',
+        '2-alarm-state-bits',
+        NULL::text,
+        0,
+        NULL::bigint
+    FROM samples
+)
+INSERT INTO telemetry_samples (
+    event_id, node_id, captured_at, metric, value, unit, quality, source,
+    equipment_id, channel_id, alarm, raw_value, raw_status, raw_payload,
+    raw_payload_retained, received_at
+)
+SELECT
+    event_id, node_id, captured_at, metric, value, unit, quality, source,
+    equipment_id, channel_id, alarm, raw_value, raw_status,
+    '{"fixture":"issue-729-embraco","stale_after_seconds":90}'::jsonb,
+    TRUE, captured_at
+FROM controller_history
+ON CONFLICT (event_id) DO NOTHING;
+
+INSERT INTO telemetry_samples (
+    event_id, node_id, captured_at, metric, value, unit, quality, source,
+    equipment_id, channel_id, alarm, raw_value, raw_status, raw_payload,
+    raw_payload_retained, received_at
+) VALUES
+    ('72900101-0000-4000-8000-000000000001', 'edge-01', CURRENT_TIMESTAMP,
+     'temperature.cabinet', NULL, 'degC', 'unknown', 'embraco-sync', 'EMBRACO-2',
+     '2-cabinet-temperature', NULL, 82, NULL,
+     '{"fixture":"issue-729-embraco","scale":"unverified","stale_after_seconds":90}'::jsonb, TRUE, CURRENT_TIMESTAMP),
+    ('72900102-0000-4000-8000-000000000001', 'edge-01', CURRENT_TIMESTAMP,
+     'temperature.evaporator', NULL, 'degC', 'unknown', 'embraco-sync', 'EMBRACO-2',
+     '2-evaporator-temperature', NULL, 41, NULL,
+     '{"fixture":"issue-729-embraco","scale":"unverified","stale_after_seconds":90}'::jsonb, TRUE, CURRENT_TIMESTAMP),
+    ('72900103-0000-4000-8000-000000000001', 'edge-01', CURRENT_TIMESTAMP,
+     'temperature.condenser', NULL, 'degC', 'unknown', 'embraco-sync', 'EMBRACO-2',
+     '2-condenser-temperature', NULL, 365, NULL,
+     '{"fixture":"issue-729-embraco","scale":"unverified","stale_after_seconds":90}'::jsonb, TRUE, CURRENT_TIMESTAMP),
+    ('72900104-0000-4000-8000-000000000001', 'edge-01', CURRENT_TIMESTAMP,
+     'refrigeration.setpoint', NULL, 'degC', 'unknown', 'embraco-sync', 'EMBRACO-2',
+     '2-setpoint', NULL, 20, NULL,
+     '{"fixture":"issue-729-embraco","scale":"unverified","stale_after_seconds":90}'::jsonb, TRUE, CURRENT_TIMESTAMP),
+    ('72900105-0000-4000-8000-000000000001', 'edge-01', CURRENT_TIMESTAMP,
+     'refrigeration.hysteresis', NULL, 'degC', 'unknown', 'embraco-sync', 'EMBRACO-2',
+     '2-hysteresis', NULL, 10, NULL,
+     '{"fixture":"issue-729-embraco","scale":"unverified","stale_after_seconds":90}'::jsonb, TRUE, CURRENT_TIMESTAMP)
+ON CONFLICT (event_id) DO NOTHING;
+
+INSERT INTO telemetry_latest (
+    sample_id, event_id, node_id, captured_at, metric, value, unit, quality,
+    source, equipment_id, channel_id, alarm, raw_value, raw_status,
+    stale_after_seconds, received_at
+) VALUES
+    (729010, '72901001-0000-4000-8000-000000000001', 'edge-01', CURRENT_TIMESTAMP,
+     'compressor.speed', 4500.0, 'rpm', 'valid', 'embraco-sync', 'EMBRACO-2',
+     '2-compressor-speed', NULL, 4500, NULL, 90.0, CURRENT_TIMESTAMP),
+    (729011, '72901002-0000-4000-8000-000000000001', 'edge-01', CURRENT_TIMESTAMP,
+     'refrigeration.control_state', 5.0, 'state', 'valid', 'embraco-sync', 'EMBRACO-2',
+     '2-control-state', NULL, 5, NULL, 90.0, CURRENT_TIMESTAMP),
+    (729012, '72901003-0000-4000-8000-000000000001', 'edge-01', CURRENT_TIMESTAMP,
+     'controller.relay_state_bits', 1.0, 'bitfield', 'valid', 'embraco-sync', 'EMBRACO-2',
+     '2-relay-state-bits', NULL, 1, NULL, 90.0, CURRENT_TIMESTAMP),
+    (729013, '72901004-0000-4000-8000-000000000001', 'edge-01', CURRENT_TIMESTAMP,
+     'controller.alarm_state_bits', 0.0, 'bitfield', 'valid', 'embraco-sync', 'EMBRACO-2',
+     '2-alarm-state-bits', NULL, 0, NULL, 90.0, CURRENT_TIMESTAMP),
+    (729014, '72901005-0000-4000-8000-000000000001', 'edge-01', CURRENT_TIMESTAMP,
+     'temperature.cabinet', NULL, 'degC', 'unknown', 'embraco-sync', 'EMBRACO-2',
+     '2-cabinet-temperature', NULL, 82, NULL, 90.0, CURRENT_TIMESTAMP),
+    (729015, '72901006-0000-4000-8000-000000000001', 'edge-01', CURRENT_TIMESTAMP,
+     'temperature.evaporator', NULL, 'degC', 'unknown', 'embraco-sync', 'EMBRACO-2',
+     '2-evaporator-temperature', NULL, 41, NULL, 90.0, CURRENT_TIMESTAMP),
+    (729016, '72901007-0000-4000-8000-000000000001', 'edge-01', CURRENT_TIMESTAMP,
+     'temperature.condenser', NULL, 'degC', 'unknown', 'embraco-sync', 'EMBRACO-2',
+     '2-condenser-temperature', NULL, 365, NULL, 90.0, CURRENT_TIMESTAMP),
+    (729017, '72901008-0000-4000-8000-000000000001', 'edge-01', CURRENT_TIMESTAMP,
+     'refrigeration.setpoint', NULL, 'degC', 'unknown', 'embraco-sync', 'EMBRACO-2',
+     '2-setpoint', NULL, 20, NULL, 90.0, CURRENT_TIMESTAMP),
+    (729018, '72901009-0000-4000-8000-000000000001', 'edge-01', CURRENT_TIMESTAMP,
+     'refrigeration.hysteresis', NULL, 'degC', 'unknown', 'embraco-sync', 'EMBRACO-2',
+     '2-hysteresis', NULL, 10, NULL, 90.0, CURRENT_TIMESTAMP)
+ON CONFLICT (node_id, equipment_id, channel_id, metric) DO UPDATE SET
+    sample_id = EXCLUDED.sample_id,
+    event_id = EXCLUDED.event_id,
+    captured_at = EXCLUDED.captured_at,
+    value = EXCLUDED.value,
+    unit = EXCLUDED.unit,
+    quality = EXCLUDED.quality,
+    source = EXCLUDED.source,
+    alarm = EXCLUDED.alarm,
+    raw_value = EXCLUDED.raw_value,
+    raw_status = EXCLUDED.raw_status,
+    stale_after_seconds = EXCLUDED.stale_after_seconds,
+    received_at = EXCLUDED.received_at;
 SQL
 }
 

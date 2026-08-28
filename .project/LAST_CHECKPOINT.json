@@ -3,28 +3,39 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T22:36:00+03:00",
+  "timestamp": "2026-08-28T22:49:30+03:00",
   "actor": "ChatGPT",
-  "event": "issue_733_canonical_project_state_prettier_boundary_completed",
+  "event": "issue_729_ready_for_exact_head_pr_verification",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 729,
+    "branch": "feat/729-embraco-digital-twin",
+    "lifecycle": "review"
+  },
   "evidence_snapshot": {
-    "issue": 733,
-    "outcome": "canonical .project JSON is excluded from Prettier while State Model v2 remains authoritative",
-    "checks": {
-      "lint_staged_v17_regression": "PASS",
-      "canonical_project_state_prettier_ignore": "PASS",
-      "state_integrity": "PASS",
-      "git_diff_check": "PASS",
-      "ci_change_impact": "29/29 PASS",
-      "formatter_tooling_core_only_routing": "PASS"
-    }
+    "implementation_checkpoint_sha": "c56d27ae82eaf0a27bc36bdcbe1339ba48f96d29",
+    "local_checks": {
+      "device_agent": "180/180 PASS",
+      "embraco": "6/6 PASS",
+      "telemetry_api": "9/9 PASS",
+      "refrigeration_frontend": "116/116 PASS",
+      "eslint": "PASS",
+      "typecheck": "PASS",
+      "production_build": "PASS before host reboot",
+      "alembic": "single head + offline SQL PASS"
+    },
+    "browser_acceptance": {
+      "first_run": "2/3 PASS; truthful unverified-temperature defect found and fixed",
+      "repeat_run": "interrupted by Raspberry Pi reboot",
+      "exact_head_github": "pending"
+    },
+    "temperature_scale": "hardware_unverified_fail_closed"
   },
   "observations": [],
-  "next_action": "Push the Issue #733 routing fix and require exact-head Core CI plus all external workflows triggered by the classifier change and NEXOLAB Merge Gate to be GREEN. After merge, return to Issue #729 and reconcile its state checkpoint against updated main. No production cutover or hardware write is authorized.",
+  "next_action": "Commit and push the canonical Issue #729 checkpoint, open a focused PR, and require exact-head GitHub Core/Telemetry/Refrigeration Browser/Offline/Merge-Gate verification GREEN. Do not activate Embraco polling, apply production migrations, deploy runtime changes, or perform Modbus/hardware writes without the separate production/hardware gate.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

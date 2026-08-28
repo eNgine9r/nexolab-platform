@@ -30,6 +30,10 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
 
+## Issue #729 — local heavy browser verification risk
+
+Repository implementation is not blocked, but the Raspberry Pi rebooted during the repeat heavy Docker + Next.js Refrigeration Browser Acceptance. The cause is unproven because the previous-boot journal was unavailable; post-reboot `vcgencmd get_throttled=0x0` does not establish OOM, thermal or undervoltage causality. Do not repeatedly run the same heavy acceptance stack on the production Pi for #729. Complete exact-head browser/build/offline verification on GitHub-hosted runners. Production Embraco polling activation, database migration and any controller write remain separately unauthorized.
+
 ## Product priority hold — RFX-01 through RFX-19C
 
 Issue #727 records an intentional Product Owner defer of **RFX-01 through RFX-19C until after the main presentation**. This is not a technical blocker and does not invalidate accepted RFX-00 / ADR 0010. Issue #717 is non-Ready/blocked by product decision; PR #718 is closed unmerged and retained only as a historical checkpoint. Do not auto-advance to RFX-02 or reopen/merge the pre-pause RFX-01 branch. Resume requires an explicit Product Owner restart plus a fresh Team Lead source-of-truth audit.

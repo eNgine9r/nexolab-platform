@@ -14,6 +14,7 @@ from acquisition_registry import (
     build_initial_document,
     parse_registry_mutation,
 )
+from embraco import REGISTERS as EMBRACO_REGISTERS
 from le01mp import REGISTERS as LE01MP_REGISTERS
 from main import Settings
 
@@ -23,6 +24,7 @@ def settings(
     mode: str = "modbus",
     xjp60d_points: tuple[tuple[int, int], ...] = ((106, 3), (106, 4)),
     le01mp_unit_ids: tuple[int, ...] = (200,),
+    embraco_unit_ids: tuple[int, ...] = (),
     database_path: Path = Path("edge.db"),
 ) -> Settings:
     return Settings(
@@ -47,6 +49,7 @@ def settings(
         xjp60d_points=xjp60d_points,
         xjp60d_scale=0.1,
         le01mp_unit_ids=le01mp_unit_ids,
+        embraco_unit_ids=embraco_unit_ids,
     )
 
 
@@ -110,6 +113,58 @@ class AcquisitionRegistryMigrationTests(unittest.TestCase):
                 discovery_units=(106,),
                 legacy_active_points=((106, 3),),
             )
+
+    def test_embraco_mode_creates_thirteen_read_only_targets(self) -> None:
+        document = build_initial_document(
+            settings(
+                mode="embraco",
+                xjp60d_points=(),
+                le01mp_unit_ids=(),
+                embraco_unit_ids=(2,),
+            ),
+            discovery_units=(),
+            legacy_active_points=(),
+        )
+        registry = AcquisitionRegistry(document)
+        self.assertEqual({device.device_family for device in document.devices}, {"embraco"})
+        self.assertEqual(
+            registry.eligible_embraco_metrics(),
+            tuple((2, register.key) for register in EMBRACO_REGISTERS),
+        )
+        self.assertEqual(len(document.targets), 13)
+        self.assertTrue(all(target.function == 3 for target in document.targets))
+        self.assertTrue(all(len(target.addresses) == 1 for target in document.targets))
+
+    def test_rejects_embraco_unit_conflict_with_existing_family(self) -> None:
+        with self.assertRaisesRegex(ValueError, "Duplicate Modbus Unit IDs"):
+            build_initial_document(
+                settings(embraco_unit_ids=(200,)),
+                discovery_units=(106,),
+                legacy_active_points=((106, 3),),
+            )
+
+
+class EmbracoRegistryConfigurationTests(unittest.TestCase):
+    def test_existing_registry_enrolls_only_explicitly_configured_embraco_units(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database = Path(temp_dir) / "edge.db"
+            store = AcquisitionRegistryStore(database)
+            baseline = store.load_or_migrate(
+                settings(database_path=database),
+                discovery_units=(106,),
+                legacy_active_points=((106, 3), (106, 4)),
+            )
+            self.assertEqual(baseline.eligible_embraco_metrics(), ())
+            configured_store = AcquisitionRegistryStore(database)
+            configured = configured_store.load_or_migrate(
+                settings(database_path=database, embraco_unit_ids=(2,)),
+                discovery_units=(106,),
+                legacy_active_points=((106, 3), (106, 4)),
+            )
+            self.assertEqual(len(configured.eligible_embraco_metrics()), len(EMBRACO_REGISTERS))
+            self.assertEqual({unit for unit, _ in configured.eligible_embraco_metrics()}, {2})
+            self.assertGreater(configured.revision, baseline.revision)
+
 
 
 class AcquisitionRegistryEligibilityTests(unittest.TestCase):

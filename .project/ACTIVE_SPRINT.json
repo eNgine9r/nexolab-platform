@@ -22,7 +22,9 @@
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 729
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -631,6 +633,32 @@
           "ci_change_impact": "29_passed",
           "formatter_tooling_core_only_routing": "success"
         }
+      }
+    },
+    {
+      "issue": 729,
+      "title": "Add Embraco digital twin monitoring, history and compressor runtime duty cycle for refrigeration equipment",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [],
+      "branch": "feat/729-embraco-digital-twin",
+      "evidence": {
+        "implementation_checkpoint_sha": "c56d27ae82eaf0a27bc36bdcbe1339ba48f96d29",
+        "checks": {
+          "device_agent_full": "180_passed",
+          "device_agent_embraco": "6_passed",
+          "telemetry_refrigeration_api": "9_passed",
+          "refrigeration_frontend": "116_passed",
+          "eslint": "success",
+          "typecheck": "success",
+          "production_build": "success_before_host_reboot",
+          "alembic_single_head": "success",
+          "alembic_offline_sql": "success",
+          "git_diff_check": "success",
+          "exact_head_github": "pending"
+        },
+        "hardware_activation": "not_executed",
+        "temperature_engineering_scale": "hardware_unverified_fail_closed"
       }
     }
   ],
