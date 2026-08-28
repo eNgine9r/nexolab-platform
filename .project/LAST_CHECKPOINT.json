@@ -3,23 +3,19 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T08:24:00+03:00",
+  "timestamp": "2026-08-28T09:06:00+03:00",
   "actor": "ChatGPT",
-  "event": "rfx00_calibration_vocabulary_uniqueness_addressed",
+  "event": "rfx00_completed_pending_merge",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
-  "active_work": {
-    "issue": 715,
-    "title": "RFX-00: Define refrigeration monitoring architecture and thermodynamic derived metrics",
-    "branch": "arch/715-rfx00-refrigeration-architecture"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Verify corrected accepted ADR 0010 exact head with canonical calibration-state/v1 vocabulary and unique interval-effective calibration resolution before policy acceptance; obtain fresh Codex review, record evidence, complete #715, merge PR #716, then prepare RFX-01 for Codex.",
+  "next_action": "Commit/push the RFX-00 state-only reconciliation, require final exact-head CI/Telemetry/Merge Gate GREEN, merge PR #716, verify post-merge main, then prepare the first Codex-executed RFX implementation Work Package without starting implementation in ChatGPT.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

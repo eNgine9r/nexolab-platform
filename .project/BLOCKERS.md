@@ -58,6 +58,7 @@ Opera Browser Connector private-address actions remain unsuitable for direct LAN
 - #698 GitHub-hosted runner allocation recovery — completed; exact-head workflows execute normally again.
 - #704 container security reconciliation — completed with exact-head security/CI evidence; only time-bounded maintenance remains.
 - #690 risk-aware/path-targeted PR verification — completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`; post-merge Core CI and Acquisition Scale Acceptance are GREEN.
+- #715 RFX-00 refrigeration architecture ADR — completed in State Model v2 on accepted ADR head `77c6dcfcc9f10bf2c97f09a58d3552d9e4140788`; Core CI, Telemetry service, NEXOLAB Merge Gate and fresh Codex review are GREEN/CLEAN, with PR #716 pending final state-only verification and merge.
 
 ## Safety boundaries
 
