@@ -34,6 +34,14 @@ function sample(index: number, unitId = 200, nodeId = "edge-01"): TelemetrySampl
   };
 }
 
+function sampleAtOffsetMs(offsetMs: number, unitId = 200): TelemetrySample {
+  return {
+    ...sample(Math.floor(offsetMs / 1000), unitId),
+    event_id: `energy-edge-01-${unitId}-${offsetMs}`,
+    captured_at: new Date(Date.UTC(2026, 7, 3, 10, 0, 0, offsetMs)).toISOString(),
+  };
+}
+
 function adapterWithPages(pages: TelemetryCollectionResponse[]): TelemetryAdapter {
   const history = vi.fn();
   for (const page of pages) history.mockResolvedValueOnce(page);
@@ -205,6 +213,56 @@ describe("energy history", () => {
     expect(isEnergyHistorySegmentStart(result[2].event_id)).toBe(true);
   });
 
+  it.each([
+    ["1h", 1],
+    ["6h", 6],
+    ["24h", 24],
+    ["7d", 7 * 24],
+  ] as const)("keeps normal 30-second jitter continuous across the %s history range", (_label, hours) => {
+    const durationMs = hours * 60 * 60_000;
+    const sampleCount = Math.floor(durationMs / 30_000) + 1;
+    const source = Array.from({ length: sampleCount }, (_, index) =>
+      sampleAtOffsetMs(index * 30_000 + (index % 4) * 100),
+    );
+    const fromMs = Date.parse(source[0].captured_at);
+    const result = downsampleEnergyHistory(source, 240, {
+      from: new Date(fromMs),
+      to: new Date(fromMs + durationMs + 1_000),
+    });
+
+    expect(result.length).toBeLessThanOrEqual(240);
+    expect(result.some((item) => isEnergyHistorySegmentStart(item.event_id))).toBe(false);
+  });
+
+  it("does not mark normal 30-second scheduler jitter as a source gap", () => {
+    const source = [
+      sampleAtOffsetMs(0),
+      sampleAtOffsetMs(30_000),
+      sampleAtOffsetMs(60_250),
+      sampleAtOffsetMs(90_500),
+      sampleAtOffsetMs(120_900),
+    ];
+
+    const result = downsampleEnergyHistory(source, 240);
+
+    expect(result).toHaveLength(source.length);
+    expect(result.some((item) => isEnergyHistorySegmentStart(item.event_id))).toBe(false);
+  });
+
+  it("preserves a real silent source gap after normal cadence is established", () => {
+    const source = [
+      sampleAtOffsetMs(0),
+      sampleAtOffsetMs(30_000),
+      sampleAtOffsetMs(60_250),
+      sampleAtOffsetMs(90_500),
+      sampleAtOffsetMs(200_000),
+    ];
+
+    const result = downsampleEnergyHistory(source, 240);
+
+    expect(result.some((item) => isEnergyHistorySegmentStart(item.event_id))).toBe(true);
+  });
+
   it("carries a raw source-cadence gap through bounded downsampling", () => {
     const source = [sample(0), sample(5), sample(10), sample(50), sample(55)];
 
@@ -212,6 +270,26 @@ describe("energy history", () => {
 
     expect(result.length).toBeLessThanOrEqual(4);
     expect(result.some((item) => isEnergyHistorySegmentStart(item.event_id))).toBe(true);
+  });
+
+  it("does not infer a false gap from one jittered live-tail sample after reduced history", () => {
+    const window = {
+      nodeId: "edge-01",
+      metric: "electrical.power.active" as const,
+      from: new Date("2026-08-03T10:00:00Z"),
+      to: new Date("2026-08-03T10:02:00Z"),
+    };
+    const merged = mergeEnergyHistoryTail(
+      [sampleAtOffsetMs(0), sampleAtOffsetMs(30_000)],
+      [sampleAtOffsetMs(60_500)],
+      window,
+    );
+    const tail = merged.find(
+      (item) => energyHistorySourceEventId(item.event_id) === "energy-edge-01-200-60500",
+    );
+
+    expect(tail).toBeDefined();
+    expect(isEnergyHistorySegmentStart(tail!.event_id)).toBe(false);
   });
 
   it("persists a transient websocket communication error until recovery", () => {

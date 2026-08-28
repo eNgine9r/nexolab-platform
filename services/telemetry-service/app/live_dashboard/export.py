@@ -14,6 +14,10 @@ from app.climate_catalog.models import MeasurementBus, MeasurementChannel, Measu
 from app.db import Database, TelemetryQuery
 from app.delivery import PersistedTelemetryReadModel
 from app.live_dashboard.repository import DashboardItemRecord, DashboardRecord
+from app.live_dashboard.telemetry_identity import (
+    LiveDashboardTelemetryIdentityError,
+    telemetry_equipment_id,
+)
 
 
 EXPORT_MEDIA_TYPE = "text/csv; charset=utf-8"
@@ -31,6 +35,13 @@ EXPORT_FIELDS = (
 )
 DEFAULT_EXPORT_MAX_ROWS = 100_000
 EXPORT_PAGE_SIZE = 1_000
+
+# Chromium/WebKit installations can still surface historical IANA link names.
+# Normalize only explicit compatibility aliases; unknown identifiers must remain
+# fail-closed instead of silently falling back to UTC.
+_TIMEZONE_ALIASES: dict[str, str] = {
+    "Europe/Kiev": "Europe/Kyiv",
+}
 
 
 class LiveDashboardExportError(RuntimeError):
@@ -86,8 +97,9 @@ def _resolve_timezone(name: str) -> ZoneInfo:
     normalized = name.strip()
     if not normalized:
         raise LiveDashboardExportTimezoneError("timezone must not be empty")
+    canonical = _TIMEZONE_ALIASES.get(normalized, normalized)
     try:
-        return ZoneInfo(normalized)
+        return ZoneInfo(canonical)
     except ZoneInfoNotFoundError as error:
         raise LiveDashboardExportTimezoneError(
             f"Unsupported IANA timezone: {normalized}"
@@ -101,7 +113,11 @@ def _series_scope(
 ) -> tuple[str, str]:
     with Session(database.engine) as session:
         row = session.execute(
-            select(MeasurementBus.node_id, MeasurementDevice.business_key)
+            select(
+                MeasurementBus.node_id,
+                MeasurementDevice.device_type,
+                MeasurementDevice.unit_id,
+            )
             .select_from(MeasurementChannel)
             .join(
                 MeasurementDevice,
@@ -123,7 +139,14 @@ def _series_scope(
             f"Saved Dashboard channel reference {item.channel_ref_id!r} no longer exists "
             "in this organization"
         )
-    return str(row.node_id), str(row.business_key)
+    try:
+        equipment_id = telemetry_equipment_id(
+            device_type=str(row.device_type),
+            unit_id=int(row.unit_id),
+        )
+    except LiveDashboardTelemetryIdentityError as error:
+        raise LiveDashboardExportError(str(error)) from error
+    return str(row.node_id), equipment_id
 
 
 def build_live_dashboard_csv_export(

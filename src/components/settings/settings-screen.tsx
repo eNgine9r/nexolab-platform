@@ -159,11 +159,7 @@ export function SettingsScreen() {
         <main className="relative overflow-hidden p-3 sm:p-4 xl:p-5 2xl:p-6">
           <div className="pointer-events-none absolute -top-40 -right-24 h-[420px] w-[420px] rounded-full bg-blue-500/[0.07] blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-cyan-400/[0.035] blur-3xl" />
-          <div className="relative mx-auto max-w-[1900px]">
-            <AcquisitionCadencePanel
-              controller={acquisitionCadence}
-              canManage={canManageAcquisitionCadence}
-            />
+          <div className="relative mx-auto max-w-[1440px]">
             <SettingsWorkspace
               session={security.session}
               membership={security.membership}
@@ -174,6 +170,12 @@ export function SettingsScreen() {
               preferenceRecoveryReason={localPreferences.recoveryReason}
               onPreferenceChange={localPreferences.updatePreference}
               onPreferencesReset={localPreferences.reset}
+              acquisitionCadenceContent={
+                <AcquisitionCadencePanel
+                  controller={acquisitionCadence}
+                  canManage={canManageAcquisitionCadence}
+                />
+              }
               canManageSensorMonitoring={canManageSensorMonitoring}
               sensorMonitoringReady={sensorMonitoringReady}
               sensorMonitoringError={sensorMonitoring.error}

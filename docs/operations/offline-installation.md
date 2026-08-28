@@ -69,6 +69,16 @@ dist/offline/nexolab-offline-<version>-<arch>.tar.gz.sha256
 
 The connected build stage may access registries and the Trivy database. The resulting runtime bundle does not need them.
 
+### GitHub-runner ARM64 recovery build
+
+For a controlled Raspberry Pi recovery package, prefer the `Offline Bundle` workflow `workflow_dispatch` path instead of building all images natively on the Pi. The dispatch requires a bounded target platform, an explicit runtime source ref, the public Dashboard/API/WebSocket URLs and the offline auth provider. `linux/arm64` is the recovery target; `linux/amd64` remains available for isolated validation.
+
+The workflow resolves the requested runtime ref to an exact commit and requires it to be an ancestor of the reviewed tooling checkout. Runtime images and schema are built from that exact runtime tree, while bundle/install tooling comes from the exact workflow checkout. The artifact name and uploaded non-secret evidence record both identities.
+
+For `auth_provider=local`, the runner generates an ephemeral RSA key pair only to prove the disconnected local-auth Compose contract. The private key remains under the runner temporary directory and is never included in the bundle or uploaded evidence. The resulting package contains no operator keys; the controlled host must continue using its operator-owned `/etc/nexolab` key paths.
+
+The ARM64 dispatch installs and runs the transferred bundle under QEMU on the hosted runner, blocks runtime egress, and repeats the update/rollback persistent-volume proof with the local-auth overlay retained. This is package evidence only; it does not stage, activate or cut over the production Raspberry Pi.
+
 ## 2. Transfer and verify archive checksum
 
 Transfer both files using controlled removable media or an approved local channel.

@@ -144,6 +144,7 @@ $processed = 0
 $readyTasks = $workPackages |
     Where-Object { $_.lifecycle -eq "ready" } |
     Sort-Object priority
+Write-Host "Ready Work Packages: $(@($readyTasks).Count)"
 
 foreach ($task in $readyTasks) {
     if ($MaxTasks -gt 0 -and $processed -ge $MaxTasks) {
@@ -165,17 +166,18 @@ foreach ($task in $readyTasks) {
     }
     $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
     $runDirectory = ".project/runs"
-    New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
     $promptPath = Join-Path $runDirectory "$timestamp-$taskId-prompt.md"
     $logPath = Join-Path $runDirectory "$timestamp-$taskId-codex.log"
     $prompt = New-TaskPrompt -Task $task
-    $prompt | Set-Content -Path $promptPath -Encoding utf8
 
     if ($DryRun) {
         Write-Host "[DRY RUN] Would execute Issue #$($task.issue) using $promptPath"
         $processed++
         continue
     }
+
+    New-Item -ItemType Directory -Path $runDirectory -Force | Out-Null
+    $prompt | Set-Content -Path $promptPath -Encoding utf8
     if (-not (Get-Command codex -ErrorAction SilentlyContinue)) {
         throw "Codex CLI is not available in PATH. Install/configure Codex or use -DryRun."
     }

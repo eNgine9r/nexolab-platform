@@ -10,6 +10,7 @@ class FakeEChartsInstance {
   handlers = new Map<string, (event: unknown) => void>();
   resizeCount = 0;
   disposeCount = 0;
+  convertFinders: object[] = [];
 
   setOption(option: unknown) {
     this.options.push(option);
@@ -31,7 +32,8 @@ class FakeEChartsInstance {
     return true;
   }
 
-  convertFromPixel(_finder: object, value: [number, number]) {
+  convertFromPixel(finder: object, value: [number, number]) {
+    this.convertFinders.push(finder);
     return BENCHMARK_START_MS + value[0];
   }
 
@@ -91,6 +93,20 @@ describe("ECharts renderer adapter lifecycle", () => {
         confine: true,
         transitionDuration: 0,
       },
+      dataZoom: [
+        {
+          type: "inside",
+          xAxisIndex: 0,
+          filterMode: "none",
+          rangeMode: ["value", "value"],
+          startValue: scene.xDomain.fromMs,
+          endValue: scene.xDomain.toMs,
+          zoomOnMouseWheel: true,
+          moveOnMouseMove: true,
+          moveOnMouseWheel: false,
+          preventDefaultMouseMove: true,
+        },
+      ],
     });
   });
 
@@ -155,6 +171,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.setScene(scene);
 
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 0, clientY: 120 }));
+    expect(instance.convertFinders.at(-1)).toEqual({ xAxisIndex: 0 });
     expect(onCursor).toHaveBeenCalledWith({
       timestampMs: BENCHMARK_START_MS,
       series: scene.series.map((series) => ({
@@ -185,6 +202,135 @@ describe("ECharts renderer adapter lifecycle", () => {
     expect(instance.handlers).toHaveLength(0);
     expect(instance.disposeCount).toBe(1);
     expect(adapter.isDisposed()).toBe(true);
+  });
+
+  it("freezes Exact Inspector callbacks during primary-button native pan and resumes after release", () => {
+    const instance = new FakeEChartsInstance();
+    const onCursor = vi.fn();
+    const onXDomainChange = vi.fn();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = createBenchmarkScene(1);
+    const container = document.createElement("div");
+    vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 320,
+      bottom: 200,
+      width: 320,
+      height: 200,
+      toJSON: () => ({}),
+    });
+    adapter.initialize({
+      container,
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor,
+      onXDomainChange,
+    });
+    adapter.setScene(scene);
+
+    container.dispatchEvent(new MouseEvent("mousemove", { clientX: 20, clientY: 120 }));
+    expect(onCursor).toHaveBeenCalledTimes(1);
+
+    container.dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: 20, clientY: 120 }));
+    const callsBeforeDrag = onCursor.mock.calls.length;
+    container.dispatchEvent(new MouseEvent("mousemove", { buttons: 1, clientX: 80, clientY: 120 }));
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: BENCHMARK_START_MS + 80 }] });
+    expect(onCursor).toHaveBeenCalledTimes(callsBeforeDrag);
+
+    instance.handlers.get("dataZoom")?.({ start: 10, end: 90 });
+    instance.handlers.get("dataZoom")?.({ start: 20, end: 100 });
+    expect(onXDomainChange).not.toHaveBeenCalled();
+
+    const duration = scene.xDomain.toMs - scene.xDomain.fromMs;
+    window.dispatchEvent(new MouseEvent("mouseup", { button: 0 }));
+    expect(onXDomainChange).toHaveBeenCalledTimes(1);
+    expect(onXDomainChange).toHaveBeenLastCalledWith({
+      fromMs: scene.xDomain.fromMs + duration * 0.2,
+      toMs: scene.xDomain.toMs,
+    });
+    container.dispatchEvent(new MouseEvent("mousemove", { clientX: 80, clientY: 120 }));
+    expect(onCursor).toHaveBeenCalledTimes(callsBeforeDrag + 1);
+
+    container.dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: 80, clientY: 120 }));
+    instance.handlers.get("dataZoom")?.({ start: 30, end: 90 });
+    container.dispatchEvent(new MouseEvent("mousemove", { buttons: 0, clientX: 90, clientY: 120 }));
+    expect(onXDomainChange).toHaveBeenCalledTimes(2);
+    expect(onXDomainChange).toHaveBeenLastCalledWith({
+      fromMs: scene.xDomain.fromMs + duration * 0.3,
+      toMs: scene.xDomain.fromMs + duration * 0.9,
+    });
+    expect(onCursor).toHaveBeenCalledTimes(callsBeforeDrag + 2);
+
+    container.dispatchEvent(new MouseEvent("mousedown", { button: 2, clientX: 90, clientY: 120 }));
+    container.dispatchEvent(new MouseEvent("mousemove", { clientX: 100, clientY: 120 }));
+    expect(onCursor).toHaveBeenCalledTimes(callsBeforeDrag + 3);
+
+    adapter.dispose();
+  });
+
+  it("keeps a constant pan span against the stable interaction domain after zoom", () => {
+    const instance = new FakeEChartsInstance();
+    const onXDomainChange = vi.fn();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = createBenchmarkScene(1);
+    const interactionDomain = scene.xDomain;
+    const container = document.createElement("div");
+    vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 320,
+      bottom: 200,
+      width: 320,
+      height: 200,
+      toJSON: () => ({}),
+    });
+    adapter.initialize({
+      container,
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor: vi.fn(),
+      onXDomainChange,
+    });
+    adapter.setScene({ ...scene, interactionDomain });
+
+    instance.handlers.get("dataZoom")?.({ start: 25, end: 75 });
+    const zoomedDomain = onXDomainChange.mock.calls.at(-1)?.[0];
+    expect(zoomedDomain).toEqual({
+      fromMs: interactionDomain.fromMs + (interactionDomain.toMs - interactionDomain.fromMs) * 0.25,
+      toMs: interactionDomain.fromMs + (interactionDomain.toMs - interactionDomain.fromMs) * 0.75,
+    });
+
+    adapter.setScene({ ...scene, xDomain: zoomedDomain, interactionDomain });
+    expect(instance.options.at(-1)).toMatchObject({
+      xAxis: { min: interactionDomain.fromMs, max: interactionDomain.toMs },
+      dataZoom: [
+        {
+          rangeMode: ["value", "value"],
+          startValue: zoomedDomain.fromMs,
+          endValue: zoomedDomain.toMs,
+        },
+      ],
+    });
+
+    container.dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: 80, clientY: 120 }));
+    instance.handlers.get("dataZoom")?.({ start: 30, end: 80 });
+    instance.handlers.get("dataZoom")?.({ start: 35, end: 85 });
+    expect(onXDomainChange).toHaveBeenCalledTimes(1);
+    window.dispatchEvent(new MouseEvent("mouseup", { button: 0 }));
+
+    const pannedDomain = onXDomainChange.mock.calls.at(-1)?.[0];
+    expect(pannedDomain).toEqual({
+      fromMs: interactionDomain.fromMs + (interactionDomain.toMs - interactionDomain.fromMs) * 0.35,
+      toMs: interactionDomain.fromMs + (interactionDomain.toMs - interactionDomain.fromMs) * 0.85,
+    });
+    expect(pannedDomain.toMs - pannedDomain.fromMs).toBe(zoomedDomain.toMs - zoomedDomain.fromMs);
+
+    adapter.dispose();
   });
 
   it("keeps the shared cursor while marking explicitly out-of-tolerance samples unavailable", () => {

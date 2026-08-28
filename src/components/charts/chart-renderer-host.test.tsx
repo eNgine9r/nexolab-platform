@@ -61,13 +61,20 @@ describe("ChartRendererHost", () => {
       <ChartRendererHost
         adapter={adapter}
         scene={secondScene}
+        interactionDomain={firstScene.xDomain}
         onCursor={vi.fn()}
         onXDomainChange={vi.fn()}
       />,
     );
 
     expect(adapter.initialize).toHaveBeenCalledTimes(1);
-    expect(adapter.setScene).toHaveBeenLastCalledWith(secondScene);
+    expect(adapter.setScene).toHaveBeenLastCalledWith({
+      ...secondScene,
+      interactionDomain: firstScene.xDomain,
+    });
+    const host = view.getByRole("application", { name: "Interactive telemetry plot" });
+    expect(host).toHaveAttribute("data-chart-x-domain-from-ms", String(secondScene.xDomain.fromMs));
+    expect(host).toHaveAttribute("data-chart-x-domain-to-ms", String(secondScene.xDomain.toMs));
     expect(observerState.callbacks).toHaveLength(1);
     observerState.callbacks[0]([], {} as ResizeObserver);
     expect(adapter.resize).toHaveBeenCalledTimes(1);

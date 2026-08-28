@@ -3,11 +3,10 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": {
-    "id": "ENGINEERING-HARDENING-1",
-    "title": "Engineering governance, critical operator defects and toolchain hardening",
+    "id": "PRODUCTION-READINESS-1",
+    "title": "Production readiness and controlled acceptance",
     "status": "in_progress",
-    "started_at": "2026-08-06",
-    "epic_issue": 326
+    "started_at": "2026-08-23"
   },
   "execution_policy": {
     "autonomous": true,
@@ -19,224 +18,80 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "286a219611f95413b5580d8099a7c5665416d1ad",
-    "deployed_product_sha": "6e387485b68fb862d9f82ae7f6000b1f5b672764"
+    "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
+    "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 719,
+      "title": "Reconcile fresh Device Agent vulnerability scan delta",
+      "branch": "chore/719-retire-stale-cve-14456-exception"
+    },
     "next_work_package": null
   },
   "work_packages": [
     {
-      "issue": 606,
-      "title": "Add read-only LOCAL_LAN equipment discovery and adoption inbox",
+      "issue": 665,
+      "title": "Start PRODUCTION-READINESS-1 after chart Sprint completion",
       "priority": "high",
       "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "chore/665-production-readiness-state",
       "evidence": {
-        "pull_request": 632,
-        "verified_head_sha": "83abc9b4a0056a2709c33a627b203785eeefff79",
-        "hardware_evidence_sha": "804d0b44045a5099c59149c87b70cbf63ca047f8",
+        "verified_head_sha": "8b900a90bdee75c87be48825c8deb43c52c0e897",
+        "pull_request": 666,
         "checks": {
-          "exact_head_workflows": "PASS_22_OF_22"
+          "state_integrity": "success",
+          "nexolab_merge_gate": "success"
         }
       }
-    },
-    {
-      "issue": 633,
-      "title": "Stop isolated frontend candidate after successful Raspberry Pi deployment",
-      "priority": "high",
-      "lifecycle": "completed",
-      "evidence": {
-        "pull_request": 643,
-        "verified_head_sha": "5d1f1f82ad555b68cab8ce9205283cf939d3be09",
-        "checks": {
-          "core_ci": "PASS_32564575388",
-          "review_threads": "PASS_ALL_EXISTING_P1_P2_RESOLVED",
-          "runtime_pi_verification": "UNVERIFIED_PI_OFFLINE"
-        }
-      }
-    },
-    {
-      "issue": 646,
-      "title": "Add change-impact CI orchestration and protected main merge gate",
-      "priority": "high",
-      "lifecycle": "blocked",
-      "branch": "chore/646-impact-aware-ci",
-      "evidence": {
-        "pull_request": 647,
-        "verified_head_sha": "623a72a0fdec8b8ddb15c5a7e145d0ba60a6a135",
-        "checks": {
-          "core_ci": "PASS_32567703388",
-          "external_telemetry_ci": "PASS_32567703424",
-          "merge_gate": "PASS_WAITED_FOR_EXTERNAL_EXACT_HEAD_WORKFLOW",
-          "state_only_fast_lane": "PASS_ISSUE_648_PR_649",
-          "main_branch_protection": "BLOCKED_TOOL_ACCESS"
-        }
-      }
-    },
-    {
-      "issue": 648,
-      "title": "Prove Issue #646 state-only fast lane after CI merge",
-      "priority": "high",
-      "lifecycle": "completed",
-      "branch": "chore/648-prove-state-fast-lane",
-      "evidence": {
-        "pull_request": 649,
-        "verified_head_sha": "d5a1d57de876a94bb90449ad5cb4e21ba1b6e7ee",
-        "checks": {
-          "core_ci": "PASS_32568953282",
-          "change_impact": "state_only",
-          "state_integrity": "PASS",
-          "quality_and_build": "SKIPPED",
-          "node_npm_frontend_quality": "NOT_RUN",
-          "merge_gate": "PASS"
-        }
-      }
-    },
-    {
-      "issue": 650,
-      "title": "Introduce State Model v2 and remove mandatory post-merge reconciliation PRs",
-      "priority": "high",
-      "lifecycle": "completed",
-      "branch": "chore/650-state-model-v2",
-      "evidence": {
-        "pull_request": 651,
-        "verified_head_sha": "b0c7ae3efbb7a0364c7b6d59a356e858afe74be2",
-        "checks": {
-          "core_ci": "PASS_32571068430",
-          "external_telemetry_ci": "PASS_32571068439",
-          "merge_gate": "PASS",
-          "review_threads": "PASS_ZERO_UNRESOLVED"
-        }
-      }
-    },
-    {
-      "issue": 618,
-      "title": "Restore Saved Dashboard CSV export browser acceptance on LOCAL_LAN",
-      "priority": "high",
-      "lifecycle": "completed",
-      "branch": "fix/618-saved-dashboard-csv-download",
-      "evidence": {
-        "pull_request": 652,
-        "verified_head_sha": "3982e901f6732713fa23ea1650299eb6738a9f79",
-        "checks": {
-          "core_ci": "PASS_32572681394",
-          "authenticated_dashboard_acceptance": "PASS_32572681396",
-          "offline_bundle": "PASS_32572681390",
-          "merge_gate": "PASS",
-          "runtime_pi_verification": "UNVERIFIED_PI_OFFLINE"
-        }
-      }
-    },
-    {
-      "issue": 607,
-      "title": "Add dual RS-485 bus isolation for KK1 and KK2",
-      "priority": "high",
-      "lifecycle": "completed",
-      "branch": "feat/607-dual-rs485-bus-isolation",
-      "evidence": {
-        "pull_request": 653,
-        "verified_head_sha": "4889bae7d942be407d5df1412daae2cbf7c9a2ae",
-        "checks": {
-          "core_ci": "PASS_32576635748",
-          "device_agent_fleet": "PASS_32576635775",
-          "edge_image": "PASS_32576635778",
-          "offline_bundle": "PASS_32576635742",
-          "authenticated_dashboard": "PASS_32576635799",
-          "mqtt_tls_fleet": "PASS_32576635745",
-          "disaster_recovery_tls_fleet": "PASS_32576635744",
-          "container_supply_chain": "PASS_32576635747",
-          "merge_gate": "PASS",
-          "review_threads": "PASS_ZERO_UNRESOLVED",
-          "hardware_verification": "UNVERIFIED_PI_OFFLINE"
-        }
-      }
-    },
-    {
-      "issue": 589,
-      "title": "Add persistent device-scoped acquisition cadence with RS-485 capacity validation",
-      "priority": "critical",
-      "lifecycle": "completed",
-      "branch": "feat/589-persisted-acquisition-cadence",
-      "evidence": {
-        "pull_request": 656,
-        "verified_head_sha": "69a6eff795bd275372dd2588ef56bd2bd1e12704",
-        "checks": {
-          "core_ci": "PASS_32585746454",
-          "acquisition_scale_acceptance": "PASS_32585746507",
-          "edge_image": "PASS_32585746469",
-          "device_agent_fleet": "PASS_32585746497",
-          "mqtt_tls_fleet": "PASS_32585746510",
-          "disaster_recovery_tls_fleet": "PASS_32585746501",
-          "telemetry_service": "PASS_32585746522",
-          "authenticated_dashboard": "PASS_32585746451",
-          "container_supply_chain": "PASS_32585746595",
-          "offline_bundle": "PASS_32585746509",
-          "merge_gate": "PASS",
-          "review_threads": "PASS_ZERO_UNRESOLVED",
-          "hardware_verification": "UNVERIFIED_PI_OFFLINE"
-        }
-      }
-    },
-    {
-      "issue": 590,
-      "title": "Add operator acquisition cadence controls to NEXOLAB Settings",
-      "priority": "high",
-      "lifecycle": "completed",
-      "branch": "feat/590-settings-acquisition-cadence",
-      "evidence": {
-        "pull_request": 657,
-        "verified_head_sha": "b4b8608d82e90844ae9905c60b083232e68ef689",
-        "checks": {
-          "core_ci": "PASS_32606407885",
-          "acquisition_scale_acceptance": "PASS_32606407863",
-          "refrigeration_browser_acceptance": "PASS_32606407879",
-          "authenticated_dashboard": "PASS_32606407875",
-          "offline_bundle": "PASS_32606407871",
-          "merge_gate": "PASS",
-          "review_threads": "PASS_ZERO_UNRESOLVED",
-          "hardware_verification": "UNVERIFIED_PI_OFFLINE"
-        }
-      }
-    },
-    {
-      "issue": 615,
-      "title": "Fix authenticated dashboard acceptance Compose project-name generation",
-      "priority": "medium",
-      "lifecycle": "completed",
-      "branch": "fix/615-dashboard-compose-project-name",
-      "evidence": {
-        "pull_request": 658,
-        "verified_head_sha": "107935b7ab08ca48878b73603a6d1a9e683985f0",
-        "checks": {
-          "targeted_project_name_tests": "PASS_3_OF_3_CORE_32607900557",
-          "core_ci": "PASS_32607900557",
-          "authenticated_dashboard": "PASS_32607900561",
-          "merge_gate": "PASS",
-          "review_threads": "PASS_ZERO_UNRESOLVED",
-          "hardware_verification": "NOT_REQUIRED_TOOLING_ONLY"
-        }
-      }
-    },
-    {
-      "issue": 585,
-      "title": "Restore LE-01MP W2 / Unit 201 after external RS-485 ownership",
-      "priority": "high",
-      "lifecycle": "blocked",
-      "evidence": {}
     },
     {
       "issue": 444,
       "title": "Restore LOCAL_LAN user administration API availability",
       "priority": "critical",
-      "lifecycle": "needs_validation",
-      "evidence": {}
+      "lifecycle": "completed",
+      "depends_on": [],
+      "evidence": {
+        "verified_head_sha": "efd190a70309039d498e2a9bab2cf47c3598e8b7",
+        "pull_request": 501,
+        "checks": {
+          "software_matrix": "success",
+          "local_lan_admin_list": "success",
+          "local_lan_user_create": "success",
+          "local_lan_user_login": "success",
+          "non_admin_forbidden_contract": "success"
+        }
+      }
     },
     {
       "issue": 245,
       "title": "Support standalone offline Raspberry Pi 5 monitoring over loopback",
       "priority": "critical",
-      "lifecycle": "needs_validation",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "evidence": {
+        "verified_head_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
+        "hardware_evidence_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
+        "checks": {
+          "standalone_deployment": "success",
+          "authenticated_offline_verifier": "success",
+          "disconnected_15m_telemetry": "success",
+          "telemetry_service_restart": "success",
+          "second_reboot_persistence": "success",
+          "named_volume_identity": "success"
+        },
+        "runtime_evidence_path": "/home/nexolab/nexolab-platform/runtime/evidence/standalone-offline-acceptance-20260824T065756Z",
+        "completed_at": "2026-08-24T10:17:49+03:00"
+      },
+      "branch": "feat/245-standalone-offline-pi-runtime"
+    },
+    {
+      "issue": 189,
+      "title": "Prove backup, restore, rollback and power-loss recovery",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "depends_on": [],
       "evidence": {}
     },
     {
@@ -244,14 +99,15 @@
       "title": "Verify the physical RS-485 topology and portable polling envelope",
       "priority": "high",
       "lifecycle": "blocked",
-      "evidence": {},
-      "branch": "chore/200-rs485-topology-evidence"
+      "depends_on": [],
+      "evidence": {}
     },
     {
       "issue": 201,
       "title": "Validate LE-01MP cumulative energy, scale and rollover",
       "priority": "high",
       "lifecycle": "needs_validation",
+      "depends_on": [],
       "evidence": {}
     },
     {
@@ -259,24 +115,489 @@
       "title": "Validate extended XJP60D semantics and firmware portability",
       "priority": "high",
       "lifecycle": "hardware_validation",
+      "depends_on": [],
       "evidence": {}
     },
     {
-      "issue": 189,
-      "title": "Prove backup, restore, rollback and power-loss recovery",
+      "issue": 585,
+      "title": "Return LE-01MP W2 / Unit 201 to NEXOLAB after temporary external RS-485 ownership",
       "priority": "high",
       "lifecycle": "blocked",
+      "depends_on": [],
       "evidence": {}
+    },
+    {
+      "issue": 646,
+      "title": "Add change-impact CI orchestration and protected main merge gate",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "evidence": {
+        "verified_head_sha": "623a72a0fdec8b8ddb15c5a7e145d0ba60a6a135",
+        "pull_request": 647,
+        "checks": {
+          "repository_ci": "success",
+          "state_fast_lane_proof": "success"
+        }
+      }
+    },
+    {
+      "issue": 667,
+      "title": "Reconcile CVE-2026-14456 lifecycle date after #660 renewal",
+      "priority": "high",
+      "lifecycle": "completed",
+      "branch": "chore/667-cve-lifecycle-reconcile",
+      "evidence": {
+        "verified_head_sha": "eee92a0e9b0e33c6d19a498046894b8319689117",
+        "pull_request": 668,
+        "checks": {
+          "core_quality_build": "success",
+          "telemetry_service": "success",
+          "nexolab_merge_gate": "success"
+        }
+      }
+    },
+    {
+      "issue": 669,
+      "title": "Reconcile #444 acceptance and advance PRODUCTION-READINESS-1 to #245",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "chore/669-production-readiness-state",
+      "evidence": {
+        "verified_head_sha": "d26b2e4cb2e82ba003e959a7ebb67e0a804b3ce3",
+        "pull_request": 670,
+        "checks": {
+          "state_integrity": "success",
+          "nexolab_merge_gate": "success"
+        }
+      }
+    },
+    {
+      "issue": 673,
+      "title": "Reconcile #245 hardware acceptance and advance PRODUCTION-READINESS-1 to #189",
+      "priority": "high",
+      "lifecycle": "completed",
+      "branch": "chore/673-production-readiness-state",
+      "evidence": {
+        "verified_head_sha": "caa00280824bf55b52f0d600eacf3725f1eb962b",
+        "pull_request": 674,
+        "checks": {
+          "state_integrity": "success",
+          "nexolab_merge_gate": "success"
+        }
+      }
+    },
+    {
+      "issue": 675,
+      "title": "Establish safe source-to-packaged version authority for Raspberry Pi recovery drills",
+      "priority": "high",
+      "lifecycle": "completed",
+      "branch": "feat/675-source-to-packaged-authority",
+      "evidence": {
+        "version_management_matrix": "63_passed",
+        "python_compile": "success",
+        "shell_syntax": "success",
+        "git_diff_check": "success",
+        "actual_package_cutover": "not_executed_requires_approval",
+        "codex_exact_head_e7cba2b6": "two_p1_found_and_addressed_locally",
+        "runtime_tooling_split": "verified_by_regression_tests",
+        "pre_backup_image_environment": "verified_by_regression_tests",
+        "verified_head_sha": "c15e745b2db40dd5a45229db5ae2770236258c5a",
+        "pull_request": 676,
+        "checks": {
+          "CI": "success",
+          "Telemetry service": "success",
+          "Offline Bundle": "success",
+          "NEXOLAB Merge Gate": "success"
+        }
+      }
+    },
+    {
+      "issue": 677,
+      "title": "Enable parameterized ARM64 offline bundle staging for recovery acceptance",
+      "priority": "high",
+      "lifecycle": "completed",
+      "branch": "feat/677-arm64-offline-bundle-staging",
+      "evidence": {
+        "verified_head_sha": "6dc92f32181d911c55ba3edd253ff3307a50cce1",
+        "pull_request": 678,
+        "checks": {
+          "CI": "success",
+          "Telemetry service": "success",
+          "Offline Bundle PR lane": "success",
+          "NEXOLAB Merge Gate": "success",
+          "fresh Codex review": "clean",
+          "post-merge ARM64 local-auth dispatch 32812878575": "failed_device_agent_qemu_health_gate"
+        }
+      }
+    },
+    {
+      "issue": 679,
+      "title": "Make ARM64 QEMU offline acceptance use application health without weakening production health",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "fix/679-arm64-qemu-edge-health",
+      "evidence": {
+        "verified_head_sha": "efe6413611b7e455e4de9f7f5f06cca9a79c70bf",
+        "pull_request": 680,
+        "checks": {
+          "Core Quality and build": "success",
+          "Offline Bundle PR lane": "success",
+          "NEXOLAB Merge Gate": "success",
+          "fresh Codex review": "clean",
+          "post-merge ARM64 local-auth dispatch 32832798392": "success"
+        },
+        "post_merge_arm64_acceptance": {
+          "run_id": 32832798392,
+          "tooling_sha": "431f2a28a8ebf7b86536e5059b381b75d2c5b1a3",
+          "runtime_source_sha": "cc27b609eea2917b97da96003a08e5c84a7edbb1",
+          "platform": "linux/arm64",
+          "auth_provider": "local",
+          "artifact_id": 9558305055,
+          "artifact_size_bytes": 562688808,
+          "artifact_sha256": "25057b85a6b096275d3cadef8f03f3dfa8e608e1a3160932aec73d3a368fe74f",
+          "bundle_sha256": "587b88b53634084be89f1d1fd96c96eb77549655a6f8dbe76d57c16e8c818517",
+          "manifest_sha256": "8da30144a4ccf0a5671af552c236b350e1b50fbeb748d94a36dc46eda6468123",
+          "local_auth_continuity": "success",
+          "persistent_volume_identity": "preserved",
+          "non_runtime_staging_verification": "success",
+          "production_cutover": "not_executed_requires_approval"
+        }
+      }
+    },
+    {
+      "issue": 681,
+      "title": "Reconcile #679 ARM64 acceptance and advance #189 to controlled cutover approval",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "chore/681-reconcile-arm64-recovery-state",
+      "evidence": {
+        "verified_head_sha": "04e8f69ab2a18615ad194df8ac323281f3e3c278",
+        "pull_request": 682,
+        "checks": {
+          "State integrity": "success",
+          "NEXOLAB Merge Gate": "success"
+        }
+      }
+    },
+    {
+      "issue": 683,
+      "title": "Fail-safe local-auth path relocation and full source recovery during packaged cutover",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "branch": "fix/683-local-auth-package-relocation",
+      "evidence": {
+        "verified_head_sha": "e5964bab54c2e91573e60759da2f6c0844b2ef11",
+        "pull_request": 685,
+        "checks": {
+          "ci": "success",
+          "telemetry_service": "success",
+          "offline_bundle_pr": "success",
+          "nexolab_merge_gate": "success"
+        }
+      }
+    },
+    {
+      "issue": 686,
+      "title": "Keep ARM64 local-auth acceptance key readable across installer and runtime identities",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "branch": "fix/686-arm64-local-auth-fixture-permissions",
+      "evidence": {
+        "verified_head_sha": "f8f1e31f11f98649e5c5b648cfa7de6b06489812",
+        "pull_request": 687,
+        "checks": {
+          "ci": "success",
+          "offline_bundle_pr": "success",
+          "nexolab_merge_gate": "success",
+          "post_merge_arm64_local_auth_acceptance": "success"
+        },
+        "post_merge_arm64_acceptance": {
+          "run_id": 32939760743,
+          "tooling_sha": "562a177bb5bb860ae99b2d1652bc03812baa7e8a",
+          "runtime_source_sha": "cc27b609eea2917b97da96003a08e5c84a7edbb1",
+          "platform": "linux/arm64",
+          "auth_provider": "local",
+          "artifact_id": 9584581740,
+          "artifact_size_bytes": 560795449,
+          "artifact_sha256": "c22199292fd5f272810e7a893ccec02fe7313f39f518434d86d90bfee234178f",
+          "disconnected_runtime": "success",
+          "local_auth_continuity": "success",
+          "update_rollback_persistent_data": "success",
+          "production_cutover": "not_executed"
+        }
+      }
+    },
+    {
+      "issue": 684,
+      "title": "Restructure Settings into a task-oriented workspace",
+      "priority": "high",
+      "lifecycle": "completed",
+      "branch": "feat/684-settings-task-workspace",
+      "evidence": {
+        "verified_head_sha": "6899f40cec6a935b8efd87c4c43108a92722b108",
+        "pull_request": 689,
+        "checks": {
+          "ci": "success",
+          "authenticated_dashboard_acceptance": "success",
+          "offline_bundle_pr": "success",
+          "refrigeration_browser_acceptance": "success",
+          "nexolab_merge_gate": "success"
+        }
+      }
+    },
+    {
+      "issue": 690,
+      "title": "Make PR verification risk-aware and path-targeted",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "feat/690-risk-aware-verification",
+      "evidence": {
+        "verified_head_sha": "6b91236f87695c0901dd5498c7374657665d392c",
+        "pull_request": 714,
+        "checks": {
+          "core_ci": "success:33116513892",
+          "merge_gate": "success:33116513892",
+          "authenticated_dashboard": "success:33116513938",
+          "offline_bundle": "success:33116513898",
+          "refrigeration_browser": "success:33116513871",
+          "acquisition_scale": "success:33116513913",
+          "ci_policy": "90_green_1_env_skip",
+          "known_route_audit": "1025_known_0_mismatch",
+          "full_vitest": "609_green",
+          "production_build": "green"
+        }
+      }
+    },
+    {
+      "issue": 695,
+      "title": "Reconcile #684 controlled deployment and current recovery baseline",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "chore/695-reconcile-settings-deployment-state",
+      "evidence": {
+        "verified_head_sha": "0a84a77bfc10e544a5c15943859112564b32cb30",
+        "pull_request": 699,
+        "checks": {
+          "State integrity": "success",
+          "NEXOLAB Merge Gate": "success"
+        }
+      }
+    },
+    {
+      "issue": 704,
+      "title": "Reconcile fresh Device Agent SQLite findings and retired OpenSSL exceptions",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "branch": "fix/704-container-security-reconciliation",
+      "evidence": {
+        "verified_head_sha": "e2f7857e381600d76dd4100cea2c776bab8868e8",
+        "pull_request": 705,
+        "checks": {
+          "Container Supply Chain": "success",
+          "Telemetry service": "success",
+          "CI": "success",
+          "NEXOLAB Merge Gate": "success"
+        }
+      }
+    },
+    {
+      "issue": 696,
+      "title": "Make refrigeration structural snapshot use bounded latest telemetry projection",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "fix/696-refrigeration-structural-latency",
+      "evidence": {
+        "verified_head_sha": "42dafbed9952e261a182e1e24e3380419e1369a5",
+        "pull_request": 697,
+        "checks": {
+          "CI": "success",
+          "Telemetry service": "success",
+          "Refrigeration Browser Acceptance": "success",
+          "Offline Bundle": "success",
+          "real_pi_latest_projection_benchmark": "85874.034ms_to_1.853ms"
+        }
+      }
+    },
+    {
+      "issue": 698,
+      "title": "Recover GitHub-hosted runner allocation for exact-head PR gates",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "evidence": {
+        "verified_head_sha": "42dafbed9952e261a182e1e24e3380419e1369a5",
+        "checks": {
+          "hosted_runner_allocation": "recovered",
+          "issue_696_exact_head_matrix": "success"
+        }
+      }
+    },
+    {
+      "issue": 707,
+      "title": "Restore Saved Dashboard CSV export and consolidate chart workspace",
+      "priority": "high",
+      "lifecycle": "completed",
+      "branch": "fix/707-live-dashboard-export-chart-workspace",
+      "evidence": {
+        "verified_head_sha": "1ca06521628e5936c9c00fb94ef895d6abfa1c21",
+        "pull_request": 708,
+        "checks": {
+          "CI": "success",
+          "Telemetry service": "success",
+          "Authenticated Dashboard Acceptance": "success",
+          "Offline Bundle": "success",
+          "Container Supply Chain": "success",
+          "NEXOLAB Merge Gate": "success",
+          "fresh Codex review": "clean"
+        }
+      }
+    },
+    {
+      "issue": 709,
+      "title": "Export Saved Dashboard sensor telemetry with canonical equipment identity",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "branch": "fix/709-live-dashboard-telemetry-equipment-id",
+      "evidence": {
+        "verified_head_sha": "8de343198093c0c4f9b84510623df19e16d1ba87",
+        "product_code_head_sha": "e969772519d896ebe78d8ff5fb283fddfbf800e0",
+        "pull_request": 710,
+        "raspberry_pi_live_dashboard_module_suite": "27_passed_1_skipped",
+        "authenticated_dashboard_playwright": "19_passed",
+        "checks": {
+          "CI": "success",
+          "Telemetry service": "success",
+          "Authenticated Dashboard Acceptance": "success",
+          "Offline Bundle": "success",
+          "Container Supply Chain": "success",
+          "NEXOLAB Merge Gate": "success",
+          "fresh Codex review": "clean",
+          "review threads": "all_resolved"
+        },
+        "runtime_deployment": "pending_explicit_product_owner_approval"
+      }
+    },
+    {
+      "issue": 711,
+      "title": "Fix Energy history false continuity gaps at normal 30-second cadence",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "branch": "fix/711-energy-history-continuity",
+      "evidence": {
+        "verified_head_sha": "da3569969ad39be4e409fe91bc0821e2587368a0",
+        "pull_request": 712,
+        "checks": {
+          "local_focused": "66_passed",
+          "core_ci": "success",
+          "authenticated_dashboard": "success",
+          "offline_bundle": "success",
+          "merge_gate": "success",
+          "codex_review": "clean"
+        }
+      }
+    },
+    {
+      "issue": 715,
+      "title": "RFX-00: Define refrigeration monitoring architecture and thermodynamic derived metrics",
+      "priority": "high",
+      "lifecycle": "completed",
+      "branch": "arch/715-rfx00-refrigeration-architecture",
+      "evidence": {
+        "verified_head_sha": "65ac5b37780ea570f6f05ebafa7b6f64ff06912a",
+        "pull_request": 716,
+        "checks": {
+          "core_ci": "success:33147964763",
+          "telemetry_service": "success:33147964769",
+          "nexolab_merge_gate": "success:33147964763",
+          "fresh_codex_review": "clean",
+          "review_threads": "all_resolved"
+        }
+      }
+    },
+    {
+      "issue": 723,
+      "title": "Classify container supply-chain policy tests without fail-closed cross-surface escalation",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "fix/723-container-policy-ci-routing",
+      "evidence": {
+        "trigger_pr": 721,
+        "trigger_head_sha": "78f6a68e7b9898c2f19752e2cb08d4144e6c90a5",
+        "trigger_core_run": 33156919823,
+        "root_cause": "tests/test_container_supply_chain_policy.py classified as unknown",
+        "pre_fix_regression": "2_failed_25_passed",
+        "post_fix_regression": "27_passed",
+        "pr721_simulation": "security_supply_chain_fail_closed_false_no_unrelated_external_workflows",
+        "ci_policy_tests": "92_passed_1_environment_skip",
+        "review_p2": "resolved_with_exact_registered_test_allowlist",
+        "unregistered_container_test": "fail_closed_verified",
+        "pull_request": 724,
+        "merged_sha": "8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb",
+        "nexolab_merge_gate": "success",
+        "exact_head": "6a7cc473c92e3512dc04b793471a71b0af348ab3"
+      }
+    },
+    {
+      "issue": 719,
+      "title": "Reconcile fresh Device Agent vulnerability scan delta",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [],
+      "branch": "chore/719-retire-stale-cve-14456-exception",
+      "evidence": {
+        "trigger_pr": 718,
+        "trigger_head_sha": "61bf4eac3f6c87b92786327e1b63416977057583",
+        "trigger_container_supply_chain_run": 33155218719,
+        "first_maintenance_head_sha": "93c48a576105972fcce82cd7ff5ded4a81001fde",
+        "fresh_scan_container_supply_chain_run": 33156182603,
+        "fresh_scan_blocked_finding": "device-agent libexpat1/CVE-2026-66046 HIGH no fixed version",
+        "expat_reachability": "no XML import/parser/input path in services/device-agent",
+        "expat_exception_expires_on": "2026-09-02",
+        "combined_supply_chain_policy_tests": "30_passed",
+        "device_agent_xml_references": 0,
+        "ci_routing_dependency_issue": 723,
+        "ci_routing_dependency_merged_sha": "8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb",
+        "review_state_reconciliation": "completed",
+        "expat_maintenance_action_due_on": "2026-09-02"
+      }
     }
   ],
   "maintenance_actions": [
     {
-      "source_issue": 598,
-      "title": "Review/remove CVE-2026-14456 temporary exceptions",
-      "status": "due",
-      "due_on": "2026-08-26",
+      "source_issue": 704,
+      "title": "Remove remaining Device Agent OpenSSL vendor-lag exception",
+      "status": "completed",
+      "due_on": "2026-08-30",
       "owner": "platform-security",
-      "rule": "Remove earlier if Debian publishes a fixed package or QUIC runtime reachability changes."
+      "rule": "Completed 2026-08-28: fresh Device Agent scan no longer reports libssl3t64/CVE-2026-14456; the stale exact exception is retired and must not be restored without a new fail-closed evidence review."
+    },
+    {
+      "source_issue": 704,
+      "title": "Review/remove Device Agent SQLite FTS5 exceptions",
+      "status": "due",
+      "due_on": "2026-09-02",
+      "owner": "platform-security",
+      "rule": "Remove immediately when Debian Trixie publishes a fixed libsqlite3-0 package, findings disappear, Device Agent gains FTS5/arbitrary-SQL/untrusted-database reachability, or severity becomes Critical."
+    },
+    {
+      "source_issue": 704,
+      "title": "Review/remove telemetry-service fresh-scan exceptions",
+      "status": "due",
+      "due_on": "2026-09-02",
+      "owner": "platform-security",
+      "rule": "Remove affected exact tuples immediately when findings disappear, consumable fixes arrive, SQLite gains FTS5/arbitrary-SQL/untrusted-DB reachability, controlled images gain 32-bit cJSON reachability, libwebsockets affected-version/LECP-CBOR reachability changes, or severity becomes Critical."
+    },
+    {
+      "source_issue": 719,
+      "title": "Review/remove Device Agent Expat CVE-2026-66046 exception",
+      "status": "due",
+      "due_on": "2026-09-02",
+      "owner": "platform-security",
+      "rule": "Remove immediately when the finding disappears, a consumable fixed Debian/distroless package becomes available, XML parsing or attacker-controlled XML input becomes reachable, affected-version guidance materially changes, or severity becomes Critical."
     }
   ],
   "observations": [
@@ -368,6 +689,110 @@
         "issue": 589,
         "pull_request": 656,
         "merge_sha": "24d6d039fb11366ab589ec3cb039e76bb7e565d7"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-23T08:14:30Z",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 615,
+        "pull_request": 658,
+        "merge_sha": "4f76c3683a5a6e47d1a1115c9caa20989d28f8ee"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-23T08:14:30Z",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 660,
+        "pull_request": 661,
+        "merge_sha": "9b4a2cf73febc78c63d1b9c05a000826923ed6a0"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-23T12:49:51Z",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 415,
+        "pull_request": 662,
+        "merge_sha": "42543dab5660902975c9eaaa734e30a026cc1e3b"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-23T14:25:28Z",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 663,
+        "pull_request": 664,
+        "merge_sha": "25abc7e4bcc9cd9718fc9359bbfb862695d6825b"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-23T15:21:34Z",
+      "kind": "branch_protection",
+      "data": {
+        "branch": "main",
+        "protected": true,
+        "required_approving_review_count": 0,
+        "allow_force_pushes": false,
+        "allow_deletions": false,
+        "enforce_admins": false,
+        "required_status_check": "NEXOLAB Merge Gate"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-23T16:13:48Z",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 667,
+        "pull_request": 668,
+        "merge_sha": "1402b91b4941386e74fbbd0c00fc53650de2a40d"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-27T12:25:00+03:00",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 704,
+        "pull_request": 705,
+        "merge_sha": "81bf86f6aef9870c99948c1ee7e609b26223e102"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-27T12:25:00+03:00",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 696,
+        "pull_request": 697,
+        "merge_sha": "a389a69d00a92380bce49930750bc5a99d992bde"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-27T12:25:00+03:00",
+      "kind": "issue_closure",
+      "data": {
+        "issue": 698,
+        "state": "closed",
+        "reason": "completed"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-08-27T12:30:00+03:00",
+      "kind": "issue_lifecycle",
+      "data": {
+        "issue": 698,
+        "state": "closed",
+        "state_reason": "completed"
       }
     }
   ],

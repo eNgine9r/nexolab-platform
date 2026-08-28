@@ -1,60 +1,69 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-23
+Updated: 2026-08-28
 
-## Issue #200 — physical topology evidence blocked
+## Issue #709 — post-merge Saved Dashboard runtime CSV verification
 
-Passive evidence on 2026-08-23 confirms exactly one stable CP2104 RS-485 adapter on `nexolab-edge-01`, with the production Device Agent using legacy `rs485-main` at `9600 8N1`, `0.30 s` timeout and one retry. A 60-second non-invasive observation recorded 402 physical requests, 306 successes, 96 timeout/retry outcomes and bus load rising from 75.591% to 76.942%. No service operation or independent Modbus scan was introduced.
+PR #710 merged at `3f73e81f4d99cfcd07ba1afadf3eba9957945bd1`, but controlled Raspberry Pi deployment and runtime CSV-content re-verification remain blocked until the Product Owner explicitly approves that production/site-cutover action. Repository/software acceptance remains valid and no deployment is implied by the merge.
 
-Full Issue #200 acceptance remains blocked because remote software evidence cannot establish cable topology, termination, biasing, shielding/grounding, electrical duplicate Unit IDs or physical presence/absence of Unit ID 115. The intended #607 two-adapter KK1/KK2 topology is also not physically available: only one serial adapter is enumerated.
+## Issue #711 — post-merge Energy runtime verification
 
-Resume #200 only with safe physical inspection and/or the intended isolated second adapter. Do not start a parallel Modbus master on the active production segment.
+Repository/software verification is complete for exact product head `da3569969ad39be4e409fe91bc0821e2587368a0`: local 66/66 focused tests, full lint/typecheck/build, Core CI, Authenticated Dashboard Acceptance, Offline Bundle, NEXOLAB Merge Gate and fresh Codex review are GREEN, with all review threads resolved. The corrected Energy history code has not been deployed to the Raspberry Pi. Controlled deployment and operator/runtime verification remain a production/site-cutover action and must not occur without explicit Product Owner approval. No Modbus, acquisition-cadence, hardware, database or persistent-volume write is required by the repository fix.
 
-## Issue #444 — route availability restored, full admin acceptance still gated
+## Issue #189 — actual-host recovery acceptance
 
-A read-only production probe on 2026-08-23 shows `/api/v1/admin/users` is mounted in OpenAPI and reaches the security layer (`HTTP 400 organization_header_required` without auth context), rather than the historical HTTP 404. Full acceptance still requires an authorized administrator identity and local-user creation/authentication checks, which are not performed without the required credential/security-mutation approval.
+Blocked because accepted ARM64/local-auth artifact `9584581740` from GREEN run `32939760743` is exact to runtime source `cc27b609...`, while the currently deployed LAN source is now `ff796b1f...` from successful deployment evidence `runtime/deployments/20260827T101743Z`. The old artifact remains historical evidence but is not exact-source authority for the current runtime. Refresh recovery/package acceptance for `ff796b1f...` or establish another explicitly accepted current-source recovery path before resuming the actual-host recovery drill. Actual-host cutover/recovery and power-loss remain separately gated.
 
-## Issue #590 — software completed, hardware evidence pending
+## Issue #200 — physical RS-485 topology
 
-Issue #590 merged through PR #657. Its authenticated Settings control plane remains software-verified. The Raspberry Pi connector is online, but the deployed product source remains older and no controlled #589/#590 deployment or physical cadence acceptance has been performed.
+Passive evidence confirms one CP2104 adapter and one current production bus. Full acceptance still requires physical topology inspection and/or the intended second isolated adapter. Unit 115, duplicate IDs, termination, biasing, shielding and grounding remain unverified.
 
-Do not convert software capacity evidence into a hardware acceptance claim.
+## Issue #201 — LE-01MP cumulative energy
 
-## Issue #607 — software completed, hardware evidence pending
+Normal-operation semantics are accepted. Controlled restart/power-cycle discontinuity evidence remains pending; an unplanned hard reset cannot be reclassified as approved evidence.
 
-Dual RS-485 isolation was accepted through PR #653. The Raspberry Pi connector is online, but physical two-adapter verification remains blocked because the host currently enumerates only one CP2104 serial adapter and the deployed runtime is still the older single-bus release.
+## Issue #202 — XJP60D portability
 
-Repository evidence maps XJP60D KK2 to Unit IDs `101..115` and KK1 to `126..138`. LE-01MP Unit IDs `200..203` still have no repository-backed KK1/KK2 ownership and must not be guessed.
+Representative KK1/KK2 physical evidence, Unit 115 resolution and extended semantics still require real hardware evidence. Unconfirmed fields remain unmapped.
 
-## Issue #646 — branch protection settings access
+## Issue #585 — W2 / Unit 201 handback
 
-Repository-side change-impact CI, exact-head external-workflow aggregation and the stable merge gate are software-verified.
+Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
 
-Current GitHub observation still reports:
+## Security maintenance — #719 fresh Device Agent scan reconciliation
 
-- `main` protected: false;
-- required status checks: disabled.
+The CI-routing blocker #723 is cleared by GREEN PR #724 merged at `8e9333fe...`. PR #721 now remains the active soft merge blocker: it retires stale `libssl3t64/CVE-2026-14456` policy and records one exact, time-bounded `device-agent + libexpat1 + CVE-2026-66046` HIGH exception through **2026-09-02** based on no XML parser/input reachability and no consumable fixed Debian package. PR #721 must be re-verified on current `main`; no runtime/dependency/base-image change, deployment, Modbus write or hardware action is authorized.
 
-The connected GitHub surface does not expose the required branch-protection/rules mutation. This remains a **soft access blocker** only.
+## Security maintenance — #704 verified; no current merge blocker
 
-## Security maintenance — CVE-2026-14456
+Issue #704 has exact-head repository verification GREEN at `e2f7857e381600d76dd4100cea2c776bab8868e8`; #690 is completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`. The final Device Agent `libssl3t64/CVE-2026-14456` exception is **retired** because the fresh 2026-08-28 scan no longer reports the finding. Deadline-driven maintenance through **2026-09-02** now consists of the exact Device Agent `libexpat1/CVE-2026-66046` decision, Device Agent/telemetry-service SQLite decisions, and telemetry `libcjson1/CVE-2026-16554` / `libwebsockets19t64/CVE-2026-78161`; each must be removed earlier if its documented finding/fix/reachability/version/severity trigger changes. No production/runtime mutation is authorized by this security reconciliation.
 
-Issue #598 is closed, but four temporary `CVE-2026-14456` exceptions expire on **2026-08-26**.
+## Issue #709 — post-merge controlled deployment authorization
 
-Owner: `platform-security`.
+Repository verification and PR merge are not blocked. The controlled Raspberry Pi deployment and real CSV sensor-row re-verification are a production/site cutover boundary. Durable state records `production_cutover_authorized=false`, and Issue #709 has no Product Owner authorization comment. After GREEN merge, stop before runtime mutation until the Product Owner explicitly approves that controlled deployment. No Modbus or hardware write is part of the requested runtime verification.
 
-Re-check fixed Debian package availability and remove the exceptions immediately when a fix becomes available, or review before expiry. Any change that makes QUIC/HTTP3 reachable invalidates the current reachability justification.
+## Operator browser inspection — soft tooling limitation
 
-## Product and validation dependencies
+Opera Browser Connector private-address actions remain unsuitable for direct LAN/Tailscale DOM/screenshot acceptance. This did not block the controlled #707 deployment: the Product Owner directly confirmed consolidated graphs and CSV download, then identified the missing sensor-row content now owned by #709.
 
-- #585 — blocked until explicit physical W2 / Unit 201 handback approval.
-- #444 — LOCAL_LAN user-administration API acceptance remains `needs_validation`.
-- #245 — standalone loopback-only Raspberry Pi acceptance remains `needs_validation`.
-- #200 — physical RS-485 topology and safe polling envelope remain hardware-unverified beyond retained evidence.
-- #201 — LE-01MP restart/power-cycle evidence remains pending.
-- #202 — XJP60D KK1/KK2 portability and Unit ID 115 presence/absence remain hardware-unverified.
-- #189 — controlled backup/restore/rollback/power-loss recovery evidence remains outstanding.
+## Cleared boundaries
+
+- #444 LOCAL_LAN user administration — completed.
+- #646 main branch protection — completed; `main` requires `NEXOLAB Merge Gate`.
+- #667 CVE lifecycle date reconciliation — completed and merged.
+- #245 standalone offline Raspberry Pi acceptance — completed on real hardware.
+- #673 production-readiness state reconciliation — completed and merged.
+- #675 source-to-packaged authority tooling — completed with exact-head review and required GREEN workflows.
+- #679 ARM64 QEMU package acceptance — completed with GREEN post-merge ARM64/local-auth run `32832798392` and independently verified artifact/provenance.
+- #683 local-auth relocation/full source recovery — merged at PR #685 with exact-head required workflows GREEN; its post-merge acceptance correctly failed before mutation on the separate #686 hosted fixture-permission defect.
+- #686 ARM64/local-auth acceptance fixture permissions — completed at PR #687; replacement run `32939760743` GREEN and accepted artifact `9584581740` published without production runtime mutation.
+- #684 task-oriented Settings workspace — implementation and exact-head CI/browser/offline/merge-gate verification completed; no hardware or production cutover evidence required for this presentation-only Work Package.
+- #696 refrigeration structural latest-value latency — completed; bounded `telemetry_latest` query and real Raspberry Pi benchmark evidence accepted.
+- #698 GitHub-hosted runner allocation recovery — completed; exact-head workflows execute normally again.
+- #704 container security reconciliation — completed with exact-head security/CI evidence; only time-bounded maintenance remains.
+- #690 risk-aware/path-targeted PR verification — completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`; post-merge Core CI and Acquisition Scale Acceptance are GREEN.
+- #715 RFX-00 refrigeration architecture ADR — completed on reviewed evidence head `65ac5b37780ea570f6f05ebafa7b6f64ff06912a`; PR #716 awaits only final state-only exact-head verification and merge.
 
 ## Safety boundaries
 
-No Modbus/controller write, hardware write, product persistent-data deletion, Docker named-volume deletion, secret/billing/DNS mutation, production/site cutover or mandatory cloud runtime dependency is authorized by Issue #615.
+No blocker may be bypassed by Modbus/controller write, hardware write, production/site cutover without approval, persistent-data deletion, named-volume deletion, secret exposure or mandatory cloud dependency.

@@ -359,7 +359,7 @@ def export_event(
     value: float | None,
     quality: str = "valid",
     node_id: str = "edge-a",
-    equipment_id: str = "controller-a",
+    equipment_id: str = "K108",
 ) -> TelemetryEvent:
     return TelemetryEvent(
         event_id=uuid4(),
@@ -423,7 +423,7 @@ def test_saved_dashboard_csv_export_is_persisted_deterministic_and_bounded(
         channel_id="a-temperature-01",
         value=99.9,
         node_id="edge-b",
-        equipment_id="controller-b",
+        equipment_id="K109",
     )
     assert database.persist(
         foreign_same_series, foreign_same_series.normalized_payload()
@@ -435,7 +435,7 @@ def test_saved_dashboard_csv_export_is_persisted_deterministic_and_bounded(
         params={
             "from": (base - timedelta(seconds=1)).isoformat(),
             "to": (base + timedelta(seconds=30)).isoformat(),
-            "timezone": "Europe/Kyiv",
+            "timezone": "Europe/Kiev",
         },
     )
     assert exported.status_code == 200, exported.text
@@ -451,6 +451,14 @@ def test_saved_dashboard_csv_export_is_persisted_deterministic_and_bounded(
         "2026-08-18T09:00:20Z",
     ]
     assert "+03:00" in lines[1]
+    assert lines[1].split(",")[2:8] == [
+        "edge-a",
+        "K108",
+        "a-temperature-01",
+        "temperature",
+        "4.2",
+        "°C",
+    ]
     assert ",communication_error," in lines[-1]
     assert ",,°C,communication_error," in lines[-1]
 

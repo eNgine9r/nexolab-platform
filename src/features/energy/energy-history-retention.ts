@@ -18,11 +18,13 @@ export interface EnergyHistoryRetentionWindow {
 export interface RetainedEnergyHistory {
   window: EnergyHistoryRetentionWindow;
   loadedThrough: string;
+  cadenceAuthorityFingerprint: string | null;
   samples: TelemetrySample[];
 }
 
 interface RetainedEnergyHistoryEntry extends RetainedEnergyHistory {
   securityScope: string;
+  nodeId: string;
   retainedAt: number;
 }
 
@@ -60,15 +62,23 @@ export function retainEnergyHistory(
 ): void {
   retainedHistory.set(energyHistoryRetentionKey(key), {
     securityScope: key.securityScope,
+    nodeId: key.nodeId,
     retainedAt: now,
     window: { ...value.window },
     loadedThrough: value.loadedThrough,
+    cadenceAuthorityFingerprint: value.cadenceAuthorityFingerprint,
     samples: value.samples.map((sample) => ({ ...sample })),
   });
 }
 
 export function invalidateRetainedEnergyHistory(key: EnergyHistoryRetentionKey): void {
   retainedHistory.delete(energyHistoryRetentionKey(key));
+}
+
+export function invalidateRetainedEnergyHistoryScope(securityScope: string, nodeId: string): void {
+  for (const [key, entry] of retainedHistory) {
+    if (entry.securityScope === securityScope && entry.nodeId === nodeId) retainedHistory.delete(key);
+  }
 }
 
 export function invalidateIncompatibleRetainedEnergyHistory(securityScope: string): void {
@@ -89,6 +99,7 @@ function cloneEntry(entry: RetainedEnergyHistoryEntry): RetainedEnergyHistory {
   return {
     window: { ...entry.window },
     loadedThrough: entry.loadedThrough,
+    cadenceAuthorityFingerprint: entry.cadenceAuthorityFingerprint,
     samples: entry.samples.map((sample) => ({ ...sample })),
   };
 }

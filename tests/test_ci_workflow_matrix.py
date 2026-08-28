@@ -127,6 +127,44 @@ class WorkflowMatrixTests(unittest.TestCase):
         self.assertEqual(pending, [])
         self.assertEqual({item.id for item in failed}, {20, 30, 40})
 
+    def test_missing_required_workflow_is_merge_blocking(self) -> None:
+        runs = [
+            self._workflow_run(
+                run_id=20,
+                workflow_id=2,
+                name="Authenticated Dashboard Acceptance",
+                status="completed",
+                conclusion="success",
+            )
+        ]
+        missing = MODULE.missing_required_workflows(
+            runs,
+            ["Authenticated Dashboard Acceptance", "Offline Bundle"],
+        )
+        self.assertEqual(missing, ["Offline Bundle"])
+
+    def test_required_workflow_names_are_satisfied_by_observed_green_runs(self) -> None:
+        runs = [
+            self._workflow_run(
+                run_id=20,
+                workflow_id=2,
+                name="Offline Bundle",
+                status="completed",
+                conclusion="success",
+            ),
+            self._workflow_run(
+                run_id=30,
+                workflow_id=3,
+                name="Authenticated Dashboard Acceptance",
+                status="completed",
+                conclusion="success",
+            ),
+        ]
+        self.assertEqual(
+            MODULE.missing_required_workflows(runs, ["Offline Bundle"]),
+            [],
+        )
+
     def test_only_successful_completed_workflows_are_green(self) -> None:
         runs = [
             self._workflow_run(

@@ -27,7 +27,7 @@ def test_viewer_can_read_bounded_channel_inventory_without_latest_samples(
         {
             "channel_ref_id": first.json()["items"][0]["channel_ref_id"],
             "node_id": "edge-a",
-            "equipment_id": "controller-a",
+            "equipment_id": "K108",
             "equipment_name": "Controller a",
             "climate_chamber_id": first.json()["items"][0]["climate_chamber_id"],
             "climate_chamber_code": "KK-A",

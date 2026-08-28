@@ -29,7 +29,7 @@ export interface ChartContinuityOptions {
 }
 
 export const CHART_MINIMUM_SOURCE_GAP_MS = 30_000;
-const CHART_SOURCE_GAP_MULTIPLIER = 3;
+export const CHART_SOURCE_GAP_MULTIPLIER = 3;
 
 function invalidReason(sample: ChartContinuitySample): ChartContinuityBreakReason | null {
   if (sample.explicitBreak) return sample.explicitBreak;

@@ -72,7 +72,11 @@ function sqlString(value: string): string {
 
 function publishSavedDashboardSample(dashboardId: string, channelId: string, value: number): void {
   const selection = postgres(`
-SELECT item.metric || '|' || item.native_unit || '|' || bus.node_id || '|' || device.business_key
+SELECT item.metric || '|' || item.native_unit || '|' || bus.node_id || '|' ||
+  CASE device.device_type
+    WHEN 'temperature_controller' THEN 'K' || device.unit_id::text
+    WHEN 'energy_meter' THEN 'LE01MP-' || device.unit_id::text
+  END
 FROM live_dashboard_items AS item
 JOIN measurement_channels AS channel
   ON channel.organization_id = item.organization_id
@@ -85,6 +89,8 @@ JOIN measurement_buses AS bus
  AND bus.id = channel.bus_id
 WHERE item.dashboard_id = ${sqlString(dashboardId)}
   AND item.channel_id = ${sqlString(channelId)}
+  AND device.device_type IN ('temperature_controller', 'energy_meter')
+  AND device.unit_id BETWEEN 1 AND 247
 ORDER BY item.position
 LIMIT 1;
 `).trim();
@@ -306,7 +312,10 @@ SELECT
   item.native_unit,
   'valid',
   'issue-404-e2e',
-  device.business_key,
+  CASE device.device_type
+    WHEN 'temperature_controller' THEN 'K' || device.unit_id::text
+    WHEN 'energy_meter' THEN 'LE01MP-' || device.unit_id::text
+  END,
   item.channel_id,
   CASE WHEN item.position = 1 AND sample_index = 3 THEN 'high' ELSE NULL END,
   item.position * 100 + sample_index,
@@ -323,7 +332,9 @@ JOIN measurement_buses AS bus
   ON bus.organization_id = channel.organization_id
  AND bus.id = channel.bus_id
 CROSS JOIN generate_series(1, 4) AS sample_index
-WHERE item.dashboard_id = ${sqlString(dashboardId)};
+WHERE item.dashboard_id = ${sqlString(dashboardId)}
+  AND device.device_type IN ('temperature_controller', 'energy_meter')
+  AND device.unit_id BETWEEN 1 AND 247;
 
 INSERT INTO telemetry_latest (
   sample_id, event_id, node_id, captured_at, metric, value, unit, quality, source,

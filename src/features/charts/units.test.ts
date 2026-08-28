@@ -107,6 +107,14 @@ describe("compatible chart unit grouping", () => {
     const partitions = partitionChartSeriesByAxisBudget(series);
     expect(partitions).toHaveLength(2);
     expect(partitions.map((partition) => buildChartYAxisModel(partition).allAxes.length)).toEqual([5, 1]);
+    expect(partitions[0].map((item) => item.identity.channelId)).toEqual([
+      "voltage",
+      "current",
+      "power",
+      "frequency",
+      "energy",
+    ]);
+    expect(partitions[1].map((item) => item.identity.channelId)).toEqual(["factor"]);
     expect(partitions.flatMap((partition) => partition)).toHaveLength(series.length);
   });
 });

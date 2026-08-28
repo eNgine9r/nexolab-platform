@@ -36,64 +36,63 @@ const diagnostics = buildSettingsRuntimeDiagnostics({
   browserOrigin: "http://127.0.0.1:13020",
 });
 
+function renderMonitoring(overrides: Partial<React.ComponentProps<typeof SettingsWorkspace>> = {}) {
+  const view = render(
+    <SettingsWorkspace
+      session={session}
+      membership={membership}
+      diagnostics={diagnostics}
+      preferences={createDefaultSettingsPreferences()}
+      preferencesLoaded
+      preferencesRecovered={false}
+      preferenceRecoveryReason={null}
+      onPreferenceChange={() => undefined}
+      onPreferencesReset={() => undefined}
+      canManageSensorMonitoring
+      {...overrides}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: /Моніторинг/ }));
+  return view;
+}
+
 describe("Settings monitoring commissioning", () => {
-  it("exposes explicit monitoring enrollment only to authorized operators", () => {
+  it("exposes explicit read-only monitoring enrollment only to authorized operators", () => {
     const onOpenSensorMonitoring = vi.fn();
-    render(
-      <SettingsWorkspace
-        session={session}
-        membership={membership}
-        diagnostics={diagnostics}
-        preferences={createDefaultSettingsPreferences()}
-        preferencesLoaded
-        preferencesRecovered={false}
-        preferenceRecoveryReason={null}
-        onPreferenceChange={() => undefined}
-        onPreferencesReset={() => undefined}
-        canManageSensorMonitoring
-        sensorMonitoringReady
-        onOpenSensorMonitoring={onOpenSensorMonitoring}
-      />,
-    );
+    renderMonitoring({ sensorMonitoringReady: true, onOpenSensorMonitoring });
 
-    const action = screen.getByRole("button", { name: /Моніторинг XJP60D/ });
+    const action = screen.getByRole("button", { name: "Налаштувати моніторинг XJP60D" });
     expect(action).toBeVisible();
-    expect(screen.getByText(/явне persisted enrollment каналів у безперервний збір/)).toBeVisible();
-
+    expect(screen.getByText(/Виберіть канали, які NEXOLAB повинен постійно опитувати/)).toBeVisible();
+    expect(screen.getByText(/не виконує Modbus write/)).toBeVisible();
     fireEvent.click(action);
     expect(onOpenSensorMonitoring).toHaveBeenCalledOnce();
   });
 
-  it("keeps commissioning disabled until the authoritative monitoring configuration is loaded", () => {
+  it("keeps commissioning disabled until authoritative configuration is loaded", () => {
     const onOpenSensorMonitoring = vi.fn();
-    render(
-      <SettingsWorkspace
-        session={session}
-        membership={membership}
-        diagnostics={diagnostics}
-        preferences={createDefaultSettingsPreferences()}
-        preferencesLoaded
-        preferencesRecovered={false}
-        preferenceRecoveryReason={null}
-        onPreferenceChange={() => undefined}
-        onPreferencesReset={() => undefined}
-        canManageSensorMonitoring
-        sensorMonitoringReady={false}
-        onOpenSensorMonitoring={onOpenSensorMonitoring}
-      />,
-    );
-
-    const action = screen.getByRole("button", { name: /Моніторинг XJP60D/ });
+    renderMonitoring({ sensorMonitoringReady: false, onOpenSensorMonitoring });
+    const action = screen.getByRole("button", { name: "Налаштувати моніторинг XJP60D" });
     expect(action).toBeDisabled();
     fireEvent.click(action);
     expect(onOpenSensorMonitoring).not.toHaveBeenCalled();
   });
-  it("surfaces monitoring configuration failures with an explicit retry action", () => {
-    const retry = vi.fn();
-    render(
+
+  it("falls back to General when an organization switch removes monitoring permission", () => {
+    const view = renderMonitoring({ sensorMonitoringReady: true });
+    expect(screen.getByRole("heading", { name: "Моніторинг" })).toBeVisible();
+
+    const restrictedMembership: SecurityMembership = {
+      ...membership,
+      roles: ["viewer"],
+      permissions: ["dashboard.read", "telemetry.read"],
+    };
+    const restrictedSession: SecuritySession = { ...session, memberships: [restrictedMembership] };
+
+    view.rerender(
       <SettingsWorkspace
-        session={session}
-        membership={membership}
+        session={restrictedSession}
+        membership={restrictedMembership}
         diagnostics={diagnostics}
         preferences={createDefaultSettingsPreferences()}
         preferencesLoaded
@@ -101,13 +100,23 @@ describe("Settings monitoring commissioning", () => {
         preferenceRecoveryReason={null}
         onPreferenceChange={() => undefined}
         onPreferencesReset={() => undefined}
-        canManageSensorMonitoring
-        sensorMonitoringReady={false}
-        sensorMonitoringError="Device Agent unavailable"
-        onRetrySensorMonitoring={retry}
+        canManageSensorMonitoring={false}
       />,
     );
 
+    expect(screen.queryByRole("button", { name: /Моніторинг/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Загальні" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "Організація та оператор" })).toBeVisible();
+    expect(screen.getByLabelText("Розділ налаштувань")).toHaveValue("general");
+  });
+
+  it("surfaces configuration failures with an explicit retry action", () => {
+    const retry = vi.fn();
+    renderMonitoring({
+      sensorMonitoringReady: false,
+      sensorMonitoringError: "Device Agent unavailable",
+      onRetrySensorMonitoring: retry,
+    });
     expect(screen.getByRole("alert")).toHaveTextContent("Device Agent unavailable");
     const retryButton = screen.getByRole("button", { name: "Повторити завантаження" });
     expect(retryButton).toBeEnabled();
