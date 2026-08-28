@@ -280,10 +280,18 @@ time against which sample age and future-clock-skew validity were evaluated, and
 both source sample time and calculation execution time.
 
 For each uniquely resolved semantic binding, source-sample selection is deterministic and occurs
-before quality/freshness gates. Candidate samples are first restricted to the resolved binding's
-half-open validity interval: `valid_from <= captured_at < valid_to`, or
-`valid_from <= captured_at` when `valid_to = null`. A sample captured before the role assignment
-started or after it ended can never satisfy that role, even if it is otherwise fresh.
+before quality/freshness gates. Candidate samples are first restricted to the intersection of:
+
+- the resolved binding's half-open validity interval;
+- the single circuit/configuration version's half-open validity interval that is effective at
+  `observation_at`.
+
+In both cases the predicate is `valid_from <= captured_at < valid_to`, or
+`valid_from <= captured_at` when the upper bound is open-ended. A sample captured before the role
+assignment/configuration epoch started or after either one ended can never satisfy that role, even if
+it is otherwise fresh. This restriction applies equally to past and tolerated future candidates, so a
+calculation cannot consume telemetry from a different refrigerant/calculation-policy configuration
+epoch.
 
 Within that binding-valid candidate set:
 
@@ -295,8 +303,9 @@ Within that binding-valid candidate set:
    explicitly allow a future candidate, in which case select the smallest
    `captured_at > observation_at` (nearest future sample) that is still inside the same binding
    validity interval, and use canonical `event_id` descending for equal timestamps;
-4. the selected candidate then passes the normal quality, maximum-age, future-clock-skew and
-   cross-input-skew gates. A future candidate outside the configured tolerance is `unavailable`.
+4. the selected candidate then passes the normal quality, source-time instrument/profile
+   acceptance, maximum-age, future-clock-skew and cross-input-skew gates. A future candidate outside
+   the configured tolerance is `unavailable`.
 
 This selection algorithm is part of the versioned calculation policy. Implementations must not use
 arrival order, database physical order or UI refresh timing as an implicit tie-breaker. Inputs do not
@@ -368,15 +377,18 @@ At minimum the calculation pipeline must reject or explicitly classify:
 - missing required binding or sample;
 - canonical telemetry `sensor_error`, `communication_error` or `unknown` quality;
 - stale sample, excessive cross-input timestamp skew or excessive future-clock skew;
-- instrument or acquisition profile that was not accepted at `observation_at` (historical/backfill
-  resolves the acceptance state at that historical `observation_at`, never the current wall-clock
-  state). Instrument and acquisition-profile acceptance histories use non-overlapping half-open
-  `[effective_from, effective_to)` intervals. At an activation/deactivation timestamp, the state whose
-  `effective_from` equals that timestamp is the post-transition state and is effective immediately;
-  the previous state is not. Same-timestamp state-change operations are serialized by a monotonic
-  revision sequence, and only the final revision may own a non-empty interval beginning at that
-  timestamp; intermediate same-timestamp revisions are zero-width audit records. Any remaining
-  overlapping/non-unique effective state fails closed as `unavailable`;
+- instrument or acquisition profile that was not accepted at **both** the selected source sample's
+  `captured_at` and the calculation `observation_at`. Historical/backfill resolves both states at
+  those historical timestamps, never from the current wall-clock state. A source produced during an
+  unaccepted interval cannot become acceptable merely because the instrument/profile was reactivated
+  before `observation_at`, and a sample produced while accepted cannot bypass a later deactivation at
+  `observation_at`. Instrument and acquisition-profile acceptance histories use non-overlapping
+  half-open `[effective_from, effective_to)` intervals. At an activation/deactivation timestamp, the
+  state whose `effective_from` equals that timestamp is the post-transition state and is effective
+  immediately; the previous state is not. Same-timestamp state-change operations are serialized by a
+  monotonic revision sequence, and only the final revision may own a non-empty interval beginning at
+  that timestamp; intermediate same-timestamp revisions are zero-width audit records. Any remaining
+  overlapping/non-unique effective state at either timestamp fails closed as `unavailable`;
 - missing/expired/unacceptable calibration state where the metric policy requires calibration;
 - unknown engineering unit or pressure reference;
 - missing atmospheric reference for gauge pressure;
@@ -402,8 +414,10 @@ resolve at least:
 - the instrument identity/version, acquisition/scaling-profile version and calibration
   record/version that were effective at each selected source sample's `captured_at` and therefore
   produced/interpreted that persisted engineering value;
-- instrument lifecycle/acceptance state resolved at `observation_at`;
-- acquisition/scaling-profile acceptance state resolved at `observation_at`;
+- instrument lifecycle/acceptance state resolved at both each source sample's `captured_at` and the
+  calculation `observation_at`;
+- acquisition/scaling-profile acceptance state resolved at both each source sample's `captured_at`
+  and the calculation `observation_at`;
 - calibration state/validity resolved both at the selected sample's `captured_at` and at
   `observation_at` when the metric policy requires current calibration acceptance;
 - pressure-reference conversion applied, including atmospheric source when used;
