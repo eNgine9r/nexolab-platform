@@ -18,6 +18,7 @@ from typing import Any
 
 import paho.mqtt.client as mqtt
 
+from embraco import EmbracoSyncReader, REGISTERS as EMBRACO_REGISTERS
 from le01mp import LE01MPReader, REGISTERS as LE01MP_REGISTERS
 from modbus_rtu import ModbusError, ModbusRTUClient
 from mqtt_tls import MQTTTLSConfig
@@ -33,6 +34,10 @@ def mode_uses_xjp60d(device_mode: str) -> bool:
 
 def mode_uses_le01mp(device_mode: str) -> bool:
     return device_mode in {"le01mp", "modbus"}
+
+
+def mode_uses_embraco(device_mode: str) -> bool:
+    return device_mode in {"embraco", "modbus"}
 
 
 def parse_bool(value: str, *, label: str) -> bool:
@@ -89,6 +94,19 @@ def parse_xjp60d_points(value: str) -> tuple[tuple[int, int], ...]:
     return tuple(points)
 
 
+def parse_optional_positive_float(value: str, *, label: str) -> float | None:
+    normalized = value.strip()
+    if not normalized:
+        return None
+    try:
+        parsed = float(normalized)
+    except ValueError as exc:
+        raise ValueError(f"{label} must be numeric") from exc
+    if parsed <= 0:
+        raise ValueError(f"{label} must be positive")
+    return parsed
+
+
 def parse_unit_ids(value: str, *, label: str) -> tuple[int, ...]:
     unit_ids: list[int] = []
     for token in value.split(","):
@@ -129,6 +147,9 @@ class Settings:
     xjp60d_points: tuple[tuple[int, int], ...]
     xjp60d_scale: float
     le01mp_unit_ids: tuple[int, ...]
+    embraco_unit_ids: tuple[int, ...] = ()
+    embraco_temperature_scale: float | None = None
+    embraco_control_scale: float | None = None
     mqtt_auth_required: bool = False
     mqtt_username: str | None = None
     mqtt_client_id: str = ""
@@ -194,27 +215,42 @@ class Settings:
                 os.getenv("LE01MP_UNIT_IDS", ""),
                 label="LE-01MP",
             ),
+            embraco_unit_ids=parse_unit_ids(
+                os.getenv("EMBRACO_UNIT_IDS", ""),
+                label="Embraco Sync",
+            ),
+            embraco_temperature_scale=parse_optional_positive_float(
+                os.getenv("EMBRACO_TEMPERATURE_SCALE", ""),
+                label="EMBRACO_TEMPERATURE_SCALE",
+            ),
+            embraco_control_scale=parse_optional_positive_float(
+                os.getenv("EMBRACO_CONTROL_SCALE", ""),
+                label="EMBRACO_CONTROL_SCALE",
+            ),
             mqtt_auth_required=mqtt_auth_required,
             mqtt_username=mqtt_username,
             mqtt_client_id=mqtt_client_id,
             mqtt_password_file=mqtt_password_file,
         )
-        allowed_modes = {"simulator", "xjp60d", "le01mp", "modbus"}
+        allowed_modes = {"simulator", "xjp60d", "le01mp", "embraco", "modbus"}
         if settings.device_mode not in allowed_modes:
             raise ValueError(
-                "DEVICE_MODE must be simulator, xjp60d, le01mp, or modbus"
+                "DEVICE_MODE must be simulator, xjp60d, le01mp, embraco, or modbus"
             )
         if settings.device_mode == "xjp60d" and not settings.xjp60d_points:
             raise ValueError("XJP60D_POINTS is required when DEVICE_MODE=xjp60d")
         if settings.device_mode == "le01mp" and not settings.le01mp_unit_ids:
             raise ValueError("LE01MP_UNIT_IDS is required when DEVICE_MODE=le01mp")
+        if settings.device_mode == "embraco" and not settings.embraco_unit_ids:
+            raise ValueError("EMBRACO_UNIT_IDS is required when DEVICE_MODE=embraco")
         if (
             settings.device_mode == "modbus"
             and not settings.xjp60d_points
             and not settings.le01mp_unit_ids
+            and not settings.embraco_unit_ids
         ):
             raise ValueError(
-                "At least one XJP60D point or LE-01MP unit is required "
+                "At least one XJP60D point, LE-01MP unit, or Embraco unit is required "
                 "when DEVICE_MODE=modbus"
             )
         if settings.health_interval_seconds <= 0:
@@ -476,11 +512,11 @@ class AgentState:
             if mode_uses_xjp60d(settings.device_mode)
             else []
         )
-        configured_devices = (
-            [f"LE01MP-{unit_id}" for unit_id in settings.le01mp_unit_ids]
-            if mode_uses_le01mp(settings.device_mode)
-            else []
-        )
+        configured_devices: list[str] = []
+        if mode_uses_le01mp(settings.device_mode):
+            configured_devices.extend(f"LE01MP-{unit_id}" for unit_id in settings.le01mp_unit_ids)
+        if mode_uses_embraco(settings.device_mode):
+            configured_devices.extend(f"EMBRACO-{unit_id}" for unit_id in settings.embraco_unit_ids)
         with self._lock:
             return {
                 "status": "ok" if self.last_error is None else "degraded",
@@ -550,6 +586,7 @@ class DeviceAgent:
         self.modbus_client: ModbusRTUClient | None = None
         self.xjp60d_reader: XJP60DReader | None = None
         self.le01mp_reader: LE01MPReader | None = None
+        self.embraco_reader: EmbracoSyncReader | None = None
 
         if settings.device_mode != "simulator":
             self.modbus_client = ModbusRTUClient(
@@ -574,6 +611,15 @@ class DeviceAgent:
             if self.modbus_client is None:
                 raise RuntimeError("Modbus client was not initialized")
             self.le01mp_reader = LE01MPReader(self.modbus_client)
+
+        if mode_uses_embraco(settings.device_mode) and settings.embraco_unit_ids:
+            if self.modbus_client is None:
+                raise RuntimeError("Modbus client was not initialized")
+            self.embraco_reader = EmbracoSyncReader(
+                self.modbus_client,
+                temperature_scale=settings.embraco_temperature_scale,
+                control_scale=settings.embraco_control_scale,
+            )
 
     def _on_connect(
         self,
@@ -718,6 +764,57 @@ class DeviceAgent:
                     )
                 )
 
+    def _sample_embraco(
+        self,
+        captured_at: str,
+        records: list[TelemetryRecord],
+        errors: list[str],
+    ) -> None:
+        if not self.settings.embraco_unit_ids:
+            return
+        if self.embraco_reader is None:
+            raise RuntimeError("Embraco Sync reader was not initialized")
+
+        for unit_id in self.settings.embraco_unit_ids:
+            equipment_id = f"EMBRACO-{unit_id}"
+            for register in EMBRACO_REGISTERS:
+                channel_id = f"{unit_id}-{register.key.replace('_', '-')}"
+                try:
+                    reading = self.embraco_reader.read_metric(unit_id, register.key)
+                except (ModbusError, OSError, RuntimeError) as exc:
+                    LOG.warning("Embraco Sync read failed for %s: %s", channel_id, exc)
+                    errors.append(f"{channel_id}: {exc}")
+                    records.append(
+                        TelemetryRecord(
+                            event_id=str(uuid.uuid4()),
+                            node_id=self.settings.node_id,
+                            captured_at=captured_at,
+                            metric=register.metric,
+                            value=None,
+                            unit=register.unit,
+                            quality="communication_error",
+                            source="embraco-sync",
+                            equipment_id=equipment_id,
+                            channel_id=channel_id,
+                        )
+                    )
+                    continue
+                records.append(
+                    TelemetryRecord(
+                        event_id=str(uuid.uuid4()),
+                        node_id=self.settings.node_id,
+                        captured_at=captured_at,
+                        metric=reading.metric,
+                        value=reading.value,
+                        unit=reading.unit,
+                        quality=reading.quality,
+                        source="embraco-sync",
+                        equipment_id=equipment_id,
+                        channel_id=channel_id,
+                        raw_value=reading.raw_value,
+                    )
+                )
+
     def sample_batch(self) -> tuple[list[TelemetryRecord], str | None]:
         if self.settings.device_mode == "simulator":
             now = datetime.now(timezone.utc).isoformat()
@@ -746,6 +843,8 @@ class DeviceAgent:
             self._sample_xjp60d(captured_at, records, errors)
         if mode_uses_le01mp(self.settings.device_mode):
             self._sample_le01mp(captured_at, records, errors)
+        if mode_uses_embraco(self.settings.device_mode):
+            self._sample_embraco(captured_at, records, errors)
 
         if not records:
             raise RuntimeError("No Modbus telemetry sources are configured")

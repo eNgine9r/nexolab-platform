@@ -33,6 +33,8 @@ from app.nodes.broker_worker import BrokerControlWorker
 from app.nodes.ingress import NodeIngressAuthorizer
 from app.nodes.repository import NodeRepository
 from app.refrigeration.api import create_refrigeration_router
+from app.refrigeration.controller_binding_api import create_refrigeration_controller_binding_router
+from app.refrigeration.controller_binding_repository import PostgresRefrigerationControllerBindingRepository
 from app.refrigeration.equipment_api import create_refrigeration_equipment_router
 from app.refrigeration.equipment_repository import PostgresRefrigerationEquipmentRepository
 from app.refrigeration.lifecycle_api import create_equipment_lifecycle_router
@@ -94,6 +96,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     refrigeration_repository = PostgresRefrigerationLayoutRepository(database)
     refrigeration_equipment_repository = PostgresRefrigerationEquipmentRepository(
         database
+    )
+    refrigeration_controller_binding_repository = (
+        PostgresRefrigerationControllerBindingRepository(database)
     )
     equipment_lifecycle_repository = PostgresEquipmentLifecycleRepository(database)
     sensor_configuration_repository = PostgresSensorConfigurationRepository(database)
@@ -313,6 +318,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             max_history_days=resolved.history_max_range_days,
             max_page_size=resolved.api_max_page_size,
             security_dependencies=security_dependencies,
+        )
+    )
+    app.include_router(
+        create_refrigeration_controller_binding_router(
+            refrigeration_controller_binding_repository,
+            security_dependencies=security_dependencies,
+            security_repository=security_repository,
+            default_organization_id=resolved.auth_default_organization_id,
         )
     )
     app.include_router(

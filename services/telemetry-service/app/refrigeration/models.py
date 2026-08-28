@@ -120,6 +120,65 @@ class RefrigerationEquipmentRecord(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class RefrigerationControllerBinding(Base):
+    __tablename__ = "refrigeration_controller_bindings"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "equipment_id"],
+            ["refrigeration_equipment.organization_id", "refrigeration_equipment.id"],
+            name="fk_refrigeration_controller_binding_equipment",
+            ondelete="RESTRICT",
+        ),
+        CheckConstraint(
+            "controller_family IN ('embraco')",
+            name="ck_refrigeration_controller_binding_family",
+        ),
+        CheckConstraint(
+            "unit_id BETWEEN 1 AND 247",
+            name="ck_refrigeration_controller_binding_unit",
+        ),
+        Index(
+            "uq_refrigeration_controller_binding_active_equipment",
+            "organization_id",
+            "equipment_id",
+            unique=True,
+            postgresql_where=text("unbound_at IS NULL"),
+            sqlite_where=text("unbound_at IS NULL"),
+        ),
+        Index(
+            "uq_refrigeration_controller_binding_active_identity",
+            "organization_id",
+            "node_id",
+            "controller_family",
+            "unit_id",
+            unique=True,
+            postgresql_where=text("unbound_at IS NULL"),
+            sqlite_where=text("unbound_at IS NULL"),
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_refrigeration_controller_binding_organization",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    equipment_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    node_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    controller_family: Mapped[str] = mapped_column(String(32), nullable=False)
+    controller_equipment_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    unit_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    profile_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    bound_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    bound_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    unbound_by: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    unbound_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class EquipmentImage(Base):
     __tablename__ = "equipment_images"
     __table_args__ = (

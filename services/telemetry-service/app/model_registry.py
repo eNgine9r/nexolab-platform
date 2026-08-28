@@ -85,6 +85,9 @@ def register_models() -> None:
     assert _refrigeration_models.RefrigerationEquipmentRecord.__tablename__ == (
         "refrigeration_equipment"
     )
+    assert _refrigeration_models.RefrigerationControllerBinding.__tablename__ == (
+        "refrigeration_controller_bindings"
+    )
     assert _refrigeration_models.RefrigerationLayoutDraft.__tablename__ == (
         "refrigeration_layout_drafts"
     )
