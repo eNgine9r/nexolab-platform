@@ -141,17 +141,30 @@ def _verify_node_baseline(worktree: Path, executed: list[str]) -> dict[str, str]
     print(f"\n==> {name}", flush=True)
     executed.append(name)
     expected = f"v{(worktree / '.nvmrc').read_text(encoding='utf-8').strip()}"
-    node_path = shutil.which("node")
-    if node_path is None:
+
+    selected_node: str | None = None
+    path_node = shutil.which("node")
+    path_version: str | None = None
+    if path_node is not None:
+        path_version = _capture((path_node, "--version"), worktree, os.environ.copy())
+        if path_version == expected:
+            selected_node = path_node
+
+    if selected_node is None:
         nvm_root = Path(os.environ.get("NVM_DIR", Path.home() / ".nvm"))
         nvm_node = nvm_root / "versions" / "node" / expected / "bin" / "node"
         if nvm_node.is_file():
-            node_path = str(nvm_node)
-    if node_path is None:
+            nvm_version = _capture((str(nvm_node), "--version"), worktree, os.environ.copy())
+            if nvm_version == expected:
+                selected_node = str(nvm_node)
+
+    if selected_node is None:
+        detail = f"; PATH Node was {path_version}" if path_version is not None else ""
         raise VerificationError(
-            f"Node {expected} is not on PATH or installed in the configured NVM directory"
+            f"Node {expected} is not available on PATH or in the configured NVM directory{detail}"
         )
-    node_bin = str(Path(node_path).resolve().parent)
+
+    node_bin = str(Path(selected_node).resolve().parent)
     node_environment = os.environ.copy()
     node_environment["PATH"] = os.pathsep.join(
         part for part in (node_bin, node_environment.get("PATH", "")) if part

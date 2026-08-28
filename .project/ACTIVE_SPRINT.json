@@ -580,8 +580,8 @@
       "depends_on": [],
       "branch": "feat/725-local-candidate-gate",
       "evidence": {
-        "focused_routing_tests": "13_passed",
-        "ci_policy_tests": "106_passed_1_environment_skip",
+        "focused_routing_tests": "14_passed",
+        "ci_policy_tests": "107_passed_1_environment_skip",
         "state_only_fixture": "green_without_node_install",
         "product_fixture": "full_core_plan_selected",
         "unknown_fixture": "red_fail_closed",
@@ -592,7 +592,9 @@
         "previous_exact_head_core_quality_build": "success:c127c2479f97214ab8fceaf0a17a2d93cf58ec39",
         "base_advanced_to": "1f2654dec0f02263aec6c2314187cfa62e5723e9_requires_fresh_exact_head_ci",
         "python_bytecode_cache_isolation": "verified",
-        "review_p1_bytecode_cache": "resolved_locally_pending_exact_head_ci"
+        "review_p1_bytecode_cache": "resolved_locally_pending_exact_head_ci",
+        "mismatched_path_node_nvm_fallback": "verified",
+        "review_p2_mismatched_path_node": "resolved_locally_pending_exact_head_ci"
       }
     }
   ],

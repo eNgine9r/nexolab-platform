@@ -182,10 +182,36 @@ class LocalCandidateVerificationTests(unittest.TestCase):
                 mock.patch.dict(
                     MODULE.os.environ, {"NVM_DIR": str(root / ".nvm")}, clear=False
                 ),
-                mock.patch.object(MODULE, "_capture", side_effect=["v22.23.1", "10.9.4"]),
+                mock.patch.object(MODULE, "_capture", side_effect=["v22.23.1", "v22.23.1", "10.9.4"]),
             ):
                 environment = MODULE._verify_node_baseline(worktree, [])
         self.assertEqual(environment["PATH"].split(":", 1)[0], str(node.parent))
+
+    def test_mismatched_path_node_falls_back_to_exact_nvmrc_installation(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nexolab-node-fallback-test-") as temporary:
+            root = Path(temporary)
+            worktree = root / "worktree"
+            path_node = root / "system/bin/node"
+            nvm_node = root / ".nvm/versions/node/v22.23.1/bin/node"
+            worktree.mkdir()
+            path_node.parent.mkdir(parents=True)
+            nvm_node.parent.mkdir(parents=True)
+            path_node.write_text("fixture\n", encoding="utf-8")
+            nvm_node.write_text("fixture\n", encoding="utf-8")
+            (worktree / ".nvmrc").write_text("22.23.1\n", encoding="utf-8")
+            with (
+                mock.patch.object(MODULE.shutil, "which", return_value=str(path_node)),
+                mock.patch.dict(
+                    MODULE.os.environ, {"NVM_DIR": str(root / ".nvm")}, clear=False
+                ),
+                mock.patch.object(
+                    MODULE,
+                    "_capture",
+                    side_effect=["v20.19.0", "v22.23.1", "v22.23.1", "10.9.4"],
+                ),
+            ):
+                environment = MODULE._verify_node_baseline(worktree, [])
+        self.assertEqual(environment["PATH"].split(":", 1)[0], str(nvm_node.parent))
 
     def test_candidate_script_is_known_ci_governance(self) -> None:
         classifier_path = ROOT / "scripts" / "classify-ci-impact.py"
