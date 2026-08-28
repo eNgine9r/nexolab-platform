@@ -160,6 +160,17 @@ replay may carry an explicit configuration-version identifier only when that ver
 effective at the requested `observation_at`; what-if calculations against another version are a
 separate non-authoritative capability and must not be persisted as canonical derived history.
 
+Circuit lifecycle is also a mandatory historical calculation gate rather than mutable display-only
+metadata. Circuit lifecycle history uses non-overlapping half-open `[effective_from, effective_to)`
+intervals and every state version carries an explicit `calculation_enabled` boolean. Canonical
+derived calculation requires the single lifecycle state effective at `observation_at` to have
+`calculation_enabled = true`; inactive/retired/otherwise disabled periods therefore produce
+`unavailable` rather than current derived values. At an exact lifecycle transition the state whose
+`effective_from` equals the transition timestamp is effective immediately. Same-timestamp lifecycle
+changes are serialized by a monotonic revision sequence, with only the final revision allowed to own
+a non-empty interval; overlapping or non-unique effective states fail closed. Historical replay uses
+this as-of lifecycle history, never the circuit's current wall-clock status.
+
 ### 6. 4–20 mA acquisition
 
 `4–20 mA` is an electrical signal class, not a refrigeration metric. The canonical acquisition
@@ -389,7 +400,17 @@ At minimum the calculation pipeline must reject or explicitly classify:
   monotonic revision sequence, and only the final revision may own a non-empty interval beginning at
   that timestamp; intermediate same-timestamp revisions are zero-width audit records. Any remaining
   overlapping/non-unique effective state at either timestamp fails closed as `unavailable`;
-- missing/expired/unacceptable calibration state where the metric policy requires calibration;
+- missing/expired/unacceptable calibration state where the versioned metric policy requires
+  calibration. Calibration records use non-overlapping half-open `[valid_from, valid_to)` validity;
+  a record is acceptable at time `t` only when `valid_from <= t < valid_to`, or when `valid_to = null`
+  and `valid_from <= t`. At exact expiry `t = valid_to` the old calibration is no longer valid; a
+  renewal with `valid_from` equal to that timestamp takes effect immediately. Same-timestamp
+  calibration changes use a monotonic revision sequence and only the final revision may own a
+  non-empty interval beginning at that timestamp. Zero or multiple acceptable records at a required
+  evaluation time fail closed. For every calibration-required input, sample-time calibration
+  acceptance at `captured_at` is mandatory; the pinned calculation-policy version also carries an
+  explicit `require_calibration_at_observation` flag, and when true the calibration must independently
+  be acceptable at `observation_at`;
 - unknown engineering unit or pressure reference;
 - missing atmospheric reference for gauge pressure;
 - unsupported refrigerant/profile version;
@@ -405,7 +426,9 @@ Every derived value must be explainable. The calculation result/provenance contr
 resolve at least:
 
 - circuit/configuration version;
-- calculation-policy version;
+- circuit lifecycle state/version, validity interval and `calculation_enabled` value resolved at
+  `observation_at`;
+- calculation-policy version, including the calibration-observation requirement used for each input;
 - refrigerant-profile and property-provider data/library version;
 - derived metric identifier and formula version;
 - `observation_at`, `effective_at` and `computed_at`;
@@ -418,8 +441,9 @@ resolve at least:
   calculation `observation_at`;
 - acquisition/scaling-profile acceptance state resolved at both each source sample's `captured_at`
   and the calculation `observation_at`;
-- calibration state/validity resolved both at the selected sample's `captured_at` and at
-  `observation_at` when the metric policy requires current calibration acceptance;
+- calibration record/version, state and half-open validity interval resolved at the selected
+  sample's `captured_at`, plus the independently resolved observation-time calibration record/state
+  whenever the pinned policy sets `require_calibration_at_observation = true`;
 - pressure-reference conversion applied, including atmospheric source when used;
 - input units and deterministic conversions;
 - resulting availability/quality state and reason codes.
@@ -429,9 +453,11 @@ result provenance. Production-time metadata and observation-time acceptance are 
 later calibration renewal or profile change must not be attributed to a sample that was produced
 under an older version, and a later instrument lifecycle transition must not retroactively change
 why a historical derived result was accepted or rejected. Instrument and acquisition-profile
-acceptance at `observation_at` are mandatory gates for every derived calculation. Calibration has the
-additional versioned metric-policy rule described above; whenever that policy requires calibration,
-any required production-time or observation-time calibration gate failing makes the result
+acceptance at `observation_at` are mandatory gates for every derived calculation. Circuit lifecycle
+`calculation_enabled` at `observation_at` is also mandatory. Calibration has the additional pinned
+metric-policy rule described above: sample-time acceptance is mandatory for every
+calibration-required input, and observation-time acceptance is mandatory exactly when
+`require_calibration_at_observation = true`. Any required calibration gate failing makes the result
 `unavailable`.
 
 A report/export must be able to trace a derived value back to this provenance without querying a
