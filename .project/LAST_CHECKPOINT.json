@@ -3,23 +3,19 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T09:26:00+03:00",
+  "timestamp": "2026-08-28T09:43:00+03:00",
   "actor": "ChatGPT",
-  "event": "rfx00_missing_atmospheric_fail_closed_aligned",
+  "event": "rfx00_completed_pending_merge",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
-  "active_work": {
-    "issue": 715,
-    "title": "RFX-00: Define refrigeration monitoring architecture and thermodynamic derived metrics",
-    "branch": "arch/715-rfx00-refrigeration-architecture"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Verify corrected ADR 0010 exact head: missing atmospheric reference and atmospheric source failing required quality/freshness/calibration gates are consistently unavailable; obtain fresh Codex review and required GREEN CI before recording #715 evidence.",
+  "next_action": "Verify the final state-only PR #716 head, merge only on GREEN, refresh main and verify post-merge main; then prepare the next RFX Work Package for Codex without starting implementation.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
