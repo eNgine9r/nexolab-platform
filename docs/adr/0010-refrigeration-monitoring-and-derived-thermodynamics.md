@@ -413,20 +413,33 @@ At minimum the calculation pipeline must reject or explicitly classify:
   that timestamp; intermediate same-timestamp revisions are zero-width audit records. Any remaining
   overlapping/non-unique effective state at either timestamp fails closed as `unavailable`;
 - missing/expired/unacceptable calibration state where the versioned metric policy requires
-  calibration. Calibration records use non-overlapping half-open `[valid_from, valid_to)` validity;
-  interval membership alone never implies acceptance. The pinned calculation-policy version carries
-  an explicit non-empty `accepted_calibration_states` set for every calibration-required input. A
-  calibration record is acceptable at time `t` only when its state is a member of that pinned set and
-  `valid_from <= t < valid_to`, or when `valid_to = null` and `valid_from <= t`. Missing/unknown states,
-  states not present in the pinned set, or an empty/missing accepted-state set fail closed. At exact
-  expiry `t = valid_to` the old calibration is no longer valid; a renewal with `valid_from` equal to
-  that timestamp takes effect immediately. Same-timestamp calibration changes use a monotonic revision
-  sequence and only the final revision may own a non-empty interval beginning at that timestamp. Zero
-  or multiple acceptable records at a required evaluation time fail closed. For every
-  calibration-required input, sample-time calibration acceptance at `captured_at` is mandatory; the
-  pinned calculation-policy version also carries an explicit `require_calibration_at_observation`
-  flag, and when true the calibration must independently satisfy the same pinned
-  `accepted_calibration_states` set at `observation_at`;
+  calibration. Calibration uses the canonical versioned vocabulary `calibration-state/v1` with exactly
+  `valid`, `due`, `expired`, `revoked` and `unknown`. Both calibration records and every policy entry in
+  `accepted_calibration_states` must declare this vocabulary version and validate against it. The
+  policy set must be a non-empty subset of `{valid, due}`; `expired`, `revoked` and `unknown` are
+  fail-closed states and can never be accepted by policy. A future vocabulary extension requires a new
+  explicit vocabulary version and a migration/compatibility rule rather than accepting arbitrary
+  strings.
+
+  Calibration records use non-overlapping half-open `[valid_from, valid_to)` validity, and interval
+  membership alone never implies acceptance. At every required evaluation time `t`, first resolve the
+  complete set of **interval-effective records** using only the interval predicate
+  `valid_from <= t < valid_to`, or `valid_from <= t` when `valid_to = null`, without filtering by
+  calibration state. The set must contain exactly one record; zero or multiple interval-effective
+  records are invalid history and make the derived result `unavailable`. Only after uniqueness is
+  established may that record's validated state be tested against the pinned
+  `accepted_calibration_states` set. This ordering prevents overlapping/corrupt history from becoming
+  acceptable merely because only one overlapping record has an accepted state.
+
+  At exact expiry `t = valid_to` the old calibration is no longer interval-effective; a renewal with
+  `valid_from` equal to that timestamp takes effect immediately. Same-timestamp calibration changes
+  use a monotonic revision sequence and only the final revision may own a non-empty interval beginning
+  at that timestamp. For every calibration-required input, sample-time calibration acceptance at
+  `captured_at` is mandatory; the pinned calculation-policy version also carries an explicit
+  `require_calibration_at_observation` flag, and when true the calibration must independently pass the
+  same unique-record resolution and `accepted_calibration_states` membership check at
+  `observation_at`;
+
 - unknown engineering unit or pressure reference;
 - missing atmospheric reference for gauge pressure;
 - unsupported refrigerant/profile version;
