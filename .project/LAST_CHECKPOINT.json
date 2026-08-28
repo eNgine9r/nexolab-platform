@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T12:52:00+03:00",
+  "timestamp": "2026-08-28T13:15:49+03:00",
   "actor": "ChatGPT",
-  "event": "issue_725_exact_diff_parity_review_fix",
+  "event": "issue_725_rebased_after_security_merge",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
@@ -22,16 +22,19 @@
       "state_only_fixture": "green_without_node_install",
       "product_fixture": "full_core_plan_selected",
       "unknown_fixture": "red_fail_closed",
-      "committed_candidate_gate": "partial_on_production_pi_full_core_requires_workstation_or_dedicated_ci_host",
       "nvm_exact_node_resolution": "v22.23.1_verified",
       "disk_backed_worktree_default": "verified",
+      "exact_base_head_diff_parity": "verified_with_diverged_base_regression",
       "production_pi_core_preflight": "dependency_free_checks_and_node_gate_passed_then_stopped_during_npm_ci_for_resource_pressure",
       "production_pi_observed_pressure": "~3.0GiB_RAM_used_and_~3.2_of_3.5GiB_swap_used",
-      "exact_base_head_diff_parity": "verified_with_diverged_base_regression"
+      "security_issue_719": "completed_exact_head_52fd33f90b8f606a0b44256ab8b8f234fcf9f89a",
+      "current_main_base": "1f2654dec0f02263aec6c2314187cfa62e5723e9",
+      "previous_candidate_core_quality_build": "green_on_c127c2479f97214ab8fceaf0a17a2d93cf58ec39",
+      "previous_candidate_dashboard": "one_transient_live_retry_failure_old_base_not_merge_authority"
     }
   },
   "observations": [],
-  "next_action": "Push the exact-diff parity review fix once, require the new exact-head routed GitHub workflows and NEXOLAB Merge Gate GREEN, then merge PR #726.",
+  "next_action": "Complete merge resolution on current main, run focused/state/CI-policy checks, push one coherent updated candidate, and require fresh exact-head GitHub routed workflows plus NEXOLAB Merge Gate GREEN before merging PR #726.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
