@@ -3,38 +3,35 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T12:58:00+03:00",
+  "timestamp": "2026-08-28T13:08:00+03:00",
   "actor": "ChatGPT",
-  "event": "issue_719_resume_after_ci_routing_merge",
+  "event": "product_owner_deferred_rfx_program_until_post_presentation",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
-  "active_work": {
-    "issue": 719,
-    "title": "Reconcile fresh Device Agent vulnerability scan delta",
-    "branch": "chore/719-retire-stale-cve-14456-exception"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "active_issue_evidence": {
-      "ci_routing_issue": 723,
+    "product_priority_decision": {
+      "issue": 727,
+      "decision_owner": "Product Owner",
+      "decision_date": "2026-08-28",
+      "scope": "RFX-01 through RFX-19C",
+      "status": "deferred_indefinitely_until_post_presentation_explicit_resume",
+      "rfx00": "accepted_and_merged",
+      "rfx01_issue": 717,
+      "rfx01_status": "blocked_product_defer",
+      "rfx01_pr": 718,
+      "rfx01_pr_state": "closed_unmerged",
+      "rfx01_checkpoint_sha": "61bf4eac3f6c87b92786327e1b63416977057583",
+      "security_maintenance_pr": 721,
+      "security_maintenance_merged_sha": "1f2654dec0f02263aec6c2314187cfa62e5723e9",
       "ci_routing_pr": 724,
-      "ci_routing_merged_sha": "8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb",
-      "security_pr": 721,
-      "security_branch_head_before_main_merge": "78f6a68e7b9898c2f19752e2cb08d4144e6c90a5",
-      "stale_openssl_exception_retired": true,
-      "fresh_expat_finding": "libexpat1/CVE-2026-66046 HIGH no fixed version",
-      "expat_xml_reachability": "unreachable in actual Device Agent source/dependencies",
-      "expat_exception_expires_on": "2026-09-02",
-      "local_supply_chain_policy_tests": "30_passed",
-      "fresh_review_p2_count": 4,
-      "fresh_review_p2_state": "addressed_pending_exact_head_ci",
-      "openssl_maintenance_action": "completed",
-      "expat_maintenance_due_on": "2026-09-02"
+      "ci_routing_merged_sha": "8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb"
     }
   },
   "observations": [],
-  "next_action": "Run focused state/security/CI-policy verification for the four addressed PR #721 review findings, commit/push one review-fix head, resolve the review threads, require exact-head Container Supply Chain/Telemetry/Core/NEXOLAB Merge Gate GREEN, then merge #721. After maintenance is stable, close/defer RFX-01 PR #718 and record the Product Owner pause of RFX-01 through RFX-19C.",
+  "next_action": "Do not resume RFX-01 through RFX-19C until the Product Owner explicitly restarts the programme after the main presentation. Until then, work only on user-directed presentation-readiness, bugs, security maintenance, or independently justified production-readiness items. Any RFX restart begins with a fresh Team Lead source-of-truth audit; do not merge stale PR #718 by default.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

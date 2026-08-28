@@ -30,9 +30,9 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
 
-## Security maintenance — #719 fresh Device Agent scan reconciliation
+## Product priority hold — RFX-01 through RFX-19C
 
-The CI-routing blocker #723 is cleared by GREEN PR #724 merged at `8e9333fe...`. PR #721 now remains the active soft merge blocker: it retires stale `libssl3t64/CVE-2026-14456` policy and records one exact, time-bounded `device-agent + libexpat1 + CVE-2026-66046` HIGH exception through **2026-09-02** based on no XML parser/input reachability and no consumable fixed Debian package. PR #721 must be re-verified on current `main`; no runtime/dependency/base-image change, deployment, Modbus write or hardware action is authorized.
+Issue #727 records an intentional Product Owner defer of **RFX-01 through RFX-19C until after the main presentation**. This is not a technical blocker and does not invalidate accepted RFX-00 / ADR 0010. Issue #717 is non-Ready/blocked by product decision; PR #718 is closed unmerged and retained only as a historical checkpoint. Do not auto-advance to RFX-02 or reopen/merge the pre-pause RFX-01 branch. Resume requires an explicit Product Owner restart plus a fresh Team Lead source-of-truth audit.
 
 ## Security maintenance — #704 verified; no current merge blocker
 
@@ -61,8 +61,10 @@ Opera Browser Connector private-address actions remain unsuitable for direct LAN
 - #696 refrigeration structural latest-value latency — completed; bounded `telemetry_latest` query and real Raspberry Pi benchmark evidence accepted.
 - #698 GitHub-hosted runner allocation recovery — completed; exact-head workflows execute normally again.
 - #704 container security reconciliation — completed with exact-head security/CI evidence; only time-bounded maintenance remains.
+- #719 / PR #721 fresh Device Agent security reconciliation — completed and merged at `1f2654dec0f02263aec6c2314187cfa62e5723e9`; #722 triage is completed.
+- #723 / PR #724 CI routing maintenance — completed and merged at `8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb`.
 - #690 risk-aware/path-targeted PR verification — completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`; post-merge Core CI and Acquisition Scale Acceptance are GREEN.
-- #715 RFX-00 refrigeration architecture ADR — completed on reviewed evidence head `65ac5b37780ea570f6f05ebafa7b6f64ff06912a`; PR #716 awaits only final state-only exact-head verification and merge.
+- #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority while RFX-01 through RFX-19C are product-deferred under #727.
 
 ## Safety boundaries
 
