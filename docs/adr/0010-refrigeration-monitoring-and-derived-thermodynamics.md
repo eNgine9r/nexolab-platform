@@ -296,6 +296,19 @@ not be silently borrowed from frontend polling intervals. An input timestamp lat
 `observation_at` by more than the configured maximum future-clock skew is invalid for the calculation
 and makes the derived result `unavailable`.
 
+Cross-input skew is evaluated **per derived metric dependency set**, not across every signal selected
+for the refrigeration circuit. For one derived metric instance, take the transitive set of physical
+source samples required by that metric after pressure-reference expansion (for example atmospheric
+pressure when a gauge-pressure source is used), then compute:
+
+```text
+cross_input_skew = max(required_source.captured_at) - min(required_source.captured_at)
+```
+
+Unrelated circuit measurements and inputs used only by other derived metrics are excluded. The
+metric becomes `unavailable` when this dependency-set skew exceeds its versioned calculation-policy
+limit.
+
 Derived availability uses three presentation states:
 
 - `available` — every required input is acceptable and the property query is inside its validated
@@ -309,21 +322,30 @@ The default/fail-safe rule is `unavailable`. A future Work Package may define na
 
 A derived result can never have a newer effective timestamp, better freshness or better quality
 than its least-trustworthy required input. The derived contract therefore separates
-`effective_at` from `computed_at`: `effective_at` is bounded by the oldest required source sample
-used in the calculation and must never be later than `observation_at`, while `computed_at` records
-when NEXOLAB performed the calculation. A source timestamp that is slightly future-dated but still
-inside the explicitly accepted future-clock-skew tolerance remains preserved in provenance; it does
-not move `effective_at` later than `observation_at`. Recalculation alone can never make stale or
-future-dated physical evidence appear fresh. Provenance records `observation_at`, `computed_at`,
-`effective_at` and every source sample timestamp so historical/backfilled availability decisions are
-reproducible.
+`effective_at` from `computed_at`. For any `available` or `degraded` numeric result with a complete
+required physical-source dependency set, `effective_at` is exactly:
+
+```text
+effective_at = min(observation_at, min(required_source.captured_at))
+```
+
+`computed_at` records when NEXOLAB performed the calculation. A source timestamp that is slightly
+future-dated but still inside the explicitly accepted future-clock-skew tolerance remains preserved
+in provenance; it does not move `effective_at` later than `observation_at`. Recalculation alone can
+never make stale or future-dated physical evidence appear fresh. An `unavailable` result with an
+incomplete required-source set carries `effective_at = null`; if all required sources are present but
+a later quality/domain gate rejects them, the same exact formula is retained for diagnostic
+provenance. Provenance records `observation_at`, `computed_at`, `effective_at` and every source sample
+timestamp so historical/backfilled availability decisions are reproducible.
 
 At minimum the calculation pipeline must reject or explicitly classify:
 
 - missing required binding or sample;
 - canonical telemetry `sensor_error`, `communication_error` or `unknown` quality;
 - stale sample, excessive cross-input timestamp skew or excessive future-clock skew;
-- inactive/unaccepted instrument or acquisition profile;
+- instrument or acquisition profile that was not accepted at `observation_at` (historical/backfill
+  resolves the acceptance state at that historical `observation_at`, never the current wall-clock
+  state);
 - missing/expired/unacceptable calibration state where the metric policy requires calibration;
 - unknown engineering unit or pressure reference;
 - missing atmospheric reference for gauge pressure;
@@ -349,9 +371,8 @@ resolve at least:
 - the instrument identity/version, acquisition/scaling-profile version and calibration
   record/version that were effective at each selected source sample's `captured_at` and therefore
   produced/interpreted that persisted engineering value;
-- instrument lifecycle/acceptance state resolved at `observation_at` when the calculation policy
-  requires current acceptance;
-- acquisition/scaling-profile acceptance state resolved at `observation_at` when required by policy;
+- instrument lifecycle/acceptance state resolved at `observation_at`;
+- acquisition/scaling-profile acceptance state resolved at `observation_at`;
 - calibration state/validity resolved both at the selected sample's `captured_at` and at
   `observation_at` when the metric policy requires current calibration acceptance;
 - pressure-reference conversion applied, including atmospheric source when used;
@@ -362,8 +383,11 @@ Those quality-gate references must resolve immutable historical metadata or be s
 result provenance. Production-time metadata and observation-time acceptance are separate facts: a
 later calibration renewal or profile change must not be attributed to a sample that was produced
 under an older version, and a later instrument lifecycle transition must not retroactively change
-why a historical derived result was accepted or rejected. When policy requires both production-time
-validity and current acceptance, either failing gate makes the result `unavailable`.
+why a historical derived result was accepted or rejected. Instrument and acquisition-profile
+acceptance at `observation_at` are mandatory gates for every derived calculation. Calibration has the
+additional versioned metric-policy rule described above; whenever that policy requires calibration,
+any required production-time or observation-time calibration gate failing makes the result
+`unavailable`.
 
 A report/export must be able to trace a derived value back to this provenance without querying a
 cloud service or reconstructing meaning from UI labels.
