@@ -32,7 +32,7 @@ Blocked until the Product Owner confirms the temporary external RS-485 owner has
 
 ## Security maintenance — #704 verified; no current merge blocker
 
-Issue #704 has exact-head repository verification GREEN at `e2f7857e381600d76dd4100cea2c776bab8868e8`: fresh Container Supply Chain, Telemetry service, Core CI and NEXOLAB Merge Gate all passed. The security interrupt no longer blocks repository work; #690 repository verification is complete and pending final state-only merge reconciliation. Remaining maintenance is deadline-driven rather than a current merge blocker: Device Agent `libssl3t64/CVE-2026-14456` expires **2026-08-30**; exact Device Agent and telemetry-service SQLite decisions plus telemetry `libcjson1/CVE-2026-16554` and `libwebsockets19t64/CVE-2026-78161` expire **2026-09-02** and must be removed earlier if findings disappear, fixes become consumable, reachability/version evidence changes or severity becomes Critical. No production/runtime mutation is authorized by this security reconciliation.
+Issue #704 has exact-head repository verification GREEN at `e2f7857e381600d76dd4100cea2c776bab8868e8`: fresh Container Supply Chain, Telemetry service, Core CI and NEXOLAB Merge Gate all passed. The security interrupt no longer blocks repository work; #690 is completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`. Remaining maintenance is deadline-driven rather than a current merge blocker: Device Agent `libssl3t64/CVE-2026-14456` expires **2026-08-30**; exact Device Agent and telemetry-service SQLite decisions plus telemetry `libcjson1/CVE-2026-16554` and `libwebsockets19t64/CVE-2026-78161` expire **2026-09-02** and must be removed earlier if findings disappear, fixes become consumable, reachability/version evidence changes or severity becomes Critical. No production/runtime mutation is authorized by this security reconciliation.
 
 ## Issue #709 — post-merge controlled deployment authorization
 
@@ -57,7 +57,8 @@ Opera Browser Connector private-address actions remain unsuitable for direct LAN
 - #696 refrigeration structural latest-value latency — completed; bounded `telemetry_latest` query and real Raspberry Pi benchmark evidence accepted.
 - #698 GitHub-hosted runner allocation recovery — completed; exact-head workflows execute normally again.
 - #704 container security reconciliation — completed with exact-head security/CI evidence; only time-bounded maintenance remains.
-- #690 risk-aware/path-targeted PR verification — repository verification completed on exact product head `6b91236f87695c0901dd5498c7374657665d392c` with required external workflows and NEXOLAB Merge Gate GREEN; final state-only merge reconciliation remains.
+- #690 risk-aware/path-targeted PR verification — completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`; post-merge Core CI and Acquisition Scale Acceptance are GREEN.
+- #715 RFX-00 refrigeration architecture ADR — completed on reviewed evidence head `65ac5b37780ea570f6f05ebafa7b6f64ff06912a`; PR #716 awaits only final state-only exact-head verification and merge.
 
 ## Safety boundaries
 
