@@ -121,6 +121,14 @@ A semantic binding must reference the canonical signal identity rather than infe
 human label. Historical validity is required so calculations and laboratory evidence can resolve
 which signal occupied a role at a given time.
 
+For a given organization, refrigeration circuit and semantic role, accepted binding validity
+intervals must not overlap. A handover closes or end-bounds the previous binding before the new
+binding becomes effective. Resolution at any calculation observation time must therefore return
+exactly one accepted signal for each required role. Zero resolvable bindings makes the derived
+metric `unavailable`; more than one is an invalid/ambiguous configuration and also fails closed as
+`unavailable` rather than selecting arbitrarily. Historical import or migration must preserve this
+non-overlap invariant or quarantine the ambiguous interval until explicitly reconciled.
+
 ### 5. Refrigeration circuit
 
 A **Refrigeration Circuit** is the calculation boundary that owns thermodynamic configuration and
@@ -253,12 +261,15 @@ formula, provenance or quality contract defined here.
 
 ### 10. Timestamp, freshness and quality propagation
 
-Every calculation is evaluated at a defined observation time and against a versioned calculation
-policy. Inputs do not need identical timestamps, but every required input must satisfy the policy's
-maximum age, cross-input skew and maximum future-clock-skew limits. Those limits are domain
-configuration and must not be silently borrowed from frontend polling intervals. An input timestamp
-later than the observation time by more than the configured maximum future-clock skew is invalid for
-the calculation and makes the derived result `unavailable`.
+Every calculation is evaluated at an explicit `observation_at` timestamp and against a versioned
+calculation policy. `observation_at` is part of the persisted result/provenance contract: it is the
+time against which sample age and future-clock-skew validity were evaluated, and it is distinct from
+both source sample time and calculation execution time. Inputs do not need identical timestamps, but
+every required input must satisfy the policy's maximum age, cross-input skew and maximum
+future-clock-skew limits. Those limits are domain configuration and must not be silently borrowed
+from frontend polling intervals. An input timestamp later than `observation_at` by more than the
+configured maximum future-clock skew is invalid for the calculation and makes the derived result
+`unavailable`.
 
 Derived availability uses three presentation states:
 
@@ -274,12 +285,13 @@ The default/fail-safe rule is `unavailable`. A future Work Package may define na
 A derived result can never have a newer effective timestamp, better freshness or better quality
 than its least-trustworthy required input. The derived contract therefore separates
 `effective_at` from `computed_at`: `effective_at` is bounded by the oldest required source sample
-used in the calculation and must never be later than the calculation observation time, while
-`computed_at` records when NEXOLAB performed the calculation. A source timestamp that is slightly
-future-dated but still inside the explicitly accepted future-clock-skew tolerance remains preserved
-in provenance; it does not move `effective_at` into the future. Recalculation alone can never make
-stale or future-dated physical evidence appear fresh. Provenance records every source sample
-timestamp.
+used in the calculation and must never be later than `observation_at`, while `computed_at` records
+when NEXOLAB performed the calculation. A source timestamp that is slightly future-dated but still
+inside the explicitly accepted future-clock-skew tolerance remains preserved in provenance; it does
+not move `effective_at` later than `observation_at`. Recalculation alone can never make stale or
+future-dated physical evidence appear fresh. Provenance records `observation_at`, `computed_at`,
+`effective_at` and every source sample timestamp so historical/backfilled availability decisions are
+reproducible.
 
 At minimum the calculation pipeline must reject or explicitly classify:
 
@@ -306,6 +318,7 @@ resolve at least:
 - calculation-policy version;
 - refrigerant-profile and property-provider data/library version;
 - derived metric identifier and formula version;
+- `observation_at`, `effective_at` and `computed_at`;
 - each required signal/binding identity;
 - source telemetry event identity and `captured_at` for each physical input;
 - pressure-reference conversion applied, including atmospheric source when used;
