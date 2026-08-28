@@ -15,6 +15,8 @@ from app.alerts.repository import AlertRepository
 from app.api import create_api_router
 from app.config import Settings
 from app.ingestion import TelemetryIngestor
+from app.instrumentation.api import create_instrumentation_router
+from app.instrumentation.repository import InstrumentationRepository
 from app.live import LiveTelemetryHub
 from app.live_api import create_live_router
 from app.live_dashboard.api import create_live_dashboard_router
@@ -99,6 +101,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     sensor_configuration_repository = PostgresSensorConfigurationRepository(database)
     live_dashboard_repository = LiveDashboardRepository(database)
     security_repository = SecurityRepository(database)
+    instrumentation_repository = InstrumentationRepository(database)
     security_dependencies, local_auth_service = _create_security_runtime(
         resolved,
         database,
@@ -250,6 +253,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.report_output_repository = report_output_repository
     app.state.report_output_query_repository = report_output_query_repository
     app.state.security_repository = security_repository
+    app.state.instrumentation_repository = instrumentation_repository
     app.state.security_dependencies = security_dependencies
     app.state.local_auth_service = local_auth_service
     app.state.version_management_store = version_management_store
@@ -261,6 +265,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if local_auth_service is not None:
         app.include_router(create_local_auth_router(local_auth_service))
     app.include_router(create_security_router(security_repository, security_dependencies))
+    app.include_router(
+        create_instrumentation_router(
+            instrumentation_repository,
+            security_dependencies=security_dependencies,
+            security_repository=security_repository,
+            default_organization_id=resolved.auth_default_organization_id,
+        )
+    )
     app.include_router(
         create_version_management_router(
             version_management_store,

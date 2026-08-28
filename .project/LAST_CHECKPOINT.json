@@ -3,19 +3,23 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T09:43:00+03:00",
+  "timestamp": "2026-08-28T11:01:34+03:00",
   "actor": "ChatGPT",
-  "event": "rfx00_completed_pending_merge",
+  "event": "issue_717_review_candidate",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 717,
+    "title": "Add generalized instrument and signal registry foundation",
+    "branch": "feat/717-rfx01-instrument-signal-registry"
+  },
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Verify the final state-only PR #716 head, merge only on GREEN, refresh main and verify post-merge main; then prepare the next RFX Work Package for Codex without starting implementation.",
+  "next_action": "Commit and push the coherent RFX-01 candidate, open the focused Issue #717 Pull Request, require exact-head Telemetry service/Core CI/NEXOLAB Merge Gate, and complete a fresh focused review with no unresolved P1/P2.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
