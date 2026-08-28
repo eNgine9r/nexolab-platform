@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T06:18:00+03:00",
+  "timestamp": "2026-08-28T06:43:00+03:00",
   "actor": "ChatGPT",
-  "event": "rfx00_binding_and_observation_review_findings_addressed",
+  "event": "rfx00_deterministic_selection_review_findings_addressed",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
@@ -19,7 +19,7 @@
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Verify corrected accepted ADR 0010 exact head with explicit observation_at provenance and non-overlapping semantic-role bindings, obtain fresh Codex review, record new evidence, complete #715, merge PR #716, then prepare RFX-01 for Codex.",
+  "next_action": "Verify corrected accepted ADR 0010 exact head with half-open semantic bindings, deterministic source-sample selection and immutable quality-gate provenance; obtain fresh Codex review, record evidence, complete #715, merge PR #716, then prepare RFX-01 for Codex.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

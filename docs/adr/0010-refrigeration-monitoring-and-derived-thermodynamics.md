@@ -122,12 +122,15 @@ human label. Historical validity is required so calculations and laboratory evid
 which signal occupied a role at a given time.
 
 For a given organization, refrigeration circuit and semantic role, accepted binding validity
-intervals must not overlap. A handover closes or end-bounds the previous binding before the new
-binding becomes effective. Resolution at any calculation observation time must therefore return
-exactly one accepted signal for each required role. Zero resolvable bindings makes the derived
-metric `unavailable`; more than one is an invalid/ambiguous configuration and also fails closed as
-`unavailable` rather than selecting arbitrarily. Historical import or migration must preserve this
-non-overlap invariant or quarantine the ambiguous interval until explicitly reconciled.
+intervals must not overlap. Binding validity uses half-open interval semantics
+`[valid_from, valid_to)`, with `valid_to = null` representing an open-ended interval. Therefore a
+handover may set the previous `valid_to` equal to the replacement `valid_from`; at that exact instant
+the previous binding is no longer valid and the replacement is valid. Resolution at any calculation
+`observation_at` must return exactly one accepted signal for each required role. Zero resolvable
+bindings makes the derived metric `unavailable`; more than one is an invalid/ambiguous configuration
+and also fails closed as `unavailable` rather than selecting arbitrarily. Historical import or
+migration must preserve this non-overlap/half-open invariant or quarantine the ambiguous interval
+until explicitly reconciled.
 
 ### 5. Refrigeration circuit
 
@@ -264,12 +267,28 @@ formula, provenance or quality contract defined here.
 Every calculation is evaluated at an explicit `observation_at` timestamp and against a versioned
 calculation policy. `observation_at` is part of the persisted result/provenance contract: it is the
 time against which sample age and future-clock-skew validity were evaluated, and it is distinct from
-both source sample time and calculation execution time. Inputs do not need identical timestamps, but
-every required input must satisfy the policy's maximum age, cross-input skew and maximum
-future-clock-skew limits. Those limits are domain configuration and must not be silently borrowed
-from frontend polling intervals. An input timestamp later than `observation_at` by more than the
-configured maximum future-clock skew is invalid for the calculation and makes the derived result
-`unavailable`.
+both source sample time and calculation execution time.
+
+For each uniquely resolved semantic binding, source-sample selection is deterministic and occurs
+before quality/freshness gates:
+
+1. prefer samples with `captured_at <= observation_at` and select the greatest
+   `(captured_at, event_id)` tuple, using canonical `event_id` descending as the equal-timestamp
+   tie-breaker;
+2. a slightly future-dated sample never outranks any sample at or before `observation_at`;
+3. only when no sample exists at or before `observation_at` may a calculation policy explicitly allow
+   a future candidate, in which case select the smallest `captured_at > observation_at` (nearest
+   future sample) and use canonical `event_id` descending for equal timestamps;
+4. the selected candidate then passes the normal quality, maximum-age, future-clock-skew and
+   cross-input-skew gates. A future candidate outside the configured tolerance is `unavailable`.
+
+This selection algorithm is part of the versioned calculation policy. Implementations must not use
+arrival order, database physical order or UI refresh timing as an implicit tie-breaker. Inputs do not
+need identical timestamps, but every selected required input must satisfy the policy's maximum age,
+cross-input skew and maximum future-clock-skew limits. Those limits are domain configuration and must
+not be silently borrowed from frontend polling intervals. An input timestamp later than
+`observation_at` by more than the configured maximum future-clock skew is invalid for the calculation
+and makes the derived result `unavailable`.
 
 Derived availability uses three presentation states:
 
@@ -319,11 +338,19 @@ resolve at least:
 - refrigerant-profile and property-provider data/library version;
 - derived metric identifier and formula version;
 - `observation_at`, `effective_at` and `computed_at`;
-- each required signal/binding identity;
+- each required signal/binding identity and binding validity interval;
 - source telemetry event identity and `captured_at` for each physical input;
+- instrument identity/version and acceptance state resolved at `observation_at`;
+- acquisition/scaling-profile identity/version and acceptance state resolved at `observation_at`;
+- calibration record/version, validity interval and state used by every input whose policy requires
+  calibration;
 - pressure-reference conversion applied, including atmospheric source when used;
 - input units and deterministic conversions;
 - resulting availability/quality state and reason codes.
+
+Those quality-gate references must resolve immutable historical metadata or be snapshotted in the
+result provenance. A later calibration renewal, profile acceptance change or instrument lifecycle
+transition must not retroactively change why a historical derived result was accepted or rejected.
 
 A report/export must be able to trace a derived value back to this provenance without querying a
 cloud service or reconstructing meaning from UI labels.
