@@ -151,3 +151,46 @@ Independent Modbus scanner: not started
 Production Device Agent restart: not performed
 Persistent data deletion: none
 ```
+
+## 2026-08-28 planned Bus 2 commissioning
+
+The Product Owner has a second USB–RS-485 adapter available and intends to use the new isolated physical bus for a refrigerated-display controller plus an XJP60D analog acquisition module.
+
+The intended signal boundary is:
+
+```text
+Raspberry Pi 5
+├─ existing Bus 1 -> current production RS-485 devices
+└─ candidate Bus 2 -> refrigerated-display controller (read-only Modbus)
+                   -> Dixell XJP60D (read-only Modbus)
+                        ├─ pressure transmitter 4-20 mA
+                        ├─ Rheonik / flow signal 4-20 mA, if verified
+                        └─ relative-humidity transmitter 4-20 mA
+```
+
+The 4–20 mA instruments are **not** RS-485 nodes. They terminate on compatible XJP60D analogue inputs; NEXOLAB reads the XJP60D over RS-485. Exact input capability, scaling and instrument semantics remain hardware/profile evidence and must not be inferred from the controller name.
+
+A host-side helper is provided at:
+
+```text
+services/device-agent/tools/commission_rs485_bus.py
+```
+Its default action only inventories `/dev/serial/by-id/` and stores sanitized adapter evidence. An active scan requires explicit `--scan`; the helper refuses the existing production adapter, fails closed if the selected port is already owned by another process, and delegates discovery to the existing read-only scanner (`FC03`, `FC04`, `43/14` only).
+
+Example inventory after inserting the second adapter:
+
+```bash
+python3 services/device-agent/tools/commission_rs485_bus.py \
+  --existing-port /dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0
+```
+
+After the new stable path is identified and Bus 2 contains only the intended isolated segment, run bounded read-only discovery:
+
+```bash
+python3 services/device-agent/tools/commission_rs485_bus.py \
+  --existing-port /dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0 \
+  --adapter /dev/serial/by-id/<NEW_ADAPTER> \
+  --scan
+```
+
+The helper writes evidence under `runtime/evidence/rs485-bus2-<UTC timestamp>/` and **does not** activate `RS485_BUS_CONFIG_JSON`, mutate the acquisition registry, restart Device Agent, change controller configuration, or perform a production cutover. Those actions remain gated by review of the discovery evidence and explicit hardware acceptance.
