@@ -547,15 +547,18 @@
       "issue": 725,
       "title": "CI-OPT-01: Add local candidate verification gate before remote GitHub CI",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "depends_on": [],
       "branch": "feat/725-local-candidate-gate",
       "evidence": {
-        "focused_routing_tests": "9_passed",
-        "ci_policy_tests": "102_passed_1_environment_skip",
+        "focused_routing_tests": "11_passed",
+        "ci_policy_tests": "104_passed_1_environment_skip",
         "state_only_fixture": "green_without_node_install",
         "product_fixture": "full_core_plan_selected",
-        "unknown_fixture": "red_fail_closed"
+        "unknown_fixture": "red_fail_closed",
+        "nvm_exact_node_resolution": "v22.23.1_verified",
+        "disk_backed_worktree_default": "verified",
+        "production_pi_full_core": "stopped_safely_during_npm_ci_due_resource_pressure_use_workstation_or_dedicated_ci_host"
       }
     }
   ],

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T12:34:05+03:00",
-  "actor": "Codex",
-  "event": "issue_725_local_candidate_gate_implementation",
+  "timestamp": "2026-08-28T12:43:00+03:00",
+  "actor": "ChatGPT",
+  "event": "issue_725_local_candidate_gate_pre_push",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
@@ -17,16 +17,20 @@
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "focused_routing_tests": "9_passed",
-      "ci_policy_tests": "102_passed_1_environment_skip",
+      "focused_routing_tests": "11_passed",
+      "ci_policy_tests": "104_passed_1_environment_skip",
       "state_only_fixture": "green_without_node_install",
       "product_fixture": "full_core_plan_selected",
       "unknown_fixture": "red_fail_closed",
-      "committed_candidate_gate": "pending"
+      "committed_candidate_gate": "partial_on_production_pi_full_core_requires_workstation_or_dedicated_ci_host",
+      "nvm_exact_node_resolution": "v22.23.1_verified",
+      "disk_backed_worktree_default": "verified",
+      "production_pi_core_preflight": "dependency_free_checks_and_node_gate_passed_then_stopped_during_npm_ci_for_resource_pressure",
+      "production_pi_observed_pressure": "~3.0GiB_RAM_used_and_~3.2_of_3.5GiB_swap_used"
     }
   },
   "observations": [],
-  "next_action": "Validate canonical state, commit the Issue #725 candidate, run the new gate against the exact commit, and leave the branch unpushed for review.",
+  "next_action": "Commit the Raspberry Pi host-boundary evidence, push one coherent Issue #725 candidate, open the focused PR, and require exact-head GitHub Core/external routed workflows plus NEXOLAB Merge Gate GREEN.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -147,6 +147,14 @@ remote workflows, checks executed and `GREEN` or `RED`. A `GREEN` result is pre-
 evidence only; GitHub exact-head required CI and `NEXOLAB Merge Gate` remain
 authoritative before merge.
 
+### Host selection
+
+Run the full non-state Core lane on a development workstation or dedicated CI host with
+sufficient RAM, swap and disk headroom. The production 4 GB Raspberry Pi is reserved
+for targeted ARM64/runtime/offline/hardware evidence and the dependency-free state lane;
+it is not the default host for `npm ci` plus a full Next.js production build. This keeps
+verification from competing with live NEXOLAB acquisition and monitoring services.
+
 ## State Model v2 interaction
 
 `State integrity` validates `schema_version: 2` through dependency-free tooling.
