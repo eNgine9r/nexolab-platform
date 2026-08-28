@@ -51,6 +51,24 @@ class LocalCandidateVerificationTests(unittest.TestCase):
         git("commit", "-q", "-m", "candidate")
         return temporary, repo, base_sha, git("rev-parse", "HEAD")
 
+
+    def test_default_verification_root_is_repository_parent_not_system_tmp(self) -> None:
+        temporary, repo, base_sha, candidate_sha = self.make_repository(
+            ".project/CURRENT_STATE.md"
+        )
+        self.addCleanup(temporary.cleanup)
+        observed: list[Path] = []
+        real_temporary_directory = MODULE.tempfile.TemporaryDirectory
+
+        def capture_root(*args: object, **kwargs: object):
+            observed.append(Path(kwargs["dir"]))
+            return real_temporary_directory(*args, **kwargs)
+
+        with mock.patch.object(MODULE.tempfile, "TemporaryDirectory", side_effect=capture_root):
+            result = MODULE.verify(repo, base_sha, candidate_sha, False)
+        self.assertEqual(result, 0)
+        self.assertEqual(observed, [repo.parent.resolve()])
+
     def test_state_only_selects_dependency_free_lane(self) -> None:
         impact = {
             "classes": ["state_only"],

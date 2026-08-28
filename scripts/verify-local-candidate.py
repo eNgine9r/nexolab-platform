@@ -197,7 +197,13 @@ def _compose_checks(worktree: Path) -> tuple[Check, ...]:
     )
 
 
-def verify(repo: Path, base_ref: str, candidate_ref: str, include_compose: bool) -> int:
+def verify(
+    repo: Path,
+    base_ref: str,
+    candidate_ref: str,
+    include_compose: bool,
+    worktree_root: Path | None = None,
+) -> int:
     base_sha = "UNRESOLVED"
     candidate_sha = "UNRESOLVED"
     impact: dict[str, object] = {}
@@ -205,7 +211,18 @@ def verify(repo: Path, base_ref: str, candidate_ref: str, include_compose: bool)
     error: str | None = None
     worktree: Path | None = None
 
-    with tempfile.TemporaryDirectory(prefix="nexolab-local-candidate-") as temporary:
+    configured_root = worktree_root or Path(
+        os.environ.get("NEXOLAB_VERIFICATION_ROOT", repo.parent)
+    )
+    verification_root = configured_root.expanduser().resolve()
+    if not verification_root.is_dir():
+        print(f"error=Verification root does not exist or is not a directory: {verification_root}")
+        print("final=RED")
+        return 1
+
+    with tempfile.TemporaryDirectory(
+        prefix=".nexolab-local-candidate-", dir=verification_root
+    ) as temporary:
         temporary_path = Path(temporary)
         worktree = temporary_path / "candidate"
         files_file = temporary_path / "changed-files.txt"
@@ -310,6 +327,14 @@ def main() -> int:
     parser.add_argument("--base", default="origin/main", help="Base ref (default: origin/main)")
     parser.add_argument("--candidate", default="HEAD", help="Candidate ref (default: HEAD)")
     parser.add_argument(
+        "--worktree-root",
+        type=Path,
+        help=(
+            "Disk-backed parent for the temporary verification worktree. "
+            "Defaults to the repository parent or NEXOLAB_VERIFICATION_ROOT."
+        ),
+    )
+    parser.add_argument(
         "--include-compose-validation",
         action="store_true",
         help="Also validate every infrastructure/compose/compose*.yaml contract",
@@ -324,7 +349,13 @@ def main() -> int:
         print(f"error={exc}", file=sys.stderr)
         print("final=RED")
         return 1
-    return verify(repo, args.base, args.candidate, args.include_compose_validation)
+    return verify(
+        repo,
+        args.base,
+        args.candidate,
+        args.include_compose_validation,
+        args.worktree_root,
+    )
 
 
 if __name__ == "__main__":
