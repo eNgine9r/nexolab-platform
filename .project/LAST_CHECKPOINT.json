@@ -3,19 +3,23 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T04:24:00+03:00",
+  "timestamp": "2026-08-28T05:53:00+03:00",
   "actor": "ChatGPT",
-  "event": "issue_715_repository_verified_ready_for_merge",
+  "event": "rfx00_review_findings_addressed",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 715,
+    "title": "RFX-00: Define refrigeration monitoring architecture and thermodynamic derived metrics",
+    "branch": "arch/715-rfx00-refrigeration-architecture"
+  },
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Commit the final state-only reconciliation for Issue #715, verify exact-head final PR checks, merge PR #716, refresh main, then select/create RFX-01 instrumentation and semantic-binding Work Package.",
+  "next_action": "Verify the accepted ADR 0010 exact head in PR #716, resolve review threads, record immutable evidence, complete #715, merge, refresh main, then prepare RFX-01 for Codex without implementing it.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

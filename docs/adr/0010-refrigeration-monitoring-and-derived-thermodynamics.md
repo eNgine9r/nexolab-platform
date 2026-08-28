@@ -1,6 +1,6 @@
 # ADR 0010: Refrigeration monitoring and derived thermodynamics
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-08-28
 - Decision owners: Product Owner, NEXOLAB engineering
 - Profile: `LOCAL_LAN`
