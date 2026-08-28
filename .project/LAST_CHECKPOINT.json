@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T06:10:00+03:00",
+  "timestamp": "2026-08-28T06:18:00+03:00",
   "actor": "ChatGPT",
-  "event": "rfx00_future_timestamp_review_finding_addressed",
+  "event": "rfx00_sprint_scope_review_finding_addressed",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
@@ -19,7 +19,7 @@
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Verify corrected accepted ADR 0010 exact head with future-clock-skew fail-safe semantics, obtain fresh Codex review, record new evidence, complete #715, merge PR #716, then prepare RFX-01 for Codex.",
+  "next_action": "Verify exact head after Sprint-scope reconciliation, obtain fresh Codex review, record immutable #715 evidence, complete and merge RFX-00, then prepare RFX-01 for Codex without implementation.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

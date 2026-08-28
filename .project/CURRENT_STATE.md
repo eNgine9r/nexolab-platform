@@ -4,7 +4,7 @@ Updated: 2026-08-28
 
 ## Current Sprint
 
-`PRODUCTION-READINESS-1` remains active only for outstanding hardware/recovery acceptance boundaries. Its repository gate is complete. RFX-00 / Issue #715 returned to final review in PR #716 after a valid timestamp-policy finding: ADR 0010 now requires bounded future-clock-skew handling so future-dated evidence cannot appear fresh or outrank real samples. Previous exact-head evidence is intentionally invalidated until this corrected accepted ADR passes required CI/NEXOLAB Merge Gate and fresh review.
+`PRODUCTION-READINESS-1` remains active for outstanding hardware/recovery acceptance boundaries and the current RFX-00 architecture review. Its production-readiness repository gate is complete. RFX-00 / Issue #715 returned to final review in PR #716 after a valid timestamp-policy finding: ADR 0010 now requires bounded future-clock-skew handling so future-dated evidence cannot appear fresh or outrank real samples. Previous exact-head evidence is intentionally invalidated until this corrected accepted ADR passes required CI/NEXOLAB Merge Gate and fresh review.
 
 Issue #681 state reconciliation is completed. Issue #679 is completed after real post-merge `linux/arm64` + local-auth dispatch `32832798392` passed the QEMU application-health, disconnected runtime, persistent-volume and auth-continuity gates and published a checksum-verified accepted recovery artifact for the exact deployed source lineage.
 
