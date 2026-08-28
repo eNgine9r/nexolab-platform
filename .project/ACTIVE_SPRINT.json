@@ -24,7 +24,7 @@
   "selection": {
     "active_work_package": {
       "issue": 719,
-      "title": "Remove stale Device Agent CVE-2026-14456 exception",
+      "title": "Reconcile fresh Device Agent vulnerability scan delta",
       "branch": "chore/719-retire-stale-cve-14456-exception"
     },
     "next_work_package": null
@@ -519,7 +519,7 @@
     },
     {
       "issue": 719,
-      "title": "Remove stale Device Agent CVE-2026-14456 exception",
+      "title": "Reconcile fresh Device Agent vulnerability scan delta",
       "priority": "high",
       "lifecycle": "review",
       "depends_on": [],
@@ -531,7 +531,15 @@
         "trigger_failure": "stale vulnerability exception libssl3t64/CVE-2026-14456",
         "focused_policy_tests": "17_passed",
         "runtime_change": "none",
-        "hardware_change": "none"
+        "hardware_change": "none",
+        "first_maintenance_head_sha": "93c48a576105972fcce82cd7ff5ded4a81001fde",
+        "fresh_scan_container_supply_chain_run": 33156182603,
+        "fresh_scan_blocked_finding": "device-agent libexpat1/CVE-2026-66046 HIGH no fixed version",
+        "expat_reachability": "no XML import/parser/input path in services/device-agent",
+        "expat_exception_expires_on": "2026-09-02",
+        "expat_upstream_fix": "PR #1321 merged for 2.8.4 milestone; latest observed release 2.8.3",
+        "combined_supply_chain_policy_tests": "30_passed",
+        "device_agent_xml_references": 0
       }
     }
   ],

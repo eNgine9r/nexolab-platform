@@ -170,6 +170,34 @@ def test_openssl_quic_exception_is_fully_retired_after_fresh_scan() -> None:
     )
 
 
+def test_current_device_agent_expat_exception_is_exact_and_short_lived() -> None:
+    root = Path(__file__).resolve().parents[1]
+    payload = json.loads(
+        (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
+    )
+    matches = [
+        entry
+        for entry in payload["exceptions"]
+        if entry["image_id"] == "device-agent"
+        and entry["package"] == "libexpat1"
+        and entry["vulnerability"] == "CVE-2026-66046"
+    ]
+
+    assert len(matches) == 1
+    decision = matches[0]
+    assert decision["owner"] == "platform-security"
+    assert decision["expires_on"] == "2026-09-02"
+    assert "no XML import/parser/input path" in decision["reason"]
+    assert "PR #1321" in decision["reason"]
+    assert "2.8.4" in decision["reason"]
+    assert "finding disappears" in decision["reason"]
+    assert "severity becomes Critical" in decision["reason"]
+    MODULE.validate_exceptions(
+        root / "security/vulnerability-exceptions.json",
+        date(2026, 8, 28),
+    )
+
+
 def test_current_device_agent_sqlite_exceptions_are_exact_and_short_lived() -> None:
     root = Path(__file__).resolve().parents[1]
     payload = json.loads(

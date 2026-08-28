@@ -30,9 +30,9 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
 
-## Security maintenance — #719 stale exception retirement
+## Security maintenance — #719 fresh Device Agent scan reconciliation
 
-PR #718 exact-head Container Supply Chain run `33155218719` built the Device Agent successfully but failed policy because `libssl3t64/CVE-2026-14456` disappeared from the fresh scan while its exception remained in repository policy. Issue #719 is a soft repository merge blocker that removes only this stale tuple; 17 focused supply-chain policy tests are GREEN locally and exact-head Container Supply Chain/NEXOLAB Merge Gate remain required before merge. Other time-bounded Device Agent/telemetry SQLite and telemetry `libcjson1`/`libwebsockets19t64` decisions remain unchanged through **2026-09-02**. No production/runtime mutation, dependency upgrade, Modbus write or hardware action is authorized.
+PR #718 exact-head Container Supply Chain run `33155218719` proved `libssl3t64/CVE-2026-14456` disappeared, so its stale exception is retired. The first #719 PR #721 head `93c48a576105972fcce82cd7ff5ded4a81001fde` then surfaced one new HIGH `libexpat1/CVE-2026-66046` with no fixed version in run `33156182603`. Upstream fixes the XML-parser DoS in the 2.8.4 line, but the latest observed release remains 2.8.3 and Debian Trixie has no consumable fixed package. Actual Device Agent source/dependencies expose no XML import/parser/input path, so #719 carries one exact `platform-security` exception only through **2026-09-02**, with fail-closed early-removal triggers. Exact-head Container Supply Chain/Core/NEXOLAB Merge Gate remain required. No runtime/dependency/base-image change, deployment, Modbus write or hardware action is authorized.
 
 ## Issue #709 — post-merge controlled deployment authorization
 
