@@ -22,11 +22,7 @@
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 719,
-      "title": "Reconcile fresh Device Agent vulnerability scan delta",
-      "branch": "chore/719-retire-stale-cve-14456-exception"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -545,7 +541,7 @@
       "issue": 719,
       "title": "Reconcile fresh Device Agent vulnerability scan delta",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "chore/719-retire-stale-cve-14456-exception",
       "evidence": {
@@ -562,7 +558,61 @@
         "ci_routing_dependency_issue": 723,
         "ci_routing_dependency_merged_sha": "8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb",
         "review_state_reconciliation": "completed",
-        "expat_maintenance_action_due_on": "2026-09-02"
+        "expat_maintenance_action_due_on": "2026-09-02",
+        "pull_request": 721,
+        "verified_head_sha": "52fd33f90b8f606a0b44256ab8b8f234fcf9f89a",
+        "merged_sha": "1f2654dec0f02263aec6c2314187cfa62e5723e9",
+        "checks": {
+          "container_supply_chain": "success:33161671137",
+          "telemetry_service": "success:33161671143",
+          "core_ci": "success:33161671155",
+          "nexolab_merge_gate": "success:33161671155",
+          "review_threads": "all_resolved"
+        },
+        "triage_issue": 722,
+        "triage_issue_state": "completed"
+      }
+    },
+    {
+      "issue": 717,
+      "title": "RFX-01 Generic Instrument and Signal Registry",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "depends_on": [
+        715
+      ],
+      "branch": "feat/717-rfx01-instrument-signal-registry",
+      "evidence": {
+        "product_decision_issue": 727,
+        "defer_reason": "product_priority_presentation",
+        "deferred_on": "2026-08-28",
+        "resume_requires_explicit_product_owner_decision": true,
+        "pull_request": 718,
+        "pull_request_state": "closed_unmerged",
+        "historical_checkpoint_sha": "61bf4eac3f6c87b92786327e1b63416977057583",
+        "hardware_evidence": "not_claimed"
+      }
+    },
+    {
+      "issue": 727,
+      "title": "Defer RFX-01 through RFX-19C until post-presentation resume",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "chore/727-defer-rfx-program",
+      "evidence": {
+        "decision_date": "2026-08-28",
+        "decision_owner": "Product Owner",
+        "scope": "RFX-01 through RFX-19C",
+        "rfx00_status": "accepted_and_merged",
+        "rfx01_issue": 717,
+        "rfx01_pr": 718,
+        "rfx01_checkpoint_sha": "61bf4eac3f6c87b92786327e1b63416977057583",
+        "rfx01_pr_state": "closed_unmerged",
+        "resume_gate": "explicit Product Owner restart after presentation plus fresh Team Lead source-of-truth audit",
+        "product_runtime_change": "none",
+        "hardware_change": "none",
+        "rfx00_merged_sha": "bb7a575f15ba6a00a81cc573a57586776cd511cc"
       }
     }
   ],
