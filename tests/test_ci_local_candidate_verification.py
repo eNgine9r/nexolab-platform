@@ -160,6 +160,9 @@ class LocalCandidateVerificationTests(unittest.TestCase):
             with (
                 mock.patch.object(MODULE.shutil, "which", return_value=None),
                 mock.patch.object(MODULE.Path, "home", return_value=root),
+                mock.patch.dict(
+                    MODULE.os.environ, {"NVM_DIR": str(root / ".nvm")}, clear=False
+                ),
                 mock.patch.object(MODULE, "_capture", side_effect=["v22.23.1", "10.9.4"]),
             ):
                 environment = MODULE._verify_node_baseline(worktree, [])
