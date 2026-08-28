@@ -195,3 +195,18 @@ python3 services/device-agent/tools/commission_rs485_bus.py \
 ```
 
 The helper writes evidence under `runtime/evidence/rs485-bus2-<UTC timestamp>/` and **does not** activate `RS485_BUS_CONFIG_JSON`, mutate the acquisition registry, restart Device Agent, change controller configuration, or perform a production cutover. Those actions remain gated by review of the discovery evidence and explicit hardware acceptance.
+
+## 2026-08-28 Bus 2 adapter insertion evidence
+
+The second USB–RS-485 adapter was physically inserted without A/B field wiring attached. Linux now exposes two independent stable CP2104 identities:
+
+```text
+Bus 1: /dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0
+       -> /dev/ttyUSB0
+Bus 2: /dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F246-if00-port0
+       -> /dev/ttyUSB1
+```
+
+Both adapters report USB VID:PID `10c4:ea60`, driver `cp210x`; the unique serial numbers are `0133F090` and `0133F246`. The new Bus 2 adapter is also independently addressable through its physical USB path (`xhci-hcd.0`, USB port `1-2`). No process owned either stable serial path during the inventory check.
+
+The commissioning helper recorded sanitized inventory evidence under `runtime/evidence/issue-200-bus2-inventory/rs485-bus2-20260828T105924Z/adapters.json`. No Modbus request was sent because A/B remained disconnected. Bus 2 therefore advances from `adapter absent` to `adapter present / field bus unverified`; controller and XJP60D communication remain hardware-unverified until the isolated A/B segment is connected and read-only discovery is explicitly started.
