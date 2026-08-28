@@ -578,7 +578,9 @@
       "title": "RFX-01 Generic Instrument and Signal Registry",
       "priority": "high",
       "lifecycle": "blocked",
-      "depends_on": [715],
+      "depends_on": [
+        715
+      ],
       "branch": "feat/717-rfx01-instrument-signal-registry",
       "evidence": {
         "product_decision_issue": 727,
