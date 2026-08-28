@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from datetime import UTC, datetime, timedelta
+from threading import Barrier, Thread
 from uuid import uuid4
 
 import pytest
@@ -184,5 +185,96 @@ def test_postgres_prevents_cross_org_links_overlap_and_history_rewrite() -> None
                     text("DELETE FROM instrument_acceptance_history WHERE id = :id"),
                     {"id": first.id},
                 )
+    finally:
+        database.dispose()
+
+
+@pytest.mark.parametrize("history_kind", ["acceptance", "calibration"])
+def test_postgres_serializes_concurrent_history_overlap(history_kind: str) -> None:
+    database = Database(os.environ["DATABASE_URL"])
+    security = SecurityRepository(database)
+    repository = InstrumentationRepository(database)
+    organization_id = str(uuid4())
+    suffix = uuid4().hex
+    security.provision_organization(
+        organization_id=organization_id,
+        slug=f"instrumentation-race-{suffix}",
+        name="Instrumentation concurrency test organization",
+    )
+    instrument = repository.create_instrument(
+        InstrumentCreate(
+            inventory_key=f"RACE-{suffix}",
+            display_name="Concurrent history probe",
+            instrument_kind="temperature_probe",
+        ),
+        actor_id="test-suite",
+        organization_id=organization_id,
+    )
+    start = datetime(2026, 8, 1, tzinfo=UTC)
+    ready = Barrier(2)
+    outcomes: list[str] = []
+
+    if history_kind == "acceptance":
+        statement = text(
+            """
+            INSERT INTO instrument_acceptance_history (
+                id, organization_id, instrument_id, schema_version,
+                accepted_for_calculation, state_label,
+                effective_from, effective_to, revision,
+                recorded_by, recorded_at
+            ) VALUES (
+                :id, :organization_id, :instrument_id,
+                'acceptance-state/v1', true, 'concurrency-test',
+                :interval_from, :interval_to, :revision,
+                'test-suite', now()
+            )
+            """
+        )
+    else:
+        statement = text(
+            """
+            INSERT INTO instrument_calibration_history (
+                id, organization_id, instrument_id, calibration_scope,
+                schema_version, state, certificate_reference,
+                valid_from, valid_to, revision, recorded_by, recorded_at
+            ) VALUES (
+                :id, :organization_id, :instrument_id, 'default',
+                'calibration-state/v1', 'valid', NULL,
+                :interval_from, :interval_to, :revision,
+                'test-suite', now()
+            )
+            """
+        )
+
+    def insert_interval(offset_hours: int, revision: int) -> None:
+        try:
+            with database.engine.begin() as connection:
+                ready.wait(timeout=5)
+                connection.execute(
+                    statement,
+                    {
+                        "id": str(uuid4()),
+                        "organization_id": organization_id,
+                        "instrument_id": instrument.id,
+                        "interval_from": start + timedelta(hours=offset_hours),
+                        "interval_to": start + timedelta(days=2),
+                        "revision": revision,
+                    },
+                )
+            outcomes.append("committed")
+        except DBAPIError:
+            outcomes.append("rejected")
+
+    first = Thread(target=insert_interval, args=(0, 100), daemon=True)
+    second = Thread(target=insert_interval, args=(1, 101), daemon=True)
+    first.start()
+    second.start()
+    first.join(timeout=10)
+    second.join(timeout=10)
+
+    try:
+        assert not first.is_alive()
+        assert not second.is_alive()
+        assert sorted(outcomes) == ["committed", "rejected"]
     finally:
         database.dispose()

@@ -141,6 +141,15 @@ def test_instrument_and_signal_crud_use_etags_and_process_neutral_identity(
         "actual_version": 2,
     }
 
+    missing_instrument_precondition = api.put(
+        f"/api/v1/instrumentation/instruments/{instrument_id}",
+        json=replacement,
+    )
+    assert missing_instrument_precondition.status_code == 428
+    assert missing_instrument_precondition.json()["detail"]["code"] == (
+        "instrument_version_required"
+    )
+
     signal = api.post(
         f"/api/v1/instrumentation/instruments/{instrument_id}/signals",
         json=signal_payload(),
@@ -160,6 +169,15 @@ def test_instrument_and_signal_crud_use_etags_and_process_neutral_identity(
     )
     assert signal_updated.status_code == 200
     assert signal_updated.headers["etag"] == 'W/"signal-v2"'
+
+    missing_signal_precondition = api.put(
+        f"/api/v1/instrumentation/instruments/{instrument_id}/signals/{signal_id}",
+        json=signal_replacement,
+    )
+    assert missing_signal_precondition.status_code == 428
+    assert missing_signal_precondition.json()["detail"]["code"] == (
+        "signal_version_required"
+    )
 
     process_role = signal_payload("LAB-TEMP-001.ROLE")
     process_role["physical_quantity"] = "suction_pressure"
@@ -313,6 +331,28 @@ def test_acceptance_and_calibration_histories_are_half_open_and_revision_ordered
         json={"state": "current", "valid_from": transition.isoformat()},
     )
     assert unsupported.status_code == 422
+
+
+def test_acceptance_authority_requires_a_strict_json_boolean(tmp_path: Path) -> None:
+    api, _, _, _ = build_client(tmp_path)
+    instrument_id = api.post(
+        "/api/v1/instrumentation/instruments",
+        json=instrument_payload(),
+    ).json()["id"]
+
+    for malformed in ("yes", "false", 0, 1):
+        response = api.post(
+            f"/api/v1/instrumentation/instruments/{instrument_id}/acceptance-history",
+            json={
+                "accepted_for_calculation": malformed,
+                "effective_from": "2026-08-28T00:00:00Z",
+            },
+        )
+        assert response.status_code == 422
+
+    assert api.get(
+        f"/api/v1/instrumentation/instruments/{instrument_id}/acceptance-history"
+    ).json() == {"items": []}
 
 
 def test_registry_does_not_reinterpret_legacy_physical_sensor_calibration(

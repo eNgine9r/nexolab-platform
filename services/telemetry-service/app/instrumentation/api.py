@@ -173,7 +173,7 @@ def create_instrumentation_router(
         payload: InstrumentUpdate,
         request: Request,
         response: Response,
-        if_match: str = Header(alias="If-Match"),
+        if_match: str | None = Header(default=None, alias="If-Match"),
         audit_reason: str | None = Header(
             default=None,
             alias="X-Audit-Reason",
@@ -300,7 +300,7 @@ def create_instrumentation_router(
         payload: SignalUpdate,
         request: Request,
         response: Response,
-        if_match: str = Header(alias="If-Match"),
+        if_match: str | None = Header(default=None, alias="If-Match"),
         audit_reason: str | None = Header(
             default=None,
             alias="X-Audit-Reason",
@@ -466,7 +466,7 @@ def signal_etag(version: int) -> str:
     return f'W/"signal-v{version}"'
 
 
-def parse_instrument_if_match(value: str) -> int:
+def parse_instrument_if_match(value: str | None) -> int:
     return _parse_if_match(
         value,
         _INSTRUMENT_ETAG_RE,
@@ -475,7 +475,7 @@ def parse_instrument_if_match(value: str) -> int:
     )
 
 
-def parse_signal_if_match(value: str) -> int:
+def parse_signal_if_match(value: str | None) -> int:
     return _parse_if_match(
         value,
         _SIGNAL_ETAG_RE,
@@ -484,7 +484,19 @@ def parse_signal_if_match(value: str) -> int:
     )
 
 
-def _parse_if_match(value: str, pattern: re.Pattern[str], *, code: str, example: str) -> int:
+def _parse_if_match(
+    value: str | None,
+    pattern: re.Pattern[str],
+    *,
+    code: str,
+    example: str,
+) -> int:
+    if value is None:
+        raise _api_http_error(
+            428,
+            code,
+            f"If-Match must contain an ETag such as {example}",
+        )
     match = pattern.fullmatch(value.strip())
     if match is None:
         raise _api_http_error(

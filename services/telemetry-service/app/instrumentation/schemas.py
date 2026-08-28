@@ -9,6 +9,7 @@ from pydantic import (
     ConfigDict,
     Field,
     JsonValue,
+    StrictBool,
     field_validator,
 )
 
@@ -158,7 +159,7 @@ class SignalListResponse(BaseModel):
 class AcceptanceAppendRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    accepted_for_calculation: bool
+    accepted_for_calculation: StrictBool
     effective_from: datetime
     state_label: Annotated[str | None, Field(max_length=64)] = None
 

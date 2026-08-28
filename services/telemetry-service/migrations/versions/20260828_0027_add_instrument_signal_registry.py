@@ -336,6 +336,11 @@ def _create_history_guards() -> None:
             ) THEN
                 RAISE EXCEPTION 'instrument acceptance history is immutable except interval closure';
             END IF;
+            PERFORM 1
+            FROM instruments
+            WHERE organization_id = NEW.organization_id
+              AND id = NEW.instrument_id
+            FOR UPDATE;
             IF EXISTS (
                 SELECT 1
                 FROM instrument_acceptance_history AS existing
@@ -375,6 +380,11 @@ def _create_history_guards() -> None:
             ) THEN
                 RAISE EXCEPTION 'instrument calibration history is immutable except interval closure';
             END IF;
+            PERFORM 1
+            FROM instruments
+            WHERE organization_id = NEW.organization_id
+              AND id = NEW.instrument_id
+            FOR UPDATE;
             IF EXISTS (
                 SELECT 1
                 FROM instrument_calibration_history AS existing
