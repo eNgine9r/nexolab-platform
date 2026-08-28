@@ -89,6 +89,9 @@ function assertRuntimeFloors() {
 function assertRepositoryContract() {
   const manifest = JSON.parse(readFileSync(join(repoRoot, "package.json"), "utf8"));
   const packageMetadata = JSON.parse(readFileSync(join(lintStagedRoot, "package.json"), "utf8"));
+  const prettierIgnore = readFileSync(join(repoRoot, ".prettierignore"), "utf8")
+    .split(/\r?\n/u)
+    .filter(Boolean);
 
   assert.equal(packageMetadata.version, "17.3.0");
   assert.equal(manifest.devDependencies["lint-staged"], "^17.3.0");
@@ -98,6 +101,7 @@ function assertRepositoryContract() {
     "*.{json,md,mdx,css,yml,yaml}": ["prettier --write"],
   });
   assert.equal(readFileSync(join(repoRoot, ".husky", "pre-commit"), "utf8"), "npx lint-staged\n");
+  assert(prettierIgnore.includes(".project/*.json"));
   assert(existsSync(lintStagedBin), `Missing lint-staged CLI: ${lintStagedBin}`);
 
   return packageMetadata.version;
@@ -172,6 +176,36 @@ function assertProductionTasks(root) {
   git(cloneDir, ["diff", "--cached", "--check"]);
 }
 
+function assertCanonicalProjectStateIgnored(root) {
+  const cloneDir = join(root, "canonical-project-state");
+  git(root, ["clone", "--quiet", "--no-hardlinks", repoRoot, cloneDir]);
+
+  symlinkSync(
+    join(repoRoot, "node_modules"),
+    join(cloneDir, "node_modules"),
+    process.platform === "win32" ? "junction" : "dir",
+  );
+  writeFileSync(join(cloneDir, ".prettierignore"), readFileSync(join(repoRoot, ".prettierignore"), "utf8"));
+
+  for (const relativePath of [".project/ACTIVE_SPRINT.json", ".project/LAST_CHECKPOINT.json"]) {
+    const fixturePath = join(cloneDir, relativePath);
+    const fixture = JSON.parse(readFileSync(fixturePath, "utf8"));
+    fixture.lint_staged_canonical_fixture = { values: [1, 2, 3] };
+    const canonical = `${JSON.stringify(fixture, null, 2)}\n`;
+    writeFileSync(fixturePath, canonical);
+    git(cloneDir, ["add", relativePath]);
+  }
+
+  const stagedBefore = gitOutput(cloneDir, ["diff", "--cached", "--binary"]);
+  const result = runLintStaged(cloneDir);
+  assert.equal(
+    result.status,
+    0,
+    `Canonical state lint-staged case failed:\n${result.stdout}\n${result.stderr}`,
+  );
+  assert.equal(gitOutput(cloneDir, ["diff", "--cached", "--binary"]), stagedBefore);
+}
+
 function assertPartialStageSuccess(repoDir, successConfig) {
   writeFileSync(join(repoDir, "sample.js"), "const value = 1;\n");
   git(repoDir, ["add", "sample.js"]);
@@ -224,6 +258,7 @@ try {
   const { failureConfig, successConfig } = writeHarnessFiles(harnessDir);
   initializeRepository(repoDir);
   assertProductionTasks(root);
+  assertCanonicalProjectStateIgnored(root);
   assertPartialStageSuccess(repoDir, successConfig);
   assertFailureRollback(repoDir, failureConfig);
   assertEmptyStage(repoDir, successConfig);
@@ -236,6 +271,7 @@ try {
         node: runtime.nodeVersion,
         verified: [
           "production-eslint-prettier-order",
+          "canonical-project-state-prettier-ignore",
           "partial-stage-success",
           "failure-rollback",
           "empty-stage",

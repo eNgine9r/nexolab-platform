@@ -614,6 +614,22 @@
         "hardware_change": "none",
         "rfx00_merged_sha": "bb7a575f15ba6a00a81cc573a57586776cd511cc"
       }
+    },
+    {
+      "issue": 733,
+      "title": "Keep canonical .project JSON out of Prettier lint-staged formatting",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "fix/733-canonical-project-state-prettier",
+      "evidence": {
+        "checks": {
+          "lint_staged_v17_regression": "success",
+          "canonical_project_state_prettier_ignore": "success",
+          "state_integrity": "success",
+          "git_diff_check": "success"
+        }
+      }
     }
   ],
   "maintenance_actions": [
