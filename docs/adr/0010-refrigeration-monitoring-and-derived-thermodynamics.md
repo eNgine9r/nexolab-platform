@@ -234,10 +234,13 @@ calculation. A fixed standard-atmosphere constant may be exposed only as an expl
 simulation/manual-reference mode in a future scoped decision; it must never silently masquerade
 as a measured current atmospheric value.
 
-When a circuit requires atmospheric reference and that signal is missing, stale, invalid or of
-insufficient calibration quality, dependent absolute pressure and thermodynamic metrics become
-`degraded` or `unavailable` according to the calculation policy. The UI/API must expose that
-reason instead of presenting a normal-looking value.
+When a circuit requires atmospheric reference and that signal is missing, no valid absolute
+pressure can be calculated: dependent absolute pressure and thermodynamic metrics are always
+`unavailable`. A stale, invalid, unaccepted or insufficiently calibrated atmospheric source is also
+`unavailable` whenever it fails a required quality/freshness/calibration gate. `degraded` is reserved
+for explicitly defined non-fatal limitations where every required physical source is present and the
+calculation remains physically well-defined. The UI/API must expose the resulting reason instead of
+presenting a normal-looking value.
 
 ### 8. Refrigerant profile and local property provider
 

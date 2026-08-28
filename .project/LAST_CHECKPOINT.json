@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T09:18:00+03:00",
+  "timestamp": "2026-08-28T09:26:00+03:00",
   "actor": "ChatGPT",
-  "event": "rfx00_atmospheric_acceptance_contracts_addressed",
+  "event": "rfx00_missing_atmospheric_fail_closed_aligned",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
@@ -19,7 +19,7 @@
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Verify corrected ADR 0010 exact head: atmospheric_pressure must be absolute-referenced and instrument/profile acceptance uses unique canonical acceptance-state/v1 records with accepted_for_calculation=true; obtain fresh Codex review and required GREEN CI before recording new #715 evidence.",
+  "next_action": "Verify corrected ADR 0010 exact head: missing atmospheric reference and atmospheric source failing required quality/freshness/calibration gates are consistently unavailable; obtain fresh Codex review and required GREEN CI before recording #715 evidence.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
