@@ -219,9 +219,12 @@ For a gauge-referenced pressure signal:
 P_absolute = P_gauge + P_atmospheric
 ```
 
-`P_gauge` and `P_atmospheric` must be expressed in compatible absolute engineering units before
-addition. Unit conversion is deterministic and explicit; values with incompatible or unknown
-units are unavailable for calculation.
+The semantic role `atmospheric_pressure` must resolve exactly one signal whose producing
+instrument declares `pressure_reference = absolute`. A gauge-referenced, missing, unknown or
+ambiguous atmospheric reference is invalid and makes dependent absolute-pressure and thermodynamic
+calculations `unavailable`. `P_gauge` and the resolved absolute `P_atmospheric` must be expressed in
+compatible pressure engineering units before addition. Unit conversion is deterministic and
+explicit; values with incompatible or unknown units are unavailable for calculation.
 
 An absolute-pressure instrument bypasses gauge conversion. The calculation pipeline must never
 add atmospheric pressure twice.
@@ -405,13 +408,21 @@ At minimum the calculation pipeline must reject or explicitly classify:
   those historical timestamps, never from the current wall-clock state. A source produced during an
   unaccepted interval cannot become acceptable merely because the instrument/profile was reactivated
   before `observation_at`, and a sample produced while accepted cannot bypass a later deactivation at
-  `observation_at`. Instrument and acquisition-profile acceptance histories use non-overlapping
-  half-open `[effective_from, effective_to)` intervals. At an activation/deactivation timestamp, the
-  state whose `effective_from` equals that timestamp is the post-transition state and is effective
-  immediately; the previous state is not. Same-timestamp state-change operations are serialized by a
-  monotonic revision sequence, and only the final revision may own a non-empty interval beginning at
-  that timestamp; intermediate same-timestamp revisions are zero-width audit records. Any remaining
-  overlapping/non-unique effective state at either timestamp fails closed as `unavailable`;
+  `observation_at`. Instrument and acquisition-profile acceptance use canonical versioned
+  `acceptance-state/v1` records. Each interval-effective record must contain the required boolean
+  `accepted_for_calculation`; that boolean is the sole acceptance authority. Descriptive state labels
+  may be retained for diagnostics but cannot override it. An unsupported acceptance-state schema,
+  missing/non-boolean acceptance flag, zero interval-effective records or multiple interval-effective
+  records fails closed as `unavailable`. At both the selected source sample's `captured_at` and the
+  calculation `observation_at`, exactly one `acceptance-state/v1` record must resolve and must have
+  `accepted_for_calculation = true`. Instrument and acquisition-profile acceptance histories use
+  non-overlapping half-open `[effective_from, effective_to)` intervals. At an
+  activation/deactivation timestamp, the state whose `effective_from` equals that timestamp is the
+  post-transition state and is effective immediately; the previous state is not. Same-timestamp
+  state-change operations are serialized by a monotonic revision sequence, and only the final
+  revision may own a non-empty interval beginning at that timestamp; intermediate same-timestamp
+  revisions are zero-width audit records. Any remaining overlapping/non-unique effective state at
+  either timestamp fails closed as `unavailable`;
 - missing/expired/unacceptable calibration state where the versioned metric policy requires
   calibration. Calibration uses the canonical versioned vocabulary `calibration-state/v1` with exactly
   `valid`, `due`, `expired`, `revoked` and `unknown`. Both calibration records and every policy entry in
@@ -467,9 +478,11 @@ resolve at least:
 - the instrument identity/version, acquisition/scaling-profile version and calibration
   record/version that were effective at each selected source sample's `captured_at` and therefore
   produced/interpreted that persisted engineering value;
-- instrument lifecycle/acceptance state resolved at both each source sample's `captured_at` and the
+- instrument `acceptance-state/v1` record identity, revision, half-open validity interval and
+  `accepted_for_calculation` value resolved at both each source sample's `captured_at` and the
   calculation `observation_at`;
-- acquisition/scaling-profile acceptance state resolved at both each source sample's `captured_at`
+- acquisition/scaling-profile `acceptance-state/v1` record identity, revision, half-open validity
+  interval and `accepted_for_calculation` value resolved at both each source sample's `captured_at`
   and the calculation `observation_at`;
 - calibration record/version, state and half-open validity interval resolved at the selected
   sample's `captured_at`, plus the independently resolved observation-time calibration record/state
@@ -483,8 +496,10 @@ result provenance. Production-time metadata and observation-time acceptance are 
 later calibration renewal or profile change must not be attributed to a sample that was produced
 under an older version, and a later instrument lifecycle transition must not retroactively change
 why a historical derived result was accepted or rejected. Instrument and acquisition-profile
-acceptance at `observation_at` are mandatory gates for every derived calculation. Circuit lifecycle
-state at `observation_at` must satisfy the canonical state/derived-flag invariant and be `active`.
+acceptance are mandatory gates for every derived calculation: at both the selected sample's
+`captured_at` and `observation_at`, exactly one canonical `acceptance-state/v1` record must resolve
+and its `accepted_for_calculation` value must be `true`. Circuit lifecycle state at
+`observation_at` must satisfy the canonical state/derived-flag invariant and be `active`.
 Calibration has the additional pinned metric-policy rule described above: sample-time acceptance is
 mandatory against the explicit `accepted_calibration_states` set for every calibration-required
 input, and observation-time acceptance against the same pinned set is mandatory exactly when
