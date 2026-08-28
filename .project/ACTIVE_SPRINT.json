@@ -700,7 +700,8 @@
       "evidence": {
         "readiness": "independent_software_only",
         "github_exact_head_remains_authoritative": true
-      }
+      },
+      "branch": "feat/725-local-candidate-verification-gate"
     }
   ],
   "maintenance_actions": [
