@@ -186,6 +186,21 @@ class ChangeImpactClassifierTests(unittest.TestCase):
                 self.assertFalse(result["fail_closed"])
                 self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_formatter_tooling_changes_require_core_quality_without_product_external_lanes(self) -> None:
+        result = classify(
+            [
+                ".prettierignore",
+                "scripts/tests/lint-staged-v17.mjs",
+                ".project/ACTIVE_SPRINT.json",
+                ".project/LAST_CHECKPOINT.json",
+            ]
+        )
+        self.assertEqual(result["classes"], ["dependency_toolchain"])
+        self.assertTrue(result["needs_full_quality"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(result["verification"]["required_external_workflows"], [])
+
     def test_dashboard_playwright_config_requires_dashboard_only(self) -> None:
         verification = classify(["playwright.dashboard.config.ts"])["verification"]
         self.assertEqual(
