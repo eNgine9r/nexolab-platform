@@ -152,7 +152,7 @@ def test_current_cjson_exception_is_exact_and_short_lived() -> None:
     )
 
 
-def test_current_openssl_quic_exception_is_device_agent_vendor_lag_only() -> None:
+def test_openssl_quic_exception_is_fully_retired_after_fresh_scan() -> None:
     root = Path(__file__).resolve().parents[1]
     payload = json.loads(
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
@@ -163,18 +163,10 @@ def test_current_openssl_quic_exception_is_device_agent_vendor_lag_only() -> Non
         if entry["vulnerability"] == "CVE-2026-14456"
     ]
 
-    assert [(entry["image_id"], entry["package"]) for entry in matches] == [
-        ("device-agent", "libssl3t64"),
-    ]
-    decision = matches[0]
-    assert decision["owner"] == "platform-security"
-    assert decision["expires_on"] == "2026-08-30"
-    assert "vendor-base-lag" in decision["reason"]
-    assert "fixed OpenSSL 3.5.7-1~deb13u2" in decision["reason"]
-    assert "QUIC" in decision["reason"]
+    assert matches == []
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 8, 26),
+        date(2026, 8, 28),
     )
 
 

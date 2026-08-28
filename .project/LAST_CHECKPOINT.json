@@ -3,19 +3,29 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T09:43:00+03:00",
+  "timestamp": "2026-08-28T11:35:56+03:00",
   "actor": "ChatGPT",
-  "event": "rfx00_completed_pending_merge",
+  "event": "issue_719_review_candidate",
   "baselines": {
     "accepted_product_sha": "750a5b8cba02add472f1aa7ca7a2b077e809c3c3",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 719,
+    "title": "Remove stale Device Agent CVE-2026-14456 exception",
+    "branch": "chore/719-retire-stale-cve-14456-exception"
+  },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "trigger_pr": 718,
+      "trigger_head_sha": "61bf4eac3f6c87b92786327e1b63416977057583",
+      "container_supply_chain_run": 33155218719,
+      "local_policy_tests": "17_passed",
+      "stale_exception_removed": true
+    }
   },
   "observations": [],
-  "next_action": "Verify the final state-only PR #716 head, merge only on GREEN, refresh main and verify post-merge main; then prepare the next RFX Work Package for Codex without starting implementation.",
+  "next_action": "Commit/push Issue #719 once, open one focused PR, require exact-head Container Supply Chain/Core/NEXOLAB Merge Gate GREEN, merge, then resume the blocked PR #718 exact-head verification.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

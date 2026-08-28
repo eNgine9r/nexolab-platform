@@ -38,6 +38,7 @@ Software/isolated backup-restore, real MQTT/SQLite outage replay, actual-host re
 
 ## Current soft blockers and operational observations
 
+- #719 is the focused security-maintenance interrupt for a stale Device Agent `libssl3t64/CVE-2026-14456` exception discovered by PR #718 exact-head Container Supply Chain. The finding has disappeared; restoring/extending the old exception is not allowed without a new evidence-based decision. Exact-head maintenance CI remains pending.
 - #696 replaced the refrigeration structural-snapshot history scan with the bounded `telemetry_latest` projection. Real Raspberry Pi SQL evidence improved the affected 84-channel KK2 lookup from `85874.034 ms` to `1.853 ms`; the previous #698 hosted-runner allocation blocker is cleared.
 - Authorized telemetry-retention maintenance on 2026-08-26 created and checksum-verified a PostgreSQL backup before deletion. Confirmed completed cleanup is 3,784,832 old `telemetry_session_contexts` rows plus 250,000 old `telemetry_samples`, followed by `VACUUM FULL ANALYZE telemetry_session_contexts`. Full deletion of all sensor samples before 2026-08-20 was not completed and must not be reported as completed retention.
 
@@ -50,7 +51,7 @@ Software/isolated backup-restore, real MQTT/SQLite outage replay, actual-host re
 
 ## Security maintenance
 
-Security reconciliation for Issue #704 has repository-side exact-head verification complete at `e2f7857e381600d76dd4100cea2c776bab8868e8`. Fresh no-cache Container Supply Chain run `33025323284` is GREEN for device-agent, telemetry-service, mqtt-dynamic-security and the aggregate release manifest; Telemetry service run `33025323323`, Core CI run `33025323332` and the NEXOLAB Merge Gate are GREEN on the same product head. Telemetry-service OpenSSL `CVE-2026-14456` exceptions remain retired; Device Agent retains only `libssl3t64/CVE-2026-14456` through **2026-08-30**. Exact Device Agent and telemetry-service SQLite decisions plus telemetry `libcjson1/CVE-2026-16554` and `libwebsockets19t64/CVE-2026-78161` remain time-bounded through **2026-09-02** with the documented reachability/version removal triggers. Issue #690 is completed and merged; the remaining deadline-driven security maintenance does not block RFX-00. This repository verification does not authorize or imply any runtime deployment.
+Security reconciliation for Issue #704 remains historical GREEN evidence. Fresh PR #718 exact-head Device Agent scan on `61bf4eac3f6c87b92786327e1b63416977057583` no longer reports `libssl3t64/CVE-2026-14456`; Container Supply Chain correctly failed closed because the repository still retained that now-stale exception. Issue #719 retires the final OpenSSL QUIC exception instead of extending or broadening it. Exact Device Agent and telemetry-service SQLite decisions plus telemetry `libcjson1/CVE-2026-16554` and `libwebsockets19t64/CVE-2026-78161` remain time-bounded through **2026-09-02** with their documented reachability/version removal triggers. No dependency/base-image change, runtime deployment, Modbus write or hardware action is authorized by this maintenance reconciliation.
 
 ## Issue #707 Saved Dashboard export and chart workspace
 

@@ -30,9 +30,9 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
 
-## Security maintenance — #704 verified; no current merge blocker
+## Security maintenance — #719 stale exception retirement
 
-Issue #704 has exact-head repository verification GREEN at `e2f7857e381600d76dd4100cea2c776bab8868e8`: fresh Container Supply Chain, Telemetry service, Core CI and NEXOLAB Merge Gate all passed. The security interrupt no longer blocks repository work; #690 is completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`. Remaining maintenance is deadline-driven rather than a current merge blocker: Device Agent `libssl3t64/CVE-2026-14456` expires **2026-08-30**; exact Device Agent and telemetry-service SQLite decisions plus telemetry `libcjson1/CVE-2026-16554` and `libwebsockets19t64/CVE-2026-78161` expire **2026-09-02** and must be removed earlier if findings disappear, fixes become consumable, reachability/version evidence changes or severity becomes Critical. No production/runtime mutation is authorized by this security reconciliation.
+PR #718 exact-head Container Supply Chain run `33155218719` built the Device Agent successfully but failed policy because `libssl3t64/CVE-2026-14456` disappeared from the fresh scan while its exception remained in repository policy. Issue #719 is a soft repository merge blocker that removes only this stale tuple; 17 focused supply-chain policy tests are GREEN locally and exact-head Container Supply Chain/NEXOLAB Merge Gate remain required before merge. Other time-bounded Device Agent/telemetry SQLite and telemetry `libcjson1`/`libwebsockets19t64` decisions remain unchanged through **2026-09-02**. No production/runtime mutation, dependency upgrade, Modbus write or hardware action is authorized.
 
 ## Issue #709 — post-merge controlled deployment authorization
 

@@ -22,7 +22,11 @@
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 719,
+      "title": "Remove stale Device Agent CVE-2026-14456 exception",
+      "branch": "chore/719-retire-stale-cve-14456-exception"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -511,6 +515,23 @@
           "fresh_codex_review": "clean",
           "review_threads": "all_resolved"
         }
+      }
+    },
+    {
+      "issue": 719,
+      "title": "Remove stale Device Agent CVE-2026-14456 exception",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [],
+      "branch": "chore/719-retire-stale-cve-14456-exception",
+      "evidence": {
+        "trigger_pr": 718,
+        "trigger_head_sha": "61bf4eac3f6c87b92786327e1b63416977057583",
+        "trigger_container_supply_chain_run": 33155218719,
+        "trigger_failure": "stale vulnerability exception libssl3t64/CVE-2026-14456",
+        "focused_policy_tests": "17_passed",
+        "runtime_change": "none",
+        "hardware_change": "none"
       }
     }
   ],
