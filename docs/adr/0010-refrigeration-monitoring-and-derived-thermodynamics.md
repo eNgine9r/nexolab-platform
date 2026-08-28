@@ -270,8 +270,11 @@ The default/fail-safe rule is `unavailable`. A future Work Package may define na
 `degraded` cases; the implementation must not invent them ad hoc.
 
 A derived result can never have a newer effective timestamp, better freshness or better quality
-than its least-trustworthy required input. `captured_at` for a derived result is the calculation
-observation time, while provenance separately records all source sample timestamps.
+than its least-trustworthy required input. The derived contract therefore separates
+`effective_at` from `computed_at`: `effective_at` is bounded by the oldest required source sample
+used in the calculation, while `computed_at` records when NEXOLAB performed the calculation.
+Recalculation alone can never make stale physical evidence appear fresh. Provenance records every
+source sample timestamp.
 
 At minimum the calculation pipeline must reject or explicitly classify:
 
