@@ -4,7 +4,7 @@ Updated: 2026-08-28
 
 ## Current Sprint
 
-`PRODUCTION-READINESS-1` remains active only for outstanding hardware/recovery acceptance boundaries. Its repository gate is complete; the active independent Work Package is RFX-00 / Issue #715, the Refrigeration Architecture ADR.
+`PRODUCTION-READINESS-1` remains active only for outstanding hardware/recovery acceptance boundaries. Its repository gate is complete. RFX-00 / Issue #715 is repository-verified complete on exact documentation/product head `a52bffd4536a62fee4c7f7e236c6d08159959ac2` in PR #716; final state-only suffix verification and merge remain before the next RFX implementation Work Package is selected.
 
 Issue #681 state reconciliation is completed. Issue #679 is completed after real post-merge `linux/arm64` + local-auth dispatch `32832798392` passed the QEMU application-health, disconnected runtime, persistent-volume and auth-continuity gates and published a checksum-verified accepted recovery artifact for the exact deployed source lineage.
 
