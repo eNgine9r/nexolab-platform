@@ -55,17 +55,17 @@ read_only: true
 
 Non-discovery devices recorded in the registry:
 
-| Family | Unit ID | Lifecycle | Bus |
-| --- | ---: | --- | --- |
-| XJP60D | 102 | active | rs485-main |
-| XJP60D | 104 | active | rs485-main |
-| XJP60D | 106 | active | rs485-main |
-| XJP60D | 108 | active | rs485-main |
-| XJP60D | 126 | active | rs485-main |
-| LE-01MP | 200 | active | rs485-main |
-| LE-01MP | 201 | disabled | rs485-main |
-| LE-01MP | 202 | active | rs485-main |
-| LE-01MP | 203 | active | rs485-main |
+| Family  | Unit ID | Lifecycle | Bus        |
+| ------- | ------: | --------- | ---------- |
+| XJP60D  |     102 | active    | rs485-main |
+| XJP60D  |     104 | active    | rs485-main |
+| XJP60D  |     106 | active    | rs485-main |
+| XJP60D  |     108 | active    | rs485-main |
+| XJP60D  |     126 | active    | rs485-main |
+| LE-01MP |     200 | active    | rs485-main |
+| LE-01MP |     201 | disabled  | rs485-main |
+| LE-01MP |     202 | active    | rs485-main |
+| LE-01MP |     203 | active    | rs485-main |
 
 Discovery-only Unit IDs recorded in the persisted registry:
 
@@ -88,19 +88,19 @@ Observation window:
 
 Only `/health` snapshots were read before and after the window. The production scheduler continued normal acquisition and `service_operations` stayed empty at both boundaries.
 
-| Metric | 60 s delta / observation |
-| --- | ---: |
-| Physical requests | +402 |
-| Successful requests | +306 |
-| Timeout outcomes | +96 |
-| Retry attempts | +96 |
-| Persisted/produced samples at Device Agent | +210 |
-| Missed deadlines | +122 |
-| Deadline-skipped work | +0 |
-| Deferred work | +10 |
-| Bus load | 75.591% -> 76.942% |
-| Queue depth at end | 1 |
-| Worker state at end | running |
+| Metric                                     | 60 s delta / observation |
+| ------------------------------------------ | -----------------------: |
+| Physical requests                          |                     +402 |
+| Successful requests                        |                     +306 |
+| Timeout outcomes                           |                      +96 |
+| Retry attempts                             |                      +96 |
+| Persisted/produced samples at Device Agent |                     +210 |
+| Missed deadlines                           |                     +122 |
+| Deadline-skipped work                      |                       +0 |
+| Deferred work                              |                      +10 |
+| Bus load                                   |       75.591% -> 76.942% |
+| Queue depth at end                         |                        1 |
+| Worker state at end                        |                  running |
 
 Derived observation rates:
 
@@ -175,6 +175,7 @@ A host-side helper is provided at:
 ```text
 services/device-agent/tools/commission_rs485_bus.py
 ```
+
 Its default action only inventories `/dev/serial/by-id/` and stores sanitized adapter evidence. An active scan requires explicit `--scan`; the helper refuses the existing production adapter, fails closed if the selected port is already owned by another process, and delegates discovery to the existing read-only scanner (`FC03`, `FC04`, `43/14` only).
 
 Example inventory after inserting the second adapter:
