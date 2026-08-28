@@ -162,14 +162,26 @@ separate non-authoritative capability and must not be persisted as canonical der
 
 Circuit lifecycle is also a mandatory historical calculation gate rather than mutable display-only
 metadata. Circuit lifecycle history uses non-overlapping half-open `[effective_from, effective_to)`
-intervals and every state version carries an explicit `calculation_enabled` boolean. Canonical
-derived calculation requires the single lifecycle state effective at `observation_at` to have
-`calculation_enabled = true`; inactive/retired/otherwise disabled periods therefore produce
-`unavailable` rather than current derived values. At an exact lifecycle transition the state whose
-`effective_from` equals the transition timestamp is effective immediately. Same-timestamp lifecycle
-changes are serialized by a monotonic revision sequence, with only the final revision allowed to own
-a non-empty interval; overlapping or non-unique effective states fail closed. Historical replay uses
-this as-of lifecycle history, never the circuit's current wall-clock status.
+intervals and every state version carries a canonical lifecycle `state`. The initial accepted state
+set is exactly `active`, `inactive` and `retired`; `calculation_enabled` is a **derived invariant**, not
+an independently writable flag:
+
+```text
+active   -> calculation_enabled = true
+inactive -> calculation_enabled = false
+retired  -> calculation_enabled = false
+```
+
+A future lifecycle-state extension requires a versioned architecture/policy change that defines its
+calculation behavior before it can participate in canonical derived calculations. Persistence/domain
+validation must reject contradictory state/flag combinations; unknown, missing or contradictory
+lifecycle state is `unavailable`. Canonical derived calculation therefore requires the single
+lifecycle state effective at `observation_at` to be `active` and consequently
+`calculation_enabled = true`. At an exact lifecycle transition the state whose `effective_from`
+equals the transition timestamp is effective immediately. Same-timestamp lifecycle changes are
+serialized by a monotonic revision sequence, with only the final revision allowed to own a non-empty
+interval; overlapping or non-unique effective states fail closed. Historical replay uses this as-of
+lifecycle history, never the circuit's current wall-clock status.
 
 ### 6. 4–20 mA acquisition
 
@@ -402,15 +414,19 @@ At minimum the calculation pipeline must reject or explicitly classify:
   overlapping/non-unique effective state at either timestamp fails closed as `unavailable`;
 - missing/expired/unacceptable calibration state where the versioned metric policy requires
   calibration. Calibration records use non-overlapping half-open `[valid_from, valid_to)` validity;
-  a record is acceptable at time `t` only when `valid_from <= t < valid_to`, or when `valid_to = null`
-  and `valid_from <= t`. At exact expiry `t = valid_to` the old calibration is no longer valid; a
-  renewal with `valid_from` equal to that timestamp takes effect immediately. Same-timestamp
-  calibration changes use a monotonic revision sequence and only the final revision may own a
-  non-empty interval beginning at that timestamp. Zero or multiple acceptable records at a required
-  evaluation time fail closed. For every calibration-required input, sample-time calibration
-  acceptance at `captured_at` is mandatory; the pinned calculation-policy version also carries an
-  explicit `require_calibration_at_observation` flag, and when true the calibration must independently
-  be acceptable at `observation_at`;
+  interval membership alone never implies acceptance. The pinned calculation-policy version carries
+  an explicit non-empty `accepted_calibration_states` set for every calibration-required input. A
+  calibration record is acceptable at time `t` only when its state is a member of that pinned set and
+  `valid_from <= t < valid_to`, or when `valid_to = null` and `valid_from <= t`. Missing/unknown states,
+  states not present in the pinned set, or an empty/missing accepted-state set fail closed. At exact
+  expiry `t = valid_to` the old calibration is no longer valid; a renewal with `valid_from` equal to
+  that timestamp takes effect immediately. Same-timestamp calibration changes use a monotonic revision
+  sequence and only the final revision may own a non-empty interval beginning at that timestamp. Zero
+  or multiple acceptable records at a required evaluation time fail closed. For every
+  calibration-required input, sample-time calibration acceptance at `captured_at` is mandatory; the
+  pinned calculation-policy version also carries an explicit `require_calibration_at_observation`
+  flag, and when true the calibration must independently satisfy the same pinned
+  `accepted_calibration_states` set at `observation_at`;
 - unknown engineering unit or pressure reference;
 - missing atmospheric reference for gauge pressure;
 - unsupported refrigerant/profile version;
@@ -428,7 +444,8 @@ resolve at least:
 - circuit/configuration version;
 - circuit lifecycle state/version, validity interval and `calculation_enabled` value resolved at
   `observation_at`;
-- calculation-policy version, including the calibration-observation requirement used for each input;
+- calculation-policy version, including each calibration-required input's explicit
+  `accepted_calibration_states` set and `require_calibration_at_observation` value;
 - refrigerant-profile and property-provider data/library version;
 - derived metric identifier and formula version;
 - `observation_at`, `effective_at` and `computed_at`;
@@ -454,11 +471,12 @@ later calibration renewal or profile change must not be attributed to a sample t
 under an older version, and a later instrument lifecycle transition must not retroactively change
 why a historical derived result was accepted or rejected. Instrument and acquisition-profile
 acceptance at `observation_at` are mandatory gates for every derived calculation. Circuit lifecycle
-`calculation_enabled` at `observation_at` is also mandatory. Calibration has the additional pinned
-metric-policy rule described above: sample-time acceptance is mandatory for every
-calibration-required input, and observation-time acceptance is mandatory exactly when
-`require_calibration_at_observation = true`. Any required calibration gate failing makes the result
-`unavailable`.
+state at `observation_at` must satisfy the canonical state/derived-flag invariant and be `active`.
+Calibration has the additional pinned metric-policy rule described above: sample-time acceptance is
+mandatory against the explicit `accepted_calibration_states` set for every calibration-required
+input, and observation-time acceptance against the same pinned set is mandatory exactly when
+`require_calibration_at_observation = true`. Any missing policy set, unknown calibration state or
+required calibration gate failing makes the result `unavailable`.
 
 A report/export must be able to trace a derived value back to this provenance without querying a
 cloud service or reconstructing meaning from UI labels.
