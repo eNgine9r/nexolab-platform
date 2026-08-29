@@ -907,6 +907,33 @@ print(
 PY_EDGE_SNAPSHOT
 }
 
+write_durable_runtime_mutation_marker() {
+  python3 - "$AUDIT_DIR/runtime-mutation-started" "$CURRENT_HEAD" <<'PY_MUTATION_MARKER'
+import os
+from pathlib import Path
+import sys
+from datetime import datetime
+
+marker = Path(sys.argv[1])
+source = sys.argv[2]
+temporary = marker.with_name(f".{marker.name}.tmp-{os.getpid()}")
+try:
+    with temporary.open("x", encoding="utf-8") as stream:
+        stream.write(f"source={source}\nstarted_at={datetime.now().astimezone().isoformat()}\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.chmod(temporary, 0o600)
+    os.replace(temporary, marker)
+    directory_fd = os.open(marker.parent, os.O_RDONLY)
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+finally:
+    temporary.unlink(missing_ok=True)
+PY_MUTATION_MARKER
+}
+
 env_get() {
   local file=$1 key=$2
   awk -F= -v key="$key" '$1 == key {sub(/^[^=]*=/, ""); print; exit}' "$file" 2>/dev/null || true
@@ -1263,7 +1290,7 @@ fi
 log "Frontend candidate verified and terminated without mutating the active dashboard"
 
 capture_edge_sqlite_snapshot
-printf 'source=%s\nstarted_at=%s\n' "$CURRENT_HEAD" "$(date --iso-8601=seconds)" > "$AUDIT_DIR/runtime-mutation-started"
+write_durable_runtime_mutation_marker
 log "RUNTIME MUTATION STARTED: central backend activation"
 log "Starting central backend, MinIO and observability"
 docker compose --env-file "$CENTRAL_ENV" \

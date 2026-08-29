@@ -10,7 +10,7 @@ When `nexolab-edge_edge-data` exists, `scripts/deploy-current-head-raspberry-pi.
 - `edge-sqlite-pre-cutover.json` with source/snapshot integrity results, SHA-256, byte size, registry revision, outbound queue count and high-water mark, per-stream sequence counters, deployed source, exact pre-cutover Device Agent image ID, target source and deployment evidence ID;
 - `edge-sqlite-capture-result.json`, containing the same sanitized result.
 
-All files remain in the ignored `runtime/deployments/<UTC timestamp>/` audit directory. The evidence contains no telemetry payloads. The helper itself is checksum-staged in that directory before any historical source checkout, and capture runs only after candidate verification, immediately before `runtime-mutation-started`. Source and snapshot must both pass `PRAGMA quick_check` before the deployment can cross that boundary.
+All files remain in the ignored `runtime/deployments/<UTC timestamp>/` audit directory. The evidence contains no telemetry payloads. The helper itself is checksum-staged in that directory before any historical source checkout, and capture runs only after candidate verification, immediately before `runtime-mutation-started`. Source and snapshot must both pass `PRAGMA quick_check`; snapshot and metadata contents plus their directory entries are fsynced before capture succeeds. The mutation marker is likewise atomically written and fsynced with its parent directory before any runtime-mutating Compose command can start.
 
 A successful deployment never invokes restore. The new edge database and any post-cutover queue remain untouched.
 

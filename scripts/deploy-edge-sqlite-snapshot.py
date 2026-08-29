@@ -86,15 +86,30 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _fsync_file(path: Path) -> None:
+    with path.open("rb") as stream:
+        os.fsync(stream.fileno())
+
+
+def _fsync_directory(path: Path) -> None:
+    directory_fd = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+
+
 def _atomic_json(path: Path, document: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp-{os.getpid()}")
     try:
-        temporary.write_text(
-            json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-        )
+        with temporary.open("x", encoding="utf-8") as stream:
+            stream.write(json.dumps(document, ensure_ascii=False, indent=2) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
         os.chmod(temporary, 0o600)
         os.replace(temporary, path)
+        _fsync_directory(path.parent)
     finally:
         temporary.unlink(missing_ok=True)
 
@@ -131,6 +146,8 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             source_connection.close()
         os.chmod(snapshot, 0o600)
         _quick_check(snapshot)
+        _fsync_file(snapshot)
+        _fsync_directory(snapshot.parent)
         registry_revision, queue_count, queue_high_water, stream_sequences = (
             _read_runtime_metadata(snapshot)
         )

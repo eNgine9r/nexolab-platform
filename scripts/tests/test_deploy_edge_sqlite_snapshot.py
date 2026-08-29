@@ -11,6 +11,7 @@ import stat
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -136,6 +137,12 @@ class EdgeSQLiteSnapshotTests(unittest.TestCase):
         finally:
             connection.close()
 
+    def test_capture_fsyncs_snapshot_metadata_and_parent_entries(self) -> None:
+        with mock.patch.object(edge_snapshot.os, "fsync", wraps=os.fsync) as fsync:
+            edge_snapshot.capture(self.capture_args())
+
+        self.assertGreaterEqual(fsync.call_count, 4)
+
     def test_corrupt_source_is_rejected_without_partial_evidence(self) -> None:
         self.source.write_bytes(b"not a sqlite database")
         with self.assertRaises(edge_snapshot.SnapshotError):
@@ -251,7 +258,7 @@ class EdgeSQLiteDeploymentContractTests(unittest.TestCase):
     def test_snapshot_precedes_runtime_mutation_and_restore_is_never_implicit(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
         capture_call = text.index("capture_edge_sqlite_snapshot\n")
-        mutation = text.index("printf 'source=%s\\nstarted_at=%s\\n'")
+        mutation = text.index("write_durable_runtime_mutation_marker\n", capture_call)
         restore_call = text.index("restore_edge_sqlite_snapshot\n")
         restore_mode = text.index('if [[ -n "$RESTORE_EDGE_SNAPSHOT_DIR" ]]')
         normal_deployment = text.index('FRONTEND_ARTIFACT_DIR=""')
@@ -288,6 +295,21 @@ class EdgeSQLiteDeploymentContractTests(unittest.TestCase):
         authority_call = text.index("resolve_deployed_source_authority\n", deployment_start)
         retention = text.index("nexolab_prune_deployment_evidence", authority_call)
         self.assertLess(authority_call, retention)
+
+    def test_mutation_marker_is_durable_before_runtime_activation(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        function_start = text.index("write_durable_runtime_mutation_marker()")
+        function_end = text.index("\n}\n", function_start)
+        marker_function = text[function_start:function_end]
+        self.assertIn("stream.flush()", marker_function)
+        self.assertGreaterEqual(marker_function.count("os.fsync("), 2)
+        self.assertIn("os.replace(temporary, marker)", marker_function)
+
+        capture = text.index("\ncapture_edge_sqlite_snapshot\n", function_end)
+        marker = text.index("\nwrite_durable_runtime_mutation_marker\n", capture)
+        compose = text.index('log "Starting central backend, MinIO and observability"', marker)
+        self.assertLess(capture, marker)
+        self.assertLess(marker, compose)
 
     def test_helper_is_staged_before_historical_checkout(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
