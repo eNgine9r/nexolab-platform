@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 757,
-      "title": "Correct Raspberry Pi PostgreSQL backup capacity estimation",
-      "branch": "fix/757-postgres-capacity-estimate"
+      "issue": 755,
+      "title": "Activate bounded #709 + #711 runtime target and capture acceptance",
+      "branch": "ops/755-bounded-709-711-runtime-acceptance"
     },
     "next_work_package": null
   },
@@ -819,7 +819,7 @@
       "issue": 755,
       "title": "Activate bounded #709 + #711 runtime target and capture acceptance",
       "priority": "critical",
-      "lifecycle": "blocked",
+      "lifecycle": "in_progress",
       "branch": "ops/755-bounded-709-711-runtime-acceptance",
       "evidence": {
         "product_owner_cutover_authorization": "approved_2026-08-29_for_issues_709_711_only",
@@ -855,7 +855,7 @@
         "runtime_health_after_failed_attempt": "dashboard_200_device_agent_ok_mqtt_connected_queue_0",
         "capacity_cache_authority": "process_internal_inherited_environment_rejected",
         "capacity_measurement_tempfile_failure": "database_size_fallback",
-        "blocked_by_issue_757": "capacity_guard_prerequisite_must_merge_to_main_before_privileged_retry",
+        "blocked_by_issue_757": "cleared_after_prerequisite_merge",
         "resume_after_issue_757": "bounded_runtime_acceptance_same_verified_ff86b10b_artifact"
       }
     },
@@ -863,7 +863,7 @@
       "issue": 757,
       "title": "Correct Raspberry Pi PostgreSQL backup capacity estimation",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/757-postgres-capacity-estimate",
       "evidence": {
         "root_cause": "raw_pg_database_size_overestimated_compressed_pg_dump_fc_backup_capacity",
@@ -877,7 +877,13 @@
         "real_pi_pg_dump_stream_bytes": "396437820",
         "real_pi_pg_backup_margin_estimate_bytes": "503190466",
         "production_runtime_mutation": "none",
-        "issue_755_dependency": "must_merge_to_main_before_resume"
+        "issue_755_dependency": "must_merge_to_main_before_resume",
+        "implementation_verified_head_sha": "47fad9431e785ad181649990e2e797dfdf6d5569",
+        "core_quality_build": "success:33258385608",
+        "telemetry_service": "success:33258385655",
+        "nexolab_merge_gate": "success:33258385608",
+        "manual_review": "clean_full_diff",
+        "readiness": "completed_candidate_pending_state_only_exact_head_ci_and_merge"
       }
     }
   ],

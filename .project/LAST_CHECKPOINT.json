@@ -3,36 +3,37 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-29T17:45:00+03:00",
+  "timestamp": "2026-08-29T17:58:00+03:00",
   "actor": "ChatGPT",
-  "event": "issue_757_capacity_prerequisite_active",
+  "event": "issue_757_completion_candidate_issue_755_resume",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "active_work": {
-    "issue": 757,
-    "title": "Correct Raspberry Pi PostgreSQL backup capacity estimation",
-    "branch": "fix/757-postgres-capacity-estimate"
+    "issue": 755,
+    "title": "Activate bounded #709 + #711 runtime target and capture acceptance",
+    "branch": "ops/755-bounded-709-711-runtime-acceptance"
   },
   "evidence_snapshot": {
     "issue": 757,
-    "blocked_issue": 755,
-    "production_source_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d",
-    "approved_runtime_target_after_prerequisite": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
-    "capacity_fix": "streamed_pg_dump_fc_measurement_with_database_size_fail_safe_fallback",
+    "implementation_verified_head_sha": "47fad9431e785ad181649990e2e797dfdf6d5569",
     "capacity_regression_tests": "14_passed",
     "focused_deployment_safety_tests": "55_passed",
-    "manual_review": "clean_after_cache_spoof_and_tempfile_fallback_hardening",
     "real_pi_capacity_recheck": "PASS_free_12988268544_required_9487377137",
-    "real_pi_pg_database_bytes": "8930384919",
-    "real_pi_pg_dump_stream_bytes": "396437820",
-    "real_pi_pg_backup_margin_estimate_bytes": "503190466",
-    "production_runtime_mutation": "none",
-    "resume_issue_755_operator_command": "cd ~/nexolab-platform && git switch main && git pull --ff-only origin main && export PATH=\"$HOME/.nvm/versions/node/v22.23.1/bin:$PATH\" && sudo -v && ./scripts/deploy-current-head-raspberry-pi.sh --runtime-mode lan --frontend-artifact \"$PWD/runtime/staging/frontend-ff86b10b-20260829\" --source-ref ff86b10b71c8e5252c15baaf4183adbf42f30f18 --expected-deployed-source ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
+    "core_quality_build": "PASS:33258385608",
+    "telemetry_service": "PASS:33258385655",
+    "nexolab_merge_gate": "PASS:33258385608",
+    "manual_review": "clean_full_diff",
+    "resume_issue": 755,
+    "production_source_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d",
+    "approved_runtime_target": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
+    "frontend_artifact": "runtime/staging/frontend-ff86b10b-20260829",
+    "post_merge_operator_command": "cd ~/nexolab-platform && git switch main && git pull --ff-only origin main && export PATH=\"$HOME/.nvm/versions/node/v22.23.1/bin:$PATH\" && sudo -v && ./scripts/deploy-current-head-raspberry-pi.sh --runtime-mode lan --frontend-artifact \"$PWD/runtime/staging/frontend-ff86b10b-20260829\" --source-ref ff86b10b71c8e5252c15baaf4183adbf42f30f18 --expected-deployed-source ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d",
+    "production_runtime_mutation": "none"
   },
   "observations": [],
-  "next_action": "Publish Issue #757 as one focused PR, require exact-head Core/Telemetry/NEXOLAB Merge Gate GREEN and clean manual review, merge #757 to main, then resume Issue #755 and execute the recorded resume_issue_755_operator_command. Do not begin #709/#711 live acceptance until a new DEPLOYMENT PASSED is captured.",
+  "next_action": "Require this final state-only head to pass exact-head state/merge gates, merge PR #758, sync main, then resume Issue #755 with the recorded bounded operator command. Do not begin #709/#711 live acceptance until DEPLOYMENT PASSED is captured.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
