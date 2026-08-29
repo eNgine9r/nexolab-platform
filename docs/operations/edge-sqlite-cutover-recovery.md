@@ -42,7 +42,7 @@ bash scripts/deploy-current-head-raspberry-pi.sh \
   --expected-target-source <failed target 40-character SHA>
 ```
 
-The command rejects a running or ambiguous Device Agent, an unexpected volume, an unavailable pre-cutover Device Agent image, any remaining SQLite WAL/SHM/journal sidecar that could contain newer state, queue or stream-sequence advancement after capture, a corrupt snapshot, a mismatched filename/size/hash/revision/queue count, and wrong source or deployment evidence. Before replacing SQLite it retags and verifies the exact captured pre-cutover image as `nexolab-device-agent:local`. It writes `edge-sqlite-restore-result.json` only after an atomic replacement has the exact captured SHA and revision. The Device Agent remains stopped.
+The command rejects a running or ambiguous Device Agent, an unexpected volume, an unavailable pre-cutover Device Agent image, any remaining SQLite WAL/SHM/journal sidecar that could contain newer state, queue or stream-sequence advancement after capture, a corrupt snapshot, a mismatched filename/size/hash/revision/queue count, and wrong source or deployment evidence. Only after the guarded atomic SQLite replacement has the exact captured SHA and revision does it retag and verify the exact captured pre-cutover image as `nexolab-device-agent:local`. It then writes `edge-sqlite-restore-result.json`. The Device Agent remains stopped throughout; if image selection fails after database replacement, no success result is published and restart remains prohibited.
 
 Review the sanitized result and only then restart Device Agent as a separate operator action:
 

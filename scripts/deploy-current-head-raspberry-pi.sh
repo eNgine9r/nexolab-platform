@@ -223,16 +223,6 @@ PY_RESTORE_IMAGE
       echo "ERROR: exact pre-cutover Device Agent image is unavailable; database was not restored" >&2
       return 1
     }
-  docker image tag "$deployed_device_agent_image_id" nexolab-device-agent:local \
-    || {
-      echo "ERROR: failed to select the exact pre-cutover Device Agent image" >&2
-      return 1
-    }
-  [[ "$(docker image inspect --format '{{.Id}}' nexolab-device-agent:local)" == "$deployed_device_agent_image_id" ]] \
-    || {
-      echo "ERROR: pre-cutover Device Agent image verification failed" >&2
-      return 1
-    }
   if ! docker run --rm --user 0:0 \
     --volumes-from "$edge_container" \
     --mount "type=bind,src=$SCRIPT_DIR,dst=/nexolab-scripts,readonly" \
@@ -256,6 +246,18 @@ PY_RESTORE_IMAGE
     echo "ERROR: Device Agent state changed during restore; do not restart or continue" >&2
     return 1
   fi
+  docker image tag "$deployed_device_agent_image_id" nexolab-device-agent:local \
+    || {
+      rm -f -- "$result_tmp"
+      echo "ERROR: SQLite was restored but the pre-cutover Device Agent image could not be selected; Device Agent remains stopped" >&2
+      return 1
+    }
+  [[ "$(docker image inspect --format '{{.Id}}' nexolab-device-agent:local)" == "$deployed_device_agent_image_id" ]] \
+    || {
+      rm -f -- "$result_tmp"
+      echo "ERROR: SQLite was restored but pre-cutover Device Agent image verification failed; Device Agent remains stopped" >&2
+      return 1
+    }
   mv -- "$result_tmp" "$result_file"
   chmod 0600 "$result_file"
   echo "EDGE_SQLITE_RESTORE_VERIFIED"
