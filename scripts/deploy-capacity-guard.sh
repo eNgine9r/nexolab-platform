@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Process-internal cache only. Never trust inherited environment values for capacity authority.
+NEXOLAB_CAPACITY_PG_DUMP_CACHE_CONTAINER=
+NEXOLAB_CAPACITY_PG_DUMP_CACHE_BYTES=
+
 nexolab_capacity_uint() {
   local name=$1
   local value=$2
@@ -222,7 +226,11 @@ nexolab_capacity_measure_postgres_dump() {
   fi
 
   local status_file measured dump_rc
-  status_file="$(mktemp "${TMPDIR:-/tmp}/nexolab-pg-dump-status.XXXXXX")" || return 70
+  if ! status_file="$(mktemp "${TMPDIR:-/tmp}/nexolab-pg-dump-status.XXXXXX")"; then
+    NEXOLAB_CAPACITY_PG_DUMP_SOURCE=unavailable
+    NEXOLAB_CAPACITY_PG_DUMP_BYTES=0
+    return 0
+  fi
   measured="$(
     {
       set +e

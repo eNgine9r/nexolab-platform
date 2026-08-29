@@ -846,13 +846,15 @@
         "first_privileged_deployment_capacity": "FAIL_free_12993241088_required_18872457135",
         "capacity_failure_runtime_mutation_marker": "absent",
         "capacity_fix": "streamed_pg_dump_fc_measurement_with_database_size_fail_safe_fallback",
-        "capacity_regression_tests": "12_passed",
-        "focused_deployment_safety_tests": "53_passed",
+        "capacity_regression_tests": "14_passed",
+        "focused_deployment_safety_tests": "55_passed",
         "real_pi_capacity_recheck": "PASS_free_12988268544_required_9487377137",
         "real_pi_pg_database_bytes": "8930384919",
         "real_pi_pg_dump_stream_bytes": "396437820",
         "real_pi_pg_backup_margin_estimate_bytes": "503190466",
-        "runtime_health_after_failed_attempt": "dashboard_200_device_agent_ok_mqtt_connected_queue_0"
+        "runtime_health_after_failed_attempt": "dashboard_200_device_agent_ok_mqtt_connected_queue_0",
+        "capacity_cache_authority": "process_internal_inherited_environment_rejected",
+        "capacity_measurement_tempfile_failure": "database_size_fallback"
       }
     }
   ],

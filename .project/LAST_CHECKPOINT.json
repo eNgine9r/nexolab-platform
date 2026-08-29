@@ -29,8 +29,8 @@
     "runtime_mutation": "not_started",
     "first_privileged_deployment_attempt": "20260829T133919Z_capacity_preflight_fail_before_runtime_mutation",
     "capacity_fix": "streamed_pg_dump_fc_measurement_with_database_size_fail_safe_fallback",
-    "capacity_regression_tests": "12_passed",
-    "focused_deployment_safety_tests": "53_passed",
+    "capacity_regression_tests": "14_passed",
+    "focused_deployment_safety_tests": "55_passed",
     "real_pi_capacity_recheck": "PASS_free_12988268544_required_9487377137",
     "real_pi_pg_database_bytes": "8930384919",
     "real_pi_pg_dump_stream_bytes": "396437820",
@@ -39,7 +39,10 @@
     "capacity_fix_candidate_sha": "7257d575825e89c2b14fa7e4a724ec1940ae901d",
     "capacity_fix_ci": "pending_exact_head",
     "capacity_fix_review": "requested_exact_head",
-    "post_merge_operator_command": "cd ~/nexolab-platform && git switch main && git pull --ff-only origin main && export PATH=\"$HOME/.nvm/versions/node/v22.23.1/bin:$PATH\" && sudo -v && ./scripts/deploy-current-head-raspberry-pi.sh --runtime-mode lan --frontend-artifact \"$PWD/runtime/staging/frontend-ff86b10b-20260829\" --source-ref ff86b10b71c8e5252c15baaf4183adbf42f30f18 --expected-deployed-source ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
+    "post_merge_operator_command": "cd ~/nexolab-platform && git switch main && git pull --ff-only origin main && export PATH=\"$HOME/.nvm/versions/node/v22.23.1/bin:$PATH\" && sudo -v && ./scripts/deploy-current-head-raspberry-pi.sh --runtime-mode lan --frontend-artifact \"$PWD/runtime/staging/frontend-ff86b10b-20260829\" --source-ref ff86b10b71c8e5252c15baaf4183adbf42f30f18 --expected-deployed-source ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d",
+    "capacity_cache_authority": "process_internal_inherited_environment_rejected",
+    "capacity_measurement_tempfile_failure": "database_size_fallback",
+    "capacity_fix_manual_review": "clean_after_cache_spoof_and_tempfile_fallback_hardening"
   },
   "observations": [],
   "next_action": "Require exact-head CI and clean review for capacity-fix candidate 7257d575825e89c2b14fa7e4a724ec1940ae901d, merge PR #756 only after GREEN, then execute the recorded post_merge_operator_command. Do not begin #709/#711 live acceptance until DEPLOYMENT PASSED is captured.",
