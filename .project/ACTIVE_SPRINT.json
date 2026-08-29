@@ -22,11 +22,7 @@
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 725,
-      "title": "Add local candidate verification gate before remote GitHub CI",
-      "branch": "feat/725-local-candidate-verification-gate"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -685,21 +681,22 @@
       "branch": "docs/730-opera-tailscale-inspection",
       "evidence": {
         "pull_request": 731,
-        "repository_security_hardening": "implemented_pending_exact_head_and_fresh_opera_positive",
+        "repository_security_hardening": "implemented_exact_head_core_green_fresh_opera_positive_pending",
         "actual_host_negative_security_acceptance": "success",
         "fresh_approved_opera_positive": "soft_blocked_browser_connector_disconnected",
-        "production_feature_cutover": "not_executed"
+        "production_feature_cutover": "not_executed",
+        "repository_exact_head_observation": "6a5949863c4e3dd52dc1f4669e1485535110d77b_core_and_telemetry_green"
       }
     },
     {
       "issue": 725,
       "title": "Add local candidate verification gate before remote GitHub CI",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "evidence": {
         "implementation_checkpoint_sha": "0870c6d1264f836033d7abdcb44c62cb5b68e7e9",
-        "readiness": "implementation_in_progress",
+        "readiness": "completed_exact_head_green",
         "real_state_only_candidate_gate": "success",
         "focused_orchestrator_tests": "16_passed",
         "github_exact_head_remains_authoritative": true,
@@ -709,7 +706,22 @@
         "eslint": "success",
         "typecheck": "success",
         "state_model": "success",
-        "git_diff_check": "success"
+        "git_diff_check": "success",
+        "verified_head_sha": "7070ba520f482208beb47f36435a33324ff0c2e0",
+        "pull_request": 743,
+        "checks": {
+          "focused_orchestrator": "16_passed",
+          "ci_policy_matrix": "111_ok_1_environment_skip",
+          "real_state_only_candidate": "green",
+          "core_quality_build": "success",
+          "telemetry_service": "success",
+          "authenticated_dashboard": "success",
+          "offline_bundle": "success",
+          "refrigeration_browser": "success",
+          "nexolab_merge_gate": "success"
+        },
+        "repository_merge_status": "merged",
+        "merge_observation_sha": "c9184cc2f0aca72c4e4f02b02c4b5441488775f9"
       },
       "branch": "feat/725-local-candidate-verification-gate"
     }

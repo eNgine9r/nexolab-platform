@@ -3,36 +3,53 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-29T04:51:29+03:00",
+  "timestamp": "2026-08-29T08:36:00+03:00",
   "actor": "ChatGPT",
-  "event": "issue_725_local_candidate_gate_ready_for_remote_verification",
+  "event": "issue_725_completed_ready_queue_exhausted",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
-  "active_work": {
-    "issue": 725,
-    "title": "Add local candidate verification gate before remote GitHub CI",
-    "branch": "feat/725-local-candidate-verification-gate"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "active_issue_evidence": {
-      "implementation_checkpoint_sha": "0870c6d1264f836033d7abdcb44c62cb5b68e7e9",
-      "readiness": "implementation_in_progress",
-      "real_state_only_candidate_gate": "success",
-      "focused_orchestrator_tests": "16_passed",
-      "github_exact_head_remains_authoritative": true,
-      "full_non_state_local_build_on_production_pi": "not_run_due_recorded_reboot_risk",
-      "ci_policy_matrix": "111_tests_ok_1_environment_skip",
-      "prettier": "success",
-      "eslint": "success",
-      "typecheck": "success",
-      "state_model": "success",
-      "git_diff_check": "success"
+    "completed_issue": 725,
+    "pull_request": 743,
+    "verified_head_sha": "7070ba520f482208beb47f36435a33324ff0c2e0",
+    "exact_head_github": {
+      "core_quality_build": "PASS",
+      "telemetry_service": "PASS",
+      "authenticated_dashboard": "PASS",
+      "offline_bundle": "PASS",
+      "refrigeration_browser": "PASS",
+      "nexolab_merge_gate": "PASS"
+    },
+    "local_candidate_gate": {
+      "focused_orchestrator": "16/16 PASS",
+      "ci_policy_matrix": "111 OK, 1 environment skip",
+      "real_state_only_candidate": "GREEN"
+    },
+    "blocked_issue": 730,
+    "blocked_reason": "fresh approved-workstation Opera/Tailscale positive proof pending because Browser Connector is disconnected",
+    "delta_ready_audit": "no independent Ready Work Package",
+    "stale_issue_cleanup": {
+      "732": "closed_not_planned_superseded_by_733",
+      "720": "closed_completed"
     }
   },
-  "observations": [],
-  "next_action": "Commit and push the coherent Issue #725 candidate, open its focused PR, require exact-head GitHub Core/external workflows and NEXOLAB Merge Gate GREEN, then record final evidence. Issue #730 remains soft-blocked until Opera Browser Connector can provide fresh approved-workstation positive proof.",
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-08-29T08:36:00+03:00",
+      "kind": "issue_725_merge_completion",
+      "data": {
+        "pull_request": 743,
+        "verified_head_sha": "7070ba520f482208beb47f36435a33324ff0c2e0",
+        "merge_sha": "c9184cc2f0aca72c4e4f02b02c4b5441488775f9",
+        "issue_state": "closed"
+      }
+    }
+  ],
+  "next_action": "Fresh approved-workstation Opera/Tailscale positive proof is required to unblock Issue #730. No other independent Ready Work Package may start without hardware evidence, explicit production-cutover approval, or Product Owner RFX resume decision.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
