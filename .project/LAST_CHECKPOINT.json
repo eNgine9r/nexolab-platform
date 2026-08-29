@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-29T14:12:00+03:00",
+  "timestamp": "2026-08-29T14:46:40+03:00",
   "actor": "ChatGPT",
-  "event": "issue_755_preflight_pass_privileged_operator_required",
+  "event": "issue_755_artifact_verified_privileged_deployment_gate",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
@@ -16,10 +16,20 @@
     "branch": "ops/755-bounded-709-711-runtime-acceptance"
   },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "issue": 755,
+    "deployed_source_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d",
+    "target_source_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
+    "control_main_sha": "76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8",
+    "source_selection_preflight": "PASS_real_pi",
+    "frontend_artifact_workflow_run": "33249671236_success",
+    "frontend_artifact_id": "9714063428",
+    "frontend_artifact_digest": "sha256:e63811646fde0121a562d9d3bc1dfd04c24176a756657fd27f6358e3e9ff3f5e",
+    "frontend_artifact_repository_import": "PASS",
+    "runtime_health_before_cutover": "dashboard_200_device_agent_ok_mqtt_connected_queue_0",
+    "runtime_mutation": "not_started"
   },
   "observations": [],
-  "next_action": "Execute the exact bounded deployment command for ff86b10b against ff796b1f through an approved privileged operator path; then verify DEPLOYMENT PASSED evidence, adopt exact source authority, and run #709/#711 runtime acceptance.",
+  "next_action": "Product Owner runs the exact interactive privileged deployment command for Issue #755 using the verified ff86b10b ARM64 artifact; then ChatGPT inspects deployment evidence, health, adoption, CSV #709 acceptance and Energy #711 acceptance.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

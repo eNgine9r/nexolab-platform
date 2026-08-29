@@ -40,7 +40,7 @@ Issue #704 has exact-head repository verification GREEN at `e2f7857e381600d76dd4
 
 ## Issue #755 — approved bounded #709 / #711 controlled deployment
 
-Product Owner authorization is recorded for exact historical-main target `ff86b10b71c8e5252c15baaf4183adbf42f30f18` only. Issue #753 / PR #754 is merged and no-runtime source-selection preflight passed on the real Pi. GitHub run `33249671236` is preparing an exact off-device ARM64 frontend artifact to avoid a heavy production-Pi frontend build. The remaining hard operational blocker is the legitimate privileged dashboard systemd/unit activation step: the connected Remote Desktop Commander cannot elevate privileges and must not bypass this boundary. Once the Product Owner executes the single repository-owned deployment command, ChatGPT can resume automatic evidence inspection and #709/#711 acceptance.
+Product Owner authorization is recorded for exact historical-main target `ff86b10b71c8e5252c15baaf4183adbf42f30f18` only. Issue #753 / PR #754 is merged and no-runtime source-selection preflight passed on the real Pi. GitHub run `33249671236` completed successfully; artifact `9714063428` is exact to `ff86b10b...`, `linux/arm64`, checksum-valid and repository-import verified on the real Pi. The remaining hard operational blocker is the legitimate privileged dashboard systemd/unit activation step: the connected Remote Desktop Commander cannot elevate privileges and must not bypass this boundary. Once the Product Owner executes the single repository-owned deployment command, ChatGPT can resume automatic evidence inspection and #709/#711 acceptance.
 
 ## Issue #753 — cleared
 

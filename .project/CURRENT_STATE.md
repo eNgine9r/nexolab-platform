@@ -46,7 +46,7 @@ Issue #753 is **completed and merged** in PR #754 at merge SHA `76fa83a80e2eef82
 
 Issue #755 is **active** under the Product Owner's 2026-08-29 deployment authorization. Real-Pi no-runtime preflight passed at **2026-08-29T14:06:57+03:00** with `SOURCE_SELECTION_VALIDATED`: deployed `ff796b1f...` → target `ff86b10b...` → control main `76fa83a8...`; authoritative current deployment evidence is `runtime/deployments/20260827T101743Z`. Pre/post preflight runtime remained healthy (Dashboard HTTP 200, Device Agent `ok`, MQTT connected, queue depth 0) and checkout returned to synchronized `main`. Production mutation has **not** started.
 
-The current preparation step is GitHub workflow run `33249671236`, building a verified off-device ARM64 frontend artifact for the exact target `ff86b10b...` and current LOCAL_LAN public contract. This avoids the bounded local frontend-build fallback on the production 4 GB Raspberry Pi. Actual activation remains blocked on the legitimate privileged dashboard systemd/unit-install step; the connected Remote Desktop Commander cannot and must not bypass that privilege boundary.
+GitHub workflow run `33249671236` completed successfully and produced verified ARM64 artifact `9714063428` for exact target `ff86b10b...`. Manifest checksums, `linux/arm64` platform, Node `22.23.1`, LOCAL_LAN public runtime contract and repository-owned artifact import all PASS on the real Pi. This avoids the bounded local frontend-build fallback on the production 4 GB Raspberry Pi. Actual activation remains blocked only on the legitimate privileged dashboard systemd/unit-install step; the connected Remote Desktop Commander cannot and must not bypass that privilege boundary.
 
 ## Recently completed production-readiness boundaries
 
