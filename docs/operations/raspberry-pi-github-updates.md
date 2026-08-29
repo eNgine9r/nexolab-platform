@@ -133,7 +133,7 @@ The source-deployment path may target an explicitly approved historical `main` S
 
 The operator must provide both the exact approved target SHA and the exact currently deployed source SHA. Deployed-source authority is selected by the canonical UTC deployment-evidence directory stamp (`YYYYMMDDTHHMMSSZ`), never filesystem `mtime`; touching an old evidence directory cannot make it current. The selected successful evidence is protected from bounded retention before pruning. If any later deployment attempt crossed the explicit runtime-mutation boundary without a later successful deployment re-establishing authority, historical deployment fails closed as indeterminate. The script then verifies `deployed → target → origin/main` Git ancestry, requires a clean synchronized `main` checkout, preserves the existing capacity/backup/auth/readiness/rollback gates, records all source identities, and restores the repository checkout to current `main` after the attempt. `--source-selection-check-only` performs a fresh `origin main` fetch/fast-forward before lineage validation and performs no product-runtime mutation.
 
-This mode is allowed only inside an explicitly approved production/site-cutover Work Package. Feature-only commits and Git-ref rewriting remain prohibited.
+This mode is allowed only inside an explicitly approved production/site-cutover Work Package. After successful activation, the repository is restored to control `main`; source adoption must therefore validate the historical deployment evidence independently of checkout `HEAD` and derive source schema/build identity from the deployed commit. Feature-only commits, Git-ref rewriting and treating newer control-main schema as deployed schema remain prohibited.
 
 ## Offline behavior
 

@@ -44,7 +44,7 @@ Product Owner authorization is recorded for the exact historical-main deployment
 
 ## Issue #753 — PR #754 deployment-safety review hardening
 
-The first exact-head candidate reached GREEN Core/Telemetry/Merge Gate but fresh review found 2×P1 and 2×P2 safety defects. All four are now addressed locally with deterministic timestamp authority, fail-closed later-mutating-attempt detection, pre-retention active-evidence protection and fresh remote preflight. The focused deployment matrix is 36/36 GREEN and a metadata-copy replay of actual Pi deployment evidence passes for `ff796b1f → ff86b10b`. #753 remains blocked from merge/production mutation until the new exact head is GREEN and every PR #754 review thread is resolved.
+The fifth P1 is locally addressed: historical source adoption now stays on canonical control `main`, verifies explicit historical evidence/main ancestry, and derives build/schema from the exact deployed source Git object. Real source proof distinguishes target `ff86b10b...` schema `20260820_0026` from control-main `20260828_0027`; local deployment + adopter safety tests are 45/45 PASS. #753 remains blocked from merge/production mutation until the new exact head is Core/Telemetry/Merge-Gate GREEN and fresh review has zero unresolved findings.
 
 ## Cleared boundaries
 

@@ -24,20 +24,22 @@ Before writing `current.json` it requires:
 - canonical origin `eNgine9r/nexolab-platform`;
 - branch `main`;
 - no tracked working-tree changes;
-- valid local `HEAD` and `origin/main` revisions;
-- deployed `HEAD` to be a fast-forward ancestor of the existing `origin/main` ref;
+- valid local `HEAD` and `origin/main` revisions with the control checkout remaining on `main`;
+- control `HEAD` to be a fast-forward ancestor of the existing `origin/main` ref;
 - deployment evidence under `runtime/deployments/**`;
 - `summary.txt` containing `DEPLOYMENT PASSED`;
-- `final-state.txt` commit exactly equal to repository `HEAD`;
+- a valid deployment-evidence source commit that exists in Git and remains in canonical `main` lineage;
+- for normal current-main deployments, evidence source equal to control `HEAD`;
+- for explicit historical-main deployments, `requested_source_ref`, `expected_deployed_source` and `control_origin_main` evidence bound to the deployed source and canonical control-main ancestry;
 - runtime mode matching `runtime/runtime-mode`;
 - controlled authentication (`AUTH_MODE` must not be disabled);
 - local-auth evidence consistent with the Dashboard auth provider;
-- one repository Alembic head and the live database at that same revision;
+- one Alembic head derived from the exact deployment-evidence source commit through Git object inspection, and the live database at that same revision;
 - Telemetry API, database and MQTT readiness;
 - healthy Device Agent bus-worker invariant and telemetry-attempt evidence;
 - host platform supported by NEXOLAB.
 
-`origin/main` is allowed to be newer than the deployed `HEAD`; that is the normal state in which update discovery needs trustworthy current lineage. A non-fast-forward relationship fails closed.
+`origin/main` is allowed to be newer than the deployed source. For an explicit historical-main deployment, the repository stays/restores on canonical control `main`; the adopter verifies the evidence commit independently, derives build/schema identity from that commit using Git objects, verifies the evidence control-main ancestry up to current `HEAD`/`origin/main`, and never checks out or moves a Git ref. A non-fast-forward or unbound historical relationship fails closed.
 
 Any mismatch fails closed before the metadata record is created.
 
@@ -83,7 +85,7 @@ sudo python3 scripts/nexolab-adopt-source-deployment.py \
   --evidence-dir runtime/deployments/<deployment-timestamp>
 ```
 
-A successful result reports the exact source commit, runtime mode, platform, schema head, runtime health and evidence path. It also reports `known_packaged_release=false`.
+A successful result reports the exact deployed source commit, runtime mode, platform, source-commit Alembic head, runtime health and evidence path. For a historical-main runtime this deployed source may intentionally differ from repository `HEAD`; `current.json` records that distinction with `source_historical_main`, the control checkout/origin commits and the deployment-evidence control-main commit. It also reports `known_packaged_release=false`.
 
 If the same verified source deployment has already been recorded, the command is idempotent. A later verified source deployment may replace an older source-lineage record while retaining previous source commit/evidence references. If `current.json` represents a validated packaged release, the adopter refuses to replace it.
 

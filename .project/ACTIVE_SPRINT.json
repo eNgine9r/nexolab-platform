@@ -792,13 +792,16 @@
           "core_quality_build": "success",
           "telemetry_service": "success",
           "nexolab_merge_gate": "success",
-          "review_threads": "4_unresolved_pending_new_head"
+          "review_threads": "5_unresolved_pending_new_head"
         },
-        "readiness": "review_hardening_local_green_pending_exact_head_ci",
+        "readiness": "local_green_pending_new_exact_head_ci",
         "review_reopened_after_green_candidate": true,
-        "review_findings": "4_addressed_locally_pending_re_review",
+        "review_findings": "5_addressed_locally_pending_new_exact_head_review",
         "capacity_retention_regressions": "8_passed",
-        "legacy_pi_evidence_preflight": "success_on_metadata_copy_target_ff86b10b_restore_main"
+        "legacy_pi_evidence_preflight": "success_on_metadata_copy_target_ff86b10b_restore_main",
+        "source_adoption_tests": "9_passed",
+        "combined_local_safety_tests": "45_passed",
+        "historical_schema_git_object_proof": "ff86b10b=20260820_0026_control_main=20260828_0027"
       }
     }
   ],
