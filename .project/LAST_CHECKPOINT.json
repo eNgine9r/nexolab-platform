@@ -3,55 +3,36 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T23:31:44+03:00",
+  "timestamp": "2026-08-29T04:51:29+03:00",
   "actor": "ChatGPT",
-  "event": "issue_729_completed_and_next_ready_chain_reconciled",
+  "event": "issue_725_local_candidate_gate_ready_for_remote_verification",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "active_work": {
-    "issue": 730,
-    "branch": "docs/730-opera-tailscale-inspection",
-    "lifecycle": "review"
+    "issue": 725,
+    "title": "Add local candidate verification gate before remote GitHub CI",
+    "branch": "feat/725-local-candidate-verification-gate"
   },
   "evidence_snapshot": {
-    "completed_issue": 729,
-    "pull_request": 736,
-    "verified_head_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
-    "exact_head_github": {
-      "core_quality_build": "PASS",
-      "telemetry_service": "PASS",
-      "refrigeration_browser": "PASS",
-      "authenticated_dashboard": "PASS after controlled rerun",
-      "offline_bundle": "PASS",
-      "disaster_recovery_browser": "PASS",
-      "security_browser": "PASS",
-      "device_agent_fleet": "PASS",
-      "container_supply_chain": "PASS",
-      "nexolab_merge_gate": "PASS"
-    },
-    "temperature_scale": "hardware_unverified_fail_closed",
-    "hardware_activation": "not_executed",
-    "delta_ready_audit": {
-      "active_closure": 730,
-      "next_ready": 725,
-      "rfx_01_through_rfx_19c": "product_owner_hold"
+    "active_issue_evidence": {
+      "implementation_checkpoint_sha": "0870c6d1264f836033d7abdcb44c62cb5b68e7e9",
+      "readiness": "implementation_in_progress",
+      "real_state_only_candidate_gate": "success",
+      "focused_orchestrator_tests": "16_passed",
+      "github_exact_head_remains_authoritative": true,
+      "full_non_state_local_build_on_production_pi": "not_run_due_recorded_reboot_risk",
+      "ci_policy_matrix": "111_tests_ok_1_environment_skip",
+      "prettier": "success",
+      "eslint": "success",
+      "typecheck": "success",
+      "state_model": "success",
+      "git_diff_check": "success"
     }
   },
-  "observations": [
-    {
-      "source": "github",
-      "observed_at": "2026-08-28T23:31:44+03:00",
-      "kind": "post_merge_main_observation",
-      "data": {
-        "main_sha": "9b9f8cb74e98d3cd0f3162c8a883f02245344333",
-        "pull_request": 736,
-        "issue_729_state": "closed"
-      }
-    }
-  ],
-  "next_action": "Refresh PR #731 / Issue #730 against current main and require its exact-head documentation/merge-gate verification GREEN; after closure, start Ready Issue #725 local candidate verification gate. Do not resume RFX-01 through RFX-19C or perform production/Modbus/hardware writes.",
+  "observations": [],
+  "next_action": "Commit and push the coherent Issue #725 candidate, open its focused PR, require exact-head GitHub Core/external workflows and NEXOLAB Merge Gate GREEN, then record final evidence. Issue #730 remains soft-blocked until Opera Browser Connector can provide fresh approved-workstation positive proof.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

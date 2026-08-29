@@ -116,6 +116,47 @@ During implementation:
 
 A state-only checkpoint does not invalidate anchored product/hardware evidence when no product/runtime path changed.
 
+## Local candidate gate
+
+Before pushing a coherent committed candidate, run:
+
+```bash
+python3 scripts/verify-local-candidate.py --base origin/main --candidate HEAD
+```
+
+`--base` defaults to `origin/main` and `--candidate` defaults to `HEAD`; both may be
+any unambiguous local commit ref. The command resolves and reports both SHAs, computes
+the exact `base_sha` → `candidate_sha` tree diff used by PR Core CI, and invokes `scripts/classify-ci-impact.py` from
+a detached clean candidate worktree. The temporary worktree is disk-backed beside the
+repository by default rather than using system `/tmp`/tmpfs; use `--worktree-root` or
+`NEXOLAB_VERIFICATION_ROOT` to select another local disk location.
+
+Canonical state-only candidates run the exact diff check and dependency-free project
+state validator without installing Node dependencies. Other known candidates run the
+local equivalent of Core Quality/build: CI-policy and repository-policy validation,
+the exact Node baseline, deterministic `npm ci`, format, lint, typecheck, tests and the
+production build. Unknown paths return `RED` rather than claiming incomplete local
+evidence. `deployment_runtime` changes validate the Compose contracts automatically;
+`--include-compose-validation` forces the same validation for another known change
+surface when the Work Package explicitly requires it.
+
+Node is resolved from `PATH` first. If the PATH Node is missing or does not match
+`.nvmrc`, NVM-based developer hosts fall back to the exact version under `NVM_DIR`
+(or the user's standard `.nvm` path).
+
+The final summary reports the resolved SHAs, impact classes, `fail_closed`, required
+remote workflows, checks executed and `GREEN` or `RED`. A `GREEN` result is pre-push
+evidence only; GitHub exact-head required CI and `NEXOLAB Merge Gate` remain
+authoritative before merge.
+
+### Host selection
+
+Run the full non-state Core lane on a development workstation or dedicated CI host with
+sufficient RAM, swap and disk headroom. The production 4 GB Raspberry Pi is reserved
+for targeted ARM64/runtime/offline/hardware evidence and the dependency-free state lane;
+it is not the default host for `npm ci` plus a full Next.js production build. This keeps
+verification from competing with live NEXOLAB acquisition and monitoring services.
+
 ## State Model v2 interaction
 
 `State integrity` validates `schema_version: 2` through dependency-free tooling.

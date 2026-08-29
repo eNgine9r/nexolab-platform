@@ -23,11 +23,11 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 730
+      "issue": 725,
+      "title": "Add local candidate verification gate before remote GitHub CI",
+      "branch": "feat/725-local-candidate-verification-gate"
     },
-    "next_work_package": {
-      "issue": 725
-    }
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -680,14 +680,14 @@
       "issue": 730,
       "title": "Persist Opera/Tailscale inspection access with device-bound read-only auto-login",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "blocked",
       "depends_on": [],
       "branch": "docs/730-opera-tailscale-inspection",
       "evidence": {
         "pull_request": 731,
-        "actual_host_acceptance": "completed",
-        "repository_scope": "documentation_only",
-        "exact_head_github": "refresh_required_against_current_main",
+        "repository_security_hardening": "implemented_pending_exact_head_and_fresh_opera_positive",
+        "actual_host_negative_security_acceptance": "success",
+        "fresh_approved_opera_positive": "soft_blocked_browser_connector_disconnected",
         "production_feature_cutover": "not_executed"
       }
     },
@@ -695,11 +695,21 @@
       "issue": 725,
       "title": "Add local candidate verification gate before remote GitHub CI",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [],
       "evidence": {
-        "readiness": "independent_software_only",
-        "github_exact_head_remains_authoritative": true
+        "implementation_checkpoint_sha": "0870c6d1264f836033d7abdcb44c62cb5b68e7e9",
+        "readiness": "implementation_in_progress",
+        "real_state_only_candidate_gate": "success",
+        "focused_orchestrator_tests": "16_passed",
+        "github_exact_head_remains_authoritative": true,
+        "full_non_state_local_build_on_production_pi": "not_run_due_recorded_reboot_risk",
+        "ci_policy_matrix": "111_tests_ok_1_environment_skip",
+        "prettier": "success",
+        "eslint": "success",
+        "typecheck": "success",
+        "state_model": "success",
+        "git_diff_check": "success"
       },
       "branch": "feat/725-local-candidate-verification-gate"
     }
