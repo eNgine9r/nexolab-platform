@@ -44,7 +44,7 @@ Product Owner authorization is recorded for the exact historical-main deployment
 
 ## Issue #753 — PR #754 deployment-safety review hardening
 
-Eight substantive review findings have now been addressed locally. The newest P1 adds an independent non-regression guard for existing controlled-source authority: a candidate adoption must be the same commit or a fast-forward descendant of the `current.json` source commit even when the prior evidence directory is missing, so preserved older evidence cannot move authority backward. The previous latest-authority/newer-mutating-attempt and symlink-canonicalization fixes remain intact, as does historical schema authority exact to deployed Git objects (`ff86b10b...` → `20260820_0026`, control main → `20260828_0027`). Local deployment + adopter safety tests are 51/51 PASS. #753 remains blocked from merge/production mutation until a new exact head is Core/Telemetry/Merge-Gate GREEN and fresh review has zero unresolved findings.
+Repository implementation is complete candidate and review-clean on `b8fb31de3c14ee6c0c000ccbd548adf2f202f4c4`: eight safety findings are addressed, local focused safety is 51/51 PASS, exact-head Core/Telemetry/Merge Gate are GREEN, fresh Codex review found no major issues, and all review threads are resolved. No production runtime mutation occurred in #753. The only remaining repository gate is final state-only exact-head CI + PR #754 merge. After merge, #709/#711 remain bounded to the already-authorized target `ff86b10b...`; real runtime mutation must still follow a successful source-selection preflight and an approved privileged operator path.
 
 ## Cleared boundaries
 
