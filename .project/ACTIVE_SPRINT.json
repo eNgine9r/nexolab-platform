@@ -22,11 +22,7 @@
     "deployed_product_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 755,
-      "title": "Activate bounded #709 + #711 runtime target and capture acceptance",
-      "branch": "ops/755-bounded-709-711-runtime-acceptance"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -837,7 +833,7 @@
       "issue": 755,
       "title": "Activate bounded #709 + #711 runtime target and capture acceptance",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "ops/755-bounded-709-711-runtime-acceptance",
       "evidence": {
         "product_owner_cutover_authorization": "approved_2026-08-29_for_issues_709_711_only",
@@ -881,7 +877,14 @@
         "post_deployment_health": "telemetry_ready_device_agent_ok_mqtt_connected_queue_0_dashboard_200",
         "issue_709_runtime_acceptance": "PASS_closed",
         "issue_711_runtime_acceptance": "PASS_7_durable_0_inferred_breaks",
-        "version_management_adoption": "pending_interactive_privileged_metadata_write"
+        "version_management_adoption": "recorded_controlled_source_deployment",
+        "version_management_source_commit": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
+        "version_management_schema_head": "20260820_0026",
+        "version_management_platform": "linux_arm64",
+        "version_management_runtime_mode": "lan",
+        "version_management_health": "ready",
+        "version_management_known_packaged_release": "false",
+        "readiness": "completed_runtime_acceptance_and_source_authority"
       }
     },
     {

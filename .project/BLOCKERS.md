@@ -40,7 +40,7 @@ Issue #704 has exact-head repository verification GREEN at `e2f7857e381600d76dd4
 
 ## Issue #755 — approved bounded #709 / #711 controlled deployment
 
-The bounded deployment itself is **GREEN** at `runtime/deployments/20260829T154823Z`, and #709/#711 real runtime acceptance is PASS. The remaining hard operational blocker is metadata-only controlled-source adoption under `/var/lib/nexolab/version-management`; the repository-owned adopter requires interactive privilege elevation. Remote Desktop Commander must not bypass that boundary. After adoption, #755/PR #756 can be finalized and merged.
+**Cleared 2026-08-29.** Deployment `runtime/deployments/20260829T154823Z`, #709/#711 real runtime acceptance and controlled-source version-management adoption all passed. Deployed source authority is `ff86b10b...` with schema `20260820_0026`, `linux/arm64`, `lan`, health `ready`, and `known_packaged_release=false`. #729 and later product runtime scope remain excluded and require a separate explicit production/hardware gate.
 
 ## Issue #757 — completion candidate capacity prerequisite for #755
 
