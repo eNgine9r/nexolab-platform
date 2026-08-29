@@ -156,6 +156,7 @@ CI_GOVERNANCE_PATHS = {
     "scripts/validate-project-state.py",
     "scripts/verify-pr-workflow-matrix.py",
     "scripts/prepare-clean-verification-worktree.sh",
+    "scripts/verify-local-candidate.py",
     "tests/test_ci_change_impact.py",
     "tests/test_ci_project_state_validation.py",
     "tests/test_ci_workflow_matrix.py",
