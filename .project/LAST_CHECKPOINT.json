@@ -3,30 +3,27 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-29T11:33:37+03:00",
+  "timestamp": "2026-08-29T11:35:05+03:00",
   "actor": "ChatGPT",
-  "event": "issue_748_state_truth_reconciliation_candidate",
+  "event": "issue_748_state_truth_reconciliation_completed_candidate",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
-  "active_work": {
-    "issue": 748,
-    "branch": "chore/748-remove-stale-730-state",
-    "status": "review"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "issue": 748,
+    "completed_issue": 748,
     "scope": "canonical .project state only",
     "stale_current_state_reference": "removed",
     "stale_blockers_reference": "removed",
-    "state_integrity": "PASS",
-    "git_diff_check": "PASS",
+    "first_candidate_head_sha": "b3f2ce4b02f85cdd5035041e85d652de65afb693",
+    "first_exact_head_state_integrity": "PASS",
+    "first_exact_head_nexolab_merge_gate": "PASS",
     "product_runtime_change": "none",
-    "post_completion_ready_queue": "no independent Ready Work Package"
+    "delta_ready_audit": "no independent Ready Work Package"
   },
   "observations": [],
-  "next_action": "Publish the focused state-only #748 candidate, require exact-head State integrity / NEXOLAB Merge Gate GREEN, then mark #748 completed in the same branch and merge without changing any product/runtime gate.",
+  "next_action": "Merge the final #748 state-only candidate only after its exact-head State integrity / NEXOLAB Merge Gate are GREEN. After merge, no independent Ready Work Package remains until a hardware gate changes, production/site cutover is explicitly authorized, or RFX is explicitly resumed.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

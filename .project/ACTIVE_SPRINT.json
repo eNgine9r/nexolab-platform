@@ -22,9 +22,7 @@
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 748
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -755,7 +753,7 @@
       "issue": 748,
       "title": "Remove stale #730 active-candidate references after completed Opera inspection",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "chore/748-remove-stale-730-state",
       "evidence": {
@@ -764,7 +762,11 @@
         "stale_blockers_reference": "removed",
         "state_integrity": "success",
         "git_diff_check": "success",
-        "product_runtime_change": "none"
+        "product_runtime_change": "none",
+        "first_candidate_head_sha": "b3f2ce4b02f85cdd5035041e85d652de65afb693",
+        "first_exact_head_state_integrity": "success",
+        "first_exact_head_nexolab_merge_gate": "success",
+        "canonical_state_contradiction": "resolved"
       }
     }
   ],
