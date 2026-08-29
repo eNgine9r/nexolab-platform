@@ -148,6 +148,11 @@ CONTAINER_SUPPLY_CHAIN_TEST_PATHS = {
     "tests/test_container_release_aggregate.py",
 }
 
+INSPECTION_SECURITY_PATTERNS = (
+    "scripts/inspection/**",
+    "tests/test_opera_tailscale_inspection.py",
+)
+
 CI_GOVERNANCE_PATHS = {
     "PROJECT_PROFILE.yaml",
     "AGENTS.md",
@@ -328,6 +333,10 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
             )
         ):
             classes.add("deployment_runtime")
+            matched = True
+
+        if _matches(path, INSPECTION_SECURITY_PATTERNS):
+            classes.add("security_tooling")
             matched = True
 
         if (
