@@ -252,7 +252,11 @@ class InspectionLoginHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self) -> None:
-        config = _config_from_environment()
+        try:
+            config = _config_from_environment()
+        except (OSError, ValueError, RuntimeError, json.JSONDecodeError):
+            self._write(503, b"Inspection login unavailable", "text/plain; charset=utf-8")
+            return
         if urlsplit(self.path).path not in {"/", "/inspection-login"}:
             self._write(404, b"Not found", "text/plain; charset=utf-8")
             return

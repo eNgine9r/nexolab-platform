@@ -158,6 +158,26 @@ class OperaTailscaleInspectionTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 MODULE.validate_private_file(path, os.geteuid() + 1)
 
+    def test_handler_returns_503_when_runtime_config_cannot_be_loaded(self):
+        handler = object.__new__(MODULE.InspectionLoginHandler)
+        handler.path = "/inspection-login"
+        handler.headers = {}
+        observed = {}
+
+        def record(status, body, content_type, **headers):
+            observed.update(status=status, body=body, content_type=content_type, headers=headers)
+
+        handler._write = record
+        original = MODULE._config_from_environment
+        try:
+            MODULE._config_from_environment = lambda: (_ for _ in ()).throw(ValueError("bad config"))
+            handler.do_GET()
+        finally:
+            MODULE._config_from_environment = original
+
+        self.assertEqual(observed["status"], 503)
+        self.assertEqual(observed["body"], b"Inspection login unavailable")
+
     def test_installer_enforces_isolated_runtime_paths_and_safe_migration(self):
         installer = (
             ROOT / "scripts" / "inspection" / "install_opera_tailscale_inspection.sh"
