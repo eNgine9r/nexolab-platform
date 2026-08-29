@@ -258,10 +258,12 @@ class EdgeSQLiteDeploymentContractTests(unittest.TestCase):
     def test_snapshot_precedes_runtime_mutation_and_restore_is_never_implicit(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
         capture_call = text.index("capture_edge_sqlite_snapshot\n")
+        quiesce_call = text.index("quiesce_edge_device_agent_for_cutover\n")
         mutation = text.index("write_durable_runtime_mutation_marker\n", capture_call)
         restore_call = text.index("restore_edge_sqlite_snapshot\n")
         restore_mode = text.index('if [[ -n "$RESTORE_EDGE_SNAPSHOT_DIR" ]]')
         normal_deployment = text.index('FRONTEND_ARTIFACT_DIR=""')
+        self.assertLess(quiesce_call, capture_call)
         self.assertLess(capture_call, mutation)
         self.assertEqual(
             text[capture_call:mutation].strip(),
@@ -271,6 +273,16 @@ class EdgeSQLiteDeploymentContractTests(unittest.TestCase):
         self.assertLess(restore_call, normal_deployment)
         self.assertNotIn("restore_edge_sqlite_snapshot", text[normal_deployment:mutation])
         self.assertIn("Device Agent remains stopped", text)
+
+    def test_final_snapshot_requires_quiesced_device_agent(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        start = text.index("capture_edge_sqlite_snapshot()")
+        end = text.index("\n}\n", start)
+        capture = text[start:end]
+        stopped = capture.index("{{.State.Running}}")
+        backup = capture.index("deploy-edge-sqlite-snapshot.py capture")
+        self.assertLess(stopped, backup)
+        self.assertIn("must be quiesced", capture)
 
     def test_existing_edge_resolves_deployed_source_for_normal_current_main_mode(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")

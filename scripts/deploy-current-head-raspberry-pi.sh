@@ -858,6 +858,8 @@ capture_edge_sqlite_snapshot() {
   [[ "${#edge_containers[@]}" == "1" ]] \
     || fail "edge SQLite snapshot requires exactly one known Device Agent container"
   local edge_container="${edge_containers[0]}"
+  [[ "$(docker inspect --format '{{.State.Running}}' "$edge_container")" == "false" ]] \
+    || fail "Device Agent must be quiesced before the final edge SQLite snapshot"
   if ! validate_full_sha "$deployed_source"; then
     resolve_latest_deployment_evidence
     deployed_source="$VERIFIED_DEPLOYED_SOURCE"
@@ -905,6 +907,29 @@ print(
     f"snapshot_quick_check:{evidence['snapshot_quick_check']}"
 )
 PY_EDGE_SNAPSHOT
+}
+
+quiesce_edge_device_agent_for_cutover() {
+  local edge_volume="nexolab-edge_edge-data"
+  local -a edge_containers=()
+  if ! docker volume inspect "$edge_volume" >/dev/null 2>&1; then
+    return 0
+  fi
+  mapfile -t edge_containers < <(
+    docker ps -aq \
+      --filter label=com.docker.compose.project=nexolab-edge \
+      --filter label=com.docker.compose.service=device-agent
+  )
+  [[ "${#edge_containers[@]}" == "1" ]] \
+    || fail "Device Agent quiesce requires exactly one known container"
+  local edge_container="${edge_containers[0]}"
+  if [[ "$(docker inspect --format '{{.State.Running}}' "$edge_container")" == "true" ]]; then
+    log "Quiescing Device Agent at the edge SQLite snapshot boundary"
+    docker stop --time 30 "$edge_container" >/dev/null \
+      || fail "Device Agent could not be quiesced before snapshot capture"
+  fi
+  [[ "$(docker inspect --format '{{.State.Running}}' "$edge_container")" == "false" ]] \
+    || fail "Device Agent remained active at the edge SQLite snapshot boundary"
 }
 
 write_durable_runtime_mutation_marker() {
@@ -1289,6 +1314,7 @@ if ss -ltn | awk '{print $4}' | grep -Eq "(^|:)$FRONTEND_CANDIDATE_PORT$"; then
 fi
 log "Frontend candidate verified and terminated without mutating the active dashboard"
 
+quiesce_edge_device_agent_for_cutover
 capture_edge_sqlite_snapshot
 write_durable_runtime_mutation_marker
 log "RUNTIME MUTATION STARTED: central backend activation"
