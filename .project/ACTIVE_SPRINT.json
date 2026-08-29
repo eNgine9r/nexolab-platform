@@ -19,7 +19,7 @@
   },
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
-    "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
+    "deployed_product_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18"
   },
   "selection": {
     "active_work_package": {
@@ -459,7 +459,7 @@
       "issue": 709,
       "title": "Export Saved Dashboard sensor telemetry with canonical equipment identity",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "completed",
       "branch": "fix/709-live-dashboard-telemetry-equipment-id",
       "evidence": {
         "verified_head_sha": "8de343198093c0c4f9b84510623df19e16d1ba87",
@@ -477,7 +477,16 @@
           "fresh Codex review": "clean",
           "review threads": "all_resolved"
         },
-        "runtime_deployment": "pending_explicit_product_owner_approval"
+        "runtime_deployment": "PASS:runtime/deployments/20260829T154823Z",
+        "deployed_source_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
+        "saved_dashboard_id": "94bab89b-5a3f-4cd6-80f5-768d31956990",
+        "saved_dashboard_name": "Issue 369 Pi Acceptance",
+        "csv_export_total_rows": "359_real_2h",
+        "csv_108_01_rows": "120",
+        "csv_108_01_equipment_id": "K108",
+        "csv_108_01_numeric_values": "120_range_24.2_24.6_degC",
+        "inventory_108_01_latest": "K108_24.4_valid",
+        "github_issue": "closed_completed_2026-08-29"
       }
     },
     {
@@ -496,7 +505,16 @@
           "offline_bundle": "success",
           "merge_gate": "success",
           "codex_review": "clean"
-        }
+        },
+        "runtime_deployment": "PASS:runtime/deployments/20260829T154823Z",
+        "deployed_source_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
+        "runtime_energy_raw_24h_rows": "8573",
+        "runtime_energy_reduced_rows": "717",
+        "runtime_continuity_breaks": "7_durable_0_inferred",
+        "runtime_breaks_by_meter": "LE01MP-200:3,LE01MP-202:2,LE01MP-203:2",
+        "cadence_authority": "revision_18",
+        "pre_fix_reference": "448_false_breaks_for_717_reduced_records",
+        "runtime_acceptance": "PASS_real_postgresql_exact_target_logic"
       }
     },
     {
@@ -823,25 +841,25 @@
       "branch": "ops/755-bounded-709-711-runtime-acceptance",
       "evidence": {
         "product_owner_cutover_authorization": "approved_2026-08-29_for_issues_709_711_only",
-        "deployed_source_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d",
+        "deployed_source_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
         "approved_target_source_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
-        "control_main_sha": "76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8",
+        "control_main_sha": "3abd9337ef780fef69724832c452b7df1508d9e9",
         "source_selection_preflight": "PASS_real_pi",
-        "authoritative_deployment_evidence": "runtime/deployments/20260827T101743Z",
+        "authoritative_deployment_evidence": "runtime/deployments/20260829T154823Z",
         "preflight_runtime_health": "dashboard_200_device_agent_ok_mqtt_connected_queue_0",
-        "production_mutation": "not_started",
+        "production_mutation": "successful_bounded_activation",
         "privileged_operator_boundary": "interactive_elevation_required_no_bypass",
         "frontend_artifact_workflow_run": "33249671236_success",
         "frontend_artifact_status": "verified_ready_exact_target",
-        "excluded_scope": "issue_729_and_later_product_runtime_changes",
-        "currently_deployed_source_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d",
+        "excluded_scope": "issue_729_and_later_product_runtime_changes_not_deployed",
+        "currently_deployed_source_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
         "frontend_artifact_id": "9714063428",
         "frontend_artifact_digest": "sha256:e63811646fde0121a562d9d3bc1dfd04c24176a756657fd27f6358e3e9ff3f5e",
         "frontend_artifact_source_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
         "frontend_artifact_platform": "linux/arm64",
         "frontend_artifact_repository_import": "PASS",
         "frontend_artifact_runtime_contract": "PASS_local_lan_172.18.48.66_8082",
-        "runtime_mutation": "not_started",
+        "runtime_mutation": "completed_deployment_passed",
         "first_privileged_deployment_attempt": "20260829T133919Z_capacity_preflight_fail_before_runtime_mutation",
         "first_privileged_deployment_capacity": "FAIL_free_12993241088_required_18872457135",
         "capacity_failure_runtime_mutation_marker": "absent",
@@ -854,7 +872,44 @@
         "real_pi_pg_backup_margin_estimate_bytes": "503190466",
         "runtime_health_after_failed_attempt": "dashboard_200_device_agent_ok_mqtt_connected_queue_0",
         "capacity_cache_authority": "process_internal_inherited_environment_rejected",
-        "capacity_measurement_tempfile_failure": "database_size_fallback"
+        "capacity_measurement_tempfile_failure": "database_size_fallback",
+        "blocked_by_issue_757": "cleared_after_prerequisite_merge",
+        "resume_after_issue_757": "bounded_runtime_acceptance_same_verified_ff86b10b_artifact",
+        "successful_privileged_deployment": "20260829T154823Z_candidate_port_3101",
+        "second_attempt": "20260829T152539Z_candidate_port_3100_conflict_before_runtime_mutation",
+        "candidate_verification_port": "3101_due_to_persistent_opera_inspection_on_3100",
+        "post_deployment_health": "telemetry_ready_device_agent_ok_mqtt_connected_queue_0_dashboard_200",
+        "issue_709_runtime_acceptance": "PASS_closed",
+        "issue_711_runtime_acceptance": "PASS_7_durable_0_inferred_breaks",
+        "version_management_adoption": "pending_interactive_privileged_metadata_write"
+      }
+    },
+    {
+      "issue": 757,
+      "title": "Correct Raspberry Pi PostgreSQL backup capacity estimation",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "branch": "fix/757-postgres-capacity-estimate",
+      "evidence": {
+        "root_cause": "raw_pg_database_size_overestimated_compressed_pg_dump_fc_backup_capacity",
+        "capacity_fix": "streamed_pg_dump_fc_measurement_with_database_size_fail_safe_fallback",
+        "capacity_regression_tests": "14_passed",
+        "focused_deployment_safety_tests": "55_passed",
+        "cache_authority": "process_internal_inherited_environment_rejected",
+        "tempfile_failure": "database_size_fallback",
+        "real_pi_capacity_recheck": "PASS_free_12988268544_required_9487377137",
+        "real_pi_pg_database_bytes": "8930384919",
+        "real_pi_pg_dump_stream_bytes": "396437820",
+        "real_pi_pg_backup_margin_estimate_bytes": "503190466",
+        "production_runtime_mutation": "none",
+        "issue_755_dependency": "must_merge_to_main_before_resume",
+        "implementation_verified_head_sha": "47fad9431e785ad181649990e2e797dfdf6d5569",
+        "core_quality_build": "success:33258385608",
+        "telemetry_service": "success:33258385655",
+        "nexolab_merge_gate": "success:33258385608",
+        "manual_review": "clean_full_diff",
+        "readiness": "completed_merged",
+        "pull_request": 758
       }
     }
   ],
