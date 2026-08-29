@@ -4,7 +4,7 @@ Updated: 2026-08-29
 
 ## Issue #759 — Embraco activation rollback safety prerequisite
 
-Issue #759 is active. The snapshot/stopped-agent restore implementation and read-only Raspberry Pi snapshot proof are complete locally; production Embraco activation remains blocked until the focused PR is exact-head GREEN and merged. The previous deployed Device Agent (`ff86b10b...`) cannot parse persisted `embraco` registry records, so this boundary must not be bypassed. No production runtime or hardware mutation belongs to #759.
+Issue #759 is active. The snapshot/stopped-agent restore implementation and refreshed read-only Raspberry Pi snapshot proof are complete locally; production Embraco activation remains blocked until the focused PR is exact-head GREEN, clean-reviewed and merged. The previous deployed Device Agent (`ff86b10b...`) cannot parse persisted `embraco` registry records, so this boundary must not be bypassed. No production runtime or hardware mutation belongs to #759.
 
 ## Issue #760 — Embraco Unit 2 production activation
 

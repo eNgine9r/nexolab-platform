@@ -3,7 +3,7 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-29T22:28:00+03:00",
+  "timestamp": "2026-08-29T22:44:22+03:00",
   "actor": "ChatGPT",
   "event": "issue_759_implementation_and_read_only_snapshot_proof_ready",
   "baselines": {
@@ -28,11 +28,11 @@
     "focused_snapshot_and_deployment_regressions": "78_passed",
     "standalone_offline_runtime_contract": "passed",
     "state_model_v2": "passed",
-    "read_only_snapshot_evidence": "runtime/evidence/issue-759-edge-snapshot-20260829T192812Z",
-    "read_only_snapshot_sha256": "584b038a0c47450b4b2e572891d699bf31623f9117fa303c94c50ed20824c73e",
-    "read_only_snapshot_implementation_sha": "2c3e6288e7cc03dd230d130bdd914f5adf43fa8e",
+    "read_only_snapshot_evidence": "runtime/evidence/issue-759-edge-snapshot-20260829T194413Z",
+    "read_only_snapshot_sha256": "2e4e6dd6d7e015cc84ebd167b6a34b844a09262b769b99e3ec138417e828016c",
+    "read_only_snapshot_implementation_sha": "dcbcae9eebed861d6aa370a828a53b22aaa15430",
     "read_only_snapshot_device_agent_image_id": "sha256:847b91178c5e4cd9323e84cc66bfe61137991e374ae8f2300a860b36a9e9efea",
-    "read_only_snapshot_queue_high_water": "6506603",
+    "read_only_snapshot_queue_high_water": "6507675",
     "read_only_snapshot_source_quick_check": "ok",
     "read_only_snapshot_quick_check": "ok",
     "next_issue": 760,
@@ -41,7 +41,7 @@
     "production_runtime_mutation": "none"
   },
   "observations": [],
-  "next_action": "Commit and run the clean local candidate gate for Issue #759, publish the focused PR, resolve review/CI, and merge only on exact-head GREEN before starting Issue #760. Do not mutate production RS-485 configuration or enroll Embraco before #759 is merged.",
+  "next_action": "Publish the final review fix and refreshed proof for Issue #759, require a clean exact-head review and GREEN CI, then merge before starting Issue #760. Do not mutate production RS-485 configuration or enroll Embraco before #759 is merged.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
