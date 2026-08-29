@@ -258,8 +258,23 @@ PY_RESTORE_IMAGE
       echo "ERROR: SQLite was restored but pre-cutover Device Agent image verification failed; Device Agent remains stopped" >&2
       return 1
     }
-  mv -- "$result_tmp" "$result_file"
-  chmod 0600 "$result_file"
+  python3 - "$result_tmp" "$result_file" <<'PY_RESTORE_RESULT'
+import os
+from pathlib import Path
+import sys
+
+temporary = Path(sys.argv[1])
+result = Path(sys.argv[2])
+with temporary.open("rb") as stream:
+    os.fsync(stream.fileno())
+os.chmod(temporary, 0o600)
+os.replace(temporary, result)
+directory_fd = os.open(result.parent, os.O_RDONLY)
+try:
+    os.fsync(directory_fd)
+finally:
+    os.close(directory_fd)
+PY_RESTORE_RESULT
   echo "EDGE_SQLITE_RESTORE_VERIFIED"
   echo "evidence=$result_file"
   echo "Device Agent remains stopped; restart requires a separate explicit operator action."
@@ -297,10 +312,14 @@ FRONTEND_CANDIDATE_PID=""
 FRONTEND_CANDIDATE_PGID=""
 FRONTEND_CANDIDATE_START_GATE=""
 SOURCE_CHECKOUT_RESTORE_REQUIRED="0"
+EDGE_DEVICE_AGENT_QUIESCED_BY_DEPLOYMENT="0"
+EDGE_DEVICE_AGENT_QUIESCED_CONTAINER=""
+EDGE_DEVICE_AGENT_PRE_CUTOVER_IMAGE_ID=""
 CONTROL_HEAD=""
 TARGET_HEAD=""
 EXPECTED_DEPLOYMENT_EVIDENCE=""
 VERIFIED_DEPLOYED_SOURCE=""
+VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID=""
 
 CENTRAL_COMPOSE_ARGS=(
   -f "$CENTRAL_DIR/compose.central.yaml"
@@ -423,11 +442,35 @@ restore_control_checkout() {
   log "Repository checkout restored to main: $restored_head"
 }
 
+restart_quiesced_device_agent_after_pre_mutation_failure() {
+  [[ "$EDGE_DEVICE_AGENT_QUIESCED_BY_DEPLOYMENT" == "1" ]] || return 0
+  [[ ! -e "$AUDIT_DIR/runtime-mutation-started" ]] || return 0
+  [[ -n "$EDGE_DEVICE_AGENT_QUIESCED_CONTAINER" \
+    && -n "$EDGE_DEVICE_AGENT_PRE_CUTOVER_IMAGE_ID" ]] \
+    || return 1
+  [[ "$(docker inspect --format '{{.Image}}' "$EDGE_DEVICE_AGENT_QUIESCED_CONTAINER")" == "$EDGE_DEVICE_AGENT_PRE_CUTOVER_IMAGE_ID" ]] \
+    || return 1
+  docker start "$EDGE_DEVICE_AGENT_QUIESCED_CONTAINER" >/dev/null || return 1
+  [[ "$(docker inspect --format '{{.State.Running}}' "$EDGE_DEVICE_AGENT_QUIESCED_CONTAINER")" == "true" ]] \
+    || return 1
+  EDGE_DEVICE_AGENT_QUIESCED_BY_DEPLOYMENT="0"
+  log "Restarted unchanged Device Agent after pre-mutation snapshot-boundary failure"
+}
+
 on_exit() {
   local rc=$?
   local cleanup_rc=0
+  local edge_restart_rc=0
   local restore_rc=0
   trap - EXIT ERR
+  if ((rc != 0)); then
+    if restart_quiesced_device_agent_after_pre_mutation_failure; then
+      edge_restart_rc=0
+    else
+      edge_restart_rc=$?
+      log "ERROR: unchanged Device Agent could not be restarted during failed deployment exit"
+    fi
+  fi
   if cleanup_frontend_candidate; then
     cleanup_rc=0
   else
@@ -447,12 +490,18 @@ on_exit() {
   if ((restore_rc != 0 && rc == 0)); then
     rc=$restore_rc
   fi
+  if ((edge_restart_rc != 0 && rc == 0)); then
+    rc=$edge_restart_rc
+  fi
   exit "$rc"
 }
 
 on_error() {
   local rc=$?
   cleanup_frontend_candidate || true
+  if ! restart_quiesced_device_agent_after_pre_mutation_failure; then
+    log "ERROR: unchanged Device Agent could not be restarted after pre-mutation failure"
+  fi
   if [[ "${NEXOLAB_FRONTEND_ACTIVATED:-0}" != "1" && -n "${FRONTEND_RELEASE_DIR:-}" ]]; then
     nexolab_frontend_discard_unactivated_release "$FRONTEND_RELEASES_DIR" "$FRONTEND_RELEASE_DIR" || true
   fi
@@ -526,7 +575,7 @@ def valid_stamp(name: str) -> bool:
         return False
     return True
 
-attempts: list[tuple[str, Path, str, bool, str | None]] = []
+attempts: list[tuple[str, Path, str, bool, str | None, str | None]] = []
 if root.is_dir():
     for directory in root.iterdir():
         if not directory.is_dir() or directory.is_symlink() or not valid_stamp(directory.name):
@@ -545,6 +594,7 @@ if root.is_dir():
         passed_commit = commit if "DEPLOYMENT PASSED" in summary_text else None
         restore_result_path = directory / "edge-sqlite-restore-result.json"
         recovered_commit = None
+        recovered_image = None
         if restore_result_path.exists():
             metadata_path = directory / "edge-sqlite-pre-cutover.json"
             if (
@@ -592,19 +642,26 @@ if root.is_dir():
                 print(f"ERROR: recovery authority evidence is inconsistent: {directory}", file=sys.stderr)
                 raise SystemExit(3)
             recovered_commit = restore_result["deployed_source"]
+            recovered_image = restore_result["deployed_device_agent_image_id"]
         effective_commit = recovered_commit or passed_commit
         mutated = (directory / "runtime-mutation-started").is_file() or any(
             marker in summary_text for marker in legacy_mutation_markers
         )
-        attempts.append((directory.name, directory.resolve(), summary_text, mutated, effective_commit))
+        attempts.append(
+            (directory.name, directory.resolve(), summary_text, mutated, effective_commit, recovered_image)
+        )
 
-successful = [(stamp, directory, commit) for stamp, directory, _summary, _mutated, commit in attempts if commit]
+successful = [
+    (stamp, directory, commit, recovered_image)
+    for stamp, directory, _summary, _mutated, commit, recovered_image in attempts
+    if commit
+]
 if not successful:
     print("ERROR: no successful source-deployment evidence is available", file=sys.stderr)
     raise SystemExit(1)
 
-success_stamp, success_dir, success_commit = max(successful, key=lambda item: item[0])
-for stamp, directory, _summary, mutated, commit in attempts:
+success_stamp, success_dir, success_commit, success_image = max(successful, key=lambda item: item[0])
+for stamp, directory, _summary, mutated, commit, _recovered_image in attempts:
     if stamp <= success_stamp or directory == current_audit:
         continue
     if mutated and commit is None:
@@ -614,7 +671,7 @@ for stamp, directory, _summary, mutated, commit in attempts:
         )
         raise SystemExit(2)
 
-print(f"{success_commit}\t{success_dir}\t{success_stamp}")
+print(f"{success_commit}\t{success_dir}\t{success_stamp}\t{success_image or 'not_applicable'}")
 PY_EVIDENCE
 )"; then
     fail "deployed source authority is indeterminate; inspect runtime/deployments before continuing"
@@ -624,6 +681,10 @@ PY_EVIDENCE
   evidence_commit="${deployment_evidence%%$'\t'*}"
   evidence_tail="${deployment_evidence#*$'\t'}"
   EXPECTED_DEPLOYMENT_EVIDENCE="${evidence_tail%%$'\t'*}"
+  evidence_tail="${evidence_tail#*$'\t'}"
+  VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID="${evidence_tail#*$'\t'}"
+  [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] \
+    || VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID=""
   VERIFIED_DEPLOYED_SOURCE="$evidence_commit"
 }
 
@@ -871,6 +932,10 @@ capture_edge_sqlite_snapshot() {
   local edge_image
   edge_image="$(docker inspect --format '{{.Image}}' "$edge_container")"
   [[ -n "$edge_image" ]] || fail "Device Agent image identity is unavailable for edge SQLite snapshot"
+  if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]]; then
+    [[ "$edge_image" == "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]] \
+      || fail "Device Agent container image does not match verified recovery authority; complete the explicit restart verification first"
+  fi
 
   log "Capturing consistent pre-cutover edge SQLite snapshot"
   if ! docker run --rm --user "$(id -u):$(id -g)" \
@@ -924,6 +989,11 @@ quiesce_edge_device_agent_for_cutover() {
     || fail "Device Agent quiesce requires exactly one known container"
   local edge_container="${edge_containers[0]}"
   if [[ "$(docker inspect --format '{{.State.Running}}' "$edge_container")" == "true" ]]; then
+    EDGE_DEVICE_AGENT_QUIESCED_CONTAINER="$edge_container"
+    EDGE_DEVICE_AGENT_PRE_CUTOVER_IMAGE_ID="$(docker inspect --format '{{.Image}}' "$edge_container")"
+    [[ "$EDGE_DEVICE_AGENT_PRE_CUTOVER_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] \
+      || fail "Device Agent image identity is invalid before quiesce"
+    EDGE_DEVICE_AGENT_QUIESCED_BY_DEPLOYMENT="1"
     log "Quiescing Device Agent at the edge SQLite snapshot boundary"
     docker stop --time 30 "$edge_container" >/dev/null \
       || fail "Device Agent could not be quiesced before snapshot capture"
@@ -957,6 +1027,7 @@ try:
 finally:
     temporary.unlink(missing_ok=True)
 PY_MUTATION_MARKER
+  EDGE_DEVICE_AGENT_QUIESCED_BY_DEPLOYMENT="0"
 }
 
 env_get() {

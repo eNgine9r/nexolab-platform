@@ -42,7 +42,7 @@ bash scripts/deploy-current-head-raspberry-pi.sh \
   --expected-target-source <failed target 40-character SHA>
 ```
 
-The command rejects a running or ambiguous Device Agent, an unexpected volume, an unavailable pre-cutover Device Agent image, any remaining SQLite WAL/SHM/journal sidecar that could contain newer state, queue or stream-sequence advancement after capture, a corrupt snapshot, a mismatched filename/size/hash/revision/queue count, and wrong source or deployment evidence. Only after the guarded atomic SQLite replacement has the exact captured SHA and revision does it retag and verify the exact captured pre-cutover image as `nexolab-device-agent:local`. It then writes `edge-sqlite-restore-result.json`. That result is the recovery authority record: future controlled deployments accept it only when its restored source, failed target, evidence ID, database integrity metadata and image ID exactly match the pre-cutover metadata; malformed or inconsistent recovery evidence fails closed. The Device Agent remains stopped throughout; if image selection fails after database replacement, no success result is published and restart remains prohibited.
+The command rejects a running or ambiguous Device Agent, an unexpected volume, an unavailable pre-cutover Device Agent image, any remaining SQLite WAL/SHM/journal sidecar that could contain newer state, queue or stream-sequence advancement after capture, a corrupt snapshot, a mismatched filename/size/hash/revision/queue count, and wrong source or deployment evidence. Only after the guarded atomic SQLite replacement has the exact captured SHA and revision does it retag and verify the exact captured pre-cutover image as `nexolab-device-agent:local`. It then durably publishes `edge-sqlite-restore-result.json` by fsyncing its contents, atomically replacing it and fsyncing the evidence directory. That result is the recovery authority record: future controlled deployments accept it only when its restored source, failed target, evidence ID, database integrity metadata and image ID exactly match the pre-cutover metadata. A later snapshot also requires the container image to match recovered image authority, so recovery is not considered operationally complete until the explicit force-recreate verification below succeeds. Malformed or inconsistent recovery evidence fails closed. The Device Agent remains stopped throughout; if image selection fails after database replacement, no success result is published and restart remains prohibited.
 
 Review the sanitized result and only then restart Device Agent as a separate operator action:
 
@@ -61,6 +61,7 @@ After restart, verify that the recreated container image ID exactly matches `dep
 
 - Modbus and controller writes are forbidden.
 - Restore never starts Device Agent automatically.
+- If deployment quiesces Device Agent but fails before writing the durable runtime-mutation marker, it verifies and restarts only that same unchanged container/image. After the mutation marker exists, no automatic restart or restore is attempted.
 - No `docker compose down -v`, volume deletion or product-data deletion is allowed.
 - Snapshot evidence must stay associated with its exact deployment audit directory.
 - PostgreSQL recovery remains a separate decision and is never implicit in edge SQLite restore.

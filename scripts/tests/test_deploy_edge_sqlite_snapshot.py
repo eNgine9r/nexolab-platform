@@ -283,6 +283,34 @@ class EdgeSQLiteDeploymentContractTests(unittest.TestCase):
         backup = capture.index("deploy-edge-sqlite-snapshot.py capture")
         self.assertLess(stopped, backup)
         self.assertIn("must be quiesced", capture)
+        self.assertIn("VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID", capture)
+
+    def test_pre_mutation_failure_restarts_only_the_unchanged_quiesced_agent(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        start = text.index("restart_quiesced_device_agent_after_pre_mutation_failure()")
+        end = text.index("\n}\n", start)
+        restart = text[start:end]
+        self.assertIn('[[ ! -e "$AUDIT_DIR/runtime-mutation-started" ]]', restart)
+        self.assertIn("{{.Image}}", restart)
+        self.assertIn("EDGE_DEVICE_AGENT_PRE_CUTOVER_IMAGE_ID", restart)
+        self.assertIn('docker start "$EDGE_DEVICE_AGENT_QUIESCED_CONTAINER"', restart)
+        on_exit = text.index("restart_quiesced_device_agent_after_pre_mutation_failure", end)
+        on_error = text.index("restart_quiesced_device_agent_after_pre_mutation_failure", on_exit + 1)
+        marker = text.index('EDGE_DEVICE_AGENT_QUIESCED_BY_DEPLOYMENT="0"', on_error)
+        self.assertLess(on_exit, on_error)
+        self.assertLess(on_error, marker)
+
+    def test_restore_result_is_durable_before_success_is_reported(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        start = text.index("restore_edge_sqlite_snapshot()")
+        end = text.index('\nif [[ -n "$RESTORE_EDGE_SNAPSHOT_DIR" ]]', start)
+        restore = text[start:end]
+        publish = restore.index("PY_RESTORE_RESULT")
+        success = restore.index('echo "EDGE_SQLITE_RESTORE_VERIFIED"')
+        self.assertIn("os.fsync(stream.fileno())", restore)
+        self.assertIn("os.replace(temporary, result)", restore)
+        self.assertGreaterEqual(restore.count("os.fsync("), 2)
+        self.assertLess(publish, success)
 
     def test_existing_edge_resolves_deployed_source_for_normal_current_main_mode(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
@@ -390,7 +418,7 @@ class EdgeSQLiteDeploymentContractTests(unittest.TestCase):
             "nexolab-device-agent:local"
         )
         replace = restore.index("docker run --rm --user 0:0")
-        publish_result = restore.index('mv -- "$result_tmp" "$result_file"')
+        publish_result = restore.index("PY_RESTORE_RESULT", tag)
         self.assertLess(replace, tag)
         self.assertLess(tag, publish_result)
 
