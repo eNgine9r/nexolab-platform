@@ -1,0 +1,66 @@
+# Edge SQLite cutover snapshot and recovery
+
+This runbook defines the rollback-safe acquisition-registry boundary used by controlled Raspberry Pi deployments. It protects the Device Agent SQLite database before a source change can persist registry families that an older source cannot parse.
+
+## Automatic pre-cutover snapshot
+
+When `nexolab-edge_edge-data` exists, `scripts/deploy-current-head-raspberry-pi.sh` fails closed unless it can identify exactly one Device Agent container and capture:
+
+- `edge-sqlite-pre-cutover.db` through `sqlite3.Connection.backup()` while the current database may remain live;
+- `edge-sqlite-pre-cutover.json` with source/snapshot integrity results, SHA-256, byte size, registry revision, outbound queue count, deployed source, target source and deployment evidence ID;
+- `edge-sqlite-capture-result.json`, containing the same sanitized result.
+
+All files remain in the ignored `runtime/deployments/<UTC timestamp>/` audit directory. The evidence contains no telemetry payloads. Source and snapshot must both pass `PRAGMA quick_check` before the deployment can cross `runtime-mutation-started`.
+
+A successful deployment never invokes restore. The new edge database and any post-cutover queue remain untouched.
+
+## Decide whether restore is safe
+
+Restore is limited to an immediate failed activation whose exact pre-cutover evidence is known. Before restoring, record the failed target SHA and the previously deployed SHA.
+
+Stop and request a separate recovery decision if telemetry has been accepted after cutover or the outbound queue may contain post-cutover records. Restoring the older snapshot would discard that newer edge state. Do not hand-edit SQLite, copy the live database file, redirect Unit 2 to Bus 1, delete the named volume or restore PostgreSQL as part of this procedure.
+
+## Explicit stopped-agent restore
+
+From `infrastructure/compose`, stop only Device Agent without removing its container or volume:
+
+```bash
+docker compose \
+  --env-file .env.edge-central \
+  -f compose.edge.yaml \
+  -f compose.hardware.yaml \
+  -f compose.edge-central-bridge.yaml \
+  stop device-agent
+```
+
+Return to the repository root and run the guarded restore with the exact deployment evidence directory and both exact source SHAs:
+
+```bash
+bash scripts/deploy-current-head-raspberry-pi.sh \
+  --restore-edge-snapshot runtime/deployments/<UTC timestamp> \
+  --expected-deployed-source <previous 40-character SHA> \
+  --expected-target-source <failed target 40-character SHA>
+```
+
+The command rejects a running or ambiguous Device Agent, an unexpected volume, any remaining SQLite WAL/SHM/journal sidecar that could contain newer state, a corrupt snapshot, a mismatched filename/size/hash/revision/queue count, and wrong source or deployment evidence. It writes `edge-sqlite-restore-result.json` only after an atomic replacement has the exact captured SHA and revision. The Device Agent remains stopped.
+
+Review the sanitized result and only then restart Device Agent as a separate operator action:
+
+```bash
+docker compose \
+  --env-file infrastructure/compose/.env.edge-central \
+  -f infrastructure/compose/compose.edge.yaml \
+  -f infrastructure/compose/compose.hardware.yaml \
+  -f infrastructure/compose/compose.edge-central-bridge.yaml \
+  up -d device-agent
+```
+
+After restart, verify Device Agent health, MQTT connectivity, queue depth and the expected acquisition-registry revision before continuing. A failed verification is not permission to delete data or retry with a different snapshot.
+
+## Safety boundary
+
+- Modbus and controller writes are forbidden.
+- Restore never starts Device Agent automatically.
+- No `docker compose down -v`, volume deletion or product-data deletion is allowed.
+- Snapshot evidence must stay associated with its exact deployment audit directory.
+- PostgreSQL recovery remains a separate decision and is never implicit in edge SQLite restore.

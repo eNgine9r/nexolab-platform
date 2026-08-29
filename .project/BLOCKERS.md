@@ -2,6 +2,14 @@
 
 Updated: 2026-08-29
 
+## Issue #759 — Embraco activation rollback safety prerequisite
+
+Issue #759 is active. The snapshot/stopped-agent restore implementation and read-only Raspberry Pi snapshot proof are complete locally; production Embraco activation remains blocked until the focused PR is exact-head GREEN and merged. The previous deployed Device Agent (`ff86b10b...`) cannot parse persisted `embraco` registry records, so this boundary must not be bypassed. No production runtime or hardware mutation belongs to #759.
+
+## Issue #760 — Embraco Unit 2 production activation
+
+Blocked by #759. After the prerequisite merges, #760 may activate only Unit 2 on stable Bus 2 adapter `0133F246` at verified `9600 8N2`, preserving all current Bus 1 lifecycle/cadence and leaving temperature/control engineering scale unset.
+
 ## Issue #709 — post-merge Saved Dashboard runtime CSV verification
 
 **Cleared 2026-08-29.** Bounded deployment `runtime/deployments/20260829T154823Z` activated `ff86b10b...`. Existing Saved Dashboard runtime export produced 120 real `108-01 / temperature.probe` rows using `K108`, with numeric valid values; inventory/latest correlation also resolves `K108`. Issue #709 is closed completed.

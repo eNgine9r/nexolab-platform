@@ -16,6 +16,8 @@ usage() {
   cat <<'USAGE'
 Usage: deploy-current-head-raspberry-pi.sh [--runtime-mode lan|standalone] [--frontend-artifact PATH]
        [--source-ref SHA --expected-deployed-source SHA] [--source-selection-check-only]
+       [--restore-edge-snapshot DEPLOYMENT_EVIDENCE_DIR
+        --expected-deployed-source SHA --expected-target-source SHA]
 
 Options:
   --frontend-artifact PATH  Import a verified off-device frontend artifact instead of building on this host.
@@ -24,6 +26,11 @@ Options:
                            Exact currently deployed source SHA; required with --source-ref.
   --source-selection-check-only
                            Validate source lineage and exit before capacity, backup or runtime mutation.
+  --restore-edge-snapshot DEPLOYMENT_EVIDENCE_DIR
+                           Explicitly restore that deployment's captured edge SQLite snapshot.
+                           The Device Agent must already be stopped; this command never restarts it.
+  --expected-target-source SHA
+                           Exact failed deployment target; required with --restore-edge-snapshot.
 
 Modes:
   lan         Trusted-LAN dashboard and API exposure. This is the default.
@@ -36,6 +43,8 @@ FRONTEND_ARTIFACT_INPUT=""
 REQUESTED_SOURCE_REF=""
 EXPECTED_DEPLOYED_SOURCE=""
 SOURCE_SELECTION_CHECK_ONLY="0"
+RESTORE_EDGE_SNAPSHOT_DIR=""
+EXPECTED_TARGET_SOURCE=""
 while (($# > 0)); do
   case "$1" in
     --runtime-mode)
@@ -74,6 +83,22 @@ while (($# > 0)); do
       SOURCE_SELECTION_CHECK_ONLY="1"
       shift
       ;;
+    --restore-edge-snapshot)
+      (($# >= 2)) || {
+        echo "ERROR: --restore-edge-snapshot requires a deployment evidence directory" >&2
+        exit 64
+      }
+      RESTORE_EDGE_SNAPSHOT_DIR="$2"
+      shift 2
+      ;;
+    --expected-target-source)
+      (($# >= 2)) || {
+        echo "ERROR: --expected-target-source requires a full 40-character commit SHA" >&2
+        exit 64
+      }
+      EXPECTED_TARGET_SOURCE="$2"
+      shift 2
+      ;;
     --help|-h)
       usage
       exit 0
@@ -87,13 +112,137 @@ while (($# > 0)); do
 done
 nexolab_validate_runtime_mode "$RUNTIME_MODE" || exit $?
 if [[ -n "$REQUESTED_SOURCE_REF" || -n "$EXPECTED_DEPLOYED_SOURCE" ]]; then
-  [[ -n "$REQUESTED_SOURCE_REF" && -n "$EXPECTED_DEPLOYED_SOURCE" ]] || {
+  [[ -n "$RESTORE_EDGE_SNAPSHOT_DIR" || ( -n "$REQUESTED_SOURCE_REF" && -n "$EXPECTED_DEPLOYED_SOURCE" ) ]] || {
     echo "ERROR: --source-ref and --expected-deployed-source must be supplied together" >&2
     exit 64
   }
 fi
 
 REPO="${NEXOLAB_REPO:-$HOME/nexolab-platform}"
+
+restore_edge_sqlite_snapshot() {
+  [[ -z "$REQUESTED_SOURCE_REF" && "$SOURCE_SELECTION_CHECK_ONLY" == "0" \
+    && -z "$FRONTEND_ARTIFACT_INPUT" ]] \
+    || {
+      echo "ERROR: edge SQLite restore cannot be combined with deployment/source-selection options" >&2
+      return 64
+    }
+  [[ "$EXPECTED_DEPLOYED_SOURCE" =~ ^[0-9a-f]{40}$ \
+    && "$EXPECTED_TARGET_SOURCE" =~ ^[0-9a-f]{40}$ ]] \
+    || {
+      echo "ERROR: restore requires exact --expected-deployed-source and --expected-target-source SHAs" >&2
+      return 64
+    }
+  for command in docker python3 flock mv; do
+    command -v "$command" >/dev/null 2>&1 || {
+      echo "ERROR: required restore command is missing: $command" >&2
+      return 69
+    }
+  done
+
+  local deployments_root evidence_dir evidence_id snapshot metadata result_tmp result_file
+  deployments_root="$(python3 -c 'import pathlib,sys; print(pathlib.Path(sys.argv[1]).resolve())' "$REPO/runtime/deployments")"
+  evidence_dir="$(python3 -c 'import pathlib,sys; print(pathlib.Path(sys.argv[1]).resolve())' "$RESTORE_EDGE_SNAPSHOT_DIR")"
+  [[ "$evidence_dir" == "$deployments_root"/* ]] \
+    || {
+      echo "ERROR: restore evidence must be a deployment audit directory" >&2
+      return 64
+    }
+  evidence_id="${evidence_dir##*/}"
+  [[ "$evidence_id" =~ ^[0-9]{8}T[0-9]{6}Z$ && "${evidence_dir%/*}" == "$deployments_root" ]] \
+    || {
+      echo "ERROR: restore evidence must be a direct timestamped deployment audit directory" >&2
+      return 64
+    }
+  snapshot="$evidence_dir/edge-sqlite-pre-cutover.db"
+  metadata="$evidence_dir/edge-sqlite-pre-cutover.json"
+  [[ -f "$snapshot" && ! -L "$snapshot" && -f "$metadata" && ! -L "$metadata" ]] \
+    || {
+      echo "ERROR: exact edge SQLite snapshot and metadata are required" >&2
+      return 66
+    }
+
+  local lock_file="${XDG_RUNTIME_DIR:-/tmp}/nexolab-current-head-launch.lock"
+  exec 8>"$lock_file"
+  flock -n 8 || {
+    echo "ERROR: another NEXOLAB deployment/recovery operation is already running" >&2
+    return 75
+  }
+
+  local -a edge_containers=()
+  mapfile -t edge_containers < <(
+    docker ps -aq \
+      --filter label=com.docker.compose.project=nexolab-edge \
+      --filter label=com.docker.compose.service=device-agent
+  )
+  [[ "${#edge_containers[@]}" == "1" ]] \
+    || {
+      echo "ERROR: restore requires exactly one known Device Agent container" >&2
+      return 1
+    }
+  local edge_container="${edge_containers[0]}"
+  [[ "$(docker inspect --format '{{.State.Running}}' "$edge_container")" == "false" ]] \
+    || {
+      echo "ERROR: Device Agent must already be stopped before edge SQLite restore" >&2
+      return 1
+    }
+  [[ "$(docker inspect --format '{{range .Mounts}}{{if eq .Destination \"/var/lib/nexolab\"}}{{.Name}}{{end}}{{end}}' "$edge_container")" == "nexolab-edge_edge-data" ]] \
+    || {
+      echo "ERROR: Device Agent edge-data volume identity is unexpected" >&2
+      return 1
+    }
+  local edge_image
+  edge_image="$(docker inspect --format '{{.Image}}' "$edge_container")"
+  [[ -n "$edge_image" ]] || {
+    echo "ERROR: Device Agent image identity is unavailable" >&2
+    return 1
+  }
+
+  result_tmp="$evidence_dir/.edge-sqlite-restore-result.json.partial"
+  result_file="$evidence_dir/edge-sqlite-restore-result.json"
+  [[ ! -e "$result_tmp" && ! -e "$result_file" ]] || {
+    echo "ERROR: restore result already exists; refusing to overwrite recovery evidence" >&2
+    return 1
+  }
+  if ! docker run --rm --user 0:0 \
+    --volumes-from "$edge_container" \
+    --mount "type=bind,src=$SCRIPT_DIR,dst=/nexolab-scripts,readonly" \
+    --mount "type=bind,src=$evidence_dir,dst=/evidence,readonly" \
+    --entrypoint /usr/bin/python3 \
+    "$edge_image" \
+    /nexolab-scripts/deploy-edge-sqlite-snapshot.py restore \
+      --snapshot /evidence/edge-sqlite-pre-cutover.db \
+      --metadata /evidence/edge-sqlite-pre-cutover.json \
+      --destination /var/lib/nexolab/edge.db \
+      --expected-deployed-source "$EXPECTED_DEPLOYED_SOURCE" \
+      --expected-target-source "$EXPECTED_TARGET_SOURCE" \
+      --expected-deployment-evidence-id "$evidence_id" \
+      > "$result_tmp"; then
+    rm -f -- "$result_tmp"
+    echo "ERROR: guarded edge SQLite restore failed; Device Agent remains stopped" >&2
+    return 1
+  fi
+  if [[ "$(docker inspect --format '{{.State.Running}}' "$edge_container")" != "false" ]]; then
+    rm -f -- "$result_tmp"
+    echo "ERROR: Device Agent state changed during restore; do not restart or continue" >&2
+    return 1
+  fi
+  mv -- "$result_tmp" "$result_file"
+  chmod 0600 "$result_file"
+  echo "EDGE_SQLITE_RESTORE_VERIFIED"
+  echo "evidence=$result_file"
+  echo "Device Agent remains stopped; restart requires a separate explicit operator action."
+}
+
+if [[ -n "$RESTORE_EDGE_SNAPSHOT_DIR" ]]; then
+  restore_edge_sqlite_snapshot
+  exit $?
+fi
+
+[[ -z "$EXPECTED_TARGET_SOURCE" ]] || {
+  echo "ERROR: --expected-target-source is valid only with --restore-edge-snapshot" >&2
+  exit 64
+}
 FRONTEND_ARTIFACT_DIR=""
 if [[ -n "$FRONTEND_ARTIFACT_INPUT" ]]; then
   [[ -d "$FRONTEND_ARTIFACT_INPUT" ]] || {
@@ -586,6 +735,80 @@ CURRENT_HEAD="$(git rev-parse HEAD)"
 [[ "$CURRENT_HEAD" == "$TARGET_HEAD" ]] || fail "deployment checkout does not match selected source"
 log "Deployment source: $CURRENT_HEAD"
 log "Control origin/main: $CONTROL_HEAD"
+
+capture_edge_sqlite_snapshot() {
+  local edge_volume="nexolab-edge_edge-data"
+  local snapshot="$AUDIT_DIR/edge-sqlite-pre-cutover.db"
+  local metadata="$AUDIT_DIR/edge-sqlite-pre-cutover.json"
+  local deployed_source="${VERIFIED_DEPLOYED_SOURCE:-${EXPECTED_DEPLOYED_SOURCE:-}}"
+  local -a edge_containers=()
+
+  if ! docker volume inspect "$edge_volume" >/dev/null 2>&1; then
+    mapfile -t edge_containers < <(
+      docker ps -aq \
+        --filter label=com.docker.compose.project=nexolab-edge \
+        --filter label=com.docker.compose.service=device-agent
+    )
+    [[ "${#edge_containers[@]}" == "0" ]] \
+      || fail "Device Agent container exists without the expected edge-data volume"
+    log "No existing edge runtime found; edge SQLite snapshot is not applicable"
+    return 0
+  fi
+
+  mapfile -t edge_containers < <(
+    docker ps -aq \
+      --filter label=com.docker.compose.project=nexolab-edge \
+      --filter label=com.docker.compose.service=device-agent
+  )
+  [[ "${#edge_containers[@]}" == "1" ]] \
+    || fail "edge SQLite snapshot requires exactly one known Device Agent container"
+  local edge_container="${edge_containers[0]}"
+  validate_full_sha "$deployed_source" \
+    || fail "exact deployed source authority is required before edge SQLite snapshot"
+  [[ "$(docker inspect --format '{{range .Mounts}}{{if eq .Destination \"/var/lib/nexolab\"}}{{.Name}}{{end}}{{end}}' "$edge_container")" == "$edge_volume" ]] \
+    || fail "Device Agent edge-data volume identity is unexpected"
+  local edge_image
+  edge_image="$(docker inspect --format '{{.Image}}' "$edge_container")"
+  [[ -n "$edge_image" ]] || fail "Device Agent image identity is unavailable for edge SQLite snapshot"
+
+  log "Capturing consistent pre-cutover edge SQLite snapshot"
+  if ! docker run --rm --user "$(id -u):$(id -g)" \
+    --volumes-from "$edge_container" \
+    --mount "type=bind,src=$SCRIPT_DIR,dst=/nexolab-scripts,readonly" \
+    --mount "type=bind,src=$AUDIT_DIR,dst=/evidence" \
+    --entrypoint /usr/bin/python3 \
+    "$edge_image" \
+    /nexolab-scripts/deploy-edge-sqlite-snapshot.py capture \
+      --source /var/lib/nexolab/edge.db \
+      --snapshot /evidence/edge-sqlite-pre-cutover.db \
+      --metadata /evidence/edge-sqlite-pre-cutover.json \
+      --deployed-source "$deployed_source" \
+      --target-source "$CURRENT_HEAD" \
+      --deployment-evidence-id "$STAMP" \
+      > "$AUDIT_DIR/edge-sqlite-capture-result.json"; then
+    rm -f -- "$snapshot" "$metadata" "$AUDIT_DIR/edge-sqlite-capture-result.json"
+    fail "required edge SQLite snapshot/verification failed before runtime mutation"
+  fi
+  chmod 0600 "$snapshot" "$metadata" "$AUDIT_DIR/edge-sqlite-capture-result.json"
+  python3 - "$metadata" >> "$SUMMARY" <<'PY_EDGE_SNAPSHOT'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as stream:
+    evidence = json.load(stream)
+print(
+    "edge_sqlite_snapshot="
+    f"sha256:{evidence['sha256']} "
+    f"bytes:{evidence['bytes']} "
+    f"registry_revision:{evidence['registry_revision']} "
+    f"outbound_queue_count:{evidence['outbound_queue_count']} "
+    f"source_quick_check:{evidence['source_quick_check']} "
+    f"snapshot_quick_check:{evidence['snapshot_quick_check']}"
+)
+PY_EDGE_SNAPSHOT
+}
+
+capture_edge_sqlite_snapshot
 
 env_get() {
   local file=$1 key=$2
