@@ -2,13 +2,13 @@
 
 Updated: 2026-08-29
 
-## Issue #759 — Embraco activation rollback safety prerequisite
+## Issue #762 — production Compose Embraco enrollment prerequisite
 
-Issue #759 is active. The snapshot/stopped-agent restore implementation and refreshed read-only Raspberry Pi snapshot proof are complete locally; production Embraco activation remains blocked until the focused PR is exact-head GREEN, clean-reviewed and merged. The previous deployed Device Agent (`ff86b10b...`) cannot parse persisted `embraco` registry records, so this boundary must not be bypassed. No production runtime or hardware mutation belongs to #759.
+Issue #759 / PR #761 is merged GREEN at `2c5415d2...`. The #760 pre-cutover audit found that `compose.hardware.yaml` does not pass the accepted `EMBRACO_UNIT_IDS` configuration into Device Agent, so bus ownership JSON alone cannot enroll Unit 2. Issue #762 must merge the narrow Compose pass-through before runtime activation. No production runtime, Modbus or hardware action belongs to #762.
 
 ## Issue #760 — Embraco Unit 2 production activation
 
-Blocked by #759. After the prerequisite merges, #760 may activate only Unit 2 on stable Bus 2 adapter `0133F246` at verified `9600 8N2`, preserving all current Bus 1 lifecycle/cadence and leaving temperature/control engineering scale unset.
+Blocked by #762 after #759 merged. Once the Compose prerequisite merges, #760 may activate only Unit 2 on stable Bus 2 adapter `0133F246` at verified `9600 8N2`, preserving all current Bus 1 lifecycle/cadence and leaving temperature/control engineering scale unset.
 
 ## Issue #709 — post-merge Saved Dashboard runtime CSV verification
 
