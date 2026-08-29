@@ -28,9 +28,11 @@ The completed vertical slice adds a strict FC03-only Embraco Sync profile, reusa
 
 No `EMBRACO_UNIT_IDS=2` production activation, production migration, runtime deployment, Modbus write, controller parameter change or hardware write occurred. The earlier local heavy-browser reboot risk is closed as a repository merge blocker because the full exact-head GitHub acceptance is GREEN; it does not authorize production activation.
 
-## Delta Ready selection after #729
+## Active presentation-readiness chain after #729
 
-The post-merge audit found #730 / PR #731 as the next independent closure: actual host/Opera/Tailscale read-only inspection acceptance is already recorded and the remaining repository change is documentation-only, but its branch must be refreshed against current `main` and pass exact-head checks after the canonical-state formatter fix. Issue #725 (`CI-OPT-01`) is the next independent **Ready** software Work Package after #730 and will add the local pre-push candidate verification gate selected to reduce wasted GitHub Actions cycles. Hardware/evidence-gated #200/#201/#202/#585 and production-cutover-gated #709/#711 are not selected. RFX-01 through RFX-19C remain on the Product Owner hold.
+Issue #730 / PR #731 is soft-blocked only on a fresh approved-workstation Opera/Tailscale positive browser proof because Opera Browser Connector is currently disconnected. Its security hardening is no longer documentation-only: `/inspection-login` is isolated behind a root-owned `0600` Unix socket, the helper requires root `SO_PEERCRED` plus exact Tailscale identity/source evidence before credential access, direct frontend access returns 404, and a real non-approved tailnet identity returns 403. All five review threads are resolved. Exact-head Core verification is running on the refreshed branch; no merge is allowed until the positive Opera proof is collected.
+
+Issue #725 (`CI-OPT-01`) is now the active independent software Work Package. The implementation provides a detached clean-worktree local candidate gate, dependency-free state-only lane, full Core candidate plan, exact Node/NVM fallback, automatic Compose validation for deployment/runtime changes, and fail-closed unknown-path handling. A real state-only candidate was verified GREEN. The full non-state `npm ci` + Next.js build is intentionally not executed on the production 4 GB Raspberry Pi because the earlier heavy local build/browser cascade coincided with a host reboot; GitHub exact-head CI remains the final authority. Hardware/evidence-gated #200/#201/#202/#585 and production-cutover-gated #709/#711 remain unselected. RFX-01 through RFX-19C remain on Product Owner hold.
 
 ## Recently completed production-readiness boundaries
 
