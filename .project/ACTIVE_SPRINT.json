@@ -25,9 +25,7 @@
     "active_work_package": {
       "issue": 730
     },
-    "next_work_package": {
-      "issue": 725
-    }
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -685,26 +683,54 @@
       "branch": "docs/730-opera-tailscale-inspection",
       "evidence": {
         "pull_request": 731,
-        "actual_host_acceptance": "completed_before_security_hardening",
-        "repository_scope": "runbook_secretless_helper_systemd_templates_policy_tests_and_state",
-        "exact_head_github": "pending_new_security_hardening_candidate",
+        "repository_security_hardening": "implemented_fresh_opera_positive_passed_refresh_ci_pending",
+        "actual_host_negative_security_acceptance": "success",
+        "fresh_approved_opera_positive": "success",
         "production_feature_cutover": "not_executed",
-        "security_provenance": "root_owned_unix_socket_so_peercred_plus_exact_tailscale_identity",
-        "host_negative_acceptance": "unprivileged_socket_denied_frontend_login_route_404_wrong_tailnet_identity_403",
-        "service_persistence_config": "user_service_enabled_linger_yes_system_socket_enabled",
-        "fresh_opera_positive_recheck": "pending_connector_reconnect",
-        "helper_policy_tests": "8_passed"
+        "repository_exact_head_observation": "refresh_required_after_main_reconciliation",
+        "fresh_approved_opera_positive_at": "2026-08-29T09:46:35+03:00",
+        "viewer_identity": "ChatGPT Opera Inspection / Спостерігач",
+        "browser_runtime": "rest_snapshot_synced_websocket_active",
+        "host_persistence": "inspection_frontend_and_login_socket_enabled_active_linger_yes",
+        "serve_topology": "tailnet_only_root_api_inspection_login_unix_socket",
+        "direct_frontend_inspection_login": "http_404",
+        "production_dashboard_3000": "http_200_unchanged"
       }
     },
     {
       "issue": 725,
       "title": "Add local candidate verification gate before remote GitHub CI",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "completed",
       "depends_on": [],
       "evidence": {
-        "readiness": "independent_software_only",
-        "github_exact_head_remains_authoritative": true
+        "implementation_checkpoint_sha": "0870c6d1264f836033d7abdcb44c62cb5b68e7e9",
+        "readiness": "completed_exact_head_green",
+        "real_state_only_candidate_gate": "success",
+        "focused_orchestrator_tests": "16_passed",
+        "github_exact_head_remains_authoritative": true,
+        "full_non_state_local_build_on_production_pi": "not_run_due_recorded_reboot_risk",
+        "ci_policy_matrix": "111_tests_ok_1_environment_skip",
+        "prettier": "success",
+        "eslint": "success",
+        "typecheck": "success",
+        "state_model": "success",
+        "git_diff_check": "success",
+        "verified_head_sha": "7070ba520f482208beb47f36435a33324ff0c2e0",
+        "pull_request": 743,
+        "checks": {
+          "focused_orchestrator": "16_passed",
+          "ci_policy_matrix": "111_ok_1_environment_skip",
+          "real_state_only_candidate": "green",
+          "core_quality_build": "success",
+          "telemetry_service": "success",
+          "authenticated_dashboard": "success",
+          "offline_bundle": "success",
+          "refrigeration_browser": "success",
+          "nexolab_merge_gate": "success"
+        },
+        "repository_merge_status": "merged",
+        "merge_observation_sha": "c9184cc2f0aca72c4e4f02b02c4b5441488775f9"
       },
       "branch": "feat/725-local-candidate-verification-gate"
     }
