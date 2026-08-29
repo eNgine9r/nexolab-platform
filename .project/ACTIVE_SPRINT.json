@@ -832,7 +832,7 @@
         "production_mutation": "not_started",
         "privileged_operator_boundary": "interactive_elevation_required_no_bypass",
         "frontend_artifact_workflow_run": "33249671236_success",
-        "frontend_artifact_status": "building_off_device_exact_target",
+        "frontend_artifact_status": "verified_ready_exact_target",
         "excluded_scope": "issue_729_and_later_product_runtime_changes",
         "currently_deployed_source_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d",
         "frontend_artifact_id": "9714063428",
@@ -841,7 +841,18 @@
         "frontend_artifact_platform": "linux/arm64",
         "frontend_artifact_repository_import": "PASS",
         "frontend_artifact_runtime_contract": "PASS_local_lan_172.18.48.66_8082",
-        "runtime_mutation": "not_started"
+        "runtime_mutation": "not_started",
+        "first_privileged_deployment_attempt": "20260829T133919Z_capacity_preflight_fail_before_runtime_mutation",
+        "first_privileged_deployment_capacity": "FAIL_free_12993241088_required_18872457135",
+        "capacity_failure_runtime_mutation_marker": "absent",
+        "capacity_fix": "streamed_pg_dump_fc_measurement_with_database_size_fail_safe_fallback",
+        "capacity_regression_tests": "12_passed",
+        "focused_deployment_safety_tests": "53_passed",
+        "real_pi_capacity_recheck": "PASS_free_12988268544_required_9487377137",
+        "real_pi_pg_database_bytes": "8930384919",
+        "real_pi_pg_dump_stream_bytes": "396437820",
+        "real_pi_pg_backup_margin_estimate_bytes": "503190466",
+        "runtime_health_after_failed_attempt": "dashboard_200_device_agent_ok_mqtt_connected_queue_0"
       }
     }
   ],

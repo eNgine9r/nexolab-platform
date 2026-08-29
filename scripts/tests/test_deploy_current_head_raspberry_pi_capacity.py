@@ -77,6 +77,112 @@ class DeploymentCapacityTests(unittest.TestCase):
             self.assertIn("reserve_bytes=100", content)
             self.assertIn("insufficient deployment capacity", insufficient.stderr)
 
+    def test_streamed_pg_dump_size_drives_backup_capacity_estimate(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp) / "repo"
+            audit = repo / "runtime" / "deployments" / "20260815T211000Z"
+            audit.mkdir(parents=True)
+            report = audit / "capacity-preflight.txt"
+            result = run_bash(
+                f"source {subprocess.list2cmdline([str(HELPER)])}\n"
+                "docker() {\n"
+                "  case \"$*\" in\n"
+                "    *pg_database_size*) printf '10000\\n'; return 0 ;;&\n"
+                "    *pg_dump*) printf '%100s' x; return 0 ;;&\n"
+                "    *) return 1 ;;&\n"
+                "  esac\n"
+                "}\n"
+                "nexolab_capacity_free_bytes() { printf '800\\n'; }\n"
+                f"nexolab_capacity_preflight {subprocess.list2cmdline([str(repo)])} {subprocess.list2cmdline([str(audit)])} fake-postgres {subprocess.list2cmdline([str(report)])}\n",
+                env={
+                    "NEXOLAB_DEPLOY_MIN_FREE_RESERVE_BYTES": "100",
+                    "NEXOLAB_DEPLOY_BUILD_HEADROOM_BYTES": "200",
+                    "NEXOLAB_DEPLOY_METADATA_HEADROOM_BYTES": "300",
+                    "NEXOLAB_DEPLOY_ARCHIVE_FIXED_OVERHEAD_BYTES": "0",
+                    "NEXOLAB_DEPLOY_POSTGRES_ESTIMATE_PERCENT": "110",
+                    "NEXOLAB_DEPLOY_POSTGRES_FIXED_OVERHEAD_BYTES": "0",
+                },
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            content = report.read_text(encoding="utf-8")
+            self.assertIn("status=PASS", content)
+            self.assertIn("postgresql_database_bytes=10000", content)
+            self.assertIn("postgresql_backup_measurement_source=streamed_pg_dump", content)
+            self.assertIn("postgresql_backup_measured_bytes=100", content)
+            self.assertIn("postgresql_backup_estimate_bytes=110", content)
+            self.assertIn("required_bytes=710", content)
+
+    def test_repeated_preflight_reuses_streamed_pg_dump_measurement(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            repo = root / "repo"
+            audit = repo / "runtime" / "deployments" / "20260815T211500Z"
+            audit.mkdir(parents=True)
+            report_one = audit / "capacity-preflight-one.txt"
+            report_two = audit / "capacity-preflight-two.txt"
+            calls = root / "pg-dump-calls.txt"
+            result = run_bash(
+                f"source {subprocess.list2cmdline([str(HELPER)])}\n"
+                "docker() {\n"
+                "  case \"$*\" in\n"
+                "    *pg_database_size*) printf '10000\\n'; return 0 ;;&\n"
+                f"    *pg_dump*) printf 'called\\n' >> {subprocess.list2cmdline([str(calls)])}; printf '%100s' x; return 0 ;;&\n"
+                "    *) return 1 ;;&\n"
+                "  esac\n"
+                "}\n"
+                "nexolab_capacity_free_bytes() { printf '800\\n'; }\n"
+                f"nexolab_capacity_preflight {subprocess.list2cmdline([str(repo)])} {subprocess.list2cmdline([str(audit)])} fake-postgres {subprocess.list2cmdline([str(report_one)])}\n"
+                f"nexolab_capacity_preflight {subprocess.list2cmdline([str(repo)])} {subprocess.list2cmdline([str(audit)])} fake-postgres {subprocess.list2cmdline([str(report_two)])}\n",
+                env={
+                    "NEXOLAB_DEPLOY_MIN_FREE_RESERVE_BYTES": "100",
+                    "NEXOLAB_DEPLOY_BUILD_HEADROOM_BYTES": "200",
+                    "NEXOLAB_DEPLOY_METADATA_HEADROOM_BYTES": "300",
+                    "NEXOLAB_DEPLOY_ARCHIVE_FIXED_OVERHEAD_BYTES": "0",
+                    "NEXOLAB_DEPLOY_POSTGRES_ESTIMATE_PERCENT": "110",
+                    "NEXOLAB_DEPLOY_POSTGRES_FIXED_OVERHEAD_BYTES": "0",
+                },
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(calls.read_text(encoding="utf-8").splitlines(), ["called"])
+            self.assertIn("postgresql_backup_measurement_source=streamed_pg_dump", report_one.read_text(encoding="utf-8"))
+            self.assertIn("postgresql_backup_measurement_source=streamed_pg_dump_cache", report_two.read_text(encoding="utf-8"))
+            self.assertIn("postgresql_backup_measured_bytes=100", report_two.read_text(encoding="utf-8"))
+
+    def test_pg_dump_stream_failure_falls_back_to_database_size_estimate(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp) / "repo"
+            audit = repo / "runtime" / "deployments" / "20260815T212000Z"
+            audit.mkdir(parents=True)
+            report = audit / "capacity-preflight.txt"
+            result = run_bash(
+                f"source {subprocess.list2cmdline([str(HELPER)])}\n"
+                "docker() {\n"
+                "  case \"$*\" in\n"
+                "    *pg_database_size*) printf '1000\\n'; return 0 ;;&\n"
+                "    *pg_dump*) return 1 ;;&\n"
+                "    *) return 1 ;;&\n"
+                "  esac\n"
+                "}\n"
+                "nexolab_capacity_free_bytes() { printf '2000\\n'; }\n"
+                f"nexolab_capacity_preflight {subprocess.list2cmdline([str(repo)])} {subprocess.list2cmdline([str(audit)])} fake-postgres {subprocess.list2cmdline([str(report)])}\n",
+                env={
+                    "NEXOLAB_DEPLOY_MIN_FREE_RESERVE_BYTES": "100",
+                    "NEXOLAB_DEPLOY_BUILD_HEADROOM_BYTES": "200",
+                    "NEXOLAB_DEPLOY_METADATA_HEADROOM_BYTES": "300",
+                    "NEXOLAB_DEPLOY_ARCHIVE_FIXED_OVERHEAD_BYTES": "0",
+                    "NEXOLAB_DEPLOY_POSTGRES_ESTIMATE_PERCENT": "110",
+                    "NEXOLAB_DEPLOY_POSTGRES_FIXED_OVERHEAD_BYTES": "0",
+                },
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            content = report.read_text(encoding="utf-8")
+            self.assertIn("status=PASS", content)
+            self.assertIn("postgresql_database_bytes=1000", content)
+            self.assertIn("postgresql_backup_measurement_source=database_size_fallback", content)
+            self.assertIn("postgresql_backup_measured_bytes=0", content)
+            self.assertIn("postgresql_backup_estimate_bytes=1100", content)
+            self.assertIn("required_bytes=1700", content)
+
     def test_retention_preserves_current_newest_marker_and_product_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             repo = Path(temp) / "repo"

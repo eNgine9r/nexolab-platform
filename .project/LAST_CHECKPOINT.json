@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-29T14:46:40+03:00",
+  "timestamp": "2026-08-29T17:02:00+03:00",
   "actor": "ChatGPT",
-  "event": "issue_755_artifact_verified_privileged_deployment_gate",
+  "event": "issue_755_capacity_preflight_fix_candidate_real_pi_pass",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
@@ -26,10 +26,19 @@
     "frontend_artifact_digest": "sha256:e63811646fde0121a562d9d3bc1dfd04c24176a756657fd27f6358e3e9ff3f5e",
     "frontend_artifact_repository_import": "PASS",
     "runtime_health_before_cutover": "dashboard_200_device_agent_ok_mqtt_connected_queue_0",
-    "runtime_mutation": "not_started"
+    "runtime_mutation": "not_started",
+    "first_privileged_deployment_attempt": "20260829T133919Z_capacity_preflight_fail_before_runtime_mutation",
+    "capacity_fix": "streamed_pg_dump_fc_measurement_with_database_size_fail_safe_fallback",
+    "capacity_regression_tests": "12_passed",
+    "focused_deployment_safety_tests": "53_passed",
+    "real_pi_capacity_recheck": "PASS_free_12988268544_required_9487377137",
+    "real_pi_pg_database_bytes": "8930384919",
+    "real_pi_pg_dump_stream_bytes": "396437820",
+    "real_pi_pg_backup_margin_estimate_bytes": "503190466",
+    "runtime_health_after_failed_attempt": "dashboard_200_device_agent_ok_mqtt_connected_queue_0"
   },
   "observations": [],
-  "next_action": "Product Owner runs the exact interactive privileged deployment command for Issue #755 using the verified ff86b10b ARM64 artifact; then ChatGPT inspects deployment evidence, health, adoption, CSV #709 acceptance and Energy #711 acceptance.",
+  "next_action": "Commit and publish the Issue #755 capacity-preflight correction, require exact-head CI and clean review, then rerun the already-authorized privileged bounded deployment using the verified ff86b10b ARM64 artifact. Do not begin #709/#711 live acceptance until DEPLOYMENT PASSED is captured.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
