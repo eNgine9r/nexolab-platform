@@ -3,16 +3,14 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-29T12:07:18+03:00",
+  "timestamp": "2026-08-29T12:16:28+03:00",
   "actor": "ChatGPT",
-  "event": "issue_753_historical_main_deployment_tooling_implementation",
+  "event": "issue_753_completed_candidate_exact_head_green",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
-  "active_work": {
-    "issue": 753
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue": 753,
     "branch": "feat/753-approved-historical-main-deploy",
@@ -23,10 +21,16 @@
     "source_selection_tests": "8_passed",
     "deployment_contract_matrix": "30_passed",
     "runtime_mutation": "not_started_pending_753_merge",
-    "deployed_source_evidence_match": "required_latest_successful_deployment"
+    "deployed_source_evidence_match": "required_latest_successful_deployment",
+    "verified_head_sha": "c0af040aa4715e027141871fe3087a6f98f41002",
+    "exact_head_core_quality_build": "PASS",
+    "exact_head_telemetry_service": "PASS",
+    "exact_head_nexolab_merge_gate": "PASS",
+    "review_threads": "none",
+    "repository_readiness": "completed_candidate_pending_final_state_ci_and_merge"
   },
   "observations": [],
-  "next_action": "Finish #753 exact-head CI/review and merge. Then run historical-main source-selection preflight and the authorized controlled deployment to ff86b10b for #709/#711 runtime acceptance.",
+  "next_action": "After final completed-state exact-head CI is GREEN, merge #754. Then sync main, run the no-runtime historical-main source-selection preflight for ff86b10b against deployed ff796b1f, and execute the already-authorized #709/#711 controlled deployment only if preflight passes.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
