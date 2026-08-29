@@ -38,11 +38,11 @@ Before pre-deployment inventory, evidence archive creation, PostgreSQL dump, `gi
 - build working-set headroom: 4 GiB;
 - metadata/log headroom: 256 MiB;
 - `runtime/evidence` archive estimate: 110% of current bytes plus 64 MiB;
-- PostgreSQL dump estimate: 110% of `pg_database_size()` plus 64 MiB; if a running PostgreSQL container cannot report its database size, the deployment fails closed before mutation rather than guessing.
+- PostgreSQL dump estimate: when PostgreSQL is reachable, the guard first measures the exact current `pg_dump -Fc` byte stream read-only (without writing the dump to disk) and applies the existing 110% plus 64 MiB safety margin; the measurement is cached only as process-internal state for the repeated preflight in the same deployment; inherited environment values are never accepted as cache authority. If streamed measurement fails, the guard falls back to the conservative 110% of `pg_database_size()` plus 64 MiB. If a running PostgreSQL container cannot report its database size, the deployment still fails closed before mutation rather than guessing.
 
 The gate is repeated immediately before the large evidence writes. If `free_bytes < required_bytes`, deployment stops before Git/runtime mutation and writes `capacity-preflight.txt` in the current deployment evidence directory. If PostgreSQL size measurement is unavailable, the report records that the required-byte estimate is incomplete and deployment is rejected before mutation.
 
-The report includes free, required, reserve, build, runtime-evidence, PostgreSQL, deployment-evidence and npm-cache byte counts. Docker build cache and npm cache are diagnostic/manual-review categories only; they are not automatically deleted.
+The report includes free, required, reserve, build, runtime-evidence, PostgreSQL database bytes, PostgreSQL backup measurement source/measured bytes/estimated bytes, deployment-evidence and npm-cache byte counts. `postgresql_backup_measurement_source=streamed_pg_dump` (or `streamed_pg_dump_cache`) means the compressed custom-format stream was measured successfully; `database_size_fallback` means the older conservative database-size estimate was retained. Docker build cache and npm cache are diagnostic/manual-review categories only; they are not automatically deleted.
 
 ## Off-device frontend artifact path
 

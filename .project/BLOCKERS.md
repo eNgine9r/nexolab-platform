@@ -1,14 +1,14 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-28
+Updated: 2026-08-29
 
 ## Issue #709 — post-merge Saved Dashboard runtime CSV verification
 
-The Product Owner explicitly authorized the controlled Raspberry Pi deployment/runtime CSV re-verification on 2026-08-29, bounded to historical main target `ff86b10b71c8e5252c15baaf4183adbf42f30f18` so later unapproved product scope is not deployed. Runtime mutation remains temporarily blocked only by Issue #753: the repository-owned deployment path must first gain exact historical-main source selection with fail-closed `deployed → target → origin/main` ancestry and checkout restoration. Repository/software acceptance remains valid.
+The Product Owner explicitly authorized the controlled Raspberry Pi deployment/runtime CSV re-verification on 2026-08-29, bounded to historical main target `ff86b10b71c8e5252c15baaf4183adbf42f30f18`. Issue #753 tooling is merged and the real-Pi no-runtime source-selection preflight is PASS. Runtime acceptance is tracked by active Issue #755. The first privileged attempt stopped before runtime mutation on a conservative capacity estimate; the narrowed streamed-`pg_dump -Fc` capacity fix now passes real-Pi no-mutation preflight and must pass exact-head CI/review before the privileged deployment is repeated. #729/later product runtime scope remains excluded. Repository/software acceptance remains valid.
 
 ## Issue #711 — post-merge Energy runtime verification
 
-The Product Owner explicitly authorized the controlled Raspberry Pi deployment/operator verification on 2026-08-29 using the same bounded target `ff86b10b71c8e5252c15baaf4183adbf42f30f18`. Software verification remains GREEN. Runtime mutation waits only for Issue #753 deployment-tooling exact-head acceptance; no Modbus, acquisition-cadence, hardware, database or persistent-volume write is required by the #711 fix itself.
+The Product Owner explicitly authorized the controlled Raspberry Pi deployment/operator verification on 2026-08-29 using the same bounded target `ff86b10b71c8e5252c15baaf4183adbf42f30f18`. Software verification remains GREEN and Issue #753 tooling is merged; the real-Pi source-selection preflight is PASS. Runtime acceptance is part of active Issue #755. The first privileged attempt stopped before runtime mutation on capacity preflight; the narrowed capacity fix now passes real-Pi no-mutation preflight and must pass exact-head CI/review before the approved privileged deployment is repeated. No Modbus, acquisition-cadence, hardware, database or persistent-volume write is required by the #711 fix itself.
 
 ## Issue #189 — actual-host recovery acceptance
 
@@ -38,13 +38,17 @@ Issue #727 records an intentional Product Owner defer of **RFX-01 through RFX-19
 
 Issue #704 has exact-head repository verification GREEN at `e2f7857e381600d76dd4100cea2c776bab8868e8`; #690 is completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`. The final Device Agent `libssl3t64/CVE-2026-14456` exception is **retired** because the fresh 2026-08-28 scan no longer reports the finding. Deadline-driven maintenance through **2026-09-02** now consists of the exact Device Agent `libexpat1/CVE-2026-66046` decision, Device Agent/telemetry-service SQLite decisions, and telemetry `libcjson1/CVE-2026-16554` / `libwebsockets19t64/CVE-2026-78161`; each must be removed earlier if its documented finding/fix/reachability/version/severity trigger changes. No production/runtime mutation is authorized by this security reconciliation.
 
-## Issues #709 / #711 — approved bounded controlled deployment
+## Issue #755 — approved bounded #709 / #711 controlled deployment
 
-Product Owner authorization is recorded for the exact historical-main deployment target `ff86b10b71c8e5252c15baaf4183adbf42f30f18` only. Issue #753 is the temporary tooling gate that prevents deploying later unrelated `main` scope. After #753 merges GREEN, run source-selection preflight, controlled deployment and real runtime acceptance for CSV sensor rows plus Energy continuity.
+Product Owner authorization is recorded for exact historical-main target `ff86b10b71c8e5252c15baaf4183adbf42f30f18` only. Issue #753 / PR #754 is merged and no-runtime source-selection preflight passed on the real Pi. GitHub run `33249671236` completed successfully; artifact `9714063428` is exact to `ff86b10b...`, `linux/arm64`, checksum-valid and repository-import verified. The first privileged attempt `20260829T133919Z` stopped fail-closed at capacity preflight before any runtime mutation. A narrow capacity-estimator correction now uses measured read-only `pg_dump -Fc` bytes with the existing safety margin and conservative database-size fallback; 55/55 focused local safety tests pass and real-Pi capacity recheck passes (`12.99 GB` free / `9.49 GB` required). Issue #757 implementation is GREEN and the only remaining prerequisite gate is its final state-only exact-head CI + PR #758 merge; after that #755 resumes with the same legitimate privileged operator activation step. No protected evidence/recovery/data was deleted.
 
-## Issue #753 — PR #754 deployment-safety review hardening
+## Issue #757 — completion candidate capacity prerequisite for #755
 
-Repository implementation is complete candidate and review-clean on `b8fb31de3c14ee6c0c000ccbd548adf2f202f4c4`: eight safety findings are addressed, local focused safety is 51/51 PASS, exact-head Core/Telemetry/Merge Gate are GREEN, fresh Codex review found no major issues, and all review threads are resolved. No production runtime mutation occurred in #753. The only remaining repository gate is final state-only exact-head CI + PR #754 merge. After merge, #709/#711 remain bounded to the already-authorized target `ff86b10b...`; real runtime mutation must still follow a successful source-selection preflight and an approved privileged operator path.
+The capacity correction is isolated from runtime acceptance because `deploy-current-head-raspberry-pi.sh` requires deployment to start from synchronized `main`. Implementation head `47fad9431e785ad181649990e2e797dfdf6d5569` is exact-head Core/Telemetry/NEXOLAB Merge Gate GREEN and manual full-diff review is clean. Issue #757 carries only the capacity helper, its focused tests, runbook and state. Acceptance requires 14/14 capacity tests, 55/55 focused deployment safety tests, the already captured real-Pi no-mutation capacity PASS, exact-head Core/Telemetry/Merge Gate GREEN and clean manual review. After merge, #755 resumes; no production mutation is part of #757.
+
+## Issue #753 — cleared
+
+PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation safety and final state heads are GREEN and clean-reviewed. #753 no longer blocks runtime activation.
 
 ## Cleared boundaries
 

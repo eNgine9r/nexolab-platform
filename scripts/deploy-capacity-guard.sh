@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Process-internal cache only. Never trust inherited environment values for capacity authority.
+NEXOLAB_CAPACITY_PG_DUMP_CACHE_CONTAINER=
+NEXOLAB_CAPACITY_PG_DUMP_CACHE_BYTES=
+
 nexolab_capacity_uint() {
   local name=$1
   local value=$2
@@ -209,6 +213,48 @@ nexolab_capacity_measure_postgres() {
   fi
 }
 
+nexolab_capacity_measure_postgres_dump() {
+  local pg_container=$1
+  NEXOLAB_CAPACITY_PG_DUMP_SOURCE=none
+  NEXOLAB_CAPACITY_PG_DUMP_BYTES=0
+  [[ -n "$pg_container" ]] || return 0
+
+  if [[ "${NEXOLAB_CAPACITY_PG_DUMP_CACHE_CONTAINER:-}" == "$pg_container" && "${NEXOLAB_CAPACITY_PG_DUMP_CACHE_BYTES:-}" =~ ^[1-9][0-9]*$ ]]; then
+    NEXOLAB_CAPACITY_PG_DUMP_SOURCE=streamed_pg_dump_cache
+    NEXOLAB_CAPACITY_PG_DUMP_BYTES="$NEXOLAB_CAPACITY_PG_DUMP_CACHE_BYTES"
+    return 0
+  fi
+
+  local status_file measured dump_rc
+  if ! status_file="$(mktemp "${TMPDIR:-/tmp}/nexolab-pg-dump-status.XXXXXX")"; then
+    NEXOLAB_CAPACITY_PG_DUMP_SOURCE=unavailable
+    NEXOLAB_CAPACITY_PG_DUMP_BYTES=0
+    return 0
+  fi
+  measured="$(
+    {
+      set +e
+      docker exec "$pg_container" sh -ec \
+        'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' 2>/dev/null
+      printf '%s\n' "$?" > "$status_file"
+    } | wc -c
+  )"
+  dump_rc="$(tr -d '[:space:]' < "$status_file" 2>/dev/null || true)"
+  rm -f -- "$status_file"
+  measured="${measured//$'\r'/}"
+  measured="${measured//$'\n'/}"
+
+  if [[ "$dump_rc" == 0 && "$measured" =~ ^[1-9][0-9]*$ ]]; then
+    NEXOLAB_CAPACITY_PG_DUMP_SOURCE=streamed_pg_dump
+    NEXOLAB_CAPACITY_PG_DUMP_BYTES=$measured
+    NEXOLAB_CAPACITY_PG_DUMP_CACHE_CONTAINER="$pg_container"
+    NEXOLAB_CAPACITY_PG_DUMP_CACHE_BYTES="$measured"
+  else
+    NEXOLAB_CAPACITY_PG_DUMP_SOURCE=unavailable
+    NEXOLAB_CAPACITY_PG_DUMP_BYTES=0
+  fi
+}
+
 nexolab_capacity_preflight() {
   local repo=$1
   local audit_dir=$2
@@ -232,10 +278,15 @@ nexolab_capacity_preflight() {
   fi
 
   nexolab_capacity_measure_postgres "$pg_container"
-  local pg_estimate=0 pg_measurement_failed=false
+  local pg_estimate=0 pg_measurement_failed=false pg_backup_estimate_source=none
   [[ "$NEXOLAB_CAPACITY_PG_SOURCE" != unavailable ]] || pg_measurement_failed=true
-  if (( NEXOLAB_CAPACITY_PG_BYTES > 0 )); then
+  nexolab_capacity_measure_postgres_dump "$pg_container"
+  if (( NEXOLAB_CAPACITY_PG_DUMP_BYTES > 0 )); then
+    pg_estimate="$(nexolab_capacity_scaled_bytes "$NEXOLAB_CAPACITY_PG_DUMP_BYTES" "$pg_percent" "$pg_fixed_bytes")"
+    pg_backup_estimate_source="$NEXOLAB_CAPACITY_PG_DUMP_SOURCE"
+  elif (( NEXOLAB_CAPACITY_PG_BYTES > 0 )); then
     pg_estimate="$(nexolab_capacity_scaled_bytes "$NEXOLAB_CAPACITY_PG_BYTES" "$pg_percent" "$pg_fixed_bytes")"
+    pg_backup_estimate_source=database_size_fallback
   fi
 
   local free_bytes required_bytes deployment_bytes npm_cache_bytes=0 npm_cache_path=""
@@ -275,6 +326,8 @@ nexolab_capacity_preflight() {
     printf 'runtime_evidence_archive_estimate_bytes=%s\n' "$archive_estimate"
     printf 'postgresql_estimate_source=%s\n' "$NEXOLAB_CAPACITY_PG_SOURCE"
     printf 'postgresql_database_bytes=%s\n' "$NEXOLAB_CAPACITY_PG_BYTES"
+    printf 'postgresql_backup_measurement_source=%s\n' "$pg_backup_estimate_source"
+    printf 'postgresql_backup_measured_bytes=%s\n' "$NEXOLAB_CAPACITY_PG_DUMP_BYTES"
     printf 'postgresql_backup_estimate_bytes=%s\n' "$pg_estimate"
     printf 'deployment_evidence_bytes=%s\n' "$deployment_bytes"
     printf 'npm_cache_bytes=%s\n' "$npm_cache_bytes"
