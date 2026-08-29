@@ -466,11 +466,7 @@ validate_full_sha() {
   [[ "$1" =~ ^[0-9a-f]{40}$ ]]
 }
 
-resolve_deployed_source_authority() {
-  [[ -n "$REQUESTED_SOURCE_REF" ]] || return 0
-  validate_full_sha "$REQUESTED_SOURCE_REF" || fail "--source-ref must be a full lowercase 40-character commit SHA"
-  validate_full_sha "$EXPECTED_DEPLOYED_SOURCE" || fail "--expected-deployed-source must be a full lowercase 40-character commit SHA"
-
+resolve_latest_deployment_evidence() {
   local deployment_evidence
   if ! deployment_evidence="$(python3 - "$REPO/runtime/deployments" "$AUDIT_DIR" <<'PY_EVIDENCE'
 from datetime import datetime
@@ -547,6 +543,13 @@ PY_EVIDENCE
   evidence_tail="${deployment_evidence#*$'\t'}"
   EXPECTED_DEPLOYMENT_EVIDENCE="${evidence_tail%%$'\t'*}"
   VERIFIED_DEPLOYED_SOURCE="$evidence_commit"
+}
+
+resolve_deployed_source_authority() {
+  [[ -n "$REQUESTED_SOURCE_REF" ]] || return 0
+  validate_full_sha "$REQUESTED_SOURCE_REF" || fail "--source-ref must be a full lowercase 40-character commit SHA"
+  validate_full_sha "$EXPECTED_DEPLOYED_SOURCE" || fail "--expected-deployed-source must be a full lowercase 40-character commit SHA"
+  resolve_latest_deployment_evidence
   [[ "$VERIFIED_DEPLOYED_SOURCE" == "$EXPECTED_DEPLOYED_SOURCE" ]] \
     || fail "expected deployed source does not match the latest authoritative successful deployment evidence"
 }
@@ -763,6 +766,10 @@ capture_edge_sqlite_snapshot() {
   [[ "${#edge_containers[@]}" == "1" ]] \
     || fail "edge SQLite snapshot requires exactly one known Device Agent container"
   local edge_container="${edge_containers[0]}"
+  if ! validate_full_sha "$deployed_source"; then
+    resolve_latest_deployment_evidence
+    deployed_source="$VERIFIED_DEPLOYED_SOURCE"
+  fi
   validate_full_sha "$deployed_source" \
     || fail "exact deployed source authority is required before edge SQLite snapshot"
   [[ "$(docker inspect --format '{{range .Mounts}}{{if eq .Destination \"/var/lib/nexolab\"}}{{.Name}}{{end}}{{end}}' "$edge_container")" == "$edge_volume" ]] \

@@ -210,6 +210,16 @@ class EdgeSQLiteDeploymentContractTests(unittest.TestCase):
         self.assertNotIn("restore_edge_sqlite_snapshot", text[normal_deployment:mutation])
         self.assertIn("Device Agent remains stopped", text)
 
+    def test_existing_edge_resolves_deployed_source_for_normal_current_main_mode(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        start = text.index("capture_edge_sqlite_snapshot()")
+        end = text.index("\ncapture_edge_sqlite_snapshot\n", start)
+        capture = text[start:end]
+        resolve = capture.index("resolve_latest_deployment_evidence")
+        final_guard = capture.index("exact deployed source authority is required", resolve)
+        self.assertLess(resolve, final_guard)
+        self.assertIn('deployed_source="$VERIFIED_DEPLOYED_SOURCE"', capture)
+
     def test_running_device_agent_is_rejected_before_docker_restore(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

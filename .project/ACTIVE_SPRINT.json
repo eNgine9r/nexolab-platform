@@ -937,7 +937,7 @@
         "current_edge_sqlite_journal_mode": "delete",
         "current_runtime_queue_depth": "0",
         "required_snapshot_method": "sqlite_connection_backup_api",
-        "focused_snapshot_and_deployment_regressions": "74_passed",
+        "focused_snapshot_and_deployment_regressions": "75_passed",
         "standalone_offline_runtime_contract": "passed",
         "state_model_v2": "passed",
         "read_only_pi_snapshot_evidence": "runtime/evidence/issue-759-edge-snapshot-20260829T184419Z",
