@@ -182,6 +182,8 @@ class EdgeSQLiteSnapshotTests(unittest.TestCase):
         self.assertEqual(sha256(destination), document["sha256"])
         self.assertEqual(result["registry_revision"], 18)
         self.assertEqual(result["outbound_queue_count"], 2)
+        self.assertEqual(result["kind"], "nexolab-edge-sqlite-restore-result")
+        self.assertEqual(result["deployed_source"], DEPLOYED)
         connection = sqlite3.connect(destination)
         try:
             self.assertEqual(connection.execute("PRAGMA quick_check").fetchone(), ("ok",))

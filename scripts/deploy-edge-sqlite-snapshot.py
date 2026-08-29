@@ -282,6 +282,8 @@ def restore(args: argparse.Namespace) -> dict[str, Any]:
         temporary.unlink(missing_ok=True)
 
     return {
+        "schema_version": SCHEMA_VERSION,
+        "kind": "nexolab-edge-sqlite-restore-result",
         "status": "restored",
         "sha256": document["sha256"],
         "bytes": document["bytes"],
@@ -290,6 +292,7 @@ def restore(args: argparse.Namespace) -> dict[str, Any]:
         "outbound_queue_high_water": queue_high_water,
         "node_stream_sequences": stream_sequences,
         "deployment_evidence_id": document["deployment_evidence_id"],
+        "deployed_source": document["deployed_source"],
         "deployed_device_agent_image_id": document["deployed_device_agent_image_id"],
         "target_source": document["target_source"],
     }

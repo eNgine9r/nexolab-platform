@@ -501,6 +501,7 @@ resolve_latest_deployment_evidence() {
   local deployment_evidence
   if ! deployment_evidence="$(python3 - "$REPO/runtime/deployments" "$AUDIT_DIR" <<'PY_EVIDENCE'
 from datetime import datetime
+import json
 from pathlib import Path
 import re
 import sys
@@ -541,11 +542,61 @@ if root.is_dir():
                     if sha_re.fullmatch(candidate):
                         commit = candidate
                     break
-        passed = "DEPLOYMENT PASSED" in summary_text and commit is not None
+        passed_commit = commit if "DEPLOYMENT PASSED" in summary_text else None
+        restore_result_path = directory / "edge-sqlite-restore-result.json"
+        recovered_commit = None
+        if restore_result_path.exists():
+            metadata_path = directory / "edge-sqlite-pre-cutover.json"
+            if (
+                restore_result_path.is_symlink()
+                or metadata_path.is_symlink()
+                or not restore_result_path.is_file()
+                or not metadata_path.is_file()
+            ):
+                print(f"ERROR: recovery authority evidence is unsafe: {directory}", file=sys.stderr)
+                raise SystemExit(3)
+            try:
+                restore_result = json.loads(restore_result_path.read_text(encoding="utf-8"))
+                metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as error:
+                print(f"ERROR: recovery authority evidence is unreadable: {directory}: {error}", file=sys.stderr)
+                raise SystemExit(3)
+            matching_fields = (
+                "sha256",
+                "bytes",
+                "registry_revision",
+                "outbound_queue_count",
+                "outbound_queue_high_water",
+                "node_stream_sequences",
+                "deployment_evidence_id",
+                "deployed_source",
+                "deployed_device_agent_image_id",
+                "target_source",
+            )
+            valid_restore = (
+                isinstance(restore_result, dict)
+                and isinstance(metadata, dict)
+                and restore_result.get("schema_version") == 1
+                and restore_result.get("kind") == "nexolab-edge-sqlite-restore-result"
+                and restore_result.get("status") == "restored"
+                and metadata.get("schema_version") == 1
+                and metadata.get("kind") == "nexolab-edge-sqlite-pre-cutover"
+                and metadata.get("source_quick_check") == "ok"
+                and metadata.get("snapshot_quick_check") == "ok"
+                and restore_result.get("deployment_evidence_id") == directory.name
+                and sha_re.fullmatch(str(restore_result.get("deployed_source", "")))
+                and sha_re.fullmatch(str(restore_result.get("target_source", "")))
+                and all(restore_result.get(field) == metadata.get(field) for field in matching_fields)
+            )
+            if not valid_restore:
+                print(f"ERROR: recovery authority evidence is inconsistent: {directory}", file=sys.stderr)
+                raise SystemExit(3)
+            recovered_commit = restore_result["deployed_source"]
+        effective_commit = recovered_commit or passed_commit
         mutated = (directory / "runtime-mutation-started").is_file() or any(
             marker in summary_text for marker in legacy_mutation_markers
         )
-        attempts.append((directory.name, directory.resolve(), summary_text, mutated, commit if passed else None))
+        attempts.append((directory.name, directory.resolve(), summary_text, mutated, effective_commit))
 
 successful = [(stamp, directory, commit) for stamp, directory, _summary, _mutated, commit in attempts if commit]
 if not successful:
