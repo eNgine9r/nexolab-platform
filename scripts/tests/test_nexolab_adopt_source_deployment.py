@@ -312,6 +312,72 @@ def test_historical_adoption_refuses_evidence_control_main_outside_checkout_line
     assert not (root / "current.json").exists()
 
 
+def test_adoption_refuses_stale_successful_evidence_after_newer_success(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    old_commit = "a" * 40
+    new_commit = "b" * 40
+    repo, root, _evidence, args = make_deployment_fixture(tmp_path, commit=old_commit)
+    newer = repo / "runtime" / "deployments" / "20260819T131726Z"
+    newer.mkdir(parents=True)
+    (newer / "summary.txt").write_text("DEPLOYMENT PASSED\n", encoding="utf-8")
+    (newer / "final-state.txt").write_text(f"commit={new_commit}\n", encoding="utf-8")
+    install_verified_runtime_mocks(monkeypatch, commit=old_commit)
+
+    with pytest.raises(
+        adopter.AdoptionFailure,
+        match="not the latest authoritative successful source deployment",
+    ):
+        adopter.adopt(args)
+
+    assert not (root / "current.json").exists()
+
+
+def test_adoption_refuses_when_newer_attempt_crossed_runtime_mutation_without_success(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    commit = "a" * 40
+    repo, root, _evidence, args = make_deployment_fixture(tmp_path, commit=commit)
+    failed = repo / "runtime" / "deployments" / "20260819T131726Z"
+    failed.mkdir(parents=True)
+    (failed / "summary.txt").write_text(
+        "RUNTIME MUTATION STARTED: central backend activation\n",
+        encoding="utf-8",
+    )
+    install_verified_runtime_mocks(monkeypatch, commit=commit)
+
+    with pytest.raises(
+        adopter.AdoptionFailure,
+        match="newer deployment attempt crossed runtime mutation boundary without success",
+    ):
+        adopter.adopt(args)
+
+    assert not (root / "current.json").exists()
+
+
+def test_adoption_allows_newer_failed_pre_mutation_attempt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    commit = "a" * 40
+    repo, root, _evidence, args = make_deployment_fixture(tmp_path, commit=commit)
+    failed = repo / "runtime" / "deployments" / "20260819T131726Z"
+    failed.mkdir(parents=True)
+    (failed / "summary.txt").write_text(
+        "Deployment failed before runtime mutation\n",
+        encoding="utf-8",
+    )
+    install_verified_runtime_mocks(monkeypatch, commit=commit)
+
+    result = adopter.adopt(args)
+
+    assert result["status"] == "recorded"
+    assert result["source_commit"] == commit
+    assert (root / "current.json").is_file()
+
+
 def test_adoption_refuses_disabled_auth_profile(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

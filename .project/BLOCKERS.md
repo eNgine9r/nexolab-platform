@@ -44,7 +44,7 @@ Product Owner authorization is recorded for the exact historical-main deployment
 
 ## Issue #753 — PR #754 deployment-safety review hardening
 
-The fifth P1 is locally addressed: historical source adoption now stays on canonical control `main`, verifies explicit historical evidence/main ancestry, and derives build/schema from the exact deployed source Git object. Real source proof distinguishes target `ff86b10b...` schema `20260820_0026` from control-main `20260828_0027`; local deployment + adopter safety tests are 45/45 PASS. #753 remains blocked from merge/production mutation until the new exact head is Core/Telemetry/Merge-Gate GREEN and fresh review has zero unresolved findings.
+Seven substantive review findings have now been addressed locally. The latest P1 prevents stale successful evidence from moving source-adoption authority backward after a newer deployment, using the same canonical timestamp/newer-mutating-attempt fail-closed rule as deployment source selection. The latest P2 canonicalizes symlinked deployment-root/current/protected paths before retention comparison. Earlier historical schema authority remains exact to deployed Git objects (`ff86b10b...` → `20260820_0026`, control main → `20260828_0027`). Local deployment + adopter safety tests are 49/49 PASS. #753 remains blocked from merge/production mutation until a new exact head is Core/Telemetry/Merge-Gate GREEN and fresh review has zero unresolved findings.
 
 ## Cleared boundaries
 

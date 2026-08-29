@@ -257,6 +257,70 @@ def verify_live_runtime(api_base_url: str) -> str:
     return "degraded" if device.get("status") == "degraded" else "ready"
 
 
+DEPLOYMENT_STAMP = re.compile(r"^\d{8}T\d{6}Z$")
+LEGACY_RUNTIME_MUTATION_MARKERS = (
+    "Starting central backend, MinIO and observability",
+    "Starting real-hardware edge stack",
+    "Activating verified frontend release",
+    "RUNTIME MUTATION STARTED",
+)
+
+
+def _valid_deployment_stamp(name: str) -> bool:
+    if not DEPLOYMENT_STAMP.fullmatch(name):
+        return False
+    try:
+        datetime.strptime(name, "%Y%m%dT%H%M%SZ")
+    except ValueError:
+        return False
+    return True
+
+
+def authoritative_source_deployment(repo: Path) -> tuple[Path, str]:
+    deployments_root = (repo.resolve() / "runtime" / "deployments").resolve()
+    if not deployments_root.is_dir():
+        raise AdoptionFailure("deployment evidence root is unavailable")
+
+    attempts: list[tuple[str, Path, bool, str | None]] = []
+    for directory in deployments_root.iterdir():
+        if (
+            not directory.is_dir()
+            or directory.is_symlink()
+            or not _valid_deployment_stamp(directory.name)
+        ):
+            continue
+        summary = directory / "summary.txt"
+        summary_text = (
+            summary.read_text(encoding="utf-8", errors="replace") if summary.is_file() else ""
+        )
+        final_state = directory / "final-state.txt"
+        commit: str | None = None
+        if final_state.is_file():
+            candidate = parse_key_value_file(final_state).get("commit")
+            if isinstance(candidate, str) and SHA.fullmatch(candidate):
+                commit = candidate
+        passed = "DEPLOYMENT PASSED" in summary_text and commit is not None
+        mutated = (directory / "runtime-mutation-started").is_file() or any(
+            marker in summary_text for marker in LEGACY_RUNTIME_MUTATION_MARKERS
+        )
+        attempts.append((directory.name, directory.resolve(), mutated, commit if passed else None))
+
+    successful = [(stamp, directory, commit) for stamp, directory, _mutated, commit in attempts if commit]
+    if not successful:
+        raise AdoptionFailure("no authoritative successful source deployment evidence is available")
+
+    success_stamp, success_dir, success_commit = max(successful, key=lambda item: item[0])
+    for stamp, directory, mutated, commit in attempts:
+        if stamp <= success_stamp:
+            continue
+        if mutated and commit is None:
+            raise AdoptionFailure(
+                "newer deployment attempt crossed runtime mutation boundary without success: "
+                f"{directory}"
+            )
+    return success_dir, success_commit
+
+
 def deployment_evidence(repo: Path, evidence_dir: Path) -> tuple[Path, dict[str, str]]:
     repo = repo.resolve()
     deployments_root = (repo / "runtime" / "deployments").resolve()
@@ -321,6 +385,11 @@ def adopt(args: argparse.Namespace) -> dict[str, Any]:
     git(repo, "merge-base", "--is-ancestor", head, origin_head)
 
     evidence_dir, facts = deployment_evidence(repo, args.evidence_dir)
+    authoritative_dir, authoritative_commit = authoritative_source_deployment(repo)
+    if evidence_dir != authoritative_dir or facts["commit"] != authoritative_commit:
+        raise AdoptionFailure(
+            "deployment evidence is not the latest authoritative successful source deployment"
+        )
     source_commit = facts["commit"]
     if not SHA.fullmatch(source_commit):
         raise AdoptionFailure("deployment evidence source commit is invalid")

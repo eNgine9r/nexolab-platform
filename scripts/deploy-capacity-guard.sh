@@ -68,13 +68,35 @@ nexolab_prune_deployment_evidence() {
     return 64
   }
   [[ -d "$deployments_dir" ]] || return 0
+
+  local canonical_deployments_dir canonical_current_audit_dir
+  canonical_deployments_dir="$(cd "$deployments_dir" && pwd -P)" || {
+    printf 'ERROR: deployment evidence root cannot be canonicalized: %s\n' "$deployments_dir" >&2
+    return 70
+  }
+  [[ -d "$current_audit_dir" ]] || {
+    printf 'ERROR: current deployment audit directory is unavailable: %s\n' "$current_audit_dir" >&2
+    return 70
+  }
+  canonical_current_audit_dir="$(cd "$current_audit_dir" && pwd -P)" || {
+    printf 'ERROR: current deployment audit directory cannot be canonicalized: %s\n' "$current_audit_dir" >&2
+    return 70
+  }
+  deployments_dir="$canonical_deployments_dir"
+  current_audit_dir="$canonical_current_audit_dir"
+
   if [[ -n "$protected_evidence_dir" ]]; then
-    local protected_base
+    local protected_base canonical_protected_evidence_dir
     protected_base="$(basename "$protected_evidence_dir")"
     [[ -d "$protected_evidence_dir" && ! -L "$protected_evidence_dir" ]] || {
       printf 'ERROR: protected deployment evidence is unavailable or unsafe: %s\n' "$protected_evidence_dir" >&2
       return 70
     }
+    canonical_protected_evidence_dir="$(cd "$protected_evidence_dir" && pwd -P)" || {
+      printf 'ERROR: protected deployment evidence cannot be canonicalized: %s\n' "$protected_evidence_dir" >&2
+      return 70
+    }
+    protected_evidence_dir="$canonical_protected_evidence_dir"
     [[ "$(dirname "$protected_evidence_dir")" == "$deployments_dir" && "$protected_base" =~ ^[0-9]{8}T[0-9]{6}Z$ ]] || {
       printf 'ERROR: protected deployment evidence is outside the deployment evidence root: %s\n' "$protected_evidence_dir" >&2
       return 70

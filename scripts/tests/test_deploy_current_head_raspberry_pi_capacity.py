@@ -147,6 +147,44 @@ class DeploymentCapacityTests(unittest.TestCase):
             self.assertTrue(current.exists(), "current audit directory must survive retention")
 
 
+    def test_retention_canonicalizes_symlinked_root_before_protected_path_comparison(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            real_repo = root / "real-repo"
+            deployments = real_repo / "runtime" / "deployments"
+            dirs: list[Path] = []
+            for day in range(1, 5):
+                path = deployments / f"2026080{day}T000000Z"
+                path.mkdir(parents=True)
+                (path / "payload.bin").write_bytes(bytes([day]) * 128)
+                dirs.append(path)
+
+            alias_repo = root / "repo-link"
+            alias_repo.symlink_to(real_repo, target_is_directory=True)
+            deployments_via_alias = alias_repo / "runtime" / "deployments"
+            current_via_alias = deployments_via_alias / dirs[-1].name
+            active_canonical = dirs[0].resolve()
+
+            command = "source " + subprocess.list2cmdline([str(HELPER)]) + "\n"
+            command += "nexolab_prune_deployment_evidence "
+            command += subprocess.list2cmdline([str(deployments_via_alias)]) + " "
+            command += subprocess.list2cmdline([str(current_via_alias)]) + " "
+            command += subprocess.list2cmdline([str(active_canonical)]) + "\n"
+            result = run_bash(
+                command,
+                env={
+                    "NEXOLAB_DEPLOY_EVIDENCE_PROTECTED_COUNT": "1",
+                    "NEXOLAB_DEPLOY_EVIDENCE_MAX_COUNT": "2",
+                    "NEXOLAB_DEPLOY_EVIDENCE_MAX_AGE_DAYS": "0",
+                    "NEXOLAB_DEPLOY_EVIDENCE_MAX_BYTES": "0",
+                },
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(active_canonical.exists())
+            self.assertTrue(dirs[-1].exists())
+
+
     def test_count_retention_is_deterministic_oldest_first(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             deployments = Path(temp) / "deployments"
