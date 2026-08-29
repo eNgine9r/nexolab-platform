@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -49,6 +50,7 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         *,
         passed: bool = True,
         mutated: bool = False,
+        restored_source: str | None = None,
         summary_extra: str = "",
     ) -> Path:
         evidence = self.repo / "runtime" / "deployments" / stamp
@@ -64,6 +66,38 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         (evidence / "summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
         if commit is not None:
             (evidence / "final-state.txt").write_text(f"commit={commit}\n", encoding="utf-8")
+        if restored_source is not None:
+            shared = {
+                "sha256": "c" * 64,
+                "bytes": 4096,
+                "registry_revision": 18,
+                "outbound_queue_count": 0,
+                "outbound_queue_high_water": 42,
+                "node_stream_sequences": {},
+                "deployment_evidence_id": stamp,
+                "deployed_source": restored_source,
+                "deployed_device_agent_image_id": "sha256:" + "d" * 64,
+                "target_source": self.target,
+            }
+            metadata = {
+                "schema_version": 1,
+                "kind": "nexolab-edge-sqlite-pre-cutover",
+                "source_quick_check": "ok",
+                "snapshot_quick_check": "ok",
+                **shared,
+            }
+            restore_result = {
+                "schema_version": 1,
+                "kind": "nexolab-edge-sqlite-restore-result",
+                "status": "restored",
+                **shared,
+            }
+            (evidence / "edge-sqlite-pre-cutover.json").write_text(
+                json.dumps(metadata) + "\n", encoding="utf-8"
+            )
+            (evidence / "edge-sqlite-restore-result.json").write_text(
+                json.dumps(restore_result) + "\n", encoding="utf-8"
+            )
         return evidence
 
     def _commit(self, value: str) -> str:
@@ -164,6 +198,39 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         combined = result.stdout + result.stderr
         self.assertIn("crossed runtime mutation boundary without success", combined)
         self.assertIn(str(failed), combined)
+        self.assertIn("deployed source authority is indeterminate", combined)
+
+    def test_verified_restore_reestablishes_previous_source_authority(self) -> None:
+        recovered = self._set_deployed_evidence(
+            None,
+            "20260829T010000Z",
+            passed=False,
+            mutated=True,
+            restored_source=self.base,
+            summary_extra="ERROR: post-mutation readiness failed",
+        )
+        result = self._validate(self.target, self.base)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(f"deployed={self.base}", result.stdout)
+        self.assertIn(str(recovered), result.stdout)
+
+    def test_inconsistent_restore_evidence_fails_closed(self) -> None:
+        recovered = self._set_deployed_evidence(
+            None,
+            "20260829T010000Z",
+            passed=False,
+            mutated=True,
+            restored_source=self.base,
+        )
+        result_path = recovered / "edge-sqlite-restore-result.json"
+        result_document = json.loads(result_path.read_text(encoding="utf-8"))
+        result_document["sha256"] = "e" * 64
+        result_path.write_text(json.dumps(result_document) + "\n", encoding="utf-8")
+
+        result = self._validate(self.target, self.base)
+        self.assertNotEqual(result.returncode, 0)
+        combined = result.stdout + result.stderr
+        self.assertIn("recovery authority evidence is inconsistent", combined)
         self.assertIn("deployed source authority is indeterminate", combined)
 
     def test_legacy_newer_mutating_attempt_without_marker_file_fails_closed(self) -> None:

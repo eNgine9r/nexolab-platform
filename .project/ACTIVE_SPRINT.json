@@ -22,8 +22,16 @@
     "deployed_product_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": null
+    "active_work_package": {
+      "issue": 759,
+      "title": "Make Embraco dual-bus source activation rollback-safe",
+      "branch": "fix/759-embraco-edge-sqlite-rollback"
+    },
+    "next_work_package": {
+      "issue": 760,
+      "title": "Activate #729 Embraco Unit 2 on isolated Bus 2 and capture runtime acceptance",
+      "branch": "ops/760-embraco-unit2-production-acceptance"
+    }
   },
   "work_packages": [
     {
@@ -913,6 +921,55 @@
         "manual_review": "clean_full_diff",
         "readiness": "completed_merged",
         "pull_request": 758
+      }
+    },
+    {
+      "issue": 759,
+      "title": "Make Embraco dual-bus source activation rollback-safe",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "branch": "fix/759-embraco-edge-sqlite-rollback",
+      "evidence": {
+        "rollback_risk": "ff86_rejects_persisted_embraco_registry_family",
+        "current_edge_registry_revision": "18",
+        "current_edge_db_bytes": "253952",
+        "current_edge_sqlite_journal_mode": "delete",
+        "current_runtime_queue_depth": "0",
+        "required_snapshot_method": "sqlite_connection_backup_api",
+        "focused_snapshot_and_deployment_regressions": "88_passed",
+        "standalone_offline_runtime_contract": "passed",
+        "state_model_v2": "passed",
+        "read_only_pi_snapshot_evidence": "runtime/evidence/issue-759-edge-snapshot-20260829T210154Z",
+        "read_only_pi_snapshot_sha256": "45e25378c145a14bd8c2dc9cac6cdc4cff70145594faca77e8a1de8d0d910bd6",
+        "read_only_pi_snapshot_implementation_sha": "bfc319ceac24524540d3f720fbb53b8e1fd58c77",
+        "read_only_pi_device_agent_image_id": "sha256:847b91178c5e4cd9323e84cc66bfe61137991e374ae8f2300a860b36a9e9efea",
+        "read_only_pi_source_quick_check": "ok",
+        "read_only_pi_snapshot_quick_check": "ok",
+        "read_only_pi_registry_revision": "18",
+        "read_only_pi_queue_depth": "0",
+        "read_only_pi_queue_high_water": "6512882",
+        "production_runtime_mutation": "none"
+      }
+    },
+    {
+      "issue": 760,
+      "title": "Activate #729 Embraco Unit 2 on isolated Bus 2 and capture runtime acceptance",
+      "priority": "critical",
+      "lifecycle": "blocked",
+      "depends_on": [
+        759
+      ],
+      "branch": "ops/760-embraco-unit2-production-acceptance",
+      "evidence": {
+        "accepted_product_source": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
+        "current_deployed_source": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
+        "bus2_adapter": "0133F246",
+        "embraco_unit_id": "2",
+        "hardware_read_profile": "9600_8N2_FC03_read_only",
+        "hardware_register_acceptance": "13_of_13_three_passes",
+        "temperature_scale": "hardware_unverified_fail_closed",
+        "blocked_by_issue_759": "true"
       }
     }
   ],
