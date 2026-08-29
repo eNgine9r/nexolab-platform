@@ -3,37 +3,45 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-29T10:34:05+03:00",
+  "timestamp": "2026-08-29T10:40:04+03:00",
   "actor": "ChatGPT",
-  "event": "issue_730_security_isolation_and_fresh_opera_acceptance_final_ci_pending",
+  "event": "issue_730_completed_state_reconciled",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
-  "active_work": {
-    "issue": 730,
-    "pull_request": 731,
-    "branch": "docs/730-opera-tailscale-inspection",
-    "status": "review"
-  },
+  "active_work": null,
   "evidence_snapshot": {
+    "completed_issue": 730,
+    "pull_request": 731,
+    "verified_head_sha": "ca030f78e6a2412ec7a993a82ff8542ccd76181d",
+    "exact_head_github": {
+      "core_quality_build": "PASS",
+      "telemetry_service": "PASS",
+      "nexolab_merge_gate": "PASS"
+    },
+    "review_threads": "all_resolved",
     "fresh_approved_opera_positive": "PASS",
     "viewer_identity": "ChatGPT Opera Inspection / Спостерігач",
     "browser_runtime": "REST snapshot synchronized; WebSocket active",
-    "helper_os_identity": "nexolab-inspection",
-    "credential_isolation": "ordinary nexolab account denied",
-    "private_path_modes": "directory 0700; config/credential 0600",
-    "login_socket": "enabled_active_0600_root_root",
-    "login_transport_policy": "HTTP loopback only; non-loopback HTTPS; DNS exact expected_host",
-    "direct_frontend_inspection_login": "HTTP 404",
-    "nonapproved_tailnet_identity": "HTTP 403",
+    "credential_isolation": "nexolab-inspection; ordinary nexolab denied",
     "production_dashboard_3000": "HTTP 200",
-    "focused_security_tests": "14/14 PASS",
-    "runtime_config_failure": "HTTP 503 fail-closed",
-    "final_exact_head_ci": "pending"
+    "delta_ready_audit": "no independent Ready Work Package"
   },
-  "observations": [],
-  "next_action": "Commit and push the final Issue #730 candidate, resolve review threads, require exact-head GitHub CI/Telemetry/Merge Gate GREEN, then mark durable state completed and merge.",
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-08-29T10:40:04+03:00",
+      "kind": "issue_730_merge_completion",
+      "data": {
+        "issue_state": "closed_completed",
+        "pull_request": 731,
+        "verified_head_sha": "ca030f78e6a2412ec7a993a82ff8542ccd76181d",
+        "merge_sha": "01443205bfeba28cfcc2192e5d290a9add9b24fe"
+      }
+    }
+  ],
+  "next_action": "No independent Ready Work Package remains. Continue only when hardware evidence becomes available, Product Owner explicitly authorizes a production/site-cutover package, or deferred RFX work is explicitly resumed.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

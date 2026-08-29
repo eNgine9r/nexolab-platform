@@ -22,9 +22,7 @@
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 730
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -678,16 +676,16 @@
       "issue": 730,
       "title": "Persist Opera/Tailscale inspection access with device-bound read-only auto-login",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "docs/730-opera-tailscale-inspection",
       "evidence": {
         "pull_request": 731,
-        "repository_security_hardening": "implemented_fresh_opera_positive_passed_refresh_ci_pending",
+        "repository_security_hardening": "completed_exact_head_green_and_merged",
         "actual_host_negative_security_acceptance": "success",
         "fresh_approved_opera_positive": "success",
         "production_feature_cutover": "not_executed",
-        "repository_exact_head_observation": "refresh_required_after_main_reconciliation",
+        "repository_exact_head_observation": "ca030f78e6a2412ec7a993a82ff8542ccd76181d",
         "fresh_approved_opera_positive_at": "2026-08-29T09:46:35+03:00",
         "viewer_identity": "ChatGPT Opera Inspection / Спостерігач",
         "browser_runtime": "rest_snapshot_synced_websocket_active",
@@ -701,7 +699,17 @@
         "migration_installer": "repository_owned_idempotent_fail_closed",
         "focused_security_tests": "14_passed",
         "runtime_config_failure_contract": "http_503_fail_closed",
-        "final_exact_head_ci": "pending"
+        "final_exact_head_ci": "success",
+        "checks": {
+          "core_quality_build": "success",
+          "telemetry_service": "success",
+          "nexolab_merge_gate": "success",
+          "focused_security_tests": "14_passed",
+          "all_review_threads": "resolved"
+        },
+        "repository_merge_status": "merged",
+        "merge_observation_sha": "01443205bfeba28cfcc2192e5d290a9add9b24fe",
+        "completed_at": "2026-08-29T10:39:26+03:00"
       }
     },
     {
