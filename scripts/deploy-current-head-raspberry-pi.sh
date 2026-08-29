@@ -729,6 +729,10 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   fail "tracked local changes detected; patches were saved in $AUDIT_DIR"
 fi
 
+EDGE_SNAPSHOT_HELPER="$AUDIT_DIR/deploy-edge-sqlite-snapshot.py"
+install -m 0500 "$SCRIPT_DIR/deploy-edge-sqlite-snapshot.py" "$EDGE_SNAPSHOT_HELPER"
+sha256sum "$EDGE_SNAPSHOT_HELPER" > "$AUDIT_DIR/deploy-edge-sqlite-snapshot.sha256"
+
 if [[ "$TARGET_HEAD" != "$CONTROL_HEAD" ]]; then
   log "Switching temporarily to approved historical main source: $TARGET_HEAD"
   git switch --detach "$TARGET_HEAD" >/dev/null
@@ -781,11 +785,10 @@ capture_edge_sqlite_snapshot() {
   log "Capturing consistent pre-cutover edge SQLite snapshot"
   if ! docker run --rm --user "$(id -u):$(id -g)" \
     --volumes-from "$edge_container" \
-    --mount "type=bind,src=$SCRIPT_DIR,dst=/nexolab-scripts,readonly" \
     --mount "type=bind,src=$AUDIT_DIR,dst=/evidence" \
     --entrypoint /usr/bin/python3 \
     "$edge_image" \
-    /nexolab-scripts/deploy-edge-sqlite-snapshot.py capture \
+    /evidence/deploy-edge-sqlite-snapshot.py capture \
       --source /var/lib/nexolab/edge.db \
       --snapshot /evidence/edge-sqlite-pre-cutover.db \
       --metadata /evidence/edge-sqlite-pre-cutover.json \
@@ -814,8 +817,6 @@ print(
 )
 PY_EDGE_SNAPSHOT
 }
-
-capture_edge_sqlite_snapshot
 
 env_get() {
   local file=$1 key=$2
@@ -1172,6 +1173,7 @@ if ss -ltn | awk '{print $4}' | grep -Eq "(^|:)$FRONTEND_CANDIDATE_PORT$"; then
 fi
 log "Frontend candidate verified and terminated without mutating the active dashboard"
 
+capture_edge_sqlite_snapshot
 printf 'source=%s\nstarted_at=%s\n' "$CURRENT_HEAD" "$(date --iso-8601=seconds)" > "$AUDIT_DIR/runtime-mutation-started"
 log "RUNTIME MUTATION STARTED: central backend activation"
 log "Starting central backend, MinIO and observability"

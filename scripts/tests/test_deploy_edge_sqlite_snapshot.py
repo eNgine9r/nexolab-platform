@@ -26,7 +26,13 @@ TARGET = "b" * 40
 EVIDENCE_ID = "20260829T210000Z"
 
 
-def create_database(path: Path, *, revision: int = 18, queue_count: int = 2) -> None:
+def create_database(
+    path: Path,
+    *,
+    revision: int = 18,
+    queue_count: int = 2,
+    telemetry_sequence: int = 42,
+) -> None:
     connection = sqlite3.connect(path)
     try:
         connection.executescript(
@@ -36,8 +42,12 @@ def create_database(path: Path, *, revision: int = 18, queue_count: int = 2) -> 
                 revision INTEGER NOT NULL
             );
             CREATE TABLE outbound_queue (
-                id INTEGER PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 payload TEXT NOT NULL
+            );
+            CREATE TABLE node_stream_sequences (
+                stream TEXT PRIMARY KEY,
+                last_sequence INTEGER NOT NULL
             );
             """
         )
@@ -48,6 +58,10 @@ def create_database(path: Path, *, revision: int = 18, queue_count: int = 2) -> 
         connection.executemany(
             "INSERT INTO outbound_queue(payload) VALUES (?)",
             [(f"payload-{index}",) for index in range(queue_count)],
+        )
+        connection.execute(
+            "INSERT INTO node_stream_sequences(stream, last_sequence) VALUES ('telemetry', ?)",
+            (telemetry_sequence,),
         )
         connection.commit()
     finally:
@@ -107,6 +121,8 @@ class EdgeSQLiteSnapshotTests(unittest.TestCase):
         self.assertEqual(document["snapshot_quick_check"], "ok")
         self.assertEqual(document["registry_revision"], 18)
         self.assertEqual(document["outbound_queue_count"], 2)
+        self.assertEqual(document["outbound_queue_high_water"], 2)
+        self.assertEqual(document["node_stream_sequences"], {"telemetry": 42})
         self.assertEqual(document["sha256"], sha256(self.snapshot))
         self.assertEqual(document["bytes"], self.snapshot.stat().st_size)
         self.assertNotIn("payload", json.dumps(document).lower())
@@ -127,7 +143,7 @@ class EdgeSQLiteSnapshotTests(unittest.TestCase):
     def test_corrupt_snapshot_is_rejected_before_destination_change(self) -> None:
         edge_snapshot.capture(self.capture_args())
         destination = self.root / "destination.db"
-        create_database(destination, revision=99, queue_count=0)
+        create_database(destination, revision=99, queue_count=2)
         before = destination.read_bytes()
         self.snapshot.write_bytes(self.snapshot.read_bytes() + b"corruption")
 
@@ -138,7 +154,7 @@ class EdgeSQLiteSnapshotTests(unittest.TestCase):
     def test_wrong_source_and_evidence_are_rejected(self) -> None:
         edge_snapshot.capture(self.capture_args())
         destination = self.root / "destination.db"
-        create_database(destination, revision=99, queue_count=0)
+        create_database(destination, revision=99, queue_count=2)
         cases = (
             {"expected_deployed_source": "c" * 40},
             {"expected_target_source": "c" * 40},
@@ -152,7 +168,7 @@ class EdgeSQLiteSnapshotTests(unittest.TestCase):
     def test_restore_is_atomic_exact_and_preserves_destination_ownership_contract(self) -> None:
         document = edge_snapshot.capture(self.capture_args())
         destination = self.root / "destination.db"
-        create_database(destination, revision=99, queue_count=0)
+        create_database(destination, revision=99, queue_count=2)
         destination.chmod(0o640)
         old_inode = destination.stat().st_ino
 
@@ -180,7 +196,7 @@ class EdgeSQLiteSnapshotTests(unittest.TestCase):
     def test_restore_rejects_sidecars_instead_of_discarding_newer_state(self) -> None:
         edge_snapshot.capture(self.capture_args())
         destination = self.root / "destination.db"
-        create_database(destination, revision=99, queue_count=0)
+        create_database(destination, revision=99, queue_count=2)
         sidecar = destination.with_name(destination.name + "-wal")
         sidecar.write_text("newer state", encoding="utf-8")
         before = destination.read_bytes()
@@ -189,6 +205,36 @@ class EdgeSQLiteSnapshotTests(unittest.TestCase):
             edge_snapshot.restore(self.restore_args(destination))
         self.assertEqual(destination.read_bytes(), before)
         self.assertEqual(sidecar.read_text(encoding="utf-8"), "newer state")
+
+    def test_restore_rejects_advanced_queue_or_stream_sequence(self) -> None:
+        edge_snapshot.capture(self.capture_args())
+        for queue_count, sequence in ((3, 42), (2, 43)):
+            destination = self.root / f"destination-{queue_count}-{sequence}.db"
+            create_database(
+                destination,
+                revision=19,
+                queue_count=queue_count,
+                telemetry_sequence=sequence,
+            )
+            before = destination.read_bytes()
+
+            with self.assertRaisesRegex(edge_snapshot.SnapshotError, "advanced after snapshot"):
+                edge_snapshot.restore(self.restore_args(destination))
+            self.assertEqual(destination.read_bytes(), before)
+
+        destination = self.root / "destination-drained-queue.db"
+        create_database(destination, revision=19, queue_count=2)
+        connection = sqlite3.connect(destination)
+        try:
+            connection.execute("INSERT INTO outbound_queue(payload) VALUES ('newer')")
+            connection.execute("DELETE FROM outbound_queue WHERE id = 3")
+            connection.commit()
+        finally:
+            connection.close()
+        before = destination.read_bytes()
+        with self.assertRaisesRegex(edge_snapshot.SnapshotError, "advanced after snapshot"):
+            edge_snapshot.restore(self.restore_args(destination))
+        self.assertEqual(destination.read_bytes(), before)
 
     def test_restore_requires_an_existing_destination(self) -> None:
         edge_snapshot.capture(self.capture_args())
@@ -205,6 +251,10 @@ class EdgeSQLiteDeploymentContractTests(unittest.TestCase):
         restore_mode = text.index('if [[ -n "$RESTORE_EDGE_SNAPSHOT_DIR" ]]')
         normal_deployment = text.index('FRONTEND_ARTIFACT_DIR=""')
         self.assertLess(capture_call, mutation)
+        self.assertEqual(
+            text[capture_call:mutation].strip(),
+            "capture_edge_sqlite_snapshot",
+        )
         self.assertLess(restore_mode, restore_call)
         self.assertLess(restore_call, normal_deployment)
         self.assertNotIn("restore_edge_sqlite_snapshot", text[normal_deployment:mutation])
@@ -219,6 +269,17 @@ class EdgeSQLiteDeploymentContractTests(unittest.TestCase):
         final_guard = capture.index("exact deployed source authority is required", resolve)
         self.assertLess(resolve, final_guard)
         self.assertIn('deployed_source="$VERIFIED_DEPLOYED_SOURCE"', capture)
+
+    def test_helper_is_staged_before_historical_checkout(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        stage = text.index(
+            'install -m 0500 "$SCRIPT_DIR/deploy-edge-sqlite-snapshot.py" '
+            '"$EDGE_SNAPSHOT_HELPER"'
+        )
+        checkout = text.index('git switch --detach "$TARGET_HEAD"', stage)
+        capture = text.index("/evidence/deploy-edge-sqlite-snapshot.py capture")
+        self.assertLess(stage, checkout)
+        self.assertLess(checkout, capture)
 
     def test_running_device_agent_is_rejected_before_docker_restore(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

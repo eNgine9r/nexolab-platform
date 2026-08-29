@@ -25,7 +25,7 @@
     "edge_registry_revision": "18",
     "edge_queue_depth": "0",
     "snapshot_strategy": "sqlite_connection_backup_api_plus_quick_check_sha256_metadata",
-    "focused_snapshot_and_deployment_regressions": "75_passed",
+    "focused_snapshot_and_deployment_regressions": "77_passed",
     "standalone_offline_runtime_contract": "passed",
     "state_model_v2": "passed",
     "read_only_snapshot_evidence": "runtime/evidence/issue-759-edge-snapshot-20260829T185246Z",

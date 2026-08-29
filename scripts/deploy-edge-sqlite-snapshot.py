@@ -50,7 +50,7 @@ def _quick_check_connection(connection: sqlite3.Connection, label: str) -> None:
         raise SnapshotError(f"SQLite quick_check failed for {label}: {rows}")
 
 
-def _read_runtime_metadata(path: Path) -> tuple[int, int]:
+def _read_runtime_metadata(path: Path) -> tuple[int, int, int, dict[str, int]]:
     try:
         connection = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
         try:
@@ -62,7 +62,15 @@ def _read_runtime_metadata(path: Path) -> tuple[int, int]:
             queue_row = connection.execute("SELECT COUNT(*) FROM outbound_queue").fetchone()
             if queue_row is None:
                 raise SnapshotError("outbound_queue count is unavailable")
-            return int(revision_row[0]), int(queue_row[0])
+            queue_high_water_row = connection.execute(
+                "SELECT seq FROM sqlite_sequence WHERE name = 'outbound_queue'"
+            ).fetchone()
+            queue_high_water = int(queue_high_water_row[0]) if queue_high_water_row else 0
+            sequence_rows = connection.execute(
+                "SELECT stream, last_sequence FROM node_stream_sequences ORDER BY stream"
+            ).fetchall()
+            sequences = {str(row[0]): int(row[1]) for row in sequence_rows}
+            return int(revision_row[0]), int(queue_row[0]), queue_high_water, sequences
         finally:
             connection.close()
     except sqlite3.Error as error:
@@ -120,7 +128,9 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             source_connection.close()
         os.chmod(snapshot, 0o600)
         _quick_check(snapshot)
-        registry_revision, queue_count = _read_runtime_metadata(snapshot)
+        registry_revision, queue_count, queue_high_water, stream_sequences = (
+            _read_runtime_metadata(snapshot)
+        )
 
         document: dict[str, Any] = {
             "schema_version": SCHEMA_VERSION,
@@ -132,6 +142,8 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             "bytes": snapshot.stat().st_size,
             "registry_revision": registry_revision,
             "outbound_queue_count": queue_count,
+            "outbound_queue_high_water": queue_high_water,
+            "node_stream_sequences": stream_sequences,
             "deployed_source": args.deployed_source,
             "target_source": args.target_source,
             "deployment_evidence_id": args.deployment_evidence_id,
@@ -185,8 +197,13 @@ def restore(args: argparse.Namespace) -> dict[str, Any]:
     if _sha256(snapshot) != document.get("sha256"):
         raise SnapshotError("snapshot SHA-256 does not match metadata")
     _quick_check(snapshot)
-    revision, queue_count = _read_runtime_metadata(snapshot)
-    if revision != document.get("registry_revision") or queue_count != document.get("outbound_queue_count"):
+    revision, queue_count, queue_high_water, stream_sequences = _read_runtime_metadata(snapshot)
+    if (
+        revision != document.get("registry_revision")
+        or queue_count != document.get("outbound_queue_count")
+        or queue_high_water != document.get("outbound_queue_high_water")
+        or stream_sequences != document.get("node_stream_sequences")
+    ):
         raise SnapshotError("snapshot registry/queue metadata does not match")
 
     if not destination.is_file():
@@ -198,6 +215,18 @@ def restore(args: argparse.Namespace) -> dict[str, Any]:
     if any(path.exists() for path in sidecars):
         raise SnapshotError(
             "edge SQLite sidecar exists after Device Agent stop; refusing to discard newer state"
+        )
+    _, current_queue_count, current_queue_high_water, current_stream_sequences = (
+        _read_runtime_metadata(destination)
+    )
+    if (
+        current_queue_count != queue_count
+        or current_queue_high_water != queue_high_water
+        or current_stream_sequences != stream_sequences
+    ):
+        raise SnapshotError(
+            "stopped edge SQLite queue/sequence state advanced after snapshot; "
+            "refusing to discard newer state"
         )
     destination_stat = destination.stat()
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -211,8 +240,15 @@ def restore(args: argparse.Namespace) -> dict[str, Any]:
         os.chown(temporary, destination_stat.st_uid, destination_stat.st_gid)
         os.chmod(temporary, destination_stat.st_mode & 0o777)
         _quick_check(temporary)
-        restored_revision, restored_queue = _read_runtime_metadata(temporary)
-        if restored_revision != revision or restored_queue != queue_count:
+        restored_revision, restored_queue, restored_high_water, restored_sequences = (
+            _read_runtime_metadata(temporary)
+        )
+        if (
+            restored_revision != revision
+            or restored_queue != queue_count
+            or restored_high_water != queue_high_water
+            or restored_sequences != stream_sequences
+        ):
             raise SnapshotError("restored temporary database metadata changed")
         if _sha256(temporary) != document["sha256"]:
             raise SnapshotError("restored temporary database SHA-256 changed")
@@ -223,8 +259,15 @@ def restore(args: argparse.Namespace) -> dict[str, Any]:
         finally:
             os.close(directory_fd)
         _quick_check(destination)
-        final_revision, final_queue = _read_runtime_metadata(destination)
-        if final_revision != revision or final_queue != queue_count:
+        final_revision, final_queue, final_high_water, final_sequences = (
+            _read_runtime_metadata(destination)
+        )
+        if (
+            final_revision != revision
+            or final_queue != queue_count
+            or final_high_water != queue_high_water
+            or final_sequences != stream_sequences
+        ):
             raise SnapshotError("restored database metadata does not match snapshot")
         if _sha256(destination) != document["sha256"]:
             raise SnapshotError("restored database SHA-256 does not match snapshot")
@@ -237,6 +280,8 @@ def restore(args: argparse.Namespace) -> dict[str, Any]:
         "bytes": document["bytes"],
         "registry_revision": revision,
         "outbound_queue_count": queue_count,
+        "outbound_queue_high_water": queue_high_water,
+        "node_stream_sequences": stream_sequences,
         "deployment_evidence_id": document["deployment_evidence_id"],
         "target_source": document["target_source"],
     }
