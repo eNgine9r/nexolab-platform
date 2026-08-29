@@ -1,0 +1,28 @@
+[Unit]
+Description=NEXOLAB trusted Opera inspection login helper
+Requires=nexolab-opera-inspection-login.socket
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=nexolab
+Group=nexolab
+ExecStart=/usr/bin/python3 /home/nexolab/runtime/inspection/opera-tailscale/helper/opera_tailscale_login.py
+Environment=NEXOLAB_INSPECTION_CONFIG=/home/nexolab/runtime/inspection/opera-tailscale/config.json
+Environment=PYTHONDONTWRITEBYTECODE=1
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0077

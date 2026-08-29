@@ -42,9 +42,9 @@ Issue #704 has exact-head repository verification GREEN at `e2f7857e381600d76dd4
 
 Repository verification and PR merge are not blocked. The controlled Raspberry Pi deployment and real CSV sensor-row re-verification are a production/site cutover boundary. Durable state records `production_cutover_authorized=false`, and Issue #709 has no Product Owner authorization comment. After GREEN merge, stop before runtime mutation until the Product Owner explicitly approves that controlled deployment. No Modbus or hardware write is part of the requested runtime verification.
 
-## Operator browser inspection — soft tooling limitation
+## Issue #730 — fresh Opera/Tailscale positive recheck
 
-Opera Browser Connector private-address actions remain unsuitable for direct LAN/Tailscale DOM/screenshot acceptance. This did not block the controlled #707 deployment: the Product Owner directly confirmed consolidated graphs and CSV download, then identified the missing sensor-row content now owned by #709.
+The actual-host inspection path has been hardened so credential exchange is reachable only through a `0600 root:root` Unix socket behind Tailscale Serve; direct TCP access to `/inspection-login` on port `3100` now returns 404 and unprivileged local socket access is denied. Repository helper/policy tests are GREEN. The remaining soft blocker is a fresh approved-workstation browser recheck after this hardening: Opera Browser Connector reported itself disconnected during the latest attempt. Do not claim final #730 completion until that browser path is re-observed or equivalent approved-workstation evidence is recorded. Core LOCAL_LAN runtime is unaffected.
 
 ## Cleared boundaries
 

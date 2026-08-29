@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-28T23:31:44+03:00",
+  "timestamp": "2026-08-29T04:14:06+03:00",
   "actor": "ChatGPT",
-  "event": "issue_729_completed_and_next_ready_chain_reconciled",
+  "event": "issue_730_security_hardening_candidate_pending_browser_recheck",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
@@ -16,42 +16,23 @@
     "lifecycle": "review"
   },
   "evidence_snapshot": {
-    "completed_issue": 729,
-    "pull_request": 736,
-    "verified_head_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
-    "exact_head_github": {
-      "core_quality_build": "PASS",
-      "telemetry_service": "PASS",
-      "refrigeration_browser": "PASS",
-      "authenticated_dashboard": "PASS after controlled rerun",
-      "offline_bundle": "PASS",
-      "disaster_recovery_browser": "PASS",
-      "security_browser": "PASS",
-      "device_agent_fleet": "PASS",
-      "container_supply_chain": "PASS",
-      "nexolab_merge_gate": "PASS"
-    },
-    "temperature_scale": "hardware_unverified_fail_closed",
-    "hardware_activation": "not_executed",
-    "delta_ready_audit": {
-      "active_closure": 730,
-      "next_ready": 725,
-      "rfx_01_through_rfx_19c": "product_owner_hold"
-    }
+    "pull_request": 731,
+    "security_provenance": "root_owned_unix_socket_0600_plus_root_peer_credential_and_exact_tailscale_identity",
+    "helper_policy_tests": "8_passed",
+    "python_compile": "PASS",
+    "systemd_unit_verify": "PASS",
+    "host_socket": "enabled_active_0600_root_root",
+    "user_service": "enabled_active_linger_yes",
+    "unprivileged_socket_connect": "DENIED",
+    "direct_frontend_inspection_login": "HTTP_404",
+    "tailscale_serve": "tailnet_only_root_and_api_preserved_login_unix_socket",
+    "full_host_reboot": "not_claimed",
+    "fresh_opera_positive_recheck": "pending_connector_reconnect",
+    "next_ready": 725,
+    "wrong_tailnet_identity": "HTTP_403_via_real_tailscale_serve_unix_socket_path"
   },
-  "observations": [
-    {
-      "source": "github",
-      "observed_at": "2026-08-28T23:31:44+03:00",
-      "kind": "post_merge_main_observation",
-      "data": {
-        "main_sha": "9b9f8cb74e98d3cd0f3162c8a883f02245344333",
-        "pull_request": 736,
-        "issue_729_state": "closed"
-      }
-    }
-  ],
-  "next_action": "Refresh PR #731 / Issue #730 against current main and require its exact-head documentation/merge-gate verification GREEN; after closure, start Ready Issue #725 local candidate verification gate. Do not resume RFX-01 through RFX-19C or perform production/Modbus/hardware writes.",
+  "observations": [],
+  "next_action": "Finish Issue #730 candidate checks, publish one coherent PR #731 head, require exact-head GitHub GREEN, re-run approved-workstation Opera/Tailscale positive login when the connector is available, resolve review threads, then merge. If Opera remains unavailable as a soft blocker, continue independent Ready Issue #725 without weakening #730 acceptance.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

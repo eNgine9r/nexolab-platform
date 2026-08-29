@@ -685,10 +685,15 @@
       "branch": "docs/730-opera-tailscale-inspection",
       "evidence": {
         "pull_request": 731,
-        "actual_host_acceptance": "completed",
-        "repository_scope": "documentation_only",
-        "exact_head_github": "refresh_required_against_current_main",
-        "production_feature_cutover": "not_executed"
+        "actual_host_acceptance": "completed_before_security_hardening",
+        "repository_scope": "runbook_secretless_helper_systemd_templates_policy_tests_and_state",
+        "exact_head_github": "pending_new_security_hardening_candidate",
+        "production_feature_cutover": "not_executed",
+        "security_provenance": "root_owned_unix_socket_so_peercred_plus_exact_tailscale_identity",
+        "host_negative_acceptance": "unprivileged_socket_denied_frontend_login_route_404_wrong_tailnet_identity_403",
+        "service_persistence_config": "user_service_enabled_linger_yes_system_socket_enabled",
+        "fresh_opera_positive_recheck": "pending_connector_reconnect",
+        "helper_policy_tests": "8_passed"
       }
     },
     {

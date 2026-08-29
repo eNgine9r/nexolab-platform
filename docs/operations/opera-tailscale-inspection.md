@@ -2,38 +2,13 @@
 
 ## Purpose
 
-This runbook records the host-local browser-inspection pattern accepted under Issue #730. It lets an authorized NEXOLAB maintainer inspect the LOCAL_LAN UI through Opera/Tailscale without storing a normal operator password in Git, browser automation, shell history or logs.
+This runbook defines the optional NEXOLAB browser-inspection path accepted under Issue #730. It gives an authorized maintainer one-click read-only UI access through private Tailscale HTTPS without storing a normal operator password in Git, browser automation, shell history, service arguments or logs.
 
-This is inspection tooling, not a production feature deployment. The normal dashboard, Device Agent, database, MQTT and hardware acquisition remain independent of this helper.
+The helper is presentation/maintenance tooling. Core LOCAL_LAN Dashboard, Device Agent, PostgreSQL, MQTT and hardware acquisition do not depend on it.
 
-## Accepted topology
+## Security model
 
-```text
-approved tailnet workstation
-        |
-        | HTTPS + trusted Tailscale identity
-        v
-Tailscale Serve :8443 (tailnet only)
-        |
-        +-- / ----------------> 127.0.0.1:3100 inspection frontend
-        |
-        +-- /api -------------> central Telemetry Service /api
-
-inspection frontend
-        |
-        +-- /inspection-login
-                |
-                +-- verify trusted Tailscale user + approved client address
-                +-- server-side local-auth login for dedicated viewer account
-                +-- establish normal short-lived browser local-auth session
-                +-- redirect to /
-```
-
-The helper must never expose a Tailscale Funnel/public-internet route.
-
-## Security boundary
-
-The automatic identity is a dedicated local `viewer` account. Its accepted permission set is read-only:
+The automatic identity is a dedicated local `viewer` account with only:
 
 - `dashboard.read`;
 - `telemetry.read`;
@@ -41,168 +16,259 @@ The automatic identity is a dedicated local `viewer` account. Its accepted permi
 - `reports.read`;
 - `nodes.read`.
 
-Do not use an administrator, laboratory-manager or engineer credential for automatic browser inspection.
+Authentication and backend RBAC remain authoritative. Administrator, laboratory-manager and mutation workflows require a separate normal login.
 
-Authentication is not disabled or bypassed. The helper calls the canonical NEXOLAB local-auth login endpoint and receives the same access/refresh session used by the normal frontend. Backend RBAC remains authoritative.
+## Accepted topology
 
-Privileged workflows such as user administration, equipment mutation, layout publication or other write operations require a separately authenticated operator with the required server-side permissions.
+```text
+approved tailnet workstation
+        |
+        | HTTPS + Tailscale identity headers
+        v
+Tailscale Serve :8443 (tailnet only)
+        |
+        +-- / ----------------> 127.0.0.1:3100 inspection frontend
+        |
+        +-- /api -------------> existing Telemetry Service /api
+        |
+        +-- /inspection-login -> root-owned Unix socket 0600
+                                      |
+                                      +-> socket-activated helper
+                                      +-> canonical local-auth login
+                                      +-> short-lived viewer session
+```
+
+The credential-exchange route must **not** exist on TCP port `3100`. A local process must not be able to reach the login helper merely by forging proxy headers.
+
+## Repository-owned implementation
+
+The reconstructible, secret-free implementation is tracked under:
+
+```text
+scripts/inspection/opera_tailscale_login.py
+scripts/inspection/opera-tailscale-config.example.json
+scripts/inspection/systemd/nexolab-opera-inspection-login.socket
+scripts/inspection/systemd/nexolab-opera-inspection-login.service
+```
+
+Policy tests live in:
+
+```text
+tests/test_opera_tailscale_inspection.py
+```
+
+Do not place workstation identity, tailnet account identity, passwords, tokens or the populated host config in Git. The example config contains placeholders only.
 
 ## Host-local files
 
-Current host-local implementation is intentionally outside Git-tracked source under:
+Use the ignored host path:
 
 ```text
 /home/nexolab/runtime/inspection/opera-tailscale/
 ```
 
-The dedicated credential is stored only in a host-owned secret directory. Required permissions:
+Required secret/config permissions:
 
 ```text
-secret directory  0700
-credential file   0600
+secret directory   0700
+credential file    0600
+config file        0600
 ```
 
-Never print, copy, commit or attach the credential contents. Access and refresh tokens must not be written to logs or evidence files.
-
-The current user service unit is:
+The Unix socket is created by the system socket unit at:
 
 ```text
-~/.config/systemd/user/nexolab-opera-inspection.service
+/run/nexolab-opera-inspection/login.sock
 ```
 
-It binds the inspection frontend only to `127.0.0.1:3100` and is configured to restart on failure.
+It must be `0600 root:root`. The helper itself runs as the unprivileged `nexolab` user and receives the already-open listen socket from systemd.
 
-## Device binding
+## Install or recover the helper
 
-Before credential exchange, `/inspection-login` must validate trusted values injected by Tailscale Serve:
-
-- `Tailscale-User-Login` equals the approved tailnet identity;
-- `X-Forwarded-For` resolves to the approved workstation tailnet address;
-- `X-Forwarded-Proto` is `https`;
-- `X-Forwarded-Host` is the expected private NEXOLAB inspection origin.
-
-Do not trust browser-supplied identity headers outside Tailscale Serve. Do not weaken this check to “any tailnet user”.
-
-A direct loopback request to `/inspection-login` without trusted proxy identity must return HTTP `403` before any local-auth credential exchange occurs.
-
-## Normal inspection entry point
-
-Use the private tailnet inspection origin and open:
-
-```text
-https://<nexolab-node>.<tailnet>.ts.net:8443/inspection-login
-```
-
-For an approved workstation, the route creates a normal short-lived viewer session and redirects to `/` automatically.
-
-Successful acceptance requires the application shell to identify the dedicated inspection viewer and the dashboard to report both REST synchronization and an active WebSocket.
-
-## Operational verification
-
-On the Raspberry Pi, verify the user service without printing its environment secrets:
+From a checked-out accepted repository revision, copy the helper and unit templates into host-local/system locations. Keep the populated config and credential outside Git.
 
 ```bash
-export XDG_RUNTIME_DIR=/run/user/$(id -u)
-export DBUS_SESSION_BUS_ADDRESS=unix:path="$XDG_RUNTIME_DIR/bus"
+install -d -m 0700 /home/nexolab/runtime/inspection/opera-tailscale/helper
+install -m 0755 scripts/inspection/opera_tailscale_login.py \
+  /home/nexolab/runtime/inspection/opera-tailscale/helper/opera_tailscale_login.py
 
-systemctl --user is-enabled nexolab-opera-inspection.service
-systemctl --user is-active nexolab-opera-inspection.service
-ss -ltnp '( sport = :3100 )'
+sudo install -m 0644 scripts/inspection/systemd/nexolab-opera-inspection-login.socket \
+  /etc/systemd/system/nexolab-opera-inspection-login.socket
+sudo install -m 0644 scripts/inspection/systemd/nexolab-opera-inspection-login.service \
+  /etc/systemd/system/nexolab-opera-inspection-login.service
 ```
 
-Expected local bind:
-
-```text
-127.0.0.1:3100
-```
-
-Verify the frontend and fail-closed bootstrap locally:
+Create `/home/nexolab/runtime/inspection/opera-tailscale/config.json` from the repository example, replace placeholders locally, and set mode `0600`. Never paste its populated values into an Issue or PR.
+Enable the socket after the host-local config and credential exist:
 
 ```bash
-curl --max-time 30 -sS -o /dev/null -w '%{http_code}\n' \
-  http://127.0.0.1:3100/
-
-curl --max-time 10 -sS -o /dev/null -w '%{http_code}\n' \
-  http://127.0.0.1:3100/inspection-login
+sudo systemctl daemon-reload
+sudo systemctl enable --now nexolab-opera-inspection-login.socket
 ```
 
-Expected results:
+Verify:
+
+```bash
+systemctl is-enabled nexolab-opera-inspection-login.socket
+systemctl is-active nexolab-opera-inspection-login.socket
+stat -c '%a %U %G %n' /run/nexolab-opera-inspection/login.sock
+```
+
+Expected socket evidence:
 
 ```text
-root:             200
-inspection-login: 403
+enabled
+active
+600 root root /run/nexolab-opera-inspection/login.sock
 ```
 
-Verify Tailscale Serve remains private and same-origin:
+Do not start the helper as a standalone TCP listener.
+
+## Tailscale Serve configuration
+
+Before changing Serve, save the current configuration outside Git:
+
+```bash
+sudo tailscale serve get-config --all \
+  /home/nexolab/runtime/inspection/opera-tailscale/serve-before.json
+chmod 0600 /home/nexolab/runtime/inspection/opera-tailscale/serve-before.json
+```
+
+Add only the inspection-login path to the root-owned Unix socket:
+
+```bash
+sudo tailscale serve --bg --yes --https=8443 \
+  --set-path=/inspection-login \
+  unix:/run/nexolab-opera-inspection/login.sock
+```
+
+Do not use Funnel. The existing `/` and `/api` handlers must remain unchanged.
+Verify the accepted handler shape:
 
 ```bash
 tailscale serve status
 ```
 
-The accepted shape is one tailnet-only HTTPS origin whose root points to the loopback inspection frontend and whose `/api` path points to the existing central API.
+Expected structure:
 
-## Restart verification
+```text
+/                 -> inspection frontend on 127.0.0.1:3100
+/api              -> existing Telemetry Service API
+/inspection-login -> unix:/run/nexolab-opera-inspection/login.sock
+```
 
-A host/user-session restart must not require re-entering the inspection password.
+The helper accepts credential exchange only when both boundaries pass:
 
-Controlled service restart:
+1. the Unix peer is root (`SO_PEERCRED`), proving the request came through the privileged proxy path rather than an ordinary local process;
+2. Tailscale identity/source/HTTPS/host headers exactly match the approved host-local configuration.
+
+Either failure returns `403` before the credential file is read.
+
+## Negative security verification
+
+The frontend TCP port must not expose the credential route:
+
+```bash
+curl --max-time 10 -sS -o /dev/null -w '%{http_code}\n' \
+  http://127.0.0.1:3100/inspection-login
+```
+
+Expected: `404`.
+
+An ordinary unprivileged local process must be unable to connect to the Unix socket because the socket is `0600 root:root`. Repository policy tests additionally verify exact identity matching, local-only redirects, socket peer credentials and root-only socket ownership.
+
+Never weaken this into trusting browser-supplied `X-Forwarded-*` or `Tailscale-*` headers on a normal TCP listener.
+
+## Positive browser verification
+
+Open the private tailnet origin from the approved Opera workstation:
+
+```text
+https://<nexolab-node>.<tailnet>.ts.net:8443/inspection-login
+```
+
+Acceptance requires:
+
+- automatic redirect into the normal authenticated NEXOLAB shell;
+- dedicated viewer identity only;
+- effective permissions remain read-only;
+- REST snapshot synchronizes;
+- WebSocket becomes active;
+- ordinary `/login` remains available as the fallback if the helper is unavailable.
+
+Do not collect cookies, access tokens or refresh tokens as evidence.
+
+## Restart and persistence
+
+The inspection frontend user service is enabled with `Linger=yes`; the privileged login socket is a system socket unit enabled under `sockets.target`.
+
+Configuration evidence:
 
 ```bash
 export XDG_RUNTIME_DIR=/run/user/$(id -u)
 export DBUS_SESSION_BUS_ADDRESS=unix:path="$XDG_RUNTIME_DIR/bus"
-
-systemctl --user restart nexolab-opera-inspection.service
+systemctl --user is-enabled nexolab-opera-inspection.service
 systemctl --user is-active nexolab-opera-inspection.service
+loginctl show-user nexolab -p Linger -p State -p RuntimePath
+systemctl is-enabled nexolab-opera-inspection-login.socket
+systemctl is-active nexolab-opera-inspection-login.socket
 ```
 
-After restart, open a fresh Opera tab through `/inspection-login`. Acceptance is GREEN only when the browser reaches the authenticated application shell with the dedicated viewer identity and live REST/WebSocket state.
+A controlled service restart is accepted as service-level evidence. A full host reboot is **not** implied unless it was actually performed and recorded. If reboot evidence is unavailable, use the deterministic recovery commands below instead of claiming reboot acceptance.
+Deterministic service recovery:
+
+```bash
+export XDG_RUNTIME_DIR=/run/user/$(id -u)
+export DBUS_SESSION_BUS_ADDRESS=unix:path="$XDG_RUNTIME_DIR/bus"
+systemctl --user restart nexolab-opera-inspection.service
+sudo systemctl restart nexolab-opera-inspection-login.socket
+```
+
+Then verify both units, socket ownership and `tailscale serve status` before opening Opera.
 
 ## Revocation and rollback
 
-To stop the inspection frontend without touching the production dashboard or persistent volumes:
+To revoke browser bootstrap without touching production Dashboard/API/data:
 
 ```bash
-export XDG_RUNTIME_DIR=/run/user/$(id -u)
-export DBUS_SESSION_BUS_ADDRESS=unix:path="$XDG_RUNTIME_DIR/bus"
-
-systemctl --user disable --now nexolab-opera-inspection.service
+sudo tailscale serve --https=8443 --set-path=/inspection-login off
+sudo systemctl disable --now nexolab-opera-inspection-login.socket
 ```
 
-Revoke all refresh sessions for the dedicated inspection account through the repository local-auth administration tooling. Do not reset or reuse a normal operator password for this purpose.
+Also stop/disable the user inspection frontend if the entire optional inspection path is being retired.
+To restore the complete previously saved Serve configuration instead of editing handlers manually:
 
-If the Tailscale Serve route must be reverted, restore it through the controlled Tailscale Serve procedure. Do not use Funnel, wildcard CORS, disabled authentication or a public reverse proxy as a shortcut.
+```bash
+sudo tailscale serve set-config \
+  /home/nexolab/runtime/inspection/opera-tailscale/serve-before.json \
+  --all
+```
+
+Revoke/deactivate the dedicated inspection account and its refresh sessions with the existing local-auth administration tooling. Never reset or reuse a normal operator password for this purpose.
 
 Rollback must not delete PostgreSQL data, named volumes, Device Agent state or hardware configuration.
 
 ## Evidence rules
 
-Safe evidence may include:
+Safe evidence may include service enabled/active state, Unix socket mode/owner, tailnet-only Serve handler topology, dedicated viewer role/permission names, HTTP status codes and browser REST/WebSocket readiness.
 
-- service `enabled/active` state;
-- loopback listening address;
-- Tailscale Serve topology without secrets;
-- viewer role and effective permission names;
-- HTTP status codes;
-- browser shell identity label;
-- REST/WebSocket readiness state.
+Never include passwords, populated host config identity values, access/refresh tokens, cookies, private keys or credential-file contents.
 
-Do not include:
+## Acceptance evidence boundary
 
-- passwords;
-- access or refresh tokens;
-- private signing keys;
-- cookies;
-- full secret files;
-- production telemetry payload dumps.
+Current accepted host evidence includes the private `:8443` Serve topology, read-only viewer role, service-level restart, `Linger=yes`, enabled system socket, `0600 root:root` Unix login socket, unprivileged local socket denial, HTTP `404` for `/inspection-login` on the normal frontend port, and HTTP `403` when the Raspberry Pi itself reaches the real tailnet `/inspection-login` route with a non-approved Tailscale identity.
 
-## Hardware and runtime classification
+A host reboot is not claimed by this runbook unless separately performed and recorded. The deterministic restart/recovery commands above satisfy the alternative restart criterion when reboot evidence is intentionally not collected.
+
+## Runtime classification
 
 ```text
 Modbus write: none
 hardware write: none
 production feature cutover: none
 persistent-data deletion: none
+public Funnel: none
 mandatory public runtime dependency: none
 ```
 
-The helper is optional tooling. NEXOLAB core acquisition, persistence and LOCAL_LAN operation must continue to function without Opera, Tailscale or this inspection service.
+The inspection path is optional. NEXOLAB core acquisition, persistence and LOCAL_LAN operation must remain functional when Opera, Tailscale or this helper are unavailable.
