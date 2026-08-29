@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-29T13:39:00+03:00",
+  "timestamp": "2026-08-29T13:47:00+03:00",
   "actor": "ChatGPT",
-  "event": "issue_753_completed_candidate_review_clean",
+  "event": "issue_753_completion_evidence_anchor_corrected",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
@@ -22,7 +22,7 @@
     "deployment_contract_matrix": "37_passed",
     "runtime_mutation": "not_started",
     "deployed_source_evidence_match": "required_latest_successful_deployment",
-    "verified_head_sha": "c0af040aa4715e027141871fe3087a6f98f41002",
+    "verified_head_sha": "b8fb31de3c14ee6c0c000ccbd548adf2f202f4c4",
     "exact_head_core_quality_build": "PASS:33247963975",
     "exact_head_telemetry_service": "PASS:33247964023",
     "exact_head_nexolab_merge_gate": "PASS:33247963975",
@@ -34,16 +34,17 @@
     "combined_local_safety_tests": "51_passed",
     "historical_schema_git_object_proof": "ff86b10b=20260820_0026_control_main=20260828_0027",
     "capacity_retention_regressions": "9_passed",
-    "last_published_review_head_sha": "b3936bb7586e2dc64b666aa6a2d1a07a5abdcb6e",
+    "last_published_review_head_sha": "b8fb31de3c14ee6c0c000ccbd548adf2f202f4c4",
     "adopter_authority_regression": "stale_success_rejected_newer_mutating_attempt_rejected_pre_mutation_failure_allowed",
     "retention_symlink_regression": "canonical_root_and_protected_path_pass",
     "existing_source_authority_non_regression": "backward_replacement_rejected_forward_replacement_allowed_when_prior_evidence_missing",
     "implementation_verified_head_sha": "b8fb31de3c14ee6c0c000ccbd548adf2f202f4c4",
     "fresh_codex_review": "clean:b8fb31de3c",
-    "real_pi_authoritative_source_evidence": "runtime/deployments/20260827T101743Z=ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
+    "real_pi_authoritative_source_evidence": "runtime/deployments/20260827T101743Z=ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d",
+    "completion_evidence_anchor": "canonical_verified_head_corrected_before_merge_after_fresh_review"
   },
   "observations": [],
-  "next_action": "After this final state-only candidate is exact-head GREEN and PR #754 merges, sync main and run the already-authorized no-runtime Raspberry Pi source-selection preflight for target ff86b10b71c8e5252c15baaf4183adbf42f30f18 against deployed ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d. Execute product runtime mutation only after that preflight passes and through an approved privileged operator path.",
+  "next_action": "Require this corrected state-only head to be exact-head GREEN with clean review, merge PR #754, sync main, then run the already-authorized no-runtime Raspberry Pi source-selection preflight for target ff86b10b71c8e5252c15baaf4183adbf42f30f18 against deployed ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
