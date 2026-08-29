@@ -156,6 +156,22 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertTrue(result["fail_closed"])
         self.assertEqual(result["unknown_files"], ["tests/test_container_unregistered.py"])
 
+    def test_inspection_tooling_is_known_security_without_product_external_lanes(self) -> None:
+        result = classify(
+            [
+                "scripts/inspection/opera_tailscale_login.py",
+                "scripts/inspection/systemd/nexolab-opera-inspection-login.socket",
+                "tests/test_opera_tailscale_inspection.py",
+                "docs/operations/opera-tailscale-inspection.md",
+                ".project/CURRENT_STATE.md",
+            ]
+        )
+        self.assertEqual(result["classes"], ["security_tooling"])
+        self.assertTrue(result["needs_full_quality"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(result["verification"]["required_external_workflows"], [])
+
     def test_security_policy_pr_does_not_force_unrelated_external_acceptance(self) -> None:
         result = classify(
             [
