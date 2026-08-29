@@ -36,6 +36,12 @@ Issue #725 (`CI-OPT-01`) is completed and PR #743 is merged. Exact verified head
 
 The post-#730 delta Ready audit finds no independent Ready Work Package. #200/#201/#202/#585 remain hardware/evidence-gated; #709/#711 require explicit production/site-cutover approval; RFX-01 through RFX-19C remain on Product Owner hold. Issue #732 is closed not-planned because #733 established the accepted canonical State Model formatter boundary, and #720 is closed completed because the merged refrigeration/DR acceptance selects the authoritative `Схема` route and exact-head DR verification is GREEN.
 
+## Issue #753 — bounded historical-main deployment authority
+
+The Product Owner explicitly authorized controlled Raspberry Pi deployment/runtime verification for Issues #709 and #711 on **2026-08-29**. The bounded runtime target is `ff86b10b71c8e5252c15baaf4183adbf42f30f18`: current deployed `ff796b1f...` → #709 `3f73e81f...` → #711 `ff86b10b...`. Current `main` contains later product work, including #729 Embraco, that is outside this deployment authorization.
+
+Issue #753 implementation is **completed candidate / review clean** on implementation head `b8fb31de3c14ee6c0c000ccbd548adf2f202f4c4`. Eight substantive deployment-safety findings were addressed: immutable timestamp authority; fail-closed newer mutating attempts; active-evidence retention protection; fresh remote preflight; historical source adoption after control-main restoration with exact deployed-commit schema/build identity; stale-success adoption rejection; symlink-safe retention path canonicalization; and independent non-regression of existing controlled-source authority. Local safety is 51/51 PASS. Exact-head Core Quality/build run `33247963975`, Telemetry run `33247964023`, and NEXOLAB Merge Gate are GREEN. Fresh Codex review of `b8fb31de3c` found no major issues and all eight review threads are resolved. No product runtime mutation occurred in this tooling Work Package. After final state-only exact-head GREEN and merge, the next operation is the already-authorized real-Pi no-mutation source-selection preflight, followed by bounded deployment only if that preflight passes.
+
 ## Recently completed production-readiness boundaries
 
 Issue #245 is completed with real Raspberry Pi standalone hardware evidence. Issue #444 LOCAL_LAN user administration, #646 protected `main`, #667 CVE lifecycle reconciliation and #673 state reconciliation are also completed.

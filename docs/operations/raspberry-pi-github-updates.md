@@ -127,6 +127,14 @@ Success is shown only after host verification completes. Failures retain the fai
 
 The Raspberry Pi consumes only an already downloaded/extracted artifact through `deploy-current-head-raspberry-pi.sh --frontend-artifact PATH`. GitHub credentials are not passed to the dashboard and the deployment script does not require GitHub access to consume the local artifact. If GitHub is unavailable, the current monitoring runtime continues and a previously transferred verified artifact/offline package can still be used.
 
+## Bounded historical-main source deployment
+
+The source-deployment path may target an explicitly approved historical `main` SHA when deploying current `origin/main` would include later unrelated production scope. This is not an arbitrary branch deployment and does not weaken the normal update/package authority model.
+
+The operator must provide both the exact approved target SHA and the exact currently deployed source SHA. Deployed-source authority is selected by the canonical UTC deployment-evidence directory stamp (`YYYYMMDDTHHMMSSZ`), never filesystem `mtime`; touching an old evidence directory cannot make it current. The selected successful evidence is protected from bounded retention before pruning, and retention canonicalizes symlinked deployment-root/current/protected paths before comparing them. If any later deployment attempt crossed the explicit runtime-mutation boundary without a later successful deployment re-establishing authority, historical deployment fails closed as indeterminate. The script then verifies `deployed → target → origin/main` Git ancestry, requires a clean synchronized `main` checkout, preserves the existing capacity/backup/auth/readiness/rollback gates, records all source identities, and restores the repository checkout to current `main` after the attempt. `--source-selection-check-only` performs a fresh `origin main` fetch/fast-forward before lineage validation and performs no product-runtime mutation.
+
+This mode is allowed only inside an explicitly approved production/site-cutover Work Package. After successful activation, the repository is restored to control `main`; source adoption must therefore validate the historical deployment evidence independently of checkout `HEAD`, require that exact evidence directory to remain the latest authoritative successful deployment, reject any newer incomplete mutating attempt, and derive source schema/build identity from the deployed commit. When controlled-source `current.json` already exists, the new adopted source must be the same commit or a fast-forward descendant of the recorded source even if its evidence directory is gone. Feature-only commits, backward source-authority moves, stale deployment evidence, Git-ref rewriting and treating newer control-main schema as deployed schema remain prohibited.
+
 ## Offline behavior
 
 With internet/GitHub unavailable:

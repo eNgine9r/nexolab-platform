@@ -4,11 +4,11 @@ Updated: 2026-08-28
 
 ## Issue #709 — post-merge Saved Dashboard runtime CSV verification
 
-PR #710 merged at `3f73e81f4d99cfcd07ba1afadf3eba9957945bd1`, but controlled Raspberry Pi deployment and runtime CSV-content re-verification remain blocked until the Product Owner explicitly approves that production/site-cutover action. Repository/software acceptance remains valid and no deployment is implied by the merge.
+The Product Owner explicitly authorized the controlled Raspberry Pi deployment/runtime CSV re-verification on 2026-08-29, bounded to historical main target `ff86b10b71c8e5252c15baaf4183adbf42f30f18` so later unapproved product scope is not deployed. Runtime mutation remains temporarily blocked only by Issue #753: the repository-owned deployment path must first gain exact historical-main source selection with fail-closed `deployed → target → origin/main` ancestry and checkout restoration. Repository/software acceptance remains valid.
 
 ## Issue #711 — post-merge Energy runtime verification
 
-Repository/software verification is complete for exact product head `da3569969ad39be4e409fe91bc0821e2587368a0`: local 66/66 focused tests, full lint/typecheck/build, Core CI, Authenticated Dashboard Acceptance, Offline Bundle, NEXOLAB Merge Gate and fresh Codex review are GREEN, with all review threads resolved. The corrected Energy history code has not been deployed to the Raspberry Pi. Controlled deployment and operator/runtime verification remain a production/site-cutover action and must not occur without explicit Product Owner approval. No Modbus, acquisition-cadence, hardware, database or persistent-volume write is required by the repository fix.
+The Product Owner explicitly authorized the controlled Raspberry Pi deployment/operator verification on 2026-08-29 using the same bounded target `ff86b10b71c8e5252c15baaf4183adbf42f30f18`. Software verification remains GREEN. Runtime mutation waits only for Issue #753 deployment-tooling exact-head acceptance; no Modbus, acquisition-cadence, hardware, database or persistent-volume write is required by the #711 fix itself.
 
 ## Issue #189 — actual-host recovery acceptance
 
@@ -38,9 +38,13 @@ Issue #727 records an intentional Product Owner defer of **RFX-01 through RFX-19
 
 Issue #704 has exact-head repository verification GREEN at `e2f7857e381600d76dd4100cea2c776bab8868e8`; #690 is completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`. The final Device Agent `libssl3t64/CVE-2026-14456` exception is **retired** because the fresh 2026-08-28 scan no longer reports the finding. Deadline-driven maintenance through **2026-09-02** now consists of the exact Device Agent `libexpat1/CVE-2026-66046` decision, Device Agent/telemetry-service SQLite decisions, and telemetry `libcjson1/CVE-2026-16554` / `libwebsockets19t64/CVE-2026-78161`; each must be removed earlier if its documented finding/fix/reachability/version/severity trigger changes. No production/runtime mutation is authorized by this security reconciliation.
 
-## Issue #709 — post-merge controlled deployment authorization
+## Issues #709 / #711 — approved bounded controlled deployment
 
-Repository verification and PR merge are not blocked. The controlled Raspberry Pi deployment and real CSV sensor-row re-verification are a production/site cutover boundary. Durable state records `production_cutover_authorized=false`, and Issue #709 has no Product Owner authorization comment. After GREEN merge, stop before runtime mutation until the Product Owner explicitly approves that controlled deployment. No Modbus or hardware write is part of the requested runtime verification.
+Product Owner authorization is recorded for the exact historical-main deployment target `ff86b10b71c8e5252c15baaf4183adbf42f30f18` only. Issue #753 is the temporary tooling gate that prevents deploying later unrelated `main` scope. After #753 merges GREEN, run source-selection preflight, controlled deployment and real runtime acceptance for CSV sensor rows plus Energy continuity.
+
+## Issue #753 — PR #754 deployment-safety review hardening
+
+Repository implementation is complete candidate and review-clean on `b8fb31de3c14ee6c0c000ccbd548adf2f202f4c4`: eight safety findings are addressed, local focused safety is 51/51 PASS, exact-head Core/Telemetry/Merge Gate are GREEN, fresh Codex review found no major issues, and all review threads are resolved. No production runtime mutation occurred in #753. The only remaining repository gate is final state-only exact-head CI + PR #754 merge. After merge, #709/#711 remain bounded to the already-authorized target `ff86b10b...`; real runtime mutation must still follow a successful source-selection preflight and an approved privileged operator path.
 
 ## Cleared boundaries
 

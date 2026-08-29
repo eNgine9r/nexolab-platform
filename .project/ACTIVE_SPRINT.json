@@ -768,6 +768,48 @@
         "first_exact_head_nexolab_merge_gate": "success",
         "canonical_state_contradiction": "resolved"
       }
+    },
+    {
+      "issue": 753,
+      "title": "Support explicitly approved historical-main source deployment",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "feat/753-approved-historical-main-deploy",
+      "evidence": {
+        "product_owner_cutover_authorization": "approved_2026-08-29_for_issues_709_711_only",
+        "currently_deployed_source_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d",
+        "approved_target_source_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
+        "later_unapproved_product_scope": "issue_729_and_later_product_changes_excluded",
+        "focused_deployment_contract_tests": "37_passed",
+        "source_selection_regressions": "13_passed",
+        "runtime_mutation": "not_executed_in_tooling_wp",
+        "deployed_source_evidence_match": "required_latest_successful_deployment",
+        "verified_head_sha": "b8fb31de3c14ee6c0c000ccbd548adf2f202f4c4",
+        "checks": {
+          "core_quality_build": "success:33247963975",
+          "telemetry_service": "success:33247964023",
+          "nexolab_merge_gate": "success:33247963975",
+          "review_threads": "0_unresolved",
+          "fresh_codex_review": "clean:b8fb31de3c"
+        },
+        "readiness": "completed_candidate_pending_state_only_exact_head_ci_and_merge",
+        "review_reopened_after_green_candidate": true,
+        "review_findings": "8_addressed",
+        "capacity_retention_regressions": "9_passed",
+        "legacy_pi_evidence_preflight": "success_on_metadata_copy_target_ff86b10b_restore_main",
+        "source_adoption_tests": "14_passed",
+        "combined_local_safety_tests": "51_passed",
+        "historical_schema_git_object_proof": "ff86b10b=20260820_0026_control_main=20260828_0027",
+        "last_published_review_head_sha": "b8fb31de3c14ee6c0c000ccbd548adf2f202f4c4",
+        "adopter_latest_authoritative_evidence": "required_with_newer_mutating_attempt_fail_closed",
+        "retention_symlink_path_canonicalization": "verified_by_regression_test",
+        "existing_source_authority_non_regression": "same_or_fast_forward_descendant_required_even_if_prior_evidence_missing",
+        "implementation_verified_head_sha": "b8fb31de3c14ee6c0c000ccbd548adf2f202f4c4",
+        "review_threads": "0_unresolved",
+        "fresh_codex_review": "clean:b8fb31de3c",
+        "completion_evidence_anchor": "canonical_verified_head_corrected_before_merge_after_fresh_review"
+      }
     }
   ],
   "maintenance_actions": [

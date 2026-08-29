@@ -15,9 +15,15 @@ source "$SCRIPT_DIR/lib/frontend-candidate-liveness.sh"
 usage() {
   cat <<'USAGE'
 Usage: deploy-current-head-raspberry-pi.sh [--runtime-mode lan|standalone] [--frontend-artifact PATH]
+       [--source-ref SHA --expected-deployed-source SHA] [--source-selection-check-only]
 
 Options:
   --frontend-artifact PATH  Import a verified off-device frontend artifact instead of building on this host.
+  --source-ref SHA          Deploy an explicitly approved historical commit already contained in main history.
+  --expected-deployed-source SHA
+                           Exact currently deployed source SHA; required with --source-ref.
+  --source-selection-check-only
+                           Validate source lineage and exit before capacity, backup or runtime mutation.
 
 Modes:
   lan         Trusted-LAN dashboard and API exposure. This is the default.
@@ -27,6 +33,9 @@ USAGE
 
 RUNTIME_MODE="lan"
 FRONTEND_ARTIFACT_INPUT=""
+REQUESTED_SOURCE_REF=""
+EXPECTED_DEPLOYED_SOURCE=""
+SOURCE_SELECTION_CHECK_ONLY="0"
 while (($# > 0)); do
   case "$1" in
     --runtime-mode)
@@ -45,6 +54,26 @@ while (($# > 0)); do
       FRONTEND_ARTIFACT_INPUT="$2"
       shift 2
       ;;
+    --source-ref)
+      (($# >= 2)) || {
+        echo "ERROR: --source-ref requires a full 40-character commit SHA" >&2
+        exit 64
+      }
+      REQUESTED_SOURCE_REF="$2"
+      shift 2
+      ;;
+    --expected-deployed-source)
+      (($# >= 2)) || {
+        echo "ERROR: --expected-deployed-source requires a full 40-character commit SHA" >&2
+        exit 64
+      }
+      EXPECTED_DEPLOYED_SOURCE="$2"
+      shift 2
+      ;;
+    --source-selection-check-only)
+      SOURCE_SELECTION_CHECK_ONLY="1"
+      shift
+      ;;
     --help|-h)
       usage
       exit 0
@@ -57,6 +86,12 @@ while (($# > 0)); do
   esac
 done
 nexolab_validate_runtime_mode "$RUNTIME_MODE" || exit $?
+if [[ -n "$REQUESTED_SOURCE_REF" || -n "$EXPECTED_DEPLOYED_SOURCE" ]]; then
+  [[ -n "$REQUESTED_SOURCE_REF" && -n "$EXPECTED_DEPLOYED_SOURCE" ]] || {
+    echo "ERROR: --source-ref and --expected-deployed-source must be supplied together" >&2
+    exit 64
+  }
+fi
 
 REPO="${NEXOLAB_REPO:-$HOME/nexolab-platform}"
 FRONTEND_ARTIFACT_DIR=""
@@ -81,6 +116,11 @@ FRONTEND_RELEASE_DIR=""
 FRONTEND_CANDIDATE_PID=""
 FRONTEND_CANDIDATE_PGID=""
 FRONTEND_CANDIDATE_START_GATE=""
+SOURCE_CHECKOUT_RESTORE_REQUIRED="0"
+CONTROL_HEAD=""
+TARGET_HEAD=""
+EXPECTED_DEPLOYMENT_EVIDENCE=""
+VERIFIED_DEPLOYED_SOURCE=""
 
 CENTRAL_COMPOSE_ARGS=(
   -f "$CENTRAL_DIR/compose.central.yaml"
@@ -187,9 +227,26 @@ cleanup_frontend_candidate() {
   return 0
 }
 
+restore_control_checkout() {
+  [[ "$SOURCE_CHECKOUT_RESTORE_REQUIRED" == "1" ]] || return 0
+  if ! git -C "$REPO" switch main >/dev/null 2>&1; then
+    log "ERROR: failed to restore repository checkout to main"
+    return 1
+  fi
+  local restored_head
+  restored_head="$(git -C "$REPO" rev-parse HEAD 2>/dev/null || true)"
+  if [[ -z "$CONTROL_HEAD" || "$restored_head" != "$CONTROL_HEAD" ]]; then
+    log "ERROR: restored main does not match the pre-deployment origin/main head"
+    return 1
+  fi
+  SOURCE_CHECKOUT_RESTORE_REQUIRED="0"
+  log "Repository checkout restored to main: $restored_head"
+}
+
 on_exit() {
   local rc=$?
   local cleanup_rc=0
+  local restore_rc=0
   trap - EXIT ERR
   if cleanup_frontend_candidate; then
     cleanup_rc=0
@@ -201,6 +258,14 @@ on_exit() {
     if ((rc == 0)); then
       rc=$cleanup_rc
     fi
+  fi
+  if restore_control_checkout; then
+    restore_rc=0
+  else
+    restore_rc=$?
+  fi
+  if ((restore_rc != 0 && rc == 0)); then
+    rc=$restore_rc
   fi
   exit "$rc"
 }
@@ -243,13 +308,150 @@ require() {
   command -v "$1" >/dev/null 2>&1 || fail "required command is missing: $1"
 }
 
-for command in git docker curl python3 openssl npm node flock ip sudo tar du df find sort stat mv rm ss sha256sum cp cmp install setsid ps awk; do
-  require "$command"
-done
-
-docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is unavailable"
+require git
+require python3
 [[ -d "$REPO/.git" ]] || fail "repository not found: $REPO"
 cd "$REPO"
+
+validate_full_sha() {
+  [[ "$1" =~ ^[0-9a-f]{40}$ ]]
+}
+
+resolve_deployed_source_authority() {
+  [[ -n "$REQUESTED_SOURCE_REF" ]] || return 0
+  validate_full_sha "$REQUESTED_SOURCE_REF" || fail "--source-ref must be a full lowercase 40-character commit SHA"
+  validate_full_sha "$EXPECTED_DEPLOYED_SOURCE" || fail "--expected-deployed-source must be a full lowercase 40-character commit SHA"
+
+  local deployment_evidence
+  if ! deployment_evidence="$(python3 - "$REPO/runtime/deployments" "$AUDIT_DIR" <<'PY_EVIDENCE'
+from datetime import datetime
+from pathlib import Path
+import re
+import sys
+
+root = Path(sys.argv[1])
+current_audit = Path(sys.argv[2]).resolve()
+stamp_re = re.compile(r"^\d{8}T\d{6}Z$")
+sha_re = re.compile(r"^[0-9a-f]{40}$")
+legacy_mutation_markers = (
+    "Starting central backend, MinIO and observability",
+    "Starting real-hardware edge stack",
+    "Activating verified frontend release",
+    "RUNTIME MUTATION STARTED",
+)
+
+def valid_stamp(name: str) -> bool:
+    if not stamp_re.fullmatch(name):
+        return False
+    try:
+        datetime.strptime(name, "%Y%m%dT%H%M%SZ")
+    except ValueError:
+        return False
+    return True
+
+attempts: list[tuple[str, Path, str, bool, str | None]] = []
+if root.is_dir():
+    for directory in root.iterdir():
+        if not directory.is_dir() or directory.is_symlink() or not valid_stamp(directory.name):
+            continue
+        summary = directory / "summary.txt"
+        summary_text = summary.read_text(encoding="utf-8", errors="replace") if summary.is_file() else ""
+        final_state = directory / "final-state.txt"
+        commit = None
+        if final_state.is_file():
+            for line in final_state.read_text(encoding="utf-8", errors="replace").splitlines():
+                if line.startswith("commit="):
+                    candidate = line.split("=", 1)[1].strip()
+                    if sha_re.fullmatch(candidate):
+                        commit = candidate
+                    break
+        passed = "DEPLOYMENT PASSED" in summary_text and commit is not None
+        mutated = (directory / "runtime-mutation-started").is_file() or any(
+            marker in summary_text for marker in legacy_mutation_markers
+        )
+        attempts.append((directory.name, directory.resolve(), summary_text, mutated, commit if passed else None))
+
+successful = [(stamp, directory, commit) for stamp, directory, _summary, _mutated, commit in attempts if commit]
+if not successful:
+    print("ERROR: no successful source-deployment evidence is available", file=sys.stderr)
+    raise SystemExit(1)
+
+success_stamp, success_dir, success_commit = max(successful, key=lambda item: item[0])
+for stamp, directory, _summary, mutated, commit in attempts:
+    if stamp <= success_stamp or directory == current_audit:
+        continue
+    if mutated and commit is None:
+        print(
+            f"ERROR: newer deployment attempt crossed runtime mutation boundary without success: {directory}",
+            file=sys.stderr,
+        )
+        raise SystemExit(2)
+
+print(f"{success_commit}\t{success_dir}\t{success_stamp}")
+PY_EVIDENCE
+)"; then
+    fail "deployed source authority is indeterminate; inspect runtime/deployments before continuing"
+  fi
+
+  local evidence_commit evidence_tail
+  evidence_commit="${deployment_evidence%%$'\t'*}"
+  evidence_tail="${deployment_evidence#*$'\t'}"
+  EXPECTED_DEPLOYMENT_EVIDENCE="${evidence_tail%%$'\t'*}"
+  VERIFIED_DEPLOYED_SOURCE="$evidence_commit"
+  [[ "$VERIFIED_DEPLOYED_SOURCE" == "$EXPECTED_DEPLOYED_SOURCE" ]] \
+    || fail "expected deployed source does not match the latest authoritative successful deployment evidence"
+}
+
+validate_selected_source_against_control() {
+  TARGET_HEAD="$CONTROL_HEAD"
+  if [[ -n "$REQUESTED_SOURCE_REF" ]]; then
+    [[ -n "$VERIFIED_DEPLOYED_SOURCE" && -n "$EXPECTED_DEPLOYMENT_EVIDENCE" ]] \
+      || fail "historical source selection requires verified deployed-source authority"
+    git cat-file -e "${REQUESTED_SOURCE_REF}^{commit}" 2>/dev/null || fail "requested source commit is not available locally"
+    git cat-file -e "${EXPECTED_DEPLOYED_SOURCE}^{commit}" 2>/dev/null || fail "expected deployed source commit is not available locally"
+    git merge-base --is-ancestor "$REQUESTED_SOURCE_REF" "$CONTROL_HEAD" \
+      || fail "requested source is not contained in current main history"
+    git merge-base --is-ancestor "$EXPECTED_DEPLOYED_SOURCE" "$REQUESTED_SOURCE_REF" \
+      || fail "requested source is not a fast-forward descendant of the expected deployed source"
+    TARGET_HEAD="$REQUESTED_SOURCE_REF"
+    log "Approved historical-main source selection: deployed=$EXPECTED_DEPLOYED_SOURCE target=$TARGET_HEAD origin_main=$CONTROL_HEAD evidence=$EXPECTED_DEPLOYMENT_EVIDENCE"
+  else
+    [[ -z "$EXPECTED_DEPLOYED_SOURCE" ]] || fail "--expected-deployed-source requires --source-ref"
+    log "Current-main source selection: target=$TARGET_HEAD"
+  fi
+}
+
+if ! git diff --quiet || ! git diff --cached --quiet; then
+  fail "tracked local changes detected before source selection"
+fi
+[[ "$(git branch --show-current)" == "main" ]] || fail "deployment must start from the main branch"
+
+if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "1" ]]; then
+  log "Fetching current main for source-selection preflight"
+  git fetch --prune origin main
+  CONTROL_HEAD="$(git rev-parse origin/main 2>/dev/null || true)"
+  [[ -n "$CONTROL_HEAD" ]] || fail "origin/main is unavailable after source-selection preflight fetch"
+  git merge --ff-only "$CONTROL_HEAD" >/dev/null || fail "local main cannot fast-forward to fresh origin/main for source-selection preflight"
+  [[ "$(git rev-parse HEAD)" == "$CONTROL_HEAD" ]] || fail "local main is not synchronized to fresh origin/main for source-selection preflight"
+  resolve_deployed_source_authority
+  validate_selected_source_against_control
+  if [[ "$TARGET_HEAD" != "$CONTROL_HEAD" ]]; then
+    git switch --detach "$TARGET_HEAD" >/dev/null
+    SOURCE_CHECKOUT_RESTORE_REQUIRED="1"
+    [[ "$(git rev-parse HEAD)" == "$TARGET_HEAD" ]] || fail "source-selection checkout does not match requested target"
+    restore_control_checkout || fail "source-selection preflight could not restore main"
+  fi
+  printf 'SOURCE_SELECTION_VALIDATED\n'
+  printf 'target=%s\n' "$TARGET_HEAD"
+  printf 'expected_deployed_source=%s\n' "${EXPECTED_DEPLOYED_SOURCE:-not_supplied}"
+  printf 'origin_main=%s\n' "$CONTROL_HEAD"
+  exit 0
+fi
+
+for command in docker curl python3 openssl npm node flock ip sudo tar du df find sort stat mv rm ss sha256sum cp cmp install setsid ps awk; do
+  require "$command"
+done
+docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is unavailable"
 
 log "Starting controlled current-head deployment"
 log "Repository: $REPO"
@@ -262,14 +464,23 @@ PG_CONTAINER="$(docker ps -q \
   --filter label=com.docker.compose.service=postgres \
   | head -n 1)"
 
+resolve_deployed_source_authority
 log "Applying bounded deployment-evidence retention"
-if ! nexolab_prune_deployment_evidence "$REPO/runtime/deployments" "$AUDIT_DIR"; then
+if ! nexolab_prune_deployment_evidence "$REPO/runtime/deployments" "$AUDIT_DIR" "$EXPECTED_DEPLOYMENT_EVIDENCE"; then
   fail "deployment evidence retention failed before runtime mutation"
 fi
 log "Running deployment capacity preflight before evidence capture"
 if ! nexolab_capacity_preflight "$REPO" "$AUDIT_DIR" "$PG_CONTAINER" "$AUDIT_DIR/capacity-preflight.txt"; then
   fail "deployment capacity preflight failed before runtime mutation; see $AUDIT_DIR/capacity-preflight.txt"
 fi
+
+log "Fetching current main for deployment authority"
+git fetch --prune origin main
+git switch main
+git pull --ff-only origin main
+CONTROL_HEAD="$(git rev-parse origin/main)"
+[[ "$(git rev-parse HEAD)" == "$CONTROL_HEAD" ]] || fail "local main is not at origin/main after fetch"
+validate_selected_source_against_control
 
 {
   echo '=== host ==='
@@ -366,14 +577,15 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   fail "tracked local changes detected; patches were saved in $AUDIT_DIR"
 fi
 
-log "Fetching current main"
-git fetch --prune origin main
-git switch main
-git pull --ff-only origin main
+if [[ "$TARGET_HEAD" != "$CONTROL_HEAD" ]]; then
+  log "Switching temporarily to approved historical main source: $TARGET_HEAD"
+  git switch --detach "$TARGET_HEAD" >/dev/null
+  SOURCE_CHECKOUT_RESTORE_REQUIRED="1"
+fi
 CURRENT_HEAD="$(git rev-parse HEAD)"
-ORIGIN_HEAD="$(git rev-parse origin/main)"
-[[ "$CURRENT_HEAD" == "$ORIGIN_HEAD" ]] || fail "local main is not at origin/main"
-log "Current main: $CURRENT_HEAD"
+[[ "$CURRENT_HEAD" == "$TARGET_HEAD" ]] || fail "deployment checkout does not match selected source"
+log "Deployment source: $CURRENT_HEAD"
+log "Control origin/main: $CONTROL_HEAD"
 
 env_get() {
   local file=$1 key=$2
@@ -730,6 +942,8 @@ if ss -ltn | awk '{print $4}' | grep -Eq "(^|:)$FRONTEND_CANDIDATE_PORT$"; then
 fi
 log "Frontend candidate verified and terminated without mutating the active dashboard"
 
+printf 'source=%s\nstarted_at=%s\n' "$CURRENT_HEAD" "$(date --iso-8601=seconds)" > "$AUDIT_DIR/runtime-mutation-started"
+log "RUNTIME MUTATION STARTED: central backend activation"
 log "Starting central backend, MinIO and observability"
 docker compose --env-file "$CENTRAL_ENV" \
   "${CENTRAL_COMPOSE_ARGS[@]}" \
@@ -901,6 +1115,10 @@ install -m 0600 "$AUDIT_DIR/runtime-mode" "$RUNTIME_MODE_FILE"
 {
   echo "deployed_at=$(date --iso-8601=seconds)"
   echo "commit=$CURRENT_HEAD"
+  echo "requested_source_ref=${REQUESTED_SOURCE_REF:-current_origin_main}"
+  echo "expected_deployed_source=${EXPECTED_DEPLOYED_SOURCE:-not_supplied}"
+  echo "control_origin_main=$CONTROL_HEAD"
+  echo "expected_deployed_evidence=${EXPECTED_DEPLOYMENT_EVIDENCE:-not_applicable}"
   echo "runtime_mode=$RUNTIME_MODE"
   echo "bind_address=$BIND_IP"
   echo "dashboard=$NEXOLAB_DASHBOARD_ORIGIN"

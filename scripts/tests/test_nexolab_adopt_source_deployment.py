@@ -31,6 +31,9 @@ def make_deployment_fixture(
     commit: str = "a" * 40,
     evidence_commit: str | None = None,
     auth_mode: str = "jwt",
+    requested_source_ref: str | None = None,
+    control_origin_main: str | None = None,
+    expected_deployed_source: str | None = None,
 ) -> tuple[Path, Path, Path, argparse.Namespace]:
     repo = tmp_path / "repo"
     repo.mkdir(parents=True)
@@ -39,20 +42,24 @@ def make_deployment_fixture(
     evidence = repo / "runtime" / "deployments" / "20260818T131726Z"
     evidence.mkdir(parents=True)
     (evidence / "summary.txt").write_text("DEPLOYMENT PASSED\n", encoding="utf-8")
+    final_state_lines = [
+        "deployed_at=2026-08-18T16:22:48+03:00",
+        f"commit={evidence_commit or commit}",
+        "runtime_mode=lan",
+        "dashboard=http://172.18.48.34:3000",
+        "api=http://172.18.48.34:8082",
+        f"auth_mode={auth_mode}",
+        "local_auth_overlay=true",
+        "dashboard_auth_provider=local",
+    ]
+    if requested_source_ref is not None:
+        final_state_lines.append(f"requested_source_ref={requested_source_ref}")
+    if control_origin_main is not None:
+        final_state_lines.append(f"control_origin_main={control_origin_main}")
+    if expected_deployed_source is not None:
+        final_state_lines.append(f"expected_deployed_source={expected_deployed_source}")
     (evidence / "final-state.txt").write_text(
-        "\n".join(
-            [
-                "deployed_at=2026-08-18T16:22:48+03:00",
-                f"commit={evidence_commit or commit}",
-                "runtime_mode=lan",
-                "dashboard=http://172.18.48.34:3000",
-                "api=http://172.18.48.34:8082",
-                f"auth_mode={auth_mode}",
-                "local_auth_overlay=true",
-                "dashboard_auth_provider=local",
-            ]
-        )
-        + "\n",
+        "\n".join(final_state_lines) + "\n",
         encoding="utf-8",
     )
     root = tmp_path / "versions"
@@ -77,12 +84,13 @@ def install_verified_runtime_mocks(
             ("rev-parse", "HEAD"): commit,
             ("rev-parse", "origin/main"): origin,
             ("merge-base", "--is-ancestor", commit, origin): "",
+            ("cat-file", "-e", f"{commit}^{{commit}}"): "",
             ("show", "-s", "--format=%cI", commit): "2026-08-18T13:07:32+00:00",
         }
         return table[arguments]
 
     monkeypatch.setattr(adopter, "git", fake_git)
-    monkeypatch.setattr(adopter, "repository_schema_head", lambda _repo: "20260818_0026")
+    monkeypatch.setattr(adopter, "repository_schema_head", lambda _repo, _commit=None: "20260818_0026")
     monkeypatch.setattr(adopter, "verify_live_schema", lambda _head: None)
     monkeypatch.setattr(adopter, "verify_live_runtime", lambda _url: health)
     monkeypatch.setattr(adopter, "host_platform", lambda: "linux/arm64")
@@ -161,7 +169,7 @@ def test_adoption_accepts_deployed_commit_that_is_ancestor_of_newer_origin_main(
     ] == commit
 
 
-def test_adoption_refuses_deployment_evidence_for_a_different_commit(
+def test_adoption_refuses_unbound_historical_deployment_evidence(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -173,10 +181,201 @@ def test_adoption_refuses_deployment_evidence_for_a_different_commit(
     )
     install_verified_runtime_mocks(monkeypatch, commit=commit)
 
-    with pytest.raises(adopter.AdoptionFailure, match="evidence commit does not match"):
+    with pytest.raises(adopter.AdoptionFailure, match="not bound to its requested source commit"):
         adopter.adopt(args)
 
     assert not (root / "current.json").exists()
+
+
+def test_historical_adoption_uses_evidence_commit_while_checkout_stays_control_main(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = "a" * 40
+    previous = "9" * 40
+    control = "b" * 40
+    origin = "c" * 40
+    repo, root, _, args = make_deployment_fixture(
+        tmp_path,
+        commit=control,
+        evidence_commit=source,
+        requested_source_ref=source,
+        control_origin_main=control,
+        expected_deployed_source=previous,
+    )
+
+    def fake_git(_repo: Path, *arguments: str) -> str:
+        table = {
+            ("remote", "get-url", "origin"): "git@github.com:eNgine9r/nexolab-platform.git",
+            ("rev-parse", "--abbrev-ref", "HEAD"): "main",
+            ("status", "--porcelain", "--untracked-files=no"): "",
+            ("rev-parse", "HEAD"): control,
+            ("rev-parse", "origin/main"): origin,
+            ("merge-base", "--is-ancestor", control, origin): "",
+            ("cat-file", "-e", f"{source}^{{commit}}"): "",
+            ("cat-file", "-e", f"{control}^{{commit}}"): "",
+            ("merge-base", "--is-ancestor", previous, source): "",
+            ("merge-base", "--is-ancestor", source, control): "",
+            ("merge-base", "--is-ancestor", control, control): "",
+            ("merge-base", "--is-ancestor", source, origin): "",
+            ("show", "-s", "--format=%cI", source): "2026-08-27T14:10:00+00:00",
+        }
+        return table[arguments]
+
+    schema_calls: list[str] = []
+    verified_heads: list[str] = []
+    monkeypatch.setattr(adopter, "git", fake_git)
+    monkeypatch.setattr(
+        adopter,
+        "repository_schema_head",
+        lambda _repo, source_commit=None: schema_calls.append(source_commit) or "20260820_0026",
+    )
+    monkeypatch.setattr(adopter, "verify_live_schema", verified_heads.append)
+    monkeypatch.setattr(adopter, "verify_live_runtime", lambda _url: "ready")
+    monkeypatch.setattr(adopter, "host_platform", lambda: "linux/arm64")
+
+    result = adopter.adopt(args)
+    current = json.loads((root / "current.json").read_text(encoding="utf-8"))
+
+    assert result["status"] == "recorded"
+    assert result["source_commit"] == source
+    assert result["schema_head"] == "20260820_0026"
+    assert schema_calls == [source]
+    assert verified_heads == ["20260820_0026"]
+    assert current["source_commit"] == source
+    assert current["source_historical_main"] is True
+    assert current["source_control_checkout_commit"] == control
+    assert current["source_control_origin_main"] == origin
+    assert current["source_deployment_control_main"] == control
+    assert current["bundle_id"] == f"source-main-{source[:12]}"
+
+
+def test_repository_schema_head_reads_migrations_from_exact_source_commit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    commit = "d" * 40
+    migration_root = "services/telemetry-service/migrations/versions"
+    first = f"{migration_root}/001_first.py"
+    second = f"{migration_root}/002_second.py"
+
+    def fake_git(_repo: Path, *arguments: str) -> str:
+        table = {
+            ("ls-tree", "-r", "--name-only", commit, "--", migration_root): f"{first}\n{second}",
+            ("show", f"{commit}:{first}"): 'revision = "001"\ndown_revision = None\n',
+            ("show", f"{commit}:{second}"): 'revision = "002"\ndown_revision = "001"\n',
+        }
+        return table[arguments]
+
+    monkeypatch.setattr(adopter, "git", fake_git)
+    assert adopter.repository_schema_head(tmp_path, commit) == "002"
+
+
+def test_historical_adoption_refuses_evidence_control_main_outside_checkout_lineage(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = "a" * 40
+    previous = "9" * 40
+    control = "b" * 40
+    checkout = "c" * 40
+    origin = "d" * 40
+    _, root, _, args = make_deployment_fixture(
+        tmp_path,
+        commit=checkout,
+        evidence_commit=source,
+        requested_source_ref=source,
+        control_origin_main=control,
+        expected_deployed_source=previous,
+    )
+
+    def fake_git(_repo: Path, *arguments: str) -> str:
+        if arguments == ("merge-base", "--is-ancestor", control, checkout):
+            raise adopter.AdoptionFailure("command failed safely: control main is not an ancestor")
+        table = {
+            ("remote", "get-url", "origin"): "git@github.com:eNgine9r/nexolab-platform.git",
+            ("rev-parse", "--abbrev-ref", "HEAD"): "main",
+            ("status", "--porcelain", "--untracked-files=no"): "",
+            ("rev-parse", "HEAD"): checkout,
+            ("rev-parse", "origin/main"): origin,
+            ("merge-base", "--is-ancestor", checkout, origin): "",
+            ("cat-file", "-e", f"{source}^{{commit}}"): "",
+            ("cat-file", "-e", f"{control}^{{commit}}"): "",
+            ("merge-base", "--is-ancestor", previous, source): "",
+            ("merge-base", "--is-ancestor", source, control): "",
+        }
+        return table[arguments]
+
+    monkeypatch.setattr(adopter, "git", fake_git)
+    with pytest.raises(adopter.AdoptionFailure, match="control main is not an ancestor"):
+        adopter.adopt(args)
+    assert not (root / "current.json").exists()
+
+
+def test_adoption_refuses_stale_successful_evidence_after_newer_success(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    old_commit = "a" * 40
+    new_commit = "b" * 40
+    repo, root, _evidence, args = make_deployment_fixture(tmp_path, commit=old_commit)
+    newer = repo / "runtime" / "deployments" / "20260819T131726Z"
+    newer.mkdir(parents=True)
+    (newer / "summary.txt").write_text("DEPLOYMENT PASSED\n", encoding="utf-8")
+    (newer / "final-state.txt").write_text(f"commit={new_commit}\n", encoding="utf-8")
+    install_verified_runtime_mocks(monkeypatch, commit=old_commit)
+
+    with pytest.raises(
+        adopter.AdoptionFailure,
+        match="not the latest authoritative successful source deployment",
+    ):
+        adopter.adopt(args)
+
+    assert not (root / "current.json").exists()
+
+
+def test_adoption_refuses_when_newer_attempt_crossed_runtime_mutation_without_success(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    commit = "a" * 40
+    repo, root, _evidence, args = make_deployment_fixture(tmp_path, commit=commit)
+    failed = repo / "runtime" / "deployments" / "20260819T131726Z"
+    failed.mkdir(parents=True)
+    (failed / "summary.txt").write_text(
+        "RUNTIME MUTATION STARTED: central backend activation\n",
+        encoding="utf-8",
+    )
+    install_verified_runtime_mocks(monkeypatch, commit=commit)
+
+    with pytest.raises(
+        adopter.AdoptionFailure,
+        match="newer deployment attempt crossed runtime mutation boundary without success",
+    ):
+        adopter.adopt(args)
+
+    assert not (root / "current.json").exists()
+
+
+def test_adoption_allows_newer_failed_pre_mutation_attempt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    commit = "a" * 40
+    repo, root, _evidence, args = make_deployment_fixture(tmp_path, commit=commit)
+    failed = repo / "runtime" / "deployments" / "20260819T131726Z"
+    failed.mkdir(parents=True)
+    (failed / "summary.txt").write_text(
+        "Deployment failed before runtime mutation\n",
+        encoding="utf-8",
+    )
+    install_verified_runtime_mocks(monkeypatch, commit=commit)
+
+    result = adopter.adopt(args)
+
+    assert result["status"] == "recorded"
+    assert result["source_commit"] == commit
+    assert (root / "current.json").is_file()
 
 
 def test_adoption_refuses_disabled_auth_profile(
@@ -217,6 +416,104 @@ def test_adoption_never_replaces_existing_packaged_current(
 
     current = json.loads((root / "current.json").read_text(encoding="utf-8"))
     assert current["bundle_id"] == "validated-release-1"
+
+
+def test_adoption_refuses_to_move_existing_source_authority_backward_when_evidence_is_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    candidate = "a" * 40
+    existing_commit = "b" * 40
+    repo, root, _evidence, args = make_deployment_fixture(tmp_path, commit=candidate)
+    root.mkdir(parents=True)
+    existing_payload = {
+        "bundle_id": f"source-main-{existing_commit[:12]}",
+        "source_commit": existing_commit,
+        "deployment_authority": "controlled_source_deployment",
+        "source_deployment_evidence": "runtime/deployments/20260819T131726Z",
+    }
+    (root / "current.json").write_text(
+        json.dumps(existing_payload),
+        encoding="utf-8",
+    )
+
+    def fake_git(_repo: Path, *arguments: str) -> str:
+        if arguments == ("merge-base", "--is-ancestor", existing_commit, candidate):
+            raise adopter.AdoptionFailure("command failed safely: backward lineage")
+        table = {
+            ("remote", "get-url", "origin"): "git@github.com:eNgine9r/nexolab-platform.git",
+            ("rev-parse", "--abbrev-ref", "HEAD"): "main",
+            ("status", "--porcelain", "--untracked-files=no"): "",
+            ("rev-parse", "HEAD"): candidate,
+            ("rev-parse", "origin/main"): candidate,
+            ("merge-base", "--is-ancestor", candidate, candidate): "",
+            ("cat-file", "-e", f"{candidate}^{{commit}}"): "",
+            ("cat-file", "-e", f"{existing_commit}^{{commit}}"): "",
+            ("show", "-s", "--format=%cI", candidate): "2026-08-18T13:07:32+00:00",
+        }
+        return table[arguments]
+
+    monkeypatch.setattr(adopter, "git", fake_git)
+    monkeypatch.setattr(adopter, "repository_schema_head", lambda _repo, _commit=None: "20260818_0026")
+    monkeypatch.setattr(adopter, "verify_live_schema", lambda _head: None)
+    monkeypatch.setattr(adopter, "verify_live_runtime", lambda _url: "ready")
+    monkeypatch.setattr(adopter, "host_platform", lambda: "linux/arm64")
+
+    with pytest.raises(
+        adopter.AdoptionFailure,
+        match="source adoption would move existing source authority backward",
+    ):
+        adopter.adopt(args)
+
+    assert json.loads((root / "current.json").read_text(encoding="utf-8")) == existing_payload
+
+
+def test_adoption_allows_forward_replacement_when_existing_evidence_is_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    existing_commit = "9" * 40
+    candidate = "a" * 40
+    _repo, root, _evidence, args = make_deployment_fixture(tmp_path, commit=candidate)
+    root.mkdir(parents=True)
+    (root / "current.json").write_text(
+        json.dumps(
+            {
+                "bundle_id": f"source-main-{existing_commit[:12]}",
+                "source_commit": existing_commit,
+                "deployment_authority": "controlled_source_deployment",
+                "source_deployment_evidence": "runtime/deployments/removed",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    def fake_git(_repo: Path, *arguments: str) -> str:
+        table = {
+            ("remote", "get-url", "origin"): "git@github.com:eNgine9r/nexolab-platform.git",
+            ("rev-parse", "--abbrev-ref", "HEAD"): "main",
+            ("status", "--porcelain", "--untracked-files=no"): "",
+            ("rev-parse", "HEAD"): candidate,
+            ("rev-parse", "origin/main"): candidate,
+            ("merge-base", "--is-ancestor", candidate, candidate): "",
+            ("cat-file", "-e", f"{candidate}^{{commit}}"): "",
+            ("cat-file", "-e", f"{existing_commit}^{{commit}}"): "",
+            ("merge-base", "--is-ancestor", existing_commit, candidate): "",
+            ("show", "-s", "--format=%cI", candidate): "2026-08-18T13:07:32+00:00",
+        }
+        return table[arguments]
+
+    monkeypatch.setattr(adopter, "git", fake_git)
+    monkeypatch.setattr(adopter, "repository_schema_head", lambda _repo, _commit=None: "20260818_0026")
+    monkeypatch.setattr(adopter, "verify_live_schema", lambda _head: None)
+    monkeypatch.setattr(adopter, "verify_live_runtime", lambda _url: "ready")
+    monkeypatch.setattr(adopter, "host_platform", lambda: "linux/arm64")
+
+    result = adopter.adopt(args)
+    current = json.loads((root / "current.json").read_text(encoding="utf-8"))
+    assert result["status"] == "recorded"
+    assert current["source_commit"] == candidate
+    assert current["previous_source_commit"] == existing_commit
 
 
 def test_source_adoption_is_idempotent_for_same_verified_deployment(
