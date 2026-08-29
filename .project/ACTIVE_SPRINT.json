@@ -797,7 +797,7 @@
           "review_threads": "0_unresolved",
           "fresh_codex_review": "clean:b8fb31de3c"
         },
-        "readiness": "completed_candidate_pending_state_only_exact_head_ci_and_merge",
+        "readiness": "completed_merged",
         "review_reopened_after_green_candidate": true,
         "review_findings": "8_addressed",
         "capacity_retention_regressions": "9_passed",
