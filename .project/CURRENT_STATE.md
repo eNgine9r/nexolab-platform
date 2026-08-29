@@ -36,6 +36,12 @@ Issue #725 (`CI-OPT-01`) is completed and PR #743 is merged. Exact verified head
 
 The post-#730 delta Ready audit finds no independent Ready Work Package. #200/#201/#202/#585 remain hardware/evidence-gated; #709/#711 require explicit production/site-cutover approval; RFX-01 through RFX-19C remain on Product Owner hold. Issue #732 is closed not-planned because #733 established the accepted canonical State Model formatter boundary, and #720 is closed completed because the merged refrigeration/DR acceptance selects the authoritative `Схема` route and exact-head DR verification is GREEN.
 
+## Issue #753 — bounded historical-main deployment authority
+
+The Product Owner explicitly authorized controlled Raspberry Pi deployment/runtime verification for Issues #709 and #711 on **2026-08-29**. The bounded runtime target is `ff86b10b71c8e5252c15baaf4183adbf42f30f18`: current deployed `ff796b1f...` → #709 `3f73e81f...` → #711 `ff86b10b...`. Current `main` contains later product work, including #729 Embraco, that is not part of this deployment authorization, so current `origin/main` must not be deployed for this acceptance.
+
+Issue #753 is the active deployment-tooling Work Package. It adds an explicit historical-main source mode to the existing controlled deployment script without changing the default current-main path. The mode requires exact deployed/target SHA values, verifies `deployed → target → origin/main` ancestry, rejects feature-only/divergent/downgrade candidates, preserves capacity/backup/auth/readiness/rollback gates, and restores the repository checkout to synchronized `main` after success or failure. Focused source-selection tests are 8/8 GREEN and the combined existing/new deployment contract matrix is 30/30 GREEN. The explicitly supplied deployed SHA must also match the newest immutable `DEPLOYMENT PASSED` / `final-state.txt` source evidence before a historical target is eligible. No production runtime mutation has occurred from the #753 branch.
+
 ## Recently completed production-readiness boundaries
 
 Issue #245 is completed with real Raspberry Pi standalone hardware evidence. Issue #444 LOCAL_LAN user administration, #646 protected `main`, #667 CVE lifecycle reconciliation and #673 state reconciliation are also completed.

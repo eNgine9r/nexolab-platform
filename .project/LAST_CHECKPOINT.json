@@ -3,41 +3,30 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-29T11:36:56+03:00",
+  "timestamp": "2026-08-29T12:07:18+03:00",
   "actor": "ChatGPT",
-  "event": "issue_748_state_truth_reconciliation_merged",
+  "event": "issue_753_historical_main_deployment_tooling_implementation",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
-  "active_work": null,
-  "evidence_snapshot": {
-    "completed_issue": 748,
-    "pull_request": 750,
-    "verified_head_sha": "95105a14598fe15aea4e9119215722de5b3853a7",
-    "exact_head_state_integrity": "PASS",
-    "exact_head_nexolab_merge_gate": "PASS",
-    "post_merge_main_observed": "5e70ddadda2772e12a3b9481ec746b77d350d495",
-    "canonical_stale_730_references": "absent",
-    "active_work_package": "none",
-    "next_work_package": "none",
-    "product_runtime_change": "none",
-    "production_dashboard_3000": "HTTP 200"
+  "active_work": {
+    "issue": 753
   },
-  "observations": [
-    {
-      "source": "github",
-      "observed_at": "2026-08-29T11:36:56+03:00",
-      "kind": "issue_748_merge_completion",
-      "data": {
-        "issue": 748,
-        "pull_request": 750,
-        "verified_head_sha": "95105a14598fe15aea4e9119215722de5b3853a7",
-        "main_sha": "5e70ddadda2772e12a3b9481ec746b77d350d495"
-      }
-    }
-  ],
-  "next_action": "No independent Ready Work Package remains. Continue only when hardware evidence becomes available, the Product Owner explicitly authorizes a production/site-cutover package, or deferred RFX work is explicitly resumed.",
+  "evidence_snapshot": {
+    "issue": 753,
+    "branch": "feat/753-approved-historical-main-deploy",
+    "product_owner_authorization": "controlled_deployment_709_711_approved",
+    "deployed_source_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d",
+    "bounded_target_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
+    "excluded_later_scope": "issue_729_and_later_product_changes",
+    "source_selection_tests": "8_passed",
+    "deployment_contract_matrix": "30_passed",
+    "runtime_mutation": "not_started_pending_753_merge",
+    "deployed_source_evidence_match": "required_latest_successful_deployment"
+  },
+  "observations": [],
+  "next_action": "Finish #753 exact-head CI/review and merge. Then run historical-main source-selection preflight and the authorized controlled deployment to ff86b10b for #709/#711 runtime acceptance.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

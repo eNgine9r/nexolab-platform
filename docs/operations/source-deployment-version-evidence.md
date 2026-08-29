@@ -52,6 +52,24 @@ The adopter does **not**:
 - perform Modbus/controller/hardware writes;
 - enable automatic updates.
 
+## Explicitly approved historical-main deployment
+
+The normal controlled source deployment still targets current `origin/main`. When a Product Owner-approved runtime fix must stop at an earlier commit because later `main` commits contain unrelated unapproved production scope, use the bounded historical-main mode rather than rewriting Git refs or deploying a feature branch.
+
+Preflight the exact lineage first:
+
+```bash
+bash scripts/deploy-current-head-raspberry-pi.sh \
+  --runtime-mode lan \
+  --source-ref <approved-target-40-sha> \
+  --expected-deployed-source <current-deployed-40-sha> \
+  --source-selection-check-only
+```
+
+The real deployment uses the same two SHA arguments without `--source-selection-check-only`. The supplied deployed source must match the newest immutable successful source-deployment evidence (`DEPLOYMENT PASSED` plus `final-state.txt`). The target must then be a fast-forward descendant of that deployed source and an ancestor of freshly fetched `origin/main`. The repository must start clean on synchronized `main`; feature-only commits, malformed SHA values, downgrades and divergent commits fail closed before runtime mutation. The script temporarily detaches only after capacity and source-authority gates pass and restores the repository to the captured `origin/main` head on both success and failure. It never moves `origin/main` or another Git ref.
+
+Deployment evidence records `commit`, `requested_source_ref`, `expected_deployed_source` and `control_origin_main` separately so a bounded historical source deployment cannot be mistaken for current-main deployment. This mode is a production/site-cutover operation and still requires an explicitly approved Work Package.
+
 ## Controlled adoption command
 
 Run only after the source deployment itself has completed and its evidence directory is known:

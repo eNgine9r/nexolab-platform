@@ -127,6 +127,14 @@ Success is shown only after host verification completes. Failures retain the fai
 
 The Raspberry Pi consumes only an already downloaded/extracted artifact through `deploy-current-head-raspberry-pi.sh --frontend-artifact PATH`. GitHub credentials are not passed to the dashboard and the deployment script does not require GitHub access to consume the local artifact. If GitHub is unavailable, the current monitoring runtime continues and a previously transferred verified artifact/offline package can still be used.
 
+## Bounded historical-main source deployment
+
+The source-deployment path may target an explicitly approved historical `main` SHA when deploying current `origin/main` would include later unrelated production scope. This is not an arbitrary branch deployment and does not weaken the normal update/package authority model.
+
+The operator must provide both the exact approved target SHA and the exact currently deployed source SHA. The deployment script first matches the supplied deployed SHA to the newest immutable successful source-deployment evidence, then verifies `deployed → target → origin/main` Git ancestry, requires a clean synchronized `main` checkout, preserves the existing capacity/backup/auth/readiness/rollback gates, records all three source identities, and restores the repository checkout to current `main` after the attempt. A source-selection-only preflight is available and performs no runtime mutation.
+
+This mode is allowed only inside an explicitly approved production/site-cutover Work Package. Feature-only commits and Git-ref rewriting remain prohibited.
+
 ## Offline behavior
 
 With internet/GitHub unavailable:

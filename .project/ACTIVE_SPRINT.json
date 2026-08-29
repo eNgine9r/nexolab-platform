@@ -22,7 +22,9 @@
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 753
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -767,6 +769,24 @@
         "first_exact_head_state_integrity": "success",
         "first_exact_head_nexolab_merge_gate": "success",
         "canonical_state_contradiction": "resolved"
+      }
+    },
+    {
+      "issue": 753,
+      "title": "Support explicitly approved historical-main source deployment",
+      "priority": "critical",
+      "lifecycle": "review",
+      "depends_on": [],
+      "branch": "feat/753-approved-historical-main-deploy",
+      "evidence": {
+        "product_owner_cutover_authorization": "approved_2026-08-29_for_issues_709_711_only",
+        "currently_deployed_source_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d",
+        "approved_target_source_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
+        "later_unapproved_product_scope": "issue_729_and_later_product_changes_excluded",
+        "focused_deployment_contract_tests": "30_passed",
+        "source_selection_regressions": "8_passed",
+        "runtime_mutation": "not_executed_in_tooling_wp",
+        "deployed_source_evidence_match": "required_latest_successful_deployment"
       }
     }
   ],
