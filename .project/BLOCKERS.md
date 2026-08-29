@@ -44,7 +44,7 @@ Repository verification and PR merge are not blocked. The controlled Raspberry P
 
 ## Cleared boundaries
 
-- #730 fresh approved Opera/Tailscale positive proof — cleared on 2026-08-29. The dedicated `ChatGPT Opera Inspection` session entered the authenticated shell automatically as `Спостерігач`, REST/WebSocket were active, the root-owned `0600` login socket and tailnet-only Serve topology remained intact, direct frontend `/inspection-login` stayed 404, and production `:3000` stayed HTTP 200. PR #731 still requires current-main reconciliation and fresh exact-head GREEN CI before merge.
+- #730 Opera/Tailscale inspection — completed on 2026-08-29. The dedicated `ChatGPT Opera Inspection` session enters the authenticated shell automatically as `Спостерігач`; REST/WebSocket are active; the isolated `nexolab-inspection` helper and root-owned `0600` login socket remain intact; direct frontend `/inspection-login` stays 404; production `:3000` stays HTTP 200; PR #731 is merged with exact-head Core/Telemetry/Merge-Gate GREEN.
 - #729 Embraco refrigeration digital twin — completed and merged in PR #736; exact-head Core/Telemetry/Refrigeration/Auth/Offline/DR/Security/Device-Agent/Container/Merge-Gate verification is GREEN. Production Embraco polling activation, migration application and temperature engineering scale remain separate unapproved/unverified boundaries.
 - #444 LOCAL_LAN user administration — completed.
 - #646 main branch protection — completed; `main` requires `NEXOLAB Merge Gate`.

@@ -3,45 +3,30 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-29T10:40:04+03:00",
+  "timestamp": "2026-08-29T11:33:37+03:00",
   "actor": "ChatGPT",
-  "event": "issue_730_completed_state_reconciled",
+  "event": "issue_748_state_truth_reconciliation_candidate",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
-  "active_work": null,
-  "evidence_snapshot": {
-    "completed_issue": 730,
-    "pull_request": 731,
-    "verified_head_sha": "ca030f78e6a2412ec7a993a82ff8542ccd76181d",
-    "exact_head_github": {
-      "core_quality_build": "PASS",
-      "telemetry_service": "PASS",
-      "nexolab_merge_gate": "PASS"
-    },
-    "review_threads": "all_resolved",
-    "fresh_approved_opera_positive": "PASS",
-    "viewer_identity": "ChatGPT Opera Inspection / Спостерігач",
-    "browser_runtime": "REST snapshot synchronized; WebSocket active",
-    "credential_isolation": "nexolab-inspection; ordinary nexolab denied",
-    "production_dashboard_3000": "HTTP 200",
-    "delta_ready_audit": "no independent Ready Work Package"
+  "active_work": {
+    "issue": 748,
+    "branch": "chore/748-remove-stale-730-state",
+    "status": "review"
   },
-  "observations": [
-    {
-      "source": "github",
-      "observed_at": "2026-08-29T10:40:04+03:00",
-      "kind": "issue_730_merge_completion",
-      "data": {
-        "issue_state": "closed_completed",
-        "pull_request": 731,
-        "verified_head_sha": "ca030f78e6a2412ec7a993a82ff8542ccd76181d",
-        "merge_sha": "01443205bfeba28cfcc2192e5d290a9add9b24fe"
-      }
-    }
-  ],
-  "next_action": "No independent Ready Work Package remains. Continue only when hardware evidence becomes available, Product Owner explicitly authorizes a production/site-cutover package, or deferred RFX work is explicitly resumed.",
+  "evidence_snapshot": {
+    "issue": 748,
+    "scope": "canonical .project state only",
+    "stale_current_state_reference": "removed",
+    "stale_blockers_reference": "removed",
+    "state_integrity": "PASS",
+    "git_diff_check": "PASS",
+    "product_runtime_change": "none",
+    "post_completion_ready_queue": "no independent Ready Work Package"
+  },
+  "observations": [],
+  "next_action": "Publish the focused state-only #748 candidate, require exact-head State integrity / NEXOLAB Merge Gate GREEN, then mark #748 completed in the same branch and merge without changing any product/runtime gate.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
