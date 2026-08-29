@@ -3,53 +3,37 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-29T08:36:00+03:00",
+  "timestamp": "2026-08-29T10:34:05+03:00",
   "actor": "ChatGPT",
-  "event": "issue_725_completed_ready_queue_exhausted",
+  "event": "issue_730_security_isolation_and_fresh_opera_acceptance_final_ci_pending",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
-  "active_work": null,
-  "evidence_snapshot": {
-    "completed_issue": 725,
-    "pull_request": 743,
-    "verified_head_sha": "7070ba520f482208beb47f36435a33324ff0c2e0",
-    "exact_head_github": {
-      "core_quality_build": "PASS",
-      "telemetry_service": "PASS",
-      "authenticated_dashboard": "PASS",
-      "offline_bundle": "PASS",
-      "refrigeration_browser": "PASS",
-      "nexolab_merge_gate": "PASS"
-    },
-    "local_candidate_gate": {
-      "focused_orchestrator": "16/16 PASS",
-      "ci_policy_matrix": "111 OK, 1 environment skip",
-      "real_state_only_candidate": "GREEN"
-    },
-    "blocked_issue": 730,
-    "blocked_reason": "fresh approved-workstation Opera/Tailscale positive proof pending because Browser Connector is disconnected",
-    "delta_ready_audit": "no independent Ready Work Package",
-    "stale_issue_cleanup": {
-      "732": "closed_not_planned_superseded_by_733",
-      "720": "closed_completed"
-    }
+  "active_work": {
+    "issue": 730,
+    "pull_request": 731,
+    "branch": "docs/730-opera-tailscale-inspection",
+    "status": "review"
   },
-  "observations": [
-    {
-      "source": "github",
-      "observed_at": "2026-08-29T08:36:00+03:00",
-      "kind": "issue_725_merge_completion",
-      "data": {
-        "pull_request": 743,
-        "verified_head_sha": "7070ba520f482208beb47f36435a33324ff0c2e0",
-        "merge_sha": "c9184cc2f0aca72c4e4f02b02c4b5441488775f9",
-        "issue_state": "closed"
-      }
-    }
-  ],
-  "next_action": "Fresh approved-workstation Opera/Tailscale positive proof is required to unblock Issue #730. No other independent Ready Work Package may start without hardware evidence, explicit production-cutover approval, or Product Owner RFX resume decision.",
+  "evidence_snapshot": {
+    "fresh_approved_opera_positive": "PASS",
+    "viewer_identity": "ChatGPT Opera Inspection / Спостерігач",
+    "browser_runtime": "REST snapshot synchronized; WebSocket active",
+    "helper_os_identity": "nexolab-inspection",
+    "credential_isolation": "ordinary nexolab account denied",
+    "private_path_modes": "directory 0700; config/credential 0600",
+    "login_socket": "enabled_active_0600_root_root",
+    "login_transport_policy": "HTTP loopback only; non-loopback HTTPS; DNS exact expected_host",
+    "direct_frontend_inspection_login": "HTTP 404",
+    "nonapproved_tailnet_identity": "HTTP 403",
+    "production_dashboard_3000": "HTTP 200",
+    "focused_security_tests": "14/14 PASS",
+    "runtime_config_failure": "HTTP 503 fail-closed",
+    "final_exact_head_ci": "pending"
+  },
+  "observations": [],
+  "next_action": "Commit and push the final Issue #730 candidate, resolve review threads, require exact-head GitHub CI/Telemetry/Merge Gate GREEN, then mark durable state completed and merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

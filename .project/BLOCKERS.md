@@ -42,12 +42,9 @@ Issue #704 has exact-head repository verification GREEN at `e2f7857e381600d76dd4
 
 Repository verification and PR merge are not blocked. The controlled Raspberry Pi deployment and real CSV sensor-row re-verification are a production/site cutover boundary. Durable state records `production_cutover_authorized=false`, and Issue #709 has no Product Owner authorization comment. After GREEN merge, stop before runtime mutation until the Product Owner explicitly approves that controlled deployment. No Modbus or hardware write is part of the requested runtime verification.
 
-## Issue #730 — fresh approved Opera/Tailscale positive proof
-
-The inspection bootstrap security boundary has been hardened on the actual host: `/inspection-login` is no longer exposed on the normal frontend port, Tailscale Serve proxies that path to a `0600 root:root` Unix socket, the helper requires root `SO_PEERCRED` and exact approved Tailscale identity/source evidence, unprivileged local socket access is denied, direct frontend access is HTTP 404, and a real non-approved tailnet identity is HTTP 403. Refreshed repository verification is GREEN for Core CI and Telemetry service on head `6a5949863c4e3dd52dc1f4669e1485535110d77b`. The remaining blocker is soft at the Work Package level: Opera Browser Connector is currently disconnected, so the required fresh approved-workstation positive bootstrap after hardening cannot yet be re-proved. Do not merge #730 until that browser proof is collected. After #725 completion the independent Ready queue is exhausted, so progress now requires either reconnecting Opera for #730, explicit approval for a production/hardware-gated package, or an explicit Product Owner decision to resume deferred RFX work.
-
 ## Cleared boundaries
 
+- #730 fresh approved Opera/Tailscale positive proof — cleared on 2026-08-29. The dedicated `ChatGPT Opera Inspection` session entered the authenticated shell automatically as `Спостерігач`, REST/WebSocket were active, the root-owned `0600` login socket and tailnet-only Serve topology remained intact, direct frontend `/inspection-login` stayed 404, and production `:3000` stayed HTTP 200. PR #731 still requires current-main reconciliation and fresh exact-head GREEN CI before merge.
 - #729 Embraco refrigeration digital twin — completed and merged in PR #736; exact-head Core/Telemetry/Refrigeration/Auth/Offline/DR/Security/Device-Agent/Container/Merge-Gate verification is GREEN. Production Embraco polling activation, migration application and temperature engineering scale remain separate unapproved/unverified boundaries.
 - #444 LOCAL_LAN user administration — completed.
 - #646 main branch protection — completed; `main` requires `NEXOLAB Merge Gate`.

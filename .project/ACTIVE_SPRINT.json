@@ -22,7 +22,9 @@
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 730
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -676,16 +678,30 @@
       "issue": 730,
       "title": "Persist Opera/Tailscale inspection access with device-bound read-only auto-login",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "review",
       "depends_on": [],
       "branch": "docs/730-opera-tailscale-inspection",
       "evidence": {
         "pull_request": 731,
-        "repository_security_hardening": "implemented_exact_head_core_green_fresh_opera_positive_pending",
+        "repository_security_hardening": "implemented_fresh_opera_positive_passed_refresh_ci_pending",
         "actual_host_negative_security_acceptance": "success",
-        "fresh_approved_opera_positive": "soft_blocked_browser_connector_disconnected",
+        "fresh_approved_opera_positive": "success",
         "production_feature_cutover": "not_executed",
-        "repository_exact_head_observation": "6a5949863c4e3dd52dc1f4669e1485535110d77b_core_and_telemetry_green"
+        "repository_exact_head_observation": "refresh_required_after_main_reconciliation",
+        "fresh_approved_opera_positive_at": "2026-08-29T09:46:35+03:00",
+        "viewer_identity": "ChatGPT Opera Inspection / Спостерігач",
+        "browser_runtime": "rest_snapshot_synced_websocket_active",
+        "host_persistence": "inspection_frontend_and_login_socket_enabled_active_linger_yes",
+        "serve_topology": "tailnet_only_root_api_inspection_login_unix_socket",
+        "direct_frontend_inspection_login": "http_404",
+        "production_dashboard_3000": "http_200_unchanged",
+        "host_service_identity_isolation": "nexolab-inspection_private_credential_unreadable_by_nexolab",
+        "host_private_files": "0700_directory_0600_config_and_credential",
+        "login_transport_policy": "http_loopback_only_non_loopback_https_required_dns_exact_expected_host",
+        "migration_installer": "repository_owned_idempotent_fail_closed",
+        "focused_security_tests": "14_passed",
+        "runtime_config_failure_contract": "http_503_fail_closed",
+        "final_exact_head_ci": "pending"
       }
     },
     {
