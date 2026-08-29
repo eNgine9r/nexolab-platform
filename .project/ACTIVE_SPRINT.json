@@ -748,6 +748,26 @@
         "merge_observation_sha": "c9184cc2f0aca72c4e4f02b02c4b5441488775f9"
       },
       "branch": "feat/725-local-candidate-verification-gate"
+    },
+    {
+      "issue": 748,
+      "title": "Remove stale #730 active-candidate references after completed Opera inspection",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "chore/748-remove-stale-730-state",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "stale_current_state_reference": "removed",
+        "stale_blockers_reference": "removed",
+        "state_integrity": "success",
+        "git_diff_check": "success",
+        "product_runtime_change": "none",
+        "first_candidate_head_sha": "b3f2ce4b02f85cdd5035041e85d652de65afb693",
+        "first_exact_head_state_integrity": "success",
+        "first_exact_head_nexolab_merge_gate": "success",
+        "canonical_state_contradiction": "resolved"
+      }
     }
   ],
   "maintenance_actions": [
