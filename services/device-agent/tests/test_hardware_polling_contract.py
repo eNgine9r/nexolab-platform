@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import unittest
 from pathlib import Path
 
 from main import parse_unit_ids, parse_xjp60d_points
@@ -39,3 +40,12 @@ def test_hardware_compose_keeps_full_catalog_for_on_demand_discovery_only() -> N
     assert len(units) == 27
     assert 106 in units
     assert 126 in units  # KK1 sensor inventory number 200 maps to 126-04.
+
+
+class HardwareComposeEmbracoContractTests(unittest.TestCase):
+    def test_passes_only_explicit_embraco_enrollment(self) -> None:
+        content = HARDWARE_COMPOSE.read_text(encoding="utf-8")
+
+        self.assertIn('EMBRACO_UNIT_IDS: "${EMBRACO_UNIT_IDS:-}"', content)
+        self.assertNotIn("EMBRACO_TEMPERATURE_SCALE:", content)
+        self.assertNotIn("EMBRACO_CONTROL_SCALE:", content)

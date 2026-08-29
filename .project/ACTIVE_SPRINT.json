@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 759,
-      "title": "Make Embraco dual-bus source activation rollback-safe",
-      "branch": "fix/759-embraco-edge-sqlite-rollback"
+      "issue": 762,
+      "title": "Pass explicit Embraco enrollment into production hardware Compose",
+      "branch": "fix/762-embraco-compose-enrollment"
     },
     "next_work_package": {
       "issue": 760,
@@ -927,7 +927,7 @@
       "issue": 759,
       "title": "Make Embraco dual-bus source activation rollback-safe",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "fix/759-embraco-edge-sqlite-rollback",
       "evidence": {
@@ -949,7 +949,25 @@
         "read_only_pi_registry_revision": "18",
         "read_only_pi_queue_depth": "0",
         "read_only_pi_queue_high_water": "6512882",
-        "production_runtime_mutation": "none"
+        "production_runtime_mutation": "none",
+        "verified_head_sha": "7685de02ae388dd48302b88221179a0f4217b05c",
+        "pull_request": 761,
+        "nexolab_merge_gate": "success"
+      }
+    },
+    {
+      "issue": 762,
+      "title": "Pass explicit Embraco enrollment into production hardware Compose",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        759
+      ],
+      "branch": "fix/762-embraco-compose-enrollment",
+      "evidence": {
+        "defect": "production_hardware_compose_did_not_pass_embraco_unit_ids",
+        "runtime_mutation": "none",
+        "modbus_action": "none"
       }
     },
     {
@@ -958,7 +976,8 @@
       "priority": "critical",
       "lifecycle": "blocked",
       "depends_on": [
-        759
+        759,
+        762
       ],
       "branch": "ops/760-embraco-unit2-production-acceptance",
       "evidence": {
@@ -969,7 +988,8 @@
         "hardware_read_profile": "9600_8N2_FC03_read_only",
         "hardware_register_acceptance": "13_of_13_three_passes",
         "temperature_scale": "hardware_unverified_fail_closed",
-        "blocked_by_issue_759": "true"
+        "blocked_by_issue_759": "false",
+        "blocked_by_issue_762": "true"
       }
     }
   ],
