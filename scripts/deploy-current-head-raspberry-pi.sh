@@ -201,10 +201,17 @@ restore_edge_sqlite_snapshot() {
 
   result_tmp="$evidence_dir/.edge-sqlite-restore-result.json.partial"
   result_file="$evidence_dir/edge-sqlite-restore-result.json"
-  [[ ! -e "$result_tmp" && ! -e "$result_file" ]] || {
-    echo "ERROR: restore result already exists; refusing to overwrite recovery evidence" >&2
+  [[ ! -e "$result_file" ]] || {
+    echo "ERROR: final restore result already exists; refusing to repeat completed recovery" >&2
     return 1
   }
+  if [[ -e "$result_tmp" ]]; then
+    [[ -f "$result_tmp" && ! -L "$result_tmp" ]] || {
+      echo "ERROR: interrupted restore result is not a safe regular file" >&2
+      return 1
+    }
+    echo "Resuming interrupted restore through full guarded snapshot revalidation" >&2
+  fi
   deployed_device_agent_image_id="$(python3 - "$metadata" <<'PY_RESTORE_IMAGE'
 import json
 import sys

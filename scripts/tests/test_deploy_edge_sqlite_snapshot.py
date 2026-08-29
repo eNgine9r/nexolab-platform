@@ -312,6 +312,19 @@ class EdgeSQLiteDeploymentContractTests(unittest.TestCase):
         self.assertGreaterEqual(restore.count("os.fsync("), 2)
         self.assertLess(publish, success)
 
+    def test_interrupted_restore_partial_is_resumed_through_guarded_restore(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        start = text.index("restore_edge_sqlite_snapshot()")
+        end = text.index('\nif [[ -n "$RESTORE_EDGE_SNAPSHOT_DIR" ]]', start)
+        restore = text[start:end]
+        partial = restore.index('if [[ -e "$result_tmp" ]]')
+        guarded = restore.index("deploy-edge-sqlite-snapshot.py restore", partial)
+        publish = restore.index("PY_RESTORE_RESULT", guarded)
+        self.assertIn('[[ -f "$result_tmp" && ! -L "$result_tmp" ]]', restore)
+        self.assertIn("full guarded snapshot revalidation", restore)
+        self.assertLess(partial, guarded)
+        self.assertLess(guarded, publish)
+
     def test_pre_mutation_quiesce_is_durable_and_recovered_on_reentry(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
         persist_start = text.index("persist_edge_device_agent_quiesce_record()")
