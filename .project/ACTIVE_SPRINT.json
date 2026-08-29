@@ -22,7 +22,11 @@
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 757,
+      "title": "Correct Raspberry Pi PostgreSQL backup capacity estimation",
+      "branch": "fix/757-postgres-capacity-estimate"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -793,7 +797,7 @@
           "review_threads": "0_unresolved",
           "fresh_codex_review": "clean:b8fb31de3c"
         },
-        "readiness": "completed_candidate_pending_state_only_exact_head_ci_and_merge",
+        "readiness": "completed_merged",
         "review_reopened_after_green_candidate": true,
         "review_findings": "8_addressed",
         "capacity_retention_regressions": "9_passed",
@@ -809,6 +813,71 @@
         "review_threads": "0_unresolved",
         "fresh_codex_review": "clean:b8fb31de3c",
         "completion_evidence_anchor": "canonical_verified_head_corrected_before_merge_after_fresh_review"
+      }
+    },
+    {
+      "issue": 755,
+      "title": "Activate bounded #709 + #711 runtime target and capture acceptance",
+      "priority": "critical",
+      "lifecycle": "blocked",
+      "branch": "ops/755-bounded-709-711-runtime-acceptance",
+      "evidence": {
+        "product_owner_cutover_authorization": "approved_2026-08-29_for_issues_709_711_only",
+        "deployed_source_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d",
+        "approved_target_source_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
+        "control_main_sha": "76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8",
+        "source_selection_preflight": "PASS_real_pi",
+        "authoritative_deployment_evidence": "runtime/deployments/20260827T101743Z",
+        "preflight_runtime_health": "dashboard_200_device_agent_ok_mqtt_connected_queue_0",
+        "production_mutation": "not_started",
+        "privileged_operator_boundary": "interactive_elevation_required_no_bypass",
+        "frontend_artifact_workflow_run": "33249671236_success",
+        "frontend_artifact_status": "verified_ready_exact_target",
+        "excluded_scope": "issue_729_and_later_product_runtime_changes",
+        "currently_deployed_source_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d",
+        "frontend_artifact_id": "9714063428",
+        "frontend_artifact_digest": "sha256:e63811646fde0121a562d9d3bc1dfd04c24176a756657fd27f6358e3e9ff3f5e",
+        "frontend_artifact_source_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
+        "frontend_artifact_platform": "linux/arm64",
+        "frontend_artifact_repository_import": "PASS",
+        "frontend_artifact_runtime_contract": "PASS_local_lan_172.18.48.66_8082",
+        "runtime_mutation": "not_started",
+        "first_privileged_deployment_attempt": "20260829T133919Z_capacity_preflight_fail_before_runtime_mutation",
+        "first_privileged_deployment_capacity": "FAIL_free_12993241088_required_18872457135",
+        "capacity_failure_runtime_mutation_marker": "absent",
+        "capacity_fix": "streamed_pg_dump_fc_measurement_with_database_size_fail_safe_fallback",
+        "capacity_regression_tests": "14_passed",
+        "focused_deployment_safety_tests": "55_passed",
+        "real_pi_capacity_recheck": "PASS_free_12988268544_required_9487377137",
+        "real_pi_pg_database_bytes": "8930384919",
+        "real_pi_pg_dump_stream_bytes": "396437820",
+        "real_pi_pg_backup_margin_estimate_bytes": "503190466",
+        "runtime_health_after_failed_attempt": "dashboard_200_device_agent_ok_mqtt_connected_queue_0",
+        "capacity_cache_authority": "process_internal_inherited_environment_rejected",
+        "capacity_measurement_tempfile_failure": "database_size_fallback",
+        "blocked_by_issue_757": "capacity_guard_prerequisite_must_merge_to_main_before_privileged_retry",
+        "resume_after_issue_757": "bounded_runtime_acceptance_same_verified_ff86b10b_artifact"
+      }
+    },
+    {
+      "issue": 757,
+      "title": "Correct Raspberry Pi PostgreSQL backup capacity estimation",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "branch": "fix/757-postgres-capacity-estimate",
+      "evidence": {
+        "root_cause": "raw_pg_database_size_overestimated_compressed_pg_dump_fc_backup_capacity",
+        "capacity_fix": "streamed_pg_dump_fc_measurement_with_database_size_fail_safe_fallback",
+        "capacity_regression_tests": "14_passed",
+        "focused_deployment_safety_tests": "55_passed",
+        "cache_authority": "process_internal_inherited_environment_rejected",
+        "tempfile_failure": "database_size_fallback",
+        "real_pi_capacity_recheck": "PASS_free_12988268544_required_9487377137",
+        "real_pi_pg_database_bytes": "8930384919",
+        "real_pi_pg_dump_stream_bytes": "396437820",
+        "real_pi_pg_backup_margin_estimate_bytes": "503190466",
+        "production_runtime_mutation": "none",
+        "issue_755_dependency": "must_merge_to_main_before_resume"
       }
     }
   ],
