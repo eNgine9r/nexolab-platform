@@ -275,6 +275,20 @@ class EdgeSQLiteDeploymentContractTests(unittest.TestCase):
         self.assertLess(resolve, final_guard)
         self.assertIn('deployed_source="$VERIFIED_DEPLOYED_SOURCE"', capture)
 
+    def test_existing_edge_authority_is_protected_before_evidence_retention(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        function_start = text.index("resolve_deployed_source_authority()")
+        function_end = text.index("\n}\n", function_start)
+        authority_function = text[function_start:function_end]
+        volume = authority_function.index("docker volume inspect nexolab-edge_edge-data")
+        resolve = authority_function.index("resolve_latest_deployment_evidence", volume)
+        self.assertLess(volume, resolve)
+
+        deployment_start = text.index('PG_CONTAINER="$(docker ps')
+        authority_call = text.index("resolve_deployed_source_authority\n", deployment_start)
+        retention = text.index("nexolab_prune_deployment_evidence", authority_call)
+        self.assertLess(authority_call, retention)
+
     def test_helper_is_staged_before_historical_checkout(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
         stage = text.index(

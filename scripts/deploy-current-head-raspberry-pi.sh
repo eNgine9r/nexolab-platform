@@ -628,7 +628,13 @@ PY_EVIDENCE
 }
 
 resolve_deployed_source_authority() {
-  [[ -n "$REQUESTED_SOURCE_REF" ]] || return 0
+  if [[ -z "$REQUESTED_SOURCE_REF" ]]; then
+    if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "0" ]] \
+      && docker volume inspect nexolab-edge_edge-data >/dev/null 2>&1; then
+      resolve_latest_deployment_evidence
+    fi
+    return 0
+  fi
   validate_full_sha "$REQUESTED_SOURCE_REF" || fail "--source-ref must be a full lowercase 40-character commit SHA"
   validate_full_sha "$EXPECTED_DEPLOYED_SOURCE" || fail "--expected-deployed-source must be a full lowercase 40-character commit SHA"
   resolve_latest_deployment_evidence
