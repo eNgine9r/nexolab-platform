@@ -445,6 +445,16 @@ def adopt(args: argparse.Namespace) -> dict[str, Any]:
             raise AdoptionFailure("current deployment evidence already exists; refusing to replace it")
         existing_commit = existing.get("source_commit")
         existing_evidence = existing.get("source_deployment_evidence")
+        if not isinstance(existing_commit, str) or not SHA.fullmatch(existing_commit):
+            raise AdoptionFailure("existing source deployment authority has an invalid source commit")
+        if existing_commit != source_commit:
+            git(repo, "cat-file", "-e", f"{existing_commit}^{{commit}}")
+            try:
+                git(repo, "merge-base", "--is-ancestor", existing_commit, source_commit)
+            except AdoptionFailure as error:
+                raise AdoptionFailure(
+                    "source adoption would move existing source authority backward"
+                ) from error
         if existing_commit == source_commit and existing_evidence == relative_evidence:
             return {
                 "status": "already_recorded",

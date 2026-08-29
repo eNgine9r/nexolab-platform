@@ -44,7 +44,7 @@ Product Owner authorization is recorded for the exact historical-main deployment
 
 ## Issue #753 — PR #754 deployment-safety review hardening
 
-Seven substantive review findings have now been addressed locally. The latest P1 prevents stale successful evidence from moving source-adoption authority backward after a newer deployment, using the same canonical timestamp/newer-mutating-attempt fail-closed rule as deployment source selection. The latest P2 canonicalizes symlinked deployment-root/current/protected paths before retention comparison. Earlier historical schema authority remains exact to deployed Git objects (`ff86b10b...` → `20260820_0026`, control main → `20260828_0027`). Local deployment + adopter safety tests are 49/49 PASS. #753 remains blocked from merge/production mutation until a new exact head is Core/Telemetry/Merge-Gate GREEN and fresh review has zero unresolved findings.
+Eight substantive review findings have now been addressed locally. The newest P1 adds an independent non-regression guard for existing controlled-source authority: a candidate adoption must be the same commit or a fast-forward descendant of the `current.json` source commit even when the prior evidence directory is missing, so preserved older evidence cannot move authority backward. The previous latest-authority/newer-mutating-attempt and symlink-canonicalization fixes remain intact, as does historical schema authority exact to deployed Git objects (`ff86b10b...` → `20260820_0026`, control main → `20260828_0027`). Local deployment + adopter safety tests are 51/51 PASS. #753 remains blocked from merge/production mutation until a new exact head is Core/Telemetry/Merge-Gate GREEN and fresh review has zero unresolved findings.
 
 ## Cleared boundaries
 

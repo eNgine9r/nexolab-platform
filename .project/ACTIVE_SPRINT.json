@@ -789,22 +789,23 @@
         "deployed_source_evidence_match": "required_latest_successful_deployment",
         "verified_head_sha": "c0af040aa4715e027141871fe3087a6f98f41002",
         "checks": {
-          "core_quality_build": "success:5c41e6d9",
-          "telemetry_service": "success:5c41e6d9",
-          "nexolab_merge_gate": "success:5c41e6d9",
-          "review_threads": "7_unresolved_2_latest_findings_addressed_locally"
+          "core_quality_build": "success:b3936bb7",
+          "telemetry_service": "success:b3936bb7",
+          "nexolab_merge_gate": "success:b3936bb7",
+          "review_threads": "8_unresolved_1_latest_finding_addressed_locally"
         },
         "readiness": "local_green_pending_new_exact_head_ci",
         "review_reopened_after_green_candidate": true,
-        "review_findings": "7_addressed_locally_pending_new_exact_head_review",
+        "review_findings": "8_addressed_locally_pending_new_exact_head_review",
         "capacity_retention_regressions": "9_passed",
         "legacy_pi_evidence_preflight": "success_on_metadata_copy_target_ff86b10b_restore_main",
-        "source_adoption_tests": "12_passed",
-        "combined_local_safety_tests": "49_passed",
+        "source_adoption_tests": "14_passed",
+        "combined_local_safety_tests": "51_passed",
         "historical_schema_git_object_proof": "ff86b10b=20260820_0026_control_main=20260828_0027",
         "last_published_review_head_sha": "5c41e6d9b7570fc54d6199d344c0a018db5bab1e",
         "adopter_latest_authoritative_evidence": "required_with_newer_mutating_attempt_fail_closed",
-        "retention_symlink_path_canonicalization": "verified_by_regression_test"
+        "retention_symlink_path_canonicalization": "verified_by_regression_test",
+        "existing_source_authority_non_regression": "same_or_fast_forward_descendant_required_even_if_prior_evidence_missing"
       }
     }
   ],

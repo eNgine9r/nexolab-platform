@@ -418,6 +418,104 @@ def test_adoption_never_replaces_existing_packaged_current(
     assert current["bundle_id"] == "validated-release-1"
 
 
+def test_adoption_refuses_to_move_existing_source_authority_backward_when_evidence_is_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    candidate = "a" * 40
+    existing_commit = "b" * 40
+    repo, root, _evidence, args = make_deployment_fixture(tmp_path, commit=candidate)
+    root.mkdir(parents=True)
+    existing_payload = {
+        "bundle_id": f"source-main-{existing_commit[:12]}",
+        "source_commit": existing_commit,
+        "deployment_authority": "controlled_source_deployment",
+        "source_deployment_evidence": "runtime/deployments/20260819T131726Z",
+    }
+    (root / "current.json").write_text(
+        json.dumps(existing_payload),
+        encoding="utf-8",
+    )
+
+    def fake_git(_repo: Path, *arguments: str) -> str:
+        if arguments == ("merge-base", "--is-ancestor", existing_commit, candidate):
+            raise adopter.AdoptionFailure("command failed safely: backward lineage")
+        table = {
+            ("remote", "get-url", "origin"): "git@github.com:eNgine9r/nexolab-platform.git",
+            ("rev-parse", "--abbrev-ref", "HEAD"): "main",
+            ("status", "--porcelain", "--untracked-files=no"): "",
+            ("rev-parse", "HEAD"): candidate,
+            ("rev-parse", "origin/main"): candidate,
+            ("merge-base", "--is-ancestor", candidate, candidate): "",
+            ("cat-file", "-e", f"{candidate}^{{commit}}"): "",
+            ("cat-file", "-e", f"{existing_commit}^{{commit}}"): "",
+            ("show", "-s", "--format=%cI", candidate): "2026-08-18T13:07:32+00:00",
+        }
+        return table[arguments]
+
+    monkeypatch.setattr(adopter, "git", fake_git)
+    monkeypatch.setattr(adopter, "repository_schema_head", lambda _repo, _commit=None: "20260818_0026")
+    monkeypatch.setattr(adopter, "verify_live_schema", lambda _head: None)
+    monkeypatch.setattr(adopter, "verify_live_runtime", lambda _url: "ready")
+    monkeypatch.setattr(adopter, "host_platform", lambda: "linux/arm64")
+
+    with pytest.raises(
+        adopter.AdoptionFailure,
+        match="source adoption would move existing source authority backward",
+    ):
+        adopter.adopt(args)
+
+    assert json.loads((root / "current.json").read_text(encoding="utf-8")) == existing_payload
+
+
+def test_adoption_allows_forward_replacement_when_existing_evidence_is_missing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    existing_commit = "9" * 40
+    candidate = "a" * 40
+    _repo, root, _evidence, args = make_deployment_fixture(tmp_path, commit=candidate)
+    root.mkdir(parents=True)
+    (root / "current.json").write_text(
+        json.dumps(
+            {
+                "bundle_id": f"source-main-{existing_commit[:12]}",
+                "source_commit": existing_commit,
+                "deployment_authority": "controlled_source_deployment",
+                "source_deployment_evidence": "runtime/deployments/removed",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    def fake_git(_repo: Path, *arguments: str) -> str:
+        table = {
+            ("remote", "get-url", "origin"): "git@github.com:eNgine9r/nexolab-platform.git",
+            ("rev-parse", "--abbrev-ref", "HEAD"): "main",
+            ("status", "--porcelain", "--untracked-files=no"): "",
+            ("rev-parse", "HEAD"): candidate,
+            ("rev-parse", "origin/main"): candidate,
+            ("merge-base", "--is-ancestor", candidate, candidate): "",
+            ("cat-file", "-e", f"{candidate}^{{commit}}"): "",
+            ("cat-file", "-e", f"{existing_commit}^{{commit}}"): "",
+            ("merge-base", "--is-ancestor", existing_commit, candidate): "",
+            ("show", "-s", "--format=%cI", candidate): "2026-08-18T13:07:32+00:00",
+        }
+        return table[arguments]
+
+    monkeypatch.setattr(adopter, "git", fake_git)
+    monkeypatch.setattr(adopter, "repository_schema_head", lambda _repo, _commit=None: "20260818_0026")
+    monkeypatch.setattr(adopter, "verify_live_schema", lambda _head: None)
+    monkeypatch.setattr(adopter, "verify_live_runtime", lambda _url: "ready")
+    monkeypatch.setattr(adopter, "host_platform", lambda: "linux/arm64")
+
+    result = adopter.adopt(args)
+    current = json.loads((root / "current.json").read_text(encoding="utf-8"))
+    assert result["status"] == "recorded"
+    assert current["source_commit"] == candidate
+    assert current["previous_source_commit"] == existing_commit
+
+
 def test_source_adoption_is_idempotent_for_same_verified_deployment(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
