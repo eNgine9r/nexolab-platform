@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-29T11:35:05+03:00",
+  "timestamp": "2026-08-29T11:36:56+03:00",
   "actor": "ChatGPT",
-  "event": "issue_748_state_truth_reconciliation_completed_candidate",
+  "event": "issue_748_state_truth_reconciliation_merged",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
@@ -13,17 +13,31 @@
   "active_work": null,
   "evidence_snapshot": {
     "completed_issue": 748,
-    "scope": "canonical .project state only",
-    "stale_current_state_reference": "removed",
-    "stale_blockers_reference": "removed",
-    "first_candidate_head_sha": "b3f2ce4b02f85cdd5035041e85d652de65afb693",
-    "first_exact_head_state_integrity": "PASS",
-    "first_exact_head_nexolab_merge_gate": "PASS",
+    "pull_request": 750,
+    "verified_head_sha": "95105a14598fe15aea4e9119215722de5b3853a7",
+    "exact_head_state_integrity": "PASS",
+    "exact_head_nexolab_merge_gate": "PASS",
+    "post_merge_main_observed": "5e70ddadda2772e12a3b9481ec746b77d350d495",
+    "canonical_stale_730_references": "absent",
+    "active_work_package": "none",
+    "next_work_package": "none",
     "product_runtime_change": "none",
-    "delta_ready_audit": "no independent Ready Work Package"
+    "production_dashboard_3000": "HTTP 200"
   },
-  "observations": [],
-  "next_action": "Merge the final #748 state-only candidate only after its exact-head State integrity / NEXOLAB Merge Gate are GREEN. After merge, no independent Ready Work Package remains until a hardware gate changes, production/site cutover is explicitly authorized, or RFX is explicitly resumed.",
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-08-29T11:36:56+03:00",
+      "kind": "issue_748_merge_completion",
+      "data": {
+        "issue": 748,
+        "pull_request": 750,
+        "verified_head_sha": "95105a14598fe15aea4e9119215722de5b3853a7",
+        "main_sha": "5e70ddadda2772e12a3b9481ec746b77d350d495"
+      }
+    }
+  ],
+  "next_action": "No independent Ready Work Package remains. Continue only when hardware evidence becomes available, the Product Owner explicitly authorizes a production/site-cutover package, or deferred RFX work is explicitly resumed.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
