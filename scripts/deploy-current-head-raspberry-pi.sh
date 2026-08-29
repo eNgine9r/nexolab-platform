@@ -141,6 +141,7 @@ restore_edge_sqlite_snapshot() {
   done
 
   local deployments_root evidence_dir evidence_id snapshot metadata result_tmp result_file
+  local deployed_device_agent_image_id
   deployments_root="$(python3 -c 'import pathlib,sys; print(pathlib.Path(sys.argv[1]).resolve())' "$REPO/runtime/deployments")"
   evidence_dir="$(python3 -c 'import pathlib,sys; print(pathlib.Path(sys.argv[1]).resolve())' "$RESTORE_EDGE_SNAPSHOT_DIR")"
   [[ "$evidence_dir" == "$deployments_root"/* ]] \
@@ -204,6 +205,34 @@ restore_edge_sqlite_snapshot() {
     echo "ERROR: restore result already exists; refusing to overwrite recovery evidence" >&2
     return 1
   }
+  deployed_device_agent_image_id="$(python3 - "$metadata" <<'PY_RESTORE_IMAGE'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as stream:
+    print(json.load(stream).get("deployed_device_agent_image_id", ""))
+PY_RESTORE_IMAGE
+)"
+  [[ "$deployed_device_agent_image_id" =~ ^sha256:[0-9a-f]{64}$ ]] \
+    || {
+      echo "ERROR: snapshot evidence has no valid pre-cutover Device Agent image id" >&2
+      return 1
+    }
+  docker image inspect "$deployed_device_agent_image_id" >/dev/null 2>&1 \
+    || {
+      echo "ERROR: exact pre-cutover Device Agent image is unavailable; database was not restored" >&2
+      return 1
+    }
+  docker image tag "$deployed_device_agent_image_id" nexolab-device-agent:local \
+    || {
+      echo "ERROR: failed to select the exact pre-cutover Device Agent image" >&2
+      return 1
+    }
+  [[ "$(docker image inspect --format '{{.Id}}' nexolab-device-agent:local)" == "$deployed_device_agent_image_id" ]] \
+    || {
+      echo "ERROR: pre-cutover Device Agent image verification failed" >&2
+      return 1
+    }
   if ! docker run --rm --user 0:0 \
     --volumes-from "$edge_container" \
     --mount "type=bind,src=$SCRIPT_DIR,dst=/nexolab-scripts,readonly" \
@@ -795,6 +824,7 @@ capture_edge_sqlite_snapshot() {
       --deployed-source "$deployed_source" \
       --target-source "$CURRENT_HEAD" \
       --deployment-evidence-id "$STAMP" \
+      --deployed-device-agent-image-id "$edge_image" \
       > "$AUDIT_DIR/edge-sqlite-capture-result.json"; then
     rm -f -- "$snapshot" "$metadata" "$AUDIT_DIR/edge-sqlite-capture-result.json"
     fail "required edge SQLite snapshot/verification failed before runtime mutation"

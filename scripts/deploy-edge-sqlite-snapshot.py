@@ -21,6 +21,7 @@ from typing import Any
 
 SCHEMA_VERSION = 1
 SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
+IMAGE_ID_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 EVIDENCE_ID_PATTERN = re.compile(r"^[0-9]{8}T[0-9]{6}Z$")
 
 
@@ -114,6 +115,8 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
         raise SnapshotError("deployed and target source must be exact commit SHAs")
     if not EVIDENCE_ID_PATTERN.fullmatch(args.deployment_evidence_id):
         raise SnapshotError("deployment evidence id must be a UTC deployment timestamp")
+    if not IMAGE_ID_PATTERN.fullmatch(args.deployed_device_agent_image_id):
+        raise SnapshotError("deployed Device Agent image must be an immutable SHA-256 image id")
 
     snapshot.parent.mkdir(parents=True, exist_ok=True)
     completed = False
@@ -147,6 +150,7 @@ def capture(args: argparse.Namespace) -> dict[str, Any]:
             "deployed_source": args.deployed_source,
             "target_source": args.target_source,
             "deployment_evidence_id": args.deployment_evidence_id,
+            "deployed_device_agent_image_id": args.deployed_device_agent_image_id,
             "source_quick_check": "ok",
             "snapshot_quick_check": "ok",
         }
@@ -174,6 +178,9 @@ def _load_metadata(path: Path) -> dict[str, Any]:
         "snapshot_quick_check"
     ) != "ok":
         raise SnapshotError("snapshot metadata does not record both integrity checks")
+    image_id = document.get("deployed_device_agent_image_id")
+    if not isinstance(image_id, str) or not IMAGE_ID_PATTERN.fullmatch(image_id):
+        raise SnapshotError("snapshot metadata Device Agent image id is invalid")
     return document
 
 
@@ -283,6 +290,7 @@ def restore(args: argparse.Namespace) -> dict[str, Any]:
         "outbound_queue_high_water": queue_high_water,
         "node_stream_sequences": stream_sequences,
         "deployment_evidence_id": document["deployment_evidence_id"],
+        "deployed_device_agent_image_id": document["deployed_device_agent_image_id"],
         "target_source": document["target_source"],
     }
 
@@ -297,6 +305,7 @@ def parser() -> argparse.ArgumentParser:
     capture_parser.add_argument("--deployed-source", required=True)
     capture_parser.add_argument("--target-source", required=True)
     capture_parser.add_argument("--deployment-evidence-id", required=True)
+    capture_parser.add_argument("--deployed-device-agent-image-id", required=True)
     capture_parser.set_defaults(handler=capture)
 
     restore_parser = sub.add_parser("restore")

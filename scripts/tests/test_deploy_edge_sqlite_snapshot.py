@@ -24,6 +24,7 @@ SPEC.loader.exec_module(edge_snapshot)
 DEPLOYED = "a" * 40
 TARGET = "b" * 40
 EVIDENCE_ID = "20260829T210000Z"
+DEVICE_AGENT_IMAGE_ID = "sha256:" + "d" * 64
 
 
 def create_database(
@@ -92,6 +93,7 @@ class EdgeSQLiteSnapshotTests(unittest.TestCase):
             deployed_source=DEPLOYED,
             target_source=TARGET,
             deployment_evidence_id=EVIDENCE_ID,
+            deployed_device_agent_image_id=DEVICE_AGENT_IMAGE_ID,
         )
 
     def restore_args(self, destination: Path, **overrides: str) -> argparse.Namespace:
@@ -123,6 +125,7 @@ class EdgeSQLiteSnapshotTests(unittest.TestCase):
         self.assertEqual(document["outbound_queue_count"], 2)
         self.assertEqual(document["outbound_queue_high_water"], 2)
         self.assertEqual(document["node_stream_sequences"], {"telemetry": 42})
+        self.assertEqual(document["deployed_device_agent_image_id"], DEVICE_AGENT_IMAGE_ID)
         self.assertEqual(document["sha256"], sha256(self.snapshot))
         self.assertEqual(document["bytes"], self.snapshot.stat().st_size)
         self.assertNotIn("payload", json.dumps(document).lower())
@@ -326,6 +329,24 @@ class EdgeSQLiteDeploymentContractTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("must already be stopped", result.stderr)
             self.assertNotIn("run --rm", calls.read_text(encoding="utf-8"))
+
+    def test_restore_selects_previous_image_before_database_replacement(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        start = text.index("restore_edge_sqlite_snapshot()")
+        end = text.index('\nif [[ -n "$RESTORE_EDGE_SNAPSHOT_DIR" ]]', start)
+        restore = text[start:end]
+        tag = restore.index(
+            'docker image tag "$deployed_device_agent_image_id" '
+            "nexolab-device-agent:local"
+        )
+        replace = restore.index("docker run --rm --user 0:0")
+        self.assertLess(tag, replace)
+
+        runbook = (
+            ROOT / "docs" / "operations" / "edge-sqlite-cutover-recovery.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("up -d --force-recreate device-agent", runbook)
+        self.assertIn("deployed_device_agent_image_id", runbook)
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ This runbook defines the rollback-safe acquisition-registry boundary used by con
 When `nexolab-edge_edge-data` exists, `scripts/deploy-current-head-raspberry-pi.sh` fails closed unless it can identify exactly one Device Agent container and capture:
 
 - `edge-sqlite-pre-cutover.db` through `sqlite3.Connection.backup()` while the current database may remain live;
-- `edge-sqlite-pre-cutover.json` with source/snapshot integrity results, SHA-256, byte size, registry revision, outbound queue count and high-water mark, per-stream sequence counters, deployed source, target source and deployment evidence ID;
+- `edge-sqlite-pre-cutover.json` with source/snapshot integrity results, SHA-256, byte size, registry revision, outbound queue count and high-water mark, per-stream sequence counters, deployed source, exact pre-cutover Device Agent image ID, target source and deployment evidence ID;
 - `edge-sqlite-capture-result.json`, containing the same sanitized result.
 
 All files remain in the ignored `runtime/deployments/<UTC timestamp>/` audit directory. The evidence contains no telemetry payloads. The helper itself is checksum-staged in that directory before any historical source checkout, and capture runs only after candidate verification, immediately before `runtime-mutation-started`. Source and snapshot must both pass `PRAGMA quick_check` before the deployment can cross that boundary.
@@ -42,7 +42,7 @@ bash scripts/deploy-current-head-raspberry-pi.sh \
   --expected-target-source <failed target 40-character SHA>
 ```
 
-The command rejects a running or ambiguous Device Agent, an unexpected volume, any remaining SQLite WAL/SHM/journal sidecar that could contain newer state, queue or stream-sequence advancement after capture, a corrupt snapshot, a mismatched filename/size/hash/revision/queue count, and wrong source or deployment evidence. It writes `edge-sqlite-restore-result.json` only after an atomic replacement has the exact captured SHA and revision. The Device Agent remains stopped.
+The command rejects a running or ambiguous Device Agent, an unexpected volume, an unavailable pre-cutover Device Agent image, any remaining SQLite WAL/SHM/journal sidecar that could contain newer state, queue or stream-sequence advancement after capture, a corrupt snapshot, a mismatched filename/size/hash/revision/queue count, and wrong source or deployment evidence. Before replacing SQLite it retags and verifies the exact captured pre-cutover image as `nexolab-device-agent:local`. It writes `edge-sqlite-restore-result.json` only after an atomic replacement has the exact captured SHA and revision. The Device Agent remains stopped.
 
 Review the sanitized result and only then restart Device Agent as a separate operator action:
 
@@ -52,10 +52,10 @@ docker compose \
   -f infrastructure/compose/compose.edge.yaml \
   -f infrastructure/compose/compose.hardware.yaml \
   -f infrastructure/compose/compose.edge-central-bridge.yaml \
-  up -d device-agent
+  up -d --force-recreate device-agent
 ```
 
-After restart, verify Device Agent health, MQTT connectivity, queue depth and the expected acquisition-registry revision before continuing. A failed verification is not permission to delete data or retry with a different snapshot.
+After restart, verify that the recreated container image ID exactly matches `deployed_device_agent_image_id` in `edge-sqlite-restore-result.json`, then verify Device Agent health, MQTT connectivity, queue depth and the expected acquisition-registry revision before continuing. A failed verification is not permission to delete data or retry with a different snapshot.
 
 ## Safety boundary
 
