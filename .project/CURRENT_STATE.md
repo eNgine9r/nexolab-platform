@@ -14,7 +14,7 @@ RFX-01 / Issue #717 is no longer Ready and is blocked by the Product Owner hold.
 
 Security/CI interrupts discovered during the attempted RFX-01 verification were completed independently because they affect the presentation baseline: #723 / PR #724 merged at `8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb`, and #719 / PR #721 merged at `1f2654dec0f02263aec6c2314187cfa62e5723e9` with exact-head Container Supply Chain, Telemetry service, Core CI and NEXOLAB Merge Gate GREEN. Issue #722 triage is completed. The exact Device Agent `libexpat1/CVE-2026-66046` maintenance decision remains separately reviewable through **2026-09-02**.
 
-Bounded production deployment #755 successfully activated historical-main target `ff86b10b71c8e5252c15baaf4183adbf42f30f18` on 2026-08-29 with `DEPLOYMENT PASSED` evidence at `runtime/deployments/20260829T154823Z`. This target contains #709 and #711 while intentionally excluding later #729 product/runtime scope. Real runtime acceptance for #709 and #711 is PASS; only controlled-source version-management adoption and final #755/PR #756 reconciliation remain. Existing hardware/recovery blockers remain separately documented.
+Bounded production deployment #755 successfully activated historical-main target `ff86b10b71c8e5252c15baaf4183adbf42f30f18` on 2026-08-29 with `DEPLOYMENT PASSED` evidence at `runtime/deployments/20260829T154823Z`. This target contains #709 and #711 while intentionally excluding later #729 product/runtime scope. Real runtime acceptance for #709 and #711 is PASS and controlled-source version-management adoption is recorded; #755 runtime work is complete. Existing hardware/recovery blockers remain separately documented.
 
 ## Issue #733 — canonical project-state formatter boundary
 
