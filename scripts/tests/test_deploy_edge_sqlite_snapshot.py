@@ -312,6 +312,27 @@ class EdgeSQLiteDeploymentContractTests(unittest.TestCase):
         self.assertGreaterEqual(restore.count("os.fsync("), 2)
         self.assertLess(publish, success)
 
+    def test_pre_mutation_quiesce_is_durable_and_recovered_on_reentry(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        persist_start = text.index("persist_edge_device_agent_quiesce_record()")
+        persist_end = text.index("\nPY_QUIESCE_RECORD\n}", persist_start)
+        persist = text[persist_start:persist_end]
+        self.assertIn("os.replace(temporary, record)", persist)
+        self.assertGreaterEqual(persist.count("os.fsync("), 2)
+
+        quiesce_start = text.index("quiesce_edge_device_agent_for_cutover()")
+        quiesce_end = text.index("\n}\n", quiesce_start)
+        quiesce = text[quiesce_start:quiesce_end]
+        record = quiesce.index("persist_edge_device_agent_quiesce_record")
+        stop = quiesce.index("docker stop", record)
+        self.assertLess(record, stop)
+
+        deployment_start = text.index('PG_CONTAINER="$(docker ps')
+        recover = text.index("recover_interrupted_pre_mutation_quiesce\n", deployment_start)
+        retention = text.index("nexolab_prune_deployment_evidence", recover)
+        self.assertLess(recover, retention)
+        self.assertIn("edge-device-agent-quiesce-recovered.json", text)
+
     def test_existing_edge_resolves_deployed_source_for_normal_current_main_mode(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
         start = text.index("capture_edge_sqlite_snapshot()")

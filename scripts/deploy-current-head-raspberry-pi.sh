@@ -315,6 +315,7 @@ SOURCE_CHECKOUT_RESTORE_REQUIRED="0"
 EDGE_DEVICE_AGENT_QUIESCED_BY_DEPLOYMENT="0"
 EDGE_DEVICE_AGENT_QUIESCED_CONTAINER=""
 EDGE_DEVICE_AGENT_PRE_CUTOVER_IMAGE_ID=""
+EDGE_DEVICE_AGENT_QUIESCE_EVIDENCE=""
 CONTROL_HEAD=""
 TARGET_HEAD=""
 EXPECTED_DEPLOYMENT_EVIDENCE=""
@@ -442,6 +443,123 @@ restore_control_checkout() {
   log "Repository checkout restored to main: $restored_head"
 }
 
+publish_edge_device_agent_quiesce_recovery() {
+  local evidence_dir="$1"
+  local container_id="$2"
+  local image_id="$3"
+  python3 - "$evidence_dir/edge-device-agent-quiesce-recovered.json" \
+    "$container_id" "$image_id" <<'PY_QUIESCE_RECOVERED'
+import json
+import os
+from pathlib import Path
+import sys
+from datetime import datetime
+
+result = Path(sys.argv[1])
+container_id = sys.argv[2]
+image_id = sys.argv[3]
+temporary = result.with_name(f".{result.name}.tmp-{os.getpid()}")
+document = {
+    "schema_version": 1,
+    "kind": "nexolab-edge-device-agent-quiesce-recovered",
+    "deployment_evidence_id": result.parent.name,
+    "container_id": container_id,
+    "image_id": image_id,
+    "recovered_at": datetime.now().astimezone().isoformat(),
+}
+try:
+    with temporary.open("x", encoding="utf-8") as stream:
+        stream.write(json.dumps(document, indent=2) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.chmod(temporary, 0o600)
+    os.replace(temporary, result)
+    directory_fd = os.open(result.parent, os.O_RDONLY)
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+finally:
+    temporary.unlink(missing_ok=True)
+PY_QUIESCE_RECOVERED
+}
+
+recover_interrupted_pre_mutation_quiesce() {
+  local recovery
+  if ! recovery="$(python3 - "$REPO/runtime/deployments" "$AUDIT_DIR" <<'PY_FIND_QUIESCE'
+import json
+from pathlib import Path
+import re
+import sys
+
+root = Path(sys.argv[1])
+current = Path(sys.argv[2]).resolve()
+stamp_re = re.compile(r"^\d{8}T\d{6}Z$")
+container_re = re.compile(r"^[0-9a-f]{64}$")
+image_re = re.compile(r"^sha256:[0-9a-f]{64}$")
+candidates = []
+if root.is_dir():
+    for directory in root.iterdir():
+        if not directory.is_dir() or directory.is_symlink() or not stamp_re.fullmatch(directory.name):
+            continue
+        record_path = directory / "edge-device-agent-quiesce.json"
+        if not record_path.exists():
+            continue
+        if record_path.is_symlink() or not record_path.is_file():
+            print(f"ERROR: unsafe Device Agent quiesce record: {directory}", file=sys.stderr)
+            raise SystemExit(1)
+        if (directory / "runtime-mutation-started").is_file() or (
+            directory / "edge-device-agent-quiesce-recovered.json"
+        ).is_file():
+            continue
+        try:
+            record = json.loads(record_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            print(f"ERROR: unreadable Device Agent quiesce record: {directory}: {error}", file=sys.stderr)
+            raise SystemExit(1)
+        valid = (
+            isinstance(record, dict)
+            and record.get("schema_version") == 1
+            and record.get("kind") == "nexolab-edge-device-agent-quiesce"
+            and record.get("deployment_evidence_id") == directory.name
+            and container_re.fullmatch(str(record.get("container_id", "")))
+            and image_re.fullmatch(str(record.get("image_id", "")))
+        )
+        if not valid:
+            print(f"ERROR: invalid Device Agent quiesce record: {directory}", file=sys.stderr)
+            raise SystemExit(1)
+        candidates.append((directory.name, directory.resolve(), record["container_id"], record["image_id"]))
+if len(candidates) > 1:
+    print("ERROR: multiple unresolved Device Agent quiesce records", file=sys.stderr)
+    raise SystemExit(1)
+if candidates:
+    _stamp, directory, container_id, image_id = candidates[0]
+    if directory == current:
+        raise SystemExit(0)
+    print(f"{directory}\t{container_id}\t{image_id}")
+PY_FIND_QUIESCE
+)"; then
+    fail "unresolved Device Agent quiesce evidence is unsafe"
+  fi
+  [[ -n "$recovery" ]] || return 0
+  local evidence_dir="${recovery%%$'\t'*}"
+  local recovery_tail="${recovery#*$'\t'}"
+  local container_id="${recovery_tail%%$'\t'*}"
+  local image_id="${recovery_tail#*$'\t'}"
+  [[ "$(docker inspect --format '{{.Id}}' "$container_id")" == "$container_id" \
+    && "$(docker inspect --format '{{.Image}}' "$container_id")" == "$image_id" ]] \
+    || fail "recorded pre-mutation Device Agent container/image is unavailable"
+  if [[ "$(docker inspect --format '{{.State.Running}}' "$container_id")" != "true" ]]; then
+    docker start "$container_id" >/dev/null \
+      || fail "recorded pre-mutation Device Agent could not be restarted"
+  fi
+  [[ "$(docker inspect --format '{{.State.Running}}' "$container_id")" == "true" ]] \
+    || fail "recorded pre-mutation Device Agent did not return to running state"
+  publish_edge_device_agent_quiesce_recovery "$evidence_dir" "$container_id" "$image_id" \
+    || fail "Device Agent quiesce recovery evidence could not be published"
+  log "Recovered exact Device Agent from interrupted pre-mutation quiesce: $evidence_dir"
+}
+
 restart_quiesced_device_agent_after_pre_mutation_failure() {
   [[ "$EDGE_DEVICE_AGENT_QUIESCED_BY_DEPLOYMENT" == "1" ]] || return 0
   [[ ! -e "$AUDIT_DIR/runtime-mutation-started" ]] || return 0
@@ -452,6 +570,11 @@ restart_quiesced_device_agent_after_pre_mutation_failure() {
     || return 1
   docker start "$EDGE_DEVICE_AGENT_QUIESCED_CONTAINER" >/dev/null || return 1
   [[ "$(docker inspect --format '{{.State.Running}}' "$EDGE_DEVICE_AGENT_QUIESCED_CONTAINER")" == "true" ]] \
+    || return 1
+  publish_edge_device_agent_quiesce_recovery \
+    "$EDGE_DEVICE_AGENT_QUIESCE_EVIDENCE" \
+    "$EDGE_DEVICE_AGENT_QUIESCED_CONTAINER" \
+    "$EDGE_DEVICE_AGENT_PRE_CUTOVER_IMAGE_ID" \
     || return 1
   EDGE_DEVICE_AGENT_QUIESCED_BY_DEPLOYMENT="0"
   log "Restarted unchanged Device Agent after pre-mutation snapshot-boundary failure"
@@ -765,6 +888,7 @@ PG_CONTAINER="$(docker ps -q \
   --filter label=com.docker.compose.service=postgres \
   | head -n 1)"
 
+recover_interrupted_pre_mutation_quiesce
 resolve_deployed_source_authority
 log "Applying bounded deployment-evidence retention"
 if ! nexolab_prune_deployment_evidence "$REPO/runtime/deployments" "$AUDIT_DIR" "$EXPECTED_DEPLOYMENT_EVIDENCE"; then
@@ -974,6 +1098,45 @@ print(
 PY_EDGE_SNAPSHOT
 }
 
+persist_edge_device_agent_quiesce_record() {
+  local container_id="$1"
+  local image_id="$2"
+  python3 - "$AUDIT_DIR/edge-device-agent-quiesce.json" \
+    "$STAMP" "$container_id" "$image_id" "$CURRENT_HEAD" <<'PY_QUIESCE_RECORD'
+import json
+import os
+from pathlib import Path
+import sys
+from datetime import datetime
+
+record = Path(sys.argv[1])
+temporary = record.with_name(f".{record.name}.tmp-{os.getpid()}")
+document = {
+    "schema_version": 1,
+    "kind": "nexolab-edge-device-agent-quiesce",
+    "deployment_evidence_id": sys.argv[2],
+    "container_id": sys.argv[3],
+    "image_id": sys.argv[4],
+    "target_source": sys.argv[5],
+    "recorded_at": datetime.now().astimezone().isoformat(),
+}
+try:
+    with temporary.open("x", encoding="utf-8") as stream:
+        stream.write(json.dumps(document, indent=2) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.chmod(temporary, 0o600)
+    os.replace(temporary, record)
+    directory_fd = os.open(record.parent, os.O_RDONLY)
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+finally:
+    temporary.unlink(missing_ok=True)
+PY_QUIESCE_RECORD
+}
+
 quiesce_edge_device_agent_for_cutover() {
   local edge_volume="nexolab-edge_edge-data"
   local -a edge_containers=()
@@ -989,10 +1152,21 @@ quiesce_edge_device_agent_for_cutover() {
     || fail "Device Agent quiesce requires exactly one known container"
   local edge_container="${edge_containers[0]}"
   if [[ "$(docker inspect --format '{{.State.Running}}' "$edge_container")" == "true" ]]; then
-    EDGE_DEVICE_AGENT_QUIESCED_CONTAINER="$edge_container"
+    EDGE_DEVICE_AGENT_QUIESCED_CONTAINER="$(docker inspect --format '{{.Id}}' "$edge_container")"
     EDGE_DEVICE_AGENT_PRE_CUTOVER_IMAGE_ID="$(docker inspect --format '{{.Image}}' "$edge_container")"
+    [[ "$EDGE_DEVICE_AGENT_QUIESCED_CONTAINER" =~ ^[0-9a-f]{64}$ ]] \
+      || fail "Device Agent container identity is invalid before quiesce"
     [[ "$EDGE_DEVICE_AGENT_PRE_CUTOVER_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] \
       || fail "Device Agent image identity is invalid before quiesce"
+    if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]]; then
+      [[ "$EDGE_DEVICE_AGENT_PRE_CUTOVER_IMAGE_ID" == "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]] \
+        || fail "running Device Agent image does not match verified recovery authority"
+    fi
+    persist_edge_device_agent_quiesce_record \
+      "$EDGE_DEVICE_AGENT_QUIESCED_CONTAINER" \
+      "$EDGE_DEVICE_AGENT_PRE_CUTOVER_IMAGE_ID" \
+      || fail "durable Device Agent quiesce record could not be published"
+    EDGE_DEVICE_AGENT_QUIESCE_EVIDENCE="$AUDIT_DIR"
     EDGE_DEVICE_AGENT_QUIESCED_BY_DEPLOYMENT="1"
     log "Quiescing Device Agent at the edge SQLite snapshot boundary"
     docker stop --time 30 "$edge_container" >/dev/null \
