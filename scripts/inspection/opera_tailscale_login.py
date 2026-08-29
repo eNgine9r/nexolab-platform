@@ -61,7 +61,7 @@ def validate_private_file(path: Path, expected_uid: int) -> None:
         raise ValueError(f"{path} must not be group/world accessible")
 
 
-def validate_local_login_url(login_url: str) -> None:
+def validate_local_login_url(login_url: str, expected_host: str | None = None) -> None:
     parsed = urlsplit(login_url)
     if parsed.scheme not in {"http", "https"} or not parsed.hostname:
         raise ValueError("login_url must be an absolute HTTP(S) URL")
@@ -69,15 +69,23 @@ def validate_local_login_url(login_url: str) -> None:
         return
     try:
         address = ipaddress.ip_address(parsed.hostname)
-    except ValueError as exc:
-        raise ValueError("login_url host must be localhost or a private IP address") from exc
+    except ValueError:
+        if parsed.scheme != "https":
+            raise ValueError("non-loopback login_url must use HTTPS")
+        if not expected_host or parsed.netloc != expected_host:
+            raise ValueError("HTTPS login_url hostname must match expected_host")
+        return
     private_networks = (
         ipaddress.ip_network("10.0.0.0/8"),
         ipaddress.ip_network("172.16.0.0/12"),
         ipaddress.ip_network("192.168.0.0/16"),
     )
-    if not address.is_loopback and not any(address in network for network in private_networks):
+    if address.is_loopback:
+        return
+    if not any(address in network for network in private_networks):
         raise ValueError("login_url host must be loopback or RFC1918 private")
+    if parsed.scheme != "https":
+        raise ValueError("non-loopback login_url must use HTTPS")
 
 
 def load_config(path: Path) -> InspectionConfig:
@@ -88,12 +96,13 @@ def load_config(path: Path) -> InspectionConfig:
     redirect_path = str(document.get("redirect_path", "/")).strip()
     if not redirect_path.startswith("/") or redirect_path.startswith("//"):
         raise ValueError("redirect_path must be a local absolute path")
+    expected_host = _required_string(document, "expected_host")
     login_url = _required_string(document, "login_url")
-    validate_local_login_url(login_url)
+    validate_local_login_url(login_url, expected_host)
     return InspectionConfig(
         expected_user=_required_string(document, "expected_user"),
         expected_client_ip=_required_string(document, "expected_client_ip"),
-        expected_host=_required_string(document, "expected_host"),
+        expected_host=expected_host,
         credential_file=Path(_required_string(document, "credential_file")),
         login_url=login_url,
         redirect_path=redirect_path,

@@ -2,7 +2,7 @@
   "expected_user": "approved-user@example.invalid",
   "expected_client_ip": "100.64.0.10",
   "expected_host": "nexolab-node.example.ts.net:8443",
-  "credential_file": "/home/nexolab/runtime/inspection/opera-tailscale/secret/credential.json",
+  "credential_file": "/var/lib/nexolab-opera-inspection/credential.json",
   "login_url": "http://127.0.0.1:8082/api/v1/auth/local/login",
   "redirect_path": "/"
 }

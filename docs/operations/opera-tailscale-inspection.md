@@ -59,21 +59,27 @@ tests/test_opera_tailscale_inspection.py
 
 Do not place workstation identity, tailnet account identity, passwords, tokens or the populated host config in Git. The example config contains placeholders only.
 
-## Host-local files
+## Host-local files and service identity
 
-Use the ignored host path:
-
-```text
-/home/nexolab/runtime/inspection/opera-tailscale/
-```
-
-Required secret/config permissions:
+The credential exchange must not share the `nexolab` Unix identity used by the inspection frontend. Use a dedicated non-login system account named `nexolab-inspection`.
 
 ```text
-secret directory   0700
-credential file    0600
-config file        0600
+/usr/local/lib/nexolab-opera-inspection/       root-owned helper code
+/var/lib/nexolab-opera-inspection/             0700 nexolab-inspection:nexolab-inspection
+  config.json                                   0600 nexolab-inspection:nexolab-inspection
+  credential.json                               0600 nexolab-inspection:nexolab-inspection
 ```
+
+The credential file schema is deliberately small and remains host-local:
+
+```json
+{
+  "username": "<dedicated-local-auth-username>",
+  "password": "<dedicated-strong-password>"
+}
+```
+
+Never commit or print a populated file. The ordinary `nexolab` account must be unable to traverse `/var/lib/nexolab-opera-inspection` or read either file.
 
 The Unix socket is created by the system socket unit at:
 
@@ -81,16 +87,50 @@ The Unix socket is created by the system socket unit at:
 /run/nexolab-opera-inspection/login.sock
 ```
 
-It must be `0600 root:root`. The helper itself runs as the unprivileged `nexolab` user and receives the already-open listen socket from systemd.
+It must remain `0600 root:root`. The isolated `nexolab-inspection` helper receives the already-open listen socket from systemd; a normal process cannot connect to the socket directly.
+
+## Recreate the dedicated NEXOLAB inspection account
+
+The application identity must have only the five read permissions required by this inspection flow:
+
+```text
+dashboard.read
+telemetry.read
+alerts.read
+reports.read
+nodes.read
+```
+
+An existing legacy `viewer` account may retain that compatibility role. On a clean/replacement host, create an equivalent account through the normal authenticated local-user administration workflow using product role `laboratory_technician` plus exactly the five explicit grants above. Do not grant `memberships.manage`, session operation, equipment mutation, alert acknowledgement, report generation/approval, or any other write permission. Use the normal administrator UI/API so the creation remains audited; do not insert account rows directly into PostgreSQL.
+
+Choose a new strong password locally. Enter it only into the normal local-user creation flow and the host credential file below. Do not place it in Git, shell command arguments, chat, Issue comments or logs.
+
+The canonical API behind the administration UI is `POST /api/v1/admin/users`; its audited create contract accepts `username`, `password`, product role `laboratory_technician`, the explicit `permissions` set, optional `display_name`, and `reason`. The same administration surface also exposes `PUT /api/v1/admin/users/{account_id}/permissions`, password reset and session revocation. Use those authenticated contracts or their normal Settings UI, never direct SQL. A recovery procedure is incomplete until the application account and the host credential file use the same newly chosen password.
 
 ## Install or recover the helper
 
-From a checked-out accepted repository revision, copy the helper and unit templates into host-local/system locations. Keep the populated config and credential outside Git.
+For an existing NEXOLAB host that already has the legacy host-local inspection config/credential, use the repository migration installer. It moves those private files into the isolated service directory, upgrades any non-loopback plain-HTTP login target to the same-origin Tailscale HTTPS auth route, installs the helper/units, and verifies modes without printing the credential:
 
 ```bash
-install -d -m 0700 /home/nexolab/runtime/inspection/opera-tailscale/helper
-install -m 0755 scripts/inspection/opera_tailscale_login.py \
-  /home/nexolab/runtime/inspection/opera-tailscale/helper/opera_tailscale_login.py
+sudo bash scripts/inspection/install_opera_tailscale_inspection.sh
+```
+
+On a clean replacement host, first recreate the dedicated application account and private `config.json`/`credential.json` described above; then the same installer completes the OS/service setup. The installer intentionally fails closed when either private file is absent.
+
+The equivalent manual setup from a checked-out accepted repository revision is below. Create the isolated OS identity and install only repository-owned, secret-free helper material:
+
+```bash
+getent passwd nexolab-inspection >/dev/null || \
+  sudo useradd --system --home-dir /nonexistent --shell /usr/sbin/nologin nexolab-inspection
+
+sudo install -d -o root -g root -m 0755 /usr/local/lib/nexolab-opera-inspection
+sudo install -o root -g root -m 0755 scripts/inspection/opera_tailscale_login.py \
+  /usr/local/lib/nexolab-opera-inspection/opera_tailscale_login.py
+sudo install -d -o nexolab-inspection -g nexolab-inspection -m 0700 \
+  /var/lib/nexolab-opera-inspection
+sudo install -o nexolab-inspection -g nexolab-inspection -m 0600 \
+  scripts/inspection/opera-tailscale-config.example.json \
+  /var/lib/nexolab-opera-inspection/config.json
 
 sudo install -m 0644 scripts/inspection/systemd/nexolab-opera-inspection-login.socket \
   /etc/systemd/system/nexolab-opera-inspection-login.socket
@@ -98,31 +138,34 @@ sudo install -m 0644 scripts/inspection/systemd/nexolab-opera-inspection-login.s
   /etc/systemd/system/nexolab-opera-inspection-login.service
 ```
 
-Create `/home/nexolab/runtime/inspection/opera-tailscale/config.json` from the repository example, replace placeholders locally, and set mode `0600`. Never paste its populated values into an Issue or PR.
-Enable the socket after the host-local config and credential exist:
+Edit `/var/lib/nexolab-opera-inspection/config.json` locally as `root`, replacing only the placeholders. Keep `credential_file` set to `/var/lib/nexolab-opera-inspection/credential.json`. Plain HTTP is permitted only for `localhost` or a loopback IP. When Telemetry Service is not published on host loopback, use the private NEXOLAB Tailscale HTTPS origin for `login_url` (the same `expected_host`, with `/api/v1/auth/local/login`). A non-loopback RFC1918 target must also use HTTPS. DNS HTTPS targets are rejected unless their authority exactly matches `expected_host`.
+
+Create `/var/lib/nexolab-opera-inspection/credential.json` with the schema shown above using the same dedicated NEXOLAB username/password created through the audited local-user workflow. Set owner `nexolab-inspection:nexolab-inspection` and mode `0600`; avoid commands that place the password in argv or echo it into logs.
+
+Enable the socket only after both private files exist:
 
 ```bash
+sudo chown nexolab-inspection:nexolab-inspection \
+  /var/lib/nexolab-opera-inspection/config.json \
+  /var/lib/nexolab-opera-inspection/credential.json
+sudo chmod 0600 \
+  /var/lib/nexolab-opera-inspection/config.json \
+  /var/lib/nexolab-opera-inspection/credential.json
 sudo systemctl daemon-reload
 sudo systemctl enable --now nexolab-opera-inspection-login.socket
 ```
 
-Verify:
+Verify the isolation and socket boundary without displaying file contents:
 
 ```bash
+namei -l /var/lib/nexolab-opera-inspection/credential.json
+sudo -u nexolab test ! -r /var/lib/nexolab-opera-inspection/credential.json
 systemctl is-enabled nexolab-opera-inspection-login.socket
 systemctl is-active nexolab-opera-inspection-login.socket
 stat -c '%a %U %G %n' /run/nexolab-opera-inspection/login.sock
 ```
 
-Expected socket evidence:
-
-```text
-enabled
-active
-600 root root /run/nexolab-opera-inspection/login.sock
-```
-
-Do not start the helper as a standalone TCP listener.
+Expected evidence includes `0700` on the private directory, `0600 nexolab-inspection nexolab-inspection` on both private files, denial for the ordinary `nexolab` user, and `600 root root` on the Unix socket. Do not start the helper as a standalone TCP listener.
 
 ## Tailscale Serve configuration
 

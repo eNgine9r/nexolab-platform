@@ -6,10 +6,10 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=nexolab
-Group=nexolab
-ExecStart=/usr/bin/python3 /home/nexolab/runtime/inspection/opera-tailscale/helper/opera_tailscale_login.py
-Environment=NEXOLAB_INSPECTION_CONFIG=/home/nexolab/runtime/inspection/opera-tailscale/config.json
+User=nexolab-inspection
+Group=nexolab-inspection
+ExecStart=/usr/bin/python3 /usr/local/lib/nexolab-opera-inspection/opera_tailscale_login.py
+Environment=NEXOLAB_INSPECTION_CONFIG=/var/lib/nexolab-opera-inspection/config.json
 Environment=PYTHONDONTWRITEBYTECODE=1
 Restart=on-failure
 RestartSec=2
@@ -17,7 +17,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 PrivateDevices=true
 ProtectSystem=strict
-ProtectHome=read-only
+ProtectHome=true
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectKernelLogs=true
