@@ -42,6 +42,10 @@ Issue #704 has exact-head repository verification GREEN at `e2f7857e381600d76dd4
 
 Product Owner authorization is recorded for the exact historical-main deployment target `ff86b10b71c8e5252c15baaf4183adbf42f30f18` only. Issue #753 is the temporary tooling gate that prevents deploying later unrelated `main` scope. After #753 merges GREEN, run source-selection preflight, controlled deployment and real runtime acceptance for CSV sensor rows plus Energy continuity.
 
+## Issue #753 — PR #754 deployment-safety review hardening
+
+The first exact-head candidate reached GREEN Core/Telemetry/Merge Gate but fresh review found 2×P1 and 2×P2 safety defects. All four are now addressed locally with deterministic timestamp authority, fail-closed later-mutating-attempt detection, pre-retention active-evidence protection and fresh remote preflight. The focused deployment matrix is 36/36 GREEN and a metadata-copy replay of actual Pi deployment evidence passes for `ff796b1f → ff86b10b`. #753 remains blocked from merge/production mutation until the new exact head is GREEN and every PR #754 review thread is resolved.
+
 ## Cleared boundaries
 
 - #730 Opera/Tailscale inspection — completed on 2026-08-29. The dedicated `ChatGPT Opera Inspection` session enters the authenticated shell automatically as `Спостерігач`; REST/WebSocket are active; the isolated `nexolab-inspection` helper and root-owned `0600` login socket remain intact; direct frontend `/inspection-login` stays 404; production `:3000` stays HTTP 200; PR #731 is merged with exact-head Core/Telemetry/Merge-Gate GREEN.

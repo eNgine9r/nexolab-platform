@@ -3,14 +3,16 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-29T12:16:28+03:00",
+  "timestamp": "2026-08-29T12:34:30+03:00",
   "actor": "ChatGPT",
-  "event": "issue_753_completed_candidate_exact_head_green",
+  "event": "issue_753_review_hardening_local_green",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 753
+  },
   "evidence_snapshot": {
     "issue": 753,
     "branch": "feat/753-approved-historical-main-deploy",
@@ -18,19 +20,21 @@
     "deployed_source_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d",
     "bounded_target_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
     "excluded_later_scope": "issue_729_and_later_product_changes",
-    "source_selection_tests": "8_passed",
-    "deployment_contract_matrix": "30_passed",
-    "runtime_mutation": "not_started_pending_753_merge",
+    "source_selection_tests": "13_passed",
+    "deployment_contract_matrix": "36_passed",
+    "runtime_mutation": "not_started",
     "deployed_source_evidence_match": "required_latest_successful_deployment",
     "verified_head_sha": "c0af040aa4715e027141871fe3087a6f98f41002",
     "exact_head_core_quality_build": "PASS",
     "exact_head_telemetry_service": "PASS",
     "exact_head_nexolab_merge_gate": "PASS",
-    "review_threads": "none",
-    "repository_readiness": "completed_candidate_pending_final_state_ci_and_merge"
+    "review_threads": "4_unresolved_pending_new_head",
+    "repository_readiness": "local_green_pending_new_exact_head_ci",
+    "review_findings": "4_addressed_locally_pending_re_review",
+    "legacy_pi_evidence_preflight": "success_on_metadata_copy"
   },
   "observations": [],
-  "next_action": "After final completed-state exact-head CI is GREEN, merge #754. Then sync main, run the no-runtime historical-main source-selection preflight for ff86b10b against deployed ff796b1f, and execute the already-authorized #709/#711 controlled deployment only if preflight passes.",
+  "next_action": "Commit and push the #753 review-hardening candidate, rerun exact-head Core/Telemetry/Merge Gate, reply to and resolve PR #754 review threads only after the new head proves the fixes, then complete state and merge before any production runtime mutation.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

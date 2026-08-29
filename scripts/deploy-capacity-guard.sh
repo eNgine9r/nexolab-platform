@@ -56,6 +56,7 @@ nexolab_capacity_deployment_bytes() {
 nexolab_prune_deployment_evidence() {
   local deployments_dir=$1
   local current_audit_dir=$2
+  local protected_evidence_dir=${3:-}
   local protected_count max_count max_age_days max_bytes
   protected_count="$(nexolab_capacity_uint NEXOLAB_DEPLOY_EVIDENCE_PROTECTED_COUNT "${NEXOLAB_DEPLOY_EVIDENCE_PROTECTED_COUNT:-}" 3)" || return $?
   max_count="$(nexolab_capacity_uint NEXOLAB_DEPLOY_EVIDENCE_MAX_COUNT "${NEXOLAB_DEPLOY_EVIDENCE_MAX_COUNT:-}" 12)" || return $?
@@ -67,6 +68,18 @@ nexolab_prune_deployment_evidence() {
     return 64
   }
   [[ -d "$deployments_dir" ]] || return 0
+  if [[ -n "$protected_evidence_dir" ]]; then
+    local protected_base
+    protected_base="$(basename "$protected_evidence_dir")"
+    [[ -d "$protected_evidence_dir" && ! -L "$protected_evidence_dir" ]] || {
+      printf 'ERROR: protected deployment evidence is unavailable or unsafe: %s\n' "$protected_evidence_dir" >&2
+      return 70
+    }
+    [[ "$(dirname "$protected_evidence_dir")" == "$deployments_dir" && "$protected_base" =~ ^[0-9]{8}T[0-9]{6}Z$ ]] || {
+      printf 'ERROR: protected deployment evidence is outside the deployment evidence root: %s\n' "$protected_evidence_dir" >&2
+      return 70
+    }
+  fi
 
   local -a dirs=()
   local dir base
@@ -100,6 +113,7 @@ nexolab_prune_deployment_evidence() {
   for ((index = 0; index < count; index += 1)); do
     dir="${dirs[$index]}"
     [[ "$dir" != "$current_audit_dir" ]] || continue
+    [[ -z "$protected_evidence_dir" || "$dir" != "$protected_evidence_dir" ]] || continue
     [[ ! -e "$dir/.nexolab-preserve" ]] || continue
     (( index < protected_from )) || continue
 

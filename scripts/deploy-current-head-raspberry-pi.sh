@@ -120,6 +120,7 @@ SOURCE_CHECKOUT_RESTORE_REQUIRED="0"
 CONTROL_HEAD=""
 TARGET_HEAD=""
 EXPECTED_DEPLOYMENT_EVIDENCE=""
+VERIFIED_DEPLOYED_SOURCE=""
 
 CENTRAL_COMPOSE_ARGS=(
   -f "$CENTRAL_DIR/compose.central.yaml"
@@ -316,52 +317,98 @@ validate_full_sha() {
   [[ "$1" =~ ^[0-9a-f]{40}$ ]]
 }
 
-resolve_latest_successful_source_deployment() {
-  python3 - "$REPO/runtime/deployments" <<'PY_EVIDENCE'
+resolve_deployed_source_authority() {
+  [[ -n "$REQUESTED_SOURCE_REF" ]] || return 0
+  validate_full_sha "$REQUESTED_SOURCE_REF" || fail "--source-ref must be a full lowercase 40-character commit SHA"
+  validate_full_sha "$EXPECTED_DEPLOYED_SOURCE" || fail "--expected-deployed-source must be a full lowercase 40-character commit SHA"
+
+  local deployment_evidence
+  if ! deployment_evidence="$(python3 - "$REPO/runtime/deployments" "$AUDIT_DIR" <<'PY_EVIDENCE'
+from datetime import datetime
 from pathlib import Path
+import re
 import sys
 
 root = Path(sys.argv[1])
-candidates = []
+current_audit = Path(sys.argv[2]).resolve()
+stamp_re = re.compile(r"^\d{8}T\d{6}Z$")
+sha_re = re.compile(r"^[0-9a-f]{40}$")
+legacy_mutation_markers = (
+    "Starting central backend, MinIO and observability",
+    "Starting real-hardware edge stack",
+    "Activating verified frontend release",
+    "RUNTIME MUTATION STARTED",
+)
+
+def valid_stamp(name: str) -> bool:
+    if not stamp_re.fullmatch(name):
+        return False
+    try:
+        datetime.strptime(name, "%Y%m%dT%H%M%SZ")
+    except ValueError:
+        return False
+    return True
+
+attempts: list[tuple[str, Path, str, bool, str | None]] = []
 if root.is_dir():
     for directory in root.iterdir():
-        if not directory.is_dir():
+        if not directory.is_dir() or directory.is_symlink() or not valid_stamp(directory.name):
             continue
         summary = directory / "summary.txt"
+        summary_text = summary.read_text(encoding="utf-8", errors="replace") if summary.is_file() else ""
         final_state = directory / "final-state.txt"
-        if not summary.is_file() or not final_state.is_file():
-            continue
-        if "DEPLOYMENT PASSED" not in summary.read_text(encoding="utf-8", errors="replace"):
-            continue
         commit = None
-        for line in final_state.read_text(encoding="utf-8", errors="replace").splitlines():
-            if line.startswith("commit="):
-                commit = line.split("=", 1)[1].strip()
-                break
-        if commit:
-            candidates.append((directory.stat().st_mtime_ns, directory, commit))
-if not candidates:
+        if final_state.is_file():
+            for line in final_state.read_text(encoding="utf-8", errors="replace").splitlines():
+                if line.startswith("commit="):
+                    candidate = line.split("=", 1)[1].strip()
+                    if sha_re.fullmatch(candidate):
+                        commit = candidate
+                    break
+        passed = "DEPLOYMENT PASSED" in summary_text and commit is not None
+        mutated = (directory / "runtime-mutation-started").is_file() or any(
+            marker in summary_text for marker in legacy_mutation_markers
+        )
+        attempts.append((directory.name, directory.resolve(), summary_text, mutated, commit if passed else None))
+
+successful = [(stamp, directory, commit) for stamp, directory, _summary, _mutated, commit in attempts if commit]
+if not successful:
+    print("ERROR: no successful source-deployment evidence is available", file=sys.stderr)
     raise SystemExit(1)
-_, directory, commit = max(candidates, key=lambda item: item[0])
-print(f"{commit}\t{directory}")
+
+success_stamp, success_dir, success_commit = max(successful, key=lambda item: item[0])
+for stamp, directory, _summary, mutated, commit in attempts:
+    if stamp <= success_stamp or directory == current_audit:
+        continue
+    if mutated and commit is None:
+        print(
+            f"ERROR: newer deployment attempt crossed runtime mutation boundary without success: {directory}",
+            file=sys.stderr,
+        )
+        raise SystemExit(2)
+
+print(f"{success_commit}\t{success_dir}\t{success_stamp}")
 PY_EVIDENCE
+)"; then
+    fail "deployed source authority is indeterminate; inspect runtime/deployments before continuing"
+  fi
+
+  local evidence_commit evidence_tail
+  evidence_commit="${deployment_evidence%%$'\t'*}"
+  evidence_tail="${deployment_evidence#*$'\t'}"
+  EXPECTED_DEPLOYMENT_EVIDENCE="${evidence_tail%%$'\t'*}"
+  VERIFIED_DEPLOYED_SOURCE="$evidence_commit"
+  [[ "$VERIFIED_DEPLOYED_SOURCE" == "$EXPECTED_DEPLOYED_SOURCE" ]] \
+    || fail "expected deployed source does not match the latest authoritative successful deployment evidence"
 }
 
 validate_selected_source_against_control() {
   TARGET_HEAD="$CONTROL_HEAD"
   if [[ -n "$REQUESTED_SOURCE_REF" ]]; then
-    validate_full_sha "$REQUESTED_SOURCE_REF" || fail "--source-ref must be a full lowercase 40-character commit SHA"
-    validate_full_sha "$EXPECTED_DEPLOYED_SOURCE" || fail "--expected-deployed-source must be a full lowercase 40-character commit SHA"
+    [[ -n "$VERIFIED_DEPLOYED_SOURCE" && -n "$EXPECTED_DEPLOYMENT_EVIDENCE" ]] \
+      || fail "historical source selection requires verified deployed-source authority"
     git cat-file -e "${REQUESTED_SOURCE_REF}^{commit}" 2>/dev/null || fail "requested source commit is not available locally"
     git cat-file -e "${EXPECTED_DEPLOYED_SOURCE}^{commit}" 2>/dev/null || fail "expected deployed source commit is not available locally"
-    local deployment_evidence
-    deployment_evidence="$(resolve_latest_successful_source_deployment 2>/dev/null || true)"
-    [[ -n "$deployment_evidence" ]] || fail "no successful source-deployment evidence is available for expected deployed source verification"
-    local evidence_commit
-    evidence_commit="${deployment_evidence%%$'\t'*}"
-    EXPECTED_DEPLOYMENT_EVIDENCE="${deployment_evidence#*$'\t'}"
-    [[ "$evidence_commit" == "$EXPECTED_DEPLOYED_SOURCE" ]] \
-      || fail "expected deployed source does not match the latest successful deployment evidence"
     git merge-base --is-ancestor "$REQUESTED_SOURCE_REF" "$CONTROL_HEAD" \
       || fail "requested source is not contained in current main history"
     git merge-base --is-ancestor "$EXPECTED_DEPLOYED_SOURCE" "$REQUESTED_SOURCE_REF" \
@@ -380,9 +427,13 @@ fi
 [[ "$(git branch --show-current)" == "main" ]] || fail "deployment must start from the main branch"
 
 if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "1" ]]; then
+  log "Fetching current main for source-selection preflight"
+  git fetch --prune origin main
   CONTROL_HEAD="$(git rev-parse origin/main 2>/dev/null || true)"
-  [[ -n "$CONTROL_HEAD" ]] || fail "local origin/main is unavailable for source-selection preflight"
-  [[ "$(git rev-parse HEAD)" == "$CONTROL_HEAD" ]] || fail "local main is not at local origin/main for source-selection preflight"
+  [[ -n "$CONTROL_HEAD" ]] || fail "origin/main is unavailable after source-selection preflight fetch"
+  git merge --ff-only "$CONTROL_HEAD" >/dev/null || fail "local main cannot fast-forward to fresh origin/main for source-selection preflight"
+  [[ "$(git rev-parse HEAD)" == "$CONTROL_HEAD" ]] || fail "local main is not synchronized to fresh origin/main for source-selection preflight"
+  resolve_deployed_source_authority
   validate_selected_source_against_control
   if [[ "$TARGET_HEAD" != "$CONTROL_HEAD" ]]; then
     git switch --detach "$TARGET_HEAD" >/dev/null
@@ -413,8 +464,9 @@ PG_CONTAINER="$(docker ps -q \
   --filter label=com.docker.compose.service=postgres \
   | head -n 1)"
 
+resolve_deployed_source_authority
 log "Applying bounded deployment-evidence retention"
-if ! nexolab_prune_deployment_evidence "$REPO/runtime/deployments" "$AUDIT_DIR"; then
+if ! nexolab_prune_deployment_evidence "$REPO/runtime/deployments" "$AUDIT_DIR" "$EXPECTED_DEPLOYMENT_EVIDENCE"; then
   fail "deployment evidence retention failed before runtime mutation"
 fi
 log "Running deployment capacity preflight before evidence capture"
@@ -890,6 +942,8 @@ if ss -ltn | awk '{print $4}' | grep -Eq "(^|:)$FRONTEND_CANDIDATE_PORT$"; then
 fi
 log "Frontend candidate verified and terminated without mutating the active dashboard"
 
+printf 'source=%s\nstarted_at=%s\n' "$CURRENT_HEAD" "$(date --iso-8601=seconds)" > "$AUDIT_DIR/runtime-mutation-started"
+log "RUNTIME MUTATION STARTED: central backend activation"
 log "Starting central backend, MinIO and observability"
 docker compose --env-file "$CENTRAL_ENV" \
   "${CENTRAL_COMPOSE_ARGS[@]}" \

@@ -116,6 +116,37 @@ class DeploymentCapacityTests(unittest.TestCase):
             self.assertTrue(current.exists(), "current deployment must survive")
             self.assertEqual((product_evidence / "must-survive.txt").read_text(), "protected")
 
+    def test_retention_preserves_explicit_active_deployment_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            deployments = Path(temp) / "deployments"
+            dirs: list[Path] = []
+            for day in range(1, 7):
+                path = deployments / f"2026080{day}T000000Z"
+                path.mkdir(parents=True)
+                (path / "payload.bin").write_bytes(bytes([day]) * 128)
+                dirs.append(path)
+            current = dirs[-1]
+            active = dirs[0]
+
+            command = "source " + subprocess.list2cmdline([str(HELPER)]) + "\n"
+            command += "nexolab_prune_deployment_evidence "
+            command += subprocess.list2cmdline([str(deployments)]) + " "
+            command += subprocess.list2cmdline([str(current)]) + " "
+            command += subprocess.list2cmdline([str(active)]) + "\n"
+            result = run_bash(
+                command,
+                env={
+                    "NEXOLAB_DEPLOY_EVIDENCE_PROTECTED_COUNT": "1",
+                    "NEXOLAB_DEPLOY_EVIDENCE_MAX_COUNT": "2",
+                    "NEXOLAB_DEPLOY_EVIDENCE_MAX_AGE_DAYS": "0",
+                    "NEXOLAB_DEPLOY_EVIDENCE_MAX_BYTES": "0",
+                },
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(active.exists(), "active successful deployment evidence must survive retention")
+            self.assertTrue(current.exists(), "current audit directory must survive retention")
+
+
     def test_count_retention_is_deterministic_oldest_first(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             deployments = Path(temp) / "deployments"
@@ -195,13 +226,20 @@ class DeploymentCapacityTests(unittest.TestCase):
         text = DEPLOY.read_text(encoding="utf-8")
         first_gate = text.index('log "Running deployment capacity preflight before evidence capture"')
         inventory = text.index("echo '=== host ==='")
-        fetch = text.index('git fetch --prune origin main')
+        deployment_fetch_log = text.index('log "Fetching current main for deployment authority"')
+        fetch = text.index('git fetch --prune origin main', deployment_fetch_log)
         build = text.index('docker build --pull -t nexolab-device-agent:local')
         recreate = text.index('up -d --force-recreate mqtt device-agent')
+        authority = text.index('resolve_deployed_source_authority\nlog "Applying bounded deployment-evidence retention"')
+        prune = text.index('nexolab_prune_deployment_evidence')
+        mutation_marker = text.index('runtime-mutation-started')
+        central_up = text.index('up -d --build --wait')
+        self.assertLess(authority, prune)
         self.assertLess(first_gate, inventory)
         self.assertLess(first_gate, fetch)
         self.assertLess(first_gate, build)
         self.assertLess(first_gate, recreate)
+        self.assertLess(mutation_marker, central_up)
         self.assertGreaterEqual(text.count("nexolab_capacity_preflight"), 2)
         self.assertIn(".runtime-evidence.tar.gz.partial", text)
         self.assertIn(".postgresql-pre-upgrade.dump.partial", text)
