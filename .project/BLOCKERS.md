@@ -1,14 +1,14 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-28
+Updated: 2026-08-29
 
 ## Issue #709 — post-merge Saved Dashboard runtime CSV verification
 
-The Product Owner explicitly authorized the controlled Raspberry Pi deployment/runtime CSV re-verification on 2026-08-29, bounded to historical main target `ff86b10b71c8e5252c15baaf4183adbf42f30f18` so later unapproved product scope is not deployed. Runtime mutation remains temporarily blocked only by Issue #753: the repository-owned deployment path must first gain exact historical-main source selection with fail-closed `deployed → target → origin/main` ancestry and checkout restoration. Repository/software acceptance remains valid.
+The Product Owner explicitly authorized the controlled Raspberry Pi deployment/runtime CSV re-verification on 2026-08-29, bounded to historical main target `ff86b10b71c8e5252c15baaf4183adbf42f30f18`. Issue #753 tooling is merged and the real-Pi no-runtime source-selection preflight is PASS. Runtime acceptance is now tracked by active Issue #755; actual activation requires the approved privileged operator step and must continue to exclude #729/later product runtime scope. Repository/software acceptance remains valid.
 
 ## Issue #711 — post-merge Energy runtime verification
 
-The Product Owner explicitly authorized the controlled Raspberry Pi deployment/operator verification on 2026-08-29 using the same bounded target `ff86b10b71c8e5252c15baaf4183adbf42f30f18`. Software verification remains GREEN. Runtime mutation waits only for Issue #753 deployment-tooling exact-head acceptance; no Modbus, acquisition-cadence, hardware, database or persistent-volume write is required by the #711 fix itself.
+The Product Owner explicitly authorized the controlled Raspberry Pi deployment/operator verification on 2026-08-29 using the same bounded target `ff86b10b71c8e5252c15baaf4183adbf42f30f18`. Software verification remains GREEN and Issue #753 tooling is merged; the real-Pi source-selection preflight is PASS. Runtime acceptance is now part of active Issue #755 and awaits the approved privileged deployment step. No Modbus, acquisition-cadence, hardware, database or persistent-volume write is required by the #711 fix itself.
 
 ## Issue #189 — actual-host recovery acceptance
 
@@ -38,13 +38,13 @@ Issue #727 records an intentional Product Owner defer of **RFX-01 through RFX-19
 
 Issue #704 has exact-head repository verification GREEN at `e2f7857e381600d76dd4100cea2c776bab8868e8`; #690 is completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`. The final Device Agent `libssl3t64/CVE-2026-14456` exception is **retired** because the fresh 2026-08-28 scan no longer reports the finding. Deadline-driven maintenance through **2026-09-02** now consists of the exact Device Agent `libexpat1/CVE-2026-66046` decision, Device Agent/telemetry-service SQLite decisions, and telemetry `libcjson1/CVE-2026-16554` / `libwebsockets19t64/CVE-2026-78161`; each must be removed earlier if its documented finding/fix/reachability/version/severity trigger changes. No production/runtime mutation is authorized by this security reconciliation.
 
-## Issues #709 / #711 — approved bounded controlled deployment
+## Issue #755 — approved bounded #709 / #711 controlled deployment
 
-Product Owner authorization is recorded for the exact historical-main deployment target `ff86b10b71c8e5252c15baaf4183adbf42f30f18` only. Issue #753 is the temporary tooling gate that prevents deploying later unrelated `main` scope. After #753 merges GREEN, run source-selection preflight, controlled deployment and real runtime acceptance for CSV sensor rows plus Energy continuity.
+Product Owner authorization is recorded for exact historical-main target `ff86b10b71c8e5252c15baaf4183adbf42f30f18` only. Issue #753 / PR #754 is merged and no-runtime source-selection preflight passed on the real Pi. GitHub run `33249671236` is preparing an exact off-device ARM64 frontend artifact to avoid a heavy production-Pi frontend build. The remaining hard operational blocker is the legitimate privileged dashboard systemd/unit activation step: the connected Remote Desktop Commander cannot elevate privileges and must not bypass this boundary. Once the Product Owner executes the single repository-owned deployment command, ChatGPT can resume automatic evidence inspection and #709/#711 acceptance.
 
-## Issue #753 — PR #754 deployment-safety review hardening
+## Issue #753 — cleared
 
-Repository implementation is complete candidate and review-clean on `b8fb31de3c14ee6c0c000ccbd548adf2f202f4c4`: eight safety findings are addressed, local focused safety is 51/51 PASS, exact-head Core/Telemetry/Merge Gate are GREEN, fresh Codex review found no major issues, and all review threads are resolved. No production runtime mutation occurred in #753. The only remaining repository gate is final state-only exact-head CI + PR #754 merge. After merge, #709/#711 remain bounded to the already-authorized target `ff86b10b...`; real runtime mutation must still follow a successful source-selection preflight and an approved privileged operator path.
+PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation safety and final state heads are GREEN and clean-reviewed. #753 no longer blocks runtime activation.
 
 ## Cleared boundaries
 

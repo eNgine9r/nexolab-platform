@@ -22,7 +22,11 @@
     "deployed_product_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 755,
+      "title": "Activate bounded #709 + #711 runtime target and capture acceptance",
+      "branch": "ops/755-bounded-709-711-runtime-acceptance"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -809,6 +813,27 @@
         "review_threads": "0_unresolved",
         "fresh_codex_review": "clean:b8fb31de3c",
         "completion_evidence_anchor": "canonical_verified_head_corrected_before_merge_after_fresh_review"
+      }
+    },
+    {
+      "issue": 755,
+      "title": "Activate bounded #709 + #711 runtime target and capture acceptance",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "branch": "ops/755-bounded-709-711-runtime-acceptance",
+      "evidence": {
+        "product_owner_cutover_authorization": "approved_2026-08-29_for_issues_709_711_only",
+        "deployed_source_sha": "ff796b1f7ddcf95a9be8e7f93c75a4837ec7eb0d",
+        "approved_target_source_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
+        "control_main_sha": "76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8",
+        "source_selection_preflight": "PASS:2026-08-29T14:06:57+03:00",
+        "authoritative_deployment_evidence": "runtime/deployments/20260827T101743Z",
+        "preflight_runtime_health": "dashboard_200_device_agent_ok_mqtt_connected_queue_0",
+        "production_mutation": "not_started",
+        "privileged_operator_boundary": "required_for_dashboard_systemd_unit_activation",
+        "frontend_artifact_workflow_run": "33249671236",
+        "frontend_artifact_status": "building_off_device_exact_target",
+        "excluded_scope": "issue_729_and_later_product_runtime_changes"
       }
     }
   ],
