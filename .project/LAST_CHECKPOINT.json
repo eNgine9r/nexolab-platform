@@ -3,35 +3,38 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-30T01:28:45+03:00",
+  "timestamp": "2026-08-30T10:25:00+03:00",
   "actor": "Codex",
-  "event": "issue_764_edge_volume_template_fix_active",
+  "event": "issue_766_recovery_image_preservation_active",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18"
   },
   "active_work": {
-    "issue": 764,
-    "title": "Fix edge volume identity Docker inspect template",
-    "branch": "fix/764-edge-volume-inspect-template"
+    "issue": 766,
+    "title": "Preserve exact Device Agent recovery image before candidate build",
+    "branch": "fix/766-preserve-device-agent-recovery-image"
   },
   "evidence_snapshot": {
     "issue_759_pull_request": 761,
     "issue_759_merge_gate": "success",
     "issue_762_pull_request": 763,
     "issue_762_merged_sha": "e5da88c11c2742b9972ced6fd7a36b5087b7a586",
-    "issue_764_defect": "docker_go_template_received_literal_backslash_escaped_quotes",
+    "issue_764_pull_request": 765,
+    "issue_764_merged_sha": "ba2e4ed6926153e8b6c24dced65184d65e2778bf",
+    "issue_766_defect": "candidate_build_replaced_only_tag_for_verified_running_image",
     "cutover_failure_boundary": "pre_mutation_fail_closed",
     "unchanged_device_agent_restarted": true,
-    "live_volume_identity_template": "nexolab-edge_edge-data",
-    "focused_edge_snapshot_tests": "22_passed",
-    "shell_syntax": "passed",
+    "recorded_device_agent_image_id": "sha256:847b91178c5e4cd9323e84cc66bfe61137991e374ae8f2300a860b36a9e9efea",
+    "recorded_image_addressable": false,
+    "fresh_exact_source_rebuild_matches_recorded_image": false,
+    "product_owner_rebaseline_decision_required": true,
     "production_runtime_mutation": "none",
     "next_issue": 760,
-    "next_issue_gate": "blocked_until_issue_764_green_merge"
+    "next_issue_gate": "blocked_until_issue_766_green_merge_and_recovery_authority_rebaseline_decision"
   },
   "observations": [],
-  "next_action": "Publish and merge the narrow Issue #764 template correction, then resume Issue #760 from fresh main with a new exact-source ARM64 frontend artifact before cutover.",
+  "next_action": "Publish and merge Issue #766 prevention, then obtain an explicit Product Owner decision for a repository-owned current-runtime recovery-authority rebaseline before resuming Issue #760.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

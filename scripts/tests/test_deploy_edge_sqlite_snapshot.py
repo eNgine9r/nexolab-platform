@@ -255,6 +255,22 @@ class EdgeSQLiteSnapshotTests(unittest.TestCase):
 
 
 class EdgeSQLiteDeploymentContractTests(unittest.TestCase):
+    def test_exact_deployed_image_is_preserved_before_candidate_build(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        function_start = text.index("preserve_deployed_device_agent_image_for_recovery()")
+        function_end = text.index("\n}\n", function_start)
+        preserve = text[function_start:function_end]
+        self.assertIn("VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID", preserve)
+        self.assertIn('docker image inspect "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID"', preserve)
+        self.assertIn('docker image tag "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID"', preserve)
+        self.assertIn("recovery tag does not resolve to the exact deployed image", preserve)
+
+        preserve_call = text.index("\npreserve_deployed_device_agent_image_for_recovery\n", function_end)
+        candidate_build = text.index('docker build --pull -t nexolab-device-agent:local', preserve_call)
+        quiesce = text.index("\nquiesce_edge_device_agent_for_cutover\n", candidate_build)
+        self.assertLess(preserve_call, candidate_build)
+        self.assertLess(candidate_build, quiesce)
+
     def test_edge_volume_identity_templates_are_valid_docker_go_templates(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
         template = (
