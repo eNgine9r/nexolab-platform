@@ -2,13 +2,13 @@
 
 Updated: 2026-08-29
 
-## Issue #762 — production Compose Embraco enrollment prerequisite
+## Issue #764 — edge SQLite volume-identity template prerequisite
 
-Issue #759 / PR #761 is merged GREEN at `2c5415d2...`. The #760 pre-cutover audit found that `compose.hardware.yaml` does not pass the accepted `EMBRACO_UNIT_IDS` configuration into Device Agent, so bus ownership JSON alone cannot enroll Unit 2. Issue #762 must merge the narrow Compose pass-through before runtime activation. No production runtime, Modbus or hardware action belongs to #762.
+Issue #762 / PR #763 is merged GREEN at `e5da88c1...`. The controlled #760 deployment then failed closed at the edge SQLite boundary because the merged #759 Docker inspect Go template retained invalid backslash escapes inside a single-quoted shell argument. The unchanged Device Agent was restarted before snapshot or mutation. Issue #764 must merge the narrow two-template correction and regression before runtime activation resumes. No Embraco activation, Modbus access or hardware action belongs to #764.
 
 ## Issue #760 — Embraco Unit 2 production activation
 
-Blocked by #762 after #759 merged. Once the Compose prerequisite merges, #760 may activate only Unit 2 on stable Bus 2 adapter `0133F246` at verified `9600 8N2`, preserving all current Bus 1 lifecycle/cadence and leaving temperature/control engineering scale unset.
+Blocked by #764 after #759 and #762 merged GREEN. Once the volume-identity template prerequisite merges, #760 may activate only Unit 2 on stable Bus 2 adapter `0133F246` at verified `9600 8N2`, preserving all current Bus 1 lifecycle/cadence and leaving temperature/control engineering scale unset.
 
 ## Issue #709 — post-merge Saved Dashboard runtime CSV verification
 

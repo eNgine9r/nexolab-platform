@@ -255,6 +255,15 @@ class EdgeSQLiteSnapshotTests(unittest.TestCase):
 
 
 class EdgeSQLiteDeploymentContractTests(unittest.TestCase):
+    def test_edge_volume_identity_templates_are_valid_docker_go_templates(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        template = (
+            "'{{range .Mounts}}{{if eq .Destination "
+            '"/var/lib/nexolab"}}{{.Name}}{{end}}{{end}}\''
+        )
+        self.assertEqual(text.count(template), 2)
+        self.assertNotIn(r'eq .Destination \"/var/lib/nexolab\"', text)
+
     def test_snapshot_precedes_runtime_mutation_and_restore_is_never_implicit(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
         capture_call = text.index("capture_edge_sqlite_snapshot\n")
