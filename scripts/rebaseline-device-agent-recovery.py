@@ -246,6 +246,59 @@ def valid_stamp(value: str) -> bool:
     return True
 
 
+def restored_deployment_source(directory: Path) -> str | None:
+    result_path = directory / "edge-sqlite-restore-result.json"
+    if not result_path.exists():
+        return None
+    metadata_path = directory / "edge-sqlite-pre-cutover.json"
+    if (
+        result_path.is_symlink()
+        or metadata_path.is_symlink()
+        or not result_path.is_file()
+        or not metadata_path.is_file()
+    ):
+        fail(f"recovery authority evidence is unsafe: {directory}")
+    try:
+        restore_result = json.loads(result_path.read_text(encoding="utf-8"))
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        fail(f"recovery authority evidence is unreadable: {directory}: {error}")
+
+    matching_fields = (
+        "sha256",
+        "bytes",
+        "registry_revision",
+        "outbound_queue_count",
+        "outbound_queue_high_water",
+        "node_stream_sequences",
+        "deployment_evidence_id",
+        "deployed_source",
+        "deployed_device_agent_image_id",
+        "target_source",
+    )
+    valid_restore = (
+        isinstance(restore_result, dict)
+        and isinstance(metadata, dict)
+        and restore_result.get("schema_version") == 1
+        and restore_result.get("kind") == "nexolab-edge-sqlite-restore-result"
+        and restore_result.get("status") == "restored"
+        and metadata.get("schema_version") == 1
+        and metadata.get("kind") == "nexolab-edge-sqlite-pre-cutover"
+        and metadata.get("source_quick_check") == "ok"
+        and metadata.get("snapshot_quick_check") == "ok"
+        and restore_result.get("deployment_evidence_id") == directory.name
+        and SHA_PATTERN.fullmatch(str(restore_result.get("deployed_source", "")))
+        and SHA_PATTERN.fullmatch(str(restore_result.get("target_source", "")))
+        and IMAGE_PATTERN.fullmatch(
+            str(restore_result.get("deployed_device_agent_image_id", ""))
+        )
+        and all(restore_result.get(field) == metadata.get(field) for field in matching_fields)
+    )
+    if not valid_restore:
+        fail(f"recovery authority evidence is inconsistent: {directory}")
+    return str(restore_result["deployed_source"])
+
+
 def authoritative_deployment(
     deployment_root: Path, expected_directory: Path, expected_source: str
 ) -> dict[str, Any]:
@@ -256,7 +309,7 @@ def authoritative_deployment(
     if not valid_stamp(expected_directory.name):
         fail("deployment evidence directory name is not a valid UTC deployment stamp")
 
-    attempts: list[tuple[str, Path, bool, str | None]] = []
+    attempts: list[tuple[str, Path, bool, str | None, str | None, str | None]] = []
     legacy_markers = (
         "Starting central backend, MinIO and observability",
         "Starting real-hardware edge stack",
@@ -274,36 +327,47 @@ def authoritative_deployment(
             else ""
         )
         source: str | None = None
+        runtime_mode: str | None = None
+        deployed_at: str | None = None
         if final_state_path.is_file() and not final_state_path.is_symlink():
-            candidate = parse_key_values(final_state_path).get("commit", "")
+            final_state = parse_key_values(final_state_path)
+            candidate = final_state.get("commit", "")
             if SHA_PATTERN.fullmatch(candidate) and "DEPLOYMENT PASSED" in summary:
                 source = candidate
+                runtime_mode = final_state.get("runtime_mode")
+                deployed_at = final_state.get("deployed_at")
+        recovered_source = restored_deployment_source(directory)
+        if recovered_source is not None:
+            source = recovered_source
+            runtime_mode = EXPECTED_DEPLOYMENT_MODE
+            deployed_at = None
         mutated = (directory / "runtime-mutation-started").is_file() or any(
             marker in summary for marker in legacy_markers
         )
-        attempts.append((directory.name, directory.resolve(), mutated, source))
+        attempts.append(
+            (directory.name, directory.resolve(), mutated, source, runtime_mode, deployed_at)
+        )
 
     successful = [attempt for attempt in attempts if attempt[3]]
     if not successful:
         fail("no authoritative successful source deployment exists")
-    success_stamp, success_directory, _mutated, source = max(
+    success_stamp, success_directory, _mutated, source, runtime_mode, deployed_at = max(
         successful, key=lambda item: item[0]
     )
     if success_directory != expected_directory.resolve() or source != expected_source:
         fail("supplied deployment evidence is not the latest successful source authority")
-    for stamp, directory, mutated, later_source in attempts:
+    for stamp, directory, mutated, later_source, _runtime_mode, _deployed_at in attempts:
         if stamp > success_stamp and directory != expected_directory.resolve() and mutated and not later_source:
             fail(f"later deployment crossed the mutation boundary without recovery: {directory}")
 
-    final_state = parse_key_values(expected_directory / "final-state.txt")
-    if final_state.get("runtime_mode") != EXPECTED_DEPLOYMENT_MODE:
+    if runtime_mode != EXPECTED_DEPLOYMENT_MODE:
         fail("deployment evidence runtime mode is not lan")
     return {
         "evidence_id": expected_directory.name,
         "path": f"runtime/deployments/{expected_directory.name}",
         "source_commit": expected_source,
-        "runtime_mode": final_state["runtime_mode"],
-        "deployed_at": final_state.get("deployed_at"),
+        "runtime_mode": runtime_mode,
+        "deployed_at": deployed_at,
     }
 
 

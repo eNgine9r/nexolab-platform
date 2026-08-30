@@ -1085,9 +1085,9 @@
         "postgresql_health": "healthy",
         "postgresql_volume": "nexolab-central-postgres-data",
         "structural_docker_create": "success_never_started_removed",
-        "focused_recovery_tests": "18_passed",
+        "focused_recovery_tests": "20_passed",
         "edge_snapshot_tests": "23_passed",
-        "focused_deployment_recovery_tests": "85_passed_post_review_44_plus_41",
+        "focused_deployment_recovery_tests": "87_passed_post_restore_review_44_plus_23_plus_20",
         "standalone_offline_runtime_contract": "passed_7_plus_8",
         "read_only_real_preflight": "passed",
         "current_authority_resolver": "passed",
@@ -1096,11 +1096,11 @@
         "modbus_access": "none",
         "hardware_write": "none",
         "embraco_activation": "none",
-        "repository_candidate": "rebased_on_main_pending_exact_head_ci_and_merge",
+        "repository_candidate": "pending_publish_exact_head_ci_and_merge",
         "mount_exclusion_verified": true,
         "mount_exclusion_evidence_path": "runtime/evidence/issue-768-device-agent-rebaseline-20260830T083125Z/mount-exclusion-postcheck.json",
         "review_p2_validation_cleanup": "addressed_fail_closed",
-        "review_threads": "pending_exact_head_recheck_after_main_integration",
+        "review_threads": "completed_restore_p2_pending_exact_head_resolution",
         "blocked_by_issue_770_ci_routing": "false",
         "issue_770_prerequisite": "completed_pr_771_exact_head_23fd91ac_green",
         "post_issue_770_integration_recovery_tests": "18_passed",
@@ -1108,7 +1108,9 @@
         "post_issue_770_offline_runtime_contract": "passed_7_plus_8",
         "post_issue_770_state_model_v2": "passed",
         "post_issue_770_python_shell_syntax": "passed",
-        "post_issue_770_git_diff_check": "passed"
+        "post_issue_770_git_diff_check": "passed",
+        "deploy_current_head_tests": "44_passed",
+        "review_p2_completed_restore_authority": "addressed_fail_closed_and_valid_restore_recognized"
       }
     },
     {

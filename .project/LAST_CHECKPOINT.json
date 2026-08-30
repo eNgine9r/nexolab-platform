@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-30T12:54:50+03:00",
+  "timestamp": "2026-08-30T13:01:34+03:00",
   "actor": "ChatGPT",
-  "event": "issue_768_post_770_integration_locally_green",
+  "event": "issue_768_completed_restore_authority_p2_locally_green",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18"
@@ -32,8 +32,8 @@
     "edge_sqlite_registry_revision": 18,
     "edge_sqlite_queue_depth": 0,
     "postgresql_health": "healthy",
-    "focused_deployment_recovery_tests": "85_passed_post_review_44_plus_41",
-    "focused_recovery_tests": "18_passed",
+    "focused_deployment_recovery_tests": "87_passed_44_plus_23_plus_20",
+    "focused_recovery_tests": "20_passed",
     "standalone_offline_runtime_contract": "passed_7_plus_8",
     "mount_exclusion_verified": true,
     "production_container_restart": "none",
@@ -45,10 +45,15 @@
     "post_issue_770_offline_runtime_contract": "passed_7_plus_8",
     "post_issue_770_state_model_v2": "passed",
     "post_issue_770_python_shell_syntax": "passed",
-    "post_issue_770_git_diff_check": "passed"
+    "post_issue_770_git_diff_check": "passed",
+    "deploy_current_head_tests": "44_passed",
+    "edge_snapshot_tests": "23_passed",
+    "review_p2_completed_restore_authority": "addressed",
+    "ci_governance_tests": "118_passed_1_skipped",
+    "offline_runtime_contract": "passed_7_plus_8"
   },
   "observations": [],
-  "next_action": "Complete the #770 integration merge commit on #768, push the new exact head, require Core to execute the 18 recovery tests plus all required exact-head workflows/review, then merge #768 before resuming #760.",
+  "next_action": "Commit and push the completed-restore authority correction for #768, require the new exact head to pass Core recovery tests, Telemetry service, NEXOLAB Merge Gate and final review, then merge before resuming #760.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

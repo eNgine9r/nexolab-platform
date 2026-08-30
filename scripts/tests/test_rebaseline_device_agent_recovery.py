@@ -39,6 +39,43 @@ class DeploymentAuthorityTests(unittest.TestCase):
             (directory / "runtime-mutation-started").write_text("source=x\n", encoding="utf-8")
         return directory
 
+    def write_restore(self, directory: Path, *, mismatch: bool = False) -> None:
+        target = "e" * 40
+        image = "sha256:" + "1" * 64
+        common = {
+            "sha256": "a" * 64,
+            "bytes": 253952,
+            "registry_revision": 18,
+            "outbound_queue_count": 0,
+            "outbound_queue_high_water": 6559000,
+            "node_stream_sequences": {"telemetry": 10},
+            "deployment_evidence_id": directory.name,
+            "deployed_source": self.source,
+            "deployed_device_agent_image_id": image,
+            "target_source": target,
+        }
+        metadata = {
+            "schema_version": 1,
+            "kind": "nexolab-edge-sqlite-pre-cutover",
+            "source_quick_check": "ok",
+            "snapshot_quick_check": "ok",
+            **common,
+        }
+        result = {
+            "schema_version": 1,
+            "kind": "nexolab-edge-sqlite-restore-result",
+            "status": "restored",
+            **common,
+        }
+        if mismatch:
+            result["registry_revision"] = 19
+        (directory / "edge-sqlite-pre-cutover.json").write_text(
+            json.dumps(metadata), encoding="utf-8"
+        )
+        (directory / "edge-sqlite-restore-result.json").write_text(
+            json.dumps(result), encoding="utf-8"
+        )
+
     def test_latest_success_with_later_pre_mutation_failure_is_authoritative(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -55,6 +92,26 @@ class DeploymentAuthorityTests(unittest.TestCase):
             self.make_attempt(root, "20260830T071417Z", mutated=True)
             with self.assertRaisesRegex(MODULE.RebaselineError, "crossed the mutation"):
                 MODULE.authoritative_deployment(root, expected, self.source)
+
+    def test_completed_restore_is_latest_deployment_authority(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.make_attempt(root, "20260829T154823Z", passed=True)
+            restored = self.make_attempt(root, "20260830T071417Z", mutated=True)
+            self.write_restore(restored)
+            authority = MODULE.authoritative_deployment(root, restored, self.source)
+        self.assertEqual(authority["source_commit"], self.source)
+        self.assertEqual(authority["path"], "runtime/deployments/20260830T071417Z")
+        self.assertEqual(authority["runtime_mode"], "lan")
+
+    def test_inconsistent_completed_restore_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.make_attempt(root, "20260829T154823Z", passed=True)
+            restored = self.make_attempt(root, "20260830T071417Z", mutated=True)
+            self.write_restore(restored, mismatch=True)
+            with self.assertRaisesRegex(MODULE.RebaselineError, "recovery authority evidence is inconsistent"):
+                MODULE.authoritative_deployment(root, restored, self.source)
 
     def test_non_latest_success_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

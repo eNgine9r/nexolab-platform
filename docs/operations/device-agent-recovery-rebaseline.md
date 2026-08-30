@@ -43,7 +43,12 @@ python3 scripts/rebaseline-device-agent-recovery.py \
 ```
 
 Preflight verifies the latest successful deployment authority and rejects any
-later unrecovered mutation boundary. It independently checks the local Git
+later unrecovered mutation boundary. A completed guarded rollback is recognized
+as deployment authority only when `edge-sqlite-restore-result.json` and
+`edge-sqlite-pre-cutover.json` are safe regular files and their schema, kind,
+status, source/target SHAs, recovery image ID, SQLite integrity fields, queue
+metadata, stream sequences, and deployment evidence ID match exactly; malformed
+or inconsistent restore evidence fails closed. It independently checks the local Git
 lineage, controlled-source version record, central PostgreSQL health/volume
 identity, exact running Device Agent identity/config/mounts, local health,
 writable-layer drift, and edge SQLite integrity/metadata. SQLite is opened
