@@ -1,10 +1,14 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-29
+Updated: 2026-08-30
+
+## Issue #768 — recovery-authority rebaseline
+
+**Cleared 2026-08-30.** Runtime rebaseline `20260830T083125Z` established exact addressable recovery image `sha256:1c639cc7...` without restarting production Device Agent. PR #769 merged GREEN at `4d693760a89aa1c45c3a65aca99201155ddfc1c1`; GitHub Issue #768 is closed completed. All known P1/P2 review findings are addressed and resolved. The final Codex exact-head review was unavailable only because the code-review quota was exhausted; required CI was GREEN and Team Lead final diff review completed.
 
 ## Issue #760 — Embraco Unit 2 production activation
 
-Issue #766 / PR #767 is merged GREEN at `d62cb696...`; future deployments now fail before candidate build unless the exact deployed image is addressable and preserved under a verified immutable recovery tag. The current healthy `ff86b10b...` container remains running, but its previously recorded image ID became unaddressable before #766 existed. A fresh exact-source rebuild has a different ID and cannot silently replace accepted rollback authority. #760 is blocked by a hard Product Owner decision: approve a repository-owned recovery-authority rebaseline that preserves edge SQLite and PostgreSQL telemetry, or leave the current runtime unchanged. Only after an approved rebaseline may #760 activate Unit 2 on stable Bus 2 adapter `0133F246` at verified `9600 8N2`, preserving all current Bus 1 lifecycle/cadence and leaving temperature/control engineering scale unset.
+**Active.** Recovery prerequisites #759/#762/#764/#766/#768 are satisfied and Product Owner authorization to continue #760 is recorded. Fresh pre-cutover checks are GREEN for source lineage, both stable CP2104 adapters, Bus1-only registry revision 18, Unit 201 disabled, exact rendered dual-bus topology, `EMBRACO_UNIT_IDS=2`, `DEVICE_MODE=modbus`, unset temperature/control scales and deployment capacity. No production mutation has started yet. The next gate is an exact-source `linux/arm64` off-device frontend artifact followed by repository-owned pre-cutover SQLite snapshot/recovery checks and controlled deployment.
 
 ## Issue #709 — post-merge Saved Dashboard runtime CSV verification
 

@@ -12,6 +12,14 @@ When `nexolab-edge_edge-data` exists, `scripts/deploy-current-head-raspberry-pi.
 
 All files remain in the ignored `runtime/deployments/<UTC timestamp>/` audit directory. The evidence contains no telemetry payloads. The helper itself is checksum-staged in that directory before any historical source checkout. After candidate verification, deployment first durably records the exact running Device Agent container/image in `edge-device-agent-quiesce.json`, then gracefully stops and verifies it, captures the quiesced production database, and only then writes `runtime-mutation-started`. This prevents central-only activation failure from advancing the SQLite outbox or stream sequences beyond the recovery snapshot. If the process or host fails before the mutation marker, the next deployment re-entry verifies the unresolved quiesce record, restarts only that exact unchanged container/image, and durably publishes `edge-device-agent-quiesce-recovered.json` before proceeding. Source and snapshot must both pass `PRAGMA quick_check`; snapshot and metadata contents plus their directory entries are fsynced before capture succeeds. The mutation marker is likewise atomically written and fsynced with its parent directory before any runtime-mutating Compose activation can start. Device Agent remains stopped until the later target edge activation; any failure after the marker is fail-closed and must use the explicit recovery procedure below.
 
+When an approved current-container rebaseline exists, the running container may
+still report its now-unaddressable historical image ID. The deployment validates
+that exact source container/image pair against the immutable rebaseline mapping,
+then uses and records the separately addressable recovery image derived from that
+container filesystem. See `device-agent-recovery-rebaseline.md`. A mismatched
+container, source image, recovery tag, deployed source, or evidence path fails
+closed before candidate build or quiesce.
+
 A successful deployment never invokes restore. The new edge database and any post-cutover queue remain untouched.
 
 ## Decide whether restore is safe
@@ -55,7 +63,7 @@ docker compose \
   up -d --force-recreate device-agent
 ```
 
-After restart, verify that the recreated container image ID exactly matches `deployed_device_agent_image_id` in `edge-sqlite-restore-result.json`, then verify Device Agent health, MQTT connectivity, queue depth and the expected acquisition-registry revision before continuing. A failed verification is not permission to delete data or retry with a different snapshot.
+The guarded restore helper itself must run from the exact addressable `deployed_device_agent_image_id` recorded in the pre-cutover snapshot metadata; do not launch it from a historical source-container image that may no longer be addressable after a recovery-authority rebaseline. After restart, verify that the recreated container image ID exactly matches `deployed_device_agent_image_id` in `edge-sqlite-restore-result.json`, then verify Device Agent health, MQTT connectivity, queue depth and the expected acquisition-registry revision before continuing. A failed verification is not permission to delete data or retry with a different snapshot.
 
 ## Safety boundary
 
