@@ -247,6 +247,33 @@ class CurrentAuthorityResolverTests(unittest.TestCase):
             expected_deployed_source=self.source,
         )
 
+    def test_superseded_current_pointer_is_replaceable_without_deleting_immutable_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            self.write_authority(repo)
+            payload = MODULE.prepare_current_authority_replacement(repo, "e" * 40)
+            self.assertIsNotNone(payload)
+            MODULE.verify_current_authority_unchanged_before_publish(repo, payload)
+            immutable = repo / "runtime/recovery-authority/device-agent/20260830T083125Z.json"
+            self.assertTrue(immutable.is_file())
+
+    def test_same_source_current_pointer_still_blocks_replacement(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            self.write_authority(repo)
+            with self.assertRaisesRegex(MODULE.RebaselineError, "already exists for this deployed source"):
+                MODULE.prepare_current_authority_replacement(repo, self.source)
+
+    def test_changed_superseded_pointer_fails_before_publish(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            self.write_authority(repo)
+            payload = MODULE.prepare_current_authority_replacement(repo, "e" * 40)
+            current = repo / "runtime/recovery-authority/device-agent/current.json"
+            current.write_text("{}\n", encoding="utf-8")
+            with self.assertRaisesRegex(MODULE.RebaselineError, "changed during rebaseline"):
+                MODULE.verify_current_authority_unchanged_before_publish(repo, payload)
+
     @mock.patch.object(MODULE, "docker_json")
     @mock.patch.object(MODULE, "verify_diff")
     @mock.patch.object(MODULE, "docker_format_json")

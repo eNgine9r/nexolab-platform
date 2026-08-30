@@ -752,19 +752,28 @@ def validate_create(image_id: str, rebaseline_id: str) -> dict[str, Any]:
     return validation
 
 
-def resolve_current_authority(args: argparse.Namespace) -> dict[str, str]:
-    repo = args.repo.resolve()
+def load_current_authority_document(repo: Path) -> tuple[dict[str, Any], bytes]:
     authority_root = (repo / "runtime/recovery-authority/device-agent").resolve()
     current = authority_root / "current.json"
     if current.is_symlink() or not current.is_file():
         fail("current Device Agent rebaseline authority is unavailable")
     try:
-        document = json.loads(current.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as error:
+        payload = current.read_bytes()
+        document = json.loads(payload.decode("utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
         fail(f"current Device Agent rebaseline authority is unreadable: {error}")
     if not isinstance(document, dict):
         fail("current Device Agent rebaseline authority is not an object")
     rebaseline_id = document.get("rebaseline_id")
+    deployed_source = document.get("deployed_source")
+    if (
+        document.get("schema_version") != SCHEMA_VERSION
+        or document.get("kind") != "nexolab-device-agent-recovery-rebaseline"
+        or document.get("status") != "established"
+        or not valid_stamp(str(rebaseline_id))
+        or not SHA_PATTERN.fullmatch(str(deployed_source))
+    ):
+        fail("current Device Agent rebaseline authority header is inconsistent")
     immutable = authority_root / f"{rebaseline_id}.json"
     evidence_value = document.get("evidence_path")
     if not isinstance(evidence_value, str):
@@ -774,8 +783,37 @@ def resolve_current_authority(args: argparse.Namespace) -> dict[str, str]:
     if expected_evidence_root not in evidence.parents:
         fail("rebaseline authority evidence escaped runtime/evidence")
     for path in (immutable, evidence):
-        if path.is_symlink() or not path.is_file() or path.read_bytes() != current.read_bytes():
+        if path.is_symlink() or not path.is_file() or path.read_bytes() != payload:
             fail("rebaseline authority copies are missing or inconsistent")
+    return document, payload
+
+
+def prepare_current_authority_replacement(repo: Path, expected_source: str) -> bytes | None:
+    current = (repo / "runtime/recovery-authority/device-agent/current.json").resolve()
+    if not current.exists():
+        return None
+    document, payload = load_current_authority_document(repo)
+    if document["deployed_source"] == expected_source:
+        fail("a current Device Agent rebaseline authority already exists for this deployed source")
+    return payload
+
+
+def verify_current_authority_unchanged_before_publish(
+    repo: Path, expected_payload: bytes | None
+) -> None:
+    current = (repo / "runtime/recovery-authority/device-agent/current.json").resolve()
+    if expected_payload is None:
+        if current.exists():
+            fail("current Device Agent rebaseline authority appeared during rebaseline")
+        return
+    if current.is_symlink() or not current.is_file() or current.read_bytes() != expected_payload:
+        fail("superseded Device Agent rebaseline authority changed during rebaseline")
+
+
+def resolve_current_authority(args: argparse.Namespace) -> dict[str, str]:
+    repo = args.repo.resolve()
+    document, _payload = load_current_authority_document(repo)
+    rebaseline_id = document.get("rebaseline_id")
 
     source = document.get("source_container") or {}
     recovery = document.get("recovery_image") or {}
@@ -874,8 +912,9 @@ def establish(args: argparse.Namespace) -> dict[str, Any]:
     current_record = authority_root / "current.json"
     if immutable_record.exists():
         fail("rebaseline evidence ID already exists")
-    if current_record.exists():
-        fail("a current Device Agent rebaseline authority already exists; refusing replacement")
+    superseded_current_payload = prepare_current_authority_replacement(
+        repo, args.expected_deployed_source
+    )
 
     evidence_root.mkdir(parents=True, exist_ok=True, mode=0o700)
     os.chmod(evidence_root, 0o700)
@@ -1032,6 +1071,7 @@ def establish(args: argparse.Namespace) -> dict[str, Any]:
     )
     atomic_json(immutable_evidence / "rebaseline.json", document)
     atomic_json(immutable_record, document)
+    verify_current_authority_unchanged_before_publish(repo, superseded_current_payload)
     atomic_json(current_record, document)
     if immutable_record.read_bytes() != current_record.read_bytes():
         fail("current rebaseline pointer does not exactly match immutable authority evidence")

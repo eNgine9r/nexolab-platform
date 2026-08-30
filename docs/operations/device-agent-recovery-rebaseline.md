@@ -100,7 +100,11 @@ The rebaseline pointer is consulted only while its `deployed_source` equals the
 latest authoritative deployed source; after a later successful deployment
 supersedes that source, the old pointer remains historical evidence and is
 ignored because the new successful evidence already carries an exact image
-authority. A malformed pointer remains fail-closed.
+authority. If a future healthy deployed image itself becomes unaddressable, a
+new rebaseline may replace `current.json` only when the existing pointer is a
+fully consistent authority for an older source. The old timestamped immutable
+record remains preserved; same-source replacement, malformed copies, or a
+pointer that changes during the new rebaseline fail closed.
 
 Until a later approved cutover recreates Device Agent, two identities are
 intentionally retained:

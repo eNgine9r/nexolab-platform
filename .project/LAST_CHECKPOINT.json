@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-30T13:25:48+03:00",
+  "timestamp": "2026-08-30T13:32:52+03:00",
   "actor": "ChatGPT",
-  "event": "issue_768_final_p1_p2_lifecycle_fixes_locally_green",
+  "event": "issue_768_complete_recovery_authority_lifecycle_locally_green",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18"
@@ -32,8 +32,8 @@
     "edge_sqlite_registry_revision": 18,
     "edge_sqlite_queue_depth": 0,
     "postgresql_health": "healthy",
-    "focused_deployment_recovery_tests": "96_passed_47_plus_23_plus_26",
-    "focused_recovery_tests": "26_passed",
+    "focused_deployment_recovery_tests": "99_passed_47_plus_23_plus_29",
+    "focused_recovery_tests": "29_passed",
     "standalone_offline_runtime_contract": "passed_7_plus_8",
     "mount_exclusion_verified": true,
     "production_container_restart": "none",
@@ -56,10 +56,12 @@
     "live_postgresql_volume_authority": "healthy_exact_expected_mount",
     "review_p2_writable_layer_recheck": "addressed_exact_recorded_diff_revalidated",
     "review_p1_successful_deployment_image_authority": "addressed_exact_image_persisted_and_reused",
-    "local_exact_image_authority_regression": "passed"
+    "local_exact_image_authority_regression": "passed",
+    "review_superseded_pointer_future_rebaseline": "addressed_safe_atomic_current_replacement_guard",
+    "live_current_authority_resolver_after_final_fixes": "passed"
   },
   "observations": [],
-  "next_action": "Commit and push the final #768 P1/P2 recovery-lifecycle corrections, require exact-head Core recovery verification, Telemetry service, NEXOLAB Merge Gate and Codex review GREEN, resolve addressed review threads, then merge #768 before resuming #760.",
+  "next_action": "Publish the complete #768 recovery-authority lifecycle correction, require exact-head Core recovery verification, Telemetry service, NEXOLAB Merge Gate and Codex review GREEN, resolve all addressed threads, then merge #768 before resuming #760.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
