@@ -1086,8 +1086,8 @@
         "postgresql_volume": "nexolab-central-postgres-data",
         "structural_docker_create": "success_never_started_removed",
         "focused_recovery_tests": "29_passed",
-        "edge_snapshot_tests": "23_passed",
-        "focused_deployment_recovery_tests": "99_passed_final_47_plus_23_plus_29",
+        "edge_snapshot_tests": "24_passed",
+        "focused_deployment_recovery_tests": "100_passed_final_47_plus_24_plus_29",
         "standalone_offline_runtime_contract": "passed_7_plus_8",
         "read_only_real_preflight": "passed",
         "current_authority_resolver": "passed",
@@ -1117,7 +1117,8 @@
         "review_p2_writable_layer_recheck": "addressed_resolver_rechecks_exact_recorded_docker_diff",
         "review_p1_successful_deployment_image_authority": "addressed_final_state_records_and_reuses_exact_addressable_device_agent_image",
         "review_superseded_pointer_future_rebaseline": "addressed_valid_superseded_current_replaceable_immutable_history_preserved_same_source_and_changed_pointer_fail_closed",
-        "live_current_authority_resolver_after_final_fixes": "passed_exact_source_container_historical_image_recovery_image_and_tag"
+        "live_current_authority_resolver_after_final_fixes": "passed_exact_source_container_historical_image_recovery_image_and_tag",
+        "review_p1_restore_helper_recovery_image": "addressed_restore_helper_runs_from_recorded_addressable_deployed_device_agent_image"
       }
     },
     {

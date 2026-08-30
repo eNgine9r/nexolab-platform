@@ -235,7 +235,7 @@ PY_RESTORE_IMAGE
     --mount "type=bind,src=$SCRIPT_DIR,dst=/nexolab-scripts,readonly" \
     --mount "type=bind,src=$evidence_dir,dst=/evidence,readonly" \
     --entrypoint /usr/bin/python3 \
-    "$edge_image" \
+    "$deployed_device_agent_image_id" \
     /nexolab-scripts/deploy-edge-sqlite-snapshot.py restore \
       --snapshot /evidence/edge-sqlite-pre-cutover.db \
       --metadata /evidence/edge-sqlite-pre-cutover.json \

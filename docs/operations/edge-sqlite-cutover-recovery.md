@@ -63,7 +63,7 @@ docker compose \
   up -d --force-recreate device-agent
 ```
 
-After restart, verify that the recreated container image ID exactly matches `deployed_device_agent_image_id` in `edge-sqlite-restore-result.json`, then verify Device Agent health, MQTT connectivity, queue depth and the expected acquisition-registry revision before continuing. A failed verification is not permission to delete data or retry with a different snapshot.
+The guarded restore helper itself must run from the exact addressable `deployed_device_agent_image_id` recorded in the pre-cutover snapshot metadata; do not launch it from a historical source-container image that may no longer be addressable after a recovery-authority rebaseline. After restart, verify that the recreated container image ID exactly matches `deployed_device_agent_image_id` in `edge-sqlite-restore-result.json`, then verify Device Agent health, MQTT connectivity, queue depth and the expected acquisition-registry revision before continuing. A failed verification is not permission to delete data or retry with a different snapshot.
 
 ## Safety boundary
 
