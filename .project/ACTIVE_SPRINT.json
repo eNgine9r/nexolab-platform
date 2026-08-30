@@ -23,14 +23,14 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 766,
-      "title": "Preserve exact Device Agent recovery image before candidate build",
-      "branch": "fix/766-preserve-device-agent-recovery-image"
+      "issue": 770,
+      "title": "Register required acceptance workflows for deployment/recovery script changes",
+      "branch": "fix/770-ci-runtime-workflow-routing"
     },
     "next_work_package": {
-      "issue": 760,
-      "title": "Activate #729 Embraco Unit 2 on isolated Bus 2 and capture runtime acceptance",
-      "branch": "ops/760-embraco-unit2-production-acceptance"
+      "issue": 768,
+      "title": "Rebaseline current healthy Device Agent rollback authority before #760",
+      "branch": "ops/768-recovery-authority-rebaseline"
     }
   },
   "work_packages": [
@@ -1000,7 +1000,7 @@
       "issue": 766,
       "title": "Preserve exact Device Agent recovery image before candidate build",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         759,
         764
@@ -1013,7 +1013,13 @@
         "recorded_image_addressable": false,
         "fresh_exact_source_rebuild_matches_recorded_image": false,
         "runtime_mutation": "none",
-        "modbus_action": "none"
+        "modbus_action": "none",
+        "verified_head_sha": "730e5a05eeaa19c0bb48ab606e2b485f40d6e069",
+        "pull_request": 767,
+        "checks": {
+          "core_quality_build": "success",
+          "nexolab_merge_gate": "success"
+        }
       }
     },
     {
@@ -1025,7 +1031,8 @@
         759,
         762,
         764,
-        766
+        766,
+        768
       ],
       "branch": "ops/760-embraco-unit2-production-acceptance",
       "evidence": {
@@ -1039,8 +1046,84 @@
         "blocked_by_issue_759": "false",
         "blocked_by_issue_762": "false",
         "blocked_by_issue_764": "false",
-        "blocked_by_issue_766": "true",
-        "blocked_by_recovery_authority_rebaseline_decision": "true"
+        "blocked_by_issue_766": "false",
+        "blocked_by_recovery_authority_rebaseline_decision": "false",
+        "blocked_by_issue_768_repository_merge": "true",
+        "recovery_rebaseline_id": "20260830T083125Z",
+        "recovery_image_id": "sha256:1c639cc75f632cea9dde890a75806c753f6856a838670640ce38265112b8df0e"
+      }
+    },
+    {
+      "issue": 768,
+      "title": "Rebaseline current healthy Device Agent rollback authority before #760",
+      "priority": "critical",
+      "lifecycle": "blocked",
+      "depends_on": [
+        766
+      ],
+      "branch": "ops/768-recovery-authority-rebaseline",
+      "evidence": {
+        "product_owner_authorization": "approved_2026-08-30_rebaseline_and_continue_to_760_after_768",
+        "deployed_source_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
+        "deployment_evidence": "runtime/deployments/20260829T154823Z",
+        "controlled_source_authority": "ready_schema_20260820_0026_linux_arm64_lan",
+        "rebaseline_id": "20260830T083125Z",
+        "runtime_evidence_path": "runtime/evidence/issue-768-device-agent-rebaseline-20260830T083125Z/rebaseline.json",
+        "source_container_id": "58775e4615baeabcb7e5f4fdd05a80964e9ddd23fa4c93b7e18985aa6e5bd162",
+        "historical_image_id": "sha256:847b91178c5e4cd9323e84cc66bfe61137991e374ae8f2300a860b36a9e9efea",
+        "historical_image_addressable": false,
+        "recovery_image_id": "sha256:1c639cc75f632cea9dde890a75806c753f6856a838670640ce38265112b8df0e",
+        "recovery_tag": "nexolab-device-agent:recovery-1c639cc75f632cea9dde890a75806c753f6856a838670640ce38265112b8df0e",
+        "rootfs_export_sha256": "89ec6cad03e0b265f18babdf745bb0ef5b66533b35a28c66bf082e2f3e82c9d3",
+        "safe_config_sha256": "4d92a2455ad3455324fd6d19b5c043931c227330ea1fe8f6533b1cb15d6511b5",
+        "edge_sqlite_quick_check": "ok",
+        "edge_sqlite_sha256": "71d6445cfd0e11a09f9f3b3f3b7aaca5a8cd96af8ab517e2c01c3253f4f89a43",
+        "edge_sqlite_bytes": 253952,
+        "edge_sqlite_registry_revision": 18,
+        "edge_sqlite_queue_depth": 0,
+        "edge_sqlite_queue_high_water": 6559000,
+        "postgresql_health": "healthy",
+        "postgresql_volume": "nexolab-central-postgres-data",
+        "structural_docker_create": "success_never_started_removed",
+        "focused_recovery_tests": "18_passed",
+        "edge_snapshot_tests": "23_passed",
+        "focused_deployment_recovery_tests": "85_passed_post_review_44_plus_41",
+        "standalone_offline_runtime_contract": "passed_7_plus_8",
+        "read_only_real_preflight": "passed",
+        "current_authority_resolver": "passed",
+        "production_container_restart": "none",
+        "production_runtime_mutation": "none",
+        "modbus_access": "none",
+        "hardware_write": "none",
+        "embraco_activation": "none",
+        "repository_candidate": "pending_exact_head_ci_and_merge",
+        "mount_exclusion_verified": true,
+        "mount_exclusion_evidence_path": "runtime/evidence/issue-768-device-agent-rebaseline-20260830T083125Z/mount-exclusion-postcheck.json",
+        "review_p2_validation_cleanup": "addressed_fail_closed",
+        "review_threads": "pending_exact_head_recheck",
+        "blocked_by_issue_770_ci_routing": "true"
+      }
+    },
+    {
+      "issue": 770,
+      "title": "Register required acceptance workflows for deployment/recovery script changes",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "branch": "fix/770-ci-runtime-workflow-routing",
+      "evidence": {
+        "root_cause": "rebaseline_recovery_helper_was_unknown_and_triggered_all_external_lanes_fail_closed",
+        "fix": "classify_scripts_recovery_family_as_known_deployment_runtime",
+        "representative_issue_768_file_set": "known_no_unknown_broadening",
+        "unknown_path_fail_closed": "preserved_all_three_external_lanes",
+        "focused_routing_matrix_tests": "47_passed",
+        "ci_governance_tests": "113_passed_1_skipped",
+        "state_model_v2": "passed",
+        "python_compile": "passed",
+        "git_diff_check": "passed",
+        "runtime_mutation": "none",
+        "modbus_action": "none",
+        "hardware_action": "none",
+        "repository_candidate": "pending_push_pr_exact_head_ci"
       }
     }
   ],
