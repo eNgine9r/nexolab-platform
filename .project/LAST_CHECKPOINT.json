@@ -36,7 +36,7 @@
     "edge_sqlite_registry_revision": 18,
     "edge_sqlite_queue_depth": 0,
     "postgresql_health": "healthy",
-    "focused_deployment_recovery_tests": "106_passed",
+    "focused_deployment_recovery_tests": "85_passed_post_review_44_plus_41",
     "standalone_offline_runtime_contract": "passed_7_plus_8",
     "state_model_v2": "passed",
     "production_container_restart": "none",

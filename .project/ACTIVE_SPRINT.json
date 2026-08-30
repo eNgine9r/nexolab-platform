@@ -1087,7 +1087,7 @@
         "structural_docker_create": "success_never_started_removed",
         "focused_recovery_tests": "18_passed",
         "edge_snapshot_tests": "23_passed",
-        "focused_deployment_recovery_tests": "106_passed",
+        "focused_deployment_recovery_tests": "85_passed_post_review_44_plus_41",
         "standalone_offline_runtime_contract": "passed_7_plus_8",
         "read_only_real_preflight": "passed",
         "current_authority_resolver": "passed",
