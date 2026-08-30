@@ -3,38 +3,37 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-30T10:25:00+03:00",
-  "actor": "Codex",
-  "event": "issue_766_recovery_image_preservation_active",
+  "timestamp": "2026-08-30T12:33:28+03:00",
+  "actor": "ChatGPT",
+  "event": "issue_770_core_and_local_recovery_routing_review_ready",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18"
   },
   "active_work": {
-    "issue": 766,
-    "title": "Preserve exact Device Agent recovery image before candidate build",
-    "branch": "fix/766-preserve-device-agent-recovery-image"
+    "issue": 770,
+    "title": "Register required acceptance workflows for deployment/recovery script changes",
+    "branch": "fix/770-ci-runtime-workflow-routing"
   },
   "evidence_snapshot": {
-    "issue_759_pull_request": 761,
-    "issue_759_merge_gate": "success",
-    "issue_762_pull_request": 763,
-    "issue_762_merged_sha": "e5da88c11c2742b9972ced6fd7a36b5087b7a586",
-    "issue_764_pull_request": 765,
-    "issue_764_merged_sha": "ba2e4ed6926153e8b6c24dced65184d65e2778bf",
-    "issue_766_defect": "candidate_build_replaced_only_tag_for_verified_running_image",
-    "cutover_failure_boundary": "pre_mutation_fail_closed",
-    "unchanged_device_agent_restarted": true,
-    "recorded_device_agent_image_id": "sha256:847b91178c5e4cd9323e84cc66bfe61137991e374ae8f2300a860b36a9e9efea",
-    "recorded_image_addressable": false,
-    "fresh_exact_source_rebuild_matches_recorded_image": false,
-    "product_owner_rebaseline_decision_required": true,
-    "production_runtime_mutation": "none",
-    "next_issue": 760,
-    "next_issue_gate": "blocked_until_issue_766_green_merge_and_recovery_authority_rebaseline_decision"
+    "active_issue_evidence": {
+      "root_cause": "rebaseline_recovery_helper_was_unknown_and_triggered_all_external_lanes_fail_closed",
+      "fix": "register_exact_issue_768_rebaseline_helper_and_test_as_known_deployment_runtime_with_core_and_local_targeted_suite",
+      "representative_issue_768_file_set": "known_no_unknown_broadening",
+      "unknown_path_fail_closed": "preserved_all_three_external_lanes",
+      "focused_routing_matrix_tests": "68_passed_with_local_candidate_mirror",
+      "ci_governance_tests": "118_passed_1_skipped",
+      "state_model_v2": "passed",
+      "python_compile": "passed",
+      "git_diff_check": "passed",
+      "runtime_mutation": "none",
+      "modbus_action": "none",
+      "hardware_action": "none",
+      "repository_candidate": "pending_push_pr_exact_head_ci"
+    }
   },
   "observations": [],
-  "next_action": "Publish and merge Issue #766 prevention, then obtain an explicit Product Owner decision for a repository-owned current-runtime recovery-authority rebaseline before resuming Issue #760.",
+  "next_action": "Run final exact-head GitHub CI and Codex review for PR #771; resolve addressed review threads and merge only when exact-head Merge Gate is GREEN, then resume #768.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
