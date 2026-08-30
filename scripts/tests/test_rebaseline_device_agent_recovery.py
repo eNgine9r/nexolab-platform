@@ -192,6 +192,36 @@ class ImportContractTests(unittest.TestCase):
             with self.assertRaisesRegex(MODULE.RebaselineError, "mounted-path payloads"):
                 MODULE.verify_export_mount_exclusion(archive_path)
 
+    @mock.patch.object(MODULE, "docker_format_json")
+    @mock.patch.object(MODULE, "run")
+    def test_validation_container_removal_failure_fails_closed(
+        self, run: mock.Mock, docker_format_json: mock.Mock
+    ) -> None:
+        image_id = "sha256:" + "1" * 64
+        container_id = "5" * 64
+        run.side_effect = [
+            subprocess.CompletedProcess([], 0, container_id + "\n", ""),
+            subprocess.CompletedProcess([], 1, "", "remove failed"),
+        ]
+        docker_format_json.side_effect = ["created", image_id]
+        with self.assertRaisesRegex(MODULE.RebaselineError, "could not be removed"):
+            MODULE.validate_create(image_id, "20260830T120000Z")
+
+    @mock.patch.object(MODULE, "docker_format_json")
+    @mock.patch.object(MODULE, "run")
+    def test_validation_container_reports_removed_only_after_successful_cleanup(
+        self, run: mock.Mock, docker_format_json: mock.Mock
+    ) -> None:
+        image_id = "sha256:" + "1" * 64
+        container_id = "5" * 64
+        run.side_effect = [
+            subprocess.CompletedProcess([], 0, container_id + "\n", ""),
+            subprocess.CompletedProcess([], 0, container_id + "\n", ""),
+        ]
+        docker_format_json.side_effect = ["created", image_id]
+        result = MODULE.validate_create(image_id, "20260830T120000Z")
+        self.assertTrue(result["removed"])
+
     def test_import_config_is_a_fixed_non_secret_allowlist(self) -> None:
         changes = MODULE.import_changes("20260830T120000Z", "f" * 40, "5" * 64)
         rendered = "\n".join(changes)

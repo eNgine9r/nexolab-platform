@@ -658,17 +658,22 @@ def validate_create(image_id: str, rebaseline_id: str) -> dict[str, Any]:
         created_image = docker_format_json(created, ".Image")
         if state != "created" or created_image != image_id:
             fail("validation container did not structurally instantiate the recovery image")
-        return {
+        validation = {
             "container_id": created,
             "state": state,
             "image_id": created_image,
             "network": "none",
             "read_only_rootfs": True,
             "started": False,
-            "removed": True,
+            "removed": False,
         }
     finally:
-        run(["docker", "container", "rm", created], check=False)
+        if created:
+            removal = run(["docker", "container", "rm", created], check=False)
+            if removal.returncode != 0:
+                fail("validation container could not be removed")
+    validation["removed"] = True
+    return validation
 
 
 def resolve_current_authority(args: argparse.Namespace) -> dict[str, str]:

@@ -1085,7 +1085,7 @@
         "postgresql_health": "healthy",
         "postgresql_volume": "nexolab-central-postgres-data",
         "structural_docker_create": "success_never_started_removed",
-        "focused_recovery_tests": "16_passed",
+        "focused_recovery_tests": "18_passed",
         "edge_snapshot_tests": "23_passed",
         "focused_deployment_recovery_tests": "106_passed",
         "standalone_offline_runtime_contract": "passed_7_plus_8",
@@ -1098,7 +1098,9 @@
         "embraco_activation": "none",
         "repository_candidate": "pending_exact_head_ci_and_merge",
         "mount_exclusion_verified": true,
-        "mount_exclusion_evidence_path": "runtime/evidence/issue-768-device-agent-rebaseline-20260830T083125Z/mount-exclusion-postcheck.json"
+        "mount_exclusion_evidence_path": "runtime/evidence/issue-768-device-agent-rebaseline-20260830T083125Z/mount-exclusion-postcheck.json",
+        "review_p2_validation_cleanup": "addressed_fail_closed",
+        "review_threads": "pending_exact_head_recheck"
       }
     }
   ],
