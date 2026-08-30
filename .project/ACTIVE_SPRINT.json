@@ -30,7 +30,7 @@
     "next_work_package": {
       "issue": 760,
       "title": "Activate #729 Embraco Unit 2 on isolated Bus 2 and capture runtime acceptance",
-      "branch": "ops/760-embraco-unit2-production-acceptance"
+      "branch": "ops/760-embraco-production-activation"
     }
   },
   "work_packages": [
@@ -1057,7 +1057,7 @@
       "issue": 768,
       "title": "Rebaseline current healthy Device Agent rollback authority before #760",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "depends_on": [
         766
       ],
@@ -1096,11 +1096,51 @@
         "modbus_access": "none",
         "hardware_write": "none",
         "embraco_activation": "none",
-        "repository_candidate": "pending_exact_head_ci_and_merge",
+        "repository_candidate": "rebased_on_main_pending_exact_head_ci_and_merge",
         "mount_exclusion_verified": true,
         "mount_exclusion_evidence_path": "runtime/evidence/issue-768-device-agent-rebaseline-20260830T083125Z/mount-exclusion-postcheck.json",
         "review_p2_validation_cleanup": "addressed_fail_closed",
-        "review_threads": "pending_exact_head_recheck"
+        "review_threads": "pending_exact_head_recheck_after_main_integration",
+        "blocked_by_issue_770_ci_routing": "false",
+        "issue_770_prerequisite": "completed_pr_771_exact_head_23fd91ac_green",
+        "post_issue_770_integration_recovery_tests": "18_passed",
+        "post_issue_770_ci_governance_tests": "118_passed_1_skipped",
+        "post_issue_770_offline_runtime_contract": "passed_7_plus_8",
+        "post_issue_770_state_model_v2": "passed",
+        "post_issue_770_python_shell_syntax": "passed",
+        "post_issue_770_git_diff_check": "passed"
+      }
+    },
+    {
+      "issue": 770,
+      "title": "Register required acceptance workflows for deployment/recovery script changes",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "branch": "fix/770-ci-runtime-workflow-routing",
+      "evidence": {
+        "root_cause": "rebaseline_recovery_helper_was_unknown_and_triggered_all_external_lanes_fail_closed",
+        "fix": "register_exact_issue_768_rebaseline_helper_and_test_as_known_deployment_runtime_with_core_and_local_targeted_suite",
+        "representative_issue_768_file_set": "known_no_unknown_broadening",
+        "unknown_path_fail_closed": "preserved_all_three_external_lanes",
+        "focused_routing_matrix_tests": "68_passed_with_local_candidate_mirror",
+        "ci_governance_tests": "118_passed_1_skipped",
+        "state_model_v2": "passed",
+        "python_compile": "passed",
+        "git_diff_check": "passed",
+        "runtime_mutation": "none",
+        "modbus_action": "none",
+        "hardware_action": "none",
+        "repository_candidate": "merged_green",
+        "verified_head_sha": "23fd91ac0bb389974e16bd1e114ebf69c37069bd",
+        "pull_request": 771,
+        "checks": {
+          "ci": "success",
+          "authenticated_dashboard_acceptance": "success",
+          "offline_bundle": "success",
+          "refrigeration_browser_acceptance": "success",
+          "nexolab_merge_gate": "success"
+        },
+        "review_threads": "resolved"
       }
     }
   ],
