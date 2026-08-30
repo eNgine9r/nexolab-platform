@@ -2,13 +2,9 @@
 
 Updated: 2026-08-29
 
-## Issue #766 — exact Device Agent recovery-image preservation
-
-Issue #764 / PR #765 is merged GREEN at `ba2e4ed6...`. The repaired #760 deployment then failed closed during snapshot capture because candidate image build had already replaced the only tag for verified running image `sha256:847b9117...`. The unchanged container restarted healthy, but that exact image ID is no longer addressable. Issue #766 must preserve and verify the exact deployed image under an immutable recovery tag before any future candidate build. No Embraco activation, Modbus access or hardware action belongs to #766.
-
 ## Issue #760 — Embraco Unit 2 production activation
 
-Blocked by #766 and a hard Product Owner recovery-authority decision after #759, #762 and #764 merged GREEN. The current healthy `ff86b10b...` container remains running, but its recorded image ID became unaddressable before mutation. A rebuilt image has a different ID and cannot silently replace accepted rollback authority. Resume requires an explicitly approved repository-owned rebaseline that preserves edge SQLite and PostgreSQL telemetry; then #760 may activate only Unit 2 on stable Bus 2 adapter `0133F246` at verified `9600 8N2`, preserving all current Bus 1 lifecycle/cadence and leaving temperature/control engineering scale unset.
+Issue #766 / PR #767 is merged GREEN at `d62cb696...`; future deployments now fail before candidate build unless the exact deployed image is addressable and preserved under a verified immutable recovery tag. The current healthy `ff86b10b...` container remains running, but its previously recorded image ID became unaddressable before #766 existed. A fresh exact-source rebuild has a different ID and cannot silently replace accepted rollback authority. #760 is blocked by a hard Product Owner decision: approve a repository-owned recovery-authority rebaseline that preserves edge SQLite and PostgreSQL telemetry, or leave the current runtime unchanged. Only after an approved rebaseline may #760 activate Unit 2 on stable Bus 2 adapter `0133F246` at verified `9600 8N2`, preserving all current Bus 1 lifecycle/cadence and leaving temperature/control engineering scale unset.
 
 ## Issue #709 — post-merge Saved Dashboard runtime CSV verification
 

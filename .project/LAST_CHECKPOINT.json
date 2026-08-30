@@ -3,17 +3,17 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-30T10:25:00+03:00",
+  "timestamp": "2026-08-30T10:38:28+03:00",
   "actor": "Codex",
-  "event": "issue_766_recovery_image_preservation_active",
+  "event": "issue_760_blocked_by_recovery_authority_rebaseline_decision",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18"
   },
   "active_work": {
-    "issue": 766,
-    "title": "Preserve exact Device Agent recovery image before candidate build",
-    "branch": "fix/766-preserve-device-agent-recovery-image"
+    "issue": 760,
+    "title": "Activate #729 Embraco Unit 2 on isolated Bus 2 and capture runtime acceptance",
+    "branch": "ops/760-embraco-unit2-production-acceptance"
   },
   "evidence_snapshot": {
     "issue_759_pull_request": 761,
@@ -23,6 +23,9 @@
     "issue_764_pull_request": 765,
     "issue_764_merged_sha": "ba2e4ed6926153e8b6c24dced65184d65e2778bf",
     "issue_766_defect": "candidate_build_replaced_only_tag_for_verified_running_image",
+    "issue_766_pull_request": 767,
+    "issue_766_merged_sha": "d62cb6967aae5a1ec74f6d93ced7012c73f3db45",
+    "issue_766_merge_gate": "success",
     "cutover_failure_boundary": "pre_mutation_fail_closed",
     "unchanged_device_agent_restarted": true,
     "recorded_device_agent_image_id": "sha256:847b91178c5e4cd9323e84cc66bfe61137991e374ae8f2300a860b36a9e9efea",
@@ -31,10 +34,10 @@
     "product_owner_rebaseline_decision_required": true,
     "production_runtime_mutation": "none",
     "next_issue": 760,
-    "next_issue_gate": "blocked_until_issue_766_green_merge_and_recovery_authority_rebaseline_decision"
+    "next_issue_gate": "blocked_until_recovery_authority_rebaseline_decision"
   },
   "observations": [],
-  "next_action": "Publish and merge Issue #766 prevention, then obtain an explicit Product Owner decision for a repository-owned current-runtime recovery-authority rebaseline before resuming Issue #760.",
+  "next_action": "Obtain an explicit Product Owner decision for a repository-owned current-runtime recovery-authority rebaseline before resuming Issue #760; otherwise leave the healthy current runtime unchanged.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

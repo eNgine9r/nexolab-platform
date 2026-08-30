@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 766,
-      "title": "Preserve exact Device Agent recovery image before candidate build",
-      "branch": "fix/766-preserve-device-agent-recovery-image"
+      "issue": 760,
+      "title": "Activate #729 Embraco Unit 2 on isolated Bus 2 and capture runtime acceptance",
+      "branch": "ops/760-embraco-unit2-production-acceptance"
     },
     "next_work_package": {
       "issue": 760,
@@ -1000,7 +1000,7 @@
       "issue": 766,
       "title": "Preserve exact Device Agent recovery image before candidate build",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         759,
         764
@@ -1008,6 +1008,9 @@
       "branch": "fix/766-preserve-device-agent-recovery-image",
       "evidence": {
         "defect": "candidate_build_replaced_only_tag_for_verified_running_image",
+        "pull_request": 767,
+        "merged_sha": "d62cb6967aae5a1ec74f6d93ced7012c73f3db45",
+        "nexolab_merge_gate": "success",
         "controlled_cutover_failure": "pre_mutation_fail_closed",
         "unchanged_device_agent_restarted": true,
         "recorded_image_addressable": false,
@@ -1020,7 +1023,7 @@
       "issue": 760,
       "title": "Activate #729 Embraco Unit 2 on isolated Bus 2 and capture runtime acceptance",
       "priority": "critical",
-      "lifecycle": "blocked",
+      "lifecycle": "in_progress",
       "depends_on": [
         759,
         762,
@@ -1039,7 +1042,7 @@
         "blocked_by_issue_759": "false",
         "blocked_by_issue_762": "false",
         "blocked_by_issue_764": "false",
-        "blocked_by_issue_766": "true",
+        "blocked_by_issue_766": "false",
         "blocked_by_recovery_authority_rebaseline_decision": "true"
       }
     }
