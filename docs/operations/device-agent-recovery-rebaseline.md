@@ -27,7 +27,10 @@ configuration allowlist:
 If the running container differs from that allowlist, has writable-layer drift
 beyond the known `/host` mount-point artifacts, has unexpected mounts, is not
 healthy/MQTT-connected with queue depth zero, or does not match the explicit
-lost image ID, the command fails before export.
+lost image ID, the command fails before export. The central PostgreSQL boundary
+is also exact: the one healthy production container must mount only
+`nexolab-central-postgres-data` at `/var/lib/postgresql/data` read-write; an
+alternate name, destination, mode, or extra persistent-volume identity is rejected.
 
 ## Read-only preflight
 
@@ -85,7 +88,11 @@ database metadata, but never runtime environment values or telemetry payloads.
 The #767 pre-build preservation guard validates the current pointer against its
 immutable copies, the still-running source container ID/historical image ID, and
 the addressable rebaseline image/tag. It preserves the new image before any
-candidate build.
+candidate build. The pointer is consulted only while its `deployed_source` equals
+the latest authoritative deployed source; after a later successful deployment
+supersedes that source, the old pointer remains historical evidence and is
+ignored rather than blocking future source-selection checks. A malformed pointer
+remains fail-closed.
 
 Until a later approved cutover recreates Device Agent, two identities are
 intentionally retained:

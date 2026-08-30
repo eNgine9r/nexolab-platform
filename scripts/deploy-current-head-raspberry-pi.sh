@@ -825,33 +825,59 @@ PY_EVIDENCE
   if [[ -z "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" && -e "$rebaseline_authority" ]]; then
     [[ -f "$rebaseline_authority" && ! -L "$rebaseline_authority" ]] \
       || fail "Device Agent rebaseline authority path is unsafe"
-    local resolved_rebaseline
-    if ! resolved_rebaseline="$(
-      python3 "$SCRIPT_DIR/rebaseline-device-agent-recovery.py" \
-        --resolve-current \
-        --repo "$REPO" \
-        --deployment-evidence "$EXPECTED_DEPLOYMENT_EVIDENCE" \
-        --expected-deployed-source "$VERIFIED_DEPLOYED_SOURCE"
+    local rebaseline_pointer_source
+    if ! rebaseline_pointer_source="$(python3 - "$rebaseline_authority" <<'PY_REBASELINE_SOURCE'
+import json
+import re
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+try:
+    document = json.loads(path.read_text(encoding="utf-8"))
+except (OSError, json.JSONDecodeError) as error:
+    print(f"ERROR: Device Agent rebaseline authority is unreadable: {error}", file=sys.stderr)
+    raise SystemExit(2)
+source = document.get("deployed_source") if isinstance(document, dict) else None
+if not isinstance(source, str) or not re.fullmatch(r"[0-9a-f]{40}", source):
+    print("ERROR: Device Agent rebaseline authority has invalid deployed_source", file=sys.stderr)
+    raise SystemExit(2)
+print(source)
+PY_REBASELINE_SOURCE
     )"; then
-      fail "Device Agent rebaseline recovery authority is invalid"
+      fail "Device Agent rebaseline recovery authority pointer is invalid"
     fi
-    local key value
-    while IFS='=' read -r key value; do
-      case "$key" in
-        rebaseline_id) VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID="$value" ;;
-        source_container_id) VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID="$value" ;;
-        source_container_image_id) VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID="$value" ;;
-        recovery_image_id) VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID="$value" ;;
-        recovery_tag) VERIFIED_DEPLOYED_DEVICE_AGENT_RECOVERY_TAG="$value" ;;
-        *) fail "Device Agent rebaseline resolver returned an unknown field" ;;
-      esac
-    done <<< "$resolved_rebaseline"
-    [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID" =~ ^[0-9]{8}T[0-9]{6}Z$ \
-      && "$VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID" =~ ^[0-9a-f]{64}$ \
-      && "$VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ \
-      && "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ \
-      && -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_RECOVERY_TAG" ]] \
-      || fail "Device Agent rebaseline resolver returned incomplete authority"
+    if [[ "$rebaseline_pointer_source" == "$VERIFIED_DEPLOYED_SOURCE" ]]; then
+      local resolved_rebaseline
+      if ! resolved_rebaseline="$(
+        python3 "$SCRIPT_DIR/rebaseline-device-agent-recovery.py" \
+          --resolve-current \
+          --repo "$REPO" \
+          --deployment-evidence "$EXPECTED_DEPLOYMENT_EVIDENCE" \
+          --expected-deployed-source "$VERIFIED_DEPLOYED_SOURCE"
+      )"; then
+        fail "Device Agent rebaseline recovery authority is invalid"
+      fi
+      local key value
+      while IFS='=' read -r key value; do
+        case "$key" in
+          rebaseline_id) VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID="$value" ;;
+          source_container_id) VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID="$value" ;;
+          source_container_image_id) VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID="$value" ;;
+          recovery_image_id) VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID="$value" ;;
+          recovery_tag) VERIFIED_DEPLOYED_DEVICE_AGENT_RECOVERY_TAG="$value" ;;
+          *) fail "Device Agent rebaseline resolver returned an unknown field" ;;
+        esac
+      done <<< "$resolved_rebaseline"
+      [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID" =~ ^[0-9]{8}T[0-9]{6}Z$ \
+        && "$VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID" =~ ^[0-9a-f]{64}$ \
+        && "$VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ \
+        && "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ \
+        && -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_RECOVERY_TAG" ]] \
+        || fail "Device Agent rebaseline resolver returned incomplete authority"
+    else
+      log "Ignoring superseded Device Agent rebaseline pointer: pointer_source=$rebaseline_pointer_source deployed_source=$VERIFIED_DEPLOYED_SOURCE"
+    fi
   fi
 }
 

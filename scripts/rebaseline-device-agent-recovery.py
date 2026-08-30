@@ -31,6 +31,8 @@ from typing import Any, NoReturn
 SCHEMA_VERSION = 1
 REPOSITORY = "eNgine9r/nexolab-platform"
 EXPECTED_EDGE_VOLUME = "nexolab-edge_edge-data"
+EXPECTED_POSTGRES_VOLUME = "nexolab-central-postgres-data"
+EXPECTED_POSTGRES_DESTINATION = "/var/lib/postgresql/data"
 EXPECTED_DEPLOYMENT_MODE = "lan"
 EXPECTED_PLATFORM = "linux/arm64"
 SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
@@ -637,8 +639,18 @@ def postgresql_authority() -> dict[str, Any]:
         ),
         key=lambda item: str(item["destination"]),
     )
-    if health != "healthy" or not volumes:
-        fail("central PostgreSQL health or persistent-volume identity is unavailable")
+    expected_volumes = [
+        {
+            "name": EXPECTED_POSTGRES_VOLUME,
+            "destination": EXPECTED_POSTGRES_DESTINATION,
+            "read_write": True,
+        }
+    ]
+    if health != "healthy" or volumes != expected_volumes:
+        fail(
+            "central PostgreSQL health or exact production data-volume mount is invalid: "
+            f"health={health} volumes={volumes}"
+        )
     return {
         "container_id": container_id,
         "image_id": image_id,

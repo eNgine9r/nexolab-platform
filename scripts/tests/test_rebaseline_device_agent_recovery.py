@@ -317,6 +317,72 @@ class ImportContractTests(unittest.TestCase):
         self.assertIn("explicit --execute", result.stderr)
 
 
+class PostgreSQLAuthorityTests(unittest.TestCase):
+    container_id = "7" * 64
+    image_id = "sha256:" + "2" * 64
+
+    def expected_mounts(self) -> list[dict[str, object]]:
+        return [
+            {
+                "Type": "volume",
+                "Name": MODULE.EXPECTED_POSTGRES_VOLUME,
+                "Destination": MODULE.EXPECTED_POSTGRES_DESTINATION,
+                "RW": True,
+            }
+        ]
+
+    @mock.patch.object(MODULE, "docker_format_json")
+    @mock.patch.object(MODULE, "run")
+    def test_exact_production_postgres_volume_is_accepted(
+        self, run: mock.Mock, docker_format_json: mock.Mock
+    ) -> None:
+        run.return_value = subprocess.CompletedProcess([], 0, self.container_id + "\n", "")
+        docker_format_json.side_effect = [
+            self.container_id,
+            "healthy",
+            self.image_id,
+            self.expected_mounts(),
+        ]
+        result = MODULE.postgresql_authority()
+        self.assertEqual(
+            result["volumes"],
+            [
+                {
+                    "name": MODULE.EXPECTED_POSTGRES_VOLUME,
+                    "destination": MODULE.EXPECTED_POSTGRES_DESTINATION,
+                    "read_write": True,
+                }
+            ],
+        )
+
+    @mock.patch.object(MODULE, "docker_format_json")
+    @mock.patch.object(MODULE, "run")
+    def test_wrong_postgres_volume_name_fails_closed(
+        self, run: mock.Mock, docker_format_json: mock.Mock
+    ) -> None:
+        mounts = self.expected_mounts()
+        mounts[0]["Name"] = "unrelated-postgres-data"
+        run.return_value = subprocess.CompletedProcess([], 0, self.container_id + "\n", "")
+        docker_format_json.side_effect = [self.container_id, "healthy", self.image_id, mounts]
+        with self.assertRaisesRegex(MODULE.RebaselineError, "exact production data-volume mount"):
+            MODULE.postgresql_authority()
+
+    @mock.patch.object(MODULE, "docker_format_json")
+    @mock.patch.object(MODULE, "run")
+    def test_wrong_postgres_destination_or_read_only_mount_fails_closed(
+        self, run: mock.Mock, docker_format_json: mock.Mock
+    ) -> None:
+        for destination, read_write in (("/tmp/postgres", True), (MODULE.EXPECTED_POSTGRES_DESTINATION, False)):
+            mounts = self.expected_mounts()
+            mounts[0]["Destination"] = destination
+            mounts[0]["RW"] = read_write
+            run.return_value = subprocess.CompletedProcess([], 0, self.container_id + "\n", "")
+            docker_format_json.side_effect = [self.container_id, "healthy", self.image_id, mounts]
+            with self.assertRaisesRegex(MODULE.RebaselineError, "exact production data-volume mount"):
+                MODULE.postgresql_authority()
+            docker_format_json.reset_mock(side_effect=True)
+
+
 class DeploymentIntegrationContractTests(unittest.TestCase):
     def test_rebaseline_resolution_precedes_prebuild_preservation(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
