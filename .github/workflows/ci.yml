@@ -176,15 +176,15 @@ jobs:
           fi
 
           if [[ -n "$base" && -n "$head" ]] && \
-             git diff --name-only "$base" "$head" -- | grep -Eq '^scripts/.*recovery.*'; then
-            mapfile -t recovery_tests < <(find scripts/tests -maxdepth 1 -type f -name 'test_*recovery*.py' -print | sort)
+             git diff --name-only "$base" "$head" -- | grep -Eq '^scripts/(rebaseline-device-agent-recovery\.py|tests/test_rebaseline_device_agent_recovery\.py)$'; then
+            mapfile -t recovery_tests < <(find scripts/tests -maxdepth 1 -type f -name 'test_rebaseline_device_agent_recovery.py' -print | sort)
             if (( ${#recovery_tests[@]} == 0 )); then
               printf '%s\n' 'Recovery tooling changed but no recovery regression test module exists.' >&2
               exit 1
             fi
             python3 -m unittest discover \
               -s scripts/tests \
-              -p 'test_*recovery*.py' \
+              -p 'test_rebaseline_device_agent_recovery.py' \
               -v
           fi
 

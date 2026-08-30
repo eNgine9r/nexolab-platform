@@ -60,6 +60,19 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertEqual(result["unknown_files"], [])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_unregistered_recovery_tooling_remains_fail_closed(self) -> None:
+        result = classify(["scripts/run-disaster-recovery-acceptance.sh"])
+        self.assertTrue(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], ["scripts/run-disaster-recovery-acceptance.sh"])
+        self.assertEqual(
+            set(result["verification"]["required_external_workflows"]),
+            {
+                "Authenticated Dashboard Acceptance",
+                "Offline Bundle",
+                "Refrigeration Browser Acceptance",
+            },
+        )
+
     def test_issue_768_representative_file_set_does_not_broaden_as_unknown(self) -> None:
         result = classify(
             [

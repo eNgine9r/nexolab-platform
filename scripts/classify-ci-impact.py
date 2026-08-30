@@ -328,7 +328,8 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
                     "scripts/*deploy*",
                     "scripts/build-offline-bundle.sh",
                     "scripts/*runtime*",
-                    "scripts/*recovery*",
+                    "scripts/rebaseline-device-agent-recovery.py",
+                    "scripts/tests/test_rebaseline_device_agent_recovery.py",
                     "scripts/*raspberry-pi*",
                 ),
             )

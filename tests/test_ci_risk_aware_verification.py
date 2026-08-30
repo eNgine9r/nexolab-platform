@@ -94,9 +94,12 @@ class RiskAwareVerificationContractTests(unittest.TestCase):
 
     def test_deployment_runtime_runs_repository_recovery_regressions(self) -> None:
         self.assertIn("contains(fromJSON(needs.classify.outputs.classes), 'deployment_runtime')", CORE)
-        self.assertIn("^scripts/.*recovery.*", CORE)
-        self.assertIn("-p 'test_*recovery*.py'", CORE)
+        self.assertIn("rebaseline-device-agent-recovery\\.py", CORE)
+        self.assertIn("tests/test_rebaseline_device_agent_recovery\\.py", CORE)
+        self.assertIn("-p 'test_rebaseline_device_agent_recovery.py'", CORE)
         self.assertIn("Recovery tooling changed but no recovery regression test module exists.", CORE)
+        self.assertNotIn("^scripts/.*recovery.*", CORE)
+        self.assertNotIn("-p 'test_*recovery*.py'", CORE)
 
     def test_clean_candidate_helper_uses_detached_git_worktree(self) -> None:
         self.assertTrue(CLEAN_HELPER.is_file())
