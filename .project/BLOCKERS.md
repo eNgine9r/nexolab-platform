@@ -4,7 +4,7 @@ Updated: 2026-08-30
 
 ## Issue #770 — CI routing for repository-owned recovery tooling
 
-**Active critical CI-governance interrupt.** PR #769 exact head proved Telemetry service and Core Quality/build GREEN, but `NEXOLAB Merge Gate` failed because `scripts/rebaseline-device-agent-recovery.py` was classified as an unknown path. Unknown routing correctly broadens to Authenticated Dashboard Acceptance, Offline Bundle and Refrigeration Browser Acceptance, while those narrow workflows cannot register for an arbitrary unknown path. #770 restores the intended risk-aware contract by recognizing repository-owned `scripts/*recovery*` tooling as known `deployment_runtime`; genuinely unknown paths remain fail-closed. No product/runtime/hardware mutation belongs to #770.
+**Active critical CI-governance interrupt.** PR #769 exact head proved Telemetry service and Core Quality/build GREEN, but `NEXOLAB Merge Gate` failed because `scripts/rebaseline-device-agent-recovery.py` was classified as an unknown path. Unknown routing correctly broadens to Authenticated Dashboard Acceptance, Offline Bundle and Refrigeration Browser Acceptance, while those narrow workflows cannot register for an arbitrary unknown path. #770 restores the intended risk-aware contract only for the exact #768 pair `scripts/rebaseline-device-agent-recovery.py` + `scripts/tests/test_rebaseline_device_agent_recovery.py`; both Core CI and local-candidate verification run that exact recovery suite, while all other unregistered recovery paths remain fail-closed. No product/runtime/hardware mutation belongs to #770.
 
 ## Issue #768 — repository candidate gate after successful runtime rebaseline
 

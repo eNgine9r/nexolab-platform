@@ -26,6 +26,15 @@ class Check:
     env: Mapping[str, str] | None = None
 
 
+REGISTERED_RECOVERY_RUNTIME_PATHS = frozenset(
+    {
+        "scripts/rebaseline-device-agent-recovery.py",
+        "scripts/tests/test_rebaseline_device_agent_recovery.py",
+    }
+)
+RECOVERY_RUNTIME_TEST = "scripts/tests/test_rebaseline_device_agent_recovery.py"
+
+
 CORE_CHECKS = (
     Check(
         "CI policy tests",
@@ -197,6 +206,32 @@ def _assert_clean(worktree: Path) -> None:
         raise VerificationError(f"Verification worktree is dirty:\n{status}")
 
 
+def recovery_runtime_check(files: Sequence[str], worktree: Path) -> Check | None:
+    """Return the exact recovery regression check for the registered #768 pair."""
+    if not REGISTERED_RECOVERY_RUNTIME_PATHS.intersection(files):
+        return None
+    test_path = worktree / RECOVERY_RUNTIME_TEST
+    if not test_path.is_file():
+        raise VerificationError(
+            "Registered recovery runtime tooling changed but its exact regression module is missing: "
+            + RECOVERY_RUNTIME_TEST
+        )
+    return Check(
+        "Recovery runtime regressions",
+        (
+            "python3",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "scripts/tests",
+            "-p",
+            "test_rebaseline_device_agent_recovery.py",
+            "-v",
+        ),
+    )
+
+
 def compose_validation_required(impact: Mapping[str, object], explicit: bool) -> bool:
     if explicit:
         return True
@@ -285,7 +320,12 @@ def verify(
                     executed,
                 )
             else:
-                for check in CORE_CHECKS[:7]:
+                for check in CORE_CHECKS[:2]:
+                    _run_check(check, worktree, executed)
+                recovery_check = recovery_runtime_check(files, worktree)
+                if recovery_check is not None:
+                    _run_check(recovery_check, worktree, executed)
+                for check in CORE_CHECKS[2:7]:
                     _run_check(check, worktree, executed)
                 node_environment = _verify_node_baseline(worktree, executed)
                 for check in CORE_CHECKS[7:]:

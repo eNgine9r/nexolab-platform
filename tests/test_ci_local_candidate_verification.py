@@ -148,6 +148,34 @@ class LocalCandidateVerificationTests(unittest.TestCase):
         self.assertIn(("npm", "test"), commands)
         self.assertIn(("npm", "run", "build"), commands)
 
+    def test_registered_recovery_pair_selects_exact_local_regression(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nexolab-recovery-route-test-") as temporary:
+            worktree = Path(temporary)
+            test_file = worktree / MODULE.RECOVERY_RUNTIME_TEST
+            test_file.parent.mkdir(parents=True)
+            test_file.write_text("import unittest\n", encoding="utf-8")
+            check = MODULE.recovery_runtime_check(
+                ["scripts/rebaseline-device-agent-recovery.py"], worktree
+            )
+        self.assertIsNotNone(check)
+        assert check is not None
+        self.assertEqual(check.name, "Recovery runtime regressions")
+        self.assertIn("test_rebaseline_device_agent_recovery.py", check.command)
+
+    def test_registered_recovery_pair_fails_closed_without_exact_test(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nexolab-recovery-missing-test-") as temporary:
+            with self.assertRaisesRegex(MODULE.VerificationError, "exact regression module is missing"):
+                MODULE.recovery_runtime_check(
+                    ["scripts/rebaseline-device-agent-recovery.py"], Path(temporary)
+                )
+
+    def test_unrelated_recovery_script_does_not_select_rebaseline_suite(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nexolab-other-recovery-route-") as temporary:
+            check = MODULE.recovery_runtime_check(
+                ["scripts/run-disaster-recovery-acceptance.sh"], Path(temporary)
+            )
+        self.assertIsNone(check)
+
     def test_deployment_runtime_requires_compose_validation_automatically(self) -> None:
         impact = {"classes": ["deployment_runtime"]}
         self.assertTrue(MODULE.compose_validation_required(impact, False))
