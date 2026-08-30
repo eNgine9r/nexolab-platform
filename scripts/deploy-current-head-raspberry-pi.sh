@@ -187,7 +187,7 @@ restore_edge_sqlite_snapshot() {
       echo "ERROR: Device Agent must already be stopped before edge SQLite restore" >&2
       return 1
     }
-  [[ "$(docker inspect --format '{{range .Mounts}}{{if eq .Destination \"/var/lib/nexolab\"}}{{.Name}}{{end}}{{end}}' "$edge_container")" == "nexolab-edge_edge-data" ]] \
+  [[ "$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/var/lib/nexolab"}}{{.Name}}{{end}}{{end}}' "$edge_container")" == "nexolab-edge_edge-data" ]] \
     || {
       echo "ERROR: Device Agent edge-data volume identity is unexpected" >&2
       return 1
@@ -1058,7 +1058,7 @@ capture_edge_sqlite_snapshot() {
   fi
   validate_full_sha "$deployed_source" \
     || fail "exact deployed source authority is required before edge SQLite snapshot"
-  [[ "$(docker inspect --format '{{range .Mounts}}{{if eq .Destination \"/var/lib/nexolab\"}}{{.Name}}{{end}}{{end}}' "$edge_container")" == "$edge_volume" ]] \
+  [[ "$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/var/lib/nexolab"}}{{.Name}}{{end}}{{end}}' "$edge_container")" == "$edge_volume" ]] \
     || fail "Device Agent edge-data volume identity is unexpected"
   local edge_image
   edge_image="$(docker inspect --format '{{.Image}}' "$edge_container")"

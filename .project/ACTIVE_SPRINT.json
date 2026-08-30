@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 762,
-      "title": "Pass explicit Embraco enrollment into production hardware Compose",
-      "branch": "fix/762-embraco-compose-enrollment"
+      "issue": 764,
+      "title": "Fix edge volume identity Docker inspect template",
+      "branch": "fix/764-edge-volume-inspect-template"
     },
     "next_work_package": {
       "issue": 760,
@@ -959,13 +959,36 @@
       "issue": 762,
       "title": "Pass explicit Embraco enrollment into production hardware Compose",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         759
       ],
       "branch": "fix/762-embraco-compose-enrollment",
       "evidence": {
         "defect": "production_hardware_compose_did_not_pass_embraco_unit_ids",
+        "pull_request": 763,
+        "merged_sha": "e5da88c11c2742b9972ced6fd7a36b5087b7a586",
+        "nexolab_merge_gate": "success",
+        "runtime_mutation": "none",
+        "modbus_action": "none"
+      }
+    },
+    {
+      "issue": 764,
+      "title": "Fix edge volume identity Docker inspect template",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        759
+      ],
+      "branch": "fix/764-edge-volume-inspect-template",
+      "evidence": {
+        "defect": "docker_go_template_received_literal_backslash_escaped_quotes",
+        "controlled_cutover_failure": "pre_mutation_fail_closed",
+        "unchanged_device_agent_restarted": true,
+        "live_volume_identity_template": "nexolab-edge_edge-data",
+        "focused_edge_snapshot_tests": "22_passed",
+        "shell_syntax": "passed",
         "runtime_mutation": "none",
         "modbus_action": "none"
       }
@@ -977,7 +1000,8 @@
       "lifecycle": "blocked",
       "depends_on": [
         759,
-        762
+        762,
+        764
       ],
       "branch": "ops/760-embraco-unit2-production-acceptance",
       "evidence": {
@@ -989,7 +1013,8 @@
         "hardware_register_acceptance": "13_of_13_three_passes",
         "temperature_scale": "hardware_unverified_fail_closed",
         "blocked_by_issue_759": "false",
-        "blocked_by_issue_762": "true"
+        "blocked_by_issue_762": "false",
+        "blocked_by_issue_764": "true"
       }
     }
   ],

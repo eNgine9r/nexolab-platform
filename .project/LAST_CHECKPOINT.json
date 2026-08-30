@@ -3,32 +3,35 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-30T00:16:13+03:00",
+  "timestamp": "2026-08-30T01:28:45+03:00",
   "actor": "Codex",
-  "event": "issue_762_compose_enrollment_defect_active",
+  "event": "issue_764_edge_volume_template_fix_active",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18"
   },
   "active_work": {
-    "issue": 762,
-    "title": "Pass explicit Embraco enrollment into production hardware Compose",
-    "branch": "fix/762-embraco-compose-enrollment"
+    "issue": 764,
+    "title": "Fix edge volume identity Docker inspect template",
+    "branch": "fix/764-edge-volume-inspect-template"
   },
   "evidence_snapshot": {
     "issue_759_pull_request": 761,
     "issue_759_merge_gate": "success",
-    "issue_762_defect": "production_hardware_compose_did_not_pass_embraco_unit_ids",
-    "compose_default_embraco_unit_ids": "empty",
-    "compose_explicit_embraco_unit_ids": "2",
-    "temperature_scale_present": false,
-    "control_scale_present": false,
+    "issue_762_pull_request": 763,
+    "issue_762_merged_sha": "e5da88c11c2742b9972ced6fd7a36b5087b7a586",
+    "issue_764_defect": "docker_go_template_received_literal_backslash_escaped_quotes",
+    "cutover_failure_boundary": "pre_mutation_fail_closed",
+    "unchanged_device_agent_restarted": true,
+    "live_volume_identity_template": "nexolab-edge_edge-data",
+    "focused_edge_snapshot_tests": "22_passed",
+    "shell_syntax": "passed",
     "production_runtime_mutation": "none",
     "next_issue": 760,
-    "next_issue_gate": "blocked_until_issue_762_green_merge"
+    "next_issue_gate": "blocked_until_issue_764_green_merge"
   },
   "observations": [],
-  "next_action": "Verify, publish and merge the narrow Issue #762 Compose pass-through, then resume Issue #760 from fresh main and rebuild exact-source ARM64 frontend evidence before cutover.",
+  "next_action": "Publish and merge the narrow Issue #764 template correction, then resume Issue #760 from fresh main with a new exact-source ARM64 frontend artifact before cutover.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
