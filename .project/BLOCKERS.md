@@ -1,14 +1,14 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-29
+Updated: 2026-08-30
 
-## Issue #766 — exact Device Agent recovery-image preservation
+## Issue #768 — repository candidate gate after successful runtime rebaseline
 
-Issue #764 / PR #765 is merged GREEN at `ba2e4ed6...`. The repaired #760 deployment then failed closed during snapshot capture because candidate image build had already replaced the only tag for verified running image `sha256:847b9117...`. The unchanged container restarted healthy, but that exact image ID is no longer addressable. Issue #766 must preserve and verify the exact deployed image under an immutable recovery tag before any future candidate build. No Embraco activation, Modbus access or hardware action belongs to #766.
+**Runtime recovery blocker cleared 2026-08-30.** Rebaseline `20260830T083125Z` established addressable recovery image `sha256:1c639cc7...` from the unchanged healthy running container with sanitized export/import evidence; independent recovery-image tar audit confirms zero mounted payload entries under `/var/lib/nexolab` and `/host/dev`. The repository implementation is still an active #768 candidate and must receive exact-head GREEN CI and merge before #760 starts. This is a repository lifecycle gate, not permission to run #760 from the #768 branch.
 
 ## Issue #760 — Embraco Unit 2 production activation
 
-Blocked by #766 and a hard Product Owner recovery-authority decision after #759, #762 and #764 merged GREEN. The current healthy `ff86b10b...` container remains running, but its recorded image ID became unaddressable before mutation. A rebuilt image has a different ID and cannot silently replace accepted rollback authority. Resume requires an explicitly approved repository-owned rebaseline that preserves edge SQLite and PostgreSQL telemetry; then #760 may activate only Unit 2 on stable Bus 2 adapter `0133F246` at verified `9600 8N2`, preserving all current Bus 1 lifecycle/cadence and leaving temperature/control engineering scale unset.
+The #766 prevention and Product Owner-approved #768 runtime rebaseline prerequisites are satisfied. #760 remains blocked only until the #768 repository candidate merges GREEN. After that it may resume as its own controlled Work Package and activate only Unit 2 on stable Bus 2 adapter `0133F246` at verified `9600 8N2`, preserving all current Bus 1 lifecycle/cadence and leaving temperature/control engineering scale unset. No #760 cutover occurred in #768.
 
 ## Issue #709 — post-merge Saved Dashboard runtime CSV verification
 
