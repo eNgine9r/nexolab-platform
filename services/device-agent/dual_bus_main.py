@@ -71,8 +71,18 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
     """Adaptive Device Agent with one transport and operation lock per RS-485 bus."""
 
     def __init__(self, settings: Settings) -> None:
-        super().__init__(settings)
-        self.rs485_topology = RS485BusTopology.from_environment(
+        configured_topology = RS485BusTopology.explicit_from_environment(settings)
+        topology_store = (
+            TopologyAwareEnrollmentStore(
+                settings.database_path,
+                bus_for_unit=configured_topology.bus_for_unit,
+                bind_registry=configured_topology.bind_registry,
+            )
+            if configured_topology is not None
+            else None
+        )
+        super().__init__(settings, registry_store=topology_store)
+        self.rs485_topology = configured_topology or RS485BusTopology.from_environment(
             self.settings,
             self._registry_snapshot(),
         )
@@ -82,7 +92,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         self._bus_le01mp_readers: dict[str, LE01MPReader] = {}
         self._bus_embraco_readers: dict[str, EmbracoSyncReader] = {}
         self._bus_operation_locks: dict[str, threading.Lock] = {}
-        self._topology_enrollment_store: TopologyAwareEnrollmentStore | None = None
+        self._topology_enrollment_store = topology_store
 
         if not self.rs485_topology.explicit:
             return
@@ -97,11 +107,6 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         self._bus_operation_lock = _AllBusOperationLock(  # type: ignore[assignment]
             self._bus_operation_locks
         )
-        self._topology_enrollment_store = TopologyAwareEnrollmentStore(
-            settings.database_path,
-            bus_for_unit=self.rs485_topology.bus_for_unit,
-        )
-
         for binding in self.rs485_topology.bindings:
             client = ModbusRTUClient(
                 binding.serial_device,

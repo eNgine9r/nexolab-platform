@@ -164,6 +164,21 @@ class EmbracoRegistryConfigurationTests(unittest.TestCase):
             self.assertEqual(len(configured.eligible_embraco_metrics()), len(EMBRACO_REGISTERS))
             self.assertEqual({unit for unit, _ in configured.eligible_embraco_metrics()}, {2})
             self.assertGreater(configured.revision, baseline.revision)
+            configured_devices = {
+                item.device_id: item for item in configured.document.devices
+            }
+            self.assertEqual(configured_devices["embraco-2"].bus_id, "rs485-main")
+
+            restarted = AcquisitionRegistryStore(database).load_or_migrate(
+                settings(database_path=database, embraco_unit_ids=(2,)),
+                discovery_units=(106,),
+                legacy_active_points=((106, 3), (106, 4)),
+            )
+            restarted_devices = {
+                item.device_id: item for item in restarted.document.devices
+            }
+            self.assertEqual(restarted_devices["embraco-2"].bus_id, "rs485-main")
+            self.assertEqual(restarted.revision, configured.revision)
 
 
 

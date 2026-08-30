@@ -6,7 +6,7 @@ import threading
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable
 
 from acquisition_cadence import (
     CadenceMutation,
@@ -765,6 +765,7 @@ class AcquisitionRegistry:
         unit_ids: Iterable[int],
         *,
         lifecycle: str = "active",
+        bus_for_unit: Callable[[int], str] | None = None,
     ) -> tuple[RegistryDocument, list[dict[str, str]]]:
         requested_values = tuple(unit_ids)
         if any(not isinstance(unit_id, int) or isinstance(unit_id, bool) for unit_id in requested_values):
@@ -773,27 +774,47 @@ class AcquisitionRegistry:
         if any(not 1 <= unit_id <= 247 for unit_id in requested):
             raise ValueError("Invalid Embraco Modbus Unit ID")
         desired_lifecycle = _validate_lifecycle(lifecycle)
-        existing_by_identity = {(device.bus_id, device.unit_id): device for device in self.document.devices}
-        additions: list[int] = []
+        configured_buses = {bus.bus_id for bus in self.document.buses}
+        existing_by_unit: dict[int, list[RegistryDevice]] = {}
+        for device in self.document.devices:
+            existing_by_unit.setdefault(device.unit_id, []).append(device)
+        additions: list[tuple[int, str]] = []
         for unit_id in sorted(requested):
-            existing = existing_by_identity.get((BUS_ID, unit_id))
-            if existing is None:
-                additions.append(unit_id)
+            bus_id = BUS_ID if bus_for_unit is None else bus_for_unit(unit_id)
+            if bus_id not in configured_buses:
+                raise ValueError(
+                    f"Configured bus {bus_id!r} is absent from acquisition registry"
+                )
+            existing = existing_by_unit.get(unit_id, [])
+            if not existing:
+                additions.append((unit_id, bus_id))
                 continue
-            if existing.device_family != "embraco" or existing.profile_version != EMBRACO_PROFILE_VERSION:
-                raise ValueError(f"Conflicting Modbus bus/Unit identity: {BUS_ID}/{unit_id}")
+            if len(existing) != 1:
+                raise ValueError(
+                    f"Ambiguous Modbus Unit ID {unit_id} across registry buses"
+                )
+            device = existing[0]
+            if (
+                device.bus_id != bus_id
+                or device.device_family != "embraco"
+                or device.profile_version != EMBRACO_PROFILE_VERSION
+            ):
+                raise ValueError(
+                    "Conflicting Modbus Unit ownership for Embraco enrollment: "
+                    f"unit={unit_id}, registry_bus={device.bus_id}, configured_bus={bus_id}"
+                )
         if not additions:
             return self.document, []
 
         devices = list(self.document.devices)
         targets = list(self.document.targets)
         changes: list[dict[str, str]] = []
-        for unit_id in additions:
+        for unit_id, bus_id in additions:
             device_id = f"embraco-{unit_id}"
             devices.append(
                 RegistryDevice(
                     device_id=device_id,
-                    bus_id=BUS_ID,
+                    bus_id=bus_id,
                     device_family="embraco",
                     unit_id=unit_id,
                     profile_version=EMBRACO_PROFILE_VERSION,
@@ -818,11 +839,24 @@ class AcquisitionRegistry:
 
 
 class AcquisitionRegistryStore:
-    def __init__(self, database_path: Path) -> None:
+    def __init__(
+        self,
+        database_path: Path,
+        *,
+        registry_binding: Callable[[AcquisitionRegistry], AcquisitionRegistry]
+        | None = None,
+        embraco_bus_for_unit: Callable[[int], str] | None = None,
+    ) -> None:
+        if (registry_binding is None) != (embraco_bus_for_unit is None):
+            raise ValueError(
+                "Registry binding and Embraco bus ownership must be configured together"
+            )
         database_path.parent.mkdir(parents=True, exist_ok=True)
         self._connection = sqlite3.connect(database_path, check_same_thread=False)
         self._connection.execute("PRAGMA busy_timeout = 5000")
         self._lock = threading.Lock()
+        self._registry_binding = registry_binding
+        self._embraco_bus_for_unit = embraco_bus_for_unit
         with self._connection:
             self._connection.execute(
                 """
@@ -847,6 +881,61 @@ class AcquisitionRegistryStore:
                 )
                 """
             )
+
+    def _apply_registry_binding(
+        self,
+        registry: AcquisitionRegistry,
+        *,
+        initial: bool,
+    ) -> tuple[AcquisitionRegistry, list[dict[str, str]]]:
+        if self._registry_binding is None:
+            return registry, []
+        bound = self._registry_binding(registry)
+        if bound.document == registry.document:
+            return registry, []
+
+        old_buses = ",".join(bus.bus_id for bus in registry.document.buses)
+        new_buses = ",".join(bus.bus_id for bus in bound.document.buses)
+        changes: list[dict[str, str]] = [
+            {
+                "entity": "registry_buses",
+                "id": "root",
+                "from": old_buses,
+                "to": new_buses,
+            }
+        ]
+        old_devices = {
+            device.device_id: device for device in registry.document.devices
+        }
+        for device in bound.document.devices:
+            previous = old_devices[device.device_id]
+            if previous.bus_id != device.bus_id:
+                changes.append(
+                    {
+                        "entity": "device_bus",
+                        "id": device.device_id,
+                        "from": previous.bus_id,
+                        "to": device.bus_id,
+                    }
+                )
+        if registry.document.cadence != bound.document.cadence:
+            changes.append(
+                {
+                    "entity": "cadence",
+                    "id": "bus_bindings",
+                    "from": "previous_bus_identity",
+                    "to": "configured_bus_identity",
+                }
+            )
+
+        document = bound.document
+        if not initial:
+            document = replace(
+                document,
+                revision=registry.revision + 1,
+                updated_at=_now(),
+            )
+        return AcquisitionRegistry(document), changes
 
     def _write_state_locked(self, document: RegistryDocument, expected_revision: int | None = None) -> None:
         if expected_revision is None:
@@ -991,9 +1080,23 @@ class AcquisitionRegistryStore:
                         changes=changes,
                     )
                 registry = AcquisitionRegistry(reconciled)
+                registry, topology_changes = self._apply_registry_binding(
+                    registry,
+                    initial=False,
+                )
+                if topology_changes:
+                    self._write_state_locked(registry.document)
+                    self._write_audit_locked(
+                        registry.document,
+                        actor="system:configuration",
+                        reason="Bind acquisition registry to explicit RS-485 topology",
+                        changes=topology_changes,
+                    )
                 if settings.embraco_unit_ids:
                     candidate, embraco_changes = registry.with_embraco_enrollment(
-                        settings.embraco_unit_ids, lifecycle="active"
+                        settings.embraco_unit_ids,
+                        lifecycle="active",
+                        bus_for_unit=self._embraco_bus_for_unit,
                     )
                     if embraco_changes:
                         self._write_state_locked(candidate)
@@ -1011,6 +1114,11 @@ class AcquisitionRegistryStore:
                 discovery_units=discovery_units,
                 legacy_active_points=legacy_active_points,
             )
+            registry, topology_changes = self._apply_registry_binding(
+                AcquisitionRegistry(document),
+                initial=True,
+            )
+            document = registry.document
             self._connection.execute(
                 """
                 INSERT INTO acquisition_registry_state(
@@ -1030,6 +1138,7 @@ class AcquisitionRegistryStore:
                 reason="Migrate legacy acquisition topology into registry v2",
                 changes=[
                     {"entity": "registry", "id": "root", "from": "absent", "to": "v2"},
+                    *topology_changes,
                     *[
                         {
                             "entity": "cadence_family_default",
