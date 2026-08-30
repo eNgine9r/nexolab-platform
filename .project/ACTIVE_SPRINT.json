@@ -1108,7 +1108,7 @@
       "issue": 770,
       "title": "Register required acceptance workflows for deployment/recovery script changes",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "branch": "fix/770-ci-runtime-workflow-routing",
       "evidence": {
         "root_cause": "rebaseline_recovery_helper_was_unknown_and_triggered_all_external_lanes_fail_closed",

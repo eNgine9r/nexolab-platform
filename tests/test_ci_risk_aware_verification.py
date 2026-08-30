@@ -92,6 +92,12 @@ class RiskAwareVerificationContractTests(unittest.TestCase):
         self.assertIn('REQUIRED_EXTERNAL_WORKFLOWS:', CORE)
         self.assertIn('--required-workflows-json "$REQUIRED_EXTERNAL_WORKFLOWS"', CORE)
 
+    def test_deployment_runtime_runs_repository_recovery_regressions(self) -> None:
+        self.assertIn("contains(fromJSON(needs.classify.outputs.classes), 'deployment_runtime')", CORE)
+        self.assertIn("^scripts/.*recovery.*", CORE)
+        self.assertIn("-p 'test_*recovery*.py'", CORE)
+        self.assertIn("Recovery tooling changed but no recovery regression test module exists.", CORE)
+
     def test_clean_candidate_helper_uses_detached_git_worktree(self) -> None:
         self.assertTrue(CLEAN_HELPER.is_file())
         helper = CLEAN_HELPER.read_text(encoding='utf-8')

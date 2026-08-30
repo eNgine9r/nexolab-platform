@@ -139,6 +139,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Validate CI change-impact policy
@@ -150,6 +151,42 @@ jobs:
             -p 'test_ci_*.py' \
             -v
           python3 scripts/validate-project-state.py
+
+      - name: Validate recovery runtime tooling
+        if: ${{ contains(fromJSON(needs.classify.outputs.classes), 'deployment_runtime') }}
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base="$PR_BASE_SHA"
+            head="$PR_HEAD_SHA"
+          elif [[ "$EVENT_NAME" == "push" && -n "$PUSH_BEFORE_SHA" && ! "$PUSH_BEFORE_SHA" =~ ^0+$ ]]; then
+            base="$PUSH_BEFORE_SHA"
+            head="$CURRENT_SHA"
+          else
+            base=""
+            head=""
+          fi
+
+          if [[ -n "$base" && -n "$head" ]] && \
+             git diff --name-only "$base" "$head" -- | grep -Eq '^scripts/.*recovery.*'; then
+            mapfile -t recovery_tests < <(find scripts/tests -maxdepth 1 -type f -name 'test_*recovery*.py' -print | sort)
+            if (( ${#recovery_tests[@]} == 0 )); then
+              printf '%s\n' 'Recovery tooling changed but no recovery regression test module exists.' >&2
+              exit 1
+            fi
+            python3 -m unittest discover \
+              -s scripts/tests \
+              -p 'test_*recovery*.py' \
+              -v
+          fi
 
       - name: Validate standalone Raspberry Pi runtime contracts
         shell: bash
