@@ -235,7 +235,7 @@ PY_RESTORE_IMAGE
     --mount "type=bind,src=$SCRIPT_DIR,dst=/nexolab-scripts,readonly" \
     --mount "type=bind,src=$evidence_dir,dst=/evidence,readonly" \
     --entrypoint /usr/bin/python3 \
-    "$edge_image" \
+    "$deployed_device_agent_image_id" \
     /nexolab-scripts/deploy-edge-sqlite-snapshot.py restore \
       --snapshot /evidence/edge-sqlite-pre-cutover.db \
       --metadata /evidence/edge-sqlite-pre-cutover.json \
@@ -328,6 +328,11 @@ TARGET_HEAD=""
 EXPECTED_DEPLOYMENT_EVIDENCE=""
 VERIFIED_DEPLOYED_SOURCE=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID=""
+VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID=""
+VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID=""
+VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID=""
+VERIFIED_DEPLOYED_DEVICE_AGENT_RECOVERY_TAG=""
+DEPLOYED_DEVICE_AGENT_IMAGE_ID=""
 
 CENTRAL_COMPOSE_ARGS=(
   -f "$CENTRAL_DIR/compose.central.yaml"
@@ -689,6 +694,7 @@ root = Path(sys.argv[1])
 current_audit = Path(sys.argv[2]).resolve()
 stamp_re = re.compile(r"^\d{8}T\d{6}Z$")
 sha_re = re.compile(r"^[0-9a-f]{40}$")
+image_re = re.compile(r"^sha256:[0-9a-f]{64}$")
 legacy_mutation_markers = (
     "Starting central backend, MinIO and observability",
     "Starting real-hardware edge stack",
@@ -714,14 +720,21 @@ if root.is_dir():
         summary_text = summary.read_text(encoding="utf-8", errors="replace") if summary.is_file() else ""
         final_state = directory / "final-state.txt"
         commit = None
+        passed_image = None
         if final_state.is_file():
             for line in final_state.read_text(encoding="utf-8", errors="replace").splitlines():
-                if line.startswith("commit="):
-                    candidate = line.split("=", 1)[1].strip()
-                    if sha_re.fullmatch(candidate):
-                        commit = candidate
-                    break
-        passed_commit = commit if "DEPLOYMENT PASSED" in summary_text else None
+                if "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                value = value.strip()
+                if key == "commit" and sha_re.fullmatch(value):
+                    commit = value
+                elif key == "deployed_device_agent_image_id" and image_re.fullmatch(value):
+                    passed_image = value
+        if "DEPLOYMENT PASSED" not in summary_text:
+            commit = None
+            passed_image = None
+        passed_commit = commit
         restore_result_path = directory / "edge-sqlite-restore-result.json"
         recovered_commit = None
         recovered_image = None
@@ -774,11 +787,12 @@ if root.is_dir():
             recovered_commit = restore_result["deployed_source"]
             recovered_image = restore_result["deployed_device_agent_image_id"]
         effective_commit = recovered_commit or passed_commit
+        effective_image = recovered_image or passed_image
         mutated = (directory / "runtime-mutation-started").is_file() or any(
             marker in summary_text for marker in legacy_mutation_markers
         )
         attempts.append(
-            (directory.name, directory.resolve(), summary_text, mutated, effective_commit, recovered_image)
+            (directory.name, directory.resolve(), summary_text, mutated, effective_commit, effective_image)
         )
 
 successful = [
@@ -816,6 +830,75 @@ PY_EVIDENCE
   [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] \
     || VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID=""
   VERIFIED_DEPLOYED_SOURCE="$evidence_commit"
+
+  local rebaseline_authority="$REPO/runtime/recovery-authority/device-agent/current.json"
+  local recorded_device_agent_image_unavailable="0"
+  if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]] \
+    && ! docker image inspect "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" >/dev/null 2>&1; then
+    recorded_device_agent_image_unavailable="1"
+  fi
+  if [[ -e "$rebaseline_authority" \
+    && ( -z "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" \
+      || "$recorded_device_agent_image_unavailable" == "1" ) ]]; then
+    [[ -f "$rebaseline_authority" && ! -L "$rebaseline_authority" ]] \
+      || fail "Device Agent rebaseline authority path is unsafe"
+    local rebaseline_pointer_source
+    if ! rebaseline_pointer_source="$(python3 - "$rebaseline_authority" <<'PY_REBASELINE_SOURCE'
+import json
+import re
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+try:
+    document = json.loads(path.read_text(encoding="utf-8"))
+except (OSError, json.JSONDecodeError) as error:
+    print(f"ERROR: Device Agent rebaseline authority is unreadable: {error}", file=sys.stderr)
+    raise SystemExit(2)
+source = document.get("deployed_source") if isinstance(document, dict) else None
+if not isinstance(source, str) or not re.fullmatch(r"[0-9a-f]{40}", source):
+    print("ERROR: Device Agent rebaseline authority has invalid deployed_source", file=sys.stderr)
+    raise SystemExit(2)
+print(source)
+PY_REBASELINE_SOURCE
+    )"; then
+      fail "Device Agent rebaseline recovery authority pointer is invalid"
+    fi
+    if [[ "$rebaseline_pointer_source" == "$VERIFIED_DEPLOYED_SOURCE" ]]; then
+      if [[ "$recorded_device_agent_image_unavailable" == "1" ]]; then
+        log "Recorded Device Agent image is unavailable; resolving matching rebaseline recovery authority"
+      fi
+      local resolved_rebaseline
+      if ! resolved_rebaseline="$(
+        python3 "$SCRIPT_DIR/rebaseline-device-agent-recovery.py" \
+          --resolve-current \
+          --repo "$REPO" \
+          --deployment-evidence "$EXPECTED_DEPLOYMENT_EVIDENCE" \
+          --expected-deployed-source "$VERIFIED_DEPLOYED_SOURCE"
+      )"; then
+        fail "Device Agent rebaseline recovery authority is invalid"
+      fi
+      local key value
+      while IFS='=' read -r key value; do
+        case "$key" in
+          rebaseline_id) VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID="$value" ;;
+          source_container_id) VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID="$value" ;;
+          source_container_image_id) VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID="$value" ;;
+          recovery_image_id) VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID="$value" ;;
+          recovery_tag) VERIFIED_DEPLOYED_DEVICE_AGENT_RECOVERY_TAG="$value" ;;
+          *) fail "Device Agent rebaseline resolver returned an unknown field" ;;
+        esac
+      done <<< "$resolved_rebaseline"
+      [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID" =~ ^[0-9]{8}T[0-9]{6}Z$ \
+        && "$VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID" =~ ^[0-9a-f]{64}$ \
+        && "$VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ \
+        && "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ \
+        && -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_RECOVERY_TAG" ]] \
+        || fail "Device Agent rebaseline resolver returned incomplete authority"
+    else
+      log "Ignoring superseded Device Agent rebaseline pointer: pointer_source=$rebaseline_pointer_source deployed_source=$VERIFIED_DEPLOYED_SOURCE"
+    fi
+  fi
 }
 
 resolve_deployed_source_authority() {
@@ -852,6 +935,11 @@ preserve_deployed_device_agent_image_for_recovery() {
     echo "source=$VERIFIED_DEPLOYED_SOURCE"
     echo "image_id=$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID"
     echo "recovery_tag=$recovery_tag"
+    if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID" ]]; then
+      echo "rebaseline_id=$VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID"
+      echo "source_container_id=$VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID"
+      echo "source_container_image_id=$VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID"
+    fi
   } > "$AUDIT_DIR/device-agent-recovery-image.txt"
   chmod 0600 "$AUDIT_DIR/device-agent-recovery-image.txt"
   log "Preserved exact deployed Device Agent image under immutable recovery tag"
@@ -899,6 +987,7 @@ if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "1" ]]; then
   printf 'SOURCE_SELECTION_VALIDATED\n'
   printf 'target=%s\n' "$TARGET_HEAD"
   printf 'expected_deployed_source=%s\n' "${EXPECTED_DEPLOYED_SOURCE:-not_supplied}"
+  printf 'deployed_device_agent_image_id=%s\n' "${VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID:-not_available}"
   printf 'origin_main=%s\n' "$CONTROL_HEAD"
   exit 0
 fi
@@ -1084,20 +1173,28 @@ capture_edge_sqlite_snapshot() {
     || fail "exact deployed source authority is required before edge SQLite snapshot"
   [[ "$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/var/lib/nexolab"}}{{.Name}}{{end}}{{end}}' "$edge_container")" == "$edge_volume" ]] \
     || fail "Device Agent edge-data volume identity is unexpected"
-  local edge_image
+  local edge_image recovery_image
   edge_image="$(docker inspect --format '{{.Image}}' "$edge_container")"
   [[ -n "$edge_image" ]] || fail "Device Agent image identity is unavailable for edge SQLite snapshot"
-  if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]]; then
+  recovery_image="$edge_image"
+  if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID" ]]; then
+    [[ "$(docker inspect --format '{{.Id}}' "$edge_container")" == "$VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID" \
+      && "$edge_image" == "$VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID" ]] \
+      || fail "Device Agent container no longer matches the rebaseline source authority"
+    recovery_image="$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID"
+  elif [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]]; then
     [[ "$edge_image" == "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]] \
       || fail "Device Agent container image does not match verified recovery authority; complete the explicit restart verification first"
   fi
+  docker image inspect "$recovery_image" >/dev/null 2>&1 \
+    || fail "addressable Device Agent recovery image is unavailable for edge SQLite snapshot"
 
   log "Capturing consistent pre-cutover edge SQLite snapshot"
   if ! docker run --rm --user "$(id -u):$(id -g)" \
     --volumes-from "$edge_container" \
     --mount "type=bind,src=$AUDIT_DIR,dst=/evidence" \
     --entrypoint /usr/bin/python3 \
-    "$edge_image" \
+    "$recovery_image" \
     /evidence/deploy-edge-sqlite-snapshot.py capture \
       --source /var/lib/nexolab/edge.db \
       --snapshot /evidence/edge-sqlite-pre-cutover.db \
@@ -1105,7 +1202,7 @@ capture_edge_sqlite_snapshot() {
       --deployed-source "$deployed_source" \
       --target-source "$CURRENT_HEAD" \
       --deployment-evidence-id "$STAMP" \
-      --deployed-device-agent-image-id "$edge_image" \
+      --deployed-device-agent-image-id "$recovery_image" \
       > "$AUDIT_DIR/edge-sqlite-capture-result.json"; then
     rm -f -- "$snapshot" "$metadata" "$AUDIT_DIR/edge-sqlite-capture-result.json"
     fail "required edge SQLite snapshot/verification failed before runtime mutation"
@@ -1189,7 +1286,11 @@ quiesce_edge_device_agent_for_cutover() {
       || fail "Device Agent container identity is invalid before quiesce"
     [[ "$EDGE_DEVICE_AGENT_PRE_CUTOVER_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] \
       || fail "Device Agent image identity is invalid before quiesce"
-    if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]]; then
+    if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID" ]]; then
+      [[ "$EDGE_DEVICE_AGENT_QUIESCED_CONTAINER" == "$VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID" \
+        && "$EDGE_DEVICE_AGENT_PRE_CUTOVER_IMAGE_ID" == "$VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID" ]] \
+        || fail "running Device Agent does not match verified rebaseline source authority"
+    elif [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]]; then
       [[ "$EDGE_DEVICE_AGENT_PRE_CUTOVER_IMAGE_ID" == "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]] \
         || fail "running Device Agent image does not match verified recovery authority"
     fi
@@ -1763,9 +1864,30 @@ mkdir -p "$REPO/runtime"
 printf '%s\n' "$RUNTIME_MODE" > "$AUDIT_DIR/runtime-mode"
 install -m 0600 "$AUDIT_DIR/runtime-mode" "$RUNTIME_MODE_FILE"
 
+mapfile -t DEPLOYED_DEVICE_AGENT_CONTAINERS < <(
+  docker ps -q \
+    --filter label=com.docker.compose.project=nexolab-edge \
+    --filter label=com.docker.compose.service=device-agent
+)
+[[ "${#DEPLOYED_DEVICE_AGENT_CONTAINERS[@]}" == "1" ]] \
+  || fail "successful deployment evidence requires exactly one running Device Agent container"
+DEPLOYED_DEVICE_AGENT_CONTAINER="${DEPLOYED_DEVICE_AGENT_CONTAINERS[0]}"
+[[ "$(docker inspect --format '{{.State.Running}}' "$DEPLOYED_DEVICE_AGENT_CONTAINER")" == "true" ]] \
+  || fail "successful deployment evidence requires the Device Agent to be running"
+[[ "$(docker inspect --format '{{.State.Health.Status}}' "$DEPLOYED_DEVICE_AGENT_CONTAINER")" == "healthy" ]] \
+  || fail "successful deployment evidence requires the Device Agent to be healthy"
+DEPLOYED_DEVICE_AGENT_IMAGE_ID="$(docker inspect --format '{{.Image}}' "$DEPLOYED_DEVICE_AGENT_CONTAINER")"
+[[ "$DEPLOYED_DEVICE_AGENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] \
+  || fail "successful deployment evidence requires an exact Device Agent image ID"
+docker image inspect "$DEPLOYED_DEVICE_AGENT_IMAGE_ID" >/dev/null 2>&1 \
+  || fail "successful deployment Device Agent image is not addressable"
+[[ "$(docker image inspect --format '{{.Id}}' nexolab-device-agent:local)" == "$DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]] \
+  || fail "successful deployment Device Agent container does not match the activated local image"
+
 {
   echo "deployed_at=$(date --iso-8601=seconds)"
   echo "commit=$CURRENT_HEAD"
+  echo "deployed_device_agent_image_id=$DEPLOYED_DEVICE_AGENT_IMAGE_ID"
   echo "requested_source_ref=${REQUESTED_SOURCE_REF:-current_origin_main}"
   echo "expected_deployed_source=${EXPECTED_DEPLOYED_SOURCE:-not_supplied}"
   echo "control_origin_main=$CONTROL_HEAD"

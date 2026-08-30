@@ -23,14 +23,14 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 770,
-      "title": "Register required acceptance workflows for deployment/recovery script changes",
-      "branch": "fix/770-ci-runtime-workflow-routing"
-    },
-    "next_work_package": {
       "issue": 768,
       "title": "Rebaseline current healthy Device Agent rollback authority before #760",
       "branch": "ops/768-recovery-authority-rebaseline"
+    },
+    "next_work_package": {
+      "issue": 760,
+      "title": "Activate #729 Embraco Unit 2 on isolated Bus 2 and capture runtime acceptance",
+      "branch": "ops/760-embraco-production-activation"
     }
   },
   "work_packages": [
@@ -1057,7 +1057,7 @@
       "issue": 768,
       "title": "Rebaseline current healthy Device Agent rollback authority before #760",
       "priority": "critical",
-      "lifecycle": "blocked",
+      "lifecycle": "review",
       "depends_on": [
         766
       ],
@@ -1085,9 +1085,9 @@
         "postgresql_health": "healthy",
         "postgresql_volume": "nexolab-central-postgres-data",
         "structural_docker_create": "success_never_started_removed",
-        "focused_recovery_tests": "18_passed",
-        "edge_snapshot_tests": "23_passed",
-        "focused_deployment_recovery_tests": "85_passed_post_review_44_plus_41",
+        "focused_recovery_tests": "31_passed",
+        "edge_snapshot_tests": "24_passed",
+        "focused_deployment_recovery_tests": "102_passed_final_47_plus_24_plus_31",
         "standalone_offline_runtime_contract": "passed_7_plus_8",
         "read_only_real_preflight": "passed",
         "current_authority_resolver": "passed",
@@ -1096,19 +1096,40 @@
         "modbus_access": "none",
         "hardware_write": "none",
         "embraco_activation": "none",
-        "repository_candidate": "pending_exact_head_ci_and_merge",
+        "repository_candidate": "pending_publish_exact_head_ci_review_and_merge_after_live_mode_and_unaddressable_image_fallback_fixes",
         "mount_exclusion_verified": true,
         "mount_exclusion_evidence_path": "runtime/evidence/issue-768-device-agent-rebaseline-20260830T083125Z/mount-exclusion-postcheck.json",
         "review_p2_validation_cleanup": "addressed_fail_closed",
-        "review_threads": "pending_exact_head_recheck",
-        "blocked_by_issue_770_ci_routing": "true"
+        "review_threads": "all_known_findings_addressed_pending_new_exact_head_review_resolution",
+        "blocked_by_issue_770_ci_routing": "false",
+        "issue_770_prerequisite": "completed_pr_771_exact_head_23fd91ac_green",
+        "post_issue_770_integration_recovery_tests": "18_passed",
+        "post_issue_770_ci_governance_tests": "118_passed_1_skipped",
+        "post_issue_770_offline_runtime_contract": "passed_7_plus_8",
+        "post_issue_770_state_model_v2": "passed",
+        "post_issue_770_python_shell_syntax": "passed",
+        "post_issue_770_git_diff_check": "passed",
+        "deploy_current_head_tests": "47_passed",
+        "review_p2_completed_restore_authority": "addressed_fail_closed_and_valid_restore_recognized",
+        "review_p2_superseded_rebaseline_pointer": "addressed_source_scoped_ignore_malformed_fail_closed",
+        "review_p2_postgresql_volume_identity": "addressed_exact_name_destination_rw",
+        "live_postgresql_volume_authority": "healthy_nexolab-central-postgres-data_var-lib-postgresql-data_rw",
+        "review_p2_writable_layer_recheck": "addressed_resolver_rechecks_exact_recorded_docker_diff",
+        "review_p1_successful_deployment_image_authority": "addressed_final_state_records_and_reuses_exact_addressable_device_agent_image",
+        "review_superseded_pointer_future_rebaseline": "addressed_valid_superseded_current_replaceable_immutable_history_preserved_same_source_and_changed_pointer_fail_closed",
+        "live_current_authority_resolver_after_final_fixes": "passed_exact_source_container_historical_image_recovery_image_and_tag",
+        "review_p1_restore_helper_recovery_image": "addressed_restore_helper_runs_from_recorded_addressable_deployed_device_agent_image",
+        "review_p1_live_device_mode": "addressed_requires_modbus_simulator_rejected_live_modbus_verified",
+        "live_device_mode": "modbus",
+        "review_p2_current_source_rebaseline_when_recorded_image_unaddressable": "addressed_matching_current_pointer_used_when_recorded_image_inspect_fails",
+        "live_current_authority_resolver_after_latest_fixes": "passed_exact_source_container_historical_image_recovery_image_and_tag"
       }
     },
     {
       "issue": 770,
       "title": "Register required acceptance workflows for deployment/recovery script changes",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "fix/770-ci-runtime-workflow-routing",
       "evidence": {
         "root_cause": "rebaseline_recovery_helper_was_unknown_and_triggered_all_external_lanes_fail_closed",
@@ -1123,7 +1144,17 @@
         "runtime_mutation": "none",
         "modbus_action": "none",
         "hardware_action": "none",
-        "repository_candidate": "pending_push_pr_exact_head_ci"
+        "repository_candidate": "merged_green",
+        "verified_head_sha": "23fd91ac0bb389974e16bd1e114ebf69c37069bd",
+        "pull_request": 771,
+        "checks": {
+          "ci": "success",
+          "authenticated_dashboard_acceptance": "success",
+          "offline_bundle": "success",
+          "refrigeration_browser_acceptance": "success",
+          "nexolab_merge_gate": "success"
+        },
+        "review_threads": "resolved"
       }
     }
   ],

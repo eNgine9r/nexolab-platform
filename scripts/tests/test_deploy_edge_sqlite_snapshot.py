@@ -467,6 +467,17 @@ class EdgeSQLiteDeploymentContractTests(unittest.TestCase):
             self.assertIn("must already be stopped", result.stderr)
             self.assertNotIn("run --rm", calls.read_text(encoding="utf-8"))
 
+    def test_restore_helper_runs_from_addressable_recorded_recovery_image(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        start = text.index("restore_edge_sqlite_snapshot()")
+        end = text.index('\nif [[ -n "$RESTORE_EDGE_SNAPSHOT_DIR" ]]', start)
+        restore = text[start:end]
+        helper_start = restore.index("docker run --rm --user 0:0")
+        helper_end = restore.index("/nexolab-scripts/deploy-edge-sqlite-snapshot.py restore", helper_start)
+        helper = restore[helper_start:helper_end]
+        self.assertIn('"$deployed_device_agent_image_id"', helper)
+        self.assertNotIn('"$edge_image"', helper)
+
     def test_restore_selects_previous_image_only_after_database_replacement(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
         start = text.index("restore_edge_sqlite_snapshot()")
