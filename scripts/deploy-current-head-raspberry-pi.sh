@@ -832,7 +832,14 @@ PY_EVIDENCE
   VERIFIED_DEPLOYED_SOURCE="$evidence_commit"
 
   local rebaseline_authority="$REPO/runtime/recovery-authority/device-agent/current.json"
-  if [[ -z "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" && -e "$rebaseline_authority" ]]; then
+  local recorded_device_agent_image_unavailable="0"
+  if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]] \
+    && ! docker image inspect "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" >/dev/null 2>&1; then
+    recorded_device_agent_image_unavailable="1"
+  fi
+  if [[ -e "$rebaseline_authority" \
+    && ( -z "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" \
+      || "$recorded_device_agent_image_unavailable" == "1" ) ]]; then
     [[ -f "$rebaseline_authority" && ! -L "$rebaseline_authority" ]] \
       || fail "Device Agent rebaseline authority path is unsafe"
     local rebaseline_pointer_source
@@ -858,6 +865,9 @@ PY_REBASELINE_SOURCE
       fail "Device Agent rebaseline recovery authority pointer is invalid"
     fi
     if [[ "$rebaseline_pointer_source" == "$VERIFIED_DEPLOYED_SOURCE" ]]; then
+      if [[ "$recorded_device_agent_image_unavailable" == "1" ]]; then
+        log "Recorded Device Agent image is unavailable; resolving matching rebaseline recovery authority"
+      fi
       local resolved_rebaseline
       if ! resolved_rebaseline="$(
         python3 "$SCRIPT_DIR/rebaseline-device-agent-recovery.py" \

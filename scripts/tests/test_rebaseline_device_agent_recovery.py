@@ -329,6 +329,27 @@ class ImportContractTests(unittest.TestCase):
         urlopen.return_value = response
         self.assertTrue(MODULE.read_runtime_health()["workers_healthy"])
 
+    @mock.patch.object(MODULE.urllib.request, "urlopen")
+    def test_runtime_health_rejects_simulator_mode(self, urlopen: mock.Mock) -> None:
+        payload = {
+            "status": "ok",
+            "node_id": "edge-01",
+            "device_mode": "simulator",
+            "mqtt_connected": True,
+            "queue_depth": 0,
+            "acquisition": {
+                "cadence_policy_revision": 18,
+                "scheduler": {"workers_healthy": True},
+            },
+        }
+        response = mock.MagicMock()
+        response.__enter__.return_value = response
+        response.__exit__.return_value = False
+        response.read.return_value = json.dumps(payload).encode()
+        urlopen.return_value = response
+        with self.assertRaisesRegex(MODULE.RebaselineError, "runtime health is not ready"):
+            MODULE.read_runtime_health()
+
     def test_export_mount_exclusion_accepts_directory_placeholders_only(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             archive_path = Path(temporary) / "rootfs.tar"
@@ -508,6 +529,17 @@ class DeploymentIntegrationContractTests(unittest.TestCase):
         self.assertIn('recovery_image="$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID"', capture)
         self.assertIn('"$recovery_image"', capture)
         self.assertIn('--deployed-device-agent-image-id "$recovery_image"', capture)
+
+    def test_unavailable_recorded_image_falls_back_to_matching_rebaseline(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        resolver_start = text.index("resolve_latest_deployment_evidence()")
+        resolver_end = text.index("\n}\n\nresolve_deployed_source_authority()", resolver_start)
+        resolver = text[resolver_start:resolver_end]
+        self.assertIn('! docker image inspect "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID"', resolver)
+        self.assertIn('recorded_device_agent_image_unavailable="1"', resolver)
+        self.assertIn('"$recorded_device_agent_image_unavailable" == "1"', resolver)
+        self.assertIn('rebaseline_pointer_source" == "$VERIFIED_DEPLOYED_SOURCE', resolver)
+        self.assertIn("--resolve-current", resolver)
 
     def test_successful_deployment_records_exact_device_agent_image_authority(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")

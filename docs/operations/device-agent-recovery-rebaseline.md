@@ -92,19 +92,25 @@ the resolver reruns `docker diff`; writable-layer drift must still exactly match
 the immutable rebaseline record. It preserves the recovery image before any
 candidate build.
 
+A rebaseline preflight accepts only the live production acquisition mode
+`device_mode=modbus`; simulator mode fails closed even when the health endpoint,
+MQTT connection, workers, and queue otherwise look healthy.
+
 A successful controlled deployment records the exact Device Agent image ID in
 `final-state.txt` only after the running container is healthy, the image is still
 addressable, and the container image exactly matches `nexolab-device-agent:local`.
 That image ID becomes the recovery authority for the following deployment cycle.
-The rebaseline pointer is consulted only while its `deployed_source` equals the
-latest authoritative deployed source; after a later successful deployment
-supersedes that source, the old pointer remains historical evidence and is
-ignored because the new successful evidence already carries an exact image
-authority. If a future healthy deployed image itself becomes unaddressable, a
-new rebaseline may replace `current.json` only when the existing pointer is a
-fully consistent authority for an older source. The old timestamped immutable
-record remains preserved; same-source replacement, malformed copies, or a
-pointer that changes during the new rebaseline fail closed.
+If that recorded image ID later becomes unaddressable, deployment resolution
+consults a matching current rebaseline pointer for the same deployed source and
+uses its addressable recovery image instead of failing on the lost historical ID.
+The rebaseline pointer is otherwise consulted only while its `deployed_source`
+equals the latest authoritative deployed source; after a later successful
+deployment supersedes that source, the old pointer remains historical evidence.
+If a future healthy deployed image itself becomes unaddressable, a new rebaseline
+may replace `current.json` only when the existing pointer is a fully consistent
+authority for an older source. The old timestamped immutable record remains
+preserved; same-source replacement, malformed copies, or a pointer that changes
+during the new rebaseline fail closed.
 
 Until a later approved cutover recreates Device Agent, two identities are
 intentionally retained:

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-30T13:36:56+03:00",
+  "timestamp": "2026-08-30T13:55:18+03:00",
   "actor": "ChatGPT",
-  "event": "issue_768_final_restore_helper_p1_locally_green",
+  "event": "issue_768_live_mode_and_unaddressable_image_fallback_locally_green",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18"
@@ -32,8 +32,8 @@
     "edge_sqlite_registry_revision": 18,
     "edge_sqlite_queue_depth": 0,
     "postgresql_health": "healthy",
-    "focused_deployment_recovery_tests": "100_passed_47_plus_24_plus_29",
-    "focused_recovery_tests": "29_passed",
+    "focused_deployment_recovery_tests": "102_passed_47_plus_24_plus_31",
+    "focused_recovery_tests": "31_passed",
     "standalone_offline_runtime_contract": "passed_7_plus_8",
     "mount_exclusion_verified": true,
     "production_container_restart": "none",
@@ -59,10 +59,14 @@
     "local_exact_image_authority_regression": "passed",
     "review_superseded_pointer_future_rebaseline": "addressed_safe_atomic_current_replacement_guard",
     "live_current_authority_resolver_after_final_fixes": "passed",
-    "review_p1_restore_helper_recovery_image": "addressed_addressable_recovery_image_used_for_restore_helper"
+    "review_p1_restore_helper_recovery_image": "addressed_addressable_recovery_image_used_for_restore_helper",
+    "review_p1_live_device_mode": "addressed_modbus_required_simulator_rejected_live_modbus_verified",
+    "live_device_mode": "modbus",
+    "review_p2_current_source_rebaseline_when_recorded_image_unaddressable": "addressed_matching_pointer_fallback_on_image_inspect_failure",
+    "latest_local_matrix": "102_passed_plus_ci_governance_118_passed_1_skipped_offline_7_plus_8"
   },
   "observations": [],
-  "next_action": "Publish the final #768 restore-helper P1 correction, require exact-head Core recovery verification, Telemetry service, NEXOLAB Merge Gate and Codex review GREEN, resolve all addressed threads, then merge #768 before resuming #760.",
+  "next_action": "Commit and push the final #768 live-device-mode and current-source rebaseline fallback corrections, require exact-head Core recovery verification, Telemetry service, NEXOLAB Merge Gate and Codex review GREEN, resolve all addressed threads, then merge #768 before resuming #760.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

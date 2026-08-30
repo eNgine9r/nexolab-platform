@@ -522,6 +522,7 @@ def read_runtime_health() -> dict[str, Any]:
     }
     if (
         safe["status"] != "ok"
+        or safe["device_mode"] != "modbus"
         or safe["mqtt_connected"] is not True
         or safe["queue_depth"] != 0
         or safe["workers_healthy"] is not True

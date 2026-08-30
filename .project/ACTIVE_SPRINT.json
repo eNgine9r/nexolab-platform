@@ -1085,9 +1085,9 @@
         "postgresql_health": "healthy",
         "postgresql_volume": "nexolab-central-postgres-data",
         "structural_docker_create": "success_never_started_removed",
-        "focused_recovery_tests": "29_passed",
+        "focused_recovery_tests": "31_passed",
         "edge_snapshot_tests": "24_passed",
-        "focused_deployment_recovery_tests": "100_passed_final_47_plus_24_plus_29",
+        "focused_deployment_recovery_tests": "102_passed_final_47_plus_24_plus_31",
         "standalone_offline_runtime_contract": "passed_7_plus_8",
         "read_only_real_preflight": "passed",
         "current_authority_resolver": "passed",
@@ -1096,11 +1096,11 @@
         "modbus_access": "none",
         "hardware_write": "none",
         "embraco_activation": "none",
-        "repository_candidate": "pending_publish_final_exact_head_ci_review_and_merge",
+        "repository_candidate": "pending_publish_exact_head_ci_review_and_merge_after_live_mode_and_unaddressable_image_fallback_fixes",
         "mount_exclusion_verified": true,
         "mount_exclusion_evidence_path": "runtime/evidence/issue-768-device-agent-rebaseline-20260830T083125Z/mount-exclusion-postcheck.json",
         "review_p2_validation_cleanup": "addressed_fail_closed",
-        "review_threads": "p1_image_authority_and_p2_writable_layer_recheck_pending_exact_head_resolution",
+        "review_threads": "all_known_findings_addressed_pending_new_exact_head_review_resolution",
         "blocked_by_issue_770_ci_routing": "false",
         "issue_770_prerequisite": "completed_pr_771_exact_head_23fd91ac_green",
         "post_issue_770_integration_recovery_tests": "18_passed",
@@ -1118,7 +1118,11 @@
         "review_p1_successful_deployment_image_authority": "addressed_final_state_records_and_reuses_exact_addressable_device_agent_image",
         "review_superseded_pointer_future_rebaseline": "addressed_valid_superseded_current_replaceable_immutable_history_preserved_same_source_and_changed_pointer_fail_closed",
         "live_current_authority_resolver_after_final_fixes": "passed_exact_source_container_historical_image_recovery_image_and_tag",
-        "review_p1_restore_helper_recovery_image": "addressed_restore_helper_runs_from_recorded_addressable_deployed_device_agent_image"
+        "review_p1_restore_helper_recovery_image": "addressed_restore_helper_runs_from_recorded_addressable_deployed_device_agent_image",
+        "review_p1_live_device_mode": "addressed_requires_modbus_simulator_rejected_live_modbus_verified",
+        "live_device_mode": "modbus",
+        "review_p2_current_source_rebaseline_when_recorded_image_unaddressable": "addressed_matching_current_pointer_used_when_recorded_image_inspect_fails",
+        "live_current_authority_resolver_after_latest_fixes": "passed_exact_source_container_historical_image_recovery_image_and_tag"
       }
     },
     {
