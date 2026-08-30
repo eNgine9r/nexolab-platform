@@ -87,12 +87,20 @@ database metadata, but never runtime environment values or telemetry payloads.
 
 The #767 pre-build preservation guard validates the current pointer against its
 immutable copies, the still-running source container ID/historical image ID, and
-the addressable rebaseline image/tag. It preserves the new image before any
-candidate build. The pointer is consulted only while its `deployed_source` equals
-the latest authoritative deployed source; after a later successful deployment
+the addressable rebaseline image/tag. Immediately before the pointer is trusted,
+the resolver reruns `docker diff`; writable-layer drift must still exactly match
+the immutable rebaseline record. It preserves the recovery image before any
+candidate build.
+
+A successful controlled deployment records the exact Device Agent image ID in
+`final-state.txt` only after the running container is healthy, the image is still
+addressable, and the container image exactly matches `nexolab-device-agent:local`.
+That image ID becomes the recovery authority for the following deployment cycle.
+The rebaseline pointer is consulted only while its `deployed_source` equals the
+latest authoritative deployed source; after a later successful deployment
 supersedes that source, the old pointer remains historical evidence and is
-ignored rather than blocking future source-selection checks. A malformed pointer
-remains fail-closed.
+ignored because the new successful evidence already carries an exact image
+authority. A malformed pointer remains fail-closed.
 
 Until a later approved cutover recreates Device Agent, two identities are
 intentionally retained:

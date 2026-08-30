@@ -332,6 +332,7 @@ VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_RECOVERY_TAG=""
+DEPLOYED_DEVICE_AGENT_IMAGE_ID=""
 
 CENTRAL_COMPOSE_ARGS=(
   -f "$CENTRAL_DIR/compose.central.yaml"
@@ -693,6 +694,7 @@ root = Path(sys.argv[1])
 current_audit = Path(sys.argv[2]).resolve()
 stamp_re = re.compile(r"^\d{8}T\d{6}Z$")
 sha_re = re.compile(r"^[0-9a-f]{40}$")
+image_re = re.compile(r"^sha256:[0-9a-f]{64}$")
 legacy_mutation_markers = (
     "Starting central backend, MinIO and observability",
     "Starting real-hardware edge stack",
@@ -718,14 +720,21 @@ if root.is_dir():
         summary_text = summary.read_text(encoding="utf-8", errors="replace") if summary.is_file() else ""
         final_state = directory / "final-state.txt"
         commit = None
+        passed_image = None
         if final_state.is_file():
             for line in final_state.read_text(encoding="utf-8", errors="replace").splitlines():
-                if line.startswith("commit="):
-                    candidate = line.split("=", 1)[1].strip()
-                    if sha_re.fullmatch(candidate):
-                        commit = candidate
-                    break
-        passed_commit = commit if "DEPLOYMENT PASSED" in summary_text else None
+                if "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                value = value.strip()
+                if key == "commit" and sha_re.fullmatch(value):
+                    commit = value
+                elif key == "deployed_device_agent_image_id" and image_re.fullmatch(value):
+                    passed_image = value
+        if "DEPLOYMENT PASSED" not in summary_text:
+            commit = None
+            passed_image = None
+        passed_commit = commit
         restore_result_path = directory / "edge-sqlite-restore-result.json"
         recovered_commit = None
         recovered_image = None
@@ -778,11 +787,12 @@ if root.is_dir():
             recovered_commit = restore_result["deployed_source"]
             recovered_image = restore_result["deployed_device_agent_image_id"]
         effective_commit = recovered_commit or passed_commit
+        effective_image = recovered_image or passed_image
         mutated = (directory / "runtime-mutation-started").is_file() or any(
             marker in summary_text for marker in legacy_mutation_markers
         )
         attempts.append(
-            (directory.name, directory.resolve(), summary_text, mutated, effective_commit, recovered_image)
+            (directory.name, directory.resolve(), summary_text, mutated, effective_commit, effective_image)
         )
 
 successful = [
@@ -967,6 +977,7 @@ if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "1" ]]; then
   printf 'SOURCE_SELECTION_VALIDATED\n'
   printf 'target=%s\n' "$TARGET_HEAD"
   printf 'expected_deployed_source=%s\n' "${EXPECTED_DEPLOYED_SOURCE:-not_supplied}"
+  printf 'deployed_device_agent_image_id=%s\n' "${VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID:-not_available}"
   printf 'origin_main=%s\n' "$CONTROL_HEAD"
   exit 0
 fi
@@ -1843,9 +1854,30 @@ mkdir -p "$REPO/runtime"
 printf '%s\n' "$RUNTIME_MODE" > "$AUDIT_DIR/runtime-mode"
 install -m 0600 "$AUDIT_DIR/runtime-mode" "$RUNTIME_MODE_FILE"
 
+mapfile -t DEPLOYED_DEVICE_AGENT_CONTAINERS < <(
+  docker ps -q \
+    --filter label=com.docker.compose.project=nexolab-edge \
+    --filter label=com.docker.compose.service=device-agent
+)
+[[ "${#DEPLOYED_DEVICE_AGENT_CONTAINERS[@]}" == "1" ]] \
+  || fail "successful deployment evidence requires exactly one running Device Agent container"
+DEPLOYED_DEVICE_AGENT_CONTAINER="${DEPLOYED_DEVICE_AGENT_CONTAINERS[0]}"
+[[ "$(docker inspect --format '{{.State.Running}}' "$DEPLOYED_DEVICE_AGENT_CONTAINER")" == "true" ]] \
+  || fail "successful deployment evidence requires the Device Agent to be running"
+[[ "$(docker inspect --format '{{.State.Health.Status}}' "$DEPLOYED_DEVICE_AGENT_CONTAINER")" == "healthy" ]] \
+  || fail "successful deployment evidence requires the Device Agent to be healthy"
+DEPLOYED_DEVICE_AGENT_IMAGE_ID="$(docker inspect --format '{{.Image}}' "$DEPLOYED_DEVICE_AGENT_CONTAINER")"
+[[ "$DEPLOYED_DEVICE_AGENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] \
+  || fail "successful deployment evidence requires an exact Device Agent image ID"
+docker image inspect "$DEPLOYED_DEVICE_AGENT_IMAGE_ID" >/dev/null 2>&1 \
+  || fail "successful deployment Device Agent image is not addressable"
+[[ "$(docker image inspect --format '{{.Id}}' nexolab-device-agent:local)" == "$DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]] \
+  || fail "successful deployment Device Agent container does not match the activated local image"
+
 {
   echo "deployed_at=$(date --iso-8601=seconds)"
   echo "commit=$CURRENT_HEAD"
+  echo "deployed_device_agent_image_id=$DEPLOYED_DEVICE_AGENT_IMAGE_ID"
   echo "requested_source_ref=${REQUESTED_SOURCE_REF:-current_origin_main}"
   echo "expected_deployed_source=${EXPECTED_DEPLOYED_SOURCE:-not_supplied}"
   echo "control_origin_main=$CONTROL_HEAD"

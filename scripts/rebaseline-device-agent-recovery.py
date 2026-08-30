@@ -782,6 +782,7 @@ def resolve_current_authority(args: argparse.Namespace) -> dict[str, str]:
     deployment = document.get("deployment") or {}
     source_container_id = source.get("id")
     source_image_id = source.get("historical_image_id")
+    source_writable_layer_diff = source.get("writable_layer_diff")
     recovery_image_id = recovery.get("image_id")
     recovery_tag = recovery.get("recovery_tag")
     expected_tag = (
@@ -799,6 +800,7 @@ def resolve_current_authority(args: argparse.Namespace) -> dict[str, str]:
         == (repo / str(deployment.get("path"))).resolve()
         and CONTAINER_PATTERN.fullmatch(str(source_container_id))
         and IMAGE_PATTERN.fullmatch(str(source_image_id))
+        and source_writable_layer_diff == ALLOWED_DIFF
         and source.get("historical_image_addressable") is False
         and IMAGE_PATTERN.fullmatch(str(recovery_image_id))
         and recovery_tag == expected_tag
@@ -821,6 +823,9 @@ def resolve_current_authority(args: argparse.Namespace) -> dict[str, str]:
         or current_running is not True
     ):
         fail("running Device Agent no longer matches rebaseline source authority")
+    current_writable_layer_diff = verify_diff(str(source_container_id))
+    if current_writable_layer_diff != source_writable_layer_diff:
+        fail("running Device Agent writable-layer drift changed since rebaseline")
     inspected_recovery = docker_json(
         ["image", "inspect", "--format", "{{json .Id}}", str(recovery_tag)]
     )

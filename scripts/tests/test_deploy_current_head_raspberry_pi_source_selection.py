@@ -51,6 +51,7 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         passed: bool = True,
         mutated: bool = False,
         restored_source: str | None = None,
+        device_agent_image_id: str | None = None,
         summary_extra: str = "",
     ) -> Path:
         evidence = self.repo / "runtime" / "deployments" / stamp
@@ -65,7 +66,10 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
             lines.append("DEPLOYMENT PASSED")
         (evidence / "summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
         if commit is not None:
-            (evidence / "final-state.txt").write_text(f"commit={commit}\n", encoding="utf-8")
+            final_state = f"commit={commit}\n"
+            if device_agent_image_id is not None:
+                final_state += f"deployed_device_agent_image_id={device_agent_image_id}\n"
+            (evidence / "final-state.txt").write_text(final_state, encoding="utf-8")
         if restored_source is not None:
             shared = {
                 "sha256": "c" * 64,
@@ -175,6 +179,17 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 64)
         self.assertIn("must be supplied together", result.stderr)
+
+    def test_successful_deployment_image_authority_is_reused(self) -> None:
+        image_id = "sha256:" + "9" * 64
+        self._set_deployed_evidence(
+            self.target,
+            "20260829T010000Z",
+            device_agent_image_id=image_id,
+        )
+        result = self._validate(self.latest, self.target)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(f"deployed_device_agent_image_id={image_id}", result.stdout)
 
     def test_superseded_rebaseline_pointer_does_not_block_new_deployment_authority(self) -> None:
         self._set_deployed_evidence(self.target, "20260829T010000Z")

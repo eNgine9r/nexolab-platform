@@ -9,6 +9,7 @@ import tempfile
 import tarfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 
 
@@ -198,6 +199,86 @@ class ContainerSafetyTests(unittest.TestCase):
         run.return_value = subprocess.CompletedProcess([], 0, "C /app/main.py\n", "")
         with self.assertRaisesRegex(MODULE.RebaselineError, "not allowlisted"):
             MODULE.verify_diff(self.container_id)
+
+
+class CurrentAuthorityResolverTests(unittest.TestCase):
+    source = "f" * 40
+    source_container = "5" * 64
+    source_image = "sha256:" + "8" * 64
+    recovery_image = "sha256:" + "1" * 64
+
+    def write_authority(self, repo: Path) -> SimpleNamespace:
+        deployment = repo / "runtime/deployments/20260829T154823Z"
+        deployment.mkdir(parents=True)
+        evidence = repo / "runtime/evidence/issue-768-device-agent-rebaseline-20260830T083125Z/rebaseline.json"
+        evidence.parent.mkdir(parents=True)
+        authority_root = repo / "runtime/recovery-authority/device-agent"
+        authority_root.mkdir(parents=True)
+        recovery_tag = f"nexolab-device-agent:recovery-{self.recovery_image.removeprefix('sha256:')}"
+        document = {
+            "schema_version": MODULE.SCHEMA_VERSION,
+            "kind": "nexolab-device-agent-recovery-rebaseline",
+            "status": "established",
+            "rebaseline_id": "20260830T083125Z",
+            "deployed_source": self.source,
+            "deployment": {"path": "runtime/deployments/20260829T154823Z"},
+            "source_container": {
+                "id": self.source_container,
+                "historical_image_id": self.source_image,
+                "historical_image_addressable": False,
+                "writable_layer_diff": MODULE.ALLOWED_DIFF,
+            },
+            "recovery_image": {
+                "image_id": self.recovery_image,
+                "recovery_tag": recovery_tag,
+                "runtime_environment_imported": False,
+                "derived_from_running_container_filesystem": True,
+            },
+            "safety": {"production_container_restarted": False},
+            "evidence_path": str(evidence.relative_to(repo)),
+        }
+        payload = json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        evidence.write_text(payload, encoding="utf-8")
+        (authority_root / "20260830T083125Z.json").write_text(payload, encoding="utf-8")
+        (authority_root / "current.json").write_text(payload, encoding="utf-8")
+        return SimpleNamespace(
+            repo=repo,
+            deployment_evidence=deployment,
+            expected_deployed_source=self.source,
+        )
+
+    @mock.patch.object(MODULE, "docker_json")
+    @mock.patch.object(MODULE, "verify_diff")
+    @mock.patch.object(MODULE, "docker_format_json")
+    @mock.patch.object(MODULE, "matching_device_agent_container")
+    def test_resolver_rechecks_exact_writable_layer_drift(
+        self, matching: mock.Mock, inspect: mock.Mock, verify_diff: mock.Mock, docker_json: mock.Mock
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            args = self.write_authority(Path(temporary))
+            matching.return_value = "device-agent"
+            inspect.side_effect = [self.source_container, self.source_image, "healthy", True]
+            verify_diff.return_value = MODULE.ALLOWED_DIFF
+            docker_json.return_value = self.recovery_image
+            resolved = MODULE.resolve_current_authority(args)
+        self.assertEqual(resolved["recovery_image_id"], self.recovery_image)
+        verify_diff.assert_called_once_with(self.source_container)
+
+    @mock.patch.object(MODULE, "docker_json")
+    @mock.patch.object(MODULE, "verify_diff")
+    @mock.patch.object(MODULE, "docker_format_json")
+    @mock.patch.object(MODULE, "matching_device_agent_container")
+    def test_resolver_rejects_writable_layer_drift_change(
+        self, matching: mock.Mock, inspect: mock.Mock, verify_diff: mock.Mock, docker_json: mock.Mock
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            args = self.write_authority(Path(temporary))
+            matching.return_value = "device-agent"
+            inspect.side_effect = [self.source_container, self.source_image, "healthy", True]
+            verify_diff.return_value = ["C /app/main.py"]
+            with self.assertRaisesRegex(MODULE.RebaselineError, "drift changed since rebaseline"):
+                MODULE.resolve_current_authority(args)
+        docker_json.assert_not_called()
 
 
 class ImportContractTests(unittest.TestCase):
@@ -400,6 +481,13 @@ class DeploymentIntegrationContractTests(unittest.TestCase):
         self.assertIn('recovery_image="$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID"', capture)
         self.assertIn('"$recovery_image"', capture)
         self.assertIn('--deployed-device-agent-image-id "$recovery_image"', capture)
+
+    def test_successful_deployment_records_exact_device_agent_image_authority(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        self.assertIn('echo "deployed_device_agent_image_id=$DEPLOYED_DEVICE_AGENT_IMAGE_ID"', text)
+        self.assertIn('docker image inspect "$DEPLOYED_DEVICE_AGENT_IMAGE_ID"', text)
+        self.assertIn("docker image inspect --format '{{.Id}}' nexolab-device-agent:local", text)
+        self.assertIn('elif key == "deployed_device_agent_image_id" and image_re.fullmatch(value):', text)
 
     def test_quiesce_keeps_source_container_identity_separate(self) -> None:
         text = DEPLOY.read_text(encoding="utf-8")
