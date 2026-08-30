@@ -833,6 +833,30 @@ resolve_deployed_source_authority() {
     || fail "expected deployed source does not match the latest authoritative successful deployment evidence"
 }
 
+preserve_deployed_device_agent_image_for_recovery() {
+  local edge_volume="nexolab-edge_edge-data"
+  if ! docker volume inspect "$edge_volume" >/dev/null 2>&1; then
+    return 0
+  fi
+  [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] \
+    || fail "exact deployed Device Agent image authority is required before candidate image build"
+  docker image inspect "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" >/dev/null 2>&1 \
+    || fail "exact deployed Device Agent image is unavailable before candidate image build; recovery authority must be re-established explicitly"
+
+  local recovery_tag="nexolab-device-agent:recovery-${VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID#sha256:}"
+  docker image tag "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" "$recovery_tag" \
+    || fail "exact deployed Device Agent image could not be tagged for recovery"
+  [[ "$(docker image inspect --format '{{.Id}}' "$recovery_tag")" == "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]] \
+    || fail "Device Agent recovery tag does not resolve to the exact deployed image"
+  {
+    echo "source=$VERIFIED_DEPLOYED_SOURCE"
+    echo "image_id=$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID"
+    echo "recovery_tag=$recovery_tag"
+  } > "$AUDIT_DIR/device-agent-recovery-image.txt"
+  chmod 0600 "$AUDIT_DIR/device-agent-recovery-image.txt"
+  log "Preserved exact deployed Device Agent image under immutable recovery tag"
+}
+
 validate_selected_source_against_control() {
   TARGET_HEAD="$CONTROL_HEAD"
   if [[ -n "$REQUESTED_SOURCE_REF" ]]; then
@@ -1424,6 +1448,7 @@ if ! nexolab_frontend_assert_no_competing_builds "$AUDIT_DIR/frontend-competing-
   fail "another heavy build/acceptance workload is active; refusing concurrent production deployment"
 fi
 
+preserve_deployed_device_agent_image_for_recovery
 log "Building current Device Agent image"
 docker build --pull -t nexolab-device-agent:local "$REPO/services/device-agent"
 

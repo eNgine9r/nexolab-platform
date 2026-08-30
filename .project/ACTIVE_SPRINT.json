@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 764,
-      "title": "Fix edge volume identity Docker inspect template",
-      "branch": "fix/764-edge-volume-inspect-template"
+      "issue": 766,
+      "title": "Preserve exact Device Agent recovery image before candidate build",
+      "branch": "fix/766-preserve-device-agent-recovery-image"
     },
     "next_work_package": {
       "issue": 760,
@@ -977,18 +977,41 @@
       "issue": 764,
       "title": "Fix edge volume identity Docker inspect template",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         759
       ],
       "branch": "fix/764-edge-volume-inspect-template",
       "evidence": {
         "defect": "docker_go_template_received_literal_backslash_escaped_quotes",
+        "pull_request": 765,
+        "merged_sha": "ba2e4ed6926153e8b6c24dced65184d65e2778bf",
+        "nexolab_merge_gate": "success",
         "controlled_cutover_failure": "pre_mutation_fail_closed",
         "unchanged_device_agent_restarted": true,
         "live_volume_identity_template": "nexolab-edge_edge-data",
         "focused_edge_snapshot_tests": "22_passed",
         "shell_syntax": "passed",
+        "runtime_mutation": "none",
+        "modbus_action": "none"
+      }
+    },
+    {
+      "issue": 766,
+      "title": "Preserve exact Device Agent recovery image before candidate build",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        759,
+        764
+      ],
+      "branch": "fix/766-preserve-device-agent-recovery-image",
+      "evidence": {
+        "defect": "candidate_build_replaced_only_tag_for_verified_running_image",
+        "controlled_cutover_failure": "pre_mutation_fail_closed",
+        "unchanged_device_agent_restarted": true,
+        "recorded_image_addressable": false,
+        "fresh_exact_source_rebuild_matches_recorded_image": false,
         "runtime_mutation": "none",
         "modbus_action": "none"
       }
@@ -1001,7 +1024,8 @@
       "depends_on": [
         759,
         762,
-        764
+        764,
+        766
       ],
       "branch": "ops/760-embraco-unit2-production-acceptance",
       "evidence": {
@@ -1014,7 +1038,9 @@
         "temperature_scale": "hardware_unverified_fail_closed",
         "blocked_by_issue_759": "false",
         "blocked_by_issue_762": "false",
-        "blocked_by_issue_764": "true"
+        "blocked_by_issue_764": "false",
+        "blocked_by_issue_766": "true",
+        "blocked_by_recovery_authority_rebaseline_decision": "true"
       }
     }
   ],
