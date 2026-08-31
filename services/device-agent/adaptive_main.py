@@ -16,6 +16,7 @@ from adaptive_scheduler import (
     SchedulerPolicy,
     SchedulerTarget,
 )
+from acquisition_registry import AcquisitionRegistryStore
 from latest_values import LatestValueStore
 from main import (
     Settings,
@@ -35,8 +36,13 @@ LATEST_PATH = "/api/v1/acquisition-latest"
 class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
     """Registry-managed Device Agent with adaptive per-target scheduling."""
 
-    def __init__(self, settings: Settings) -> None:
-        super().__init__(settings)
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        registry_store: AcquisitionRegistryStore | None = None,
+    ) -> None:
+        super().__init__(settings, registry_store=registry_store)
         self._publish_lock = threading.Lock()
         self.latest_values = LatestValueStore(settings.database_path)
         self.scheduler_policy = SchedulerPolicy.from_environment(

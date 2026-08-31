@@ -1,14 +1,16 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-30
+Updated: 2026-08-31
 
-## Issue #768 — recovery-authority rebaseline
+## Issue #772 — persisted Embraco physical-bus identity
 
-**Cleared 2026-08-30.** Runtime rebaseline `20260830T083125Z` established exact addressable recovery image `sha256:1c639cc7...` without restarting production Device Agent. PR #769 merged GREEN at `4d693760a89aa1c45c3a65aca99201155ddfc1c1`; GitHub Issue #768 is closed completed. All known P1/P2 review findings are addressed and resolved. The final Codex exact-head review was unavailable only because the code-review quota was exhausted; required CI was GREEN and Team Lead final diff review completed.
+**Cleared 2026-08-30.** PR #773 merged GREEN. Production-copy acceptance proved `EMBRACO-2` persists on `rs485-embraco`, reloads without mismatch, preserves Unit 201 as disabled on `rs485-main`, and retains legacy single-bus behavior. This safety prerequisite no longer blocks #760.
 
 ## Issue #760 — Embraco Unit 2 production activation
 
-**Active.** Recovery prerequisites #759/#762/#764/#766/#768 are satisfied and Product Owner authorization to continue #760 is recorded. Fresh pre-cutover checks are GREEN for source lineage, both stable CP2104 adapters, Bus1-only registry revision 18, Unit 201 disabled, exact rendered dual-bus topology, `EMBRACO_UNIT_IDS=2`, `DEVICE_MODE=modbus`, unset temperature/control scales and deployment capacity. No production mutation has started yet. The next gate is an exact-source `linux/arm64` off-device frontend artifact followed by repository-owned pre-cutover SQLite snapshot/recovery checks and controlled deployment.
+Controlled deployment `runtime/deployments/20260830T202942Z` **PASSED** on exact source `20bb9ca473395a0c64267b9b08523c31404f41e6`. Production scope is physical controller #2 / Embraco Unit 2 only; controller #1 is test-only and Unit 96 is excluded. Registry is revision 20 with `embraco-2@rs485-embraco` active and Unit 201 still disabled on Bus 1. Schema head is `20260828_0027`; Device Agent is healthy in `modbus` mode with MQTT connected and queue depth 0. Real Unit 2 state/RPM/relay/alarm telemetry persists to PostgreSQL while temperature/setpoint/hysteresis remain `unknown` with scale unset. `Cool jet → EMBRACO-2` is audit-backed.
+
+Two final acceptance blockers remain and must not be bypassed: (1) authenticated browser rerun is externally blocked because Opera Browser Connector is disconnected and the alternate credential helper path is stopped by the tool safety guard; (2) repository-owned source/version authority adoption is blocked by the privileged-command tool safety guard before execution. Neither blocker invalidates the successful hardware/runtime cutover, but #760 must remain open until both are resolved and the final acceptance PR is exact-head GREEN.
 
 ## Issue #709 — post-merge Saved Dashboard runtime CSV verification
 

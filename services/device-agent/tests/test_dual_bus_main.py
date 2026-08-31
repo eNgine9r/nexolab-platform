@@ -2,15 +2,21 @@ from __future__ import annotations
 
 import json
 import os
+import sqlite3
 import tempfile
 import threading
 import unittest
 from contextlib import nullcontext
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 from adaptive_scheduler import ScheduledResult, SchedulerTarget
+from acquisition_registry import (
+    AcquisitionRegistryStore,
+    DeviceLifecycleMutation,
+)
 from dual_bus_main import DualBusAdaptiveRegistryDeviceAgent
 from main import Settings, TelemetryRecord
 from rs485_buses import BUS_CONFIG_ENV
@@ -55,6 +61,38 @@ def bus_payload() -> list[dict[str, object]]:
             "unit_ids": [106],
         },
     ]
+
+
+def embraco_bus_payload(
+    *,
+    embraco_units: list[int] | None = None,
+) -> list[dict[str, object]]:
+    return [
+        {
+            "bus_id": "rs485-main",
+            "serial_device": "/host/dev/serial/by-id/usb-main",
+            "unit_ids": [106, 126, 201],
+        },
+        {
+            "bus_id": "rs485-embraco",
+            "serial_device": "/host/dev/serial/by-id/usb-embraco",
+            "unit_ids": [2] if embraco_units is None else embraco_units,
+            "stopbits": 2,
+        },
+    ]
+
+
+def persisted_document(database_path: Path) -> dict[str, object]:
+    with sqlite3.connect(database_path) as connection:
+        row = connection.execute(
+            "SELECT document FROM acquisition_registry_state WHERE singleton = 1"
+        ).fetchone()
+    if row is None:
+        raise AssertionError("Acquisition registry was not persisted")
+    payload = json.loads(str(row[0]))
+    if not isinstance(payload, dict):
+        raise AssertionError("Persisted acquisition registry is not an object")
+    return payload
 
 
 def success_result(target: SchedulerTarget) -> ScheduledResult:
@@ -242,6 +280,161 @@ class DualBusAdaptiveRuntimeTests(unittest.TestCase):
         )
         self.assertIsNotNone(buses["rs485-kk1"]["scheduler"])
         self.assertIsNotNone(buses["rs485-kk2"]["scheduler"])
+
+
+class EmbracoBusPersistenceTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.database_path = Path(self.temporary.name) / "edge.db"
+        self.settings = replace(
+            settings(self.database_path),
+            device_mode="modbus",
+            le01mp_unit_ids=(201,),
+            embraco_unit_ids=(),
+        )
+        store = AcquisitionRegistryStore(self.database_path)
+        registry = store.load_or_migrate(
+            self.settings,
+            discovery_units=(106, 126),
+            legacy_active_points=self.settings.xjp60d_points,
+        )
+        self.baseline = store.update(
+            registry,
+            expected_revision=registry.revision,
+            actor="test:fixture",
+            reason="Preserve externally owned Unit 201 as disabled",
+            device_mutations=(DeviceLifecycleMutation("le01mp-201", "disabled"),),
+            target_mutations=(),
+        )
+
+    def tearDown(self) -> None:
+        self.temporary.cleanup()
+
+    def configured_settings(self) -> Settings:
+        return replace(self.settings, embraco_unit_ids=(2,))
+
+    @staticmethod
+    def close_agent(agent: DualBusAdaptiveRegistryDeviceAgent) -> None:
+        for client in agent._bus_clients.values():  # noqa: SLF001
+            client.close()
+
+    def test_explicit_embraco_bus_is_persisted_on_first_load_and_restart(self) -> None:
+        environment = {
+            BUS_CONFIG_ENV: json.dumps(embraco_bus_payload()),
+            "XJP60D_DISCOVERY_UNITS": "106,126",
+        }
+        with patch.dict(os.environ, environment, clear=False):
+            first = DualBusAdaptiveRegistryDeviceAgent(self.configured_settings())
+            try:
+                first_revision = first._registry_snapshot().revision  # noqa: SLF001
+            finally:
+                self.close_agent(first)
+
+            first_payload = persisted_document(self.database_path)
+            first_devices = {
+                item["device_id"]: item
+                for item in first_payload["devices"]  # type: ignore[index]
+            }
+            self.assertEqual(
+                first_devices["embraco-2"]["bus_id"],
+                "rs485-embraco",
+            )
+            self.assertEqual(first_devices["le01mp-201"]["lifecycle"], "disabled")
+            self.assertEqual(first_devices["le01mp-201"]["bus_id"], "rs485-main")
+            self.assertEqual(first_devices["xjp60d-106"]["bus_id"], "rs485-main")
+            self.assertEqual(first_devices["xjp60d-126"]["bus_id"], "rs485-main")
+            self.assertEqual(
+                {item["bus_id"] for item in first_payload["buses"]},  # type: ignore[index]
+                {"rs485-main", "rs485-embraco"},
+            )
+
+            restarted = DualBusAdaptiveRegistryDeviceAgent(
+                self.configured_settings()
+            )
+            try:
+                restarted_devices = {
+                    item.device_id: item
+                    for item in restarted._registry_snapshot().document.devices  # noqa: SLF001
+                }
+                self.assertEqual(
+                    restarted_devices["embraco-2"].bus_id,
+                    "rs485-embraco",
+                )
+                self.assertEqual(
+                    restarted._registry_snapshot().revision,  # noqa: SLF001
+                    first_revision,
+                )
+            finally:
+                self.close_agent(restarted)
+
+        restarted_payload = persisted_document(self.database_path)
+        restarted_devices = {
+            item["device_id"]: item
+            for item in restarted_payload["devices"]  # type: ignore[index]
+        }
+        self.assertEqual(
+            restarted_devices["embraco-2"]["bus_id"],
+            "rs485-embraco",
+        )
+        baseline_targets = {
+            item.target_id: item.lifecycle
+            for item in self.baseline.document.targets
+        }
+        restarted_bus1_devices = {
+            device_id
+            for device_id, device in restarted_devices.items()
+            if device["bus_id"] == "rs485-main"
+        }
+        restarted_bus1_targets = {
+            item["target_id"]: item["lifecycle"]
+            for item in restarted_payload["targets"]  # type: ignore[index]
+            if item["device_id"] in restarted_bus1_devices
+        }
+        self.assertEqual(restarted_bus1_targets, baseline_targets)
+        baseline_intervals = {
+            item.device_family: item.interval_seconds
+            for item in self.baseline.document.cadence.family_defaults
+        }
+        restarted_intervals = {
+            item["device_family"]: item["interval_seconds"]
+            for item in restarted_payload["cadence"]["family_defaults"]  # type: ignore[index]
+            if item["bus_id"] == "rs485-main"
+        }
+        self.assertEqual(restarted_intervals, baseline_intervals)
+
+    def test_missing_embraco_bus_ownership_rolls_back_registry_mutation(self) -> None:
+        before = persisted_document(self.database_path)
+        environment = {
+            BUS_CONFIG_ENV: json.dumps(
+                embraco_bus_payload(embraco_units=[])
+            ),
+            "XJP60D_DISCOVERY_UNITS": "106,126",
+        }
+        with patch.dict(os.environ, environment, clear=False):
+            with self.assertRaisesRegex(
+                ValueError,
+                "Unit ID 2 has no configured physical bus",
+            ):
+                DualBusAdaptiveRegistryDeviceAgent(self.configured_settings())
+
+        self.assertEqual(persisted_document(self.database_path), before)
+
+    def test_conflicting_explicit_unit_ownership_fails_before_registry_mutation(self) -> None:
+        before = persisted_document(self.database_path)
+        payload = embraco_bus_payload()
+        payload[0]["unit_ids"] = [2, 106, 126, 201]
+        environment = {
+            BUS_CONFIG_ENV: json.dumps(payload),
+            "XJP60D_DISCOVERY_UNITS": "106,126",
+        }
+        with patch.dict(os.environ, environment, clear=False):
+            with self.assertRaisesRegex(
+                ValueError,
+                "Unit ID 2 is assigned to both",
+            ):
+                DualBusAdaptiveRegistryDeviceAgent(self.configured_settings())
+
+        self.assertEqual(persisted_document(self.database_path), before)
 
 
 if __name__ == "__main__":

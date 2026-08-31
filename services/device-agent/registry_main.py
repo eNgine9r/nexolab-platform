@@ -52,7 +52,12 @@ CADENCE_PATH = "/api/v1/acquisition-cadence"
 class RegistryManagedDeviceAgent(ManagedDeviceAgent):
     """Managed Device Agent whose normal Modbus targets come only from SQLite registry."""
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        registry_store: AcquisitionRegistryStore | None = None,
+    ) -> None:
         discovery_value = os.getenv("XJP60D_DISCOVERY_UNITS", "").strip()
         discovery_units = (
             parse_unit_ids(discovery_value, label="XJP60D discovery")
@@ -62,7 +67,9 @@ class RegistryManagedDeviceAgent(ManagedDeviceAgent):
         original_settings = settings
         super().__init__(settings)
         self._registry_lock = threading.Lock()
-        self._registry_store = AcquisitionRegistryStore(settings.database_path)
+        self._registry_store = registry_store or AcquisitionRegistryStore(
+            settings.database_path
+        )
         self._registry = self._registry_store.load_or_migrate(
             original_settings,
             discovery_units=discovery_units,

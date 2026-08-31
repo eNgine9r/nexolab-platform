@@ -72,6 +72,7 @@ class TopologyAwareEnrollmentStoreTests(unittest.TestCase):
         self.store = TopologyAwareEnrollmentStore(
             self.database_path,
             bus_for_unit=self.topology.bus_for_unit,
+            bind_registry=self.topology.bind_registry,
         )
 
     def tearDown(self) -> None:
@@ -116,6 +117,7 @@ class TopologyAwareEnrollmentStoreTests(unittest.TestCase):
             bus_for_unit=lambda unit_id: (
                 "rs485-kk1" if unit_id == 106 else self.topology.bus_for_unit(unit_id)
             ),
+            bind_registry=self.topology.bind_registry,
         )
 
         with self.assertRaisesRegex(ValueError, "Conflicting Modbus Unit ownership"):
