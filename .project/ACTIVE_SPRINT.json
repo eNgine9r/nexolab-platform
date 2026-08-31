@@ -1214,6 +1214,28 @@
         "production_copy_reproduction": "persisted_embraco_2_rs485_embraco_mismatch_false_unit201_disabled_quick_check_ok",
         "exact_head_ci": "green"
       }
+    },
+    {
+      "issue": 780,
+      "title": "Reconcile post-#760 deployed/source authority and completion baseline",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        760
+      ],
+      "branch": "chore/780-post-760-state-reconcile",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "trigger": "post_760_merge_state_drift",
+        "issue_760_state": "closed_completed",
+        "issue_760_pr": "779_merged_green",
+        "deployed_source_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6",
+        "schema_head": "20260828_0027",
+        "source_authority": "controlled_source_deployment_ready",
+        "runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
     }
   ],
   "maintenance_actions": [

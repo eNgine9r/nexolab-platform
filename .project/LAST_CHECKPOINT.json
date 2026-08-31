@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-31T15:08:50+03:00",
+  "timestamp": "2026-08-31T15:26:25+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_760_acceptance_complete_repository_merge_candidate",
+  "event": "issue_760_completed_post_merge_state_reconciled",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
@@ -13,29 +13,25 @@
   "active_work": null,
   "evidence_snapshot": {
     "active_issue_evidence": {
+      "reconciliation_issue": "780",
+      "issue_760": "closed_completed",
+      "issue_760_pr": "779_merged_green",
       "deployment_evidence": "runtime/deployments/20260830T202942Z",
       "deployment_result": "passed",
-      "controller_scope": "physical_controller_2_unit_2_only",
-      "controller_1": "test_only_excluded",
-      "unit_96": "excluded",
-      "registry_revision": "20",
+      "deployed_source": "20bb9ca473395a0c64267b9b08523c31404f41e6",
+      "source_authority": "controlled_source_deployment_ready",
       "schema_head": "20260828_0027",
+      "controller_scope": "physical_controller_2_unit_2_only",
+      "registry_revision": "20",
       "embraco_2_persisted_bus": "rs485-embraco",
       "unit_201": "disabled_rs485-main",
-      "device_agent": "healthy_modbus_mqtt_connected_queue_0",
-      "telemetry_persistence": "postgresql_latest_history_live",
-      "long_run_rows_observed": "9191",
-      "rpm_1h": "60_valid_samples_98.3pct_observed_coverage_59.3pct_duty",
-      "temperature_control_scale": "unknown_fail_closed",
-      "cool_jet_binding": "audited_EMBRACO-2_unit_2",
-      "inspection_mirror": "exact_source_tailnet_https_artifact_9755897067_3102",
-      "authenticated_browser_final": "passed_chatgpt_opera_inspection_viewer_rest_websocket_cool_jet_embraco_online_cooling_2142rpm_running_relays_no_alarm_scale_unverified",
-      "source_version_authority": "recorded_controlled_source_deployment_20bb9ca_schema_20260828_0027_ready",
-      "repository_acceptance_pr": "779_pending_new_exact_head_ci"
+      "device_agent": "healthy_modbus",
+      "browser_acceptance": "passed_real_cool_jet_embraco_online_cooling_2142rpm_scale_unverified",
+      "next_product_work_package": "none_selected"
     }
   },
   "observations": [],
-  "next_action": "Require new exact-head PR #779 State integrity and NEXOLAB Merge Gate GREEN, then merge and close #760. Keep deferred RFX work on Product Owner hold.",
+  "next_action": "No independent product Work Package is selected after #760. Keep RFX-01 through RFX-19C on Product Owner hold; continue only an audited Ready maintenance task or a hardware/evidence-gated task when its required access/evidence is available.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
