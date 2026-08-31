@@ -1,18 +1,16 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-30
+Updated: 2026-08-31
 
 ## Issue #772 — persisted Embraco physical-bus identity
 
-Critical defect #772 is in review on `fix/772-embraco-persisted-bus`. A production-SQLite copy reproduction showed explicit Embraco Unit 2 enrollment persisted on legacy `rs485-main` while runtime topology corrected it only in memory to `rs485-embraco`. The candidate persists explicit topology before enrollment, proves exact SQLite identity across restart, rolls back missing/conflicting ownership, preserves disabled Unit 201 and Bus 1 lifecycle/cadence, and retains legacy single-bus behavior. Local coverage is 35/35 focused and 184/184 full Device Agent module tests; State Model v2, Python compilation and `git diff --check` pass. #772 still requires exact-head CI/review and merge before #760 may perform any production mutation.
-
-## Issue #768 — completed recovery rebaseline
-
-**Cleared 2026-08-30.** Rebaseline `20260830T083125Z` established addressable recovery image `sha256:1c639cc7...` from the unchanged healthy running container with sanitized export/import and mounted-data exclusion evidence. Final local recovery coverage is 102/102, CI governance is 118 PASS / 1 environment skip, and standalone offline coverage is 7+8 PASS. Exact verified PR #769 head `959dd9da9818c4aa707d82f10c70f47e18bf7c5d` passed Core Quality/build, Telemetry service and NEXOLAB Merge Gate; review threads resolved and GitHub observed squash merge `4d693760a89aa1c45c3a65aca99201155ddfc1c1`. No production restart/recreate, Modbus access or hardware write occurred in its repository completion lifecycle.
+**Cleared 2026-08-30.** PR #773 merged GREEN. Production-copy acceptance proved `EMBRACO-2` persists on `rs485-embraco`, reloads without mismatch, preserves Unit 201 as disabled on `rs485-main`, and retains legacy single-bus behavior. This safety prerequisite no longer blocks #760.
 
 ## Issue #760 — Embraco Unit 2 production activation
 
-The #766 prevention and Product Owner-approved #768 runtime rebaseline prerequisites are satisfied. #760 is blocked only until Issue #772 merges GREEN. After that it may resume as its own controlled Work Package and activate only Unit 2 on stable Bus 2 adapter `0133F246` at verified `9600 8N2`, preserving all current Bus 1 lifecycle/cadence and leaving temperature/control engineering scale unset. No #760 cutover, production Device Agent restart/recreate, production database mutation, Modbus access or hardware write occurred in #772.
+**Cleared 2026-08-31.** Controlled deployment `runtime/deployments/20260830T202942Z` passed on exact source `20bb9ca473395a0c64267b9b08523c31404f41e6` for physical controller #2 / Embraco Unit 2 only; controller #1 is test-only and Unit 96 is excluded. Registry revision 20 persists `embraco-2@rs485-embraco`, Unit 201 remains disabled on Bus 1, schema head is `20260828_0027`, and Device Agent is healthy in `modbus` mode with MQTT connected and queue depth 0. Real FC03-only state/RPM/relay/alarm telemetry is durable; unverified temperature/control scale remains NULL/`unknown`. `Cool jet → EMBRACO-2` is audit-backed.
+
+Final external gates are cleared: source/version authority is recorded as `controlled_source_deployment` for source `20bb9ca...`, linux/arm64, LAN, schema `20260828_0027`, health `ready`; production Opera acceptance entered as `ChatGPT Opera Inspection / viewer`, proved REST snapshot + active WebSocket, and displayed real `Cool jet` controller state (`Embraco Online`, `Cooling`, 2142 rpm / Running, relay states, no controller alarms, `Scale unverified`). Exact-head manual Telemetry, Refrigeration Browser, Authenticated Dashboard and Offline Bundle workflows on acceptance head `ebccb8ad...` are GREEN. PR #779 is the final state-only merge candidate; only its new exact-head state/merge gate remains.
 
 ## Issue #709 — post-merge Saved Dashboard runtime CSV verification
 

@@ -19,19 +19,11 @@
   },
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
-    "deployed_product_sha": "ff86b10b71c8e5252c15baaf4183adbf42f30f18"
+    "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 772,
-      "title": "[SAFETY] Persist Embraco enrollment on explicit RS-485 bus before #760 cutover",
-      "branch": "fix/772-embraco-persisted-bus"
-    },
-    "next_work_package": {
-      "issue": 760,
-      "title": "Activate #729 Embraco Unit 2 on isolated Bus 2 and capture runtime acceptance",
-      "branch": "ops/760-embraco-unit2-production-acceptance"
-    }
+    "active_work_package": null,
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -1026,7 +1018,7 @@
       "issue": 760,
       "title": "Activate #729 Embraco Unit 2 on isolated Bus 2 and capture runtime acceptance",
       "priority": "critical",
-      "lifecycle": "blocked",
+      "lifecycle": "completed",
       "depends_on": [
         759,
         762,
@@ -1038,7 +1030,7 @@
       "branch": "ops/760-embraco-unit2-production-acceptance",
       "evidence": {
         "accepted_product_source": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
-        "current_deployed_source": "ff86b10b71c8e5252c15baaf4183adbf42f30f18",
+        "current_deployed_source": "20bb9ca473395a0c64267b9b08523c31404f41e6",
         "bus2_adapter": "0133F246",
         "embraco_unit_id": "2",
         "hardware_read_profile": "9600_8N2_FC03_read_only",
@@ -1050,9 +1042,32 @@
         "blocked_by_issue_766": "false",
         "blocked_by_recovery_authority_rebaseline_decision": "false",
         "blocked_by_issue_768_repository_merge": "false",
-        "blocked_by_issue_772_repository_merge": "true",
+        "blocked_by_issue_772_repository_merge": "false",
         "recovery_rebaseline_id": "20260830T083125Z",
-        "recovery_image_id": "sha256:1c639cc75f632cea9dde890a75806c753f6856a838670640ce38265112b8df0e"
+        "recovery_image_id": "sha256:1c639cc75f632cea9dde890a75806c753f6856a838670640ce38265112b8df0e",
+        "product_owner_hardware_scope": "controller_2_only_controller_1_test_only_unit_96_excluded",
+        "controlled_deployment": "passed_runtime/deployments/20260830T202942Z",
+        "frontend_artifact": "github_run_33330031287_artifact_9737449091_linux_arm64_exact_source",
+        "pre_cutover_snapshot_sha256": "a0d2fdd29d9d51c356476215b8d25aa9a8c8a79915716cdfd684ba5c5c9e56ab",
+        "pre_cutover_registry_revision": 18,
+        "post_cutover_registry_revision": 20,
+        "post_cutover_schema_head": "20260828_0027",
+        "persisted_embraco_bus": "embraco-2_rs485-embraco_active",
+        "unit_201_lifecycle": "disabled_rs485-main_preserved",
+        "device_agent_health": "healthy_modbus_mqtt_connected_queue_0",
+        "real_unit2_fc03": "verified_read_only_success_no_write",
+        "temperature_setpoint_hysteresis": "null_unknown_scale_unverified",
+        "cool_jet_binding": "9170d18a-43b2-4bba-9733-ca9a43c30267_EMBRACO-2_unit2_edge-01",
+        "cool_jet_binding_audit": "abe4e8a9-bd8b-4e35-b182-06fd6c8330a3",
+        "long_run_telemetry": "9191_rows_observed_2026-08-31_morning_ingestion_continuing",
+        "rpm_1h_continuity": "60_valid_samples_max_gap_60.001s_observed_coverage_98.3pct_duty_59.3pct",
+        "inspection_mirror": "exact_source_tailnet_https_artifact_run_33386182467_artifact_9755897067_on_127.0.0.1_3102_http_200",
+        "browser_acceptance": "passed_production_opera_authenticated_viewer_rest_websocket_cool_jet_embraco_online_cooling_2142rpm_running_relays_no_controller_alarm_scale_unverified_plus_refrigeration_browser_workflow_green",
+        "source_version_authority": "recorded_controlled_source_deployment_source_20bb9ca_schema_20260828_0027_linux_arm64_lan_ready",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "acceptance_pull_request": 779,
+        "final_external_acceptance_lanes": "telemetry_refrigeration_browser_authenticated_dashboard_offline_bundle_success_on_ebccb8ad"
       }
     },
     {
@@ -1171,7 +1186,7 @@
       "issue": 772,
       "title": "[SAFETY] Persist Embraco enrollment on explicit RS-485 bus before #760 cutover",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         768
       ],
@@ -1192,7 +1207,12 @@
         "production_sqlite_postgresql_access": "none",
         "modbus_access": "none",
         "hardware_write": "none",
-        "repository_candidate": "published_branch_candidate_pending_exact_head_ci_review"
+        "repository_candidate": "merged_green_pr_773",
+        "verified_head_sha": "6bdb215de6a54de6aa0fc52f4089347e8bdfa556",
+        "pull_request": 773,
+        "merge_observation_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6",
+        "production_copy_reproduction": "persisted_embraco_2_rs485_embraco_mismatch_false_unit201_disabled_quick_check_ok",
+        "exact_head_ci": "green"
       }
     }
   ],
