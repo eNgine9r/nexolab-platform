@@ -34,7 +34,7 @@ Issue #730 is **completed** and PR #731 is merged. Exact verified head `ca030f78
 
 Issue #725 (`CI-OPT-01`) is completed and PR #743 is merged. Exact verified head `7070ba520f482208beb47f36435a33324ff0c2e0` is GREEN for Core Quality/build, Telemetry service, Authenticated Dashboard Acceptance, Offline Bundle, Refrigeration Browser Acceptance and NEXOLAB Merge Gate. The repository now provides a detached clean-worktree local candidate gate with dependency-free state-only verification, full Core non-state planning, exact Node/NVM fallback, automatic Compose validation for deployment/runtime changes and fail-closed unknown-path handling. A real state-only candidate was verified GREEN. Full non-state local verification is intentionally directed away from the production 4 GB Raspberry Pi when it would risk competing with runtime services.
 
-The post-#730 delta Ready audit finds no independent Ready Work Package. #200/#201/#202/#585 remain hardware/evidence-gated; #709/#711 require explicit production/site-cutover approval; RFX-01 through RFX-19C remain on Product Owner hold. Issue #732 is closed not-planned because #733 established the accepted canonical State Model formatter boundary, and #720 is closed completed because the merged refrigeration/DR acceptance selects the authoritative `Схема` route and exact-head DR verification is GREEN.
+The post-#730 delta Ready audit originally found no independent Ready Work Package. #709/#711 were subsequently completed through bounded deployment #755, and #760 completed the separately authorized Embraco Unit 2 activation. After #760, no independent product Work Package is selected; #200/#201/#202/#585 remain hardware/evidence-gated and RFX-01 through RFX-19C remain on Product Owner hold. Issue #732 is closed not-planned because #733 established the accepted canonical State Model formatter boundary, and #720 is closed completed because the merged refrigeration/DR acceptance selects the authoritative `Схема` route and exact-head DR verification is GREEN.
 
 ## Issue #753 — bounded historical-main deployment authority
 
@@ -50,7 +50,7 @@ Real Unit 2 FC03-only telemetry is live and durable. Device Agent is healthy in 
 
 Source/version authority is now recorded successfully as `controlled_source_deployment` for exact source `20bb9ca...`, linux/arm64, LOCAL_LAN, schema `20260828_0027`, health `ready`, evidence `runtime/deployments/20260830T202942Z`. For browser acceptance, exact-source tailnet inspection artifact run `33386182467` / artifact `9755897067` was verified (linux/arm64; HTTPS API; WSS telemetry; local auth; 17,125 runtime-file hashes) and served on `127.0.0.1:3102`. Opera `/inspection-login` automatically authenticated `ChatGPT Opera Inspection / viewer`; REST snapshot synchronized and WebSocket was active. The real `Cool jet` production page showed `Embraco Online`, `Cooling`, compressor 2142 rpm / Running, relay states, no controller alarms, and cabinet/evaporator/condenser as `— / Scale unverified`. The Connector cannot press client-state tab buttons, so interactive tab/history behavior is covered separately by the exact-head Refrigeration Browser Acceptance workflow, which is GREEN.
 
-Acceptance PR #779 changes only canonical `.project/**` state. CI, Telemetry service, Refrigeration Browser Acceptance, Authenticated Dashboard Acceptance and Offline Bundle have all passed on the pre-final state head; the final state commit must receive its own exact-head State integrity / NEXOLAB Merge Gate before merge. No Modbus write, controller/hardware write, destructive database restore or product-data deletion occurred.
+Acceptance PR #779 changed only canonical `.project/**` state. Final state head `46cefa4949390e4747d6c9162a17d8831d6fd31c` passed exact-head State integrity and NEXOLAB Merge Gate, then PR #779 squash-merged to `main` at `72d67360b198e78322b0e2c2dfec5447e02856a2`, closing Issue #760 as completed. No Modbus write, controller/hardware write, destructive database restore or product-data deletion occurred.
 
 ## Issue #772 — persisted Embraco physical-bus identity
 
@@ -74,13 +74,11 @@ Issue #245 is completed with real Raspberry Pi standalone hardware evidence. Iss
 
 ## Durable baselines
 
-Accepted repository product source remains `c30a0d3b6cdb310652f9fc11f817ca2d986f77c4` (Issue #729 exact verified PR head). Production runtime now executes source `20bb9ca473395a0c64267b9b08523c31404f41e6` with Embraco Unit 2 on isolated Bus 2 verified read-only; temperature/control engineering scaling remains hardware-unverified and fail-closed. Source/version-management adoption for this successful deployment is still pending the privileged tool gate.
+Accepted Issue #729 software verification remains anchored at exact PR head `c30a0d3b6cdb310652f9fc11f817ca2d986f77c4`. Production runtime executes source `20bb9ca473395a0c64267b9b08523c31404f41e6` with physical controller #2 / Embraco Unit 2 on isolated Bus 2 verified read-only; temperature/control engineering scaling remains hardware-unverified and fail-closed. Source/version-management authority is recorded as `controlled_source_deployment` for evidence `runtime/deployments/20260830T202942Z`, schema `20260828_0027`, `linux/arm64`, LOCAL_LAN, health `ready`.
 
-Currently deployed source: `ff86b10b71c8e5252c15baaf4183adbf42f30f18` in `lan` runtime mode. Controlled bounded deployment evidence: `/home/nexolab/nexolab-platform/runtime/deployments/20260829T154823Z` with `DEPLOYMENT PASSED`; Telemetry, Device Agent, Dashboard, Prometheus, Alertmanager, Grafana and MinIO readiness plus central smoke/API-contract verification passed. The runtime is intentionally older than accepted repository product source `c30a0d3...` because #729 and later product scope were excluded from the explicit #709/#711 cutover authorization.
+The live post-#760 Device Agent image is `sha256:14130382f1ae4e2bfdcd36c879c94528127f973839b3189cac979c22daa66e8e`. The #768 rebaseline image `sha256:1c639cc75f632cea9dde890a75806c753f6856a838670640ce38265112b8df0e` and historical `ff86b10b...` container/image mapping remain pre-cutover rollback evidence; they are not claims about the current deployed source identity. The #760 pre-cutover SQLite snapshot and deployment evidence remain the accepted rollback boundary for that activation, while exact-source packaged/actual-host recovery acceptance is tracked separately under #189.
 
-Current Device Agent recovery authority is local rebaseline `20260830T083125Z`, image `sha256:1c639cc75f632cea9dde890a75806c753f6856a838670640ce38265112b8df0e`, derived from the unchanged healthy running `ff86b10b...` container. The container itself intentionally retains historical image identity `sha256:847b9117...` until a separately approved cutover recreates it; the immutable mapping between those identities is fail-closed recovery evidence, not a claim that the image IDs are equal.
-
-The accepted repository baseline is newer than the deployed/hardware-validated runtime lineage. Existing #245 real-hardware evidence remains valid only for its recorded source/topology; repository synchronization is not deployment, hardware acceptance or cutover.
+Repository `main` is now newer only by state/reconciliation commits after the accepted runtime source `20bb9ca...`; repository synchronization alone is still not deployment, hardware acceptance or cutover. Existing historical hardware evidence remains valid only for the source/topology explicitly recorded with it.
 
 ## Issue #675 source-to-packaged authority
 
@@ -94,7 +92,7 @@ Legacy controlled-source records may derive missing Dashboard/auth identity only
 
 ## Issue #189 recovery boundary
 
-Software/isolated backup-restore, real MQTT/SQLite outage replay, actual-host reboot persistence and hosted ARM64/local-auth package acceptance are verified for their recorded source lineages. The first approved actual-host package transition failed safely on #683 after backup and partial central recreation; source central, Dashboard, edge, all six persistent-volume identities and advancing telemetry were restored. #686 restored GREEN ARM64/local-auth acceptance in run `32939760743` for `cc27b609...`; because the currently deployed source is now `ff796b1f...`, artifact `9584581740` must not be treated as exact-source recovery authority. #189 remains blocked until recovery/package acceptance is refreshed for the current deployed source or another explicitly accepted recovery path is established. Optional power-loss evidence remains separately gated.
+Software/isolated backup-restore, real MQTT/SQLite outage replay, actual-host reboot persistence and hosted ARM64/local-auth package acceptance are verified for their recorded source lineages. The first approved actual-host package transition failed safely on #683 after backup and partial central recreation; source central, Dashboard, edge, all six persistent-volume identities and advancing telemetry were restored. #686 restored GREEN ARM64/local-auth acceptance in run `32939760743` for `cc27b609...`; because the currently deployed source is now `20bb9ca...`, artifact `9584581740` must not be treated as exact-source recovery authority. #189 remains blocked until recovery/package acceptance is refreshed for current source `20bb9ca...` or another explicitly accepted recovery path is established. Optional power-loss evidence remains separately gated.
 
 ## Current soft blockers and operational observations
 
@@ -104,7 +102,7 @@ Software/isolated backup-restore, real MQTT/SQLite outage replay, actual-host re
 
 ## Hardware validation backlog
 
-- #200 — physical RS-485 topology, second adapter, Unit 115 reality, termination/bias/shielding and duplicate-ID isolation remain hardware-unverified.
+- #200 — the second production adapter `0133F246` and Embraco Unit 2 at 9600 8N2 are now verified through #760; Unit 115 reality, full physical topology inspection, termination/bias/shielding/grounding and remaining duplicate-ID isolation evidence are still hardware-unverified.
 - #201 — normal-operation LE-01MP semantics are accepted; controlled restart/power-cycle discontinuity evidence remains pending.
 - #202 — representative XJP60D firmware/semantic portability still needs real hardware evidence.
 - #585 — W2 / Unit 201 handback remains blocked until external RS-485 ownership is released and physical handback is approved.
