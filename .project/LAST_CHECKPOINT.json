@@ -3,18 +3,14 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-08-31T12:12:00+03:00",
+  "timestamp": "2026-08-31T15:08:50+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_760_runtime_cutover_passed_final_acceptance_review_active",
+  "event": "issue_760_acceptance_complete_repository_merge_candidate",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
-  "active_work": {
-    "issue": 760,
-    "title": "Activate #729 Embraco Unit 2 on isolated Bus 2 and capture runtime acceptance",
-    "branch": "ops/760-embraco-unit2-production-acceptance"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "active_issue_evidence": {
       "deployment_evidence": "runtime/deployments/20260830T202942Z",
@@ -32,13 +28,14 @@
       "rpm_1h": "60_valid_samples_98.3pct_observed_coverage_59.3pct_duty",
       "temperature_control_scale": "unknown_fail_closed",
       "cool_jet_binding": "audited_EMBRACO-2_unit_2",
-      "inspection_mirror": "current_immutable_release_http_200",
-      "authenticated_browser_final": "blocked_external_browser_connector_and_tool_credential_guard",
-      "source_version_authority": "pending_tool_safety_guard"
+      "inspection_mirror": "exact_source_tailnet_https_artifact_9755897067_3102",
+      "authenticated_browser_final": "passed_chatgpt_opera_inspection_viewer_rest_websocket_cool_jet_embraco_online_cooling_2142rpm_running_relays_no_alarm_scale_unverified",
+      "source_version_authority": "recorded_controlled_source_deployment_20bb9ca_schema_20260828_0027_ready",
+      "repository_acceptance_pr": "779_pending_new_exact_head_ci"
     }
   },
   "observations": [],
-  "next_action": "Publish the #760 acceptance/state PR and require exact-head CI. Retry authenticated browser acceptance and repository-owned source adoption only when the respective tool access guards permit; do not bypass credential or privileged-command safety.",
+  "next_action": "Require new exact-head PR #779 State integrity and NEXOLAB Merge Gate GREEN, then merge and close #760. Keep deferred RFX work on Product Owner hold.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

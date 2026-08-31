@@ -22,11 +22,7 @@
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 760,
-      "title": "Activate #729 Embraco Unit 2 on isolated Bus 2 and capture runtime acceptance",
-      "branch": "ops/760-embraco-unit2-production-acceptance"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -1022,7 +1018,7 @@
       "issue": 760,
       "title": "Activate #729 Embraco Unit 2 on isolated Bus 2 and capture runtime acceptance",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         759,
         762,
@@ -1065,11 +1061,13 @@
         "cool_jet_binding_audit": "abe4e8a9-bd8b-4e35-b182-06fd6c8330a3",
         "long_run_telemetry": "9191_rows_observed_2026-08-31_morning_ingestion_continuing",
         "rpm_1h_continuity": "60_valid_samples_max_gap_60.001s_observed_coverage_98.3pct_duty_59.3pct",
-        "inspection_mirror": "restored_current_immutable_release_on_127.0.0.1_3100_http_200",
-        "browser_acceptance": "partial_real_ui_pass_final_authenticated_rerun_blocked_by_browser_connector_and_tool_credential_guard",
-        "source_version_authority": "pending_repository_adoption_command_blocked_by_tool_safety_guard",
+        "inspection_mirror": "exact_source_tailnet_https_artifact_run_33386182467_artifact_9755897067_on_127.0.0.1_3102_http_200",
+        "browser_acceptance": "passed_production_opera_authenticated_viewer_rest_websocket_cool_jet_embraco_online_cooling_2142rpm_running_relays_no_controller_alarm_scale_unverified_plus_refrigeration_browser_workflow_green",
+        "source_version_authority": "recorded_controlled_source_deployment_source_20bb9ca_schema_20260828_0027_linux_arm64_lan_ready",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "acceptance_pull_request": 779,
+        "final_external_acceptance_lanes": "telemetry_refrigeration_browser_authenticated_dashboard_offline_bundle_success_on_ebccb8ad"
       }
     },
     {
