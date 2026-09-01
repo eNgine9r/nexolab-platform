@@ -112,6 +112,7 @@ def wait_for_deployment_health(
     if timeout_seconds <= 0 or poll_seconds <= 0:
         raise ValueError("timeout_seconds and poll_seconds must be positive")
     deadline = clock() + timeout_seconds
+    last_operational_error: HealthGateError | None = None
 
     while True:
         container_ids = runtime.list_container_ids()
@@ -131,15 +132,24 @@ def wait_for_deployment_health(
         health_status = health.get("Status")
 
         if health_status == "healthy":
-            validate_operational_health(health_fetcher(health_url))
-            return
-        if health_status == "unhealthy":
+            try:
+                validate_operational_health(health_fetcher(health_url))
+            except HealthGateError as exc:
+                last_operational_error = exc
+            else:
+                return
+        elif health_status == "unhealthy":
             raise HealthGateError("Device Agent Docker health is unhealthy")
-        if health_status != "starting":
+        elif health_status != "starting":
             raise HealthGateError(f"unsupported Device Agent Docker health {health_status!r}")
 
         remaining = deadline - clock()
         if remaining <= 0:
+            if last_operational_error is not None:
+                raise HealthGateError(
+                    "Device Agent operational health did not converge before deadline: "
+                    f"{last_operational_error}"
+                ) from last_operational_error
             raise HealthGateError("Device Agent Docker health did not converge before deadline")
         sleeper(min(poll_seconds, remaining))
 

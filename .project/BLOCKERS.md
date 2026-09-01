@@ -8,7 +8,7 @@ Updated: 2026-09-01
 
 ## Issue #790 — controlled deployment final Device Agent health race
 
-**Software defect cleared 2026-09-01.** Exact P1-fixed head `5975501c15a97485bc2be943072c3ee11ed5b4b4` is GREEN for Core Quality/build and NEXOLAB Merge Gate; the historical-source helper preservation review is resolved. The health gate is staged into deployment evidence before historical checkout and remains fail closed. This does **not** retroactively validate failed #789 deployment evidence or advance formal source authority from `20bb9ca...`; future controlled deployment remains a separate explicit gate. No deployment/runtime mutation or Modbus/hardware write occurred in #790.
+**Review pending.** A second P1 review correctly found Docker health can become `healthy` before MQTT or scheduler workers finish asynchronous startup. The candidate now retries operational readiness under the same bounded deadline while preserving container identity and terminal fail-closed states. Local 14/14 focused tests and deployment/offline regressions are GREEN; remote exact-head CI/Merge Gate are pending. This does not retroactively validate #789 or advance source authority from `20bb9ca...`. No deployment/runtime mutation or Modbus/hardware write occurred.
 
 ## Issue #785 — operator-selected compressor analysis interval
 

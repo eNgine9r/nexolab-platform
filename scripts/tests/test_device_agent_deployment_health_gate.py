@@ -75,10 +75,20 @@ class DeploymentHealthGateTests(unittest.TestCase):
         runtime: FakeRuntime,
         *,
         payload: dict[str, object] | None = None,
+        payloads: list[dict[str, object]] | None = None,
         timeout: float = 6.0,
         poll: float = 2.0,
     ) -> FakeClock:
         clock = FakeClock()
+        health_payloads = payloads or [payload or healthy_payload()]
+        health_calls = 0
+
+        def fetch_health(_url: str) -> dict[str, object]:
+            nonlocal health_calls
+            index = min(health_calls, len(health_payloads) - 1)
+            health_calls += 1
+            return health_payloads[index]
+
         MODULE.wait_for_deployment_health(
             runtime,
             expected_container_id="container-a",
@@ -87,8 +97,9 @@ class DeploymentHealthGateTests(unittest.TestCase):
             poll_seconds=poll,
             clock=clock,
             sleeper=clock.sleep,
-            health_fetcher=lambda _url: payload or healthy_payload(),
+            health_fetcher=fetch_health,
         )
+        clock.health_calls = health_calls  # type: ignore[attr-defined]
         return clock
 
     def test_immediate_healthy_succeeds(self) -> None:
@@ -102,6 +113,26 @@ class DeploymentHealthGateTests(unittest.TestCase):
         clock = self.run_gate(runtime)
         self.assertEqual(clock.sleeps, [2.0, 2.0])
         self.assertEqual(runtime.inspect_calls, 3)
+
+
+    def test_healthy_docker_waits_for_mqtt_to_connect(self) -> None:
+        not_ready = healthy_payload()
+        not_ready["mqtt_connected"] = False
+        runtime = FakeRuntime(health_statuses=["healthy", "healthy"])
+        clock = self.run_gate(runtime, payloads=[not_ready, healthy_payload()])
+        self.assertEqual(clock.sleeps, [2.0])
+        self.assertEqual(runtime.inspect_calls, 2)
+        self.assertEqual(clock.health_calls, 2)  # type: ignore[attr-defined]
+
+    def test_healthy_docker_waits_for_scheduler_workers(self) -> None:
+        not_ready = healthy_payload()
+        scheduler = not_ready["acquisition"]["scheduler"]  # type: ignore[index]
+        scheduler["workers_healthy"] = False  # type: ignore[index]
+        runtime = FakeRuntime(health_statuses=["healthy", "healthy"])
+        clock = self.run_gate(runtime, payloads=[not_ready, healthy_payload()])
+        self.assertEqual(clock.sleeps, [2.0])
+        self.assertEqual(runtime.inspect_calls, 2)
+        self.assertEqual(clock.health_calls, 2)  # type: ignore[attr-defined]
 
     def test_permanent_starting_times_out(self) -> None:
         runtime = FakeRuntime(health_statuses=["starting"])
