@@ -2,6 +2,10 @@
 
 Updated: 2026-09-01
 
+## Issue #792 — selected-interval relay traceability and export
+
+**Cleared 2026-09-01.** Product candidate `23044199abd89747fd625d22a0c43dfc345bd7fe` keeps the compressor duty formula read-only and adds selected-range Relay 1..4 lanes, observed transition provenance, confirmed compressor starts and local UTF-8 CSV export. Local focused verification is 42/42 GREEN; exact-head Core Quality/build, Refrigeration Browser Acceptance, Disaster Recovery Browser and NEXOLAB Merge Gate are GREEN on PR #793. No Modbus write, hardware write, cadence change, backend migration or production deployment belongs to #792.
+
 ## Issue #790 — controlled deployment final Device Agent health race
 
 Issue #789 product/runtime acceptance is complete: the Product Owner confirmed the selected compressor range/KPI behavior in the real interface, and the activated runtime is currently healthy. A separate deployment-evidence maintenance defect remains: attempt `runtime/deployments/20260901T064156Z` failed its final success marker because Docker health had not yet converged although Device Agent HTTP readiness was already passing; the container became and remained `healthy` seconds later. Until #790 is fixed and a future guarded deployment establishes valid success evidence, **do not advance formal controlled-source authority from `20bb9ca...` based on the failed #789 attempt**. This is an evidence/recovery-governance blocker, not a blocker to the operator-visible #785 feature.

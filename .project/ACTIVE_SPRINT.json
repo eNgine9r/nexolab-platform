@@ -22,11 +22,7 @@
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 792,
-      "title": "Selected-interval relay traceability, compressor starts and CSV export",
-      "branch": "feat/792-relay-traceability-export"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -1291,7 +1287,7 @@
       "issue": 792,
       "title": "Selected-interval relay traceability, compressor starts and CSV export",
       "priority": "unspecified",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "feat/792-relay-traceability-export",
       "evidence": {
         "verified_head_sha": "23044199abd89747fd625d22a0c43dfc345bd7fe",
@@ -1300,8 +1296,13 @@
           "Touched Prettier": "success",
           "Touched ESLint": "success",
           "TypeScript compile": "success",
-          "git diff check": "success"
-        }
+          "git diff check": "success",
+          "Core Quality and build": "success",
+          "Refrigeration Browser Acceptance": "success",
+          "Disaster Recovery Browser": "success",
+          "NEXOLAB Merge Gate": "success"
+        },
+        "pull_request": 793
       }
     }
   ],
