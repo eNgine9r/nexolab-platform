@@ -3,19 +3,32 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-01T10:05:00+03:00",
+  "timestamp": "2026-09-01T10:33:00+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_789_operator_accepted_runtime_followup_790_opened",
+  "event": "issue_792_candidate_ready_for_remote_verification",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 792,
+    "title": "Selected-interval relay traceability, compressor starts and CSV export",
+    "branch": "feat/792-relay-traceability-export"
+  },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "verified_head_sha": "23044199abd89747fd625d22a0c43dfc345bd7fe",
+      "checks": {
+        "Focused refrigeration tests": "success_42_of_42",
+        "Touched Prettier": "success",
+        "Touched ESLint": "success",
+        "TypeScript compile": "success",
+        "git diff check": "success"
+      }
+    }
   },
   "observations": [],
-  "next_action": "Issue #789 is product-complete by real operator acceptance. Keep RFX-01 through RFX-19C on Product Owner hold. Issue #790 is the maintenance follow-up for the deployment final-health evidence race; do not reinterpret the failed #789 attempt as DEPLOYMENT PASSED.",
+  "next_action": "Publish Issue #792 PR candidate; require exact-head Core, Refrigeration Browser Acceptance and NEXOLAB Merge Gate GREEN before completion/merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

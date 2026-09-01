@@ -22,7 +22,11 @@
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 792,
+      "title": "Selected-interval relay traceability, compressor starts and CSV export",
+      "branch": "feat/792-relay-traceability-export"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -1281,6 +1285,23 @@
         "edge_snapshot_sha256": "5ba126fd4e24932901a9b80a4657e6dd400a915d6a988a20437e5bb01f445930",
         "formal_source_authority": "UNCHANGED_20bb9ca473395a0c64267b9b08523c31404f41e6",
         "follow_up_issue": 790
+      }
+    },
+    {
+      "issue": 792,
+      "title": "Selected-interval relay traceability, compressor starts and CSV export",
+      "priority": "unspecified",
+      "lifecycle": "review",
+      "branch": "feat/792-relay-traceability-export",
+      "evidence": {
+        "verified_head_sha": "23044199abd89747fd625d22a0c43dfc345bd7fe",
+        "checks": {
+          "Focused refrigeration tests": "success_42_of_42",
+          "Touched Prettier": "success",
+          "Touched ESLint": "success",
+          "TypeScript compile": "success",
+          "git diff check": "success"
+        }
       }
     }
   ],
