@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
@@ -390,6 +390,25 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   await expect(duty).toContainText(/\d+\.\d %/);
   await expect(history.getByText(/Температурний scale ще не підтверджений/)).toBeVisible();
   await expect(history.getByRole("heading", { name: "Режими та реле" })).toBeVisible();
+  await expect(history.getByText("Пуски компресора", { exact: true })).toBeVisible();
+  const relayLanes = history.getByTestId("relay-analysis-lanes");
+  for (const relay of ["Relay 1", "Relay 2", "Relay 3", "Relay 4"]) {
+    await expect(relayLanes.getByText(relay, { exact: true })).toBeVisible();
+  }
+  await expect(history.getByTestId("relay-transition-journal")).toContainText("Журнал перемикань реле");
+  await expect(history.getByTestId("relay-transition-journal")).toContainText(/Подій: [1-9]\d*/);
+
+  const downloadPromise = page.waitForEvent("download");
+  await history.getByRole("button", { name: "Export CSV", exact: true }).click();
+  const csvDownload = await downloadPromise;
+  expect(csvDownload.suggestedFilename()).toMatch(/^nexolab-EMBRACO-2-.*\.csv$/i);
+  const controllerExportPath = path.join(evidenceDirectory, "issue-792-controller-analysis.csv");
+  await csvDownload.saveAs(controllerExportPath);
+  const controllerCsv = readFileSync(controllerExportPath, "utf8");
+  expect(controllerCsv).toContain("selected_from_utc,selected_to_utc");
+  expect(controllerCsv).toContain("compressor.start_count");
+  expect(controllerCsv).toContain("controller.relay_state_bits");
+  expect(controllerCsv).toContain("relay_transition");
 
   await history.getByRole("button", { name: "Кастом", exact: true }).click();
   await expect(history.getByLabel("Від", { exact: true })).toBeVisible();
