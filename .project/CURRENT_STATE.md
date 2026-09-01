@@ -18,7 +18,9 @@ This state-only Work Package reconciles the durable State Model v2 with GitHub a
 
 ## Issue #790 — controlled deployment final Device Agent health race
 
-Fresh Ready audit selects Issue #790 as the next independent software Work Package after #794. It is limited to deployment/evidence tooling and deterministic tests for the final Device Agent Docker-health convergence race. Implementation may reproduce immediate/delayed/permanent health states in test fixtures, but **does not authorize or require a production deployment**, source-authority advancement, Modbus write, hardware write, acquisition change, polling change or controller configuration change. A future controlled deployment remains a separate explicit gate.
+Issue #790 is in repository review on `fix/790-deployment-health-race`. The implementation replaces the final one-shot Docker-health assertion with a standard-library, identity-stable bounded convergence gate: only the same running `nexolab-edge/device-agent` container may progress from `starting` to `healthy`; `unhealthy`, timeout, missing/multiple/replaced/exited containers fail closed. After Docker health converges, the gate requires operational `status=ok`, MQTT connected and healthy scheduler workers when scheduler state is present. Existing final image-ID and activated-local-image authority checks remain after the gate unchanged.
+
+Local verification is GREEN: 12/12 deterministic health-gate tests, 47/47 existing deployment regressions, 33/33 CI change-impact regressions, standalone offline runtime contract, Python compile, shell syntax, State Model v2 and `git diff --check`. A read-only smoke against the already-running production Device Agent also passed with Docker `healthy`, operational `status=ok`, MQTT connected, queue depth 0 and scheduler workers 2/2 healthy. No restart, deployment, source-authority advancement, Modbus/hardware write, polling/configuration change or data/volume deletion occurred. Exact-head GitHub verification remains pending before merge.
 
 ## Issue #789 — production runtime acceptance for #785
 

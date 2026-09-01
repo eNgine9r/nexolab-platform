@@ -22,12 +22,12 @@
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 790,
       "title": "Fix controlled deployment final Device Agent health-check race",
       "branch": "fix/790-deployment-health-race"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -1372,7 +1372,7 @@
       "issue": 790,
       "title": "Fix controlled deployment final Device Agent health-check race",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "review",
       "depends_on": [
         789
       ],
@@ -1380,9 +1380,21 @@
       "evidence": {
         "problem": "final deployment evidence can observe Docker health before it converges after HTTP readiness",
         "implementation_scope": "deployment_evidence_tooling_and_tests_only",
-        "production_deployment": "not_authorized_for_implementation",
+        "production_deployment": "not_executed",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "implementation": "bounded_identity_stable_docker_health_convergence_gate",
+        "focused_health_gate_tests": "success_12_of_12",
+        "existing_deployment_regressions": "success_47_of_47",
+        "ci_change_impact_regressions": "success_33_of_33",
+        "standalone_offline_runtime_contract": "success",
+        "python_compile": "success",
+        "shell_syntax": "success",
+        "state_model_v2": "success",
+        "git_diff_check": "success",
+        "read_only_live_health_smoke": "success_existing_runtime_no_mutation",
+        "source_authority_advanced": false,
+        "remote_exact_head_verification": "pending"
       }
     }
   ],

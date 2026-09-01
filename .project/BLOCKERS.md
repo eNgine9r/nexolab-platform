@@ -8,7 +8,7 @@ Updated: 2026-09-01
 
 ## Issue #790 — controlled deployment final Device Agent health race
 
-Issue #790 is a **Ready software maintenance Work Package**, not a production-cutover authorization. The prior #789 deployment attempt failed its final evidence marker because Docker health had not yet converged although Device Agent HTTP readiness was already passing; the container subsequently became and remained healthy. Formal controlled-source authority therefore remains anchored to `20bb9ca...` until a separately authorized future guarded deployment establishes valid success evidence. #790 may change only deployment/evidence tooling and tests; implementation must preserve fail-closed behavior and must not perform runtime deployment, Modbus/hardware write, acquisition/polling change or source-authority advancement.
+**Software candidate in review.** The final one-shot Docker-health race is addressed by an identity-stable bounded convergence gate with deterministic fail-closed tests and a read-only live-health smoke. Exact-head GitHub verification remains pending. Formal controlled-source authority remains anchored to `20bb9ca...`; #790 does not retroactively repair #789 evidence and does not authorize deployment, runtime mutation, Modbus/hardware write, acquisition/polling change or source-authority advancement.
 
 ## Issue #785 — operator-selected compressor analysis interval
 
