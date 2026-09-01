@@ -390,6 +390,38 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     }
   }
 
+  private readonly handleContainerPointerDown = (event: PointerEvent) => {
+    if (event.button !== 0 || !this.instance || !this.container || !this.scene?.rangeSelectionEnabled) return;
+    const timestampMs = this.timestampAtPointer(event);
+    if (timestampMs === null) return;
+    this.rangeSelectionDragActive = true;
+    this.rangeSelectionStartMs = timestampMs;
+    this.rangeSelectionLastMs = timestampMs;
+    this.rangeSelectionStartClientX = event.clientX;
+    this.rangeSelectionLastClientX = event.clientX;
+    this.options?.onCursor(null);
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  };
+
+  private readonly handleWindowRangePointerMove = (event: PointerEvent) => {
+    if (!this.rangeSelectionDragActive) return;
+    const timestampMs = this.timestampAtPointer(event);
+    if (timestampMs !== null) {
+      this.rangeSelectionLastMs = timestampMs;
+      this.rangeSelectionLastClientX = event.clientX;
+    }
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  };
+
+  private readonly handleWindowPointerUp = (event: PointerEvent) => {
+    if (event.button !== 0 || !this.rangeSelectionDragActive) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    this.finishRangeSelection();
+  };
+
   private readonly handleContainerMouseDown = (event: MouseEvent) => {
     if (event.button !== 0 || !this.instance || !this.container || !this.scene) return;
     if (this.scene.rangeSelectionEnabled) {
@@ -494,9 +526,16 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.instance = this.runtime.init(options.container, options.renderer);
     this.instance.on("updateAxisPointer", this.handleAxisPointer);
     this.instance.on("dataZoom", this.handleDataZoom);
+    this.container.addEventListener("pointerdown", this.handleContainerPointerDown, true);
     this.container.addEventListener("mousedown", this.handleContainerMouseDown, true);
     this.container.addEventListener("mousemove", this.handleContainerPointer, true);
     this.container.addEventListener("mouseleave", this.handleContainerLeave);
+    this.container.ownerDocument.defaultView?.addEventListener(
+      "pointermove",
+      this.handleWindowRangePointerMove,
+      true,
+    );
+    this.container.ownerDocument.defaultView?.addEventListener("pointerup", this.handleWindowPointerUp, true);
     this.container.ownerDocument.defaultView?.addEventListener("mouseup", this.handleWindowMouseUp, true);
   }
 
@@ -581,9 +620,20 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     if (!this.instance) return;
     this.instance.off("updateAxisPointer", this.handleAxisPointer);
     this.instance.off("dataZoom", this.handleDataZoom);
+    this.container?.removeEventListener("pointerdown", this.handleContainerPointerDown, true);
     this.container?.removeEventListener("mousedown", this.handleContainerMouseDown, true);
     this.container?.removeEventListener("mousemove", this.handleContainerPointer, true);
     this.container?.removeEventListener("mouseleave", this.handleContainerLeave);
+    this.container?.ownerDocument.defaultView?.removeEventListener(
+      "pointermove",
+      this.handleWindowRangePointerMove,
+      true,
+    );
+    this.container?.ownerDocument.defaultView?.removeEventListener(
+      "pointerup",
+      this.handleWindowPointerUp,
+      true,
+    );
     this.container?.ownerDocument.defaultView?.removeEventListener("mouseup", this.handleWindowMouseUp, true);
     this.primaryDragActive = false;
     this.primaryDragBaseDomain = null;

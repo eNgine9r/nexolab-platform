@@ -158,18 +158,18 @@ describe("ECharts renderer adapter lifecycle", () => {
     expect(option.dataZoom).toHaveLength(1);
     expect(option.brush).toBeUndefined();
 
-    const leakedMouseDown = vi.fn();
-    const leakedMouseMove = vi.fn();
-    container.addEventListener("mousedown", leakedMouseDown);
-    container.addEventListener("mousemove", leakedMouseMove);
+    const leakedPointerDown = vi.fn();
+    const leakedPointerMove = vi.fn();
+    container.addEventListener("pointerdown", leakedPointerDown);
+    container.addEventListener("pointermove", leakedPointerMove);
 
-    container.dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: 90, clientY: 100 }));
+    container.dispatchEvent(new MouseEvent("pointerdown", { button: 0, clientX: 90, clientY: 100 }));
     instance.handlers.get("dataZoom")?.({ start: 10, end: 90 });
-    container.dispatchEvent(new MouseEvent("mousemove", { buttons: 1, clientX: 30, clientY: 100 }));
-    window.dispatchEvent(new MouseEvent("mouseup", { button: 0 }));
+    window.dispatchEvent(new MouseEvent("pointermove", { buttons: 1, clientX: 30, clientY: 100 }));
+    window.dispatchEvent(new MouseEvent("pointerup", { button: 0, clientX: 30, clientY: 100 }));
 
-    expect(leakedMouseDown).not.toHaveBeenCalled();
-    expect(leakedMouseMove).not.toHaveBeenCalled();
+    expect(leakedPointerDown).not.toHaveBeenCalled();
+    expect(leakedPointerMove).not.toHaveBeenCalled();
     expect(onXDomainChange).not.toHaveBeenCalled();
     expect(onRangeSelectionChange).toHaveBeenCalledWith({
       fromMs: BENCHMARK_START_MS + 30,
