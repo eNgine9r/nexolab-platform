@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-01T10:56:00+03:00",
+  "timestamp": "2026-09-01T11:07:00+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_792_drag_selection_candidate_ready_for_remote_verification",
+  "event": "issue_792_deterministic_drag_candidate_ready_for_browser_retest",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
@@ -34,9 +34,22 @@
           },
           "superseded_reason": "Product Owner replaced range-slider selection with direct mouse drag selection before merge.",
           "superseded_at": "2026-09-01T10:47:00+03:00"
+        },
+        {
+          "verified_head_sha": "f841b61bdfb7d573dfb168e1c98f4a3af66bfbc9",
+          "pull_request": 793,
+          "checks": {
+            "Focused refrigeration and chart tests": "success_55_of_55",
+            "Touched Prettier": "success",
+            "Touched ESLint": "success",
+            "TypeScript compile": "success",
+            "git diff check": "success"
+          },
+          "superseded_reason": "Real Refrigeration Browser Acceptance failed: ECharts global brush did not produce a selected analysis range in Chromium.",
+          "superseded_at": "2026-09-01T11:03:00+03:00"
         }
       ],
-      "verified_head_sha": "f841b61bdfb7d573dfb168e1c98f4a3af66bfbc9",
+      "verified_head_sha": "31df74800b0ae1ee7d0bf38de42a585c6338567a",
       "pull_request": 793,
       "checks": {
         "Focused refrigeration and chart tests": "success_55_of_55",
@@ -48,7 +61,7 @@
     }
   },
   "observations": [],
-  "next_action": "Push mouse-drag selection candidate to PR #793; require exact-head Core, Refrigeration Browser Acceptance, Disaster Recovery Browser and NEXOLAB Merge Gate GREEN before completion/merge.",
+  "next_action": "Push deterministic DOM-drag/markArea candidate to PR #793 and require fresh exact-head Refrigeration Browser Acceptance plus all routed checks GREEN.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
