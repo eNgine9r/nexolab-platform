@@ -14,6 +14,7 @@ export interface ChartRendererInitOptions {
   maximumLivePoints?: number;
   onCursor: (inspection: ChartCursorInspection | null) => void;
   onXDomainChange: (domain: ChartXDomain) => void;
+  onRangeSelectionChange?: (domain: ChartXDomain | null) => void;
 }
 
 export interface ChartRendererScene {
@@ -21,7 +22,8 @@ export interface ChartRendererScene {
   xDomain: ChartXDomain;
   interactionDomain?: ChartXDomain;
   cursorToleranceMs?: number;
-  showRangeSlider?: boolean;
+  rangeSelectionEnabled?: boolean;
+  rangeSelection?: ChartXDomain | null;
   thresholds?: readonly ChartThreshold[];
   events?: readonly ChartEventMarker[];
   alarmRegions?: readonly ChartAlarmRegion[];

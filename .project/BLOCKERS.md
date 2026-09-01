@@ -2,6 +2,10 @@
 
 Updated: 2026-09-01
 
+## Issue #792 — selected-interval relay traceability and export
+
+**Software blocker cleared 2026-09-01.** Exact product/test head `cb6bd4357f32e5655d8ebba523afc0bd25c9e842` is GREEN for Core Quality/build, Refrigeration Browser Acceptance, Authenticated Dashboard Acceptance, Disaster Recovery Browser and NEXOLAB Merge Gate. Real Chromium confirms direct left-button drag → selected interval → KPI/relay/export synchronization with persistent highlight and no range slider. The preceding DR failure was a stale title assertion, not restored-data loss; the test now verifies the restored canonical equipment name from the API against the operator H1, and replacement DR acceptance is GREEN. #792 has no remaining software/hardware blocker; only state-only exact-head verification, final review-thread resolution and PR #793 merge remain. No Modbus write, hardware write, cadence change, backend migration or production deployment belongs to #792.
+
 ## Issue #790 — controlled deployment final Device Agent health race
 
 Issue #789 product/runtime acceptance is complete: the Product Owner confirmed the selected compressor range/KPI behavior in the real interface, and the activated runtime is currently healthy. A separate deployment-evidence maintenance defect remains: attempt `runtime/deployments/20260901T064156Z` failed its final success marker because Docker health had not yet converged although Device Agent HTTP readiness was already passing; the container became and remained `healthy` seconds later. Until #790 is fixed and a future guarded deployment establishes valid success evidence, **do not advance formal controlled-source authority from `20bb9ca...` based on the failed #789 attempt**. This is an evidence/recovery-governance blocker, not a blocker to the operator-visible #785 feature.

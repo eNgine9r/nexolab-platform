@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
@@ -390,6 +390,55 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   await expect(duty).toContainText(/\d+\.\d %/);
   await expect(history.getByText(/Температурний scale ще не підтверджений/)).toBeVisible();
   await expect(history.getByRole("heading", { name: "Режими та реле" })).toBeVisible();
+  await expect(history.getByText("Пуски компресора", { exact: true })).toBeVisible();
+  const relayLanes = history.getByTestId("relay-analysis-lanes");
+  for (const relay of ["Relay 1", "Relay 2", "Relay 3", "Relay 4"]) {
+    await expect(relayLanes.getByText(relay, { exact: true })).toBeVisible();
+  }
+  await expect(history.getByTestId("relay-transition-journal")).toContainText("Журнал перемикань реле");
+  await expect(history.getByTestId("relay-transition-journal")).toContainText(/Подій: [1-9]\d*/);
+
+  const compressorChart = history.locator(
+    '[data-testid="refrigeration-controller-chart"][data-chart-title="Швидкість компресора"]',
+  );
+  const compressorHost = compressorChart.getByTestId("chart-renderer-host");
+  const compressorSurface = compressorChart.getByTestId("chart-renderer-surface");
+  await expect(compressorHost).toHaveAttribute("data-range-selection-enabled", "true");
+  await compressorSurface.scrollIntoViewIfNeeded();
+  await expect(compressorSurface).toBeInViewport();
+  const compressorBounds = await compressorSurface.boundingBox();
+  expect(compressorBounds).not.toBeNull();
+  if (!compressorBounds) throw new Error("Compressor chart bounds are unavailable");
+  const selectionY = compressorBounds.y + compressorBounds.height * 0.5;
+  await page.mouse.move(compressorBounds.x + compressorBounds.width * 0.3, selectionY);
+  await page.mouse.down();
+  await page.mouse.move(compressorBounds.x + compressorBounds.width * 0.7, selectionY, { steps: 8 });
+  await page.mouse.up();
+  await expect(compressorSurface).toHaveAttribute("data-range-selection-input", "committed");
+  await expect(history.getByTestId("compressor-analysis-range")).toContainText("Вибраний відрізок графіка");
+
+  const downloadPromise = page.waitForEvent("download");
+  await history.getByRole("button", { name: "Export CSV", exact: true }).click();
+  const csvDownload = await downloadPromise;
+  expect(csvDownload.suggestedFilename()).toMatch(/^nexolab-EMBRACO-2-.*\.csv$/i);
+  const controllerExportPath = path.join(evidenceDirectory, "issue-792-controller-analysis.csv");
+  await csvDownload.saveAs(controllerExportPath);
+  const controllerCsv = readFileSync(controllerExportPath, "utf8");
+  expect(controllerCsv).toContain("selected_from_utc,selected_to_utc");
+  expect(controllerCsv).toContain("compressor.start_count");
+  expect(controllerCsv).toContain("controller.relay_state_bits");
+  expect(controllerCsv).toContain("relay_transition");
+  const csvLines = controllerCsv
+    .replace(/^\uFEFF/, "")
+    .trim()
+    .split(/\r?\n/);
+  const selectedRangeColumns = csvLines[1]?.split(",") ?? [];
+  expect(Date.parse(selectedRangeColumns[1] ?? "") - Date.parse(selectedRangeColumns[0] ?? "")).toBeLessThan(
+    60 * 60 * 1000,
+  );
+
+  await history.getByRole("button", { name: "Скинути вибір", exact: true }).click();
+  await expect(history.getByTestId("compressor-analysis-range")).toContainText("Повний період");
 
   await history.getByRole("button", { name: "Кастом", exact: true }).click();
   await expect(history.getByLabel("Від", { exact: true })).toBeVisible();

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
-import { buildControlStateTimeline, buildRelayTimeline } from "./controller-timeline";
+import { buildControlStateTimeline, buildRelayTimeline, buildRelayTransitions } from "./controller-timeline";
 
 const range = {
   from: new Date("2026-08-28T00:00:00.000Z"),
@@ -52,5 +52,68 @@ describe("controller timelines", () => {
   it("does not bridge large source gaps", () => {
     const timeline = buildControlStateTimeline([sample("a", 0, 5), sample("b", 9, 5)], range);
     expect(timeline).toEqual([]);
+  });
+
+  it("does not bridge an invalid sample when building a timeline", () => {
+    const timeline = buildRelayTimeline(
+      [sample("a", 0, 0), sample("bad", 1, 0, "communication_error"), sample("b", 2, 1)],
+      0,
+      range,
+    );
+    expect(timeline).toEqual([]);
+  });
+
+  it("records observed relay transitions with previous-sample provenance", () => {
+    const transitions = buildRelayTransitions(
+      [sample("a", 0, 0), sample("b", 1, 1), sample("c", 2, 1), sample("d", 3, 0)],
+      0,
+      range,
+    );
+    expect(transitions).toEqual([
+      {
+        relayIndex: 0,
+        fromState: false,
+        toState: true,
+        previousObservedAtMs: Date.parse("2026-08-28T00:00:00.000Z"),
+        observedAtMs: Date.parse("2026-08-28T00:01:00.000Z"),
+        previousEventId: "a",
+        eventId: "b",
+      },
+      {
+        relayIndex: 0,
+        fromState: true,
+        toState: false,
+        previousObservedAtMs: Date.parse("2026-08-28T00:02:00.000Z"),
+        observedAtMs: Date.parse("2026-08-28T00:03:00.000Z"),
+        previousEventId: "c",
+        eventId: "d",
+      },
+    ]);
+  });
+
+  it("does not invent relay transitions across invalid evidence", () => {
+    const transitions = buildRelayTransitions(
+      [sample("a", 0, 0), sample("bad", 1, 0, "communication_error"), sample("b", 2, 1)],
+      0,
+      range,
+    );
+    expect(transitions).toEqual([]);
+  });
+
+  it("does not invent relay transitions across continuity gaps", () => {
+    expect(buildRelayTransitions([sample("a", 0, 0), sample("b", 9, 1)], 0, range)).toEqual([]);
+  });
+
+  it("filters transitions by the time the new state was first observed", () => {
+    const selected = {
+      from: new Date("2026-08-28T00:01:30.000Z"),
+      to: new Date("2026-08-28T00:03:00.000Z"),
+    };
+    const transitions = buildRelayTransitions(
+      [sample("a", 0, 0), sample("b", 1, 1), sample("c", 2, 0)],
+      0,
+      selected,
+    );
+    expect(transitions.map((item) => item.eventId)).toEqual(["c"]);
   });
 });

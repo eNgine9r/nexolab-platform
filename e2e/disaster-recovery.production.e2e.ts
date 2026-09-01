@@ -103,6 +103,15 @@ test("restored nodes, reports and refrigeration state remain operator-visible", 
     await expect(reportDetail).toContainText("protocol-proof.bin");
     await page.screenshot({ path: `${evidenceDirectory}/02-restored-reports.png`, fullPage: true });
 
+    const equipmentResponse = await api.get("/api/v1/equipment/showcase-106-01");
+    expect(equipmentResponse.status()).toBe(200);
+    const restoredEquipment = (await equipmentResponse.json()) as {
+      id: string;
+      name: string;
+    };
+    expect(restoredEquipment.id).toBe("showcase-106-01");
+    expect(restoredEquipment.name).not.toHaveLength(0);
+
     const draftResponse = await api.get("/api/v1/equipment/showcase-106-01/layout/draft");
     expect(draftResponse.status()).toBe(200);
     expect(draftResponse.headers()["etag"]).toBe('W/"layout-draft-v1"');
@@ -135,7 +144,7 @@ test("restored nodes, reports and refrigeration state remain operator-visible", 
     expect((await imageResponse.body()).byteLength).toBeGreaterThan(0);
 
     await page.goto("/refrigeration/showcase-106-01");
-    await expect(page.getByRole("heading", { name: "Вітрина №106-01" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: restoredEquipment.name })).toBeVisible();
     await page.getByRole("button", { name: "Схема", exact: true }).click();
     await expect(page.getByText("Чернетка v1 · PostgreSQL")).toBeVisible();
     await expect(page.getByText("Ревізія r1")).toBeVisible();

@@ -15,6 +15,7 @@ export function ChartRendererHost({
   interactionDomain = scene.xDomain,
   onCursor,
   onXDomainChange,
+  onRangeSelectionChange,
 }: {
   adapter: ChartRendererAdapter;
   scene: ChartRendererScene;
@@ -24,13 +25,14 @@ export function ChartRendererHost({
   interactionDomain?: ChartXDomain;
   onCursor: (inspection: ChartCursorInspection | null) => void;
   onXDomainChange: (domain: ChartXDomain) => void;
+  onRangeSelectionChange?: (domain: ChartXDomain | null) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const callbacksRef = useRef({ onCursor, onXDomainChange });
+  const callbacksRef = useRef({ onCursor, onXDomainChange, onRangeSelectionChange });
 
   useEffect(() => {
-    callbacksRef.current = { onCursor, onXDomainChange };
-  }, [onCursor, onXDomainChange]);
+    callbacksRef.current = { onCursor, onXDomainChange, onRangeSelectionChange };
+  }, [onCursor, onRangeSelectionChange, onXDomainChange]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -42,6 +44,7 @@ export function ChartRendererHost({
       maximumLivePoints: 240,
       onCursor: (inspection) => callbacksRef.current.onCursor(inspection),
       onXDomainChange: (domain) => callbacksRef.current.onXDomainChange(domain),
+      onRangeSelectionChange: (domain) => callbacksRef.current.onRangeSelectionChange?.(domain),
     });
     const observer = new ResizeObserver(() => adapter.resize());
     observer.observe(container);
@@ -89,6 +92,7 @@ export function ChartRendererHost({
       data-testid="chart-renderer-host"
       data-chart-x-domain-from-ms={scene.xDomain.fromMs}
       data-chart-x-domain-to-ms={scene.xDomain.toMs}
+      data-range-selection-enabled={scene.rangeSelectionEnabled ? "true" : "false"}
       role="application"
       aria-label="Interactive telemetry plot"
       aria-keyshortcuts="ArrowLeft ArrowRight Home End Escape"
