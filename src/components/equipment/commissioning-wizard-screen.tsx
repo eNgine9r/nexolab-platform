@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -74,7 +74,12 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
     [organizationId],
   );
   const repository = runtime.commissioningRepository;
+  const activeRepository = useRef(repository);
   const canManage = security.membership?.permissions.includes("equipment.manage") ?? false;
+
+  useLayoutEffect(() => {
+    activeRepository.current = repository;
+  }, [repository]);
 
   useEffect(() => {
     if (security.state !== "ready" || !organizationId || !repository || !runtime.equipmentRepository) return;
@@ -100,6 +105,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
         setError(null);
         setLoadedRepository(repository);
         setLoadState("ready");
+        setBusy(false);
       })
       .catch((cause: unknown) => {
         if (controller.signal.aborted) return;
@@ -109,6 +115,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
         setDraft(emptyDraft);
         setLoadedRepository(repository);
         setLoadState("error");
+        setBusy(false);
         setError(message(cause));
       });
     return () => controller.abort();
@@ -178,17 +185,20 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
     }
     setBusy(true);
     setError(null);
+    const operationRepository = repository;
     try {
       const saved = visibleSession
         ? await repository.updateSession(visibleSession.id, normalizedDraft(draft), visibleSession.version)
         : await repository.createSession(normalizedDraft(draft), ensureIdempotencyKey(idempotencyKey));
+      if (activeRepository.current !== operationRepository) return;
       setSession(saved);
       setDraft(sessionToWrite(saved));
       if (!commissioningId) router.replace(`/equipment/onboarding/${encodeURIComponent(saved.id)}`);
     } catch (cause: unknown) {
+      if (activeRepository.current !== operationRepository) return;
       setError(message(cause));
     } finally {
-      setBusy(false);
+      if (activeRepository.current === operationRepository) setBusy(false);
     }
   };
 
@@ -196,14 +206,17 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
     if (!visibleSession || cancelled || !canManage) return;
     setBusy(true);
     setError(null);
+    const operationRepository = repository;
     try {
       const saved = await repository.cancelSession(visibleSession.id, visibleSession.version);
+      if (activeRepository.current !== operationRepository) return;
       setSession(saved);
       setDraft(sessionToWrite(saved));
     } catch (cause: unknown) {
+      if (activeRepository.current !== operationRepository) return;
       setError(message(cause));
     } finally {
-      setBusy(false);
+      if (activeRepository.current === operationRepository) setBusy(false);
     }
   };
 

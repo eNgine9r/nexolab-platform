@@ -11,11 +11,15 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.commissioning.catalog import profile_matches_identity, resolve_supported_profile
+from app.commissioning.catalog import (
+    profile_matches_identity,
+    resolve_supported_profile,
+    supported_profile,
+)
 from app.commissioning.models import EquipmentCommissioningSession
 from app.commissioning.schemas import CommissioningSessionPatch, CommissioningSessionWrite
 from app.db import Database
-from app.refrigeration.models import RefrigerationEquipmentRecord
+from app.refrigeration.models import RefrigerationControllerBinding, RefrigerationEquipmentRecord
 from app.security.repository import AuditEventInput, SecurityRepository
 
 
@@ -126,12 +130,13 @@ class CommissioningRepository:
                     )
                     if existing is not None:
                         return self._replay(existing, fingerprint)
+                    resolved = _resolve_values(values)
                     self._validate_target_equipment(
                         session,
-                        values.get("target_equipment_key"),
+                        resolved.get("target_equipment_key"),
                         organization_id=organization_id,
+                        reject_active_controller_binding=_is_supported_controller_intent(resolved),
                     )
-                    resolved = _resolve_values(values)
                     row = EquipmentCommissioningSession(
                         id=str(uuid4()),
                         organization_id=organization_id,
@@ -195,12 +200,13 @@ class CommissioningRepository:
                         "device_class, manufacturer and model are required"
                     )
                 before = _snapshot(row)
+                resolved = _resolve_values(merged)
                 self._validate_target_equipment(
                     session,
-                    merged.get("target_equipment_key"),
+                    resolved.get("target_equipment_key"),
                     organization_id=organization_id,
+                    reject_active_controller_binding=_is_supported_controller_intent(resolved),
                 )
-                resolved = _resolve_values(merged)
                 for key, value in resolved.items():
                     setattr(row, key, value)
                 row.version += 1
@@ -260,6 +266,7 @@ class CommissioningRepository:
         target_equipment_key: object,
         *,
         organization_id: str,
+        reject_active_controller_binding: bool,
     ) -> None:
         if target_equipment_key is None or target_equipment_key == "":
             return
@@ -275,6 +282,18 @@ class CommissioningRepository:
             raise CommissioningEquipmentReferenceError(
                 "Target equipment is unavailable in the active organization"
             )
+        if reject_active_controller_binding:
+            active_binding = session.scalar(
+                select(RefrigerationControllerBinding.id).where(
+                    RefrigerationControllerBinding.organization_id == organization_id,
+                    RefrigerationControllerBinding.equipment_id == str(target_equipment_key),
+                    RefrigerationControllerBinding.unbound_at.is_(None),
+                )
+            )
+            if active_binding is not None:
+                raise CommissioningEquipmentReferenceError(
+                    "Target equipment already has an active controller binding"
+                )
 
     @staticmethod
     def _apply_current_target_availability(
@@ -300,10 +319,37 @@ class CommissioningRepository:
                 )
             )
         )
+        ready_controller_targets = {
+            row.target_equipment_key
+            for row in rows
+            if row.lifecycle == "ready_for_preflight"
+            and row.target_equipment_key
+            and _is_supported_controller_intent(_editable_values(row))
+        }
+        bound_targets = (
+            set(
+                session.scalars(
+                    select(RefrigerationControllerBinding.equipment_id).where(
+                        RefrigerationControllerBinding.organization_id == organization_id,
+                        RefrigerationControllerBinding.equipment_id.in_(ready_controller_targets),
+                        RefrigerationControllerBinding.unbound_at.is_(None),
+                    )
+                )
+            )
+            if ready_controller_targets
+            else set()
+        )
         for row in rows:
-            if row.lifecycle == "ready_for_preflight" and row.target_equipment_key not in available_targets:
+            if row.lifecycle == "ready_for_preflight" and (
+                row.target_equipment_key not in available_targets
+                or row.target_equipment_key in bound_targets
+            ):
                 row.lifecycle = "blocked"
-                row.blocked_reason = "Target equipment is unavailable in the active organization"
+                row.blocked_reason = (
+                    "Target equipment already has an active controller binding"
+                    if row.target_equipment_key in bound_targets
+                    else "Target equipment is unavailable in the active organization"
+                )
 
     @staticmethod
     def _replay(row: EquipmentCommissioningSession, fingerprint: str) -> CommissioningCreateResult:
@@ -430,6 +476,12 @@ def _is_stable_serial_identifier(value: str) -> bool:
         and "/" not in device_id
         and not any(character.isspace() for character in device_id)
     )
+
+
+def _is_supported_controller_intent(values: dict[str, Any]) -> bool:
+    profile_id = values.get("profile_id")
+    profile = supported_profile(str(profile_id)) if profile_id else None
+    return profile is not None and profile.device_class == "temperature-controller"
 
 
 def _editable_values(row: EquipmentCommissioningSession) -> dict[str, Any]:

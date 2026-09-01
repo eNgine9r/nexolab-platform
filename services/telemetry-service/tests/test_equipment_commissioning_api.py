@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.commissioning.api import create_commissioning_router
 from app.commissioning.repository import CommissioningRepository
 from app.db import Database
-from app.refrigeration.models import RefrigerationEquipmentRecord
+from app.refrigeration.models import RefrigerationControllerBinding, RefrigerationEquipmentRecord
 from app.security.authorization import AuthenticatedPrincipal, Permission, Role
 from app.security.dependencies import AuthorizedRequest
 from app.security.models import SecurityAuditEvent
@@ -111,6 +111,27 @@ def _equipment(
             )
         )
     return equipment_id
+
+
+def _controller_binding(database: Database, equipment_id: str) -> None:
+    now = datetime.now(UTC)
+    with Session(database.engine) as session, session.begin():
+        session.add(
+            RefrigerationControllerBinding(
+                id=f"binding-{equipment_id}",
+                organization_id=ORG_A,
+                equipment_id=equipment_id,
+                node_id="edge-01",
+                controller_family="embraco",
+                controller_equipment_id="embraco-sync-2",
+                unit_id=2,
+                profile_version="embraco-sync-fc03-v1.00.04",
+                bound_by="test",
+                bound_at=now,
+                unbound_by=None,
+                unbound_at=None,
+            )
+        )
 
 
 def test_supported_profile_catalog_is_read_only_and_exact() -> None:
@@ -279,6 +300,22 @@ def test_invalid_cross_organization_and_retired_equipment_references_fail_closed
     assert foreign.json()["detail"]["code"] == "commissioning_equipment_reference_invalid"
     assert retired.status_code == 422
     assert retired.json()["detail"]["code"] == "commissioning_equipment_reference_invalid"
+
+
+def test_supported_controller_draft_rejects_an_already_bound_target(tmp_path: Path) -> None:
+    api, database = _client(tmp_path)
+    target_equipment_id = _equipment(database)
+    _controller_binding(database, target_equipment_id)
+
+    rejected = api.post(
+        "/api/v1/equipment/commissioning/sessions",
+        json=_draft(target_equipment_key=target_equipment_id),
+        headers={"Idempotency-Key": "already-bound-target"},
+    )
+
+    assert rejected.status_code == 422
+    assert rejected.json()["detail"]["code"] == "commissioning_equipment_reference_invalid"
+    assert "active controller binding" in rejected.json()["detail"]["message"]
 
 
 def test_unknown_and_mismatched_models_fail_closed(tmp_path: Path) -> None:

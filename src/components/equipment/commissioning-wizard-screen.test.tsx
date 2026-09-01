@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
@@ -43,10 +43,11 @@ const security = vi.hoisted(() => ({
 }));
 
 const runtimeFactory = vi.hoisted(() => ({ create: vi.fn() }));
+const navigation = vi.hoisted(() => ({ replace: vi.fn(), searchParams: new URLSearchParams() }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
+  useRouter: () => ({ replace: navigation.replace }),
+  useSearchParams: () => navigation.searchParams,
 }));
 vi.mock("@/components/dashboard/sidebar", () => ({ Sidebar: () => <div data-testid="sidebar" /> }));
 vi.mock("@/components/dashboard/topbar", () => ({
@@ -89,7 +90,10 @@ const persistedSession: CommissioningSession = {
   cancelledAt: null,
 };
 
-function commissioningRepository(getSession: CommissioningRepository["getSession"]): CommissioningRepository {
+function commissioningRepository(
+  getSession: CommissioningRepository["getSession"],
+  overrides: Partial<CommissioningRepository> = {},
+): CommissioningRepository {
   return {
     async listProfiles() {
       return [];
@@ -110,7 +114,16 @@ function commissioningRepository(getSession: CommissioningRepository["getSession
     async cancelSession() {
       return { ...persistedSession, lifecycle: "cancelled" };
     },
+    ...overrides,
   };
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
 }
 
 function runtime(repository: CommissioningRepository | null, error: string | null = null) {
@@ -159,5 +172,33 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     expect(screen.queryByRole("heading", { name: "Organization A Controller" })).not.toBeInTheDocument();
     expect(screen.getByText("Завантаження чернетки…")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Зберегти чернетку" })).not.toBeInTheDocument();
+  });
+
+  it("discards an in-flight save after the organization repository changes", async () => {
+    const pendingUpdate = deferred<CommissioningSession>();
+    const organizationBSession = {
+      ...persistedSession,
+      id: "commissioning-b",
+      manufacturer: "Organization B",
+    };
+    const firstRepository = commissioningRepository(async () => persistedSession, {
+      updateSession: async () => pendingUpdate.promise,
+    });
+    const secondRepository = commissioningRepository(async () => organizationBSession);
+    runtimeFactory.create.mockImplementation(({ organizationId }: { organizationId?: string }) =>
+      runtime(organizationId === "organization-a" ? firstRepository : secondRepository),
+    );
+    const { rerender } = render(<CommissioningWizardScreen commissioningId="commissioning-a" />);
+    expect(await screen.findByRole("heading", { name: "Organization A Controller" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Зберегти чернетку" }));
+
+    security.value.membership.organizationId = "organization-b";
+    rerender(<CommissioningWizardScreen commissioningId="commissioning-a" />);
+    expect(await screen.findByRole("heading", { name: "Organization B Controller" })).toBeInTheDocument();
+
+    await act(async () => pendingUpdate.resolve(persistedSession));
+
+    expect(screen.getByRole("heading", { name: "Organization B Controller" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Organization A Controller" })).not.toBeInTheDocument();
   });
 });
