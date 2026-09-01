@@ -22,11 +22,7 @@
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 790,
-      "title": "Fix controlled deployment final Device Agent health-check race",
-      "branch": "fix/790-deployment-health-race"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -1372,7 +1368,7 @@
       "issue": 790,
       "title": "Fix controlled deployment final Device Agent health-check race",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         789
       ],
@@ -1457,8 +1453,13 @@
           "shell_syntax": "success",
           "state_model_v2": "success",
           "git_diff_check": "success",
-          "review_threads": "scheduler_evidence_p2_pending_remote_verification"
-        }
+          "review_threads": "scheduler_evidence_p2_pending_remote_verification",
+          "Core Quality and build": "success:33509748371",
+          "NEXOLAB Merge Gate": "success:33509748371",
+          "review_threads_final": "resolved",
+          "read_only_live_health_smoke": "success_existing_runtime_no_mutation"
+        },
+        "verified_head_sha": "53474fbf2fbe7892e92f13f02efe726f8d7de563"
       }
     }
   ],

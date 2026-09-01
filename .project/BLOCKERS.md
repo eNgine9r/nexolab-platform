@@ -8,7 +8,7 @@ Updated: 2026-09-01
 
 ## Issue #790 — controlled deployment final Device Agent health race
 
-**Review pending.** P2 review found scheduler evidence and worker counts were not mandatory in the health gate. The candidate now requires scheduler object presence, `workers_healthy=true`, non-negative integer expected/active worker counts, and equality before success. Local 16/16 focused tests plus deployment/offline regressions are GREEN; remote exact-head CI/Merge Gate are pending. This does not validate #789 or advance source authority from `20bb9ca...`. No deployment/runtime mutation or Modbus/hardware write occurred.
+**Software defect cleared 2026-09-01.** Exact verified head `53474fbf2fbe7892e92f13f02efe726f8d7de563` passed Core Quality/build and NEXOLAB Merge Gate in run `33509748371`; all P1/P2 review threads are resolved. The bounded health gate now preserves its helper across historical checkout, waits for Docker and operational readiness under one deadline, and requires complete scheduler evidence with matching non-negative integer worker counts before success. This does **not** validate failed #789 evidence or advance formal source authority from `20bb9ca...`; a future controlled deployment remains a separate explicit gate. No deployment/runtime mutation or Modbus/hardware write occurred in #790.
 
 ## Issue #785 — operator-selected compressor analysis interval
 
