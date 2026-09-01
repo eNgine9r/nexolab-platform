@@ -1492,6 +1492,7 @@
       "evidence": {
         "implementation": "persistent_commissioning_foundation_candidate",
         "focused_frontend_tests": "success_19_of_19",
+        "final_review_regressions": "success_5_of_5",
         "controlled_http_idempotency_fallback": "success_get_random_values_contour",
         "touched_file_eslint": "success",
         "touched_file_prettier": "success",
@@ -1504,7 +1505,8 @@
         "modbus_request": "none",
         "modbus_write": "none",
         "hardware_write": "none",
-        "review_findings": "p1_controlled_http_random_uuid_and_p2_retired_target_addressed_pending_exact_head"
+        "review_findings": "p1_http_uuid_and_p2_retired_target_binding_failure_organization_switch_addressed_pending_exact_head",
+        "superseded_green_head_sha": "b9b2ec19a853ddff232bcdc4072ecab1b6cc5781"
       }
     }
   ],

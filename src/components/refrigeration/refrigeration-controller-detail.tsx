@@ -14,6 +14,10 @@ export function RefrigerationControllerDetail({
   equipmentId: string;
 }) {
   const binding = controller.binding;
+  if (controller.bindingLoading)
+    return <PanelMessage title="Контролер" text="Завантаження прив’язки контролера…" />;
+  if (!binding && controller.latestError)
+    return <PanelMessage title="Контролер недоступний" text={controller.latestError} error />;
   if (!binding) {
     return (
       <section className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-8 text-center">
@@ -98,6 +102,19 @@ export function RefrigerationControllerDetail({
         </div>
       </section>
     </div>
+  );
+}
+
+function PanelMessage({ title, text, error = false }: { title: string; text: string; error?: boolean }) {
+  return (
+    <section
+      role={error ? "alert" : undefined}
+      className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-8 text-center"
+    >
+      <RadioTower className="mx-auto h-6 w-6 text-slate-600" />
+      <h2 className="mt-3 text-sm font-semibold text-white">{title}</h2>
+      <p className="mt-2 text-xs text-slate-500">{text}</p>
+    </section>
   );
 }
 

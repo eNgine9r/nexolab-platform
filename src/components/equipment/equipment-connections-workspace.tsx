@@ -40,6 +40,7 @@ export function EquipmentConnectionsWorkspace({
   assets: EquipmentRegistryAsset[];
 }) {
   const [sessions, setSessions] = useState<CommissioningSession[]>([]);
+  const [loadedRepository, setLoadedRepository] = useState<CommissioningRepository | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
   const [epoch, setEpoch] = useState(0);
@@ -53,22 +54,25 @@ export function EquipmentConnectionsWorkspace({
       .then((items) => {
         if (controller.signal.aborted) return;
         setSessions(items);
+        setLoadedRepository(repository);
         setState("ready");
       })
       .catch((cause: unknown) => {
         if (controller.signal.aborted) return;
+        setLoadedRepository(repository);
         setError(cause instanceof Error ? cause.message : "Чернетки комісіонування недоступні.");
         setState("error");
       });
     return () => controller.abort();
   }, [epoch, repository]);
 
+  const visibleSessions = loadedRepository === repository ? sessions : [];
   const assetNames = new Map(assets.map((asset) => [asset.key, asset.displayName]));
-  const activeSessions = sessions.filter((session) => session.lifecycle !== "cancelled");
+  const activeSessions = visibleSessions.filter((session) => session.lifecycle !== "cancelled");
   const blockedCount = activeSessions.filter(
     (session) => session.lifecycle === "blocked" || session.lifecycle === "unsupported",
   ).length;
-  const viewState = repository ? state : "error";
+  const viewState = repository ? (loadedRepository === repository ? state : "loading") : "error";
   const viewError = repository ? error : "Локальний сервіс чернеток комісіонування не налаштований.";
 
   return (
@@ -137,16 +141,16 @@ export function EquipmentConnectionsWorkspace({
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {viewError}
           </div>
         ) : null}
-        {viewState === "ready" && sessions.length === 0 ? (
+        {viewState === "ready" && visibleSessions.length === 0 ? (
           <div className="mt-5 rounded-2xl border border-dashed border-white/10 p-7 text-center">
             <CircleDashed className="mx-auto h-7 w-7 text-slate-600" />
             <p className="mt-3 text-sm font-medium text-white">Чернеток ще немає</p>
             <p className="mt-1 text-xs text-slate-500">Створіть намір для вже підтримуваного профілю.</p>
           </div>
         ) : null}
-        {viewState === "ready" && sessions.length > 0 ? (
+        {viewState === "ready" && visibleSessions.length > 0 ? (
           <div className="mt-4 grid gap-2 xl:grid-cols-2">
-            {sessions.map((session) => (
+            {visibleSessions.map((session) => (
               <Link
                 key={session.id}
                 href={`/equipment/onboarding/${encodeURIComponent(session.id)}`}

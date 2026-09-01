@@ -110,4 +110,33 @@ describe("EquipmentConnectionsWorkspace", () => {
     expect(screen.queryByRole("link", { name: /Підключити пристрій/ })).not.toBeInTheDocument();
     expect(screen.getByText("Потрібен дозвіл equipment.manage")).toBeInTheDocument();
   });
+
+  it("hides previous organization sessions while the next repository loads", async () => {
+    const firstRepository = repository();
+    const secondRepository: CommissioningRepository = {
+      ...repository(),
+      listSessions: () => new Promise<CommissioningSession[]>(() => undefined),
+    };
+    const { rerender } = render(
+      <EquipmentConnectionsWorkspace
+        repository={firstRepository}
+        discoveryRepository={null}
+        canManage
+        assets={[]}
+      />,
+    );
+    expect(await screen.findByText("Unknown Mystery")).toBeInTheDocument();
+
+    rerender(
+      <EquipmentConnectionsWorkspace
+        repository={secondRepository}
+        discoveryRepository={null}
+        canManage
+        assets={[]}
+      />,
+    );
+
+    expect(screen.queryByText("Unknown Mystery")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Завантаження чернеток");
+  });
 });
