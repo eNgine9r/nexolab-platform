@@ -22,11 +22,7 @@
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 790,
-      "title": "Fix controlled deployment final Device Agent health-check race",
-      "branch": "fix/790-deployment-health-race"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -1372,7 +1368,7 @@
       "issue": 790,
       "title": "Fix controlled deployment final Device Agent health-check race",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         789
       ],
@@ -1394,7 +1390,7 @@
         "git_diff_check": "success",
         "read_only_live_health_smoke": "success_existing_runtime_no_mutation",
         "source_authority_advanced": false,
-        "remote_exact_head_verification": "pending_after_operational_convergence_p1_fix",
+        "remote_exact_head_verification": "green_after_operational_convergence_p1_fix",
         "pull_request": 796,
         "superseded_candidates": [
           {
@@ -1432,16 +1428,16 @@
           }
         ],
         "checks": {
+          "Core Quality and build": "success:33508458029",
+          "NEXOLAB Merge Gate": "success:33508458029",
           "focused_health_gate_tests": "success_14_of_14_including_operational_convergence",
           "existing_deployment_regressions": "success_47_of_47",
           "ci_change_impact_regressions": "success_33_of_33",
           "standalone_offline_runtime_contract": "success",
-          "python_compile": "success",
-          "shell_syntax": "success",
-          "state_model_v2": "success",
-          "git_diff_check": "success",
-          "review_threads": "operational_convergence_p1_pending_remote_verification"
-        }
+          "review_threads": "resolved",
+          "read_only_live_health_smoke": "success_existing_runtime_no_mutation"
+        },
+        "verified_head_sha": "5a250210a59265a897142d208121e604794df32e"
       }
     }
   ],
