@@ -22,12 +22,12 @@
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 790,
       "title": "Fix controlled deployment final Device Agent health-check race",
       "branch": "fix/790-deployment-health-race"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -1372,7 +1372,7 @@
       "issue": 790,
       "title": "Fix controlled deployment final Device Agent health-check race",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "review",
       "depends_on": [
         789
       ],
@@ -1380,9 +1380,102 @@
       "evidence": {
         "problem": "final deployment evidence can observe Docker health before it converges after HTTP readiness",
         "implementation_scope": "deployment_evidence_tooling_and_tests_only",
-        "production_deployment": "not_authorized_for_implementation",
+        "production_deployment": "not_executed",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "implementation": "bounded_identity_stable_docker_health_convergence_gate",
+        "focused_health_gate_tests": "success_18_of_18_including_blocking_io_deadline",
+        "existing_deployment_regressions": "success_47_of_47",
+        "ci_change_impact_regressions": "success_33_of_33",
+        "standalone_offline_runtime_contract": "success",
+        "python_compile": "success",
+        "shell_syntax": "success",
+        "state_model_v2": "success",
+        "git_diff_check": "success",
+        "read_only_live_health_smoke": "success_existing_runtime_no_mutation",
+        "source_authority_advanced": false,
+        "pull_request": 796,
+        "superseded_candidates": [
+          {
+            "verified_head_sha": "4a0d78dbb70ff8113a73fea4811e03130bb73609",
+            "final_state_head_sha": "3a17c4d30f645d354003ebd7fc3655f8e9dbca7f",
+            "pull_request": 796,
+            "checks": {
+              "Core Quality and build": "success:33505637734",
+              "NEXOLAB Merge Gate": "success:33505637734",
+              "focused_health_gate_tests": "success_12_of_12",
+              "existing_deployment_regressions": "success_47_of_47",
+              "ci_change_impact_regressions": "success_33_of_33",
+              "standalone_offline_runtime_contract": "success",
+              "read_only_live_health_smoke": "success_existing_runtime_no_mutation"
+            },
+            "superseded_reason": "P1 review found historical --source-ref checkout removes the helper before final health gate invocation unless the helper is preserved in deployment evidence before checkout.",
+            "superseded_at": "2026-09-01T15:15:00+03:00"
+          },
+          {
+            "verified_head_sha": "5975501c15a97485bc2be943072c3ee11ed5b4b4",
+            "final_state_head_sha": "1ed9cb32dac408561b215b6e6c9ac6f4390404a7",
+            "pull_request": 796,
+            "checks": {
+              "Core Quality and build": "success:33506977915",
+              "NEXOLAB Merge Gate": "success:33506977915",
+              "focused_health_gate_tests": "success_12_of_12_including_historical_checkout_preservation",
+              "existing_deployment_regressions": "success_47_of_47",
+              "ci_change_impact_regressions": "success_33_of_33",
+              "standalone_offline_runtime_contract": "success",
+              "read_only_live_health_smoke": "success_existing_runtime_no_mutation",
+              "review_threads": "resolved"
+            },
+            "superseded_reason": "P1 review found Docker healthy may precede MQTT/scheduler operational readiness; operational health must converge under the same bounded deadline.",
+            "superseded_at": "2026-09-01T15:32:54+03:00"
+          },
+          {
+            "verified_head_sha": "5a250210a59265a897142d208121e604794df32e",
+            "final_state_head_sha": "4606f1e81b545dadcda392464cd9ed34113eb7f8",
+            "pull_request": 796,
+            "checks": {
+              "Core Quality and build": "success:33508458029",
+              "NEXOLAB Merge Gate": "success:33508458029",
+              "focused_health_gate_tests": "success_14_of_14_including_operational_convergence",
+              "existing_deployment_regressions": "success_47_of_47",
+              "ci_change_impact_regressions": "success_33_of_33",
+              "standalone_offline_runtime_contract": "success",
+              "review_threads": "resolved",
+              "read_only_live_health_smoke": "success_existing_runtime_no_mutation"
+            },
+            "superseded_reason": "P2 review found scheduler evidence and integer worker counts were optional, allowing malformed health schema to advance deployment evidence.",
+            "superseded_at": "2026-09-01T15:48:12+03:00"
+          },
+          {
+            "verified_head_sha": "53474fbf2fbe7892e92f13f02efe726f8d7de563",
+            "final_state_head_sha": "50d0964a81b1bc5addd7e547944307b9e3cd5538",
+            "pull_request": 796,
+            "checks": {
+              "Core Quality and build": "success:33510949779",
+              "NEXOLAB Merge Gate": "success:33510949779",
+              "focused_health_gate_tests": "success_16_of_16_including_scheduler_schema_evidence",
+              "existing_deployment_regressions": "success_47_of_47",
+              "ci_change_impact_regressions": "success_33_of_33",
+              "standalone_offline_runtime_contract": "success",
+              "review_threads_final": "resolved_before_deadline_p1_review"
+            },
+            "superseded_reason": "P1 review found docker ps/inspect subprocess calls were not bounded by the remaining deployment-health deadline, allowing a stalled Docker daemon to block after runtime mutation.",
+            "superseded_at": "2026-09-01T16:12:00+03:00"
+          }
+        ],
+        "checks": {
+          "focused_health_gate_tests": "success_18_of_18_including_blocking_io_deadline",
+          "existing_deployment_regressions": "success_47_of_47",
+          "ci_change_impact_regressions": "success_33_of_33",
+          "standalone_offline_runtime_contract": "success",
+          "python_compile": "success",
+          "shell_syntax": "success",
+          "state_model_v2": "success",
+          "git_diff_check": "success",
+          "review_threads": "blocking_io_deadline_p1_pending_remote_verification",
+          "read_only_live_health_smoke": "success_existing_runtime_no_mutation"
+        },
+        "remote_exact_head_verification": "pending_after_blocking_io_deadline_p1_fix"
       }
     }
   ],

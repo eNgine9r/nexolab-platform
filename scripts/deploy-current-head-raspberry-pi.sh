@@ -1126,6 +1126,10 @@ EDGE_SNAPSHOT_HELPER="$AUDIT_DIR/deploy-edge-sqlite-snapshot.py"
 install -m 0500 "$SCRIPT_DIR/deploy-edge-sqlite-snapshot.py" "$EDGE_SNAPSHOT_HELPER"
 sha256sum "$EDGE_SNAPSHOT_HELPER" > "$AUDIT_DIR/deploy-edge-sqlite-snapshot.sha256"
 
+DEVICE_AGENT_HEALTH_GATE_HELPER="$AUDIT_DIR/device-agent-deployment-health-gate.py"
+install -m 0500 "$SCRIPT_DIR/device-agent-deployment-health-gate.py" "$DEVICE_AGENT_HEALTH_GATE_HELPER"
+sha256sum "$DEVICE_AGENT_HEALTH_GATE_HELPER" > "$AUDIT_DIR/device-agent-deployment-health-gate.sha256"
+
 if [[ "$TARGET_HEAD" != "$CONTROL_HEAD" ]]; then
   log "Switching temporarily to approved historical main source: $TARGET_HEAD"
   git switch --detach "$TARGET_HEAD" >/dev/null
@@ -1874,8 +1878,13 @@ mapfile -t DEPLOYED_DEVICE_AGENT_CONTAINERS < <(
 DEPLOYED_DEVICE_AGENT_CONTAINER="${DEPLOYED_DEVICE_AGENT_CONTAINERS[0]}"
 [[ "$(docker inspect --format '{{.State.Running}}' "$DEPLOYED_DEVICE_AGENT_CONTAINER")" == "true" ]] \
   || fail "successful deployment evidence requires the Device Agent to be running"
-[[ "$(docker inspect --format '{{.State.Health.Status}}' "$DEPLOYED_DEVICE_AGENT_CONTAINER")" == "healthy" ]] \
-  || fail "successful deployment evidence requires the Device Agent to be healthy"
+python3 "$DEVICE_AGENT_HEALTH_GATE_HELPER" \
+  --expected-container-id "$DEPLOYED_DEVICE_AGENT_CONTAINER" \
+  --health-url "http://127.0.0.1:8081/health" \
+  --timeout-seconds 90 \
+  --poll-seconds 2 \
+  >/dev/null \
+  || fail "successful deployment evidence requires trustworthy Device Agent health"
 DEPLOYED_DEVICE_AGENT_IMAGE_ID="$(docker inspect --format '{{.Image}}' "$DEPLOYED_DEVICE_AGENT_CONTAINER")"
 [[ "$DEPLOYED_DEVICE_AGENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] \
   || fail "successful deployment evidence requires an exact Device Agent image ID"

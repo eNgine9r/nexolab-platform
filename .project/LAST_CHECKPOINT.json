@@ -3,51 +3,122 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-01T14:17:54+03:00",
+  "timestamp": "2026-09-01T16:18:00+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_794_post_792_merge_state_reconciled",
+  "event": "issue_790_blocking_io_deadline_p1_fix_ready_for_remote_verification",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 790,
+    "title": "Fix controlled deployment final Device Agent health-check race",
+    "branch": "fix/790-deployment-health-race"
+  },
   "evidence_snapshot": {
-    "completed_issue": {
-      "issue": 792,
-      "pull_request": 793,
-      "verified_product_head_sha": "cb6bd4357f32e5655d8ebba523afc0bd25c9e842",
-      "final_pr_state_head_sha": "de525bde48d29202e684e36a7ba5787c1a3aff0e",
-      "required_checks": "green",
-      "production_deployment": "not_executed",
-      "hardware_acceptance": "not_required_existing_read_only_telemetry_only"
-    },
-    "state_reconciliation": {
-      "issue": 794,
-      "scope": "canonical_state_only",
-      "lifecycle": "completed_in_candidate"
-    },
-    "next_ready": {
-      "issue": 790,
-      "title": "Fix controlled deployment final Device Agent health-check race",
+    "active_issue_evidence": {
+      "problem": "final deployment evidence can observe Docker health before it converges after HTTP readiness",
       "implementation_scope": "deployment_evidence_tooling_and_tests_only",
-      "production_deployment_authorized": false
+      "production_deployment": "not_executed",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "implementation": "bounded_identity_stable_docker_health_convergence_gate",
+      "focused_health_gate_tests": "success_18_of_18_including_blocking_io_deadline",
+      "existing_deployment_regressions": "success_47_of_47",
+      "ci_change_impact_regressions": "success_33_of_33",
+      "standalone_offline_runtime_contract": "success",
+      "python_compile": "success",
+      "shell_syntax": "success",
+      "state_model_v2": "success",
+      "git_diff_check": "success",
+      "read_only_live_health_smoke": "success_existing_runtime_no_mutation",
+      "source_authority_advanced": false,
+      "pull_request": 796,
+      "superseded_candidates": [
+        {
+          "verified_head_sha": "4a0d78dbb70ff8113a73fea4811e03130bb73609",
+          "final_state_head_sha": "3a17c4d30f645d354003ebd7fc3655f8e9dbca7f",
+          "pull_request": 796,
+          "checks": {
+            "Core Quality and build": "success:33505637734",
+            "NEXOLAB Merge Gate": "success:33505637734",
+            "focused_health_gate_tests": "success_12_of_12",
+            "existing_deployment_regressions": "success_47_of_47",
+            "ci_change_impact_regressions": "success_33_of_33",
+            "standalone_offline_runtime_contract": "success",
+            "read_only_live_health_smoke": "success_existing_runtime_no_mutation"
+          },
+          "superseded_reason": "P1 review found historical --source-ref checkout removes the helper before final health gate invocation unless the helper is preserved in deployment evidence before checkout.",
+          "superseded_at": "2026-09-01T15:15:00+03:00"
+        },
+        {
+          "verified_head_sha": "5975501c15a97485bc2be943072c3ee11ed5b4b4",
+          "final_state_head_sha": "1ed9cb32dac408561b215b6e6c9ac6f4390404a7",
+          "pull_request": 796,
+          "checks": {
+            "Core Quality and build": "success:33506977915",
+            "NEXOLAB Merge Gate": "success:33506977915",
+            "focused_health_gate_tests": "success_12_of_12_including_historical_checkout_preservation",
+            "existing_deployment_regressions": "success_47_of_47",
+            "ci_change_impact_regressions": "success_33_of_33",
+            "standalone_offline_runtime_contract": "success",
+            "read_only_live_health_smoke": "success_existing_runtime_no_mutation",
+            "review_threads": "resolved"
+          },
+          "superseded_reason": "P1 review found Docker healthy may precede MQTT/scheduler operational readiness; operational health must converge under the same bounded deadline.",
+          "superseded_at": "2026-09-01T15:32:54+03:00"
+        },
+        {
+          "verified_head_sha": "5a250210a59265a897142d208121e604794df32e",
+          "final_state_head_sha": "4606f1e81b545dadcda392464cd9ed34113eb7f8",
+          "pull_request": 796,
+          "checks": {
+            "Core Quality and build": "success:33508458029",
+            "NEXOLAB Merge Gate": "success:33508458029",
+            "focused_health_gate_tests": "success_14_of_14_including_operational_convergence",
+            "existing_deployment_regressions": "success_47_of_47",
+            "ci_change_impact_regressions": "success_33_of_33",
+            "standalone_offline_runtime_contract": "success",
+            "review_threads": "resolved",
+            "read_only_live_health_smoke": "success_existing_runtime_no_mutation"
+          },
+          "superseded_reason": "P2 review found scheduler evidence and integer worker counts were optional, allowing malformed health schema to advance deployment evidence.",
+          "superseded_at": "2026-09-01T15:48:12+03:00"
+        },
+        {
+          "verified_head_sha": "53474fbf2fbe7892e92f13f02efe726f8d7de563",
+          "final_state_head_sha": "50d0964a81b1bc5addd7e547944307b9e3cd5538",
+          "pull_request": 796,
+          "checks": {
+            "Core Quality and build": "success:33510949779",
+            "NEXOLAB Merge Gate": "success:33510949779",
+            "focused_health_gate_tests": "success_16_of_16_including_scheduler_schema_evidence",
+            "existing_deployment_regressions": "success_47_of_47",
+            "ci_change_impact_regressions": "success_33_of_33",
+            "standalone_offline_runtime_contract": "success",
+            "review_threads_final": "resolved_before_deadline_p1_review"
+          },
+          "superseded_reason": "P1 review found docker ps/inspect subprocess calls were not bounded by the remaining deployment-health deadline, allowing a stalled Docker daemon to block after runtime mutation.",
+          "superseded_at": "2026-09-01T16:12:00+03:00"
+        }
+      ],
+      "checks": {
+        "focused_health_gate_tests": "success_18_of_18_including_blocking_io_deadline",
+        "existing_deployment_regressions": "success_47_of_47",
+        "ci_change_impact_regressions": "success_33_of_33",
+        "standalone_offline_runtime_contract": "success",
+        "python_compile": "success",
+        "shell_syntax": "success",
+        "state_model_v2": "success",
+        "git_diff_check": "success",
+        "review_threads": "blocking_io_deadline_p1_pending_remote_verification",
+        "read_only_live_health_smoke": "success_existing_runtime_no_mutation"
+      },
+      "remote_exact_head_verification": "pending_after_blocking_io_deadline_p1_fix"
     }
   },
-  "observations": [
-    {
-      "source": "github",
-      "observed_at": "2026-09-01T14:17:54+03:00",
-      "kind": "issue_792_merge_reconciliation",
-      "data": {
-        "issue": 792,
-        "pull_request": 793,
-        "merge_sha": "5e535fed3066d257ea0f0a5342dcbf2eb96a0632",
-        "issue_state": "closed",
-        "state_reason": "completed"
-      }
-    }
-  ],
-  "next_action": "Publish and merge the state-only Issue #794 candidate after exact-head State integrity and NEXOLAB Merge Gate GREEN. Then activate Issue #790 in its own feature branch and implement only deployment/evidence tooling tests; do not perform a production deployment or Modbus/hardware write.",
+  "observations": [],
+  "next_action": "Commit and push the bounded blocking-I/O deadline fix for #790, require fresh exact-head Core Quality/build and NEXOLAB Merge Gate GREEN, then complete canonical state and merge PR #796 only if review threads remain resolved. Do not deploy.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
