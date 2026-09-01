@@ -257,7 +257,16 @@ function localTimestamp(timestampMs: number, timeZone: string): string {
 }
 
 function csvCell(value: string): string {
-  return /[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
+  const spreadsheetSafeValue = formulaNeutralizedCell(value);
+  return /[",\r\n]/.test(spreadsheetSafeValue)
+    ? `"${spreadsheetSafeValue.replaceAll('"', '""')}"`
+    : spreadsheetSafeValue;
+}
+
+function formulaNeutralizedCell(value: string): string {
+  if (!/^[=+\-@]/.test(value)) return value;
+  if (/^[+\-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+\-]?\d+)?$/.test(value)) return value;
+  return `'${value}`;
 }
 
 function validateRange(range: ControllerAnalysisExportRange): void {

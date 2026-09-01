@@ -428,6 +428,8 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.rangeSelectionStartClientX = event.clientX;
     this.rangeSelectionLastClientX = event.clientX;
     this.options?.onCursor(null);
+    event.preventDefault();
+    event.stopImmediatePropagation();
   };
 
   private readonly handleWindowRangePointerMove = (event: PointerEvent) => {

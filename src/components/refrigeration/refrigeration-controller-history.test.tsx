@@ -121,6 +121,7 @@ describe("RefrigerationControllerHistory selected analysis range", () => {
     expect(screen.getByTestId("compressor-analysis-range")).toHaveTextContent("затисніть ліву кнопку миші");
     expect(screen.getByTestId("relay-analysis-lanes")).toHaveTextContent("Relay 1");
     expect(screen.getByTestId("relay-analysis-lanes")).toHaveTextContent("Relay 4");
+    expect(screen.getAllByLabelText("Relay 1 OFF").length).toBeGreaterThan(0);
     expect(screen.getByTestId("relay-transition-journal")).toHaveTextContent("Подій: 1");
     expect(screen.getByTestId("relay-transition-journal")).toHaveTextContent("OFF → ON");
 
@@ -155,6 +156,34 @@ describe("RefrigerationControllerHistory selected analysis range", () => {
     expect(await argument?.blob.text()).toContain("compressor.start_count");
     expect(await argument?.blob.text()).toContain(range.from.toISOString());
     expect(await argument?.blob.text()).not.toContain("relay-bits-120");
+  });
+
+  it("fails closed instead of reporting confirmed zero or exporting while history is unavailable", () => {
+    const download = vi.mocked(triggerBrowserBlobDownload);
+    download.mockClear();
+    const { rerender } = render(
+      <RefrigerationControllerHistory
+        controller={controllerModel({ history: new Map(), historyLoading: true })}
+      />,
+    );
+
+    expect(dutyCard()).toHaveTextContent("—");
+    expect(startsCard()).toHaveTextContent("—");
+    const exportButton = screen.getByRole("button", { name: "Export CSV" });
+    expect(exportButton).toBeDisabled();
+    fireEvent.click(exportButton);
+    expect(download).not.toHaveBeenCalled();
+
+    rerender(
+      <RefrigerationControllerHistory
+        controller={controllerModel({ history: new Map(), historyError: "history failed" })}
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("history failed");
+    expect(dutyCard()).toHaveTextContent("—");
+    expect(startsCard()).toHaveTextContent("—");
+    expect(screen.getByRole("button", { name: "Export CSV" })).toBeDisabled();
   });
 
   it("clears a stale sub-selection when the loaded history range changes", async () => {

@@ -113,6 +113,31 @@ describe("controller selected-interval CSV export", () => {
     expect(csv).not.toContain("outside");
   });
 
+  it("neutralizes formula-prefixed telemetry text without changing numeric measurements", () => {
+    const hostile = {
+      ...sample("formula", 60, EMBRACO_METRICS.compressorSpeed, -12, "=1+1"),
+      source: "+CMD",
+      equipment_id: "@edge",
+      unit: "-formula",
+      raw_value: -12,
+    };
+    const csv = buildControllerAnalysisCsv({
+      history: new Map([[EMBRACO_METRICS.compressorSpeed, [hostile]]]),
+      range,
+      duty,
+      compressorStarts: [],
+      relayTransitions: [],
+      equipmentId: "EMBRACO-2",
+      timeZone: "UTC",
+    });
+
+    expect(csv).toContain("'=1+1");
+    expect(csv).toContain("'+CMD");
+    expect(csv).toContain("'@edge");
+    expect(csv).toContain("'-formula");
+    expect(csv).toContain(",-12,");
+  });
+
   it("produces a deterministic safe filename", () => {
     expect(controllerAnalysisCsvFilename("EMBRACO 2 / Cool jet", range)).toBe(
       "nexolab-EMBRACO-2-Cool-jet-20260901T070000Z-20260901T070500Z.csv",

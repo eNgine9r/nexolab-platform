@@ -67,6 +67,12 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
     [analysisDomain],
   );
   const analysisRangeLabel = formatAnalysisRange(analysisDomain);
+  const analysisUnavailableLabel = controller.historyLoading
+    ? "Завантаження історії…"
+    : controller.historyError
+      ? "Історія недоступна"
+      : null;
+  const analysisReady = analysisUnavailableLabel === null;
 
   const temperatureScene = useMemo(
     () =>
@@ -126,7 +132,7 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
   );
 
   const exportSelectedInterval = () => {
-    if (!controller.binding) return;
+    if (!controller.binding || !analysisReady) return;
     const csv = buildControllerAnalysisCsv({
       history: controller.history,
       range: analysisDomain,
@@ -228,8 +234,9 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
           <button
             type="button"
             onClick={exportSelectedInterval}
+            disabled={!analysisReady}
             data-testid="export-controller-analysis-csv"
-            className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.06] px-3 text-xs text-cyan-100 outline-none hover:bg-cyan-400/10 focus-visible:ring-2 focus-visible:ring-cyan-300"
+            className="inline-flex min-h-9 items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-400/[0.06] px-3 text-xs text-cyan-100 outline-none hover:bg-cyan-400/10 focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Download className="h-3.5 w-3.5" />
             Export CSV
@@ -249,18 +256,26 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <DutyCard
           label="Коефіцієнт роботи"
-          value={duty.dutyPercent === null ? "—" : `${duty.dutyPercent.toFixed(1)} %`}
+          value={!analysisReady || duty.dutyPercent === null ? "—" : `${duty.dutyPercent.toFixed(1)} %`}
+          meta={analysisUnavailableLabel ?? undefined}
         />
-        <DutyCard label="Робота" value={formatDuration(duty.runningMs)} />
+        <DutyCard
+          label="Робота"
+          value={!analysisReady || duty.status !== "available" ? "—" : formatDuration(duty.runningMs)}
+          meta={analysisUnavailableLabel ?? undefined}
+        />
         <DutyCard
           label="Покриття"
-          value={`${duty.coveragePercent.toFixed(1)} %`}
-          meta={duty.continuityBreaks > 0 ? `Прогалин: ${duty.continuityBreaks}` : "Без розривів"}
+          value={!analysisReady || duty.status !== "available" ? "—" : `${duty.coveragePercent.toFixed(1)} %`}
+          meta={
+            analysisUnavailableLabel ??
+            (duty.continuityBreaks > 0 ? `Прогалин: ${duty.continuityBreaks}` : "Без розривів")
+          }
         />
         <DutyCard
           label="Пуски компресора"
-          value={String(compressorStarts.length)}
-          meta="Підтверджені переходи RPM 0 → >0"
+          value={analysisReady ? String(compressorStarts.length) : "—"}
+          meta={analysisUnavailableLabel ?? "Підтверджені переходи RPM 0 → >0"}
         />
       </div>
 
@@ -296,6 +311,7 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
               label={`Relay ${index + 1}`}
               intervals={intervals}
               range={analysisRange}
+              binary
             />
           ))}
         </div>
@@ -311,10 +327,12 @@ function TimelineRow({
   label,
   intervals,
   range,
+  binary = false,
 }: {
   label: string;
   intervals: readonly TimelineInterval[];
   range: { from: Date; to: Date };
+  binary?: boolean;
 }) {
   const span = Math.max(1, range.to.getTime() - range.from.getTime());
   return (
@@ -328,12 +346,26 @@ function TimelineRow({
             <span
               key={`${item.fromMs}-${index}`}
               title={`${item.label} · ${formatObservedTime(item.fromMs)} → ${formatObservedTime(item.toMs)}`}
+              aria-label={binary ? `${label} ${item.active ? "ON" : "OFF"}` : undefined}
+              tabIndex={binary ? 0 : undefined}
               className={clsx(
                 "absolute top-1 bottom-1 min-w-px rounded",
                 item.active ? "bg-cyan-400/55" : "bg-slate-500/25",
+                binary &&
+                  "flex items-center justify-center overflow-hidden text-[8px] font-semibold tracking-[0.08em] text-white outline-none focus-visible:ring-2 focus-visible:ring-cyan-200",
               )}
-              style={{ left: `${Math.max(0, left)}%`, width: `${Math.max(0.15, width)}%` }}
-            />
+              style={{
+                left: `${Math.max(0, left)}%`,
+                width: `${Math.max(0.15, width)}%`,
+                backgroundImage: binary
+                  ? item.active
+                    ? "repeating-linear-gradient(135deg, rgba(255,255,255,0.24) 0 3px, transparent 3px 7px)"
+                    : "repeating-linear-gradient(90deg, rgba(255,255,255,0.10) 0 1px, transparent 1px 5px)"
+                  : undefined,
+              }}
+            >
+              {binary ? <span className="truncate px-1">{item.active ? "ON" : "OFF"}</span> : null}
+            </span>
           );
         })}
         {intervals.length === 0 ? (

@@ -30,9 +30,18 @@ export function RefrigerationControllerChart({
   const adapter = useMemo(() => new EChartsRendererAdapter(), []);
   const [inspection, setInspection] = useState<ChartCursorInspection | null>(null);
   const [sharedCursorMs, setSharedCursorMs] = useState<number | null>(null);
-  const [viewportDomain, setViewportDomain] = useState<ChartXDomain | null>(null);
+  const [viewportSelection, setViewportSelection] = useState<{
+    rangeKey: string;
+    domain: ChartXDomain | null;
+  }>({ rangeKey: "", domain: null });
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
   const [solo, setSolo] = useState<string | null>(null);
+  const baseRangeKey = `${baseScene.xDomain.fromMs}:${baseScene.xDomain.toMs}`;
+  const viewportDomain = viewportSelection.rangeKey === baseRangeKey ? viewportSelection.domain : null;
+  const setViewportDomain = (domain: ChartXDomain | null) => {
+    setViewportSelection({ rangeKey: baseRangeKey, domain });
+  };
+
   const scene = useMemo(
     () => ({
       ...baseScene,

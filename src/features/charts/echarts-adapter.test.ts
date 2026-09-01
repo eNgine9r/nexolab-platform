@@ -170,7 +170,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     window.dispatchEvent(new MouseEvent("pointermove", { buttons: 1, clientX: 30, clientY: 100 }));
     window.dispatchEvent(new MouseEvent("pointerup", { button: 0, clientX: 30, clientY: 100 }));
 
-    expect(observedPointerDown).toHaveBeenCalledTimes(1);
+    expect(observedPointerDown).not.toHaveBeenCalled();
     expect(onXDomainChange).not.toHaveBeenCalled();
     expect(onRangeSelectionChange).toHaveBeenCalledWith({
       fromMs: BENCHMARK_START_MS + 30,
