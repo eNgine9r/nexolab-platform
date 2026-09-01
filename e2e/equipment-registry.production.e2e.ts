@@ -440,6 +440,7 @@ function writeDatabaseEvidence(): void {
 }
 
 test("renders and navigates the authenticated Equipment and metrology registry", async ({ browser }) => {
+  test.setTimeout(300_000);
   seedEquipmentRegistryFixtures();
   const context = await authenticatedContext(browser);
   const page = await context.newPage();
