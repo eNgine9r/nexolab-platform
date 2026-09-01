@@ -3,7 +3,7 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-01T23:28:00+03:00",
+  "timestamp": "2026-09-01T23:44:00+03:00",
   "actor": "Codex Implementation Engineer",
   "event": "issue_802_local_candidate_ready",
   "baselines": {
@@ -18,19 +18,19 @@
   "evidence_snapshot": {
     "active_issue_evidence": {
       "focused_frontend_tests": "success_19_of_19",
-      "final_review_regressions": "success_5_of_5_then_16_of_16",
+      "final_review_regressions": "success_5_of_5_then_16_of_16_then_3_of_3",
       "controlled_http_idempotency_fallback": "success_get_random_values_contour",
       "touched_file_eslint": "success",
       "touched_file_prettier": "success",
       "commissioning_python_compile": "success_recovery_and_retired_target_fix",
       "state_model_v2": "success",
       "git_diff_check": "success",
-      "backend_pytest": "success_commissioning_api_10_of_10_ephemeral_container",
+      "backend_pytest": "success_commissioning_api_11_of_11_ephemeral_container",
       "heavy_core_build_browser": "pending_exact_head_ci_pi_resource_guard"
     }
   },
   "observations": [],
-  "next_action": "Push the stable-serial and retired-target read-revalidation fixes, resolve all review threads, and repeat exact-head CI through GREEN merge-readiness.",
+  "next_action": "Push the active-binding and in-flight organization-switch fixes, resolve all review threads, and repeat exact-head CI through GREEN merge-readiness.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
