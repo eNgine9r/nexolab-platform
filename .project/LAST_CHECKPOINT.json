@@ -3,35 +3,42 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-01T15:15:00+03:00",
+  "timestamp": "2026-09-01T15:25:00+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_790_p1_historical_checkout_fix_ready_for_remote_verification",
+  "event": "issue_790_p1_fixed_exact_head_green_completion_candidate",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
-  "active_work": {
-    "issue": 790,
-    "title": "Fix controlled deployment final Device Agent health-check race",
-    "branch": "fix/790-deployment-health-race"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "superseded_candidate": {
-      "verified_product_head_sha": "4a0d78dbb70ff8113a73fea4811e03130bb73609",
-      "final_state_head_sha": "3a17c4d30f645d354003ebd7fc3655f8e9dbca7f",
+    "completed_issue": {
+      "issue": 790,
       "pull_request": 796,
-      "reason": "historical source checkout removed unstaged helper path"
-    },
-    "p1_fix_local": {
-      "health_gate_tests": "12_of_12_pass",
-      "existing_deployment_regressions": "47_of_47_pass",
-      "ci_change_impact_regressions": "33_of_33_pass",
-      "standalone_offline_runtime_contract": "pass",
-      "production_deployment": "not_executed"
+      "verified_head_sha": "5975501c15a97485bc2be943072c3ee11ed5b4b4",
+      "ci_run": 33506977915,
+      "required_checks": "green",
+      "review_threads": "resolved",
+      "production_deployment": "not_executed",
+      "source_authority_advanced": false
     }
   },
-  "observations": [],
-  "next_action": "Commit and push the P1 historical-checkout preservation fix, resolve the review thread only after the exact diff is published, and require fresh exact-head Core Quality/build plus NEXOLAB Merge Gate GREEN. Do not run a production deployment.",
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-09-01T15:25:00+03:00",
+      "kind": "exact_head_verification",
+      "data": {
+        "issue": 790,
+        "pull_request": 796,
+        "verified_head_sha": "5975501c15a97485bc2be943072c3ee11ed5b4b4",
+        "ci_run": 33506977915,
+        "required_checks": "green",
+        "review_threads": "resolved"
+      }
+    }
+  ],
+  "next_action": "Commit the final #790 state evidence, require exact-head CI and NEXOLAB Merge Gate GREEN again, then merge PR #796 with expected-head guard. After merge perform a fresh Ready audit; do not deploy without separate authorization.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
