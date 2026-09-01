@@ -791,7 +791,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
           await engineerPage.goto("/equipment/onboarding/new", { waitUntil: "domcontentloaded" });
           await engineerPage.getByLabel("Підтримуваний профіль").selectOption("unsupported");
           await engineerPage.getByLabel("Виробник").fill("Unknown Acceptance");
-          await engineerPage.getByLabel("Модель").fill("Unsupported 802");
+          await engineerPage.getByRole("textbox", { name: "Модель", exact: true }).fill("Unsupported 802");
           await engineerPage.getByRole("button", { name: "Зберегти чернетку" }).click();
           await expect(engineerPage.getByText("Unsupported / Profile required").first()).toBeVisible();
 
