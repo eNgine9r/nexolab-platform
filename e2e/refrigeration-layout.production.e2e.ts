@@ -401,7 +401,11 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   const compressorChart = history.locator(
     '[data-testid="refrigeration-controller-chart"][data-chart-title="Швидкість компресора"]',
   );
+  const compressorHost = compressorChart.getByTestId("chart-renderer-host");
   const compressorSurface = compressorChart.getByTestId("chart-renderer-surface");
+  await expect(compressorHost).toHaveAttribute("data-range-selection-enabled", "true");
+  await compressorSurface.scrollIntoViewIfNeeded();
+  await expect(compressorSurface).toBeInViewport();
   const compressorBounds = await compressorSurface.boundingBox();
   expect(compressorBounds).not.toBeNull();
   if (!compressorBounds) throw new Error("Compressor chart bounds are unavailable");

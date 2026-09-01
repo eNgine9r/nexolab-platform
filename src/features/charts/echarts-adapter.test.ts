@@ -158,10 +158,18 @@ describe("ECharts renderer adapter lifecycle", () => {
     expect(option.dataZoom).toHaveLength(1);
     expect(option.brush).toBeUndefined();
 
+    const leakedMouseDown = vi.fn();
+    const leakedMouseMove = vi.fn();
+    container.addEventListener("mousedown", leakedMouseDown);
+    container.addEventListener("mousemove", leakedMouseMove);
+
     container.dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: 90, clientY: 100 }));
+    instance.handlers.get("dataZoom")?.({ start: 10, end: 90 });
     container.dispatchEvent(new MouseEvent("mousemove", { buttons: 1, clientX: 30, clientY: 100 }));
     window.dispatchEvent(new MouseEvent("mouseup", { button: 0 }));
 
+    expect(leakedMouseDown).not.toHaveBeenCalled();
+    expect(leakedMouseMove).not.toHaveBeenCalled();
     expect(onXDomainChange).not.toHaveBeenCalled();
     expect(onRangeSelectionChange).toHaveBeenCalledWith({
       fromMs: BENCHMARK_START_MS + 30,
