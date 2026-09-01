@@ -8,7 +8,7 @@ Updated: 2026-09-01
 
 ## Issue #790 — controlled deployment final Device Agent health race
 
-**Software candidate in review.** The final one-shot Docker-health race is addressed by an identity-stable bounded convergence gate with deterministic fail-closed tests and a read-only live-health smoke. Exact-head GitHub verification remains pending. Formal controlled-source authority remains anchored to `20bb9ca...`; #790 does not retroactively repair #789 evidence and does not authorize deployment, runtime mutation, Modbus/hardware write, acquisition/polling change or source-authority advancement.
+**Software defect cleared 2026-09-01.** Exact implementation head `4a0d78dbb70ff8113a73fea4811e03130bb73609` is GREEN for Core Quality/build and NEXOLAB Merge Gate. The bounded identity-stable Docker-health convergence gate preserves fail-closed operational checks and has deterministic + read-only live-smoke evidence. This does **not** retroactively validate failed #789 deployment evidence and does not advance formal source authority from `20bb9ca...`; a future controlled deployment remains separately gated and requires explicit authorization. No production deployment, Modbus/hardware write or runtime mutation occurred in #790.
 
 ## Issue #785 — operator-selected compressor analysis interval
 

@@ -3,31 +3,40 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-01T14:56:00+03:00",
+  "timestamp": "2026-09-01T15:04:00+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_790_local_candidate_ready_for_remote_verification",
+  "event": "issue_790_exact_product_head_green_completion_candidate",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
-  "active_work": {
-    "issue": 790,
-    "title": "Fix controlled deployment final Device Agent health-check race",
-    "branch": "fix/790-deployment-health-race"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "local_candidate": {
-      "health_gate_tests": "12_of_12_pass",
-      "existing_deployment_regressions": "47_of_47_pass",
-      "ci_change_impact_regressions": "33_of_33_pass",
-      "standalone_offline_runtime_contract": "pass",
-      "read_only_live_health_smoke": "pass_existing_runtime_no_mutation",
+    "completed_issue": {
+      "issue": 790,
+      "pull_request": 796,
+      "verified_head_sha": "4a0d78dbb70ff8113a73fea4811e03130bb73609",
+      "core_ci_run": 33505637734,
+      "required_checks": "green",
       "production_deployment": "not_executed",
       "source_authority_advanced": false
     }
   },
-  "observations": [],
-  "next_action": "Publish one coherent Issue #790 PR candidate and require all exact-head deployment/runtime workflows plus NEXOLAB Merge Gate GREEN. Do not run a production deployment or advance source authority.",
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-09-01T15:04:00+03:00",
+      "kind": "exact_head_verification",
+      "data": {
+        "issue": 790,
+        "pull_request": 796,
+        "verified_head_sha": "4a0d78dbb70ff8113a73fea4811e03130bb73609",
+        "ci_run": 33505637734,
+        "required_checks": "green"
+      }
+    }
+  ],
+  "next_action": "Commit the #790 completion evidence, require exact-head CI and NEXOLAB Merge Gate GREEN again, then merge PR #796. After merge, perform a fresh Ready audit; do not run a production deployment without separate authorization.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
