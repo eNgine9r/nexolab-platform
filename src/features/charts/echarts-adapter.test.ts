@@ -143,6 +143,7 @@ describe("ECharts renderer adapter lifecycle", () => {
       onRangeSelectionChange,
     });
     adapter.setScene(scene);
+    vi.spyOn(instance, "containPixel").mockReturnValue(false);
 
     const option = instance.options.at(-1) as { dataZoom: unknown[]; brush?: unknown };
     expect(option).toMatchObject({

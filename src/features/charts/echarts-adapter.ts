@@ -364,6 +364,19 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     return Math.max(domain.fromMs, Math.min(timestampMs, domain.toMs));
   }
 
+  private timestampAtRangePointer(event: MouseEvent): number | null {
+    if (!this.instance || !this.container || !this.scene) return null;
+    const bounds = this.container.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) return null;
+    const localX = Math.max(0, Math.min(event.clientX - bounds.left, bounds.width));
+    const localY = Math.max(0, Math.min(event.clientY - bounds.top, bounds.height));
+    const converted = this.instance.convertFromPixel({ xAxisIndex: 0 }, [localX, localY]);
+    const timestampMs = Array.isArray(converted) ? Number(converted[0]) : Number(converted);
+    if (!Number.isFinite(timestampMs)) return null;
+    const domain = this.scene.interactionDomain ?? this.scene.xDomain;
+    return Math.max(domain.fromMs, Math.min(timestampMs, domain.toMs));
+  }
+
   private finishRangeSelection(): void {
     const startMs = this.rangeSelectionStartMs;
     const endMs = this.rangeSelectionLastMs;
@@ -402,9 +415,9 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     if (event.button !== 0 || !this.instance || !this.container || !this.scene?.rangeSelectionEnabled) return;
     const target = event.target;
     if (!(target instanceof Node) || !this.container.contains(target)) return;
-    const timestampMs = this.timestampAtPointer(event);
+    const timestampMs = this.timestampAtRangePointer(event);
     if (timestampMs === null) {
-      this.container.dataset.rangeSelectionInput = "pointerdown-outside-plot";
+      this.container.dataset.rangeSelectionInput = "pointerdown-unmapped";
       return;
     }
     this.container.dataset.rangeSelectionInput = "pointerdown";
@@ -419,7 +432,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
 
   private readonly handleWindowRangePointerMove = (event: PointerEvent) => {
     if (!this.rangeSelectionDragActive) return;
-    const timestampMs = this.timestampAtPointer(event);
+    const timestampMs = this.timestampAtRangePointer(event);
     if (timestampMs !== null) {
       this.rangeSelectionLastMs = timestampMs;
       this.rangeSelectionLastClientX = event.clientX;
@@ -442,7 +455,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   private readonly handleContainerMouseDown = (event: MouseEvent) => {
     if (event.button !== 0 || !this.instance || !this.container || !this.scene) return;
     if (this.scene.rangeSelectionEnabled) {
-      const timestampMs = this.timestampAtPointer(event);
+      const timestampMs = this.timestampAtRangePointer(event);
       if (timestampMs === null) return;
       this.rangeSelectionDragActive = true;
       this.rangeSelectionStartMs = timestampMs;
@@ -486,7 +499,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
         this.finishRangeSelection();
         return;
       }
-      const timestampMs = this.timestampAtPointer(event);
+      const timestampMs = this.timestampAtRangePointer(event);
       if (timestampMs !== null) {
         this.rangeSelectionLastMs = timestampMs;
         this.rangeSelectionLastClientX = event.clientX;
