@@ -55,6 +55,26 @@ export type CommissioningSessionWrite = {
 
 export type CommissioningSessionPatch = Partial<CommissioningSessionWrite>;
 
+export function createCommissioningIdempotencyKey(source?: {
+  randomUUID?: () => string;
+  getRandomValues?: (bytes: Uint8Array) => Uint8Array;
+}): string {
+  let random: string | undefined;
+  try {
+    random = source ? source.randomUUID?.() : globalThis.crypto?.randomUUID?.();
+  } catch {
+    random = undefined;
+  }
+  const bytes = new Uint8Array(16);
+  if (!random && source?.getRandomValues) {
+    random = Array.from(source.getRandomValues(bytes), hexadecimalByte).join("");
+  } else if (!random && globalThis.crypto?.getRandomValues) {
+    random = Array.from(globalThis.crypto.getRandomValues(bytes), hexadecimalByte).join("");
+  }
+  random ??= `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  return `commissioning-${random}`;
+}
+
 export interface CommissioningRepository {
   listProfiles(signal?: AbortSignal): Promise<SupportedDeviceProfile[]>;
   getProfile(profileId: string, signal?: AbortSignal): Promise<SupportedDeviceProfile>;
@@ -193,6 +213,10 @@ export class HttpCommissioningRepository implements CommissioningRepository {
 
 function etag(version: number): string {
   return `W/"commissioning-session-v${version}"`;
+}
+
+function hexadecimalByte(value: number): string {
+  return value.toString(16).padStart(2, "0");
 }
 
 function writePayload(input: CommissioningSessionPatch): Record<string, unknown> {

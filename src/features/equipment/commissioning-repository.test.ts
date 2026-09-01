@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { HttpCommissioningRepository, type CommissioningSessionWrite } from "./commissioning-repository";
+import {
+  createCommissioningIdempotencyKey,
+  HttpCommissioningRepository,
+  type CommissioningSessionWrite,
+} from "./commissioning-repository";
 
 const profilePayload = {
   id: "embraco-sync",
@@ -55,6 +59,16 @@ const draft: CommissioningSessionWrite = {
 };
 
 describe("HttpCommissioningRepository", () => {
+  it("creates an idempotency key when randomUUID is unavailable on controlled HTTP", () => {
+    const key = createCommissioningIdempotencyKey({
+      getRandomValues(bytes) {
+        return bytes.fill(0xab);
+      },
+    });
+
+    expect(key).toBe(`commissioning-${"ab".repeat(16)}`);
+  });
+
   it("parses the repository-owned profile and persisted session lists", async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()

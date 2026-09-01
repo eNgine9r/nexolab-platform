@@ -23,6 +23,7 @@ import { Topbar } from "@/components/dashboard/topbar";
 import type { RefrigerationEquipment } from "@/data/refrigeration";
 import {
   CommissioningRepositoryError,
+  createCommissioningIdempotencyKey,
   type CommissioningSession,
   type CommissioningSessionWrite,
   type SupportedDeviceProfile,
@@ -776,7 +777,7 @@ function normalize(value: string | null): string | null {
   return normalized ? normalized : null;
 }
 function ensureIdempotencyKey(ref: React.MutableRefObject<string | null>): string {
-  ref.current ??= `commissioning-${globalThis.crypto.randomUUID()}`;
+  ref.current ??= createCommissioningIdempotencyKey();
   return ref.current;
 }
 function message(cause: unknown): string {
