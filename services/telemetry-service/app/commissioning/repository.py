@@ -78,6 +78,11 @@ class CommissioningRepository:
                     )
                 )
             )
+            self._apply_current_target_availability(
+                session,
+                rows,
+                organization_id=organization_id,
+            )
             session.expunge_all()
             return tuple(rows)
 
@@ -89,6 +94,11 @@ class CommissioningRepository:
     ) -> EquipmentCommissioningSession:
         with Session(self._engine, expire_on_commit=False) as session:
             row = self._row(session, session_id, organization_id=organization_id)
+            self._apply_current_target_availability(
+                session,
+                [row],
+                organization_id=organization_id,
+            )
             session.expunge(row)
             return row
 
@@ -267,6 +277,35 @@ class CommissioningRepository:
             )
 
     @staticmethod
+    def _apply_current_target_availability(
+        session: Session,
+        rows: list[EquipmentCommissioningSession],
+        *,
+        organization_id: str,
+    ) -> None:
+        ready_targets = {
+            row.target_equipment_key
+            for row in rows
+            if row.lifecycle == "ready_for_preflight" and row.target_equipment_key
+        }
+        if not ready_targets:
+            return
+        available_targets = set(
+            session.scalars(
+                select(RefrigerationEquipmentRecord.id).where(
+                    RefrigerationEquipmentRecord.id.in_(ready_targets),
+                    RefrigerationEquipmentRecord.organization_id == organization_id,
+                    RefrigerationEquipmentRecord.deleted_at.is_(None),
+                    RefrigerationEquipmentRecord.lifecycle_status != "retired",
+                )
+            )
+        )
+        for row in rows:
+            if row.lifecycle == "ready_for_preflight" and row.target_equipment_key not in available_targets:
+                row.lifecycle = "blocked"
+                row.blocked_reason = "Target equipment is unavailable in the active organization"
+
+    @staticmethod
     def _replay(row: EquipmentCommissioningSession, fingerprint: str) -> CommissioningCreateResult:
         if row.create_fingerprint_sha256 != fingerprint:
             raise CommissioningIdempotencyConflictError(
@@ -360,6 +399,13 @@ def _resolve_values(values: dict[str, Any]) -> dict[str, Any]:
         resolved["blocked_reason"] = "Selected profile does not match device identity"
         return resolved
     if profile.transport_kind == "modbus_rtu":
+        stable_identifier = resolved["stable_transport_identifier"]
+        if stable_identifier and not _is_stable_serial_identifier(str(stable_identifier)):
+            resolved["lifecycle"] = "blocked"
+            resolved["blocked_reason"] = (
+                "Stable serial device path must use /dev/serial/by-id/<device-id>"
+            )
+            return resolved
         required = (
             resolved["node_id"],
             resolved["bus_id"],
@@ -371,6 +417,19 @@ def _resolve_values(values: dict[str, Any]) -> dict[str, Any]:
         return resolved
     resolved["lifecycle"] = "draft"
     return resolved
+
+
+def _is_stable_serial_identifier(value: str) -> bool:
+    prefix = "/dev/serial/by-id/"
+    identifier = value.strip()
+    device_id = identifier.removeprefix(prefix)
+    return (
+        identifier.startswith(prefix)
+        and bool(device_id)
+        and device_id not in {".", ".."}
+        and "/" not in device_id
+        and not any(character.isspace() for character in device_id)
+    )
 
 
 def _editable_values(row: EquipmentCommissioningSession) -> dict[str, Any]:

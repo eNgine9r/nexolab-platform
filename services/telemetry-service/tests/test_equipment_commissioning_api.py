@@ -195,6 +195,55 @@ def test_draft_becomes_ready_only_when_read_only_intent_is_complete(tmp_path: Pa
     assert "equipment.commissioning.updated" in actions
 
 
+def test_unstable_serial_path_blocks_readiness(tmp_path: Path) -> None:
+    api, database = _client(tmp_path)
+    target_equipment_id = _equipment(database)
+    created = api.post(
+        "/api/v1/equipment/commissioning/sessions",
+        json=_draft(
+            node_id="edge-01",
+            bus_id="rs485-embraco",
+            stable_transport_identifier="/dev/ttyUSB0",
+            unit_id=2,
+            target_equipment_key=target_equipment_id,
+        ),
+        headers={"Idempotency-Key": "unstable-path"},
+    )
+
+    assert created.status_code == 201
+    assert created.json()["lifecycle"] == "blocked"
+    assert "/dev/serial/by-id/" in created.json()["blocked_reason"]
+
+
+def test_ready_draft_is_reported_blocked_after_target_is_retired(tmp_path: Path) -> None:
+    api, database = _client(tmp_path)
+    target_equipment_id = _equipment(database)
+    created = api.post(
+        "/api/v1/equipment/commissioning/sessions",
+        json=_draft(
+            node_id="edge-01",
+            bus_id="rs485-embraco",
+            stable_transport_identifier="/dev/serial/by-id/usb-CP2104-test",
+            unit_id=2,
+            target_equipment_key=target_equipment_id,
+        ),
+        headers={"Idempotency-Key": "retired-after-ready"},
+    )
+    with Session(database.engine) as session, session.begin():
+        equipment = session.get(RefrigerationEquipmentRecord, target_equipment_id)
+        assert equipment is not None
+        equipment.lifecycle_status = "retired"
+
+    fetched = api.get(f"/api/v1/equipment/commissioning/sessions/{created.json()['id']}")
+    listed = api.get("/api/v1/equipment/commissioning/sessions")
+
+    assert created.json()["lifecycle"] == "ready_for_preflight"
+    assert fetched.status_code == 200
+    assert fetched.json()["lifecycle"] == "blocked"
+    assert "unavailable" in fetched.json()["blocked_reason"]
+    assert listed.json()["items"][0]["lifecycle"] == "blocked"
+
+
 def test_invalid_cross_organization_and_retired_equipment_references_fail_closed(
     tmp_path: Path,
 ) -> None:
