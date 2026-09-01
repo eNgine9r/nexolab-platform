@@ -381,12 +381,20 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       endClientX === null ||
       Math.abs(endClientX - startClientX) < 4
     ) {
+      if (this.container) this.container.dataset.rangeSelectionInput = "rejected";
       return;
     }
     const fromMs = Math.min(startMs, endMs);
     const toMs = Math.max(startMs, endMs);
     if (toMs > fromMs) {
+      if (this.container) {
+        this.container.dataset.rangeSelectionInput = "committed";
+        this.container.dataset.rangeSelectionFromMs = String(fromMs);
+        this.container.dataset.rangeSelectionToMs = String(toMs);
+      }
       this.options?.onRangeSelectionChange?.({ fromMs, toMs });
+    } else if (this.container) {
+      this.container.dataset.rangeSelectionInput = "rejected";
     }
   }
 
@@ -395,7 +403,12 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     const target = event.target;
     if (!(target instanceof Node) || !this.container.contains(target)) return;
     const timestampMs = this.timestampAtPointer(event);
-    if (timestampMs === null) return;
+    if (timestampMs === null) {
+      this.container.dataset.rangeSelectionInput = "pointerdown-outside-plot";
+      return;
+    }
+    this.container.dataset.rangeSelectionInput = "pointerdown";
+    this.container.dataset.rangeSelectionStartMs = String(timestampMs);
     this.rangeSelectionDragActive = true;
     this.rangeSelectionStartMs = timestampMs;
     this.rangeSelectionLastMs = timestampMs;
@@ -410,6 +423,10 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     if (timestampMs !== null) {
       this.rangeSelectionLastMs = timestampMs;
       this.rangeSelectionLastClientX = event.clientX;
+      if (this.container) {
+        this.container.dataset.rangeSelectionInput = "dragging";
+        this.container.dataset.rangeSelectionLastMs = String(timestampMs);
+      }
     }
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -523,6 +540,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.options = options;
     this.maximumLivePoints = options.maximumLivePoints ?? 240;
     this.container = options.container;
+    this.container.dataset.rangeSelectionInput = "idle";
     this.instance = this.runtime.init(options.container, options.renderer);
     this.instance.on("updateAxisPointer", this.handleAxisPointer);
     this.instance.on("dataZoom", this.handleDataZoom);

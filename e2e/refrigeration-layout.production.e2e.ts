@@ -414,6 +414,7 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   await page.mouse.down();
   await page.mouse.move(compressorBounds.x + compressorBounds.width * 0.7, selectionY, { steps: 8 });
   await page.mouse.up();
+  await expect(compressorSurface).toHaveAttribute("data-range-selection-input", "committed");
   await expect(history.getByTestId("compressor-analysis-range")).toContainText("Вибраний відрізок графіка");
 
   const downloadPromise = page.waitForEvent("download");
