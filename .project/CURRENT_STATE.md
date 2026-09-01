@@ -6,6 +6,12 @@ Updated: 2026-09-01
 
 `PRODUCTION-READINESS-1` remains active only for outstanding hardware/recovery and controlled-deployment acceptance boundaries. Its repository-readiness gate is complete. RFX-00 / Issue #715 / PR #716 is completed and merged; accepted ADR 0010 remains the architecture authority for future refrigeration expansion.
 
+## Issue #789 — production runtime acceptance for #785
+
+The Product Owner explicitly authorized the controlled LOCAL_LAN rollout and on **2026-09-01** confirmed in the real NEXOLAB interface that the compressor range selector and selected-interval KPI recalculation work as intended. Verified ARM64 frontend workflow `33477804826` built exact runtime target `70932c27f373841358971dd9aa568551fc21629a`; source-lineage preflight from authoritative deployed source `20bb9ca473395a0c64267b9b08523c31404f41e6` passed. Deployment attempt evidence is `runtime/deployments/20260901T064156Z`; its pre-cutover edge SQLite snapshot SHA-256 is `5ba126fd4e24932901a9b80a4657e6dd400a915d6a988a20437e5bb01f445930`.
+
+The attempt activated the new Dashboard and central/edge runtime, and post-attempt observation is healthy: Dashboard HTTP 200; Device Agent Docker `healthy` in read-only `modbus` mode; MQTT connected; queue depth 0; expected/active bus workers `2/2`; Embraco Unit 2 continues successful FC03 reads on `rs485-embraco`. However, the deployment script exited before writing `DEPLOYMENT PASSED` because the final evidence check observed Device Agent Docker health before it converged from startup to `healthy`. Therefore **formal controlled-source authority is not advanced by this attempt** and remains anchored to `20bb9ca...` / the prior authoritative deployment. Issue #790 tracks the deterministic health-gate race. #789 is product-complete by explicit real operator acceptance, without misrepresenting the failed final deployment-evidence gate. No Modbus write, hardware write, polling change, controller configuration change, persistent-data deletion or volume deletion occurred.
+
 ## Issue #785 — operator-selected compressor analysis interval
 
 The Product Owner explicitly selected Issue #785 as a presentation-readiness product Work Package on **2026-09-01**. The accepted compressor runtime formula remains unchanged: time-weighted `compressor.speed`, `RPM > 0` as running, `RPM = 0` as stopped, with invalid evidence and continuity gaps excluded. No defrost/control-state filtering is introduced; the operator is responsible for the content of the selected interval.
