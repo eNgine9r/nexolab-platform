@@ -22,7 +22,11 @@
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 790,
+      "title": "Fix controlled deployment final Device Agent health-check race",
+      "branch": "fix/790-deployment-health-race"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -1368,7 +1372,7 @@
       "issue": 790,
       "title": "Fix controlled deployment final Device Agent health-check race",
       "priority": "high",
-      "lifecycle": "completed",
+      "lifecycle": "review",
       "depends_on": [
         789
       ],
@@ -1380,7 +1384,7 @@
         "modbus_write": "none",
         "hardware_write": "none",
         "implementation": "bounded_identity_stable_docker_health_convergence_gate",
-        "focused_health_gate_tests": "success_12_of_12",
+        "focused_health_gate_tests": "success_12_of_12_including_historical_checkout_preservation",
         "existing_deployment_regressions": "success_47_of_47",
         "ci_change_impact_regressions": "success_33_of_33",
         "standalone_offline_runtime_contract": "success",
@@ -1390,18 +1394,26 @@
         "git_diff_check": "success",
         "read_only_live_health_smoke": "success_existing_runtime_no_mutation",
         "source_authority_advanced": false,
-        "remote_exact_head_verification": "green",
-        "verified_head_sha": "4a0d78dbb70ff8113a73fea4811e03130bb73609",
+        "remote_exact_head_verification": "pending_after_p1_fix",
         "pull_request": 796,
-        "checks": {
-          "Core Quality and build": "success:33505637734",
-          "NEXOLAB Merge Gate": "success:33505637734",
-          "focused_health_gate_tests": "success_12_of_12",
-          "existing_deployment_regressions": "success_47_of_47",
-          "ci_change_impact_regressions": "success_33_of_33",
-          "standalone_offline_runtime_contract": "success",
-          "read_only_live_health_smoke": "success_existing_runtime_no_mutation"
-        }
+        "superseded_candidates": [
+          {
+            "verified_head_sha": "4a0d78dbb70ff8113a73fea4811e03130bb73609",
+            "final_state_head_sha": "3a17c4d30f645d354003ebd7fc3655f8e9dbca7f",
+            "pull_request": 796,
+            "checks": {
+              "Core Quality and build": "success:33505637734",
+              "NEXOLAB Merge Gate": "success:33505637734",
+              "focused_health_gate_tests": "success_12_of_12",
+              "existing_deployment_regressions": "success_47_of_47",
+              "ci_change_impact_regressions": "success_33_of_33",
+              "standalone_offline_runtime_contract": "success",
+              "read_only_live_health_smoke": "success_existing_runtime_no_mutation"
+            },
+            "superseded_reason": "P1 review found historical --source-ref checkout removes the helper before final health gate invocation unless the helper is preserved in deployment evidence before checkout.",
+            "superseded_at": "2026-09-01T15:15:00+03:00"
+          }
+        ]
       }
     }
   ],

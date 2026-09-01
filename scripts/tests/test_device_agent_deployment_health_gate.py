@@ -159,11 +159,26 @@ class DeploymentHealthGateTests(unittest.TestCase):
         with self.assertRaisesRegex(MODULE.HealthGateError, "do not match expected"):
             self.run_gate(FakeRuntime(), payload=payload)
 
-    def test_deploy_script_uses_gate_before_image_authority_checks(self) -> None:
+    def test_deploy_script_preserves_gate_before_historical_checkout(self) -> None:
         script = DEPLOY.read_text(encoding="utf-8")
-        gate = script.index("device-agent-deployment-health-gate.py")
-        image = script.index("DEPLOYED_DEVICE_AGENT_IMAGE_ID=", gate)
-        self.assertLess(gate, image)
+        stage = script.index('DEVICE_AGENT_HEALTH_GATE_HELPER="$AUDIT_DIR/')
+        deployment_checkout_log = script.index(
+            'log "Switching temporarily to approved historical main source', stage
+        )
+        checkout = script.index('git switch --detach "$TARGET_HEAD"', deployment_checkout_log)
+        invoke = script.index('python3 "$DEVICE_AGENT_HEALTH_GATE_HELPER"', checkout)
+        image = script.index("DEPLOYED_DEVICE_AGENT_IMAGE_ID=", invoke)
+        self.assertLess(stage, checkout)
+        self.assertLess(checkout, invoke)
+        self.assertLess(invoke, image)
+        self.assertIn(
+            'install -m 0500 "$SCRIPT_DIR/device-agent-deployment-health-gate.py"',
+            script,
+        )
+        self.assertNotIn(
+            'python3 "$SCRIPT_DIR/device-agent-deployment-health-gate.py"',
+            script,
+        )
         self.assertNotIn(
             "{{.State.Health.Status}}' \"$DEPLOYED_DEVICE_AGENT_CONTAINER\")\" == \"healthy\"",
             script,
