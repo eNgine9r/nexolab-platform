@@ -38,7 +38,7 @@ export function calculateCompressorRuntimeDuty(
   const byTimestamp = new Map<number, { capturedAtMs: number; value: number | null; valid: boolean }>();
   for (const sample of samples) {
     const capturedAtMs = timestampMs(sample.capturedAt);
-    if (capturedAtMs === null || capturedAtMs < fromMs || capturedAtMs > toMs) continue;
+    if (capturedAtMs === null) continue;
     const valid =
       sample.quality === VALID_QUALITY &&
       sample.value !== null &&
@@ -61,6 +61,12 @@ export function calculateCompressorRuntimeDuty(
     if (!current || !next) continue;
     const durationMs = next.capturedAtMs - current.capturedAtMs;
     if (durationMs <= 0) continue;
+
+    const overlapFromMs = Math.max(fromMs, current.capturedAtMs);
+    const overlapToMs = Math.min(toMs, next.capturedAtMs);
+    const overlapMs = overlapToMs - overlapFromMs;
+    if (overlapMs <= 0) continue;
+
     if (durationMs > sourceGapMs) {
       continuityBreaks += 1;
       continue;
@@ -69,8 +75,8 @@ export function calculateCompressorRuntimeDuty(
       continuityBreaks += 1;
       continue;
     }
-    observedMs += durationMs;
-    if ((current.value ?? 0) > 0) runningMs += durationMs;
+    observedMs += overlapMs;
+    if ((current.value ?? 0) > 0) runningMs += overlapMs;
   }
 
   const coveragePercent = Math.min(100, (observedMs / requestedMs) * 100);

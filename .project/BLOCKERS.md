@@ -1,6 +1,10 @@
 # NEXOLAB Blockers
 
-Updated: 2026-08-31
+Updated: 2026-09-01
+
+## Issue #785 — operator-selected compressor analysis interval
+
+**No current blocker.** The scoped local implementation is verified and does not require new hardware evidence because it derives from already persisted read-only `compressor.speed` history. Merge remains gated only by the normal exact-head GitHub checks; production deployment is a separate explicit boundary.
 
 ## Issue #772 — persisted Embraco physical-bus identity
 

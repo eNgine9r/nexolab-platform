@@ -62,6 +62,42 @@ describe("calculateCompressorRuntimeDuty", () => {
     expect(result.coveragePercent).toBe(5);
   });
 
+  it("clips an analysis range that starts and ends between evidence-backed samples", () => {
+    const result = calculateCompressorRuntimeDuty([sample(0, 4500), sample(60, 4500)], {
+      from: sample(20, 0).capturedAt,
+      to: sample(50, 0).capturedAt,
+    });
+
+    expect(result.status).toBe("available");
+    expect(result.observedMs).toBe(30_000);
+    expect(result.runningMs).toBe(30_000);
+    expect(result.coveragePercent).toBe(100);
+    expect(result.dutyPercent).toBe(100);
+  });
+
+  it("weights clipped running and stopped portions across an analysis boundary", () => {
+    const result = calculateCompressorRuntimeDuty([sample(0, 4500), sample(60, 0), sample(120, 0)], {
+      from: sample(30, 0).capturedAt,
+      to: sample(90, 0).capturedAt,
+    });
+
+    expect(result.observedMs).toBe(60_000);
+    expect(result.runningMs).toBe(30_000);
+    expect(result.dutyPercent).toBe(50);
+  });
+
+  it("does not infer a clipped selection across a continuity gap", () => {
+    const result = calculateCompressorRuntimeDuty([sample(0, 4500), sample(300, 4500)], {
+      from: sample(60, 0).capturedAt,
+      to: sample(120, 0).capturedAt,
+    });
+
+    expect(result.status).toBe("unavailable");
+    expect(result.observedMs).toBe(0);
+    expect(result.runningMs).toBe(0);
+    expect(result.continuityBreaks).toBe(1);
+  });
+
   it("is unavailable when fewer than two usable timestamps create observed duration", () => {
     const result = calculateCompressorRuntimeDuty([sample(0, 4500)], range);
     expect(result.status).toBe("unavailable");

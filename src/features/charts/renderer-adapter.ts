@@ -21,6 +21,7 @@ export interface ChartRendererScene {
   xDomain: ChartXDomain;
   interactionDomain?: ChartXDomain;
   cursorToleranceMs?: number;
+  showRangeSlider?: boolean;
   thresholds?: readonly ChartThreshold[];
   events?: readonly ChartEventMarker[];
   alarmRegions?: readonly ChartAlarmRegion[];
