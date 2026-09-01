@@ -3,89 +3,51 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-01T13:58:08+03:00",
+  "timestamp": "2026-09-01T14:17:54+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_792_exact_product_head_green_state_finalization",
+  "event": "issue_794_post_792_merge_state_reconciled",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
-  "active_work": {
-    "issue": 792,
-    "title": "Selected-interval relay traceability, compressor starts and CSV export",
-    "branch": "feat/792-relay-traceability-export"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "active_issue_evidence": {
-      "superseded_candidates": [
-        {
-          "verified_head_sha": "23044199abd89747fd625d22a0c43dfc345bd7fe",
-          "pull_request": 793,
-          "checks": {
-            "Focused refrigeration tests": "success_42_of_42",
-            "Touched Prettier": "success",
-            "Touched ESLint": "success",
-            "TypeScript compile": "success",
-            "git diff check": "success",
-            "Core Quality and build": "success",
-            "Refrigeration Browser Acceptance": "success",
-            "Disaster Recovery Browser": "success",
-            "NEXOLAB Merge Gate": "success"
-          },
-          "superseded_reason": "Product Owner replaced range-slider selection with direct mouse drag selection before merge.",
-          "superseded_at": "2026-09-01T10:47:00+03:00"
-        },
-        {
-          "verified_head_sha": "f841b61bdfb7d573dfb168e1c98f4a3af66bfbc9",
-          "pull_request": 793,
-          "checks": {
-            "Focused refrigeration and chart tests": "success_55_of_55",
-            "Touched Prettier": "success",
-            "Touched ESLint": "success",
-            "TypeScript compile": "success",
-            "git diff check": "success"
-          },
-          "superseded_reason": "Real Refrigeration Browser Acceptance failed: ECharts global brush did not produce a selected analysis range in Chromium.",
-          "superseded_at": "2026-09-01T11:03:00+03:00"
-        }
-      ],
-      "verified_head_sha": "cb6bd4357f32e5655d8ebba523afc0bd25c9e842",
+    "completed_issue": {
+      "issue": 792,
       "pull_request": 793,
-      "checks": {
-        "Focused changed tests": "success_43_of_43_exact_head",
-        "DR acceptance Prettier": "success",
-        "DR acceptance ESLint": "success",
-        "TypeScript compile": "success",
-        "git diff check": "success",
-        "Core Quality and build": "success:33499550316",
-        "Refrigeration Browser Acceptance": "success:33499550328",
-        "Authenticated Dashboard Acceptance": "success:33499550333",
-        "Disaster Recovery Browser": "success:33499550320",
-        "NEXOLAB Merge Gate": "success:33499550316"
-      },
-      "dr_contract_repair": "restored canonical equipment API name asserted in operator H1",
+      "verified_product_head_sha": "cb6bd4357f32e5655d8ebba523afc0bd25c9e842",
+      "final_pr_state_head_sha": "de525bde48d29202e684e36a7ba5787c1a3aff0e",
+      "required_checks": "green",
       "production_deployment": "not_executed",
       "hardware_acceptance": "not_required_existing_read_only_telemetry_only"
+    },
+    "state_reconciliation": {
+      "issue": 794,
+      "scope": "canonical_state_only",
+      "lifecycle": "completed_in_candidate"
+    },
+    "next_ready": {
+      "issue": 790,
+      "title": "Fix controlled deployment final Device Agent health-check race",
+      "implementation_scope": "deployment_evidence_tooling_and_tests_only",
+      "production_deployment_authorized": false
     }
   },
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-09-01T13:58:08+03:00",
-      "kind": "exact_head_verification",
+      "observed_at": "2026-09-01T14:17:54+03:00",
+      "kind": "issue_792_merge_reconciliation",
       "data": {
         "issue": 792,
         "pull_request": 793,
-        "verified_product_head_sha": "cb6bd4357f32e5655d8ebba523afc0bd25c9e842",
-        "core_ci_run": 33499550316,
-        "refrigeration_browser_run": 33499550328,
-        "authenticated_dashboard_run": 33499550333,
-        "disaster_recovery_browser_run": 33499550320,
-        "required_checks": "green"
+        "merge_sha": "5e535fed3066d257ea0f0a5342dcbf2eb96a0632",
+        "issue_state": "closed",
+        "state_reason": "completed"
       }
     }
   ],
-  "next_action": "Commit this state-only evidence finalization, require exact-head State integrity and NEXOLAB Merge Gate GREEN, resolve the remaining state-evidence review thread, then merge PR #793. Do not perform production deployment or hardware/Modbus writes.",
+  "next_action": "Publish and merge the state-only Issue #794 candidate after exact-head State integrity and NEXOLAB Merge Gate GREEN. Then activate Issue #790 in its own feature branch and implement only deployment/evidence tooling tests; do not perform a production deployment or Modbus/hardware write.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
