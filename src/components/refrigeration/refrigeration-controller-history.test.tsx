@@ -15,13 +15,14 @@ vi.mock("@/components/refrigeration/refrigeration-controller-chart", () => ({
   RefrigerationControllerChart: (props: {
     title: string;
     scene: { xDomain: { fromMs: number; toMs: number } };
-    onViewportDomainChange?: (domain: { fromMs: number; toMs: number }) => void;
+    onRangeSelectionChange?: (domain: { fromMs: number; toMs: number }) => void;
+    rangeSelectionEnabled?: boolean;
   }) => (
     <button
       type="button"
       data-testid={`mock-chart-${props.title}`}
       onClick={() =>
-        props.onViewportDomainChange?.({
+        props.onRangeSelectionChange?.({
           fromMs: props.scene.xDomain.fromMs,
           toMs: props.scene.xDomain.fromMs + 60_000,
         })
@@ -117,6 +118,7 @@ describe("RefrigerationControllerHistory selected analysis range", () => {
     expect(dutyCard()).toHaveTextContent("50.0 %");
     expect(startsCard()).toHaveTextContent("1");
     expect(screen.getByTestId("compressor-analysis-range")).toHaveTextContent("Повний період");
+    expect(screen.getByTestId("compressor-analysis-range")).toHaveTextContent("затисніть ліву кнопку миші");
     expect(screen.getByTestId("relay-analysis-lanes")).toHaveTextContent("Relay 1");
     expect(screen.getByTestId("relay-analysis-lanes")).toHaveTextContent("Relay 4");
     expect(screen.getByTestId("relay-transition-journal")).toHaveTextContent("Подій: 1");

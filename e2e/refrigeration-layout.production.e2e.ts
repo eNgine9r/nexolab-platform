@@ -398,6 +398,20 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   await expect(history.getByTestId("relay-transition-journal")).toContainText("Журнал перемикань реле");
   await expect(history.getByTestId("relay-transition-journal")).toContainText(/Подій: [1-9]\d*/);
 
+  const compressorChart = history.locator(
+    '[data-testid="refrigeration-controller-chart"][data-chart-title="Швидкість компресора"]',
+  );
+  const compressorSurface = compressorChart.getByTestId("chart-renderer-surface");
+  const compressorBounds = await compressorSurface.boundingBox();
+  expect(compressorBounds).not.toBeNull();
+  if (!compressorBounds) throw new Error("Compressor chart bounds are unavailable");
+  const selectionY = compressorBounds.y + compressorBounds.height * 0.5;
+  await page.mouse.move(compressorBounds.x + compressorBounds.width * 0.3, selectionY);
+  await page.mouse.down();
+  await page.mouse.move(compressorBounds.x + compressorBounds.width * 0.7, selectionY, { steps: 8 });
+  await page.mouse.up();
+  await expect(history.getByTestId("compressor-analysis-range")).toContainText("Вибраний відрізок графіка");
+
   const downloadPromise = page.waitForEvent("download");
   await history.getByRole("button", { name: "Export CSV", exact: true }).click();
   const csvDownload = await downloadPromise;
@@ -409,6 +423,17 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   expect(controllerCsv).toContain("compressor.start_count");
   expect(controllerCsv).toContain("controller.relay_state_bits");
   expect(controllerCsv).toContain("relay_transition");
+  const csvLines = controllerCsv
+    .replace(/^\uFEFF/, "")
+    .trim()
+    .split(/\r?\n/);
+  const selectedRangeColumns = csvLines[1]?.split(",") ?? [];
+  expect(Date.parse(selectedRangeColumns[1] ?? "") - Date.parse(selectedRangeColumns[0] ?? "")).toBeLessThan(
+    60 * 60 * 1000,
+  );
+
+  await history.getByRole("button", { name: "Скинути вибір", exact: true }).click();
+  await expect(history.getByTestId("compressor-analysis-range")).toContainText("Повний період");
 
   await history.getByRole("button", { name: "Кастом", exact: true }).click();
   await expect(history.getByLabel("Від", { exact: true })).toBeVisible();

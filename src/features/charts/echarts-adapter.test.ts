@@ -110,10 +110,15 @@ describe("ECharts renderer adapter lifecycle", () => {
     });
   });
 
-  it("renders an opt-in range slider without changing the default inside zoom contract", () => {
+  it("uses direct line-X brush selection without rendering a range slider", () => {
     const instance = new FakeEChartsInstance();
+    const onRangeSelectionChange = vi.fn();
     const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
-    const scene = { ...createBenchmarkScene(1), showRangeSlider: true };
+    const scene = {
+      ...createBenchmarkScene(1),
+      rangeSelectionEnabled: true,
+      rangeSelection: null,
+    };
 
     adapter.initialize({
       container: document.createElement("div"),
@@ -121,19 +126,58 @@ describe("ECharts renderer adapter lifecycle", () => {
       reducedMotion: true,
       onCursor: vi.fn(),
       onXDomainChange: vi.fn(),
+      onRangeSelectionChange,
     });
     adapter.setScene(scene);
 
     expect(instance.options.at(-1)).toMatchObject({
-      grid: { bottom: 88 },
+      grid: { bottom: 58 },
       dataZoom: [
-        { type: "inside", startValue: scene.xDomain.fromMs, endValue: scene.xDomain.toMs },
         {
-          type: "slider",
+          type: "inside",
           startValue: scene.xDomain.fromMs,
           endValue: scene.xDomain.toMs,
-          height: 24,
-          showDetail: true,
+          moveOnMouseMove: false,
+        },
+      ],
+      brush: {
+        brushType: "lineX",
+        brushMode: "single",
+        transformable: true,
+        removeOnClick: false,
+      },
+    });
+    const option = instance.options.at(-1) as { dataZoom: unknown[] };
+    expect(option.dataZoom).toHaveLength(1);
+    expect(instance.actions).toEqual([
+      { type: "brush", brushIndex: 0, areas: [] },
+      {
+        type: "takeGlobalCursor",
+        key: "brush",
+        brushOption: { brushType: "lineX", brushMode: "single" },
+      },
+    ]);
+
+    instance.handlers.get("brushEnd")?.({
+      areas: [{ brushType: "lineX", coordRange: [BENCHMARK_START_MS + 90, BENCHMARK_START_MS + 30] }],
+    });
+    expect(onRangeSelectionChange).toHaveBeenCalledWith({
+      fromMs: BENCHMARK_START_MS + 30,
+      toMs: BENCHMARK_START_MS + 90,
+    });
+
+    adapter.setScene({
+      ...scene,
+      rangeSelection: { fromMs: BENCHMARK_START_MS + 30, toMs: BENCHMARK_START_MS + 90 },
+    });
+    expect(instance.actions.at(-2)).toEqual({
+      type: "brush",
+      brushIndex: 0,
+      areas: [
+        {
+          brushType: "lineX",
+          xAxisIndex: 0,
+          coordRange: [BENCHMARK_START_MS + 30, BENCHMARK_START_MS + 90],
         },
       ],
     });

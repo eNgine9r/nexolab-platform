@@ -217,6 +217,9 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         <div className="min-w-0">
           <p className="text-[9px] tracking-[0.14em] text-slate-500 uppercase">Інтервал розрахунку</p>
           <p className="mt-1 text-xs text-slate-200 tabular-nums">{analysisRangeLabel}</p>
+          <p className="mt-1 text-[10px] text-slate-500">
+            На графіку компресора затисніть ліву кнопку миші та протягніть по потрібному відрізку.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[10px] text-slate-500">
@@ -270,13 +273,13 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
       />
       <RefrigerationControllerChart
         title="Швидкість компресора"
-        context="Embraco Sync · rpm"
+        context="Embraco Sync · rpm · drag to select"
         rangeLabel={analysisRangeLabel}
         scene={compressorScene}
         emptyMessage="У вибраному періоді немає валідної історії швидкості компресора."
-        viewportDomain={selectedAnalysisDomain}
-        onViewportDomainChange={setSelectedAnalysisDomain}
-        showRangeSlider
+        rangeSelectionEnabled
+        rangeSelection={selectedAnalysisDomain}
+        onRangeSelectionChange={setSelectedAnalysisDomain}
       />
 
       <section className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-4 sm:p-5">
