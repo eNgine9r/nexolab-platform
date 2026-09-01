@@ -1499,13 +1499,13 @@
         "commissioning_python_compile": "success_recovery_and_retired_target_fix",
         "state_model_v2": "success",
         "git_diff_check": "success",
-        "backend_pytest": "pending_exact_head_ci_host_pytest_unavailable",
+        "backend_pytest": "success_commissioning_api_10_of_10_ephemeral_container",
         "heavy_core_build_browser": "pending_exact_head_ci_pi_resource_guard",
         "production_deployment": "not_executed",
         "modbus_request": "none",
         "modbus_write": "none",
         "hardware_write": "none",
-        "review_findings": "p1_http_uuid_and_p2_retired_target_binding_failure_organization_switch_catalog_summary_runtime_unavailable_wizard_switch_addressed_pending_exact_head",
+        "review_findings": "p1_http_uuid_stable_serial_path_and_p2_retired_target_binding_failure_target_revalidation_organization_switch_catalog_summary_runtime_unavailable_wizard_switch_addressed_pending_exact_head",
         "superseded_green_head_sha": "04e0dcba2f439368b973a3f3ecb9194138f3f9b7"
       }
     }

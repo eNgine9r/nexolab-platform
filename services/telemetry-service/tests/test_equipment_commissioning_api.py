@@ -230,7 +230,7 @@ def test_ready_draft_is_reported_blocked_after_target_is_retired(tmp_path: Path)
         headers={"Idempotency-Key": "retired-after-ready"},
     )
     with Session(database.engine) as session, session.begin():
-        equipment = session.get(RefrigerationEquipmentRecord, target_equipment_id)
+        equipment = session.get(RefrigerationEquipmentRecord, (target_equipment_id, ORG_A))
         assert equipment is not None
         equipment.lifecycle_status = "retired"
 
