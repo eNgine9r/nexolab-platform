@@ -1,10 +1,16 @@
 # NEXOLAB Current State
 
-Updated: 2026-08-31
+Updated: 2026-09-01
 
 ## Current Sprint
 
 `PRODUCTION-READINESS-1` remains active only for outstanding hardware/recovery and controlled-deployment acceptance boundaries. Its repository-readiness gate is complete. RFX-00 / Issue #715 / PR #716 is completed and merged; accepted ADR 0010 remains the architecture authority for future refrigeration expansion.
+
+## Issue #785 — operator-selected compressor analysis interval
+
+The Product Owner explicitly selected Issue #785 as a presentation-readiness product Work Package on **2026-09-01**. The accepted compressor runtime formula remains unchanged: time-weighted `compressor.speed`, `RPM > 0` as running, `RPM = 0` as stopped, with invalid evidence and continuity gaps excluded. No defrost/control-state filtering is introduced; the operator is responsible for the content of the selected interval.
+
+Implementation on `feat/785-compressor-analysis-range` lifts the compressor chart viewport into a shared analysis range, adds an opt-in ECharts range slider only to the compressor chart, recalculates the existing KPI from the selected viewport without refetching telemetry, resets stale selections when the loaded history period changes, and clips arbitrary selection boundaries to evidence-backed adjacent RPM intervals. Local focused verification is GREEN: 31/31 selected refrigeration/chart tests, touched-file Prettier, touched-file ESLint and `tsc --noEmit`. Required exact-head GitHub Core Quality/build, Refrigeration Browser Acceptance and NEXOLAB Merge Gate remain pending before merge. No production deployment, Modbus write, hardware write, polling change or telemetry-schema change belongs to #785.
 
 ### Product priority hold — RFX-01 through RFX-19C
 

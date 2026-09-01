@@ -243,7 +243,7 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
           ...axisModel.visibleAxes.filter((axis) => axis.position === "right").map((axis) => axis.offset),
         ),
       top: 28,
-      bottom: 58,
+      bottom: scene.showRangeSlider ? 88 : 58,
       containLabel: false,
     },
     legend: { show: false, data: legendNames },
@@ -309,6 +309,21 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
         moveOnMouseWheel: false,
         preventDefaultMouseMove: true,
       },
+      ...(scene.showRangeSlider
+        ? [
+            {
+              type: "slider" as const,
+              xAxisIndex: 0,
+              filterMode: "none" as const,
+              rangeMode: ["value", "value"] as const,
+              startValue: scene.xDomain.fromMs,
+              endValue: scene.xDomain.toMs,
+              bottom: 10,
+              height: 24,
+              showDetail: true,
+            },
+          ]
+        : []),
     ],
     series: lineSeries,
   };

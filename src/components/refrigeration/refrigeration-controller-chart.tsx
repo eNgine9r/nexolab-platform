@@ -14,29 +14,42 @@ export function RefrigerationControllerChart({
   rangeLabel,
   scene: baseScene,
   emptyMessage,
+  viewportDomain: controlledViewportDomain,
+  onViewportDomainChange,
+  showRangeSlider = false,
 }: {
   title: string;
   context: string;
   rangeLabel: string;
   scene: ChartRendererScene;
   emptyMessage: string;
+  viewportDomain?: ChartXDomain | null;
+  onViewportDomainChange?: (domain: ChartXDomain | null) => void;
+  showRangeSlider?: boolean;
 }) {
   const adapter = useMemo(() => new EChartsRendererAdapter(), []);
   const [inspection, setInspection] = useState<ChartCursorInspection | null>(null);
   const [sharedCursorMs, setSharedCursorMs] = useState<number | null>(null);
-  const [viewportDomain, setViewportDomain] = useState<ChartXDomain | null>(null);
+  const [localViewportDomain, setLocalViewportDomain] = useState<ChartXDomain | null>(null);
+  const viewportDomain =
+    controlledViewportDomain === undefined ? localViewportDomain : controlledViewportDomain;
+  const setViewportDomain = (domain: ChartXDomain | null) => {
+    if (controlledViewportDomain === undefined) setLocalViewportDomain(domain);
+    onViewportDomainChange?.(domain);
+  };
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
   const [solo, setSolo] = useState<string | null>(null);
   const scene = useMemo(
     () => ({
       ...baseScene,
       xDomain: viewportDomain ?? baseScene.xDomain,
+      showRangeSlider: showRangeSlider || baseScene.showRangeSlider,
       series: baseScene.series.map((series) => {
         const key = chartSeriesKey(series.identity);
         return { ...series, visible: solo ? key === solo : !hidden.has(key) };
       }),
     }),
-    [baseScene, hidden, solo, viewportDomain],
+    [baseScene, hidden, showRangeSlider, solo, viewportDomain],
   );
 
   if (baseScene.series.length === 0) {

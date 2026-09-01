@@ -22,7 +22,11 @@
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 785,
+      "title": "Recalculate compressor runtime from operator-selected chart interval",
+      "branch": "feat/785-compressor-analysis-range"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -1236,6 +1240,14 @@
         "modbus_write": "none",
         "hardware_write": "none"
       }
+    },
+    {
+      "issue": 785,
+      "title": "Recalculate compressor runtime from operator-selected chart interval",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "feat/785-compressor-analysis-range",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [

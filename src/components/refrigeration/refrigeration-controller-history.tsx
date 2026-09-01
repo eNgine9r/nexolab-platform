@@ -2,9 +2,10 @@
 
 import { CalendarRange, LoaderCircle } from "lucide-react";
 import { clsx } from "clsx";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { RefrigerationControllerChart } from "@/components/refrigeration/refrigeration-controller-chart";
+import type { ChartXDomain } from "@/features/charts/domain";
 import {
   buildEmbracoCompressorScene,
   buildEmbracoTemperatureScene,
@@ -29,10 +30,30 @@ const PRESETS: readonly { id: RefrigerationHistoryPreset; label: string }[] = [
 ];
 
 export function RefrigerationControllerHistory({ controller }: { controller: RefrigerationControllerModel }) {
+  const [analysisSelection, setAnalysisSelection] = useState<{
+    rangeKey: string;
+    domain: ChartXDomain | null;
+  }>({ rangeKey: "", domain: null });
   const rangeLabel =
     controller.preset === "custom"
       ? formatCustomRange(controller.range)
       : (PRESETS.find((item) => item.id === controller.preset)?.label ?? controller.preset);
+  const loadedAnalysisDomain = useMemo<ChartXDomain>(
+    () => ({ fromMs: controller.range.from.getTime(), toMs: controller.range.to.getTime() }),
+    [controller.range],
+  );
+  const loadedAnalysisRangeKey = `${loadedAnalysisDomain.fromMs}:${loadedAnalysisDomain.toMs}`;
+  const selectedAnalysisDomain =
+    analysisSelection.rangeKey === loadedAnalysisRangeKey ? analysisSelection.domain : null;
+  const setSelectedAnalysisDomain = (domain: ChartXDomain | null) => {
+    setAnalysisSelection({ rangeKey: loadedAnalysisRangeKey, domain });
+  };
+  const analysisDomain = useMemo(
+    () => clampAnalysisDomain(selectedAnalysisDomain, loadedAnalysisDomain),
+    [loadedAnalysisDomain, selectedAnalysisDomain],
+  );
+  const analysisRangeLabel = formatAnalysisRange(analysisDomain);
+
   const temperatureScene = useMemo(
     () =>
       buildEmbracoTemperatureScene(controller.history, controller.range, controller.latest?.online ?? false),
@@ -51,9 +72,12 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
           value: sample.value,
           quality: sample.quality,
         })),
-        { from: controller.range.from.toISOString(), to: controller.range.to.toISOString() },
+        {
+          from: new Date(analysisDomain.fromMs).toISOString(),
+          to: new Date(analysisDomain.toMs).toISOString(),
+        },
       ),
-    [controller.history, controller.range],
+    [analysisDomain, controller.history],
   );
   const stateTimeline = useMemo(
     () =>
@@ -136,6 +160,30 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         </p>
       ) : null}
 
+      <section
+        className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/[0.08] bg-[#081a32] px-4 py-3"
+        data-testid="compressor-analysis-range"
+      >
+        <div className="min-w-0">
+          <p className="text-[9px] tracking-[0.14em] text-slate-500 uppercase">Інтервал розрахунку</p>
+          <p className="mt-1 text-xs text-slate-200 tabular-nums">{analysisRangeLabel}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-slate-500">
+            {selectedAnalysisDomain ? "Вибраний відрізок графіка" : "Повний період"}
+          </span>
+          {selectedAnalysisDomain ? (
+            <button
+              type="button"
+              onClick={() => setSelectedAnalysisDomain(null)}
+              className="min-h-9 rounded-xl border border-white/10 px-3 text-xs text-slate-200 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+            >
+              Скинути вибір
+            </button>
+          ) : null}
+        </div>
+      </section>
+
       <div className="grid gap-3 sm:grid-cols-3">
         <DutyCard
           label="Коефіцієнт роботи"
@@ -159,9 +207,12 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
       <RefrigerationControllerChart
         title="Швидкість компресора"
         context="Embraco Sync · rpm"
-        rangeLabel={rangeLabel}
+        rangeLabel={analysisRangeLabel}
         scene={compressorScene}
         emptyMessage="У вибраному періоді немає валідної історії швидкості компресора."
+        viewportDomain={selectedAnalysisDomain}
+        onViewportDomainChange={setSelectedAnalysisDomain}
+        showRangeSlider
       />
 
       <section className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-4 sm:p-5">
@@ -299,6 +350,17 @@ function DateTimeInput({
 function toLocalInput(value: Date): string {
   const local = new Date(value.getTime() - value.getTimezoneOffset() * 60_000);
   return local.toISOString().slice(0, 16);
+}
+
+function clampAnalysisDomain(domain: ChartXDomain | null, loaded: ChartXDomain): ChartXDomain {
+  if (!domain) return loaded;
+  const fromMs = Math.max(loaded.fromMs, Math.min(domain.fromMs, loaded.toMs));
+  const toMs = Math.min(loaded.toMs, Math.max(domain.toMs, loaded.fromMs));
+  return toMs > fromMs ? { fromMs, toMs } : loaded;
+}
+
+function formatAnalysisRange(domain: ChartXDomain): string {
+  return `${new Date(domain.fromMs).toLocaleString("uk-UA")} → ${new Date(domain.toMs).toLocaleString("uk-UA")}`;
 }
 
 function formatDuration(milliseconds: number): string {

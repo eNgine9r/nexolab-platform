@@ -110,6 +110,35 @@ describe("ECharts renderer adapter lifecycle", () => {
     });
   });
 
+  it("renders an opt-in range slider without changing the default inside zoom contract", () => {
+    const instance = new FakeEChartsInstance();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = { ...createBenchmarkScene(1), showRangeSlider: true };
+
+    adapter.initialize({
+      container: document.createElement("div"),
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor: vi.fn(),
+      onXDomainChange: vi.fn(),
+    });
+    adapter.setScene(scene);
+
+    expect(instance.options.at(-1)).toMatchObject({
+      grid: { bottom: 88 },
+      dataZoom: [
+        { type: "inside", startValue: scene.xDomain.fromMs, endValue: scene.xDomain.toMs },
+        {
+          type: "slider",
+          startValue: scene.xDomain.fromMs,
+          endValue: scene.xDomain.toMs,
+          height: 24,
+          showDetail: true,
+        },
+      ],
+    });
+  });
+
   it("reuses the instance for bounded incremental live-tail updates", () => {
     const instance = new FakeEChartsInstance();
     const init = vi.fn(() => instance);
