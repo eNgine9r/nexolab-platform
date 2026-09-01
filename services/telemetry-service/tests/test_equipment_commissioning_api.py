@@ -66,7 +66,13 @@ def _draft(**overrides: object) -> dict[str, object]:
     return value
 
 
-def _equipment(database: Database, *, organization_id: str = ORG_A, equipment_id: str = "equipment-cool-jet") -> str:
+def _equipment(
+    database: Database,
+    *,
+    organization_id: str = ORG_A,
+    equipment_id: str = "equipment-cool-jet",
+    lifecycle_status: str = "active",
+) -> str:
     now = datetime.now(UTC)
     with Session(database.engine) as session, session.begin():
         session.add(
@@ -87,7 +93,7 @@ def _equipment(database: Database, *, organization_id: str = ORG_A, equipment_id
                 temperature_class="Test",
                 installed_at=None,
                 serviced_at=None,
-                lifecycle_status="active",
+                lifecycle_status=lifecycle_status,
                 status="offline",
                 average_temperature_c=0,
                 min_temperature_c=0,
@@ -189,12 +195,19 @@ def test_draft_becomes_ready_only_when_read_only_intent_is_complete(tmp_path: Pa
     assert "equipment.commissioning.updated" in actions
 
 
-def test_invalid_and_cross_organization_equipment_references_fail_closed(tmp_path: Path) -> None:
+def test_invalid_cross_organization_and_retired_equipment_references_fail_closed(
+    tmp_path: Path,
+) -> None:
     api, database = _client(tmp_path)
     foreign_equipment_id = _equipment(
         database,
         organization_id=ORG_B,
         equipment_id="foreign-equipment",
+    )
+    retired_equipment_id = _equipment(
+        database,
+        equipment_id="retired-equipment",
+        lifecycle_status="retired",
     )
     missing = api.post(
         "/api/v1/equipment/commissioning/sessions",
@@ -206,10 +219,17 @@ def test_invalid_and_cross_organization_equipment_references_fail_closed(tmp_pat
         json=_draft(target_equipment_key=foreign_equipment_id),
         headers={"Idempotency-Key": "foreign-target"},
     )
+    retired = api.post(
+        "/api/v1/equipment/commissioning/sessions",
+        json=_draft(target_equipment_key=retired_equipment_id),
+        headers={"Idempotency-Key": "retired-target"},
+    )
     assert missing.status_code == 422
     assert missing.json()["detail"]["code"] == "commissioning_equipment_reference_invalid"
     assert foreign.status_code == 422
     assert foreign.json()["detail"]["code"] == "commissioning_equipment_reference_invalid"
+    assert retired.status_code == 422
+    assert retired.json()["detail"]["code"] == "commissioning_equipment_reference_invalid"
 
 
 def test_unknown_and_mismatched_models_fail_closed(tmp_path: Path) -> None:

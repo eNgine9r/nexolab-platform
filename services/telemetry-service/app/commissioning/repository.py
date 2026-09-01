@@ -258,11 +258,12 @@ class CommissioningRepository:
                 RefrigerationEquipmentRecord.id == str(target_equipment_key),
                 RefrigerationEquipmentRecord.organization_id == organization_id,
                 RefrigerationEquipmentRecord.deleted_at.is_(None),
+                RefrigerationEquipmentRecord.lifecycle_status != "retired",
             )
         )
         if exists is None:
             raise CommissioningEquipmentReferenceError(
-                "Target equipment does not exist in the active organization"
+                "Target equipment is unavailable in the active organization"
             )
 
     @staticmethod
