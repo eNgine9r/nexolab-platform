@@ -164,6 +164,17 @@ describe("RefrigerationCatalogScreen", () => {
     expect(screen.getAllByText("Тривоги").length).toBeGreaterThan(0);
   });
 
+  it("offers a preselected commissioning route when a controller is not bound", async () => {
+    const item = refrigerationEquipment[0];
+    render(<RefrigerationCatalogScreen runtime={runtime()} />);
+
+    await screen.findByText(item.name);
+    const links = screen.getAllByRole("link", { name: "Підключити контролер →" });
+    expect(
+      links.some((link) => link.getAttribute("href") === `/equipment/onboarding/new?target=${item.id}`),
+    ).toBe(true);
+  });
+
   it("requires a climate chamber before creating equipment", async () => {
     render(<RefrigerationCatalogScreen runtime={runtime()} />);
     await screen.findByText("Вітрина №106-01");

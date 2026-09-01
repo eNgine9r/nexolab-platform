@@ -1,20 +1,33 @@
 "use client";
 
+import Link from "next/link";
 import { LockKeyhole, RadioTower, ServerCog } from "lucide-react";
 
 import { EMBRACO_METRICS } from "@/features/refrigeration/controller-monitoring";
 import type { RefrigerationControllerModel } from "@/features/refrigeration/use-refrigeration-controller";
 
-export function RefrigerationControllerDetail({ controller }: { controller: RefrigerationControllerModel }) {
+export function RefrigerationControllerDetail({
+  controller,
+  equipmentId,
+}: {
+  controller: RefrigerationControllerModel;
+  equipmentId: string;
+}) {
   const binding = controller.binding;
   if (!binding) {
     return (
       <section className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-8 text-center">
         <RadioTower className="mx-auto h-6 w-6 text-slate-600" />
-        <h2 className="mt-3 text-sm font-semibold text-white">Контролер не прив’язаний</h2>
+        <h2 className="mt-3 text-sm font-semibold text-white">○ Контролер не підключено</h2>
         <p className="mt-2 text-xs text-slate-500">
-          Після перевірки контролера його можна буде прив’язати до цієї вітрини без зміни драйвера.
+          Чернетка збере профіль і connection intent без live hardware preflight чи активації.
         </p>
+        <Link
+          href={`/equipment/onboarding/new?target=${encodeURIComponent(equipmentId)}`}
+          className="mt-4 inline-flex rounded-xl bg-blue-500 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-400 focus:ring-2 focus:ring-cyan-300 focus:outline-none"
+        >
+          Підключити контролер →
+        </Link>
       </section>
     );
   }

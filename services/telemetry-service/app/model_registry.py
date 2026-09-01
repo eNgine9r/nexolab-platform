@@ -11,6 +11,7 @@ def register_models() -> None:
     from app.alerts import models as _alert_models
     from app.alerts.immutability import register_alert_immutability
     from app.climate_catalog import models as _climate_catalog_models
+    from app.commissioning import models as _commissioning_models
     from app.equipment_discovery import models as _equipment_discovery_models
     from app.live_dashboard import models as _live_dashboard_models
     from app.nodes import broker_models as _broker_models
@@ -75,6 +76,9 @@ def register_models() -> None:
     )
     assert _equipment_discovery_models.EquipmentNetworkAsset.__tablename__ == (
         "equipment_network_assets"
+    )
+    assert _commissioning_models.EquipmentCommissioningSession.__tablename__ == (
+        "equipment_commissioning_sessions"
     )
     assert _live_dashboard_models.LiveDashboard.__tablename__ == (
         "live_dashboards"

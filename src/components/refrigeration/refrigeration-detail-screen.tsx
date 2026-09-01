@@ -418,7 +418,9 @@ export function RefrigerationDetailScreen({
               ))}
             </nav>
 
-            {activeTab === "overview" ? <RefrigerationControllerOverview controller={controller} /> : null}
+            {activeTab === "overview" ? (
+              <RefrigerationControllerOverview controller={controller} equipmentId={equipment.id} />
+            ) : null}
 
             {activeTab === "scheme" ? (
               <SecurityAwareRefrigerationLayoutWorkspace
@@ -440,7 +442,9 @@ export function RefrigerationDetailScreen({
             ) : null}
 
             {activeTab === "graphs" ? <RefrigerationControllerHistory controller={controller} /> : null}
-            {activeTab === "controller" ? <RefrigerationControllerDetail controller={controller} /> : null}
+            {activeTab === "controller" ? (
+              <RefrigerationControllerDetail controller={controller} equipmentId={equipment.id} />
+            ) : null}
           </div>
         </main>
       </div>
