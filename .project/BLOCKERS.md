@@ -4,7 +4,7 @@ Updated: 2026-09-01
 
 ## Issue #785 — operator-selected compressor analysis interval
 
-**No current blocker.** The scoped local implementation is verified and does not require new hardware evidence because it derives from already persisted read-only `compressor.speed` history. Merge remains gated only by the normal exact-head GitHub checks; production deployment is a separate explicit boundary.
+**Cleared 2026-09-01.** Exact verified product head `5a1df9a08dbe39c4be0f93c6a5e6dc622136d1c3` passed Core Quality/build, Refrigeration Browser Acceptance, Authenticated Dashboard Acceptance, Disaster Recovery Browser and NEXOLAB Merge Gate; PR #786 merged and Issue #785 closed completed. No new hardware acceptance was required because the feature derives locally from already persisted read-only `compressor.speed` history. Production deployment remains a separate explicit boundary.
 
 ## Issue #772 — persisted Embraco physical-bus identity
 
