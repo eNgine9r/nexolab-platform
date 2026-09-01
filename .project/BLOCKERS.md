@@ -4,7 +4,7 @@ Updated: 2026-09-01
 
 ## Issue #792 — selected-interval relay traceability and export
 
-**Cleared 2026-09-01.** Product candidate `23044199abd89747fd625d22a0c43dfc345bd7fe` keeps the compressor duty formula read-only and adds selected-range Relay 1..4 lanes, observed transition provenance, confirmed compressor starts and local UTF-8 CSV export. Local focused verification is 42/42 GREEN; exact-head Core Quality/build, Refrigeration Browser Acceptance, Disaster Recovery Browser and NEXOLAB Merge Gate are GREEN on PR #793. No Modbus write, hardware write, cadence change, backend migration or production deployment belongs to #792.
+**Reopened 2026-09-01 before merge.** The relay/start/export product behavior remains accepted in scope, but the Product Owner replaced the range slider with direct mouse drag selection on the compressor chart. Earlier exact-head GREEN evidence for `23044199abd89747fd625d22a0c43dfc345bd7fe` is superseded for final acceptance. #792 is not blocked; it requires implementation of direct drag selection, slider removal, focused interaction/browser tests and a fresh exact-head CI cycle. No Modbus write, hardware write, cadence change, backend migration or production deployment belongs to #792.
 
 ## Issue #790 — controlled deployment final Device Agent health race
 

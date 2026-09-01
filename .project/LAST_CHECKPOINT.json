@@ -3,19 +3,52 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-01T10:38:00+03:00",
+  "timestamp": "2026-09-01T10:56:00+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_792_exact_head_green_ready_to_merge",
+  "event": "issue_792_drag_selection_candidate_ready_for_remote_verification",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 792,
+    "title": "Selected-interval relay traceability, compressor starts and CSV export",
+    "branch": "feat/792-relay-traceability-export"
+  },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "superseded_candidates": [
+        {
+          "verified_head_sha": "23044199abd89747fd625d22a0c43dfc345bd7fe",
+          "pull_request": 793,
+          "checks": {
+            "Focused refrigeration tests": "success_42_of_42",
+            "Touched Prettier": "success",
+            "Touched ESLint": "success",
+            "TypeScript compile": "success",
+            "git diff check": "success",
+            "Core Quality and build": "success",
+            "Refrigeration Browser Acceptance": "success",
+            "Disaster Recovery Browser": "success",
+            "NEXOLAB Merge Gate": "success"
+          },
+          "superseded_reason": "Product Owner replaced range-slider selection with direct mouse drag selection before merge.",
+          "superseded_at": "2026-09-01T10:47:00+03:00"
+        }
+      ],
+      "verified_head_sha": "f841b61bdfb7d573dfb168e1c98f4a3af66bfbc9",
+      "pull_request": 793,
+      "checks": {
+        "Focused refrigeration and chart tests": "success_55_of_55",
+        "Touched Prettier": "success",
+        "Touched ESLint": "success",
+        "TypeScript compile": "success",
+        "git diff check": "success"
+      }
+    }
   },
   "observations": [],
-  "next_action": "Push final canonical-state completion commit for #792; require all exact-head checks GREEN again, then merge PR #793. Production deployment remains a separate explicit boundary.",
+  "next_action": "Push mouse-drag selection candidate to PR #793; require exact-head Core, Refrigeration Browser Acceptance, Disaster Recovery Browser and NEXOLAB Merge Gate GREEN before completion/merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -22,7 +22,11 @@
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 792,
+      "title": "Selected-interval relay traceability, compressor starts and CSV export",
+      "branch": "feat/792-relay-traceability-export"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -1287,22 +1291,37 @@
       "issue": 792,
       "title": "Selected-interval relay traceability, compressor starts and CSV export",
       "priority": "unspecified",
-      "lifecycle": "completed",
+      "lifecycle": "review",
       "branch": "feat/792-relay-traceability-export",
       "evidence": {
-        "verified_head_sha": "23044199abd89747fd625d22a0c43dfc345bd7fe",
+        "superseded_candidates": [
+          {
+            "verified_head_sha": "23044199abd89747fd625d22a0c43dfc345bd7fe",
+            "pull_request": 793,
+            "checks": {
+              "Focused refrigeration tests": "success_42_of_42",
+              "Touched Prettier": "success",
+              "Touched ESLint": "success",
+              "TypeScript compile": "success",
+              "git diff check": "success",
+              "Core Quality and build": "success",
+              "Refrigeration Browser Acceptance": "success",
+              "Disaster Recovery Browser": "success",
+              "NEXOLAB Merge Gate": "success"
+            },
+            "superseded_reason": "Product Owner replaced range-slider selection with direct mouse drag selection before merge.",
+            "superseded_at": "2026-09-01T10:47:00+03:00"
+          }
+        ],
+        "verified_head_sha": "f841b61bdfb7d573dfb168e1c98f4a3af66bfbc9",
+        "pull_request": 793,
         "checks": {
-          "Focused refrigeration tests": "success_42_of_42",
+          "Focused refrigeration and chart tests": "success_55_of_55",
           "Touched Prettier": "success",
           "Touched ESLint": "success",
           "TypeScript compile": "success",
-          "git diff check": "success",
-          "Core Quality and build": "success",
-          "Refrigeration Browser Acceptance": "success",
-          "Disaster Recovery Browser": "success",
-          "NEXOLAB Merge Gate": "success"
-        },
-        "pull_request": 793
+          "git diff check": "success"
+        }
       }
     }
   ],
