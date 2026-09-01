@@ -3,19 +3,30 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-01T16:30:00+03:00",
+  "timestamp": "2026-09-01T16:32:50+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_790_blocking_io_deadline_exact_head_green",
+  "event": "onb_01_issue_802_selected_ready",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "active_work": null,
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {},
+    "next_ready": {
+      "issue": 802,
+      "title": "Add persistent supported-device commissioning workspace and draft wizard",
+      "branch": "feat/802-device-commissioning-foundation",
+      "parent_epic": 801,
+      "downstream_dependencies": [
+        803,
+        804,
+        805
+      ]
+    }
   },
   "observations": [],
-  "next_action": "Push final canonical-state completion commit for #790; require exact-head Core Quality/build and NEXOLAB Merge Gate GREEN again, then merge PR #796 with expected-head guard. Do not deploy without separate authorization.",
+  "next_action": "Start Issue #802 from clean current main in a dedicated Codex session; complete one focused branch/PR through exact-head GREEN CI. Do not perform Device Agent mutation, Modbus access, hardware write or production deployment in #802.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
