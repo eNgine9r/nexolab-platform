@@ -123,3 +123,26 @@ class CommissioningSessionResponse(BaseModel):
 
 class CommissioningSessionListResponse(BaseModel):
     items: list[CommissioningSessionResponse]
+
+CommissioningPreflightState = Literal["running", "completed"]
+CommissioningPreflightResult = Literal["passed", "failed"]
+CommissioningEvidenceLevel = Literal[
+    "hardware_verified",
+    "partially_verified",
+    "unsupported",
+    "unverified",
+]
+
+
+class CommissioningPreflightAttemptResponse(BaseModel):
+    id: str
+    session_id: str
+    session_version: int
+    state: CommissioningPreflightState
+    result: CommissioningPreflightResult | None
+    code: str | None
+    evidence_level: CommissioningEvidenceLevel | None
+    evidence: dict[str, object] | None
+    actor_subject: str
+    started_at: datetime
+    completed_at: datetime | None

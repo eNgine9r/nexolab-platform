@@ -70,6 +70,12 @@ function repository(session: CommissioningSession = persistedSession): Commissio
     async cancelSession() {
       return { ...persistedSession, lifecycle: "cancelled" };
     },
+    getLatestPreflight() {
+      return new Promise(() => undefined);
+    },
+    async runPreflight() {
+      throw new Error("not used");
+    },
   };
 }
 

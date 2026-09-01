@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Index,
     Integer,
+    JSON,
     String,
     UniqueConstraint,
     func,
@@ -86,3 +87,71 @@ class EquipmentCommissioningSession(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+_PREFLIGHT_STATES = "'running', 'completed'"
+_PREFLIGHT_RESULTS = "'passed', 'failed'"
+_PREFLIGHT_EVIDENCE_LEVELS = "'hardware_verified', 'partially_verified', 'unsupported', 'unverified'"
+
+
+class EquipmentCommissioningPreflightAttempt(Base):
+    __tablename__ = "equipment_commissioning_preflight_attempts"
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id",
+            "session_id",
+            "idempotency_key",
+            name="uq_equipment_commissioning_preflight_attempt_key",
+        ),
+        CheckConstraint(
+            f"state IN ({_PREFLIGHT_STATES})",
+            name="ck_equipment_commissioning_preflight_state",
+        ),
+        CheckConstraint(
+            f"result IS NULL OR result IN ({_PREFLIGHT_RESULTS})",
+            name="ck_equipment_commissioning_preflight_result",
+        ),
+        CheckConstraint(
+            f"evidence_level IS NULL OR evidence_level IN ({_PREFLIGHT_EVIDENCE_LEVELS})",
+            name="ck_equipment_commissioning_preflight_evidence_level",
+        ),
+        CheckConstraint("session_version >= 1", name="ck_equipment_commissioning_preflight_session_version"),
+        Index(
+            "ix_equipment_commissioning_preflight_session_started",
+            "organization_id",
+            "session_id",
+            "started_at",
+            "id",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_equipment_commissioning_preflight_organization",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    session_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "equipment_commissioning_sessions.id",
+            name="fk_equipment_commissioning_preflight_session",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+    )
+    idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    command_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    session_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    result: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    code: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    evidence_level: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    evidence: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    actor_subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

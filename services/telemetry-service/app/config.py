@@ -142,6 +142,11 @@ class Settings(BaseSettings):
     # A five-minute floor prevents accidental high-frequency LAN scanning.
     equipment_discovery_schedule_interval_seconds: int = Field(default=0, ge=0, le=86_400)
 
+    # Internal LOCAL_LAN-only Device Agent endpoint used by operator-initiated
+    # supported-device commissioning preflight. Empty means fail closed.
+    commissioning_device_agent_base_url: str | None = None
+    commissioning_preflight_deadline_seconds: float = Field(default=5.0, ge=1.0, le=10.0)
+
     auth_mode: Literal["disabled", "jwt"] = "disabled"
     auth_default_organization_id: str = (
         "00000000-0000-0000-0000-000000000001"

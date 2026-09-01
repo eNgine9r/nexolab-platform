@@ -55,11 +55,12 @@ class ModbusExceptionResponse(ModbusError):
 
 @dataclass(frozen=True)
 class ModbusRequestContext:
-    """Bounded labels attached to a physical request measurement."""
+    """Bounded labels and an optional operation deadline for one request scope."""
 
     device_family: str = "unclassified"
     target_id: str = "unclassified"
     operation: str = "normal"
+    deadline_monotonic: float | None = None
 
 
 @dataclass(frozen=True)
@@ -249,12 +250,14 @@ class ModbusRTUClient:
         device_family: str,
         target_id: str,
         operation: str = "normal",
+        deadline_monotonic: float | None = None,
     ) -> Iterator[None]:
         previous = getattr(self._request_context, "value", None)
         self._request_context.value = ModbusRequestContext(
             device_family=device_family,
             target_id=target_id,
             operation=operation,
+            deadline_monotonic=deadline_monotonic,
         )
         try:
             yield
@@ -305,6 +308,9 @@ class ModbusRTUClient:
 
     def _read_exact(self, port: SerialPort, size: int) -> bytes:
         deadline = time.monotonic() + self.timeout
+        operation_deadline = self._context().deadline_monotonic
+        if operation_deadline is not None:
+            deadline = min(deadline, operation_deadline)
         chunks = bytearray()
         while len(chunks) < size:
             chunk = port.read(size - len(chunks))
@@ -343,6 +349,9 @@ class ModbusRTUClient:
         with self._lock:
             port = self._open()
             for attempt_index in range(self.retries + 1):
+                if context.deadline_monotonic is not None and time.monotonic() >= context.deadline_monotonic:
+                    last_timeout = ModbusTimeoutError("Modbus operation deadline exceeded")
+                    break
                 attempt = attempt_index + 1
                 request_started_at = 0.0
                 request_attempted = False

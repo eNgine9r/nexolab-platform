@@ -45,6 +45,39 @@ const sessionPayload = {
   cancelled_at: null,
 };
 
+const preflightPayload = {
+  id: "preflight-1",
+  session_id: "commissioning-1",
+  session_version: 2,
+  state: "completed",
+  result: "passed",
+  code: "preflight_passed",
+  evidence_level: "hardware_verified",
+  evidence: {
+    schema_version: 1,
+    result: "passed",
+    code: "preflight_passed",
+    evidence_level: "hardware_verified",
+    node_id: "edge-01",
+    bus_id: "rs485-main",
+    stable_transport_identifier: "/dev/serial/by-id/usb-test",
+    unit_id: 2,
+    profile_id: "embraco-sync",
+    profile_version: "embraco-sync-fc03-v1.00.04",
+    read_method: "modbus_rtu_fc03",
+    function_codes: [3],
+    checks: [{ key: "write_safety", state: "passed", detail: "writes none" }],
+    observations: [{ key: "control_state", quality: "valid", semantic: "cooling" }],
+    warnings: [],
+    duration_ms: 12,
+    modbus_writes: "none",
+    hardware_writes: "none",
+  },
+  actor_subject: "operator",
+  started_at: "2026-09-02T08:00:00Z",
+  completed_at: "2026-09-02T08:00:01Z",
+};
+
 const draft: CommissioningSessionWrite = {
   deviceClass: "temperature-controller",
   manufacturer: "Embraco",
@@ -119,6 +152,35 @@ describe("HttpCommissioningRepository", () => {
     expect(fetchImpl.mock.calls[2]?.[1]?.headers).toMatchObject({
       "If-Match": 'W/"commissioning-session-v2"',
       "X-Audit-Reason": "Cancel operator commissioning draft",
+    });
+  });
+
+  it("parses persisted preflight evidence and sends bounded mutation headers", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json(preflightPayload))
+      .mockResolvedValueOnce(json(preflightPayload));
+    const repository = new HttpCommissioningRepository({
+      apiBaseUrl: "http://telemetry.local",
+      fetchImpl,
+    });
+
+    await expect(repository.getLatestPreflight("commissioning-1")).resolves.toMatchObject({
+      id: "preflight-1",
+      evidenceLevel: "hardware_verified",
+      evidence: {
+        readMethod: "modbus_rtu_fc03",
+        functionCodes: [3],
+        modbusWrites: "none",
+        hardwareWrites: "none",
+      },
+    });
+    await repository.runPreflight("commissioning-1", 2, "preflight-key-1");
+
+    expect(fetchImpl.mock.calls[1]?.[1]?.headers).toMatchObject({
+      "If-Match": 'W/"commissioning-session-v2"',
+      "Idempotency-Key": "preflight-key-1",
+      "X-Audit-Reason": "Run bounded read-only commissioning preflight",
     });
   });
 

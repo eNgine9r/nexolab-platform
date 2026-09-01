@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 import unittest
 
 from modbus_rtu import (
@@ -167,6 +168,26 @@ class ModbusRTUTests(unittest.TestCase):
         self.assertEqual(measurement.attempt, 1)
         self.assertEqual(measurement.outcome, "success")
         self.assertGreaterEqual(measurement.duration_seconds, 0)
+
+    def test_expired_operation_deadline_prevents_physical_write(self) -> None:
+        fake = FakeSerial(b"")
+        client = ModbusRTUClient(
+            "/dev/serial/by-id/test",
+            timeout=0.1,
+            retries=1,
+            serial_factory=lambda **kwargs: fake,
+        )
+
+        with client.instrumentation_scope(
+            device_family="embraco",
+            target_id="commissioning-preflight:2",
+            operation="commissioning_preflight",
+            deadline_monotonic=time.monotonic() - 0.001,
+        ):
+            with self.assertRaisesRegex(Exception, "deadline exceeded"):
+                client.read_holding_register(2, 9)
+
+        self.assertEqual(fake.writes, [])
 
     def test_timeout_retry_is_two_physical_attempts(self) -> None:
         measurements = []

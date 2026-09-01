@@ -22,12 +22,12 @@
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 803,
       "title": "Add bounded read-only verification for supported commissioning profiles",
       "branch": "feat/803-device-commissioning-preflight"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -1519,14 +1519,28 @@
       "issue": 803,
       "title": "Add bounded read-only verification for supported commissioning profiles",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [
         802
       ],
       "branch": "feat/803-device-commissioning-preflight",
       "evidence": {
         "dependency_802": "completed",
-        "selection": "next_ready"
+        "started_from_main": "eb4c0feaddeaeda4bbdbaabaa1b07f0b6fb8c183",
+        "local_candidate_state": "software_verified_pending_remote_ci",
+        "device_agent_contract_tests": "22_passed",
+        "dual_bus_runtime_tests": "9_passed_isolated_networkless_container",
+        "frontend_targeted_tests": "13_passed",
+        "frontend_targeted_eslint": "success",
+        "telemetry_persistence_smoke": "success_isolated_networkless_container",
+        "telemetry_application_factory_smoke": "success_isolated_networkless_container",
+        "state_integrity": "success",
+        "git_diff_check": "success",
+        "hardware_evidence": "unverified_no_live_preflight_executed",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "production_deployment": "not_executed",
+        "remote_exact_head_ci": "pending"
       }
     },
     {

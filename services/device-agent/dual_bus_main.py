@@ -7,11 +7,21 @@ import threading
 import time
 import uuid
 from dataclasses import replace
+from pathlib import Path
 from datetime import datetime, timezone
 from http.server import ThreadingHTTPServer
 from typing import Any
 
 from acquisition_capacity import BusCapacityProfile
+from commissioning_preflight import (
+    CommissioningPreflightRequest,
+    PreflightBus,
+    PreflightExecutionError,
+    PreflightObservation,
+    PreflightProfile,
+    execute_preflight,
+    parse_preflight_request,
+)
 from adaptive_main import (
     AdaptiveRegistryDeviceAgent,
     AdaptiveRegistryHealthHandler,
@@ -37,7 +47,14 @@ from managed_main import (
     LOG,
     XJP60DDiscoveryScanner,
 )
-from modbus_rtu import ModbusError, ModbusRTUClient, ModbusRequestMeasurement
+from modbus_rtu import (
+    ModbusError,
+    ModbusExceptionResponse,
+    ModbusProtocolError,
+    ModbusRTUClient,
+    ModbusRequestMeasurement,
+    ModbusTimeoutError,
+)
 from rs485_bus_metrics import RS485BusRequestMetrics
 from rs485_buses import RS485BusTopology
 from xjp60d import XJP60DReader
@@ -194,6 +211,135 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             self.rs485_bus_metrics.observe(logical)
 
         return observe
+
+    @property
+    def node_id(self) -> str:
+        return self.settings.node_id
+
+    def preflight_bus(self, bus_id: str) -> PreflightBus:
+        topology = self.rs485_topology
+        binding = topology.binding(bus_id)
+        return PreflightBus(
+            bus_id=binding.bus_id,
+            serial_device=binding.serial_device,
+            path_present=Path(binding.serial_device).exists(),
+        )
+
+    def preflight_unit_owner(self, unit_id: int) -> str | None:
+        try:
+            return self.rs485_topology.bus_for_unit(unit_id)
+        except ValueError:
+            return None
+
+    def preflight_registry_identity(
+        self,
+        bus_id: str,
+        unit_id: int,
+    ) -> tuple[str, str] | None:
+        matches = [
+            device
+            for device in self._registry_snapshot().document.devices
+            if device.bus_id == bus_id and device.unit_id == unit_id
+        ]
+        if len(matches) > 1:
+            raise PreflightExecutionError(
+                "unit_id_conflict",
+                f"Unit ID {unit_id} has multiple acquisition registry identities",
+            )
+        if not matches:
+            return None
+        device = matches[0]
+        return device.device_family, device.profile_version
+
+    def preflight_read_profile(
+        self,
+        profile: PreflightProfile,
+        *,
+        bus_id: str,
+        unit_id: int,
+        deadline_monotonic: float,
+    ) -> tuple[PreflightObservation, ...]:
+        topology = self.rs485_topology
+        if topology.explicit:
+            client = self._bus_clients.get(bus_id)
+            lock = self._bus_operation_locks.get(bus_id)
+            xjp60d = self._bus_xjp60d_readers.get(bus_id)
+            le01mp = self._bus_le01mp_readers.get(bus_id)
+            embraco = self._bus_embraco_readers.get(bus_id)
+        else:
+            if bus_id != topology.bindings[0].bus_id:
+                raise PreflightExecutionError("bus_unavailable", f"Unknown RS-485 bus {bus_id}")
+            client = self.modbus_client
+            lock = self._bus_operation_lock
+            xjp60d = self.xjp60d_reader
+            le01mp = self.le01mp_reader
+            embraco = self.embraco_reader
+        if client is None or lock is None:
+            raise PreflightExecutionError("bus_unavailable", f"RS-485 bus {bus_id} has no active transport")
+
+        observations: list[PreflightObservation] = []
+        remaining = deadline_monotonic - time.monotonic()
+        if remaining <= 0 or not lock.acquire(timeout=remaining):
+            raise PreflightExecutionError(
+                "bus_busy",
+                f"RS-485 bus {bus_id} did not become available before the preflight deadline",
+            )
+        try:
+            with client.instrumentation_scope(
+                device_family=profile.device_family,
+                target_id=f"commissioning-preflight:{unit_id}",
+                operation="commissioning_preflight",
+                deadline_monotonic=deadline_monotonic,
+            ):
+                if profile.profile_id == "dixell-xjp60d":
+                    if xjp60d is None:
+                        raise PreflightExecutionError("profile_unavailable", "XJP60D reader is unavailable")
+                    reading = xjp60d.read_channel(unit_id, 1)
+                    observations.append(
+                        PreflightObservation(
+                            key="channel-01",
+                            quality=reading.quality,
+                            semantic=reading.alarm,
+                        )
+                    )
+                elif profile.profile_id == "f-and-f-le01mp":
+                    if le01mp is None:
+                        raise PreflightExecutionError("profile_unavailable", "LE-01MP reader is unavailable")
+                    reading = le01mp.read_metric(unit_id, "voltage")
+                    observations.append(PreflightObservation(key="voltage", quality=reading.quality))
+                elif profile.profile_id == "embraco-sync":
+                    if embraco is None:
+                        raise PreflightExecutionError("profile_unavailable", "Embraco Sync reader is unavailable")
+                    for key in ("control_state", "relay_state_bits", "compressor_speed", "alarm_state_bits"):
+                        reading = embraco.read_metric(unit_id, key)
+                        observations.append(
+                            PreflightObservation(
+                                key=key,
+                                quality=reading.quality,
+                                semantic=reading.semantic,
+                            )
+                        )
+                else:
+                    raise PreflightExecutionError("unsupported_profile", "Preflight profile is unsupported")
+        except ModbusTimeoutError as error:
+            raise PreflightExecutionError("timeout", "Bounded FC03 preflight timed out") from error
+        except ModbusExceptionResponse as error:
+            raise PreflightExecutionError(
+                "profile_mismatch",
+                "Target rejected the fixed profile-approved FC03 verification read",
+            ) from error
+        except ModbusProtocolError as error:
+            raise PreflightExecutionError("malformed_response", "Target returned a malformed FC03 response") from error
+        except OSError as error:
+            raise PreflightExecutionError("adapter_unavailable", "RS-485 adapter became unavailable") from error
+        except ModbusError as error:
+            raise PreflightExecutionError("read_failed", "Profile-approved FC03 verification failed") from error
+        finally:
+            lock.release()
+        return tuple(observations)
+
+    def commissioning_preflight(self, request: CommissioningPreflightRequest) -> dict[str, Any]:
+        return execute_preflight(request, self)
 
     def acquisition_snapshot(self) -> dict[str, Any]:
         payload = super().acquisition_snapshot()
@@ -509,6 +655,22 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
 
 class DualBusAdaptiveRegistryHealthHandler(AdaptiveRegistryHealthHandler):
     agent: DualBusAdaptiveRegistryDeviceAgent
+
+    def do_POST(self) -> None:  # noqa: N802
+        path = self.path.split("?", maxsplit=1)[0]
+        if path != "/api/v1/commissioning/preflight":
+            super().do_POST()
+            return
+        try:
+            request = parse_preflight_request(self._read_json_body())
+            result = self.agent.commissioning_preflight(request)
+        except (ValueError, TypeError) as error:
+            self._send_json(
+                422,
+                {"detail": {"code": "preflight_request_invalid", "message": str(error)}},
+            )
+            return
+        self._send_json(200, result)
 
 
 def main() -> None:
