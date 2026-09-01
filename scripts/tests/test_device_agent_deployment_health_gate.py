@@ -183,6 +183,29 @@ class DeploymentHealthGateTests(unittest.TestCase):
         with self.assertRaisesRegex(MODULE.HealthGateError, "workers are not healthy"):
             self.run_gate(FakeRuntime(), payload=payload)
 
+
+    def test_missing_scheduler_evidence_fails_closed(self) -> None:
+        payload = healthy_payload()
+        payload["acquisition"] = {}
+        with self.assertRaisesRegex(MODULE.HealthGateError, "missing scheduler evidence"):
+            self.run_gate(FakeRuntime(), payload=payload, timeout=2.0, poll=1.0)
+
+    def test_missing_or_invalid_worker_counts_fail_closed(self) -> None:
+        cases = [
+            ({"expected_bus_workers": 2}, "counts must be"),
+            ({"expected_bus_workers": "2", "active_bus_workers": 2}, "counts must be"),
+            ({"expected_bus_workers": True, "active_bus_workers": 1}, "counts must be"),
+            ({"expected_bus_workers": -1, "active_bus_workers": -1}, "counts must be"),
+        ]
+        for overrides, message in cases:
+            with self.subTest(overrides=overrides):
+                payload = healthy_payload()
+                scheduler = payload["acquisition"]["scheduler"]  # type: ignore[index]
+                scheduler.clear()  # type: ignore[union-attr]
+                scheduler.update({"workers_healthy": True, **overrides})  # type: ignore[union-attr]
+                with self.assertRaisesRegex(MODULE.HealthGateError, message):
+                    self.run_gate(FakeRuntime(), payload=payload, timeout=2.0, poll=1.0)
+
     def test_worker_count_mismatch_fails_closed(self) -> None:
         payload = healthy_payload()
         scheduler = payload["acquisition"]["scheduler"]  # type: ignore[index]

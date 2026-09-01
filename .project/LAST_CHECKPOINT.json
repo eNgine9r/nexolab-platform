@@ -3,43 +3,34 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-01T15:39:54+03:00",
+  "timestamp": "2026-09-01T15:48:12+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_790_operational_convergence_p1_fixed_exact_head_green_completion_candidate",
+  "event": "issue_790_scheduler_evidence_p2_fixed_locally",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 790,
+    "title": "Fix controlled deployment final Device Agent health-check race",
+    "branch": "fix/790-deployment-health-race",
+    "status": "review"
+  },
   "evidence_snapshot": {
-    "completed_issue": {
-      "issue": 790,
+    "issue_790": {
       "pull_request": 796,
-      "verified_head_sha": "5a250210a59265a897142d208121e604794df32e",
-      "ci_run": 33508458029,
-      "required_checks": "green",
-      "review_threads": "resolved",
+      "verified_head_sha": null,
+      "focused_health_gate_tests": "success_16_of_16",
+      "existing_deployment_regressions": "success_47_of_47",
+      "ci_change_impact_regressions": "success_33_of_33",
+      "standalone_offline_runtime_contract": "success",
+      "remote_exact_head_verification": "pending_after_scheduler_evidence_p2_fix",
       "production_deployment": "not_executed",
-      "source_authority_advanced": false,
-      "focused_health_gate_tests": "success_14_of_14"
+      "source_authority_advanced": false
     }
   },
-  "observations": [
-    {
-      "source": "github",
-      "observed_at": "2026-09-01T15:39:54+03:00",
-      "kind": "exact_head_verification",
-      "data": {
-        "issue": 790,
-        "pull_request": 796,
-        "verified_head_sha": "5a250210a59265a897142d208121e604794df32e",
-        "ci_run": 33508458029,
-        "required_checks": "green",
-        "review_threads": "resolved"
-      }
-    }
-  ],
-  "next_action": "Commit the final #790 state evidence, require exact-head CI and NEXOLAB Merge Gate GREEN again, then merge PR #796 with expected-head guard. After merge perform a fresh Ready audit; do not deploy without separate authorization.",
+  "observations": [],
+  "next_action": "Commit and push the scheduler-evidence P2 fix, resolve the review thread, require fresh exact-head Core Quality/build and NEXOLAB Merge Gate GREEN, then complete state and merge only after a final exact-head GREEN cycle.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

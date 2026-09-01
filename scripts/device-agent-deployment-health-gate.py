@@ -85,17 +85,18 @@ def validate_operational_health(payload: dict[str, Any]) -> None:
     if not isinstance(acquisition, dict):
         raise HealthGateError("Device Agent health payload is missing acquisition state")
     scheduler = acquisition.get("scheduler")
-    if scheduler is not None:
-        if not isinstance(scheduler, dict):
-            raise HealthGateError("Device Agent scheduler health must be an object")
-        if scheduler.get("workers_healthy") is not True:
-            raise HealthGateError("Device Agent scheduler workers are not healthy")
-        expected = scheduler.get("expected_bus_workers")
-        active = scheduler.get("active_bus_workers")
-        if isinstance(expected, int) and isinstance(active, int) and expected != active:
-            raise HealthGateError(
-                f"Device Agent active bus workers {active} do not match expected {expected}"
-            )
+    if not isinstance(scheduler, dict):
+        raise HealthGateError("Device Agent health payload is missing scheduler evidence")
+    if scheduler.get("workers_healthy") is not True:
+        raise HealthGateError("Device Agent scheduler workers are not healthy")
+    expected = scheduler.get("expected_bus_workers")
+    active = scheduler.get("active_bus_workers")
+    if type(expected) is not int or type(active) is not int or expected < 0 or active < 0:
+        raise HealthGateError("Device Agent scheduler worker counts must be non-negative integers")
+    if expected != active:
+        raise HealthGateError(
+            f"Device Agent active bus workers {active} do not match expected {expected}"
+        )
 
 
 def wait_for_deployment_health(

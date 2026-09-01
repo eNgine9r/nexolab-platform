@@ -22,7 +22,11 @@
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 790,
+      "title": "Fix controlled deployment final Device Agent health-check race",
+      "branch": "fix/790-deployment-health-race"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -1368,7 +1372,7 @@
       "issue": 790,
       "title": "Fix controlled deployment final Device Agent health-check race",
       "priority": "high",
-      "lifecycle": "completed",
+      "lifecycle": "review",
       "depends_on": [
         789
       ],
@@ -1380,7 +1384,7 @@
         "modbus_write": "none",
         "hardware_write": "none",
         "implementation": "bounded_identity_stable_docker_health_convergence_gate",
-        "focused_health_gate_tests": "success_14_of_14_including_operational_convergence",
+        "focused_health_gate_tests": "success_16_of_16_including_scheduler_schema_evidence",
         "existing_deployment_regressions": "success_47_of_47",
         "ci_change_impact_regressions": "success_33_of_33",
         "standalone_offline_runtime_contract": "success",
@@ -1390,7 +1394,7 @@
         "git_diff_check": "success",
         "read_only_live_health_smoke": "success_existing_runtime_no_mutation",
         "source_authority_advanced": false,
-        "remote_exact_head_verification": "green_after_operational_convergence_p1_fix",
+        "remote_exact_head_verification": "pending_after_scheduler_evidence_p2_fix",
         "pull_request": 796,
         "superseded_candidates": [
           {
@@ -1425,19 +1429,36 @@
             },
             "superseded_reason": "P1 review found Docker healthy may precede MQTT/scheduler operational readiness; operational health must converge under the same bounded deadline.",
             "superseded_at": "2026-09-01T15:32:54+03:00"
+          },
+          {
+            "verified_head_sha": "5a250210a59265a897142d208121e604794df32e",
+            "final_state_head_sha": "4606f1e81b545dadcda392464cd9ed34113eb7f8",
+            "pull_request": 796,
+            "checks": {
+              "Core Quality and build": "success:33508458029",
+              "NEXOLAB Merge Gate": "success:33508458029",
+              "focused_health_gate_tests": "success_14_of_14_including_operational_convergence",
+              "existing_deployment_regressions": "success_47_of_47",
+              "ci_change_impact_regressions": "success_33_of_33",
+              "standalone_offline_runtime_contract": "success",
+              "review_threads": "resolved",
+              "read_only_live_health_smoke": "success_existing_runtime_no_mutation"
+            },
+            "superseded_reason": "P2 review found scheduler evidence and integer worker counts were optional, allowing malformed health schema to advance deployment evidence.",
+            "superseded_at": "2026-09-01T15:48:12+03:00"
           }
         ],
         "checks": {
-          "Core Quality and build": "success:33508458029",
-          "NEXOLAB Merge Gate": "success:33508458029",
-          "focused_health_gate_tests": "success_14_of_14_including_operational_convergence",
+          "focused_health_gate_tests": "success_16_of_16_including_scheduler_schema_evidence",
           "existing_deployment_regressions": "success_47_of_47",
           "ci_change_impact_regressions": "success_33_of_33",
           "standalone_offline_runtime_contract": "success",
-          "review_threads": "resolved",
-          "read_only_live_health_smoke": "success_existing_runtime_no_mutation"
-        },
-        "verified_head_sha": "5a250210a59265a897142d208121e604794df32e"
+          "python_compile": "success",
+          "shell_syntax": "success",
+          "state_model_v2": "success",
+          "git_diff_check": "success",
+          "review_threads": "scheduler_evidence_p2_pending_remote_verification"
+        }
       }
     }
   ],
