@@ -2,6 +2,10 @@
 
 Updated: 2026-09-01
 
+## Issue #790 — controlled deployment final Device Agent health race
+
+Issue #789 product/runtime acceptance is complete: the Product Owner confirmed the selected compressor range/KPI behavior in the real interface, and the activated runtime is currently healthy. A separate deployment-evidence maintenance defect remains: attempt `runtime/deployments/20260901T064156Z` failed its final success marker because Docker health had not yet converged although Device Agent HTTP readiness was already passing; the container became and remained `healthy` seconds later. Until #790 is fixed and a future guarded deployment establishes valid success evidence, **do not advance formal controlled-source authority from `20bb9ca...` based on the failed #789 attempt**. This is an evidence/recovery-governance blocker, not a blocker to the operator-visible #785 feature.
+
 ## Issue #785 — operator-selected compressor analysis interval
 
 **Cleared 2026-09-01.** Exact verified product head `5a1df9a08dbe39c4be0f93c6a5e6dc622136d1c3` passed Core Quality/build, Refrigeration Browser Acceptance, Authenticated Dashboard Acceptance, Disaster Recovery Browser and NEXOLAB Merge Gate; PR #786 merged and Issue #785 closed completed. No new hardware acceptance was required because the feature derives locally from already persisted read-only `compressor.speed` history. Production deployment remains a separate explicit boundary.

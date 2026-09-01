@@ -3,23 +3,19 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-01T09:28:41+03:00",
+  "timestamp": "2026-09-01T10:05:00+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_789_controlled_deployment_authorized",
+  "event": "issue_789_operator_accepted_runtime_followup_790_opened",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
-  "active_work": {
-    "issue": 789,
-    "title": "Deploy #785 selected compressor analysis range to controlled Raspberry Pi runtime",
-    "branch": "ops/789-deploy-compressor-analysis-range"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Build verified ARM64 frontend artifact for current main, validate source/deployment authority, then execute guarded LOCAL_LAN deployment and Opera acceptance.",
+  "next_action": "Issue #789 is product-complete by real operator acceptance. Keep RFX-01 through RFX-19C on Product Owner hold. Issue #790 is the maintenance follow-up for the deployment final-health evidence race; do not reinterpret the failed #789 attempt as DEPLOYMENT PASSED.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

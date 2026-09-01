@@ -22,11 +22,7 @@
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 789,
-      "title": "Deploy #785 selected compressor analysis range to controlled Raspberry Pi runtime",
-      "branch": "ops/789-deploy-compressor-analysis-range"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -1263,9 +1259,29 @@
       "issue": 789,
       "title": "Deploy #785 selected compressor analysis range to controlled Raspberry Pi runtime",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "ops/789-deploy-compressor-analysis-range",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "70932c27f373841358971dd9aa568551fc21629a",
+        "checks": {
+          "Frontend Release Artifact": "success",
+          "Source lineage preflight": "success",
+          "Post-attempt runtime health": "success",
+          "Product Owner runtime acceptance": "success",
+          "Deployment success marker": "failed_health_race_followup_790"
+        },
+        "verified_product_head": "5a1df9a08dbe39c4be0f93c6a5e6dc622136d1c3",
+        "runtime_target_source": "70932c27f373841358971dd9aa568551fc21629a",
+        "arm64_frontend_workflow": "33477804826",
+        "deployment_attempt": "runtime/deployments/20260901T064156Z",
+        "deployment_attempt_result": "FAILED_FINAL_EVIDENCE_GATE_DEVICE_AGENT_HEALTH_RACE",
+        "runtime_health_after_attempt": "dashboard_http_200;device_agent_healthy_modbus;mqtt_connected;queue_depth_0;workers_2_of_2",
+        "embraco_unit_2_read_only": "FC03_success_rs485-embraco",
+        "product_owner_runtime_acceptance": "PASS_2026-09-01_selected_interval_slider_and_KPI_working",
+        "edge_snapshot_sha256": "5ba126fd4e24932901a9b80a4657e6dd400a915d6a988a20437e5bb01f445930",
+        "formal_source_authority": "UNCHANGED_20bb9ca473395a0c64267b9b08523c31404f41e6",
+        "follow_up_issue": 790
+      }
     }
   ],
   "maintenance_actions": [
