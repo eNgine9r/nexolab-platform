@@ -110,27 +110,41 @@ describe("ECharts renderer adapter lifecycle", () => {
     });
   });
 
-  it("uses direct line-X brush selection without rendering a range slider", () => {
+  it("uses adapter-owned mouse drag selection without rendering a range slider", () => {
     const instance = new FakeEChartsInstance();
     const onRangeSelectionChange = vi.fn();
+    const onXDomainChange = vi.fn();
     const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
     const scene = {
       ...createBenchmarkScene(1),
       rangeSelectionEnabled: true,
       rangeSelection: null,
     };
+    const container = document.createElement("div");
+    vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 320,
+      bottom: 200,
+      width: 320,
+      height: 200,
+      toJSON: () => ({}),
+    });
 
     adapter.initialize({
-      container: document.createElement("div"),
+      container,
       renderer: "canvas",
       reducedMotion: true,
       onCursor: vi.fn(),
-      onXDomainChange: vi.fn(),
+      onXDomainChange,
       onRangeSelectionChange,
     });
     adapter.setScene(scene);
 
-    expect(instance.options.at(-1)).toMatchObject({
+    const option = instance.options.at(-1) as { dataZoom: unknown[]; brush?: unknown };
+    expect(option).toMatchObject({
       grid: { bottom: 58 },
       dataZoom: [
         {
@@ -140,27 +154,15 @@ describe("ECharts renderer adapter lifecycle", () => {
           moveOnMouseMove: false,
         },
       ],
-      brush: {
-        brushType: "lineX",
-        brushMode: "single",
-        transformable: true,
-        removeOnClick: false,
-      },
     });
-    const option = instance.options.at(-1) as { dataZoom: unknown[] };
     expect(option.dataZoom).toHaveLength(1);
-    expect(instance.actions).toEqual([
-      { type: "brush", brushIndex: 0, areas: [] },
-      {
-        type: "takeGlobalCursor",
-        key: "brush",
-        brushOption: { brushType: "lineX", brushMode: "single" },
-      },
-    ]);
+    expect(option.brush).toBeUndefined();
 
-    instance.handlers.get("brushEnd")?.({
-      areas: [{ brushType: "lineX", coordRange: [BENCHMARK_START_MS + 90, BENCHMARK_START_MS + 30] }],
-    });
+    container.dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: 90, clientY: 100 }));
+    container.dispatchEvent(new MouseEvent("mousemove", { buttons: 1, clientX: 30, clientY: 100 }));
+    window.dispatchEvent(new MouseEvent("mouseup", { button: 0 }));
+
+    expect(onXDomainChange).not.toHaveBeenCalled();
     expect(onRangeSelectionChange).toHaveBeenCalledWith({
       fromMs: BENCHMARK_START_MS + 30,
       toMs: BENCHMARK_START_MS + 90,
@@ -170,16 +172,16 @@ describe("ECharts renderer adapter lifecycle", () => {
       ...scene,
       rangeSelection: { fromMs: BENCHMARK_START_MS + 30, toMs: BENCHMARK_START_MS + 90 },
     });
-    expect(instance.actions.at(-2)).toEqual({
-      type: "brush",
-      brushIndex: 0,
-      areas: [
-        {
-          brushType: "lineX",
-          xAxisIndex: 0,
-          coordRange: [BENCHMARK_START_MS + 30, BENCHMARK_START_MS + 90],
-        },
-      ],
+    expect(optionSeries(instance)[0]).toMatchObject({
+      markArea: {
+        silent: true,
+        data: [
+          [
+            { name: "Selected analysis interval", xAxis: BENCHMARK_START_MS + 30 },
+            { xAxis: BENCHMARK_START_MS + 90 },
+          ],
+        ],
+      },
     });
   });
 

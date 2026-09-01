@@ -2,7 +2,6 @@ import { LineChart } from "echarts/charts";
 import {
   AriaComponent,
   AxisPointerComponent,
-  BrushComponent,
   DataZoomComponent,
   GridComponent,
   LegendComponent,
@@ -23,7 +22,6 @@ registerEChartsModules([
   LineChart,
   AriaComponent,
   AxisPointerComponent,
-  BrushComponent,
   DataZoomComponent,
   GridComponent,
   LegendComponent,
@@ -71,13 +69,6 @@ interface DataZoomEvent {
   batch?: DataZoomEvent[];
 }
 
-interface BrushEndEvent {
-  areas?: Array<{
-    brushType?: string;
-    coordRange?: number[] | number[][];
-  }>;
-}
-
 function axisPointerTimestamp(event: unknown): number | null {
   if (!event || typeof event !== "object") return null;
   const value = (event as AxisPointerEvent).axesInfo?.[0]?.value;
@@ -117,22 +108,6 @@ function zoomDomain(event: unknown, scene: ChartRendererScene): ChartRendererSce
     fromMs: scene.xDomain.fromMs + duration * (payload.start! / 100),
     toMs: scene.xDomain.fromMs + duration * (payload.end! / 100),
   };
-}
-
-function brushSelectionDomain(
-  event: unknown,
-  scene: ChartRendererScene,
-): ChartRendererScene["xDomain"] | null {
-  if (!event || typeof event !== "object") return null;
-  const area = (event as BrushEndEvent).areas?.find((candidate) => candidate.brushType === "lineX");
-  if (!area || !Array.isArray(area.coordRange) || area.coordRange.length < 2) return null;
-  const first = Number(area.coordRange[0]);
-  const second = Number(area.coordRange[1]);
-  if (!Number.isFinite(first) || !Number.isFinite(second) || first === second) return null;
-  const bounds = scene.interactionDomain ?? scene.xDomain;
-  const fromMs = Math.max(bounds.fromMs, Math.min(first, second));
-  const toMs = Math.min(bounds.toMs, Math.max(first, second));
-  return toMs > fromMs ? { fromMs, toMs } : null;
 }
 
 function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): EChartsCoreOption {
@@ -220,26 +195,47 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
             },
           }
         : {}),
-      ...(visibleSeriesIndex === 0 && segmentIndex === 0 && scene.alarmRegions?.length
+      ...(visibleSeriesIndex === 0 &&
+      segmentIndex === 0 &&
+      (scene.rangeSelection || scene.alarmRegions?.length)
         ? {
             markArea: {
               silent: true,
-              data: scene.alarmRegions.map((region) => [
-                {
-                  name: region.label,
-                  xAxis: region.fromMs,
-                  itemStyle: {
-                    color:
-                      region.severity === "alarm"
-                        ? "rgba(255,77,79,.12)"
-                        : region.severity === "offline"
-                          ? "rgba(148,163,184,.12)"
-                          : "rgba(245,179,1,.10)",
+              data: [
+                ...(scene.rangeSelection
+                  ? [
+                      [
+                        {
+                          name: "Selected analysis interval",
+                          xAxis: scene.rangeSelection.fromMs,
+                          itemStyle: {
+                            color: "rgba(0,198,224,.14)",
+                            borderColor: "rgba(103,232,249,.85)",
+                            borderWidth: 1,
+                          },
+                          label: { show: false },
+                        },
+                        { xAxis: scene.rangeSelection.toMs },
+                      ],
+                    ]
+                  : []),
+                ...(scene.alarmRegions ?? []).map((region) => [
+                  {
+                    name: region.label,
+                    xAxis: region.fromMs,
+                    itemStyle: {
+                      color:
+                        region.severity === "alarm"
+                          ? "rgba(255,77,79,.12)"
+                          : region.severity === "offline"
+                            ? "rgba(148,163,184,.12)"
+                            : "rgba(245,179,1,.10)",
+                    },
+                    label: { color: "#E6ECF2" },
                   },
-                  label: { color: "#E6ECF2" },
-                },
-                { xAxis: region.toMs },
-              ]),
+                  { xAxis: region.toMs },
+                ]),
+              ],
             },
           }
         : {}),
@@ -335,27 +331,6 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
         preventDefaultMouseMove: true,
       },
     ],
-    ...(scene.rangeSelectionEnabled
-      ? {
-          brush: {
-            xAxisIndex: 0,
-            toolbox: ["lineX"],
-            brushType: "lineX",
-            brushMode: "single",
-            transformable: true,
-            removeOnClick: false,
-            throttleType: "fixRate",
-            throttleDelay: 0,
-            brushStyle: {
-              color: "rgba(0,198,224,.14)",
-              borderColor: "rgba(103,232,249,.85)",
-              borderWidth: 1.5,
-            },
-            inBrush: {},
-            outOfBrush: {},
-          },
-        }
-      : {}),
     series: lineSeries,
   };
 }
@@ -369,13 +344,64 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   private primaryDragActive = false;
   private primaryDragBaseDomain: ChartRendererScene["xDomain"] | null = null;
   private pendingPrimaryDragDomain: ChartRendererScene["xDomain"] | null = null;
-  private rangeSelectionActivated = false;
+  private rangeSelectionDragActive = false;
+  private rangeSelectionStartMs: number | null = null;
+  private rangeSelectionLastMs: number | null = null;
+  private rangeSelectionStartClientX: number | null = null;
+  private rangeSelectionLastClientX: number | null = null;
 
   constructor(private readonly runtime: EChartsRuntimePort = defaultRuntime) {}
 
+  private timestampAtPointer(event: MouseEvent): number | null {
+    if (!this.instance || !this.container || !this.scene) return null;
+    const bounds = this.container.getBoundingClientRect();
+    const pixel: [number, number] = [event.clientX - bounds.left, event.clientY - bounds.top];
+    if (!this.instance.containPixel({ gridIndex: 0 }, pixel)) return null;
+    const converted = this.instance.convertFromPixel({ xAxisIndex: 0 }, pixel);
+    const timestampMs = Array.isArray(converted) ? Number(converted[0]) : Number(converted);
+    if (!Number.isFinite(timestampMs)) return null;
+    const domain = this.scene.interactionDomain ?? this.scene.xDomain;
+    return Math.max(domain.fromMs, Math.min(timestampMs, domain.toMs));
+  }
+
+  private finishRangeSelection(): void {
+    const startMs = this.rangeSelectionStartMs;
+    const endMs = this.rangeSelectionLastMs;
+    const startClientX = this.rangeSelectionStartClientX;
+    const endClientX = this.rangeSelectionLastClientX;
+    this.rangeSelectionDragActive = false;
+    this.rangeSelectionStartMs = null;
+    this.rangeSelectionLastMs = null;
+    this.rangeSelectionStartClientX = null;
+    this.rangeSelectionLastClientX = null;
+    if (
+      startMs === null ||
+      endMs === null ||
+      startClientX === null ||
+      endClientX === null ||
+      Math.abs(endClientX - startClientX) < 4
+    ) {
+      return;
+    }
+    const fromMs = Math.min(startMs, endMs);
+    const toMs = Math.max(startMs, endMs);
+    if (toMs > fromMs) this.options?.onRangeSelectionChange?.({ fromMs, toMs });
+  }
+
   private readonly handleContainerMouseDown = (event: MouseEvent) => {
     if (event.button !== 0 || !this.instance || !this.container || !this.scene) return;
-    if (this.scene.rangeSelectionEnabled) return;
+    if (this.scene.rangeSelectionEnabled) {
+      const timestampMs = this.timestampAtPointer(event);
+      if (timestampMs === null) return;
+      this.rangeSelectionDragActive = true;
+      this.rangeSelectionStartMs = timestampMs;
+      this.rangeSelectionLastMs = timestampMs;
+      this.rangeSelectionStartClientX = event.clientX;
+      this.rangeSelectionLastClientX = event.clientX;
+      this.options?.onCursor(null);
+      event.preventDefault();
+      return;
+    }
     const bounds = this.container.getBoundingClientRect();
     const pixel: [number, number] = [event.clientX - bounds.left, event.clientY - bounds.top];
     if (!this.instance.containPixel({ gridIndex: 0 }, pixel)) return;
@@ -393,12 +419,28 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   }
 
   private readonly handleWindowMouseUp = (event: MouseEvent) => {
-    if (event.button === 0) this.finishPrimaryDrag();
+    if (event.button !== 0) return;
+    if (this.rangeSelectionDragActive) {
+      this.finishRangeSelection();
+      return;
+    }
+    this.finishPrimaryDrag();
   };
 
   private readonly handleContainerPointer = (event: MouseEvent) => {
     if (!this.scene || !this.instance || !this.container) return;
-    if (this.scene.rangeSelectionEnabled && (event.buttons & 1) === 1) return;
+    if (this.rangeSelectionDragActive) {
+      if ((event.buttons & 1) === 0) {
+        this.finishRangeSelection();
+        return;
+      }
+      const timestampMs = this.timestampAtPointer(event);
+      if (timestampMs !== null) {
+        this.rangeSelectionLastMs = timestampMs;
+        this.rangeSelectionLastClientX = event.clientX;
+      }
+      return;
+    }
     if (this.primaryDragActive && (event.buttons & 1) === 0) this.finishPrimaryDrag();
     if (this.primaryDragActive || (event.buttons & 1) === 1) return;
     const bounds = this.container.getBoundingClientRect();
@@ -414,11 +456,11 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   };
 
   private readonly handleContainerLeave = () => {
-    if (!this.primaryDragActive) this.options?.onCursor(null);
+    if (!this.primaryDragActive && !this.rangeSelectionDragActive) this.options?.onCursor(null);
   };
 
   private readonly handleAxisPointer = (event: unknown) => {
-    if (!this.scene || this.primaryDragActive) return;
+    if (!this.scene || this.primaryDragActive || this.rangeSelectionDragActive) return;
     const timestampMs = axisPointerTimestamp(event);
     if (timestampMs === null) return;
     this.options?.onCursor(inspectChartAtTimestamp(this.scene, timestampMs));
@@ -439,44 +481,6 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.options?.onXDomainChange(domain);
   };
 
-  private readonly handleBrushEnd = (event: unknown) => {
-    if (!this.scene?.rangeSelectionEnabled) return;
-    const domain = brushSelectionDomain(event, this.scene);
-    if (domain) this.options?.onRangeSelectionChange?.(domain);
-  };
-
-  private syncRangeSelection(scene: ChartRendererScene): void {
-    if (!this.instance) return;
-    if (!scene.rangeSelectionEnabled) {
-      if (!this.rangeSelectionActivated) return;
-      this.instance.dispatchAction({ type: "brush", brushIndex: 0, areas: [] });
-      this.instance.dispatchAction({
-        type: "takeGlobalCursor",
-        key: "brush",
-        brushOption: { brushType: false },
-      });
-      this.rangeSelectionActivated = false;
-      return;
-    }
-
-    const areas = scene.rangeSelection
-      ? [
-          {
-            brushType: "lineX",
-            xAxisIndex: 0,
-            coordRange: [scene.rangeSelection.fromMs, scene.rangeSelection.toMs],
-          },
-        ]
-      : [];
-    this.instance.dispatchAction({ type: "brush", brushIndex: 0, areas });
-    this.instance.dispatchAction({
-      type: "takeGlobalCursor",
-      key: "brush",
-      brushOption: { brushType: "lineX", brushMode: "single" },
-    });
-    this.rangeSelectionActivated = true;
-  }
-
   initialize(options: ChartRendererInitOptions): void {
     if (this.instance && !this.instance.isDisposed()) return;
     this.options = options;
@@ -485,7 +489,6 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.instance = this.runtime.init(options.container, options.renderer);
     this.instance.on("updateAxisPointer", this.handleAxisPointer);
     this.instance.on("dataZoom", this.handleDataZoom);
-    this.instance.on("brushEnd", this.handleBrushEnd);
     this.container.addEventListener("mousedown", this.handleContainerMouseDown, true);
     this.container.addEventListener("mousemove", this.handleContainerPointer);
     this.container.addEventListener("mouseleave", this.handleContainerLeave);
@@ -500,7 +503,6 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       lazyUpdate: false,
       replaceMerge: ["series", "yAxis"],
     });
-    this.syncRangeSelection(scene);
   }
 
   appendLiveTail(seriesKey: string, additions: readonly { segmentId: string; point: ChartPoint }[]): void {
@@ -574,7 +576,6 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     if (!this.instance) return;
     this.instance.off("updateAxisPointer", this.handleAxisPointer);
     this.instance.off("dataZoom", this.handleDataZoom);
-    this.instance.off("brushEnd", this.handleBrushEnd);
     this.container?.removeEventListener("mousedown", this.handleContainerMouseDown, true);
     this.container?.removeEventListener("mousemove", this.handleContainerPointer);
     this.container?.removeEventListener("mouseleave", this.handleContainerLeave);
@@ -582,7 +583,11 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.primaryDragActive = false;
     this.primaryDragBaseDomain = null;
     this.pendingPrimaryDragDomain = null;
-    this.rangeSelectionActivated = false;
+    this.rangeSelectionDragActive = false;
+    this.rangeSelectionStartMs = null;
+    this.rangeSelectionLastMs = null;
+    this.rangeSelectionStartClientX = null;
+    this.rangeSelectionLastClientX = null;
     this.instance.dispose();
     this.instance = null;
     this.container = null;
