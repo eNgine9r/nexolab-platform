@@ -41,7 +41,7 @@ interface EChartsInstancePort {
   off(eventName: string, handler?: (event: unknown) => void): void;
   dispatchAction(action: object): void;
   containPixel(finder: object, value: [number, number]): boolean;
-  convertFromPixel(finder: object, value: [number, number]): number | number[];
+  convertFromPixel(finder: object, value: number | number[]): number | number[] | null | undefined;
   resize(): void;
   dispose(): void;
   isDisposed(): boolean;
@@ -369,8 +369,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     const bounds = this.container.getBoundingClientRect();
     if (bounds.width <= 0 || bounds.height <= 0) return null;
     const localX = Math.max(0, Math.min(event.clientX - bounds.left, bounds.width));
-    const localY = Math.max(0, Math.min(event.clientY - bounds.top, bounds.height));
-    const converted = this.instance.convertFromPixel({ xAxisIndex: 0 }, [localX, localY]);
+    const converted = this.instance.convertFromPixel({ xAxisIndex: 0 }, localX);
     const timestampMs = Array.isArray(converted) ? Number(converted[0]) : Number(converted);
     if (!Number.isFinite(timestampMs)) return null;
     const domain = this.scene.interactionDomain ?? this.scene.xDomain;

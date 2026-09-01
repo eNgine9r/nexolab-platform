@@ -11,6 +11,7 @@ class FakeEChartsInstance {
   resizeCount = 0;
   disposeCount = 0;
   convertFinders: object[] = [];
+  convertValues: Array<number | number[]> = [];
 
   setOption(option: unknown) {
     this.options.push(option);
@@ -32,9 +33,11 @@ class FakeEChartsInstance {
     return true;
   }
 
-  convertFromPixel(finder: object, value: [number, number]) {
+  convertFromPixel(finder: object, value: number | number[]) {
     this.convertFinders.push(finder);
-    return BENCHMARK_START_MS + value[0];
+    this.convertValues.push(value);
+    const x = Array.isArray(value) ? value[0] : value;
+    return BENCHMARK_START_MS + x;
   }
 
   resize() {
@@ -171,6 +174,8 @@ describe("ECharts renderer adapter lifecycle", () => {
     window.dispatchEvent(new MouseEvent("pointerup", { button: 0, clientX: 30, clientY: 100 }));
 
     expect(observedPointerDown).not.toHaveBeenCalled();
+    expect(instance.convertFinders[0]).toEqual({ xAxisIndex: 0 });
+    expect(instance.convertValues[0]).toBe(90);
     expect(onXDomainChange).not.toHaveBeenCalled();
     expect(onRangeSelectionChange).toHaveBeenCalledWith({
       fromMs: BENCHMARK_START_MS + 30,
