@@ -22,12 +22,12 @@
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 802,
-      "title": "Add persistent supported-device commissioning workspace and draft wizard",
-      "branch": "feat/802-device-commissioning-foundation"
-    },
-    "next_work_package": null
+    "active_work_package": null,
+    "next_work_package": {
+      "issue": 803,
+      "title": "Add bounded read-only verification for supported commissioning profiles",
+      "branch": "feat/803-device-commissioning-preflight"
+    }
   },
   "work_packages": [
     {
@@ -1486,27 +1486,78 @@
       "issue": 802,
       "title": "Add persistent supported-device commissioning workspace and draft wizard",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "feat/802-device-commissioning-foundation",
       "evidence": {
-        "implementation": "persistent_commissioning_foundation_candidate",
-        "focused_frontend_tests": "success_19_of_19",
-        "final_review_regressions": "success_5_of_5_then_16_of_16_then_3_of_3_then_4_of_4",
-        "controlled_http_idempotency_fallback": "success_get_random_values_contour",
-        "touched_file_eslint": "success",
-        "touched_file_prettier": "success",
-        "commissioning_python_compile": "success_recovery_and_retired_target_fix",
-        "state_model_v2": "success",
-        "git_diff_check": "success",
-        "backend_pytest": "success_commissioning_api_11_of_11_ephemeral_container",
-        "heavy_core_build_browser": "pending_exact_head_ci_pi_resource_guard",
+        "verified_head_sha": "2e3634499b5b3f7da6bfac0afa95bdcdec0f5442",
+        "pull_request": 810,
+        "completion": "pr_810_squash_merged_issue_802_closed_completed",
+        "checks": {
+          "focused_frontend_final_review_regressions": "success_15_of_15_current_source",
+          "commissioning_backend_api": "success_11_of_11_ephemeral_container",
+          "touched_file_eslint": "success",
+          "touched_file_prettier": "success",
+          "state_model_v2": "success",
+          "git_diff_check": "success",
+          "Core Quality and build": "success:33560150504",
+          "Telemetry service": "success:33560150622",
+          "Refrigeration Browser Acceptance": "success:33560150447",
+          "Authenticated Dashboard Acceptance": "success:33560150420",
+          "Offline Bundle": "success:33560150448",
+          "NEXOLAB Merge Gate": "success:33560150504"
+        },
+        "review_threads": "all_resolved_before_merge",
         "production_deployment": "not_executed",
+        "hardware_evidence": "not_required_no_hardware_communication_in_802",
         "modbus_request": "none",
         "modbus_write": "none",
-        "hardware_write": "none",
-        "review_findings": "p1_http_uuid_stable_serial_path_and_p2_retired_target_active_binding_failure_target_revalidation_organization_switch_inflight_mutation_target_name_catalog_summary_runtime_unavailable_wizard_switch_addressed_pending_exact_head",
-        "superseded_green_head_sha": "04e0dcba2f439368b973a3f3ecb9194138f3f9b7"
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 803,
+      "title": "Add bounded read-only verification for supported commissioning profiles",
+      "priority": "high",
+      "lifecycle": "ready",
+      "depends_on": [
+        802
+      ],
+      "branch": "feat/803-device-commissioning-preflight",
+      "evidence": {
+        "dependency_802": "completed",
+        "selection": "next_ready"
+      }
+    },
+    {
+      "issue": 804,
+      "title": "Add controlled read-only acquisition activation and equipment binding",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "depends_on": [
+        802,
+        803
+      ],
+      "branch": "feat/804-device-commissioning-activation",
+      "evidence": {
+        "blocker": "dependency_803_not_completed"
+      }
+    },
+    {
+      "issue": 805,
+      "title": "Deploy and accept supported-device commissioning on nexolab-edge-01",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "depends_on": [
+        802,
+        803,
+        804
+      ],
+      "branch": "ops/805-device-onboarding-production-acceptance",
+      "evidence": {
+        "blocker": "dependencies_803_804_not_completed",
+        "software_deployment_authorization": "granted_after_all_prerequisites_green",
+        "hardware_write_authorization": "not_granted"
       }
     }
   ],

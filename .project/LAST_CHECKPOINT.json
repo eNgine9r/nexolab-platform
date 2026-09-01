@@ -3,34 +3,47 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-02T00:14:32+03:00",
+  "timestamp": "2026-09-02T00:31:00+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_802_final_review_fixes_ready",
+  "event": "issue_802_merged_select_issue_803_ready",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
-  "active_work": {
-    "issue": 802,
-    "title": "Add persistent supported-device commissioning workspace and draft wizard",
-    "branch": "feat/802-device-commissioning-foundation"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "active_issue_evidence": {
-      "focused_frontend_tests": "success_19_of_19",
-      "final_review_regressions": "success_15_of_15_current_source",
-      "controlled_http_idempotency_fallback": "success_get_random_values_contour",
-      "touched_file_eslint": "success_final_review_fix_files",
-      "touched_file_prettier": "success_final_review_fix_files",
-      "commissioning_python_compile": "success_recovery_and_retired_target_fix",
-      "state_model_v2": "success",
-      "git_diff_check": "success_final_review_fix_worktree",
-      "backend_pytest": "success_commissioning_api_11_of_11_ephemeral_container",
-      "heavy_core_build_browser": "pending_exact_head_ci_pi_resource_guard"
+    "completed_issue_802": {
+      "verified_head_sha": "2e3634499b5b3f7da6bfac0afa95bdcdec0f5442",
+      "pull_request": 810,
+      "github_issue_state": "closed_completed",
+      "exact_head_workflows": "success_19_of_19",
+      "review_threads": "all_resolved",
+      "hardware_evidence": "not_applicable_no_hardware_communication",
+      "production_deployment": "not_executed"
+    },
+    "next_ready": {
+      "issue": 803,
+      "title": "Add bounded read-only verification for supported commissioning profiles",
+      "branch": "feat/803-device-commissioning-preflight",
+      "depends_on": [
+        802
+      ],
+      "dependency_state": "satisfied"
     }
   },
-  "observations": [],
-  "next_action": "Commit and push the final two P2 review fixes, resolve their PR threads, then require fresh exact-head CI and clean review before merge.",
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-09-02T00:27:09+03:00",
+      "kind": "issue_802_merge_completion",
+      "data": {
+        "pull_request": 810,
+        "merge_sha": "03714df256410140c259f616173e4137020b5432",
+        "issue_802": "closed_completed"
+      }
+    }
+  ],
+  "next_action": "Complete state-only Issue #811 / PR, then start Issue #803 from clean current main. Keep preflight operator-initiated, bounded and read-only; no Modbus writes, hardware writes, activation or deployment.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
