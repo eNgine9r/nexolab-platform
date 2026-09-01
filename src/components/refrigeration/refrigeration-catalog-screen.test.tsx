@@ -175,6 +175,38 @@ describe("RefrigerationCatalogScreen", () => {
     ).toBe(true);
   });
 
+  it("does not offer commissioning when controller summaries are unavailable", async () => {
+    const configured = runtime();
+    configured.controllerBindingRepository = {
+      async get() {
+        return null;
+      },
+      async listSummaries() {
+        throw new Error("Controller bindings unavailable");
+      },
+    };
+
+    render(<RefrigerationCatalogScreen runtime={configured} />);
+
+    expect((await screen.findAllByText("Стан контролера недоступний")).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: "Підключити контролер →" })).not.toBeInTheDocument();
+  });
+
+  it("does not offer commissioning while controller summaries are unresolved", async () => {
+    const configured = runtime();
+    configured.controllerBindingRepository = {
+      async get() {
+        return null;
+      },
+      listSummaries: () => new Promise(() => undefined),
+    };
+
+    render(<RefrigerationCatalogScreen runtime={configured} />);
+
+    expect((await screen.findAllByText("Завантаження стану контролера…")).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: "Підключити контролер →" })).not.toBeInTheDocument();
+  });
+
   it("requires a climate chamber before creating equipment", async () => {
     render(<RefrigerationCatalogScreen runtime={runtime()} />);
     await screen.findByText("Вітрина №106-01");

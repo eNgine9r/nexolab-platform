@@ -24,6 +24,7 @@ import type { RefrigerationEquipment } from "@/data/refrigeration";
 import {
   CommissioningRepositoryError,
   createCommissioningIdempotencyKey,
+  type CommissioningRepository,
   type CommissioningSession,
   type CommissioningSessionWrite,
   type SupportedDeviceProfile,
@@ -61,6 +62,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   const [profiles, setProfiles] = useState<SupportedDeviceProfile[]>([]);
   const [equipment, setEquipment] = useState<RefrigerationEquipment[]>([]);
   const [session, setSession] = useState<CommissioningSession | null>(null);
+  const [loadedRepository, setLoadedRepository] = useState<CommissioningRepository | null>(null);
   const [draft, setDraft] = useState<CommissioningSessionWrite>(emptyDraft);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [busy, setBusy] = useState(false);
@@ -73,7 +75,6 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   );
   const repository = runtime.commissioningRepository;
   const canManage = security.membership?.permissions.includes("equipment.manage") ?? false;
-  const cancelled = session?.lifecycle === "cancelled";
 
   useEffect(() => {
     if (security.state !== "ready" || !organizationId || !repository || !runtime.equipmentRepository) return;
@@ -88,16 +89,25 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
         if (controller.signal.aborted) return;
         setProfiles(loadedProfiles);
         setEquipment(loadedEquipment.filter((item) => item.lifecycleStatus !== "retired"));
+        setSession(loadedSession);
         if (loadedSession) {
-          setSession(loadedSession);
           setDraft(sessionToWrite(loadedSession));
         } else {
           setDraft({ ...emptyDraft, targetEquipmentKey: target });
+          idempotencyKey.current = null;
         }
+        setStep(0);
+        setError(null);
+        setLoadedRepository(repository);
         setLoadState("ready");
       })
       .catch((cause: unknown) => {
         if (controller.signal.aborted) return;
+        setProfiles([]);
+        setEquipment([]);
+        setSession(null);
+        setDraft(emptyDraft);
+        setLoadedRepository(repository);
         setLoadState("error");
         setError(message(cause));
       });
@@ -132,6 +142,17 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
     return <Unavailable message="Комісіонування доступне лише в authenticated LOCAL_LAN live mode." />;
   }
 
+  if (!repository || !runtime.equipmentRepository) {
+    return (
+      <Unavailable message={runtime.error ?? "Локальний API чернеток комісіонування не налаштований."} />
+    );
+  }
+
+  const loadIsCurrent = loadedRepository === repository;
+  const visibleLoadState = loadIsCurrent ? loadState : "loading";
+  const visibleSession = loadIsCurrent ? session : null;
+  const cancelled = visibleSession?.lifecycle === "cancelled";
+
   const selectProfile = (profileId: string) => {
     if (profileId === "unsupported") {
       setDraft((current) => ({ ...current, profileId: null, manufacturer: "", model: "" }));
@@ -149,7 +170,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   };
 
   const save = async () => {
-    if (!repository || cancelled || !canManage) return;
+    if (cancelled || !canManage) return;
     if (!draft.deviceClass.trim() || !draft.manufacturer.trim() || !draft.model.trim()) {
       setError("Вкажіть клас, виробника і модель пристрою.");
       setStep(0);
@@ -158,8 +179,8 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
     setBusy(true);
     setError(null);
     try {
-      const saved = session
-        ? await repository.updateSession(session.id, normalizedDraft(draft), session.version)
+      const saved = visibleSession
+        ? await repository.updateSession(visibleSession.id, normalizedDraft(draft), visibleSession.version)
         : await repository.createSession(normalizedDraft(draft), ensureIdempotencyKey(idempotencyKey));
       setSession(saved);
       setDraft(sessionToWrite(saved));
@@ -172,11 +193,11 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   };
 
   const cancel = async () => {
-    if (!repository || !session || cancelled || !canManage) return;
+    if (!visibleSession || cancelled || !canManage) return;
     setBusy(true);
     setError(null);
     try {
-      const saved = await repository.cancelSession(session.id, session.version);
+      const saved = await repository.cancelSession(visibleSession.id, visibleSession.version);
       setSession(saved);
       setDraft(sessionToWrite(saved));
     } catch (cause: unknown) {
@@ -188,7 +209,8 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
 
   const selectedProfile = profiles.find((profile) => profile.id === draft.profileId) ?? null;
   const selectedEquipment = equipment.find((item) => item.id === draft.targetEquipmentKey) ?? null;
-  const unsupported = session?.lifecycle === "unsupported" || (!draft.profileId && draft.manufacturer !== "");
+  const unsupported =
+    visibleSession?.lifecycle === "unsupported" || (!draft.profileId && draft.manufacturer !== "");
 
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
@@ -221,7 +243,9 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
               <div className="min-w-0 flex-1">
                 <p className="text-[9px] tracking-[0.16em] text-cyan-300 uppercase">Commissioning intent</p>
                 <h1 className="truncate text-base font-semibold text-white sm:text-lg">
-                  {session ? `${session.manufacturer} ${session.model}` : "Нова чернетка підключення"}
+                  {visibleSession
+                    ? `${visibleSession.manufacturer} ${visibleSession.model}`
+                    : "Нова чернетка підключення"}
                 </h1>
               </div>
               <span className="rounded-full border border-amber-400/20 bg-amber-400/[0.07] px-3 py-1 text-[10px] text-amber-100">
@@ -229,7 +253,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
               </span>
             </header>
 
-            {loadState === "loading" ? (
+            {visibleLoadState === "loading" ? (
               <div
                 role="status"
                 className="grid min-h-[420px] place-items-center rounded-3xl border border-white/[0.07] bg-[#08182e]/80 text-sm text-slate-400"
@@ -239,8 +263,8 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                 </span>
               </div>
             ) : null}
-            {loadState === "error" ? <Unavailable message={error ?? "Чернетка недоступна."} /> : null}
-            {loadState === "ready" ? (
+            {visibleLoadState === "error" ? <Unavailable message={error ?? "Чернетка недоступна."} /> : null}
+            {visibleLoadState === "ready" ? (
               <div className="grid gap-4 xl:grid-cols-[250px_minmax(0,1fr)_330px]">
                 <aside className="rounded-3xl border border-white/[0.07] bg-[#08182e]/80 p-3 xl:sticky xl:top-24 xl:self-start">
                   <p className="px-2 pb-2 text-[9px] tracking-[0.16em] text-slate-500 uppercase">
@@ -318,7 +342,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                       </button>
                     </div>
                     <div className="flex gap-2">
-                      {session && !cancelled && canManage ? (
+                      {visibleSession && !cancelled && canManage ? (
                         <button
                           type="button"
                           disabled={busy}
@@ -343,7 +367,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                 </section>
 
                 <CommissioningSummary
-                  session={session}
+                  session={visibleSession}
                   draft={draft}
                   profile={selectedProfile}
                   equipment={selectedEquipment}
