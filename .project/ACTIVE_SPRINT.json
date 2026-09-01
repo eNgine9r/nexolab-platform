@@ -1326,15 +1326,23 @@
             "superseded_at": "2026-09-01T11:03:00+03:00"
           }
         ],
-        "verified_head_sha": "31df74800b0ae1ee7d0bf38de42a585c6338567a",
+        "verified_head_sha": "cb6bd4357f32e5655d8ebba523afc0bd25c9e842",
         "pull_request": 793,
         "checks": {
-          "Focused refrigeration and chart tests": "success_55_of_55",
-          "Touched Prettier": "success",
-          "Touched ESLint": "success",
+          "Focused changed tests": "success_43_of_43_exact_head",
+          "DR acceptance Prettier": "success",
+          "DR acceptance ESLint": "success",
           "TypeScript compile": "success",
-          "git diff check": "success"
-        }
+          "git diff check": "success",
+          "Core Quality and build": "success:33499550316",
+          "Refrigeration Browser Acceptance": "success:33499550328",
+          "Authenticated Dashboard Acceptance": "success:33499550333",
+          "Disaster Recovery Browser": "success:33499550320",
+          "NEXOLAB Merge Gate": "success:33499550316"
+        },
+        "dr_contract_repair": "restored canonical equipment API name asserted in operator H1",
+        "production_deployment": "not_executed",
+        "hardware_acceptance": "not_required_existing_read_only_telemetry_only"
       }
     }
   ],
