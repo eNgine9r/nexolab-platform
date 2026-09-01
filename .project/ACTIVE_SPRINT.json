@@ -22,7 +22,11 @@
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 789,
+      "title": "Deploy #785 selected compressor analysis range to controlled Raspberry Pi runtime",
+      "branch": "ops/789-deploy-compressor-analysis-range"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -1254,6 +1258,14 @@
           "NEXOLAB Merge Gate": "success"
         }
       }
+    },
+    {
+      "issue": 789,
+      "title": "Deploy #785 selected compressor analysis range to controlled Raspberry Pi runtime",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "ops/789-deploy-compressor-analysis-range",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [
