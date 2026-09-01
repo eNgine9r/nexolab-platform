@@ -3,7 +3,7 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-01T23:44:00+03:00",
+  "timestamp": "2026-09-01T23:58:00+03:00",
   "actor": "Codex Implementation Engineer",
   "event": "issue_802_local_candidate_ready",
   "baselines": {
@@ -18,7 +18,7 @@
   "evidence_snapshot": {
     "active_issue_evidence": {
       "focused_frontend_tests": "success_19_of_19",
-      "final_review_regressions": "success_5_of_5_then_16_of_16_then_3_of_3",
+      "final_review_regressions": "success_5_of_5_then_16_of_16_then_3_of_3_then_4_of_4",
       "controlled_http_idempotency_fallback": "success_get_random_values_contour",
       "touched_file_eslint": "success",
       "touched_file_prettier": "success",
@@ -30,7 +30,7 @@
     }
   },
   "observations": [],
-  "next_action": "Push the active-binding and in-flight organization-switch fixes, resolve all review threads, and repeat exact-head CI through GREEN merge-readiness.",
+  "next_action": "Push the commissioning target-name fix, resolve the final review thread, and repeat exact-head CI through GREEN merge-readiness.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

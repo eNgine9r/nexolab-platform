@@ -67,7 +67,11 @@ export function EquipmentConnectionsWorkspace({
   }, [epoch, repository]);
 
   const visibleSessions = loadedRepository === repository ? sessions : [];
-  const assetNames = new Map(assets.map((asset) => [asset.key, asset.displayName]));
+  const assetNames = new Map(
+    assets
+      .filter((asset) => asset.category === "refrigeration-equipment")
+      .map((asset) => [asset.id, asset.displayName]),
+  );
   const activeSessions = visibleSessions.filter((session) => session.lifecycle !== "cancelled");
   const blockedCount = activeSessions.filter(
     (session) => session.lifecycle === "blocked" || session.lifecycle === "unsupported",

@@ -6,6 +6,7 @@ import type {
   CommissioningRepository,
   CommissioningSession,
 } from "@/features/equipment/commissioning-repository";
+import type { EquipmentRegistryAsset } from "@/features/equipment/asset-registry";
 
 import { EquipmentConnectionsWorkspace } from "./equipment-connections-workspace";
 
@@ -46,7 +47,7 @@ const persistedSession: CommissioningSession = {
   cancelledAt: null,
 };
 
-function repository(): CommissioningRepository {
+function repository(session: CommissioningSession = persistedSession): CommissioningRepository {
   return {
     async listProfiles() {
       return [];
@@ -55,10 +56,10 @@ function repository(): CommissioningRepository {
       throw new Error("not used");
     },
     async listSessions() {
-      return [persistedSession];
+      return [session];
     },
     async getSession() {
-      return persistedSession;
+      return session;
     },
     async createSession() {
       return persistedSession;
@@ -109,6 +110,28 @@ describe("EquipmentConnectionsWorkspace", () => {
     expect(await screen.findByText("Unknown Mystery")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Підключити пристрій/ })).not.toBeInTheDocument();
     expect(screen.getByText("Потрібен дозвіл equipment.manage")).toBeInTheDocument();
+  });
+
+  it("shows the refrigeration equipment name for a saved target ID", async () => {
+    const targetedSession = { ...persistedSession, targetEquipmentKey: "equipment-cool-jet" };
+    const refrigerationAsset = {
+      key: "refrigeration:equipment-cool-jet",
+      id: "equipment-cool-jet",
+      category: "refrigeration-equipment",
+      displayName: "Cool jet",
+    } as EquipmentRegistryAsset;
+
+    render(
+      <EquipmentConnectionsWorkspace
+        repository={repository(targetedSession)}
+        discoveryRepository={null}
+        canManage
+        assets={[refrigerationAsset]}
+      />,
+    );
+
+    expect(await screen.findByText(/Прив’язка: Cool jet/)).toBeInTheDocument();
+    expect(screen.queryByText(/Прив’язка: equipment-cool-jet/)).not.toBeInTheDocument();
   });
 
   it("hides previous organization sessions while the next repository loads", async () => {
