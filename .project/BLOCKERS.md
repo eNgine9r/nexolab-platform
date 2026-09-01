@@ -8,7 +8,7 @@ Updated: 2026-09-01
 
 ## Issue #790 — controlled deployment final Device Agent health race
 
-**Software defect cleared 2026-09-01.** Exact verified head `53474fbf2fbe7892e92f13f02efe726f8d7de563` passed Core Quality/build and NEXOLAB Merge Gate in run `33509748371`; all P1/P2 review threads are resolved. The bounded health gate now preserves its helper across historical checkout, waits for Docker and operational readiness under one deadline, and requires complete scheduler evidence with matching non-negative integer worker counts before success. This does **not** validate failed #789 evidence or advance formal source authority from `20bb9ca...`; a future controlled deployment remains a separate explicit gate. No deployment/runtime mutation or Modbus/hardware write occurred in #790.
+**Review pending.** A P1 review found the Docker subprocess calls themselves were not bounded by the remaining convergence deadline. The candidate now passes remaining deadline budget to `docker ps`, `docker inspect` and `/health`, and converts Docker timeouts into fail-closed health-gate errors. Local 18/18 focused tests plus all deployment/offline/classifier regressions are GREEN; remote exact-head CI/Merge Gate are pending. This does **not** validate failed #789 evidence or advance formal source authority from `20bb9ca...`. No deployment/runtime mutation or Modbus/hardware write occurred.
 
 ## Issue #785 — operator-selected compressor analysis interval
 

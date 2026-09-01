@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -40,13 +41,19 @@ class FakeRuntime:
         self.running = running
         self.list_calls = 0
         self.inspect_calls = 0
+        self.list_timeouts: list[float] = []
+        self.inspect_timeouts: list[float] = []
 
-    def list_container_ids(self) -> list[str]:
+    def list_container_ids(self, *, timeout_seconds: float) -> list[str]:
+        self.list_timeouts.append(timeout_seconds)
         index = min(self.list_calls, len(self.container_ids) - 1)
         self.list_calls += 1
         return self.container_ids[index]
 
-    def inspect_state(self, container_id: str) -> dict[str, object]:
+    def inspect_state(
+        self, container_id: str, *, timeout_seconds: float
+    ) -> dict[str, object]:
+        self.inspect_timeouts.append(timeout_seconds)
         index = min(self.inspect_calls, len(self.health_statuses) - 1)
         self.inspect_calls += 1
         return {
@@ -82,9 +89,11 @@ class DeploymentHealthGateTests(unittest.TestCase):
         clock = FakeClock()
         health_payloads = payloads or [payload or healthy_payload()]
         health_calls = 0
+        health_timeouts: list[float] = []
 
-        def fetch_health(_url: str) -> dict[str, object]:
+        def fetch_health(_url: str, timeout_seconds: float) -> dict[str, object]:
             nonlocal health_calls
+            health_timeouts.append(timeout_seconds)
             index = min(health_calls, len(health_payloads) - 1)
             health_calls += 1
             return health_payloads[index]
@@ -100,6 +109,7 @@ class DeploymentHealthGateTests(unittest.TestCase):
             health_fetcher=fetch_health,
         )
         clock.health_calls = health_calls  # type: ignore[attr-defined]
+        clock.health_timeouts = health_timeouts  # type: ignore[attr-defined]
         return clock
 
     def test_immediate_healthy_succeeds(self) -> None:
@@ -113,6 +123,21 @@ class DeploymentHealthGateTests(unittest.TestCase):
         clock = self.run_gate(runtime)
         self.assertEqual(clock.sleeps, [2.0, 2.0])
         self.assertEqual(runtime.inspect_calls, 3)
+
+    def test_blocking_io_receives_remaining_deadline(self) -> None:
+        runtime = FakeRuntime(health_statuses=["starting", "healthy"])
+        clock = self.run_gate(runtime, timeout=6.0, poll=2.0)
+        self.assertEqual(runtime.list_timeouts, [6.0, 4.0])
+        self.assertEqual(runtime.inspect_timeouts, [6.0, 4.0])
+        self.assertEqual(clock.health_timeouts, [4.0])  # type: ignore[attr-defined]
+
+    def test_docker_timeout_fails_closed(self) -> None:
+        runtime = MODULE.DockerRuntime("nexolab-edge", "device-agent")
+        timeout = MODULE.subprocess.TimeoutExpired(cmd=["docker", "ps"], timeout=1.5)
+        with patch.object(MODULE.subprocess, "run", side_effect=timeout) as run:
+            with self.assertRaisesRegex(MODULE.HealthGateError, "exceeded deployment health deadline"):
+                runtime.list_container_ids(timeout_seconds=1.5)
+        self.assertEqual(run.call_args.kwargs["timeout"], 1.5)
 
 
     def test_healthy_docker_waits_for_mqtt_to_connect(self) -> None:

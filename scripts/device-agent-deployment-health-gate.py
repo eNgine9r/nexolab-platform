@@ -15,9 +15,11 @@ class HealthGateError(RuntimeError):
 
 
 class ContainerRuntime(Protocol):
-    def list_container_ids(self) -> list[str]: ...
+    def list_container_ids(self, *, timeout_seconds: float) -> list[str]: ...
 
-    def inspect_state(self, container_id: str) -> dict[str, Any]: ...
+    def inspect_state(
+        self, container_id: str, *, timeout_seconds: float
+    ) -> dict[str, Any]: ...
 
 
 class DockerRuntime:
@@ -25,19 +27,24 @@ class DockerRuntime:
         self.project = project
         self.service = service
 
-    def _run(self, *args: str) -> str:
+    def _run(self, *args: str, timeout_seconds: float) -> str:
         try:
             result = subprocess.run(
                 args,
                 check=True,
                 capture_output=True,
                 text=True,
+                timeout=timeout_seconds,
             )
+        except subprocess.TimeoutExpired as exc:
+            raise HealthGateError(
+                f"Docker command exceeded deployment health deadline: {' '.join(args)}"
+            ) from exc
         except (OSError, subprocess.CalledProcessError) as exc:
             raise HealthGateError(f"Docker command failed: {' '.join(args)}") from exc
         return result.stdout
 
-    def list_container_ids(self) -> list[str]:
+    def list_container_ids(self, *, timeout_seconds: float) -> list[str]:
         output = self._run(
             "docker",
             "ps",
@@ -46,11 +53,16 @@ class DockerRuntime:
             f"label=com.docker.compose.project={self.project}",
             "--filter",
             f"label=com.docker.compose.service={self.service}",
+            timeout_seconds=timeout_seconds,
         )
         return [line.strip() for line in output.splitlines() if line.strip()]
 
-    def inspect_state(self, container_id: str) -> dict[str, Any]:
-        raw = self._run("docker", "inspect", container_id)
+    def inspect_state(
+        self, container_id: str, *, timeout_seconds: float
+    ) -> dict[str, Any]:
+        raw = self._run(
+            "docker", "inspect", container_id, timeout_seconds=timeout_seconds
+        )
         try:
             document = json.loads(raw)
         except json.JSONDecodeError as exc:
@@ -63,9 +75,9 @@ class DockerRuntime:
         return state
 
 
-def fetch_health_payload(url: str) -> dict[str, Any]:
+def fetch_health_payload(url: str, timeout_seconds: float) -> dict[str, Any]:
     try:
-        with urlopen(url, timeout=3) as response:
+        with urlopen(url, timeout=min(3.0, timeout_seconds)) as response:
             payload = json.load(response)
     except Exception as exc:  # urllib exposes several concrete transport errors.
         raise HealthGateError(f"Device Agent health request failed: {url}") from exc
@@ -108,15 +120,27 @@ def wait_for_deployment_health(
     poll_seconds: float,
     clock: Callable[[], float] = time.monotonic,
     sleeper: Callable[[float], None] = time.sleep,
-    health_fetcher: Callable[[str], dict[str, Any]] = fetch_health_payload,
+    health_fetcher: Callable[[str, float], dict[str, Any]] = fetch_health_payload,
 ) -> None:
     if timeout_seconds <= 0 or poll_seconds <= 0:
         raise ValueError("timeout_seconds and poll_seconds must be positive")
     deadline = clock() + timeout_seconds
     last_operational_error: HealthGateError | None = None
 
+    def remaining_or_fail() -> float:
+        remaining = deadline - clock()
+        if remaining <= 0:
+            if last_operational_error is not None:
+                raise HealthGateError(
+                    "Device Agent operational health did not converge before deadline: "
+                    f"{last_operational_error}"
+                ) from last_operational_error
+            raise HealthGateError("Device Agent health did not converge before deadline")
+        return remaining
+
     while True:
-        container_ids = runtime.list_container_ids()
+        remaining = remaining_or_fail()
+        container_ids = runtime.list_container_ids(timeout_seconds=remaining)
         if len(container_ids) != 1:
             raise HealthGateError(
                 f"expected exactly one running Device Agent container, found {len(container_ids)}"
@@ -124,7 +148,10 @@ def wait_for_deployment_health(
         if container_ids[0] != expected_container_id:
             raise HealthGateError("Device Agent container changed during health convergence")
 
-        state = runtime.inspect_state(expected_container_id)
+        remaining = remaining_or_fail()
+        state = runtime.inspect_state(
+            expected_container_id, timeout_seconds=remaining
+        )
         if state.get("Running") is not True:
             raise HealthGateError("Device Agent container is not running")
         health = state.get("Health")
@@ -133,8 +160,9 @@ def wait_for_deployment_health(
         health_status = health.get("Status")
 
         if health_status == "healthy":
+            remaining = remaining_or_fail()
             try:
-                validate_operational_health(health_fetcher(health_url))
+                validate_operational_health(health_fetcher(health_url, remaining))
             except HealthGateError as exc:
                 last_operational_error = exc
             else:
@@ -144,14 +172,7 @@ def wait_for_deployment_health(
         elif health_status != "starting":
             raise HealthGateError(f"unsupported Device Agent Docker health {health_status!r}")
 
-        remaining = deadline - clock()
-        if remaining <= 0:
-            if last_operational_error is not None:
-                raise HealthGateError(
-                    "Device Agent operational health did not converge before deadline: "
-                    f"{last_operational_error}"
-                ) from last_operational_error
-            raise HealthGateError("Device Agent Docker health did not converge before deadline")
+        remaining = remaining_or_fail()
         sleeper(min(poll_seconds, remaining))
 
 
