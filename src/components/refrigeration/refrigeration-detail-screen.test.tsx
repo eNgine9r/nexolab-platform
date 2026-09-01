@@ -35,12 +35,17 @@ describe("RefrigerationDetailScreen", () => {
   });
 
   it("uses the digital-twin tabs with Overview as the clean default", () => {
-    render(<RefrigerationDetailScreen equipment={referenceEquipment()} />);
+    const equipment = referenceEquipment();
+    render(<RefrigerationDetailScreen equipment={equipment} />);
 
     expect(screen.getByRole("button", { name: "Огляд" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("button", { name: "Схема" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Графіки" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Контролер" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Підключити контролер →" })).toHaveAttribute(
+      "href",
+      `/equipment/onboarding/new?target=${equipment.id}`,
+    );
     expect(screen.queryByTestId("equipment-image-workspace")).not.toBeInTheDocument();
   });
   it("keeps passport and lifecycle controls out of the primary canvas flow", async () => {

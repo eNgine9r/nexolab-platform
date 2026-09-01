@@ -22,12 +22,12 @@
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 802,
       "title": "Add persistent supported-device commissioning workspace and draft wizard",
       "branch": "feat/802-device-commissioning-foundation"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -1486,10 +1486,28 @@
       "issue": 802,
       "title": "Add persistent supported-device commissioning workspace and draft wizard",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [],
       "branch": "feat/802-device-commissioning-foundation",
-      "evidence": {}
+      "evidence": {
+        "implementation": "persistent_commissioning_foundation_candidate",
+        "focused_frontend_tests": "success_19_of_19",
+        "final_review_regressions": "success_5_of_5_then_16_of_16_then_3_of_3_then_4_of_4",
+        "controlled_http_idempotency_fallback": "success_get_random_values_contour",
+        "touched_file_eslint": "success",
+        "touched_file_prettier": "success",
+        "commissioning_python_compile": "success_recovery_and_retired_target_fix",
+        "state_model_v2": "success",
+        "git_diff_check": "success",
+        "backend_pytest": "success_commissioning_api_11_of_11_ephemeral_container",
+        "heavy_core_build_browser": "pending_exact_head_ci_pi_resource_guard",
+        "production_deployment": "not_executed",
+        "modbus_request": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "review_findings": "p1_http_uuid_stable_serial_path_and_p2_retired_target_active_binding_failure_target_revalidation_organization_switch_inflight_mutation_target_name_catalog_summary_runtime_unavailable_wizard_switch_addressed_pending_exact_head",
+        "superseded_green_head_sha": "04e0dcba2f439368b973a3f3ecb9194138f3f9b7"
+      }
     }
   ],
   "maintenance_actions": [

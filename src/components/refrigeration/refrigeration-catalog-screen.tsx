@@ -72,6 +72,7 @@ type LifecycleFilter = "all" | EquipmentLifecycleStatus;
 type ChamberFilter = "all" | string;
 type Notice = { tone: "success" | "error"; message: string } | null;
 type CreateIntent = "create" | "duplicate";
+type ControllerSummaryState = "loading" | "ready" | "error";
 
 export function RefrigerationCatalogScreen({
   runtime: providedRuntime,
@@ -88,9 +89,11 @@ export function RefrigerationCatalogScreen({
     runtime.mode === "demo" ? refrigerationEquipment : [],
   );
   const [chambers, setChambers] = useState<ClimateChamber[]>([]);
-  const [loadedControllerSummaries, setLoadedControllerSummaries] = useState<
-    RefrigerationControllerSummary[]
-  >([]);
+  const [controllerSummaryResult, setControllerSummaryResult] = useState<{
+    repository: RefrigerationEquipmentRuntime["controllerBindingRepository"];
+    state: ControllerSummaryState;
+    summaries: RefrigerationControllerSummary[];
+  }>({ repository: null, state: "loading", summaries: [] });
   const [legacyNodeOptions, setLegacyNodeOptions] = useState<EquipmentNodeOption[]>([]);
   const [loading, setLoading] = useState(runtime.mode === "live" && runtime.repository !== null);
   const [liveCanManage, setLiveCanManage] = useState(false);
@@ -141,9 +144,15 @@ export function RefrigerationCatalogScreen({
     const controller = new AbortController();
     void repository
       .listSummaries(controller.signal)
-      .then(setLoadedControllerSummaries)
+      .then((summaries) => {
+        if (!controller.signal.aborted) {
+          setControllerSummaryResult({ repository, state: "ready", summaries });
+        }
+      })
       .catch(() => {
-        if (!controller.signal.aborted) setLoadedControllerSummaries([]);
+        if (!controller.signal.aborted) {
+          setControllerSummaryResult({ repository, state: "error", summaries: [] });
+        }
       });
     return () => controller.abort();
   }, [runtime.controllerBindingRepository]);
@@ -224,15 +233,22 @@ export function RefrigerationCatalogScreen({
     [chambers, legacyNodeOptions],
   );
   const chamberByNodeId = useMemo(() => new Map(chambers.map((item) => [item.nodeId, item])), [chambers]);
+  const controllerSummaryState: ControllerSummaryState = runtime.controllerBindingRepository
+    ? controllerSummaryResult.repository === runtime.controllerBindingRepository
+      ? controllerSummaryResult.state
+      : "loading"
+    : runtime.mode === "demo"
+      ? "ready"
+      : "error";
   const controllerByEquipmentId = useMemo(
     () =>
       new Map(
-        (runtime.controllerBindingRepository ? loadedControllerSummaries : []).map((item) => [
-          item.equipmentId,
-          item,
-        ]),
+        (controllerSummaryResult.repository === runtime.controllerBindingRepository
+          ? controllerSummaryResult.summaries
+          : []
+        ).map((item) => [item.equipmentId, item]),
       ),
-    [loadedControllerSummaries, runtime.controllerBindingRepository],
+    [controllerSummaryResult, runtime.controllerBindingRepository],
   );
 
   const equipment = useMemo(() => {
@@ -449,6 +465,7 @@ export function RefrigerationCatalogScreen({
                     }
                     canManage={canManage}
                     controllerSummary={controllerByEquipmentId.get(item.id) ?? null}
+                    controllerSummaryState={controllerSummaryState}
                     onDuplicate={() => openDuplicate(item)}
                     onDelete={() => {
                       setDeleteError(null);
@@ -501,6 +518,7 @@ function EquipmentCard({
   chamberName,
   canManage,
   controllerSummary,
+  controllerSummaryState,
   onDuplicate,
   onDelete,
 }: {
@@ -508,6 +526,7 @@ function EquipmentCard({
   chamberName: string | null;
   canManage: boolean;
   controllerSummary: RefrigerationControllerSummary | null;
+  controllerSummaryState: ControllerSummaryState;
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
@@ -554,7 +573,31 @@ function EquipmentCard({
           <Metric icon={AlertTriangle} label="Тривоги" value={String(item.activeAlarms)} />
         </div>
 
-        {controllerSummary ? <ControllerStatusLine summary={controllerSummary} /> : null}
+        {controllerSummary ? (
+          <ControllerStatusLine summary={controllerSummary} />
+        ) : controllerSummaryState !== "ready" ? (
+          <div
+            role={controllerSummaryState === "error" ? "alert" : "status"}
+            className="mt-3 rounded-xl border border-white/[0.06] bg-[#06142a]/65 px-3 py-2 text-[10px] text-slate-400"
+          >
+            {controllerSummaryState === "loading"
+              ? "Завантаження стану контролера…"
+              : "Стан контролера недоступний"}
+          </div>
+        ) : (
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.06] bg-[#06142a]/65 px-3 py-2 text-[10px]">
+            <span className="text-slate-500">○</span>
+            <span className="font-medium text-slate-300">Контролер не підключено</span>
+            {canManage && item.lifecycleStatus !== "retired" ? (
+              <Link
+                href={`/equipment/onboarding/new?target=${encodeURIComponent(item.id)}`}
+                className="ml-auto font-medium text-cyan-300 hover:text-cyan-200 focus:ring-2 focus:ring-cyan-300 focus:outline-none"
+              >
+                Підключити контролер →
+              </Link>
+            ) : null}
+          </div>
+        )}
 
         <div className="mt-4 flex items-center justify-between border-t border-white/[0.07] pt-4">
           <div className="text-[11px] text-slate-500">

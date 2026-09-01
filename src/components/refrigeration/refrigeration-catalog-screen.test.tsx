@@ -164,6 +164,62 @@ describe("RefrigerationCatalogScreen", () => {
     expect(screen.getAllByText("Тривоги").length).toBeGreaterThan(0);
   });
 
+  it("offers a preselected commissioning route when a controller is not bound", async () => {
+    const item = refrigerationEquipment[0];
+    render(<RefrigerationCatalogScreen runtime={runtime()} />);
+
+    await screen.findByText(item.name);
+    const links = screen.getAllByRole("link", { name: "Підключити контролер →" });
+    expect(
+      links.some((link) => link.getAttribute("href") === `/equipment/onboarding/new?target=${item.id}`),
+    ).toBe(true);
+  });
+
+  it("does not offer commissioning when controller summaries are unavailable", async () => {
+    const configured = runtime();
+    configured.controllerBindingRepository = {
+      async get() {
+        return null;
+      },
+      async listSummaries() {
+        throw new Error("Controller bindings unavailable");
+      },
+    };
+
+    render(<RefrigerationCatalogScreen runtime={configured} />);
+
+    expect((await screen.findAllByText("Стан контролера недоступний")).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: "Підключити контролер →" })).not.toBeInTheDocument();
+  });
+
+  it("does not offer commissioning for retired equipment", async () => {
+    const retired = { ...refrigerationEquipment[0], lifecycleStatus: "retired" as const };
+    const configured = runtime();
+    const equipmentRepository = new InMemoryRefrigerationEquipmentRepository([retired]);
+    configured.repository = equipmentRepository;
+    configured.equipmentRepository = equipmentRepository;
+
+    render(<RefrigerationCatalogScreen runtime={configured} />);
+
+    await screen.findByText(retired.name);
+    expect(screen.queryByRole("link", { name: "Підключити контролер →" })).not.toBeInTheDocument();
+  });
+
+  it("does not offer commissioning while controller summaries are unresolved", async () => {
+    const configured = runtime();
+    configured.controllerBindingRepository = {
+      async get() {
+        return null;
+      },
+      listSummaries: () => new Promise(() => undefined),
+    };
+
+    render(<RefrigerationCatalogScreen runtime={configured} />);
+
+    expect((await screen.findAllByText("Завантаження стану контролера…")).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: "Підключити контролер →" })).not.toBeInTheDocument();
+  });
+
   it("requires a climate chamber before creating equipment", async () => {
     render(<RefrigerationCatalogScreen runtime={runtime()} />);
     await screen.findByText("Вітрина №106-01");

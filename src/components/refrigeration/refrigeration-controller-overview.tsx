@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { AlertTriangle, Gauge, RadioTower, Snowflake, Thermometer } from "lucide-react";
 
 import type { RefrigerationControllerModel } from "@/features/refrigeration/use-refrigeration-controller";
@@ -8,17 +9,34 @@ import type { TelemetrySample } from "@/lib/telemetry/types";
 
 export function RefrigerationControllerOverview({
   controller,
+  equipmentId,
+  canCommission,
 }: {
   controller: RefrigerationControllerModel;
+  equipmentId: string;
+  canCommission: boolean;
 }) {
   if (controller.bindingLoading)
     return <PanelMessage title="Контролер" text="Завантаження прив’язки контролера…" />;
+  if (!controller.binding && controller.latestError)
+    return <PanelMessage title="Контролер недоступний" text={controller.latestError} error />;
   if (!controller.binding) {
     return (
-      <PanelMessage
-        title="Контролер не прив’язаний"
-        text="Для цієї вітрини ще не вибрано перевірений контролер."
-      />
+      <section className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-8 text-center">
+        <RadioTower className="mx-auto h-6 w-6 text-slate-600" />
+        <h2 className="mt-3 text-sm font-semibold text-white">○ Контролер не підключено</h2>
+        <p className="mt-2 text-xs text-slate-500">
+          Створіть безпечну persistent-чернетку підключення для цієї вітрини.
+        </p>
+        {canCommission ? (
+          <Link
+            href={`/equipment/onboarding/new?target=${encodeURIComponent(equipmentId)}`}
+            className="mt-4 inline-flex rounded-xl bg-blue-500 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-400 focus:ring-2 focus:ring-cyan-300 focus:outline-none"
+          >
+            Підключити контролер →
+          </Link>
+        ) : null}
+      </section>
     );
   }
   const snapshot = controller.latest;
@@ -168,9 +186,12 @@ function StateTile({ label, value }: { label: string; value: string }) {
   );
 }
 
-function PanelMessage({ title, text }: { title: string; text: string }) {
+function PanelMessage({ title, text, error = false }: { title: string; text: string; error?: boolean }) {
   return (
-    <section className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-8 text-center">
+    <section
+      role={error ? "alert" : undefined}
+      className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-8 text-center"
+    >
       <RadioTower className="mx-auto h-6 w-6 text-slate-600" />
       <h2 className="mt-3 text-sm font-semibold text-white">{title}</h2>
       <p className="mt-2 text-xs text-slate-500">{text}</p>

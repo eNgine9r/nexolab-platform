@@ -7,6 +7,8 @@ from fastapi import FastAPI
 
 from app.climate_catalog.api import create_climate_catalog_router
 from app.climate_catalog.repository import PostgresClimateCatalogRepository
+from app.commissioning.api import create_commissioning_router
+from app.commissioning.repository import CommissioningRepository
 from app.config import Settings
 from app.durable_spool import DurableIngestionSpool
 from app.equipment_discovery.api import create_equipment_discovery_router
@@ -38,6 +40,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.database,
         security_repository=app.state.security_repository,
     )
+    commissioning_repository = CommissioningRepository(
+        app.state.database,
+        security_repository=app.state.security_repository,
+    )
     discovery_policy = DiscoveryPolicy.from_settings(resolved)
     discovery_service = EquipmentDiscoveryService(
         discovery_repository,
@@ -50,6 +56,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.equipment_discovery_repository = discovery_repository
     app.state.equipment_discovery_policy = discovery_policy
     app.state.equipment_discovery_service = discovery_service
+    app.state.commissioning_repository = commissioning_repository
     app.include_router(
         create_climate_catalog_router(
             climate_catalog_repository,
@@ -73,6 +80,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             discovery_repository,
             discovery_service,
             discovery_policy,
+            app.state.security_dependencies,
+            default_organization_id=resolved.auth_default_organization_id,
+        )
+    )
+    app.include_router(
+        create_commissioning_router(
+            commissioning_repository,
             app.state.security_dependencies,
             default_organization_id=resolved.auth_default_organization_id,
         )
