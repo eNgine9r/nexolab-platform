@@ -9,9 +9,11 @@ import type { RefrigerationControllerModel } from "@/features/refrigeration/use-
 export function RefrigerationControllerDetail({
   controller,
   equipmentId,
+  canCommission,
 }: {
   controller: RefrigerationControllerModel;
   equipmentId: string;
+  canCommission: boolean;
 }) {
   const binding = controller.binding;
   if (controller.bindingLoading)
@@ -26,12 +28,14 @@ export function RefrigerationControllerDetail({
         <p className="mt-2 text-xs text-slate-500">
           Чернетка збере профіль і connection intent без live hardware preflight чи активації.
         </p>
-        <Link
-          href={`/equipment/onboarding/new?target=${encodeURIComponent(equipmentId)}`}
-          className="mt-4 inline-flex rounded-xl bg-blue-500 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-400 focus:ring-2 focus:ring-cyan-300 focus:outline-none"
-        >
-          Підключити контролер →
-        </Link>
+        {canCommission ? (
+          <Link
+            href={`/equipment/onboarding/new?target=${encodeURIComponent(equipmentId)}`}
+            className="mt-4 inline-flex rounded-xl bg-blue-500 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-400 focus:ring-2 focus:ring-cyan-300 focus:outline-none"
+          >
+            Підключити контролер →
+          </Link>
+        ) : null}
       </section>
     );
   }

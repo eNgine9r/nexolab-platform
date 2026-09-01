@@ -419,7 +419,11 @@ export function RefrigerationDetailScreen({
             </nav>
 
             {activeTab === "overview" ? (
-              <RefrigerationControllerOverview controller={controller} equipmentId={equipment.id} />
+              <RefrigerationControllerOverview
+                controller={controller}
+                equipmentId={equipment.id}
+                canCommission={canManageEquipment && !retired}
+              />
             ) : null}
 
             {activeTab === "scheme" ? (
@@ -443,7 +447,11 @@ export function RefrigerationDetailScreen({
 
             {activeTab === "graphs" ? <RefrigerationControllerHistory controller={controller} /> : null}
             {activeTab === "controller" ? (
-              <RefrigerationControllerDetail controller={controller} equipmentId={equipment.id} />
+              <RefrigerationControllerDetail
+                controller={controller}
+                equipmentId={equipment.id}
+                canCommission={canManageEquipment && !retired}
+              />
             ) : null}
           </div>
         </main>

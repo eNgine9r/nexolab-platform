@@ -10,9 +10,11 @@ import type { TelemetrySample } from "@/lib/telemetry/types";
 export function RefrigerationControllerOverview({
   controller,
   equipmentId,
+  canCommission,
 }: {
   controller: RefrigerationControllerModel;
   equipmentId: string;
+  canCommission: boolean;
 }) {
   if (controller.bindingLoading)
     return <PanelMessage title="Контролер" text="Завантаження прив’язки контролера…" />;
@@ -26,12 +28,14 @@ export function RefrigerationControllerOverview({
         <p className="mt-2 text-xs text-slate-500">
           Створіть безпечну persistent-чернетку підключення для цієї вітрини.
         </p>
-        <Link
-          href={`/equipment/onboarding/new?target=${encodeURIComponent(equipmentId)}`}
-          className="mt-4 inline-flex rounded-xl bg-blue-500 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-400 focus:ring-2 focus:ring-cyan-300 focus:outline-none"
-        >
-          Підключити контролер →
-        </Link>
+        {canCommission ? (
+          <Link
+            href={`/equipment/onboarding/new?target=${encodeURIComponent(equipmentId)}`}
+            className="mt-4 inline-flex rounded-xl bg-blue-500 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-400 focus:ring-2 focus:ring-cyan-300 focus:outline-none"
+          >
+            Підключити контролер →
+          </Link>
+        ) : null}
       </section>
     );
   }

@@ -35,9 +35,21 @@ describe("refrigeration controller binding failure states", () => {
     ["overview", RefrigerationControllerOverview],
     ["detail", RefrigerationControllerDetail],
   ])("fails closed in the %s instead of offering commissioning", (_name, Component) => {
-    render(<Component controller={failedController()} equipmentId="showcase-106-01" />);
+    render(<Component controller={failedController()} equipmentId="showcase-106-01" canCommission />);
 
     expect(screen.getByRole("alert")).toHaveTextContent("Не вдалося отримати прив’язку контролера.");
+    expect(screen.queryByRole("link", { name: "Підключити контролер →" })).not.toBeInTheDocument();
+  });
+  it.each([
+    ["overview", RefrigerationControllerOverview],
+    ["detail", RefrigerationControllerDetail],
+  ])("hides commissioning in the %s when permission or lifecycle denies it", (_name, Component) => {
+    const controller = failedController();
+    controller.latestError = null;
+
+    render(<Component controller={controller} equipmentId="showcase-106-01" canCommission={false} />);
+
+    expect(screen.getByText("○ Контролер не підключено")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Підключити контролер →" })).not.toBeInTheDocument();
   });
 });

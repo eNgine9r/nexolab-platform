@@ -588,7 +588,7 @@ function EquipmentCard({
           <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.06] bg-[#06142a]/65 px-3 py-2 text-[10px]">
             <span className="text-slate-500">○</span>
             <span className="font-medium text-slate-300">Контролер не підключено</span>
-            {canManage ? (
+            {canManage && item.lifecycleStatus !== "retired" ? (
               <Link
                 href={`/equipment/onboarding/new?target=${encodeURIComponent(item.id)}`}
                 className="ml-auto font-medium text-cyan-300 hover:text-cyan-200 focus:ring-2 focus:ring-cyan-300 focus:outline-none"

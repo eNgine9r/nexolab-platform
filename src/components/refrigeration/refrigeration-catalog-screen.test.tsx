@@ -192,6 +192,19 @@ describe("RefrigerationCatalogScreen", () => {
     expect(screen.queryByRole("link", { name: "Підключити контролер →" })).not.toBeInTheDocument();
   });
 
+  it("does not offer commissioning for retired equipment", async () => {
+    const retired = { ...refrigerationEquipment[0], lifecycleStatus: "retired" as const };
+    const configured = runtime();
+    const equipmentRepository = new InMemoryRefrigerationEquipmentRepository([retired]);
+    configured.repository = equipmentRepository;
+    configured.equipmentRepository = equipmentRepository;
+
+    render(<RefrigerationCatalogScreen runtime={configured} />);
+
+    await screen.findByText(retired.name);
+    expect(screen.queryByRole("link", { name: "Підключити контролер →" })).not.toBeInTheDocument();
+  });
+
   it("does not offer commissioning while controller summaries are unresolved", async () => {
     const configured = runtime();
     configured.controllerBindingRepository = {

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-01T23:58:00+03:00",
-  "actor": "Codex Implementation Engineer",
-  "event": "issue_802_local_candidate_ready",
+  "timestamp": "2026-09-02T00:14:32+03:00",
+  "actor": "ChatGPT Team Lead / Senior Engineer",
+  "event": "issue_802_final_review_fixes_ready",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
@@ -18,19 +18,19 @@
   "evidence_snapshot": {
     "active_issue_evidence": {
       "focused_frontend_tests": "success_19_of_19",
-      "final_review_regressions": "success_5_of_5_then_16_of_16_then_3_of_3_then_4_of_4",
+      "final_review_regressions": "success_15_of_15_current_source",
       "controlled_http_idempotency_fallback": "success_get_random_values_contour",
-      "touched_file_eslint": "success",
-      "touched_file_prettier": "success",
+      "touched_file_eslint": "success_final_review_fix_files",
+      "touched_file_prettier": "success_final_review_fix_files",
       "commissioning_python_compile": "success_recovery_and_retired_target_fix",
       "state_model_v2": "success",
-      "git_diff_check": "success",
+      "git_diff_check": "success_final_review_fix_worktree",
       "backend_pytest": "success_commissioning_api_11_of_11_ephemeral_container",
       "heavy_core_build_browser": "pending_exact_head_ci_pi_resource_guard"
     }
   },
   "observations": [],
-  "next_action": "Push the commissioning target-name fix, resolve the final review thread, and repeat exact-head CI through GREEN merge-readiness.",
+  "next_action": "Commit and push the final two P2 review fixes, resolve their PR threads, then require fresh exact-head CI and clean review before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
