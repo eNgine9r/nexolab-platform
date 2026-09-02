@@ -3,38 +3,53 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-02T01:13:20+03:00",
+  "timestamp": "2026-09-02T06:23:12+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_803_candidate_verified_locally",
+  "event": "issue_803_merged_select_issue_804_ready",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
-  "active_work": {
-    "issue": 803,
-    "title": "Add bounded read-only verification for supported commissioning profiles",
-    "branch": "feat/803-device-commissioning-preflight"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "software_candidate": {
-      "base_sha": "eb4c0feaddeaeda4bbdbaabaa1b07f0b6fb8c183",
-      "frontend_targeted_tests": "13_passed",
-      "frontend_targeted_eslint": "success",
-      "device_agent_contract_and_modbus_tests": "22_passed",
-      "dual_bus_runtime_tests": "9_passed_isolated_networkless_container",
-      "telemetry_persistence_idempotency_smoke": "success_isolated_networkless_container",
-      "telemetry_application_factory_smoke": "success_isolated_networkless_container",
-      "python_compile": "success_for_touched_preflight_modules",
-      "state_integrity": "success",
-      "git_diff_check": "success",
-      "standalone_compose_contract": "not_run_remote_tool_safety_blocked",
-      "telemetry_pytest": "not_run_locally_pytest_unavailable_deferred_to_github_ci",
+    "completed_issue_803": {
+      "verified_head_sha": "3e501f3b35a090e63b7ec48ba4de05358228da1f",
+      "pull_request": 813,
+      "github_issue_state": "closed_completed",
+      "exact_head_required_ci": "success",
+      "nexolab_merge_gate": "success",
+      "telemetry_service": "success",
+      "device_agent_fleet": "success",
+      "offline_bundle": "success",
+      "review_threads": "none",
+      "codex_review": "not_run_usage_limit",
       "hardware_evidence": "unverified_no_live_rs485_preflight",
       "production_deployment": "not_executed"
+    },
+    "next_ready": {
+      "issue": 804,
+      "title": "Add controlled read-only acquisition activation and equipment binding",
+      "branch": "feat/804-device-commissioning-activation",
+      "depends_on": [
+        802,
+        803
+      ],
+      "dependency_state": "satisfied"
     }
   },
-  "observations": [],
-  "next_action": "Create recoverable commit and push for Issue #803, open one focused PR, then use exact-head GitHub CI/review to run the heavy Telemetry/compose/build matrix. Do not execute live hardware preflight or production deployment in #803.",
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-09-02T06:16:49+03:00",
+      "kind": "issue_803_merge_completion",
+      "data": {
+        "pull_request": 813,
+        "merge_sha": "8fbf3af4295e653c00c2687809402d26484d9298",
+        "issue_803": "closed_completed"
+      }
+    }
+  ],
+  "next_action": "Complete state-only Issue #814 / PR, then start Issue #804 from clean current main. Activation remains read-only monitoring enrollment only and requires a fresh successful matching preflight; no Modbus writes, hardware writes or production deployment.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
