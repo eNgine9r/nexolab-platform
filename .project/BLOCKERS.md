@@ -2,11 +2,9 @@
 
 Updated: 2026-09-02
 
-## Issue #805 — post-#826 controlled redeploy and final browser acceptance
+## Issue #805 — controlled onboarding deployment and browser acceptance
 
-**Hard runtime blocker for #805 only.** Issue #809 / PR #821 is completed and the earlier source-authority blocker is cleared. The currently authoritative successful deployment is `runtime/deployments/20260902T085457Z` on `e8d93b6a...`, with schema `20260902_0030`, preserved persistent volumes and healthy Telemetry/MQTT/Device Agent; real Embraco Unit 2 preflight remains hardware-verified FC03-only with no writes. Authenticated browser acceptance then exposed unsupported-wizard navigation defect #826; PR #827 fixed it and merged GREEN. Source-selection preflight from deployed `e8d93b6a...` to merged post-fix target `893573a8...` passed.
-
-The actual controlled redeploy invocation was blocked by the execution-tool safety gate before command execution. No service, container, database, Device Agent, Modbus or hardware mutation occurred. Do not bypass the safety gate or hand-edit the runtime. #805 can resume only through the repository-owned controlled deployment path when an explicitly permitted/operator execution is available, followed by final authenticated browser acceptance. This does **not** block independent TG-01 / #822 software verification and merge.
+**Cleared 2026-09-02.** Controlled deployment `runtime/deployments/20260902T113916Z` passed on corrected onboarding source `893573a86faf6629e5e3cefc0e41c47230a7f8c7` after #826/#827. Post-cutover Dashboard, Telemetry, MQTT and Device Agent are healthy; persistent volumes are preserved. Authenticated Chromium proved commissioning draft persistence across reload/reopen and the controlled service restart, and `Unsupported / Profile required` is now fail-closed for `Далі`, Steps 2–5, SAFE PREFLIGHT and activation. Real Embraco Unit 2 preflight passed FC03-only with `hardware_verified` evidence and no writes. Controlled source adoption is recorded for `893573a86faf6629e5e3cefc0e41c47230a7f8c7`, schema `20260902_0030`, linux/arm64, LAN, health ready. #805 no longer blocks independent work.
 
 ## Issue #792 — selected-interval relay traceability and export
 
@@ -14,7 +12,7 @@ The actual controlled redeploy invocation was blocked by the execution-tool safe
 
 ## Issue #790 — controlled deployment final Device Agent health race
 
-**Software defect cleared 2026-09-01.** Exact verified head `cd01e27054f30af85f10be0a49e13524e285abe0` passed Core Quality/build and NEXOLAB Merge Gate in run `33512424465`; all P1/P2 review threads are resolved. The bounded gate now preserves its helper across historical checkout, enforces container identity, Docker/operational convergence, required scheduler evidence and matching worker counts, and bounds every Docker/HTTP blocking I/O call by the remaining convergence deadline. At #790 completion this did **not** validate failed #789 evidence or advance the then-formal source authority from `20bb9ca...`; that historical boundary was later superseded by the successful #805 deployment on `e8d93b6a...`. No deployment/runtime mutation or Modbus/hardware write occurred in #790.
+**Software defect cleared 2026-09-01.** Exact verified head `cd01e27054f30af85f10be0a49e13524e285abe0` passed Core Quality/build and NEXOLAB Merge Gate in run `33512424465`; all P1/P2 review threads are resolved. The bounded gate now preserves its helper across historical checkout, enforces container identity, Docker/operational convergence, required scheduler evidence and matching worker counts, and bounds every Docker/HTTP blocking I/O call by the remaining convergence deadline. At #790 completion this did **not** validate failed #789 evidence or advance the then-formal source authority from `20bb9ca...`; that historical boundary was later superseded by the successful #805 deployment on `893573a8...`. No deployment/runtime mutation or Modbus/hardware write occurred in #790.
 
 ## Issue #785 — operator-selected compressor analysis interval
 
@@ -40,7 +38,7 @@ Final external gates are cleared: source/version authority is recorded as `contr
 
 ## Issue #189 — actual-host recovery acceptance
 
-Blocked because accepted ARM64/local-auth artifact `9584581740` from GREEN run `32939760743` is exact to runtime source `cc27b609...`, while the currently authoritative deployed LAN source is `e8d93b6a...` from successful deployment evidence `runtime/deployments/20260902T085457Z`. The old artifact remains historical evidence but is not exact-source authority for the current runtime. Refresh recovery/package acceptance for `e8d93b6a...` or establish another explicitly accepted current-source recovery path before resuming the actual-host recovery drill. Actual-host cutover/recovery and power-loss remain separately gated.
+Blocked because accepted ARM64/local-auth recovery artifact `9584581740` is exact to runtime source `cc27b609...`, while the currently authoritative deployed LAN source is `893573a86faf6629e5e3cefc0e41c47230a7f8c7` from successful #805 deployment evidence `runtime/deployments/20260902T113916Z`. The old artifact remains historical evidence but is not exact-source authority for the current runtime. Refresh recovery/package acceptance for `893573a86faf6629e5e3cefc0e41c47230a7f8c7` or establish another explicitly accepted current-source recovery path before resuming the actual-host recovery drill. Actual-host cutover/recovery and power-loss remain separately gated.
 
 ## Issue #200 — physical RS-485 topology
 
