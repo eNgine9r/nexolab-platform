@@ -12,7 +12,6 @@ REFRIGERATION = (ROOT / '.github/workflows/refrigeration-browser-acceptance.yml'
 DASHBOARD = (ROOT / '.github/workflows/authenticated-dashboard-acceptance.yml').read_text(encoding='utf-8')
 TELEGRAM = (ROOT / '.github/workflows/telegram-gateway.yml').read_text(encoding='utf-8')
 CONTAINER = (ROOT / '.github/workflows/container-supply-chain.yml').read_text(encoding='utf-8')
-TELEGRAM = (ROOT / '.github/workflows/telegram-gateway.yml').read_text(encoding='utf-8')
 CORE = (ROOT / '.github/workflows/ci.yml').read_text(encoding='utf-8')
 CLEAN_HELPER = ROOT / 'scripts/prepare-clean-verification-worktree.sh'
 
@@ -50,7 +49,6 @@ class RiskAwareVerificationContractTests(unittest.TestCase):
             'Refrigeration Browser Acceptance': pull_request_paths(REFRIGERATION),
             'Telegram Gateway': pull_request_paths(TELEGRAM),
             'Container Supply Chain': pull_request_paths(CONTAINER),
-            'Telegram Gateway': pull_request_paths(TELEGRAM),
         }
         tracked = subprocess.check_output(
             ['git', 'ls-files'], cwd=ROOT, text=True
