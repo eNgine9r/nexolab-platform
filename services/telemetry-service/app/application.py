@@ -17,6 +17,9 @@ from app.commissioning.preflight_repository import CommissioningPreflightReposit
 from app.commissioning.preflight_service import CommissioningPreflightService
 from app.config import Settings
 from app.durable_spool import DurableIngestionSpool
+from app.daily_reports.api import create_daily_report_router
+from app.daily_reports.repository import DailyReportRepository
+from app.daily_reports.service import DailyReportSchedulerService
 from app.equipment_discovery.api import create_equipment_discovery_router
 from app.equipment_discovery.policy import DiscoveryPolicy
 from app.equipment_discovery.repository import EquipmentDiscoveryRepository
@@ -93,11 +96,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         schedule_interval_seconds=resolved.equipment_discovery_schedule_interval_seconds,
         scheduled_organization_id=resolved.auth_default_organization_id,
     )
+    daily_report_repository = DailyReportRepository(
+        app.state.database,
+        security_repository=app.state.security_repository,
+    )
+    daily_report_service = DailyReportSchedulerService(
+        daily_report_repository,
+        enabled=resolved.daily_reports_scheduler_enabled,
+        interval_seconds=resolved.daily_reports_scheduler_interval_seconds,
+    )
     app.state.climate_catalog_repository = climate_catalog_repository
     app.state.sensor_configuration_repository = sensor_configuration_repository
     app.state.equipment_discovery_repository = discovery_repository
     app.state.equipment_discovery_policy = discovery_policy
     app.state.equipment_discovery_service = discovery_service
+    app.state.daily_report_repository = daily_report_repository
+    app.state.daily_report_service = daily_report_service
     app.state.commissioning_repository = commissioning_repository
     app.state.commissioning_preflight_repository = commissioning_preflight_repository
     app.state.commissioning_preflight_service = commissioning_preflight_service
@@ -131,6 +145,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
     )
     app.include_router(
+        create_daily_report_router(
+            daily_report_repository,
+            app.state.security_dependencies,
+            scheduler_service=daily_report_service,
+        )
+    )
+    app.include_router(
         create_commissioning_router(
             commissioning_repository,
             app.state.security_dependencies,
@@ -145,6 +166,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     _install_equipment_discovery_lifespan(app)
     _install_latest_projection_reconciliation_lifespan(app)
     _install_durable_ingestion_lifespan(app)
+    _install_daily_report_lifespan(app)
     return app
 
 
@@ -206,6 +228,23 @@ def _install_equipment_discovery_lifespan(app: FastAPI) -> None:
             await service.shutdown()
 
     app.router.lifespan_context = discovery_lifespan
+
+
+
+def _install_daily_report_lifespan(app: FastAPI) -> None:
+    service: DailyReportSchedulerService = app.state.daily_report_service
+    original_lifespan = app.router.lifespan_context
+
+    @asynccontextmanager
+    async def daily_report_lifespan(application: FastAPI) -> AsyncIterator[None]:
+        async with original_lifespan(application):
+            service.start_scheduler()
+            try:
+                yield
+            finally:
+                await service.shutdown()
+
+    app.router.lifespan_context = daily_report_lifespan
 
 
 app = create_app()

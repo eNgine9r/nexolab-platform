@@ -19,13 +19,13 @@
   },
   "baselines": {
     "accepted_product_sha": "48578c879272334d966756ff46aa204a0ff73e90",
-    "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
+    "deployed_product_sha": "e8d93b6a777a4d77eda48f1f4cbaa008ae4d5daf"
   },
   "selection": {
     "active_work_package": {
-      "issue": 809,
-      "title": "Re-establish source authority after #789 forward-mutated healthy runtime without edge data rollback",
-      "branch": "fix/809-forward-mutated-authority-recovery"
+      "issue": 822,
+      "title": "Add deterministic 07:50 refrigeration morning report snapshots",
+      "branch": "feat/822-daily-refrigeration-morning-reports"
     },
     "next_work_package": null
   },
@@ -1583,21 +1583,27 @@
       "branch": "ops/805-device-onboarding-production-acceptance",
       "evidence": {
         "dependencies_802_803_804": "completed",
-        "blocker": "issue_809_forward_mutated_source_authority_recovery",
         "draft_pull_request": 817,
-        "deployment_target_sha": "e8d93b6a777a4d77eda48f1f4cbaa008ae4d5daf",
-        "arm64_frontend_artifact": "workflow_33597615267_success",
-        "capacity_preflight": "pass_11364687872_free_vs_9531767513_required",
-        "latest_attempt": "runtime/deployments/20260902T063606Z_pre_mutation_fail_closed_on_indeterminate_authority",
-        "software_deployment_authorization": "granted_in_github_issue_805",
-        "hardware_write_authorization": "not_granted"
+        "deployment_evidence": "runtime/deployments/20260902T085457Z",
+        "deployment_result": "DEPLOYMENT_PASSED",
+        "deployed_product_sha": "e8d93b6a777a4d77eda48f1f4cbaa008ae4d5daf",
+        "schema_head": "20260902_0030",
+        "persistent_volume_identity": "preserved",
+        "runtime_health": "telemetry_mqtt_device_agent_healthy_queue_0_workers_2_of_2",
+        "live_read_only_preflight": "embraco_unit_2_pass_fc03_only_hardware_verified",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "unsupported_profile_before_826": "fail_closed_before_physical_read_but_navigation_defect_found",
+        "issue_826_pr_827": "merged_green_main_893573a86faf6629e5e3cefc0e41c47230a7f8c7",
+        "post_826_source_selection": "PASS_e8d93b6a_to_893573a8",
+        "blocker": "production_redeployment_of_893573a8_not_executed_tool_safety_gate_blocked_before_command_execution"
       }
     },
     {
       "issue": 809,
       "title": "Re-establish source authority after #789 forward-mutated healthy runtime without edge data rollback",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         789,
         790
@@ -1617,8 +1623,23 @@
         "edge_sqlite_restore": "none",
         "postgres_restore": "none",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "verified_head_sha": "4671e5abcd615c5fbc5b79a7c6f3a86550d87f72",
+        "pull_request": 821,
+        "checks": {
+          "ci": "success",
+          "telemetry_service": "success",
+          "nexolab_merge_gate": "success"
+        }
       }
+    },
+    {
+      "issue": 822,
+      "title": "Add deterministic 07:50 refrigeration morning report snapshots",
+      "priority": "unspecified",
+      "lifecycle": "review",
+      "branch": "feat/822-daily-refrigeration-morning-reports",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [

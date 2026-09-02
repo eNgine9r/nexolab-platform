@@ -192,6 +192,11 @@ class Settings(BaseSettings):
     retention_interval_seconds: int = Field(default=3600, ge=60, le=86_400)
     retention_batch_size: int = Field(default=1000, ge=1, le=100_000)
 
+    # Local deterministic refrigeration morning reports. The scheduler only
+    # reads local persisted telemetry and remains independent of Telegram.
+    daily_reports_scheduler_enabled: bool = True
+    daily_reports_scheduler_interval_seconds: int = Field(default=60, ge=10, le=3600)
+
     @model_validator(mode="after")
     def validate_runtime_secrets(self) -> "Settings":
         if 0 < self.equipment_discovery_schedule_interval_seconds < 300:

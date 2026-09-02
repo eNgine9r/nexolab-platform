@@ -11,6 +11,8 @@ def register_models() -> None:
     from app.alerts import models as _alert_models
     from app.alerts.immutability import register_alert_immutability
     from app.climate_catalog import models as _climate_catalog_models
+    from app.daily_reports import models as _daily_report_models
+    from app.daily_reports.immutability import register_daily_report_immutability
     from app.commissioning import models as _commissioning_models
     from app.equipment_discovery import models as _equipment_discovery_models
     from app.live_dashboard import models as _live_dashboard_models
@@ -28,6 +30,7 @@ def register_models() -> None:
     register_audit_immutability()
     register_alert_immutability()
     register_report_immutability()
+    register_daily_report_immutability()
     assert len(_session_models.SESSION_STATES) == 7
     assert _telemetry_attribution.TelemetrySessionContext.__tablename__ == (
         "telemetry_session_contexts"
@@ -106,6 +109,12 @@ def register_models() -> None:
     assert _report_models.TestReportRender.__tablename__ == "test_report_renders"
     assert _report_models.TestReportApprovalEvent.__tablename__ == (
         "test_report_approval_events"
+    )
+    assert _daily_report_models.RefrigerationDailyReportProfile.__tablename__ == (
+        "refrigeration_daily_report_profiles"
+    )
+    assert _daily_report_models.RefrigerationDailyReportSnapshot.__tablename__ == (
+        "refrigeration_daily_report_snapshots"
     )
     assert _security_models.SecurityAuditEvent.__tablename__ == "security_audit_events"
     assert _security_models.SecurityMembershipPermission.__tablename__ == (
