@@ -3,57 +3,31 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-02T06:23:12+03:00",
+  "timestamp": "2026-09-02T06:31:00+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_803_merged_select_issue_804_ready",
+  "event": "issue_804_started",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 804,
+    "title": "Add controlled read-only acquisition activation and equipment binding",
+    "branch": "feat/804-device-commissioning-activation"
+  },
   "evidence_snapshot": {
-    "completed_issue_803": {
-      "verified_head_sha": "3e501f3b35a090e63b7ec48ba4de05358228da1f",
-      "pull_request": 813,
-      "github_issue_state": "closed_completed",
-      "exact_head_required_ci": "success",
-      "nexolab_merge_gate": "success",
-      "telemetry_service": "success",
-      "device_agent_fleet": "success",
-      "offline_bundle": "success",
-      "review_threads": "none",
-      "codex_review": "not_run_usage_limit",
-      "hardware_evidence": "unverified_no_live_rs485_preflight",
-      "production_deployment": "not_executed"
-    },
-    "next_ready": {
-      "issue": 804,
-      "title": "Add controlled read-only acquisition activation and equipment binding",
-      "branch": "feat/804-device-commissioning-activation",
-      "depends_on": [
-        802,
-        803
-      ],
-      "dependency_state": "satisfied"
+    "dependencies": {
+      "issue_802": "completed",
+      "issue_803": "completed",
+      "base_main": "c359e8a0ae6fd54594bdb57749d27da67f5eb627"
     }
   },
-  "observations": [
-    {
-      "source": "github",
-      "observed_at": "2026-09-02T06:16:49+03:00",
-      "kind": "issue_803_merge_completion",
-      "data": {
-        "pull_request": 813,
-        "merge_sha": "8fbf3af4295e653c00c2687809402d26484d9298",
-        "issue_803": "closed_completed"
-      }
-    }
-  ],
-  "next_action": "Complete state-only Issue #814 / PR, then start Issue #804 from clean current main. Activation remains read-only monitoring enrollment only and requires a fresh successful matching preflight; no Modbus writes, hardware writes or production deployment.",
+  "observations": [],
+  "next_action": "Implement #804 only: fresh matching preflight gate, explicit activation plan, persisted idempotent activation transaction, narrow Device Agent read-only enrollment/rollback, telemetry/health proof and canonical binding. No live activation, Modbus write, hardware write or deployment.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
-    "modbus_read_on_real_hardware": "not_executed",
+    "live_activation": "not_executed",
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
     "production_cutover_authorized": false,

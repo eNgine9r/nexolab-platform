@@ -22,12 +22,12 @@
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 804,
       "title": "Add controlled read-only acquisition activation and equipment binding",
       "branch": "feat/804-device-commissioning-activation"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -1552,7 +1552,7 @@
       "issue": 804,
       "title": "Add controlled read-only acquisition activation and equipment binding",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [
         802,
         803
@@ -1561,7 +1561,7 @@
       "evidence": {
         "dependency_802": "completed",
         "dependency_803": "completed",
-        "selection": "next_ready"
+        "started_from_main": "c359e8a0ae6fd54594bdb57749d27da67f5eb627"
       }
     },
     {

@@ -6,7 +6,7 @@ Updated: 2026-09-02
 
 `PRODUCTION-READINESS-1` remains active only for outstanding hardware/recovery and controlled-deployment acceptance boundaries. Its repository-readiness gate is complete. RFX-00 / Issue #715 / PR #716 is completed and merged; accepted ADR 0010 remains the architecture authority for future refrigeration expansion.
 
-## Supported-device onboarding — Epic #801 / next Ready #804
+## Supported-device onboarding — Epic #801 / active #804
 
 Issue #802 is **completed**. PR #810 passed the exact-head required matrix on `2e3634499b5b3f7da6bfac0afa95bdcdec0f5442` — including Core Quality/build, Telemetry service, Refrigeration Browser Acceptance, Authenticated Dashboard Acceptance, Offline Bundle and NEXOLAB Merge Gate — with all review threads resolved, then squash-merged through PR #810; GitHub closed #802 as completed. The accepted foundation provides the local persistent commissioning aggregate/migration, repository-owned supported-profile catalog, organization-scoped audited/optimistically concurrent API, Equipment `Реєстр / Підключення / Метрологія` workspace, persistent five-step onboarding routes, unsupported fail-closed state and refrigeration preselected entry points. LOCAL_LAN discovery remains TCP-connect-only with explicit private-CIDR and zero-payload semantics.
 
@@ -16,7 +16,7 @@ Issue #803 is **completed**. PR #813 passed the exact-head required matrix on `3
 
 Local software evidence for #803 includes Device Agent contract/Modbus `22/22`, isolated dual-bus runtime `9/9`, frontend targeted `13/13`, targeted ESLint, Telemetry persistence/idempotency smoke, Telemetry application-factory/OpenAPI smoke, Python compilation, State Model v2 and `git diff --check`. Exact-head GitHub CI is GREEN. No live RS-485 preflight was executed during #803, so hardware evidence remains **unverified**; Modbus writes, hardware writes, enrollment, activation and production deployment were not performed.
 
-Issue #804 is now the next independent Ready Work Package. It may only activate **read-only monitoring enrollment** after a fresh successful matching preflight, with canonical local acquisition state, auditable/idempotent equipment binding and rollback/recovery evidence. #805 controlled Raspberry Pi deployment/acceptance remains dependency-gated behind #804. No Modbus/hardware-write authorization is implied.
+Issue #804 is **in progress** on branch `feat/804-device-commissioning-activation`. It may only activate **read-only monitoring enrollment** after a fresh successful matching preflight, with canonical local acquisition state, auditable/idempotent equipment binding and rollback/recovery evidence. #805 controlled Raspberry Pi deployment/acceptance remains dependency-gated behind #804. No Modbus/hardware-write authorization is implied.
 
 ## Issue #792 — selected-interval relay traceability, compressor starts and CSV export
 
