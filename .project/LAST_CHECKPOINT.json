@@ -3,19 +3,23 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-02T15:22:50+03:00",
+  "timestamp": "2026-09-02T15:05:00+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_805_acceptance_and_822_merge_reconciled",
+  "event": "issue_823_telegram_gateway_implementation_active",
   "baselines": {
     "accepted_product_sha": "dede5e5d4680d89a5404baa0f327242e7f7816ce",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 823,
+    "title": "Add Telegram group report delivery adapter with Mini App direct link",
+    "branch": "feat/823-telegram-report-delivery"
+  },
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Start TG-02 / Issue #823 from current main after #805 state PR is GREEN/merged; preserve Telegram as an optional outbound adapter and do not introduce secrets, public inbound listeners, Modbus writes, hardware writes or mandatory internet dependency.",
+  "next_action": "Finish TG-02 exact-head verification, open PR, require Telegram Gateway + Offline Bundle + NEXOLAB Merge Gate GREEN, then merge before starting TG-03 / Issue #824.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

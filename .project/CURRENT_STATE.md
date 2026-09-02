@@ -4,13 +4,13 @@ Updated: 2026-09-02
 
 ## Current Sprint
 
-`PRODUCTION-READINESS-1` remains active for outstanding recovery/hardware boundaries while the supported-device onboarding acceptance chain is complete. TG-01 / Issue #822 is also merged GREEN. The next independent Ready software Work Package is TG-02 / Issue #823; RFX-01 through RFX-19C remain on the Product Owner presentation hold.
+`PRODUCTION-READINESS-1` remains active for outstanding recovery/hardware boundaries while the supported-device onboarding acceptance chain is complete. TG-01 / Issue #822 is merged GREEN and TG-02 / Issue #823 is now the active independent software Work Package on `feat/823-telegram-report-delivery`. RFX-01 through RFX-19C remain on the Product Owner presentation hold.
 
 ## Telegram morning reports — TG-01 / Issue #822 completed
 
 TG-01 / Issue #822 is **completed**. PR #828 exact verified head `dede5e5d4680d89a5404baa0f327242e7f7816ce` passed all 20 registered exact-head PR workflows, including Core CI / NEXOLAB Merge Gate, Telemetry Service, Refrigeration Browser, Authenticated Dashboard and Offline Bundle, then merged to `main`. The accepted local/offline-first report domain persists immutable/idempotent 07:50 `Europe/Kyiv` snapshots, keeps M-packet Tmin/Tmax semantics bounded to current valid configured M-packet channels, exposes defrost duration only, fails closed on ambiguous energy/coverage boundaries and leaves deferred thermodynamic values typed unavailable. No Telegram/Bot API call, public listener, Device Agent change, Modbus write, hardware write or production deployment belonged to TG-01.
 
-TG-02 / Issue #823 is the next Ready Work Package. It may add only an optional outbound Telegram delivery adapter; core LOCAL_LAN report generation must remain healthy without Telegram credentials or internet.
+TG-02 / Issue #823 is **in progress**. The current implementation is an isolated optional Telegram gateway that reads persisted TG-01 snapshots through the authenticated local API, renders bounded Ukrainian group messages, persists retry/idempotency state in a gateway-local SQLite outbox and sends only through outbound Bot API HTTPS. Local focused verification is 23/23 PASS with networking disabled, including socket-level mock NEXOLAB/Bot API acceptance and restart replay protection. The runtime image is healthy in disabled mode with Docker networking disabled. No real Telegram token/group contact, production deployment, Device Agent/Modbus change or hardware write has occurred. Exact-head PR/CI remains pending.
 
 ## Supported-device onboarding — #805 production acceptance completed
 

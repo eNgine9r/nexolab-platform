@@ -1,0 +1,48 @@
+services:
+  telegram-gateway:
+    profiles: ["telegram"]
+    image: ${TELEGRAM_GATEWAY_IMAGE:-nexolab-telegram-gateway:local}
+    build:
+      context: ../../services/telegram-gateway
+    restart: unless-stopped
+    init: true
+    environment:
+      TELEGRAM_ENABLED: ${TELEGRAM_ENABLED:-false}
+      TELEGRAM_STATE_DB_PATH: /app/data/telegram-delivery/outbox.db
+      TELEGRAM_DESTINATION_CHAT_ID: ${TELEGRAM_DESTINATION_CHAT_ID:-}
+      TELEGRAM_MINI_APP_URL_TEMPLATE: ${TELEGRAM_MINI_APP_URL_TEMPLATE:-}
+      TELEGRAM_BOT_TOKEN_FILE: /run/secrets/telegram/bot-token
+      NEXOLAB_BACKEND_BASE_URL: http://telemetry-service:8082
+      NEXOLAB_BACKEND_ORGANIZATION_ID: ${TELEGRAM_NEXOLAB_BACKEND_ORGANIZATION_ID:-}
+      NEXOLAB_BACKEND_AUTH_MODE: ${TELEGRAM_NEXOLAB_BACKEND_AUTH_MODE:-local}
+      NEXOLAB_BACKEND_USERNAME: ${TELEGRAM_NEXOLAB_BACKEND_USERNAME:-}
+      NEXOLAB_BACKEND_PASSWORD_FILE: /run/secrets/telegram/nexolab-backend-password
+      TELEGRAM_POLL_INTERVAL_SECONDS: ${TELEGRAM_POLL_INTERVAL_SECONDS:-30}
+      TELEGRAM_MAX_ATTEMPTS: ${TELEGRAM_MAX_ATTEMPTS:-6}
+      TELEGRAM_RETRY_INITIAL_SECONDS: ${TELEGRAM_RETRY_INITIAL_SECONDS:-5}
+      TELEGRAM_RETRY_MAX_SECONDS: ${TELEGRAM_RETRY_MAX_SECONDS:-300}
+      TELEGRAM_MAX_DELIVERIES_PER_RUN: ${TELEGRAM_MAX_DELIVERIES_PER_RUN:-50}
+    volumes:
+      - telegram-delivery-data:/app/data/telegram-delivery
+      - ${TELEGRAM_GATEWAY_SECRETS_DIR:-/etc/nexolab/telegram}:/run/secrets/telegram:ro
+    depends_on:
+      telemetry-service:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health/ready', timeout=3)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - central
+
+volumes:
+  telegram-delivery-data:
+    name: ${CENTRAL_RESOURCE_PREFIX:-${COMPOSE_PROJECT_NAME:-nexolab-central}}-telegram-delivery-data

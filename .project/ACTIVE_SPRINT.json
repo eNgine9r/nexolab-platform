@@ -22,12 +22,12 @@
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 823,
       "title": "Add Telegram group report delivery adapter with Mini App direct link",
       "branch": "feat/823-telegram-report-delivery"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -1670,7 +1670,7 @@
       "issue": 823,
       "title": "Add Telegram group report delivery adapter with Mini App direct link",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [
         822
       ],
