@@ -20,7 +20,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db import Base
 
 
-_LIFECYCLES = "'draft', 'ready_for_preflight', 'blocked', 'unsupported', 'cancelled'"
+_LIFECYCLES = "'draft', 'ready_for_preflight', 'verified', 'pending_activation', 'active', 'activation_failed', 'rolled_back', 'blocked', 'unsupported', 'cancelled'"
 
 
 class EquipmentCommissioningSession(Base):
@@ -151,6 +151,69 @@ class EquipmentCommissioningPreflightAttempt(Base):
     result: Mapped[str | None] = mapped_column(String(16), nullable=True)
     code: Mapped[str | None] = mapped_column(String(64), nullable=True)
     evidence_level: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    evidence: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
+    actor_subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+_ACTIVATION_STATES = "'pending_activation', 'active', 'activation_failed', 'rolled_back', 'recovery_required'"
+
+
+class EquipmentCommissioningActivationAttempt(Base):
+    __tablename__ = "equipment_commissioning_activation_attempts"
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id", "session_id", "idempotency_key",
+            name="uq_equipment_commissioning_activation_attempt_key",
+        ),
+        CheckConstraint(
+            f"state IN ({_ACTIVATION_STATES})",
+            name="ck_equipment_commissioning_activation_state",
+        ),
+        CheckConstraint(
+            "session_version >= 1",
+            name="ck_equipment_commissioning_activation_session_version",
+        ),
+        Index(
+            "ix_equipment_commissioning_activation_session_started",
+            "organization_id", "session_id", "started_at", "id",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_equipment_commissioning_activation_organization",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    session_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "equipment_commissioning_sessions.id",
+            name="fk_equipment_commissioning_activation_session",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+    )
+    preflight_attempt_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "equipment_commissioning_preflight_attempts.id",
+            name="fk_equipment_commissioning_activation_preflight",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    command_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    session_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    state: Mapped[str] = mapped_column(String(32), nullable=False)
+    plan: Mapped[dict[str, object]] = mapped_column(JSON, nullable=False)
     evidence: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
     actor_subject: Mapped[str] = mapped_column(String(255), nullable=False)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

@@ -42,7 +42,7 @@ class DeviceAgentPreflightCommand:
 
 class DeviceAgentPreflightClient:
     def __init__(self, base_url: str, *, transport_timeout_seconds: float = 12.0) -> None:
-        self._base_url = _validated_base_url(base_url)
+        self._base_url = validated_device_agent_base_url(base_url)
         self._transport_timeout_seconds = max(1.0, min(float(transport_timeout_seconds), 15.0))
 
     def run(self, command: DeviceAgentPreflightCommand) -> dict[str, Any]:
@@ -128,7 +128,7 @@ def validate_preflight_evidence(payload: object, command: DeviceAgentPreflightCo
     }
 
 
-def _validated_base_url(value: str) -> str:
+def validated_device_agent_base_url(value: str) -> str:
     normalized = value.strip().rstrip("/")
     parsed = urlparse(normalized)
     if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:

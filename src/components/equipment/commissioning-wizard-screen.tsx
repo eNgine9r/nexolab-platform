@@ -25,6 +25,8 @@ import type { RefrigerationEquipment } from "@/data/refrigeration";
 import {
   CommissioningRepositoryError,
   createCommissioningIdempotencyKey,
+  type CommissioningActivationAttempt,
+  type CommissioningActivationPlan,
   type CommissioningPreflightAttempt,
   type CommissioningRepository,
   type CommissioningSession,
@@ -73,8 +75,14 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   const [preflightLoadKey, setPreflightLoadKey] = useState<string | null>(null);
   const [preflightBusy, setPreflightBusy] = useState(false);
   const [preflightError, setPreflightError] = useState<string | null>(null);
+  const [activationPlan, setActivationPlan] = useState<CommissioningActivationPlan | null>(null);
+  const [activation, setActivation] = useState<CommissioningActivationAttempt | null>(null);
+  const [activationLoadKey, setActivationLoadKey] = useState<string | null>(null);
+  const [activationBusy, setActivationBusy] = useState(false);
+  const [activationError, setActivationError] = useState<string | null>(null);
   const idempotencyKey = useRef<string | null>(null);
   const preflightIdempotencyKey = useRef<string | null>(null);
+  const activationIdempotencyKey = useRef<string | null>(null);
   const organizationId = security.membership?.organizationId ?? null;
   const runtime = useMemo(
     () => createEquipmentRegistryRuntime({ organizationId: organizationId ?? undefined }),
@@ -160,6 +168,28 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
     return () => controller.abort();
   }, [commissioningId, organizationId, repository, security.state]);
 
+  useEffect(() => {
+    if (security.state !== "ready" || !organizationId || !repository || !commissioningId) return;
+    const controller = new AbortController();
+    const operationRepository = repository;
+    const loadKey = `${organizationId}:${commissioningId}`;
+    void Promise.allSettled([
+      repository.getActivationPlan(commissioningId, controller.signal),
+      repository.getLatestActivation(commissioningId, controller.signal),
+    ]).then(([planResult, activationResult]) => {
+      if (controller.signal.aborted || activeRepository.current !== operationRepository) return;
+      setActivationPlan(planResult.status === "fulfilled" ? planResult.value : null);
+      setActivation(activationResult.status === "fulfilled" ? activationResult.value : null);
+      const failures = [
+        planResult.status === "rejected" ? planResult.reason : null,
+        activationResult.status === "rejected" ? activationResult.reason : null,
+      ].filter((cause) => !expectedActivationAbsence(cause));
+      setActivationError(failures.length ? message(failures[0]) : null);
+      setActivationLoadKey(loadKey);
+    });
+    return () => controller.abort();
+  }, [commissioningId, organizationId, repository, security.state]);
+
   if (
     security.state === "loading" ||
     security.state === "unauthenticated" ||
@@ -195,6 +225,11 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
     visibleSession && organizationId ? `${organizationId}:${visibleSession.id}` : null;
   const visiblePreflight = preflightLoadKey === currentPreflightLoadKey ? preflight : null;
   const visiblePreflightError = preflightLoadKey === currentPreflightLoadKey ? preflightError : null;
+  const visibleActivationPlan = activationLoadKey === currentPreflightLoadKey ? activationPlan : null;
+  const visibleActivation = activationLoadKey === currentPreflightLoadKey ? activation : null;
+  const visibleActivationError = activationLoadKey === currentPreflightLoadKey ? activationError : null;
+  const workflowLocked =
+    visibleSession?.lifecycle === "pending_activation" || visibleSession?.lifecycle === "active";
 
   const selectProfile = (profileId: string) => {
     if (profileId === "unsupported") {
@@ -213,7 +248,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   };
 
   const save = async () => {
-    if (cancelled || !canManage) return;
+    if (cancelled || workflowLocked || !canManage) return;
     if (!draft.deviceClass.trim() || !draft.manufacturer.trim() || !draft.model.trim()) {
       setError("Вкажіть клас, виробника і модель пристрою.");
       setStep(0);
@@ -239,7 +274,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   };
 
   const cancel = async () => {
-    if (!visibleSession || cancelled || !canManage) return;
+    if (!visibleSession || cancelled || workflowLocked || !canManage) return;
     setBusy(true);
     setError(null);
     const operationRepository = repository;
@@ -267,15 +302,63 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
         visibleSession.version,
         ensureIdempotencyKey(preflightIdempotencyKey),
       );
+      const refreshed = await repository.getSession(visibleSession.id);
+      let plan: CommissioningActivationPlan | null = null;
+      let planError: string | null = null;
+      if (result.result === "passed") {
+        try {
+          plan = await repository.getActivationPlan(visibleSession.id);
+        } catch (cause: unknown) {
+          planError = message(cause);
+        }
+      }
       if (activeRepository.current !== operationRepository) return;
+      setSession(refreshed);
+      setDraft(sessionToWrite(refreshed));
       setPreflight(result);
       setPreflightLoadKey(`${organizationId}:${visibleSession.id}`);
+      setActivationPlan(plan);
+      setActivationLoadKey(`${organizationId}:${visibleSession.id}`);
+      setActivationError(planError);
       preflightIdempotencyKey.current = null;
     } catch (cause: unknown) {
       if (activeRepository.current !== operationRepository) return;
       setPreflightError(message(cause));
     } finally {
       if (activeRepository.current === operationRepository) setPreflightBusy(false);
+    }
+  };
+
+  const runActivation = async () => {
+    if (
+      !visibleSession ||
+      !["verified", "activation_failed", "rolled_back"].includes(visibleSession.lifecycle) ||
+      !canManage
+    )
+      return;
+    setActivationBusy(true);
+    setActivationError(null);
+    const operationRepository = repository;
+    try {
+      const result = await repository.runActivation(
+        visibleSession.id,
+        visibleSession.version,
+        ensureIdempotencyKey(activationIdempotencyKey),
+      );
+      if (activeRepository.current !== operationRepository) return;
+      setActivation(result);
+      setActivationPlan(result.plan);
+      setActivationLoadKey(`${organizationId}:${visibleSession.id}`);
+      activationIdempotencyKey.current = null;
+      const refreshed = await repository.getSession(visibleSession.id);
+      if (activeRepository.current !== operationRepository) return;
+      setSession(refreshed);
+      setDraft(sessionToWrite(refreshed));
+    } catch (cause: unknown) {
+      if (activeRepository.current !== operationRepository) return;
+      setActivationError(message(cause));
+    } finally {
+      if (activeRepository.current === operationRepository) setActivationBusy(false);
     }
   };
 
@@ -321,7 +404,11 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                 </h1>
               </div>
               <span className="rounded-full border border-amber-400/20 bg-amber-400/[0.07] px-3 py-1 text-[10px] text-amber-100">
-                Не активний acquisition target
+                {visibleSession?.lifecycle === "active"
+                  ? "Read-only monitoring active"
+                  : visibleSession?.lifecycle === "pending_activation"
+                    ? "Activation pending"
+                    : "Не активний acquisition target"}
               </span>
             </header>
 
@@ -390,19 +477,30 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                     selectedProfile={selectedProfile}
                     selectedEquipment={selectedEquipment}
                     unsupported={unsupported}
-                    disabled={cancelled || busy || !canManage}
+                    disabled={cancelled || workflowLocked || busy || !canManage}
                     onSelectProfile={selectProfile}
                   />
 
                   {visibleSession ? (
-                    <PreflightPanel
-                      session={visibleSession}
-                      attempt={visiblePreflight}
-                      busy={preflightBusy}
-                      error={visiblePreflightError}
-                      canManage={canManage}
-                      onRun={() => void runPreflight()}
-                    />
+                    <>
+                      <PreflightPanel
+                        session={visibleSession}
+                        attempt={visiblePreflight}
+                        busy={preflightBusy}
+                        error={visiblePreflightError}
+                        canManage={canManage}
+                        onRun={() => void runPreflight()}
+                      />
+                      <ActivationPanel
+                        session={visibleSession}
+                        plan={visibleActivationPlan}
+                        attempt={visibleActivation}
+                        busy={activationBusy}
+                        error={visibleActivationError}
+                        canManage={canManage}
+                        onRun={() => void runActivation()}
+                      />
+                    </>
                   ) : null}
 
                   <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.07] pt-5">
@@ -425,7 +523,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                       </button>
                     </div>
                     <div className="flex gap-2">
-                      {visibleSession && !cancelled && canManage ? (
+                      {visibleSession && !cancelled && !workflowLocked && canManage ? (
                         <button
                           type="button"
                           disabled={busy}
@@ -435,7 +533,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                           Скасувати чернетку
                         </button>
                       ) : null}
-                      {!cancelled && canManage ? (
+                      {!cancelled && !workflowLocked && canManage ? (
                         <button
                           type="button"
                           disabled={busy}
@@ -879,6 +977,144 @@ function PreflightPanel({
   );
 }
 
+function ActivationPanel({
+  session,
+  plan,
+  attempt,
+  busy,
+  error,
+  canManage,
+  onRun,
+}: {
+  session: CommissioningSession;
+  plan: CommissioningActivationPlan | null;
+  attempt: CommissioningActivationAttempt | null;
+  busy: boolean;
+  error: string | null;
+  canManage: boolean;
+  onRun: () => void;
+}) {
+  const canActivate =
+    plan !== null &&
+    ["verified", "activation_failed", "rolled_back"].includes(session.lifecycle) &&
+    canManage;
+  const state = attempt?.state ?? session.lifecycle;
+  const visible =
+    plan !== null ||
+    attempt !== null ||
+    ["verified", "pending_activation", "active", "activation_failed", "rolled_back"].includes(
+      session.lifecycle,
+    );
+  if (!visible) return null;
+  return (
+    <section className="mt-5 rounded-2xl border border-emerald-300/10 bg-emerald-400/[0.025] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[9px] tracking-[0.16em] text-emerald-300 uppercase">Controlled activation</p>
+          <h3 className="mt-1 flex items-center gap-2 font-semibold text-white">
+            <RadioTower className="h-4 w-4 text-emerald-300" /> Read-only monitoring enrollment
+          </h3>
+          <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-400">
+            Активація дозволена лише після current successful preflight. Конфігурація сама по собі не означає
+            Online — success потребує health, MQTT, scheduler target і нову локально persisted telemetry.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={!canActivate || busy}
+          onClick={onRun}
+          className="rounded-xl bg-emerald-400 px-4 py-2 text-xs font-semibold text-[#04111f] hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {busy ? "Перевірка активації…" : "Активувати read-only моніторинг"}
+        </button>
+      </div>
+      <div className="mt-4 grid gap-2 text-xs sm:grid-cols-2">
+        <EvidenceStatus
+          label={`Activation state: ${state}`}
+          state={
+            state === "active"
+              ? "passed"
+              : state === "activation_failed" || state === "recovery_required"
+                ? "failed"
+                : "neutral"
+          }
+          detail={
+            attempt?.completedAt
+              ? `Completed: ${attempt.completedAt}`
+              : "No completed activation evidence yet."
+          }
+        />
+        <EvidenceStatus
+          label="Write safety"
+          state="passed"
+          detail="FC05/06/15/16, controller parameter changes and hardware writes are outside this contract."
+        />
+      </div>
+      {plan ? (
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          <div className="rounded-xl border border-white/[0.06] p-3 text-xs text-slate-300">
+            <p className="text-[9px] tracking-[0.12em] text-slate-500 uppercase">Activation plan</p>
+            <dl className="mt-2 space-y-1">
+              <div>
+                <dt className="inline text-slate-500">Profile: </dt>
+                <dd className="inline">
+                  {plan.profileId} · {plan.profileVersion}
+                </dd>
+              </div>
+              <div>
+                <dt className="inline text-slate-500">Node / bus: </dt>
+                <dd className="inline">
+                  {plan.nodeId} / {plan.busId}
+                </dd>
+              </div>
+              <div>
+                <dt className="inline text-slate-500">Adapter: </dt>
+                <dd className="inline break-all">{plan.stableTransportIdentifier}</dd>
+              </div>
+              <div>
+                <dt className="inline text-slate-500">Unit ID: </dt>
+                <dd className="inline">{plan.unitId}</dd>
+              </div>
+              <div>
+                <dt className="inline text-slate-500">Polling: </dt>
+                <dd className="inline">FC03 read-only</dd>
+              </div>
+              <div>
+                <dt className="inline text-slate-500">Binding: </dt>
+                <dd className="inline">{plan.bindingKind}</dd>
+              </div>
+            </dl>
+          </div>
+          <div className="rounded-xl border border-rose-400/10 bg-rose-400/[0.025] p-3 text-xs">
+            <p className="text-[9px] tracking-[0.12em] text-rose-200 uppercase">Will not perform</p>
+            <ul className="mt-2 space-y-1 text-slate-400">
+              {plan.willNotPerform.map((item) => (
+                <li key={item}>• {item}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      ) : (
+        <p className="mt-3 rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-3 text-xs text-amber-100">
+          Current successful preflight is required before an activation plan can be generated.
+        </p>
+      )}
+      {plan?.warnings.length ? (
+        <ul className="mt-3 space-y-1 text-xs leading-5 text-amber-100/80">
+          {plan.warnings.map((warning) => (
+            <li key={warning}>• {warning}</li>
+          ))}
+        </ul>
+      ) : null}
+      {error ? (
+        <p role="alert" className="mt-3 text-xs text-rose-200">
+          {error}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 function EvidenceStatus({
   label,
   state,
@@ -1035,6 +1271,16 @@ function ensureIdempotencyKey(ref: React.MutableRefObject<string | null>): strin
   ref.current ??= createCommissioningIdempotencyKey();
   return ref.current;
 }
+function expectedActivationAbsence(cause: unknown): boolean {
+  return (
+    cause === null ||
+    (cause instanceof CommissioningRepositoryError &&
+      (cause.status === 404 ||
+        cause.code === "commissioning_preflight_stale" ||
+        cause.code === "commissioning_lifecycle_conflict"))
+  );
+}
+
 function message(cause: unknown): string {
   if (
     cause instanceof CommissioningRepositoryError &&

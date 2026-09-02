@@ -76,6 +76,15 @@ function repository(session: CommissioningSession = persistedSession): Commissio
     async runPreflight() {
       throw new Error("not used");
     },
+    async getActivationPlan() {
+      throw new Error("not used");
+    },
+    async getLatestActivation() {
+      throw new Error("not used");
+    },
+    async runActivation() {
+      throw new Error("not used");
+    },
   };
 }
 
@@ -138,6 +147,45 @@ describe("EquipmentConnectionsWorkspace", () => {
 
     expect(await screen.findByText(/Прив’язка: Cool jet/)).toBeInTheDocument();
     expect(screen.queryByText(/Прив’язка: equipment-cool-jet/)).not.toBeInTheDocument();
+  });
+
+  it("renders canonical active read-only monitoring with the saved equipment binding", async () => {
+    const activeSession: CommissioningSession = {
+      ...persistedSession,
+      lifecycle: "active",
+      manufacturer: "Embraco",
+      model: "Sync",
+      profileId: "embraco-sync",
+      profileVersion: "embraco-sync-fc03-v1.00.04",
+      transportKind: "modbus_rtu",
+      nodeId: "edge-01",
+      busId: "rs485-embraco",
+      stableTransportIdentifier: "/dev/serial/by-id/usb-embraco",
+      unitId: 2,
+      targetEquipmentKey: "equipment-cool-jet",
+      unsupportedReason: null,
+      version: 2,
+    };
+    const refrigerationAsset = {
+      key: "refrigeration:equipment-cool-jet",
+      id: "equipment-cool-jet",
+      category: "refrigeration-equipment",
+      displayName: "Cool jet",
+    } as EquipmentRegistryAsset;
+
+    render(
+      <EquipmentConnectionsWorkspace
+        repository={repository(activeSession)}
+        discoveryRepository={null}
+        canManage
+        assets={[refrigerationAsset]}
+      />,
+    );
+
+    expect(await screen.findByText("Embraco Sync")).toBeInTheDocument();
+    expect(screen.getByText("Read-only моніторинг активний")).toBeInTheDocument();
+    expect(screen.getByText(/Прив’язка: Cool jet/)).toBeInTheDocument();
+    expect(screen.getByText("1", { selector: "p" })).toBeInTheDocument();
   });
 
   it("hides previous organization sessions while the next repository loads", async () => {

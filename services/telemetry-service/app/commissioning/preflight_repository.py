@@ -178,6 +178,21 @@ class CommissioningPreflightRepository:
             attempt.evidence_level = str(evidence["evidence_level"])
             attempt.evidence = evidence
             attempt.completed_at = now
+            commissioning = db.scalar(
+                select(EquipmentCommissioningSession)
+                .where(
+                    EquipmentCommissioningSession.id == attempt.session_id,
+                    EquipmentCommissioningSession.organization_id == organization_id,
+                )
+                .with_for_update()
+            )
+            if commissioning is not None and commissioning.version == attempt.session_version:
+                if attempt.result == "passed":
+                    commissioning.lifecycle = "verified"
+                elif commissioning.lifecycle in {"verified", "activation_failed", "rolled_back"}:
+                    commissioning.lifecycle = "ready_for_preflight"
+                commissioning.updated_by = attempt.actor_subject
+                commissioning.updated_at = now
             db.flush()
             self._security_repository.append_audit_event(
                 replace(
@@ -231,9 +246,11 @@ class CommissioningPreflightRepository:
         organization_id: str,
         deadline_seconds: float,
     ) -> dict[str, object]:
-        if row.lifecycle != "ready_for_preflight":
+        if row.lifecycle not in {
+            "ready_for_preflight", "verified", "activation_failed", "rolled_back"
+        }:
             raise CommissioningLifecycleConflictError(
-                "Commissioning session must be ready_for_preflight before verification"
+                "Commissioning session is not eligible for read-only preflight verification"
             )
         profile = supported_profile(row.profile_id)
         if profile is None or row.profile_version != profile.version:

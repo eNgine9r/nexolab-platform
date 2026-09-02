@@ -146,6 +146,12 @@ class Settings(BaseSettings):
     # supported-device commissioning preflight. Empty means fail closed.
     commissioning_device_agent_base_url: str | None = None
     commissioning_preflight_deadline_seconds: float = Field(default=5.0, ge=1.0, le=10.0)
+    commissioning_preflight_freshness_seconds: float = Field(
+        default=300.0, ge=30.0, le=3600.0
+    )
+    commissioning_activation_verification_timeout_seconds: float = Field(
+        default=20.0, ge=5.0, le=120.0
+    )
 
     auth_mode: Literal["disabled", "jwt"] = "disabled"
     auth_default_organization_id: str = (

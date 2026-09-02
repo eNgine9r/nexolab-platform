@@ -6,7 +6,13 @@ from typing import Callable
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 
 from app.commissioning.catalog import SUPPORTED_DEVICE_PROFILES, supported_profile
-from app.commissioning.models import EquipmentCommissioningPreflightAttempt, EquipmentCommissioningSession
+from app.commissioning.models import (
+    EquipmentCommissioningActivationAttempt,
+    EquipmentCommissioningPreflightAttempt,
+    EquipmentCommissioningSession,
+)
+from app.commissioning.activation_repository import CommissioningActivationRepository
+from app.commissioning.activation_service import CommissioningActivationService
 from app.commissioning.repository import (
     CommissioningEquipmentReferenceError,
     CommissioningIdempotencyConflictError,
@@ -17,6 +23,8 @@ from app.commissioning.repository import (
     CommissioningVersionConflictError,
 )
 from app.commissioning.schemas import (
+    CommissioningActivationAttemptResponse,
+    CommissioningActivationPlanResponse,
     CommissioningPreflightAttemptResponse,
     CommissioningSessionListResponse,
     CommissioningSessionPatch,
@@ -42,6 +50,9 @@ def create_commissioning_router(
     default_organization_id: str = DEFAULT_ORGANIZATION_ID,
     preflight_repository: CommissioningPreflightRepository | None = None,
     preflight_service: CommissioningPreflightService | None = None,
+    activation_repository: CommissioningActivationRepository | None = None,
+    activation_service: CommissioningActivationService | None = None,
+    activation_freshness_seconds: float = 300.0,
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1/equipment/commissioning", tags=["equipment-commissioning"])
     read_access = _access_dependency(security_dependencies, Permission.READ_DASHBOARD, default_organization_id)
@@ -294,6 +305,105 @@ def create_commissioning_router(
             raise _repository_http_error(error) from error
         return _preflight_response(attempt)
 
+    @router.get(
+        "/sessions/{session_id}/activation-plan",
+        response_model=CommissioningActivationPlanResponse,
+    )
+    def activation_plan(
+        session_id: str,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> CommissioningActivationPlanResponse:
+        if activation_repository is None:
+            raise _http_error(
+                503,
+                "commissioning_activation_unavailable",
+                "Commissioning activation persistence is not configured",
+            )
+        try:
+            plan = activation_repository.plan(
+                session_id,
+                organization_id=authorized.principal.organization_id,
+                freshness_seconds=activation_freshness_seconds,
+            )
+        except CommissioningRepositoryError as error:
+            raise _repository_http_error(error) from error
+        return CommissioningActivationPlanResponse.model_validate(plan)
+
+    @router.get(
+        "/sessions/{session_id}/activation",
+        response_model=CommissioningActivationAttemptResponse,
+    )
+    def latest_activation(
+        session_id: str,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> CommissioningActivationAttemptResponse:
+        if activation_repository is None:
+            raise _http_error(
+                503,
+                "commissioning_activation_unavailable",
+                "Commissioning activation persistence is not configured",
+            )
+        try:
+            attempt = activation_repository.latest(
+                session_id,
+                organization_id=authorized.principal.organization_id,
+            )
+        except CommissioningRepositoryError as error:
+            raise _repository_http_error(error) from error
+        return _activation_response(attempt)
+
+    @router.post(
+        "/sessions/{session_id}/activation",
+        response_model=CommissioningActivationAttemptResponse,
+    )
+    def activate_session(
+        session_id: str,
+        request: Request,
+        if_match: str | None = Header(default=None, alias="If-Match"),
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+        audit_reason: str | None = Header(default=None, alias="X-Audit-Reason", max_length=1024),
+        authorized: AuthorizedRequest = Depends(manage_access),
+    ) -> CommissioningActivationAttemptResponse:
+        if activation_service is None:
+            raise _http_error(
+                503,
+                "commissioning_activation_unavailable",
+                "Local Device Agent activation channel is not configured",
+            )
+        if idempotency_key is None or not idempotency_key.strip():
+            raise _http_error(
+                428,
+                "commissioning_activation_idempotency_key_required",
+                "Idempotency-Key is required",
+            )
+        reason = audit_reason or "Activate read-only commissioning monitoring"
+        try:
+            attempt = activation_service.run(
+                session_id,
+                organization_id=authorized.principal.organization_id,
+                expected_version=parse_commissioning_if_match(if_match),
+                idempotency_key=idempotency_key,
+                actor_subject=authorized.principal.subject,
+                started_audit_event=_audit_event(
+                    authorized, request,
+                    action="equipment.commissioning.activation.started",
+                    entity_id=session_id, reason=reason,
+                ),
+                completed_audit_event=_audit_event(
+                    authorized, request,
+                    action="equipment.commissioning.activation.completed",
+                    entity_id=session_id, reason=reason,
+                ),
+                binding_audit_event=_audit_event(
+                    authorized, request,
+                    action="equipment.controller_binding.updated",
+                    entity_id=session_id, reason=reason,
+                ),
+            )
+        except CommissioningRepositoryError as error:
+            raise _repository_http_error(error) from error
+        return _activation_response(attempt)
+
     return router
 
 
@@ -350,6 +460,23 @@ def _preflight_response(
         result=item.result,  # type: ignore[arg-type]
         code=item.code,
         evidence_level=item.evidence_level,  # type: ignore[arg-type]
+        evidence=item.evidence,
+        actor_subject=item.actor_subject,
+        started_at=item.started_at,
+        completed_at=item.completed_at,
+    )
+
+
+def _activation_response(
+    item: EquipmentCommissioningActivationAttempt,
+) -> CommissioningActivationAttemptResponse:
+    return CommissioningActivationAttemptResponse(
+        id=item.id,
+        session_id=item.session_id,
+        preflight_attempt_id=item.preflight_attempt_id,
+        session_version=item.session_version,
+        state=item.state,  # type: ignore[arg-type]
+        plan=CommissioningActivationPlanResponse.model_validate(item.plan),
         evidence=item.evidence,
         actor_subject=item.actor_subject,
         started_at=item.started_at,

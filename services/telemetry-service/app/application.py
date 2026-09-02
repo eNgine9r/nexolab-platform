@@ -8,6 +8,9 @@ from fastapi import FastAPI
 from app.climate_catalog.api import create_climate_catalog_router
 from app.climate_catalog.repository import PostgresClimateCatalogRepository
 from app.commissioning.api import create_commissioning_router
+from app.commissioning.activation_client import DeviceAgentActivationClient
+from app.commissioning.activation_repository import CommissioningActivationRepository
+from app.commissioning.activation_service import CommissioningActivationService
 from app.commissioning.repository import CommissioningRepository
 from app.commissioning.preflight_client import DeviceAgentPreflightClient
 from app.commissioning.preflight_repository import CommissioningPreflightRepository
@@ -20,6 +23,9 @@ from app.equipment_discovery.repository import EquipmentDiscoveryRepository
 from app.equipment_discovery.service import EquipmentDiscoveryService
 from app.latest_projection_reconcile import reconcile_latest_projection
 from app.main import create_app as create_base_app
+from app.refrigeration.controller_binding_repository import (
+    PostgresRefrigerationControllerBindingRepository,
+)
 from app.refrigeration.sensor_configuration_api import (
     create_sensor_configuration_router,
 )
@@ -51,7 +57,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.database,
         security_repository=app.state.security_repository,
     )
+    commissioning_activation_repository = CommissioningActivationRepository(
+        app.state.database,
+        security_repository=app.state.security_repository,
+    )
+    commissioning_controller_binding_repository = (
+        PostgresRefrigerationControllerBindingRepository(app.state.database)
+    )
     commissioning_preflight_service = None
+    commissioning_activation_service = None
     if resolved.commissioning_device_agent_base_url:
         commissioning_preflight_service = CommissioningPreflightService(
             repository=commissioning_preflight_repository,
@@ -60,6 +74,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 transport_timeout_seconds=resolved.commissioning_preflight_deadline_seconds + 2.0,
             ),
             deadline_seconds=resolved.commissioning_preflight_deadline_seconds,
+        )
+        commissioning_activation_service = CommissioningActivationService(
+            repository=commissioning_activation_repository,
+            client=DeviceAgentActivationClient(
+                resolved.commissioning_device_agent_base_url,
+                transport_timeout_seconds=10.0,
+            ),
+            controller_binding_repository=commissioning_controller_binding_repository,
+            security_repository=app.state.security_repository,
+            freshness_seconds=resolved.commissioning_preflight_freshness_seconds,
+            verification_timeout_seconds=resolved.commissioning_activation_verification_timeout_seconds,
         )
     discovery_policy = DiscoveryPolicy.from_settings(resolved)
     discovery_service = EquipmentDiscoveryService(
@@ -76,6 +101,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.commissioning_repository = commissioning_repository
     app.state.commissioning_preflight_repository = commissioning_preflight_repository
     app.state.commissioning_preflight_service = commissioning_preflight_service
+    app.state.commissioning_activation_repository = commissioning_activation_repository
+    app.state.commissioning_activation_service = commissioning_activation_service
     app.include_router(
         create_climate_catalog_router(
             climate_catalog_repository,
@@ -110,6 +137,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             default_organization_id=resolved.auth_default_organization_id,
             preflight_repository=commissioning_preflight_repository,
             preflight_service=commissioning_preflight_service,
+            activation_repository=commissioning_activation_repository,
+            activation_service=commissioning_activation_service,
+            activation_freshness_seconds=resolved.commissioning_preflight_freshness_seconds,
         )
     )
     _install_equipment_discovery_lifespan(app)

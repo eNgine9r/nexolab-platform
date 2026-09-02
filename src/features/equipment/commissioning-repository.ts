@@ -1,5 +1,14 @@
 export type CommissioningLifecycle =
-  "draft" | "ready_for_preflight" | "blocked" | "unsupported" | "cancelled";
+  | "draft"
+  | "ready_for_preflight"
+  | "verified"
+  | "pending_activation"
+  | "active"
+  | "activation_failed"
+  | "rolled_back"
+  | "blocked"
+  | "unsupported"
+  | "cancelled";
 
 export type SupportedDeviceProfile = {
   id: string;
@@ -105,6 +114,45 @@ export type CommissioningPreflightAttempt = {
   completedAt: string | null;
 };
 
+export type CommissioningActivationPlan = {
+  schemaVersion: 1;
+  sessionId: string;
+  sessionVersion: number;
+  preflightAttemptId: string;
+  preflightCompletedAt: string;
+  preflightEvidenceLevel: CommissioningPreflightEvidenceLevel;
+  deviceClass: string;
+  manufacturer: string;
+  model: string;
+  profileId: string;
+  profileVersion: string;
+  deviceFamily: string;
+  nodeId: string;
+  busId: string;
+  stableTransportIdentifier: string;
+  unitId: number;
+  targetEquipmentKey: string;
+  telemetrySource: string;
+  telemetryEquipmentId: string;
+  pollingMode: "read_only_fc03";
+  bindingKind: "refrigeration_controller" | "commissioning_target";
+  warnings: string[];
+  willNotPerform: string[];
+};
+
+export type CommissioningActivationAttempt = {
+  id: string;
+  sessionId: string;
+  preflightAttemptId: string;
+  sessionVersion: number;
+  state: "pending_activation" | "active" | "activation_failed" | "rolled_back" | "recovery_required";
+  plan: CommissioningActivationPlan;
+  evidence: Record<string, unknown> | null;
+  actorSubject: string;
+  startedAt: string;
+  completedAt: string | null;
+};
+
 export function createCommissioningIdempotencyKey(source?: {
   randomUUID?: () => string;
   getRandomValues?: (bytes: Uint8Array) => Uint8Array;
@@ -143,6 +191,13 @@ export interface CommissioningRepository {
     expectedVersion: number,
     idempotencyKey: string,
   ): Promise<CommissioningPreflightAttempt>;
+  getActivationPlan(sessionId: string, signal?: AbortSignal): Promise<CommissioningActivationPlan>;
+  getLatestActivation(sessionId: string, signal?: AbortSignal): Promise<CommissioningActivationAttempt>;
+  runActivation(
+    sessionId: string,
+    expectedVersion: number,
+    idempotencyKey: string,
+  ): Promise<CommissioningActivationAttempt>;
 }
 
 export class CommissioningRepositoryError extends Error {
@@ -269,6 +324,47 @@ export class HttpCommissioningRepository implements CommissioningRepository {
     );
   }
 
+  async getActivationPlan(sessionId: string, signal?: AbortSignal): Promise<CommissioningActivationPlan> {
+    return parseActivationPlan(
+      await this.request(
+        `/api/v1/equipment/commissioning/sessions/${encodeURIComponent(sessionId)}/activation-plan`,
+        { signal },
+      ),
+    );
+  }
+
+  async getLatestActivation(
+    sessionId: string,
+    signal?: AbortSignal,
+  ): Promise<CommissioningActivationAttempt> {
+    return parseActivationAttempt(
+      await this.request(
+        `/api/v1/equipment/commissioning/sessions/${encodeURIComponent(sessionId)}/activation`,
+        { signal },
+      ),
+    );
+  }
+
+  async runActivation(
+    sessionId: string,
+    expectedVersion: number,
+    idempotencyKey: string,
+  ): Promise<CommissioningActivationAttempt> {
+    return parseActivationAttempt(
+      await this.request(
+        `/api/v1/equipment/commissioning/sessions/${encodeURIComponent(sessionId)}/activation`,
+        {
+          method: "POST",
+          headers: {
+            "If-Match": etag(expectedVersion),
+            "Idempotency-Key": idempotencyKey,
+            "X-Audit-Reason": "Activate verified read-only commissioning monitoring",
+          },
+        },
+      ),
+    );
+  }
+
   private async request(path: string, init: RequestInit = {}): Promise<unknown> {
     let response: Response;
     try {
@@ -365,7 +461,18 @@ function parseSession(value: unknown): CommissioningSession {
   if (
     !item ||
     typeof item.id !== "string" ||
-    !["draft", "ready_for_preflight", "blocked", "unsupported", "cancelled"].includes(String(lifecycle)) ||
+    ![
+      "draft",
+      "ready_for_preflight",
+      "verified",
+      "pending_activation",
+      "active",
+      "activation_failed",
+      "rolled_back",
+      "blocked",
+      "unsupported",
+      "cancelled",
+    ].includes(String(lifecycle)) ||
     typeof item.device_class !== "string" ||
     typeof item.manufacturer !== "string" ||
     typeof item.model !== "string" ||
@@ -511,6 +618,95 @@ function nullableEvidenceLevel(value: unknown): CommissioningPreflightEvidenceLe
   if (value === null) return null;
   if (!evidenceLevel(value)) throw invalidResponse();
   return value;
+}
+
+function parseActivationPlan(value: unknown): CommissioningActivationPlan {
+  const item = record(value);
+  if (
+    !item ||
+    item.schema_version !== 1 ||
+    typeof item.session_id !== "string" ||
+    typeof item.session_version !== "number" ||
+    typeof item.preflight_attempt_id !== "string" ||
+    typeof item.preflight_completed_at !== "string" ||
+    !evidenceLevel(item.preflight_evidence_level) ||
+    typeof item.device_class !== "string" ||
+    typeof item.manufacturer !== "string" ||
+    typeof item.model !== "string" ||
+    typeof item.profile_id !== "string" ||
+    typeof item.profile_version !== "string" ||
+    typeof item.device_family !== "string" ||
+    typeof item.node_id !== "string" ||
+    typeof item.bus_id !== "string" ||
+    typeof item.stable_transport_identifier !== "string" ||
+    typeof item.unit_id !== "number" ||
+    typeof item.target_equipment_key !== "string" ||
+    typeof item.telemetry_source !== "string" ||
+    typeof item.telemetry_equipment_id !== "string" ||
+    item.polling_mode !== "read_only_fc03" ||
+    !["refrigeration_controller", "commissioning_target"].includes(String(item.binding_kind)) ||
+    !stringArray(item.warnings) ||
+    !stringArray(item.will_not_perform)
+  )
+    throw invalidResponse();
+  return {
+    schemaVersion: 1,
+    sessionId: item.session_id,
+    sessionVersion: item.session_version,
+    preflightAttemptId: item.preflight_attempt_id,
+    preflightCompletedAt: item.preflight_completed_at,
+    preflightEvidenceLevel: item.preflight_evidence_level as CommissioningPreflightEvidenceLevel,
+    deviceClass: item.device_class,
+    manufacturer: item.manufacturer,
+    model: item.model,
+    profileId: item.profile_id,
+    profileVersion: item.profile_version,
+    deviceFamily: item.device_family,
+    nodeId: item.node_id,
+    busId: item.bus_id,
+    stableTransportIdentifier: item.stable_transport_identifier,
+    unitId: item.unit_id,
+    targetEquipmentKey: item.target_equipment_key,
+    telemetrySource: item.telemetry_source,
+    telemetryEquipmentId: item.telemetry_equipment_id,
+    pollingMode: "read_only_fc03",
+    bindingKind: item.binding_kind as "refrigeration_controller" | "commissioning_target",
+    warnings: item.warnings as string[],
+    willNotPerform: item.will_not_perform as string[],
+  };
+}
+
+function parseActivationAttempt(value: unknown): CommissioningActivationAttempt {
+  const item = record(value);
+  if (
+    !item ||
+    typeof item.id !== "string" ||
+    typeof item.session_id !== "string" ||
+    typeof item.preflight_attempt_id !== "string" ||
+    typeof item.session_version !== "number" ||
+    !["pending_activation", "active", "activation_failed", "rolled_back", "recovery_required"].includes(
+      String(item.state),
+    ) ||
+    typeof item.actor_subject !== "string" ||
+    typeof item.started_at !== "string"
+  )
+    throw invalidResponse();
+  return {
+    id: item.id,
+    sessionId: item.session_id,
+    preflightAttemptId: item.preflight_attempt_id,
+    sessionVersion: item.session_version,
+    state: item.state as CommissioningActivationAttempt["state"],
+    plan: parseActivationPlan(item.plan),
+    evidence: item.evidence === null ? null : record(item.evidence),
+    actorSubject: item.actor_subject,
+    startedAt: item.started_at,
+    completedAt: nullableString(item.completed_at),
+  };
+}
+
+function stringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
 
 function record(value: unknown): Record<string, unknown> | null {
