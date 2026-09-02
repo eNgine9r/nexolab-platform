@@ -221,6 +221,70 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     expect(screen.queryByRole("button", { name: "Зберегти чернетку" })).not.toBeInTheDocument();
   });
 
+  it("keeps a newly selected unsupported model on the device step", async () => {
+    const repository = commissioningRepository(async () => persistedSession);
+    runtimeFactory.create.mockReturnValue(runtime(repository));
+
+    render(<CommissioningWizardScreen commissioningId={null} />);
+    expect(await screen.findByRole("heading", { name: "Нова чернетка підключення" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Підтримуваний профіль" }), {
+      target: { value: "unsupported" },
+    });
+
+    expect(screen.getByRole("button", { name: "Далі" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Підключення/ })).toBeDisabled();
+    expect(screen.queryByRole("heading", { name: "Намір підключення" })).not.toBeInTheDocument();
+  });
+
+  it("keeps a persisted unsupported session fail-closed on the device step", async () => {
+    const unsupportedSession: CommissioningSession = {
+      ...persistedSession,
+      lifecycle: "unsupported",
+    };
+    const repository = commissioningRepository(async () => unsupportedSession);
+    runtimeFactory.create.mockReturnValue(runtime(repository));
+
+    render(<CommissioningWizardScreen commissioningId="commissioning-a" />);
+    expect(await screen.findByRole("heading", { name: "Organization A Controller" })).toBeInTheDocument();
+
+    const connectionStep = screen.getByRole("button", { name: /Підключення/ });
+    expect(screen.getByRole("button", { name: "Далі" })).toBeDisabled();
+    expect(connectionStep).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Профіль/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Прив'язка до обладнання/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Перевірка чернетки/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Запустити безпечну перевірку" })).toBeDisabled();
+
+    fireEvent.click(connectionStep);
+    expect(screen.queryByRole("heading", { name: "Намір підключення" })).not.toBeInTheDocument();
+  });
+
+  it("preserves forward navigation for supported commissioning sessions", async () => {
+    const supportedSession: CommissioningSession = {
+      ...persistedSession,
+      lifecycle: "ready_for_preflight",
+      profileId: "embraco-sync",
+      profileVersion: "embraco-sync-fc03-v1.00.04",
+      transportKind: "modbus_rtu",
+      nodeId: "edge-01",
+      busId: "rs485-main",
+      stableTransportIdentifier: "/dev/serial/by-id/usb-test",
+      unitId: 2,
+      unsupportedReason: null,
+    };
+    const repository = commissioningRepository(async () => supportedSession);
+    runtimeFactory.create.mockReturnValue(runtime(repository));
+
+    render(<CommissioningWizardScreen commissioningId="commissioning-a" />);
+    expect(await screen.findByRole("heading", { name: "Organization A Controller" })).toBeInTheDocument();
+
+    const next = screen.getByRole("button", { name: "Далі" });
+    expect(next).toBeEnabled();
+    fireEvent.click(next);
+    expect(screen.getByRole("heading", { name: "Намір підключення" })).toBeInTheDocument();
+  });
+
   it("runs bounded preflight from a ready draft and renders persisted hardware evidence", async () => {
     const readySession: CommissioningSession = {
       ...persistedSession,
