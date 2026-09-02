@@ -186,7 +186,9 @@ def test_current_device_agent_expat_exception_is_exact_and_short_lived() -> None
     assert len(matches) == 1
     decision = matches[0]
     assert decision["owner"] == "platform-security"
-    assert decision["expires_on"] == "2026-09-02"
+    assert decision["expires_on"] == "2026-09-05"
+    assert "33637555344" in decision["reason"]
+    assert "e606b96cb65118b03e3807367322887529988d28" in decision["reason"]
     assert "no XML import/parser/input path" in decision["reason"]
     assert "PR #1321" in decision["reason"]
     assert "2.8.4" in decision["reason"]
@@ -216,7 +218,9 @@ def test_current_device_agent_sqlite_exceptions_are_exact_and_short_lived() -> N
         "CVE-2026-11824",
     }
     assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-09-02" for entry in matches)
+    assert all(entry["expires_on"] == "2026-09-05" for entry in matches)
+    assert all("33637555344" in entry["reason"] for entry in matches)
+    assert all("e606b96cb65118b03e3807367322887529988d28" in entry["reason"] for entry in matches)
     assert all("FTS5" in entry["reason"] for entry in matches)
     assert all("arbitrary-SQL" in entry["reason"] for entry in matches)
     assert all("severity becomes Critical" in entry["reason"] for entry in matches)
@@ -247,7 +251,9 @@ def test_current_telemetry_fresh_scan_exceptions_are_exact_and_short_lived() -> 
     assert {(entry["package"], entry["vulnerability"]) for entry in matches} == expected
     assert len(matches) == 4
     assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-09-02" for entry in matches)
+    assert all(entry["expires_on"] == "2026-09-05" for entry in matches)
+    assert all("33637555344" in entry["reason"] for entry in matches)
+    assert all("e606b96cb65118b03e3807367322887529988d28" in entry["reason"] for entry in matches)
     assert all("severity becomes Critical" in entry["reason"] for entry in matches)
 
     sqlite = [entry for entry in matches if entry["package"] == "libsqlite3-0"]
