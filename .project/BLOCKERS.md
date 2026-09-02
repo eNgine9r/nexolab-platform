@@ -38,7 +38,7 @@ Final external gates are cleared: source/version authority is recorded as `contr
 
 ## Issue #189 — actual-host recovery acceptance
 
-Blocked because accepted ARM64/local-auth recovery artifact `9584581740` is exact to runtime source `cc27b609...`, while the currently authoritative deployed LAN source is `893573a86faf6629e5e3cefc0e41c47230a7f8c7` from successful #805 deployment evidence `runtime/deployments/20260902T113916Z`. The old artifact remains historical evidence but is not exact-source authority for the current runtime. Refresh recovery/package acceptance for `893573a86faf6629e5e3cefc0e41c47230a7f8c7` or establish another explicitly accepted current-source recovery path before resuming the actual-host recovery drill. Actual-host cutover/recovery and power-loss remain separately gated.
+The stale hosted recovery-package blocker is **cleared by Issue #832**. Offline Bundle run `33653777090` accepted exact deployed source `893573a86faf6629e5e3cefc0e41c47230a7f8c7` on `linux/arm64` with local auth, disconnected runtime, and update/rollback preservation of required named volumes, markers and authentication continuity; artifact `9856886787`, bundle SHA-256 `234b93648d25245730c0c845c6a3cd267625d07c1f4dfbaf263fb552b1257ea1`. #189 remains blocked only on the separately gated **actual-host** current-source reboot/recovery and controlled power-loss acceptance. Those actions require explicit approval and real host evidence; hosted/QEMU acceptance does not substitute for them.
 
 ## Issue #200 — physical RS-485 topology
 
@@ -60,9 +60,9 @@ Blocked until the Product Owner confirms the temporary external RS-485 owner has
 
 Issue #727 records an intentional Product Owner defer of **RFX-01 through RFX-19C until after the main presentation**. This is not a technical blocker and does not invalidate accepted RFX-00 / ADR 0010. Issue #717 is non-Ready/blocked by product decision; PR #718 is closed unmerged and retained only as a historical checkpoint. Do not auto-advance to RFX-02 or reopen/merge the pre-pause RFX-01 branch. Resume requires an explicit Product Owner restart plus a fresh Team Lead source-of-truth audit.
 
-## Security maintenance — #829 active critical interrupt
+## Security maintenance — #829 cleared
 
-Fresh exact-main no-cache Container Supply Chain run `33637555344` on `e606b96cb65118b03e3807367322887529988d28` is GREEN. All seven HIGH tuples that reached their 2026-09-02 review boundary remain present with no consumable fixed version, while the documented XML/FTS5/arbitrary-SQL/untrusted-DB/32-bit-cJSON/LECP-CBOR reachability assumptions remain absent from current source. Issue #829 therefore renews only those seven exact entries through **2026-09-05** and schedules a consolidated fresh review of all exceptions expiring that day. #829 is a repository security-policy gate only: it does not authorize production deployment, runtime mutation, Modbus/hardware writes or data/volume changes. Until #829 exact-head Container Supply Chain, Core CI and NEXOLAB Merge Gate are GREEN, TG-02 remains secondary to this deadline-driven maintenance interrupt.
+**Cleared 2026-09-02.** PR #831 merged after exact-head Container Supply Chain, Telemetry and NEXOLAB Merge Gate were GREEN. Fresh exact-main no-cache run `33637555344` confirmed the seven due HIGH tuples still had no consumable fixed version and the documented reachability assumptions remained absent; only those exact entries were renewed through **2026-09-05**. A consolidated fresh review remains due on 2026-09-05. No production deployment, runtime mutation, Modbus/hardware write or data/volume change occurred in #829.
 
 ## Issue #755 — approved bounded #709 / #711 controlled deployment
 
