@@ -3,23 +3,19 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-02T14:14:13+03:00",
+  "timestamp": "2026-09-02T15:22:50+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_822_review_candidate_defrost_contract_hardened",
+  "event": "issue_805_acceptance_and_822_merge_reconciled",
   "baselines": {
-    "accepted_product_sha": "48578c879272334d966756ff46aa204a0ff73e90",
-    "deployed_product_sha": "e8d93b6a777a4d77eda48f1f4cbaa008ae4d5daf"
+    "accepted_product_sha": "dede5e5d4680d89a5404baa0f327242e7f7816ce",
+    "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
-  "active_work": {
-    "issue": 822,
-    "title": "Add deterministic 07:50 refrigeration morning report snapshots",
-    "branch": "feat/822-daily-refrigeration-morning-reports"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Require fresh exact-head CI on the TG-01 candidate with public defrost payload limited to status plus duration (or typed unavailable reason). Merge PR #828 only after Core, Telemetry, Offline Auth, Authenticated Dashboard, Offline Bundle, Refrigeration Browser and NEXOLAB Merge Gate are GREEN and review threads remain clear. Then begin TG-02 / Issue #823; #805 remains independently blocked on controlled redeploy/final browser acceptance.",
+  "next_action": "Start TG-02 / Issue #823 from current main after #805 state PR is GREEN/merged; preserve Telegram as an optional outbound adapter and do not introduce secrets, public inbound listeners, Modbus writes, hardware writes or mandatory internet dependency.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -18,16 +18,16 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "48578c879272334d966756ff46aa204a0ff73e90",
-    "deployed_product_sha": "e8d93b6a777a4d77eda48f1f4cbaa008ae4d5daf"
+    "accepted_product_sha": "dede5e5d4680d89a5404baa0f327242e7f7816ce",
+    "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 822,
-      "title": "Add deterministic 07:50 refrigeration morning report snapshots",
-      "branch": "feat/822-daily-refrigeration-morning-reports"
-    },
-    "next_work_package": null
+    "active_work_package": null,
+    "next_work_package": {
+      "issue": 823,
+      "title": "Add Telegram group report delivery adapter with Mini App direct link",
+      "branch": "feat/823-telegram-report-delivery"
+    }
   },
   "work_packages": [
     {
@@ -1574,7 +1574,7 @@
       "issue": 805,
       "title": "Deploy and accept supported-device commissioning on nexolab-edge-01",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "completed",
       "depends_on": [
         802,
         803,
@@ -1582,21 +1582,26 @@
       ],
       "branch": "ops/805-device-onboarding-production-acceptance",
       "evidence": {
-        "dependencies_802_803_804": "completed",
-        "draft_pull_request": 817,
-        "deployment_evidence": "runtime/deployments/20260902T085457Z",
+        "pull_request": 817,
+        "deployment_evidence": "runtime/deployments/20260902T113916Z",
+        "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7",
         "deployment_result": "DEPLOYMENT_PASSED",
-        "deployed_product_sha": "e8d93b6a777a4d77eda48f1f4cbaa008ae4d5daf",
         "schema_head": "20260902_0030",
+        "device_agent_image_id": "sha256:efa1ba726e60fcf1cf1cd0756f7895dc238132617c83ad1d88523590a303c043",
         "persistent_volume_identity": "preserved",
-        "runtime_health": "telemetry_mqtt_device_agent_healthy_queue_0_workers_2_of_2",
-        "live_read_only_preflight": "embraco_unit_2_pass_fc03_only_hardware_verified",
+        "runtime_health": "dashboard_200_telemetry_ready_mqtt_ready_device_agent_healthy_queue_0_workers_2_of_2_samples_advancing",
+        "browser_acceptance": "authenticated_chromium_connections_draft_reload_reopen_and_service_restart_persistence_pass",
+        "unsupported_model": "fail_closed_step_1_navigation_preflight_and_activation_blocked_after_826",
+        "acceptance_draft_cleanup": "cancelled_audit_preserved",
+        "hardware_evidence_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7",
+        "live_read_only_preflight": "embraco_unit_2_pass_93ms_fc03_only_hardware_verified",
+        "source_adoption": "controlled_source_deployment_recorded",
+        "offline_runtime": "local_lan_same_origin_no_mandatory_public_dependency",
+        "activation_acceptance": "not_executed_not_required",
         "modbus_write": "none",
         "hardware_write": "none",
-        "unsupported_profile_before_826": "fail_closed_before_physical_read_but_navigation_defect_found",
-        "issue_826_pr_827": "merged_green_main_893573a86faf6629e5e3cefc0e41c47230a7f8c7",
-        "post_826_source_selection": "PASS_e8d93b6a_to_893573a8",
-        "blocker": "production_redeployment_of_893573a8_not_executed_tool_safety_gate_blocked_before_command_execution"
+        "controller_parameter_change": "none",
+        "destructive_data_or_volume_operation": "none"
       }
     },
     {
@@ -1637,8 +1642,39 @@
       "issue": 822,
       "title": "Add deterministic 07:50 refrigeration morning report snapshots",
       "priority": "unspecified",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "feat/822-daily-refrigeration-morning-reports",
+      "evidence": {
+        "verified_head_sha": "dede5e5d4680d89a5404baa0f327242e7f7816ce",
+        "pull_request": 828,
+        "completion": "pr_828_merged_issue_822_closed_completed",
+        "checks": {
+          "focused_report_tests": "success_22_of_22",
+          "postgresql_like_telemetry_sweep": "success_576_passed_4_skipped",
+          "migration_0031_round_trip": "success",
+          "exact_head_pr_workflows": "success_20_of_20",
+          "ci": "success:33623681197",
+          "telemetry_service": "success:33623681050",
+          "authenticated_dashboard": "success:33623681047",
+          "refrigeration_browser": "success:33623681129",
+          "offline_bundle": "success:33623681056",
+          "nexolab_merge_gate": "success"
+        },
+        "telegram_contact": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "production_deployment": "not_executed"
+      }
+    },
+    {
+      "issue": 823,
+      "title": "Add Telegram group report delivery adapter with Mini App direct link",
+      "priority": "high",
+      "lifecycle": "ready",
+      "depends_on": [
+        822
+      ],
+      "branch": "feat/823-telegram-report-delivery",
       "evidence": {}
     }
   ],
