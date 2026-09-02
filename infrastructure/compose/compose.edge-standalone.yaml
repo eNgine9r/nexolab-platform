@@ -4,6 +4,13 @@ services:
       default: {}
       standalone-runtime: {}
 
+  device-agent:
+    networks:
+      default: {}
+      standalone-runtime:
+        aliases:
+          - edge-device-agent
+
 networks:
   standalone-runtime:
     external: true

@@ -1,18 +1,20 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-01
+Updated: 2026-09-02
 
 ## Current Sprint
 
 `PRODUCTION-READINESS-1` remains active only for outstanding hardware/recovery and controlled-deployment acceptance boundaries. Its repository-readiness gate is complete. RFX-00 / Issue #715 / PR #716 is completed and merged; accepted ADR 0010 remains the architecture authority for future refrigeration expansion.
 
-## Supported-device onboarding — Epic #801 / next Ready #803
+## Supported-device onboarding — Epic #801 / active #803
 
 Issue #802 is **completed**. PR #810 passed the exact-head required matrix on `2e3634499b5b3f7da6bfac0afa95bdcdec0f5442` — including Core Quality/build, Telemetry service, Refrigeration Browser Acceptance, Authenticated Dashboard Acceptance, Offline Bundle and NEXOLAB Merge Gate — with all review threads resolved, then squash-merged through PR #810; GitHub closed #802 as completed. The accepted foundation provides the local persistent commissioning aggregate/migration, repository-owned supported-profile catalog, organization-scoped audited/optimistically concurrent API, Equipment `Реєстр / Підключення / Метрологія` workspace, persistent five-step onboarding routes, unsupported fail-closed state and refrigeration preselected entry points. LOCAL_LAN discovery remains TCP-connect-only with explicit private-CIDR and zero-payload semantics.
 
 Final bounded Raspberry Pi verification for #802 includes focused current-source frontend regressions `15/15`, commissioning backend API `11/11` in an ephemeral test container, touched-file ESLint/Prettier, Python compilation, State Model v2 and `git diff --check`. The exact-head GitHub matrix is GREEN. #802 performed no Device Agent mutation, Modbus request, hardware write, acquisition activation or production deployment; hardware evidence is therefore not applicable to this foundation slice.
 
-Issue #803 is selected as the next independent Ready Work Package on branch `feat/803-device-commissioning-preflight`. It is limited to operator-initiated, deadline-bounded, profile-constrained **read-only** preflight through the controlled Device Agent path, using exact `/dev/serial/by-id/...` identity and already-approved read contracts only. #804 activation remains dependency-gated behind #803, and #805 controlled Raspberry Pi deployment/acceptance remains dependency-gated behind #803/#804. No Modbus write or hardware-write authorization is implied. The held RFX-01+ programme and existing #200/#201/#202/#585 hardware boundaries remain unchanged.
+Issue #803 is **in progress** on branch `feat/803-device-commissioning-preflight`. The current software candidate implements operator-initiated deadline-bounded profile-constrained preflight through a private Telemetry Service → Device Agent LOCAL_LAN container channel, exact `/dev/serial/by-id/...` identity, persisted/idempotent preflight evidence and the commissioning checklist UI. The Device Agent request contract exposes only repository-owned FC03 verification reads; arbitrary function/register/write fields are rejected, bus-lock waiting is deadline-bounded, and no browser-to-serial path is introduced.
+
+Bounded local candidate evidence currently includes frontend targeted tests `13/13`, targeted ESLint, Device Agent contract/Modbus tests `22/22`, dual-bus runtime tests `9/9` in a network-less container, Telemetry persistence/idempotency smoke and application-factory smoke in a network-less runtime container, Python compilation, State Model v2 and `git diff --check`. The full standalone Compose contract was not executed locally because the Remote Desktop safety layer blocked that command, and local Telemetry pytest is unavailable; those heavy checks are deferred to exact-head GitHub CI. **No live RS-485 preflight has been executed**, so hardware evidence remains unverified. #804 activation remains dependency-gated behind #803 and #805 deployment/acceptance remains gated behind #803/#804. Modbus writes, hardware writes, enrollment, acquisition activation and production deployment remain outside #803.
 
 ## Issue #792 — selected-interval relay traceability, compressor starts and CSV export
 

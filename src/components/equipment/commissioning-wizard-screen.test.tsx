@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
+  CommissioningPreflightAttempt,
   CommissioningRepository,
   CommissioningSession,
 } from "@/features/equipment/commissioning-repository";
@@ -114,6 +115,12 @@ function commissioningRepository(
     async cancelSession() {
       return { ...persistedSession, lifecycle: "cancelled" };
     },
+    getLatestPreflight() {
+      return new Promise(() => undefined);
+    },
+    async runPreflight() {
+      throw new Error("not used");
+    },
     ...overrides,
   };
 }
@@ -172,6 +179,73 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     expect(screen.queryByRole("heading", { name: "Organization A Controller" })).not.toBeInTheDocument();
     expect(screen.getByText("Завантаження чернетки…")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Зберегти чернетку" })).not.toBeInTheDocument();
+  });
+
+  it("runs bounded preflight from a ready draft and renders persisted hardware evidence", async () => {
+    const readySession: CommissioningSession = {
+      ...persistedSession,
+      lifecycle: "ready_for_preflight",
+      profileId: "embraco-sync",
+      profileVersion: "embraco-sync-fc03-v1.00.04",
+      transportKind: "modbus_rtu",
+      nodeId: "edge-01",
+      busId: "rs485-main",
+      stableTransportIdentifier: "/dev/serial/by-id/usb-test",
+      unitId: 2,
+      targetEquipmentKey: "equipment-1",
+      unsupportedReason: null,
+      version: 2,
+    };
+    const attempt: CommissioningPreflightAttempt = {
+      id: "preflight-1",
+      sessionId: readySession.id,
+      sessionVersion: 2,
+      state: "completed",
+      result: "passed",
+      code: "preflight_passed",
+      evidenceLevel: "hardware_verified",
+      evidence: {
+        schemaVersion: 1,
+        result: "passed",
+        code: "preflight_passed",
+        evidenceLevel: "hardware_verified",
+        nodeId: "edge-01",
+        busId: "rs485-main",
+        stableTransportIdentifier: "/dev/serial/by-id/usb-test",
+        unitId: 2,
+        profileId: "embraco-sync",
+        profileVersion: "embraco-sync-fc03-v1.00.04",
+        readMethod: "modbus_rtu_fc03",
+        functionCodes: [3],
+        checks: [
+          { key: "write_safety", state: "passed", detail: "Modbus writes = none; hardware writes = none" },
+        ],
+        observations: [{ key: "control_state", quality: "valid", semantic: "cooling" }],
+        warnings: [],
+        durationMs: 14,
+        modbusWrites: "none",
+        hardwareWrites: "none",
+      },
+      actorSubject: "engineer",
+      startedAt: "2026-09-02T08:00:00Z",
+      completedAt: "2026-09-02T08:00:01Z",
+    };
+    const runPreflight = vi.fn(async () => attempt);
+    const repository = commissioningRepository(async () => readySession, {
+      getLatestPreflight: () => new Promise(() => undefined),
+      runPreflight,
+    });
+    runtimeFactory.create.mockReturnValue(runtime(repository));
+
+    render(<CommissioningWizardScreen commissioningId="commissioning-a" />);
+    expect(await screen.findByRole("heading", { name: "Organization A Controller" })).toBeInTheDocument();
+    const button = screen.getByRole("button", { name: "Запустити безпечну перевірку" });
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+
+    expect(await screen.findByText("hardware verified")).toBeInTheDocument();
+    expect(screen.getAllByText("none").length).toBeGreaterThanOrEqual(2);
+    expect(runPreflight).toHaveBeenCalledWith("commissioning-a", 2, expect.stringMatching(/^commissioning-/));
   });
 
   it("discards an in-flight save after the organization repository changes", async () => {

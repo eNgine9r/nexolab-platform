@@ -55,6 +55,56 @@ export type CommissioningSessionWrite = {
 
 export type CommissioningSessionPatch = Partial<CommissioningSessionWrite>;
 
+export type CommissioningPreflightEvidenceLevel =
+  "hardware_verified" | "partially_verified" | "unsupported" | "unverified";
+
+export type CommissioningPreflightCheck = {
+  key: string;
+  state: "passed" | "failed";
+  detail: string;
+};
+
+export type CommissioningPreflightObservation = {
+  key: string;
+  quality: string;
+  semantic: string | null;
+};
+
+export type CommissioningPreflightEvidence = {
+  schemaVersion: 1;
+  result: "passed" | "failed";
+  code: string;
+  evidenceLevel: CommissioningPreflightEvidenceLevel;
+  nodeId: string;
+  busId: string;
+  stableTransportIdentifier: string;
+  unitId: number;
+  profileId: string;
+  profileVersion: string;
+  readMethod: "modbus_rtu_fc03";
+  functionCodes: [3];
+  checks: CommissioningPreflightCheck[];
+  observations: CommissioningPreflightObservation[];
+  warnings: string[];
+  durationMs: number;
+  modbusWrites: "none";
+  hardwareWrites: "none";
+};
+
+export type CommissioningPreflightAttempt = {
+  id: string;
+  sessionId: string;
+  sessionVersion: number;
+  state: "running" | "completed";
+  result: "passed" | "failed" | null;
+  code: string | null;
+  evidenceLevel: CommissioningPreflightEvidenceLevel | null;
+  evidence: CommissioningPreflightEvidence | null;
+  actorSubject: string;
+  startedAt: string;
+  completedAt: string | null;
+};
+
 export function createCommissioningIdempotencyKey(source?: {
   randomUUID?: () => string;
   getRandomValues?: (bytes: Uint8Array) => Uint8Array;
@@ -87,6 +137,12 @@ export interface CommissioningRepository {
     expectedVersion: number,
   ): Promise<CommissioningSession>;
   cancelSession(sessionId: string, expectedVersion: number): Promise<CommissioningSession>;
+  getLatestPreflight(sessionId: string, signal?: AbortSignal): Promise<CommissioningPreflightAttempt>;
+  runPreflight(
+    sessionId: string,
+    expectedVersion: number,
+    idempotencyKey: string,
+  ): Promise<CommissioningPreflightAttempt>;
 }
 
 export class CommissioningRepositoryError extends Error {
@@ -181,6 +237,35 @@ export class HttpCommissioningRepository implements CommissioningRepository {
           "X-Audit-Reason": "Cancel operator commissioning draft",
         },
       }),
+    );
+  }
+
+  async getLatestPreflight(sessionId: string, signal?: AbortSignal): Promise<CommissioningPreflightAttempt> {
+    return parsePreflightAttempt(
+      await this.request(
+        `/api/v1/equipment/commissioning/sessions/${encodeURIComponent(sessionId)}/preflight`,
+        { signal },
+      ),
+    );
+  }
+
+  async runPreflight(
+    sessionId: string,
+    expectedVersion: number,
+    idempotencyKey: string,
+  ): Promise<CommissioningPreflightAttempt> {
+    return parsePreflightAttempt(
+      await this.request(
+        `/api/v1/equipment/commissioning/sessions/${encodeURIComponent(sessionId)}/preflight`,
+        {
+          method: "POST",
+          headers: {
+            "If-Match": etag(expectedVersion),
+            "Idempotency-Key": idempotencyKey,
+            "X-Audit-Reason": "Run bounded read-only commissioning preflight",
+          },
+        },
+      ),
     );
   }
 
@@ -316,6 +401,116 @@ function parseSession(value: unknown): CommissioningSession {
     updatedAt: item.updated_at,
     cancelledAt: nullableString(item.cancelled_at),
   };
+}
+
+function parsePreflightAttempt(value: unknown): CommissioningPreflightAttempt {
+  const item = record(value);
+  if (
+    !item ||
+    typeof item.id !== "string" ||
+    typeof item.session_id !== "string" ||
+    typeof item.session_version !== "number" ||
+    !["running", "completed"].includes(String(item.state)) ||
+    (item.result !== null && !["passed", "failed"].includes(String(item.result))) ||
+    typeof item.actor_subject !== "string" ||
+    typeof item.started_at !== "string"
+  ) {
+    throw invalidResponse();
+  }
+  const evidence = item.evidence === null ? null : parsePreflightEvidence(item.evidence);
+  return {
+    id: item.id,
+    sessionId: item.session_id,
+    sessionVersion: item.session_version,
+    state: item.state as "running" | "completed",
+    result: item.result as "passed" | "failed" | null,
+    code: nullableString(item.code),
+    evidenceLevel: nullableEvidenceLevel(item.evidence_level),
+    evidence,
+    actorSubject: item.actor_subject,
+    startedAt: item.started_at,
+    completedAt: nullableString(item.completed_at),
+  };
+}
+
+function parsePreflightEvidence(value: unknown): CommissioningPreflightEvidence {
+  const item = record(value);
+  const checks = item?.checks;
+  const observations = item?.observations;
+  if (
+    !item ||
+    item.schema_version !== 1 ||
+    !["passed", "failed"].includes(String(item.result)) ||
+    typeof item.code !== "string" ||
+    !evidenceLevel(item.evidence_level) ||
+    typeof item.node_id !== "string" ||
+    typeof item.bus_id !== "string" ||
+    typeof item.stable_transport_identifier !== "string" ||
+    typeof item.unit_id !== "number" ||
+    typeof item.profile_id !== "string" ||
+    typeof item.profile_version !== "string" ||
+    item.read_method !== "modbus_rtu_fc03" ||
+    !Array.isArray(item.function_codes) ||
+    item.function_codes.length !== 1 ||
+    item.function_codes[0] !== 3 ||
+    !Array.isArray(checks) ||
+    !Array.isArray(observations) ||
+    !Array.isArray(item.warnings) ||
+    !item.warnings.every((warning) => typeof warning === "string") ||
+    typeof item.duration_ms !== "number" ||
+    item.modbus_writes !== "none" ||
+    item.hardware_writes !== "none"
+  ) {
+    throw invalidResponse();
+  }
+  return {
+    schemaVersion: 1,
+    result: item.result as "passed" | "failed",
+    code: item.code,
+    evidenceLevel: item.evidence_level as CommissioningPreflightEvidenceLevel,
+    nodeId: item.node_id,
+    busId: item.bus_id,
+    stableTransportIdentifier: item.stable_transport_identifier,
+    unitId: item.unit_id,
+    profileId: item.profile_id,
+    profileVersion: item.profile_version,
+    readMethod: "modbus_rtu_fc03",
+    functionCodes: [3],
+    checks: checks.map(parsePreflightCheck),
+    observations: observations.map(parsePreflightObservation),
+    warnings: item.warnings as string[],
+    durationMs: item.duration_ms,
+    modbusWrites: "none",
+    hardwareWrites: "none",
+  };
+}
+
+function parsePreflightCheck(value: unknown): CommissioningPreflightCheck {
+  const item = record(value);
+  if (
+    !item ||
+    typeof item.key !== "string" ||
+    !["passed", "failed"].includes(String(item.state)) ||
+    typeof item.detail !== "string"
+  )
+    throw invalidResponse();
+  return { key: item.key, state: item.state as "passed" | "failed", detail: item.detail };
+}
+
+function parsePreflightObservation(value: unknown): CommissioningPreflightObservation {
+  const item = record(value);
+  if (!item || typeof item.key !== "string" || typeof item.quality !== "string") throw invalidResponse();
+  return { key: item.key, quality: item.quality, semantic: nullableString(item.semantic) };
+}
+
+function evidenceLevel(value: unknown): value is CommissioningPreflightEvidenceLevel {
+  return ["hardware_verified", "partially_verified", "unsupported", "unverified"].includes(String(value));
+}
+
+function nullableEvidenceLevel(value: unknown): CommissioningPreflightEvidenceLevel | null {
+  if (value === null) return null;
+  if (!evidenceLevel(value)) throw invalidResponse();
+  return value;
 }
 
 function record(value: unknown): Record<string, unknown> | null {

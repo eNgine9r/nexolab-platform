@@ -5,6 +5,7 @@ import os
 import sqlite3
 import tempfile
 import threading
+import time
 import unittest
 from contextlib import nullcontext
 from dataclasses import replace
@@ -17,6 +18,7 @@ from acquisition_registry import (
     AcquisitionRegistryStore,
     DeviceLifecycleMutation,
 )
+from commissioning_preflight import PROFILES, PreflightExecutionError
 from dual_bus_main import DualBusAdaptiveRegistryDeviceAgent
 from main import Settings, TelemetryRecord
 from rs485_buses import BUS_CONFIG_ENV
@@ -135,6 +137,32 @@ class DualBusAdaptiveRuntimeTests(unittest.TestCase):
             client.close()
         self.environment.stop()
         self.temporary.cleanup()
+
+    def test_commissioning_preflight_bus_lock_wait_is_bounded(self) -> None:
+        agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
+        topology = Mock()
+        topology.explicit = True
+        agent.rs485_topology = topology
+        client = Mock()
+        lock = Mock()
+        lock.acquire.return_value = False
+        agent._bus_clients = {"rs485-main": client}
+        agent._bus_operation_locks = {"rs485-main": lock}
+        agent._bus_xjp60d_readers = {}
+        agent._bus_le01mp_readers = {}
+        agent._bus_embraco_readers = {}
+
+        with self.assertRaises(PreflightExecutionError) as context:
+            agent.preflight_read_profile(
+                PROFILES["embraco-sync"],
+                bus_id="rs485-main",
+                unit_id=2,
+                deadline_monotonic=time.monotonic() + 0.1,
+            )
+
+        self.assertEqual(context.exception.code, "bus_busy")
+        lock.acquire.assert_called_once()
+        client.instrumentation_scope.assert_not_called()
 
     def test_composition_uses_distinct_clients_locks_and_registry_bus_ids(self) -> None:
         self.assertIsNone(self.agent.modbus_client)

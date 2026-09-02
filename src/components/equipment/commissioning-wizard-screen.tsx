@@ -14,6 +14,7 @@ import {
   LoaderCircle,
   RadioTower,
   Save,
+  ShieldCheck,
   Unplug,
 } from "lucide-react";
 
@@ -24,6 +25,7 @@ import type { RefrigerationEquipment } from "@/data/refrigeration";
 import {
   CommissioningRepositoryError,
   createCommissioningIdempotencyKey,
+  type CommissioningPreflightAttempt,
   type CommissioningRepository,
   type CommissioningSession,
   type CommissioningSessionWrite,
@@ -67,7 +69,12 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [preflight, setPreflight] = useState<CommissioningPreflightAttempt | null>(null);
+  const [preflightLoadKey, setPreflightLoadKey] = useState<string | null>(null);
+  const [preflightBusy, setPreflightBusy] = useState(false);
+  const [preflightError, setPreflightError] = useState<string | null>(null);
   const idempotencyKey = useRef<string | null>(null);
+  const preflightIdempotencyKey = useRef<string | null>(null);
   const organizationId = security.membership?.organizationId ?? null;
   const runtime = useMemo(
     () => createEquipmentRegistryRuntime({ organizationId: organizationId ?? undefined }),
@@ -128,6 +135,31 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
     security.state,
   ]);
 
+  useEffect(() => {
+    if (security.state !== "ready" || !organizationId || !repository || !commissioningId) return;
+    const controller = new AbortController();
+    const operationRepository = repository;
+    const loadKey = `${organizationId}:${commissioningId}`;
+    void repository
+      .getLatestPreflight(commissioningId, controller.signal)
+      .then((attempt) => {
+        if (!controller.signal.aborted && activeRepository.current === operationRepository) {
+          setPreflight(attempt);
+          setPreflightError(null);
+          setPreflightLoadKey(loadKey);
+        }
+      })
+      .catch((cause: unknown) => {
+        if (controller.signal.aborted || activeRepository.current !== operationRepository) return;
+        setPreflight(null);
+        setPreflightError(
+          cause instanceof CommissioningRepositoryError && cause.status === 404 ? null : message(cause),
+        );
+        setPreflightLoadKey(loadKey);
+      });
+    return () => controller.abort();
+  }, [commissioningId, organizationId, repository, security.state]);
+
   if (
     security.state === "loading" ||
     security.state === "unauthenticated" ||
@@ -159,6 +191,10 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   const visibleLoadState = loadIsCurrent ? loadState : "loading";
   const visibleSession = loadIsCurrent ? session : null;
   const cancelled = visibleSession?.lifecycle === "cancelled";
+  const currentPreflightLoadKey =
+    visibleSession && organizationId ? `${organizationId}:${visibleSession.id}` : null;
+  const visiblePreflight = preflightLoadKey === currentPreflightLoadKey ? preflight : null;
+  const visiblePreflightError = preflightLoadKey === currentPreflightLoadKey ? preflightError : null;
 
   const selectProfile = (profileId: string) => {
     if (profileId === "unsupported") {
@@ -217,6 +253,29 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
       setError(message(cause));
     } finally {
       if (activeRepository.current === operationRepository) setBusy(false);
+    }
+  };
+
+  const runPreflight = async () => {
+    if (!visibleSession || visibleSession.lifecycle !== "ready_for_preflight" || !canManage) return;
+    setPreflightBusy(true);
+    setPreflightError(null);
+    const operationRepository = repository;
+    try {
+      const result = await repository.runPreflight(
+        visibleSession.id,
+        visibleSession.version,
+        ensureIdempotencyKey(preflightIdempotencyKey),
+      );
+      if (activeRepository.current !== operationRepository) return;
+      setPreflight(result);
+      setPreflightLoadKey(`${organizationId}:${visibleSession.id}`);
+      preflightIdempotencyKey.current = null;
+    } catch (cause: unknown) {
+      if (activeRepository.current !== operationRepository) return;
+      setPreflightError(message(cause));
+    } finally {
+      if (activeRepository.current === operationRepository) setPreflightBusy(false);
     }
   };
 
@@ -335,6 +394,17 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                     onSelectProfile={selectProfile}
                   />
 
+                  {visibleSession ? (
+                    <PreflightPanel
+                      session={visibleSession}
+                      attempt={visiblePreflight}
+                      busy={preflightBusy}
+                      error={visiblePreflightError}
+                      canManage={canManage}
+                      onRun={() => void runPreflight()}
+                    />
+                  ) : null}
+
                   <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.07] pt-5">
                     <div className="flex gap-2">
                       <button
@@ -385,6 +455,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                   profile={selectedProfile}
                   equipment={selectedEquipment}
                   unsupported={unsupported}
+                  preflight={visiblePreflight}
                 />
               </div>
             ) : null}
@@ -529,7 +600,7 @@ function ConnectionStep({
     <StepFrame
       eyebrow="Крок 2"
       title="Намір підключення"
-      description="Ці поля описують майбутнє підключення. У #802 жодна адреса не опитується."
+      description="Ці поля описують майбутнє підключення. До запуску безпечного preflight жодна адреса не опитується."
     >
       <div className="grid gap-3 sm:grid-cols-2">
         <label className={labelClass}>
@@ -576,7 +647,7 @@ function ConnectionStep({
         </label>
       </div>
       <p className="mt-4 rounded-xl border border-cyan-300/10 bg-cyan-400/[0.035] p-3 text-xs leading-5 text-slate-400">
-        Без сканування Unit ID, без Modbus read/write і без зміни Device Agent.
+        Редагування наміру не виконує Modbus read/write, не сканує Unit ID і не змінює Device Agent.
       </p>
     </StepFrame>
   );
@@ -676,7 +747,7 @@ function ReviewStep({
     <StepFrame
       eyebrow="Крок 5"
       title="Перевірка чернетки"
-      description="Перевірте намір перед збереженням. Hardware preflight належить наступному Work Package."
+      description="Перевірте намір перед збереженням і запустіть bounded read-only preflight після готовності чернетки."
     >
       <dl className="grid gap-3 sm:grid-cols-2">
         <SummaryRow label="Пристрій" value={`${draft.manufacturer || "—"} ${draft.model || ""}`} />
@@ -695,6 +766,151 @@ function ReviewStep({
       </div>
     </StepFrame>
   );
+}
+
+function PreflightPanel({
+  session,
+  attempt,
+  busy,
+  error,
+  canManage,
+  onRun,
+}: {
+  session: CommissioningSession;
+  attempt: CommissioningPreflightAttempt | null;
+  busy: boolean;
+  error: string | null;
+  canManage: boolean;
+  onRun: () => void;
+}) {
+  const ready = session.lifecycle === "ready_for_preflight";
+  const stale = attempt !== null && attempt.sessionVersion !== session.version;
+  const evidence = attempt?.evidence ?? null;
+  return (
+    <section className="mt-7 rounded-2xl border border-cyan-300/10 bg-cyan-400/[0.025] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[9px] tracking-[0.16em] text-cyan-300 uppercase">Safe preflight</p>
+          <h3 className="mt-1 flex items-center gap-2 font-semibold text-white">
+            <ShieldCheck className="h-4 w-4 text-cyan-300" /> Read-only перевірка підключення
+          </h3>
+          <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-400">
+            Exact node / bus / stable adapter / Unit ID / profile. Дозволений лише repository-owned FC03 read
+            path.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={!ready || busy || !canManage}
+          onClick={onRun}
+          className="rounded-xl bg-cyan-400 px-4 py-2 text-xs font-semibold text-[#04111f] hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {busy ? "Безпечна перевірка…" : "Запустити безпечну перевірку"}
+        </button>
+      </div>
+      {!ready ? (
+        <p className="mt-3 rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-3 text-xs text-amber-100">
+          Спочатку збережіть повний supported commissioning intent у стані ready_for_preflight.
+        </p>
+      ) : null}
+      {error ? (
+        <p role="alert" className="mt-3 text-xs text-rose-200">
+          {error}
+        </p>
+      ) : null}
+      <div className="mt-4 grid gap-2 text-xs sm:grid-cols-2">
+        <EvidenceStatus
+          label="software verified"
+          state="passed"
+          detail="Fixed repository-owned FC03-only contract; write fields are not representable."
+        />
+        <EvidenceStatus
+          label={attempt ? evidenceLabel(attempt.evidenceLevel) : "hardware unverified"}
+          state={attempt?.result === "passed" && !stale ? "passed" : "neutral"}
+          detail={
+            stale
+              ? "Evidence belongs to an older commissioning version."
+              : (attempt?.code ?? "Live preflight has not completed.")
+          }
+        />
+        <EvidenceStatus
+          label="Modbus writes"
+          state={evidence?.modbusWrites === "none" ? "passed" : "neutral"}
+          detail={evidence?.modbusWrites === "none" ? "none" : "No persisted live evidence yet"}
+        />
+        <EvidenceStatus
+          label="Hardware writes"
+          state={evidence?.hardwareWrites === "none" ? "passed" : "neutral"}
+          detail={evidence?.hardwareWrites === "none" ? "none" : "No persisted live evidence yet"}
+        />
+      </div>
+      {evidence?.checks.length ? (
+        <div className="mt-4 space-y-2">
+          {evidence.checks.map((check) => (
+            <EvidenceStatus
+              key={check.key}
+              label={check.key.replaceAll("_", " ")}
+              state={check.state}
+              detail={check.detail}
+            />
+          ))}
+        </div>
+      ) : null}
+      {evidence?.observations.length ? (
+        <div className="mt-4 rounded-xl border border-white/[0.06] p-3">
+          <p className="text-[9px] tracking-[0.12em] text-slate-500 uppercase">Observed semantics</p>
+          <div className="mt-2 space-y-1 text-xs text-slate-300">
+            {evidence.observations.map((item) => (
+              <p key={item.key}>
+                {item.key}: {item.semantic ?? "unverified engineering value"} · {item.quality}
+              </p>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {evidence?.warnings.length ? (
+        <ul className="mt-4 space-y-1 text-xs leading-5 text-amber-100/80">
+          {evidence.warnings.map((warning) => (
+            <li key={warning}>• {warning}</li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
+function EvidenceStatus({
+  label,
+  state,
+  detail,
+}: {
+  label: string;
+  state: "passed" | "failed" | "neutral";
+  detail: string;
+}) {
+  return (
+    <div className="flex items-start gap-2 rounded-xl border border-white/[0.06] bg-[#06142a]/55 p-3">
+      {state === "passed" ? (
+        <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+      ) : (
+        <AlertTriangle
+          className={`mt-0.5 h-4 w-4 shrink-0 ${state === "failed" ? "text-rose-300" : "text-slate-500"}`}
+        />
+      )}
+      <div>
+        <p className="font-medium text-slate-200">{label}</p>
+        <p className="mt-1 leading-5 text-slate-500">{detail}</p>
+      </div>
+    </div>
+  );
+}
+
+function evidenceLabel(level: CommissioningPreflightAttempt["evidenceLevel"]): string {
+  if (level === "hardware_verified") return "hardware verified";
+  if (level === "partially_verified") return "partially verified";
+  if (level === "unsupported") return "unsupported";
+  if (level === "unverified") return "unverified";
+  return "hardware unverified";
 }
 
 function StepFrame({
@@ -724,12 +940,14 @@ function CommissioningSummary({
   profile,
   equipment,
   unsupported,
+  preflight,
 }: {
   session: CommissioningSession | null;
   draft: CommissioningSessionWrite;
   profile: SupportedDeviceProfile | null;
   equipment: RefrigerationEquipment | null;
   unsupported: boolean;
+  preflight: CommissioningPreflightAttempt | null;
 }) {
   return (
     <aside className="rounded-3xl border border-white/[0.07] bg-[#08182e]/80 p-4 xl:sticky xl:top-24 xl:self-start">
@@ -747,7 +965,7 @@ function CommissioningSummary({
         <SummaryRow label="Версія" value={session ? String(session.version) : "—"} />
       </dl>
       <div className="mt-5 rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-3 text-[10px] leading-4 text-amber-100/80">
-        Hardware verification: не виконувалась
+        Hardware verification: {preflight ? evidenceLabel(preflight.evidenceLevel) : "не виконувалась"}
         <br />
         Acquisition activation: не виконувалась
         <br />

@@ -6,7 +6,7 @@ from typing import Callable
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 
 from app.commissioning.catalog import SUPPORTED_DEVICE_PROFILES, supported_profile
-from app.commissioning.models import EquipmentCommissioningSession
+from app.commissioning.models import EquipmentCommissioningPreflightAttempt, EquipmentCommissioningSession
 from app.commissioning.repository import (
     CommissioningEquipmentReferenceError,
     CommissioningIdempotencyConflictError,
@@ -17,6 +17,7 @@ from app.commissioning.repository import (
     CommissioningVersionConflictError,
 )
 from app.commissioning.schemas import (
+    CommissioningPreflightAttemptResponse,
     CommissioningSessionListResponse,
     CommissioningSessionPatch,
     CommissioningSessionResponse,
@@ -24,6 +25,8 @@ from app.commissioning.schemas import (
     SupportedDeviceProfileListResponse,
     SupportedDeviceProfileResponse,
 )
+from app.commissioning.preflight_repository import CommissioningPreflightRepository
+from app.commissioning.preflight_service import CommissioningPreflightService
 from app.refrigeration.equipment_repository import DEFAULT_ORGANIZATION_ID
 from app.security.authorization import AuthenticatedPrincipal, Permission, Role
 from app.security.dependencies import AuthorizedRequest, SecurityDependencies
@@ -37,10 +40,13 @@ def create_commissioning_router(
     security_dependencies: SecurityDependencies | None = None,
     *,
     default_organization_id: str = DEFAULT_ORGANIZATION_ID,
+    preflight_repository: CommissioningPreflightRepository | None = None,
+    preflight_service: CommissioningPreflightService | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1/equipment/commissioning", tags=["equipment-commissioning"])
     read_access = _access_dependency(security_dependencies, Permission.READ_DASHBOARD, default_organization_id)
     manage_access = _access_dependency(security_dependencies, Permission.MANAGE_EQUIPMENT, default_organization_id)
+    preflight_reader = preflight_repository or (preflight_service.repository if preflight_service is not None else None)
 
     @router.get("/profiles", response_model=SupportedDeviceProfileListResponse)
     def profiles(_: AuthorizedRequest = Depends(read_access)) -> SupportedDeviceProfileListResponse:
@@ -214,6 +220,80 @@ def create_commissioning_router(
         response.headers["ETag"] = commissioning_etag(item.version)
         return _response(item)
 
+    @router.get(
+        "/sessions/{session_id}/preflight",
+        response_model=CommissioningPreflightAttemptResponse,
+    )
+    def latest_preflight(
+        session_id: str,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> CommissioningPreflightAttemptResponse:
+        if preflight_reader is None:
+            raise _http_error(
+                503,
+                "commissioning_preflight_unavailable",
+                "Commissioning preflight persistence is not configured",
+            )
+        try:
+            attempt = preflight_reader.latest(
+                session_id,
+                organization_id=authorized.principal.organization_id,
+            )
+        except CommissioningRepositoryError as error:
+            raise _repository_http_error(error) from error
+        return _preflight_response(attempt)
+
+    @router.post(
+        "/sessions/{session_id}/preflight",
+        response_model=CommissioningPreflightAttemptResponse,
+    )
+    def run_preflight(
+        session_id: str,
+        request: Request,
+        if_match: str | None = Header(default=None, alias="If-Match"),
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+        audit_reason: str | None = Header(default=None, alias="X-Audit-Reason", max_length=1024),
+        authorized: AuthorizedRequest = Depends(manage_access),
+    ) -> CommissioningPreflightAttemptResponse:
+        if preflight_service is None:
+            raise _http_error(
+                503,
+                "commissioning_preflight_unavailable",
+                "Local Device Agent preflight channel is not configured",
+            )
+        if idempotency_key is None or not idempotency_key.strip():
+            raise _http_error(
+                428,
+                "commissioning_preflight_idempotency_key_required",
+                "Idempotency-Key is required",
+            )
+        reason = audit_reason or "Run bounded read-only commissioning preflight"
+        try:
+            attempt = preflight_service.run(
+                session_id,
+                organization_id=authorized.principal.organization_id,
+                expected_version=parse_commissioning_if_match(if_match),
+                idempotency_key=idempotency_key,
+                actor_subject=authorized.principal.subject,
+                started_audit_event=_audit_event(
+                    authorized,
+                    request,
+                    action="equipment.commissioning.preflight.started",
+                    entity_id=session_id,
+                    reason=reason,
+                ),
+                completed_audit_event=_audit_event(
+                    authorized,
+                    request,
+                    action="equipment.commissioning.preflight.completed",
+                    entity_id=session_id,
+                    reason=reason,
+                ),
+            )
+        except CommissioningRepositoryError as error:
+            raise _repository_http_error(error) from error
+        return _preflight_response(attempt)
+
     return router
 
 
@@ -256,6 +336,24 @@ def _response(item: EquipmentCommissioningSession) -> CommissioningSessionRespon
         created_at=item.created_at,
         updated_at=item.updated_at,
         cancelled_at=item.cancelled_at,
+    )
+
+
+def _preflight_response(
+    item: EquipmentCommissioningPreflightAttempt,
+) -> CommissioningPreflightAttemptResponse:
+    return CommissioningPreflightAttemptResponse(
+        id=item.id,
+        session_id=item.session_id,
+        session_version=item.session_version,
+        state=item.state,  # type: ignore[arg-type]
+        result=item.result,  # type: ignore[arg-type]
+        code=item.code,
+        evidence_level=item.evidence_level,  # type: ignore[arg-type]
+        evidence=item.evidence,
+        actor_subject=item.actor_subject,
+        started_at=item.started_at,
+        completed_at=item.completed_at,
     )
 
 
