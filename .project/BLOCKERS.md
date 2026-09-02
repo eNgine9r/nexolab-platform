@@ -2,9 +2,11 @@
 
 Updated: 2026-09-02
 
-## Issue #805 / #809 — indeterminate controlled-source authority after failed #789 final evidence gate
+## Issue #805 — post-#826 controlled redeploy and final browser acceptance
 
-**Active recovery blocker.** #804 is completed and #805 prerequisites are otherwise satisfied, but canonical deployment is fail-closed because `runtime/deployments/20260901T064156Z` crossed `runtime-mutation-started` without `DEPLOYMENT PASSED`. The already-running target runtime continued accepting telemetry after cutover; read-only comparison shows acquisition registry/audit/queue/stream-sequence structure preserved while live latest values and XJP60D runtime state changed, so restoring the pre-cutover edge SQLite snapshot would discard newer state and is not an automatic recovery option. Issue #809 is the approved non-destructive recovery WP. Until #809 merges GREEN and its verifier re-establishes forward authority, do not retry #805 deployment, hand-write `final-state.txt`, restore/edit edge SQLite, or weaken the authority resolver. No Modbus/hardware write is authorized.
+**Hard runtime blocker for #805 only.** Issue #809 / PR #821 is completed and the earlier source-authority blocker is cleared. The currently authoritative successful deployment is `runtime/deployments/20260902T085457Z` on `e8d93b6a...`, with schema `20260902_0030`, preserved persistent volumes and healthy Telemetry/MQTT/Device Agent; real Embraco Unit 2 preflight remains hardware-verified FC03-only with no writes. Authenticated browser acceptance then exposed unsupported-wizard navigation defect #826; PR #827 fixed it and merged GREEN. Source-selection preflight from deployed `e8d93b6a...` to merged post-fix target `893573a8...` passed.
+
+The actual controlled redeploy invocation was blocked by the execution-tool safety gate before command execution. No service, container, database, Device Agent, Modbus or hardware mutation occurred. Do not bypass the safety gate or hand-edit the runtime. #805 can resume only through the repository-owned controlled deployment path when an explicitly permitted/operator execution is available, followed by final authenticated browser acceptance. This does **not** block independent TG-01 / #822 software verification and merge.
 
 ## Issue #792 — selected-interval relay traceability and export
 
@@ -12,7 +14,7 @@ Updated: 2026-09-02
 
 ## Issue #790 — controlled deployment final Device Agent health race
 
-**Software defect cleared 2026-09-01.** Exact verified head `cd01e27054f30af85f10be0a49e13524e285abe0` passed Core Quality/build and NEXOLAB Merge Gate in run `33512424465`; all P1/P2 review threads are resolved. The bounded gate now preserves its helper across historical checkout, enforces container identity, Docker/operational convergence, required scheduler evidence and matching worker counts, and bounds every Docker/HTTP blocking I/O call by the remaining convergence deadline. This does **not** validate failed #789 evidence or advance formal source authority from `20bb9ca...`; a future controlled deployment remains a separate explicit gate. No deployment/runtime mutation or Modbus/hardware write occurred in #790.
+**Software defect cleared 2026-09-01.** Exact verified head `cd01e27054f30af85f10be0a49e13524e285abe0` passed Core Quality/build and NEXOLAB Merge Gate in run `33512424465`; all P1/P2 review threads are resolved. The bounded gate now preserves its helper across historical checkout, enforces container identity, Docker/operational convergence, required scheduler evidence and matching worker counts, and bounds every Docker/HTTP blocking I/O call by the remaining convergence deadline. At #790 completion this did **not** validate failed #789 evidence or advance the then-formal source authority from `20bb9ca...`; that historical boundary was later superseded by the successful #805 deployment on `e8d93b6a...`. No deployment/runtime mutation or Modbus/hardware write occurred in #790.
 
 ## Issue #785 — operator-selected compressor analysis interval
 
@@ -38,7 +40,7 @@ Final external gates are cleared: source/version authority is recorded as `contr
 
 ## Issue #189 — actual-host recovery acceptance
 
-Blocked because accepted ARM64/local-auth artifact `9584581740` from GREEN run `32939760743` is exact to runtime source `cc27b609...`, while the currently deployed LAN source is now `20bb9ca...` from successful deployment evidence `runtime/deployments/20260830T202942Z`. The old artifact remains historical evidence but is not exact-source authority for the current runtime. Refresh recovery/package acceptance for `20bb9ca...` or establish another explicitly accepted current-source recovery path before resuming the actual-host recovery drill. Actual-host cutover/recovery and power-loss remain separately gated.
+Blocked because accepted ARM64/local-auth artifact `9584581740` from GREEN run `32939760743` is exact to runtime source `cc27b609...`, while the currently authoritative deployed LAN source is `e8d93b6a...` from successful deployment evidence `runtime/deployments/20260902T085457Z`. The old artifact remains historical evidence but is not exact-source authority for the current runtime. Refresh recovery/package acceptance for `e8d93b6a...` or establish another explicitly accepted current-source recovery path before resuming the actual-host recovery drill. Actual-host cutover/recovery and power-loss remain separately gated.
 
 ## Issue #200 — physical RS-485 topology
 

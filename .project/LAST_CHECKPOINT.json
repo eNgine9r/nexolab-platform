@@ -3,41 +3,29 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-02T10:45:00+03:00",
+  "timestamp": "2026-09-02T14:01:00+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_809_forward_authority_recovery_candidate_in_progress",
+  "event": "issue_822_review_candidate_after_main_sync",
   "baselines": {
     "accepted_product_sha": "48578c879272334d966756ff46aa204a0ff73e90",
-    "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
+    "deployed_product_sha": "e8d93b6a777a4d77eda48f1f4cbaa008ae4d5daf"
   },
   "active_work": {
-    "issue": 809,
-    "title": "Re-establish source authority after #789 forward-mutated healthy runtime without edge data rollback",
-    "branch": "fix/809-forward-mutated-authority-recovery"
+    "issue": 822,
+    "title": "Add deterministic 07:50 refrigeration morning report snapshots",
+    "branch": "feat/822-daily-refrigeration-morning-reports"
   },
   "evidence_snapshot": {
-    "failed_deployment": "runtime/deployments/20260901T064156Z",
-    "forward_mutated_target": "70932c27f373841358971dd9aa568551fc21629a",
-    "issue_804": "completed_pr_816_22_of_22_green",
-    "issue_805": "blocked_on_809_draft_pr_817",
-    "verifier_tests": "17/17 PASS",
-    "adopter_integration": "3/3 PASS",
-    "source_selection_regressions": "20/20 PASS",
-    "python_compile": "PASS",
-    "deployment_shell_syntax": "PASS",
-    "ci_change_impact": "deployment_runtime; unknown_files=[]; fail_closed=false",
-    "production_runtime_mutation_during_809": "NONE"
+    "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Finalize #809 docs/state and safety diff, run State Model v2 and diff checks, commit/push one coherent candidate, open PR #809, require exact-head GREEN before any recovery execution or #805 deployment retry.",
+  "next_action": "Commit and push canonical state reconciliation; require fresh exact-head CI including Offline Auth, Core, Telemetry, Authenticated Dashboard, Offline Bundle, Refrigeration Browser and NEXOLAB Merge Gate GREEN; then mark PR #828 Ready and merge. After merge, begin independent TG-02 / Issue #823. Issue #805 remains separately blocked on controlled redeploy and final authenticated browser acceptance.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
     "production_cutover_authorized": false,
-    "mandatory_public_runtime_dependency": "none",
-    "edge_sqlite_restore": "not_executed",
-    "postgres_restore": "not_executed"
+    "mandatory_public_runtime_dependency": "none"
   }
 }
