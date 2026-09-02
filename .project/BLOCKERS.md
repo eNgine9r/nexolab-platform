@@ -60,9 +60,9 @@ Blocked until the Product Owner confirms the temporary external RS-485 owner has
 
 Issue #727 records an intentional Product Owner defer of **RFX-01 through RFX-19C until after the main presentation**. This is not a technical blocker and does not invalidate accepted RFX-00 / ADR 0010. Issue #717 is non-Ready/blocked by product decision; PR #718 is closed unmerged and retained only as a historical checkpoint. Do not auto-advance to RFX-02 or reopen/merge the pre-pause RFX-01 branch. Resume requires an explicit Product Owner restart plus a fresh Team Lead source-of-truth audit.
 
-## Security maintenance — #829 active critical interrupt
+## Security maintenance — #829 cleared; consolidated review due 2026-09-05
 
-Fresh exact-main no-cache Container Supply Chain run `33637555344` on `e606b96cb65118b03e3807367322887529988d28` is GREEN. All seven HIGH tuples that reached their 2026-09-02 review boundary remain present with no consumable fixed version, while the documented XML/FTS5/arbitrary-SQL/untrusted-DB/32-bit-cJSON/LECP-CBOR reachability assumptions remain absent from current source. Issue #829 therefore renews only those seven exact entries through **2026-09-05** and schedules a consolidated fresh review of all exceptions expiring that day. #829 is a repository security-policy gate only: it does not authorize production deployment, runtime mutation, Modbus/hardware writes or data/volume changes. Until #829 exact-head Container Supply Chain, Core CI and NEXOLAB Merge Gate are GREEN, TG-02 remains secondary to this deadline-driven maintenance interrupt.
+**Cleared 2026-09-02.** Issue #829 closed through merged PR #831 at exact verified head `7435610de95858ed1a454b396752177293dca9c1`; Core Quality/build, Container Supply Chain and NEXOLAB Merge Gate are GREEN. Seven pre-existing HIGH exceptions were revalidated only through **2026-09-05** with unchanged fail-closed early-removal triggers. TG-02 adds 17 exact Telegram Gateway HIGH exceptions with the same 2026-09-05 review boundary after a gateway-specific reachability audit; the consolidated review remains due on that date. No production deployment, runtime mutation, Modbus/hardware write or data/volume change is authorized by these policy decisions.
 
 ## Issue #755 — approved bounded #709 / #711 controlled deployment
 
