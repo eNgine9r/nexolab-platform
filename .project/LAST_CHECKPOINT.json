@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-02T16:42:02+03:00",
+  "timestamp": "2026-09-02T19:23:21+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_823_local_candidate_ready_for_pr",
+  "event": "issue_823_synced_with_main_after_831",
   "baselines": {
     "accepted_product_sha": "dede5e5d4680d89a5404baa0f327242e7f7816ce",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
@@ -34,7 +34,7 @@
     }
   },
   "observations": [],
-  "next_action": "Push TG-02, open PR, require exact-head Telegram Gateway + Container Supply Chain + Offline Bundle + routed browser lanes + NEXOLAB Merge Gate GREEN before merge.",
+  "next_action": "Finish PR #830 exact-head verification after main/#831 synchronization; require Telegram Gateway, Container Supply Chain, Offline Bundle, routed browser lanes and NEXOLAB Merge Gate GREEN before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

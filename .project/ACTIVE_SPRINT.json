@@ -1691,6 +1691,31 @@
           "git_diff_check": "success"
         }
       }
+    },
+    {
+      "issue": 829,
+      "title": "Revalidate/remove 2026-09-02 container vulnerability exceptions",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "branch": "security/829-revalidate-expiring-container-exceptions",
+      "evidence": {
+        "fresh_exact_main_container_supply_chain_run": 33637555344,
+        "fresh_scan_source_sha": "e606b96cb65118b03e3807367322887529988d28",
+        "fresh_scan_result": "success",
+        "due_exact_findings": 7,
+        "fixed_versions_reported": 0,
+        "reachability_review": "xml_0_fts5_0_direct_cjson_0_lecp_cbor_0_controlled_platforms_amd64_arm64",
+        "renewed_through": "2026-09-05",
+        "production_runtime_mutation": "none",
+        "modbus_hardware_action": "none",
+        "verified_head_sha": "7435610de95858ed1a454b396752177293dca9c1",
+        "pull_request": 831,
+        "checks": {
+          "core_quality_build": "success",
+          "container_supply_chain": "success",
+          "nexolab_merge_gate": "success"
+        }
+      }
     }
   ],
   "maintenance_actions": [
@@ -1705,26 +1730,34 @@
     {
       "source_issue": 704,
       "title": "Review/remove Device Agent SQLite FTS5 exceptions",
-      "status": "due",
+      "status": "completed",
       "due_on": "2026-09-02",
       "owner": "platform-security",
-      "rule": "Remove immediately when Debian Trixie publishes a fixed libsqlite3-0 package, findings disappear, Device Agent gains FTS5/arbitrary-SQL/untrusted-database reachability, or severity becomes Critical."
+      "rule": "Remove immediately when Debian Trixie publishes a fixed libsqlite3-0 package, findings disappear, Device Agent gains FTS5/arbitrary-SQL/untrusted-database reachability, or severity becomes Critical. Completed 2026-09-02 under Issue #829 after fresh exact-main no-cache Container Supply Chain run 33637555344; all seven due HIGH tuples remained present with no fixed version and unchanged unreachable paths, so exact exceptions were renewed only through 2026-09-05."
     },
     {
       "source_issue": 704,
       "title": "Review/remove telemetry-service fresh-scan exceptions",
-      "status": "due",
+      "status": "completed",
       "due_on": "2026-09-02",
       "owner": "platform-security",
-      "rule": "Remove affected exact tuples immediately when findings disappear, consumable fixes arrive, SQLite gains FTS5/arbitrary-SQL/untrusted-DB reachability, controlled images gain 32-bit cJSON reachability, libwebsockets affected-version/LECP-CBOR reachability changes, or severity becomes Critical."
+      "rule": "Remove affected exact tuples immediately when findings disappear, consumable fixes arrive, SQLite gains FTS5/arbitrary-SQL/untrusted-DB reachability, controlled images gain 32-bit cJSON reachability, libwebsockets affected-version/LECP-CBOR reachability changes, or severity becomes Critical. Completed 2026-09-02 under Issue #829 after fresh exact-main no-cache Container Supply Chain run 33637555344; all seven due HIGH tuples remained present with no fixed version and unchanged unreachable paths, so exact exceptions were renewed only through 2026-09-05."
     },
     {
       "source_issue": 719,
       "title": "Review/remove Device Agent Expat CVE-2026-66046 exception",
-      "status": "due",
+      "status": "completed",
       "due_on": "2026-09-02",
       "owner": "platform-security",
-      "rule": "Remove immediately when the finding disappears, a consumable fixed Debian/distroless package becomes available, XML parsing or attacker-controlled XML input becomes reachable, affected-version guidance materially changes, or severity becomes Critical."
+      "rule": "Remove immediately when the finding disappears, a consumable fixed Debian/distroless package becomes available, XML parsing or attacker-controlled XML input becomes reachable, affected-version guidance materially changes, or severity becomes Critical. Completed 2026-09-02 under Issue #829 after fresh exact-main no-cache Container Supply Chain run 33637555344; all seven due HIGH tuples remained present with no fixed version and unchanged unreachable paths, so exact exceptions were renewed only through 2026-09-05."
+    },
+    {
+      "source_issue": 829,
+      "title": "Review all container vulnerability exceptions expiring 2026-09-05",
+      "status": "scheduled",
+      "due_on": "2026-09-05",
+      "owner": "platform-security",
+      "rule": "Fresh no-cache scan all exact container images. Remove any exception whose finding disappears, fixed package becomes consumable, documented reachability/version/platform assumption changes, or severity becomes Critical. Renew only exact still-unreachable HIGH findings with fresh evidence and a new short expiry."
     }
   ],
   "observations": [
