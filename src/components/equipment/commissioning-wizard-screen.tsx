@@ -63,6 +63,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   const security = useDashboardSecurity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const [unsupportedChoice, setUnsupportedChoice] = useState(false);
   const [profiles, setProfiles] = useState<SupportedDeviceProfile[]>([]);
   const [equipment, setEquipment] = useState<RefrigerationEquipment[]>([]);
   const [session, setSession] = useState<CommissioningSession | null>(null);
@@ -110,6 +111,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
         setProfiles(loadedProfiles);
         setEquipment(loadedEquipment.filter((item) => item.lifecycleStatus !== "retired"));
         setSession(loadedSession);
+        setUnsupportedChoice(Boolean(loadedSession?.lifecycle === "unsupported" && !loadedSession.profileId));
         if (loadedSession) {
           setDraft(sessionToWrite(loadedSession));
         } else {
@@ -127,6 +129,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
         setProfiles([]);
         setEquipment([]);
         setSession(null);
+        setUnsupportedChoice(false);
         setDraft(emptyDraft);
         setLoadedRepository(repository);
         setLoadState("error");
@@ -233,11 +236,14 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
 
   const selectProfile = (profileId: string) => {
     if (profileId === "unsupported") {
+      setUnsupportedChoice(true);
+      setStep(0);
       setDraft((current) => ({ ...current, profileId: null, manufacturer: "", model: "" }));
       return;
     }
     const profile = profiles.find((item) => item.id === profileId);
     if (!profile) return;
+    setUnsupportedChoice(false);
     setDraft((current) => ({
       ...current,
       profileId: profile.id,
@@ -263,6 +269,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
         : await repository.createSession(normalizedDraft(draft), ensureIdempotencyKey(idempotencyKey));
       if (activeRepository.current !== operationRepository) return;
       setSession(saved);
+      setUnsupportedChoice(saved.lifecycle === "unsupported" && !saved.profileId);
       setDraft(sessionToWrite(saved));
       if (!commissioningId) router.replace(`/equipment/onboarding/${encodeURIComponent(saved.id)}`);
     } catch (cause: unknown) {
@@ -365,7 +372,8 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   const selectedProfile = profiles.find((profile) => profile.id === draft.profileId) ?? null;
   const selectedEquipment = equipment.find((item) => item.id === draft.targetEquipmentKey) ?? null;
   const unsupported =
-    visibleSession?.lifecycle === "unsupported" || (!draft.profileId && draft.manufacturer !== "");
+    unsupportedChoice ||
+    (!draft.profileId && (visibleSession?.lifecycle === "unsupported" || draft.manufacturer !== ""));
 
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
@@ -432,13 +440,17 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                   <nav aria-label="Етапи комісіонування" className="space-y-1">
                     {steps.map((item, index) => {
                       const Icon = item.icon;
+                      const navigationBlocked = unsupported && index > 0;
                       return (
                         <button
                           key={item.label}
                           type="button"
                           aria-current={step === index ? "step" : undefined}
-                          onClick={() => setStep(index)}
-                          className={`flex min-h-11 w-full items-center gap-3 rounded-xl border px-3 text-left text-xs transition focus:ring-2 focus:ring-cyan-300 focus:outline-none ${step === index ? "border-cyan-300/20 bg-cyan-400/10 text-cyan-100" : "border-transparent text-slate-500 hover:bg-white/[0.035] hover:text-slate-200"}`}
+                          disabled={navigationBlocked}
+                          onClick={() => {
+                            if (!navigationBlocked) setStep(index);
+                          }}
+                          className={`flex min-h-11 w-full items-center gap-3 rounded-xl border px-3 text-left text-xs transition focus:ring-2 focus:ring-cyan-300 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 ${step === index ? "border-cyan-300/20 bg-cyan-400/10 text-cyan-100" : "border-transparent text-slate-500 hover:bg-white/[0.035] hover:text-slate-200"}`}
                         >
                           <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-white/[0.08] text-[9px]">
                             {index + 1}
@@ -515,8 +527,10 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                       </button>
                       <button
                         type="button"
-                        disabled={step === steps.length - 1}
-                        onClick={() => setStep((value) => Math.min(steps.length - 1, value + 1))}
+                        disabled={step === steps.length - 1 || unsupported}
+                        onClick={() => {
+                          if (!unsupported) setStep((value) => Math.min(steps.length - 1, value + 1));
+                        }}
                         className={secondaryButton}
                       >
                         Далі
