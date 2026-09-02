@@ -683,8 +683,9 @@ validate_full_sha() {
 
 resolve_latest_deployment_evidence() {
   local deployment_evidence
-  if ! deployment_evidence="$(python3 - "$REPO/runtime/deployments" "$AUDIT_DIR" <<'PY_EVIDENCE'
+  if ! deployment_evidence="$(python3 - "$REPO/runtime/deployments" "$AUDIT_DIR" "$SCRIPT_DIR/forward_deployment_recovery.py" "$REPO" <<'PY_EVIDENCE'
 from datetime import datetime
+import importlib.util
 import json
 from pathlib import Path
 import re
@@ -692,6 +693,14 @@ import sys
 
 root = Path(sys.argv[1])
 current_audit = Path(sys.argv[2]).resolve()
+helper_path = Path(sys.argv[3])
+repo = Path(sys.argv[4])
+spec = importlib.util.spec_from_file_location("nexolab_forward_deployment_recovery", helper_path)
+if spec is None or spec.loader is None:
+    print("ERROR: forward recovery authority helper is unavailable", file=sys.stderr)
+    raise SystemExit(3)
+forward_recovery = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(forward_recovery)
 stamp_re = re.compile(r"^\d{8}T\d{6}Z$")
 sha_re = re.compile(r"^[0-9a-f]{40}$")
 image_re = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -786,8 +795,22 @@ if root.is_dir():
                 raise SystemExit(3)
             recovered_commit = restore_result["deployed_source"]
             recovered_image = restore_result["deployed_device_agent_image_id"]
-        effective_commit = recovered_commit or passed_commit
-        effective_image = recovered_image or passed_image
+        forward_commit = None
+        forward_image = None
+        forward_result_path = directory / "forward-recovery-result.json"
+        if forward_result_path.exists():
+            if restore_result_path.exists():
+                print(f"ERROR: deployment cannot have both restore and forward recovery authority: {directory}", file=sys.stderr)
+                raise SystemExit(3)
+            try:
+                forward_result = forward_recovery.load_published_authority(repo, directory)
+            except Exception as error:
+                print(f"ERROR: forward recovery authority evidence is invalid: {directory}: {error}", file=sys.stderr)
+                raise SystemExit(3)
+            forward_commit = forward_result["target_source"]
+            forward_image = forward_result["device_agent_image_id"]
+        effective_commit = forward_commit or recovered_commit or passed_commit
+        effective_image = forward_image or recovered_image or passed_image
         mutated = (directory / "runtime-mutation-started").is_file() or any(
             marker in summary_text for marker in legacy_mutation_markers
         )

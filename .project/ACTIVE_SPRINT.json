@@ -18,14 +18,14 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
+    "accepted_product_sha": "48578c879272334d966756ff46aa204a0ff73e90",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "selection": {
     "active_work_package": {
-      "issue": 804,
-      "title": "Add controlled read-only acquisition activation and equipment binding",
-      "branch": "feat/804-device-commissioning-activation"
+      "issue": 809,
+      "title": "Re-establish source authority after #789 forward-mutated healthy runtime without edge data rollback",
+      "branch": "fix/809-forward-mutated-authority-recovery"
     },
     "next_work_package": null
   },
@@ -1552,30 +1552,19 @@
       "issue": 804,
       "title": "Add controlled read-only acquisition activation and equipment binding",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         802,
         803
       ],
       "branch": "feat/804-device-commissioning-activation",
       "evidence": {
-        "dependency_802": "completed",
-        "dependency_803": "completed",
-        "started_from_main": "c359e8a0ae6fd54594bdb57749d27da67f5eb627",
-        "local_candidate": "software_verified_pending_exact_head_ci",
-        "frontend_targeted": "16_passed",
-        "device_agent_activation_contract": "5_passed",
-        "device_agent_dual_bus_current_source": "12_passed_isolated_networkless_readonly_no_host_devices",
-        "telemetry_activation_smoke": "4_passed_isolated_networkless",
-        "telemetry_openapi": "success_104_paths",
-        "python_compile": "success",
-        "touched_frontend_prettier": "success",
-        "touched_frontend_eslint": "success",
-        "alembic_single_head": "20260902_0030",
-        "state_model_v2": "success",
-        "git_diff_check": "success",
-        "live_activation": "not_executed",
-        "hardware_evidence": "unverified",
+        "verified_head_sha": "48578c879272334d966756ff46aa204a0ff73e90",
+        "pull_request": 816,
+        "completion": "pr_816_squash_merged_issue_804_closed_completed",
+        "exact_head_workflows": "success_22_of_22",
+        "merge_gate": "success",
+        "hardware_evidence": "unverified_no_live_activation",
         "modbus_write": "none",
         "hardware_write": "none",
         "production_deployment": "not_executed"
@@ -1593,9 +1582,42 @@
       ],
       "branch": "ops/805-device-onboarding-production-acceptance",
       "evidence": {
-        "blocker": "dependency_804_not_completed",
-        "software_deployment_authorization": "granted_after_all_prerequisites_green",
+        "dependencies_802_803_804": "completed",
+        "blocker": "issue_809_forward_mutated_source_authority_recovery",
+        "draft_pull_request": 817,
+        "deployment_target_sha": "e8d93b6a777a4d77eda48f1f4cbaa008ae4d5daf",
+        "arm64_frontend_artifact": "workflow_33597615267_success",
+        "capacity_preflight": "pass_11364687872_free_vs_9531767513_required",
+        "latest_attempt": "runtime/deployments/20260902T063606Z_pre_mutation_fail_closed_on_indeterminate_authority",
+        "software_deployment_authorization": "granted_in_github_issue_805",
         "hardware_write_authorization": "not_granted"
+      }
+    },
+    {
+      "issue": 809,
+      "title": "Re-establish source authority after #789 forward-mutated healthy runtime without edge data rollback",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        789,
+        790
+      ],
+      "branch": "fix/809-forward-mutated-authority-recovery",
+      "evidence": {
+        "failed_deployment": "runtime/deployments/20260901T064156Z",
+        "formal_prior_authority": "20bb9ca473395a0c64267b9b08523c31404f41e6",
+        "forward_mutated_target": "70932c27f373841358971dd9aa568551fc21629a",
+        "verifier_tests": "17_of_17_pass",
+        "adopter_integration_tests": "3_of_3_pass",
+        "source_selection_regressions": "20_of_20_pass",
+        "python_compile": "pass",
+        "deployment_shell_syntax": "pass",
+        "ci_classification": "deployment_runtime_known_fail_closed_false_unknown_files_empty",
+        "runtime_mutation": "none",
+        "edge_sqlite_restore": "none",
+        "postgres_restore": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     }
   ],
@@ -1852,6 +1874,20 @@
         "state_reason": "completed",
         "final_pr_head_sha": "de525bde48d29202e684e36a7ba5787c1a3aff0e",
         "required_checks": "green"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-02T08:56:33+03:00",
+      "kind": "issue_804_merge_reconciliation",
+      "data": {
+        "issue": 804,
+        "pull_request": 816,
+        "verified_head_sha": "48578c879272334d966756ff46aa204a0ff73e90",
+        "main_sha": "e8d93b6a777a4d77eda48f1f4cbaa008ae4d5daf",
+        "issue_state": "closed",
+        "state_reason": "completed",
+        "exact_head_workflows": "22_of_22_green"
       }
     }
   ],

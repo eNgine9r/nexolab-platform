@@ -1,6 +1,10 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-01
+Updated: 2026-09-02
+
+## Issue #805 / #809 — indeterminate controlled-source authority after failed #789 final evidence gate
+
+**Active recovery blocker.** #804 is completed and #805 prerequisites are otherwise satisfied, but canonical deployment is fail-closed because `runtime/deployments/20260901T064156Z` crossed `runtime-mutation-started` without `DEPLOYMENT PASSED`. The already-running target runtime continued accepting telemetry after cutover; read-only comparison shows acquisition registry/audit/queue/stream-sequence structure preserved while live latest values and XJP60D runtime state changed, so restoring the pre-cutover edge SQLite snapshot would discard newer state and is not an automatic recovery option. Issue #809 is the approved non-destructive recovery WP. Until #809 merges GREEN and its verifier re-establishes forward authority, do not retry #805 deployment, hand-write `final-state.txt`, restore/edit edge SQLite, or weaken the authority resolver. No Modbus/hardware write is authorized.
 
 ## Issue #792 — selected-interval relay traceability and export
 
