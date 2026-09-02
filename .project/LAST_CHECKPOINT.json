@@ -3,43 +3,41 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-02T08:31:28+03:00",
+  "timestamp": "2026-09-02T10:45:00+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_804_local_candidate_verified",
+  "event": "issue_809_forward_authority_recovery_candidate_in_progress",
   "baselines": {
-    "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
+    "accepted_product_sha": "48578c879272334d966756ff46aa204a0ff73e90",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
   "active_work": {
-    "issue": 804,
-    "title": "Add controlled read-only acquisition activation and equipment binding",
-    "branch": "feat/804-device-commissioning-activation"
+    "issue": 809,
+    "title": "Re-establish source authority after #789 forward-mutated healthy runtime without edge data rollback",
+    "branch": "fix/809-forward-mutated-authority-recovery"
   },
   "evidence_snapshot": {
-    "base_main": "c359e8a0ae6fd54594bdb57749d27da67f5eb627",
-    "frontend_targeted": "16/16 PASS",
-    "device_agent_activation_contract": "5/5 PASS",
-    "device_agent_dual_bus": "12/12 PASS isolated network=none read-only no host devices",
-    "telemetry_activation_smoke": "4/4 PASS isolated network=none",
-    "telemetry_openapi": "PASS 104 paths",
-    "touched_frontend_prettier": "PASS",
-    "touched_frontend_eslint": "PASS",
+    "failed_deployment": "runtime/deployments/20260901T064156Z",
+    "forward_mutated_target": "70932c27f373841358971dd9aa568551fc21629a",
+    "issue_804": "completed_pr_816_22_of_22_green",
+    "issue_805": "blocked_on_809_draft_pr_817",
+    "verifier_tests": "17/17 PASS",
+    "adopter_integration": "3/3 PASS",
+    "source_selection_regressions": "20/20 PASS",
     "python_compile": "PASS",
-    "alembic_single_head": "20260902_0030",
-    "state_model_v2": "PASS",
-    "git_diff_check": "PASS",
-    "delegated_to_github": "backend TestClient/PostgreSQL migration, typecheck/build, offline/browser/security/exact-head required CI"
+    "deployment_shell_syntax": "PASS",
+    "ci_change_impact": "deployment_runtime; unknown_files=[]; fail_closed=false",
+    "production_runtime_mutation_during_809": "NONE"
   },
   "observations": [],
-  "next_action": "Create recoverable #804 commit, push the same feature branch, open one focused PR, then follow exact-head CI/review. Do not run live activation or start #805.",
+  "next_action": "Finalize #809 docs/state and safety diff, run State Model v2 and diff checks, commit/push one coherent candidate, open PR #809, require exact-head GREEN before any recovery execution or #805 deployment retry.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
-    "live_activation": "not_executed",
-    "hardware_evidence": "unverified",
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
     "production_cutover_authorized": false,
-    "mandatory_public_runtime_dependency": "none"
+    "mandatory_public_runtime_dependency": "none",
+    "edge_sqlite_restore": "not_executed",
+    "postgres_restore": "not_executed"
   }
 }

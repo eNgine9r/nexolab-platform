@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import ast
 from datetime import UTC, datetime
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -30,6 +31,13 @@ EXPECTED_BRANCH = "main"
 DEVICE_AGENT_HEALTH_URL = "http://127.0.0.1:8081/health"
 SOURCE_AUTHORITY = "controlled_source_deployment"
 SHA = re.compile(r"^[0-9a-f]{40}$")
+
+_FORWARD_PATH = Path(__file__).with_name("forward_deployment_recovery.py")
+_FORWARD_SPEC = importlib.util.spec_from_file_location("nexolab_forward_deployment_recovery", _FORWARD_PATH)
+if _FORWARD_SPEC is None or _FORWARD_SPEC.loader is None:
+    raise RuntimeError("forward deployment recovery helper is unavailable")
+forward_recovery = importlib.util.module_from_spec(_FORWARD_SPEC)
+_FORWARD_SPEC.loader.exec_module(forward_recovery)
 
 
 class AdoptionFailure(RuntimeError):
@@ -300,10 +308,20 @@ def authoritative_source_deployment(repo: Path) -> tuple[Path, str]:
             if isinstance(candidate, str) and SHA.fullmatch(candidate):
                 commit = candidate
         passed = "DEPLOYMENT PASSED" in summary_text and commit is not None
+        effective_commit = commit if passed else None
+        forward_result = directory / "forward-recovery-result.json"
+        if forward_result.exists():
+            try:
+                recovered = forward_recovery.load_published_authority(repo, directory)
+            except forward_recovery.RecoveryFailure as error:
+                raise AdoptionFailure(
+                    f"forward recovery authority evidence is invalid: {directory}: {error}"
+                ) from error
+            effective_commit = recovered["target_source"]
         mutated = (directory / "runtime-mutation-started").is_file() or any(
             marker in summary_text for marker in LEGACY_RUNTIME_MUTATION_MARKERS
         )
-        attempts.append((directory.name, directory.resolve(), mutated, commit if passed else None))
+        attempts.append((directory.name, directory.resolve(), mutated, effective_commit))
 
     successful = [(stamp, directory, commit) for stamp, directory, _mutated, commit in attempts if commit]
     if not successful:
@@ -330,6 +348,28 @@ def deployment_evidence(repo: Path, evidence_dir: Path) -> tuple[Path, dict[str,
         resolved.relative_to(deployments_root)
     except ValueError as error:
         raise AdoptionFailure("deployment evidence must live under runtime/deployments") from error
+
+    forward_result = resolved / "forward-recovery-result.json"
+    if forward_result.exists():
+        try:
+            recovered = forward_recovery.load_published_authority(repo, resolved)
+        except forward_recovery.RecoveryFailure as error:
+            raise AdoptionFailure(f"forward recovery deployment evidence is invalid: {error}") from error
+        facts = {
+            "deployed_at": recovered["runtime_activated_at"],
+            "commit": recovered["target_source"],
+            "runtime_mode": recovered["runtime_mode"],
+            "dashboard": recovered["dashboard"],
+            "api": recovered["api"],
+            "auth_mode": recovered["auth_mode"],
+            "local_auth_overlay": "true" if recovered["local_auth_overlay"] else "false",
+            "dashboard_auth_provider": recovered["dashboard_auth_provider"],
+            "requested_source_ref": recovered["target_source"],
+            "control_origin_main": recovered["control_origin_main"],
+            "expected_deployed_source": recovered["previous_source"],
+        }
+        return resolved, facts
+
     summary = resolved / "summary.txt"
     final_state = resolved / "final-state.txt"
     if not summary.is_file() or not final_state.is_file():
@@ -338,14 +378,8 @@ def deployment_evidence(repo: Path, evidence_dir: Path) -> tuple[Path, dict[str,
         raise AdoptionFailure("deployment evidence does not contain DEPLOYMENT PASSED")
     facts = parse_key_value_file(final_state)
     required = {
-        "deployed_at",
-        "commit",
-        "runtime_mode",
-        "dashboard",
-        "api",
-        "auth_mode",
-        "local_auth_overlay",
-        "dashboard_auth_provider",
+        "deployed_at", "commit", "runtime_mode", "dashboard", "api", "auth_mode",
+        "local_auth_overlay", "dashboard_auth_provider",
     }
     missing = sorted(required - facts.keys())
     if missing:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -27,6 +28,11 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         for key, value in (("user.email", "test@nexolab.local"), ("user.name", "NEXOLAB Test")):
             self.assertEqual(run("git", "config", key, value, cwd=self.repo).returncode, 0)
         self.assertEqual(run("git", "switch", "-c", "main", cwd=self.repo).returncode, 0)
+        migrations = self.repo / "services" / "telemetry-service" / "migrations" / "versions"
+        migrations.mkdir(parents=True)
+        (migrations / "0001_test.py").write_text(
+            'revision = "test_rev"\ndown_revision = None\n', encoding="utf-8"
+        )
 
         self.base = self._commit("base")
         self.assertEqual(run("git", "push", "-u", "origin", "main", cwd=self.repo).returncode, 0)
@@ -104,9 +110,74 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
             )
         return evidence
 
+    def _set_forward_recovery_evidence(self, stamp: str) -> Path:
+        evidence = self.repo / "runtime" / "deployments" / stamp
+        evidence.mkdir(parents=True, exist_ok=True)
+        (evidence / "summary.txt").write_text(
+            "[2026-09-01T09:49:45+03:00] RUNTIME MUTATION STARTED: central backend activation\n"
+            "[2026-09-01T09:50:24+03:00] ERROR: late health gate failed\n",
+            encoding="utf-8",
+        )
+        (evidence / "runtime-mutation-started").write_text(
+            f"source={self.target}\nstarted_at=2026-09-01T09:49:45+03:00\n", encoding="utf-8"
+        )
+        metadata = {
+            "schema_version": 1, "kind": "nexolab-edge-sqlite-pre-cutover",
+            "deployed_source": self.base, "target_source": self.target,
+            "source_quick_check": "ok", "snapshot_quick_check": "ok",
+            "outbound_queue_count": 0, "outbound_queue_high_water": 10, "registry_revision": 1,
+        }
+        (evidence / "edge-sqlite-pre-cutover.json").write_text(json.dumps(metadata) + "\n")
+        (evidence / "frontend-artifact-import.txt").write_text(
+            f"status=PASS\nsource_sha={self.target}\nplatform=linux/arm64\nbuild_id=build-1\n"
+        )
+        release = self.repo / "runtime" / "frontend-releases" / f"{self.target}-{stamp}"
+        (evidence / "dashboard-unit-candidate.service").write_text(
+            f"WorkingDirectory={release}\n"
+            "Environment=NEXT_PUBLIC_NEXOLAB_DATA_MODE=live\n"
+            "Environment=NEXT_PUBLIC_NEXOLAB_API_BASE_URL=http://172.18.48.66:8082\n"
+            "Environment=NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL=ws://172.18.48.66:8082/api/v1/telemetry/live\n"
+            "Environment=NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=local\n"
+            "Environment=NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID=org-1\n"
+        )
+        volumes = [{"Name": "nexolab-central-postgres-data", "Driver": "local", "Mountpoint": "/db", "CreatedAt": "now"}]
+        (evidence / "volume-identities-before.json").write_text(json.dumps(volumes) + "\n")
+        files = {
+            "runtime_mutation_started": "runtime-mutation-started",
+            "edge_sqlite_pre_cutover": "edge-sqlite-pre-cutover.json",
+            "frontend_artifact_import": "frontend-artifact-import.txt",
+            "dashboard_unit_candidate": "dashboard-unit-candidate.service",
+            "volume_identities_before": "volume-identities-before.json",
+        }
+        hashes = {k: hashlib.sha256((evidence / v).read_bytes()).hexdigest() for k, v in files.items()}
+        result = {
+            "schema_version": 1, "kind": "nexolab-forward-deployment-recovery-result", "status": "reconciled",
+            "deployment_evidence_id": stamp, "previous_source": self.base, "target_source": self.target,
+            "runtime_activated_at": "2026-09-01T09:49:45+03:00", "recovered_at": "2026-09-02T09:00:00Z",
+            "control_origin_main": self.latest, "runtime_mode": "lan", "platform": "linux/arm64",
+            "schema_head": "test_rev", "dashboard": "http://172.18.48.66:3000", "api": "http://172.18.48.66:8082",
+            "auth_mode": "jwt", "local_auth_overlay": True, "dashboard_auth_provider": "local",
+            "dashboard_organization_id": "org-1", "dashboard_release_dir": str(release), "dashboard_build_id": "build-1",
+            "device_agent_container_id": "1" * 64, "device_agent_image_id": "sha256:" + "2" * 64,
+            "device_agent_registry_revision": 1, "device_agent_queue_depth": 0,
+            "device_agent_expected_bus_workers": 2, "device_agent_active_bus_workers": 2,
+            "edge_sqlite_quick_check": "ok", "edge_sqlite_outbound_queue_count": 0, "edge_sqlite_outbound_queue_high_water": 10,
+            "telemetry_service_container_id": "3" * 64, "telemetry_service_image_id": "sha256:" + "4" * 64,
+            "postgres_container_id": "5" * 64, "postgres_volume_name": "nexolab-central-postgres-data",
+            "evidence_hashes": hashes,
+            "safety": {"runtime_mutation": "none", "edge_sqlite_write": "none", "postgres_write": "none", "modbus_write": "none", "hardware_write": "none"},
+        }
+        (evidence / "forward-recovery-result.json").write_text(json.dumps(result) + "\n")
+        return evidence
+
     def _commit(self, value: str) -> str:
         (self.repo / "fixture.txt").write_text(value + "\n", encoding="utf-8")
         self.assertEqual(run("git", "add", "fixture.txt", cwd=self.repo).returncode, 0)
+        migration = self.repo / "services" / "telemetry-service" / "migrations" / "versions" / "0001_test.py"
+        if migration.exists():
+            self.assertEqual(
+                run("git", "add", str(migration.relative_to(self.repo)), cwd=self.repo).returncode, 0
+            )
         self.assertEqual(run("git", "commit", "-m", value, cwd=self.repo).returncode, 0)
         result = run("git", "rev-parse", "HEAD", cwd=self.repo)
         self.assertEqual(result.returncode, 0)
@@ -312,6 +383,24 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         self.assertIn(f"origin_main={remote_head}", result.stdout)
         self.assertEqual(run("git", "rev-parse", "HEAD", cwd=self.repo).stdout.strip(), remote_head)
         self.assertEqual(run("git", "rev-parse", "origin/main", cwd=self.repo).stdout.strip(), remote_head)
+
+
+    def test_verified_forward_recovery_reestablishes_target_authority(self) -> None:
+        recovered = self._set_forward_recovery_evidence("20260829T010000Z")
+        result = self._validate(self.latest, self.target)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(f"deployed={self.target}", result.stdout)
+        self.assertIn(str(recovered), result.stdout)
+
+    def test_tampered_forward_recovery_hash_fails_closed(self) -> None:
+        recovered = self._set_forward_recovery_evidence("20260829T010000Z")
+        (recovered / "frontend-artifact-import.txt").write_text(
+            f"status=PASS\nsource_sha={self.target}\nplatform=linux/arm64\nbuild_id=tampered\n"
+        )
+        result = self._validate(self.latest, self.target)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("forward recovery authority evidence is invalid", result.stdout + result.stderr)
+
 
 
 if __name__ == "__main__":
