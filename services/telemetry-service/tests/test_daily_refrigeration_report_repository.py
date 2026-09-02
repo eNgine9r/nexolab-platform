@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.alerts.models import AlertInstance, AlertRule, AlertRuleVersion, AlertTransition
 from app.daily_reports.domain import TelemetryPoint
 from app.daily_reports.immutability import DailyReportSnapshotMutationError
-from app.daily_reports.repository import DailyReportRepository
+from app.daily_reports.repository import DailyReportGenerationError, DailyReportRepository
 from app.daily_reports.schemas import DailyReportProfileWrite
 from app.db import Database, TelemetrySample
 from app.model_registry import register_models
@@ -634,3 +634,24 @@ def test_sparse_controller_evidence_marks_snapshot_incomplete(tmp_path: Path) ->
     assert "compressor_coverage_incomplete" in reasons
     assert "defrost_coverage_incomplete" in reasons
     assert result.snapshot.payload["controller"]["status"] == "available"
+
+
+def test_future_snapshot_generation_fails_before_immutable_insert(tmp_path: Path) -> None:
+    database = build_database(tmp_path)
+    fixed_now = datetime(2026, 9, 2, 4, 0, tzinfo=UTC)
+    repository = DailyReportRepository(database, clock=lambda: fixed_now).for_organization(
+        ORGANIZATION_ID
+    )
+    profile = create_profile(repository)
+    future_date = date(2026, 9, 2)
+
+    with pytest.raises(DailyReportGenerationError, match="before its scheduled time"):
+        repository.generate(
+            profile.id,
+            local_report_date=future_date,
+            generated_by="engineer-test",
+            actor_identity_id=None,
+            actor_roles=frozenset({Role.ENGINEER}),
+        )
+
+    assert repository.list_snapshots(profile_id=profile.id).count == 0

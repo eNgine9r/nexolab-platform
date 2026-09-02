@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 import json
 import math
-from typing import Any
+from typing import Any, Callable
 from uuid import uuid4
 
 from sqlalchemy import and_, func, or_, select
@@ -109,11 +109,13 @@ class DailyReportRepository:
         *,
         security_repository: SecurityRepository | None = None,
         organization_id: str | None = None,
+        clock: Callable[[], datetime] | None = None,
     ) -> None:
         self._database = database
         self._engine = database.engine
         self._security_repository = security_repository
         self._organization_id = organization_id
+        self._clock = clock or (lambda: datetime.now(UTC))
 
     def for_organization(self, organization_id: str) -> "DailyReportRepository":
         normalized = _required_text(organization_id, "organization_id", 36)
@@ -121,6 +123,7 @@ class DailyReportRepository:
             self._database,
             security_repository=self._security_repository,
             organization_id=normalized,
+            clock=self._clock,
         )
 
     def create_profile(
@@ -133,7 +136,7 @@ class DailyReportRepository:
         reason: str | None = None,
     ) -> RefrigerationDailyReportProfile:
         organization_id = self._scope()
-        now = datetime.now(UTC)
+        now = self._clock()
         record = RefrigerationDailyReportProfile(
             id=str(uuid4()),
             organization_id=organization_id,
@@ -191,7 +194,7 @@ class DailyReportRepository:
         actor_roles: frozenset[Role],
         reason: str | None = None,
     ) -> RefrigerationDailyReportProfile:
-        now = datetime.now(UTC)
+        now = self._clock()
         try:
             with Session(self._engine, expire_on_commit=False) as session:
                 with session.begin():
@@ -319,7 +322,7 @@ class DailyReportRepository:
     ) -> SnapshotRecord:
         organization_id = self._scope()
         actor = _required_text(generated_by, "generated_by", 255)
-        generated_at = datetime.now(UTC)
+        generated_at = self._clock()
         try:
             with Session(self._engine, expire_on_commit=False) as session:
                 with session.begin():
@@ -327,6 +330,17 @@ class DailyReportRepository:
                     if local_report_date.weekday() not in validate_weekdays(profile.weekdays):
                         raise DailyReportGenerationError(
                             "requested report date is not enabled by the profile weekday schedule"
+                        )
+                    window = resolve_report_window(
+                        local_report_date,
+                        timezone=profile.timezone,
+                        report_hour=profile.report_hour,
+                        report_minute=profile.report_minute,
+                        analysis_window_minutes=profile.analysis_window_minutes,
+                    )
+                    if window.scheduled_for > generated_at:
+                        raise DailyReportGenerationError(
+                            "daily report snapshot cannot be generated before its scheduled time"
                         )
                     existing = session.scalar(
                         select(RefrigerationDailyReportSnapshot).where(
@@ -339,13 +353,6 @@ class DailyReportRepository:
                         session.expunge(existing)
                         return SnapshotRecord(existing, replayed=True)
                     equipment = self._require_equipment(session, profile.equipment_id)
-                    window = resolve_report_window(
-                        local_report_date,
-                        timezone=profile.timezone,
-                        report_hour=profile.report_hour,
-                        report_minute=profile.report_minute,
-                        analysis_window_minutes=profile.analysis_window_minutes,
-                    )
                     payload, overall_status = self._build_payload(
                         session,
                         profile=profile,
