@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-02T19:35:00+03:00",
+  "timestamp": "2026-09-03T00:07:13+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_823_repository_complete_exact_head_green",
+  "event": "issue_823_reconciled_after_832_merge_pending_exact_head_ci",
   "baselines": {
     "accepted_product_sha": "32c93638a7c2fac3d324482bc9898a8be5b49cb7",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
@@ -15,7 +15,7 @@
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Run final state-only exact-head PR #830 verification; when GREEN, mark Ready and merge, then begin TG-03 / Issue #824 from fresh main.",
+  "next_action": "Publish the reconciled TG-02 head, require all exact-head routed workflows and NEXOLAB Merge Gate GREEN with no unresolved review threads, then merge PR #830 and begin TG-03 / Issue #824 from fresh main.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -1730,10 +1730,46 @@
         "verified_head_sha": "7435610de95858ed1a454b396752177293dca9c1",
         "pull_request": 831,
         "checks": {
-          "core_quality_build": "success",
           "container_supply_chain": "success",
-          "nexolab_merge_gate": "success"
+          "telemetry_service": "success",
+          "nexolab_merge_gate": "success",
+          "core_quality_build": "success"
         }
+      }
+    },
+    {
+      "issue": 832,
+      "title": "Refresh ARM64/local-auth recovery acceptance for deployed source 893573a8",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "branch": "ops/832-current-source-recovery-refresh",
+      "evidence": {
+        "verified_head_sha": "151fbc17f6ba41efb0e5deda474bbadd32fb435e",
+        "checks": {
+          "offline_bundle_workflow": "success:33653777090",
+          "disconnected_runtime": "success",
+          "local_auth_continuity": "success",
+          "update_rollback_persistent_data": "success",
+          "artifact_upload": "success:9856886787"
+        },
+        "runtime_source_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7",
+        "tooling_sha": "151fbc17f6ba41efb0e5deda474bbadd32fb435e",
+        "platform": "linux/arm64",
+        "auth_provider": "local",
+        "bundle_version": "recovery-893573a86faf-tooling-151fbc17f6ba",
+        "artifact_id": 9856886787,
+        "artifact_size_bytes": 566760176,
+        "artifact_sha256": "4646304898dba1809bb649fc6c3950c918b6ce291240e525507e7a600105e11b",
+        "bundle_sha256": "234b93648d25245730c0c845c6a3cd267625d07c1f4dfbaf263fb552b1257ea1",
+        "manifest_sha256": "1589c151715a4309a8ad75887251d14b025e6e860531f13b3fe477ace92e589d",
+        "runtime_source_ancestor_of_tooling": "verified_by_offline_bundle_contract",
+        "named_volume_identity": "preserved_update_and_rollback",
+        "production_runtime_mutation": "none",
+        "actual_host_reboot": "not_executed_requires_separate_approval",
+        "power_loss": "not_executed_requires_separate_approval",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "volume_deletion": "none"
       }
     },
     {

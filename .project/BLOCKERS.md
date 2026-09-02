@@ -38,7 +38,7 @@ Final external gates are cleared: source/version authority is recorded as `contr
 
 ## Issue #189 — actual-host recovery acceptance
 
-Blocked because accepted ARM64/local-auth recovery artifact `9584581740` is exact to runtime source `cc27b609...`, while the currently authoritative deployed LAN source is `893573a86faf6629e5e3cefc0e41c47230a7f8c7` from successful #805 deployment evidence `runtime/deployments/20260902T113916Z`. The old artifact remains historical evidence but is not exact-source authority for the current runtime. Refresh recovery/package acceptance for `893573a86faf6629e5e3cefc0e41c47230a7f8c7` or establish another explicitly accepted current-source recovery path before resuming the actual-host recovery drill. Actual-host cutover/recovery and power-loss remain separately gated.
+The stale hosted recovery-package blocker is **cleared by Issue #832**. Offline Bundle run `33653777090` accepted exact deployed source `893573a86faf6629e5e3cefc0e41c47230a7f8c7` on `linux/arm64` with local auth, disconnected runtime, and update/rollback preservation of required named volumes, markers and authentication continuity; artifact `9856886787`, bundle SHA-256 `234b93648d25245730c0c845c6a3cd267625d07c1f4dfbaf263fb552b1257ea1`. #189 remains blocked only on the separately gated **actual-host** current-source reboot/recovery and controlled power-loss acceptance. Those actions require explicit approval and real host evidence; hosted/QEMU acceptance does not substitute for them.
 
 ## Issue #200 — physical RS-485 topology
 
@@ -62,7 +62,7 @@ Issue #727 records an intentional Product Owner defer of **RFX-01 through RFX-19
 
 ## Security maintenance — #829 cleared; consolidated review due 2026-09-05
 
-**Cleared 2026-09-02.** Issue #829 closed through merged PR #831 at exact verified head `7435610de95858ed1a454b396752177293dca9c1`; Core Quality/build, Container Supply Chain and NEXOLAB Merge Gate are GREEN. Seven pre-existing HIGH exceptions were revalidated only through **2026-09-05** with unchanged fail-closed early-removal triggers. TG-02 adds 17 exact Telegram Gateway HIGH exceptions with the same 2026-09-05 review boundary after a gateway-specific reachability audit; the consolidated review remains due on that date. No production deployment, runtime mutation, Modbus/hardware write or data/volume change is authorized by these policy decisions.
+**Cleared 2026-09-02.** Issue #829 closed through merged PR #831 at exact verified head `7435610de95858ed1a454b396752177293dca9c1`; Core Quality/build, Container Supply Chain, Telemetry Service and NEXOLAB Merge Gate are GREEN. Seven pre-existing HIGH exceptions were revalidated only through **2026-09-05** with unchanged fail-closed early-removal triggers. TG-02 adds 17 exact Telegram Gateway HIGH exceptions with the same 2026-09-05 review boundary after gateway-specific reachability analysis; its exact-head supply-chain scan has zero CRITICAL findings. The consolidated review remains due on that date. No production deployment, runtime mutation, Modbus/hardware write or data/volume change is authorized by these policy decisions.
 
 ## Issue #755 — approved bounded #709 / #711 controlled deployment
 
