@@ -3,19 +3,31 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-02T15:22:50+03:00",
+  "timestamp": "2026-09-02T16:55:00+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_805_acceptance_and_822_merge_reconciled",
+  "event": "issue_829_security_exception_revalidation_candidate",
   "baselines": {
     "accepted_product_sha": "dede5e5d4680d89a5404baa0f327242e7f7816ce",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 829,
+    "title": "Revalidate/remove 2026-09-02 container vulnerability exceptions",
+    "branch": "security/829-revalidate-expiring-container-exceptions"
+  },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "fresh_no_cache_container_supply_chain": "success:33637555344",
+      "evidence_source_sha": "e606b96cb65118b03e3807367322887529988d28",
+      "due_exact_tuples": "7_present_high_no_fixed_version",
+      "reachability_review": "unchanged_unreachable",
+      "renewed_through": "2026-09-05",
+      "focused_policy_assertions": "success",
+      "state_model_v2": "success"
+    }
   },
   "observations": [],
-  "next_action": "Start TG-02 / Issue #823 from current main after #805 state PR is GREEN/merged; preserve Telegram as an optional outbound adapter and do not introduce secrets, public inbound listeners, Modbus writes, hardware writes or mandatory internet dependency.",
+  "next_action": "Publish Issue #829 candidate, require exact-head Container Supply Chain, Core CI and NEXOLAB Merge Gate GREEN, merge #829, then resume review/fixes on TG-02 / PR #830 before starting other product work.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
