@@ -22,7 +22,11 @@
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 834,
+      "title": "Reconcile fresh telemetry libsystemd/libudev CVE-2026-16742 findings",
+      "branch": "security/834-telemetry-systemd-homed-cve"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -1731,6 +1735,28 @@
         "modbus_write": "none",
         "hardware_write": "none",
         "volume_deletion": "none"
+      }
+    },
+    {
+      "issue": 834,
+      "title": "Reconcile fresh telemetry libsystemd/libudev CVE-2026-16742 findings",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "branch": "security/834-telemetry-systemd-homed-cve",
+      "evidence": {
+        "trigger_pr": 830,
+        "trigger_head_sha": "0f9327f40e9a2f4b8527be78f94c925246ab1c8d",
+        "trigger_container_supply_chain_run": 33683425564,
+        "exact_findings": "telemetry-service:libsystemd0+CVE-2026-16742;telemetry-service:libudev1+CVE-2026-16742",
+        "severity": "HIGH",
+        "fixed_version_reported": "none",
+        "upstream_affected_component": "systemd-homed",
+        "telemetry_homed_dbus_polkit_reachability": "absent",
+        "clean_python_slim_libraries_present": "libsystemd0+libudev1",
+        "safe_purge": "rejected_base_dependency_graph",
+        "exception_expiry": "2026-09-05",
+        "production_runtime_mutation": "none",
+        "modbus_hardware_action": "none"
       }
     }
   ],

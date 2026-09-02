@@ -60,9 +60,9 @@ Blocked until the Product Owner confirms the temporary external RS-485 owner has
 
 Issue #727 records an intentional Product Owner defer of **RFX-01 through RFX-19C until after the main presentation**. This is not a technical blocker and does not invalidate accepted RFX-00 / ADR 0010. Issue #717 is non-Ready/blocked by product decision; PR #718 is closed unmerged and retained only as a historical checkpoint. Do not auto-advance to RFX-02 or reopen/merge the pre-pause RFX-01 branch. Resume requires an explicit Product Owner restart plus a fresh Team Lead source-of-truth audit.
 
-## Security maintenance — #829 cleared
+## Security maintenance — #834 active critical interrupt
 
-**Cleared 2026-09-02.** PR #831 merged after exact-head Container Supply Chain, Telemetry and NEXOLAB Merge Gate were GREEN. Fresh exact-main no-cache run `33637555344` confirmed the seven due HIGH tuples still had no consumable fixed version and the documented reachability assumptions remained absent; only those exact entries were renewed through **2026-09-05**. A consolidated fresh review remains due on 2026-09-05. No production deployment, runtime mutation, Modbus/hardware write or data/volume change occurred in #829.
+TG-02 / PR #830 is temporarily blocked by fresh shared Telemetry Service supply-chain findings from run `33683425564`: HIGH `CVE-2026-16742` on `libsystemd0` and `libudev1`, installed `257.13-1~deb13u1`, with no fixed version reported. Issue #834 tracks the independent security decision. Upstream confines the vulnerability to the separate `systemd-homed` daemon/local logged-in homed-user authentication path; the Telemetry image has only the base shared libraries and no `systemd-homed`, D-Bus or polkit runtime. Clean Python slim already requires these libraries through its base dependency graph, so unsafe package purging is rejected. Merge #834 only after exact-head Container Supply Chain, Core CI and NEXOLAB Merge Gate are GREEN; then reconcile `main` into TG-02 and rerun all #830 gates. Existing 2026-09-05 consolidated exception review remains mandatory.
 
 ## Issue #755 — approved bounded #709 / #711 controlled deployment
 

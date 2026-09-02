@@ -4,7 +4,7 @@ Updated: 2026-09-02
 
 ## Current Sprint
 
-`PRODUCTION-READINESS-1` remains active for outstanding actual-host/hardware boundaries. Issue #832 has refreshed hosted ARM64/local-auth recovery acceptance to the currently deployed source `893573a86faf6629e5e3cefc0e41c47230a7f8c7`, clearing the stale-package-lineage side of #189; actual-host reboot/recovery and approved power-loss evidence remain separately gated. TG-01 / Issue #822 is merged GREEN. The next independent Ready software Work Package remains TG-02 / Issue #823; RFX-01 through RFX-19C remain on the Product Owner presentation hold.
+`PRODUCTION-READINESS-1` remains active. Critical security Issue #834 interrupts TG-02 after fresh exact-head Container Supply Chain evidence exposed two new shared Telemetry Service source-package findings for `CVE-2026-16742`; TG-02 / Issue #823 remains paused until #834 merges GREEN. Issue #832 has already refreshed hosted ARM64/local-auth recovery acceptance to deployed source `893573a86faf6629e5e3cefc0e41c47230a7f8c7`; actual-host reboot/recovery and approved power-loss evidence remain separately gated under #189. RFX-01 through RFX-19C remain on the Product Owner presentation hold.
 
 ## Telegram morning reports — TG-01 / Issue #822 completed
 
@@ -153,7 +153,7 @@ The stale hosted recovery-package lineage is cleared by Issue #832: the currentl
 
 ## Security maintenance
 
-Issue #829 is completed and merged through PR #831. Fresh exact-main no-cache Container Supply Chain run `33637555344` on source `e606b96cb65118b03e3807367322887529988d28` was GREEN for device-agent, telemetry-service, mqtt-dynamic-security and the aggregate release manifest. The seven HIGH tuples due on 2026-09-02 remained present with no consumable fixed version reported by Trivy/Debian, and the documented XML/FTS5/arbitrary-SQL/untrusted-DB/32-bit-cJSON/LECP-CBOR reachability paths remained absent. The seven exact exceptions were therefore renewed only through **2026-09-05**, with unchanged fail-closed early-removal triggers; the next consolidated fresh review remains due on 2026-09-05. No production deployment or runtime mutation belongs to #829.
+Issue #829 is completed and merged through PR #831, with its seven pre-existing HIGH exceptions bounded to the consolidated **2026-09-05** review. During TG-02 exact-head verification, Container Supply Chain run `33683425564` exposed two new unapproved HIGH findings in the shared Telemetry Service base: `libsystemd0/CVE-2026-16742` and `libudev1/CVE-2026-16742`, both `257.13-1~deb13u1` with no fixed version reported by the fresh scanner. Issue #834 is the active critical interrupt. Upstream identifies the vulnerable component as the separate `systemd-homed` local-authentication path; clean `python:3.13-slim-trixie` already contains both shared libraries, while the Telemetry runtime contains no `systemd-homed` package/binary, D-Bus or polkit path and runs nonroot. Base reverse dependencies make library purge unsafe. The candidate therefore uses only two exact HIGH-only exceptions through 2026-09-05 with fail-closed removal triggers. No production deployment or runtime mutation is authorized by #834.
 
 ## Issue #707 Saved Dashboard export and chart workspace
 

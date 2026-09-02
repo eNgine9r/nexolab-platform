@@ -278,6 +278,37 @@ def test_current_telemetry_fresh_scan_exceptions_are_exact_and_short_lived() -> 
     )
 
 
+
+def test_telemetry_systemd_homed_cve_exceptions_are_exact_and_short_lived() -> None:
+    root = Path(__file__).resolve().parents[1]
+    payload = json.loads(
+        (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
+    )
+    matches = [
+        entry
+        for entry in payload["exceptions"]
+        if entry["image_id"] == "telemetry-service"
+        and entry["vulnerability"] == "CVE-2026-16742"
+    ]
+
+    assert {(entry["package"], entry["vulnerability"]) for entry in matches} == {
+        ("libsystemd0", "CVE-2026-16742"),
+        ("libudev1", "CVE-2026-16742"),
+    }
+    assert all(entry["owner"] == "platform-security" for entry in matches)
+    assert all(entry["expires_on"] == "2026-09-05" for entry in matches)
+    assert all("33683425564" in entry["reason"] for entry in matches)
+    assert all("0f9327f40e9a2f4b8527be78f94c925246ab1c8d" in entry["reason"] for entry in matches)
+    assert all("systemd-homed" in entry["reason"] for entry in matches)
+    assert all("D-Bus and polkit are absent" in entry["reason"] for entry in matches)
+    assert all("purge simulation is not dependency-safe" in entry["reason"] for entry in matches)
+    assert all("severity becomes Critical" in entry["reason"] for entry in matches)
+    MODULE.validate_exceptions(
+        root / "security/vulnerability-exceptions.json",
+        date(2026, 9, 3),
+    )
+
+
 def test_telemetry_image_installs_only_required_dynsec_client() -> None:
     dockerfile = (
         Path(__file__).resolve().parents[1]

@@ -3,19 +3,37 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-02T20:14:13+03:00",
-  "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_832_recovery_refresh_completed",
+  "timestamp": "2026-09-03T00:22:32+03:00",
+  "actor": "ChatGPT",
+  "event": "issue_834_systemd_homed_cve_candidate",
   "baselines": {
     "accepted_product_sha": "dede5e5d4680d89a5404baa0f327242e7f7816ce",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 834,
+    "title": "Reconcile fresh telemetry libsystemd/libudev CVE-2026-16742 findings",
+    "branch": "security/834-telemetry-systemd-homed-cve"
+  },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "trigger_pr": 830,
+      "trigger_head_sha": "0f9327f40e9a2f4b8527be78f94c925246ab1c8d",
+      "trigger_container_supply_chain_run": 33683425564,
+      "exact_findings": "telemetry-service:libsystemd0+CVE-2026-16742;telemetry-service:libudev1+CVE-2026-16742",
+      "severity": "HIGH",
+      "fixed_version_reported": "none",
+      "upstream_affected_component": "systemd-homed",
+      "telemetry_homed_dbus_polkit_reachability": "absent",
+      "clean_python_slim_libraries_present": "libsystemd0+libudev1",
+      "safe_purge": "rejected_base_dependency_graph",
+      "exception_expiry": "2026-09-05",
+      "production_runtime_mutation": "none",
+      "modbus_hardware_action": "none"
+    }
   },
   "observations": [],
-  "next_action": "Publish the state-only Issue #832 candidate, require exact-head State integrity GREEN, merge/close #832, synchronize main, then resume TG-02 / Issue #823 from the existing draft PR #830 and its current exact-head CI.",
+  "next_action": "Run final local policy/state checks, commit/push #834, require exact-head Container Supply Chain, Core CI and NEXOLAB Merge Gate GREEN, merge #834, then reconcile main into TG-02 PR #830.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
