@@ -3,23 +3,19 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-03T02:10:22+03:00",
+  "timestamp": "2026-09-03T02:14:14+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_837_tg02_completion_reconciliation_candidate",
+  "event": "issue_837_repository_complete_pending_merge",
   "baselines": {
     "accepted_product_sha": "25f3857f291bcada05bec09b2d8d7323c52a3b22",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
-  "active_work": {
-    "issue": 837,
-    "title": "Reconcile TG-02 completion and advance Telegram chain to TG-03",
-    "branch": "chore/837-reconcile-tg02-state"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Publish state-only #837 candidate, require exact-head State integrity and NEXOLAB Merge Gate GREEN, record that evidence, complete #837, then begin TG-03 / Issue #824 from fresh main.",
+  "next_action": "Require the final exact-head State integrity and NEXOLAB Merge Gate on PR #838 to remain GREEN, merge #838, synchronize main, then begin TG-03 / Issue #824.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

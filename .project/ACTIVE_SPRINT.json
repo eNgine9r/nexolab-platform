@@ -22,11 +22,7 @@
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 837,
-      "title": "Reconcile TG-02 completion and advance Telegram chain to TG-03",
-      "branch": "chore/837-reconcile-tg02-state"
-    },
+    "active_work_package": null,
     "next_work_package": {
       "issue": 824,
       "title": "Add read-only NEXOLAB Telegram Mini App for morning reports",
@@ -1833,9 +1829,16 @@
       "issue": 837,
       "title": "Reconcile TG-02 completion and advance Telegram chain to TG-03",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "chore/837-reconcile-tg02-state",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "48901ecd7c7ed29187502791cbffaffba9ea1e8e",
+        "pull_request": 838,
+        "checks": {
+          "state_integrity": "success:33694003816",
+          "nexolab_merge_gate": "success:33694003816"
+        }
+      }
     }
   ],
   "maintenance_actions": [
