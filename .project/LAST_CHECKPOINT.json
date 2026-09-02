@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-02T15:05:00+03:00",
+  "timestamp": "2026-09-02T16:42:02+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_823_telegram_gateway_implementation_active",
+  "event": "issue_823_local_candidate_ready_for_pr",
   "baselines": {
     "accepted_product_sha": "dede5e5d4680d89a5404baa0f327242e7f7816ce",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
@@ -16,10 +16,25 @@
     "branch": "feat/823-telegram-report-delivery"
   },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "verified_head_sha": "64646f5dcf6a23ec3b300f8550aa8727ee0356fe",
+      "checks": {
+        "focused_gateway_tests": "success_27_of_27",
+        "mock_http_acceptance": "success",
+        "ci_governance": "success_121_pass_1_environment_skip",
+        "container_policy": "success_40_of_40",
+        "dependency_policy": "success_11_of_11",
+        "runtime_image_build": "success",
+        "disconnected_health": "success",
+        "compose_contract": "success",
+        "targeted_formatting": "success",
+        "state_model_v2": "success",
+        "git_diff_check": "success"
+      }
+    }
   },
   "observations": [],
-  "next_action": "Finish TG-02 exact-head verification, open PR, require Telegram Gateway + Offline Bundle + NEXOLAB Merge Gate GREEN, then merge before starting TG-03 / Issue #824.",
+  "next_action": "Push TG-02, open PR, require exact-head Telegram Gateway + Container Supply Chain + Offline Bundle + routed browser lanes + NEXOLAB Merge Gate GREEN before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

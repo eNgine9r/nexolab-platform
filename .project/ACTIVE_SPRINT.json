@@ -1670,12 +1670,27 @@
       "issue": 823,
       "title": "Add Telegram group report delivery adapter with Mini App direct link",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "depends_on": [
         822
       ],
       "branch": "feat/823-telegram-report-delivery",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "64646f5dcf6a23ec3b300f8550aa8727ee0356fe",
+        "checks": {
+          "focused_gateway_tests": "success_27_of_27",
+          "mock_http_acceptance": "success",
+          "ci_governance": "success_121_pass_1_environment_skip",
+          "container_policy": "success_40_of_40",
+          "dependency_policy": "success_11_of_11",
+          "runtime_image_build": "success",
+          "disconnected_health": "success",
+          "compose_contract": "success",
+          "targeted_formatting": "success",
+          "state_model_v2": "success",
+          "git_diff_check": "success"
+        }
+      }
     }
   ],
   "maintenance_actions": [
