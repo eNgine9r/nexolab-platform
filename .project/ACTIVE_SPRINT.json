@@ -18,14 +18,14 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "32c93638a7c2fac3d324482bc9898a8be5b49cb7",
+    "accepted_product_sha": "25f3857f291bcada05bec09b2d8d7323c52a3b22",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
   "selection": {
     "active_work_package": {
-      "issue": 823,
-      "title": "Add Telegram group report delivery adapter with Mini App direct link",
-      "branch": "feat/823-telegram-report-delivery"
+      "issue": 837,
+      "title": "Reconcile TG-02 completion and advance Telegram chain to TG-03",
+      "branch": "chore/837-reconcile-tg02-state"
     },
     "next_work_package": {
       "issue": 824,
@@ -1674,7 +1674,7 @@
       "issue": 823,
       "title": "Add Telegram group report delivery adapter with Mini App direct link",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         822
       ],
@@ -1699,7 +1699,15 @@
           "authenticated_dashboard": "success:33655109466",
           "refrigeration_browser": "success:33655109423",
           "telemetry_service": "success:33655109380",
-          "nexolab_merge_gate": "success:33655109369"
+          "nexolab_merge_gate": "success:33655109369",
+          "final_core_ci": "success:33691029025",
+          "final_nexolab_merge_gate": "success:33691029025",
+          "final_telegram_gateway": "success:33691029042",
+          "final_container_supply_chain": "success:33691029067",
+          "final_offline_bundle": "success:33691029039",
+          "final_authenticated_dashboard": "success:33691029064",
+          "final_refrigeration_browser": "success:33691029079",
+          "final_telemetry_service": "success:33691029038"
         },
         "implementation_checkpoint_sha": "64646f5dcf6a23ec3b300f8550aa8727ee0356fe",
         "pull_request": 830,
@@ -1713,7 +1721,8 @@
         "modbus_write": "none",
         "hardware_write": "none",
         "previous_verified_head_sha": "32c93638a7c2fac3d324482bc9898a8be5b49cb7",
-        "final_reverification": "pending_after_security_834_merge"
+        "final_reverification": "success_after_security_834_merge",
+        "verified_head_sha": "25f3857f291bcada05bec09b2d8d7323c52a3b22"
       }
     },
     {
@@ -1818,6 +1827,14 @@
         823
       ],
       "branch": "feat/824-telegram-miniapp",
+      "evidence": {}
+    },
+    {
+      "issue": 837,
+      "title": "Reconcile TG-02 completion and advance Telegram chain to TG-03",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "chore/837-reconcile-tg02-state",
       "evidence": {}
     }
   ],
