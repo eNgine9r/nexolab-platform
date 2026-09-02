@@ -52,6 +52,7 @@ class StateDurationResult:
     status: str
     duration_seconds: float | None
     observed_seconds: float
+    requested_seconds: float
     coverage_percent: float
     continuity_breaks: int
     source_gap_seconds: float
@@ -265,6 +266,7 @@ def calculate_state_duration(
         status="available" if observed > 0 else "unavailable",
         duration_seconds=(active if observed > 0 else None),
         observed_seconds=observed,
+        requested_seconds=requested,
         coverage_percent=min(100.0, observed / requested * 100.0),
         continuity_breaks=breaks,
         source_gap_seconds=gap,

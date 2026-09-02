@@ -514,12 +514,20 @@ class DailyReportRepository:
         if binding is None:
             incomplete_reasons.append("controller_not_bound")
         else:
+            if controller["status"] != "available":
+                incomplete_reasons.append("controller_state_unavailable")
             if compressor["status"] != "available":
                 incomplete_reasons.append("compressor_evidence_unavailable")
+            elif not _interval_evidence_complete(compressor):
+                incomplete_reasons.append("compressor_coverage_incomplete")
             if defrost["status"] != "available":
                 incomplete_reasons.append("defrost_evidence_unavailable")
+            elif not _interval_evidence_complete(defrost):
+                incomplete_reasons.append("defrost_coverage_incomplete")
         if profile.energy_source is not None and energy["status"] != "available":
             incomplete_reasons.append("energy_evidence_unavailable")
+        if alerts["truncated"]:
+            incomplete_reasons.append("alert_history_truncated")
 
         active_severities = set(alerts["active_severities"])
         if active_severities.intersection({"critical", "alarm"}):
@@ -721,6 +729,7 @@ class DailyReportRepository:
             "duty_percent": runtime.duty_percent,
             "running_seconds": runtime.running_seconds,
             "observed_seconds": runtime.observed_seconds,
+            "requested_seconds": runtime.requested_seconds,
             "coverage_percent": runtime.coverage_percent,
             "continuity_breaks": runtime.continuity_breaks,
             "source_gap_seconds": runtime.source_gap_seconds,
@@ -729,6 +738,7 @@ class DailyReportRepository:
             "status": defrost_result.status,
             "duration_seconds": defrost_result.duration_seconds,
             "observed_seconds": defrost_result.observed_seconds,
+            "requested_seconds": defrost_result.requested_seconds,
             "coverage_percent": defrost_result.coverage_percent,
             "continuity_breaks": defrost_result.continuity_breaks,
             "source_gap_seconds": defrost_result.source_gap_seconds,
@@ -895,6 +905,7 @@ class DailyReportRepository:
         return {
             "active_count": len(active),
             "recent_count": len(rows),
+            "truncated": len(rows) >= 50,
             "active_severities": sorted({row.severity for row in active}),
             "items": [
                 {
@@ -1097,6 +1108,16 @@ class DailyReportRepository:
         if self._organization_id is None:
             raise DailyReportRepositoryError("organization scope is required")
         return self._organization_id
+
+
+def _interval_evidence_complete(summary: dict[str, Any]) -> bool:
+    requested = float(summary.get("requested_seconds") or 0.0)
+    observed = float(summary.get("observed_seconds") or 0.0)
+    source_gap = float(summary.get("source_gap_seconds") or 0.0)
+    breaks = int(summary.get("continuity_breaks") or 0)
+    if requested <= 0 or observed <= 0 or source_gap <= 0 or breaks > 0:
+        return False
+    return max(0.0, requested - observed) <= source_gap
 
 
 def _identity_filters(identity: TelemetryIdentity) -> tuple[Any, ...]:

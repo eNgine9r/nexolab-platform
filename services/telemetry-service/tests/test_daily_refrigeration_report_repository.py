@@ -585,3 +585,52 @@ def test_profile_rejects_source_node_without_unique_org_ownership(tmp_path: Path
             actor_identity_id=None,
             actor_roles=frozenset({Role.ENGINEER}),
         )
+
+
+def test_sparse_controller_evidence_marks_snapshot_incomplete(tmp_path: Path) -> None:
+    database = build_database(tmp_path)
+    with Session(database.engine) as session:
+        session.query(TelemetrySample).filter(
+            TelemetrySample.equipment_id == "EMBRACO-2"
+        ).delete(synchronize_session=False)
+        for offset_seconds, speed in ((60, 3000.0), (30, 0.0), (0, 0.0)):
+            captured_at = WINDOW_END - timedelta(seconds=offset_seconds)
+            session.add_all(
+                [
+                    telemetry(
+                        captured_at=captured_at,
+                        equipment_id="EMBRACO-2",
+                        channel_id="2-compressor-speed",
+                        metric="compressor.speed",
+                        value=speed,
+                        unit="rpm",
+                        source="embraco-sync",
+                    ),
+                    telemetry(
+                        captured_at=captured_at,
+                        equipment_id="EMBRACO-2",
+                        channel_id="2-control-state",
+                        metric="refrigeration.control_state",
+                        value=1.0,
+                        unit="state",
+                        source="embraco-sync",
+                    ),
+                ]
+            )
+        session.commit()
+
+    repository = DailyReportRepository(database).for_organization(ORGANIZATION_ID)
+    profile = create_profile(repository)
+    result = repository.generate(
+        profile.id,
+        local_report_date=REPORT_DATE,
+        generated_by="engineer-test",
+        actor_identity_id=None,
+        actor_roles=frozenset({Role.ENGINEER}),
+    )
+
+    assert result.snapshot.status == "incomplete"
+    reasons = set(result.snapshot.payload["quality"]["reasons"])
+    assert "compressor_coverage_incomplete" in reasons
+    assert "defrost_coverage_incomplete" in reasons
+    assert result.snapshot.payload["controller"]["status"] == "available"
