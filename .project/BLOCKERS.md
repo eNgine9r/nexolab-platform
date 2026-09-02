@@ -1,6 +1,6 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-02
+Updated: 2026-09-03
 
 ## Issue #805 — controlled onboarding deployment and browser acceptance
 
@@ -60,9 +60,9 @@ Blocked until the Product Owner confirms the temporary external RS-485 owner has
 
 Issue #727 records an intentional Product Owner defer of **RFX-01 through RFX-19C until after the main presentation**. This is not a technical blocker and does not invalidate accepted RFX-00 / ADR 0010. Issue #717 is non-Ready/blocked by product decision; PR #718 is closed unmerged and retained only as a historical checkpoint. Do not auto-advance to RFX-02 or reopen/merge the pre-pause RFX-01 branch. Resume requires an explicit Product Owner restart plus a fresh Team Lead source-of-truth audit.
 
-## Security maintenance — #829 cleared; consolidated review due 2026-09-05
+## Security maintenance — #829/#834 cleared; consolidated review due 2026-09-05
 
-**Cleared 2026-09-02.** Issue #829 closed through merged PR #831 at exact verified head `7435610de95858ed1a454b396752177293dca9c1`; Core Quality/build, Container Supply Chain, Telemetry Service and NEXOLAB Merge Gate are GREEN. Seven pre-existing HIGH exceptions were revalidated only through **2026-09-05** with unchanged fail-closed early-removal triggers. TG-02 adds 17 exact Telegram Gateway HIGH exceptions with the same 2026-09-05 review boundary after gateway-specific reachability analysis; its exact-head supply-chain scan has zero CRITICAL findings. The consolidated review remains due on that date. No production deployment, runtime mutation, Modbus/hardware write or data/volume change is authorized by these policy decisions.
+**Cleared.** #829 remains completed through PR #831. The later TG-02-triggered shared Telemetry delta is also cleared by #834 / PR #836 at exact verified head `7d4b0c8b55da862b57c16358126cfd7c856445da`: Container Supply Chain `33689268672`, Telemetry Service `33689268665`, Core Quality/build and NEXOLAB Merge Gate `33689268663` are GREEN, with zero unresolved review threads. The only new policy entries are exact HIGH-only `telemetry-service + libsystemd0/libudev1 + CVE-2026-16742` exceptions expiring **2026-09-05**; CRITICAL remains unconditionally blocked. TG-02 is no longer security-blocked and now requires only its fresh reconciled exact-head workflow matrix before merge. The consolidated 2026-09-05 review remains mandatory. No production deployment, runtime mutation, Modbus/hardware write or data/volume change is authorized.
 
 ## Issue #755 — approved bounded #709 / #711 controlled deployment
 

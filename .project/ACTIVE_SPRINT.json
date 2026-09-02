@@ -22,7 +22,11 @@
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 823,
+      "title": "Add Telegram group report delivery adapter with Mini App direct link",
+      "branch": "feat/823-telegram-report-delivery"
+    },
     "next_work_package": {
       "issue": 824,
       "title": "Add read-only NEXOLAB Telegram Mini App for morning reports",
@@ -1670,7 +1674,7 @@
       "issue": 823,
       "title": "Add Telegram group report delivery adapter with Mini App direct link",
       "priority": "high",
-      "lifecycle": "completed",
+      "lifecycle": "in_progress",
       "depends_on": [
         822
       ],
@@ -1698,7 +1702,6 @@
           "nexolab_merge_gate": "success:33655109369"
         },
         "implementation_checkpoint_sha": "64646f5dcf6a23ec3b300f8550aa8727ee0356fe",
-        "verified_head_sha": "32c93638a7c2fac3d324482bc9898a8be5b49cb7",
         "pull_request": 830,
         "runtime_base": "gcr.io/distroless/python3-debian13:nonroot",
         "runtime_user": "nonroot_uid_65532",
@@ -1708,7 +1711,9 @@
         "real_telegram_contact": "none",
         "production_deployment": "not_executed",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "previous_verified_head_sha": "32c93638a7c2fac3d324482bc9898a8be5b49cb7",
+        "final_reverification": "pending_after_security_834_merge"
       }
     },
     {
@@ -1770,6 +1775,37 @@
         "modbus_write": "none",
         "hardware_write": "none",
         "volume_deletion": "none"
+      }
+    },
+    {
+      "issue": 834,
+      "title": "Reconcile fresh telemetry libsystemd/libudev CVE-2026-16742 findings",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "branch": "security/834-telemetry-systemd-homed-cve",
+      "evidence": {
+        "trigger_pr": 830,
+        "trigger_head_sha": "0f9327f40e9a2f4b8527be78f94c925246ab1c8d",
+        "trigger_container_supply_chain_run": 33683425564,
+        "exact_findings": "telemetry-service:libsystemd0+CVE-2026-16742;telemetry-service:libudev1+CVE-2026-16742",
+        "severity": "HIGH",
+        "fixed_version_reported": "none",
+        "upstream_affected_component": "systemd-homed",
+        "telemetry_homed_dbus_polkit_reachability": "absent",
+        "clean_python_slim_libraries_present": "libsystemd0+libudev1",
+        "safe_purge": "rejected_base_dependency_graph",
+        "exception_expiry": "2026-09-05",
+        "production_runtime_mutation": "none",
+        "modbus_hardware_action": "none",
+        "verified_head_sha": "7d4b0c8b55da862b57c16358126cfd7c856445da",
+        "pull_request": 836,
+        "checks": {
+          "container_supply_chain": "success:33689268672",
+          "telemetry_service": "success:33689268665",
+          "core_quality_build": "success:33689268663",
+          "nexolab_merge_gate": "success:33689268663",
+          "review_threads": "0_unresolved"
+        }
       }
     },
     {
