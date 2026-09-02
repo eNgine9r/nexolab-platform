@@ -251,10 +251,20 @@ class RS485BusTopology:
     def bind_registry(self, registry: AcquisitionRegistry) -> AcquisitionRegistry:
         if not self.explicit:
             return registry
-        devices = tuple(
-            replace(device, bus_id=self.bus_for_unit(device.unit_id))
-            for device in registry.document.devices
-        )
+        configured_bus_ids = set(self._by_bus)
+        devices = []
+        for device in registry.document.devices:
+            static_owner = self._unit_to_bus.get(device.unit_id)
+            if static_owner is not None:
+                bus_id = static_owner
+            elif device.bus_id in configured_bus_ids:
+                bus_id = device.bus_id
+            else:
+                raise ValueError(
+                    f"Persisted registry bus {device.bus_id!r} for Unit ID {device.unit_id} is not configured"
+                )
+            devices.append(replace(device, bus_id=bus_id))
+        devices = tuple(devices)
         cadence = rebind_policy(
             registry.document.cadence,
             old_devices=registry.document.devices,

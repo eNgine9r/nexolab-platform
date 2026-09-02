@@ -83,6 +83,9 @@ def register_models() -> None:
     assert _commissioning_models.EquipmentCommissioningPreflightAttempt.__tablename__ == (
         "equipment_commissioning_preflight_attempts"
     )
+    assert _commissioning_models.EquipmentCommissioningActivationAttempt.__tablename__ == (
+        "equipment_commissioning_activation_attempts"
+    )
     assert _live_dashboard_models.LiveDashboard.__tablename__ == (
         "live_dashboards"
     )

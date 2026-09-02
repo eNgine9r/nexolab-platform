@@ -13,12 +13,21 @@ from http.server import ThreadingHTTPServer
 from typing import Any
 
 from acquisition_capacity import BusCapacityProfile
+from acquisition_registry import AcquisitionRegistry, DeviceLifecycleMutation, LifecycleMutation
+from commissioning_activation import (
+    CommissioningActivationJournal,
+    CommissioningActivationRequest,
+    activation_fingerprint,
+    parse_activation_request,
+)
 from commissioning_preflight import (
     CommissioningPreflightRequest,
+    PROFILES,
     PreflightBus,
     PreflightExecutionError,
     PreflightObservation,
     PreflightProfile,
+    canonical_serial_identifier,
     execute_preflight,
     parse_preflight_request,
 )
@@ -110,6 +119,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         self._bus_embraco_readers: dict[str, EmbracoSyncReader] = {}
         self._bus_operation_locks: dict[str, threading.Lock] = {}
         self._topology_enrollment_store = topology_store
+        self._commissioning_activation_journal = CommissioningActivationJournal(settings.database_path)
 
         if not self.rs485_topology.explicit:
             return
@@ -229,7 +239,18 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         try:
             return self.rs485_topology.bus_for_unit(unit_id)
         except ValueError:
-            return None
+            pass
+        matches = [
+            device.bus_id
+            for device in self._registry_snapshot().document.devices
+            if device.unit_id == unit_id
+        ]
+        if len(matches) > 1:
+            raise PreflightExecutionError(
+                "unit_id_conflict",
+                f"Unit ID {unit_id} has multiple persisted acquisition bus owners",
+            )
+        return matches[0] if matches else None
 
     def preflight_registry_identity(
         self,
@@ -337,6 +358,215 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         finally:
             lock.release()
         return tuple(observations)
+
+    def commissioning_activation(self, request: CommissioningActivationRequest) -> dict[str, Any]:
+        fingerprint = activation_fingerprint(request)
+        journal = self._commissioning_activation_journal.load(request.activation_id)
+        if journal is not None and journal["fingerprint_sha256"] != fingerprint:
+            raise ValueError("activation_id was already used for a different commissioning identity")
+        if request.action == "rollback":
+            return self._rollback_commissioning_activation(request, journal, fingerprint)
+        if journal is not None and journal["state"] in {"active", "rolled_back", "recovery_required"}:
+            return self._activation_response(request, journal)
+
+        if request.node_id != self.settings.node_id:
+            raise ValueError("activation node does not match this Device Agent")
+        profile = PROFILES.get(request.profile_id)
+        if profile is None or profile.profile_version != request.profile_version:
+            raise ValueError("activation profile/version is unsupported")
+        bus = self.preflight_bus(request.bus_id)
+        if canonical_serial_identifier(bus.serial_device) != canonical_serial_identifier(request.stable_transport_identifier):
+            raise ValueError("activation stable adapter identity does not match configured bus")
+        if not bus.path_present:
+            raise ValueError("activation stable serial adapter is unavailable")
+        owner = self.preflight_unit_owner(request.unit_id)
+        if owner is not None and owner != request.bus_id:
+            raise ValueError("activation Unit ID belongs to another physical bus")
+
+        actor = f"commissioning:{request.activation_id}"
+        reason = "Activate repository-owned read-only commissioning target"
+        with self._bus_operation_lock, self._registry_lock:
+            current = self._registry
+            if journal is not None and journal["state"] == "prepared":
+                state = self._prepared_activation_state(current, journal)
+                if state == "active":
+                    completed = {**journal, "registry_revision_after": current.revision}
+                    self._commissioning_activation_journal.save(request.activation_id, fingerprint, "active", completed)
+                    return self._activation_response(request, {**completed, "state": "active"})
+                if state != "rollback":
+                    recovery = {**journal, "reason": "affected registry lifecycle changed after prepared activation"}
+                    self._commissioning_activation_journal.save(request.activation_id, fingerprint, "recovery_required", recovery)
+                    return self._activation_response(request, {**recovery, "state": "recovery_required"})
+            else:
+                current = self._ensure_commissioning_inventory(current, request, profile.device_family, actor)
+                self._registry = current
+
+            device = self._commissioning_device(current, request, profile.device_family)
+            targets = tuple(target for target in current.document.targets if target.device_id == device.device_id)
+            if not targets:
+                raise ValueError("activation profile has no repository-owned acquisition targets")
+            rollback = {
+                "device_lifecycle": device.lifecycle,
+                "target_lifecycles": {target.target_id: target.lifecycle for target in targets},
+            }
+            prepared = {
+                "device_id": device.device_id,
+                "target_ids": [target.target_id for target in targets],
+                "rollback": rollback,
+                "registry_revision_before": current.revision,
+                "profile_id": request.profile_id,
+                "profile_version": request.profile_version,
+                "bus_id": request.bus_id,
+                "unit_id": request.unit_id,
+            }
+            self._commissioning_activation_journal.save(request.activation_id, fingerprint, "prepared", prepared)
+            device_mutations = () if device.lifecycle == "active" else (DeviceLifecycleMutation(device.device_id, "active"),)
+            target_mutations = tuple(
+                LifecycleMutation(target.target_id, "active") for target in targets if target.lifecycle != "active"
+            )
+            if device_mutations or target_mutations:
+                candidate_document, _ = current.with_mutations(
+                    device_mutations=device_mutations, target_mutations=target_mutations
+                )
+                candidate = AcquisitionRegistry(candidate_document)
+                self._validate_new_eligibility(current, candidate)
+                current = self._registry_store.update(
+                    current,
+                    expected_revision=current.revision,
+                    actor=actor,
+                    reason=reason,
+                    device_mutations=device_mutations,
+                    target_mutations=target_mutations,
+                )
+                self._registry = current
+                self._sync_legacy_xjp60d_state(current)
+
+        self.scheduler.reconcile(self._registry_snapshot())
+        completed = {**prepared, "registry_revision_after": current.revision}
+        self._commissioning_activation_journal.save(request.activation_id, fingerprint, "active", completed)
+        return self._activation_response(request, {**completed, "state": "active"})
+
+    def _ensure_commissioning_inventory(self, current: AcquisitionRegistry, request: CommissioningActivationRequest, family: str, actor: str) -> AcquisitionRegistry:
+        matches = [device for device in current.document.devices if device.unit_id == request.unit_id]
+        if matches:
+            if len(matches) != 1:
+                raise ValueError("activation Unit ID has ambiguous acquisition inventory")
+            device = matches[0]
+            if device.bus_id != request.bus_id or device.device_family != family or device.profile_version != request.profile_version:
+                raise ValueError("activation identity conflicts with acquisition registry")
+            return current
+        kwargs = dict(
+            expected_revision=current.revision,
+            unit_ids=(request.unit_id,),
+            actor=actor,
+            reason="Enroll verified commissioning target in safe non-polling state",
+            bus_for_unit=lambda _unit_id: request.bus_id,
+        )
+        if family == "xjp60d":
+            return self._registry_store.enroll_xjp60d(current, **kwargs)
+        if family == "le01mp":
+            return self._registry_store.enroll_le01mp(current, **kwargs)
+        if family == "embraco":
+            return self._registry_store.enroll_embraco(current, **kwargs)
+        raise ValueError("unsupported commissioning activation family")
+
+    @staticmethod
+    def _commissioning_device(current: AcquisitionRegistry, request: CommissioningActivationRequest, family: str):
+        matches = [
+            device for device in current.document.devices
+            if device.unit_id == request.unit_id and device.bus_id == request.bus_id
+            and device.device_family == family and device.profile_version == request.profile_version
+        ]
+        if len(matches) != 1:
+            raise ValueError("activation registry device identity is unavailable or ambiguous")
+        return matches[0]
+
+    @staticmethod
+    def _prepared_activation_state(current: AcquisitionRegistry, journal: dict[str, Any]) -> str:
+        device_id = str(journal.get("device_id", ""))
+        target_ids = tuple(str(value) for value in journal.get("target_ids", []))
+        rollback = journal.get("rollback", {})
+        devices = {item.device_id: item.lifecycle for item in current.document.devices}
+        targets = {item.target_id: item.lifecycle for item in current.document.targets}
+        if devices.get(device_id) == "active" and all(targets.get(item) == "active" for item in target_ids):
+            return "active"
+        expected_device = rollback.get("device_lifecycle") if isinstance(rollback, dict) else None
+        expected_targets = rollback.get("target_lifecycles", {}) if isinstance(rollback, dict) else {}
+        if devices.get(device_id) == expected_device and all(targets.get(item) == expected_targets.get(item) for item in target_ids):
+            return "rollback"
+        return "conflict"
+
+    def _rollback_commissioning_activation(
+        self, request: CommissioningActivationRequest, journal: dict[str, Any] | None, fingerprint: str
+    ) -> dict[str, Any]:
+        if journal is None:
+            raise ValueError("activation rollback journal was not found")
+        if journal["state"] == "rolled_back":
+            return self._activation_response(request, journal)
+        if journal["state"] == "recovery_required":
+            return self._activation_response(request, journal)
+        with self._bus_operation_lock, self._registry_lock:
+            current = self._registry
+            state = self._prepared_activation_state(current, journal)
+            if state == "rollback":
+                rolled = {**journal, "registry_revision_rollback": current.revision}
+                self._commissioning_activation_journal.save(request.activation_id, fingerprint, "rolled_back", rolled)
+                return self._activation_response(request, {**rolled, "state": "rolled_back"})
+            if state != "active":
+                recovery = {**journal, "reason": "affected registry lifecycle changed before rollback"}
+                self._commissioning_activation_journal.save(request.activation_id, fingerprint, "recovery_required", recovery)
+                return self._activation_response(request, {**recovery, "state": "recovery_required"})
+            rollback = journal.get("rollback", {})
+            target_lifecycles = rollback.get("target_lifecycles", {}) if isinstance(rollback, dict) else {}
+            device_id = str(journal["device_id"])
+            device_lifecycle = str(rollback.get("device_lifecycle", "reserve"))
+            device_mutations = () if device_lifecycle == "active" else (DeviceLifecycleMutation(device_id, device_lifecycle),)
+            target_mutations = tuple(
+                LifecycleMutation(str(target_id), str(lifecycle))
+                for target_id, lifecycle in target_lifecycles.items()
+                if lifecycle != "active"
+            )
+            if device_mutations or target_mutations:
+                current = self._registry_store.update(
+                    current,
+                    expected_revision=current.revision,
+                    actor=f"commissioning:{request.activation_id}",
+                    reason="Rollback incomplete commissioning activation to prior non-polling lifecycle",
+                    device_mutations=device_mutations,
+                    target_mutations=target_mutations,
+                )
+                self._registry = current
+                self._sync_legacy_xjp60d_state(current)
+        self.scheduler.reconcile(self._registry_snapshot())
+        rolled = {**journal, "registry_revision_rollback": current.revision}
+        self._commissioning_activation_journal.save(request.activation_id, fingerprint, "rolled_back", rolled)
+        return self._activation_response(request, {**rolled, "state": "rolled_back"})
+
+    @staticmethod
+    def _activation_response(request: CommissioningActivationRequest, journal: dict[str, Any]) -> dict[str, Any]:
+        profile = PROFILES[request.profile_id]
+        source = {"xjp60d": "dixell-xjp60d", "le01mp": "f-and-f-le-01mp", "embraco": "embraco-sync"}[profile.device_family]
+        equipment_id = {"xjp60d": f"K{request.unit_id}", "le01mp": f"LE01MP-{request.unit_id}", "embraco": f"EMBRACO-{request.unit_id}"}[profile.device_family]
+        return {
+            "schema_version": 1,
+            "activation_id": request.activation_id,
+            "state": journal["state"],
+            "node_id": request.node_id,
+            "bus_id": request.bus_id,
+            "stable_transport_identifier": request.stable_transport_identifier,
+            "unit_id": request.unit_id,
+            "profile_id": request.profile_id,
+            "profile_version": request.profile_version,
+            "device_id": journal.get("device_id"),
+            "target_ids": list(journal.get("target_ids", [])),
+            "registry_revision": journal.get("registry_revision_after") or journal.get("registry_revision_rollback") or journal.get("registry_revision_before"),
+            "telemetry_source": source,
+            "telemetry_equipment_id": equipment_id,
+            "polling_mode": "read_only_fc03",
+            "modbus_writes": "none",
+            "hardware_writes": "none",
+            "reason": journal.get("reason"),
+        }
 
     def commissioning_preflight(self, request: CommissioningPreflightRequest) -> dict[str, Any]:
         return execute_preflight(request, self)
@@ -658,19 +888,25 @@ class DualBusAdaptiveRegistryHealthHandler(AdaptiveRegistryHealthHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = self.path.split("?", maxsplit=1)[0]
-        if path != "/api/v1/commissioning/preflight":
-            super().do_POST()
+        if path == "/api/v1/commissioning/preflight":
+            try:
+                request = parse_preflight_request(self._read_json_body())
+                result = self.agent.commissioning_preflight(request)
+            except (ValueError, TypeError) as error:
+                self._send_json(422, {"detail": {"code": "preflight_request_invalid", "message": str(error)}})
+                return
+            self._send_json(200, result)
             return
-        try:
-            request = parse_preflight_request(self._read_json_body())
-            result = self.agent.commissioning_preflight(request)
-        except (ValueError, TypeError) as error:
-            self._send_json(
-                422,
-                {"detail": {"code": "preflight_request_invalid", "message": str(error)}},
-            )
+        if path == "/api/v1/commissioning/activation":
+            try:
+                request = parse_activation_request(self._read_json_body())
+                result = self.agent.commissioning_activation(request)
+            except (ValueError, TypeError) as error:
+                self._send_json(422, {"detail": {"code": "activation_request_invalid", "message": str(error)}})
+                return
+            self._send_json(200, result)
             return
-        self._send_json(200, result)
+        super().do_POST()
 
 
 def main() -> None:

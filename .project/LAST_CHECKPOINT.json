@@ -3,57 +3,40 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-02T06:23:12+03:00",
+  "timestamp": "2026-09-02T08:31:28+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_803_merged_select_issue_804_ready",
+  "event": "issue_804_local_candidate_verified",
   "baselines": {
     "accepted_product_sha": "c30a0d3b6cdb310652f9fc11f817ca2d986f77c4",
     "deployed_product_sha": "20bb9ca473395a0c64267b9b08523c31404f41e6"
   },
-  "active_work": null,
-  "evidence_snapshot": {
-    "completed_issue_803": {
-      "verified_head_sha": "3e501f3b35a090e63b7ec48ba4de05358228da1f",
-      "pull_request": 813,
-      "github_issue_state": "closed_completed",
-      "exact_head_required_ci": "success",
-      "nexolab_merge_gate": "success",
-      "telemetry_service": "success",
-      "device_agent_fleet": "success",
-      "offline_bundle": "success",
-      "review_threads": "none",
-      "codex_review": "not_run_usage_limit",
-      "hardware_evidence": "unverified_no_live_rs485_preflight",
-      "production_deployment": "not_executed"
-    },
-    "next_ready": {
-      "issue": 804,
-      "title": "Add controlled read-only acquisition activation and equipment binding",
-      "branch": "feat/804-device-commissioning-activation",
-      "depends_on": [
-        802,
-        803
-      ],
-      "dependency_state": "satisfied"
-    }
+  "active_work": {
+    "issue": 804,
+    "title": "Add controlled read-only acquisition activation and equipment binding",
+    "branch": "feat/804-device-commissioning-activation"
   },
-  "observations": [
-    {
-      "source": "github",
-      "observed_at": "2026-09-02T06:16:49+03:00",
-      "kind": "issue_803_merge_completion",
-      "data": {
-        "pull_request": 813,
-        "merge_sha": "8fbf3af4295e653c00c2687809402d26484d9298",
-        "issue_803": "closed_completed"
-      }
-    }
-  ],
-  "next_action": "Complete state-only Issue #814 / PR, then start Issue #804 from clean current main. Activation remains read-only monitoring enrollment only and requires a fresh successful matching preflight; no Modbus writes, hardware writes or production deployment.",
+  "evidence_snapshot": {
+    "base_main": "c359e8a0ae6fd54594bdb57749d27da67f5eb627",
+    "frontend_targeted": "16/16 PASS",
+    "device_agent_activation_contract": "5/5 PASS",
+    "device_agent_dual_bus": "12/12 PASS isolated network=none read-only no host devices",
+    "telemetry_activation_smoke": "4/4 PASS isolated network=none",
+    "telemetry_openapi": "PASS 104 paths",
+    "touched_frontend_prettier": "PASS",
+    "touched_frontend_eslint": "PASS",
+    "python_compile": "PASS",
+    "alembic_single_head": "20260902_0030",
+    "state_model_v2": "PASS",
+    "git_diff_check": "PASS",
+    "delegated_to_github": "backend TestClient/PostgreSQL migration, typecheck/build, offline/browser/security/exact-head required CI"
+  },
+  "observations": [],
+  "next_action": "Create recoverable #804 commit, push the same feature branch, open one focused PR, then follow exact-head CI/review. Do not run live activation or start #805.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
-    "modbus_read_on_real_hardware": "not_executed",
+    "live_activation": "not_executed",
+    "hardware_evidence": "unverified",
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
     "production_cutover_authorized": false,

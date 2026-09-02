@@ -18,7 +18,8 @@ from acquisition_registry import (
     AcquisitionRegistryStore,
     DeviceLifecycleMutation,
 )
-from commissioning_preflight import PROFILES, PreflightExecutionError
+from commissioning_activation import CommissioningActivationRequest
+from commissioning_preflight import PROFILES, PreflightBus, PreflightExecutionError
 from dual_bus_main import DualBusAdaptiveRegistryDeviceAgent
 from main import Settings, TelemetryRecord
 from rs485_buses import BUS_CONFIG_ENV
@@ -464,6 +465,95 @@ class EmbracoBusPersistenceTests(unittest.TestCase):
 
         self.assertEqual(persisted_document(self.database_path), before)
 
+
+class CommissioningActivationRuntimeTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.database_path = Path(self.temporary.name) / "edge.db"
+        self.environment = patch.dict(
+            os.environ,
+            {
+                BUS_CONFIG_ENV: json.dumps(bus_payload()),
+                "XJP60D_DISCOVERY_UNITS": "106,126",
+            },
+            clear=False,
+        )
+        self.environment.start()
+        self.agent = DualBusAdaptiveRegistryDeviceAgent(settings(self.database_path))
+
+    def tearDown(self) -> None:
+        for client in self.agent._bus_clients.values():  # noqa: SLF001
+            client.close()
+        self.environment.stop()
+        self.temporary.cleanup()
+
+    def _activation_request(self, *, action: str = "activate") -> CommissioningActivationRequest:
+        return CommissioningActivationRequest(
+            activation_id="activation-xjp-125",
+            action=action,
+            node_id="edge-01",
+            bus_id="rs485-kk1",
+            stable_transport_identifier="/dev/serial/by-id/usb-kk1",
+            unit_id=125,
+            profile_id="dixell-xjp60d",
+            profile_version="dixell-xjp60d-fc03-v1",
+        )
+
+    def _allow_activation_adapter(self) -> None:
+        self.agent.preflight_bus = lambda bus_id: PreflightBus(
+            bus_id=bus_id,
+            serial_device="/host/dev/serial/by-id/usb-kk1",
+            path_present=True,
+        )
+
+    def test_commissioning_activation_enrolls_new_unit_on_verified_bus_and_is_idempotent(self) -> None:
+        self._allow_activation_adapter()
+        first = self.agent.commissioning_activation(self._activation_request())
+        repeated = self.agent.commissioning_activation(self._activation_request())
+
+        self.assertEqual(first["state"], "active")
+        self.assertEqual(repeated["state"], "active")
+        self.assertEqual(first["registry_revision"], repeated["registry_revision"])
+        self.assertEqual(first["modbus_writes"], "none")
+        self.assertEqual(first["hardware_writes"], "none")
+        registry = self.agent._registry_snapshot()  # noqa: SLF001
+        devices = {item.device_id: item for item in registry.document.devices}
+        self.assertEqual(devices["xjp60d-125"].bus_id, "rs485-kk1")
+        self.assertEqual(devices["xjp60d-125"].lifecycle, "active")
+        targets = [item for item in registry.document.targets if item.device_id == "xjp60d-125"]
+        self.assertEqual(len(targets), 6)
+        self.assertTrue(all(item.lifecycle == "active" and item.function == 3 for item in targets))
+
+    def test_commissioning_activation_rollback_restores_non_polling_state(self) -> None:
+        self._allow_activation_adapter()
+        self.agent.commissioning_activation(self._activation_request())
+        rolled = self.agent.commissioning_activation(self._activation_request(action="rollback"))
+
+        self.assertEqual(rolled["state"], "rolled_back")
+        registry = self.agent._registry_snapshot()  # noqa: SLF001
+        devices = {item.device_id: item for item in registry.document.devices}
+        self.assertEqual(devices["xjp60d-125"].lifecycle, "discovery_only")
+        targets = [item for item in registry.document.targets if item.device_id == "xjp60d-125"]
+        self.assertTrue(all(item.lifecycle == "discovery_only" for item in targets))
+        self.assertFalse(any(item.device_id == "xjp60d-125" for item in registry.eligible_targets()))
+
+    def test_dynamic_commissioning_bus_assignment_survives_restart(self) -> None:
+        self._allow_activation_adapter()
+        self.agent.commissioning_activation(self._activation_request())
+        for client in self.agent._bus_clients.values():  # noqa: SLF001
+            client.close()
+        restarted = DualBusAdaptiveRegistryDeviceAgent(settings(self.database_path))
+        try:
+            devices = {
+                item.device_id: item
+                for item in restarted._registry_snapshot().document.devices  # noqa: SLF001
+            }
+            self.assertEqual(devices["xjp60d-125"].bus_id, "rs485-kk1")
+            self.assertEqual(devices["xjp60d-125"].lifecycle, "active")
+            self.assertEqual(restarted.preflight_unit_owner(125), "rs485-kk1")
+        finally:
+            for client in restarted._bus_clients.values():  # noqa: SLF001
+                client.close()
 
 if __name__ == "__main__":
     unittest.main()

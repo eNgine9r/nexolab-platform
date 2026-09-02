@@ -78,6 +78,45 @@ const preflightPayload = {
   completed_at: "2026-09-02T08:00:01Z",
 };
 
+const activationPlanPayload = {
+  schema_version: 1,
+  session_id: "commissioning-1",
+  session_version: 2,
+  preflight_attempt_id: "preflight-1",
+  preflight_completed_at: "2026-09-02T08:00:01Z",
+  preflight_evidence_level: "hardware_verified",
+  device_class: "temperature-controller",
+  manufacturer: "Embraco",
+  model: "Sync",
+  profile_id: "embraco-sync",
+  profile_version: "embraco-sync-fc03-v1.00.04",
+  device_family: "embraco",
+  node_id: "edge-01",
+  bus_id: "rs485-embraco",
+  stable_transport_identifier: "/dev/serial/by-id/usb-embraco",
+  unit_id: 2,
+  target_equipment_key: "equipment-1",
+  telemetry_source: "embraco-sync",
+  telemetry_equipment_id: "EMBRACO-2",
+  polling_mode: "read_only_fc03",
+  binding_kind: "refrigeration_controller",
+  warnings: [],
+  will_not_perform: ["Modbus FC05/06/15/16 writes", "controller parameter changes"],
+};
+
+const activationPayload = {
+  id: "activation-1",
+  session_id: "commissioning-1",
+  preflight_attempt_id: "preflight-1",
+  session_version: 2,
+  state: "active",
+  plan: activationPlanPayload,
+  evidence: { modbus_writes: "none", hardware_writes: "none" },
+  actor_subject: "operator",
+  started_at: "2026-09-02T08:01:00Z",
+  completed_at: "2026-09-02T08:01:02Z",
+};
+
 const draft: CommissioningSessionWrite = {
   deviceClass: "temperature-controller",
   manufacturer: "Embraco",
@@ -181,6 +220,36 @@ describe("HttpCommissioningRepository", () => {
       "If-Match": 'W/"commissioning-session-v2"',
       "Idempotency-Key": "preflight-key-1",
       "X-Audit-Reason": "Run bounded read-only commissioning preflight",
+    });
+  });
+
+  it("parses activation plan/evidence and sends exact optimistic activation headers", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(json(activationPlanPayload))
+      .mockResolvedValueOnce(json(activationPayload))
+      .mockResolvedValueOnce(json(activationPayload));
+    const repository = new HttpCommissioningRepository({
+      apiBaseUrl: "http://telemetry.local",
+      fetchImpl,
+    });
+
+    await expect(repository.getActivationPlan("commissioning-1")).resolves.toMatchObject({
+      pollingMode: "read_only_fc03",
+      bindingKind: "refrigeration_controller",
+      willNotPerform: ["Modbus FC05/06/15/16 writes", "controller parameter changes"],
+    });
+    await expect(repository.getLatestActivation("commissioning-1")).resolves.toMatchObject({
+      id: "activation-1",
+      state: "active",
+      evidence: { modbus_writes: "none", hardware_writes: "none" },
+    });
+    await repository.runActivation("commissioning-1", 2, "activation-key-1");
+
+    expect(fetchImpl.mock.calls[2]?.[1]?.headers).toMatchObject({
+      "If-Match": 'W/"commissioning-session-v2"',
+      "Idempotency-Key": "activation-key-1",
+      "X-Audit-Reason": "Activate verified read-only commissioning monitoring",
     });
   });
 

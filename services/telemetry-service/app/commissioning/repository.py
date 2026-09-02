@@ -193,6 +193,10 @@ class CommissioningRepository:
                 self._check_version(row, expected_version)
                 if row.lifecycle == "cancelled":
                     raise CommissioningLifecycleConflictError("cancelled commissioning sessions are read-only")
+                if row.lifecycle in {"pending_activation", "active"}:
+                    raise CommissioningLifecycleConflictError(
+                        "active commissioning workflow must be rolled back before editing intent"
+                    )
                 merged = _editable_values(row)
                 merged.update(changes)
                 if not merged.get("device_class") or not merged.get("manufacturer") or not merged.get("model"):
@@ -240,6 +244,10 @@ class CommissioningRepository:
                 self._check_version(row, expected_version)
                 if row.lifecycle == "cancelled":
                     return row
+                if row.lifecycle in {"pending_activation", "active"}:
+                    raise CommissioningLifecycleConflictError(
+                        "active commissioning workflow cannot be cancelled; use controlled rollback/deactivation"
+                    )
                 before = _snapshot(row)
                 now = datetime.now(UTC)
                 row.lifecycle = "cancelled"

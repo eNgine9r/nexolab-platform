@@ -2,10 +2,13 @@ import type { ReactNode } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type {
-  CommissioningPreflightAttempt,
-  CommissioningRepository,
-  CommissioningSession,
+import {
+  CommissioningRepositoryError,
+  type CommissioningActivationAttempt,
+  type CommissioningActivationPlan,
+  type CommissioningPreflightAttempt,
+  type CommissioningRepository,
+  type CommissioningSession,
 } from "@/features/equipment/commissioning-repository";
 import type { EquipmentRegistryRuntime } from "@/features/equipment/runtime";
 import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
@@ -91,6 +94,34 @@ const persistedSession: CommissioningSession = {
   cancelledAt: null,
 };
 
+function activationPlan(session: CommissioningSession): CommissioningActivationPlan {
+  return {
+    schemaVersion: 1,
+    sessionId: session.id,
+    sessionVersion: session.version,
+    preflightAttemptId: "preflight-1",
+    preflightCompletedAt: "2026-09-02T08:00:01Z",
+    preflightEvidenceLevel: "hardware_verified",
+    deviceClass: session.deviceClass,
+    manufacturer: session.manufacturer,
+    model: session.model,
+    profileId: "embraco-sync",
+    profileVersion: "embraco-sync-fc03-v1.00.04",
+    deviceFamily: "embraco",
+    nodeId: "edge-01",
+    busId: "rs485-main",
+    stableTransportIdentifier: "/dev/serial/by-id/usb-test",
+    unitId: 2,
+    targetEquipmentKey: "equipment-1",
+    telemetrySource: "embraco-sync",
+    telemetryEquipmentId: "EMBRACO-2",
+    pollingMode: "read_only_fc03",
+    bindingKind: "refrigeration_controller",
+    warnings: [],
+    willNotPerform: ["Modbus FC05/06/15/16 writes", "controller parameter changes"],
+  };
+}
+
 function commissioningRepository(
   getSession: CommissioningRepository["getSession"],
   overrides: Partial<CommissioningRepository> = {},
@@ -119,6 +150,15 @@ function commissioningRepository(
       return new Promise(() => undefined);
     },
     async runPreflight() {
+      throw new Error("not used");
+    },
+    getActivationPlan() {
+      return new Promise(() => undefined);
+    },
+    getLatestActivation() {
+      return new Promise(() => undefined);
+    },
+    async runActivation() {
       throw new Error("not used");
     },
     ...overrides,
@@ -230,9 +270,20 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
       startedAt: "2026-09-02T08:00:00Z",
       completedAt: "2026-09-02T08:00:01Z",
     };
-    const runPreflight = vi.fn(async () => attempt);
-    const repository = commissioningRepository(async () => readySession, {
+    const verifiedSession: CommissioningSession = { ...readySession, lifecycle: "verified" };
+    let verified = false;
+    const runPreflight = vi.fn(async () => {
+      verified = true;
+      return attempt;
+    });
+    const repository = commissioningRepository(async () => (verified ? verifiedSession : readySession), {
       getLatestPreflight: () => new Promise(() => undefined),
+      getActivationPlan: async () => {
+        if (!verified) {
+          throw new CommissioningRepositoryError("preflight required", "commissioning_preflight_stale", 409);
+        }
+        return activationPlan(verifiedSession);
+      },
       runPreflight,
     });
     runtimeFactory.create.mockReturnValue(runtime(repository));
@@ -246,6 +297,66 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     expect(await screen.findByText("hardware verified")).toBeInTheDocument();
     expect(screen.getAllByText("none").length).toBeGreaterThanOrEqual(2);
     expect(runPreflight).toHaveBeenCalledWith("commissioning-a", 2, expect.stringMatching(/^commissioning-/));
+  });
+
+  it("activates verified read-only monitoring and locks ordinary draft mutation", async () => {
+    const verifiedSession: CommissioningSession = {
+      ...persistedSession,
+      lifecycle: "verified",
+      profileId: "embraco-sync",
+      profileVersion: "embraco-sync-fc03-v1.00.04",
+      transportKind: "modbus_rtu",
+      nodeId: "edge-01",
+      busId: "rs485-main",
+      stableTransportIdentifier: "/dev/serial/by-id/usb-test",
+      unitId: 2,
+      targetEquipmentKey: "equipment-1",
+      unsupportedReason: null,
+      version: 2,
+    };
+    const plan = activationPlan(verifiedSession);
+    const activeSession: CommissioningSession = { ...verifiedSession, lifecycle: "active" };
+    const activeAttempt: CommissioningActivationAttempt = {
+      id: "activation-1",
+      sessionId: verifiedSession.id,
+      preflightAttemptId: plan.preflightAttemptId,
+      sessionVersion: verifiedSession.version,
+      state: "active",
+      plan,
+      evidence: { modbus_writes: "none", hardware_writes: "none" },
+      actorSubject: "engineer",
+      startedAt: "2026-09-02T08:01:00Z",
+      completedAt: "2026-09-02T08:01:02Z",
+    };
+    let active = false;
+    const runActivation = vi.fn(async () => {
+      active = true;
+      return activeAttempt;
+    });
+    const repository = commissioningRepository(async () => (active ? activeSession : verifiedSession), {
+      getActivationPlan: async () => plan,
+      getLatestActivation: async () => {
+        if (!active)
+          throw new CommissioningRepositoryError("not found", "commissioning_activation_not_found", 404);
+        return activeAttempt;
+      },
+      runActivation,
+    });
+    runtimeFactory.create.mockReturnValue(runtime(repository));
+
+    render(<CommissioningWizardScreen commissioningId="commissioning-a" />);
+    const button = await screen.findByRole("button", { name: "Активувати read-only моніторинг" });
+    expect(button).toBeEnabled();
+    expect(screen.getByText((content) => content.includes("Modbus FC05"))).toBeInTheDocument();
+    fireEvent.click(button);
+
+    expect(await screen.findByText("Read-only monitoring active")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Зберегти чернетку" })).not.toBeInTheDocument();
+    expect(runActivation).toHaveBeenCalledWith(
+      "commissioning-a",
+      2,
+      expect.stringMatching(/^commissioning-/),
+    );
   });
 
   it("discards an in-flight save after the organization repository changes", async () => {

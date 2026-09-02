@@ -5,7 +5,10 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-CommissioningLifecycle = Literal["draft", "ready_for_preflight", "blocked", "unsupported", "cancelled"]
+CommissioningLifecycle = Literal[
+    "draft", "ready_for_preflight", "verified", "pending_activation", "active",
+    "activation_failed", "rolled_back", "blocked", "unsupported", "cancelled",
+]
 
 
 class SupportedDeviceProfileResponse(BaseModel):
@@ -142,6 +145,54 @@ class CommissioningPreflightAttemptResponse(BaseModel):
     result: CommissioningPreflightResult | None
     code: str | None
     evidence_level: CommissioningEvidenceLevel | None
+    evidence: dict[str, object] | None
+    actor_subject: str
+    started_at: datetime
+    completed_at: datetime | None
+
+
+CommissioningActivationState = Literal[
+    "pending_activation",
+    "active",
+    "activation_failed",
+    "rolled_back",
+    "recovery_required",
+]
+
+
+class CommissioningActivationPlanResponse(BaseModel):
+    schema_version: int
+    session_id: str
+    session_version: int
+    preflight_attempt_id: str
+    preflight_completed_at: datetime
+    preflight_evidence_level: CommissioningEvidenceLevel
+    device_class: str
+    manufacturer: str
+    model: str
+    profile_id: str
+    profile_version: str
+    device_family: str
+    node_id: str
+    bus_id: str
+    stable_transport_identifier: str
+    unit_id: int
+    target_equipment_key: str
+    telemetry_source: str
+    telemetry_equipment_id: str
+    polling_mode: Literal["read_only_fc03"]
+    binding_kind: Literal["refrigeration_controller", "commissioning_target"]
+    warnings: list[str]
+    will_not_perform: list[str]
+
+
+class CommissioningActivationAttemptResponse(BaseModel):
+    id: str
+    session_id: str
+    preflight_attempt_id: str
+    session_version: int
+    state: CommissioningActivationState
+    plan: CommissioningActivationPlanResponse
     evidence: dict[str, object] | None
     actor_subject: str
     started_at: datetime

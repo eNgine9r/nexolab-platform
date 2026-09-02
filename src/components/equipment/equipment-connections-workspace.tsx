@@ -15,6 +15,11 @@ import type { EquipmentDiscoveryRepository } from "@/features/equipment/discover
 const lifecycleLabel: Record<CommissioningSession["lifecycle"], string> = {
   draft: "Чернетка",
   ready_for_preflight: "Готова до перевірки",
+  verified: "Перевірено",
+  pending_activation: "Активація…",
+  active: "Read-only моніторинг активний",
+  activation_failed: "Активація не завершена",
+  rolled_back: "Відкочено",
   blocked: "Заблокована",
   unsupported: "Профіль не підтримується",
   cancelled: "Скасована",
@@ -23,6 +28,11 @@ const lifecycleLabel: Record<CommissioningSession["lifecycle"], string> = {
 const lifecycleTone: Record<CommissioningSession["lifecycle"], string> = {
   draft: "border-cyan-400/20 bg-cyan-400/10 text-cyan-200",
   ready_for_preflight: "border-blue-400/20 bg-blue-400/10 text-blue-200",
+  verified: "border-cyan-400/20 bg-cyan-400/10 text-cyan-100",
+  pending_activation: "border-amber-400/20 bg-amber-400/10 text-amber-100",
+  active: "border-emerald-400/20 bg-emerald-400/10 text-emerald-100",
+  activation_failed: "border-rose-400/20 bg-rose-400/10 text-rose-200",
+  rolled_back: "border-slate-400/20 bg-slate-400/10 text-slate-300",
   blocked: "border-amber-400/20 bg-amber-400/10 text-amber-200",
   unsupported: "border-rose-400/20 bg-rose-400/10 text-rose-200",
   cancelled: "border-slate-400/20 bg-slate-400/10 text-slate-400",
@@ -89,8 +99,9 @@ export function EquipmentConnectionsWorkspace({
             </div>
             <h1 className="mt-2 text-2xl font-semibold text-white">Підключення пристроїв</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-              Постійні чернетки наміру підключення. Вони не змінюють Device Agent, не запускають опитування та
-              не є активними acquisition targets.
+              Локальні commissioning sessions від чернетки до контрольованого read-only monitoring. Активний
+              стан показується лише після persisted activation evidence; Modbus/hardware writes не
+              виконуються.
             </p>
           </div>
           {canManage ? (
@@ -107,10 +118,16 @@ export function EquipmentConnectionsWorkspace({
           )}
         </div>
         <div className="mt-5 grid gap-2 sm:grid-cols-3">
-          <Metric label="Активні чернетки" value={activeSessions.length} />
           <Metric
-            label="Готові до майбутньої перевірки"
-            value={activeSessions.filter((item) => item.lifecycle === "ready_for_preflight").length}
+            label="Read-only monitoring active"
+            value={activeSessions.filter((item) => item.lifecycle === "active").length}
+          />
+          <Metric
+            label="Готові до перевірки / activation"
+            value={
+              activeSessions.filter((item) => ["ready_for_preflight", "verified"].includes(item.lifecycle))
+                .length
+            }
           />
           <Metric label="Blocked / unsupported" value={blockedCount} warning={blockedCount > 0} />
         </div>
@@ -119,8 +136,10 @@ export function EquipmentConnectionsWorkspace({
       <section className="rounded-3xl border border-white/[0.07] bg-[#08182e]/80 p-4 sm:p-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold text-white">Чернетки комісіонування</h2>
-            <p className="mt-1 text-xs text-slate-500">Збережені у локальній базі даних організації.</p>
+            <h2 className="text-base font-semibold text-white">Commissioning sessions</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Canonical lifecycle і прив’язка з локальної бази даних організації.
+            </p>
           </div>
           <button
             type="button"

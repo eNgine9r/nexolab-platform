@@ -687,10 +687,8 @@ class AcquisitionRegistry:
         return _validate_document(document), changes, affected
 
     def with_xjp60d_enrollment(
-        self,
-        unit_ids: Iterable[int],
-        *,
-        profile_version: str = XJP60D_PROFILE_VERSION,
+        self, unit_ids: Iterable[int], *, profile_version: str = XJP60D_PROFILE_VERSION,
+        bus_for_unit: Callable[[int], str] | None = None,
     ) -> tuple[RegistryDocument, list[dict[str, str]]]:
         if profile_version != XJP60D_PROFILE_VERSION:
             raise ValueError(f"Unsupported XJP60D profile: {profile_version!r}")
@@ -700,64 +698,87 @@ class AcquisitionRegistry:
         requested = set(requested_values)
         if any(not 1 <= unit_id <= 247 for unit_id in requested):
             raise ValueError("Invalid XJP60D Modbus Unit ID")
-        existing_by_identity = {(device.bus_id, device.unit_id): device for device in self.document.devices}
-        additions: list[int] = []
+        configured_buses = {bus.bus_id for bus in self.document.buses}
+        existing_by_unit: dict[int, list[RegistryDevice]] = {}
+        for device in self.document.devices:
+            existing_by_unit.setdefault(device.unit_id, []).append(device)
+        additions: list[tuple[int, str]] = []
         for unit_id in sorted(requested):
-            existing = existing_by_identity.get((BUS_ID, unit_id))
-            if existing is None:
-                additions.append(unit_id)
+            bus_id = BUS_ID if bus_for_unit is None else bus_for_unit(unit_id)
+            if bus_id not in configured_buses:
+                raise ValueError(f"Configured bus {bus_id!r} is absent from acquisition registry")
+            existing = existing_by_unit.get(unit_id, [])
+            if existing:
+                if len(existing) != 1:
+                    raise ValueError(f"Ambiguous Modbus Unit ID {unit_id} across registry buses")
+                device = existing[0]
+                if device.bus_id != bus_id or device.device_family != "xjp60d" or device.profile_version != XJP60D_PROFILE_VERSION:
+                    raise ValueError(f"Conflicting Modbus bus/Unit identity: {bus_id}/{unit_id}")
                 continue
-            if existing.device_family != "xjp60d" or existing.profile_version != XJP60D_PROFILE_VERSION:
-                raise ValueError(f"Conflicting Modbus bus/Unit identity: {BUS_ID}/{unit_id}")
+            additions.append((unit_id, bus_id))
+        if not additions:
+            return self.document, []
+        devices = list(self.document.devices); targets = list(self.document.targets); changes: list[dict[str, str]] = []
+        for unit_id, bus_id in additions:
+            device_id = f"xjp60d-{unit_id}"
+            devices.append(RegistryDevice(device_id, bus_id, "xjp60d", unit_id, XJP60D_PROFILE_VERSION, "discovery_only"))
+            changes.append({"entity":"device","id":device_id,"from":"absent","to":"discovery_only"})
+            for channel in range(1, 7):
+                target = _xjp_target(unit_id, channel, "discovery_only")
+                targets.append(target)
+                changes.append({"entity":"target","id":target.target_id,"from":"absent","to":"discovery_only"})
+        cadence = ensure_defaults_for_devices(self.document.cadence, devices)
+        document = replace(self.document, revision=self.document.revision + 1, devices=tuple(devices), targets=tuple(targets), cadence=cadence, updated_at=_now())
+        return _validate_document(document), changes
+
+    def with_le01mp_enrollment(
+        self,
+        unit_ids: Iterable[int],
+        *,
+        lifecycle: str = "reserve",
+        bus_for_unit: Callable[[int], str] | None = None,
+    ) -> tuple[RegistryDocument, list[dict[str, str]]]:
+        requested_values = tuple(unit_ids)
+        if any(not isinstance(unit_id, int) or isinstance(unit_id, bool) for unit_id in requested_values):
+            raise ValueError("LE-01MP Modbus Unit IDs must be integers")
+        requested = set(requested_values)
+        if any(not 1 <= unit_id <= 247 for unit_id in requested):
+            raise ValueError("Invalid LE-01MP Modbus Unit ID")
+        desired_lifecycle = _validate_lifecycle(lifecycle)
+        configured_buses = {bus.bus_id for bus in self.document.buses}
+        existing_by_unit: dict[int, list[RegistryDevice]] = {}
+        for device in self.document.devices:
+            existing_by_unit.setdefault(device.unit_id, []).append(device)
+        additions: list[tuple[int, str]] = []
+        for unit_id in sorted(requested):
+            bus_id = BUS_ID if bus_for_unit is None else bus_for_unit(unit_id)
+            if bus_id not in configured_buses:
+                raise ValueError(f"Configured bus {bus_id!r} is absent from acquisition registry")
+            existing = existing_by_unit.get(unit_id, [])
+            if existing:
+                if len(existing) != 1:
+                    raise ValueError(f"Ambiguous Modbus Unit ID {unit_id} across registry buses")
+                device = existing[0]
+                if device.bus_id != bus_id or device.device_family != "le01mp" or device.profile_version != LE01MP_PROFILE_VERSION:
+                    raise ValueError(f"Conflicting Modbus Unit ownership for LE-01MP enrollment: unit={unit_id}")
+                continue
+            additions.append((unit_id, bus_id))
         if not additions:
             return self.document, []
 
         devices = list(self.document.devices)
         targets = list(self.document.targets)
         changes: list[dict[str, str]] = []
-        for unit_id in additions:
-            device_id = f"xjp60d-{unit_id}"
-            devices.append(
-                RegistryDevice(
-                    device_id=device_id,
-                    bus_id=BUS_ID,
-                    device_family="xjp60d",
-                    unit_id=unit_id,
-                    profile_version=XJP60D_PROFILE_VERSION,
-                    lifecycle="discovery_only",
-                )
-            )
-            changes.append(
-                {"entity": "device", "id": device_id, "from": "absent", "to": "discovery_only"}
-            )
-            for channel in range(1, 7):
-                target = _xjp_target(unit_id, channel, "discovery_only")
+        for unit_id, bus_id in additions:
+            device_id = f"le01mp-{unit_id}"
+            devices.append(RegistryDevice(device_id, bus_id, "le01mp", unit_id, LE01MP_PROFILE_VERSION, desired_lifecycle))
+            changes.append({"entity": "device", "id": device_id, "from": "absent", "to": desired_lifecycle})
+            for register in LE01MP_REGISTERS:
+                target = _le_target(unit_id, register.key, desired_lifecycle)
                 targets.append(target)
-                changes.append(
-                    {"entity": "target", "id": target.target_id, "from": "absent", "to": "discovery_only"}
-                )
+                changes.append({"entity": "target", "id": target.target_id, "from": "absent", "to": desired_lifecycle})
         cadence = ensure_defaults_for_devices(self.document.cadence, devices)
-        existing_default_keys = {
-            (item.bus_id, item.device_family) for item in self.document.cadence.family_defaults
-        }
-        for item in cadence.family_defaults:
-            if (item.bus_id, item.device_family) not in existing_default_keys:
-                changes.append(
-                    {
-                        "entity": "cadence_family_default",
-                        "id": f"{item.bus_id}/{item.device_family}",
-                        "from": "absent",
-                        "to": str(item.interval_seconds),
-                    }
-                )
-        document = replace(
-            self.document,
-            revision=self.document.revision + 1,
-            devices=tuple(devices),
-            targets=tuple(targets),
-            cadence=cadence,
-            updated_at=_now(),
-        )
+        document = replace(self.document, revision=self.document.revision + 1, devices=tuple(devices), targets=tuple(targets), cadence=cadence, updated_at=_now())
         return _validate_document(document), changes
 
     def with_embraco_enrollment(
@@ -1203,10 +1224,10 @@ class AcquisitionRegistryStore:
         actor: str,
         reason: str,
         profile_version: str = XJP60D_PROFILE_VERSION,
+        bus_for_unit: Callable[[int], str] | None = None,
     ) -> AcquisitionRegistry:
         document, changes = registry.with_xjp60d_enrollment(
-            unit_ids,
-            profile_version=profile_version,
+            unit_ids, profile_version=profile_version, bus_for_unit=bus_for_unit
         )
         if not changes:
             return registry
@@ -1218,6 +1239,28 @@ class AcquisitionRegistryStore:
             actor=actor,
             reason=reason,
         )
+
+    def enroll_le01mp(
+        self, registry: AcquisitionRegistry, *, expected_revision: int, unit_ids: Iterable[int], actor: str, reason: str,
+        bus_for_unit: Callable[[int], str] | None = None,
+    ) -> AcquisitionRegistry:
+        document, changes = registry.with_le01mp_enrollment(
+            unit_ids, lifecycle="reserve", bus_for_unit=bus_for_unit or self._embraco_bus_for_unit
+        )
+        if not changes:
+            return registry
+        return self._commit_candidate(registry, document, changes, expected_revision=expected_revision, actor=actor, reason=reason)
+
+    def enroll_embraco(
+        self, registry: AcquisitionRegistry, *, expected_revision: int, unit_ids: Iterable[int], actor: str, reason: str,
+        bus_for_unit: Callable[[int], str] | None = None,
+    ) -> AcquisitionRegistry:
+        document, changes = registry.with_embraco_enrollment(
+            unit_ids, lifecycle="reserve", bus_for_unit=bus_for_unit or self._embraco_bus_for_unit
+        )
+        if not changes:
+            return registry
+        return self._commit_candidate(registry, document, changes, expected_revision=expected_revision, actor=actor, reason=reason)
 
     def recent_audit(self, limit: int = 20) -> list[dict[str, Any]]:
         bounded = min(100, max(1, limit))
