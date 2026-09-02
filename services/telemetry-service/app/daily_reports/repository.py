@@ -582,7 +582,7 @@ class DailyReportRepository:
             },
             "compressor": compressor,
             "energy": energy,
-            "defrost": defrost,
+            "defrost": _public_defrost_summary(defrost),
             "alerts": alerts,
             "quality": {
                 "status": "incomplete" if incomplete_reasons else "complete",
@@ -1115,6 +1115,18 @@ class DailyReportRepository:
         if self._organization_id is None:
             raise DailyReportRepositoryError("organization scope is required")
         return self._organization_id
+
+
+def _public_defrost_summary(summary: dict[str, Any]) -> dict[str, Any]:
+    if summary.get("status") == "available":
+        return {
+            "status": "available",
+            "duration_seconds": summary.get("duration_seconds"),
+        }
+    return {
+        "status": "unavailable",
+        "reason": summary.get("reason", "evidence_unavailable"),
+    }
 
 
 def _interval_evidence_complete(summary: dict[str, Any]) -> bool:

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-02T14:01:00+03:00",
+  "timestamp": "2026-09-02T14:14:13+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_822_review_candidate_after_main_sync",
+  "event": "issue_822_review_candidate_defrost_contract_hardened",
   "baselines": {
     "accepted_product_sha": "48578c879272334d966756ff46aa204a0ff73e90",
     "deployed_product_sha": "e8d93b6a777a4d77eda48f1f4cbaa008ae4d5daf"
@@ -19,7 +19,7 @@
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Commit and push canonical state reconciliation; require fresh exact-head CI including Offline Auth, Core, Telemetry, Authenticated Dashboard, Offline Bundle, Refrigeration Browser and NEXOLAB Merge Gate GREEN; then mark PR #828 Ready and merge. After merge, begin independent TG-02 / Issue #823. Issue #805 remains separately blocked on controlled redeploy and final authenticated browser acceptance.",
+  "next_action": "Require fresh exact-head CI on the TG-01 candidate with public defrost payload limited to status plus duration (or typed unavailable reason). Merge PR #828 only after Core, Telemetry, Offline Auth, Authenticated Dashboard, Offline Bundle, Refrigeration Browser and NEXOLAB Merge Gate are GREEN and review threads remain clear. Then begin TG-02 / Issue #823; #805 remains independently blocked on controlled redeploy/final browser acceptance.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -325,9 +325,10 @@ def test_snapshot_is_idempotent_and_contains_only_evidence_backed_morning_metric
     assert payload["compressor"]["duty_percent"] == pytest.approx(50.0)
     assert payload["compressor"]["coverage_percent"] == pytest.approx(100.0)
     assert payload["energy"]["interval_kwh"] == pytest.approx(6.0)
-    assert payload["defrost"]["duration_seconds"] == pytest.approx(3600.0)
-    assert "minimum_c" not in payload["defrost"]
-    assert "maximum_c" not in payload["defrost"]
+    assert payload["defrost"] == {
+        "status": "available",
+        "duration_seconds": pytest.approx(3600.0),
+    }
     assert payload["refrigeration_circuit"]["superheat"] == {
         "reason": "not_implemented",
         "status": "unavailable",
