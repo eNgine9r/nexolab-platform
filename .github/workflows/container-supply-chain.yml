@@ -16,6 +16,7 @@ on:
       - "tests/test_container_release_aggregate.py"
       - "services/device-agent/**"
       - "services/telemetry-service/**"
+      - "services/telegram-gateway/**"
       - "infrastructure/mqtt/dynamic-security/**"
       - ".github/workflows/container-supply-chain.yml"
   push:
@@ -34,6 +35,7 @@ on:
       - "tests/test_container_release_aggregate.py"
       - "services/device-agent/**"
       - "services/telemetry-service/**"
+      - "services/telegram-gateway/**"
       - "infrastructure/mqtt/dynamic-security/**"
       - ".github/workflows/container-supply-chain.yml"
   workflow_dispatch:

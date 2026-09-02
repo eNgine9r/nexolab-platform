@@ -3,37 +3,49 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-03T00:22:32+03:00",
-  "actor": "ChatGPT",
-  "event": "issue_834_systemd_homed_cve_candidate",
+  "timestamp": "2026-09-03T01:29:00+03:00",
+  "actor": "ChatGPT Team Lead / Senior Engineer",
+  "event": "issue_823_reconcile_after_834_merge_pending_final_exact_head_ci",
   "baselines": {
-    "accepted_product_sha": "dede5e5d4680d89a5404baa0f327242e7f7816ce",
+    "accepted_product_sha": "32c93638a7c2fac3d324482bc9898a8be5b49cb7",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
   "active_work": {
-    "issue": 834,
-    "title": "Reconcile fresh telemetry libsystemd/libudev CVE-2026-16742 findings",
-    "branch": "security/834-telemetry-systemd-homed-cve"
+    "issue": 823,
+    "title": "Add Telegram group report delivery adapter with Mini App direct link",
+    "branch": "feat/823-telegram-report-delivery"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "trigger_pr": 830,
-      "trigger_head_sha": "0f9327f40e9a2f4b8527be78f94c925246ab1c8d",
-      "trigger_container_supply_chain_run": 33683425564,
-      "exact_findings": "telemetry-service:libsystemd0+CVE-2026-16742;telemetry-service:libudev1+CVE-2026-16742",
-      "severity": "HIGH",
-      "fixed_version_reported": "none",
-      "upstream_affected_component": "systemd-homed",
-      "telemetry_homed_dbus_polkit_reachability": "absent",
-      "clean_python_slim_libraries_present": "libsystemd0+libudev1",
-      "safe_purge": "rejected_base_dependency_graph",
-      "exception_expiry": "2026-09-05",
+      "pull_request": 830,
+      "previous_verified_head_sha": "32c93638a7c2fac3d324482bc9898a8be5b49cb7",
+      "security_interrupt_issue": 834,
+      "security_interrupt_pr": 836,
+      "security_verified_head_sha": "7d4b0c8b55da862b57c16358126cfd7c856445da",
+      "security_container_supply_chain": "success:33689268672",
+      "security_telemetry_service": "success:33689268665",
+      "security_core_merge_gate": "success:33689268663",
+      "reconciled_exact_head": "pending_merge_commit",
+      "final_exact_head_workflows": "pending",
+      "real_telegram_contact": "none",
       "production_runtime_mutation": "none",
       "modbus_hardware_action": "none"
     }
   },
-  "observations": [],
-  "next_action": "Run final local policy/state checks, commit/push #834, require exact-head Container Supply Chain, Core CI and NEXOLAB Merge Gate GREEN, merge #834, then reconcile main into TG-02 PR #830.",
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-09-03T01:29:00+03:00",
+      "kind": "main_after_security_834_merge",
+      "data": {
+        "main_sha": "56e2d6f4fadde36349fea3e5655bbab077c7da68",
+        "pr": 836,
+        "issue": 834,
+        "status": "merged_completed"
+      }
+    }
+  ],
+  "next_action": "Finish the semantic merge of main into TG-02, validate combined state and 49-entry vulnerability registry, publish the reconciled PR #830 head, require every routed exact-head workflow and NEXOLAB Merge Gate GREEN with zero unresolved review threads, then merge #830 and begin #824 from fresh main.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

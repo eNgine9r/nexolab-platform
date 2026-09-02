@@ -21,6 +21,13 @@
       "context": "infrastructure/mqtt/dynamic-security",
       "dockerfile": "infrastructure/mqtt/dynamic-security/Dockerfile",
       "platforms": ["linux/amd64", "linux/arm64"]
+    },
+    {
+      "id": "telegram-gateway",
+      "image": "ghcr.io/engine9r/nexolab-telegram-gateway",
+      "context": "services/telegram-gateway",
+      "dockerfile": "services/telegram-gateway/Dockerfile",
+      "platforms": ["linux/amd64", "linux/arm64"]
     }
   ]
 }

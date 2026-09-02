@@ -17,6 +17,7 @@ on:
       - "docs/operations/offline-installation.md"
       - "services/device-agent/**"
       - "services/telemetry-service/**"
+      - "services/telegram-gateway/**"
       - "package.json"
       - "package-lock.json"
       - "next.config.ts"

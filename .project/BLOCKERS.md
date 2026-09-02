@@ -1,6 +1,6 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-02
+Updated: 2026-09-03
 
 ## Issue #805 — controlled onboarding deployment and browser acceptance
 
@@ -60,9 +60,9 @@ Blocked until the Product Owner confirms the temporary external RS-485 owner has
 
 Issue #727 records an intentional Product Owner defer of **RFX-01 through RFX-19C until after the main presentation**. This is not a technical blocker and does not invalidate accepted RFX-00 / ADR 0010. Issue #717 is non-Ready/blocked by product decision; PR #718 is closed unmerged and retained only as a historical checkpoint. Do not auto-advance to RFX-02 or reopen/merge the pre-pause RFX-01 branch. Resume requires an explicit Product Owner restart plus a fresh Team Lead source-of-truth audit.
 
-## Security maintenance — #834 active critical interrupt
+## Security maintenance — #829/#834 cleared; consolidated review due 2026-09-05
 
-TG-02 / PR #830 is temporarily blocked by fresh shared Telemetry Service supply-chain findings from run `33683425564`: HIGH `CVE-2026-16742` on `libsystemd0` and `libudev1`, installed `257.13-1~deb13u1`, with no fixed version reported. Issue #834 tracks the independent security decision. Upstream confines the vulnerability to the separate `systemd-homed` daemon/local logged-in homed-user authentication path; the Telemetry image has only the base shared libraries and no `systemd-homed`, D-Bus or polkit runtime. Clean Python slim already requires these libraries through its base dependency graph, so unsafe package purging is rejected. Merge #834 only after exact-head Container Supply Chain, Core CI and NEXOLAB Merge Gate are GREEN; then reconcile `main` into TG-02 and rerun all #830 gates. Existing 2026-09-05 consolidated exception review remains mandatory.
+**Cleared.** #829 remains completed through PR #831. The later TG-02-triggered shared Telemetry delta is also cleared by #834 / PR #836 at exact verified head `7d4b0c8b55da862b57c16358126cfd7c856445da`: Container Supply Chain `33689268672`, Telemetry Service `33689268665`, Core Quality/build and NEXOLAB Merge Gate `33689268663` are GREEN, with zero unresolved review threads. The only new policy entries are exact HIGH-only `telemetry-service + libsystemd0/libudev1 + CVE-2026-16742` exceptions expiring **2026-09-05**; CRITICAL remains unconditionally blocked. TG-02 is no longer security-blocked and now requires only its fresh reconciled exact-head workflow matrix before merge. The consolidated 2026-09-05 review remains mandatory. No production deployment, runtime mutation, Modbus/hardware write or data/volume change is authorized.
 
 ## Issue #755 — approved bounded #709 / #711 controlled deployment
 

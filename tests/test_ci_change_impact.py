@@ -338,5 +338,36 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertTrue(result["needs_full_quality"])
 
 
+    def test_telegram_gateway_requires_service_ci_and_offline_bundle(self) -> None:
+        result = classify(["services/telegram-gateway/app/main.py"])
+        verification = result["verification"]
+        self.assertIn("backend", result["classes"])
+        self.assertFalse(result["fail_closed"])
+        self.assertTrue(verification["offline_bundle"])
+        self.assertFalse(verification["refrigeration_browser"])
+        self.assertEqual(verification["dashboard_mode"], "none")
+        self.assertEqual(
+            set(verification["required_external_workflows"]),
+            {"Offline Bundle", "Telegram Gateway", "Container Supply Chain"},
+        )
+
+    def test_telegram_compose_overlay_requires_gateway_and_offline_ci(self) -> None:
+        result = classify(["infrastructure/compose/compose.telegram.yaml"])
+        self.assertIn("deployment_runtime", result["classes"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(
+            set(result["verification"]["required_external_workflows"]),
+            {"Offline Bundle", "Telegram Gateway"},
+        )
+
+    def test_telegram_container_inventory_requires_supply_chain(self) -> None:
+        result = classify(["security/container-images.json"])
+        self.assertFalse(result["fail_closed"])
+        self.assertIn(
+            "Container Supply Chain",
+            result["verification"]["required_external_workflows"],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

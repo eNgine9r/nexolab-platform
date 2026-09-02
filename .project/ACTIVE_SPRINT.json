@@ -18,16 +18,20 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "dede5e5d4680d89a5404baa0f327242e7f7816ce",
+    "accepted_product_sha": "32c93638a7c2fac3d324482bc9898a8be5b49cb7",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
   "selection": {
     "active_work_package": {
-      "issue": 834,
-      "title": "Reconcile fresh telemetry libsystemd/libudev CVE-2026-16742 findings",
-      "branch": "security/834-telemetry-systemd-homed-cve"
+      "issue": 823,
+      "title": "Add Telegram group report delivery adapter with Mini App direct link",
+      "branch": "feat/823-telegram-report-delivery"
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 824,
+      "title": "Add read-only NEXOLAB Telegram Mini App for morning reports",
+      "branch": "feat/824-telegram-miniapp"
+    }
   },
   "work_packages": [
     {
@@ -1670,12 +1674,47 @@
       "issue": 823,
       "title": "Add Telegram group report delivery adapter with Mini App direct link",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [
         822
       ],
       "branch": "feat/823-telegram-report-delivery",
-      "evidence": {}
+      "evidence": {
+        "checks": {
+          "focused_gateway_tests": "success_27_of_27",
+          "mock_http_acceptance": "success",
+          "ci_governance": "success_121_pass_1_environment_skip",
+          "container_policy": "success_40_of_40",
+          "dependency_policy": "success_11_of_11",
+          "runtime_image_build": "success",
+          "disconnected_health": "success",
+          "compose_contract": "success",
+          "targeted_formatting": "success",
+          "state_model_v2": "success",
+          "git_diff_check": "success",
+          "exact_head_ci": "success:33655109369",
+          "telegram_gateway": "success:33655109372",
+          "container_supply_chain": "success:33655109360",
+          "offline_bundle": "success:33655109365",
+          "authenticated_dashboard": "success:33655109466",
+          "refrigeration_browser": "success:33655109423",
+          "telemetry_service": "success:33655109380",
+          "nexolab_merge_gate": "success:33655109369"
+        },
+        "implementation_checkpoint_sha": "64646f5dcf6a23ec3b300f8550aa8727ee0356fe",
+        "pull_request": 830,
+        "runtime_base": "gcr.io/distroless/python3-debian13:nonroot",
+        "runtime_user": "nonroot_uid_65532",
+        "outbox_permissions": "directory_0700_db_0600",
+        "telegram_cve_exceptions": "17_exact_high_only_expires_2026-09-05",
+        "critical_cve_findings": "0",
+        "real_telegram_contact": "none",
+        "production_deployment": "not_executed",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "previous_verified_head_sha": "32c93638a7c2fac3d324482bc9898a8be5b49cb7",
+        "final_reverification": "pending_after_security_834_merge"
+      }
     },
     {
       "issue": 829,
@@ -1698,7 +1737,8 @@
         "checks": {
           "container_supply_chain": "success",
           "telemetry_service": "success",
-          "nexolab_merge_gate": "success"
+          "nexolab_merge_gate": "success",
+          "core_quality_build": "success"
         }
       }
     },
@@ -1741,7 +1781,7 @@
       "issue": 834,
       "title": "Reconcile fresh telemetry libsystemd/libudev CVE-2026-16742 findings",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "security/834-telemetry-systemd-homed-cve",
       "evidence": {
         "trigger_pr": 830,
@@ -1756,8 +1796,29 @@
         "safe_purge": "rejected_base_dependency_graph",
         "exception_expiry": "2026-09-05",
         "production_runtime_mutation": "none",
-        "modbus_hardware_action": "none"
+        "modbus_hardware_action": "none",
+        "verified_head_sha": "7d4b0c8b55da862b57c16358126cfd7c856445da",
+        "pull_request": 836,
+        "checks": {
+          "container_supply_chain": "success:33689268672",
+          "telemetry_service": "success:33689268665",
+          "core_quality_build": "success:33689268663",
+          "nexolab_merge_gate": "success:33689268663",
+          "review_threads": "0_unresolved"
+        }
       }
+    },
+    {
+      "issue": 824,
+      "title": "Add read-only NEXOLAB Telegram Mini App for morning reports",
+      "priority": "high",
+      "lifecycle": "ready",
+      "depends_on": [
+        822,
+        823
+      ],
+      "branch": "feat/824-telegram-miniapp",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [
