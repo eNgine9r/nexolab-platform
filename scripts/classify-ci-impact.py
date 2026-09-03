@@ -126,11 +126,16 @@ REFRIGERATION_PATTERNS = (
     "docs/refrigeration-browser-central-acceptance.md",
 )
 
+TELEGRAM_CROSS_CONTRACT_TEST_PATTERNS = (
+    "tests/telegram-*.test.ts",
+)
+
 TELEGRAM_GATEWAY_PATTERNS = (
     "services/telegram-gateway/**",
     "infrastructure/compose/compose.telegram.yaml",
     "infrastructure/compose/telegram.env.example",
     ".github/workflows/telegram-gateway.yml",
+    *TELEGRAM_CROSS_CONTRACT_TEST_PATTERNS,
 )
 
 OFFLINE_BUNDLE_PATTERNS = (
@@ -339,6 +344,13 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
             or path.startswith("contracts/")
         ):
             classes.add("backend")
+            matched = True
+
+        if _matches(path, TELEGRAM_CROSS_CONTRACT_TEST_PATTERNS):
+            # Cross-contract tests exercise both the browser envelope and the
+            # Telegram gateway fixture boundary. Keep the pattern narrow so
+            # unrelated root tests continue to fail closed.
+            classes.update({"frontend", "backend"})
             matched = True
 
         if path.startswith("services/telemetry-service/migrations/"):

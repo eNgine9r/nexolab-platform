@@ -338,6 +338,51 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertTrue(result["needs_full_quality"])
 
 
+    def test_telegram_cross_contract_test_is_known_without_unrelated_browser_lanes(self) -> None:
+        result = classify(["tests/telegram-daily-report-schema-contract.test.ts"])
+        verification = result["verification"]
+        self.assertIn("backend", result["classes"])
+        self.assertIn("frontend", result["classes"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertFalse(verification["offline_bundle"])
+        self.assertFalse(verification["refrigeration_browser"])
+        self.assertEqual(verification["dashboard_mode"], "none")
+        self.assertEqual(
+            verification["required_external_workflows"],
+            ["Telegram Gateway"],
+        )
+
+    def test_issue_855_path_set_routes_only_required_telegram_external_lanes(self) -> None:
+        result = classify(
+            [
+                ".project/ACTIVE_SPRINT.json",
+                ".project/BLOCKERS.md",
+                ".project/CURRENT_STATE.md",
+                ".project/LAST_CHECKPOINT.json",
+                "services/telegram-gateway/tests/support.py",
+                "services/telegram-gateway/tests/test_miniapp.py",
+                "src/components/telegram/telegram-miniapp-report.test.tsx",
+                "src/components/telegram/telegram-miniapp-report.tsx",
+                "tests/telegram-daily-report-schema-contract.test.ts",
+            ]
+        )
+        verification = result["verification"]
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(verification["dashboard_mode"], "none")
+        self.assertFalse(verification["refrigeration_browser"])
+        self.assertTrue(verification["offline_bundle"])
+        self.assertEqual(
+            set(verification["required_external_workflows"]),
+            {"Offline Bundle", "Telegram Gateway", "Container Supply Chain"},
+        )
+
+    def test_unregistered_telegram_root_test_still_fails_closed(self) -> None:
+        result = classify(["tests/telegram_contract.py"])
+        self.assertTrue(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], ["tests/telegram_contract.py"])
+
     def test_telegram_gateway_requires_service_ci_and_offline_bundle(self) -> None:
         result = classify(["services/telegram-gateway/app/main.py"])
         verification = result["verification"]
