@@ -1868,15 +1868,18 @@
         "blocker": "requires_product_owner_external_telegram_secret_group_mobile_and_controlled_deployment_actions",
         "software_prerequisites": "tg01_tg02_tg03_merged_green",
         "production_deployment": "not_executed",
-        "real_telegram_contact": "read_only_getupdates_confirmed_target_supergroup",
+        "real_telegram_contact": "read_only_getupdates_confirmed_testlab_supergroup",
         "modbus_write": "none",
         "hardware_write": "none",
-        "group_identification_helper": "sanitized_diagnostics_v2_ready",
+        "group_identification_helper": "real_group_confirmed_testlab_nex0lab_bot_numeric_id_runtime_only",
         "bot_token": "protected_root_owned_0600_verified",
         "group_title_observed": "TestLAB",
         "bot_username_observed": "nex0lab_bot",
         "group_numeric_identity": "confirmed_runtime_only_not_committed",
-        "next_gate": "protected_runtime_backend_identity_botfather_webview_and_cutover"
+        "next_gate": "protected_runtime_backend_identity_botfather_webview_and_cutover",
+        "backend_provisioning_helper": "local_verified_5_passed_full_gateway_46_passed",
+        "backend_principal_target": "nexolab-telegram_laboratory_technician_reports.read_only",
+        "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled"
       }
     },
     {

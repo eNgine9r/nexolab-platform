@@ -165,3 +165,20 @@ Do not commit the observed chat id. Record it only in protected runtime configur
 for TG-04. If no matching pending update exists, create one harmless group event (for example,
 remove/re-add the bot or post a command mentioning the bot) and run the helper again; do not
 disable Telegram privacy mode merely for discovery.
+
+## TG-04 protected backend/runtime provisioning
+
+After real `TestLAB` group identity is confirmed, prepare the gateway service principal and disabled host runtime configuration through the repository helper:
+
+```bash
+cd ~/nexolab-platform/services/telegram-gateway
+sudo -n env PYTHONPATH="$PWD" python3 -m app.runtime_provisioning
+```
+
+The helper prompts locally for an existing NEXOLAB administrator username/password with password echo disabled. It authenticates only against the configured private/local NEXOLAB backend, derives the one administrator-managed organization, and creates `nexolab-telegram` only when absent with product role `laboratory_technician` and the single explicit grant `reports.read`. Admin/access/refresh tokens and generated passwords are never printed.
+
+The generated backend password is written root-only to `/etc/nexolab/telegram/nexolab-backend-password`. A root-only `.nexolab-backend-password.pending` file makes an interrupted create recoverable without silent credential rotation. If an existing `nexolab-telegram` account has no managed final/pending secret, the helper fails closed and does not reset the account automatically.
+
+The same helper re-confirms the current `TestLAB` group through `getMe/getUpdates` and writes `/etc/nexolab/telegram/telegram.env` with the observed numeric destination, organization and Main Mini App direct-link template. Both `TELEGRAM_ENABLED` and `TELEGRAM_MINIAPP_ENABLED` remain `false`; this preparation does not start the gateway, send a Telegram message, alter Tailscale Serve or perform production cutover.
+
+Identity linking is separate. Do not map a Telegram user to the `nexolab-telegram` service account merely because it exists; the Mini App linked identity must be an explicitly authorized NEXOLAB user/principal with `reports.read`.

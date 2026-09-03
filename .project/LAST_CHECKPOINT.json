@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-03T11:44:16+03:00",
+  "timestamp": "2026-09-03T12:17:40+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_825_real_group_identified",
+  "event": "issue_825_runtime_provisioning_helper_ready",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
@@ -20,15 +20,22 @@
       "blocker": "requires_product_owner_external_telegram_secret_group_mobile_and_controlled_deployment_actions",
       "software_prerequisites": "tg01_tg02_tg03_merged_green",
       "production_deployment": "not_executed",
-      "real_telegram_contact": "read_only_getupdates_attempted_target_group_not_found",
+      "real_telegram_contact": "read_only_getupdates_confirmed_testlab_supergroup",
       "modbus_write": "none",
       "hardware_write": "none",
-      "group_identification_helper": "sanitized_diagnostics_v2_ready",
-      "bot_token": "protected_root_owned_0600_verified"
+      "group_identification_helper": "real_group_confirmed_testlab_nex0lab_bot_numeric_id_runtime_only",
+      "bot_token": "protected_root_owned_0600_verified",
+      "group_title_observed": "TestLAB",
+      "bot_username_observed": "nex0lab_bot",
+      "group_numeric_identity": "confirmed_runtime_only_not_committed",
+      "next_gate": "protected_runtime_backend_identity_botfather_webview_and_cutover",
+      "backend_provisioning_helper": "local_verified_5_passed_full_gateway_46_passed",
+      "backend_principal_target": "nexolab-telegram_laboratory_technician_reports.read_only",
+      "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled"
     }
   },
   "observations": [],
-  "next_action": "Prepare protected disabled Telegram runtime configuration, dedicated reports.read backend principal, and BotFather Main Mini App HTTPS acceptance. Do not perform production cutover or test send without explicit approval.",
+  "next_action": "Product Owner runs the documented app.runtime_provisioning helper locally with existing NEXOLAB administrator credentials and returns only sanitized JSON. Then verify protected files/account metadata and continue identity-link plus Main Mini App HTTPS preparation. Production cutover remains unauthorized.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
