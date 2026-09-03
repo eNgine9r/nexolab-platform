@@ -167,6 +167,17 @@ describe("TelegramMiniAppReport", () => {
     expect(screen.queryByText("Cool jet")).not.toBeInTheDocument();
   });
 
+  it("does not contact NEXOLAB when Telegram Main Mini App has no report start parameter", async () => {
+    installTelegram("auth_date=1788382800&hash=test");
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+
+    render(<TelegramMiniAppReport />);
+
+    expect(await screen.findByText("Оберіть конкретний звіт")).toBeInTheDocument();
+    expect(screen.getByText(/Відкрийте «Відкрити NEXOLAB»/)).toBeInTheDocument();
+    await waitFor(() => expect(fetchMock).not.toHaveBeenCalled());
+  });
+
   it("does not contact NEXOLAB when Telegram WebApp context exists without signed initData", async () => {
     installTelegram("");
     const fetchMock = vi.spyOn(globalThis, "fetch");

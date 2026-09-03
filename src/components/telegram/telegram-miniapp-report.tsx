@@ -34,6 +34,7 @@ declare global {
 type LoadState =
   | { kind: "loading" }
   | { kind: "outside_telegram" }
+  | { kind: "report_required" }
   | { kind: "denied" }
   | { kind: "unavailable" }
   | { kind: "invalid" }
@@ -66,6 +67,10 @@ export function TelegramMiniAppReport() {
       return;
     }
     const startHint = new URLSearchParams(initData).get("start_param")?.trim() || undefined;
+    if (!startHint) {
+      setState({ kind: "report_required" });
+      return;
+    }
     try {
       const response = await fetch("/api/telegram-miniapp/report", {
         method: "POST",
@@ -135,6 +140,10 @@ function LoadPanel({ state }: { state: Exclude<LoadState["kind"], "ready"> }) {
     outside_telegram: [
       "Відкрийте звіт через Telegram",
       "Ця сторінка приймає лише підписаний Telegram Mini App сеанс.",
+    ],
+    report_required: [
+      "Оберіть конкретний звіт",
+      "Відкрийте «Відкрити NEXOLAB» у повідомленні зі звітом — Mini App не вибирає persisted snapshot самостійно.",
     ],
     denied: [
       "Доступ не підтверджено",

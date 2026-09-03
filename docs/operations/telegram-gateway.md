@@ -197,3 +197,18 @@ The helper prompts locally for an administrator credential and for the existing 
 It prints one ephemeral `/nexolab_link <random-challenge>` command and asks that exact command be sent in the **private chat** with the reported bot. Only a fresh exact private-chat message whose chat identity equals its sender identity is accepted. Group messages, stale updates, wrong commands and unrelated Telegram users are ignored.
 
 On success the numeric Telegram user id is written only to root-owned `/etc/nexolab/telegram/identity-links.json`, together with the selected organization/identity UUID. The Telegram user id is not printed in the final sanitized result. Existing exact links are idempotent; conflicting Telegram-user or NEXOLAB-identity mappings fail closed. `TELEGRAM_ENABLED` and `TELEGRAM_MINIAPP_ENABLED` remain unchanged and disabled until the later explicit cutover gate.
+
+## TG-04 nonroot runtime secret access
+
+The distroless Telegram Gateway runs as the pinned `nonroot` identity (`uid=65532`, `gid=65532`). A root-owned `0700` secret directory with `0600` files cannot be read through the Compose bind mount by that runtime identity. Do not solve this by running the gateway as root or by making secrets world-readable.
+
+After backend provisioning and identity linking are complete, prepare only the three runtime-consumed secret files for the pinned runtime group:
+
+```bash
+cd ~/nexolab-platform/services/telegram-gateway
+sudo -n env PYTHONPATH="$PWD" python3 -m app.runtime_secret_permissions
+```
+
+The helper requires root ownership, regular non-hardlinked files and no existing group/other write permission. It keeps the directory and files root-owned, sets only group `65532` for the gateway runtime, applies directory mode `0750` and file mode `0640`, and refuses symlinks or malformed permission state. It changes no secret value, does not print secret contents and does not start the gateway. `/etc/nexolab/telegram/telegram.env` and any pending provisioning secret remain outside this runtime-readable set.
+
+Actual gateway start remains part of the guarded TG-04 controlled deployment. Do not manually start the adapter as a substitute for deployment evidence.
