@@ -13,7 +13,6 @@ from uuid import UUID
 
 from app.group_identification import _call_bot_api
 from app.http_transport import HttpTransport, urlopen_transport
-from app.miniapp import validate_identity_links_file
 from app.runtime_provisioning import (
     BackendAdminClient,
     RuntimeProvisioningError,
@@ -27,6 +26,8 @@ _DEFAULT_BACKEND_BASE_URL = "http://172.18.48.66:8082"
 _DEFAULT_SECRET_DIR = "/etc/nexolab/telegram"
 _LINK_COMMAND = "/nexolab_link"
 _REQUIRED_PERMISSION = "reports.read"
+_MAX_LINK_FILE_BYTES = 128 * 1024
+_MAX_LINKS = 1000
 _MAX_TELEGRAM_USER_ID = (1 << 52) - 1
 
 
@@ -167,6 +168,47 @@ def wait_for_private_challenge(
     raise IdentityLinkProvisioningError("telegram_private_link_challenge_timeout")
 
 
+def _validate_identity_links_document(path: Path) -> None:
+    try:
+        if path.stat().st_size > _MAX_LINK_FILE_BYTES:
+            raise IdentityLinkProvisioningError("identity_links_file_invalid")
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except IdentityLinkProvisioningError:
+        raise
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise IdentityLinkProvisioningError("identity_links_file_invalid") from error
+    if not isinstance(payload, dict) or payload.get("version") != 1:
+        raise IdentityLinkProvisioningError("identity_links_file_invalid")
+    raw_links = payload.get("links")
+    if not isinstance(raw_links, list) or len(raw_links) > _MAX_LINKS:
+        raise IdentityLinkProvisioningError("identity_links_file_invalid")
+    seen: set[tuple[int, str]] = set()
+    for item in raw_links:
+        if not isinstance(item, dict):
+            raise IdentityLinkProvisioningError("identity_links_file_invalid")
+        raw_user_id = item.get("telegram_user_id")
+        if (
+            isinstance(raw_user_id, bool)
+            or not isinstance(raw_user_id, int)
+            or raw_user_id <= 0
+            or raw_user_id > _MAX_TELEGRAM_USER_ID
+        ):
+            raise IdentityLinkProvisioningError("identity_links_file_invalid")
+        try:
+            organization_id = str(UUID(str(item.get("organization_id", "")).strip()))
+            identity_id = str(UUID(str(item.get("identity_id", "")).strip()))
+        except ValueError as error:
+            raise IdentityLinkProvisioningError("identity_links_file_invalid") from error
+        if UUID(organization_id).int == 0 or UUID(identity_id).int == 0:
+            raise IdentityLinkProvisioningError("identity_links_file_invalid")
+        if item.get("organization_id") != organization_id or item.get("identity_id") != identity_id:
+            raise IdentityLinkProvisioningError("identity_links_file_invalid")
+        key = (raw_user_id, organization_id)
+        if key in seen:
+            raise IdentityLinkProvisioningError("identity_links_file_invalid")
+        seen.add(key)
+
+
 def write_identity_link(
     path: Path,
     *,
@@ -194,7 +236,7 @@ def write_identity_link(
         raise IdentityLinkProvisioningError("nexolab_identity_link_invalid")
     if path.exists():
         try:
-            validate_identity_links_file(str(path))
+            _validate_identity_links_document(path)
             payload = json.loads(path.read_text(encoding="utf-8"))
         except Exception as error:
             raise IdentityLinkProvisioningError("identity_links_existing_file_invalid") from error
@@ -231,7 +273,7 @@ def write_identity_link(
         json.dumps(document, ensure_ascii=False, separators=(",", ":")) + "\n",
     )
     try:
-        validate_identity_links_file(str(path))
+        _validate_identity_links_document(path)
     except Exception as error:
         raise IdentityLinkProvisioningError("identity_links_written_file_invalid") from error
 

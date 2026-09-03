@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 
@@ -182,3 +184,18 @@ def test_identity_link_rejects_invalid_values_before_write(tmp_path: Path) -> No
             target=valid_target,
         )
     assert not path.exists()
+
+
+def test_identity_link_cli_imports_without_site_packages() -> None:
+    service_root = Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        [sys.executable, "-S", "-m", "app.identity_link_provisioning", "--help"],
+        cwd=service_root,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "Link one explicitly confirmed Telegram user" in result.stdout
+    assert "pydantic" not in result.stderr.casefold()
