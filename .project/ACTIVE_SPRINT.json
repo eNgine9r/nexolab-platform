@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 849,
-      "title": "Reconcile merged Mini App and Stage-2 pre-cutover evidence",
-      "branch": "chore/849-reconcile-tg04-stage2-preflight"
+      "issue": 825,
+      "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
+      "branch": "ops/825-telegram-real-acceptance"
     },
     "next_work_package": null
   },
@@ -1857,7 +1857,7 @@
       "issue": 825,
       "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [
         822,
         823,
@@ -2017,7 +2017,7 @@
       "issue": 849,
       "title": "Reconcile merged Mini App and Stage-2 pre-cutover evidence",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "chore/849-reconcile-tg04-stage2-preflight",
       "evidence": {
         "parent_issue": 825,
@@ -2034,7 +2034,13 @@
         "device_agent_delta": "none",
         "modbus_write": "none",
         "hardware_write": "none",
-        "production_cutover": "not_executed"
+        "production_cutover": "not_executed",
+        "verified_head_sha": "1b83981c80e11e097b0566842f074802fba65ac4",
+        "pull_request": 850,
+        "checks": {
+          "state_integrity": "success:33792778506",
+          "nexolab_merge_gate": "success:33792778506"
+        }
       }
     }
   ],
