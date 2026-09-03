@@ -3,17 +3,17 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-03T22:45:21+03:00",
+  "timestamp": "2026-09-03T22:50:02+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "tg04_stage2_deployed_source_adoption_pending_issue_851",
+  "event": "issue_851_source_adoption_recorded_tg04_resumed",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "13ab26392fcb1c1385dca3c1f619da4512fe568c"
   },
   "active_work": {
-    "issue": 851,
-    "title": "Reconcile successful Stage-2 deployment and pending source adoption",
-    "branch": "chore/851-reconcile-tg04-stage2-deployment"
+    "issue": 825,
+    "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
+    "branch": "ops/825-telegram-real-acceptance"
   },
   "evidence_snapshot": {
     "parent_issue": 825,
@@ -38,15 +38,20 @@
       "miniapp_tailnet": "8444_proxy_deployed_dashboard_3000"
     },
     "source_authority": {
-      "status": "pending_metadata_adoption",
-      "observed_current_json_source": "893573a86faf6629e5e3cefc0e41c47230a7f8c7",
-      "observed_current_json_schema": "20260902_0030",
-      "required_command": "canonical_nexolab_adopt_source_deployment_against_20260903T191159Z",
-      "runtime_impact": "none_metadata_only"
+      "status": "recorded",
+      "deployment_authority": "controlled_source_deployment",
+      "source_commit": "13ab26392fcb1c1385dca3c1f619da4512fe568c",
+      "schema_head": "20260902_0031",
+      "evidence": "runtime/deployments/20260903T191159Z",
+      "health": "ready",
+      "platform": "linux/arm64",
+      "runtime_mode": "lan",
+      "known_packaged_release": false,
+      "privileged_adopter_result": "status_recorded"
     }
   },
   "observations": [],
-  "next_action": "Run the canonical privileged source-adoption helper against runtime/deployments/20260903T191159Z, verify current.json records source 13ab26392fcb1c1385dca3c1f619da4512fe568c / schema 20260902_0031 / that evidence, then finalize Issue #851 state candidate and restore #825 as active. Do not send Telegram reports or enable the 07:50 scheduler during this reconciliation.",
+  "next_action": "Resume Issue #825 with signed Telegram Mini App persisted-report acceptance while Telegram delivery and the 07:50 scheduler remain OFF. Do not send a report or enable scheduling until the later explicit acceptance gates.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
