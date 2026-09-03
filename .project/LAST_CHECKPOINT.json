@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-03T11:19:47+03:00",
+  "timestamp": "2026-09-03T11:44:16+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_825_group_probe_target_not_found_diagnostics_ready",
+  "event": "issue_825_real_group_identified",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
@@ -28,7 +28,7 @@
     }
   },
   "observations": [],
-  "next_action": "Product Owner reruns the sanitized group-identification helper. Use diagnostics.bot_username and observed_group_chats to create/verify one explicit addressed group command without disabling Telegram privacy mode. Production cutover remains unauthorized.",
+  "next_action": "Prepare protected disabled Telegram runtime configuration, dedicated reports.read backend principal, and BotFather Main Mini App HTTPS acceptance. Do not perform production cutover or test send without explicit approval.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

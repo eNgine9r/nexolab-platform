@@ -4,7 +4,7 @@ The NEXOLAB Telegram gateway is an **optional online delivery adapter** for pers
 refrigeration morning-report snapshots. PostgreSQL, telemetry acquisition, TG-01 report
 generation and the LOCAL_LAN dashboard remain authoritative and continue without it.
 
-Initial acceptance target: Telegram group `Тест лаб`. The group title is human evidence
+Initial acceptance target: Telegram group historically referred to as `Тест лаб`; the real Bot API acceptance on 2026-09-03 observed the current title `TestLAB`. The group title is human evidence
 only; delivery uses an explicit negative group/supergroup chat ID supplied through runtime configuration.
 
 ## Safety boundary
@@ -148,7 +148,7 @@ membership, Telegram phone/WebView/Tailscale acceptance and production enablemen
 
 ## TG-04 real group identification helper
 
-After the dedicated bot has been added to `Тест лаб` and the root-owned bot token exists,
+After the dedicated bot has been added to the intended laboratory group and the root-owned bot token exists,
 use the repository helper from the TG-04 branch to identify the destination without exposing
 credentials or Telegram user payloads:
 
@@ -157,8 +157,8 @@ cd ~/nexolab-platform/services/telegram-gateway
 sudo -n env PYTHONPATH="$PWD" python3 -m app.group_identification
 ```
 
-The helper performs only `getMe` and `getUpdates`, matches an exact group/supergroup title
-`Тест лаб`, and prints one sanitized JSON object containing bot id/username plus the matched
+The helper performs only `getMe` and `getUpdates`, matches the exact current group/supergroup title
+`TestLAB`, and prints one sanitized JSON object containing bot id/username plus the matched
 group title/type/chat id/update id. It never prints the bot token or Telegram user/profile data.
 
 Do not commit the observed chat id. Record it only in protected runtime configuration/evidence

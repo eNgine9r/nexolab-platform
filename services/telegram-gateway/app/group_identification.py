@@ -157,7 +157,7 @@ def _read_secret_file(path: str) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Identify one Telegram group without exposing credentials.")
     parser.add_argument("--token-file", default="/etc/nexolab/telegram/bot-token")
-    parser.add_argument("--title", default="Тест лаб")
+    parser.add_argument("--title", default="TestLAB")
     parser.add_argument("--timeout-seconds", type=float, default=10.0)
     args = parser.parse_args()
     token = _read_secret_file(args.token_file)

@@ -30,14 +30,14 @@ def test_identify_group_returns_latest_matching_group_only() -> None:
                 "ok": True,
                 "result": [
                     {"update_id": 10, "message": {"chat": {"id": -1001, "type": "supergroup", "title": "Other"}}},
-                    {"update_id": 11, "my_chat_member": {"chat": {"id": -1002, "type": "supergroup", "title": "Тест лаб"}}},
-                    {"update_id": 12, "message": {"chat": {"id": -1003, "type": "group", "title": "Тест лаб"}}},
+                    {"update_id": 11, "my_chat_member": {"chat": {"id": -1002, "type": "supergroup", "title": "TestLAB"}}},
+                    {"update_id": 12, "message": {"chat": {"id": -1003, "type": "group", "title": "TestLAB"}}},
                 ],
             },
         ]
     )
 
-    result = identify_group(token=TOKEN, target_title="Тест лаб", transport=transport)
+    result = identify_group(token=TOKEN, target_title="TestLAB", transport=transport)
 
     assert result.bot_id == 42
     assert result.bot_username == "NexoLabBot"
@@ -67,7 +67,7 @@ def test_identify_group_fails_when_target_is_absent_with_sanitized_diagnostics()
     )
 
     with pytest.raises(GroupIdentificationError, match="target_group_not_found_in_pending_updates") as exc:
-        identify_group(token=TOKEN, target_title="Тест лаб", transport=transport)
+        identify_group(token=TOKEN, target_title="TestLAB", transport=transport)
 
     assert exc.value.details == {
         "diagnostics": {
@@ -88,11 +88,11 @@ def test_identify_group_rejects_invalid_bot_identity() -> None:
             {
                 "ok": True,
                 "result": [
-                    {"update_id": 1, "message": {"chat": {"id": -1001, "type": "supergroup", "title": "Тест лаб"}}}
+                    {"update_id": 1, "message": {"chat": {"id": -1001, "type": "supergroup", "title": "TestLAB"}}}
                 ],
             },
         ]
     )
 
     with pytest.raises(GroupIdentificationError, match="telegram_identity_response_invalid"):
-        identify_group(token=TOKEN, target_title="Тест лаб", transport=transport)
+        identify_group(token=TOKEN, target_title="TestLAB", transport=transport)

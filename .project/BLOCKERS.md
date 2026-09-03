@@ -2,11 +2,11 @@
 
 Updated: 2026-09-03
 
-## Issue #825 — TG-04 local secret-backed group identification
+## Issue #825 — TG-04 protected runtime / external Mini App acceptance
 
-**Hard user/tool boundary active 2026-09-03.** The Product Owner reports the dedicated bot is created/selected and added to `Тест лаб`; root-only metadata confirms `/etc/nexolab/telegram/bot-token` exists with mode `0600`. A repository-owned read-only helper is implemented and verified (`3/3` focused, `41/41` full Telegram Gateway). The assistant tool security layer blocks processes that both read the root-owned bot secret and perform outbound Telegram API I/O, so the agent cannot execute the real `getMe/getUpdates` probe without weakening the secret boundary, which is prohibited.
+**Group-identification boundary cleared 2026-09-03.** Real sanitized Bot API evidence confirms the intended destination as the supergroup currently titled `TestLAB` and the dedicated bot as `nex0lab_bot`. The numeric chat identity is confirmed but must remain outside Git/product constants. The earlier `Тест лаб` expectation was only a human-title mismatch.
 
-The Product Owner ran the helper once against the real Bot API and received `target_group_not_found_in_pending_updates`. A second diagnostic build is now ready: its failure JSON exposes only `bot_username`, pending-update count and observed group/channel chat metadata, never message text or Telegram user/profile payloads. Required Product Owner action: rerun the documented local helper and return only that sanitized JSON. After group identity is confirmed, TG-04 can continue with protected runtime configuration and pre-cutover verification. BotFather Main Mini App configuration, real phone WebView acceptance, controlled production deployment/test send and schedule enablement remain later explicit gates; no Modbus/hardware write or destructive data action is authorized.
+Remaining hard boundaries are protected host configuration that the assistant privilege layer cannot write directly, provisioning a dedicated least-privilege `nexolab-telegram` backend credential without exposing its password, BotFather Main Mini App HTTPS configuration, real authorized Telegram-user identity linking, phone/Tailscale WebView acceptance, and the separately approved production deployment/test-send/schedule gates. No Modbus/hardware write or destructive data action is authorized.
 
 ## Issue #824 — TG-03 completed and merged
 
