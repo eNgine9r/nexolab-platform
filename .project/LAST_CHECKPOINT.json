@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-03T14:23:43+03:00",
+  "timestamp": "2026-09-03T14:45:28+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_825_identity_link_verified_tailnet_https_user_gate",
+  "event": "issue_825_tailnet_https_verified_botfather_user_gate",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
@@ -28,7 +28,7 @@
       "group_title_observed": "TestLAB",
       "bot_username_observed": "nex0lab_bot",
       "group_numeric_identity": "confirmed_runtime_only_not_committed",
-      "next_gate": "tailnet_https_8444_then_botfather_and_phone_webview",
+      "next_gate": "botfather_main_mini_app_then_phone_webview",
       "backend_provisioning_helper": "local_verified_5_passed_full_gateway_46_passed",
       "backend_principal_target": "nexolab-telegram_laboratory_technician_reports.read_only",
       "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled",
@@ -43,11 +43,12 @@
       "human_identity_link": "administrator_private_challenge_completed_successfully",
       "identity_links_file": "protected_runtime_written_no_personal_id_committed",
       "miniapp_frontend_candidate": "loopback_127.0.0.1_13021_http_200",
-      "tailscale_https_candidate": "8444_requires_product_owner_privileged_serve_mutation"
+      "tailscale_https_candidate": "tailnet_8444_active_https_200_existing_8443_unchanged",
+      "miniapp_webapp_bridge": "telegram_web_app_sdk_raw_initData_server_validation"
     }
   },
   "observations": [],
-  "next_action": "Product Owner runs sudo tailscale serve --bg --https 8444 --yes http://127.0.0.1:13021 to expose the already-running loopback Mini App candidate tailnet-only. Then verify HTTPS from phone, configure BotFather Main Mini App URL, and continue real Telegram WebView acceptance. Production deployment and Telegram delivery remain disabled.",
+  "next_action": "Product Owner configures @nex0lab_bot Main Mini App in BotFather to https://nexolab-edge-01.tail7f9b04.ts.net:8444/telegram-miniapp, then opens the bot Main Mini App on a phone joined to the same Tailscale tailnet for real Telegram WebView acceptance. Production deployment and Telegram delivery remain disabled.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
