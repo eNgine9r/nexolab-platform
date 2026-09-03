@@ -18,16 +18,12 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "25f3857f291bcada05bec09b2d8d7323c52a3b22",
+    "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
   "selection": {
     "active_work_package": null,
-    "next_work_package": {
-      "issue": 824,
-      "title": "Add read-only NEXOLAB Telegram Mini App for morning reports",
-      "branch": "feat/824-telegram-miniapp"
-    }
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -1817,13 +1813,26 @@
       "issue": 824,
       "title": "Add read-only NEXOLAB Telegram Mini App for morning reports",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "completed",
       "depends_on": [
         822,
         823
       ],
       "branch": "feat/824-telegram-miniapp",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
+        "pull_request": 839,
+        "checks": {
+          "core_ci": "success:33721582258",
+          "nexolab_merge_gate": "success:33721582258",
+          "telegram_gateway": "success:33721582220",
+          "container_supply_chain": "success:33721582184",
+          "offline_bundle": "success:33721582434",
+          "authenticated_dashboard": "success:33721582470",
+          "telemetry_service": "success:33721582242",
+          "security_browser": "success:33721582198"
+        }
+      }
     },
     {
       "issue": 837,

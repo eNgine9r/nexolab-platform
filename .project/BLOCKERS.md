@@ -2,6 +2,12 @@
 
 Updated: 2026-09-03
 
+## Issue #824 — TG-03 execution-capacity blocker cleared
+
+**Cleared 2026-09-03.** The earlier Codex usage-limit condition no longer blocks TG-03 because the Product Owner explicitly authorized direct implementation in this ChatGPT engineering session. Work resumed from the existing `feat/824-telegram-miniapp` recovery checkpoint at `/home/nexolab/nexolab-824`; the checkpoint was not reset or recreated. TG-03 is now repository-complete at exact verified product head `31cd4fd5e43672b81af34c8ac1f53e185cf4752e` with the full PR #839 exact-head matrix and NEXOLAB Merge Gate GREEN. GitHub Issue #824 remains open only until the PR merge closes it.
+
+The remaining TG-03 boundary is ordinary repository delivery rather than a blocker: commit/push the canonical state-only reconciliation, pass its exact-head state/Merge Gate, and merge PR #839 only while the verified product evidence remains immutable and review threads remain resolved. Real Telegram token/group provisioning, Telegram phone/WebView/Tailscale acceptance and production enablement remain separately deferred to TG-04. No credential, secret, production cutover, restart, Modbus/hardware write, data deletion or volume deletion was used to clear the former Codex blocker.
+
 ## Issue #805 — controlled onboarding deployment and browser acceptance
 
 **Cleared 2026-09-02.** Controlled deployment `runtime/deployments/20260902T113916Z` passed on corrected onboarding source `893573a86faf6629e5e3cefc0e41c47230a7f8c7` after #826/#827. Post-cutover Dashboard, Telemetry, MQTT and Device Agent are healthy; persistent volumes are preserved. Authenticated Chromium proved commissioning draft persistence across reload/reopen and the controlled service restart, and `Unsupported / Profile required` is now fail-closed for `Далі`, Steps 2–5, SAFE PREFLIGHT and activation. Real Embraco Unit 2 preflight passed FC03-only with `hardware_verified` evidence and no writes. Controlled source adoption is recorded for `893573a86faf6629e5e3cefc0e41c47230a7f8c7`, schema `20260902_0030`, linux/arm64, LAN, health ready. #805 no longer blocks independent work.

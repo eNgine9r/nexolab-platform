@@ -50,6 +50,31 @@ def test_membership_resolves_principal_with_database_roles(tmp_path: Path) -> No
     assert principal.roles == frozenset({Role.OPERATOR, Role.AUDITOR})
 
 
+def test_identity_id_resolution_reuses_active_membership_and_grants(tmp_path: Path) -> None:
+    repo = repository(tmp_path)
+    repo.provision_organization(
+        organization_id=ORGANIZATION_ID,
+        slug="nexolab-lab",
+        name="NEXOLAB Laboratory",
+    )
+    security_session = repo.provision_membership(
+        organization_id=ORGANIZATION_ID,
+        claims=claims(),
+        roles={Role.VIEWER},
+    )
+
+    identity_id, principal = repo.resolve_principal_by_identity_id(
+        security_session.identity_id,
+        organization_id=ORGANIZATION_ID,
+    )
+
+    assert identity_id == security_session.identity_id
+    assert principal.subject == "user-1"
+    assert principal.organization_id == ORGANIZATION_ID
+    assert principal.roles == frozenset({Role.VIEWER})
+    assert principal.granted_permissions == security_session.memberships[0].granted_permissions
+
+
 def test_reprovisioning_replaces_role_assignments(tmp_path: Path) -> None:
     repo = repository(tmp_path)
     repo.provision_organization(

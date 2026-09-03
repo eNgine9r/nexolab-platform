@@ -28,14 +28,19 @@ def test_disabled_configuration_needs_no_telegram_secret() -> None:
     assert settings.telegram_enabled is False
 
 
-def test_enabled_configuration_requires_numeric_chat_and_direct_link(tmp_path) -> None:
+def test_enabled_configuration_requires_numeric_chat_and_exact_report_direct_link(tmp_path) -> None:
     validate_enabled_configuration(enabled_settings(tmp_path))
     with pytest.raises(ValueError):
         validate_enabled_configuration(enabled_settings(tmp_path, telegram_destination_chat_id="Тест лаб"))
-    with pytest.raises(ValueError):
-        validate_enabled_configuration(
-            enabled_settings(tmp_path, telegram_mini_app_url_template="https://example.com/app/{snapshot_id}")
-        )
+    for template in (
+        "https://example.com/app/{snapshot_id}",
+        "https://t.me/nexolab_bot/nexolab?startapp={snapshot_id}",
+        "https://t.me/nexolab_bot/nexolab?startapp=snapshot_{snapshot_id}",
+    ):
+        with pytest.raises(ValueError):
+            validate_enabled_configuration(
+                enabled_settings(tmp_path, telegram_mini_app_url_template=template)
+            )
 
 
 def test_local_auth_reads_password_file_and_keeps_secret_out_of_errors(tmp_path) -> None:
