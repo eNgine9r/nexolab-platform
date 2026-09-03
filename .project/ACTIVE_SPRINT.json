@@ -1904,7 +1904,15 @@
           "frontend_release_artifact": "success:33756409052:artifact_9893958518",
           "production_artifact_import": "success:linux_arm64_next_16.2.12_build_DU2E1SBApDJ8eNyTevKFr",
           "tailnet_production_hydration": "success:8444_static_assets_200_no_webpack_hmr_outside_telegram_state"
-        }
+        },
+        "stage1_deployment": "passed_source_861b9f83670a53a7acc4cdecebaae61f5fe57980_evidence_tg04-telegram-stage1-20260903T155540Z",
+        "stage1_gateway_state": "healthy_delivery_false_miniapp_true_worker_false_no_send",
+        "phone_webview_main_launch": "real_ios_webview_reached_gateway_old_3fb36_frontend_missing_start_param_rendered_generic_denied",
+        "identity_rbac_runtime": "protected_link_valid_identity_active_membership_active_administrator_reports_read_authorized",
+        "scheduler_prerequisite": "issue_845_pr846_merged_green_fail_closed_off",
+        "state_reconciliation": "issue_847_pr848_merged_green_tg04_active",
+        "main_arm64_artifact_preflight": "run_33781986481_artifact_9904235935_green_not_stage2_candidate_missing_tg04_pr842_repairs",
+        "current_gate": "integrate_current_main_into_pr842_then_exact_head_green_then_explicit_stage2_production_cutover_approval"
       }
     },
     {
@@ -1959,6 +1967,39 @@
           "disaster_recovery_browser": "success:33770159954",
           "container_supply_chain": "success:33770159938",
           "nexolab_merge_gate": "success:33770159789"
+        }
+      }
+    },
+    {
+      "issue": 845,
+      "title": "Keep daily report scheduler disabled until explicit acceptance",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "fix/845-daily-report-scheduler-gate",
+      "evidence": {
+        "verified_head_sha": "cae3e45ad6a11b74797dd843c187c44602f9aa81",
+        "pull_request": 846,
+        "checks": {
+          "core_ci": "success:33780079589",
+          "telemetry": "success:33780079199",
+          "offline_bundle": "success:33780079290",
+          "reports_browser": "success:33780079325",
+          "rendered_reports": "success:33780079448"
+        }
+      }
+    },
+    {
+      "issue": 847,
+      "title": "Reconcile scheduler gate completion and resume TG-04 Stage 2",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "chore/847-reconcile-845",
+      "evidence": {
+        "verified_head_sha": "715d0da1d634713c7dcccf216252b0e54f12ab30",
+        "pull_request": 848,
+        "checks": {
+          "state_integrity": "success:33781466896",
+          "nexolab_merge_gate": "success:33781466896"
         }
       }
     }

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-03T18:22:00+03:00",
-  "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_843_merged_into_tg04_branch_exact_head_reverification",
+  "timestamp": "2026-09-03T20:24:26+03:00",
+  "actor": "ChatGPT",
+  "event": "tg04_integrate_current_main_before_stage2",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
@@ -56,11 +56,19 @@
         "frontend_release_artifact": "success:33756409052:artifact_9893958518",
         "production_artifact_import": "success:linux_arm64_next_16.2.12_build_DU2E1SBApDJ8eNyTevKFr",
         "tailnet_production_hydration": "success:8444_static_assets_200_no_webpack_hmr_outside_telegram_state"
-      }
+      },
+      "stage1_deployment": "passed_source_861b9f83670a53a7acc4cdecebaae61f5fe57980_evidence_tg04-telegram-stage1-20260903T155540Z",
+      "stage1_gateway_state": "healthy_delivery_false_miniapp_true_worker_false_no_send",
+      "phone_webview_main_launch": "real_ios_webview_reached_gateway_old_3fb36_frontend_missing_start_param_rendered_generic_denied",
+      "identity_rbac_runtime": "protected_link_valid_identity_active_membership_active_administrator_reports_read_authorized",
+      "scheduler_prerequisite": "issue_845_pr846_merged_green_fail_closed_off",
+      "state_reconciliation": "issue_847_pr848_merged_green_tg04_active",
+      "main_arm64_artifact_preflight": "run_33781986481_artifact_9904235935_green_not_stage2_candidate_missing_tg04_pr842_repairs",
+      "current_gate": "integrate_current_main_into_pr842_then_exact_head_green_then_explicit_stage2_production_cutover_approval"
     }
   },
   "observations": [],
-  "next_action": "Validate the post-#843 merge commit on ops/825-telegram-real-acceptance, push without force, and require the full exact-head PR #842 workflow matrix to be GREEN. Do not deploy production, start Telegram delivery, send a report, or enable the 07:50 schedule before that software gate passes.",
+  "next_action": "Resolve and verify the current-main integration into PR #842, publish one exact-head candidate, require all registered workflows GREEN, build a matching ARM64 frontend artifact, then stop at explicit Product Owner Stage-2 production-cutover approval.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
