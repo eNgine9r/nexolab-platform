@@ -19,7 +19,7 @@
   },
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
-    "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
+    "deployed_product_sha": "13ab26392fcb1c1385dca3c1f619da4512fe568c"
   },
   "selection": {
     "active_work_package": {
@@ -1865,9 +1865,9 @@
       ],
       "branch": "ops/825-telegram-real-acceptance",
       "evidence": {
-        "blocker": "requires_product_owner_external_telegram_secret_group_mobile_and_controlled_deployment_actions",
+        "blocker": "signed_miniapp_persisted_report_acceptance_then_later_send_and_scheduler_gates",
         "software_prerequisites": "tg01_tg02_tg03_merged_green",
-        "production_deployment": "not_executed",
+        "production_deployment": "passed_runtime/deployments/20260903T191159Z_source_13ab26392fcb1c1385dca3c1f619da4512fe568c",
         "real_telegram_contact": "read_only_getupdates_confirmed_testlab_supergroup",
         "modbus_write": "none",
         "hardware_write": "none",
@@ -1912,7 +1912,7 @@
         "scheduler_prerequisite": "issue_845_pr846_merged_green_fail_closed_off",
         "state_reconciliation": "issue_847_pr848_merged_green_tg04_active",
         "main_arm64_artifact_preflight": "run_33781986481_artifact_9904235935_green_not_stage2_candidate_missing_tg04_pr842_repairs",
-        "current_gate": "state_reconciliation_849_then_explicit_stage2_production_cutover_approval",
+        "current_gate": "signed_miniapp_persisted_report_acceptance",
         "pr842_repository_merge": "merged_main_13ab26392fcb1c1385dca3c1f619da4512fe568c_issue825_kept_open",
         "stage2_exact_main_artifact": "run_33786462681_artifact_9905912342_sha256_9ea8769da2dc0466b61354aee961d5564a1565bcda6eabe74b63c437207ef97e",
         "stage2_artifact_staging": "runtime/staging/tg04-stage2-13ab2639_checksums_source_platform_node_contract_verified",
@@ -1922,7 +1922,18 @@
         "stage2_migration_delta": "only_20260902_0031_add_daily_refrigeration_reports",
         "stage2_device_agent_hardware_delta": "none_services_device_agent_zero_rs485_modbus_hardware_config_delta",
         "stage2_scheduler_boundary": "daily_reports_scheduler_fail_closed_false",
-        "stage2_preflight_runtime_health": "dashboard_200_telemetry_ready_queue_0_gateway_healthy_delivery_false_miniapp_true_worker_false_miniapp_https_200"
+        "stage2_preflight_runtime_health": "dashboard_200_telemetry_ready_queue_0_gateway_healthy_delivery_false_miniapp_true_worker_false_miniapp_https_200",
+        "stage2_product_owner_authorization": "approved_and_consumed_2026-09-03_exact_source_13ab26392fcb1c1385dca3c1f619da4512fe568c_artifact_9905912342_delivery_and_scheduler_off",
+        "stage2_runtime_deployment": "DEPLOYMENT_PASSED_runtime/deployments/20260903T191159Z_at_2026-09-03T22:21:22+03:00",
+        "stage2_runtime_schema": "20260902_0031_head",
+        "stage2_runtime_health": "dashboard_200_telemetry_ready_database_ready_mqtt_ready_queue_0_device_agent_healthy",
+        "stage2_gateway_state": "ready_delivery_false_miniapp_true_worker_false_last_send_null",
+        "stage2_scheduler_state": "DAILY_REPORTS_SCHEDULER_ENABLED_false",
+        "stage2_miniapp_serve": "tailnet_8444_proxy_http_172.18.48.66_3000",
+        "stage2_volume_identity": "preserved_before_after_exact_match",
+        "stage2_pre_upgrade_backup": "runtime/deployments/20260903T191159Z/postgresql-pre-upgrade.dump",
+        "stage2_edge_snapshot": "sha256_a520569b5d2810e305d8f6d8a48512b0290b09916d150d57691600306e7d41b1_quick_check_ok_queue_0",
+        "stage2_source_adoption": "recorded_controlled_source_deployment_source_13ab26392fcb1c1385dca3c1f619da4512fe568c_schema_20260902_0031_evidence_runtime/deployments/20260903T191159Z_health_ready"
       }
     },
     {
@@ -2041,6 +2052,48 @@
           "state_integrity": "success:33792778506",
           "nexolab_merge_gate": "success:33792778506"
         }
+      }
+    },
+    {
+      "issue": 851,
+      "title": "Reconcile successful Stage-2 deployment and pending source adoption",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        825
+      ],
+      "branch": "chore/851-reconcile-tg04-stage2-deployment",
+      "evidence": {
+        "parent_issue": 825,
+        "control_main_sha": "8f2d349ed4f2680e9aa4872324a9c64f890be305",
+        "deployed_product_sha": "13ab26392fcb1c1385dca3c1f619da4512fe568c",
+        "authoritative_deployment_evidence": "runtime/deployments/20260903T191159Z",
+        "deployment_result": "DEPLOYMENT_PASSED",
+        "deployed_at": "2026-09-03T22:21:21+03:00",
+        "schema_head": "20260902_0031",
+        "frontend_build_id": "9DMwe5ReCgEwXr5xJyiy0",
+        "telegram_delivery": "disabled",
+        "telegram_worker": "stopped",
+        "telegram_last_send_at": "null",
+        "miniapp": "enabled",
+        "daily_report_scheduler": "disabled",
+        "tailscale_8444": "proxy_to_deployed_dashboard_3000",
+        "persistent_volume_identity": "preserved",
+        "source_adoption": "recorded",
+        "current_json_observed_source": "893573a86faf6629e5e3cefc0e41c47230a7f8c7",
+        "current_json_observed_schema": "20260902_0030",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "product_data_deletion": "none",
+        "volume_deletion": "none",
+        "adopted_source": "13ab26392fcb1c1385dca3c1f619da4512fe568c",
+        "adopted_schema": "20260902_0031",
+        "adopted_evidence": "runtime/deployments/20260903T191159Z",
+        "adopted_health": "ready",
+        "adopted_platform": "linux/arm64",
+        "adopted_runtime_mode": "lan",
+        "known_packaged_release": false,
+        "first_state_ci": "success:33798476536"
       }
     }
   ],
