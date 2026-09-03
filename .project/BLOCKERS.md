@@ -2,9 +2,9 @@
 
 Updated: 2026-09-03
 
-## Issue #843 — Telemetry planner-choice CI nondeterminism blocking TG-04 exact-head merge gate
+## Issue #843 — Telemetry planner-choice CI nondeterminism
 
-**Critical software blocker active 2026-09-03.** TG-04 PR #842 exact head `06b0ec59ab4ba3e380c5fca14d39eede81c058d3` is GREEN for Core Quality/build, Telegram Gateway, Container Supply Chain and Offline Bundle, but Telemetry run `33765580464` failed twice on the same exact named-index planner assertion. The full query itself remains bounded and the preceding unchanged-product-code head passed on the same PostgreSQL/runner baseline, so repeated reruns are not an acceptable bypass. Issue #843 isolates the deterministic test-contract repair. No product query, migration, runtime, production deployment, Modbus/hardware write or data/volume mutation is in scope. Clear this blocker only after #843 exact-head Telemetry/Core/Merge Gate verification is GREEN and merged, then integrate `main` into TG-04 and rerun #842 exact-head gates.
+**Repository-side blocker cleared 2026-09-03.** PR #844 exact verified implementation head `fcd9d2429ef19c9410fdfe9292d6f5d04cdc7c1b` passed all 11 registered workflows, including Telemetry Service `33770161208`, Core CI/NEXOLAB Merge Gate `33770159789` and Offline Bundle `33770159680`. The repair preserves the production query and schema while replacing an optimizer-specific exact-index-name assertion with independent canonical-index catalog validation plus an index-backed latest-value probe. Local repeated PostgreSQL 16 and transactional negative evidence are GREEN. No production deployment, runtime mutation, Modbus/hardware write or data/volume mutation occurred. GitHub merge status is queried online; after PR #844 merges, integrate current `main` into TG-04 PR #842 and rerun its exact-head verification.
 
 ## Issue #825 — TG-04 real Telegram / production acceptance gate
 

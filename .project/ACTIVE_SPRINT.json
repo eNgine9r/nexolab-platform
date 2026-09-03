@@ -22,11 +22,7 @@
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 843,
-      "title": "[CI][TELEMETRY] Make Live Dashboard inventory index-path acceptance deterministic",
-      "branch": "fix/843-telemetry-inventory-plan-determinism"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -1895,7 +1891,7 @@
       "issue": 843,
       "title": "[CI][TELEMETRY] Make Live Dashboard inventory index-path acceptance deterministic",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/843-telemetry-inventory-plan-determinism",
       "evidence": {
         "trigger_issue": 825,
@@ -1909,7 +1905,23 @@
         "runtime_mutation": "none",
         "focused_postgres_repeats": "3_passed",
         "relevant_inventory_tests": "2_passed",
-        "negative_index_catalog_contract": "passed_transactional_drop_and_rollback"
+        "negative_index_catalog_contract": "passed_transactional_drop_and_rollback",
+        "verified_head_sha": "fcd9d2429ef19c9410fdfe9292d6f5d04cdc7c1b",
+        "pull_request": 844,
+        "checks": {
+          "telemetry_service": "success:33770161208",
+          "core_ci": "success:33770159789",
+          "offline_bundle": "success:33770159680",
+          "offline_auth_acceptance": "success:33770159873",
+          "device_agent_fleet_acceptance": "success:33770159750",
+          "mqtt_tls_fleet_acceptance": "success:33770159769",
+          "broker_control_acceptance": "success:33770159900",
+          "capacity_release_gate": "success:33770159791",
+          "disaster_recovery_tls_fleet": "success:33770159773",
+          "disaster_recovery_browser": "success:33770159954",
+          "container_supply_chain": "success:33770159938",
+          "nexolab_merge_gate": "success:33770159789"
+        }
       }
     }
   ],

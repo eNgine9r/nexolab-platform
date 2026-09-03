@@ -3,36 +3,19 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-03T17:53:22+03:00",
+  "timestamp": "2026-09-03T18:13:15+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_843_local_deterministic_postgres_candidate",
+  "event": "issue_843_repository_complete_pending_merge",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
-  "active_work": {
-    "issue": 843,
-    "title": "[CI][TELEMETRY] Make Live Dashboard inventory index-path acceptance deterministic",
-    "branch": "fix/843-telemetry-inventory-plan-determinism"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "active_issue_evidence": {
-      "trigger_issue": 825,
-      "trigger_pull_request": 842,
-      "trigger_head_sha": "06b0ec59ab4ba3e380c5fca14d39eede81c058d3",
-      "trigger_telemetry_run": "33765580464_failed_twice_same_planner_assertion",
-      "previous_green_telemetry_run": "33762770570_same_product_code",
-      "root_cause": "postgresql_full_query_exact_named_index_choice_is_planner_nondeterministic",
-      "product_query_change": "none",
-      "schema_change": "none",
-      "runtime_mutation": "none",
-      "focused_postgres_repeats": "3_passed",
-      "relevant_inventory_tests": "2_passed",
-      "negative_index_catalog_contract": "passed_transactional_drop_and_rollback"
-    }
+    "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Commit and push the focused #843 test-only candidate, open one PR, require exact-head Telemetry/Core/NEXOLAB Merge Gate GREEN, merge, then integrate current main into TG-04 PR #842 and resume its exact-head acceptance.",
+  "next_action": "Require the state-only completion head of PR #844 to pass the full exact-head registered workflow matrix and NEXOLAB Merge Gate; then squash-merge #844 and resume TG-04 / #825 by integrating current main into ops/825-telegram-real-acceptance without force-push.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
