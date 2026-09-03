@@ -212,3 +212,18 @@ sudo -n env PYTHONPATH="$PWD" python3 -m app.runtime_secret_permissions
 The helper requires root ownership, regular non-hardlinked files and no existing group/other write permission. It keeps the directory and files root-owned, sets only group `65532` for the gateway runtime, applies directory mode `0750` and file mode `0640`, and refuses symlinks or malformed permission state. It changes no secret value, does not print secret contents and does not start the gateway. `/etc/nexolab/telegram/telegram.env` and any pending provisioning secret remain outside this runtime-readable set.
 
 Actual gateway start remains part of the guarded TG-04 controlled deployment. Do not manually start the adapter as a substitute for deployment evidence.
+
+## TG-04 Stage 1 — Mini App runtime only
+
+After the TG-04 exact PR head is fully GREEN and the Product Owner explicitly approves the controlled site action, use the dedicated guarded path rather than a manual Compose start:
+
+```bash
+cd ~/nexolab-platform
+sudo scripts/deploy-telegram-miniapp-stage1.sh \
+  --expected-source-sha <exact-green-pr-sha> \
+  --approve-miniapp-only
+```
+
+Stage 1 builds the gateway from that exact tracked source, prepares only the three runtime-consumed protected files for the pinned nonroot group, and starts only `telegram-gateway` with Compose `--no-deps --no-build`. It forces `TELEGRAM_ENABLED=false` and `TELEGRAM_MINIAPP_ENABLED=true`, so the delivery worker remains stopped while signed Mini App requests can be validated.
+
+The guard records evidence under `runtime/evidence/tg04-telegram-stage1-*`, verifies Dashboard/Telemetry/frontend health before and after, requires unchanged identities for the existing PostgreSQL/MQTT/MinIO/Telemetry/Device Agent containers, and proves Tailscale Serve topology did not change. On a Stage 1 failure it removes only the newly created gateway container and leaves the persistent delivery volume intact. It never uses `compose down`, deletes volumes, sends a report, enables the weekday schedule, or touches Modbus/hardware.
