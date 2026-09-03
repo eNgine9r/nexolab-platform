@@ -16,7 +16,7 @@ const snapshot = {
   timezone: "Europe/Kyiv",
   status: "normal",
   payload: {
-    schema: "refrigeration-daily-report/v1",
+    schema: "nexolab.daily-refrigeration-report.v1",
     identity: {
       equipment_name: "Cool jet",
       manufacturer: "NEXOLAB",
@@ -153,6 +153,18 @@ describe("TelegramMiniAppReport", () => {
     expect(screen.getAllByText("— активних").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("розрив безперервності")).toBeInTheDocument();
     expect(screen.queryByText("0 активних")).not.toBeInTheDocument();
+  });
+
+  it("fails closed when the persisted report schema is stale or unknown", async () => {
+    installTelegram();
+    const stale = structuredClone(snapshot);
+    stale.payload.schema = "refrigeration-daily-report/v1";
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(Response.json({ report: stale }));
+
+    render(<TelegramMiniAppReport />);
+
+    expect(await screen.findByText("Некоректний формат звіту")).toBeInTheDocument();
+    expect(screen.queryByText("Cool jet")).not.toBeInTheDocument();
   });
 
   it("fails closed when the server denies the linked Telegram identity", async () => {

@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 825,
-      "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
-      "branch": "ops/825-telegram-real-acceptance"
+      "issue": 854,
+      "title": "Align Telegram Mini App persisted-report schema contract",
+      "branch": "fix/854-telegram-miniapp-schema-contract"
     },
     "next_work_package": null
   },
@@ -1857,7 +1857,7 @@
       "issue": 825,
       "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "ready",
       "depends_on": [
         822,
         823,
@@ -1876,7 +1876,7 @@
         "group_title_observed": "TestLAB",
         "bot_username_observed": "nex0lab_bot",
         "group_numeric_identity": "confirmed_runtime_only_not_committed",
-        "next_gate": "botfather_main_mini_app_then_phone_webview",
+        "next_gate": "complete_issue_854_then_repeat_real_signed_miniapp_snapshot_acceptance",
         "backend_provisioning_helper": "local_verified_5_passed_full_gateway_46_passed",
         "backend_principal_target": "nexolab-telegram_laboratory_technician_reports.read_only",
         "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled",
@@ -1912,7 +1912,7 @@
         "scheduler_prerequisite": "issue_845_pr846_merged_green_fail_closed_off",
         "state_reconciliation": "issue_847_pr848_merged_green_tg04_active",
         "main_arm64_artifact_preflight": "run_33781986481_artifact_9904235935_green_not_stage2_candidate_missing_tg04_pr842_repairs",
-        "current_gate": "signed_miniapp_persisted_report_acceptance",
+        "current_gate": "issue_854_schema_contract_repair_after_real_signed_phone_request",
         "pr842_repository_merge": "merged_main_13ab26392fcb1c1385dca3c1f619da4512fe568c_issue825_kept_open",
         "stage2_exact_main_artifact": "run_33786462681_artifact_9905912342_sha256_9ea8769da2dc0466b61354aee961d5564a1565bcda6eabe74b63c437207ef97e",
         "stage2_artifact_staging": "runtime/staging/tg04-stage2-13ab2639_checksums_source_platform_node_contract_verified",
@@ -1933,7 +1933,10 @@
         "stage2_volume_identity": "preserved_before_after_exact_match",
         "stage2_pre_upgrade_backup": "runtime/deployments/20260903T191159Z/postgresql-pre-upgrade.dump",
         "stage2_edge_snapshot": "sha256_a520569b5d2810e305d8f6d8a48512b0290b09916d150d57691600306e7d41b1_quick_check_ok_queue_0",
-        "stage2_source_adoption": "recorded_controlled_source_deployment_source_13ab26392fcb1c1385dca3c1f619da4512fe568c_schema_20260902_0031_evidence_runtime/deployments/20260903T191159Z_health_ready"
+        "stage2_source_adoption": "recorded_controlled_source_deployment_source_13ab26392fcb1c1385dca3c1f619da4512fe568c_schema_20260902_0031_evidence_runtime/deployments/20260903T191159Z_health_ready",
+        "signed_miniapp_phone_evidence": "real_ios_telegram_webview_opened_exact_report_gateway_http_200_frontend_invalid_contract",
+        "signed_miniapp_snapshot": "76957482-57c4-4daf-ac30-d8592847cfbd_cooljet_2026-09-03_payload_sha256_3c4cb6e4e5100054914a70001ba8a9d430794c01fbbc5f11c25f543291f59f34",
+        "schema_contract_root_cause": "tg01_nexolab.daily-refrigeration-report.v1_frontend_stale_refrigeration-daily-report/v1"
       }
     },
     {
@@ -2094,6 +2097,37 @@
         "adopted_runtime_mode": "lan",
         "known_packaged_release": false,
         "first_state_ci": "success:33798476536"
+      }
+    },
+    {
+      "issue": 854,
+      "title": "Align Telegram Mini App persisted-report schema contract",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        825
+      ],
+      "branch": "fix/854-telegram-miniapp-schema-contract",
+      "evidence": {
+        "parent_issue": 825,
+        "production_observation": "real_ios_telegram_webview_exact_direct_link_opened_gateway_miniapp_report_http_200",
+        "frontend_failure": "Некоректний формат звіту",
+        "real_snapshot_id": "76957482-57c4-4daf-ac30-d8592847cfbd",
+        "real_snapshot_payload_sha256": "3c4cb6e4e5100054914a70001ba8a9d430794c01fbbc5f11c25f543291f59f34",
+        "canonical_schema": "nexolab.daily-refrigeration-report.v1",
+        "stale_frontend_schema": "refrigeration-daily-report/v1",
+        "root_cause": "browser_parser_and_synthetic_fixtures_drifted_from_tg01_domain_contract",
+        "frontend_focused_tests": "6_passed_runtime_release_copy_excluded",
+        "telegram_gateway_tests": "54_passed_ephemeral_python_3_13_dev_container",
+        "touched_eslint": "passed",
+        "source_only_typecheck": "passed_runtime_artifacts_excluded",
+        "raw_host_typecheck": "polluted_by_historical_runtime_release_trees_not_source_regression",
+        "telegram_delivery": "disabled",
+        "telegram_worker": "stopped",
+        "telegram_last_send_at": "null",
+        "daily_report_scheduler": "disabled",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     }
   ],

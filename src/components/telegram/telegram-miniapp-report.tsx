@@ -497,7 +497,7 @@ function readSnapshotEnvelope(value: unknown): JsonRecord | null {
   if (!text(snapshot.id) || !isRecord(snapshot.payload)) return null;
   const payload = snapshot.payload;
   if (
-    payload.schema !== "refrigeration-daily-report/v1" ||
+    payload.schema !== "nexolab.daily-refrigeration-report.v1" ||
     !isRecord(payload.report) ||
     !isRecord(payload.identity)
   )

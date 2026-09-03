@@ -3,55 +3,47 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-03T22:50:02+03:00",
+  "timestamp": "2026-09-03T23:24:11+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_851_source_adoption_recorded_tg04_resumed",
+  "event": "issue_854_real_miniapp_schema_contract_defect_in_progress",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "13ab26392fcb1c1385dca3c1f619da4512fe568c"
   },
   "active_work": {
-    "issue": 825,
-    "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
-    "branch": "ops/825-telegram-real-acceptance"
+    "issue": 854,
+    "title": "Align Telegram Mini App persisted-report schema contract",
+    "branch": "fix/854-telegram-miniapp-schema-contract"
   },
   "evidence_snapshot": {
     "parent_issue": 825,
-    "deployment": {
-      "result": "DEPLOYMENT_PASSED",
-      "source_commit": "13ab26392fcb1c1385dca3c1f619da4512fe568c",
-      "control_main": "8f2d349ed4f2680e9aa4872324a9c64f890be305",
-      "evidence": "runtime/deployments/20260903T191159Z",
-      "deployed_at": "2026-09-03T22:21:21+03:00",
-      "schema_head": "20260902_0031",
-      "frontend_build_id": "9DMwe5ReCgEwXr5xJyiy0",
-      "postgresql_backup": "present_pre_upgrade",
-      "edge_sqlite_snapshot": "sha256:a520569b5d2810e305d8f6d8a48512b0290b09916d150d57691600306e7d41b1",
-      "persistent_volume_identity": "preserved"
+    "real_phone_acceptance": {
+      "telegram_webview": "opened_inside_real_ios_telegram",
+      "direct_link_snapshot": "76957482-57c4-4daf-ac30-d8592847cfbd",
+      "gateway_response": "http_200_for_real_signed_miniapp_request",
+      "frontend_result": "invalid_persisted_report_contract"
     },
-    "runtime": {
-      "dashboard": "http_200",
-      "telemetry": "ready_database_ready_mqtt_ready_queue_0",
-      "device_agent": "healthy_read_only_runtime",
-      "telegram_gateway": "ready_delivery_false_miniapp_true_worker_false_last_send_null",
-      "daily_report_scheduler": "disabled",
-      "miniapp_tailnet": "8444_proxy_deployed_dashboard_3000"
+    "root_cause": {
+      "tg01_schema": "nexolab.daily-refrigeration-report.v1",
+      "frontend_stale_schema": "refrigeration-daily-report/v1",
+      "scope": "frontend_parser_plus_synthetic_gateway_miniapp_fixtures"
     },
-    "source_authority": {
-      "status": "recorded",
-      "deployment_authority": "controlled_source_deployment",
-      "source_commit": "13ab26392fcb1c1385dca3c1f619da4512fe568c",
-      "schema_head": "20260902_0031",
-      "evidence": "runtime/deployments/20260903T191159Z",
-      "health": "ready",
-      "platform": "linux/arm64",
-      "runtime_mode": "lan",
-      "known_packaged_release": false,
-      "privileged_adopter_result": "status_recorded"
+    "verification": {
+      "frontend_focused": "6_passed",
+      "telegram_gateway": "54_passed",
+      "touched_eslint": "passed",
+      "source_only_typecheck": "passed",
+      "full_host_typecheck_note": "historical_runtime_release_trees_are_included_by_root_tsconfig_on_pi_and_fail_independently_of_issue_854"
+    },
+    "runtime_safety": {
+      "telegram_delivery": "disabled",
+      "telegram_worker": "stopped",
+      "last_send_at": "null",
+      "daily_report_scheduler": "disabled"
     }
   },
   "observations": [],
-  "next_action": "Resume Issue #825 with signed Telegram Mini App persisted-report acceptance while Telegram delivery and the 07:50 scheduler remain OFF. Do not send a report or enable scheduling until the later explicit acceptance gates.",
+  "next_action": "Commit and push Issue #854, open one focused PR, require exact-head GREEN CI, then record completion state and return #825 to active for a fresh signed Telegram Mini App retest. Do not send a Telegram report or enable the 07:50 scheduler.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
