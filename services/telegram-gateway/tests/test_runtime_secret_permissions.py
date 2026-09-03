@@ -24,7 +24,7 @@ def test_prepares_root_owned_shape_for_nonroot_runtime_group(tmp_path: Path) -> 
     secret_dir = tmp_path / "telegram"
     create_runtime_secrets(secret_dir)
     uid = os.getuid()
-    runtime_gid = 65532
+    runtime_gid = os.getgid() or 65532
 
     files = prepare_gateway_secret_permissions(
         secret_dir, runtime_gid=runtime_gid, expected_owner_uid=uid
