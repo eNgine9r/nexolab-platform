@@ -8,13 +8,13 @@ Updated: 2026-09-03
 
 ## Issue #845 — TG-04 scheduler activation must fail closed
 
-**Critical software prerequisite discovered during Stage-2 preflight on 2026-09-03.** The merged TG-01 runtime defaults `daily_reports_scheduler_enabled=true`, while central Compose does not pass an explicit scheduler flag. Deploying that source would activate local morning-report scheduling before the explicit acceptance gate required by #825. Production cutover was stopped before migration/runtime mutation. #845 must make application/service/Compose defaults OFF and retain explicit `true` enablement for the later controlled gate. Telegram delivery remains disabled; no report send, schema migration, Modbus/hardware write or destructive action occurred.
+**Cleared 2026-09-03.** PR #846 exact head `cae3e45ad6a11b74797dd843c187c44602f9aa81` passed the full classified workflow matrix and squash-merged to `main` at `242dd46c01109e2f75b7ac60e5bf8f7f28ac49b6`. Application, service-constructor and central Compose defaults now keep daily-report scheduling fail-closed OFF; explicit later enablement remains supported. No production migration/cutover, Telegram send, Modbus/hardware write or destructive action occurred.
 
 ## Issue #825 — TG-04 real Telegram / production acceptance gate
 
-**Stage-1 external/runtime gates cleared; Stage 2 paused on #845.** The dedicated bot, real `TestLAB` group identity, protected runtime secrets, least-privilege backend principal, administrator Telegram identity link, tailnet HTTPS origin and first real phone WebView are confirmed. The controlled Stage-1 gateway is healthy with `delivery_enabled=false`, `miniapp_enabled=true` and no send worker. Production schema remains `20260902_0030`, so no persisted TG-01 report exists yet.
+**Stage-1 external/runtime gates cleared; scheduler blocker cleared.** The dedicated bot, real `TestLAB` group identity, protected runtime secrets, least-privilege backend principal, administrator Telegram identity link, tailnet HTTPS origin and real phone WebView are confirmed. The controlled Stage-1 gateway is healthy with `delivery_enabled=false`, `miniapp_enabled=true` and no send worker. Production schema remains `20260902_0030`, so no persisted TG-01 report exists yet. The phone screen showing “Доступ не підтверджено” came from the older `3fb36ebf…` frontend when Main Mini App had no report `start_param`; read-only checks confirm the protected link and active administrator membership remain valid.
 
-Issue #825 is blocked first by the software prerequisite #845 and then by the separate explicit Product Owner approval for controlled production cutover. No report has been sent and the 07:50 schedule remains disabled/not deployed. Modbus/hardware writes, destructive data operations and volume deletion remain forbidden.
+Issue #825 is now waiting only for state reconciliation #847 and then the separate explicit Product Owner approval for controlled Stage-2 production cutover. No report has been sent and the 07:50 schedule remains disabled/not deployed. Modbus/hardware writes, destructive data operations and volume deletion remain forbidden.
 
 ## Issue #824 — TG-03 completed and merged
 
