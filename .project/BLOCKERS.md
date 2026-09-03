@@ -2,6 +2,10 @@
 
 Updated: 2026-09-03
 
+## Issue #843 — Telemetry planner-choice CI nondeterminism blocking TG-04 exact-head merge gate
+
+**Critical software blocker active 2026-09-03.** TG-04 PR #842 exact head `06b0ec59ab4ba3e380c5fca14d39eede81c058d3` is GREEN for Core Quality/build, Telegram Gateway, Container Supply Chain and Offline Bundle, but Telemetry run `33765580464` failed twice on the same exact named-index planner assertion. The full query itself remains bounded and the preceding unchanged-product-code head passed on the same PostgreSQL/runner baseline, so repeated reruns are not an acceptable bypass. Issue #843 isolates the deterministic test-contract repair. No product query, migration, runtime, production deployment, Modbus/hardware write or data/volume mutation is in scope. Clear this blocker only after #843 exact-head Telemetry/Core/Merge Gate verification is GREEN and merged, then integrate `main` into TG-04 and rerun #842 exact-head gates.
+
 ## Issue #825 — TG-04 real Telegram / production acceptance gate
 
 **Hard blocker active 2026-09-03.** TG-01, TG-02 and TG-03 are merged GREEN, but TG-04 cannot proceed autonomously because its next steps require real external/account/secret/mobile and production-site actions. Required Product Owner actions are: create/select the dedicated NEXOLAB bot in `@BotFather`; configure its Main Mini App/short name and approved HTTPS URL; add the bot to `Тест лаб` with minimum posting permissions; provision the bot token directly into the protected runtime secret mechanism without exposing it in chat/Git/logs/screenshots; provide an authorized Telegram account for identity-link acceptance; and participate in real phone WebView/private-HTTPS acceptance. The controlled production deployment/schedule enablement remains a separate explicit approval boundary.

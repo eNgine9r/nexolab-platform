@@ -22,7 +22,11 @@
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 843,
+      "title": "[CI][TELEMETRY] Make Live Dashboard inventory index-path acceptance deterministic",
+      "branch": "fix/843-telemetry-inventory-plan-determinism"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -1885,6 +1889,27 @@
           "state_integrity": "success:33724196973",
           "nexolab_merge_gate": "success:33724196973"
         }
+      }
+    },
+    {
+      "issue": 843,
+      "title": "[CI][TELEMETRY] Make Live Dashboard inventory index-path acceptance deterministic",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "branch": "fix/843-telemetry-inventory-plan-determinism",
+      "evidence": {
+        "trigger_issue": 825,
+        "trigger_pull_request": 842,
+        "trigger_head_sha": "06b0ec59ab4ba3e380c5fca14d39eede81c058d3",
+        "trigger_telemetry_run": "33765580464_failed_twice_same_planner_assertion",
+        "previous_green_telemetry_run": "33762770570_same_product_code",
+        "root_cause": "postgresql_full_query_exact_named_index_choice_is_planner_nondeterministic",
+        "product_query_change": "none",
+        "schema_change": "none",
+        "runtime_mutation": "none",
+        "focused_postgres_repeats": "3_passed",
+        "relevant_inventory_tests": "2_passed",
+        "negative_index_catalog_contract": "passed_transactional_drop_and_rollback"
       }
     }
   ],
