@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-03T13:46:19+03:00",
+  "timestamp": "2026-09-03T14:23:43+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_825_identity_link_runtime_dependency_repair_pending_ci",
+  "event": "issue_825_identity_link_verified_tailnet_https_user_gate",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
@@ -28,22 +28,26 @@
       "group_title_observed": "TestLAB",
       "bot_username_observed": "nex0lab_bot",
       "group_numeric_identity": "confirmed_runtime_only_not_committed",
-      "next_gate": "identity_link_runtime_repair_exact_head_ci_then_product_owner_rerun_private_challenge",
+      "next_gate": "tailnet_https_8444_then_botfather_and_phone_webview",
       "backend_provisioning_helper": "local_verified_5_passed_full_gateway_46_passed",
       "backend_principal_target": "nexolab-telegram_laboratory_technician_reports.read_only",
       "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled",
       "backend_provisioning_exact_head": "b26e51ae23022a887c38ae3a2008392710aff7da_all_required_workflows_success",
-      "identity_link_provisioning_helper": "local_verified_4_passed_full_gateway_50_passed_exact_head_pending",
+      "identity_link_provisioning_helper": "stdlib_repair_exact_head_8b1333329ba3_full_green",
       "human_link_contract": "fresh_private_one_time_challenge_existing_active_reports.read_identity_conflict_fail_closed",
       "backend_runtime_provisioning": "product_owner_executed_successfully_2026-09-03",
       "backend_principal_runtime_verified": "nexolab-telegram_active_laboratory_technician_reports.read_only_postgres_and_audit_confirmed",
       "telegram_runtime_activation": "not_started_no_gateway_container_no_send",
       "identity_link_first_runtime_attempt": "failed_before_prompt_missing_pydantic_dependency_via_app.miniapp_import",
-      "identity_link_runtime_repair": "stdlib_only_link_file_validation_system_python_help_pass_focused_5_passed_full_gateway_51_passed_exact_head_pending"
+      "identity_link_runtime_repair": "exact_head_8b1333329ba3_all_required_workflows_success",
+      "human_identity_link": "administrator_private_challenge_completed_successfully",
+      "identity_links_file": "protected_runtime_written_no_personal_id_committed",
+      "miniapp_frontend_candidate": "loopback_127.0.0.1_13021_http_200",
+      "tailscale_https_candidate": "8444_requires_product_owner_privileged_serve_mutation"
     }
   },
   "observations": [],
-  "next_action": "Require exact-head CI GREEN for the stdlib-only identity-link repair, then Product Owner reruns app.identity_link_provisioning and completes the private @nex0lab_bot challenge. Production cutover remains unauthorized.",
+  "next_action": "Product Owner runs sudo tailscale serve --bg --https 8444 --yes http://127.0.0.1:13021 to expose the already-running loopback Mini App candidate tailnet-only. Then verify HTTPS from phone, configure BotFather Main Mini App URL, and continue real Telegram WebView acceptance. Production deployment and Telegram delivery remain disabled.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
