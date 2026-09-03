@@ -2,7 +2,11 @@
 
 Updated: 2026-09-03
 
-## Issue #825 — TG-04 protected runtime / external Mini App acceptance
+## Issue #843 — Telemetry planner-choice CI nondeterminism
+
+**Repository-side blocker cleared 2026-09-03.** PR #844 exact verified implementation head `fcd9d2429ef19c9410fdfe9292d6f5d04cdc7c1b` passed all 11 registered workflows, and final state head `66573c821fff3de16710aa1cdad05aedd99171d1` also passed the full registered matrix including Telemetry Service, Offline Bundle, Core CI and NEXOLAB Merge Gate before squash merge to `main` as `4297e3f5b19d77e497066f350366cfea51db8d49`. The repair preserves the production query/schema and removes only the optimizer-specific named-index assertion. No production deployment, runtime mutation, Modbus/hardware write or data/volume mutation occurred.
+
+## Issue #825 — TG-04 protected runtime / real Telegram acceptance
 
 **Group identification and protected backend provisioning cleared 2026-09-03.** Real sanitized Bot API evidence confirms `TestLAB` / `nex0lab_bot`; numeric destination remains runtime-only. Product Owner successfully ran audited runtime provisioning. Read-only PostgreSQL verification confirms active `nexolab-telegram` with `laboratory_technician + reports.read` only, and the corresponding `security.local_user.created` audit event. Telegram gateway runtime remains not started and no message was sent.
 

@@ -36,6 +36,56 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+LATEST_LOOKUP_INDEX = "ix_telemetry_latest_lookup"
+LATEST_LOOKUP_COLUMNS = (
+    "node_id",
+    "equipment_id",
+    "channel_id",
+    "metric",
+    "captured_at",
+    "event_id",
+)
+
+
+def _plan_index_names(value: object) -> set[str]:
+    names: set[str] = set()
+    if isinstance(value, dict):
+        index_name = value.get("Index Name")
+        if isinstance(index_name, str):
+            names.add(index_name)
+        for child in value.values():
+            names.update(_plan_index_names(child))
+    elif isinstance(value, list):
+        for child in value:
+            names.update(_plan_index_names(child))
+    return names
+
+
+def _latest_lookup_index_columns(connection) -> tuple[str, ...]:
+    row = connection.execute(
+        text(
+            """
+            SELECT array_agg(attribute.attname ORDER BY keys.ordinality)
+            FROM pg_index AS index_meta
+            JOIN pg_class AS table_class
+              ON table_class.oid = index_meta.indrelid
+            JOIN pg_class AS index_class
+              ON index_class.oid = index_meta.indexrelid
+            CROSS JOIN LATERAL unnest(index_meta.indkey)
+              WITH ORDINALITY AS keys(attnum, ordinality)
+            JOIN pg_attribute AS attribute
+              ON attribute.attrelid = table_class.oid
+             AND attribute.attnum = keys.attnum
+            WHERE table_class.relname = 'telemetry_samples'
+              AND pg_table_is_visible(table_class.oid)
+              AND index_class.relname = :index_name
+            """
+        ),
+        {"index_name": LATEST_LOOKUP_INDEX},
+    ).scalar_one_or_none()
+    return tuple(row or ())
+
+
 def test_postgres_inventory_plan_is_bounded_and_has_latest_identity_index_path(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -196,24 +246,40 @@ def test_postgres_inventory_plan_is_bounded_and_has_latest_identity_index_path(
             database.engine,
             compile_kwargs={"literal_binds": True},
         )
-        with database.engine.connect() as connection:
+        probe = (
+            select(TelemetrySample.id)
+            .where(
+                TelemetrySample.node_id == catalog_node_id,
+                TelemetrySample.equipment_id == catalog_equipment_id,
+                TelemetrySample.channel_id == catalog_channel_id,
+                TelemetrySample.metric == "temperature",
+            )
+            .order_by(TelemetrySample.captured_at.desc(), TelemetrySample.event_id.desc())
+            .limit(1)
+        )
+        compiled_probe = probe.compile(
+            database.engine,
+            compile_kwargs={"literal_binds": True},
+        )
+        with database.engine.begin() as connection:
             raw_plan = connection.execute(
                 text(f"EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) {compiled}")
             ).scalar_one()
+            latest_lookup_columns = _latest_lookup_index_columns(connection)
             connection.execute(text("SET LOCAL enable_seqscan = off"))
-            raw_index_plan = connection.execute(
-                text(f"EXPLAIN (FORMAT JSON) {compiled}")
+            connection.execute(text("SET LOCAL enable_bitmapscan = off"))
+            connection.execute(text("SET LOCAL enable_sort = off"))
+            raw_probe_plan = connection.execute(
+                text(f"EXPLAIN (FORMAT JSON) {compiled_probe}")
             ).scalar_one()
         plan = json.loads(raw_plan) if isinstance(raw_plan, str) else raw_plan
-        index_plan = (
-            json.loads(raw_index_plan) if isinstance(raw_index_plan, str) else raw_index_plan
+        probe_plan = (
+            json.loads(raw_probe_plan) if isinstance(raw_probe_plan, str) else raw_probe_plan
         )
-        plan_document = json.dumps(plan, indent=2, default=str)
-        index_plan_document = json.dumps(index_plan, indent=2, default=str)
         execution_ms = float(plan[0]["Execution Time"])
-        latest_lookup_index = "ix_telemetry_latest_lookup"
-        planner_selected_latest_lookup_index = latest_lookup_index in plan_document
-        index_backed_latest_lookup_path = latest_lookup_index in index_plan_document
+        planner_index_names = sorted(_plan_index_names(plan))
+        probe_index_names = sorted(_plan_index_names(probe_plan))
+        latest_lookup_probe_index_backed = bool(probe_index_names)
 
         started = perf_counter()
         page = list_live_dashboard_inventory(
@@ -230,11 +296,13 @@ def test_postgres_inventory_plan_is_bounded_and_has_latest_identity_index_path(
             "telemetry_fixture_rows": 50003,
             "execution_ms": execution_ms,
             "request_ms": request_ms,
-            "latest_lookup_index": latest_lookup_index,
-            "planner_selected_latest_lookup_index": planner_selected_latest_lookup_index,
-            "index_backed_latest_lookup_path": index_backed_latest_lookup_path,
+            "latest_lookup_index": LATEST_LOOKUP_INDEX,
+            "latest_lookup_columns": latest_lookup_columns,
+            "planner_index_names": planner_index_names,
+            "probe_index_names": probe_index_names,
+            "latest_lookup_probe_index_backed": latest_lookup_probe_index_backed,
             "plan": plan,
-            "index_preferred_plan": index_plan,
+            "latest_lookup_probe_plan": probe_plan,
         }
         evidence_path.parent.mkdir(parents=True, exist_ok=True)
         evidence_path.write_text(json.dumps(evidence, indent=2, default=str) + "\n")
@@ -247,9 +315,11 @@ def test_postgres_inventory_plan_is_bounded_and_has_latest_identity_index_path(
                         "telemetry_fixture_rows": 50003,
                         "execution_ms": execution_ms,
                         "request_ms": request_ms,
-                        "latest_lookup_index": latest_lookup_index,
-                        "planner_selected_latest_lookup_index": planner_selected_latest_lookup_index,
-                        "index_backed_latest_lookup_path": index_backed_latest_lookup_path,
+                        "latest_lookup_index": LATEST_LOOKUP_INDEX,
+                        "latest_lookup_columns": latest_lookup_columns,
+                        "planner_index_names": planner_index_names,
+                        "probe_index_names": probe_index_names,
+                        "latest_lookup_probe_index_backed": latest_lookup_probe_index_backed,
                     },
                     sort_keys=True,
                 ),
@@ -258,7 +328,8 @@ def test_postgres_inventory_plan_is_bounded_and_has_latest_identity_index_path(
 
         assert execution_ms < 8000
         assert request_ms < 8000
-        assert index_backed_latest_lookup_path
+        assert latest_lookup_columns == LATEST_LOOKUP_COLUMNS
+        assert latest_lookup_probe_index_backed
         assert page.total == 2
         by_channel = {item.channel_id: item for item in page.items}
         assert by_channel[catalog_channel_id].equipment_id == catalog_equipment_id

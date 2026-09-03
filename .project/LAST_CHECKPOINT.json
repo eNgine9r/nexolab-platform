@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-03T15:56:59+03:00",
+  "timestamp": "2026-09-03T18:22:00+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_825_production_build_hydration_verified_phone_webview_gate",
+  "event": "issue_843_merged_into_tg04_branch_exact_head_reverification",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
@@ -60,7 +60,7 @@
     }
   },
   "observations": [],
-  "next_action": "Product Owner opens @nex0lab_bot Main Mini App on a phone joined to the same Tailscale tailnet and reports the exact visible state. Confirm BotFather Main Mini App URL if not already configured. Do not start Telegram gateway, send a report, deploy production, or enable the 07:50 schedule before this real WebView gate passes.",
+  "next_action": "Validate the post-#843 merge commit on ops/825-telegram-real-acceptance, push without force, and require the full exact-head PR #842 workflow matrix to be GREEN. Do not deploy production, start Telegram delivery, send a report, or enable the 07:50 schedule before that software gate passes.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
