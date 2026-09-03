@@ -4,9 +4,9 @@ Updated: 2026-09-03
 
 ## Issue #824 — TG-03 execution-capacity blocker cleared
 
-**Cleared 2026-09-03.** The earlier Codex usage-limit condition no longer blocks TG-03 because the Product Owner explicitly authorized direct implementation in this ChatGPT engineering session. Work resumed from the existing `feat/824-telegram-miniapp` recovery checkpoint at `/home/nexolab/nexolab-824`; the checkpoint was not reset or recreated. Local implementation and verification are GREEN, and GitHub Issue #824 is active `status:in-progress`.
+**Cleared 2026-09-03.** The earlier Codex usage-limit condition no longer blocks TG-03 because the Product Owner explicitly authorized direct implementation in this ChatGPT engineering session. Work resumed from the existing `feat/824-telegram-miniapp` recovery checkpoint at `/home/nexolab/nexolab-824`; the checkpoint was not reset or recreated. TG-03 is now repository-complete at exact verified product head `31cd4fd5e43672b81af34c8ac1f53e185cf4752e` with the full PR #839 exact-head matrix and NEXOLAB Merge Gate GREEN. GitHub Issue #824 remains open only until the PR merge closes it.
 
-The remaining TG-03 boundary is ordinary repository delivery rather than a blocker: commit/push the verified candidate, open one focused PR, pass exact-head CI/review, and merge only when required checks are GREEN. Real Telegram token/group provisioning, Telegram phone/WebView/Tailscale acceptance and production enablement remain separately deferred to TG-04. No credential, secret, production cutover, restart, Modbus/hardware write, data deletion or volume deletion was used to clear the former Codex blocker.
+The remaining TG-03 boundary is ordinary repository delivery rather than a blocker: commit/push the canonical state-only reconciliation, pass its exact-head state/Merge Gate, and merge PR #839 only while the verified product evidence remains immutable and review threads remain resolved. Real Telegram token/group provisioning, Telegram phone/WebView/Tailscale acceptance and production enablement remain separately deferred to TG-04. No credential, secret, production cutover, restart, Modbus/hardware write, data deletion or volume deletion was used to clear the former Codex blocker.
 
 ## Issue #805 — controlled onboarding deployment and browser acceptance
 
