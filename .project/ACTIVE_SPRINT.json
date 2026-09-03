@@ -1892,7 +1892,19 @@
         "identity_links_file": "protected_runtime_written_no_personal_id_committed",
         "miniapp_frontend_candidate": "loopback_127.0.0.1_13021_http_200",
         "tailscale_https_candidate": "tailnet_8444_active_https_200_existing_8443_unchanged",
-        "miniapp_webapp_bridge": "telegram_web_app_sdk_raw_initData_server_validation"
+        "miniapp_webapp_bridge": "telegram_web_app_sdk_raw_initData_server_validation",
+        "verified_head_sha": "3fb36ebf3dfec654eca6572addc0841134dee897",
+        "pull_request": 842,
+        "checks": {
+          "core_ci": "success:33751611745",
+          "telegram_gateway": "success:33751611763",
+          "telemetry_service": "success:33751611746",
+          "container_supply_chain": "success:33751611742",
+          "offline_bundle": "success:33751611738",
+          "frontend_release_artifact": "success:33756409052:artifact_9893958518",
+          "production_artifact_import": "success:linux_arm64_next_16.2.12_build_DU2E1SBApDJ8eNyTevKFr",
+          "tailnet_production_hydration": "success:8444_static_assets_200_no_webpack_hmr_outside_telegram_state"
+        }
       }
     },
     {
