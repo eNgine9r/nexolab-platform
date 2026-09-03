@@ -3,19 +3,23 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-03T18:13:15+03:00",
+  "timestamp": "2026-09-03T19:21:04+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_843_repository_complete_pending_merge",
+  "event": "issue_845_scheduler_gate_implementation_started",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 845,
+    "title": "Keep daily report scheduler disabled until explicit acceptance",
+    "branch": "fix/845-daily-report-scheduler-gate"
+  },
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Require the state-only completion head of PR #844 to pass the full exact-head registered workflow matrix and NEXOLAB Merge Gate; then squash-merge #844 and resume TG-04 / #825 by integrating current main into ops/825-telegram-real-acceptance without force-push.",
+  "next_action": "Verify fail-closed scheduler defaults, publish focused Issue #845 PR candidate, require exact-head GREEN, merge, then return to TG-04 Stage-2 deployment approval.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

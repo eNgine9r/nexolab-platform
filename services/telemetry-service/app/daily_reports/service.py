@@ -18,7 +18,7 @@ class DailyReportSchedulerService:
         self,
         repository: DailyReportRepository,
         *,
-        enabled: bool = True,
+        enabled: bool = False,
         interval_seconds: int = 60,
     ) -> None:
         self._repository = repository

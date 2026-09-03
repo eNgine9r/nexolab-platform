@@ -6,11 +6,15 @@ Updated: 2026-09-03
 
 **Repository-side blocker cleared 2026-09-03.** PR #844 exact verified implementation head `fcd9d2429ef19c9410fdfe9292d6f5d04cdc7c1b` passed all 11 registered workflows, including Telemetry Service `33770161208`, Core CI/NEXOLAB Merge Gate `33770159789` and Offline Bundle `33770159680`. The repair preserves the production query and schema while replacing an optimizer-specific exact-index-name assertion with independent canonical-index catalog validation plus an index-backed latest-value probe. Local repeated PostgreSQL 16 and transactional negative evidence are GREEN. No production deployment, runtime mutation, Modbus/hardware write or data/volume mutation occurred. GitHub merge status is queried online; after PR #844 merges, integrate current `main` into TG-04 PR #842 and rerun its exact-head verification.
 
+## Issue #845 — TG-04 scheduler activation must fail closed
+
+**Critical software prerequisite discovered during Stage-2 preflight on 2026-09-03.** The merged TG-01 runtime defaults `daily_reports_scheduler_enabled=true`, while central Compose does not pass an explicit scheduler flag. Deploying that source would activate local morning-report scheduling before the explicit acceptance gate required by #825. Production cutover was stopped before migration/runtime mutation. #845 must make application/service/Compose defaults OFF and retain explicit `true` enablement for the later controlled gate. Telegram delivery remains disabled; no report send, schema migration, Modbus/hardware write or destructive action occurred.
+
 ## Issue #825 — TG-04 real Telegram / production acceptance gate
 
-**Hard blocker active 2026-09-03.** TG-01, TG-02 and TG-03 are merged GREEN, but TG-04 cannot proceed autonomously because its next steps require real external/account/secret/mobile and production-site actions. Required Product Owner actions are: create/select the dedicated NEXOLAB bot in `@BotFather`; configure its Main Mini App/short name and approved HTTPS URL; add the bot to `Тест лаб` with minimum posting permissions; provision the bot token directly into the protected runtime secret mechanism without exposing it in chat/Git/logs/screenshots; provide an authorized Telegram account for identity-link acceptance; and participate in real phone WebView/private-HTTPS acceptance. The controlled production deployment/schedule enablement remains a separate explicit approval boundary.
+**Stage-1 external/runtime gates cleared; Stage 2 paused on #845.** The dedicated bot, real `TestLAB` group identity, protected runtime secrets, least-privilege backend principal, administrator Telegram identity link, tailnet HTTPS origin and first real phone WebView are confirmed. The controlled Stage-1 gateway is healthy with `delivery_enabled=false`, `miniapp_enabled=true` and no send worker. Production schema remains `20260902_0030`, so no persisted TG-01 report exists yet.
 
-Until those actions are available, Issue #825 stays `blocked`. No Bot API call, group change, token handling, runtime deployment/restart, Modbus/hardware write, data deletion or volume deletion is authorized by this state reconciliation.
+Issue #825 is blocked first by the software prerequisite #845 and then by the separate explicit Product Owner approval for controlled production cutover. No report has been sent and the 07:50 schedule remains disabled/not deployed. Modbus/hardware writes, destructive data operations and volume deletion remain forbidden.
 
 ## Issue #824 — TG-03 completed and merged
 
