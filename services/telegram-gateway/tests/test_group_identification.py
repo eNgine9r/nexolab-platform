@@ -46,16 +46,39 @@ def test_identify_group_returns_latest_matching_group_only() -> None:
     assert result.update_id == 12
 
 
-def test_identify_group_fails_when_target_is_absent() -> None:
+def test_identify_group_fails_when_target_is_absent_with_sanitized_diagnostics() -> None:
     transport = FakeTransport(
         [
             {"ok": True, "result": {"id": 42, "username": "NexoLabBot"}},
-            {"ok": True, "result": []},
+            {
+                "ok": True,
+                "result": [
+                    {
+                        "update_id": 20,
+                        "message": {
+                            "chat": {"id": -1009, "type": "supergroup", "title": "Other lab"},
+                            "from": {"id": 777, "username": "must-not-leak"},
+                            "text": "must-not-leak",
+                        },
+                    }
+                ],
+            },
         ]
     )
 
-    with pytest.raises(GroupIdentificationError, match="target_group_not_found_in_pending_updates"):
+    with pytest.raises(GroupIdentificationError, match="target_group_not_found_in_pending_updates") as exc:
         identify_group(token=TOKEN, target_title="Тест лаб", transport=transport)
+
+    assert exc.value.details == {
+        "diagnostics": {
+            "bot_username": "NexoLabBot",
+            "pending_update_count": 1,
+            "observed_group_chats": [
+                {"chat_id": -1009, "chat_type": "supergroup", "title": "Other lab", "update_id": 20}
+            ],
+        }
+    }
+    assert "must-not-leak" not in json.dumps(exc.value.details, ensure_ascii=False)
 
 
 def test_identify_group_rejects_invalid_bot_identity() -> None:

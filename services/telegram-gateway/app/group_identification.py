@@ -12,7 +12,10 @@ from app.http_transport import HttpTransport, HttpTransportError, urlopen_transp
 
 
 class GroupIdentificationError(RuntimeError):
-    pass
+    def __init__(self, code: str, *, details: dict[str, Any] | None = None) -> None:
+        super().__init__(code)
+        self.code = code
+        self.details = details or {}
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,20 +44,49 @@ def identify_group(
         transport,
     )
     matches: list[tuple[int, dict[str, Any]]] = []
+    observed_chats: dict[tuple[int, str, str], int] = {}
     for update in updates if isinstance(updates, list) else []:
         if not isinstance(update, dict):
             continue
         chat = _extract_chat(update)
         if chat is None:
             continue
-        if chat.get("title") != target_title or chat.get("type") not in {"group", "supergroup"}:
-            continue
         update_id = update.get("update_id")
         if isinstance(update_id, bool) or not isinstance(update_id, int):
             continue
+        chat_id = chat.get("id")
+        chat_type = chat.get("type")
+        title = chat.get("title")
+        if (
+            isinstance(chat_id, int)
+            and not isinstance(chat_id, bool)
+            and isinstance(chat_type, str)
+            and chat_type in {"group", "supergroup", "channel"}
+            and isinstance(title, str)
+            and title
+        ):
+            observed_chats[(chat_id, chat_type, title)] = max(
+                update_id, observed_chats.get((chat_id, chat_type, title), update_id)
+            )
+        if title != target_title or chat_type not in {"group", "supergroup"}:
+            continue
         matches.append((update_id, chat))
     if not matches:
-        raise GroupIdentificationError("target_group_not_found_in_pending_updates")
+        bot_username = me.get("username") if isinstance(me, dict) else None
+        diagnostics = {
+            "bot_username": bot_username if isinstance(bot_username, str) else None,
+            "pending_update_count": len(updates) if isinstance(updates, list) else 0,
+            "observed_group_chats": [
+                {"chat_id": chat_id, "chat_type": chat_type, "title": title, "update_id": update_id}
+                for (chat_id, chat_type, title), update_id in sorted(
+                    observed_chats.items(), key=lambda item: item[1], reverse=True
+                )[:10]
+            ],
+        }
+        raise GroupIdentificationError(
+            "target_group_not_found_in_pending_updates",
+            details={"diagnostics": diagnostics},
+        )
 
     update_id, chat = max(matches, key=lambda item: item[0])
     bot_id = me.get("id") if isinstance(me, dict) else None
@@ -132,7 +164,8 @@ def main() -> int:
     try:
         result = identify_group(token=token, target_title=args.title, timeout_seconds=args.timeout_seconds)
     except GroupIdentificationError as error:
-        print(json.dumps({"ok": False, "error": str(error)}, ensure_ascii=False))
+        payload = {"ok": False, "error": error.code, **error.details}
+        print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
         return 2
     print(json.dumps({"ok": True, "group": asdict(result)}, ensure_ascii=False, sort_keys=True))
     return 0

@@ -1868,9 +1868,11 @@
         "blocker": "requires_product_owner_external_telegram_secret_group_mobile_and_controlled_deployment_actions",
         "software_prerequisites": "tg01_tg02_tg03_merged_green",
         "production_deployment": "not_executed",
-        "real_telegram_contact": "not_executed",
+        "real_telegram_contact": "read_only_getupdates_attempted_target_group_not_found",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "group_identification_helper": "sanitized_diagnostics_v2_ready",
+        "bot_token": "protected_root_owned_0600_verified"
       }
     },
     {
