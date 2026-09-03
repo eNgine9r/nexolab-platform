@@ -36,8 +36,20 @@ const snapshot = {
       valid_channels: 2,
       configured_channels: 3,
       channels: [
-        { channel_id: "M1", label: "M-пакет 1", status: "available", value_c: -1.2, captured_at: "2026-09-03T04:49:00+00:00" },
-        { channel_id: "M2", label: "M-пакет 2", status: "available", value_c: 8.4, captured_at: "2026-09-03T04:49:00+00:00" },
+        {
+          channel_id: "M1",
+          label: "M-пакет 1",
+          status: "available",
+          value_c: -1.2,
+          captured_at: "2026-09-03T04:49:00+00:00",
+        },
+        {
+          channel_id: "M2",
+          label: "M-пакет 2",
+          status: "available",
+          value_c: 8.4,
+          captured_at: "2026-09-03T04:49:00+00:00",
+        },
         { channel_id: "M3", label: "M-пакет 3", status: "unavailable", reason: "stale" },
       ],
     },
@@ -53,7 +65,15 @@ const snapshot = {
     alerts: {
       active_count: 1,
       recent_count: 2,
-      items: [{ id: "alert-1", severity: "warning", channel_id: "M2", metric: "temperature.probe", triggered_at: "2026-09-03T03:30:00+00:00" }],
+      items: [
+        {
+          id: "alert-1",
+          severity: "warning",
+          channel_id: "M2",
+          metric: "temperature.probe",
+          triggered_at: "2026-09-03T03:30:00+00:00",
+        },
+      ],
     },
     quality: { status: "incomplete", reasons: ["m_packet_coverage_incomplete"] },
   },
@@ -62,7 +82,15 @@ const snapshot = {
 function installTelegram(initData = INIT_DATA) {
   Object.defineProperty(window, "Telegram", {
     configurable: true,
-    value: { WebApp: { initData, ready: vi.fn(), expand: vi.fn(), setHeaderColor: vi.fn(), setBackgroundColor: vi.fn() } },
+    value: {
+      WebApp: {
+        initData,
+        ready: vi.fn(),
+        expand: vi.fn(),
+        setHeaderColor: vi.fn(),
+        setBackgroundColor: vi.fn(),
+      },
+    },
   });
 }
 
@@ -78,7 +106,9 @@ describe("TelegramMiniAppReport", () => {
 
   it("sends only signed initData plus the opaque start hint and renders persisted report fields", async () => {
     installTelegram();
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(Response.json({ report: snapshot }));
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(Response.json({ report: snapshot }));
 
     render(<TelegramMiniAppReport />);
 
@@ -106,9 +136,30 @@ describe("TelegramMiniAppReport", () => {
     expect(body).not.toHaveProperty("user_id");
   });
 
+  it("does not fabricate zero counts and exposes unavailable energy evidence", async () => {
+    installTelegram();
+    const degraded = structuredClone(snapshot);
+    Reflect.deleteProperty(degraded.payload.m_packets, "valid_channels");
+    Reflect.deleteProperty(degraded.payload.alerts, "active_count");
+    Reflect.deleteProperty(degraded.payload.alerts, "recent_count");
+    Object.assign(degraded.payload.energy, { status: "unavailable", reason: "continuity_gap" });
+    Reflect.deleteProperty(degraded.payload.energy, "interval_kwh");
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(Response.json({ report: degraded }));
+
+    render(<TelegramMiniAppReport />);
+
+    expect(await screen.findByText("Cool jet")).toBeInTheDocument();
+    expect(screen.getByText("coverage недоступне")).toBeInTheDocument();
+    expect(screen.getAllByText("— активних").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("розрив безперервності")).toBeInTheDocument();
+    expect(screen.queryByText("0 активних")).not.toBeInTheDocument();
+  });
+
   it("fails closed when the server denies the linked Telegram identity", async () => {
     installTelegram();
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(Response.json({ detail: { code: "miniapp_access_denied" } }, { status: 403 }));
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      Response.json({ detail: { code: "miniapp_access_denied" } }, { status: 403 }),
+    );
 
     render(<TelegramMiniAppReport />);
 

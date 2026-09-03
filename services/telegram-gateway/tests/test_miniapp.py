@@ -125,6 +125,31 @@ def test_identity_link_is_exact_and_duplicate_mapping_fails_closed(tmp_path: Pat
     assert exc.value.code == "miniapp_identity_links_invalid"
 
 
+@pytest.mark.parametrize("telegram_user_id", [987654321.5, "987654321"])
+def test_identity_link_rejects_non_integer_user_id(
+    tmp_path: Path, telegram_user_id: object
+) -> None:
+    path = tmp_path / "identity-links.json"
+    write_links(
+        path,
+        [
+            {
+                "telegram_user_id": telegram_user_id,
+                "organization_id": ORGANIZATION_ID,
+                "identity_id": IDENTITY_ID,
+            }
+        ],
+    )
+
+    with pytest.raises(MiniAppAccessError) as exc:
+        resolve_identity_link(
+            str(path),
+            telegram_user_id=TELEGRAM_USER_ID,
+            organization_id=ORGANIZATION_ID,
+        )
+    assert exc.value.code == "miniapp_identity_links_invalid"
+
+
 def test_service_uses_only_validated_start_param_and_linked_identity(tmp_path: Path) -> None:
     link_path = tmp_path / "identity-links.json"
     write_links(link_path)

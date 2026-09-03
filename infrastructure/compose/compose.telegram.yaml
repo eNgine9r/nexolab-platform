@@ -26,7 +26,7 @@ services:
       TELEGRAM_RETRY_MAX_SECONDS: ${TELEGRAM_RETRY_MAX_SECONDS:-300}
       TELEGRAM_MAX_DELIVERIES_PER_RUN: ${TELEGRAM_MAX_DELIVERIES_PER_RUN:-50}
     ports:
-      - "127.0.0.1:${TELEGRAM_GATEWAY_PORT:-8090}:8090"
+      - "127.0.0.1:8090:8090"
     volumes:
       - telegram-delivery-data:/app/data/telegram-delivery
       - ${TELEGRAM_GATEWAY_SECRETS_DIR:-/etc/nexolab/telegram}:/run/secrets/telegram:ro

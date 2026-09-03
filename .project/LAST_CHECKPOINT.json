@@ -3,19 +3,23 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-03T05:01:14+03:00",
+  "timestamp": "2026-09-03T08:42:15+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_824_blocked_codex_usage_limit",
+  "event": "issue_824_local_verification_complete_pending_pr",
   "baselines": {
     "accepted_product_sha": "25f3857f291bcada05bec09b2d8d7323c52a3b22",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 824,
+    "title": "Add read-only NEXOLAB Telegram Mini App for morning reports",
+    "branch": "feat/824-telegram-miniapp"
+  },
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Resume the preserved /home/nexolab/nexolab-824 dirty TG-03 checkpoint only after Codex execution capacity is available; do not reset or recreate the implementation. Then complete focused verification, state, PR and exact-head CI.",
+  "next_action": "Commit and push the locally verified TG-03 candidate, open one focused PR linked to #824, then inspect exact-head CI and review. Do not perform real Telegram/mobile/Tailscale acceptance or production cutover; those remain TG-04.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

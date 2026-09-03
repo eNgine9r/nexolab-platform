@@ -187,12 +187,9 @@ def _read_identity_links(path: str) -> tuple[MiniAppIdentityLink, ...]:
         if not isinstance(item, dict):
             raise MiniAppAccessError("miniapp_identity_links_invalid")
         raw_user_id = item.get("telegram_user_id")
-        if isinstance(raw_user_id, bool):
+        if isinstance(raw_user_id, bool) or not isinstance(raw_user_id, int):
             raise MiniAppAccessError("miniapp_identity_links_invalid")
-        try:
-            linked_user_id = int(raw_user_id)
-        except (TypeError, ValueError) as error:
-            raise MiniAppAccessError("miniapp_identity_links_invalid") from error
+        linked_user_id = raw_user_id
         if linked_user_id <= 0 or linked_user_id > _MAX_TELEGRAM_USER_ID:
             raise MiniAppAccessError("miniapp_identity_links_invalid")
         linked_organization = _uuid_text(item.get("organization_id"), "miniapp_identity_links_invalid")

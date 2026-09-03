@@ -22,9 +22,11 @@ describe("Telegram Mini App same-origin proxy", () => {
   });
 
   it("relays only the bounded auth payload to the fixed loopback endpoint", async () => {
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      Response.json({ report: { id: "report-1" } }, { headers: { "Cache-Control": "no-store" } }),
-    );
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        Response.json({ report: { id: "report-1" } }, { headers: { "Cache-Control": "no-store" } }),
+      );
     const body = { init_data: "signed-data", start_hint: "report_test" };
 
     const response = await POST(request(JSON.stringify(body)));

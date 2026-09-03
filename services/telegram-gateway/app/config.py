@@ -165,7 +165,7 @@ def _validate_organization_id(value: str) -> None:
 def _validate_mini_app_template(value: str) -> None:
     if value.count("{snapshot_id}") != 1:
         raise ValueError("TELEGRAM_MINI_APP_URL_TEMPLATE must contain exactly one {snapshot_id}")
-    parsed = urlparse(value.replace("{snapshot_id}", "snapshot"))
+    parsed = urlparse(value)
     if parsed.scheme != "https" or parsed.hostname not in {"t.me", "telegram.me"}:
         raise ValueError("TELEGRAM_MINI_APP_URL_TEMPLATE must be a Telegram HTTPS direct link")
     if parsed.username or parsed.password or parsed.fragment:
@@ -173,8 +173,10 @@ def _validate_mini_app_template(value: str) -> None:
     if not parsed.path.strip("/"):
         raise ValueError("TELEGRAM_MINI_APP_URL_TEMPLATE must include a bot/app path")
     startapp = parse_qs(parsed.query, keep_blank_values=True).get("startapp")
-    if startapp is None or len(startapp) != 1 or "snapshot" not in startapp[0]:
-        raise ValueError("TELEGRAM_MINI_APP_URL_TEMPLATE must carry snapshot_id through startapp")
+    if startapp != ["report_{snapshot_id}"]:
+        raise ValueError(
+            "TELEGRAM_MINI_APP_URL_TEMPLATE startapp must be exactly report_{snapshot_id}"
+        )
 
 
 def read_secret_file(path: str, *, label: str) -> str:
