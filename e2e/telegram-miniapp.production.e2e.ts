@@ -49,7 +49,9 @@ const snapshot = {
 
 test.use({ viewport: { width: 390, height: 844 } });
 
-test("Telegram Mini App renders the persisted report without starting the desktop shell", async ({ page }) => {
+test("Telegram Mini App renders the persisted report without starting the desktop shell", async ({
+  page,
+}) => {
   const observedRequests: string[] = [];
   page.on("request", (request) => observedRequests.push(request.url()));
   await page.addInitScript((initData) => {
