@@ -22,7 +22,11 @@
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 840,
+      "title": "Reconcile TG-03 merge and gate TG-04 real Telegram acceptance",
+      "branch": "chore/840-reconcile-tg03-state"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -1848,6 +1852,37 @@
           "nexolab_merge_gate": "success:33694003816"
         }
       }
+    },
+    {
+      "issue": 825,
+      "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "depends_on": [
+        822,
+        823,
+        824
+      ],
+      "branch": "ops/825-telegram-real-acceptance",
+      "evidence": {
+        "blocker": "requires_product_owner_external_telegram_secret_group_mobile_and_controlled_deployment_actions",
+        "software_prerequisites": "tg01_tg02_tg03_merged_green",
+        "production_deployment": "not_executed",
+        "real_telegram_contact": "not_executed",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 840,
+      "title": "Reconcile TG-03 merge and gate TG-04 real Telegram acceptance",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        824
+      ],
+      "branch": "chore/840-reconcile-tg03-state",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [
@@ -2125,6 +2160,21 @@
         "issue_state": "closed",
         "state_reason": "completed",
         "exact_head_workflows": "22_of_22_green"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-03T09:30:56+03:00",
+      "kind": "issue_824_merge_reconciliation",
+      "data": {
+        "issue": 824,
+        "pull_request": 839,
+        "product_verified_head_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
+        "final_pr_head_sha": "e95b8107919d5f12ce32fc90800ff6cd7f71870f",
+        "merge_sha": "01ede1a23e15d9edeafd39b73521261276853160",
+        "issue_state": "closed",
+        "state_reason": "completed",
+        "required_checks": "green"
       }
     }
   ],

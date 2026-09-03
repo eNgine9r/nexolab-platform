@@ -2,11 +2,15 @@
 
 Updated: 2026-09-03
 
-## Issue #824 — TG-03 execution-capacity blocker cleared
+## Issue #825 — TG-04 real Telegram / production acceptance gate
 
-**Cleared 2026-09-03.** The earlier Codex usage-limit condition no longer blocks TG-03 because the Product Owner explicitly authorized direct implementation in this ChatGPT engineering session. Work resumed from the existing `feat/824-telegram-miniapp` recovery checkpoint at `/home/nexolab/nexolab-824`; the checkpoint was not reset or recreated. TG-03 is now repository-complete at exact verified product head `31cd4fd5e43672b81af34c8ac1f53e185cf4752e` with the full PR #839 exact-head matrix and NEXOLAB Merge Gate GREEN. GitHub Issue #824 remains open only until the PR merge closes it.
+**Hard blocker active 2026-09-03.** TG-01, TG-02 and TG-03 are merged GREEN, but TG-04 cannot proceed autonomously because its next steps require real external/account/secret/mobile and production-site actions. Required Product Owner actions are: create/select the dedicated NEXOLAB bot in `@BotFather`; configure its Main Mini App/short name and approved HTTPS URL; add the bot to `Тест лаб` with minimum posting permissions; provision the bot token directly into the protected runtime secret mechanism without exposing it in chat/Git/logs/screenshots; provide an authorized Telegram account for identity-link acceptance; and participate in real phone WebView/private-HTTPS acceptance. The controlled production deployment/schedule enablement remains a separate explicit approval boundary.
 
-The remaining TG-03 boundary is ordinary repository delivery rather than a blocker: commit/push the canonical state-only reconciliation, pass its exact-head state/Merge Gate, and merge PR #839 only while the verified product evidence remains immutable and review threads remain resolved. Real Telegram token/group provisioning, Telegram phone/WebView/Tailscale acceptance and production enablement remain separately deferred to TG-04. No credential, secret, production cutover, restart, Modbus/hardware write, data deletion or volume deletion was used to clear the former Codex blocker.
+Until those actions are available, Issue #825 stays `blocked`. No Bot API call, group change, token handling, runtime deployment/restart, Modbus/hardware write, data deletion or volume deletion is authorized by this state reconciliation.
+
+## Issue #824 — TG-03 completed and merged
+
+**Cleared 2026-09-03.** PR #839 final head `e95b8107919d5f12ce32fc90800ff6cd7f71870f` passed the full exact-head matrix and NEXOLAB Merge Gate and squash-merged to `main` at `01ede1a23e15d9edeafd39b73521261276853160`. Immutable accepted product evidence remains `31cd4fd5e43672b81af34c8ac1f53e185cf4752e`. Issue #824 is closed completed. TG-03 introduced no real Telegram contact, secret provisioning, production cutover, Modbus/hardware write, data deletion or volume deletion.
 
 ## Issue #805 — controlled onboarding deployment and browser acceptance
 

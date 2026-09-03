@@ -3,19 +3,23 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-03T09:18:09+03:00",
+  "timestamp": "2026-09-03T09:34:00+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_824_exact_head_green_pending_merge",
+  "event": "issue_840_reconciliation_started",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 840,
+    "title": "Reconcile TG-03 merge and gate TG-04 real Telegram acceptance",
+    "branch": "chore/840-reconcile-tg03-state"
+  },
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Commit and push the canonical TG-03 state-only reconciliation, verify its exact-head State integrity and NEXOLAB Merge Gate, confirm PR #839 remains mergeable with zero unresolved review threads, then squash-merge with expected head SHA. Real Telegram group/mobile/Tailscale acceptance remains TG-04.",
+  "next_action": "Publish the canonical state-only Issue #840 candidate, verify exact-head State integrity and NEXOLAB Merge Gate, then complete/merge #840. TG-04 / Issue #825 remains blocked until the Product Owner completes the required real Telegram/BotFather/secret/mobile prerequisites; production deployment remains separately approval-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
