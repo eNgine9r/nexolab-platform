@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 847,
-      "title": "Reconcile scheduler gate completion and resume TG-04 Stage 2",
-      "branch": "chore/847-reconcile-845"
+      "issue": 825,
+      "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
+      "branch": "ops/825-telegram-real-acceptance"
     },
     "next_work_package": null
   },
@@ -1857,7 +1857,7 @@
       "issue": 825,
       "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [
         822,
         823,
@@ -1950,9 +1950,16 @@
       "issue": 847,
       "title": "Reconcile scheduler gate completion and resume TG-04 Stage 2",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "chore/847-reconcile-845",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "715d0da1d634713c7dcccf216252b0e54f12ab30",
+        "pull_request": 848,
+        "checks": {
+          "state_integrity": "success:33781466896",
+          "nexolab_merge_gate": "success:33781466896"
+        }
+      }
     }
   ],
   "maintenance_actions": [
