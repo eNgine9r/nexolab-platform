@@ -182,3 +182,18 @@ The generated backend password is written root-only to `/etc/nexolab/telegram/ne
 The same helper re-confirms the current `TestLAB` group through `getMe/getUpdates` and writes `/etc/nexolab/telegram/telegram.env` with the observed numeric destination, organization and Main Mini App direct-link template. Both `TELEGRAM_ENABLED` and `TELEGRAM_MINIAPP_ENABLED` remain `false`; this preparation does not start the gateway, send a Telegram message, alter Tailscale Serve or perform production cutover.
 
 Identity linking is separate. Do not map a Telegram user to the `nexolab-telegram` service account merely because it exists; the Mini App linked identity must be an explicitly authorized NEXOLAB user/principal with `reports.read`.
+
+## TG-04 explicit human identity linking
+
+After protected backend/runtime provisioning succeeds, link one real Telegram user to one existing authorized NEXOLAB identity:
+
+```bash
+cd ~/nexolab-platform/services/telegram-gateway
+sudo -n env PYTHONPATH="$PWD" python3 -m app.identity_link_provisioning
+```
+
+The helper prompts locally for an administrator credential and for the existing NEXOLAB username to link; pressing Enter for the target uses the administrator username. The selected NEXOLAB user must be active and already have effective `reports.read`. The helper does not grant or widen that user's permissions.
+
+It prints one ephemeral `/nexolab_link <random-challenge>` command and asks that exact command be sent in the **private chat** with the reported bot. Only a fresh exact private-chat message whose chat identity equals its sender identity is accepted. Group messages, stale updates, wrong commands and unrelated Telegram users are ignored.
+
+On success the numeric Telegram user id is written only to root-owned `/etc/nexolab/telegram/identity-links.json`, together with the selected organization/identity UUID. The Telegram user id is not printed in the final sanitized result. Existing exact links are idempotent; conflicting Telegram-user or NEXOLAB-identity mappings fail closed. `TELEGRAM_ENABLED` and `TELEGRAM_MINIAPP_ENABLED` remain unchanged and disabled until the later explicit cutover gate.

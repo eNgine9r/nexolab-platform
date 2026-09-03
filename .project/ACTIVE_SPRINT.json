@@ -1876,10 +1876,13 @@
         "group_title_observed": "TestLAB",
         "bot_username_observed": "nex0lab_bot",
         "group_numeric_identity": "confirmed_runtime_only_not_committed",
-        "next_gate": "protected_runtime_backend_identity_botfather_webview_and_cutover",
+        "next_gate": "identity_link_candidate_exact_head_ci_then_product_owner_protected_local_provisioning",
         "backend_provisioning_helper": "local_verified_5_passed_full_gateway_46_passed",
         "backend_principal_target": "nexolab-telegram_laboratory_technician_reports.read_only",
-        "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled"
+        "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled",
+        "backend_provisioning_exact_head": "b26e51ae23022a887c38ae3a2008392710aff7da_all_required_workflows_success",
+        "identity_link_provisioning_helper": "local_verified_4_passed_full_gateway_50_passed_exact_head_pending",
+        "human_link_contract": "fresh_private_one_time_challenge_existing_active_reports.read_identity_conflict_fail_closed"
       }
     },
     {

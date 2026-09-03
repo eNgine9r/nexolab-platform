@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-03T12:17:40+03:00",
+  "timestamp": "2026-09-03T12:49:55+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_825_runtime_provisioning_helper_ready",
+  "event": "issue_825_identity_link_helper_ready_pending_exact_head_ci",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
@@ -28,14 +28,17 @@
       "group_title_observed": "TestLAB",
       "bot_username_observed": "nex0lab_bot",
       "group_numeric_identity": "confirmed_runtime_only_not_committed",
-      "next_gate": "protected_runtime_backend_identity_botfather_webview_and_cutover",
+      "next_gate": "identity_link_candidate_exact_head_ci_then_product_owner_protected_local_provisioning",
       "backend_provisioning_helper": "local_verified_5_passed_full_gateway_46_passed",
       "backend_principal_target": "nexolab-telegram_laboratory_technician_reports.read_only",
-      "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled"
+      "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled",
+      "backend_provisioning_exact_head": "b26e51ae23022a887c38ae3a2008392710aff7da_all_required_workflows_success",
+      "identity_link_provisioning_helper": "local_verified_4_passed_full_gateway_50_passed_exact_head_pending",
+      "human_link_contract": "fresh_private_one_time_challenge_existing_active_reports.read_identity_conflict_fail_closed"
     }
   },
   "observations": [],
-  "next_action": "Product Owner runs the documented app.runtime_provisioning helper locally with existing NEXOLAB administrator credentials and returns only sanitized JSON. Then verify protected files/account metadata and continue identity-link plus Main Mini App HTTPS preparation. Production cutover remains unauthorized.",
+  "next_action": "Commit and push the locally verified identity-link helper, require exact-head CI GREEN, then Product Owner runs documented runtime_provisioning followed by identity_link_provisioning locally and returns only sanitized results. Production cutover remains unauthorized.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
