@@ -145,3 +145,23 @@ refrigerant remain unavailable when the accepted NEXOLAB data model does not pro
 Real BotFather configuration, real bot token provisioning, real identity-link values, group
 membership, Telegram phone/WebView/Tailscale acceptance and production enablement remain TG-04
 / #825 gates and must not be inferred from TG-03 software tests.
+
+## TG-04 real group identification helper
+
+After the dedicated bot has been added to `Тест лаб` and the root-owned bot token exists,
+use the repository helper from the TG-04 branch to identify the destination without exposing
+credentials or Telegram user payloads:
+
+```bash
+cd ~/nexolab-platform/services/telegram-gateway
+sudo -n env PYTHONPATH="$PWD" python3 -m app.group_identification
+```
+
+The helper performs only `getMe` and `getUpdates`, matches an exact group/supergroup title
+`Тест лаб`, and prints one sanitized JSON object containing bot id/username plus the matched
+group title/type/chat id/update id. It never prints the bot token or Telegram user/profile data.
+
+Do not commit the observed chat id. Record it only in protected runtime configuration/evidence
+for TG-04. If no matching pending update exists, create one harmless group event (for example,
+remove/re-add the bot or post a command mentioning the bot) and run the helper again; do not
+disable Telegram privacy mode merely for discovery.

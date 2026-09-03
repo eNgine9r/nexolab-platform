@@ -22,7 +22,11 @@
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 825,
+      "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
+      "branch": "ops/825-telegram-real-acceptance"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -1853,7 +1857,7 @@
       "issue": 825,
       "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "in_progress",
       "depends_on": [
         822,
         823,

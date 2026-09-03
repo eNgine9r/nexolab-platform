@@ -2,11 +2,11 @@
 
 Updated: 2026-09-03
 
-## Issue #825 — TG-04 real Telegram / production acceptance gate
+## Issue #825 — TG-04 local secret-backed group identification
 
-**Hard blocker active 2026-09-03.** TG-01, TG-02 and TG-03 are merged GREEN, but TG-04 cannot proceed autonomously because its next steps require real external/account/secret/mobile and production-site actions. Required Product Owner actions are: create/select the dedicated NEXOLAB bot in `@BotFather`; configure its Main Mini App/short name and approved HTTPS URL; add the bot to `Тест лаб` with minimum posting permissions; provision the bot token directly into the protected runtime secret mechanism without exposing it in chat/Git/logs/screenshots; provide an authorized Telegram account for identity-link acceptance; and participate in real phone WebView/private-HTTPS acceptance. The controlled production deployment/schedule enablement remains a separate explicit approval boundary.
+**Hard user/tool boundary active 2026-09-03.** The Product Owner reports the dedicated bot is created/selected and added to `Тест лаб`; root-only metadata confirms `/etc/nexolab/telegram/bot-token` exists with mode `0600`. A repository-owned read-only helper is implemented and verified (`3/3` focused, `41/41` full Telegram Gateway). The assistant tool security layer blocks processes that both read the root-owned bot secret and perform outbound Telegram API I/O, so the agent cannot execute the real `getMe/getUpdates` probe without weakening the secret boundary, which is prohibited.
 
-Until those actions are available, Issue #825 stays `blocked`. No Bot API call, group change, token handling, runtime deployment/restart, Modbus/hardware write, data deletion or volume deletion is authorized by this state reconciliation.
+Required Product Owner action: run the documented local helper once and return only its sanitized JSON output. Do not paste the bot token, raw `getUpdates`, Telegram `initData`, private invite links or personal user payloads. After group identity is confirmed, TG-04 can continue with protected runtime configuration and pre-cutover verification. BotFather Main Mini App configuration, real phone WebView acceptance, controlled production deployment/test send and schedule enablement remain later explicit gates; no Modbus/hardware write or destructive data action is authorized.
 
 ## Issue #824 — TG-03 completed and merged
 
