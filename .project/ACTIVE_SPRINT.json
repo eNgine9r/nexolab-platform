@@ -1912,7 +1912,17 @@
         "scheduler_prerequisite": "issue_845_pr846_merged_green_fail_closed_off",
         "state_reconciliation": "issue_847_pr848_merged_green_tg04_active",
         "main_arm64_artifact_preflight": "run_33781986481_artifact_9904235935_green_not_stage2_candidate_missing_tg04_pr842_repairs",
-        "current_gate": "integrate_current_main_into_pr842_then_exact_head_green_then_explicit_stage2_production_cutover_approval"
+        "current_gate": "state_reconciliation_849_then_explicit_stage2_production_cutover_approval",
+        "pr842_repository_merge": "merged_main_13ab26392fcb1c1385dca3c1f619da4512fe568c_issue825_kept_open",
+        "stage2_exact_main_artifact": "run_33786462681_artifact_9905912342_sha256_9ea8769da2dc0466b61354aee961d5564a1565bcda6eabe74b63c437207ef97e",
+        "stage2_artifact_staging": "runtime/staging/tg04-stage2-13ab2639_checksums_source_platform_node_contract_verified",
+        "stage2_source_selection": "source_selection_validated_current_main_13ab26392fcb1c1385dca3c1f619da4512fe568c",
+        "stage2_capacity_preflight": "pass_free_11065131008_required_9549148448_reserve_2147483648_streamed_pg_dump_no_prune",
+        "stage2_deployed_authority": "source_893573a86faf6629e5e3cefc0e41c47230a7f8c7_schema_20260902_0030_evidence_20260902T113916Z",
+        "stage2_migration_delta": "only_20260902_0031_add_daily_refrigeration_reports",
+        "stage2_device_agent_hardware_delta": "none_services_device_agent_zero_rs485_modbus_hardware_config_delta",
+        "stage2_scheduler_boundary": "daily_reports_scheduler_fail_closed_false",
+        "stage2_preflight_runtime_health": "dashboard_200_telemetry_ready_queue_0_gateway_healthy_delivery_false_miniapp_true_worker_false_miniapp_https_200"
       }
     },
     {
@@ -2000,6 +2010,36 @@
         "checks": {
           "state_integrity": "success:33781466896",
           "nexolab_merge_gate": "success:33781466896"
+        }
+      }
+    },
+    {
+      "issue": 849,
+      "title": "Reconcile merged Mini App and Stage-2 pre-cutover evidence",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "chore/849-reconcile-tg04-stage2-preflight",
+      "evidence": {
+        "parent_issue": 825,
+        "merged_main_sha": "13ab26392fcb1c1385dca3c1f619da4512fe568c",
+        "frontend_artifact_run": 33786462681,
+        "frontend_artifact_id": 9905912342,
+        "frontend_artifact_digest": "sha256:9ea8769da2dc0466b61354aee961d5564a1565bcda6eabe74b63c437207ef97e",
+        "artifact_staging": "runtime/staging/tg04-stage2-13ab2639",
+        "source_selection": "validated",
+        "capacity_preflight": "pass_no_prune",
+        "deployed_source": "893573a86faf6629e5e3cefc0e41c47230a7f8c7",
+        "deployed_schema": "20260902_0030",
+        "target_migration": "20260902_0031_add_daily_refrigeration_reports",
+        "device_agent_delta": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "production_cutover": "not_executed",
+        "verified_head_sha": "1b83981c80e11e097b0566842f074802fba65ac4",
+        "pull_request": 850,
+        "checks": {
+          "state_integrity": "success:33792778506",
+          "nexolab_merge_gate": "success:33792778506"
         }
       }
     }
