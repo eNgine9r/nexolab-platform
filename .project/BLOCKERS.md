@@ -2,6 +2,12 @@
 
 Updated: 2026-09-03
 
+## Issue #824 — TG-03 Codex execution capacity
+
+**Hard blocker recorded 2026-09-03.** The dedicated `feat/824-telegram-miniapp` worktree at `/home/nexolab/nexolab-824` contains an uncommitted recoverable implementation checkpoint based on `c2e16e405fe9dfb7c5fdbc2793e8dcce78adabad`. A fresh Codex `gpt-5.6-sol` / HIGH session (`01a064fd-bdd8-76d3-919b-8aece5913e93`) exited before further implementation or verification because the Codex service usage limit is exhausted. The CLI reported next availability as `Sep 7th, 2026 11:06 AM`, unless additional execution entitlement/credits are enabled earlier. `PROJECT_PROFILE.yaml` classifies exhausted agent usage as a hard blocker, so TG-03 must not be represented as completed or verified and the existing dirty checkpoint must not be reset/recreated. GitHub Issue #824 is labeled `status:blocked`.
+
+No credential, secret, production cutover, restart, Modbus/hardware write, data deletion or volume deletion is required or authorized to clear this blocker. Clearing it requires Codex execution capacity to become available; then resume the exact existing worktree and complete focused verification, state, PR and exact-head CI.
+
 ## Issue #805 — controlled onboarding deployment and browser acceptance
 
 **Cleared 2026-09-02.** Controlled deployment `runtime/deployments/20260902T113916Z` passed on corrected onboarding source `893573a86faf6629e5e3cefc0e41c47230a7f8c7` after #826/#827. Post-cutover Dashboard, Telemetry, MQTT and Device Agent are healthy; persistent volumes are preserved. Authenticated Chromium proved commissioning draft persistence across reload/reopen and the controlled service restart, and `Unsupported / Profile required` is now fail-closed for `Далі`, Steps 2–5, SAFE PREFLIGHT and activation. Real Embraco Unit 2 preflight passed FC03-only with `hardware_verified` evidence and no writes. Controlled source adoption is recorded for `893573a86faf6629e5e3cefc0e41c47230a7f8c7`, schema `20260902_0030`, linux/arm64, LAN, health ready. #805 no longer blocks independent work.

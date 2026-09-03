@@ -23,11 +23,7 @@
   },
   "selection": {
     "active_work_package": null,
-    "next_work_package": {
-      "issue": 824,
-      "title": "Add read-only NEXOLAB Telegram Mini App for morning reports",
-      "branch": "feat/824-telegram-miniapp"
-    }
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -1817,7 +1813,7 @@
       "issue": 824,
       "title": "Add read-only NEXOLAB Telegram Mini App for morning reports",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "blocked",
       "depends_on": [
         822,
         823

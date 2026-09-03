@@ -93,3 +93,55 @@ Do not manually start this adapter on the controlled site as a substitute for de
 evidence. TG-04 must use the repository-owned guarded deployment path, provision secrets
 outside Git, confirm the real numeric group ID, perform one bounded test send, and then
 verify restart/retry/offline behavior before enabling the weekday 07:50 delivery path.
+
+## TG-03 Mini App boundary
+
+TG-03 adds an optional read-only Mini App surface without changing the authority of TG-01
+snapshots. The browser sends raw Telegram `initData` to the same-origin NEXOLAB route;
+the Telegram gateway validates the signed payload and age, resolves the validated Telegram
+user through an explicit local identity-link file, and the Telemetry Service re-authorizes
+that linked NEXOLAB identity for `reports.read` in the caller's exact organization before
+returning the persisted snapshot. Browser actor, identity and organization values are never
+authoritative, and `initDataUnsafe` is not used for authentication.
+
+When the optional Compose profile is enabled, the gateway publishes port `8090` only on
+`127.0.0.1`. This exists solely so the host-managed Next.js Dashboard can proxy the Mini App
+request without exposing the gateway on the LAN or internet. Containerized Dashboard builds
+may instead use the exact internal DNS endpoint `http://telegram-gateway:8090`; the Next.js
+proxy rejects other hosts, schemes, ports, paths and client-supplied authority fields.
+
+Mini App authentication uses the existing bot-token secret plus an additional root-managed
+read-only file:
+
+```text
+/etc/nexolab/telegram/identity-links.json
+```
+
+Expected structure (IDs below are placeholders only):
+
+```json
+{
+  "version": 1,
+  "links": [
+    {
+      "telegram_user_id": 123456789,
+      "organization_id": "00000000-0000-0000-0000-000000000001",
+      "identity_id": "11111111-1111-1111-1111-111111111111"
+    }
+  ]
+}
+```
+
+Do not commit the real mapping. Duplicate Telegram-user/organization entries, malformed UUIDs,
+missing files and oversized mappings fail closed before Mini App readiness. `TELEGRAM_MINIAPP_ENABLED`
+defaults to `false`, and TG-03 software acceptance uses only synthetic signed fixtures.
+
+The `/telegram-miniapp` route loads Telegram's official Web App JavaScript only on that isolated
+surface. The ordinary LOCAL_LAN dashboard and offline bundle do not depend on Telegram JS or
+internet. The Mini App renders the immutable persisted report and explicitly labels it as a
+saved, non-live report; it does not recompute KPIs from raw telemetry. Thermodynamic metrics and
+refrigerant remain unavailable when the accepted NEXOLAB data model does not provide them.
+
+Real BotFather configuration, real bot token provisioning, real identity-link values, group
+membership, Telegram phone/WebView/Tailscale acceptance and production enablement remain TG-04
+/ #825 gates and must not be inferred from TG-03 software tests.

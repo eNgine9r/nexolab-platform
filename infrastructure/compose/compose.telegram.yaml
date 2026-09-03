@@ -8,6 +8,9 @@ services:
     init: true
     environment:
       TELEGRAM_ENABLED: ${TELEGRAM_ENABLED:-false}
+      TELEGRAM_MINIAPP_ENABLED: ${TELEGRAM_MINIAPP_ENABLED:-false}
+      TELEGRAM_MINIAPP_INIT_DATA_MAX_AGE_SECONDS: ${TELEGRAM_MINIAPP_INIT_DATA_MAX_AGE_SECONDS:-300}
+      TELEGRAM_IDENTITY_LINKS_FILE: /run/secrets/telegram/identity-links.json
       TELEGRAM_STATE_DB_PATH: /app/data/telegram-delivery/outbox.db
       TELEGRAM_DESTINATION_CHAT_ID: ${TELEGRAM_DESTINATION_CHAT_ID:-}
       TELEGRAM_MINI_APP_URL_TEMPLATE: ${TELEGRAM_MINI_APP_URL_TEMPLATE:-}
@@ -22,6 +25,8 @@ services:
       TELEGRAM_RETRY_INITIAL_SECONDS: ${TELEGRAM_RETRY_INITIAL_SECONDS:-5}
       TELEGRAM_RETRY_MAX_SECONDS: ${TELEGRAM_RETRY_MAX_SECONDS:-300}
       TELEGRAM_MAX_DELIVERIES_PER_RUN: ${TELEGRAM_MAX_DELIVERIES_PER_RUN:-50}
+    ports:
+      - "127.0.0.1:${TELEGRAM_GATEWAY_PORT:-8090}:8090"
     volumes:
       - telegram-delivery-data:/app/data/telegram-delivery
       - ${TELEGRAM_GATEWAY_SECRETS_DIR:-/etc/nexolab/telegram}:/run/secrets/telegram:ro

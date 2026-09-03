@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from typing import Any
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -140,6 +141,10 @@ class DailyReportSnapshotRead(BaseModel):
 
 class DailyReportGenerationResponse(DailyReportSnapshotRead):
     replayed: bool
+
+
+class DailyReportMiniAppReadRequest(BaseModel):
+    identity_id: UUID
 
 
 class DailyReportSnapshotPage(BaseModel):

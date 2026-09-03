@@ -27,6 +27,9 @@ register_models()
 
 ORGANIZATION_A = "00000000-0000-0000-0000-000000000001"
 ORGANIZATION_B = "00000000-0000-0000-0000-000000000002"
+TARGET_READER_ID = "11111111-1111-1111-1111-111111111111"
+TARGET_DENIED_ID = "22222222-2222-2222-2222-222222222222"
+TARGET_FOREIGN_ID = "33333333-3333-3333-3333-333333333333"
 
 
 class TestSecurityDependencies:
@@ -55,6 +58,32 @@ class TestSecurityDependencies:
             )
 
         return dependency
+
+    def authorize_identity(
+        self,
+        identity_id: str,
+        organization_id: str,
+        permission: Permission,
+    ) -> AuthorizedRequest:
+        if identity_id == TARGET_READER_ID and organization_id == ORGANIZATION_A:
+            role = Role.VIEWER
+        elif identity_id == TARGET_FOREIGN_ID and organization_id == ORGANIZATION_B:
+            role = Role.VIEWER
+        elif identity_id == TARGET_DENIED_ID and organization_id == ORGANIZATION_A:
+            role = Role.LABORATORY_TECHNICIAN
+        else:
+            raise HTTPException(status_code=403, detail={"code": "linked_identity_access_denied"})
+        if permission not in effective_permissions({role}):
+            raise HTTPException(status_code=403, detail={"code": "linked_identity_access_denied"})
+        return AuthorizedRequest(
+            identity_id=identity_id,
+            principal=AuthenticatedPrincipal(
+                subject=f"linked-{identity_id}",
+                organization_id=organization_id,
+                roles=frozenset({role}),
+                provider="daily-report-test",
+            ),
+        )
 
 
 def headers(
@@ -244,6 +273,47 @@ def test_viewer_cannot_mutate_profile_but_can_read_snapshot(tmp_path: Path) -> N
     assert replay.json()["id"] == generated.json()["id"]
     assert listing.status_code == 200
     assert listing.json()["count"] == 1
+
+
+def test_miniapp_snapshot_requires_linked_target_reports_read_in_same_organization(
+    tmp_path: Path,
+) -> None:
+    client = build_client(tmp_path)
+    created = client.post("/api/v1/daily-reports/profiles", headers=headers(), json=payload())
+    profile_id = created.json()["id"]
+    generated = client.post(
+        f"/api/v1/daily-reports/profiles/{profile_id}/generate",
+        headers=headers(),
+        json={"local_report_date": "2026-09-02"},
+    )
+    snapshot_id = generated.json()["id"]
+
+    allowed = client.post(
+        f"/api/v1/daily-reports/miniapp/snapshots/{snapshot_id}",
+        headers=headers(role=Role.VIEWER),
+        json={"identity_id": TARGET_READER_ID},
+    )
+    denied_permission = client.post(
+        f"/api/v1/daily-reports/miniapp/snapshots/{snapshot_id}",
+        headers=headers(),
+        json={"identity_id": TARGET_DENIED_ID},
+    )
+    denied_foreign = client.post(
+        f"/api/v1/daily-reports/miniapp/snapshots/{snapshot_id}",
+        headers=headers(),
+        json={"identity_id": TARGET_FOREIGN_ID},
+    )
+    denied_caller = client.post(
+        f"/api/v1/daily-reports/miniapp/snapshots/{snapshot_id}",
+        headers=headers(role=Role.LABORATORY_TECHNICIAN),
+        json={"identity_id": TARGET_READER_ID},
+    )
+
+    assert allowed.status_code == 200
+    assert allowed.json()["id"] == snapshot_id
+    assert denied_permission.status_code == 403
+    assert denied_foreign.status_code == 403
+    assert denied_caller.status_code == 403
 
 
 def test_invalid_timezone_and_duplicate_m_packet_identity_are_rejected(tmp_path: Path) -> None:

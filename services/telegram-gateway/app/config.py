@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     service_name: str = "nexolab-telegram-gateway"
     log_level: str = "INFO"
     telegram_enabled: bool = False
+    telegram_miniapp_enabled: bool = False
+    telegram_miniapp_init_data_max_age_seconds: int = Field(default=300, ge=30, le=3600)
+    telegram_identity_links_file: str = "/run/secrets/telegram/identity-links.json"
     telegram_state_db_path: str = "data/telegram-delivery/outbox.db"
     telegram_poll_interval_seconds: float = Field(default=30.0, ge=2.0, le=3600.0)
     telegram_snapshot_page_size: int = Field(default=100, ge=1, le=200)
@@ -63,6 +66,14 @@ class Settings(BaseSettings):
         return self
 
 
+def validate_miniapp_configuration(settings: Settings) -> None:
+    if not settings.telegram_bot_token_file.strip():
+        raise ValueError("TELEGRAM_BOT_TOKEN_FILE is required for Mini App authentication")
+    if not settings.telegram_identity_links_file.strip():
+        raise ValueError("TELEGRAM_IDENTITY_LINKS_FILE is required for Mini App authorization")
+    _validate_backend_configuration(settings)
+
+
 def validate_enabled_configuration(settings: Settings) -> None:
     normalized_bot_api = settings.telegram_bot_api_base_url.strip().rstrip("/")
     is_override = normalized_bot_api != _TELEGRAM_PRODUCTION_API
@@ -86,6 +97,10 @@ def validate_enabled_configuration(settings: Settings) -> None:
         raise ValueError("TELEGRAM_DESTINATION_CHAT_ID must be a negative Telegram group/supergroup chat ID")
     assert settings.telegram_mini_app_url_template is not None
     _validate_mini_app_template(settings.telegram_mini_app_url_template)
+    _validate_backend_configuration(settings)
+
+
+def _validate_backend_configuration(settings: Settings) -> None:
     _validate_organization_id(settings.nexolab_backend_organization_id)
     if (
         settings.nexolab_backend_auth_mode == "none"

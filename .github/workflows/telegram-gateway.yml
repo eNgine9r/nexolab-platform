@@ -92,8 +92,15 @@ jobs:
           config = json.loads(Path('/tmp/nexolab-telegram-compose.json').read_text())
           service = config['services']['telegram-gateway']
           assert service.get('profiles') == ['telegram']
-          assert not service.get('ports')
+          ports = service.get('ports', [])
+          assert len(ports) == 1
+          port = ports[0]
+          assert port.get('host_ip') == '127.0.0.1'
+          assert int(port.get('published')) == 8090
+          assert int(port.get('target')) == 8090
           assert service['environment']['TELEGRAM_ENABLED'] == 'false'
+          assert service['environment']['TELEGRAM_MINIAPP_ENABLED'] == 'false'
+          assert service['environment']['TELEGRAM_IDENTITY_LINKS_FILE'] == '/run/secrets/telegram/identity-links.json'
           secrets = [v for v in service.get('volumes', []) if v.get('target') == '/run/secrets/telegram']
           assert len(secrets) == 1 and secrets[0].get('read_only') is True
           PY

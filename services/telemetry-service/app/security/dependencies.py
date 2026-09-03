@@ -147,6 +147,33 @@ class SecurityDependencies:
             )
         return AuthorizedRequest(identity_id=identity_id, principal=principal)
 
+    def authorize_identity(
+        self,
+        identity_id: str,
+        organization_id: str,
+        permission: Permission,
+    ) -> AuthorizedRequest:
+        if self._mode == "disabled":
+            raise _forbidden(
+                "identity_link_authorization_unavailable",
+                "linked identity authorization requires an enabled authentication provider",
+            )
+        try:
+            resolved_identity_id, principal = self._repository.resolve_principal_by_identity_id(
+                identity_id,
+                organization_id=organization_id,
+            )
+        except (IdentityNotProvisionedError, OrganizationMembershipNotFoundError) as error:
+            raise _forbidden("linked_identity_access_denied", "linked identity access denied") from error
+        decision = authorize(
+            principal,
+            permission,
+            resource_organization_id=organization_id,
+        )
+        if not decision.allowed:
+            raise _forbidden("linked_identity_access_denied", "linked identity access denied")
+        return AuthorizedRequest(identity_id=resolved_identity_id, principal=principal)
+
     def _verify(self, authorization: str | None) -> VerifiedIdentityClaims:
         assert self._authenticator is not None
         try:

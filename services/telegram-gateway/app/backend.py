@@ -166,6 +166,19 @@ class SnapshotClient:
             raise BackendError("backend_snapshot_contract_error", retryable=False)
         return [_parse_snapshot(item) for item in items]
 
+    def get_miniapp_snapshot(self, snapshot_id: str, identity_id: str) -> dict[str, Any]:
+        normalized_snapshot_id = snapshot_id.strip()
+        normalized_identity_id = identity_id.strip()
+        if not normalized_snapshot_id or not normalized_identity_id:
+            raise ValueError("snapshot_id and identity_id are required")
+        response = self._post_json(
+            f"/api/v1/daily-reports/miniapp/snapshots/{normalized_snapshot_id}",
+            {"identity_id": normalized_identity_id},
+        )
+        value = _json_object(response, code="backend_snapshot_contract_error")
+        _parse_snapshot(value)
+        return value
+
     def _get(self, path: str) -> HttpResponse:
         response = self._perform_get(path)
         if response.status == 401 and self._token_provider.refreshable:
@@ -179,15 +192,45 @@ class SnapshotClient:
         return response
 
     def _perform_get(self, path: str) -> HttpResponse:
+        return self._perform_request("GET", path)
+
+    def _post_json(self, path: str, payload: dict[str, str]) -> HttpResponse:
+        response = self._perform_request("POST", path, payload=payload)
+        if response.status == 401 and self._token_provider.refreshable:
+            self._token_provider.invalidate()
+            response = self._perform_request("POST", path, payload=payload)
+        if response.status < 200 or response.status >= 300:
+            raise BackendError(
+                f"backend_http_{response.status}",
+                retryable=response.status == 429 or response.status >= 500,
+            )
+        return response
+
+    def _perform_request(
+        self,
+        method: str,
+        path: str,
+        *,
+        payload: dict[str, str] | None = None,
+    ) -> HttpResponse:
         try:
             access_token = self._token_provider.get_access_token()
             headers = {
                 "Accept": "application/json",
                 "X-Organization-ID": self._organization_id,
             }
+            data = None
+            if payload is not None:
+                headers["Content-Type"] = "application/json"
+                data = json.dumps(payload, separators=(",", ":")).encode("utf-8")
             if access_token:
                 headers["Authorization"] = f"Bearer {access_token}"
-            request = Request(f"{self._base_url}{path}", headers=headers, method="GET")
+            request = Request(
+                f"{self._base_url}{path}",
+                headers=headers,
+                data=data,
+                method=method,
+            )
             return self._transport(request, self._timeout_seconds)
         except BackendError:
             raise

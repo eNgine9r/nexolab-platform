@@ -20,6 +20,7 @@ from app.daily_reports.repository import (
 from app.daily_reports.schemas import (
     DailyReportGenerateRequest,
     DailyReportGenerationResponse,
+    DailyReportMiniAppReadRequest,
     DailyReportProfilePage,
     DailyReportProfileRead,
     DailyReportProfileWrite,
@@ -208,6 +209,36 @@ def create_daily_report_router(
                 offset=page.offset,
                 next_offset=page.next_offset,
             )
+        except Exception as error:
+            raise _http_error(error) from error
+
+    @router.post(
+        "/miniapp/snapshots/{snapshot_id}",
+        response_model=DailyReportSnapshotRead,
+    )
+    def get_miniapp_snapshot(
+        snapshot_id: str,
+        payload: DailyReportMiniAppReadRequest,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> DailyReportSnapshotRead:
+        if security_dependencies is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "code": "miniapp_identity_authorization_unavailable",
+                    "message": "Mini App identity authorization is unavailable",
+                },
+            )
+        security_dependencies.authorize_identity(
+            str(payload.identity_id),
+            authorized.principal.organization_id,
+            Permission.READ_REPORTS,
+        )
+        try:
+            snapshot = repository.for_organization(
+                authorized.principal.organization_id
+            ).get_snapshot(snapshot_id)
+            return DailyReportSnapshotRead.model_validate(snapshot)
         except Exception as error:
             raise _http_error(error) from error
 
