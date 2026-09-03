@@ -11,11 +11,12 @@ function isIsolatedTelegramMiniApp(pathname: string): boolean {
 
 export function TelemetryStateProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const isolatedTelegramMiniApp = isIsolatedTelegramMiniApp(pathname);
 
   useEffect(() => {
-    if (isIsolatedTelegramMiniApp(pathname)) return;
+    if (isolatedTelegramMiniApp) return;
     return retainTelemetryApplicationShell();
-  }, [pathname]);
+  }, [isolatedTelegramMiniApp]);
 
   return children;
 }
