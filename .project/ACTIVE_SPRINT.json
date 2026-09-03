@@ -22,11 +22,7 @@
     "deployed_product_sha": "893573a86faf6629e5e3cefc0e41c47230a7f8c7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 840,
-      "title": "Reconcile TG-03 merge and gate TG-04 real Telegram acceptance",
-      "branch": "chore/840-reconcile-tg03-state"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -1877,12 +1873,19 @@
       "issue": 840,
       "title": "Reconcile TG-03 merge and gate TG-04 real Telegram acceptance",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         824
       ],
       "branch": "chore/840-reconcile-tg03-state",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "a98ee8ba3cb90be6e4620fc9924606f0b95e43d3",
+        "pull_request": 841,
+        "checks": {
+          "state_integrity": "success:33724196973",
+          "nexolab_merge_gate": "success:33724196973"
+        }
+      }
     }
   ],
   "maintenance_actions": [
