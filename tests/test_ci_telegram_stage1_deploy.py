@@ -43,6 +43,12 @@ class TelegramStage1DeployPolicyTests(unittest.TestCase):
         self.assertNotIn('docker volume rm', self.text)
         self.assertNotIn('down -v', self.text)
 
+    def test_telemetry_health_uses_controlled_central_bind_contract(self) -> None:
+        self.assertIn('CENTRAL_BIND="$(env_value "$CENTRAL_ENV" CENTRAL_BIND_ADDRESS 127.0.0.1)"', self.text)
+        self.assertIn('CENTRAL_API_PORT="$(env_value "$CENTRAL_ENV" CENTRAL_API_PORT 8082)"', self.text)
+        self.assertIn('TELEMETRY_READY_URL="http://${CENTRAL_BIND}:${CENTRAL_API_PORT}/health/ready"', self.text)
+        self.assertNotIn('http://127.0.0.1:8082/health/ready', self.text)
+
     def test_health_contract_proves_delivery_worker_is_off(self) -> None:
         self.assertIn("p.get('delivery_enabled') is False", self.text)
         self.assertIn("p.get('miniapp_enabled') is True", self.text)

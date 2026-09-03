@@ -89,6 +89,16 @@ http_code() {
   curl -fsS -o /dev/null -w '%{http_code}' --max-time 5 "$1"
 }
 
+env_value() {
+  local file="$1" key="$2" default="$3" value
+  value="$(sed -n "s/^${key}=//p" "$file" | tail -n 1)"
+  printf '%s' "${value:-$default}"
+}
+
+CENTRAL_BIND="$(env_value "$CENTRAL_ENV" CENTRAL_BIND_ADDRESS 127.0.0.1)"
+CENTRAL_API_PORT="$(env_value "$CENTRAL_ENV" CENTRAL_API_PORT 8082)"
+TELEMETRY_READY_URL="http://${CENTRAL_BIND}:${CENTRAL_API_PORT}/health/ready"
+
 CORE_NAMES=(
   nexolab-central-postgres-1
   nexolab-central-mqtt-1
@@ -102,7 +112,7 @@ for name in "${CORE_NAMES[@]}"; do
   CORE_IDS["$name"]="$id"
 done
 [[ "$(http_code http://127.0.0.1:3000/)" == "200" ]] || { log "ERROR: Dashboard preflight failed"; exit 1; }
-[[ "$(http_code http://127.0.0.1:8082/health/ready)" == "200" ]] || { log "ERROR: Telemetry preflight failed"; exit 1; }
+[[ "$(http_code "$TELEMETRY_READY_URL")" == "200" ]] || { log "ERROR: Telemetry preflight failed"; exit 1; }
 [[ "$(http_code http://127.0.0.1:13021/telegram-miniapp)" == "200" ]] || { log "ERROR: Mini App frontend candidate unavailable"; exit 1; }
 
 if docker ps -a --format '{{.Names}}' | grep -Fxq 'nexolab-central-telegram-gateway-1'; then
@@ -186,7 +196,7 @@ for name in "${CORE_NAMES[@]}"; do
 done
 
 [[ "$(http_code http://127.0.0.1:3000/)" == "200" ]] || { log "ERROR: Dashboard post-check failed"; exit 1; }
-[[ "$(http_code http://127.0.0.1:8082/health/ready)" == "200" ]] || { log "ERROR: Telemetry post-check failed"; exit 1; }
+[[ "$(http_code "$TELEMETRY_READY_URL")" == "200" ]] || { log "ERROR: Telemetry post-check failed"; exit 1; }
 [[ "$(http_code http://127.0.0.1:13021/telegram-miniapp)" == "200" ]] || { log "ERROR: Mini App frontend changed unexpectedly"; exit 1; }
 SERVE_HASH_AFTER="$(tailscale serve status | sha256sum | awk '{print $1}')"
 [[ "$SERVE_HASH_AFTER" == "$SERVE_HASH_BEFORE" ]] || { log "ERROR: Tailscale Serve topology changed"; exit 1; }
