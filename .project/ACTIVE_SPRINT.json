@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 845,
-      "title": "Keep daily report scheduler disabled until explicit acceptance",
-      "branch": "fix/845-daily-report-scheduler-gate"
+      "issue": 825,
+      "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
+      "branch": "ops/825-telegram-real-acceptance"
     },
     "next_work_package": null
   },
@@ -1857,7 +1857,7 @@
       "issue": 825,
       "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "in_progress",
       "depends_on": [
         822,
         823,
@@ -1932,9 +1932,34 @@
       "issue": 845,
       "title": "Keep daily report scheduler disabled until explicit acceptance",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/845-daily-report-scheduler-gate",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "cae3e45ad6a11b74797dd843c187c44602f9aa81",
+        "pull_request": 846,
+        "checks": {
+          "core_ci": "success:33780079589",
+          "telemetry": "success:33780079199",
+          "offline_bundle": "success:33780079290",
+          "reports_browser": "success:33780079325",
+          "rendered_reports": "success:33780079448"
+        }
+      }
+    },
+    {
+      "issue": 847,
+      "title": "Reconcile scheduler gate completion and resume TG-04 Stage 2",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "chore/847-reconcile-845",
+      "evidence": {
+        "verified_head_sha": "715d0da1d634713c7dcccf216252b0e54f12ab30",
+        "pull_request": 848,
+        "checks": {
+          "state_integrity": "success:33781466896",
+          "nexolab_merge_gate": "success:33781466896"
+        }
+      }
     }
   ],
   "maintenance_actions": [
