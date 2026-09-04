@@ -2388,7 +2388,14 @@
         "telegram_send": "none_in_repository_phase",
         "modbus_write": "none",
         "hardware_write": "none",
-        "next_gate": "implement_guard_tests_runbook_exact_local_candidate_then_pr_green"
+        "next_gate": "format_hygiene_classifier_exact_local_candidate_then_pr_exact_head_green",
+        "implementation": "two_phase_scheduler_then_gateway_guard_with_exact_image_source_and_delivery_count_pins",
+        "planner": "read_only_same_telemetry_due_window_semantics_cross_checks_all_eligible_snapshots_against_exact_topic_outbox",
+        "planner_live_observation": "2026_09_04_due_missing_generation_1_immediate_delivery_1_delivery_runtime_config_ready_true_outbox_2_sent_non_sent_0_duplicate_risk_0",
+        "persistent_config": "atomic_central_scheduler_true_then_protected_telegram_delivery_and_miniapp_true_with_root_only_run_backup_and_exact_restore",
+        "rollback_contract": "restore_exact_env_bytes_recreate_only_telemetry_and_gateway_on_pinned_pre_activation_images_scheduler_delivery_off_no_snapshot_or_outbox_delete",
+        "targeted_tests": "30_passed_recurring_guard_planner_gateway_refresh_and_stage1_deployment_contracts_including_foreign_destination_fail_closed",
+        "live_runtime_mutation": "none_repository_phase_only"
       }
     }
   ],

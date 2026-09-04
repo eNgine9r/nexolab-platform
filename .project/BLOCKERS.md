@@ -30,6 +30,10 @@ Updated: 2026-09-04
 
 **Active focused prerequisite; no repository blocker.** The persistent Telegram Gateway is still the pre-topic Stage-1 image and lacks the topic env contract, while one-shot topic delivery has already passed. #893 adds a repository-owned Gateway-only refresh guard that pins exact source and exact current image, requires protected delivery OFF + topic present + scheduler OFF, preserves the delivery volume and core-container identities, force-recreates only `telegram-gateway`, and verifies rollback to the exact previous image if post-recreate validation fails. Production execution remains a separate Product Owner cutover gate. No Telegram send, scheduler activation, Modbus write or hardware write belongs to repository implementation.
 
+## Issue #898 — guarded recurring 07:50 activation
+
+**Active repository prerequisite.** The topic-aware persistent Gateway refresh and restart/no-duplicate acceptance are PASS. Recurring scheduler/delivery remain OFF. #898 adds a repository-owned two-phase activation guard: exact read-only planner → scheduler-only reconciliation → exact snapshot delta proof → topic worker enablement → exact approved delivery delta proof. Current read-only planner evidence predicts one 2026-09-04 catch-up snapshot and exactly one immediate topic delivery; this is not authorization to send it. Production activation remains a separate Product Owner hard gate after exact-head GREEN.
+
 ## Issue #825 — TG-04 real Telegram acceptance
 
 **Temporarily blocked only on active child #898. Gateway refresh and restart/idempotency acceptance PASS.** Real signed iOS Mini App acceptance, the exact General send, protected topic capture, topic dry-run, the separately approved topic send, and the Product Owner-approved Gateway-only refresh are PASS. The persistent Gateway now runs the topic-aware exact refresh image, with delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`.
