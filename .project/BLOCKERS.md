@@ -20,11 +20,11 @@ Updated: 2026-09-04
 
 ## Issue #825 — TG-04 real Telegram acceptance
 
-**Hard blocker: Issue #869 implementation is blocked by exhausted Codex usage capacity.** Real signed iOS Mini App acceptance is PASS on exact snapshot `76957482-57c4-4daf-ac30-d8592847cfbd`, but the existing long-running Telegram worker is not acceptable for the next gate because it can discover and drain multiple eligible snapshots when delivery is enabled. #869 therefore owns an exact-snapshot, at-most-one-call one-shot send guard and production no-send dry-run prerequisite.
+**Blocked on independent security prerequisite #873, not on Codex.** Real signed iOS Mini App acceptance is PASS on exact snapshot `76957482-57c4-4daf-ac30-d8592847cfbd`. Issue #869 is implemented on PR #872 at exact head `eb325e4fb303d9d0cc030115887d4f0b47150707`; its local exact-commit verification and remote Core/Telegram/Telemetry checks are GREEN. The Product Owner explicitly cleared the earlier Codex wait on 2026-09-04.
 
-Codex CLI `0.152.0` was invoked on preserved branch `feat/869-telegram-controlled-single-send` with the complete scoped Work Package and returned `You've hit your usage limit` before any tracked implementation. It reported retry availability at `2026-09-07 11:06`. `PROJECT_PROFILE.yaml` classifies `exhausted_agent_usage_limit` as a hard blocker. Do not bypass this by manually enabling the persistent worker, directly calling Telegram, changing the Implementation Engineer role, or broadening scope.
+Required Container Supply Chain run `33841404350` failed closed on 44 newly surfaced HIGH util-linux tuples unrelated to the #869 code delta. Issue #873 now owns exact security triage. Its local candidate covers all 44/44 tuples with no wildcard or Critical exception, expires every new decision on `2026-09-05`, passes the supply-chain validator and `41/41` focused policy tests, and documents fresh no-cache runtime reachability. #873 must merge GREEN first; then PR #872 must integrate current `main` and rerun its exact-head required matrix.
 
-Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. No TestLAB message has been sent in the current acceptance cycle. Resume #869 only after legitimate Codex capacity is available, then merge GREEN and prove the exact snapshot with a production no-send dry-run before asking the Product Owner for one controlled TestLAB send.
+Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. No TestLAB message has been sent in the current acceptance cycle. Do not enable the persistent worker or call Telegram directly. After #872 merges, the next gate is the exact production **no-send dry-run**; only after that proof may one real TestLAB send be separately requested from the Product Owner.
 
 ## Issue #824 — TG-03 completed and merged
 
