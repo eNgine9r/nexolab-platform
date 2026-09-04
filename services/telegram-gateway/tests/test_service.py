@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 from app.config import Settings
+from app.domain import DeliveryState
 from app.outbox import DeliveryOutbox
 from app.service import GatewayRuntime, TelegramDeliveryWorker
 from app.telegram import TelegramApiError, TelegramSendResult
@@ -12,6 +13,7 @@ from tests.support import ORG_ID, sample_snapshot
 NOW = datetime(2026, 9, 2, 5, 0, tzinfo=UTC)
 DIRECT_LINK = "https://t.me/nexolab_bot/nexolab?startapp=report_{snapshot_id}"
 DESTINATION = "-1001234567890"
+THREAD_ID = 73
 
 
 class SnapshotSource:
@@ -29,8 +31,10 @@ class TelegramSink:
         self.calls = []
         self.errors = list(errors or [])
 
-    def send_message(self, *, chat_id: str, text: str, button_url: str):
-        self.calls.append((chat_id, text, button_url))
+    def send_message(
+        self, *, chat_id: str, text: str, button_url: str, message_thread_id: int | None = None
+    ):
+        self.calls.append((chat_id, text, button_url, message_thread_id))
         if self.errors:
             raise self.errors.pop(0)
         return TelegramSendResult(message_id=100 + len(self.calls))
@@ -127,3 +131,53 @@ def test_worker_discovers_multiple_snapshot_pages(tmp_path) -> None:
     assert len(sink.calls) == 2
     assert outbox.get_by_snapshot("snapshot-1", DESTINATION) is not None
     assert outbox.get_by_snapshot("snapshot-2", DESTINATION) is not None
+
+
+def test_worker_persists_and_sends_forum_topic_destination(tmp_path) -> None:
+    source = SnapshotSource([sample_snapshot()])
+    sink = TelegramSink()
+    worker, outbox, _ = build_worker(
+        tmp_path,
+        source,
+        sink,
+        telegram_destination_message_thread_id=THREAD_ID,
+    )
+    worker.run_once()
+
+    assert len(sink.calls) == 1
+    assert sink.calls[0][0] == DESTINATION
+    assert sink.calls[0][3] == THREAD_ID
+    assert outbox.get_by_snapshot("snapshot-1", DESTINATION) is None
+    topic = outbox.get_by_snapshot("snapshot-1", DESTINATION, THREAD_ID)
+    assert topic is not None and topic.state is DeliveryState.SENT
+
+
+def test_topic_worker_does_not_drain_historical_general_pending_delivery(tmp_path) -> None:
+    config = settings(tmp_path, telegram_destination_message_thread_id=THREAD_ID)
+    outbox = DeliveryOutbox(config.telegram_state_db_path)
+    historical = sample_snapshot(snapshot_id="historical-general")
+    from app.render import render_report
+
+    outbox.enqueue(
+        historical,
+        DESTINATION,
+        render_report(historical, mini_app_url_template=DIRECT_LINK),
+        now=NOW,
+    )
+    source = SnapshotSource([sample_snapshot()])
+    sink = TelegramSink()
+    runtime = GatewayRuntime(enabled=True)
+    worker = TelegramDeliveryWorker(
+        config, source, sink, outbox, runtime, clock=lambda: NOW
+    )
+
+    worker.run_once()
+
+    assert len(sink.calls) == 1
+    assert sink.calls[0][3] == THREAD_ID
+    general = outbox.get_by_snapshot(historical.id, DESTINATION)
+    assert general is not None
+    assert general.state is DeliveryState.PENDING
+    assert general.attempts == 0
+    topic = outbox.get_by_snapshot("snapshot-1", DESTINATION, THREAD_ID)
+    assert topic is not None and topic.state is DeliveryState.SENT

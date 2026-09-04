@@ -228,6 +228,36 @@ Stage 1 builds the gateway from that exact tracked source, prepares only the thr
 
 The guard records evidence under `runtime/evidence/tg04-telegram-stage1-*`, verifies Dashboard/Telemetry/frontend health before and after, requires unchanged identities for the existing PostgreSQL/MQTT/MinIO/Telemetry/Device Agent containers, and proves Tailscale Serve topology did not change. On a Stage 1 failure it removes only the newly created gateway container and leaves the persistent delivery volume intact. It never uses `compose down`, deletes volumes, sends a report, enables the weekday schedule, or touches Modbus/hardware.
 
+## TG-04 TestLAB forum-topic destination
+
+TestLAB forum delivery is modeled as an exact destination of `chat_id + message_thread_id`.
+`TELEGRAM_DESTINATION_MESSAGE_THREAD_ID` is optional: when unset, delivery remains in Telegram
+General; when set to a positive integer, both the persistent worker and controlled one-shot send
+include that exact `message_thread_id`. The durable outbox uses the same topic-aware identity, so a
+historical General delivery and a delivery of the same snapshot to a forum topic do not alias.
+Legacy outbox rows migrate transactionally as General (`thread = 0` internally) without deletion or
+re-send, and a topic-configured worker only claims rows for its exact current destination.
+
+Do not put a numeric topic id in Git, issue comments, screenshots or operator evidence. Capture the
+intended topic through the protected helper after repository/runtime acceptance:
+
+```bash
+cd ~/nexolab-platform/services/telegram-gateway
+sudo env PYTHONPATH="$PWD" python3 -m app.topic_provisioning
+```
+
+The helper requires persistent delivery to remain disabled. It prints a random one-time
+`/nexolab_topic_...` command. Post that exact command in the intended TestLAB forum topic and then
+press Enter in the terminal. The helper accepts only an exact pending update from the already
+configured TestLAB group with `is_topic_message=true` and one unambiguous positive
+`message_thread_id`; posting the challenge in General fails closed. The numeric topic id is written
+only to root-protected `telegram.env` and is omitted from the sanitized result. Existing secret
+directory permissions are preserved.
+
+After topic capture, keep `TELEGRAM_ENABLED=false` and `DAILY_REPORTS_SCHEDULER_ENABLED=false`.
+Run the exact-snapshot no-send dry-run before any real topic test. A real topic test remains a
+separate Product Owner gate.
+
 ## TG-04 exact-snapshot controlled one-shot delivery
 
 Do not enable the long-running delivery worker for the first real TestLAB acceptance send.
@@ -288,7 +318,7 @@ sudo env TELEGRAM_GATEWAY_IMAGE="$IMAGE_TAG" docker compose \
   -f infrastructure/compose/compose.central.yaml \
   -f infrastructure/compose/compose.telegram.yaml \
   --profile telegram \
-  run --rm --no-deps --no-build \
+  run --rm --no-deps --pull never \
   -e TELEGRAM_ENABLED=false \
   telegram-gateway \
   -m app.controlled_send \

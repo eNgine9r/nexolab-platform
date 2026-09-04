@@ -18,11 +18,15 @@ Updated: 2026-09-04
 
 **Cleared 2026-09-04.** PR #855 exact verified head `cb4db273ab15e42654ee53ef6629e8021d182f7c` passed Core Quality/build + NEXOLAB Merge Gate (`33820118255`), Offline Bundle (`33820118249`), Telegram Gateway (`33820118259`) and Container Supply Chain (`33820118311`), then merged and closed #854. The Mini App now accepts canonical TG-01 schema `nexolab.daily-refrigeration-report.v1` while stale/unknown values remain fail-closed. No runtime mutation or Telegram send occurred.
 
+## Issue #883 — TestLAB morning-report forum-topic routing
+
+**Active focused Work Package; no hard blocker.** After the first accepted TestLAB send landed in General, the Product Owner reprioritized topic routing before the remaining #825 restart/scheduler acceptance. #883 models the destination as `chat_id + message_thread_id`, preserves legacy General `sent` evidence without delete/re-send, prevents General/topic aliasing for the same snapshot, and adds protected exact-topic capture through a one-time forum challenge. Repository implementation must keep persistent delivery and the weekday scheduler OFF. Runtime topic configuration and any real topic send remain post-merge gates.
+
 ## Issue #825 — TG-04 real Telegram acceptance
 
-**First real TestLAB one-shot delivery is cleared; #825 is now at post-send idempotency/restart acceptance.** Real signed iOS Mini App acceptance is PASS on exact snapshot `76957482-57c4-4daf-ac30-d8592847cfbd`. Issue #869 / PR #872 passed the full exact-head matrix and merged GREEN. The production no-send dry-run returned `dry_run_ready`, exact payload SHA match, `delivery_state=absent`, `duplicate_risk=false`, and zero outbox mutation. After separate Product Owner approval, exactly one real send succeeded: durable outbox state is `sent`, Telegram message ID is present, duplicate risk is false, and the payload digest matches. Product Owner visual evidence confirms the report appeared in TestLAB General.
+**First real TestLAB one-shot delivery is cleared; #825 is temporarily blocked only on active child Work Package #883 by Product Owner priority.** Real signed iOS Mini App acceptance and the exact General send are PASS on snapshot `76957482-57c4-4daf-ac30-d8592847cfbd`; durable outbox state is `sent`, Telegram message ID is present, duplicate risk is false, and the payload digest matches. Product Owner visual evidence confirms the report appeared in TestLAB General.
 
-Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. Do not enable the persistent worker or scheduler yet. Remaining gates are no-duplicate/restart proof and the requested routing of future reports to the existing `Ранковий звіт` forum topic before recurring weekday 07:50 activation.
+Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. After #883 passes repository CI, exact-topic capture and a no-send dry-run must pass before the separately gated topic test. Then #825 resumes no-duplicate/restart proof before recurring weekday 07:50 activation.
 
 ## Issue #824 — TG-03 completed and merged
 

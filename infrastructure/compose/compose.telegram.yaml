@@ -13,6 +13,7 @@ services:
       TELEGRAM_IDENTITY_LINKS_FILE: /run/secrets/telegram/identity-links.json
       TELEGRAM_STATE_DB_PATH: /app/data/telegram-delivery/outbox.db
       TELEGRAM_DESTINATION_CHAT_ID: ${TELEGRAM_DESTINATION_CHAT_ID:-}
+      TELEGRAM_DESTINATION_MESSAGE_THREAD_ID: ${TELEGRAM_DESTINATION_MESSAGE_THREAD_ID:-}
       TELEGRAM_MINI_APP_URL_TEMPLATE: ${TELEGRAM_MINI_APP_URL_TEMPLATE:-}
       TELEGRAM_BOT_TOKEN_FILE: /run/secrets/telegram/bot-token
       NEXOLAB_BACKEND_BASE_URL: http://telemetry-service:8082

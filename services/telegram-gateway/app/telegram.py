@@ -41,14 +41,23 @@ class TelegramClient:
         self._timeout_seconds = timeout_seconds
         self._transport = transport
 
-    def send_message(self, *, chat_id: str, text: str, button_url: str) -> TelegramSendResult:
-        payload = {
+    def send_message(
+        self,
+        *,
+        chat_id: str,
+        text: str,
+        button_url: str,
+        message_thread_id: int | None = None,
+    ) -> TelegramSendResult:
+        payload: dict[str, Any] = {
             "chat_id": chat_id,
             "text": text,
             "reply_markup": {
                 "inline_keyboard": [[{"text": "Відкрити NEXOLAB", "url": button_url}]]
             },
         }
+        if message_thread_id is not None:
+            payload["message_thread_id"] = message_thread_id
         request = Request(
             f"{self._base_url}/bot{self._token}/sendMessage",
             data=json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8"),

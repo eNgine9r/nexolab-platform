@@ -36,6 +36,7 @@ class TelegramSink(Protocol):
         chat_id: str,
         text: str,
         button_url: str,
+        message_thread_id: int | None = None,
     ) -> TelegramSendResult: ...
 
 
@@ -88,6 +89,7 @@ def execute_controlled_send(
     normalized_snapshot_id = _snapshot_id(snapshot_id)
     expected_digest = _digest(expected_payload_sha256)
     destination = settings.telegram_destination_chat_id
+    destination_thread_id = settings.telegram_destination_message_thread_id
     template = settings.telegram_mini_app_url_template
     assert destination is not None
     assert template is not None
@@ -105,6 +107,7 @@ def execute_controlled_send(
         settings,
         normalized_snapshot_id,
         destination,
+        destination_thread_id,
         outbox,
     )
     if existing is not None:
@@ -126,12 +129,15 @@ def execute_controlled_send(
 
     sink = telegram_client or _telegram_client(settings)
     delivery_outbox = outbox or DeliveryOutbox(settings.telegram_state_db_path)
-    current = delivery_outbox.get_by_snapshot(normalized_snapshot_id, destination)
+    current = delivery_outbox.get_by_snapshot(
+        normalized_snapshot_id, destination, destination_thread_id
+    )
     if current is None:
         current, _ = delivery_outbox.enqueue(
             snapshot,
             destination,
             rendered,
+            destination_message_thread_id=destination_thread_id,
             now=_now(clock),
         )
     else:
@@ -144,6 +150,7 @@ def execute_controlled_send(
     claimed = delivery_outbox.claim_exact(
         normalized_snapshot_id,
         destination,
+        destination_message_thread_id=destination_thread_id,
         now=_now(clock),
     )
     try:
@@ -151,6 +158,7 @@ def execute_controlled_send(
             chat_id=destination,
             text=claimed.text,
             button_url=claimed.button_url,
+            message_thread_id=claimed.destination_message_thread_id,
         )
     except TelegramApiError as error:
         failed = delivery_outbox.mark_failed(
@@ -180,14 +188,18 @@ def _existing_delivery(
     settings: Settings,
     snapshot_id: str,
     destination: str,
+    destination_message_thread_id: int | None,
     outbox: DeliveryOutbox | None,
 ) -> DeliveryRecord | None:
     if outbox is not None:
-        return outbox.get_by_snapshot(snapshot_id, destination)
+        return outbox.get_by_snapshot(
+            snapshot_id, destination, destination_message_thread_id
+        )
     return DeliveryOutbox.inspect_existing(
         settings.telegram_state_db_path,
         snapshot_id,
         destination,
+        destination_message_thread_id,
     )
 
 
