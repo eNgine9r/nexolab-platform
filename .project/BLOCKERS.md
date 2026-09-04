@@ -20,9 +20,9 @@ Updated: 2026-09-04
 
 ## Issue #825 — TG-04 real Telegram acceptance
 
-**Repository and no-send dry-run blockers are cleared; #825 is now hard-blocked only on explicit Product Owner approval for exactly one real TestLAB send.** Real signed iOS Mini App acceptance is PASS on exact snapshot `76957482-57c4-4daf-ac30-d8592847cfbd`. Issue #869 / PR #872 passed the full exact-head matrix and merged GREEN. The production no-send dry-run from exact clean `main` `49c585645622c6594e1be7627735b92c5407257d` returned `dry_run_ready`, exact payload SHA match, `delivery_state=absent`, `duplicate_risk=false`, and post-run inspection found no outbox DB, proving zero delivery mutation.
+**First real TestLAB one-shot delivery is cleared; #825 is now at post-send idempotency/restart acceptance.** Real signed iOS Mini App acceptance is PASS on exact snapshot `76957482-57c4-4daf-ac30-d8592847cfbd`. Issue #869 / PR #872 passed the full exact-head matrix and merged GREEN. The production no-send dry-run returned `dry_run_ready`, exact payload SHA match, `delivery_state=absent`, `duplicate_risk=false`, and zero outbox mutation. After separate Product Owner approval, exactly one real send succeeded: durable outbox state is `sent`, Telegram message ID is present, duplicate risk is false, and the payload digest matches. Product Owner visual evidence confirms the report appeared in TestLAB General.
 
-Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. No TestLAB message has been sent in the current acceptance cycle. Do not enable the persistent worker or scheduler. The next action requires explicit Product Owner approval for one bounded real send; after it, verify post-send runtime state and durable outbox evidence before any reliability or recurring-scheduler gate.
+Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. Do not enable the persistent worker or scheduler yet. Remaining gates are no-duplicate/restart proof and the requested routing of future reports to the existing `Ранковий звіт` forum topic before recurring weekday 07:50 activation.
 
 ## Issue #824 — TG-03 completed and merged
 
