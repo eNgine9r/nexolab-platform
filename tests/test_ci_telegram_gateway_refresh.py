@@ -29,6 +29,8 @@ class TelegramGatewayRefreshPolicyTests(unittest.TestCase):
                 "0" * 40,
                 "--expected-current-image-id",
                 "sha256:" + "0" * 64,
+                "--expected-target-image-id",
+                "sha256:" + "1" * 64,
             ],
             cwd=ROOT,
             capture_output=True,
@@ -41,6 +43,7 @@ class TelegramGatewayRefreshPolicyTests(unittest.TestCase):
     def test_refresh_requires_exact_source_image_root_and_approval(self) -> None:
         self.assertIn("--expected-source-sha", self.text)
         self.assertIn("--expected-current-image-id", self.text)
+        self.assertIn("--expected-target-image-id", self.text)
         self.assertIn("--approve-gateway-refresh", self.text)
         self.assertIn('[[ "$EUID" -eq 0 ]]', self.text)
         self.assertIn("source SHA mismatch", self.text)
@@ -48,6 +51,26 @@ class TelegramGatewayRefreshPolicyTests(unittest.TestCase):
         self.assertIn("source worktree is not clean", self.text)
         self.assertIn("--untracked-files=all", self.text)
         self.assertIn("current Gateway image changed since approval preparation", self.text)
+        self.assertIn("pre-approved target Gateway image is unavailable locally", self.text)
+        self.assertIn("target Gateway image source revision mismatch", self.text)
+
+
+    def test_target_image_is_immutable_behaviorally_proved_before_mutation(self) -> None:
+        for token in (
+            'gateway_bootstrap_boundary_capable "$EXPECTED_TARGET_IMAGE_ID"',
+            'docker run --pull never --rm --network none --read-only',
+            'assert outbox.ids == [approved_id, post_cutoff_id], outbox.ids',
+            'TARGET_REVISION=',
+            'org.opencontainers.image.revision',
+            'docker tag "$EXPECTED_TARGET_IMAGE_ID" "$IMAGE_TAG"',
+            '[[ "$IMAGE_ID" == "$EXPECTED_TARGET_IMAGE_ID" ]]',
+        ):
+            self.assertIn(token, self.text)
+        capability = self.text.index('gateway_bootstrap_boundary_capable "$EXPECTED_TARGET_IMAGE_ID"')
+        mutation = self.text.index('MUTATED="1"', capability)
+        self.assertLess(capability, mutation)
+        self.assertNotIn("inspect.getsource", self.text)
+        self.assertNotIn('docker build \\', self.text)
 
     def test_protected_topic_env_is_fail_closed_and_not_printed(self) -> None:
         self.assertIn('counts.get("TELEGRAM_ENABLED") == 1', self.text)

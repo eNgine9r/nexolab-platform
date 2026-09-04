@@ -22,12 +22,12 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 901,
       "title": "Refresh production Gateway to boundary-aware image with delivery OFF",
       "branch": "ops/901-boundary-aware-gateway-refresh"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -2436,7 +2436,7 @@
       "issue": 901,
       "title": "Refresh production Gateway to boundary-aware image with delivery OFF",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "branch": "ops/901-boundary-aware-gateway-refresh",
       "depends_on": [
         825,
@@ -2452,7 +2452,13 @@
         "modbus_write": "none",
         "hardware_write": "none",
         "production_refresh_authorization": "not_yet_requested_read_only_preflight_first",
-        "next_gate": "read_only_exact_main_source_image_outbox_core_tailscale_rollback_preflight_then_explicit_product_owner_refresh_approval"
+        "next_gate": "canonical_exact_candidate_green_then_PR_exact_head_CI_review_merge; afterward exact-main read_only build_and_runtime_preflight_then_explicit_product_owner_refresh_approval",
+        "guard_hardening": "target_image_must_be_prebuilt_preapproved_exact_image_id_with_exact_OCI_revision_and_behavioral_boundary_before_MUTATED",
+        "post_approval_build": "forbidden_removed_from_refresh_guard",
+        "target_image_contract": "local_exact_preapproved_sha256_image_required_not_equal_current_image",
+        "behavioral_probe_contract": "network_none_read_only_packaged_worker_discover_approved_pre_cutoff_plus_due_post_cutoff_only",
+        "focused_tests": "45_passed_gateway_refresh_recurring_activation_stage1_safety_cascade",
+        "repository_phase_runtime_mutation": "none"
       }
     }
   ],

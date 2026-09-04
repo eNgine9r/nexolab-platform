@@ -13,6 +13,7 @@ LOCK_FILE="${NEXOLAB_TG04_REFRESH_LOCK_FILE:-/run/lock/nexolab-tg04-gateway-refr
 GATEWAY_NAME="nexolab-central-telegram-gateway-1"
 EXPECTED_SOURCE=""
 EXPECTED_CURRENT_IMAGE_ID=""
+EXPECTED_TARGET_IMAGE_ID=""
 APPROVED="0"
 MUTATED="0"
 SUCCESS="0"
@@ -22,9 +23,10 @@ usage() {
 Usage: deploy-telegram-gateway-refresh.sh \
   --expected-source-sha SHA \
   --expected-current-image-id sha256:... \
+  --expected-target-image-id sha256:... \
   --approve-gateway-refresh
 
-Refreshes only the persistent Telegram Gateway. Delivery and scheduler remain disabled.
+Refreshes only the persistent Telegram Gateway to one prebuilt, exact-source, behaviorally verified image. Delivery and scheduler remain disabled.
 USAGE
 }
 while (($# > 0)); do
@@ -37,6 +39,11 @@ while (($# > 0)); do
     --expected-current-image-id)
       (($# >= 2)) || { echo "ERROR: --expected-current-image-id requires image ID" >&2; exit 64; }
       EXPECTED_CURRENT_IMAGE_ID="$2"
+      shift 2
+      ;;
+    --expected-target-image-id)
+      (($# >= 2)) || { echo "ERROR: --expected-target-image-id requires image ID" >&2; exit 64; }
+      EXPECTED_TARGET_IMAGE_ID="$2"
       shift 2
       ;;
     --approve-gateway-refresh)
@@ -57,6 +64,7 @@ done
 
 [[ "$EXPECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]] || { echo "ERROR: exact lowercase SHA required" >&2; exit 64; }
 [[ "$EXPECTED_CURRENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "ERROR: exact current image ID required" >&2; exit 64; }
+[[ "$EXPECTED_TARGET_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "ERROR: exact target image ID required" >&2; exit 64; }
 [[ "$APPROVED" == "1" ]] || { echo "ERROR: explicit --approve-gateway-refresh is required" >&2; exit 64; }
 [[ "$EUID" -eq 0 ]] || { echo "ERROR: root_required" >&2; exit 77; }
 for command in git docker curl python3 flock sha256sum tailscale grep sed; do
@@ -103,7 +111,6 @@ STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 EVIDENCE_DIR="$EVIDENCE_ROOT/tg04-telegram-refresh-$STAMP"
 mkdir -m 0700 "$EVIDENCE_DIR"
 SUMMARY="$EVIDENCE_DIR/summary.txt"
-BUILD_LOG="$EVIDENCE_DIR/image-build.log"
 ACTIVATION_ENV="$EVIDENCE_DIR/activation.env"
 ROLLBACK_ENV="$EVIDENCE_DIR/rollback.env"
 exec 9>"$LOCK_FILE"
@@ -149,6 +156,61 @@ assert p.get("running") is False, p
 assert p.get("last_send_at") is None, p
 ' >/dev/null
 }
+gateway_bootstrap_boundary_capable() {
+  local image="$1"
+  timeout 15s docker run --pull never --rm --network none --read-only \
+    --entrypoint /usr/bin/python3 "$image" -c '
+from datetime import UTC, datetime, timedelta
+from app.config import Settings
+from app.domain import RenderedMessage, ReportSnapshot
+from app.service import GatewayRuntime, TelegramDeliveryWorker
+import app.service as service_module
+
+now=datetime(2026,9,4,12,0,tzinfo=UTC)
+cutoff=now-timedelta(hours=1)
+approved_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+rejected_id="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+post_cutoff_id="cccccccc-cccc-cccc-cccc-cccccccccccc"
+org_id="00000000-0000-0000-0000-000000000001"
+
+def snapshot(snapshot_id, scheduled_for):
+    return ReportSnapshot(
+        id=snapshot_id, organization_id=org_id, profile_id="probe-profile",
+        equipment_id="probe-equipment", scheduled_for=scheduled_for,
+        payload_sha256="0"*64, payload={},
+    )
+
+class Source:
+    def __init__(self):
+        self.items=[
+            snapshot(approved_id, cutoff-timedelta(minutes=20)),
+            snapshot(rejected_id, cutoff-timedelta(minutes=10)),
+            snapshot(post_cutoff_id, cutoff+timedelta(minutes=10)),
+        ]
+    def list_snapshots(self, *, limit, offset=0):
+        return self.items[offset:offset+limit]
+
+class Outbox:
+    def __init__(self): self.ids=[]
+    def enqueue(self, snapshot, destination_chat_id, rendered, **kwargs):
+        self.ids.append(snapshot.id)
+
+service_module.render_report=lambda snapshot, **kwargs: RenderedMessage(text="probe", button_url="https://example.invalid/probe")
+settings=Settings(
+    telegram_enabled=False,
+    telegram_destination_chat_id="-1001",
+    telegram_mini_app_url_template="https://example.invalid/report_{snapshot_id}",
+    telegram_delivery_activation_cutoff_utc=cutoff,
+    telegram_delivery_bootstrap_snapshot_ids=approved_id,
+    nexolab_backend_auth_mode="none",
+    nexolab_backend_organization_id=org_id,
+)
+outbox=Outbox()
+worker=TelegramDeliveryWorker(settings, Source(), object(), outbox, GatewayRuntime(enabled=False), clock=lambda: now)
+worker._discover(now)
+assert outbox.ids == [approved_id, post_cutoff_id], outbox.ids
+' >/dev/null
+}
 
 CENTRAL_BIND="$(env_value "$CENTRAL_ENV" CENTRAL_BIND_ADDRESS 127.0.0.1)"
 CENTRAL_API_PORT="$(env_value "$CENTRAL_ENV" CENTRAL_API_PORT 8082)"
@@ -176,6 +238,16 @@ OLD_IMAGE_ID="$(docker inspect --format '{{.Image}}' "$GATEWAY_NAME")"
 [[ "$OLD_IMAGE_ID" == "$EXPECTED_CURRENT_IMAGE_ID" ]] || { log "ERROR: current Gateway image changed since approval preparation"; exit 1; }
 docker image inspect "$OLD_IMAGE_ID" >/dev/null 2>&1 \
   || { log "ERROR: previous Gateway image unavailable for rollback"; exit 1; }
+[[ "$EXPECTED_TARGET_IMAGE_ID" != "$OLD_IMAGE_ID" ]] \
+  || { log "ERROR: target Gateway image matches current image"; exit 1; }
+docker image inspect "$EXPECTED_TARGET_IMAGE_ID" >/dev/null 2>&1 \
+  || { log "ERROR: pre-approved target Gateway image is unavailable locally"; exit 1; }
+TARGET_REVISION="$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$EXPECTED_TARGET_IMAGE_ID" 2>/dev/null || true)"
+[[ "$TARGET_REVISION" == "$EXPECTED_SOURCE" ]] \
+  || { log "ERROR: target Gateway image source revision mismatch"; exit 1; }
+gateway_bootstrap_boundary_capable "$EXPECTED_TARGET_IMAGE_ID" \
+  || { log "ERROR: target Gateway image lacks the approved bootstrap delivery boundary"; exit 1; }
+log "Target Gateway image approval pin: PASS (exact image, exact source revision, behavioral boundary)"
 OUTBOX_VOLUME="$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/app/data/telegram-delivery"}}{{.Name}}{{end}}{{end}}' "$GATEWAY_NAME")"
 [[ -n "$OUTBOX_VOLUME" ]] || { log "ERROR: Gateway delivery volume identity unavailable"; exit 1; }
 
@@ -241,12 +313,11 @@ PYTHONPATH="$REPO_ROOT/services/telegram-gateway" \
 
 "${COMPOSE[@]}" --env-file "$ACTIVATION_ENV" config --quiet
 
-docker build \
-  --tag "$IMAGE_TAG" \
-  "$REPO_ROOT/services/telegram-gateway" >"$BUILD_LOG" 2>&1
+docker tag "$EXPECTED_TARGET_IMAGE_ID" "$IMAGE_TAG"
 IMAGE_ID="$(docker image inspect --format '{{.Id}}' "$IMAGE_TAG")"
-[[ -n "$IMAGE_ID" ]] || { log "ERROR: refreshed Gateway image identity unavailable"; exit 1; }
-log "Refreshed Gateway image built: $IMAGE_ID"
+[[ "$IMAGE_ID" == "$EXPECTED_TARGET_IMAGE_ID" ]] \
+  || { log "ERROR: approved target Gateway image tag mismatch"; exit 1; }
+log "Approved target Gateway image prepared: $IMAGE_ID"
 
 MUTATED="1"
 "${COMPOSE[@]}" --env-file "$ACTIVATION_ENV" \

@@ -265,30 +265,49 @@ Gateway itself is on a topic-aware image. If the existing container predates top
 only `telegram-gateway` through the repository guard; do not use a broad central deployment or an
 ad-hoc Compose recreate. Production execution is a separate Product Owner cutover gate.
 
-Before approval preparation, capture the current persistent Gateway image ID without exposing any
-Telegram destination values:
+Before approval preparation, capture the current persistent Gateway image ID and build the exact-source
+candidate without exposing Telegram destination values. The target image is immutable approval evidence,
+not something built after the cutover approval:
 
 ```bash
 cd ~/nexolab-platform
 SOURCE_SHA="$(git rev-parse HEAD)"
+test "$(git rev-parse origin/main)" = "$SOURCE_SHA"
+test -z "$(git status --porcelain --untracked-files=all)"
 CURRENT_GATEWAY_IMAGE_ID="$(docker inspect --format '{{.Image}}' nexolab-central-telegram-gateway-1)"
+TARGET_TAG="nexolab-telegram-gateway:tg04-boundary-preflight-${SOURCE_SHA:0:12}"
+docker build \
+  --label "org.opencontainers.image.revision=$SOURCE_SHA" \
+  --tag "$TARGET_TAG" \
+  services/telegram-gateway
+TARGET_GATEWAY_IMAGE_ID="$(docker image inspect --format '{{.Id}}' "$TARGET_TAG")"
+test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$TARGET_GATEWAY_IMAGE_ID")" = "$SOURCE_SHA"
 ```
 
-After exact-head repository verification is GREEN and the Product Owner explicitly approves the
-Gateway-only cutover, run:
+Run the same network-isolated behavioral boundary probe used by the recurring-activation guard against
+`$TARGET_GATEWAY_IMAGE_ID`; it must accept only the approved pre-cutoff plus due post-cutoff synthetic
+snapshot and reject the unapproved pre-cutoff identity. Record the exact source, current image, target
+image, clean outbox fingerprint, core-container identities, Tailscale Serve hash and rollback-image
+availability before requesting approval.
+
+After exact-head repository verification is GREEN and the Product Owner explicitly approves that exact
+source/current/target tuple, run:
 
 ```bash
 sudo scripts/deploy-telegram-gateway-refresh.sh \
   --expected-source-sha "$SOURCE_SHA" \
   --expected-current-image-id "$CURRENT_GATEWAY_IMAGE_ID" \
+  --expected-target-image-id "$TARGET_GATEWAY_IMAGE_ID" \
   --approve-gateway-refresh
 ```
 
-The guard requires a clean exact source, the exact pre-approved current image, protected
-`TELEGRAM_ENABLED=false`, one positive protected topic id, and scheduler OFF. It captures core
-container identities, the persistent delivery-volume identity and the Tailscale Serve topology,
-builds the exact-source Gateway image, and force-recreates **only** `telegram-gateway` with
-`--no-deps --no-build`. Post-checks require the exact new image, the same delivery volume, Mini App
+The guard requires a clean exact source, the exact pre-approved current image, the locally available
+pre-approved target image with an exact `org.opencontainers.image.revision` label, a passing behavioral
+bootstrap-boundary probe, protected `TELEGRAM_ENABLED=false`, one positive protected topic id, and
+scheduler OFF. It captures core container identities, the persistent delivery-volume identity and the
+Tailscale Serve topology, tags the already approved target image, and force-recreates **only**
+`telegram-gateway` with `--no-deps --no-build`. No image build occurs after approval. Post-checks require
+the exact approved image, the same delivery volume, Mini App
 ON, delivery/worker OFF, `last_send_at=null`, topic env present, unchanged core-container identities,
 healthy Dashboard/Telemetry/Mini App, unchanged Tailscale Serve topology, and scheduler still OFF.
 

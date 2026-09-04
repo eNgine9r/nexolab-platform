@@ -3,19 +3,40 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-05T00:03:23+03:00",
+  "timestamp": "2026-09-05T00:10:14+03:00",
   "actor": "chatgpt",
-  "event": "issue_898_completed_issue_901_ready_read_only_preflight",
+  "event": "issue_901_target_image_approval_pin_hardening",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 901,
+    "title": "Refresh production Gateway to boundary-aware image with delivery OFF",
+    "branch": "ops/901-boundary-aware-gateway-refresh"
+  },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "product_outcome": "persistent_gateway_boundary_capability_without_enabling_delivery_or_scheduler",
+      "preexisting_gateway_image": "sha256:16a78adc648ddc84a74d3098e8bb8338d3cd5349c6a055b801dc93ee675447c6",
+      "preexisting_gateway_boundary_capability": "behavioral_FAIL_unapproved_pre_cutoff_snapshot_enqueued",
+      "delivery_boundary": "must_remain_false_before_during_after_refresh",
+      "scheduler_boundary": "must_remain_false_before_during_after_refresh",
+      "telegram_send": "none_in_refresh_work_package",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "production_refresh_authorization": "not_yet_requested_read_only_preflight_first",
+      "next_gate": "canonical_exact_candidate_green_then_PR_exact_head_CI_review_merge; afterward exact-main read_only build_and_runtime_preflight_then_explicit_product_owner_refresh_approval",
+      "guard_hardening": "target_image_must_be_prebuilt_preapproved_exact_image_id_with_exact_OCI_revision_and_behavioral_boundary_before_MUTATED",
+      "post_approval_build": "forbidden_removed_from_refresh_guard",
+      "target_image_contract": "local_exact_preapproved_sha256_image_required_not_equal_current_image",
+      "behavioral_probe_contract": "network_none_read_only_packaged_worker_discover_approved_pre_cutoff_plus_due_post_cutoff_only",
+      "focused_tests": "45_passed_gateway_refresh_recurring_activation_stage1_safety_cascade",
+      "repository_phase_runtime_mutation": "none"
+    }
   },
   "observations": [],
-  "next_action": "begin Issue #901 read-only exact-main Gateway refresh preflight; after source/image/outbox/core/Tailscale/rollback evidence is complete, stop for explicit Product Owner production-refresh approval; recurring activation remains a later separate approval",
+  "next_action": "freeze exact repository candidate; require canonical GREEN and PR exact-head CI/review before merge; then build exact merged-main Gateway candidate, run behavioral/outbox/core/Tailscale/rollback read-only preflight, and stop for explicit Product Owner Gateway-only refresh approval",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
