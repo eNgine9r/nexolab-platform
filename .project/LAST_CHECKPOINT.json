@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-04T03:21:05+03:00",
+  "timestamp": "2026-09-04T03:51:42+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_854_completed_tg04_resumed_state_reconciliation",
+  "event": "tg04_corrected_frontend_precutover_candidate_verified",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "13ab26392fcb1c1385dca3c1f619da4512fe568c"
@@ -16,30 +16,34 @@
     "branch": "ops/825-telegram-real-acceptance"
   },
   "evidence_snapshot": {
-    "completed_dependency": {
-      "issue": 854,
-      "verified_head_sha": "cb4db273ab15e42654ee53ef6629e8021d182f7c",
-      "pull_request": 855,
-      "checks": {
-        "core_ci": "success:33820118255",
-        "nexolab_merge_gate": "success:33820118255",
-        "offline_bundle": "success:33820118249",
-        "telegram_gateway": "success:33820118259",
-        "container_supply_chain": "success:33820118311"
-      }
+    "completed_dependencies": {
+      "schema_repair": "issue_854_pr855_merged_747e6f23eab6f2a027b5ab021c1fe91d81434305_verified_head_cb4db273ab15e42654ee53ef6629e8021d182f7c_green",
+      "state_reconciliation": "issue_860_pr861_merged_9a3556b25b257396d15db80af591d1cc3684b8f7"
+    },
+    "corrected_frontend_candidate": {
+      "source_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7",
+      "workflow_run": 33821653923,
+      "artifact": 9918720619,
+      "artifact_digest": "sha256:dc7fc9182ee9929d0f4c507aa989c03cb1845d4ea5a3eeb1d977902894b8781e",
+      "platform": "linux/arm64",
+      "node": "22.23.1",
+      "build_id": "lK2mXv7b6IZUUeVWXy-VJ",
+      "staging": "runtime/staging/tg04-schema-fix-9a3556b2",
+      "integrity": "artifact_identity_public_contract_archive_safety_pass",
+      "source_selection": "pass_from_deployed_13ab26392fcb1c1385dca3c1f619da4512fe568c",
+      "isolated_candidate": "pass_loopback_13022_all_required_routes_200_cleanup_clean"
     },
     "runtime_read_only_recheck": {
-      "dashboard": "http_200",
+      "dashboard": "http_200_before_during_after_candidate",
       "telemetry": "ready_database_ready_mqtt_ready_queue_0",
       "device_agent": "healthy",
       "telegram_gateway": "ready_delivery_false_miniapp_true_worker_false_last_send_null",
       "daily_report_scheduler": "disabled",
       "deployed_product_sha": "13ab26392fcb1c1385dca3c1f619da4512fe568c"
-    },
-    "next_gate": "issue_860_state_only_green_then_verified_arm64_frontend_artifact_then_separate_product_owner_cutover_approval"
+    }
   },
   "observations": [],
-  "next_action": "Finish Issue #860 as a state-only GREEN PR. Then build and integrity-stage a verified ARM64 frontend artifact from resulting current main. Stop for separate Product Owner production-cutover approval before any source/frontend activation or repeated signed Telegram phone acceptance. Do not send a Telegram report or enable the 07:50 scheduler.",
+  "next_action": "Merge the state-only #862 candidate GREEN, rerun guarded source-selection preflight against resulting main to prove exact target 9a3556b25b257396d15db80af591d1cc3684b8f7 remains an allowed historical-main source, then stop for separate Product Owner production/site cutover approval. Do not activate the frontend/source, send Telegram, or enable the 07:50 scheduler before approval.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
