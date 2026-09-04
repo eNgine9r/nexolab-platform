@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-04T10:27:48+03:00",
+  "timestamp": "2026-09-04T10:45:00+03:00",
   "actor": "chatgpt",
-  "event": "tg04_production_no_send_dry_run_passed",
+  "event": "tg04_first_real_testlab_send_passed",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -17,7 +17,7 @@
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "blocker": "explicit_product_owner_approval_required_for_exactly_one_real_testlab_send",
+      "blocker": "post_send_idempotency_restart_acceptance_required_before_recurring_scheduler_activation",
       "software_prerequisites": "tg01_tg02_tg03_merged_green",
       "production_deployment": "passed_runtime/deployments/20260904T032305Z_source_9a3556b25b257396d15db80af591d1cc3684b8f7",
       "real_telegram_contact": "read_only_getupdates_confirmed_testlab_supergroup",
@@ -28,7 +28,7 @@
       "group_title_observed": "TestLAB",
       "bot_username_observed": "nex0lab_bot",
       "group_numeric_identity": "confirmed_runtime_only_not_committed",
-      "next_gate": "explicit_product_owner_single_testlab_send_approval_then_bounded_one_shot_then_post_send_safety_checks",
+      "next_gate": "prove_exact_send_idempotent_no_duplicate_restart_then_route_future_reports_to_morning_report_topic_before_scheduler_activation",
       "backend_provisioning_helper": "local_verified_5_passed_full_gateway_46_passed",
       "backend_principal_target": "nexolab-telegram_laboratory_technician_reports.read_only",
       "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled",
@@ -64,7 +64,7 @@
       "scheduler_prerequisite": "issue_845_pr846_merged_green_fail_closed_off",
       "state_reconciliation": "issue_860_pr861_merged_9a3556b25b257396d15db80af591d1cc3684b8f7_tg04_active",
       "main_arm64_artifact_preflight": "run_33781986481_artifact_9904235935_green_not_stage2_candidate_missing_tg04_pr842_repairs",
-      "current_gate": "explicit_product_owner_single_testlab_send_approval_after_production_no_send_dry_run_pass",
+      "current_gate": "post_send_durable_idempotency_and_restart_safety_acceptance",
       "pr842_repository_merge": "merged_main_13ab26392fcb1c1385dca3c1f619da4512fe568c_issue825_kept_open",
       "stage2_exact_main_artifact": "run_33786462681_artifact_9905912342_sha256_9ea8769da2dc0466b61354aee961d5564a1565bcda6eabe74b63c437207ef97e",
       "stage2_artifact_staging": "runtime/staging/tg04-stage2-13ab2639_checksums_source_platform_node_contract_verified",
@@ -118,17 +118,24 @@
       "controlled_send_safety_gap": "existing_long_running_worker_discovers_all_eligible_snapshots_and_can_drain_multiple_not_acceptable_for_exactly_one_send_gate",
       "controlled_send_guard_issue": "869_completed_pr872_green_exact_head_aae75493e9360b4a33502a2b5bf8dbe82102c879",
       "codex_usage_limit": "cleared_by_product_owner_2026-09-04_continue_in_current_chatgpt_session_scope_and_safety_unchanged",
-      "testlab_send_authorization": "pending_explicit_product_owner_after_dry_run_pass_no_send_yet",
+      "testlab_send_authorization": "approved_and_consumed_exactly_one_real_send_2026-09-04",
       "production_no_send_dry_run": "PASS_exact_main_49c585645622c6594e1be7627735b92c5407257d_snapshot_76957482-57c4-4daf-ac30-d8592847cfbd",
       "production_no_send_image": "sha256_ac12e5e9e9bd0249e7927ae4c014a4ea5d0e330181d8f77f6fb5399140de0dcb",
       "production_no_send_result": "status_dry_run_ready_delivery_state_absent_duplicate_risk_false_payload_sha256_match",
       "production_no_send_outbox": "durable_volume_present_outbox_db_absent_after_dry_run_zero_mutation",
       "production_no_send_postcheck": "gateway_ready_delivery_false_miniapp_true_worker_false_last_send_null_scheduler_false_ephemeral_container_removed",
-      "production_no_send_telegram_api_calls": "zero"
+      "production_no_send_telegram_api_calls": "zero",
+      "real_testlab_send": "PASS_exact_snapshot_76957482-57c4-4daf-ac30-d8592847cfbd_visible_in_TestLAB_General_product_owner_evidence",
+      "real_testlab_outbox": "state_sent_telegram_message_id_present_duplicate_risk_false_payload_sha256_match",
+      "real_testlab_postcheck": "gateway_ready_delivery_false_miniapp_true_worker_false_last_send_null_scheduler_false",
+      "real_testlab_payload_sha256": "3c4cb6e4e5100054914a70001ba8a9d430794c01fbbc5f11c25f543291f59f34",
+      "topic_routing_request": "product_owner_requests_future_morning_reports_to_existing_forum_topic_Rankovyi_zvit_current_acceptance_send_was_General",
+      "topic_routing_implementation": "not_started_requires_focused_work_package_and_exact_message_thread_id",
+      "recurring_scheduler_activation": "not_authorized_remains_false"
     }
   },
   "observations": [],
-  "next_action": "request_explicit_product_owner_approval_for_exactly_one_real_testlab_send_then_run_bounded_controlled_one_shot_only_if_approved",
+  "next_action": "prove exact-send idempotency/no-duplicate restart behavior, then implement requested forum-topic routing before scheduler activation",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
