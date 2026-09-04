@@ -1,6 +1,6 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-04
+Updated: 2026-09-05
 
 ## Current Sprint
 
@@ -26,7 +26,7 @@ Issue #898 is completed through PR #900. Exact verified head `e0f36abc2d028f640e
 
 The final behavioral capability evidence is fail-closed: boundary-aware candidate image `sha256:3c34a4e13863f0b76cdac74ac38010b1b601ceaddb9445d73bd77a991c5b0646` accepts only the approved pre-cutoff plus due post-cutoff synthetic snapshots under `--pull never --network none --read-only`, while the deployed persistent Gateway image `sha256:16a78adc648ddc84a74d3098e8bb8338d3cd5349c6a055b801dc93ee675447c6` incorrectly discovers all three synthetic snapshots. The recurring guard therefore refuses activation on the deployed image before any mutation. Issue #901 is the next Ready Work Package: perform a fresh exact-main read-only preflight, prepare a boundary-aware Gateway image and rollback evidence, then stop for explicit Product Owner approval before the Gateway-only production refresh. Delivery and scheduler remain OFF.
 
-Issue #901 is now active in repository hardening. Fresh inspection found the earlier Gateway refresh guard built its target image only after Product Owner approval and therefore could not bind the approval to one immutable target image. The local #901 remediation requires `--expected-target-image-id`, removes the post-approval build, requires that prebuilt target to be locally available, different from the deployed image, labeled with exact `org.opencontainers.image.revision`, and behaviorally pass the same network-isolated bootstrap-boundary semantics before `MUTATED=1`. Focused Gateway-refresh / recurring-activation / Stage-1 safety coverage is 45/45 PASS. No production container, scheduler, delivery flag or Telegram outbox was mutated while preparing this repository candidate.
+Issue #901 repository hardening is active in PR #904. A provisional pre-merge read-only proof on then-current `main` `d6d3332bc43764831cc27b3a8c43e731965df87e` produced revision-labeled image `sha256:83aa8f8e82cf812d6bb0c8f6970b0cb6818cdf0574d8cb1b01689e3249d22477` and confirmed the intended behavioral separation: deployed image `sha256:16a78adc648ddc84a74d3098e8bb8338d3cd5349c6a055b801dc93ee675447c6` FAILs the bootstrap/cutoff probe while the candidate PASSes under `--pull never --network none --read-only`; missing approval exits 64 before runtime access. Evidence `runtime/evidence/tg04-901-preflight-20260904T211013Z` also proves that this preflight did not change the production Gateway, core container identities, outbox, Tailscale Serve topology, delivery/worker state or weekday scheduler. Because PR #904 itself changes the guarded refresh implementation, `sha256:83aa8f8e82cf812d6bb0c8f6970b0cb6818cdf0574d8cb1b01689e3249d22477` is **not** final Product Owner approval authority. The required sequence is PR #904 exact-head verification/review → GREEN merge → sync exact merged `main` → rebuild a target image labeled with that exact merged-main SHA → rerun the full read-only production/outbox/core/Tailscale/rollback preflight → only then request explicit Product Owner approval for the Gateway-only recreate. No Telegram send or recurring activation is authorized.
 
 ## Issue #854 — Telegram Mini App persisted-report schema contract repair completed
 
