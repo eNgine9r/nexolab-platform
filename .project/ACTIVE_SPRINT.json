@@ -1876,7 +1876,7 @@
         "group_title_observed": "TestLAB",
         "bot_username_observed": "nex0lab_bot",
         "group_numeric_identity": "confirmed_runtime_only_not_committed",
-        "next_gate": "complete_issue_860_state_reconciliation_then_build_and_stage_verified_arm64_frontend_artifact_then_product_owner_cutover_approval_then_repeat_real_signed_miniapp_snapshot_acceptance",
+        "next_gate": "product_owner_cutover_approval_for_exact_source_9a3556b25b257396d15db80af591d1cc3684b8f7_artifact_9918720619_then_guarded_deployment_then_repeat_real_signed_miniapp_snapshot_acceptance",
         "backend_provisioning_helper": "local_verified_5_passed_full_gateway_46_passed",
         "backend_principal_target": "nexolab-telegram_laboratory_technician_reports.read_only",
         "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled",
@@ -1910,9 +1910,9 @@
         "phone_webview_main_launch": "real_ios_webview_reached_gateway_old_3fb36_frontend_missing_start_param_rendered_generic_denied",
         "identity_rbac_runtime": "protected_link_valid_identity_active_membership_active_administrator_reports_read_authorized",
         "scheduler_prerequisite": "issue_845_pr846_merged_green_fail_closed_off",
-        "state_reconciliation": "issue_860_active_after_issue_854_verified_green_and_closed",
+        "state_reconciliation": "issue_860_pr861_merged_9a3556b25b257396d15db80af591d1cc3684b8f7_tg04_active",
         "main_arm64_artifact_preflight": "run_33781986481_artifact_9904235935_green_not_stage2_candidate_missing_tg04_pr842_repairs",
-        "current_gate": "issue_860_state_reconciliation_before_corrected_frontend_artifact",
+        "current_gate": "product_owner_cutover_approval_for_corrected_frontend",
         "pr842_repository_merge": "merged_main_13ab26392fcb1c1385dca3c1f619da4512fe568c_issue825_kept_open",
         "stage2_exact_main_artifact": "run_33786462681_artifact_9905912342_sha256_9ea8769da2dc0466b61354aee961d5564a1565bcda6eabe74b63c437207ef97e",
         "stage2_artifact_staging": "runtime/staging/tg04-stage2-13ab2639_checksums_source_platform_node_contract_verified",
@@ -1938,7 +1938,15 @@
         "signed_miniapp_snapshot": "76957482-57c4-4daf-ac30-d8592847cfbd_cooljet_2026-09-03_payload_sha256_3c4cb6e4e5100054914a70001ba8a9d430794c01fbbc5f11c25f543291f59f34",
         "schema_contract_root_cause": "tg01_nexolab.daily-refrigeration-report.v1_frontend_stale_refrigeration-daily-report/v1",
         "schema_contract_repair": "issue_854_pr855_verified_head_cb4db273ab15e42654ee53ef6629e8021d182f7c_core_offline_telegram_container_merge_gate_green",
-        "corrected_frontend_deployment": "not_started_requires_verified_arm64_artifact_and_separate_product_owner_cutover_approval"
+        "corrected_frontend_deployment": "not_started_requires_product_owner_cutover_approval_exact_source_9a3556b25b257396d15db80af591d1cc3684b8f7_artifact_9918720619",
+        "schema_repair_merge": "pr855_merged_747e6f23eab6f2a027b5ab021c1fe91d81434305",
+        "corrected_frontend_artifact": "run_33821653923_artifact_9918720619_digest_sha256_dc7fc9182ee9929d0f4c507aa989c03cb1845d4ea5a3eeb1d977902894b8781e",
+        "corrected_frontend_artifact_source": "9a3556b25b257396d15db80af591d1cc3684b8f7",
+        "corrected_frontend_artifact_build": "linux_arm64_node_22.23.1_next_16.2.12_build_lK2mXv7b6IZUUeVWXy-VJ",
+        "corrected_frontend_artifact_staging": "runtime/staging/tg04-schema-fix-9a3556b2_integrity_public_contract_archive_safety_pass",
+        "corrected_frontend_source_selection": "pass_deployed_13ab26392fcb1c1385dca3c1f619da4512fe568c_target_9a3556b25b257396d15db80af591d1cc3684b8f7_origin_main_9a3556b25b257396d15db80af591d1cc3684b8f7",
+        "corrected_frontend_isolated_candidate": "pass_loopback_13022_routes_root_nodes_live_energy_sessions_telegram-miniapp_http_200_cleanup_port_free_dashboard_200_before_during_after",
+        "corrected_frontend_runtime_recheck": "telemetry_ready_database_ready_mqtt_ready_queue_0_gateway_ready_delivery_false_miniapp_true_worker_false_last_send_null_scheduler_false"
       }
     },
     {
