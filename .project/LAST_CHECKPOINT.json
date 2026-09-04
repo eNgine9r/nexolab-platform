@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-05T01:21:48+03:00",
+  "timestamp": "2026-09-05T02:10:47+03:00",
   "actor": "chatgpt",
-  "event": "issue_901_final_repository_candidate_local_canonical_green",
+  "event": "issue_901_fresh_review_root_fetch_context_remediated_local_candidate",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -54,7 +54,7 @@
       "source_authority": "controlled_source_deployment:9a3556b25b257396d15db80af591d1cc3684b8f7:schema_20260902_0031:linux_arm64:lan:ready",
       "runtime_evidence_path": "runtime/evidence/tg04-901-preflight-20260904T211013Z",
       "approval_target_status": "PROVISIONAL_INVALID_FOR_FINAL_APPROVAL_AFTER_PR904_MERGE_REBUILD_REQUIRED",
-      "latest_review_finding": "p1_immutable_build_context_resolved_locally; followup_p1_stale_origin_main_without_fetch_and_p2_missing_runnable_preapproval_boundary_probe_resolved_locally_pending_exact_head_authority",
+      "latest_review_finding": "fresh_p2_guard_fetch_under_sudo_would_use_root_git_credentials",
       "review_p1_remediation": "exact_git_object_gateway_subtree_streamed_by_git_archive_into_docker_build_plus_source_tree_label_verified_by_refresh_guard_before_behavioral_probe_and_mutation",
       "approval_candidate_build_context": "git_archive_exact_source_sha_colon_services_telegram_gateway",
       "target_source_tree_contract": "io.nexolab.source-tree_must_equal_git_rev_parse_expected_source_services_telegram_gateway",
@@ -65,11 +65,17 @@
       "standalone_boundary_probe_existing_5b_image": "PASS_source_5b180658_image_sha256_24823ade_exact_revision_tree_and_discovery_boundary_nonfinal_premerge_evidence",
       "ci_classifier_new_helper": "known_deployment_runtime_fail_closed_false_no_unrelated_external_workflows",
       "local_verified_candidate_sha": "dda39db7b9ddd1486163975a8a483eb50e2c1eb6",
-      "local_canonical_verifier": "GREEN_full_core_quality_143_files_697_tests_production_build_central_edge_compose"
+      "local_canonical_verifier": "GREEN_full_core_quality_143_files_697_tests_production_build_central_edge_compose",
+      "review_p2_invoking_git_user_remediation": "production guard requires valid nonroot SUDO_UID/SUDO_GID, resolves that account, requires repository ownership match, and performs git fetch origin main via runuser before root-only runtime checks",
+      "exact_git_object_probe_remediation": "runbook_and_guard_execute_boundary_helper_from_exact_SOURCE_SHA_git_object_via_git_show_not_mutable_worktree",
+      "latest_code_candidate_sha": "a0c0dd16ca836605126a1966c41075b1cf574390",
+      "latest_exact_head_local_targeted": "47_passed_gateway_refresh_recurring_activation_stage1_safety_plus_shell_syntax_git_diff_check",
+      "heavy_local_exact_head_gate": "not_rerun_on_production_4gb_pi_because_swap_2g_of_2g_used_and_runtime_competition_risk; GitHub exact-head full CI required",
+      "last_full_local_canonical_verified_code_sha": "dda39db7b9ddd1486163975a8a483eb50e2c1eb6"
     }
   },
   "observations": [],
-  "next_action": "verify this state-only checkpoint delta, push PR #904 exact head, require exact-head GitHub CI and fresh Codex review, resolve all review threads, and merge only GREEN; then run fresh exact-merged-main immutable target build and full read-only production preflight before requesting Product Owner refresh approval",
+  "next_action": "validate and commit this state-only checkpoint, push PR #904 exact head, require fresh exact-head GitHub CI and fresh Codex review, resolve all threads, merge only GREEN; then run fresh exact-merged-main immutable target build and full read-only production preflight before requesting Product Owner refresh approval",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
