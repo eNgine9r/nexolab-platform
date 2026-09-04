@@ -20,9 +20,11 @@ Updated: 2026-09-04
 
 ## Issue #825 — TG-04 real Telegram acceptance
 
-**Hard blocker: explicit Product Owner approval for one controlled TestLAB group send.** The corrected Mini App cutover is complete on source `9a3556b25b257396d15db80af591d1cc3684b8f7`, evidence `runtime/deployments/20260904T032305Z`, schema `20260902_0031`. Real signed iOS Telegram acceptance passed on exact persisted snapshot `76957482-57c4-4daf-ac30-d8592847cfbd`: the Product Owner screenshots show the canonical `CoolJet` report rendering correctly, and Gateway server-side evidence records `POST /miniapp/report` HTTP 200 after deployment.
+**Hard blocker: Issue #869 implementation is blocked by exhausted Codex usage capacity.** Real signed iOS Mini App acceptance is PASS on exact snapshot `76957482-57c4-4daf-ac30-d8592847cfbd`, but the existing long-running Telegram worker is not acceptable for the next gate because it can discover and drain multiple eligible snapshots when delivery is enabled. #869 therefore owns an exact-snapshot, at-most-one-call one-shot send guard and production no-send dry-run prerequisite.
 
-Telegram Gateway remains `ready` with `delivery_enabled=false`, `miniapp_enabled=true`, worker stopped and `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. No TestLAB report has been sent during this acceptance cycle. The next action must be limited to exactly one controlled group delivery after explicit approval, with scheduler still OFF; then verify delivery identity, idempotency/no duplicate behavior and failure/retry handling before any recurring schedule activation. XJP60D recurring read retries are tracked separately in #866 and are not a TG-04 blocker.
+Codex CLI `0.152.0` was invoked on preserved branch `feat/869-telegram-controlled-single-send` with the complete scoped Work Package and returned `You've hit your usage limit` before any tracked implementation. It reported retry availability at `2026-09-07 11:06`. `PROJECT_PROFILE.yaml` classifies `exhausted_agent_usage_limit` as a hard blocker. Do not bypass this by manually enabling the persistent worker, directly calling Telegram, changing the Implementation Engineer role, or broadening scope.
+
+Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. No TestLAB message has been sent in the current acceptance cycle. Resume #869 only after legitimate Codex capacity is available, then merge GREEN and prove the exact snapshot with a production no-send dry-run before asking the Product Owner for one controlled TestLAB send.
 
 ## Issue #824 — TG-03 completed and merged
 
