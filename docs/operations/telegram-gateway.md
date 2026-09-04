@@ -227,3 +227,95 @@ sudo scripts/deploy-telegram-miniapp-stage1.sh \
 Stage 1 builds the gateway from that exact tracked source, prepares only the three runtime-consumed protected files for the pinned nonroot group, and starts only `telegram-gateway` with Compose `--no-deps --no-build`. It forces `TELEGRAM_ENABLED=false` and `TELEGRAM_MINIAPP_ENABLED=true`, so the delivery worker remains stopped while signed Mini App requests can be validated.
 
 The guard records evidence under `runtime/evidence/tg04-telegram-stage1-*`, verifies Dashboard/Telemetry/frontend health before and after, requires unchanged identities for the existing PostgreSQL/MQTT/MinIO/Telemetry/Device Agent containers, and proves Tailscale Serve topology did not change. On a Stage 1 failure it removes only the newly created gateway container and leaves the persistent delivery volume intact. It never uses `compose down`, deletes volumes, sends a report, enables the weekday schedule, or touches Modbus/hardware.
+
+## TG-04 exact-snapshot controlled one-shot delivery
+
+Do not enable the long-running delivery worker for the first real TestLAB acceptance send.
+`TelegramDeliveryWorker` intentionally discovers eligible snapshots in pages, so it is not an
+"exactly one message" acceptance tool. Use `app.controlled_send` from an immutable gateway image
+instead. The command fetches one explicit snapshot ID, verifies its expected payload SHA-256 and
+organization, and can claim only that snapshot's exact durable outbox key.
+
+The persistent gateway must remain `TELEGRAM_ENABLED=false`, and the weekday report scheduler must
+remain disabled. The one-shot command refuses to run if its own resolved `TELEGRAM_ENABLED` is
+`true`. `--dry-run` and `--approve-single-send` are mutually exclusive; a real call requires the
+literal acknowledgement `SEND_EXACT_SNAPSHOT_ONCE`.
+
+Before any controlled dry-run, verify the repository is clean and the site safety boundary is
+still closed:
+
+```bash
+cd ~/nexolab-platform
+SOURCE_SHA="$(git rev-parse HEAD)"
+test -z "$(git status --porcelain)"
+test "$(git rev-parse origin/main)" = "$SOURCE_SHA"
+
+curl -fsS http://127.0.0.1:8090/health/ready | python3 -c '
+import json,sys
+p=json.load(sys.stdin)
+assert p["delivery_enabled"] is False and p["running"] is False
+assert p["last_send_at"] is None
+'
+```
+
+Also prove the scheduler remains fail-closed and build a gateway image from that exact source:
+
+```bash
+docker inspect nexolab-central-telemetry-service-1 \
+  --format '{{range .Config.Env}}{{println .}}{{end}}' \
+  | grep -Fx 'DAILY_REPORTS_SCHEDULER_ENABLED=false'
+
+IMAGE_TAG="nexolab-telegram-gateway:tg04-one-shot-${SOURCE_SHA:0:12}"
+docker build --tag "$IMAGE_TAG" services/telegram-gateway
+IMAGE_ID="$(docker image inspect --format '{{.Id}}' "$IMAGE_TAG")"
+test -n "$IMAGE_ID"
+```
+
+Keep the real snapshot ID and expected digest in the operator shell only. Do not put the numeric
+Telegram destination, bot token, backend password, rendered report body or Telegram identity in
+shell arguments, evidence, screenshots or Git. The protected env file supplies the destination
+inside the ephemeral container:
+
+```bash
+SNAPSHOT_ID='<exact-persisted-snapshot-uuid>'
+EXPECTED_SHA256='<exact-64-char-payload-sha256>'
+CENTRAL_ENV="$PWD/infrastructure/compose/.env.central"
+TELEGRAM_ENV='/etc/nexolab/telegram/telegram.env'
+
+sudo env TELEGRAM_GATEWAY_IMAGE="$IMAGE_TAG" docker compose \
+  --env-file "$CENTRAL_ENV" \
+  --env-file "$TELEGRAM_ENV" \
+  -f infrastructure/compose/compose.central.yaml \
+  -f infrastructure/compose/compose.telegram.yaml \
+  --profile telegram \
+  run --rm --no-deps --no-build \
+  -e TELEGRAM_ENABLED=false \
+  telegram-gateway \
+  -m app.controlled_send \
+  --snapshot-id "$SNAPSHOT_ID" \
+  --expected-payload-sha256 "$EXPECTED_SHA256" \
+  --dry-run
+```
+
+A successful dry-run returns sanitized JSON with `status=dry_run_ready`, the exact snapshot ID,
+payload digest and `delivery_state=absent` or `pending`. It makes no Telegram API call and does not
+create or transition an outbox delivery. `already_sent` is also a safe idempotent result. Any
+`sending`, `retry_wait`, `failed`, digest mismatch or `duplicate_risk` state is a stop condition;
+do not repair/reset it ad hoc.
+
+Only after the dry-run evidence is accepted and the Product Owner separately authorizes exactly
+one real TestLAB message, repeat the same ephemeral command and replace `--dry-run` with:
+
+```text
+--approve-single-send SEND_EXACT_SNAPSHOT_ONCE
+```
+
+One invocation makes at most one Telegram `sendMessage` request. A successful response is committed
+to the same durable SQLite outbox as `sent`; rerunning the exact command becomes an idempotent
+`already_sent` no-op. A Telegram API failure is terminal for this controlled attempt rather than
+being placed on background retry. Retryable/unknown failures set duplicate risk and require a new
+explicit resolution gate before any further send attempt.
+
+After the attempt, re-run the health/scheduler checks above. The persistent gateway must still
+show delivery disabled and worker stopped, and the weekday scheduler must still be `false`. Do not
+turn on the permanent worker or 07:50 schedule as part of this one-shot acceptance step.

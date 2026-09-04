@@ -40,7 +40,16 @@ def sample_snapshot(*, snapshot_id: str = "snapshot-1", status: str = "normal") 
         "alerts": {"active_count": 0, "recent_count": 0, "truncated": False, "items": []},
         "quality": {"status": "complete", "reasons": []},
     }
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    encoded = (
+        json.dumps(
+            payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+        + b"\n"
+    )
     return ReportSnapshot(
         id=snapshot_id,
         organization_id=ORG_ID,

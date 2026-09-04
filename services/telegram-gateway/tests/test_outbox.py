@@ -83,3 +83,32 @@ def test_outbox_uses_private_filesystem_permissions(tmp_path) -> None:
     DeliveryOutbox(str(path))
     assert path.parent.stat().st_mode & 0o777 == 0o700
     assert path.stat().st_mode & 0o777 == 0o600
+
+
+def test_read_only_inspection_does_not_create_missing_outbox(tmp_path) -> None:
+    path = tmp_path / "missing" / "outbox.db"
+    assert DeliveryOutbox.inspect_existing(
+        str(path),
+        "snapshot-1",
+        DESTINATION,
+    ) is None
+    assert path.exists() is False
+    assert path.parent.exists() is False
+
+
+def test_exact_claim_cannot_consume_unrelated_pending_delivery(tmp_path) -> None:
+    outbox = DeliveryOutbox(str(tmp_path / "outbox.db"))
+    unrelated = sample_snapshot(snapshot_id="snapshot-unrelated")
+    target = sample_snapshot(snapshot_id="snapshot-target")
+    outbox.enqueue(unrelated, DESTINATION, message(), now=NOW)
+    target_record, _ = outbox.enqueue(target, DESTINATION, message(), now=NOW)
+
+    claimed = outbox.claim_exact(target.id, DESTINATION, now=NOW)
+
+    assert claimed.id == target_record.id
+    assert claimed.snapshot_id == target.id
+    assert claimed.state is DeliveryState.SENDING
+    untouched = outbox.get_by_snapshot(unrelated.id, DESTINATION)
+    assert untouched is not None
+    assert untouched.state is DeliveryState.PENDING
+    assert untouched.attempts == 0
