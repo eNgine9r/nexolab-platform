@@ -16,7 +16,7 @@ Updated: 2026-09-03
 
 ## Issue #854 — Telegram Mini App persisted-report schema contract drift
 
-**Active focused blocker for #825; CI-routing dependency #856 is cleared through merged PR #857 (`3ee5888131f081982d9ac304ab8c86a8f60d3640`).** Real iOS Telegram opened exact snapshot `76957482-57c4-4daf-ac30-d8592847cfbd`; gateway logs recorded HTTP 200 for the real signed Mini App request, but the browser rendered `Некоректний формат звіту`. TG-01 production payload authority is `nexolab.daily-refrigeration-report.v1`; the Mini App parser and synthetic fixtures still expected stale `refrigeration-daily-report/v1`. The repair is bounded to the browser contract/test fixtures plus truthful state. Delivery remains OFF, worker stopped, `last_send_at=null`, scheduler OFF. #825 resumes only after #854 exact-head CI is GREEN and merged.
+**Active focused blocker for #825; CI-routing #856 and trigger-contract #858 dependencies are cleared through merged PRs #857 and #859.** Real iOS Telegram opened exact snapshot `76957482-57c4-4daf-ac30-d8592847cfbd`; gateway logs recorded HTTP 200 for the real signed Mini App request, but the browser rendered `Некоректний формат звіту`. TG-01 production payload authority is `nexolab.daily-refrigeration-report.v1`; the Mini App parser and synthetic fixtures still expected stale `refrigeration-daily-report/v1`. The repair is bounded to the browser contract/test fixtures plus truthful state. Delivery remains OFF, worker stopped, `last_send_at=null`, scheduler OFF. #825 resumes only after #854 exact-head CI is GREEN and merged.
 
 ## Issue #825 — TG-04 real Telegram acceptance
 

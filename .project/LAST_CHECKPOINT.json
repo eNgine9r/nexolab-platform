@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-04T02:50:30+03:00",
+  "timestamp": "2026-09-04T03:00:43+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_854_ci_routing_dependency_merged_candidate_rebased",
+  "event": "issue_854_ci_dependencies_cleared_candidate_rebased",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "13ab26392fcb1c1385dca3c1f619da4512fe568c"
@@ -36,7 +36,8 @@
       "full_host_typecheck_note": "historical_runtime_release_trees_are_included_by_root_tsconfig_on_pi_and_fail_independently_of_issue_854",
       "post_dependency_source_tests": "7_passed_runtime_release_copy_excluded",
       "ci_routing_dependency": "issue_856_pr_857_merged_3ee5888131f081982d9ac304ab8c86a8f60d3640",
-      "classifier": "fail_closed_false_unknown_files_empty_required_offline_telegram_container"
+      "classifier": "fail_closed_false_unknown_files_empty_required_offline_telegram_container",
+      "ci_trigger_dependency": "issue_858_pr_859_verified_head_e1a5181ff9c7ec2553947972cdcf5aedbdb9a442_green_merge_gate"
     },
     "runtime_safety": {
       "telegram_delivery": "disabled",
@@ -46,7 +47,7 @@
     }
   },
   "observations": [],
-  "next_action": "Publish the #855 candidate rebased onto merged #857, require exact-head GREEN CI and merge #855. Then prepare the corrected frontend deployment and stop for separate Product Owner production-cutover approval before repeating the signed Telegram phone acceptance. Do not send a Telegram report or enable the 07:50 scheduler.",
+  "next_action": "Publish the #855 candidate rebased onto merged #857 and #859, require exact-head GREEN CI and merge #855. Then prepare the corrected frontend deployment and stop for separate Product Owner production-cutover approval before repeating the signed Telegram phone acceptance. Do not send a Telegram report or enable the 07:50 scheduler.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
