@@ -2452,7 +2452,7 @@
         "modbus_write": "none",
         "hardware_write": "none",
         "production_refresh_authorization": "NOT_REQUESTED_PR904_MUST_MERGE_GREEN_THEN_FRESH_EXACT_MAIN_PREFLIGHT",
-        "next_gate": "commit final source-fresh runnable-preflight remediation -> canonical exact candidate GREEN -> push exact head -> GitHub exact-head CI + fresh Codex review -> resolve all review threads -> merge only GREEN; then fresh exact-merged-main immutable Git-object target build/read-only runtime preflight before Product Owner refresh approval",
+        "next_gate": "state-only checkpoint verify -> push exact PR #904 head -> GitHub exact-head CI + fresh Codex review -> resolve all review threads -> merge only GREEN; then fresh exact-merged-main immutable Git-object target build/read-only runtime preflight before Product Owner refresh approval",
         "guard_hardening": "target_image_must_be_prebuilt_preapproved_exact_image_id_with_exact_OCI_revision_and_behavioral_boundary_before_MUTATED",
         "post_approval_build": "forbidden_removed_from_refresh_guard",
         "target_image_contract": "local_exact_preapproved_sha256_image_required_not_equal_current_image",
@@ -2489,7 +2489,9 @@
         "source_freshness_contract": "git_fetch_origin_main_required_before_exact_remote_main_authority_in_preapproval_runbook_and_approved_refresh_guard",
         "standalone_boundary_probe": "scripts/telegram-gateway-boundary-runtime-proof.sh_no_secrets_no_production_mounts_network_none_read_only",
         "standalone_boundary_probe_existing_5b_image": "PASS_source_5b180658_image_sha256_24823ade_exact_revision_tree_and_discovery_boundary_nonfinal_premerge_evidence",
-        "ci_classifier_new_helper": "known_deployment_runtime_fail_closed_false_no_unrelated_external_workflows"
+        "ci_classifier_new_helper": "known_deployment_runtime_fail_closed_false_no_unrelated_external_workflows",
+        "local_verified_candidate_sha": "dda39db7b9ddd1486163975a8a483eb50e2c1eb6",
+        "local_canonical_verifier": "GREEN_full_core_quality_143_files_697_tests_production_build_central_edge_compose"
       }
     }
   ],
