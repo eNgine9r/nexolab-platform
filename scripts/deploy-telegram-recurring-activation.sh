@@ -13,6 +13,9 @@ OBSERVABILITY_OVERLAY="$COMPOSE_DIR/compose.observability.yaml"
 PLAN_SCRIPT="$REPO_ROOT/scripts/tg04-recurring-activation-runtime-plan.py"
 EVIDENCE_ROOT="${NEXOLAB_TG04_EVIDENCE_ROOT:-$REPO_ROOT/runtime/evidence}"
 LOCK_FILE="${NEXOLAB_TG04_ACTIVATION_LOCK_FILE:-/run/lock/nexolab-tg04-recurring-activation.lock}"
+GATEWAY_REFRESH_LOCK_FILE="${NEXOLAB_TG04_REFRESH_LOCK_FILE:-/run/lock/nexolab-tg04-gateway-refresh.lock}"
+STAGE1_LOCK_FILE="${NEXOLAB_TG04_LOCK_FILE:-/run/lock/nexolab-tg04-stage1.lock}"
+CURRENT_HEAD_LOCK_NAME="nexolab-current-head-launch.lock"
 TELEMETRY_NAME="nexolab-central-telemetry-service-1"
 GATEWAY_NAME="nexolab-central-telegram-gateway-1"
 EXPECTED_SOURCE=""
@@ -23,6 +26,7 @@ APPROVED="0"
 MUTATED="0"
 SUCCESS="0"
 ROLLBACK_ROOT=""
+ROLLBACK_PROVEN="0"
 
 usage() {
   cat <<'USAGE'
@@ -67,7 +71,7 @@ done
 [[ "$APPROVED" == "1" ]] || { echo "ERROR: explicit --approve-recurring-activation is required" >&2; exit 64; }
 [[ "$EUID" -eq 0 ]] || { echo "ERROR: root_required" >&2; exit 77; }
 
-for command in git docker curl python3 flock sha256sum tailscale grep sed cp rm seq awk date tee; do
+for command in git docker curl python3 flock sha256sum tailscale grep sed cp cmp rm seq awk date tee dirname; do
   command -v "$command" >/dev/null 2>&1 || { echo "ERROR: missing command: $command" >&2; exit 69; }
 done
 docker compose version >/dev/null 2>&1 || { echo "ERROR: docker compose unavailable" >&2; exit 69; }
@@ -110,6 +114,41 @@ REMOTE_MAIN="$("${GIT[@]}" rev-parse origin/main 2>/dev/null || true)"
 [[ "$REMOTE_MAIN" == "$EXPECTED_SOURCE" ]] || { echo "ERROR: expected source is not current origin/main" >&2; exit 65; }
 [[ -z "$("${GIT[@]}" status --porcelain --untracked-files=all)" ]] || { echo "ERROR: source worktree is not clean" >&2; exit 65; }
 
+declare -a MUTATION_LOCK_FDS=()
+declare -A MUTATION_LOCK_PATHS=()
+acquire_mutation_lock() {
+  local path="$1" fd parent
+  [[ -n "${MUTATION_LOCK_PATHS[$path]+present}" ]] && return 0
+  parent="$(dirname "$path")"
+  [[ -d "$parent" ]] || { echo "ERROR: mutation lock directory unavailable: $parent" >&2; exit 75; }
+  exec {fd}>"$path" || { echo "ERROR: cannot open mutation lock" >&2; exit 75; }
+  if ! flock -n "$fd"; then
+    eval "exec ${fd}>&-"
+    echo "ERROR: another NEXOLAB deployment operation is running" >&2
+    exit 75
+  fi
+  MUTATION_LOCK_FDS+=("$fd")
+  MUTATION_LOCK_PATHS["$path"]="1"
+}
+
+acquire_mutation_lock "$LOCK_FILE"
+acquire_mutation_lock "$GATEWAY_REFRESH_LOCK_FILE"
+acquire_mutation_lock "$STAGE1_LOCK_FILE"
+acquire_mutation_lock "/tmp/$CURRENT_HEAD_LOCK_NAME"
+if [[ -n "${XDG_RUNTIME_DIR:-}" && -d "$XDG_RUNTIME_DIR" ]]; then
+  acquire_mutation_lock "$XDG_RUNTIME_DIR/$CURRENT_HEAD_LOCK_NAME"
+fi
+if [[ "${SUDO_UID:-}" =~ ^[0-9]+$ && -d "/run/user/$SUDO_UID" ]]; then
+  acquire_mutation_lock "/run/user/$SUDO_UID/$CURRENT_HEAD_LOCK_NAME"
+fi
+
+# Re-check source only after all known production mutation locks are held.
+ACTUAL_SOURCE="$("${GIT[@]}" rev-parse HEAD)"
+[[ "$ACTUAL_SOURCE" == "$EXPECTED_SOURCE" ]] || { echo "ERROR: source SHA changed before locked baseline" >&2; exit 65; }
+REMOTE_MAIN="$("${GIT[@]}" rev-parse origin/main 2>/dev/null || true)"
+[[ "$REMOTE_MAIN" == "$EXPECTED_SOURCE" ]] || { echo "ERROR: origin/main changed before locked baseline" >&2; exit 65; }
+[[ -z "$("${GIT[@]}" status --porcelain --untracked-files=all)" ]] || { echo "ERROR: source worktree changed before locked baseline" >&2; exit 65; }
+
 mkdir -p "$EVIDENCE_ROOT"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 EVIDENCE_DIR="$EVIDENCE_ROOT/tg04-recurring-activation-$STAMP"
@@ -120,8 +159,6 @@ PLAN_AFTER_SCHEDULER_FILE="$EVIDENCE_DIR/plan-after-scheduler.json"
 PLAN_AFTER_DELIVERY_FILE="$EVIDENCE_DIR/plan-after-delivery.json"
 PIN_ENV="$EVIDENCE_DIR/image-pins.env"
 ROLLBACK_OVERRIDE_ENV="$EVIDENCE_DIR/rollback-overrides.env"
-exec 9>"$LOCK_FILE"
-flock -n 9 || { echo "ERROR: another NEXOLAB deployment operation is running" >&2; exit 75; }
 
 log() { printf '[%s] %s\n' "$(date --iso-8601=seconds)" "$*" | tee -a "$SUMMARY"; }
 container_id() { docker inspect --format '{{.Id}}' "$1" 2>/dev/null; }
@@ -202,6 +239,28 @@ try:
 finally:
     if tmp.exists(): tmp.unlink()
 PYRESTORE
+}
+
+persistent_flags_disabled_ready() {
+  python3 - "$CENTRAL_ENV" "$TELEGRAM_ENV" <<'PYPERSIST'
+from pathlib import Path
+import sys
+
+def parse(path):
+    values={}; counts={}
+    for raw in Path(path).read_text(encoding="utf-8").splitlines():
+        line=raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key,value=line.split("=",1); key=key.strip(); value=value.strip()
+        counts[key]=counts.get(key,0)+1; values[key]=value
+    return values,counts
+central,cc=parse(sys.argv[1]); telegram,tc=parse(sys.argv[2])
+assert cc.get("DAILY_REPORTS_SCHEDULER_ENABLED",0) <= 1
+assert central.get("DAILY_REPORTS_SCHEDULER_ENABLED","false") == "false"
+assert tc.get("TELEGRAM_ENABLED") == 1
+assert telegram.get("TELEGRAM_ENABLED") == "false"
+PYPERSIST
 }
 
 gateway_disabled_ready() {
@@ -348,8 +407,21 @@ rollback_on_exit() {
   trap - EXIT
   if [[ "$SUCCESS" != "1" && "$MUTATED" == "1" ]]; then
     log "Activation failed; disabling recurring delivery and restoring previous runtime config/images"
-    restore_file "$ROLLBACK_ROOT/central.env" "$CENTRAL_ENV" || true
-    restore_file "$ROLLBACK_ROOT/telegram.env" "$TELEGRAM_ENV" || true
+    CENTRAL_RESTORE_OK="0"
+    TELEGRAM_RESTORE_OK="0"
+    PERSISTENT_ROLLBACK_OK="0"
+    if restore_file "$ROLLBACK_ROOT/central.env" "$CENTRAL_ENV" \
+      && cmp -s "$ROLLBACK_ROOT/central.env" "$CENTRAL_ENV"; then
+      CENTRAL_RESTORE_OK="1"
+    fi
+    if restore_file "$ROLLBACK_ROOT/telegram.env" "$TELEGRAM_ENV" \
+      && cmp -s "$ROLLBACK_ROOT/telegram.env" "$TELEGRAM_ENV"; then
+      TELEGRAM_RESTORE_OK="1"
+    fi
+    if [[ "$CENTRAL_RESTORE_OK" == "1" && "$TELEGRAM_RESTORE_OK" == "1" ]] \
+      && persistent_flags_disabled_ready; then
+      PERSISTENT_ROLLBACK_OK="1"
+    fi
     TELEMETRY_ROLLBACK_OK="0"
     if "${COMPOSE[@]}" --env-file "$ROLLBACK_OVERRIDE_ENV" up -d --no-deps --no-build --force-recreate telemetry-service >>"$SUMMARY" 2>&1 \
       && wait_healthy "$TELEMETRY_NAME" \
@@ -364,14 +436,21 @@ rollback_on_exit() {
       && gateway_disabled_ready; then
       GATEWAY_ROLLBACK_OK="1"
     fi
-    if [[ "$TELEMETRY_ROLLBACK_OK" == "1" && "$GATEWAY_ROLLBACK_OK" == "1" ]]; then
-      log "Rollback safety boundary: PASS (scheduler=false delivery=false; Mini App, local auth and observability retained)"
+    if [[ "$PERSISTENT_ROLLBACK_OK" == "1" && "$TELEMETRY_ROLLBACK_OK" == "1" && "$GATEWAY_ROLLBACK_OK" == "1" ]]; then
+      ROLLBACK_PROVEN="1"
+      log "Rollback safety boundary: PASS (persistent scheduler=false delivery=false; runtime closed; Mini App, local auth and observability retained)"
     else
-      log "WARNING: rollback could not prove scheduler=false, delivery=false and preserved runtime overlays"
+      log "WARNING: rollback could not prove persistent scheduler=false/delivery=false and preserved runtime overlays"
     fi
     log "Rollback never deletes generated snapshots, Telegram outbox rows or named volumes"
   fi
-  [[ -n "$ROLLBACK_ROOT" && -d "$ROLLBACK_ROOT" ]] && rm -rf "$ROLLBACK_ROOT"
+  if [[ -n "$ROLLBACK_ROOT" && -d "$ROLLBACK_ROOT" ]]; then
+    if [[ "$SUCCESS" == "1" || "$MUTATED" == "0" || "$ROLLBACK_PROVEN" == "1" ]]; then
+      rm -rf "$ROLLBACK_ROOT"
+    else
+      log "WARNING: rollback backup retained for manual recovery at $ROLLBACK_ROOT"
+    fi
+  fi
   exit "$rc"
 }
 trap rollback_on_exit EXIT

@@ -337,8 +337,11 @@ and an exact planner count match. Telemetry recreation always includes the contr
 `nexolab_telemetry_build_info` metric remain present. If the current controlled Telemetry runtime has
 local operator auth enabled, the guard also requires readable operator-owned key paths and includes
 `compose.local-auth.yaml` in both forward and rollback Telemetry recreations; post-checks prove
-`AUTH_LOCAL_ENABLED=true` and both signing-key mounts survived. It stores secret-bearing config backups
-only in a root-only `/run` directory; evidence files contain no protected env contents.
+`AUTH_LOCAL_ENABLED=true` and both signing-key mounts survived. Before capturing the runtime baseline,
+the guard also acquires the recurring-activation lock plus the existing Gateway-refresh, Stage-1 and
+current-head deployment locks (including the invoking sudo user's runtime lock path) so another known
+production mutation cannot race the two-phase activation. It stores secret-bearing config backups only
+in a root-only `/run` directory; evidence files contain no protected env contents.
 
 Activation is deliberately ordered: first persist `DAILY_REPORTS_SCHEDULER_ENABLED=true` and recreate
 only `telemetry-service` from the pinned current image while Gateway delivery remains OFF. The guard
@@ -352,12 +355,14 @@ Tailscale Serve topology.
 
 If any post-mutation check fails, the guard restores both runtime env files atomically from root-only
 backups and recreates Telemetry and Gateway from the pinned pre-activation images. Rollback is reported
-PASS only after the Telemetry recreation itself succeeds, Telemetry is healthy with
+PASS only after both persistent env files are byte-for-byte restored, their persistent scheduler/delivery
+flags re-validate as OFF, the Telemetry recreation itself succeeds, Telemetry is healthy with
 `DAILY_REPORTS_SCHEDULER_ENABLED=false`, local-auth/observability overlays are still intact, and the
-Gateway is healthy with delivery/worker OFF and Mini App retained. A catch-up snapshot or Telegram
-outbox row already created before a failure is never deleted or rewritten; it becomes explicit evidence
-for a new resolution gate. The guard never uses `compose down`, deletes named volumes, performs
-Modbus/hardware writes, or broadens core NEXOLAB's offline dependency boundary.
+Gateway is healthy with delivery/worker OFF and Mini App retained. If persistent restoration cannot be
+proved, the root-only backup directory is retained for manual recovery instead of being deleted. A
+catch-up snapshot or Telegram outbox row already created before a failure is never deleted or rewritten;
+it becomes explicit evidence for a new resolution gate. The guard never uses `compose down`, deletes
+named volumes, performs Modbus/hardware writes, or broadens core NEXOLAB's offline dependency boundary.
 
 ## TG-04 exact-snapshot controlled one-shot delivery
 

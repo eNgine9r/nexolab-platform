@@ -200,8 +200,40 @@ class RecurringActivationGuardPolicyTests(unittest.TestCase):
         self.assertIn('telemetry_scheduler_disabled_ready', self.text)
         self.assertIn("grep -Fx 'DAILY_REPORTS_SCHEDULER_ENABLED=false'", self.text)
         self.assertIn('TELEMETRY_ROLLBACK_OK="1"', self.text)
-        self.assertIn('Rollback safety boundary: PASS (scheduler=false delivery=false', self.text)
-        self.assertIn('rollback could not prove scheduler=false, delivery=false', self.text)
+        self.assertIn('Rollback safety boundary: PASS (persistent scheduler=false delivery=false', self.text)
+        self.assertIn('rollback could not prove persistent scheduler=false/delivery=false', self.text)
+
+    def test_mutation_locks_cover_other_production_deployment_paths_before_baseline(self):
+        for token in (
+            'GATEWAY_REFRESH_LOCK_FILE',
+            'STAGE1_LOCK_FILE',
+            'CURRENT_HEAD_LOCK_NAME="nexolab-current-head-launch.lock"',
+            'acquire_mutation_lock "$GATEWAY_REFRESH_LOCK_FILE"',
+            'acquire_mutation_lock "$STAGE1_LOCK_FILE"',
+            'acquire_mutation_lock "/tmp/$CURRENT_HEAD_LOCK_NAME"',
+            'SUDO_UID',
+            'source SHA changed before locked baseline',
+        ):
+            self.assertIn(token, self.text)
+        lock_index = self.text.index('acquire_mutation_lock "$LOCK_FILE"')
+        baseline_index = self.text.index('for name in "$TELEMETRY_NAME" "$GATEWAY_NAME"')
+        self.assertLess(lock_index, baseline_index)
+
+    def test_rollback_requires_persistent_env_restore_proof_and_retains_failed_backup(self):
+        for token in (
+            'CENTRAL_RESTORE_OK="0"',
+            'TELEGRAM_RESTORE_OK="0"',
+            'PERSISTENT_ROLLBACK_OK="0"',
+            'cmp -s "$ROLLBACK_ROOT/central.env" "$CENTRAL_ENV"',
+            'cmp -s "$ROLLBACK_ROOT/telegram.env" "$TELEGRAM_ENV"',
+            'persistent_flags_disabled_ready',
+            'PERSISTENT_ROLLBACK_OK="1"',
+            'ROLLBACK_PROVEN="1"',
+            'rollback backup retained for manual recovery',
+        ):
+            self.assertIn(token, self.text)
+        self.assertNotIn('restore_file "$ROLLBACK_ROOT/central.env" "$CENTRAL_ENV" || true', self.text)
+        self.assertNotIn('restore_file "$ROLLBACK_ROOT/telegram.env" "$TELEGRAM_ENV" || true', self.text)
 
     def test_only_telemetry_and_gateway_are_recreated(self):
         self.assertIn("--force-recreate telemetry-service", self.text)
