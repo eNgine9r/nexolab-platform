@@ -32,9 +32,9 @@ Updated: 2026-09-04
 
 ## Issue #825 — TG-04 real Telegram acceptance
 
-**Temporarily blocked only on active child #893. Real topic one-shot PASS.** Real signed iOS Mini App acceptance, the exact General send, protected topic capture, topic no-send dry-run and the separately approved exact topic send are PASS. Durable outbox evidence now contains two distinct `sent` deliveries for the same snapshot: one historical General destination and one forum-topic destination; both have Telegram message IDs, `non_sent=0`, and `duplicate_risk=0`.
+**Hard gate: explicit Product Owner approval for the Gateway-only production refresh. Real topic one-shot PASS.** Real signed iOS Mini App acceptance, the exact General send, protected topic capture, topic no-send dry-run and the separately approved exact topic send are PASS. Durable outbox evidence contains two distinct `sent` deliveries for the same snapshot: one historical General destination and one forum-topic destination; both have Telegram message IDs, `non_sent=0`, and `duplicate_risk=0`.
 
-Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. The persistent Gateway container is still the pre-topic image `tg04-861b9f83670a` and has no topic env contract, so recurring delivery must remain disabled. The next prerequisite is a repository-owned guarded Gateway-only refresh path; its production execution/restart is a separate Product Owner cutover gate. After that, #825 resumes no-duplicate/restart proof before recurring weekday 07:50 activation.
+Issue #893 / PR #894 completed the guarded Gateway-only refresh implementation and exact-head CI. Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. The persistent Gateway container is still the pre-topic image `tg04-861b9f83670a`; no production refresh/restart has been authorized or executed. After explicit Product Owner approval, run only the guarded Gateway refresh, then perform restart/no-duplicate proof before any separate weekday 07:50 scheduler activation gate.
 
 ## Issue #824 — TG-03 completed and merged
 
