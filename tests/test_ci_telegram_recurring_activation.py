@@ -164,17 +164,22 @@ class RecurringActivationGuardPolicyTests(unittest.TestCase):
         self.assertEqual(result.returncode, 64)
         self.assertIn("explicit --approve-recurring-activation is required", result.stderr)
 
-    def test_current_gateway_must_prove_bootstrap_boundary_before_any_mutation(self):
+    def test_current_gateway_must_behaviorally_prove_bootstrap_boundary_before_any_mutation(self):
         for token in (
             'gateway_bootstrap_boundary_capable "$OLD_GATEWAY_IMAGE_ID"',
-            'docker run --pull never --rm --network none',
+            'docker run --pull never --rm --network none --read-only',
             '--entrypoint /usr/bin/python3 "$image"',
-            '"telegram_delivery_activation_cutoff_utc" in fields',
-            '"telegram_delivery_bootstrap_snapshot_ids" in fields',
-            '"snapshot.id not in bootstrap_snapshot_ids"',
+            'approved_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"',
+            'rejected_id="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"',
+            'post_cutoff_id="cccccccc-cccc-cccc-cccc-cccccccccccc"',
+            'telegram_delivery_activation_cutoff_utc=cutoff',
+            'telegram_delivery_bootstrap_snapshot_ids=approved_id',
+            'worker._discover(now)',
+            'assert outbox.ids == [approved_id, post_cutoff_id], outbox.ids',
             'current Gateway image lacks the approved bootstrap delivery boundary',
         ):
             self.assertIn(token, self.text)
+        self.assertNotIn("inspect.getsource", self.text)
         capability = self.text.index('gateway_bootstrap_boundary_capable "$OLD_GATEWAY_IMAGE_ID"')
         first_mutation = self.text.index('MUTATED="1"', capability)
         self.assertLess(capability, first_mutation)

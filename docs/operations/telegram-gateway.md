@@ -334,13 +334,15 @@ sudo scripts/deploy-telegram-recurring-activation.sh \
 The guard requires scheduler and delivery to still be OFF, a clean exact `origin/main`, the pinned
 current service images, the accepted two-row historical outbox with no non-sent/duplicate-risk rows,
 and an exact planner count match. Before any persistent env or service mutation, it also runs the
-pinned current Gateway image as an ephemeral `--network none --pull never` container and proves that
-its packaged `Settings` plus `TelegramDeliveryWorker._discover` implement the activation cutoff and
-exact bootstrap snapshot allow-set contract. If this capability proof fails, activation stops before
-mutation. Do **not** make the recurring guard upgrade the Gateway image implicitly: use the separate
-Product Owner-approved Gateway-only refresh guard above with delivery and scheduler still OFF, then
-rerun the read-only recurring planner/capability preflight and request the recurring activation gate
-again. Telemetry recreation always includes the controlled
+pinned current Gateway image ephemerally with `--pull never --network none --read-only` and behaviorally
+exercises packaged `TelegramDeliveryWorker._discover`: an approved pre-cutoff synthetic snapshot must
+enqueue, an unapproved pre-cutoff snapshot must not enqueue, and a due post-cutoff snapshot must enqueue.
+The probe uses a fake in-memory outbox and never calls Telegram, so it makes no outbound API request and
+writes no persistent state. If this capability proof fails, activation stops before mutation. Do **not**
+make the recurring guard upgrade the Gateway image implicitly: use the separate Product Owner-approved
+Gateway-only refresh guard above with delivery and scheduler still OFF, then rerun the read-only recurring
+planner/capability preflight and request the recurring activation gate again. Telemetry recreation always
+includes the controlled
 `compose.observability.yaml` overlay and proves the existing `NEXOLAB_TELEMETRY_VERSION` plus
 `nexolab_telemetry_build_info` metric remain present. If the current controlled Telemetry runtime has
 local operator auth enabled, the guard also requires readable operator-owned key paths and includes
