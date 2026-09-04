@@ -25,6 +25,7 @@ EXPECTED_MINUTE = 50
 EXPECTED_WINDOW_MINUTES = 720
 POSTGRES = "nexolab-central-postgres-1"
 GATEWAY = "nexolab-central-telegram-gateway-1"
+RUNTIME_READ_TIMEOUT_SECONDS = 15.0
 UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 
 
@@ -46,7 +47,17 @@ class Profile:
 
 
 def _run(command: list[str]) -> str:
-    result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, check=False)
+    try:
+        result = subprocess.run(
+            command,
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=RUNTIME_READ_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise PlanError("runtime_read_timeout") from error
     if result.returncode != 0:
         raise PlanError("runtime_read_failed")
     return result.stdout.strip()

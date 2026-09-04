@@ -76,6 +76,18 @@ class RecurringActivationPlannerTests(unittest.TestCase):
         ):
             return plan.compute_plan(self.NOW)
 
+    def test_runtime_reads_are_bounded_and_timeout_fails_closed(self):
+        with patch.object(
+            plan.subprocess,
+            "run",
+            side_effect=subprocess.TimeoutExpired(
+                cmd=["docker", "exec"],
+                timeout=plan.RUNTIME_READ_TIMEOUT_SECONDS,
+            ),
+        ):
+            with self.assertRaisesRegex(plan.PlanError, "runtime_read_timeout"):
+                plan._run(["docker", "exec"])
+
     def test_missing_due_snapshot_predicts_one_generation_and_one_delivery(self):
         snapshots = [snapshot(SNAPSHOT_1, "2026-09-03", "2026-09-03T04:50:00+00:00")]
         outbox = [delivery(1, SNAPSHOT_1, "general"), delivery(2, SNAPSHOT_1, "topic")]
@@ -171,6 +183,43 @@ class RecurringActivationGuardPolicyTests(unittest.TestCase):
         self.assertIn('set_env_values "$CENTRAL_ENV" DAILY_REPORTS_SCHEDULER_ENABLED true', self.text)
         self.assertIn('set_env_values "$TELEGRAM_ENV" TELEGRAM_ENABLED true TELEGRAM_MINIAPP_ENABLED true', self.text)
         self.assertIn("scheduler snapshot delta did not converge to the approved plan", self.text)
+
+    def test_phase_two_blocks_snapshot_writes_and_rechecks_plan_under_fence(self):
+        for token in (
+            "LOCK TABLE refrigeration_daily_report_snapshots IN SHARE MODE",
+            "acquire_snapshot_write_fence",
+            "snapshot_write_fence_held",
+            "FENCED_PLAN",
+            "activation plan changed before the snapshot mutation fence became authoritative",
+            "snapshot_write_fence=held",
+            "report snapshot mutation fence was lost before delivery mutation",
+            "report snapshot mutation fence was lost during delivery convergence",
+            "release_snapshot_write_fence",
+            "SNAPSHOT_FENCE_HOLD_SECONDS=600",
+            "DELIVERY_CONVERGENCE_SECONDS=120",
+            "DELIVERY_DEADLINE=$((SECONDS + DELIVERY_CONVERGENCE_SECONDS))",
+        ):
+            self.assertIn(token, self.text)
+        acquire = self.text.index("acquire_snapshot_write_fence ||")
+        fenced_plan = self.text.index('FENCED_PLAN="$($PLAN_SCRIPT')
+        delivery_enable = self.text.index('set_env_values "$TELEGRAM_ENV" TELEGRAM_ENABLED true')
+        self.assertLess(acquire, fenced_plan)
+        self.assertLess(fenced_plan, delivery_enable)
+
+    def test_rollback_quiesces_gateway_before_telemetry_wait(self):
+        quiesce_call = self.text.index("if quiesce_gateway_for_rollback; then")
+        telemetry_recreate = self.text.index(
+            'if "${COMPOSE[@]}" --env-file "$ROLLBACK_OVERRIDE_ENV" up -d --no-deps --no-build --force-recreate telemetry-service'
+        )
+        self.assertLess(quiesce_call, telemetry_recreate)
+        for token in (
+            'timeout 12s docker stop --time 5 "$GATEWAY_NAME"',
+            'timeout 8s docker kill "$GATEWAY_NAME"',
+            'Gateway stopped before Telemetry rollback wait',
+            'Gateway force-stopped before Telemetry rollback wait',
+            'GATEWAY_QUIESCE_OK="1"',
+        ):
+            self.assertIn(token, self.text)
 
     def test_active_local_auth_overlay_is_preserved_for_forward_and_rollback(self):
         self.assertIn('LOCAL_AUTH_OVERLAY="$COMPOSE_DIR/compose.local-auth.yaml"', self.text)

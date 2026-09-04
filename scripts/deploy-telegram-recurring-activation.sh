@@ -18,6 +18,7 @@ STAGE1_LOCK_FILE="${NEXOLAB_TG04_LOCK_FILE:-/run/lock/nexolab-tg04-stage1.lock}"
 CURRENT_HEAD_LOCK_NAME="nexolab-current-head-launch.lock"
 TELEMETRY_NAME="nexolab-central-telemetry-service-1"
 GATEWAY_NAME="nexolab-central-telegram-gateway-1"
+POSTGRES_NAME="nexolab-central-postgres-1"
 EXPECTED_SOURCE=""
 EXPECTED_TELEMETRY_IMAGE_ID=""
 EXPECTED_GATEWAY_IMAGE_ID=""
@@ -27,6 +28,11 @@ MUTATED="0"
 SUCCESS="0"
 ROLLBACK_ROOT=""
 ROLLBACK_PROVEN="0"
+SNAPSHOT_FENCE_ACTIVE="0"
+SNAPSHOT_FENCE_APP_NAME=""
+SNAPSHOT_FENCE_CLIENT_PID=""
+SNAPSHOT_FENCE_HOLD_SECONDS=600
+DELIVERY_CONVERGENCE_SECONDS=120
 
 usage() {
   cat <<'USAGE'
@@ -71,7 +77,7 @@ done
 [[ "$APPROVED" == "1" ]] || { echo "ERROR: explicit --approve-recurring-activation is required" >&2; exit 64; }
 [[ "$EUID" -eq 0 ]] || { echo "ERROR: root_required" >&2; exit 77; }
 
-for command in git docker curl python3 flock sha256sum tailscale grep sed cp cmp rm seq awk date tee dirname; do
+for command in git docker curl python3 flock sha256sum tailscale grep sed cp cmp rm seq awk date tee dirname timeout; do
   command -v "$command" >/dev/null 2>&1 || { echo "ERROR: missing command: $command" >&2; exit 69; }
 done
 docker compose version >/dev/null 2>&1 || { echo "ERROR: docker compose unavailable" >&2; exit 69; }
@@ -373,6 +379,60 @@ finally:
 PYRESTORE
 }
 
+snapshot_fence_sql() {
+  local sql="$1"
+  timeout 10s docker exec "$POSTGRES_NAME" sh -ec \
+    'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -v ON_ERROR_STOP=1 -c "$1"' sh "$sql"
+}
+
+snapshot_write_fence_held() {
+  local result
+  [[ -n "$SNAPSHOT_FENCE_APP_NAME" ]] || return 1
+  result="$(snapshot_fence_sql "SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_locks l JOIN pg_stat_activity a ON a.pid=l.pid WHERE a.application_name='${SNAPSHOT_FENCE_APP_NAME}' AND l.relation='refrigeration_daily_report_snapshots'::regclass AND l.mode='ShareLock' AND l.granted) THEN 'yes' ELSE 'no' END;" 2>/dev/null)" || return 1
+  [[ "$result" == "yes" ]]
+}
+
+acquire_snapshot_write_fence() {
+  local transaction_sql
+  [[ "$SNAPSHOT_FENCE_ACTIVE" == "0" ]] || return 0
+  SNAPSHOT_FENCE_APP_NAME="nexolab_tg04_snapshot_fence_${STAMP//[^0-9A-Za-z]/_}_$$"
+  local fence_statement_timeout=$((SNAPSHOT_FENCE_HOLD_SECONDS + 10))
+  local fence_client_timeout=$((SNAPSHOT_FENCE_HOLD_SECONDS + 20))
+  transaction_sql="BEGIN; SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='${fence_statement_timeout}s'; LOCK TABLE refrigeration_daily_report_snapshots IN SHARE MODE; SELECT pg_sleep(${SNAPSHOT_FENCE_HOLD_SECONDS}); COMMIT;"
+  timeout "${fence_client_timeout}s" docker exec "$POSTGRES_NAME" sh -ec \
+    'export PGAPPNAME="$1"; exec psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -qAt -v ON_ERROR_STOP=1 -c "$2"' \
+    sh "$SNAPSHOT_FENCE_APP_NAME" "$transaction_sql" >>"$SUMMARY" 2>&1 &
+  SNAPSHOT_FENCE_CLIENT_PID="$!"
+  for _ in $(seq 1 20); do
+    if snapshot_write_fence_held; then
+      SNAPSHOT_FENCE_ACTIVE="1"
+      log "Snapshot mutation fence: PASS (report snapshot writes blocked; reads remain available)"
+      return 0
+    fi
+    kill -0 "$SNAPSHOT_FENCE_CLIENT_PID" 2>/dev/null || break
+    sleep 0.25
+  done
+  wait "$SNAPSHOT_FENCE_CLIENT_PID" 2>/dev/null || true
+  SNAPSHOT_FENCE_CLIENT_PID=""
+  SNAPSHOT_FENCE_APP_NAME=""
+  return 1
+}
+
+release_snapshot_write_fence() {
+  local result
+  [[ "$SNAPSHOT_FENCE_ACTIVE" == "1" ]] || return 0
+  result="$(snapshot_fence_sql "SELECT CASE WHEN COALESCE(bool_and(pg_terminate_backend(pid)), true) THEN 'yes' ELSE 'no' END FROM pg_stat_activity WHERE application_name='${SNAPSHOT_FENCE_APP_NAME}' AND pid<>pg_backend_pid();" 2>/dev/null)" || return 1
+  [[ "$result" == "yes" ]] || return 1
+  wait "$SNAPSHOT_FENCE_CLIENT_PID" 2>/dev/null || true
+  SNAPSHOT_FENCE_ACTIVE="0"
+  SNAPSHOT_FENCE_CLIENT_PID=""
+  if snapshot_write_fence_held; then
+    return 1
+  fi
+  SNAPSHOT_FENCE_APP_NAME=""
+  return 0
+}
+
 persistent_flags_disabled_ready() {
   python3 - "$CENTRAL_ENV" "$TELEGRAM_ENV" <<'PYPERSIST'
 from pathlib import Path
@@ -411,6 +471,23 @@ p=json.load(sys.stdin)
 assert p.get("status")=="ready" and p.get("delivery_enabled") is True
 assert p.get("miniapp_enabled") is True and p.get("running") is True
 ' >/dev/null
+}
+quiesce_gateway_for_rollback() {
+  if gateway_disabled_ready; then
+    log "Rollback outbound boundary: PASS (Gateway already delivery-disabled)"
+    return 0
+  fi
+  if timeout 12s docker stop --time 5 "$GATEWAY_NAME" >>"$SUMMARY" 2>&1 \
+    && [[ "$(docker inspect --format '{{.State.Running}}' "$GATEWAY_NAME" 2>/dev/null || true)" == "false" ]]; then
+    log "Rollback outbound boundary: PASS (Gateway stopped before Telemetry rollback wait)"
+    return 0
+  fi
+  if timeout 8s docker kill "$GATEWAY_NAME" >>"$SUMMARY" 2>&1 \
+    && [[ "$(docker inspect --format '{{.State.Running}}' "$GATEWAY_NAME" 2>/dev/null || true)" == "false" ]]; then
+    log "Rollback outbound boundary: PASS (Gateway force-stopped before Telemetry rollback wait)"
+    return 0
+  fi
+  return 1
 }
 telemetry_local_auth_ready() {
   [[ "$LOCAL_AUTH_OVERLAY_ENABLED" != "true" ]] && return 0
@@ -539,6 +616,12 @@ rollback_on_exit() {
   trap - EXIT
   if [[ "$SUCCESS" != "1" && "$MUTATED" == "1" ]]; then
     log "Activation failed; disabling recurring delivery and restoring previous runtime config/images"
+    GATEWAY_QUIESCE_OK="0"
+    if quiesce_gateway_for_rollback; then
+      GATEWAY_QUIESCE_OK="1"
+    else
+      log "WARNING: rollback could not quiesce the Telegram Gateway before restoring Telemetry"
+    fi
     CENTRAL_RESTORE_OK="0"
     TELEGRAM_RESTORE_OK="0"
     PERSISTENT_ROLLBACK_OK="0"
@@ -568,7 +651,17 @@ rollback_on_exit() {
       && gateway_disabled_ready; then
       GATEWAY_ROLLBACK_OK="1"
     fi
-    if [[ "$PERSISTENT_ROLLBACK_OK" == "1" && "$TELEMETRY_ROLLBACK_OK" == "1" && "$GATEWAY_ROLLBACK_OK" == "1" ]]; then
+    SNAPSHOT_FENCE_RELEASE_OK="1"
+    if [[ "$SNAPSHOT_FENCE_ACTIVE" == "1" ]]; then
+      SNAPSHOT_FENCE_RELEASE_OK="0"
+      if [[ "$GATEWAY_ROLLBACK_OK" == "1" ]] && release_snapshot_write_fence; then
+        SNAPSHOT_FENCE_RELEASE_OK="1"
+        log "Rollback snapshot mutation fence release: PASS"
+      else
+        log "WARNING: rollback could not prove snapshot mutation fence release"
+      fi
+    fi
+    if [[ "$GATEWAY_QUIESCE_OK" == "1" && "$PERSISTENT_ROLLBACK_OK" == "1" && "$TELEMETRY_ROLLBACK_OK" == "1" && "$GATEWAY_ROLLBACK_OK" == "1" && "$SNAPSHOT_FENCE_RELEASE_OK" == "1" ]]; then
       ROLLBACK_PROVEN="1"
       log "Rollback safety boundary: PASS (persistent scheduler=false delivery=false; runtime closed; Mini App, local auth and observability retained)"
     else
@@ -617,11 +710,26 @@ for _ in $(seq 1 30); do
   sleep 2
 done
 [[ -n "$PLAN_AFTER_SCHEDULER" ]] || { log "ERROR: scheduler snapshot delta did not converge to the approved plan"; exit 1; }
+acquire_snapshot_write_fence || { log "ERROR: could not acquire report snapshot mutation fence before delivery phase"; exit 1; }
+snapshot_write_fence_held || { log "ERROR: report snapshot mutation fence was not held after acquisition"; exit 1; }
+FENCED_PLAN="$($PLAN_SCRIPT --fingerprint-through-id "$OUTBOX_MAX_ID_BEFORE" 2>/dev/null)" \
+  || { log "ERROR: fenced recurring activation planner failed"; exit 1; }
+fenced_generation="$(printf '%s' "$FENCED_PLAN" | json_field predicted_snapshot_generation_count)"
+fenced_snapshots="$(printf '%s' "$FENCED_PLAN" | json_field snapshot_total_count)"
+fenced_immediate="$(printf '%s' "$FENCED_PLAN" | json_field predicted_immediate_delivery_count)"
+fenced_prefix="$(printf '%s' "$FENCED_PLAN" | json_field prefix_outbox_fingerprint)"
+fenced_rows="$(printf '%s' "$FENCED_PLAN" | json_field outbox_rows)"
+if [[ "$fenced_generation" != "0" || "$fenced_snapshots" != "$((SNAPSHOTS_BEFORE + PLAN_GENERATION))" || "$fenced_immediate" != "$EXPECTED_IMMEDIATE" || "$fenced_prefix" != "$OUTBOX_FINGERPRINT_BEFORE" || "$fenced_rows" != "$OUTBOX_ROWS_BEFORE" ]]; then
+  log "ERROR: activation plan changed before the snapshot mutation fence became authoritative"
+  exit 1
+fi
+PLAN_AFTER_SCHEDULER="$FENCED_PLAN"
 printf '%s\n' "$PLAN_AFTER_SCHEDULER" >"$PLAN_AFTER_SCHEDULER_FILE"
-log "Scheduler reconciliation: PASS (snapshot_delta=$PLAN_GENERATION immediate_delivery_plan=$EXPECTED_IMMEDIATE)"
+log "Scheduler reconciliation: PASS (snapshot_delta=$PLAN_GENERATION immediate_delivery_plan=$EXPECTED_IMMEDIATE snapshot_write_fence=held)"
 
 log "Phase 2: persist topic delivery enablement and start the Gateway worker"
 user_lock_holder_alive || { log "ERROR: invoking-user deployment lock holder was lost before delivery mutation"; exit 75; }
+snapshot_write_fence_held || { log "ERROR: report snapshot mutation fence was lost before delivery mutation"; exit 1; }
 set_env_values "$TELEGRAM_ENV" TELEGRAM_ENABLED true TELEGRAM_MINIAPP_ENABLED true
 "${COMPOSE[@]}" --env-file "$PIN_ENV" up -d --no-deps --no-build --force-recreate telegram-gateway >>"$SUMMARY" 2>&1
 wait_healthy "$GATEWAY_NAME" || { log "ERROR: Gateway did not become healthy with delivery enabled"; exit 1; }
@@ -641,7 +749,9 @@ assert thread.isdigit() and int(thread)>0
 ' >/dev/null
 
 PLAN_AFTER_DELIVERY=""
-for _ in $(seq 1 60); do
+DELIVERY_DEADLINE=$((SECONDS + DELIVERY_CONVERGENCE_SECONDS))
+while (( SECONDS < DELIVERY_DEADLINE )); do
+  snapshot_write_fence_held || { log "ERROR: report snapshot mutation fence was lost during delivery convergence"; exit 1; }
   health="$(curl -fsS --max-time 5 http://127.0.0.1:8090/health/ready 2>/dev/null || true)"
   if candidate="$($PLAN_SCRIPT --fingerprint-through-id "$OUTBOX_MAX_ID_BEFORE" 2>/dev/null)"; then
     rows="$(printf '%s' "$candidate" | json_field outbox_rows)"
@@ -692,6 +802,9 @@ print("Persistent recurring config: PASS (scheduler=true delivery=true miniapp=t
 PYFINAL
 
 user_lock_holder_alive || { log "ERROR: invoking-user deployment lock holder was lost before final acceptance"; exit 75; }
+snapshot_write_fence_held || { log "ERROR: report snapshot mutation fence was lost before final acceptance"; exit 1; }
+release_snapshot_write_fence || { log "ERROR: report snapshot mutation fence could not be released after exact delivery acceptance"; exit 1; }
+SUCCESS="1"
 log "Recurring activation: PASS (scheduler=true delivery=true approved_immediate_deliveries=$EXPECTED_IMMEDIATE)"
 log "Historical Telegram rows unchanged: PASS"
 log "Outbox volume identity unchanged: PASS"
@@ -700,7 +813,6 @@ log "Core container identities unchanged: PASS"
 log "Dashboard/Telemetry/Mini App healthy and Tailscale Serve unchanged: PASS"
 log "No Modbus/hardware write and no named-volume/snapshot/outbox deletion occurred"
 log "Evidence: $EVIDENCE_DIR"
-SUCCESS="1"
 trap - EXIT
 rm -rf "$ROLLBACK_ROOT"
 exit 0

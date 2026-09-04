@@ -316,7 +316,8 @@ It uses the same `latest_due_report_date` / `resolve_report_window` domain funct
 requires the one accepted `TestLAB · CoolJet · Daily 07:50` profile (`Europe/Kyiv`, Monday-Friday,
 720-minute analysis window), compares every currently eligible persisted snapshot with the exact
 forum-topic outbox identity, and prints only sanitized schedule/count/fingerprint evidence. Numeric
-Telegram chat/thread identities are never printed.
+Telegram chat/thread identities are never printed. Every planner `docker exec` / PostgreSQL runtime
+read is bounded by a 15-second subprocess timeout and fails closed instead of blocking rollback.
 
 After exact-head repository CI is GREEN, capture the current Telemetry and Gateway image IDs and run
 the planner immediately before requesting the production activation gate. The guarded command is:
@@ -353,20 +354,29 @@ no protected env contents.
 
 Activation is deliberately ordered: first persist `DAILY_REPORTS_SCHEDULER_ENABLED=true` and recreate
 only `telemetry-service` from the pinned current image while Gateway delivery remains OFF. The guard
-waits until the snapshot delta exactly matches the approved planner prediction and re-runs the planner
-before delivery is enabled. Only then does it atomically persist `TELEGRAM_ENABLED=true` together
-with `TELEGRAM_MINIAPP_ENABLED=true` and recreate only `telegram-gateway` from its pinned image.
-Post-checks require the exact approved outbox delta, unchanged historical-row fingerprint, zero
+waits until the snapshot delta exactly matches the approved planner prediction, then acquires a bounded
+PostgreSQL `SHARE` table lock on `refrigeration_daily_report_snapshots`. Reads remain available, while
+INSERT/UPDATE/DELETE snapshot mutations are blocked across the phase-two race window. After that fence
+is proven held, the planner is run again under the fence and must still match the approved generation,
+snapshot, outbox and immediate-delivery counts. The fence has a 600-second fail-safe ceiling, while the
+phase-two delivery convergence window is bounded to 120 seconds; losing the fence at any delivery-phase
+gate fails closed. Only then does the guard atomically persist `TELEGRAM_ENABLED=true` together with
+`TELEGRAM_MINIAPP_ENABLED=true` and recreate only `telegram-gateway` from its pinned image. Post-checks
+require the exact approved outbox delta, unchanged historical-row fingerprint, zero
 non-sent/duplicate-risk rows, worker polling active, the same outbox volume, unchanged PostgreSQL,
 MQTT, MinIO and Device Agent container identities, healthy Dashboard/Telemetry/Mini App, and unchanged
 Tailscale Serve topology.
 
-If any post-mutation check fails, the guard restores both runtime env files atomically from root-only
-backups and recreates Telemetry and Gateway from the pinned pre-activation images. Rollback is reported
-PASS only after both persistent env files are byte-for-byte restored, their persistent scheduler/delivery
-flags re-validate as OFF, the Telemetry recreation itself succeeds, Telemetry is healthy with
-`DAILY_REPORTS_SCHEDULER_ENABLED=false`, local-auth/observability overlays are still intact, and the
-Gateway is healthy with delivery/worker OFF and Mini App retained. If persistent restoration cannot be
+If any post-mutation check fails, rollback first closes the outbound boundary: the Gateway must already
+be delivery-disabled or be stopped (with a bounded graceful stop and bounded kill fallback) before the
+script waits on any Telemetry rollback. The guard then restores both runtime env files atomically from
+root-only backups and recreates Telemetry and Gateway from the pinned pre-activation images. Any active
+snapshot mutation fence is released only after the Gateway is proven delivery-disabled again. Rollback
+is reported PASS only after that outbound quiesce, both persistent env files are byte-for-byte restored,
+their persistent scheduler/delivery flags re-validate as OFF, the Telemetry recreation itself succeeds,
+Telemetry is healthy with `DAILY_REPORTS_SCHEDULER_ENABLED=false`, local-auth/observability overlays are
+still intact, the Gateway is healthy with delivery/worker OFF and Mini App retained, and the snapshot
+fence is proven released. If persistent restoration cannot be
 proved, the root-only backup directory is retained for manual recovery instead of being deleted. A
 catch-up snapshot or Telegram outbox row already created before a failure is never deleted or rewritten;
 it becomes explicit evidence for a new resolution gate. The guard never uses `compose down`, deletes
