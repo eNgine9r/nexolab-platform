@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-04T07:38:00+03:00",
+  "timestamp": "2026-09-04T07:45:00+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "tg04_real_signed_miniapp_phone_acceptance_passed",
+  "event": "tg04_one_shot_send_guard_blocked_by_codex_usage_limit",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -50,10 +50,19 @@
       "issue": 866,
       "classification": "nonblocking_separate_read_only_acquisition_observation",
       "bounded_delta_30s": "samples_plus_47_requests_plus_61_retries_plus_7_queue_0_workers_2_last_error_null"
+    },
+    "controlled_send_guard": {
+      "issue": 869,
+      "branch": "feat/869-telegram-controlled-single-send",
+      "problem": "persistent_worker_can_discover_and_drain_multiple_snapshots_not_safe_for_single_send_gate",
+      "required": "exact_snapshot_one_shot_guard_at_most_one_api_call_dry_run_fail_closed",
+      "implementation": "not_started_no_tracked_changes",
+      "codex": "cli_0.152.0_usage_limit_exhausted_retry_available_2026-09-07_11_06",
+      "hard_blocker": "exhausted_agent_usage_limit"
     }
   },
   "observations": [],
-  "next_action": "Stop at the explicit Product Owner gate for exactly one controlled TestLAB group send. Keep the weekday 07:50 scheduler disabled. After approval, send exactly once using the guarded Telegram delivery path, capture delivery/idempotency evidence, verify no duplicate, and then stop before reliability/failure-retry or scheduler activation if those require separate gates.",
+  "next_action": "Wait for legitimate Codex capacity restoration (reported 2026-09-07 11:06) or Product Owner-provided plan/credit capacity. Then resume Issue #869 on preserved branch feat/869-telegram-controlled-single-send, implement and verify the exact-snapshot one-shot guard, merge GREEN, and perform a production no-send dry-run before requesting approval for one real TestLAB send. Do not enable the persistent Telegram worker or scheduler and do not call Telegram directly.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
