@@ -32,9 +32,9 @@ Updated: 2026-09-04
 
 ## Issue #825 — TG-04 real Telegram acceptance
 
-**Hard gate: explicit Product Owner approval for the Gateway-only production refresh. Real topic one-shot PASS.** Real signed iOS Mini App acceptance, the exact General send, protected topic capture, topic no-send dry-run and the separately approved exact topic send are PASS. Durable outbox evidence contains two distinct `sent` deliveries for the same snapshot: one historical General destination and one forum-topic destination; both have Telegram message IDs, `non_sent=0`, and `duplicate_risk=0`.
+**Temporarily blocked only on active child #898. Gateway refresh and restart/idempotency acceptance PASS.** Real signed iOS Mini App acceptance, the exact General send, protected topic capture, topic dry-run, the separately approved topic send, and the Product Owner-approved Gateway-only refresh are PASS. The persistent Gateway now runs the topic-aware exact refresh image, with delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`.
 
-Issue #893 / PR #894 completed the guarded Gateway-only refresh implementation and exact-head CI. Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. The persistent Gateway container is still the pre-topic image `tg04-861b9f83670a`; no production refresh/restart has been authorized or executed. After explicit Product Owner approval, run only the guarded Gateway refresh, then perform restart/no-duplicate proof before any separate weekday 07:50 scheduler activation gate.
+Independent read-only outbox inspection after the recreate proves exactly two historical `sent` rows remain (General + forum topic), both `attempts=1`, both message IDs present, `non_sent=0`, `duplicate_risk=0`, row timestamps unchanged by restart, and `recovered_unknown_deliveries=0`. No resend occurred. Issue #898 must provide the guarded recurring 07:50 activation path before any production enablement. Its activation preflight must compute the exact immediate scheduler catch-up/delivery count and fail closed unless that count is explicitly approved by the Product Owner.
 
 ## Issue #824 — TG-03 completed and merged
 

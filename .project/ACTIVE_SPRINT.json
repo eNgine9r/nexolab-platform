@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 825,
-      "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
-      "branch": "ops/825-telegram-real-acceptance"
+      "issue": 898,
+      "title": "Add guarded recurring 07:50 TestLAB activation",
+      "branch": "ops/898-guarded-recurring-activation"
     },
     "next_work_package": null
   },
@@ -1857,7 +1857,7 @@
       "issue": 825,
       "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "blocked",
       "depends_on": [
         822,
         823,
@@ -1865,7 +1865,7 @@
       ],
       "branch": "ops/825-telegram-real-acceptance",
       "evidence": {
-        "blocker": "explicit_product_owner_gateway_only_refresh_cutover_approval_required",
+        "blocker": "issue_898_guarded_recurring_activation_path_required_before_scheduler_delivery_cutover",
         "software_prerequisites": "tg01_tg02_tg03_merged_green",
         "production_deployment": "passed_runtime/deployments/20260904T032305Z_source_9a3556b25b257396d15db80af591d1cc3684b8f7",
         "real_telegram_contact": "read_only_getupdates_confirmed_testlab_supergroup",
@@ -1876,7 +1876,7 @@
         "group_title_observed": "TestLAB",
         "bot_username_observed": "nex0lab_bot",
         "group_numeric_identity": "confirmed_runtime_only_not_committed",
-        "next_gate": "product_owner_gateway_only_refresh_approval_then_guarded_refresh_then_restart_idempotency_proof",
+        "next_gate": "issue_898_green_then_read_only_activation_preflight_then_explicit_product_owner_activation_approval_with_exact_predicted_immediate_catchup_count",
         "backend_provisioning_helper": "local_verified_5_passed_full_gateway_46_passed",
         "backend_principal_target": "nexolab-telegram_laboratory_technician_reports.read_only",
         "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled",
@@ -1912,7 +1912,7 @@
         "scheduler_prerequisite": "issue_845_pr846_merged_green_fail_closed_off",
         "state_reconciliation": "issue_860_pr861_merged_9a3556b25b257396d15db80af591d1cc3684b8f7_tg04_active",
         "main_arm64_artifact_preflight": "run_33781986481_artifact_9904235935_green_not_stage2_candidate_missing_tg04_pr842_repairs",
-        "current_gate": "explicit_product_owner_gateway_only_refresh_cutover_approval_after_issue_893_pr894_green",
+        "current_gate": "issue_898_repository_guard_for_recurring_0750_activation",
         "pr842_repository_merge": "merged_main_13ab26392fcb1c1385dca3c1f619da4512fe568c_issue825_kept_open",
         "stage2_exact_main_artifact": "run_33786462681_artifact_9905912342_sha256_9ea8769da2dc0466b61354aee961d5564a1565bcda6eabe74b63c437207ef97e",
         "stage2_artifact_staging": "runtime/staging/tg04-stage2-13ab2639_checksums_source_platform_node_contract_verified",
@@ -1979,7 +1979,7 @@
         "real_testlab_payload_sha256": "3c4cb6e4e5100054914a70001ba8a9d430794c01fbbc5f11c25f543291f59f34",
         "topic_routing_request": "product_owner_requests_future_morning_reports_to_existing_forum_topic_Rankovyi_zvit_current_acceptance_send_was_General",
         "topic_routing_implementation": "issue_883_completed_pr886_main_6ea1996ef7bf3da6bed35220b813d0706d64a17f",
-        "recurring_scheduler_activation": "not_authorized_remains_false",
+        "recurring_scheduler_activation": "not_authorized_remains_false_issue_898_required",
         "topic_capture": "PASS_protected_exact_forum_challenge_configured_runtime_only_numeric_thread_id_not_committed_or_printed",
         "topic_no_send_dry_run": "PASS_exact_main_2e1a72cedc016f0333e7b1dfa20cd6b40ef9fb41_snapshot_76957482-57c4-4daf-ac30-d8592847cfbd",
         "topic_no_send_result": "status_dry_run_ready_delivery_state_absent_duplicate_risk_false_payload_sha256_match",
@@ -1990,10 +1990,13 @@
         "real_topic_send": "PASS_exact_snapshot_76957482-57c4-4daf-ac30-d8592847cfbd_status_sent_delivery_state_sent_duplicate_risk_false_payload_sha256_match",
         "real_topic_outbox": "two_distinct_sent_rows_same_snapshot_one_General_one_topic_non_sent_zero_duplicate_risk_zero_both_message_ids_present",
         "real_topic_postcheck": "gateway_ready_delivery_false_miniapp_true_worker_false_last_send_null_scheduler_false_ephemeral_container_removed",
-        "persistent_gateway_image": "pre_topic_tg04_861b9f83670a_image_sha256_fe118c8e3d827b291bb6d5aa3044f37819af960d05bf7bbf2a623510fae3d688_thread_env_absent",
-        "persistent_gateway_refresh": "repository_guard_ready_pr894_green_production_not_authorized_not_executed",
+        "persistent_gateway_image": "topic_aware_tg04_refresh_52d14cbd4122_sha256_16a78adc648ddc84a74d3098e8bb8338d3cd5349c6a055b801dc93ee675447c6",
+        "persistent_gateway_refresh": "PASS_exact_main_52d14cbd41224b15b0f3b396aaf9c60ab2f9571c_image_sha256_16a78adc648ddc84a74d3098e8bb8338d3cd5349c6a055b801dc93ee675447c6_evidence_runtime/evidence/tg04-telegram-refresh-20260904T121232Z",
         "gateway_refresh_issue": "893_completed_pr894_green_exact_head_bfab69e6c9f9fd5804277081a2bd8e333885cd59",
-        "persistent_gateway_observation": "pre_topic_stage1_image_no_topic_env_contract_refresh_required_before_scheduler"
+        "persistent_gateway_observation": "pre_topic_stage1_image_no_topic_env_contract_refresh_required_before_scheduler",
+        "gateway_refresh_authorization": "approved_and_consumed_gateway_only_production_refresh_2026-09-04",
+        "persistent_gateway_postcheck": "gateway_ready_delivery_false_miniapp_true_worker_false_last_send_null_topic_present_outbox_volume_unchanged_core_ids_unchanged_tailscale_unchanged_scheduler_false",
+        "restart_idempotency_acceptance": "PASS_two_total_sent_rows_one_General_one_topic_attempts_one_updated_at_before_refresh_non_sent_zero_duplicate_risk_zero_recovered_unknown_zero_no_resend"
       }
     },
     {
@@ -2366,6 +2369,26 @@
           "telemetry_service": "success:33866976022",
           "nexolab_merge_gate": "success:33866976027"
         }
+      }
+    },
+    {
+      "issue": 898,
+      "title": "Add guarded recurring 07:50 TestLAB activation",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "ops/898-guarded-recurring-activation",
+      "evidence": {
+        "product_outcome": "guarded_persistent_weekday_0750_testlab_activation_without_backlog_surprise_or_duplicates",
+        "profile_observation": "one_enabled_TestLAB_CoolJet_Daily_0750_Europe_Kyiv_weekdays_0_1_2_3_4_analysis_720",
+        "snapshot_observation": "only_2026_09_03_snapshot_exists_before_activation_design",
+        "outbox_baseline": "two_sent_rows_one_General_one_topic_attempts_one_non_sent_zero_duplicate_risk_zero",
+        "scheduler_semantics": "startup_immediately_reconciles_latest_due_report_then_sleeps_interval",
+        "persistent_flags": "central_ignored_env_scheduler_false_and_protected_telegram_env_delivery_false_must_change_atomically_with_rollback",
+        "runtime_execution": "not_authorized_repository_phase_only",
+        "telegram_send": "none_in_repository_phase",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "next_gate": "implement_guard_tests_runbook_exact_local_candidate_then_pr_green"
       }
     }
   ],
