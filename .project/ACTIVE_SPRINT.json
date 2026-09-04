@@ -1865,7 +1865,7 @@
       ],
       "branch": "ops/825-telegram-real-acceptance",
       "evidence": {
-        "blocker": "issue_869_active_exact_snapshot_one_shot_guard_requires_green_merge_and_production_no_send_dry_run",
+        "blocker": "issue_869_pr872_requires_current_main_integration_exact_head_green_merge_and_production_no_send_dry_run",
         "software_prerequisites": "tg01_tg02_tg03_merged_green",
         "production_deployment": "passed_runtime/deployments/20260904T032305Z_source_9a3556b25b257396d15db80af591d1cc3684b8f7",
         "real_telegram_contact": "read_only_getupdates_confirmed_testlab_supergroup",
@@ -1912,7 +1912,7 @@
         "scheduler_prerequisite": "issue_845_pr846_merged_green_fail_closed_off",
         "state_reconciliation": "issue_860_pr861_merged_9a3556b25b257396d15db80af591d1cc3684b8f7_tg04_active",
         "main_arm64_artifact_preflight": "run_33781986481_artifact_9904235935_green_not_stage2_candidate_missing_tg04_pr842_repairs",
-        "current_gate": "issue_869_active_local_candidate_green_then_exact_head_ci_merge_then_production_no_send_dry_run",
+        "current_gate": "pr872_integrate_main_2e1e6a11_then_exact_head_required_ci_green_merge",
         "pr842_repository_merge": "merged_main_13ab26392fcb1c1385dca3c1f619da4512fe568c_issue825_kept_open",
         "stage2_exact_main_artifact": "run_33786462681_artifact_9905912342_sha256_9ea8769da2dc0466b61354aee961d5564a1565bcda6eabe74b63c437207ef97e",
         "stage2_artifact_staging": "runtime/staging/tg04-stage2-13ab2639_checksums_source_platform_node_contract_verified",
@@ -1964,9 +1964,9 @@
         "real_signed_miniapp_visual_evidence": "product_owner_screenshots_cooljet_2026-09-03_9_of_9_valid_m_packets_kpi_alarms_refrigeration_contour_no_invalid_format_error",
         "post_cutover_xjp60d_observation": "issue_866_recurring_fc03_first_attempt_timeouts_with_successful_retries_nonblocking_for_tg04_queue_0_workers_healthy_samples_advancing",
         "controlled_send_safety_gap": "existing_long_running_worker_discovers_all_eligible_snapshots_and_can_drain_multiple_not_acceptable_for_exactly_one_send_gate",
-        "controlled_send_guard_issue": "869_status_in_progress_branch_feat/869-telegram-controlled-single-send",
+        "controlled_send_guard_issue": "869_status_in_progress_pr872_integrating_main_2e1e6a11c111535ae52c315733ff6431789267c9",
         "codex_usage_limit": "cleared_by_product_owner_2026-09-04_continue_in_current_chatgpt_session_scope_and_safety_unchanged",
-        "testlab_send_authorization": "not_requested_guard_not_merged_production_dry_run_not_yet_run_no_send"
+        "testlab_send_authorization": "not_requested_pr872_not_merged_production_dry_run_not_run_no_send"
       }
     },
     {
@@ -2196,7 +2196,42 @@
         "hardware_write": "none",
         "modbus_write": "none",
         "production_runtime_mutation": "none",
-        "next_gate": "commit_push_pr_exact_head_ci_green_merge_then_production_no_send_dry_run"
+        "next_gate": "finish_main_merge_resolve_state_then_exact_head_local_and_remote_ci_green_merge_then_production_no_send_dry_run",
+        "security_prerequisite": "issue_873_completed_pr874_green_state_reconciled_pr876_main_2e1e6a11",
+        "main_integration": "origin_main_2e1e6a11c111535ae52c315733ff6431789267c9_merge_in_progress_before_exact_head_reverification"
+      }
+    },
+    {
+      "issue": 873,
+      "title": "[SECURITY] Triage new util-linux HIGH CVEs blocking container release gate",
+      "priority": "high",
+      "lifecycle": "completed",
+      "branch": "security/873-util-linux-cve-triage",
+      "evidence": {
+        "trigger": "pr872_container_supply_chain_run_33841404350_new_util_linux_high_findings",
+        "blocked_exact_tuples": "44_of_44_covered",
+        "cves": "CVE-2026-76642_CVE-2026-78408_CVE-2026-78409_CVE-2026-78410",
+        "installed_version": "debian_trixie_util_linux_2.41.5-0+deb13u1",
+        "fixed_series_guidance": "2.41.6_not_yet_consumable_from_trixie",
+        "cve_78409": "vendor_states_2.41_not_affected_scanner_version_mismatch",
+        "device_agent_runtime": "fresh_no_cache_distroless_nonroot_no_mount_umount_nsenter_unshare_or_fstab",
+        "telegram_gateway_runtime": "fresh_no_cache_distroless_nonroot_no_mount_umount_nsenter_unshare_or_fstab",
+        "telemetry_runtime": "uid_10001_fstab_unconfigured_no_source_mount_nsenter_unshare_invocation_bounded_broker_subprocess_only",
+        "exception_expiry": "2026-09-05_consolidated_review_due",
+        "policy_validator": "success",
+        "focused_supply_chain_tests": "41_passed",
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "next_gate": "commit_push_pr_exact_head_container_supply_chain_and_merge_gate",
+        "verified_head_sha": "98da92ab6948471d10312abee998972e73c0605f",
+        "pull_request": 874,
+        "checks": {
+          "local_candidate": "GREEN",
+          "container_supply_chain": "success:33843450156",
+          "telemetry_service": "success:33843450225",
+          "core_quality_and_merge_gate": "success:33843450152"
+        }
       }
     }
   ],
