@@ -276,12 +276,16 @@ test "$(git rev-parse origin/main)" = "$SOURCE_SHA"
 test -z "$(git status --porcelain --untracked-files=all)"
 CURRENT_GATEWAY_IMAGE_ID="$(docker inspect --format '{{.Image}}' nexolab-central-telegram-gateway-1)"
 TARGET_TAG="nexolab-telegram-gateway:tg04-boundary-preflight-${SOURCE_SHA:0:12}"
-docker build \
-  --label "org.opencontainers.image.revision=$SOURCE_SHA" \
-  --tag "$TARGET_TAG" \
-  services/telegram-gateway
+SOURCE_GATEWAY_TREE="$(git rev-parse "$SOURCE_SHA:services/telegram-gateway")"
+git archive --format=tar "$SOURCE_SHA:services/telegram-gateway" \
+  | docker build \
+      --label "org.opencontainers.image.revision=$SOURCE_SHA" \
+      --label "io.nexolab.source-tree=$SOURCE_GATEWAY_TREE" \
+      --tag "$TARGET_TAG" \
+      -
 TARGET_GATEWAY_IMAGE_ID="$(docker image inspect --format '{{.Id}}' "$TARGET_TAG")"
 test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$TARGET_GATEWAY_IMAGE_ID")" = "$SOURCE_SHA"
+test "$(docker image inspect --format '{{index .Config.Labels "io.nexolab.source-tree"}}' "$TARGET_GATEWAY_IMAGE_ID")" = "$SOURCE_GATEWAY_TREE"
 ```
 
 Run the same network-isolated behavioral boundary probe used by the recurring-activation guard against
@@ -301,8 +305,10 @@ sudo scripts/deploy-telegram-gateway-refresh.sh \
   --approve-gateway-refresh
 ```
 
-The guard requires a clean exact source, the exact pre-approved current image, the locally available
-pre-approved target image with an exact `org.opencontainers.image.revision` label, a passing behavioral
+The build context above is streamed directly from the exact Git commit tree, so a concurrent or transient
+working-tree edit cannot be stamped with the approved revision. The guard requires a clean exact source,
+the exact pre-approved current image, the locally available pre-approved target image with matching
+`org.opencontainers.image.revision` and `io.nexolab.source-tree` labels, a passing behavioral
 bootstrap-boundary probe, protected `TELEGRAM_ENABLED=false`, one positive protected topic id, and
 scheduler OFF. It captures core container identities, the persistent delivery-volume identity and the
 Tailscale Serve topology, tags the already approved target image, and force-recreates **only**

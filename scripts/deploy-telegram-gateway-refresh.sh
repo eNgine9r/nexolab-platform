@@ -242,12 +242,16 @@ docker image inspect "$OLD_IMAGE_ID" >/dev/null 2>&1 \
   || { log "ERROR: target Gateway image matches current image"; exit 1; }
 docker image inspect "$EXPECTED_TARGET_IMAGE_ID" >/dev/null 2>&1 \
   || { log "ERROR: pre-approved target Gateway image is unavailable locally"; exit 1; }
+EXPECTED_GATEWAY_TREE="$(git rev-parse "${EXPECTED_SOURCE}:services/telegram-gateway")"
 TARGET_REVISION="$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$EXPECTED_TARGET_IMAGE_ID" 2>/dev/null || true)"
+TARGET_GATEWAY_TREE="$(docker image inspect --format '{{index .Config.Labels "io.nexolab.source-tree"}}' "$EXPECTED_TARGET_IMAGE_ID" 2>/dev/null || true)"
 [[ "$TARGET_REVISION" == "$EXPECTED_SOURCE" ]] \
   || { log "ERROR: target Gateway image source revision mismatch"; exit 1; }
+[[ "$TARGET_GATEWAY_TREE" == "$EXPECTED_GATEWAY_TREE" ]] \
+  || { log "ERROR: target Gateway image source tree mismatch"; exit 1; }
 gateway_bootstrap_boundary_capable "$EXPECTED_TARGET_IMAGE_ID" \
   || { log "ERROR: target Gateway image lacks the approved bootstrap delivery boundary"; exit 1; }
-log "Target Gateway image approval pin: PASS (exact image, exact source revision, behavioral boundary)"
+log "Target Gateway image approval pin: PASS (exact image, exact source revision/tree, behavioral boundary)"
 OUTBOX_VOLUME="$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/app/data/telegram-delivery"}}{{.Name}}{{end}}{{end}}' "$GATEWAY_NAME")"
 [[ -n "$OUTBOX_VOLUME" ]] || { log "ERROR: Gateway delivery volume identity unavailable"; exit 1; }
 

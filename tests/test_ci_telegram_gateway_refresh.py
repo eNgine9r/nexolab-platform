@@ -5,11 +5,13 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "deploy-telegram-gateway-refresh.sh"
+RUNBOOK = ROOT / "docs" / "operations" / "telegram-gateway.md"
 
 
 class TelegramGatewayRefreshPolicyTests(unittest.TestCase):
     def setUp(self) -> None:
         self.text = SCRIPT.read_text(encoding="utf-8")
+        self.runbook = RUNBOOK.read_text(encoding="utf-8")
 
     def test_shell_syntax_is_valid(self) -> None:
         result = subprocess.run(
@@ -55,13 +57,30 @@ class TelegramGatewayRefreshPolicyTests(unittest.TestCase):
         self.assertIn("target Gateway image source revision mismatch", self.text)
 
 
+    def test_approval_candidate_build_uses_immutable_git_tree_context(self) -> None:
+        self.assertIn('git archive --format=tar "$SOURCE_SHA:services/telegram-gateway"', self.runbook)
+        self.assertIn('SOURCE_GATEWAY_TREE="$(git rev-parse "$SOURCE_SHA:services/telegram-gateway")"', self.runbook)
+        self.assertIn('--label "io.nexolab.source-tree=$SOURCE_GATEWAY_TREE"', self.runbook)
+        self.assertNotIn('docker build \\n  --label "org.opencontainers.image.revision=$SOURCE_SHA" \\n  --tag "$TARGET_TAG" \\n  services/telegram-gateway', self.runbook)
+        self.assertIn('EXPECTED_GATEWAY_TREE="$(git rev-parse "${EXPECTED_SOURCE}:services/telegram-gateway")"', self.text)
+        self.assertIn('target Gateway image source tree mismatch', self.text)
+        revision_check = self.text.index('target Gateway image source revision mismatch')
+        tree_check = self.text.index('target Gateway image source tree mismatch')
+        capability = self.text.index('gateway_bootstrap_boundary_capable "$EXPECTED_TARGET_IMAGE_ID"')
+        mutation = self.text.index('MUTATED="1"', capability)
+        self.assertLess(revision_check, capability)
+        self.assertLess(tree_check, capability)
+        self.assertLess(capability, mutation)
+
     def test_target_image_is_immutable_behaviorally_proved_before_mutation(self) -> None:
         for token in (
             'gateway_bootstrap_boundary_capable "$EXPECTED_TARGET_IMAGE_ID"',
             'docker run --pull never --rm --network none --read-only',
             'assert outbox.ids == [approved_id, post_cutoff_id], outbox.ids',
             'TARGET_REVISION=',
+            'TARGET_GATEWAY_TREE=',
             'org.opencontainers.image.revision',
+            'io.nexolab.source-tree',
             'docker tag "$EXPECTED_TARGET_IMAGE_ID" "$IMAGE_TAG"',
             '[[ "$IMAGE_ID" == "$EXPECTED_TARGET_IMAGE_ID" ]]',
         ):
