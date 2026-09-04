@@ -28,9 +28,9 @@ Updated: 2026-09-04
 
 ## Issue #825 — TG-04 real Telegram acceptance
 
-**Active; hard-gated only on one real topic send approval.** Real signed iOS Mini App acceptance and the exact General send are PASS. #883 is merged GREEN. Protected capture of the intended TestLAB forum topic passed, and the exact-snapshot topic no-send dry-run returned `dry_run_ready`, `delivery_state=absent`, `duplicate_risk=false` with the expected payload digest. Durable outbox proof preserved the single historical General `sent` row and created no new/non-sent delivery. One real topic test now requires separate Product Owner approval.
+**Active; real topic one-shot PASS.** Real signed iOS Mini App acceptance, the exact General send, protected topic capture, topic no-send dry-run and the separately approved exact topic send are PASS. Durable outbox evidence now contains two distinct `sent` deliveries for the same snapshot: one historical General destination and one forum-topic destination; both have Telegram message IDs, `non_sent=0`, and `duplicate_risk=0`.
 
-Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. Topic capture and dry-run caused zero Telegram API calls and no outbox mutation. Do not enable the persistent worker or scheduler yet. After the separately approved one-topic send, #825 resumes durable topic idempotency/no-duplicate/restart proof before recurring weekday 07:50 activation.
+Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. The persistent Gateway container is still the pre-topic image `tg04-861b9f83670a` and has no topic env contract, so recurring delivery must remain disabled. The next prerequisite is a repository-owned guarded Gateway-only refresh path; its production execution/restart is a separate Product Owner cutover gate. After that, #825 resumes no-duplicate/restart proof before recurring weekday 07:50 activation.
 
 ## Issue #824 — TG-03 completed and merged
 

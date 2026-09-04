@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-04T13:09:25+03:00",
+  "timestamp": "2026-09-04T13:24:00+03:00",
   "actor": "chatgpt",
-  "event": "tg04_topic_capture_and_no_send_dry_run_passed",
+  "event": "tg04_real_topic_one_shot_passed_gateway_refresh_prerequisite_identified",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -23,17 +23,21 @@
       "topic_routing_merge": "6ea1996ef7bf3da6bed35220b813d0706d64a17f",
       "runtime_topic_capture": "PASS_protected_exact_forum_challenge_configured_runtime_only_numeric_thread_id_not_committed_or_printed",
       "topic_no_send_dry_run": "PASS_status_dry_run_ready_delivery_state_absent_duplicate_risk_false_payload_sha256_match",
-      "real_topic_send": "awaiting_separate_product_owner_approval_post_dry_run",
+      "real_topic_send": "PASS_status_sent_delivery_state_sent_duplicate_risk_false_payload_sha256_match",
       "persistent_worker": "off",
       "scheduler_0750": "off",
       "modbus_write": "none",
       "hardware_write": "none",
       "topic_no_send_outbox": "historical_General_sent_row_preserved_snapshot_row_count_1_non_sent_0_duplicate_risk_0_zero_dry_run_mutation",
-      "topic_no_send_postcheck": "gateway_delivery_off_worker_off_last_send_null_scheduler_off_ephemeral_container_removed"
+      "topic_no_send_postcheck": "gateway_delivery_off_worker_off_last_send_null_scheduler_off_ephemeral_container_removed",
+      "real_topic_outbox": "two_distinct_sent_rows_one_General_one_topic_non_sent_zero_duplicate_risk_zero_message_ids_present",
+      "real_topic_postcheck": "gateway_delivery_off_miniapp_on_worker_off_last_send_null_scheduler_off_ephemeral_container_removed",
+      "persistent_gateway": "pre_topic_image_tg04_861b9f83670a_thread_env_absent",
+      "persistent_gateway_refresh": "required_not_authorized_not_executed"
     }
   },
   "observations": [],
-  "next_action": "stop for separate Product Owner approval before exactly one real TestLAB topic send; after send verify durable topic sent/idempotency and restart safety before scheduler",
+  "next_action": "implement and verify a guarded Gateway-only topic-aware refresh Work Package; stop for separate Product Owner production cutover/restart approval before executing it, then perform no-duplicate/restart acceptance before scheduler",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
