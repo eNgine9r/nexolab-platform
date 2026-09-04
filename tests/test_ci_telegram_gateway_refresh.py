@@ -6,22 +6,25 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "deploy-telegram-gateway-refresh.sh"
 RUNBOOK = ROOT / "docs" / "operations" / "telegram-gateway.md"
+PROBE = ROOT / "scripts" / "telegram-gateway-boundary-runtime-proof.sh"
 
 
 class TelegramGatewayRefreshPolicyTests(unittest.TestCase):
     def setUp(self) -> None:
         self.text = SCRIPT.read_text(encoding="utf-8")
         self.runbook = RUNBOOK.read_text(encoding="utf-8")
+        self.probe = PROBE.read_text(encoding="utf-8")
 
     def test_shell_syntax_is_valid(self) -> None:
-        result = subprocess.run(
-            ["bash", "-n", str(SCRIPT)],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        self.assertEqual(result.returncode, 0, result.stderr)
+        for path in (SCRIPT, PROBE):
+            result = subprocess.run(
+                ["bash", "-n", str(path)],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_missing_approval_fails_before_any_runtime_access(self) -> None:
         result = subprocess.run(
@@ -49,6 +52,9 @@ class TelegramGatewayRefreshPolicyTests(unittest.TestCase):
         self.assertIn("--approve-gateway-refresh", self.text)
         self.assertIn('[[ "$EUID" -eq 0 ]]', self.text)
         self.assertIn("source SHA mismatch", self.text)
+        fetch = self.text.index('"${GIT[@]}" fetch --quiet origin main')
+        remote = self.text.index("REMOTE_MAIN=")
+        self.assertLess(fetch, remote)
         self.assertIn("expected source is not current origin/main", self.text)
         self.assertIn("source worktree is not clean", self.text)
         self.assertIn("--untracked-files=all", self.text)
@@ -66,29 +72,47 @@ class TelegramGatewayRefreshPolicyTests(unittest.TestCase):
         self.assertIn('target Gateway image source tree mismatch', self.text)
         revision_check = self.text.index('target Gateway image source revision mismatch')
         tree_check = self.text.index('target Gateway image source tree mismatch')
-        capability = self.text.index('gateway_bootstrap_boundary_capable "$EXPECTED_TARGET_IMAGE_ID"')
+        capability = self.text.index('bash "$BOUNDARY_PROBE"')
         mutation = self.text.index('MUTATED="1"', capability)
         self.assertLess(revision_check, capability)
         self.assertLess(tree_check, capability)
         self.assertLess(capability, mutation)
 
+
+    def test_post_merge_runbook_refreshes_remote_before_pinning_and_runs_probe(self) -> None:
+        fetch = self.runbook.index("git fetch --quiet origin main")
+        source = self.runbook.index('SOURCE_SHA="$(git rev-parse HEAD)"')
+        self.assertLess(fetch, source)
+        self.assertIn("git switch main", self.runbook)
+        self.assertIn("git merge --ff-only origin/main", self.runbook)
+        self.assertIn("bash scripts/telegram-gateway-boundary-runtime-proof.sh", self.runbook)
+        self.assertIn('--expected-source-sha "$SOURCE_SHA"', self.runbook)
+        self.assertIn('--image-id "$TARGET_GATEWAY_IMAGE_ID"', self.runbook)
+        self.assertNotIn("TELEGRAM_ENV", self.probe)
+        self.assertNotIn("--approve-gateway-refresh", self.probe)
+
     def test_target_image_is_immutable_behaviorally_proved_before_mutation(self) -> None:
         for token in (
-            'gateway_bootstrap_boundary_capable "$EXPECTED_TARGET_IMAGE_ID"',
-            'docker run --pull never --rm --network none --read-only',
-            'assert outbox.ids == [approved_id, post_cutoff_id], outbox.ids',
             'TARGET_REVISION=',
             'TARGET_GATEWAY_TREE=',
             'org.opencontainers.image.revision',
             'io.nexolab.source-tree',
+            'bash "$BOUNDARY_PROBE"',
             'docker tag "$EXPECTED_TARGET_IMAGE_ID" "$IMAGE_TAG"',
             '[[ "$IMAGE_ID" == "$EXPECTED_TARGET_IMAGE_ID" ]]',
         ):
             self.assertIn(token, self.text)
-        capability = self.text.index('gateway_bootstrap_boundary_capable "$EXPECTED_TARGET_IMAGE_ID"')
+        for token in (
+            'docker run --pull never --rm --network none --read-only',
+            'assert outbox.ids == [approved_id, post_cutoff_id], outbox.ids',
+            'org.opencontainers.image.revision',
+            'io.nexolab.source-tree',
+        ):
+            self.assertIn(token, self.probe)
+        capability = self.text.index('bash "$BOUNDARY_PROBE"')
         mutation = self.text.index('MUTATED="1"', capability)
         self.assertLess(capability, mutation)
-        self.assertNotIn("inspect.getsource", self.text)
+        self.assertNotIn("inspect.getsource", self.probe)
         self.assertNotIn('docker build \\', self.text)
 
     def test_protected_topic_env_is_fail_closed_and_not_printed(self) -> None:

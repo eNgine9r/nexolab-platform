@@ -271,9 +271,13 @@ not something built after the cutover approval:
 
 ```bash
 cd ~/nexolab-platform
-SOURCE_SHA="$(git rev-parse HEAD)"
-test "$(git rev-parse origin/main)" = "$SOURCE_SHA"
 test -z "$(git status --porcelain --untracked-files=all)"
+git fetch --quiet origin main
+git switch main
+git merge --ff-only origin/main
+SOURCE_SHA="$(git rev-parse HEAD)"
+test "$(git branch --show-current)" = "main"
+test "$(git rev-parse origin/main)" = "$SOURCE_SHA"
 CURRENT_GATEWAY_IMAGE_ID="$(docker inspect --format '{{.Image}}' nexolab-central-telegram-gateway-1)"
 TARGET_TAG="nexolab-telegram-gateway:tg04-boundary-preflight-${SOURCE_SHA:0:12}"
 SOURCE_GATEWAY_TREE="$(git rev-parse "$SOURCE_SHA:services/telegram-gateway")"
@@ -288,11 +292,20 @@ test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainer
 test "$(docker image inspect --format '{{index .Config.Labels "io.nexolab.source-tree"}}' "$TARGET_GATEWAY_IMAGE_ID")" = "$SOURCE_GATEWAY_TREE"
 ```
 
-Run the same network-isolated behavioral boundary probe used by the recurring-activation guard against
-`$TARGET_GATEWAY_IMAGE_ID`; it must accept only the approved pre-cutoff plus due post-cutoff synthetic
-snapshot and reject the unapproved pre-cutoff identity. Record the exact source, current image, target
-image, clean outbox fingerprint, core-container identities, Tailscale Serve hash and rollback-image
-availability before requesting approval.
+Run the repository-owned read-only boundary proof before requesting approval; it uses the local image
+only, disables container networking, mounts no production data or secrets, and runs the image read-only:
+
+```bash
+bash scripts/telegram-gateway-boundary-runtime-proof.sh \
+  --expected-source-sha "$SOURCE_SHA" \
+  --image-id "$TARGET_GATEWAY_IMAGE_ID"
+```
+
+The proof must accept only the approved pre-cutoff plus due post-cutoff synthetic snapshot and reject the
+unapproved pre-cutoff identity. Record the exact source, current image, target image, clean outbox
+fingerprint, core-container identities, Tailscale Serve hash and rollback-image availability before
+requesting approval. The later guarded refresh reruns this same helper against the approved image before
+`MUTATED=1`.
 
 After exact-head repository verification is GREEN and the Product Owner explicitly approves that exact
 source/current/target tuple, run:
