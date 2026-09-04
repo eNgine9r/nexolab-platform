@@ -296,13 +296,15 @@ Run the repository-owned read-only boundary proof before requesting approval; it
 only, disables container networking, mounts no production data or secrets, and runs the image read-only:
 
 ```bash
-bash scripts/telegram-gateway-boundary-runtime-proof.sh \
-  --expected-source-sha "$SOURCE_SHA" \
-  --image-id "$TARGET_GATEWAY_IMAGE_ID"
+git show "$SOURCE_SHA:scripts/telegram-gateway-boundary-runtime-proof.sh" \
+  | NEXOLAB_REPO_ROOT="$PWD" bash -s -- \
+    --expected-source-sha "$SOURCE_SHA" \
+    --image-id "$TARGET_GATEWAY_IMAGE_ID"
 ```
 
-The proof must accept only the approved pre-cutoff plus due post-cutoff synthetic snapshot and reject the
-unapproved pre-cutoff identity. Record the exact source, current image, target image, clean outbox
+The proof command executes the helper from the exact `SOURCE_SHA` Git object rather than from a mutable
+working-tree path. It must accept only the approved pre-cutoff plus due post-cutoff synthetic snapshot and
+reject the unapproved pre-cutoff identity. Record the exact source, current image, target image, clean outbox
 fingerprint, core-container identities, Tailscale Serve hash and rollback-image availability before
 requesting approval. The later guarded refresh reruns this same helper against the approved image before
 `MUTATED=1`.

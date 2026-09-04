@@ -11,7 +11,7 @@ TELEGRAM_ENV="$SECRET_DIR/telegram.env"
 EVIDENCE_ROOT="${NEXOLAB_TG04_EVIDENCE_ROOT:-$REPO_ROOT/runtime/evidence}"
 LOCK_FILE="${NEXOLAB_TG04_REFRESH_LOCK_FILE:-/run/lock/nexolab-tg04-gateway-refresh.lock}"
 GATEWAY_NAME="nexolab-central-telegram-gateway-1"
-BOUNDARY_PROBE="$SCRIPT_DIR/telegram-gateway-boundary-runtime-proof.sh"
+BOUNDARY_PROBE_PATH="scripts/telegram-gateway-boundary-runtime-proof.sh"
 EXPECTED_SOURCE=""
 EXPECTED_CURRENT_IMAGE_ID=""
 EXPECTED_TARGET_IMAGE_ID=""
@@ -76,8 +76,6 @@ docker compose version >/dev/null 2>&1 || { echo "ERROR: docker compose unavaila
 [[ -f "$TELEGRAM_ENV" && ! -L "$TELEGRAM_ENV" ]] || { echo "ERROR: protected Telegram env unavailable" >&2; exit 66; }
 [[ -f "$COMPOSE_DIR/compose.central.yaml" && -f "$COMPOSE_DIR/compose.telegram.yaml" ]] \
   || { echo "ERROR: compose contract unavailable" >&2; exit 66; }
-[[ -f "$BOUNDARY_PROBE" && ! -L "$BOUNDARY_PROBE" ]] \
-  || { echo "ERROR: boundary probe unavailable" >&2; exit 66; }
 
 python3 - "$TELEGRAM_ENV" <<'PYENV'
 from pathlib import Path
@@ -198,9 +196,10 @@ TARGET_GATEWAY_TREE="$(docker image inspect --format '{{index .Config.Labels "io
   || { log "ERROR: target Gateway image source revision mismatch"; exit 1; }
 [[ "$TARGET_GATEWAY_TREE" == "$EXPECTED_GATEWAY_TREE" ]] \
   || { log "ERROR: target Gateway image source tree mismatch"; exit 1; }
-bash "$BOUNDARY_PROBE" \
-  --expected-source-sha "$EXPECTED_SOURCE" \
-  --image-id "$EXPECTED_TARGET_IMAGE_ID" >>"$SUMMARY" \
+"${GIT[@]}" show "${EXPECTED_SOURCE}:${BOUNDARY_PROBE_PATH}" \
+  | NEXOLAB_REPO_ROOT="$REPO_ROOT" bash -s -- \
+    --expected-source-sha "$EXPECTED_SOURCE" \
+    --image-id "$EXPECTED_TARGET_IMAGE_ID" >>"$SUMMARY" \
   || { log "ERROR: target Gateway image lacks the approved bootstrap delivery boundary"; exit 1; }
 log "Target Gateway image approval pin: PASS (exact image, exact source revision/tree, behavioral boundary)"
 OUTBOX_VOLUME="$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/app/data/telegram-delivery"}}{{.Name}}{{end}}{{end}}' "$GATEWAY_NAME")"

@@ -72,7 +72,7 @@ class TelegramGatewayRefreshPolicyTests(unittest.TestCase):
         self.assertIn('target Gateway image source tree mismatch', self.text)
         revision_check = self.text.index('target Gateway image source revision mismatch')
         tree_check = self.text.index('target Gateway image source tree mismatch')
-        capability = self.text.index('bash "$BOUNDARY_PROBE"')
+        capability = self.text.index('show "${EXPECTED_SOURCE}:${BOUNDARY_PROBE_PATH}"')
         mutation = self.text.index('MUTATED="1"', capability)
         self.assertLess(revision_check, capability)
         self.assertLess(tree_check, capability)
@@ -85,7 +85,8 @@ class TelegramGatewayRefreshPolicyTests(unittest.TestCase):
         self.assertLess(fetch, source)
         self.assertIn("git switch main", self.runbook)
         self.assertIn("git merge --ff-only origin/main", self.runbook)
-        self.assertIn("bash scripts/telegram-gateway-boundary-runtime-proof.sh", self.runbook)
+        self.assertIn('git show "$SOURCE_SHA:scripts/telegram-gateway-boundary-runtime-proof.sh"', self.runbook)
+        self.assertIn('NEXOLAB_REPO_ROOT="$PWD" bash -s --', self.runbook)
         self.assertIn('--expected-source-sha "$SOURCE_SHA"', self.runbook)
         self.assertIn('--image-id "$TARGET_GATEWAY_IMAGE_ID"', self.runbook)
         self.assertNotIn("TELEGRAM_ENV", self.probe)
@@ -97,7 +98,7 @@ class TelegramGatewayRefreshPolicyTests(unittest.TestCase):
             'TARGET_GATEWAY_TREE=',
             'org.opencontainers.image.revision',
             'io.nexolab.source-tree',
-            'bash "$BOUNDARY_PROBE"',
+            'show "${EXPECTED_SOURCE}:${BOUNDARY_PROBE_PATH}"',
             'docker tag "$EXPECTED_TARGET_IMAGE_ID" "$IMAGE_TAG"',
             '[[ "$IMAGE_ID" == "$EXPECTED_TARGET_IMAGE_ID" ]]',
         ):
@@ -109,10 +110,14 @@ class TelegramGatewayRefreshPolicyTests(unittest.TestCase):
             'io.nexolab.source-tree',
         ):
             self.assertIn(token, self.probe)
-        capability = self.text.index('bash "$BOUNDARY_PROBE"')
+        capability = self.text.index('show "${EXPECTED_SOURCE}:${BOUNDARY_PROBE_PATH}"')
         mutation = self.text.index('MUTATED="1"', capability)
         self.assertLess(capability, mutation)
         self.assertNotIn("inspect.getsource", self.probe)
+        self.assertIn('NEXOLAB_REPO_ROOT="$REPO_ROOT" bash -s --', self.text)
+        self.assertIn('NEXOLAB_REPO_ROOT="$PWD" bash -s --', self.runbook)
+        self.assertIn('if [[ -n "${NEXOLAB_REPO_ROOT:-}" ]]', self.probe)
+        self.assertNotIn('bash "$BOUNDARY_PROBE"', self.text)
         self.assertNotIn('docker build \\', self.text)
 
     def test_protected_topic_env_is_fail_closed_and_not_printed(self) -> None:
