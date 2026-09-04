@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 893,
-      "title": "Add guarded topic-aware Telegram Gateway refresh",
-      "branch": "ops/893-telegram-gateway-refresh"
+      "issue": 825,
+      "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
+      "branch": "ops/825-telegram-real-acceptance"
     },
     "next_work_package": null
   },
@@ -1857,7 +1857,7 @@
       "issue": 825,
       "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "in_progress",
       "depends_on": [
         822,
         823,
@@ -1865,7 +1865,7 @@
       ],
       "branch": "ops/825-telegram-real-acceptance",
       "evidence": {
-        "blocker": "issue_893_guarded_persistent_gateway_refresh_prerequisite_before_restart_idempotency_and_scheduler",
+        "blocker": "explicit_product_owner_gateway_only_refresh_cutover_approval_required",
         "software_prerequisites": "tg01_tg02_tg03_merged_green",
         "production_deployment": "passed_runtime/deployments/20260904T032305Z_source_9a3556b25b257396d15db80af591d1cc3684b8f7",
         "real_telegram_contact": "read_only_getupdates_confirmed_testlab_supergroup",
@@ -1876,7 +1876,7 @@
         "group_title_observed": "TestLAB",
         "bot_username_observed": "nex0lab_bot",
         "group_numeric_identity": "confirmed_runtime_only_not_committed",
-        "next_gate": "complete_issue_893_green_merge_then_request_explicit_gateway_only_refresh_cutover_approval",
+        "next_gate": "product_owner_gateway_only_refresh_approval_then_guarded_refresh_then_restart_idempotency_proof",
         "backend_provisioning_helper": "local_verified_5_passed_full_gateway_46_passed",
         "backend_principal_target": "nexolab-telegram_laboratory_technician_reports.read_only",
         "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled",
@@ -1912,7 +1912,7 @@
         "scheduler_prerequisite": "issue_845_pr846_merged_green_fail_closed_off",
         "state_reconciliation": "issue_860_pr861_merged_9a3556b25b257396d15db80af591d1cc3684b8f7_tg04_active",
         "main_arm64_artifact_preflight": "run_33781986481_artifact_9904235935_green_not_stage2_candidate_missing_tg04_pr842_repairs",
-        "current_gate": "repository_complete_guarded_gateway_only_refresh_path_then_separate_product_owner_cutover_approval",
+        "current_gate": "explicit_product_owner_gateway_only_refresh_cutover_approval_after_issue_893_pr894_green",
         "pr842_repository_merge": "merged_main_13ab26392fcb1c1385dca3c1f619da4512fe568c_issue825_kept_open",
         "stage2_exact_main_artifact": "run_33786462681_artifact_9905912342_sha256_9ea8769da2dc0466b61354aee961d5564a1565bcda6eabe74b63c437207ef97e",
         "stage2_artifact_staging": "runtime/staging/tg04-stage2-13ab2639_checksums_source_platform_node_contract_verified",
@@ -1991,8 +1991,8 @@
         "real_topic_outbox": "two_distinct_sent_rows_same_snapshot_one_General_one_topic_non_sent_zero_duplicate_risk_zero_both_message_ids_present",
         "real_topic_postcheck": "gateway_ready_delivery_false_miniapp_true_worker_false_last_send_null_scheduler_false_ephemeral_container_removed",
         "persistent_gateway_image": "pre_topic_tg04_861b9f83670a_image_sha256_fe118c8e3d827b291bb6d5aa3044f37819af960d05bf7bbf2a623510fae3d688_thread_env_absent",
-        "persistent_gateway_refresh": "required_before_recurring_delivery_not_yet_authorized_or_executed",
-        "gateway_refresh_issue": "893_in_progress_branch_ops_893-telegram-gateway-refresh",
+        "persistent_gateway_refresh": "repository_guard_ready_pr894_green_production_not_authorized_not_executed",
+        "gateway_refresh_issue": "893_completed_pr894_green_exact_head_bfab69e6c9f9fd5804277081a2bd8e333885cd59",
         "persistent_gateway_observation": "pre_topic_stage1_image_no_topic_env_contract_refresh_required_before_scheduler"
       }
     },
@@ -2338,7 +2338,7 @@
       "issue": 893,
       "title": "Add guarded topic-aware Telegram Gateway refresh",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "ops/893-telegram-gateway-refresh",
       "depends_on": [
         825
@@ -2352,12 +2352,20 @@
         "rollback": "restore_exact_previous_local_image_same_delivery_volume_and_closed_safety_boundary",
         "core_runtime": "postgres_mqtt_minio_telemetry_device_agent_must_keep_exact_container_ids",
         "tailscale": "serve_topology_must_remain_unchanged",
-        "runtime_execution": "not_authorized_repository_phase_only",
+        "runtime_execution": "not_authorized_not_executed_repository_complete",
         "telegram_send": "none_in_refresh_path",
         "modbus_write": "none",
         "hardware_write": "none",
         "targeted_tests": "10_passed_policy_and_missing_approval_fail_closed",
-        "next_gate": "complete_docs_state_full_local_candidate_then_pr_exact_head_green"
+        "next_gate": "parent_825_explicit_product_owner_gateway_only_refresh_cutover_approval",
+        "verified_head_sha": "bfab69e6c9f9fd5804277081a2bd8e333885cd59",
+        "pull_request": 894,
+        "checks": {
+          "local_candidate": "GREEN_143_files_697_tests_build_compose_green",
+          "core_quality": "success:33866976027",
+          "telemetry_service": "success:33866976022",
+          "nexolab_merge_gate": "success:33866976027"
+        }
       }
     }
   ],
