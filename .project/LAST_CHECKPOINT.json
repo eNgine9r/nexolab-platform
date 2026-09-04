@@ -3,12 +3,12 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-04T03:51:42+03:00",
+  "timestamp": "2026-09-04T06:33:28+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "tg04_corrected_frontend_precutover_candidate_verified",
+  "event": "tg04_corrected_frontend_cutover_completed_phone_acceptance_gate",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
-    "deployed_product_sha": "13ab26392fcb1c1385dca3c1f619da4512fe568c"
+    "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
     "issue": 825,
@@ -16,34 +16,36 @@
     "branch": "ops/825-telegram-real-acceptance"
   },
   "evidence_snapshot": {
-    "completed_dependencies": {
-      "schema_repair": "issue_854_pr855_merged_747e6f23eab6f2a027b5ab021c1fe91d81434305_verified_head_cb4db273ab15e42654ee53ef6629e8021d182f7c_green",
-      "state_reconciliation": "issue_860_pr861_merged_9a3556b25b257396d15db80af591d1cc3684b8f7"
-    },
-    "corrected_frontend_candidate": {
+    "corrected_frontend_deployment": {
       "source_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7",
-      "workflow_run": 33821653923,
+      "control_main": "ec243ba6531f0e1473ca81dc6c3ff777598645d5",
       "artifact": 9918720619,
-      "artifact_digest": "sha256:dc7fc9182ee9929d0f4c507aa989c03cb1845d4ea5a3eeb1d977902894b8781e",
-      "platform": "linux/arm64",
-      "node": "22.23.1",
       "build_id": "lK2mXv7b6IZUUeVWXy-VJ",
-      "staging": "runtime/staging/tg04-schema-fix-9a3556b2",
-      "integrity": "artifact_identity_public_contract_archive_safety_pass",
-      "source_selection": "pass_from_deployed_13ab26392fcb1c1385dca3c1f619da4512fe568c",
-      "isolated_candidate": "pass_loopback_13022_all_required_routes_200_cleanup_clean"
+      "evidence": "runtime/deployments/20260904T032305Z",
+      "result": "deployment_passed",
+      "schema_head": "20260902_0031",
+      "source_adoption": "recorded_controlled_source_deployment_linux_arm64_lan_health_ready",
+      "volume_identity": "exact_match_6_of_6",
+      "edge_snapshot": "sha256:71d550e16031a1004419aebe4200ca3bc337f2148e6850a7d745e6600c107303_queue_0_quick_checks_ok",
+      "runtime": "dashboard_200_telemetry_ready_device_agent_healthy_workers_2_of_2_samples_advancing",
+      "telegram": "ready_delivery_false_miniapp_true_worker_false_last_send_null",
+      "scheduler": "disabled",
+      "tailscale": "8444_to_production_3000_miniapp_200"
     },
-    "runtime_read_only_recheck": {
-      "dashboard": "http_200_before_during_after_candidate",
-      "telemetry": "ready_database_ready_mqtt_ready_queue_0",
-      "device_agent": "healthy",
-      "telegram_gateway": "ready_delivery_false_miniapp_true_worker_false_last_send_null",
-      "daily_report_scheduler": "disabled",
-      "deployed_product_sha": "13ab26392fcb1c1385dca3c1f619da4512fe568c"
+    "failed_pre_mutation_attempt": {
+      "evidence": "runtime/deployments/20260904T031554Z",
+      "runtime_mutation": "none",
+      "reason": "root_owned_stage1_evidence_archive_permission_denied",
+      "repair": "scoped_acl_user_nexolab_only_root_owner_preserved_group_other_closed"
+    },
+    "phone_gate": {
+      "snapshot_id": "76957482-57c4-4daf-ac30-d8592847cfbd",
+      "expected": "canonical_persisted_report_renders",
+      "previous_failure": "invalid_persisted_report_contract"
     }
   },
   "observations": [],
-  "next_action": "Merge the state-only #862 candidate GREEN, rerun guarded source-selection preflight against resulting main to prove exact target 9a3556b25b257396d15db80af591d1cc3684b8f7 remains an allowed historical-main source, then stop for separate Product Owner production/site cutover approval. Do not activate the frontend/source, send Telegram, or enable the 07:50 scheduler before approval.",
+  "next_action": "On the authorized iOS Telegram client, open https://t.me/nex0lab_bot?startapp=report_76957482-57c4-4daf-ac30-d8592847cfbd and confirm the exact persisted report renders instead of the invalid-format state. Keep Telegram delivery OFF and the 07:50 scheduler disabled; do not send a TestLAB report until this phone gate passes.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

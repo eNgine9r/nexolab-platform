@@ -19,7 +19,7 @@
   },
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
-    "deployed_product_sha": "13ab26392fcb1c1385dca3c1f619da4512fe568c"
+    "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
     "active_work_package": {
@@ -1867,7 +1867,7 @@
       "evidence": {
         "blocker": "signed_miniapp_persisted_report_acceptance_then_later_send_and_scheduler_gates",
         "software_prerequisites": "tg01_tg02_tg03_merged_green",
-        "production_deployment": "passed_runtime/deployments/20260903T191159Z_source_13ab26392fcb1c1385dca3c1f619da4512fe568c",
+        "production_deployment": "passed_runtime/deployments/20260904T032305Z_source_9a3556b25b257396d15db80af591d1cc3684b8f7",
         "real_telegram_contact": "read_only_getupdates_confirmed_testlab_supergroup",
         "modbus_write": "none",
         "hardware_write": "none",
@@ -1876,7 +1876,7 @@
         "group_title_observed": "TestLAB",
         "bot_username_observed": "nex0lab_bot",
         "group_numeric_identity": "confirmed_runtime_only_not_committed",
-        "next_gate": "product_owner_cutover_approval_for_exact_source_9a3556b25b257396d15db80af591d1cc3684b8f7_artifact_9918720619_then_guarded_deployment_then_repeat_real_signed_miniapp_snapshot_acceptance",
+        "next_gate": "repeat_real_signed_miniapp_snapshot_acceptance_on_authorized_phone_then_controlled_testlab_send_gate",
         "backend_provisioning_helper": "local_verified_5_passed_full_gateway_46_passed",
         "backend_principal_target": "nexolab-telegram_laboratory_technician_reports.read_only",
         "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled",
@@ -1912,7 +1912,7 @@
         "scheduler_prerequisite": "issue_845_pr846_merged_green_fail_closed_off",
         "state_reconciliation": "issue_860_pr861_merged_9a3556b25b257396d15db80af591d1cc3684b8f7_tg04_active",
         "main_arm64_artifact_preflight": "run_33781986481_artifact_9904235935_green_not_stage2_candidate_missing_tg04_pr842_repairs",
-        "current_gate": "product_owner_cutover_approval_for_corrected_frontend",
+        "current_gate": "real_signed_miniapp_snapshot_acceptance_after_corrected_frontend_deployment",
         "pr842_repository_merge": "merged_main_13ab26392fcb1c1385dca3c1f619da4512fe568c_issue825_kept_open",
         "stage2_exact_main_artifact": "run_33786462681_artifact_9905912342_sha256_9ea8769da2dc0466b61354aee961d5564a1565bcda6eabe74b63c437207ef97e",
         "stage2_artifact_staging": "runtime/staging/tg04-stage2-13ab2639_checksums_source_platform_node_contract_verified",
@@ -1938,7 +1938,7 @@
         "signed_miniapp_snapshot": "76957482-57c4-4daf-ac30-d8592847cfbd_cooljet_2026-09-03_payload_sha256_3c4cb6e4e5100054914a70001ba8a9d430794c01fbbc5f11c25f543291f59f34",
         "schema_contract_root_cause": "tg01_nexolab.daily-refrigeration-report.v1_frontend_stale_refrigeration-daily-report/v1",
         "schema_contract_repair": "issue_854_pr855_verified_head_cb4db273ab15e42654ee53ef6629e8021d182f7c_core_offline_telegram_container_merge_gate_green",
-        "corrected_frontend_deployment": "not_started_requires_product_owner_cutover_approval_exact_source_9a3556b25b257396d15db80af591d1cc3684b8f7_artifact_9918720619",
+        "corrected_frontend_deployment": "DEPLOYMENT_PASSED_runtime/deployments/20260904T032305Z_source_9a3556b25b257396d15db80af591d1cc3684b8f7_artifact_9918720619_build_lK2mXv7b6IZUUeVWXy-VJ",
         "schema_repair_merge": "pr855_merged_747e6f23eab6f2a027b5ab021c1fe91d81434305",
         "corrected_frontend_artifact": "run_33821653923_artifact_9918720619_digest_sha256_dc7fc9182ee9929d0f4c507aa989c03cb1845d4ea5a3eeb1d977902894b8781e",
         "corrected_frontend_artifact_source": "9a3556b25b257396d15db80af591d1cc3684b8f7",
@@ -1946,7 +1946,19 @@
         "corrected_frontend_artifact_staging": "runtime/staging/tg04-schema-fix-9a3556b2_integrity_public_contract_archive_safety_pass",
         "corrected_frontend_source_selection": "pass_deployed_13ab26392fcb1c1385dca3c1f619da4512fe568c_target_9a3556b25b257396d15db80af591d1cc3684b8f7_origin_main_9a3556b25b257396d15db80af591d1cc3684b8f7",
         "corrected_frontend_isolated_candidate": "pass_loopback_13022_routes_root_nodes_live_energy_sessions_telegram-miniapp_http_200_cleanup_port_free_dashboard_200_before_during_after",
-        "corrected_frontend_runtime_recheck": "telemetry_ready_database_ready_mqtt_ready_queue_0_gateway_ready_delivery_false_miniapp_true_worker_false_last_send_null_scheduler_false"
+        "corrected_frontend_runtime_recheck": "telemetry_ready_database_ready_mqtt_ready_queue_0_gateway_ready_delivery_false_miniapp_true_worker_false_last_send_null_scheduler_false",
+        "corrected_frontend_source_adoption": "recorded_controlled_source_deployment_source_9a3556b25b257396d15db80af591d1cc3684b8f7_schema_20260902_0031_evidence_runtime/deployments/20260904T032305Z_health_ready",
+        "corrected_frontend_schema": "20260902_0031_head",
+        "corrected_frontend_volume_identity": "preserved_before_after_exact_match_6_of_6",
+        "corrected_frontend_edge_snapshot": "sha256_71d550e16031a1004419aebe4200ca3bc337f2148e6850a7d745e6600c107303_quick_check_ok_queue_0_registry_revision_20",
+        "corrected_frontend_runtime_health": "dashboard_200_telemetry_ready_database_ready_mqtt_ready_queue_0_device_agent_healthy_workers_2_of_2_samples_advancing",
+        "corrected_frontend_gateway_state": "ready_delivery_false_miniapp_true_worker_false_last_send_null",
+        "corrected_frontend_scheduler_state": "DAILY_REPORTS_SCHEDULER_ENABLED_false",
+        "corrected_frontend_tailscale": "tailnet_8444_proxy_http_172.18.48.66_3000_miniapp_route_200",
+        "corrected_frontend_failed_attempt": "runtime/deployments/20260904T031554Z_failed_before_runtime_mutation_runtime_evidence_permission_denied_partial_removed",
+        "corrected_frontend_acl_repair": "stage1_evidence_root_owner_preserved_acl_only_nexolab_rx_files_r_group_other_closed",
+        "corrected_frontend_control_main": "ec243ba6531f0e1473ca81dc6c3ff777598645d5",
+        "corrected_frontend_phone_next_snapshot": "76957482-57c4-4daf-ac30-d8592847cfbd"
       }
     },
     {
