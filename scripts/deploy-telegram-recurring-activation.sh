@@ -328,6 +328,26 @@ json_field() {
   local key="$1"
   python3 -c 'import json,sys; v=json.load(sys.stdin)[sys.argv[1]]; print("true" if v is True else "false" if v is False else "" if v is None else v)' "$key"
 }
+json_uuid_list_csv() {
+  local key="$1"
+  python3 -c '
+import json,sys,uuid
+value=json.load(sys.stdin)[sys.argv[1]]
+if not isinstance(value,list): raise SystemExit("uuid_list_required")
+normalized=[]; seen=set()
+for raw in value:
+    item=str(raw)
+    parsed=uuid.UUID(item)
+    canonical=str(parsed)
+    if parsed.int == 0 or canonical != item or canonical in seen: raise SystemExit("invalid_uuid_list")
+    seen.add(canonical); normalized.append(canonical)
+print(",".join(sorted(normalized)))
+' "$key"
+}
+json_list_count() {
+  local key="$1"
+  python3 -c 'import json,sys; v=json.load(sys.stdin)[sys.argv[1]]; assert isinstance(v,list); print(len(v))' "$key"
+}
 set_env_values() {
   local path="$1"; shift
   python3 - "$path" "$@" <<'PYSET'
@@ -487,6 +507,12 @@ quiesce_gateway_for_rollback() {
     log "Rollback outbound boundary: PASS (Gateway force-stopped before Telemetry rollback wait)"
     return 0
   fi
+  if timeout 30s "${COMPOSE[@]}" --env-file "$ROLLBACK_OVERRIDE_ENV" up -d --no-deps --no-build --force-recreate telegram-gateway >>"$SUMMARY" 2>&1 \
+    && wait_healthy "$GATEWAY_NAME" \
+    && gateway_disabled_ready; then
+    log "Rollback outbound boundary: PASS (Gateway recreated delivery-disabled before Telemetry rollback wait)"
+    return 0
+  fi
   return 1
 }
 telemetry_local_auth_ready() {
@@ -604,6 +630,8 @@ TELEGRAM_GATEWAY_IMAGE=$GATEWAY_PIN_TAG
 DAILY_REPORTS_SCHEDULER_ENABLED=false
 TELEGRAM_ENABLED=false
 TELEGRAM_MINIAPP_ENABLED=true
+TELEGRAM_DELIVERY_ACTIVATION_CUTOFF_UTC=
+TELEGRAM_DELIVERY_BOOTSTRAP_SNAPSHOT_IDS=
 EOF
 chmod 0600 "$PIN_ENV" "$ROLLBACK_OVERRIDE_ENV"
 
@@ -617,11 +645,6 @@ rollback_on_exit() {
   if [[ "$SUCCESS" != "1" && "$MUTATED" == "1" ]]; then
     log "Activation failed; disabling recurring delivery and restoring previous runtime config/images"
     GATEWAY_QUIESCE_OK="0"
-    if quiesce_gateway_for_rollback; then
-      GATEWAY_QUIESCE_OK="1"
-    else
-      log "WARNING: rollback could not quiesce the Telegram Gateway before restoring Telemetry"
-    fi
     CENTRAL_RESTORE_OK="0"
     TELEGRAM_RESTORE_OK="0"
     PERSISTENT_ROLLBACK_OK="0"
@@ -637,19 +660,26 @@ rollback_on_exit() {
       && persistent_flags_disabled_ready; then
       PERSISTENT_ROLLBACK_OK="1"
     fi
-    TELEMETRY_ROLLBACK_OK="0"
-    if "${COMPOSE[@]}" --env-file "$ROLLBACK_OVERRIDE_ENV" up -d --no-deps --no-build --force-recreate telemetry-service >>"$SUMMARY" 2>&1 \
-      && wait_healthy "$TELEMETRY_NAME" \
-      && telemetry_scheduler_disabled_ready \
-      && telemetry_local_auth_ready \
-      && telemetry_observability_ready; then
-      TELEMETRY_ROLLBACK_OK="1"
+    if quiesce_gateway_for_rollback; then
+      GATEWAY_QUIESCE_OK="1"
+    else
+      log "ERROR: rollback could not quiesce or recreate the Telegram Gateway delivery-disabled; Telemetry rollback is aborted"
     fi
+    TELEMETRY_ROLLBACK_OK="0"
     GATEWAY_ROLLBACK_OK="0"
-    if "${COMPOSE[@]}" --env-file "$ROLLBACK_OVERRIDE_ENV" up -d --no-deps --no-build --force-recreate telegram-gateway >>"$SUMMARY" 2>&1 \
-      && wait_healthy "$GATEWAY_NAME" \
-      && gateway_disabled_ready; then
-      GATEWAY_ROLLBACK_OK="1"
+    if [[ "$GATEWAY_QUIESCE_OK" == "1" ]]; then
+      if "${COMPOSE[@]}" --env-file "$ROLLBACK_OVERRIDE_ENV" up -d --no-deps --no-build --force-recreate telemetry-service >>"$SUMMARY" 2>&1 \
+        && wait_healthy "$TELEMETRY_NAME" \
+        && telemetry_scheduler_disabled_ready \
+        && telemetry_local_auth_ready \
+        && telemetry_observability_ready; then
+        TELEMETRY_ROLLBACK_OK="1"
+      fi
+      if "${COMPOSE[@]}" --env-file "$ROLLBACK_OVERRIDE_ENV" up -d --no-deps --no-build --force-recreate telegram-gateway >>"$SUMMARY" 2>&1 \
+        && wait_healthy "$GATEWAY_NAME" \
+        && gateway_disabled_ready; then
+        GATEWAY_ROLLBACK_OK="1"
+      fi
     fi
     SNAPSHOT_FENCE_RELEASE_OK="1"
     if [[ "$SNAPSHOT_FENCE_ACTIVE" == "1" ]]; then
@@ -719,7 +749,12 @@ fenced_snapshots="$(printf '%s' "$FENCED_PLAN" | json_field snapshot_total_count
 fenced_immediate="$(printf '%s' "$FENCED_PLAN" | json_field predicted_immediate_delivery_count)"
 fenced_prefix="$(printf '%s' "$FENCED_PLAN" | json_field prefix_outbox_fingerprint)"
 fenced_rows="$(printf '%s' "$FENCED_PLAN" | json_field outbox_rows)"
-if [[ "$fenced_generation" != "0" || "$fenced_snapshots" != "$((SNAPSHOTS_BEFORE + PLAN_GENERATION))" || "$fenced_immediate" != "$EXPECTED_IMMEDIATE" || "$fenced_prefix" != "$OUTBOX_FINGERPRINT_BEFORE" || "$fenced_rows" != "$OUTBOX_ROWS_BEFORE" ]]; then
+BOOTSTRAP_CUTOFF_UTC="$(printf '%s' "$FENCED_PLAN" | json_field now_utc)"
+BOOTSTRAP_SNAPSHOT_IDS_CSV="$(printf '%s' "$FENCED_PLAN" | json_uuid_list_csv pending_topic_snapshot_ids)" \
+  || { log "ERROR: fenced plan bootstrap snapshot identity set is invalid"; exit 1; }
+BOOTSTRAP_SNAPSHOT_COUNT="$(printf '%s' "$FENCED_PLAN" | json_list_count pending_topic_snapshot_ids)" \
+  || { log "ERROR: fenced plan bootstrap snapshot count is invalid"; exit 1; }
+if [[ "$fenced_generation" != "0" || "$fenced_snapshots" != "$((SNAPSHOTS_BEFORE + PLAN_GENERATION))" || "$fenced_immediate" != "$EXPECTED_IMMEDIATE" || "$fenced_prefix" != "$OUTBOX_FINGERPRINT_BEFORE" || "$fenced_rows" != "$OUTBOX_ROWS_BEFORE" || "$BOOTSTRAP_SNAPSHOT_COUNT" != "$EXPECTED_IMMEDIATE" ]]; then
   log "ERROR: activation plan changed before the snapshot mutation fence became authoritative"
   exit 1
 fi
@@ -730,7 +765,11 @@ log "Scheduler reconciliation: PASS (snapshot_delta=$PLAN_GENERATION immediate_d
 log "Phase 2: persist topic delivery enablement and start the Gateway worker"
 user_lock_holder_alive || { log "ERROR: invoking-user deployment lock holder was lost before delivery mutation"; exit 75; }
 snapshot_write_fence_held || { log "ERROR: report snapshot mutation fence was lost before delivery mutation"; exit 1; }
-set_env_values "$TELEGRAM_ENV" TELEGRAM_ENABLED true TELEGRAM_MINIAPP_ENABLED true
+set_env_values "$TELEGRAM_ENV" \
+  TELEGRAM_ENABLED true \
+  TELEGRAM_MINIAPP_ENABLED true \
+  TELEGRAM_DELIVERY_ACTIVATION_CUTOFF_UTC "$BOOTSTRAP_CUTOFF_UTC" \
+  TELEGRAM_DELIVERY_BOOTSTRAP_SNAPSHOT_IDS "$BOOTSTRAP_SNAPSHOT_IDS_CSV"
 "${COMPOSE[@]}" --env-file "$PIN_ENV" up -d --no-deps --no-build --force-recreate telegram-gateway >>"$SUMMARY" 2>&1
 wait_healthy "$GATEWAY_NAME" || { log "ERROR: Gateway did not become healthy with delivery enabled"; exit 1; }
 [[ "$(image_id "$GATEWAY_NAME")" == "$OLD_GATEWAY_IMAGE_ID" ]] || { log "ERROR: Gateway image changed during activation"; exit 1; }
@@ -744,9 +783,11 @@ import json,sys
 p=json.load(sys.stdin)[0]; env=dict(item.split("=",1) for item in p["Config"]["Env"] if "=" in item)
 assert env.get("TELEGRAM_ENABLED")=="true"
 assert env.get("TELEGRAM_MINIAPP_ENABLED")=="true"
+assert env.get("TELEGRAM_DELIVERY_ACTIVATION_CUTOFF_UTC")==sys.argv[1]
+assert env.get("TELEGRAM_DELIVERY_BOOTSTRAP_SNAPSHOT_IDS","")==sys.argv[2]
 thread=env.get("TELEGRAM_DESTINATION_MESSAGE_THREAD_ID","")
 assert thread.isdigit() and int(thread)>0
-' >/dev/null
+' "$BOOTSTRAP_CUTOFF_UTC" "$BOOTSTRAP_SNAPSHOT_IDS_CSV" >/dev/null
 
 PLAN_AFTER_DELIVERY=""
 DELIVERY_DEADLINE=$((SECONDS + DELIVERY_CONVERGENCE_SECONDS))
@@ -782,7 +823,7 @@ done
 SERVE_HASH_AFTER="$(tailscale serve status | sha256sum | awk '{print $1}')"
 [[ "$SERVE_HASH_AFTER" == "$SERVE_HASH_BEFORE" ]] || { log "ERROR: Tailscale Serve topology changed"; exit 1; }
 
-python3 - "$CENTRAL_ENV" "$TELEGRAM_ENV" <<'PYFINAL'
+python3 - "$CENTRAL_ENV" "$TELEGRAM_ENV" "$BOOTSTRAP_CUTOFF_UTC" "$BOOTSTRAP_SNAPSHOT_IDS_CSV" <<'PYFINAL'
 from pathlib import Path
 import sys
 
@@ -796,9 +837,11 @@ central=values(sys.argv[1]); telegram=values(sys.argv[2])
 assert central.get("DAILY_REPORTS_SCHEDULER_ENABLED")=="true"
 assert telegram.get("TELEGRAM_ENABLED")=="true"
 assert telegram.get("TELEGRAM_MINIAPP_ENABLED")=="true"
+assert telegram.get("TELEGRAM_DELIVERY_ACTIVATION_CUTOFF_UTC")==sys.argv[3]
+assert telegram.get("TELEGRAM_DELIVERY_BOOTSTRAP_SNAPSHOT_IDS","")==sys.argv[4]
 thread=telegram.get("TELEGRAM_DESTINATION_MESSAGE_THREAD_ID","")
 assert thread.isdigit() and int(thread)>0
-print("Persistent recurring config: PASS (scheduler=true delivery=true miniapp=true topic=present)")
+print("Persistent recurring config: PASS (scheduler=true delivery=true miniapp=true topic=present bootstrap_boundary=exact)")
 PYFINAL
 
 user_lock_holder_alive || { log "ERROR: invoking-user deployment lock holder was lost before final acceptance"; exit 75; }

@@ -95,6 +95,7 @@ class RecurringActivationPlannerTests(unittest.TestCase):
         self.assertEqual(result["due_local_report_date"], "2026-09-04")
         self.assertEqual(result["predicted_snapshot_generation_count"], 1)
         self.assertEqual(result["predicted_immediate_delivery_count"], 1)
+        self.assertEqual(result["pending_topic_snapshot_ids"], [])
         self.assertEqual(result["outbox_non_sent_rows"], 0)
         self.assertEqual(result["outbox_duplicate_risk_rows"], 0)
 
@@ -118,7 +119,13 @@ class RecurringActivationPlannerTests(unittest.TestCase):
         outbox = [delivery(1, SNAPSHOT_1, "general")]
         result = self.compute(snapshots, outbox)
         self.assertEqual(result["missing_existing_topic_delivery_count"], 1)
+        self.assertEqual(result["pending_topic_snapshot_ids"], [SNAPSHOT_1])
         self.assertEqual(result["predicted_immediate_delivery_count"], 2)
+
+    def test_pending_topic_snapshot_identity_must_be_uuid(self):
+        snapshots = [snapshot("not-a-uuid", "2026-09-03", "2026-09-03T04:50:00+00:00")]
+        with self.assertRaisesRegex(plan.PlanError, "snapshot_identity_invalid"):
+            self.compute(snapshots, [])
 
     def test_duplicate_topic_identity_fails_closed(self):
         snapshots = [snapshot(SNAPSHOT_1, "2026-09-03", "2026-09-03T04:50:00+00:00")]
@@ -181,7 +188,9 @@ class RecurringActivationGuardPolicyTests(unittest.TestCase):
         delivery = self.text.index("Phase 2: persist topic delivery enablement")
         self.assertLess(scheduler, delivery)
         self.assertIn('set_env_values "$CENTRAL_ENV" DAILY_REPORTS_SCHEDULER_ENABLED true', self.text)
-        self.assertIn('set_env_values "$TELEGRAM_ENV" TELEGRAM_ENABLED true TELEGRAM_MINIAPP_ENABLED true', self.text)
+        self.assertIn('set_env_values "$TELEGRAM_ENV" \\', self.text)
+        self.assertIn('TELEGRAM_ENABLED true \\', self.text)
+        self.assertIn('TELEGRAM_MINIAPP_ENABLED true \\', self.text)
         self.assertIn("scheduler snapshot delta did not converge to the approved plan", self.text)
 
     def test_phase_two_blocks_snapshot_writes_and_rechecks_plan_under_fence(self):
@@ -202,9 +211,29 @@ class RecurringActivationGuardPolicyTests(unittest.TestCase):
             self.assertIn(token, self.text)
         acquire = self.text.index("acquire_snapshot_write_fence ||")
         fenced_plan = self.text.index('FENCED_PLAN="$($PLAN_SCRIPT')
-        delivery_enable = self.text.index('set_env_values "$TELEGRAM_ENV" TELEGRAM_ENABLED true')
+        delivery_enable = self.text.index('set_env_values "$TELEGRAM_ENV" \\')
         self.assertLess(acquire, fenced_plan)
         self.assertLess(fenced_plan, delivery_enable)
+
+    def test_phase_two_pins_exact_bootstrap_snapshot_set_before_releasing_fence(self):
+        for token in (
+            "pending_topic_snapshot_ids",
+            "BOOTSTRAP_CUTOFF_UTC",
+            "BOOTSTRAP_SNAPSHOT_IDS_CSV",
+            "BOOTSTRAP_SNAPSHOT_COUNT",
+            'TELEGRAM_DELIVERY_ACTIVATION_CUTOFF_UTC "$BOOTSTRAP_CUTOFF_UTC"',
+            'TELEGRAM_DELIVERY_BOOTSTRAP_SNAPSHOT_IDS "$BOOTSTRAP_SNAPSHOT_IDS_CSV"',
+            'telegram.get("TELEGRAM_DELIVERY_ACTIVATION_CUTOFF_UTC")==sys.argv[3]',
+            'telegram.get("TELEGRAM_DELIVERY_BOOTSTRAP_SNAPSHOT_IDS","")==sys.argv[4]',
+        ):
+            self.assertIn(token, self.text)
+        fenced_plan = self.text.index('FENCED_PLAN="$($PLAN_SCRIPT')
+        bootstrap_ids = self.text.index('BOOTSTRAP_SNAPSHOT_IDS_CSV=')
+        delivery_enable = self.text.index('set_env_values "$TELEGRAM_ENV" \\')
+        fence_release = self.text.index('release_snapshot_write_fence ||')
+        self.assertLess(fenced_plan, bootstrap_ids)
+        self.assertLess(bootstrap_ids, delivery_enable)
+        self.assertLess(delivery_enable, fence_release)
 
     def test_rollback_quiesces_gateway_before_telemetry_wait(self):
         quiesce_call = self.text.index("if quiesce_gateway_for_rollback; then")
@@ -215,11 +244,17 @@ class RecurringActivationGuardPolicyTests(unittest.TestCase):
         for token in (
             'timeout 12s docker stop --time 5 "$GATEWAY_NAME"',
             'timeout 8s docker kill "$GATEWAY_NAME"',
+            'timeout 30s "${COMPOSE[@]}" --env-file "$ROLLBACK_OVERRIDE_ENV" up -d --no-deps --no-build --force-recreate telegram-gateway',
             'Gateway stopped before Telemetry rollback wait',
             'Gateway force-stopped before Telemetry rollback wait',
+            'Gateway recreated delivery-disabled before Telemetry rollback wait',
             'GATEWAY_QUIESCE_OK="1"',
+            'if [[ "$GATEWAY_QUIESCE_OK" == "1" ]]; then',
+            'Telemetry rollback is aborted',
         ):
             self.assertIn(token, self.text)
+        gate = self.text.index('if [[ "$GATEWAY_QUIESCE_OK" == "1" ]]; then')
+        self.assertLess(gate, telemetry_recreate)
 
     def test_active_local_auth_overlay_is_preserved_for_forward_and_rollback(self):
         self.assertIn('LOCAL_AUTH_OVERLAY="$COMPOSE_DIR/compose.local-auth.yaml"', self.text)

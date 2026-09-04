@@ -248,14 +248,22 @@ def compute_plan(now: datetime | None = None, *, fingerprint_through_id: int | N
         if len(rows) > 1:
             raise PlanError("duplicate_topic_outbox_identity")
 
-    missing_existing = sum(
-        1
+    missing_existing_rows = [
+        row
         for row in eligible
         if not any(
             delivery.get("state") == "sent" and not delivery.get("duplicate_risk")
             for delivery in topic_rows_by_snapshot.get(str(row["id"]), [])
         )
-    )
+    ]
+    pending_topic_snapshot_ids: list[str] = []
+    for row in missing_existing_rows:
+        snapshot_id = str(row.get("id", ""))
+        if not UUID_RE.fullmatch(snapshot_id):
+            raise PlanError("snapshot_identity_invalid")
+        pending_topic_snapshot_ids.append(snapshot_id)
+    pending_topic_snapshot_ids.sort()
+    missing_existing = len(missing_existing_rows)
     new_due_deliverable = 0
     if predicted_generation and due_scheduled_for is not None and cutoff <= due_scheduled_for <= resolved_now:
         new_due_deliverable = 1
@@ -278,6 +286,7 @@ def compute_plan(now: datetime | None = None, *, fingerprint_through_id: int | N
         "snapshot_total_count": len(snapshots),
         "eligible_existing_snapshot_count": len(eligible),
         "missing_existing_topic_delivery_count": missing_existing,
+        "pending_topic_snapshot_ids": pending_topic_snapshot_ids,
         "predicted_immediate_delivery_count": predicted_immediate,
         "gateway_max_snapshot_age_hours": max_age_hours,
         "delivery_runtime_config_ready": delivery_config_ready,

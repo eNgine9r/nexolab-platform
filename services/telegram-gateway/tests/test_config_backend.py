@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import json
 
 import pytest
@@ -42,6 +43,37 @@ def test_enabled_configuration_requires_numeric_chat_and_exact_report_direct_lin
                 enabled_settings(tmp_path, telegram_mini_app_url_template=template)
             )
 
+
+def test_activation_bootstrap_boundary_requires_valid_cutoff_and_exact_ids(tmp_path) -> None:
+    first = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    second = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+    config = enabled_settings(
+        tmp_path,
+        telegram_delivery_activation_cutoff_utc="2026-09-04T19:00:00+03:00",
+        telegram_delivery_bootstrap_snapshot_ids=f"{first},{second}",
+    )
+    assert config.telegram_delivery_activation_cutoff_utc == datetime(2026, 9, 4, 16, 0, tzinfo=UTC)
+    assert config.telegram_delivery_bootstrap_snapshot_id_set == frozenset({first, second})
+
+    with pytest.raises(ValueError):
+        enabled_settings(tmp_path, telegram_delivery_bootstrap_snapshot_ids=first)
+    with pytest.raises(ValueError):
+        enabled_settings(
+            tmp_path,
+            telegram_delivery_activation_cutoff_utc="2026-09-04T16:00:00",
+            telegram_delivery_bootstrap_snapshot_ids=first,
+        )
+    for invalid in (
+        "not-a-uuid",
+        "00000000-0000-0000-0000-000000000000",
+        f"{first},{first}",
+    ):
+        with pytest.raises(ValueError):
+            enabled_settings(
+                tmp_path,
+                telegram_delivery_activation_cutoff_utc="2026-09-04T16:00:00Z",
+                telegram_delivery_bootstrap_snapshot_ids=invalid,
+            )
 
 def test_local_auth_reads_password_file_and_keeps_secret_out_of_errors(tmp_path) -> None:
     password_file = tmp_path / "password"
