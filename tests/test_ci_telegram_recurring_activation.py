@@ -212,28 +212,64 @@ class RecurringActivationGuardPolicyTests(unittest.TestCase):
             'acquire_mutation_lock "$STAGE1_LOCK_FILE"',
             'USER_TMP_CURRENT_HEAD_LOCK="/tmp/$CURRENT_HEAD_LOCK_NAME"',
             'USER_RUNTIME_CURRENT_HEAD_LOCK="/run/user/$SUDO_UID/$CURRENT_HEAD_LOCK_NAME"',
-            'acquire_mutation_lock "$USER_TMP_CURRENT_HEAD_LOCK"',
-            'acquire_mutation_lock "$USER_RUNTIME_CURRENT_HEAD_LOCK"',
+            'acquire_invoking_user_mutation_locks "$SUDO_UID" "$SUDO_GID"',
             'SUDO_UID',
             'source SHA changed before locked baseline',
         ):
             self.assertIn(token, self.text)
+        self.assertNotIn('acquire_mutation_lock "$USER_TMP_CURRENT_HEAD_LOCK"', self.text)
+        self.assertNotIn('acquire_mutation_lock "$USER_RUNTIME_CURRENT_HEAD_LOCK"', self.text)
         lock_index = self.text.index('acquire_mutation_lock "$LOCK_FILE"')
+        user_lock_index = self.text.index('acquire_invoking_user_mutation_locks "$SUDO_UID"')
         baseline_index = self.text.index('for name in "$TELEMETRY_NAME" "$GATEWAY_NAME"')
-        self.assertLess(lock_index, baseline_index)
+        self.assertLess(lock_index, user_lock_index)
+        self.assertLess(user_lock_index, baseline_index)
 
-    def test_current_head_lock_files_preserve_invoking_user_ownership(self):
+    def test_current_head_lock_holder_uses_nofollow_same_descriptor_and_user_privileges(self):
         for token in (
-            'ensure_invoking_user_lock_file',
+            'coproc NEXOLAB_USER_LOCK_HOLDER',
+            'python3 /dev/fd/3',
+            'os.O_NOFOLLOW',
+            'os.O_RDWR | os.O_CLOEXEC | os.O_NOFOLLOW',
+            'os.setgroups([])',
+            'os.setgid(gid)',
+            'os.setuid(uid)',
+            'os.fstat(fd)',
+            'fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)',
+            'os.stat(raw, follow_symlinks=False)',
+            'current_head_lock_replaced_during_acquire',
+            'sys.stdin.buffer.read()',
             'invoking sudo user identity is required for shared deployment locks',
-            'os.O_WRONLY|os.O_CREAT|os.O_EXCL',
-            'os.fchown(fd, uid, gid)',
-            'os.fchmod(fd, 0o600)',
-            'st.st_uid != uid or st.st_gid != gid',
             'unexpected_current_head_lock_ownership',
         ):
             self.assertIn(token, self.text)
-        self.assertNotIn('acquire_mutation_lock "/tmp/$CURRENT_HEAD_LOCK_NAME"', self.text)
+        self.assertGreaterEqual(self.text.count('user_lock_holder_alive'), 4)
+        self.assertNotIn('ensure_invoking_user_lock_file', self.text)
+        self.assertNotIn('exec {fd}>"$USER_TMP_CURRENT_HEAD_LOCK"', self.text)
+        self.assertNotIn('exec {fd}>"$USER_RUNTIME_CURRENT_HEAD_LOCK"', self.text)
+
+    def test_root_owned_mutation_lock_paths_are_prepared_without_following_symlinks(self):
+        for token in (
+            'prepare_root_owned_mutation_lock_file',
+            'pst.st_uid != 0',
+            'stat.S_ISVTX',
+            'os.O_RDWR | os.O_CLOEXEC | os.O_NOFOLLOW',
+            'os.O_CREAT | os.O_EXCL',
+            'os.fstat(fd)',
+            'st.st_uid != 0 or st.st_gid != 0',
+            'stat.S_IMODE(st.st_mode) != 0o600',
+            'root_mutation_lock_replaced_during_prepare',
+            'unsafe root-owned mutation lock',
+        ):
+            self.assertIn(token, self.text)
+        prepare_index = self.text.index('prepare_root_owned_mutation_lock_file "$path"')
+        shell_open_index = self.text.index('exec {fd}>"$path"')
+        self.assertLess(prepare_index, shell_open_index)
+
+    def test_user_lock_holder_liveness_rejects_zombie_process(self):
+        self.assertIn('/proc/$USER_LOCK_HOLDER_PROCESS_PID/stat', self.text)
+        self.assertIn("awk '{print $3}'", self.text)
+        self.assertIn('[[ -n "$state" && "$state" != "Z" ]]', self.text)
 
     def test_rollback_requires_persistent_env_restore_proof_and_retains_failed_backup(self):
         for token in (

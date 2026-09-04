@@ -340,11 +340,16 @@ local operator auth enabled, the guard also requires readable operator-owned key
 `AUTH_LOCAL_ENABLED=true` and both signing-key mounts survived. Before capturing the runtime baseline,
 the guard also acquires the recurring-activation lock plus the existing Gateway-refresh, Stage-1 and
 current-head deployment locks (both `/tmp` fallback and the invoking sudo user's runtime lock path) so
-another known production mutation cannot race the two-phase activation. Any current-head lock file the
-root guard must create is created mode `0600` with the invoking sudo user's UID/GID; unexpected existing
-ownership/type fails closed rather than leaving a root-owned lock that would block later user deployments.
-It stores secret-bearing config backups only
-in a root-only `/run` directory; evidence files contain no protected env contents.
+another known production mutation cannot race the two-phase activation. The two user-owned current-head
+locks are opened only after dropping to the invoking sudo UID/GID, using `O_NOFOLLOW`; type, ownership,
+link count and path/inode identity are validated from the same descriptor that is flocked and held for the
+activation. A replaced path, symlink, hard link, unexpected owner/mode, lost holder or zombie holder fails
+closed before mutation. Root-owned recurring/Gateway/Stage-1 lock paths are prepared without following
+symlinks as root-owned mode `0600` files under a root-owned parent that is either non-writable to others or
+sticky (the Raspberry `/run/lock` is sticky mode `1777`) before the shell flock descriptor is opened. This
+prevents a pre-created user symlink/file from turning a root lock acquisition into an unsafe pathname open.
+The guard stores secret-bearing config backups only in a root-only `/run` directory; evidence files contain
+no protected env contents.
 
 Activation is deliberately ordered: first persist `DAILY_REPORTS_SCHEDULER_ENABLED=true` and recreate
 only `telemetry-service` from the pinned current image while Gateway delivery remains OFF. The guard

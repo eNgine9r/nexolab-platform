@@ -116,11 +116,55 @@ REMOTE_MAIN="$("${GIT[@]}" rev-parse origin/main 2>/dev/null || true)"
 
 declare -a MUTATION_LOCK_FDS=()
 declare -A MUTATION_LOCK_PATHS=()
+USER_LOCK_HOLDER_READ_FD=""
+USER_LOCK_HOLDER_WRITE_FD=""
+USER_LOCK_HOLDER_PROCESS_PID=""
+
+prepare_root_owned_mutation_lock_file() {
+  local path="$1"
+  python3 - "$path" <<'PYROOTLOCK'
+import os
+import stat
+import sys
+
+path=sys.argv[1]
+parent=os.path.dirname(path)
+pst=os.stat(parent, follow_symlinks=False)
+mode=stat.S_IMODE(pst.st_mode)
+if not stat.S_ISDIR(pst.st_mode) or pst.st_uid != 0:
+    raise SystemExit("unsafe_root_lock_parent")
+if mode & (stat.S_IWGRP | stat.S_IWOTH) and not mode & stat.S_ISVTX:
+    raise SystemExit("unsafe_root_lock_parent_permissions")
+if not hasattr(os, "O_NOFOLLOW"):
+    raise SystemExit("nofollow_unavailable")
+flags=os.O_RDWR | os.O_CLOEXEC | os.O_NOFOLLOW
+try:
+    fd=os.open(path, flags | os.O_CREAT | os.O_EXCL, 0o600)
+except FileExistsError:
+    fd=os.open(path, flags)
+try:
+    st=os.fstat(fd)
+    if not stat.S_ISREG(st.st_mode) or st.st_nlink != 1:
+        raise SystemExit("unsafe_root_mutation_lock")
+    if st.st_uid != 0 or st.st_gid != 0 or stat.S_IMODE(st.st_mode) != 0o600:
+        raise SystemExit("unexpected_root_mutation_lock_ownership")
+    path_st=os.stat(path, follow_symlinks=False)
+    if (path_st.st_dev, path_st.st_ino) != (st.st_dev, st.st_ino):
+        raise SystemExit("root_mutation_lock_replaced_during_prepare")
+finally:
+    os.close(fd)
+PYROOTLOCK
+}
+
 acquire_mutation_lock() {
   local path="$1" fd parent
   [[ -n "${MUTATION_LOCK_PATHS[$path]+present}" ]] && return 0
   parent="$(dirname "$path")"
   [[ -d "$parent" ]] || { echo "ERROR: mutation lock directory unavailable: $parent" >&2; exit 75; }
+  prepare_root_owned_mutation_lock_file "$path"     || { echo "ERROR: unsafe root-owned mutation lock" >&2; exit 75; }
+  # The validated path is root-owned mode 0600 under a root-owned directory whose
+  # writable variants are sticky, so an unprivileged caller cannot replace it
+  # between the no-follow validation above and this shell descriptor open.
   exec {fd}>"$path" || { echo "ERROR: cannot open mutation lock" >&2; exit 75; }
   if ! flock -n "$fd"; then
     eval "exec ${fd}>&-"
@@ -131,45 +175,104 @@ acquire_mutation_lock() {
   MUTATION_LOCK_PATHS["$path"]="1"
 }
 
-ensure_invoking_user_lock_file() {
-  local path="$1" uid="$2" gid="$3" parent
-  parent="$(dirname "$path")"
-  [[ -d "$parent" ]] || { echo "ERROR: invoking-user lock directory unavailable: $parent" >&2; exit 75; }
-  python3 - "$path" "$uid" "$gid" <<'PYLOCK'
-from pathlib import Path
-import os, stat, sys
-path=Path(sys.argv[1]); uid=int(sys.argv[2]); gid=int(sys.argv[3])
+acquire_invoking_user_mutation_locks() {
+  local uid="$1" gid="$2" tmp_path="$3" runtime_path="$4" status=""
+  coproc NEXOLAB_USER_LOCK_HOLDER {
+    python3 /dev/fd/3 "$uid" "$gid" "$tmp_path" "$runtime_path" 3<<'PYLOCK'
+import fcntl
+import os
+import stat
+import sys
+
+uid=int(sys.argv[1]); gid=int(sys.argv[2]); paths=sys.argv[3:]
+if os.geteuid() != 0 or uid <= 0 or gid <= 0 or len(paths) != 2:
+    raise SystemExit("invalid_invoking_user_lock_context")
+if not hasattr(os, "O_NOFOLLOW"):
+    raise SystemExit("nofollow_unavailable")
+
+os.setgroups([])
+os.setgid(gid)
+os.setuid(uid)
+fds=[]
 try:
-    fd=os.open(path, os.O_WRONLY|os.O_CREAT|os.O_EXCL, 0o600)
-except FileExistsError:
-    fd=None
-if fd is not None:
-    try:
-        os.fchown(fd, uid, gid)
-        os.fchmod(fd, 0o600)
-        os.fsync(fd)
-    finally:
+    for raw in paths:
+        parent=os.path.dirname(raw)
+        pst=os.stat(parent, follow_symlinks=False)
+        if not stat.S_ISDIR(pst.st_mode):
+            raise SystemExit("unsafe_current_head_lock_parent")
+        flags=os.O_RDWR | os.O_CLOEXEC | os.O_NOFOLLOW
+        try:
+            fd=os.open(raw, flags | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError:
+            fd=os.open(raw, flags)
+        try:
+            st=os.fstat(fd)
+            if not stat.S_ISREG(st.st_mode) or st.st_nlink != 1:
+                raise SystemExit("unsafe_current_head_lock")
+            if st.st_uid != uid or st.st_gid != gid or stat.S_IMODE(st.st_mode) != 0o600:
+                raise SystemExit("unexpected_current_head_lock_ownership")
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            path_st=os.stat(raw, follow_symlinks=False)
+            locked_st=os.fstat(fd)
+            if (
+                not stat.S_ISREG(path_st.st_mode)
+                or path_st.st_nlink != 1
+                or (path_st.st_dev, path_st.st_ino) != (locked_st.st_dev, locked_st.st_ino)
+            ):
+                raise SystemExit("current_head_lock_replaced_during_acquire")
+            fds.append(fd)
+        except BaseException:
+            os.close(fd)
+            raise
+except BlockingIOError:
+    for fd in fds:
         os.close(fd)
-st=path.lstat()
-if path.is_symlink() or not stat.S_ISREG(st.st_mode) or st.st_nlink != 1:
-    raise SystemExit("unsafe_current_head_lock")
-if st.st_uid != uid or st.st_gid != gid or not (stat.S_IMODE(st.st_mode) & stat.S_IWUSR):
-    raise SystemExit("unexpected_current_head_lock_ownership")
+    raise SystemExit("current_head_lock_busy")
+except BaseException:
+    for fd in fds:
+        os.close(fd)
+    raise
+
+print("LOCKED", flush=True)
+try:
+    sys.stdin.buffer.read()
+finally:
+    for fd in fds:
+        os.close(fd)
 PYLOCK
+  }
+  USER_LOCK_HOLDER_PROCESS_PID="$NEXOLAB_USER_LOCK_HOLDER_PID"
+  USER_LOCK_HOLDER_READ_FD="${NEXOLAB_USER_LOCK_HOLDER[0]}"
+  USER_LOCK_HOLDER_WRITE_FD="${NEXOLAB_USER_LOCK_HOLDER[1]}"
+  if ! IFS= read -r status <&"$USER_LOCK_HOLDER_READ_FD"; then
+    wait "$USER_LOCK_HOLDER_PROCESS_PID" 2>/dev/null || true
+    echo "ERROR: invoking-user deployment locks could not be acquired" >&2
+    exit 75
+  fi
+  [[ "$status" == "LOCKED" ]] || { echo "ERROR: invoking-user deployment lock handshake failed" >&2; exit 75; }
 }
 
-[[ "${SUDO_UID:-}" =~ ^[0-9]+$ && "${SUDO_GID:-}" =~ ^[0-9]+$ ]]   || { echo "ERROR: invoking sudo user identity is required for shared deployment locks" >&2; exit 77; }
+user_lock_holder_alive() {
+  local state=""
+  [[ -n "$USER_LOCK_HOLDER_PROCESS_PID" ]] || return 1
+  kill -0 "$USER_LOCK_HOLDER_PROCESS_PID" 2>/dev/null || return 1
+  [[ -r "/proc/$USER_LOCK_HOLDER_PROCESS_PID/stat" ]] || return 1
+  state="$(awk '{print $3}' "/proc/$USER_LOCK_HOLDER_PROCESS_PID/stat" 2>/dev/null || true)"
+  [[ -n "$state" && "$state" != "Z" ]]
+}
+
+[[ "${SUDO_UID:-}" =~ ^[0-9]+$ && "${SUDO_GID:-}" =~ ^[0-9]+$ && "$SUDO_UID" != "0" && "$SUDO_GID" != "0" ]] \
+  || { echo "ERROR: invoking sudo user identity is required for shared deployment locks" >&2; exit 77; }
 USER_TMP_CURRENT_HEAD_LOCK="/tmp/$CURRENT_HEAD_LOCK_NAME"
 USER_RUNTIME_CURRENT_HEAD_LOCK="/run/user/$SUDO_UID/$CURRENT_HEAD_LOCK_NAME"
-ensure_invoking_user_lock_file "$USER_TMP_CURRENT_HEAD_LOCK" "$SUDO_UID" "$SUDO_GID"
-[[ -d "/run/user/$SUDO_UID" ]]   || { echo "ERROR: invoking-user runtime lock directory unavailable" >&2; exit 75; }
-ensure_invoking_user_lock_file "$USER_RUNTIME_CURRENT_HEAD_LOCK" "$SUDO_UID" "$SUDO_GID"
+[[ -d "/run/user/$SUDO_UID" ]] \
+  || { echo "ERROR: invoking-user runtime lock directory unavailable" >&2; exit 75; }
 
 acquire_mutation_lock "$LOCK_FILE"
 acquire_mutation_lock "$GATEWAY_REFRESH_LOCK_FILE"
 acquire_mutation_lock "$STAGE1_LOCK_FILE"
-acquire_mutation_lock "$USER_TMP_CURRENT_HEAD_LOCK"
-acquire_mutation_lock "$USER_RUNTIME_CURRENT_HEAD_LOCK"
+acquire_invoking_user_mutation_locks "$SUDO_UID" "$SUDO_GID" "$USER_TMP_CURRENT_HEAD_LOCK" "$USER_RUNTIME_CURRENT_HEAD_LOCK"
+user_lock_holder_alive || { echo "ERROR: invoking-user deployment lock holder exited unexpectedly" >&2; exit 75; }
 
 # Re-check source only after all known production mutation locks are held.
 ACTUAL_SOURCE="$("${GIT[@]}" rev-parse HEAD)"
@@ -486,6 +589,7 @@ trap rollback_on_exit EXIT
 
 log "TG-04 recurring activation start: source=$EXPECTED_SOURCE approved_immediate_deliveries=$EXPECTED_IMMEDIATE"
 log "Phase 1: enable scheduler only; Telegram delivery remains disabled"
+user_lock_holder_alive || { log "ERROR: invoking-user deployment lock holder was lost before scheduler mutation"; exit 75; }
 MUTATED="1"
 set_env_values "$CENTRAL_ENV" DAILY_REPORTS_SCHEDULER_ENABLED true
 "${COMPOSE[@]}" --env-file "$PIN_ENV" up -d --no-deps --no-build --force-recreate telemetry-service >>"$SUMMARY" 2>&1
@@ -517,6 +621,7 @@ printf '%s\n' "$PLAN_AFTER_SCHEDULER" >"$PLAN_AFTER_SCHEDULER_FILE"
 log "Scheduler reconciliation: PASS (snapshot_delta=$PLAN_GENERATION immediate_delivery_plan=$EXPECTED_IMMEDIATE)"
 
 log "Phase 2: persist topic delivery enablement and start the Gateway worker"
+user_lock_holder_alive || { log "ERROR: invoking-user deployment lock holder was lost before delivery mutation"; exit 75; }
 set_env_values "$TELEGRAM_ENV" TELEGRAM_ENABLED true TELEGRAM_MINIAPP_ENABLED true
 "${COMPOSE[@]}" --env-file "$PIN_ENV" up -d --no-deps --no-build --force-recreate telegram-gateway >>"$SUMMARY" 2>&1
 wait_healthy "$GATEWAY_NAME" || { log "ERROR: Gateway did not become healthy with delivery enabled"; exit 1; }
@@ -586,6 +691,7 @@ assert thread.isdigit() and int(thread)>0
 print("Persistent recurring config: PASS (scheduler=true delivery=true miniapp=true topic=present)")
 PYFINAL
 
+user_lock_holder_alive || { log "ERROR: invoking-user deployment lock holder was lost before final acceptance"; exit 75; }
 log "Recurring activation: PASS (scheduler=true delivery=true approved_immediate_deliveries=$EXPECTED_IMMEDIATE)"
 log "Historical Telegram rows unchanged: PASS"
 log "Outbox volume identity unchanged: PASS"
