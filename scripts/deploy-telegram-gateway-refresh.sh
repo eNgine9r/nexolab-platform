@@ -11,8 +11,10 @@ TELEGRAM_ENV="$SECRET_DIR/telegram.env"
 EVIDENCE_ROOT="${NEXOLAB_TG04_EVIDENCE_ROOT:-$REPO_ROOT/runtime/evidence}"
 LOCK_FILE="${NEXOLAB_TG04_REFRESH_LOCK_FILE:-/run/lock/nexolab-tg04-gateway-refresh.lock}"
 GATEWAY_NAME="nexolab-central-telegram-gateway-1"
+BOUNDARY_PROBE_PATH="scripts/telegram-gateway-boundary-runtime-proof.sh"
 EXPECTED_SOURCE=""
 EXPECTED_CURRENT_IMAGE_ID=""
+EXPECTED_TARGET_IMAGE_ID=""
 APPROVED="0"
 MUTATED="0"
 SUCCESS="0"
@@ -22,9 +24,10 @@ usage() {
 Usage: deploy-telegram-gateway-refresh.sh \
   --expected-source-sha SHA \
   --expected-current-image-id sha256:... \
+  --expected-target-image-id sha256:... \
   --approve-gateway-refresh
 
-Refreshes only the persistent Telegram Gateway. Delivery and scheduler remain disabled.
+Refreshes only the persistent Telegram Gateway to one prebuilt, exact-source, behaviorally verified image. Delivery and scheduler remain disabled.
 USAGE
 }
 while (($# > 0)); do
@@ -37,6 +40,11 @@ while (($# > 0)); do
     --expected-current-image-id)
       (($# >= 2)) || { echo "ERROR: --expected-current-image-id requires image ID" >&2; exit 64; }
       EXPECTED_CURRENT_IMAGE_ID="$2"
+      shift 2
+      ;;
+    --expected-target-image-id)
+      (($# >= 2)) || { echo "ERROR: --expected-target-image-id requires image ID" >&2; exit 64; }
+      EXPECTED_TARGET_IMAGE_ID="$2"
       shift 2
       ;;
     --approve-gateway-refresh)
@@ -57,9 +65,10 @@ done
 
 [[ "$EXPECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]] || { echo "ERROR: exact lowercase SHA required" >&2; exit 64; }
 [[ "$EXPECTED_CURRENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "ERROR: exact current image ID required" >&2; exit 64; }
+[[ "$EXPECTED_TARGET_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "ERROR: exact target image ID required" >&2; exit 64; }
 [[ "$APPROVED" == "1" ]] || { echo "ERROR: explicit --approve-gateway-refresh is required" >&2; exit 64; }
 [[ "$EUID" -eq 0 ]] || { echo "ERROR: root_required" >&2; exit 77; }
-for command in git docker curl python3 flock sha256sum tailscale grep sed; do
+for command in git docker curl python3 flock sha256sum tailscale grep sed getent runuser stat; do
   command -v "$command" >/dev/null 2>&1 || { echo "ERROR: missing command: $command" >&2; exit 69; }
 done
 docker compose version >/dev/null 2>&1 || { echo "ERROR: docker compose unavailable" >&2; exit 69; }
@@ -90,7 +99,20 @@ print("Protected Telegram env contract: PASS (delivery=false topic=present)")
 PYENV
 
 cd "$REPO_ROOT"
+[[ "${SUDO_UID:-}" =~ ^[0-9]+$ && "${SUDO_GID:-}" =~ ^[0-9]+$ && "$SUDO_UID" != "0" && "$SUDO_GID" != "0" ]] \
+  || { echo "ERROR: invoking sudo user identity is required for Git freshness authority" >&2; exit 77; }
+INVOKING_PASSWD="$(getent passwd "$SUDO_UID" || true)"
+[[ -n "$INVOKING_PASSWD" ]] \
+  || { echo "ERROR: invoking sudo user account is unavailable" >&2; exit 77; }
+IFS=: read -r INVOKING_GIT_USER _ INVOKING_UID INVOKING_GID _ _ _ <<<"$INVOKING_PASSWD"
+[[ -n "$INVOKING_GIT_USER" && "$INVOKING_UID" == "$SUDO_UID" && "$INVOKING_GID" == "$SUDO_GID" ]] \
+  || { echo "ERROR: invoking sudo user identity is inconsistent" >&2; exit 77; }
+[[ "$(stat -c '%u' "$REPO_ROOT")" == "$SUDO_UID" ]] \
+  || { echo "ERROR: invoking sudo user must own the repository" >&2; exit 77; }
 GIT=(git -c safe.directory="$REPO_ROOT" -C "$REPO_ROOT")
+GIT_AS_INVOKER=(runuser -u "$INVOKING_GIT_USER" -- git -C "$REPO_ROOT")
+"${GIT_AS_INVOKER[@]}" fetch --quiet origin main \
+  || { echo "ERROR: unable to refresh origin/main authority as invoking Git user" >&2; exit 69; }
 ACTUAL_SOURCE="$("${GIT[@]}" rev-parse HEAD)"
 [[ "$ACTUAL_SOURCE" == "$EXPECTED_SOURCE" ]] || { echo "ERROR: source SHA mismatch" >&2; exit 65; }
 REMOTE_MAIN="$("${GIT[@]}" rev-parse origin/main 2>/dev/null || true)"
@@ -103,7 +125,6 @@ STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 EVIDENCE_DIR="$EVIDENCE_ROOT/tg04-telegram-refresh-$STAMP"
 mkdir -m 0700 "$EVIDENCE_DIR"
 SUMMARY="$EVIDENCE_DIR/summary.txt"
-BUILD_LOG="$EVIDENCE_DIR/image-build.log"
 ACTIVATION_ENV="$EVIDENCE_DIR/activation.env"
 ROLLBACK_ENV="$EVIDENCE_DIR/rollback.env"
 exec 9>"$LOCK_FILE"
@@ -149,7 +170,6 @@ assert p.get("running") is False, p
 assert p.get("last_send_at") is None, p
 ' >/dev/null
 }
-
 CENTRAL_BIND="$(env_value "$CENTRAL_ENV" CENTRAL_BIND_ADDRESS 127.0.0.1)"
 CENTRAL_API_PORT="$(env_value "$CENTRAL_ENV" CENTRAL_API_PORT 8082)"
 TELEMETRY_READY_URL="http://${CENTRAL_BIND}:${CENTRAL_API_PORT}/health/ready"
@@ -176,6 +196,23 @@ OLD_IMAGE_ID="$(docker inspect --format '{{.Image}}' "$GATEWAY_NAME")"
 [[ "$OLD_IMAGE_ID" == "$EXPECTED_CURRENT_IMAGE_ID" ]] || { log "ERROR: current Gateway image changed since approval preparation"; exit 1; }
 docker image inspect "$OLD_IMAGE_ID" >/dev/null 2>&1 \
   || { log "ERROR: previous Gateway image unavailable for rollback"; exit 1; }
+[[ "$EXPECTED_TARGET_IMAGE_ID" != "$OLD_IMAGE_ID" ]] \
+  || { log "ERROR: target Gateway image matches current image"; exit 1; }
+docker image inspect "$EXPECTED_TARGET_IMAGE_ID" >/dev/null 2>&1 \
+  || { log "ERROR: pre-approved target Gateway image is unavailable locally"; exit 1; }
+EXPECTED_GATEWAY_TREE="$(git rev-parse "${EXPECTED_SOURCE}:services/telegram-gateway")"
+TARGET_REVISION="$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$EXPECTED_TARGET_IMAGE_ID" 2>/dev/null || true)"
+TARGET_GATEWAY_TREE="$(docker image inspect --format '{{index .Config.Labels "io.nexolab.source-tree"}}' "$EXPECTED_TARGET_IMAGE_ID" 2>/dev/null || true)"
+[[ "$TARGET_REVISION" == "$EXPECTED_SOURCE" ]] \
+  || { log "ERROR: target Gateway image source revision mismatch"; exit 1; }
+[[ "$TARGET_GATEWAY_TREE" == "$EXPECTED_GATEWAY_TREE" ]] \
+  || { log "ERROR: target Gateway image source tree mismatch"; exit 1; }
+"${GIT[@]}" show "${EXPECTED_SOURCE}:${BOUNDARY_PROBE_PATH}" \
+  | NEXOLAB_REPO_ROOT="$REPO_ROOT" bash -s -- \
+    --expected-source-sha "$EXPECTED_SOURCE" \
+    --image-id "$EXPECTED_TARGET_IMAGE_ID" >>"$SUMMARY" \
+  || { log "ERROR: target Gateway image lacks the approved bootstrap delivery boundary"; exit 1; }
+log "Target Gateway image approval pin: PASS (exact image, exact source revision/tree, behavioral boundary)"
 OUTBOX_VOLUME="$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/app/data/telegram-delivery"}}{{.Name}}{{end}}{{end}}' "$GATEWAY_NAME")"
 [[ -n "$OUTBOX_VOLUME" ]] || { log "ERROR: Gateway delivery volume identity unavailable"; exit 1; }
 
@@ -241,12 +278,11 @@ PYTHONPATH="$REPO_ROOT/services/telegram-gateway" \
 
 "${COMPOSE[@]}" --env-file "$ACTIVATION_ENV" config --quiet
 
-docker build \
-  --tag "$IMAGE_TAG" \
-  "$REPO_ROOT/services/telegram-gateway" >"$BUILD_LOG" 2>&1
+docker tag "$EXPECTED_TARGET_IMAGE_ID" "$IMAGE_TAG"
 IMAGE_ID="$(docker image inspect --format '{{.Id}}' "$IMAGE_TAG")"
-[[ -n "$IMAGE_ID" ]] || { log "ERROR: refreshed Gateway image identity unavailable"; exit 1; }
-log "Refreshed Gateway image built: $IMAGE_ID"
+[[ "$IMAGE_ID" == "$EXPECTED_TARGET_IMAGE_ID" ]] \
+  || { log "ERROR: approved target Gateway image tag mismatch"; exit 1; }
+log "Approved target Gateway image prepared: $IMAGE_ID"
 
 MUTATED="1"
 "${COMPOSE[@]}" --env-file "$ACTIVATION_ENV" \
