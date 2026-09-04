@@ -3,66 +3,37 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-04T07:45:00+03:00",
-  "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "tg04_one_shot_send_guard_blocked_by_codex_usage_limit",
+  "timestamp": "2026-09-04T08:30:00+03:00",
+  "actor": "chatgpt",
+  "event": "issue_869_local_candidate_verified",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 825,
-    "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
-    "branch": "ops/825-telegram-real-acceptance"
+    "issue": 869,
+    "title": "[TG-04][SAFETY] Add exact-snapshot one-shot TestLAB delivery guard",
+    "branch": "feat/869-telegram-controlled-single-send"
   },
   "evidence_snapshot": {
-    "corrected_frontend_deployment": {
-      "source_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7",
-      "control_main": "ec243ba6531f0e1473ca81dc6c3ff777598645d5",
-      "artifact": 9918720619,
-      "build_id": "lK2mXv7b6IZUUeVWXy-VJ",
-      "evidence": "runtime/deployments/20260904T032305Z",
-      "result": "deployment_passed",
-      "schema_head": "20260902_0031",
-      "source_adoption": "recorded_controlled_source_deployment_linux_arm64_lan_health_ready",
-      "volume_identity": "exact_match_6_of_6",
-      "edge_snapshot": "sha256:71d550e16031a1004419aebe4200ca3bc337f2148e6850a7d745e6600c107303_queue_0_quick_checks_ok",
-      "runtime": "dashboard_200_telemetry_ready_device_agent_healthy_workers_2_of_2_samples_advancing",
-      "telegram": "ready_delivery_false_miniapp_true_worker_false_last_send_null",
-      "scheduler": "disabled",
-      "tailscale": "8444_to_production_3000_miniapp_200"
-    },
-    "failed_pre_mutation_attempt": {
-      "evidence": "runtime/deployments/20260904T031554Z",
-      "runtime_mutation": "none",
-      "reason": "root_owned_stage1_evidence_archive_permission_denied",
-      "repair": "scoped_acl_user_nexolab_only_root_owner_preserved_group_other_closed"
-    },
-    "phone_gate": {
-      "snapshot_id": "76957482-57c4-4daf-ac30-d8592847cfbd",
-      "result": "pass",
-      "client": "authorized_ios_telegram",
-      "visual_evidence": "cooljet_2026-09-03_9_of_9_valid_m_packets_kpi_alarms_refrigeration_contour_rendered_no_invalid_format_error",
-      "gateway_evidence": "POST_/miniapp/report_HTTP_200_after_corrected_deployment",
-      "telegram_safety": "delivery_false_worker_false_last_send_null_scheduler_false"
-    },
-    "acquisition_observation": {
-      "issue": 866,
-      "classification": "nonblocking_separate_read_only_acquisition_observation",
-      "bounded_delta_30s": "samples_plus_47_requests_plus_61_retries_plus_7_queue_0_workers_2_last_error_null"
-    },
-    "controlled_send_guard": {
-      "issue": 869,
-      "branch": "feat/869-telegram-controlled-single-send",
-      "problem": "persistent_worker_can_discover_and_drain_multiple_snapshots_not_safe_for_single_send_gate",
-      "required": "exact_snapshot_one_shot_guard_at_most_one_api_call_dry_run_fail_closed",
-      "implementation": "not_started_no_tracked_changes",
-      "codex": "cli_0.152.0_usage_limit_exhausted_retry_available_2026-09-07_11_06",
-      "hard_blocker": "exhausted_agent_usage_limit"
+    "active_issue_evidence": {
+      "implementation_executor": "chatgpt_current_session_product_owner_directed_2026-09-04",
+      "persistent_delivery_boundary": "must_remain_false",
+      "scheduler_boundary": "must_remain_false",
+      "telegram_api_calls": "none_local_verification_fake_transport_only",
+      "full_gateway_suite": "73_passed_network_none_read_only_source_mount",
+      "focused_one_call_acceptance": "3_passed_network_none_fake_transport",
+      "canonical_payload_hash_contract": "aligned_with_telemetry_service_canonical_json_trailing_newline",
+      "candidate_image_build": "success_nexolab-telegram-gateway:issue-869-candidate",
+      "change_impact": "backend_full_quality_offline_bundle_telegram_gateway_container_supply_chain",
+      "hardware_write": "none",
+      "modbus_write": "none",
+      "production_runtime_mutation": "none",
+      "next_gate": "commit_push_pr_exact_head_ci_green_merge_then_production_no_send_dry_run"
     }
   },
   "observations": [],
-  "next_action": "Wait for legitimate Codex capacity restoration (reported 2026-09-07 11:06) or Product Owner-provided plan/credit capacity. Then resume Issue #869 on preserved branch feat/869-telegram-controlled-single-send, implement and verify the exact-snapshot one-shot guard, merge GREEN, and perform a production no-send dry-run before requesting approval for one real TestLAB send. Do not enable the persistent Telegram worker or scheduler and do not call Telegram directly.",
+  "next_action": "commit_push_open_pr_and_run_exact_head_required_ci_no_real_send",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -158,3 +158,46 @@ def test_enabled_configuration_rejects_private_chat_id(tmp_path) -> None:
         validate_enabled_configuration(
             enabled_settings(tmp_path, telegram_destination_chat_id="123456789")
         )
+
+
+def test_snapshot_client_gets_one_exact_snapshot_without_listing() -> None:
+    snapshot = sample_snapshot()
+    urls: list[str] = []
+
+    class StaticToken:
+        refreshable = False
+
+        def get_access_token(self):
+            return "backend-token"
+
+        def invalidate(self):
+            return None
+
+    def transport(request, timeout_seconds):
+        urls.append(request.full_url)
+        return http_response(
+            200,
+            {
+                "id": snapshot.id,
+                "organization_id": snapshot.organization_id,
+                "profile_id": snapshot.profile_id,
+                "equipment_id": snapshot.equipment_id,
+                "scheduled_for": snapshot.scheduled_for.isoformat(),
+                "payload_sha256": snapshot.payload_sha256,
+                "payload": snapshot.payload,
+            },
+        )
+
+    client = SnapshotClient(
+        "http://telemetry-service:8082",
+        ORG_ID,
+        StaticToken(),
+        timeout_seconds=3,
+        transport=transport,
+    )
+    result = client.get_snapshot(snapshot.id)
+
+    assert result == snapshot
+    assert urls == [
+        "http://telemetry-service:8082/api/v1/daily-reports/snapshots/snapshot-1"
+    ]

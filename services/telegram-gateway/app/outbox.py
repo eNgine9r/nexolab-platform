@@ -83,6 +83,41 @@ class DeliveryOutbox:
                 """
             )
 
+    @classmethod
+    def inspect_existing(
+        cls,
+        path: str,
+        snapshot_id: str,
+        destination_chat_id: str,
+    ) -> DeliveryRecord | None:
+        db_path = Path(path)
+        if not db_path.is_file():
+            return None
+        snapshot = _required(snapshot_id, "snapshot_id", 128)
+        destination = _required(destination_chat_id, "destination_chat_id", 64)
+        try:
+            connection = sqlite3.connect(
+                f"file:{db_path.resolve()}?mode=ro",
+                timeout=5.0,
+                uri=True,
+            )
+            connection.row_factory = sqlite3.Row
+            try:
+                row = connection.execute(
+                    "SELECT * FROM telegram_deliveries "
+                    "WHERE snapshot_id = ? AND destination_chat_id = ?",
+                    (snapshot, destination),
+                ).fetchone()
+            except sqlite3.OperationalError as error:
+                if "no such table: telegram_deliveries" in str(error):
+                    return None
+                raise DeliveryOutboxError("delivery outbox inspection failed") from error
+            finally:
+                connection.close()
+        except sqlite3.Error as error:
+            raise DeliveryOutboxError("delivery outbox inspection failed") from error
+        return None if row is None else _record(row)
+
     def enqueue(
         self,
         snapshot: ReportSnapshot,
@@ -191,6 +226,57 @@ class DeliveryOutbox:
             assert claimed is not None
             return _record(claimed)
 
+    def claim_exact(
+        self,
+        snapshot_id: str,
+        destination_chat_id: str,
+        *,
+        now: datetime | None = None,
+    ) -> DeliveryRecord:
+        claimed_at = _utc(now)
+        snapshot = _required(snapshot_id, "snapshot_id", 128)
+        destination = _required(destination_chat_id, "destination_chat_id", 64)
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT * FROM telegram_deliveries "
+                "WHERE snapshot_id = ? AND destination_chat_id = ?",
+                (snapshot, destination),
+            ).fetchone()
+            if row is None:
+                connection.rollback()
+                raise DeliveryOutboxError("exact delivery was not found")
+            if row["state"] != DeliveryState.PENDING.value:
+                connection.rollback()
+                raise DeliveryOutboxError("exact delivery is not pending")
+            if _parse_stamp(str(row["available_at"])) > claimed_at:
+                connection.rollback()
+                raise DeliveryOutboxError("exact delivery is not available")
+            cursor = connection.execute(
+                """
+                UPDATE telegram_deliveries
+                SET state = 'sending', attempts = attempts + 1,
+                    locked_at = ?, last_attempt_at = ?, last_error_code = NULL, updated_at = ?
+                WHERE id = ? AND state = 'pending'
+                """,
+                (
+                    _stamp(claimed_at),
+                    _stamp(claimed_at),
+                    _stamp(claimed_at),
+                    row["id"],
+                ),
+            )
+            if cursor.rowcount != 1:
+                connection.rollback()
+                raise DeliveryOutboxError("exact delivery state changed before claim")
+            claimed = connection.execute(
+                "SELECT * FROM telegram_deliveries WHERE id = ?",
+                (row["id"],),
+            ).fetchone()
+            connection.commit()
+            assert claimed is not None
+            return _record(claimed)
+
     def mark_sent(
         self,
         delivery_id: int,
@@ -234,6 +320,7 @@ class DeliveryOutbox:
         delivery_id: int,
         *,
         error_code: str,
+        duplicate_risk: bool = False,
         now: datetime | None = None,
     ) -> DeliveryRecord:
         failed_at = _utc(now)
@@ -245,6 +332,7 @@ class DeliveryOutbox:
             telegram_message_id=None,
             sent_at=None,
             now=failed_at,
+            duplicate_risk=duplicate_risk,
         )
 
     def _transition_from_sending(
@@ -257,6 +345,7 @@ class DeliveryOutbox:
         telegram_message_id: int | None,
         sent_at: datetime | None,
         now: datetime,
+        duplicate_risk: bool = False,
     ) -> DeliveryRecord:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
@@ -273,7 +362,8 @@ class DeliveryOutbox:
                 """
                 UPDATE telegram_deliveries
                 SET state = ?, available_at = ?, locked_at = NULL,
-                    last_error_code = ?, telegram_message_id = ?, sent_at = ?, updated_at = ?
+                    last_error_code = ?, telegram_message_id = ?, sent_at = ?, updated_at = ?,
+                    duplicate_risk = MAX(duplicate_risk, ?)
                 WHERE id = ?
                 """,
                 (
@@ -283,6 +373,7 @@ class DeliveryOutbox:
                     telegram_message_id,
                     None if sent_at is None else _stamp(sent_at),
                     _stamp(now),
+                    int(duplicate_risk),
                     delivery_id,
                 ),
             )

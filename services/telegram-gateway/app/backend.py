@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 import json
 import time
 from typing import Any, Protocol
+from urllib.parse import quote
 from urllib.request import Request
 
 from app.config import Settings, read_secret_file
@@ -165,6 +166,15 @@ class SnapshotClient:
         if not isinstance(items, list):
             raise BackendError("backend_snapshot_contract_error", retryable=False)
         return [_parse_snapshot(item) for item in items]
+
+    def get_snapshot(self, snapshot_id: str) -> ReportSnapshot:
+        normalized_snapshot_id = snapshot_id.strip()
+        if not normalized_snapshot_id or len(normalized_snapshot_id) > 128:
+            raise ValueError("snapshot_id must contain 1..128 characters")
+        encoded_snapshot_id = quote(normalized_snapshot_id, safe="")
+        response = self._get(f"/api/v1/daily-reports/snapshots/{encoded_snapshot_id}")
+        value = _json_object(response, code="backend_snapshot_contract_error")
+        return _parse_snapshot(value)
 
     def get_miniapp_snapshot(self, snapshot_id: str, identity_id: str) -> dict[str, Any]:
         normalized_snapshot_id = snapshot_id.strip()
