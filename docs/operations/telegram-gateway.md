@@ -321,8 +321,10 @@ sudo scripts/deploy-telegram-gateway-refresh.sh \
 ```
 
 The build context above is streamed directly from the exact Git commit tree, so a concurrent or transient
-working-tree edit cannot be stamped with the approved revision. The guard requires a clean exact source,
-the exact pre-approved current image, the locally available pre-approved target image with matching
+working-tree edit cannot be stamped with the approved revision. Because the guarded command runs under
+`sudo`, its freshness fetch is executed as the validated nonroot invoking Git user that owns the repository;
+root-only runtime operations begin only after that user-scoped `origin/main` refresh succeeds. The guard
+requires a clean exact source, the exact pre-approved current image, the locally available pre-approved target image with matching
 `org.opencontainers.image.revision` and `io.nexolab.source-tree` labels, a passing behavioral
 bootstrap-boundary probe, protected `TELEGRAM_ENABLED=false`, one positive protected topic id, and
 scheduler OFF. It captures core container identities, the persistent delivery-volume identity and the

@@ -68,7 +68,7 @@ done
 [[ "$EXPECTED_TARGET_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "ERROR: exact target image ID required" >&2; exit 64; }
 [[ "$APPROVED" == "1" ]] || { echo "ERROR: explicit --approve-gateway-refresh is required" >&2; exit 64; }
 [[ "$EUID" -eq 0 ]] || { echo "ERROR: root_required" >&2; exit 77; }
-for command in git docker curl python3 flock sha256sum tailscale grep sed; do
+for command in git docker curl python3 flock sha256sum tailscale grep sed getent runuser stat; do
   command -v "$command" >/dev/null 2>&1 || { echo "ERROR: missing command: $command" >&2; exit 69; }
 done
 docker compose version >/dev/null 2>&1 || { echo "ERROR: docker compose unavailable" >&2; exit 69; }
@@ -99,9 +99,20 @@ print("Protected Telegram env contract: PASS (delivery=false topic=present)")
 PYENV
 
 cd "$REPO_ROOT"
+[[ "${SUDO_UID:-}" =~ ^[0-9]+$ && "${SUDO_GID:-}" =~ ^[0-9]+$ && "$SUDO_UID" != "0" && "$SUDO_GID" != "0" ]] \
+  || { echo "ERROR: invoking sudo user identity is required for Git freshness authority" >&2; exit 77; }
+INVOKING_PASSWD="$(getent passwd "$SUDO_UID" || true)"
+[[ -n "$INVOKING_PASSWD" ]] \
+  || { echo "ERROR: invoking sudo user account is unavailable" >&2; exit 77; }
+IFS=: read -r INVOKING_GIT_USER _ INVOKING_UID INVOKING_GID _ _ _ <<<"$INVOKING_PASSWD"
+[[ -n "$INVOKING_GIT_USER" && "$INVOKING_UID" == "$SUDO_UID" && "$INVOKING_GID" == "$SUDO_GID" ]] \
+  || { echo "ERROR: invoking sudo user identity is inconsistent" >&2; exit 77; }
+[[ "$(stat -c '%u' "$REPO_ROOT")" == "$SUDO_UID" ]] \
+  || { echo "ERROR: invoking sudo user must own the repository" >&2; exit 77; }
 GIT=(git -c safe.directory="$REPO_ROOT" -C "$REPO_ROOT")
-"${GIT[@]}" fetch --quiet origin main \
-  || { echo "ERROR: unable to refresh origin/main authority" >&2; exit 69; }
+GIT_AS_INVOKER=(runuser -u "$INVOKING_GIT_USER" -- git -C "$REPO_ROOT")
+"${GIT_AS_INVOKER[@]}" fetch --quiet origin main \
+  || { echo "ERROR: unable to refresh origin/main authority as invoking Git user" >&2; exit 69; }
 ACTUAL_SOURCE="$("${GIT[@]}" rev-parse HEAD)"
 [[ "$ACTUAL_SOURCE" == "$EXPECTED_SOURCE" ]] || { echo "ERROR: source SHA mismatch" >&2; exit 65; }
 REMOTE_MAIN="$("${GIT[@]}" rev-parse origin/main 2>/dev/null || true)"
