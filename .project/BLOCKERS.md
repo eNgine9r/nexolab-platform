@@ -32,7 +32,7 @@ Updated: 2026-09-04
 
 ## Issue #898 — guarded recurring 07:50 activation
 
-**Active repository prerequisite.** The topic-aware persistent Gateway refresh and restart/no-duplicate acceptance are PASS. Recurring scheduler/delivery remain OFF. #898 adds a repository-owned two-phase activation guard: exact read-only planner → scheduler-only reconciliation → exact snapshot delta proof → topic worker enablement → exact approved delivery delta proof. Current read-only planner evidence predicts one 2026-09-04 catch-up snapshot and exactly one immediate topic delivery; this is not authorization to send it. Production activation remains a separate Product Owner hard gate after exact-head GREEN.
+**Active repository prerequisite.** The topic-aware persistent Gateway refresh and restart/no-duplicate acceptance are PASS. Recurring scheduler/delivery remain OFF. #898 adds a repository-owned two-phase activation guard: exact read-only planner → scheduler-only reconciliation → exact snapshot delta proof → topic worker enablement → exact approved delivery delta proof. Current read-only planner evidence predicts one 2026-09-04 catch-up snapshot and exactly one immediate topic delivery; this is not authorization to send it. Production activation remains a separate Product Owner hard gate after exact-head GREEN. PR #900 P1 review required preservation of the already-active local-auth Compose overlay during Telemetry recreation; that remediation is implemented and locally verified, but the final exact-head CI must rerun before merge.
 
 ## Issue #825 — TG-04 real Telegram acceptance
 

@@ -172,6 +172,19 @@ class RecurringActivationGuardPolicyTests(unittest.TestCase):
         self.assertIn('set_env_values "$TELEGRAM_ENV" TELEGRAM_ENABLED true TELEGRAM_MINIAPP_ENABLED true', self.text)
         self.assertIn("scheduler snapshot delta did not converge to the approved plan", self.text)
 
+    def test_active_local_auth_overlay_is_preserved_for_forward_and_rollback(self):
+        self.assertIn('LOCAL_AUTH_OVERLAY="$COMPOSE_DIR/compose.local-auth.yaml"', self.text)
+        self.assertIn('CURRENT_AUTH_LOCAL_ENABLED', self.text)
+        self.assertIn('LOCAL_AUTH_COMPOSE_ARGS=( -f "$LOCAL_AUTH_OVERLAY" )', self.text)
+        self.assertIn('"${LOCAL_AUTH_COMPOSE_ARGS[@]}"', self.text)
+        self.assertIn('AUTH_LOCAL_PRIVATE_KEY_HOST_FILE', self.text)
+        self.assertIn('AUTH_LOCAL_PUBLIC_KEY_HOST_FILE', self.text)
+        self.assertGreaterEqual(self.text.count('telemetry_local_auth_ready'), 3)
+        self.assertIn('current Telemetry local-auth runtime contract is incomplete', self.text)
+        self.assertIn('/run/secrets/nexolab_local_auth_private_key', self.text)
+        self.assertIn('/run/secrets/nexolab_local_auth_public_key', self.text)
+        self.assertIn('Mini App and local auth retained', self.text)
+
     def test_only_telemetry_and_gateway_are_recreated(self):
         self.assertIn("--force-recreate telemetry-service", self.text)
         self.assertIn("--force-recreate telegram-gateway", self.text)

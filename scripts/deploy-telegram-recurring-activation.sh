@@ -8,6 +8,7 @@ COMPOSE_DIR="$REPO_ROOT/infrastructure/compose"
 CENTRAL_ENV="${NEXOLAB_CENTRAL_ENV:-$COMPOSE_DIR/.env.central}"
 SECRET_DIR="${NEXOLAB_TELEGRAM_SECRET_DIR:-/etc/nexolab/telegram}"
 TELEGRAM_ENV="$SECRET_DIR/telegram.env"
+LOCAL_AUTH_OVERLAY="$COMPOSE_DIR/compose.local-auth.yaml"
 PLAN_SCRIPT="$REPO_ROOT/scripts/tg04-recurring-activation-runtime-plan.py"
 EVIDENCE_ROOT="${NEXOLAB_TG04_EVIDENCE_ROOT:-$REPO_ROOT/runtime/evidence}"
 LOCK_FILE="${NEXOLAB_TG04_ACTIVATION_LOCK_FILE:-/run/lock/nexolab-tg04-recurring-activation.lock}"
@@ -139,6 +140,14 @@ env_value() {
   value="$(sed -n "s/^${key}=//p" "$file" | tail -n 1)"
   printf '%s' "${value:-$default}"
 }
+resolve_compose_path() {
+  local value="$1"
+  if [[ "$value" == /* ]]; then
+    printf '%s\n' "$value"
+  else
+    printf '%s/%s\n' "$COMPOSE_DIR" "$value"
+  fi
+}
 json_field() {
   local key="$1"
   python3 -c 'import json,sys; v=json.load(sys.stdin)[sys.argv[1]]; print("true" if v is True else "false" if v is False else "" if v is None else v)' "$key"
@@ -211,6 +220,19 @@ assert p.get("status")=="ready" and p.get("delivery_enabled") is True
 assert p.get("miniapp_enabled") is True and p.get("running") is True
 ' >/dev/null
 }
+telemetry_local_auth_ready() {
+  [[ "$LOCAL_AUTH_OVERLAY_ENABLED" != "true" ]] && return 0
+  docker inspect "$TELEMETRY_NAME" | python3 -c '
+import json,sys
+p=json.load(sys.stdin)[0]
+env=dict(item.split("=",1) for item in p["Config"]["Env"] if "=" in item)
+assert env.get("AUTH_MODE")=="jwt"
+assert env.get("AUTH_LOCAL_ENABLED")=="true"
+destinations={mount.get("Destination") for mount in p.get("Mounts",[])}
+assert "/run/secrets/nexolab_local_auth_private_key" in destinations
+assert "/run/secrets/nexolab_local_auth_public_key" in destinations
+' >/dev/null
+}
 
 for name in "$TELEMETRY_NAME" "$GATEWAY_NAME"; do
   container_id "$name" >/dev/null || { log "ERROR: required service missing: $name"; exit 1; }
@@ -227,6 +249,26 @@ OUTBOX_VOLUME="$(docker inspect --format '{{range .Mounts}}{{if eq .Destination 
 [[ -n "$OUTBOX_VOLUME" ]] || { log "ERROR: Gateway outbox volume unavailable"; exit 1; }
 docker inspect "$TELEMETRY_NAME" --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -Fx 'DAILY_REPORTS_SCHEDULER_ENABLED=false' >/dev/null \
   || { log "ERROR: Telemetry scheduler must be disabled before activation"; exit 1; }
+
+LOCAL_AUTH_COMPOSE_ARGS=()
+LOCAL_AUTH_OVERLAY_ENABLED="false"
+CURRENT_AUTH_LOCAL_ENABLED="$(docker inspect "$TELEMETRY_NAME" --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^AUTH_LOCAL_ENABLED=//p' | tail -n 1)"
+CURRENT_AUTH_MODE="$(docker inspect "$TELEMETRY_NAME" --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^AUTH_MODE=//p' | tail -n 1)"
+if [[ "$CURRENT_AUTH_LOCAL_ENABLED" == "true" ]]; then
+  [[ "$CURRENT_AUTH_MODE" == "jwt" ]] || { log "ERROR: active local auth requires AUTH_MODE=jwt"; exit 1; }
+  [[ -f "$LOCAL_AUTH_OVERLAY" ]] || { log "ERROR: active local-auth Compose overlay is missing"; exit 1; }
+  LOCAL_PRIVATE="$(env_value "$CENTRAL_ENV" AUTH_LOCAL_PRIVATE_KEY_HOST_FILE '')"
+  LOCAL_PUBLIC="$(env_value "$CENTRAL_ENV" AUTH_LOCAL_PUBLIC_KEY_HOST_FILE '')"
+  [[ -n "$LOCAL_PRIVATE" && -n "$LOCAL_PUBLIC" ]] || { log "ERROR: active local auth key paths are missing"; exit 1; }
+  [[ -r "$(resolve_compose_path "$LOCAL_PRIVATE")" && -r "$(resolve_compose_path "$LOCAL_PUBLIC")" ]] \
+    || { log "ERROR: active local auth key files are unreadable"; exit 1; }
+  LOCAL_AUTH_COMPOSE_ARGS=( -f "$LOCAL_AUTH_OVERLAY" )
+  LOCAL_AUTH_OVERLAY_ENABLED="true"
+  log "Local operator authentication overlay: PASS (active and preserved)"
+elif [[ -n "$CURRENT_AUTH_LOCAL_ENABLED" && "$CURRENT_AUTH_LOCAL_ENABLED" != "false" ]]; then
+  log "ERROR: unexpected AUTH_LOCAL_ENABLED value in current Telemetry runtime"; exit 1
+fi
+telemetry_local_auth_ready || { log "ERROR: current Telemetry local-auth runtime contract is incomplete"; exit 1; }
 
 CORE_NAMES=(nexolab-central-postgres-1 nexolab-central-mqtt-1 nexolab-central-minio-1 nexolab-edge-device-agent-1)
 declare -A CORE_IDS=()
@@ -279,7 +321,9 @@ TELEGRAM_MINIAPP_ENABLED=true
 EOF
 chmod 0600 "$PIN_ENV" "$ROLLBACK_OVERRIDE_ENV"
 
-COMPOSE=(docker compose --env-file "$CENTRAL_ENV" --env-file "$TELEGRAM_ENV" -f "$COMPOSE_DIR/compose.central.yaml" -f "$COMPOSE_DIR/compose.telegram.yaml" --profile telegram)
+COMPOSE=(docker compose --env-file "$CENTRAL_ENV" --env-file "$TELEGRAM_ENV" -f "$COMPOSE_DIR/compose.central.yaml" "${LOCAL_AUTH_COMPOSE_ARGS[@]}" -f "$COMPOSE_DIR/compose.telegram.yaml" --profile telegram)
+"${COMPOSE[@]}" --env-file "$PIN_ENV" config --quiet >/dev/null
+log "Compose activation model: PASS (local_auth_overlay=$LOCAL_AUTH_OVERLAY_ENABLED)"
 
 rollback_on_exit() {
   rc=$?
@@ -291,8 +335,8 @@ rollback_on_exit() {
     "${COMPOSE[@]}" --env-file "$ROLLBACK_OVERRIDE_ENV" up -d --no-deps --no-build --force-recreate telemetry-service >>"$SUMMARY" 2>&1 || true
     wait_healthy "$TELEMETRY_NAME" || true
     "${COMPOSE[@]}" --env-file "$ROLLBACK_OVERRIDE_ENV" up -d --no-deps --no-build --force-recreate telegram-gateway >>"$SUMMARY" 2>&1 || true
-    if wait_healthy "$GATEWAY_NAME" && gateway_disabled_ready; then
-      log "Rollback safety boundary: PASS (scheduler/delivery disabled; Mini App retained)"
+    if wait_healthy "$GATEWAY_NAME" && gateway_disabled_ready && telemetry_local_auth_ready; then
+      log "Rollback safety boundary: PASS (scheduler/delivery disabled; Mini App and local auth retained)"
     else
       log "WARNING: rollback could not prove the full closed Gateway safety boundary"
     fi
@@ -313,6 +357,7 @@ wait_healthy "$TELEMETRY_NAME" || { log "ERROR: Telemetry did not become healthy
 [[ "$(container_id "$TELEMETRY_NAME")" != "$OLD_TELEMETRY_CONTAINER_ID" ]] || { log "ERROR: Telemetry container was not recreated"; exit 1; }
 docker inspect "$TELEMETRY_NAME" --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -Fx 'DAILY_REPORTS_SCHEDULER_ENABLED=true' >/dev/null \
   || { log "ERROR: scheduler flag did not reach Telemetry runtime"; exit 1; }
+telemetry_local_auth_ready || { log "ERROR: Telemetry local-auth overlay was not preserved"; exit 1; }
 gateway_disabled_ready || { log "ERROR: Gateway changed before delivery phase"; exit 1; }
 
 PLAN_AFTER_SCHEDULER=""
