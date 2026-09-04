@@ -22,11 +22,7 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 873,
-      "title": "[SECURITY] Triage new util-linux HIGH CVEs blocking container release gate",
-      "branch": "security/873-util-linux-cve-triage"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -2181,7 +2177,7 @@
       "issue": 873,
       "title": "[SECURITY] Triage new util-linux HIGH CVEs blocking container release gate",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "security/873-util-linux-cve-triage",
       "evidence": {
         "trigger": "pr872_container_supply_chain_run_33841404350_new_util_linux_high_findings",
@@ -2199,7 +2195,15 @@
         "production_runtime_mutation": "none",
         "modbus_write": "none",
         "hardware_write": "none",
-        "next_gate": "commit_push_pr_exact_head_container_supply_chain_and_merge_gate"
+        "next_gate": "commit_push_pr_exact_head_container_supply_chain_and_merge_gate",
+        "verified_head_sha": "98da92ab6948471d10312abee998972e73c0605f",
+        "pull_request": 874,
+        "checks": {
+          "local_candidate": "GREEN",
+          "container_supply_chain": "success:33843450156",
+          "telemetry_service": "success:33843450225",
+          "core_quality_and_merge_gate": "success:33843450152"
+        }
       }
     }
   ],
