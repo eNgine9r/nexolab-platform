@@ -24,13 +24,13 @@ Updated: 2026-09-04
 
 ## Issue #883 — TestLAB morning-report forum-topic routing
 
-**Active focused Work Package; no hard blocker.** After the first accepted TestLAB send landed in General, the Product Owner reprioritized topic routing before the remaining #825 restart/scheduler acceptance. #883 models the destination as `chat_id + message_thread_id`, preserves legacy General `sent` evidence without delete/re-send, prevents General/topic aliasing for the same snapshot, and adds protected exact-topic capture through a one-time forum challenge. Repository implementation must keep persistent delivery and the weekday scheduler OFF. Runtime topic configuration and any real topic send remain post-merge gates.
+**Cleared 2026-09-04.** PR #886 exact head `0d4c4880bc62743ac88bccb80b3331559760ccca` passed local exact-candidate verification, Telegram Gateway `33857478217`, disconnected Offline Bundle `33857478142`, Telemetry Service `33857478227`, Container Supply Chain `33857478251`, Core Quality/build and NEXOLAB Merge Gate `33857478294`, then squash-merged to `main` as `6ea1996ef7bf3da6bed35220b813d0706d64a17f`. Topic-aware destination identity is repository-complete; no runtime topic capture/configuration or real topic send occurred in #883.
 
 ## Issue #825 — TG-04 real Telegram acceptance
 
-**First real TestLAB one-shot delivery is cleared; #825 is temporarily blocked only on active child Work Package #883 by Product Owner priority.** Real signed iOS Mini App acceptance and the exact General send are PASS on snapshot `76957482-57c4-4daf-ac30-d8592847cfbd`; durable outbox state is `sent`, Telegram message ID is present, duplicate risk is false, and the payload digest matches. Product Owner visual evidence confirms the report appeared in TestLAB General.
+**Active; no repository blocker.** Real signed iOS Mini App acceptance and the exact General send are PASS. #883 is now merged GREEN, so the next gate is protected capture of the exact TestLAB forum topic followed by an exact-snapshot no-send dry-run. A real topic test remains a separate Product Owner gate after dry-run evidence.
 
-Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. After #883 passes repository CI, exact-topic capture and a no-send dry-run must pass before the separately gated topic test. Then #825 resumes no-duplicate/restart proof before recurring weekday 07:50 activation.
+Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. Do not enable the persistent worker or scheduler yet. After the separately approved one-topic send, #825 resumes no-duplicate/restart proof before recurring weekday 07:50 activation.
 
 ## Issue #824 — TG-03 completed and merged
 
