@@ -298,6 +298,100 @@ closed delivery/worker safety boundary. It never runs `compose down`, deletes a 
 enables the scheduler, or requests a Telegram send. Evidence is written under
 `runtime/evidence/tg04-telegram-refresh-*` without bot token, chat id or thread id.
 
+## TG-04 guarded recurring weekday 07:50 activation
+
+After the topic-aware persistent Gateway passes restart/no-duplicate acceptance, recurring delivery
+remains a separate production gate. Do not edit `.env.central`, `telegram.env`, or Compose services
+by hand. Issue #898 provides a two-phase guard that predicts the exact immediate catch-up/delivery
+count before any mutation and requires the Product Owner-approved count as an operator argument.
+
+The read-only planner is:
+
+```bash
+cd ~/nexolab-platform
+./scripts/tg04-recurring-activation-runtime-plan.py
+```
+
+It uses the same `latest_due_report_date` / `resolve_report_window` domain functions as Telemetry,
+requires the one accepted `TestLAB · CoolJet · Daily 07:50` profile (`Europe/Kyiv`, Monday-Friday,
+720-minute analysis window), compares every currently eligible persisted snapshot with the exact
+forum-topic outbox identity, and prints only sanitized schedule/count/fingerprint evidence. Numeric
+Telegram chat/thread identities are never printed. Every planner `docker exec` / PostgreSQL runtime
+read is bounded by a 15-second subprocess timeout and fails closed instead of blocking rollback.
+
+After exact-head repository CI is GREEN, capture the current Telemetry and Gateway image IDs and run
+the planner immediately before requesting the production activation gate. The guarded command is:
+
+```bash
+sudo scripts/deploy-telegram-recurring-activation.sh \
+  --expected-source-sha <exact-current-main-sha> \
+  --expected-current-telemetry-image-id <sha256:...> \
+  --expected-current-gateway-image-id <sha256:...> \
+  --approve-immediate-deliveries <exact-approved-count> \
+  --approve-recurring-activation
+```
+
+The guard requires scheduler and delivery to still be OFF, a clean exact `origin/main`, the pinned
+current service images, the accepted two-row historical outbox with no non-sent/duplicate-risk rows,
+and an exact planner count match. Before any persistent env or service mutation, it also runs the
+pinned current Gateway image ephemerally with `--pull never --network none --read-only` and behaviorally
+exercises packaged `TelegramDeliveryWorker._discover`: an approved pre-cutoff synthetic snapshot must
+enqueue, an unapproved pre-cutoff snapshot must not enqueue, and a due post-cutoff snapshot must enqueue.
+The probe uses a fake in-memory outbox and never calls Telegram, so it makes no outbound API request and
+writes no persistent state. If this capability proof fails, activation stops before mutation. Do **not**
+make the recurring guard upgrade the Gateway image implicitly: use the separate Product Owner-approved
+Gateway-only refresh guard above with delivery and scheduler still OFF, then rerun the read-only recurring
+planner/capability preflight and request the recurring activation gate again. Telemetry recreation always
+includes the controlled
+`compose.observability.yaml` overlay and proves the existing `NEXOLAB_TELEMETRY_VERSION` plus
+`nexolab_telemetry_build_info` metric remain present. If the current controlled Telemetry runtime has
+local operator auth enabled, the guard also requires readable operator-owned key paths and includes
+`compose.local-auth.yaml` in both forward and rollback Telemetry recreations; post-checks prove
+`AUTH_LOCAL_ENABLED=true` and both signing-key mounts survived. Before capturing the runtime baseline,
+the guard also acquires the recurring-activation lock plus the existing Gateway-refresh, Stage-1 and
+current-head deployment locks (both `/tmp` fallback and the invoking sudo user's runtime lock path) so
+another known production mutation cannot race the two-phase activation. The two user-owned current-head
+locks are opened only after dropping to the invoking sudo UID/GID, using `O_NOFOLLOW`; type, ownership,
+link count and path/inode identity are validated from the same descriptor that is flocked and held for the
+activation. A replaced path, symlink, hard link, unexpected owner/mode, lost holder or zombie holder fails
+closed before mutation. Root-owned recurring/Gateway/Stage-1 lock paths are prepared without following
+symlinks as root-owned mode `0600` files under a root-owned parent that is either non-writable to others or
+sticky (the Raspberry `/run/lock` is sticky mode `1777`) before the shell flock descriptor is opened. This
+prevents a pre-created user symlink/file from turning a root lock acquisition into an unsafe pathname open.
+The guard stores secret-bearing config backups only in a root-only `/run` directory; evidence files contain
+no protected env contents.
+
+Activation is deliberately ordered: first persist `DAILY_REPORTS_SCHEDULER_ENABLED=true` and recreate
+only `telemetry-service` from the pinned current image while Gateway delivery remains OFF. The guard
+waits until the snapshot delta exactly matches the approved planner prediction, then acquires a bounded
+PostgreSQL `SHARE` table lock on `refrigeration_daily_report_snapshots`. Reads remain available, while
+INSERT/UPDATE/DELETE snapshot mutations are blocked across the phase-two race window. After that fence
+is proven held, the planner is run again under the fence and must still match the approved generation,
+snapshot, outbox and immediate-delivery counts. The fence has a 600-second fail-safe ceiling, while the
+phase-two delivery convergence window is bounded to 120 seconds; losing the fence at any delivery-phase
+gate fails closed. Only then does the guard atomically persist `TELEGRAM_ENABLED=true` together with
+`TELEGRAM_MINIAPP_ENABLED=true` and recreate only `telegram-gateway` from the already capability-proven
+pinned current image; the recurring activation step does not build or promote a new Gateway image. Post-checks
+require the exact approved outbox delta, unchanged historical-row fingerprint, zero
+non-sent/duplicate-risk rows, worker polling active, the same outbox volume, unchanged PostgreSQL,
+MQTT, MinIO and Device Agent container identities, healthy Dashboard/Telemetry/Mini App, and unchanged
+Tailscale Serve topology.
+
+If any post-mutation check fails, rollback first closes the outbound boundary: the Gateway must already
+be delivery-disabled or be stopped (with a bounded graceful stop and bounded kill fallback) before the
+script waits on any Telemetry rollback. The guard then restores both runtime env files atomically from
+root-only backups and recreates Telemetry and Gateway from the pinned pre-activation images. Any active
+snapshot mutation fence is released only after the Gateway is proven delivery-disabled again. Rollback
+is reported PASS only after that outbound quiesce, both persistent env files are byte-for-byte restored,
+their persistent scheduler/delivery flags re-validate as OFF, the Telemetry recreation itself succeeds,
+Telemetry is healthy with `DAILY_REPORTS_SCHEDULER_ENABLED=false`, local-auth/observability overlays are
+still intact, the Gateway is healthy with delivery/worker OFF and Mini App retained, and the snapshot
+fence is proven released. If persistent restoration cannot be
+proved, the root-only backup directory is retained for manual recovery instead of being deleted. A
+catch-up snapshot or Telegram outbox row already created before a failure is never deleted or rewritten;
+it becomes explicit evidence for a new resolution gate. The guard never uses `compose down`, deletes
+named volumes, performs Modbus/hardware writes, or broadens core NEXOLAB's offline dependency boundary.
+
 ## TG-04 exact-snapshot controlled one-shot delivery
 
 Do not enable the long-running delivery worker for the first real TestLAB acceptance send.

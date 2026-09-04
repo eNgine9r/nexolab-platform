@@ -147,12 +147,21 @@ class TelegramDeliveryWorker:
 
         destination = self._settings.telegram_destination_chat_id
         template = self._settings.telegram_mini_app_url_template
+        activation_cutoff = self._settings.telegram_delivery_activation_cutoff_utc
+        bootstrap_snapshot_ids = self._settings.telegram_delivery_bootstrap_snapshot_id_set
         assert destination is not None
         assert template is not None
         for snapshot in sorted(snapshots, key=lambda item: (item.scheduled_for, item.id)):
             if snapshot.organization_id != self._settings.nexolab_backend_organization_id:
                 raise BackendError("backend_organization_mismatch", retryable=False)
-            if snapshot.scheduled_for > now or snapshot.scheduled_for < cutoff:
+            scheduled_for = _aware_utc(snapshot.scheduled_for)
+            if scheduled_for > now or scheduled_for < cutoff:
+                continue
+            if (
+                activation_cutoff is not None
+                and scheduled_for <= activation_cutoff
+                and snapshot.id not in bootstrap_snapshot_ids
+            ):
                 continue
             rendered = render_report(
                 snapshot,

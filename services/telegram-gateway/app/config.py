@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 import ipaddress
 import re
@@ -45,6 +46,8 @@ class Settings(BaseSettings):
     telegram_destination_message_thread_id: int | None = Field(default=None, ge=1)
     telegram_mini_app_url_template: str | None = None
     telegram_message_max_chars: int = Field(default=3900, ge=512, le=4096)
+    telegram_delivery_activation_cutoff_utc: datetime | None = None
+    telegram_delivery_bootstrap_snapshot_ids: str = ""
 
     nexolab_backend_base_url: str = "http://telemetry-service:8082"
     nexolab_backend_organization_id: str = ""
@@ -65,6 +68,55 @@ class Settings(BaseSettings):
             return None
         return value
 
+    @field_validator("telegram_delivery_activation_cutoff_utc", mode="before")
+    @classmethod
+    def normalize_optional_activation_cutoff(cls, value: object) -> object:
+        if value is None:
+            return None
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("telegram_delivery_activation_cutoff_utc")
+    @classmethod
+    def normalize_activation_cutoff_utc(cls, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("TELEGRAM_DELIVERY_ACTIVATION_CUTOFF_UTC must be timezone-aware")
+        return value.astimezone(UTC)
+
+    @field_validator("telegram_delivery_bootstrap_snapshot_ids")
+    @classmethod
+    def normalize_bootstrap_snapshot_ids(cls, value: str) -> str:
+        raw = value.strip()
+        if not raw:
+            return ""
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for token in raw.split(","):
+            item = token.strip()
+            try:
+                parsed = UUID(item)
+            except ValueError as error:
+                raise ValueError(
+                    "TELEGRAM_DELIVERY_BOOTSTRAP_SNAPSHOT_IDS must contain UUIDs"
+                ) from error
+            canonical = str(parsed)
+            if parsed.int == 0 or canonical in seen:
+                raise ValueError(
+                    "TELEGRAM_DELIVERY_BOOTSTRAP_SNAPSHOT_IDS must contain unique non-nil UUIDs"
+                )
+            seen.add(canonical)
+            normalized.append(canonical)
+        return ",".join(normalized)
+
+    @property
+    def telegram_delivery_bootstrap_snapshot_id_set(self) -> frozenset[str]:
+        if not self.telegram_delivery_bootstrap_snapshot_ids:
+            return frozenset()
+        return frozenset(self.telegram_delivery_bootstrap_snapshot_ids.split(","))
+
     @model_validator(mode="after")
     def validate_delivery_configuration(self) -> "Settings":
         if self.telegram_retry_max_seconds < self.telegram_retry_initial_seconds:
@@ -75,6 +127,14 @@ class Settings(BaseSettings):
         _validate_local_backend_url(self.nexolab_backend_base_url)
         if not self.telegram_state_db_path.strip():
             raise ValueError("TELEGRAM_STATE_DB_PATH must not be empty")
+        if (
+            self.telegram_delivery_bootstrap_snapshot_ids
+            and self.telegram_delivery_activation_cutoff_utc is None
+        ):
+            raise ValueError(
+                "TELEGRAM_DELIVERY_BOOTSTRAP_SNAPSHOT_IDS requires "
+                "TELEGRAM_DELIVERY_ACTIVATION_CUTOFF_UTC"
+            )
         return self
 
 

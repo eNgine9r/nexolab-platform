@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 from app.config import Settings
@@ -88,6 +89,50 @@ def test_worker_sends_persisted_snapshot_once_across_restart(tmp_path) -> None:
     replay = restarted_outbox.get_by_snapshot("snapshot-1", DESTINATION)
     assert replay is not None and replay.telegram_message_id == 101
 
+
+def test_activation_boundary_rejects_queued_historical_snapshot_not_in_approved_set(tmp_path) -> None:
+    approved_id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    queued_id = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+    approved = replace(sample_snapshot(snapshot_id=approved_id), scheduled_for=NOW - timedelta(minutes=20))
+    queued = replace(sample_snapshot(snapshot_id=queued_id), scheduled_for=NOW - timedelta(minutes=10))
+    source = SnapshotSource([approved, queued])
+    sink = TelegramSink()
+    worker, outbox, _ = build_worker(
+        tmp_path,
+        source,
+        sink,
+        telegram_destination_message_thread_id=THREAD_ID,
+        telegram_delivery_activation_cutoff_utc=NOW,
+        telegram_delivery_bootstrap_snapshot_ids=approved_id,
+    )
+
+    worker.run_once()
+
+    assert len(sink.calls) == 1
+    assert outbox.get_by_snapshot(approved_id, DESTINATION, THREAD_ID) is not None
+    assert outbox.get_by_snapshot(queued_id, DESTINATION, THREAD_ID) is None
+
+def test_activation_boundary_allows_normal_future_schedule_after_cutoff_when_due(tmp_path) -> None:
+    future_id = "cccccccc-cccc-cccc-cccc-cccccccccccc"
+    activation_cutoff = NOW - timedelta(hours=2)
+    due_after_activation = replace(
+        sample_snapshot(snapshot_id=future_id),
+        scheduled_for=NOW - timedelta(minutes=5),
+    )
+    sink = TelegramSink()
+    worker, outbox, _ = build_worker(
+        tmp_path,
+        SnapshotSource([due_after_activation]),
+        sink,
+        telegram_destination_message_thread_id=THREAD_ID,
+        telegram_delivery_activation_cutoff_utc=activation_cutoff,
+        telegram_delivery_bootstrap_snapshot_ids="",
+    )
+
+    worker.run_once()
+
+    assert len(sink.calls) == 1
+    assert outbox.get_by_snapshot(future_id, DESTINATION, THREAD_ID) is not None
 
 def test_retryable_failure_is_retained_without_mutating_snapshot(tmp_path) -> None:
     snapshot = sample_snapshot()
