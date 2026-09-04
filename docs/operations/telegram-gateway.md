@@ -258,6 +258,46 @@ After topic capture, keep `TELEGRAM_ENABLED=false` and `DAILY_REPORTS_SCHEDULER_
 Run the exact-snapshot no-send dry-run before any real topic test. A real topic test remains a
 separate Product Owner gate.
 
+## TG-04 guarded persistent Gateway topic-aware refresh
+
+After the topic one-shot is accepted, do not enable the persistent worker until the long-running
+Gateway itself is on a topic-aware image. If the existing container predates topic routing, refresh
+only `telegram-gateway` through the repository guard; do not use a broad central deployment or an
+ad-hoc Compose recreate. Production execution is a separate Product Owner cutover gate.
+
+Before approval preparation, capture the current persistent Gateway image ID without exposing any
+Telegram destination values:
+
+```bash
+cd ~/nexolab-platform
+SOURCE_SHA="$(git rev-parse HEAD)"
+CURRENT_GATEWAY_IMAGE_ID="$(docker inspect --format '{{.Image}}' nexolab-central-telegram-gateway-1)"
+```
+
+After exact-head repository verification is GREEN and the Product Owner explicitly approves the
+Gateway-only cutover, run:
+
+```bash
+sudo scripts/deploy-telegram-gateway-refresh.sh \
+  --expected-source-sha "$SOURCE_SHA" \
+  --expected-current-image-id "$CURRENT_GATEWAY_IMAGE_ID" \
+  --approve-gateway-refresh
+```
+
+The guard requires a clean exact source, the exact pre-approved current image, protected
+`TELEGRAM_ENABLED=false`, one positive protected topic id, and scheduler OFF. It captures core
+container identities, the persistent delivery-volume identity and the Tailscale Serve topology,
+builds the exact-source Gateway image, and force-recreates **only** `telegram-gateway` with
+`--no-deps --no-build`. Post-checks require the exact new image, the same delivery volume, Mini App
+ON, delivery/worker OFF, `last_send_at=null`, topic env present, unchanged core-container identities,
+healthy Dashboard/Telemetry/Mini App, unchanged Tailscale Serve topology, and scheduler still OFF.
+
+If failure occurs after the Gateway recreate, the guard recreates the Gateway from a pinned local
+rollback tag for the exact previous image and verifies the previous image, delivery volume and
+closed delivery/worker safety boundary. It never runs `compose down`, deletes a named volume,
+enables the scheduler, or requests a Telegram send. Evidence is written under
+`runtime/evidence/tg04-telegram-refresh-*` without bot token, chat id or thread id.
+
 ## TG-04 exact-snapshot controlled one-shot delivery
 
 Do not enable the long-running delivery worker for the first real TestLAB acceptance send.

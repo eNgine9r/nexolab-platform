@@ -3,17 +3,17 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-04T13:24:00+03:00",
+  "timestamp": "2026-09-04T13:50:00+03:00",
   "actor": "chatgpt",
-  "event": "tg04_real_topic_one_shot_passed_gateway_refresh_prerequisite_identified",
+  "event": "issue_893_guarded_gateway_refresh_implementation_in_progress",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 825,
-    "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
-    "branch": "ops/825-telegram-real-acceptance"
+    "issue": 893,
+    "title": "Add guarded topic-aware Telegram Gateway refresh",
+    "branch": "ops/893-telegram-gateway-refresh"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
@@ -33,11 +33,18 @@
       "real_topic_outbox": "two_distinct_sent_rows_one_General_one_topic_non_sent_zero_duplicate_risk_zero_message_ids_present",
       "real_topic_postcheck": "gateway_delivery_off_miniapp_on_worker_off_last_send_null_scheduler_off_ephemeral_container_removed",
       "persistent_gateway": "pre_topic_image_tg04_861b9f83670a_thread_env_absent",
-      "persistent_gateway_refresh": "required_not_authorized_not_executed"
+      "persistent_gateway_refresh": "required_not_authorized_not_executed",
+      "refresh_scope": "exact_source_and_current_image_pinned_gateway_only_force_recreate",
+      "refresh_preconditions": "delivery_off_topic_present_scheduler_off_existing_gateway_safe",
+      "refresh_preservation": "same_outbox_volume_core_container_ids_tailscale_topology",
+      "refresh_rollback": "pinned_previous_local_image_same_volume_and_closed_gateway_safety_boundary",
+      "targeted_tests": "10_passed_policy_and_missing_approval_fail_closed",
+      "shell_syntax": "pass",
+      "runtime_execution": "not_authorized_not_executed"
     }
   },
   "observations": [],
-  "next_action": "implement and verify a guarded Gateway-only topic-aware refresh Work Package; stop for separate Product Owner production cutover/restart approval before executing it, then perform no-duplicate/restart acceptance before scheduler",
+  "next_action": "complete docs/state and exact local candidate verification for #893, publish focused PR, require exact-head GREEN, then stop for separate Product Owner Gateway-only cutover approval",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

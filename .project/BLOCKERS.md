@@ -26,9 +26,13 @@ Updated: 2026-09-04
 
 **Cleared 2026-09-04.** PR #886 exact head `0d4c4880bc62743ac88bccb80b3331559760ccca` passed local exact-candidate verification, Telegram Gateway `33857478217`, disconnected Offline Bundle `33857478142`, Telemetry Service `33857478227`, Container Supply Chain `33857478251`, Core Quality/build and NEXOLAB Merge Gate `33857478294`, then squash-merged to `main` as `6ea1996ef7bf3da6bed35220b813d0706d64a17f`. Topic-aware destination identity is repository-complete; no runtime topic capture/configuration or real topic send occurred in #883.
 
+## Issue #893 — guarded topic-aware persistent Gateway refresh
+
+**Active focused prerequisite; no repository blocker.** The persistent Telegram Gateway is still the pre-topic Stage-1 image and lacks the topic env contract, while one-shot topic delivery has already passed. #893 adds a repository-owned Gateway-only refresh guard that pins exact source and exact current image, requires protected delivery OFF + topic present + scheduler OFF, preserves the delivery volume and core-container identities, force-recreates only `telegram-gateway`, and verifies rollback to the exact previous image if post-recreate validation fails. Production execution remains a separate Product Owner cutover gate. No Telegram send, scheduler activation, Modbus write or hardware write belongs to repository implementation.
+
 ## Issue #825 — TG-04 real Telegram acceptance
 
-**Active; real topic one-shot PASS.** Real signed iOS Mini App acceptance, the exact General send, protected topic capture, topic no-send dry-run and the separately approved exact topic send are PASS. Durable outbox evidence now contains two distinct `sent` deliveries for the same snapshot: one historical General destination and one forum-topic destination; both have Telegram message IDs, `non_sent=0`, and `duplicate_risk=0`.
+**Temporarily blocked only on active child #893. Real topic one-shot PASS.** Real signed iOS Mini App acceptance, the exact General send, protected topic capture, topic no-send dry-run and the separately approved exact topic send are PASS. Durable outbox evidence now contains two distinct `sent` deliveries for the same snapshot: one historical General destination and one forum-topic destination; both have Telegram message IDs, `non_sent=0`, and `duplicate_risk=0`.
 
 Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. The persistent Gateway container is still the pre-topic image `tg04-861b9f83670a` and has no topic env contract, so recurring delivery must remain disabled. The next prerequisite is a repository-owned guarded Gateway-only refresh path; its production execution/restart is a separate Product Owner cutover gate. After that, #825 resumes no-duplicate/restart proof before recurring weekday 07:50 activation.
 
