@@ -1876,7 +1876,7 @@
         "group_title_observed": "TestLAB",
         "bot_username_observed": "nex0lab_bot",
         "group_numeric_identity": "confirmed_runtime_only_not_committed",
-        "next_gate": "after_dry_run_require_separate_product_owner_approval_for_exactly_one_topic_test_then_resume_restart_idempotency_before_scheduler",
+        "next_gate": "separate_product_owner_approval_for_exactly_one_topic_send_then_post_send_idempotency_and_restart_acceptance_before_scheduler",
         "backend_provisioning_helper": "local_verified_5_passed_full_gateway_46_passed",
         "backend_principal_target": "nexolab-telegram_laboratory_technician_reports.read_only",
         "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled",
@@ -1912,7 +1912,7 @@
         "scheduler_prerequisite": "issue_845_pr846_merged_green_fail_closed_off",
         "state_reconciliation": "issue_860_pr861_merged_9a3556b25b257396d15db80af591d1cc3684b8f7_tg04_active",
         "main_arm64_artifact_preflight": "run_33781986481_artifact_9904235935_green_not_stage2_candidate_missing_tg04_pr842_repairs",
-        "current_gate": "protected_exact_topic_capture_then_production_no_send_dry_run",
+        "current_gate": "topic_capture_and_no_send_dry_run_passed_awaiting_separate_product_owner_approval_for_exactly_one_topic_send",
         "pr842_repository_merge": "merged_main_13ab26392fcb1c1385dca3c1f619da4512fe568c_issue825_kept_open",
         "stage2_exact_main_artifact": "run_33786462681_artifact_9905912342_sha256_9ea8769da2dc0466b61354aee961d5564a1565bcda6eabe74b63c437207ef97e",
         "stage2_artifact_staging": "runtime/staging/tg04-stage2-13ab2639_checksums_source_platform_node_contract_verified",
@@ -1979,7 +1979,14 @@
         "real_testlab_payload_sha256": "3c4cb6e4e5100054914a70001ba8a9d430794c01fbbc5f11c25f543291f59f34",
         "topic_routing_request": "product_owner_requests_future_morning_reports_to_existing_forum_topic_Rankovyi_zvit_current_acceptance_send_was_General",
         "topic_routing_implementation": "issue_883_completed_pr886_main_6ea1996ef7bf3da6bed35220b813d0706d64a17f",
-        "recurring_scheduler_activation": "not_authorized_remains_false"
+        "recurring_scheduler_activation": "not_authorized_remains_false",
+        "topic_capture": "PASS_protected_exact_forum_challenge_configured_runtime_only_numeric_thread_id_not_committed_or_printed",
+        "topic_no_send_dry_run": "PASS_exact_main_2e1a72cedc016f0333e7b1dfa20cd6b40ef9fb41_snapshot_76957482-57c4-4daf-ac30-d8592847cfbd",
+        "topic_no_send_result": "status_dry_run_ready_delivery_state_absent_duplicate_risk_false_payload_sha256_match",
+        "topic_no_send_outbox": "historical_General_sent_row_preserved_exactly_one_snapshot_row_non_sent_zero_duplicate_risk_zero_no_topic_row_created",
+        "topic_no_send_postcheck": "gateway_ready_delivery_false_worker_false_last_send_null_scheduler_false_ephemeral_container_removed",
+        "topic_no_send_telegram_api_calls": "zero",
+        "topic_test_authorization": "awaiting_separate_post_dry_run_product_owner_approval"
       }
     },
     {

@@ -28,9 +28,9 @@ Updated: 2026-09-04
 
 ## Issue #825 — TG-04 real Telegram acceptance
 
-**Active; no repository blocker.** Real signed iOS Mini App acceptance and the exact General send are PASS. #883 is now merged GREEN, so the next gate is protected capture of the exact TestLAB forum topic followed by an exact-snapshot no-send dry-run. A real topic test remains a separate Product Owner gate after dry-run evidence.
+**Active; hard-gated only on one real topic send approval.** Real signed iOS Mini App acceptance and the exact General send are PASS. #883 is merged GREEN. Protected capture of the intended TestLAB forum topic passed, and the exact-snapshot topic no-send dry-run returned `dry_run_ready`, `delivery_state=absent`, `duplicate_risk=false` with the expected payload digest. Durable outbox proof preserved the single historical General `sent` row and created no new/non-sent delivery. One real topic test now requires separate Product Owner approval.
 
-Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. Do not enable the persistent worker or scheduler yet. After the separately approved one-topic send, #825 resumes no-duplicate/restart proof before recurring weekday 07:50 activation.
+Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. Topic capture and dry-run caused zero Telegram API calls and no outbox mutation. Do not enable the persistent worker or scheduler yet. After the separately approved one-topic send, #825 resumes durable topic idempotency/no-duplicate/restart proof before recurring weekday 07:50 activation.
 
 ## Issue #824 — TG-03 completed and merged
 
