@@ -1876,7 +1876,7 @@
         "group_title_observed": "TestLAB",
         "bot_username_observed": "nex0lab_bot",
         "group_numeric_identity": "confirmed_runtime_only_not_committed",
-        "next_gate": "separate_product_owner_approval_for_exactly_one_topic_send_then_post_send_idempotency_and_restart_acceptance_before_scheduler",
+        "next_gate": "prepare_guarded_topic_aware_persistent_gateway_refresh_then_require_separate_product_owner_cutover_approval_before_restart_acceptance",
         "backend_provisioning_helper": "local_verified_5_passed_full_gateway_46_passed",
         "backend_principal_target": "nexolab-telegram_laboratory_technician_reports.read_only",
         "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled",
@@ -1912,7 +1912,7 @@
         "scheduler_prerequisite": "issue_845_pr846_merged_green_fail_closed_off",
         "state_reconciliation": "issue_860_pr861_merged_9a3556b25b257396d15db80af591d1cc3684b8f7_tg04_active",
         "main_arm64_artifact_preflight": "run_33781986481_artifact_9904235935_green_not_stage2_candidate_missing_tg04_pr842_repairs",
-        "current_gate": "topic_capture_and_no_send_dry_run_passed_awaiting_separate_product_owner_approval_for_exactly_one_topic_send",
+        "current_gate": "real_topic_send_passed_durable_general_and_topic_sent_rows_separate_persistent_gateway_still_pre_topic_image_requires_guarded_refresh_before_scheduler",
         "pr842_repository_merge": "merged_main_13ab26392fcb1c1385dca3c1f619da4512fe568c_issue825_kept_open",
         "stage2_exact_main_artifact": "run_33786462681_artifact_9905912342_sha256_9ea8769da2dc0466b61354aee961d5564a1565bcda6eabe74b63c437207ef97e",
         "stage2_artifact_staging": "runtime/staging/tg04-stage2-13ab2639_checksums_source_platform_node_contract_verified",
@@ -1986,7 +1986,12 @@
         "topic_no_send_outbox": "historical_General_sent_row_preserved_exactly_one_snapshot_row_non_sent_zero_duplicate_risk_zero_no_topic_row_created",
         "topic_no_send_postcheck": "gateway_ready_delivery_false_worker_false_last_send_null_scheduler_false_ephemeral_container_removed",
         "topic_no_send_telegram_api_calls": "zero",
-        "topic_test_authorization": "awaiting_separate_post_dry_run_product_owner_approval"
+        "topic_test_authorization": "approved_and_consumed_exactly_one_real_topic_send_2026-09-04",
+        "real_topic_send": "PASS_exact_snapshot_76957482-57c4-4daf-ac30-d8592847cfbd_status_sent_delivery_state_sent_duplicate_risk_false_payload_sha256_match",
+        "real_topic_outbox": "two_distinct_sent_rows_same_snapshot_one_General_one_topic_non_sent_zero_duplicate_risk_zero_both_message_ids_present",
+        "real_topic_postcheck": "gateway_ready_delivery_false_miniapp_true_worker_false_last_send_null_scheduler_false_ephemeral_container_removed",
+        "persistent_gateway_image": "pre_topic_tg04_861b9f83670a_image_sha256_fe118c8e3d827b291bb6d5aa3044f37819af960d05bf7bbf2a623510fae3d688_thread_env_absent",
+        "persistent_gateway_refresh": "required_before_recurring_delivery_not_yet_authorized_or_executed"
       }
     },
     {
