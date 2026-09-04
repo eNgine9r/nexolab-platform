@@ -159,11 +159,21 @@ class TelegramDeliveryWorker:
                 mini_app_url_template=template,
                 max_chars=self._settings.telegram_message_max_chars,
             )
-            self._outbox.enqueue(snapshot, destination, rendered, now=now)
+            self._outbox.enqueue(
+                snapshot,
+                destination,
+                rendered,
+                destination_message_thread_id=self._settings.telegram_destination_message_thread_id,
+                now=now,
+            )
 
     def _drain(self, now: datetime) -> None:
         for _ in range(self._settings.telegram_max_deliveries_per_run):
-            delivery = self._outbox.claim_next(now=now)
+            delivery = self._outbox.claim_next_for_destination(
+                self._settings.telegram_destination_chat_id or "",
+                destination_message_thread_id=self._settings.telegram_destination_message_thread_id,
+                now=now,
+            )
             if delivery is None:
                 return
             try:
@@ -171,6 +181,7 @@ class TelegramDeliveryWorker:
                     chat_id=delivery.destination_chat_id,
                     text=delivery.text,
                     button_url=delivery.button_url,
+                    message_thread_id=delivery.destination_message_thread_id,
                 )
                 self._outbox.mark_sent(
                     delivery.id,

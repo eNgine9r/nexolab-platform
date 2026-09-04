@@ -23,6 +23,7 @@ NOW = datetime(2026, 9, 4, 5, 0, tzinfo=UTC)
 TARGET_ID = "76957482-57c4-4daf-ac30-d8592847cfbd"
 OTHER_ID = "11111111-2222-4333-8444-555555555555"
 DESTINATION = "-1001234567890"
+THREAD_ID = 73
 DIRECT_LINK = "https://t.me/nexolab_bot/nexolab?startapp=report_{snapshot_id}"
 
 
@@ -53,10 +54,12 @@ class ExactSource:
 class TelegramSink:
     def __init__(self, error: TelegramApiError | None = None):
         self.error = error
-        self.calls: list[tuple[str, str, str]] = []
+        self.calls: list[tuple[str, str, str, int | None]] = []
 
-    def send_message(self, *, chat_id: str, text: str, button_url: str):
-        self.calls.append((chat_id, text, button_url))
+    def send_message(
+        self, *, chat_id: str, text: str, button_url: str, message_thread_id: int | None = None
+    ):
+        self.calls.append((chat_id, text, button_url, message_thread_id))
         if self.error is not None:
             error, self.error = self.error, None
             raise error
@@ -534,3 +537,57 @@ def test_existing_pending_render_mismatch_fails_closed(tmp_path) -> None:
     record = outbox.get_by_snapshot(TARGET_ID, DESTINATION)
     assert record is not None and record.state is DeliveryState.PENDING
     assert record.attempts == 0
+
+
+def test_topic_send_does_not_alias_historical_general_sent_delivery(tmp_path) -> None:
+    target = target_snapshot()
+    outbox = DeliveryOutbox(str(tmp_path / "outbox.db"))
+    general, _ = outbox.enqueue(target, DESTINATION, queued_message(target), now=NOW)
+    general_claim = outbox.claim_exact(TARGET_ID, DESTINATION, now=NOW)
+    assert general_claim.id == general.id
+    outbox.mark_sent(general.id, telegram_message_id=599, now=NOW)
+
+    settings = controlled_settings(
+        tmp_path,
+        telegram_destination_message_thread_id=THREAD_ID,
+    )
+    sink = TelegramSink()
+    dry_run = execute_controlled_send(
+        settings,
+        snapshot_id=TARGET_ID,
+        expected_payload_sha256=target.payload_sha256,
+        dry_run=True,
+        snapshot_client=ExactSource(target),
+        telegram_client=sink,
+        outbox=outbox,
+        clock=lambda: NOW,
+    )
+    assert dry_run.status == "dry_run_ready"
+    assert dry_run.delivery_state == "absent"
+    assert sink.calls == []
+
+    sent = execute_controlled_send(
+        settings,
+        snapshot_id=TARGET_ID,
+        expected_payload_sha256=target.payload_sha256,
+        dry_run=False,
+        approval=APPROVAL_PHRASE,
+        snapshot_client=ExactSource(target),
+        telegram_client=sink,
+        outbox=outbox,
+        clock=lambda: NOW,
+    )
+    assert sent.status == "sent"
+    assert sink.calls == [
+        (
+            DESTINATION,
+            queued_message(target).text,
+            queued_message(target).button_url,
+            THREAD_ID,
+        )
+    ]
+    assert outbox.get_by_snapshot(TARGET_ID, DESTINATION).telegram_message_id == 599
+    topic = outbox.get_by_snapshot(TARGET_ID, DESTINATION, THREAD_ID)
+    assert topic is not None
+    assert topic.state is DeliveryState.SENT
+    assert topic.telegram_message_id == 701

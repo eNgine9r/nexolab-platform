@@ -112,3 +112,103 @@ def test_exact_claim_cannot_consume_unrelated_pending_delivery(tmp_path) -> None
     assert untouched is not None
     assert untouched.state is DeliveryState.PENDING
     assert untouched.attempts == 0
+
+
+def test_general_and_forum_topic_destinations_do_not_alias(tmp_path) -> None:
+    outbox = DeliveryOutbox(str(tmp_path / "outbox.db"))
+    snapshot = sample_snapshot()
+    general, general_replayed = outbox.enqueue(snapshot, DESTINATION, message(), now=NOW)
+    topic, topic_replayed = outbox.enqueue(
+        snapshot,
+        DESTINATION,
+        message(),
+        destination_message_thread_id=73,
+        now=NOW,
+    )
+
+    assert general_replayed is False
+    assert topic_replayed is False
+    assert general.id != topic.id
+    assert general.destination_message_thread_id is None
+    assert topic.destination_message_thread_id == 73
+    assert outbox.get_by_snapshot(snapshot.id, DESTINATION) == general
+    assert outbox.get_by_snapshot(snapshot.id, DESTINATION, 73) == topic
+
+
+def test_legacy_general_delivery_migrates_without_becoming_topic_delivery(tmp_path) -> None:
+    import sqlite3
+
+    path = tmp_path / "outbox.db"
+    stamp = NOW.isoformat(timespec="microseconds")
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE telegram_deliveries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                snapshot_id TEXT NOT NULL,
+                snapshot_sha256 TEXT NOT NULL,
+                destination_chat_id TEXT NOT NULL,
+                rendered_text TEXT NOT NULL,
+                button_url TEXT NOT NULL,
+                state TEXT NOT NULL,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                available_at TEXT NOT NULL,
+                locked_at TEXT,
+                last_attempt_at TEXT,
+                last_error_code TEXT,
+                telegram_message_id INTEGER,
+                sent_at TEXT,
+                duplicate_risk INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(snapshot_id, destination_chat_id)
+            )
+            """
+        )
+        snapshot = sample_snapshot()
+        connection.execute(
+            """
+            INSERT INTO telegram_deliveries (
+                snapshot_id, snapshot_sha256, destination_chat_id, rendered_text, button_url,
+                state, attempts, available_at, telegram_message_id, sent_at, duplicate_risk,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, 'sent', 1, ?, 77, ?, 0, ?, ?)
+            """,
+            (
+                snapshot.id,
+                snapshot.payload_sha256,
+                DESTINATION,
+                message().text,
+                message().button_url,
+                stamp,
+                stamp,
+                stamp,
+                stamp,
+            ),
+        )
+
+    assert DeliveryOutbox.inspect_existing(str(path), "snapshot-1", DESTINATION, 73) is None
+    legacy_general = DeliveryOutbox.inspect_existing(str(path), "snapshot-1", DESTINATION)
+    assert legacy_general is not None and legacy_general.state is DeliveryState.SENT
+
+    migrated = DeliveryOutbox(str(path))
+    general = migrated.get_by_snapshot("snapshot-1", DESTINATION)
+    assert general is not None
+    assert general.state is DeliveryState.SENT
+    assert general.telegram_message_id == 77
+    assert general.destination_message_thread_id is None
+    assert migrated.get_by_snapshot("snapshot-1", DESTINATION, 73) is None
+
+    topic, replayed = migrated.enqueue(
+        sample_snapshot(),
+        DESTINATION,
+        message(),
+        destination_message_thread_id=73,
+        now=NOW,
+    )
+    assert replayed is False
+    assert topic.destination_message_thread_id == 73
+    with sqlite3.connect(path) as connection:
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(telegram_deliveries)")}
+        assert "destination_message_thread_id" in columns
+        assert connection.execute("SELECT COUNT(*) FROM telegram_deliveries").fetchone()[0] == 2

@@ -3,23 +3,35 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-04T11:45:00+03:00",
+  "timestamp": "2026-09-04T12:01:20+03:00",
   "actor": "chatgpt",
-  "event": "issue_884_compose_verifier_prerequisite_in_progress",
+  "event": "issue_883_integrated_compose_verifier_prerequisite",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 884,
-    "title": "Make local candidate Compose validation overlay-aware",
-    "branch": "fix/884-local-compose-verifier"
+    "issue": 883,
+    "title": "Route morning reports to Telegram forum topic \"Ранковий звіт\"",
+    "branch": "feat/883-telegram-topic-routing"
   },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "product_owner_reprioritized": "2026-09-04_implement_now_and_prepare_one_topic_test",
+      "integrated_main": "71ffd1a367d510a58d5147efec07d96cbe0ac8cb",
+      "compose_verifier_prerequisite": "issue_884_pr885_green_merged",
+      "focused_tests": "58_passed",
+      "full_gateway_offline_tests": "84_passed_network_none_before_main_integration",
+      "runtime_send": "not_executed_repository_phase",
+      "persistent_worker": "off",
+      "scheduler_0750": "off",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "next_gate": "fresh_exact_local_candidate_then_PR_exact_head_CI"
+    }
   },
   "observations": [],
-  "next_action": "verify and merge #884, then update #883 onto current main and rerun exact local candidate gate",
+  "next_action": "run exact local candidate verification for #883 against integrated main, then publish PR and require all classified exact-head checks GREEN",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

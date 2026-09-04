@@ -86,3 +86,27 @@ def test_telegram_non_retryable_4xx_fails_closed() -> None:
         client.send_message(chat_id="-1001", text="x", button_url="https://t.me/b/a?startapp=x")
     assert caught.value.code == "telegram_http_400"
     assert caught.value.retryable is False
+
+
+def test_telegram_payload_includes_message_thread_id_only_for_topic_destination() -> None:
+    bodies: list[dict[str, object]] = []
+
+    def transport(request, timeout_seconds):
+        bodies.append(json.loads(request.data.decode("utf-8")))
+        return http_response(200, {"ok": True, "result": {"message_id": 42}})
+
+    client = TelegramClient("https://api.telegram.test", "123:SECRET", timeout_seconds=3, transport=transport)
+    client.send_message(
+        chat_id="-100123",
+        text="topic",
+        button_url="https://t.me/bot/app?startapp=x",
+        message_thread_id=73,
+    )
+    client.send_message(
+        chat_id="-100123",
+        text="general",
+        button_url="https://t.me/bot/app?startapp=x",
+    )
+
+    assert bodies[0]["message_thread_id"] == 73
+    assert "message_thread_id" not in bodies[1]

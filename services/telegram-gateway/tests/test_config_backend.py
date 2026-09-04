@@ -201,3 +201,14 @@ def test_snapshot_client_gets_one_exact_snapshot_without_listing() -> None:
     assert urls == [
         "http://telemetry-service:8082/api/v1/daily-reports/snapshots/snapshot-1"
     ]
+
+
+def test_optional_forum_topic_id_accepts_positive_integer_and_blank_env_value(tmp_path) -> None:
+    topic = enabled_settings(tmp_path, telegram_destination_message_thread_id="73")
+    validate_enabled_configuration(topic)
+    assert topic.telegram_destination_message_thread_id == 73
+    general = enabled_settings(tmp_path, telegram_destination_message_thread_id="")
+    validate_enabled_configuration(general)
+    assert general.telegram_destination_message_thread_id is None
+    with pytest.raises(ValueError):
+        enabled_settings(tmp_path, telegram_destination_message_thread_id=0)

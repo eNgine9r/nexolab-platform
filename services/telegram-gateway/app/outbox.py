@@ -14,6 +14,7 @@ class DeliveryRecord:
     snapshot_id: str
     snapshot_sha256: str
     destination_chat_id: str
+    destination_message_thread_id: int | None
     text: str
     button_url: str
     state: DeliveryState
@@ -49,33 +50,15 @@ class DeliveryOutbox:
     def _initialize(self) -> None:
         with self._connect() as connection:
             connection.execute("PRAGMA journal_mode = WAL")
-            connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS telegram_deliveries (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    snapshot_id TEXT NOT NULL,
-                    snapshot_sha256 TEXT NOT NULL,
-                    destination_chat_id TEXT NOT NULL,
-                    rendered_text TEXT NOT NULL,
-                    button_url TEXT NOT NULL,
-                    state TEXT NOT NULL,
-                    attempts INTEGER NOT NULL DEFAULT 0,
-                    available_at TEXT NOT NULL,
-                    locked_at TEXT,
-                    last_attempt_at TEXT,
-                    last_error_code TEXT,
-                    telegram_message_id INTEGER,
-                    sent_at TEXT,
-                    duplicate_risk INTEGER NOT NULL DEFAULT 0,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    UNIQUE(snapshot_id, destination_chat_id),
-                    CHECK(state IN ('pending','sending','sent','retry_wait','failed')),
-                    CHECK(attempts >= 0),
-                    CHECK(duplicate_risk IN (0,1))
-                )
-                """
-            )
+            exists = connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'telegram_deliveries'"
+            ).fetchone()
+            if exists is None:
+                self._create_delivery_table(connection)
+            else:
+                columns = {str(row["name"]) for row in connection.execute("PRAGMA table_info(telegram_deliveries)")}
+                if "destination_message_thread_id" not in columns:
+                    self._migrate_legacy_destination_identity(connection)
             connection.execute(
                 """
                 CREATE INDEX IF NOT EXISTS ix_telegram_deliveries_ready
@@ -83,12 +66,77 @@ class DeliveryOutbox:
                 """
             )
 
+    @staticmethod
+    def _create_delivery_table(connection: sqlite3.Connection) -> None:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS telegram_deliveries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                snapshot_id TEXT NOT NULL,
+                snapshot_sha256 TEXT NOT NULL,
+                destination_chat_id TEXT NOT NULL,
+                destination_message_thread_id INTEGER NOT NULL DEFAULT 0,
+                rendered_text TEXT NOT NULL,
+                button_url TEXT NOT NULL,
+                state TEXT NOT NULL,
+                attempts INTEGER NOT NULL DEFAULT 0,
+                available_at TEXT NOT NULL,
+                locked_at TEXT,
+                last_attempt_at TEXT,
+                last_error_code TEXT,
+                telegram_message_id INTEGER,
+                sent_at TEXT,
+                duplicate_risk INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(snapshot_id, destination_chat_id, destination_message_thread_id),
+                CHECK(destination_message_thread_id >= 0),
+                CHECK(state IN ('pending','sending','sent','retry_wait','failed')),
+                CHECK(attempts >= 0),
+                CHECK(duplicate_risk IN (0,1))
+            )
+            """
+        )
+
+    @classmethod
+    def _migrate_legacy_destination_identity(cls, connection: sqlite3.Connection) -> None:
+        connection.execute("BEGIN IMMEDIATE")
+        try:
+            before = int(connection.execute("SELECT COUNT(*) FROM telegram_deliveries").fetchone()[0])
+            connection.execute("ALTER TABLE telegram_deliveries RENAME TO telegram_deliveries_legacy")
+            cls._create_delivery_table(connection)
+            connection.execute(
+                """
+                INSERT INTO telegram_deliveries (
+                    id, snapshot_id, snapshot_sha256, destination_chat_id,
+                    destination_message_thread_id, rendered_text, button_url, state, attempts,
+                    available_at, locked_at, last_attempt_at, last_error_code,
+                    telegram_message_id, sent_at, duplicate_risk, created_at, updated_at
+                )
+                SELECT
+                    id, snapshot_id, snapshot_sha256, destination_chat_id,
+                    0, rendered_text, button_url, state, attempts,
+                    available_at, locked_at, last_attempt_at, last_error_code,
+                    telegram_message_id, sent_at, duplicate_risk, created_at, updated_at
+                FROM telegram_deliveries_legacy
+                """
+            )
+            after = int(connection.execute("SELECT COUNT(*) FROM telegram_deliveries").fetchone()[0])
+            if before != after:
+                raise DeliveryOutboxError("legacy delivery outbox migration row count mismatch")
+            connection.execute("DROP TABLE telegram_deliveries_legacy")
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+
     @classmethod
     def inspect_existing(
         cls,
         path: str,
         snapshot_id: str,
         destination_chat_id: str,
+        destination_message_thread_id: int | None = None,
     ) -> DeliveryRecord | None:
         db_path = Path(path)
         if not db_path.is_file():
@@ -103,11 +151,24 @@ class DeliveryOutbox:
             )
             connection.row_factory = sqlite3.Row
             try:
-                row = connection.execute(
-                    "SELECT * FROM telegram_deliveries "
-                    "WHERE snapshot_id = ? AND destination_chat_id = ?",
-                    (snapshot, destination),
-                ).fetchone()
+                columns = {
+                    str(item[1]) for item in connection.execute("PRAGMA table_info(telegram_deliveries)")
+                }
+                if "destination_message_thread_id" not in columns:
+                    if destination_message_thread_id is not None:
+                        return None
+                    row = connection.execute(
+                        "SELECT * FROM telegram_deliveries "
+                        "WHERE snapshot_id = ? AND destination_chat_id = ?",
+                        (snapshot, destination),
+                    ).fetchone()
+                else:
+                    row = connection.execute(
+                        "SELECT * FROM telegram_deliveries "
+                        "WHERE snapshot_id = ? AND destination_chat_id = ? "
+                        "AND destination_message_thread_id = ?",
+                        (snapshot, destination, _thread_db_value(destination_message_thread_id)),
+                    ).fetchone()
             except sqlite3.OperationalError as error:
                 if "no such table: telegram_deliveries" in str(error):
                     return None
@@ -124,15 +185,18 @@ class DeliveryOutbox:
         destination_chat_id: str,
         rendered: RenderedMessage,
         *,
+        destination_message_thread_id: int | None = None,
         now: datetime | None = None,
     ) -> tuple[DeliveryRecord, bool]:
         created_at = _utc(now)
         destination = _required(destination_chat_id, "destination_chat_id", 64)
+        thread_id = _thread_db_value(destination_message_thread_id)
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             existing = connection.execute(
-                "SELECT * FROM telegram_deliveries WHERE snapshot_id = ? AND destination_chat_id = ?",
-                (snapshot.id, destination),
+                "SELECT * FROM telegram_deliveries WHERE snapshot_id = ? AND destination_chat_id = ? "
+                "AND destination_message_thread_id = ?",
+                (snapshot.id, destination, thread_id),
             ).fetchone()
             if existing is not None:
                 if existing["snapshot_sha256"] != snapshot.payload_sha256:
@@ -145,15 +209,16 @@ class DeliveryOutbox:
             cursor = connection.execute(
                 """
                 INSERT INTO telegram_deliveries (
-                    snapshot_id, snapshot_sha256, destination_chat_id,
+                    snapshot_id, snapshot_sha256, destination_chat_id, destination_message_thread_id,
                     rendered_text, button_url, state, attempts,
                     available_at, duplicate_risk, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, 'pending', 0, ?, 0, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, 'pending', 0, ?, 0, ?, ?)
                 """,
                 (
                     snapshot.id,
                     snapshot.payload_sha256,
                     destination,
+                    thread_id,
                     rendered.text,
                     rendered.button_url,
                     _stamp(created_at),
@@ -226,22 +291,66 @@ class DeliveryOutbox:
             assert claimed is not None
             return _record(claimed)
 
+    def claim_next_for_destination(
+        self,
+        destination_chat_id: str,
+        *,
+        destination_message_thread_id: int | None = None,
+        now: datetime | None = None,
+    ) -> DeliveryRecord | None:
+        claimed_at = _utc(now)
+        destination = _required(destination_chat_id, "destination_chat_id", 64)
+        thread_id = _thread_db_value(destination_message_thread_id)
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                """
+                SELECT * FROM telegram_deliveries
+                WHERE state IN ('pending', 'retry_wait') AND available_at <= ?
+                  AND destination_chat_id = ? AND destination_message_thread_id = ?
+                ORDER BY available_at, id
+                LIMIT 1
+                """,
+                (_stamp(claimed_at), destination, thread_id),
+            ).fetchone()
+            if row is None:
+                connection.commit()
+                return None
+            connection.execute(
+                """
+                UPDATE telegram_deliveries
+                SET state = 'sending', attempts = attempts + 1,
+                    locked_at = ?, last_attempt_at = ?, last_error_code = NULL, updated_at = ?
+                WHERE id = ?
+                """,
+                (_stamp(claimed_at), _stamp(claimed_at), _stamp(claimed_at), row["id"]),
+            )
+            claimed = connection.execute(
+                "SELECT * FROM telegram_deliveries WHERE id = ?", (row["id"],)
+            ).fetchone()
+            connection.commit()
+            assert claimed is not None
+            return _record(claimed)
+
     def claim_exact(
         self,
         snapshot_id: str,
         destination_chat_id: str,
         *,
+        destination_message_thread_id: int | None = None,
         now: datetime | None = None,
     ) -> DeliveryRecord:
         claimed_at = _utc(now)
         snapshot = _required(snapshot_id, "snapshot_id", 128)
         destination = _required(destination_chat_id, "destination_chat_id", 64)
+        thread_id = _thread_db_value(destination_message_thread_id)
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             row = connection.execute(
                 "SELECT * FROM telegram_deliveries "
-                "WHERE snapshot_id = ? AND destination_chat_id = ?",
-                (snapshot, destination),
+                "WHERE snapshot_id = ? AND destination_chat_id = ? "
+                "AND destination_message_thread_id = ?",
+                (snapshot, destination, thread_id),
             ).fetchone()
             if row is None:
                 connection.rollback()
@@ -397,11 +506,17 @@ class DeliveryOutbox:
         counts["duplicate_risk"] = int(duplicate_risk)
         return counts
 
-    def get_by_snapshot(self, snapshot_id: str, destination_chat_id: str) -> DeliveryRecord | None:
+    def get_by_snapshot(
+        self,
+        snapshot_id: str,
+        destination_chat_id: str,
+        destination_message_thread_id: int | None = None,
+    ) -> DeliveryRecord | None:
         with self._connect() as connection:
             row = connection.execute(
-                "SELECT * FROM telegram_deliveries WHERE snapshot_id = ? AND destination_chat_id = ?",
-                (snapshot_id, destination_chat_id),
+                "SELECT * FROM telegram_deliveries WHERE snapshot_id = ? AND destination_chat_id = ? "
+                "AND destination_message_thread_id = ?",
+                (snapshot_id, destination_chat_id, _thread_db_value(destination_message_thread_id)),
             ).fetchone()
         return None if row is None else _record(row)
 
@@ -412,6 +527,7 @@ def _record(row: sqlite3.Row) -> DeliveryRecord:
         snapshot_id=str(row["snapshot_id"]),
         snapshot_sha256=str(row["snapshot_sha256"]),
         destination_chat_id=str(row["destination_chat_id"]),
+        destination_message_thread_id=_thread_record_value(row),
         text=str(row["rendered_text"]),
         button_url=str(row["button_url"]),
         state=DeliveryState(str(row["state"])),
@@ -426,6 +542,22 @@ def _record(row: sqlite3.Row) -> DeliveryRecord:
         sent_at=_parse_optional_stamp(row["sent_at"]),
         duplicate_risk=bool(row["duplicate_risk"]),
     )
+
+
+def _thread_db_value(value: int | None) -> int:
+    if value is None:
+        return 0
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ValueError("destination_message_thread_id must be a positive integer when set")
+    return value
+
+
+def _thread_record_value(row: sqlite3.Row) -> int | None:
+    try:
+        value = int(row["destination_message_thread_id"])
+    except (IndexError, KeyError):
+        return None
+    return None if value == 0 else value
 
 
 def _utc(value: datetime | None) -> datetime:

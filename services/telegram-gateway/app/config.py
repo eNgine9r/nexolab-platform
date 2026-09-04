@@ -7,7 +7,7 @@ from uuid import UUID
 from typing import Literal
 from urllib.parse import parse_qs, urlparse
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     telegram_test_api_override_enabled: bool = False
     telegram_bot_token_file: str = "/run/secrets/telegram/bot-token"
     telegram_destination_chat_id: str | None = None
+    telegram_destination_message_thread_id: int | None = Field(default=None, ge=1)
     telegram_mini_app_url_template: str | None = None
     telegram_message_max_chars: int = Field(default=3900, ge=512, le=4096)
 
@@ -52,6 +53,17 @@ class Settings(BaseSettings):
     nexolab_backend_password_file: str | None = "/run/secrets/telegram/nexolab-backend-password"
     nexolab_backend_bearer_token_file: str | None = None
     nexolab_backend_unauthenticated_test_mode_enabled: bool = False
+
+    @field_validator("telegram_destination_message_thread_id", mode="before")
+    @classmethod
+    def normalize_optional_message_thread_id(cls, value: object) -> object:
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            raise ValueError("TELEGRAM_DESTINATION_MESSAGE_THREAD_ID must be a positive integer")
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
 
     @model_validator(mode="after")
     def validate_delivery_configuration(self) -> "Settings":
