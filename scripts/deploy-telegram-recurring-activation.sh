@@ -9,6 +9,7 @@ CENTRAL_ENV="${NEXOLAB_CENTRAL_ENV:-$COMPOSE_DIR/.env.central}"
 SECRET_DIR="${NEXOLAB_TELEGRAM_SECRET_DIR:-/etc/nexolab/telegram}"
 TELEGRAM_ENV="$SECRET_DIR/telegram.env"
 LOCAL_AUTH_OVERLAY="$COMPOSE_DIR/compose.local-auth.yaml"
+OBSERVABILITY_OVERLAY="$COMPOSE_DIR/compose.observability.yaml"
 PLAN_SCRIPT="$REPO_ROOT/scripts/tg04-recurring-activation-runtime-plan.py"
 EVIDENCE_ROOT="${NEXOLAB_TG04_EVIDENCE_ROOT:-$REPO_ROOT/runtime/evidence}"
 LOCK_FILE="${NEXOLAB_TG04_ACTIVATION_LOCK_FILE:-/run/lock/nexolab-tg04-recurring-activation.lock}"
@@ -73,7 +74,7 @@ docker compose version >/dev/null 2>&1 || { echo "ERROR: docker compose unavaila
 [[ -x "$PLAN_SCRIPT" ]] || { echo "ERROR: activation planner unavailable" >&2; exit 66; }
 [[ -f "$CENTRAL_ENV" && ! -L "$CENTRAL_ENV" ]] || { echo "ERROR: central env unavailable" >&2; exit 66; }
 [[ -f "$TELEGRAM_ENV" && ! -L "$TELEGRAM_ENV" ]] || { echo "ERROR: protected Telegram env unavailable" >&2; exit 66; }
-[[ -f "$COMPOSE_DIR/compose.central.yaml" && -f "$COMPOSE_DIR/compose.telegram.yaml" ]] \
+[[ -f "$COMPOSE_DIR/compose.central.yaml" && -f "$OBSERVABILITY_OVERLAY" && -f "$COMPOSE_DIR/compose.telegram.yaml" ]] \
   || { echo "ERROR: compose contract unavailable" >&2; exit 66; }
 
 python3 - "$CENTRAL_ENV" "$TELEGRAM_ENV" <<'PYENV'
@@ -233,6 +234,18 @@ assert "/run/secrets/nexolab_local_auth_private_key" in destinations
 assert "/run/secrets/nexolab_local_auth_public_key" in destinations
 ' >/dev/null
 }
+telemetry_scheduler_disabled_ready() {
+  docker inspect "$TELEMETRY_NAME" --format '{{range .Config.Env}}{{println .}}{{end}}' \
+    | grep -Fx 'DAILY_REPORTS_SCHEDULER_ENABLED=false' >/dev/null
+}
+telemetry_observability_ready() {
+  local runtime_version
+  runtime_version="$(docker inspect "$TELEMETRY_NAME" --format '{{range .Config.Env}}{{println .}}{{end}}' \
+    | sed -n 's/^NEXOLAB_TELEMETRY_VERSION=//p' | tail -n 1)"
+  [[ -n "$CURRENT_TELEMETRY_VERSION" && "$runtime_version" == "$CURRENT_TELEMETRY_VERSION" ]] || return 1
+  curl -fsS --max-time 5 "http://${CENTRAL_BIND}:${CENTRAL_API_PORT}/metrics" \
+    | grep -Fq 'nexolab_telemetry_build_info'
+}
 
 for name in "$TELEMETRY_NAME" "$GATEWAY_NAME"; do
   container_id "$name" >/dev/null || { log "ERROR: required service missing: $name"; exit 1; }
@@ -269,6 +282,10 @@ elif [[ -n "$CURRENT_AUTH_LOCAL_ENABLED" && "$CURRENT_AUTH_LOCAL_ENABLED" != "fa
   log "ERROR: unexpected AUTH_LOCAL_ENABLED value in current Telemetry runtime"; exit 1
 fi
 telemetry_local_auth_ready || { log "ERROR: current Telemetry local-auth runtime contract is incomplete"; exit 1; }
+CURRENT_TELEMETRY_VERSION="$(docker inspect "$TELEMETRY_NAME" --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^NEXOLAB_TELEMETRY_VERSION=//p' | tail -n 1)"
+TARGET_TELEMETRY_VERSION="$(env_value "$CENTRAL_ENV" NEXOLAB_TELEMETRY_VERSION 0.15.0)"
+[[ -n "$CURRENT_TELEMETRY_VERSION" && "$CURRENT_TELEMETRY_VERSION" == "$TARGET_TELEMETRY_VERSION" ]] \
+  || { log "ERROR: active Telemetry observability version contract would change during recreation"; exit 1; }
 
 CORE_NAMES=(nexolab-central-postgres-1 nexolab-central-mqtt-1 nexolab-central-minio-1 nexolab-edge-device-agent-1)
 declare -A CORE_IDS=()
@@ -281,6 +298,7 @@ CENTRAL_API_PORT="$(env_value "$CENTRAL_ENV" CENTRAL_API_PORT 8082)"
 [[ "$(curl -fsS -o /dev/null -w '%{http_code}' --max-time 5 http://127.0.0.1:3000/)" == "200" ]] || { log "ERROR: Dashboard preflight failed"; exit 1; }
 [[ "$(curl -fsS -o /dev/null -w '%{http_code}' --max-time 5 http://127.0.0.1:3000/telegram-miniapp)" == "200" ]] || { log "ERROR: Mini App preflight failed"; exit 1; }
 [[ "$(curl -fsS -o /dev/null -w '%{http_code}' --max-time 5 "http://${CENTRAL_BIND}:${CENTRAL_API_PORT}/health/ready")" == "200" ]] || { log "ERROR: Telemetry preflight failed"; exit 1; }
+telemetry_observability_ready || { log "ERROR: current Telemetry observability runtime contract is incomplete"; exit 1; }
 SERVE_HASH_BEFORE="$(tailscale serve status | sha256sum | awk '{print $1}')"
 
 PLAN_BEFORE="$($PLAN_SCRIPT)" || { log "ERROR: recurring activation planner failed"; exit 1; }
@@ -321,9 +339,9 @@ TELEGRAM_MINIAPP_ENABLED=true
 EOF
 chmod 0600 "$PIN_ENV" "$ROLLBACK_OVERRIDE_ENV"
 
-COMPOSE=(docker compose --env-file "$CENTRAL_ENV" --env-file "$TELEGRAM_ENV" -f "$COMPOSE_DIR/compose.central.yaml" "${LOCAL_AUTH_COMPOSE_ARGS[@]}" -f "$COMPOSE_DIR/compose.telegram.yaml" --profile telegram)
+COMPOSE=(docker compose --env-file "$CENTRAL_ENV" --env-file "$TELEGRAM_ENV" -f "$COMPOSE_DIR/compose.central.yaml" -f "$OBSERVABILITY_OVERLAY" "${LOCAL_AUTH_COMPOSE_ARGS[@]}" -f "$COMPOSE_DIR/compose.telegram.yaml" --profile telegram)
 "${COMPOSE[@]}" --env-file "$PIN_ENV" config --quiet >/dev/null
-log "Compose activation model: PASS (local_auth_overlay=$LOCAL_AUTH_OVERLAY_ENABLED)"
+log "Compose activation model: PASS (observability=true local_auth_overlay=$LOCAL_AUTH_OVERLAY_ENABLED)"
 
 rollback_on_exit() {
   rc=$?
@@ -332,13 +350,24 @@ rollback_on_exit() {
     log "Activation failed; disabling recurring delivery and restoring previous runtime config/images"
     restore_file "$ROLLBACK_ROOT/central.env" "$CENTRAL_ENV" || true
     restore_file "$ROLLBACK_ROOT/telegram.env" "$TELEGRAM_ENV" || true
-    "${COMPOSE[@]}" --env-file "$ROLLBACK_OVERRIDE_ENV" up -d --no-deps --no-build --force-recreate telemetry-service >>"$SUMMARY" 2>&1 || true
-    wait_healthy "$TELEMETRY_NAME" || true
-    "${COMPOSE[@]}" --env-file "$ROLLBACK_OVERRIDE_ENV" up -d --no-deps --no-build --force-recreate telegram-gateway >>"$SUMMARY" 2>&1 || true
-    if wait_healthy "$GATEWAY_NAME" && gateway_disabled_ready && telemetry_local_auth_ready; then
-      log "Rollback safety boundary: PASS (scheduler/delivery disabled; Mini App and local auth retained)"
+    TELEMETRY_ROLLBACK_OK="0"
+    if "${COMPOSE[@]}" --env-file "$ROLLBACK_OVERRIDE_ENV" up -d --no-deps --no-build --force-recreate telemetry-service >>"$SUMMARY" 2>&1 \
+      && wait_healthy "$TELEMETRY_NAME" \
+      && telemetry_scheduler_disabled_ready \
+      && telemetry_local_auth_ready \
+      && telemetry_observability_ready; then
+      TELEMETRY_ROLLBACK_OK="1"
+    fi
+    GATEWAY_ROLLBACK_OK="0"
+    if "${COMPOSE[@]}" --env-file "$ROLLBACK_OVERRIDE_ENV" up -d --no-deps --no-build --force-recreate telegram-gateway >>"$SUMMARY" 2>&1 \
+      && wait_healthy "$GATEWAY_NAME" \
+      && gateway_disabled_ready; then
+      GATEWAY_ROLLBACK_OK="1"
+    fi
+    if [[ "$TELEMETRY_ROLLBACK_OK" == "1" && "$GATEWAY_ROLLBACK_OK" == "1" ]]; then
+      log "Rollback safety boundary: PASS (scheduler=false delivery=false; Mini App, local auth and observability retained)"
     else
-      log "WARNING: rollback could not prove the full closed Gateway safety boundary"
+      log "WARNING: rollback could not prove scheduler=false, delivery=false and preserved runtime overlays"
     fi
     log "Rollback never deletes generated snapshots, Telegram outbox rows or named volumes"
   fi
@@ -358,6 +387,7 @@ wait_healthy "$TELEMETRY_NAME" || { log "ERROR: Telemetry did not become healthy
 docker inspect "$TELEMETRY_NAME" --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -Fx 'DAILY_REPORTS_SCHEDULER_ENABLED=true' >/dev/null \
   || { log "ERROR: scheduler flag did not reach Telemetry runtime"; exit 1; }
 telemetry_local_auth_ready || { log "ERROR: Telemetry local-auth overlay was not preserved"; exit 1; }
+telemetry_observability_ready || { log "ERROR: Telemetry observability overlay was not preserved"; exit 1; }
 gateway_disabled_ready || { log "ERROR: Gateway changed before delivery phase"; exit 1; }
 
 PLAN_AFTER_SCHEDULER=""

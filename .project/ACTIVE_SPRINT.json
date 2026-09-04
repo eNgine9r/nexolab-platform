@@ -2388,17 +2388,19 @@
         "telegram_send": "none_in_repository_phase",
         "modbus_write": "none",
         "hardware_write": "none",
-        "next_gate": "exact_local_candidate_after_pr900_review_fix_then_push_exact_head_and_require_green",
+        "next_gate": "exact_local_candidate_after_pr900_overlay_and_rollback_review_fixes_then_push_exact_head_and_require_green",
         "implementation": "two_phase_scheduler_then_gateway_guard_with_exact_image_source_and_delivery_count_pins",
         "planner": "read_only_same_telemetry_due_window_semantics_cross_checks_all_eligible_snapshots_against_exact_topic_outbox",
         "planner_live_observation": "2026_09_04_due_missing_generation_1_immediate_delivery_1_delivery_runtime_config_ready_true_outbox_2_sent_non_sent_0_duplicate_risk_0",
         "persistent_config": "atomic_central_scheduler_true_then_protected_telegram_delivery_and_miniapp_true_with_root_only_run_backup_and_exact_restore",
-        "rollback_contract": "restore_exact_env_bytes_recreate_only_telemetry_and_gateway_on_pinned_pre_activation_images_scheduler_delivery_off_no_snapshot_or_outbox_delete",
-        "targeted_tests": "31_passed_recurring_guard_planner_gateway_refresh_stage1_and_local_auth_preservation_contracts",
+        "rollback_contract": "restore_exact_env_bytes_recreate_only_telemetry_and_gateway_on_pinned_pre_activation_images_require_telemetry_recreate_success_scheduler_false_local_auth_and_observability_preserved_delivery_off_no_snapshot_or_outbox_delete",
+        "targeted_tests": "33_passed_recurring_guard_planner_gateway_refresh_stage1_local_auth_observability_and_rollback_scheduler_contracts",
         "live_runtime_mutation": "none_repository_phase_only",
-        "review_remediation": "pr900_p1_local_auth_overlay_preserved_forward_and_rollback_current_auth_mounts_fail_closed",
+        "review_remediation": "pr900_p1_local_auth_overlay_preserved_plus_p1_rollback_scheduler_false_runtime_proof_plus_p2_observability_overlay_preserved_forward_and_rollback",
         "local_auth_runtime_proof": "current_telemetry_AUTH_MODE_jwt_AUTH_LOCAL_ENABLED_true_private_and_public_signing_key_mounts_present",
-        "compose_local_auth_validation": "PASS_compose_central_plus_local_auth_config_quiet"
+        "compose_local_auth_validation": "PASS_compose_central_plus_local_auth_config_quiet",
+        "observability_runtime_proof": "current_telemetry_version_present_and_nexolab_telemetry_build_info_metric_present",
+        "compose_overlay_validation": "PASS_compose_central_plus_observability_plus_local_auth_config_quiet"
       }
     }
   ],

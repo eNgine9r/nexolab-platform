@@ -183,7 +183,25 @@ class RecurringActivationGuardPolicyTests(unittest.TestCase):
         self.assertIn('current Telemetry local-auth runtime contract is incomplete', self.text)
         self.assertIn('/run/secrets/nexolab_local_auth_private_key', self.text)
         self.assertIn('/run/secrets/nexolab_local_auth_public_key', self.text)
-        self.assertIn('Mini App and local auth retained', self.text)
+        self.assertIn('Mini App, local auth and observability retained', self.text)
+
+    def test_active_observability_overlay_is_preserved_for_forward_and_rollback(self):
+        self.assertIn('OBSERVABILITY_OVERLAY="$COMPOSE_DIR/compose.observability.yaml"', self.text)
+        self.assertIn('-f "$OBSERVABILITY_OVERLAY"', self.text)
+        self.assertIn('CURRENT_TELEMETRY_VERSION', self.text)
+        self.assertIn('TARGET_TELEMETRY_VERSION', self.text)
+        self.assertIn('active Telemetry observability version contract would change during recreation', self.text)
+        self.assertGreaterEqual(self.text.count('telemetry_observability_ready'), 3)
+        self.assertIn('nexolab_telemetry_build_info', self.text)
+        self.assertIn('Telemetry observability overlay was not preserved', self.text)
+
+    def test_rollback_requires_scheduler_disabled_runtime_proof(self):
+        self.assertIn('TELEMETRY_ROLLBACK_OK="0"', self.text)
+        self.assertIn('telemetry_scheduler_disabled_ready', self.text)
+        self.assertIn("grep -Fx 'DAILY_REPORTS_SCHEDULER_ENABLED=false'", self.text)
+        self.assertIn('TELEMETRY_ROLLBACK_OK="1"', self.text)
+        self.assertIn('Rollback safety boundary: PASS (scheduler=false delivery=false', self.text)
+        self.assertIn('rollback could not prove scheduler=false, delivery=false', self.text)
 
     def test_only_telemetry_and_gateway_are_recreated(self):
         self.assertIn("--force-recreate telemetry-service", self.text)

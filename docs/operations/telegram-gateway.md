@@ -332,11 +332,13 @@ sudo scripts/deploy-telegram-recurring-activation.sh \
 
 The guard requires scheduler and delivery to still be OFF, a clean exact `origin/main`, the pinned
 current service images, the accepted two-row historical outbox with no non-sent/duplicate-risk rows,
-and an exact planner count match. If the current controlled Telemetry runtime has local operator auth
-enabled, the guard also requires readable operator-owned key paths and includes `compose.local-auth.yaml`
-in both forward and rollback Telemetry recreations; post-checks prove `AUTH_LOCAL_ENABLED=true` and both
-signing-key mounts survived. It stores secret-bearing config backups only in a root-only `/run`
-directory; evidence files contain no protected env contents.
+and an exact planner count match. Telemetry recreation always includes the controlled
+`compose.observability.yaml` overlay and proves the existing `NEXOLAB_TELEMETRY_VERSION` plus
+`nexolab_telemetry_build_info` metric remain present. If the current controlled Telemetry runtime has
+local operator auth enabled, the guard also requires readable operator-owned key paths and includes
+`compose.local-auth.yaml` in both forward and rollback Telemetry recreations; post-checks prove
+`AUTH_LOCAL_ENABLED=true` and both signing-key mounts survived. It stores secret-bearing config backups
+only in a root-only `/run` directory; evidence files contain no protected env contents.
 
 Activation is deliberately ordered: first persist `DAILY_REPORTS_SCHEDULER_ENABLED=true` and recreate
 only `telemetry-service` from the pinned current image while Gateway delivery remains OFF. The guard
@@ -349,8 +351,10 @@ MQTT, MinIO and Device Agent container identities, healthy Dashboard/Telemetry/M
 Tailscale Serve topology.
 
 If any post-mutation check fails, the guard restores both runtime env files atomically from root-only
-backups, recreates Telemetry and Gateway from the pinned pre-activation images with scheduler/delivery
-OFF and Mini App retained, and rechecks the closed Gateway boundary. A catch-up snapshot or Telegram
+backups and recreates Telemetry and Gateway from the pinned pre-activation images. Rollback is reported
+PASS only after the Telemetry recreation itself succeeds, Telemetry is healthy with
+`DAILY_REPORTS_SCHEDULER_ENABLED=false`, local-auth/observability overlays are still intact, and the
+Gateway is healthy with delivery/worker OFF and Mini App retained. A catch-up snapshot or Telegram
 outbox row already created before a failure is never deleted or rewritten; it becomes explicit evidence
 for a new resolution gate. The guard never uses `compose down`, deletes named volumes, performs
 Modbus/hardware writes, or broadens core NEXOLAB's offline dependency boundary.
