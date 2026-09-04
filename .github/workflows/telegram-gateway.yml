@@ -11,6 +11,7 @@ on:
       - "scripts/classify-ci-impact.py"
       - "tests/test_ci_change_impact.py"
       - "tests/test_ci_risk_aware_verification.py"
+      - "tests/telegram-*.test.ts"
   push:
     branches: [main]
     paths:
@@ -18,6 +19,7 @@ on:
       - "infrastructure/compose/compose.telegram.yaml"
       - "infrastructure/compose/telegram.env.example"
       - ".github/workflows/telegram-gateway.yml"
+      - "tests/telegram-*.test.ts"
   workflow_dispatch:
 
 permissions:
