@@ -1,6 +1,6 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-03
+Updated: 2026-09-04
 
 ## Issue #843 — Telemetry planner-choice CI nondeterminism
 
@@ -16,13 +16,13 @@ Updated: 2026-09-03
 
 ## Issue #854 — Telegram Mini App persisted-report schema contract drift
 
-**Active focused blocker for #825; CI-routing #856 and trigger-contract #858 dependencies are cleared through merged PRs #857 and #859.** Real iOS Telegram opened exact snapshot `76957482-57c4-4daf-ac30-d8592847cfbd`; gateway logs recorded HTTP 200 for the real signed Mini App request, but the browser rendered `Некоректний формат звіту`. TG-01 production payload authority is `nexolab.daily-refrigeration-report.v1`; the Mini App parser and synthetic fixtures still expected stale `refrigeration-daily-report/v1`. The repair is bounded to the browser contract/test fixtures plus truthful state. Delivery remains OFF, worker stopped, `last_send_at=null`, scheduler OFF. #825 resumes only after #854 exact-head CI is GREEN and merged.
+**Cleared 2026-09-04.** PR #855 exact verified head `cb4db273ab15e42654ee53ef6629e8021d182f7c` passed Core Quality/build + NEXOLAB Merge Gate (`33820118255`), Offline Bundle (`33820118249`), Telegram Gateway (`33820118259`) and Container Supply Chain (`33820118311`), then merged and closed #854. The Mini App now accepts canonical TG-01 schema `nexolab.daily-refrigeration-report.v1` while stale/unknown values remain fail-closed. No runtime mutation or Telegram send occurred.
 
 ## Issue #825 — TG-04 real Telegram acceptance
 
-**Stage-2 deployment and source-authority reconciliation cleared; TG-04 temporarily Ready behind #854.** Exact source `13ab26392fcb1c1385dca3c1f619da4512fe568c` deployed successfully using the verified ARM64 candidate. Live schema is `20260902_0031`; Dashboard, Telemetry, MQTT and Device Agent are healthy. Telegram Gateway is `ready` with `delivery_enabled=false`, `miniapp_enabled=true`, `running=false`, `last_send_at=null`; the 07:50 scheduler remains explicitly disabled. Tailscale `:8444` proxies the deployed Dashboard on `:3000`. No TestLAB report was sent during Stage 2.
+**Active.** Production is still the previously accepted Stage-2 runtime at source `13ab26392fcb1c1385dca3c1f619da4512fe568c`, schema `20260902_0031`; Dashboard, Telemetry, MQTT and Device Agent remain healthy. Telegram Gateway remains `ready` with `delivery_enabled=false`, `miniapp_enabled=true`, `running=false`, `last_send_at=null`; the 07:50 scheduler remains disabled. No TestLAB report has been sent during this repair cycle.
 
-The first real signed Mini App attempt reached the persisted snapshot successfully but exposed #854 browser schema-contract drift. After #854 merges and the corrected frontend is deployed through the guarded path, repeat exact signed Mini App persisted-report acceptance. One controlled TestLAB send, reliability/no-duplicate evidence and Monday-Friday 07:50 `Europe/Kyiv` activation remain later gates and must not be conflated with this repair.
+The remaining immediate blocker is the controlled runtime boundary, not software correctness: complete state reconciliation #860, build and integrity-stage an ARM64 frontend artifact from current `main`, then obtain separate Product Owner production-cutover approval before activating the corrected source/frontend. After that cutover, repeat the exact real signed Mini App persisted-report acceptance. One controlled TestLAB send, reliability/no-duplicate evidence and Monday-Friday 07:50 `Europe/Kyiv` activation remain later explicit gates.
 
 ## Issue #824 — TG-03 completed and merged
 

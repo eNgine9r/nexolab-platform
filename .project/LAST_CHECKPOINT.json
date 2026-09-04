@@ -3,51 +3,43 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-04T03:00:43+03:00",
+  "timestamp": "2026-09-04T03:21:05+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "issue_854_ci_dependencies_cleared_candidate_rebased",
+  "event": "issue_854_completed_tg04_resumed_state_reconciliation",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "13ab26392fcb1c1385dca3c1f619da4512fe568c"
   },
   "active_work": {
-    "issue": 854,
-    "title": "Align Telegram Mini App persisted-report schema contract",
-    "branch": "fix/854-telegram-miniapp-schema-contract"
+    "issue": 825,
+    "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
+    "branch": "ops/825-telegram-real-acceptance"
   },
   "evidence_snapshot": {
-    "parent_issue": 825,
-    "real_phone_acceptance": {
-      "telegram_webview": "opened_inside_real_ios_telegram",
-      "direct_link_snapshot": "76957482-57c4-4daf-ac30-d8592847cfbd",
-      "gateway_response": "http_200_for_real_signed_miniapp_request",
-      "frontend_result": "invalid_persisted_report_contract"
+    "completed_dependency": {
+      "issue": 854,
+      "verified_head_sha": "cb4db273ab15e42654ee53ef6629e8021d182f7c",
+      "pull_request": 855,
+      "checks": {
+        "core_ci": "success:33820118255",
+        "nexolab_merge_gate": "success:33820118255",
+        "offline_bundle": "success:33820118249",
+        "telegram_gateway": "success:33820118259",
+        "container_supply_chain": "success:33820118311"
+      }
     },
-    "root_cause": {
-      "tg01_schema": "nexolab.daily-refrigeration-report.v1",
-      "frontend_stale_schema": "refrigeration-daily-report/v1",
-      "scope": "frontend_parser_plus_synthetic_gateway_miniapp_fixtures"
+    "runtime_read_only_recheck": {
+      "dashboard": "http_200",
+      "telemetry": "ready_database_ready_mqtt_ready_queue_0",
+      "device_agent": "healthy",
+      "telegram_gateway": "ready_delivery_false_miniapp_true_worker_false_last_send_null",
+      "daily_report_scheduler": "disabled",
+      "deployed_product_sha": "13ab26392fcb1c1385dca3c1f619da4512fe568c"
     },
-    "verification": {
-      "frontend_focused": "6_passed",
-      "telegram_gateway": "54_passed",
-      "touched_eslint": "passed",
-      "source_only_typecheck": "passed",
-      "full_host_typecheck_note": "historical_runtime_release_trees_are_included_by_root_tsconfig_on_pi_and_fail_independently_of_issue_854",
-      "post_dependency_source_tests": "7_passed_runtime_release_copy_excluded",
-      "ci_routing_dependency": "issue_856_pr_857_merged_3ee5888131f081982d9ac304ab8c86a8f60d3640",
-      "classifier": "fail_closed_false_unknown_files_empty_required_offline_telegram_container",
-      "ci_trigger_dependency": "issue_858_pr_859_verified_head_e1a5181ff9c7ec2553947972cdcf5aedbdb9a442_green_merge_gate"
-    },
-    "runtime_safety": {
-      "telegram_delivery": "disabled",
-      "telegram_worker": "stopped",
-      "last_send_at": "null",
-      "daily_report_scheduler": "disabled"
-    }
+    "next_gate": "issue_860_state_only_green_then_verified_arm64_frontend_artifact_then_separate_product_owner_cutover_approval"
   },
   "observations": [],
-  "next_action": "Publish the #855 candidate rebased onto merged #857 and #859, require exact-head GREEN CI and merge #855. Then prepare the corrected frontend deployment and stop for separate Product Owner production-cutover approval before repeating the signed Telegram phone acceptance. Do not send a Telegram report or enable the 07:50 scheduler.",
+  "next_action": "Finish Issue #860 as a state-only GREEN PR. Then build and integrity-stage a verified ARM64 frontend artifact from resulting current main. Stop for separate Product Owner production-cutover approval before any source/frontend activation or repeated signed Telegram phone acceptance. Do not send a Telegram report or enable the 07:50 scheduler.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
