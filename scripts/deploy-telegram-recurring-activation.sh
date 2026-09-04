@@ -131,16 +131,45 @@ acquire_mutation_lock() {
   MUTATION_LOCK_PATHS["$path"]="1"
 }
 
+ensure_invoking_user_lock_file() {
+  local path="$1" uid="$2" gid="$3" parent
+  parent="$(dirname "$path")"
+  [[ -d "$parent" ]] || { echo "ERROR: invoking-user lock directory unavailable: $parent" >&2; exit 75; }
+  python3 - "$path" "$uid" "$gid" <<'PYLOCK'
+from pathlib import Path
+import os, stat, sys
+path=Path(sys.argv[1]); uid=int(sys.argv[2]); gid=int(sys.argv[3])
+try:
+    fd=os.open(path, os.O_WRONLY|os.O_CREAT|os.O_EXCL, 0o600)
+except FileExistsError:
+    fd=None
+if fd is not None:
+    try:
+        os.fchown(fd, uid, gid)
+        os.fchmod(fd, 0o600)
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+st=path.lstat()
+if path.is_symlink() or not stat.S_ISREG(st.st_mode) or st.st_nlink != 1:
+    raise SystemExit("unsafe_current_head_lock")
+if st.st_uid != uid or st.st_gid != gid or not (stat.S_IMODE(st.st_mode) & stat.S_IWUSR):
+    raise SystemExit("unexpected_current_head_lock_ownership")
+PYLOCK
+}
+
+[[ "${SUDO_UID:-}" =~ ^[0-9]+$ && "${SUDO_GID:-}" =~ ^[0-9]+$ ]]   || { echo "ERROR: invoking sudo user identity is required for shared deployment locks" >&2; exit 77; }
+USER_TMP_CURRENT_HEAD_LOCK="/tmp/$CURRENT_HEAD_LOCK_NAME"
+USER_RUNTIME_CURRENT_HEAD_LOCK="/run/user/$SUDO_UID/$CURRENT_HEAD_LOCK_NAME"
+ensure_invoking_user_lock_file "$USER_TMP_CURRENT_HEAD_LOCK" "$SUDO_UID" "$SUDO_GID"
+[[ -d "/run/user/$SUDO_UID" ]]   || { echo "ERROR: invoking-user runtime lock directory unavailable" >&2; exit 75; }
+ensure_invoking_user_lock_file "$USER_RUNTIME_CURRENT_HEAD_LOCK" "$SUDO_UID" "$SUDO_GID"
+
 acquire_mutation_lock "$LOCK_FILE"
 acquire_mutation_lock "$GATEWAY_REFRESH_LOCK_FILE"
 acquire_mutation_lock "$STAGE1_LOCK_FILE"
-acquire_mutation_lock "/tmp/$CURRENT_HEAD_LOCK_NAME"
-if [[ -n "${XDG_RUNTIME_DIR:-}" && -d "$XDG_RUNTIME_DIR" ]]; then
-  acquire_mutation_lock "$XDG_RUNTIME_DIR/$CURRENT_HEAD_LOCK_NAME"
-fi
-if [[ "${SUDO_UID:-}" =~ ^[0-9]+$ && -d "/run/user/$SUDO_UID" ]]; then
-  acquire_mutation_lock "/run/user/$SUDO_UID/$CURRENT_HEAD_LOCK_NAME"
-fi
+acquire_mutation_lock "$USER_TMP_CURRENT_HEAD_LOCK"
+acquire_mutation_lock "$USER_RUNTIME_CURRENT_HEAD_LOCK"
 
 # Re-check source only after all known production mutation locks are held.
 ACTUAL_SOURCE="$("${GIT[@]}" rev-parse HEAD)"

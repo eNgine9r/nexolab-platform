@@ -339,8 +339,11 @@ local operator auth enabled, the guard also requires readable operator-owned key
 `compose.local-auth.yaml` in both forward and rollback Telemetry recreations; post-checks prove
 `AUTH_LOCAL_ENABLED=true` and both signing-key mounts survived. Before capturing the runtime baseline,
 the guard also acquires the recurring-activation lock plus the existing Gateway-refresh, Stage-1 and
-current-head deployment locks (including the invoking sudo user's runtime lock path) so another known
-production mutation cannot race the two-phase activation. It stores secret-bearing config backups only
+current-head deployment locks (both `/tmp` fallback and the invoking sudo user's runtime lock path) so
+another known production mutation cannot race the two-phase activation. Any current-head lock file the
+root guard must create is created mode `0600` with the invoking sudo user's UID/GID; unexpected existing
+ownership/type fails closed rather than leaving a root-owned lock that would block later user deployments.
+It stores secret-bearing config backups only
 in a root-only `/run` directory; evidence files contain no protected env contents.
 
 Activation is deliberately ordered: first persist `DAILY_REPORTS_SCHEDULER_ENABLED=true` and recreate

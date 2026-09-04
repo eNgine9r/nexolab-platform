@@ -210,7 +210,10 @@ class RecurringActivationGuardPolicyTests(unittest.TestCase):
             'CURRENT_HEAD_LOCK_NAME="nexolab-current-head-launch.lock"',
             'acquire_mutation_lock "$GATEWAY_REFRESH_LOCK_FILE"',
             'acquire_mutation_lock "$STAGE1_LOCK_FILE"',
-            'acquire_mutation_lock "/tmp/$CURRENT_HEAD_LOCK_NAME"',
+            'USER_TMP_CURRENT_HEAD_LOCK="/tmp/$CURRENT_HEAD_LOCK_NAME"',
+            'USER_RUNTIME_CURRENT_HEAD_LOCK="/run/user/$SUDO_UID/$CURRENT_HEAD_LOCK_NAME"',
+            'acquire_mutation_lock "$USER_TMP_CURRENT_HEAD_LOCK"',
+            'acquire_mutation_lock "$USER_RUNTIME_CURRENT_HEAD_LOCK"',
             'SUDO_UID',
             'source SHA changed before locked baseline',
         ):
@@ -218,6 +221,19 @@ class RecurringActivationGuardPolicyTests(unittest.TestCase):
         lock_index = self.text.index('acquire_mutation_lock "$LOCK_FILE"')
         baseline_index = self.text.index('for name in "$TELEMETRY_NAME" "$GATEWAY_NAME"')
         self.assertLess(lock_index, baseline_index)
+
+    def test_current_head_lock_files_preserve_invoking_user_ownership(self):
+        for token in (
+            'ensure_invoking_user_lock_file',
+            'invoking sudo user identity is required for shared deployment locks',
+            'os.O_WRONLY|os.O_CREAT|os.O_EXCL',
+            'os.fchown(fd, uid, gid)',
+            'os.fchmod(fd, 0o600)',
+            'st.st_uid != uid or st.st_gid != gid',
+            'unexpected_current_head_lock_ownership',
+        ):
+            self.assertIn(token, self.text)
+        self.assertNotIn('acquire_mutation_lock "/tmp/$CURRENT_HEAD_LOCK_NAME"', self.text)
 
     def test_rollback_requires_persistent_env_restore_proof_and_retains_failed_backup(self):
         for token in (
