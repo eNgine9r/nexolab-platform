@@ -1865,7 +1865,7 @@
       ],
       "branch": "ops/825-telegram-real-acceptance",
       "evidence": {
-        "blocker": "signed_miniapp_persisted_report_acceptance_then_later_send_and_scheduler_gates",
+        "blocker": "controlled_testlab_single_send_requires_explicit_product_owner_approval",
         "software_prerequisites": "tg01_tg02_tg03_merged_green",
         "production_deployment": "passed_runtime/deployments/20260904T032305Z_source_9a3556b25b257396d15db80af591d1cc3684b8f7",
         "real_telegram_contact": "read_only_getupdates_confirmed_testlab_supergroup",
@@ -1876,7 +1876,7 @@
         "group_title_observed": "TestLAB",
         "bot_username_observed": "nex0lab_bot",
         "group_numeric_identity": "confirmed_runtime_only_not_committed",
-        "next_gate": "repeat_real_signed_miniapp_snapshot_acceptance_on_authorized_phone_then_controlled_testlab_send_gate",
+        "next_gate": "explicit_product_owner_approval_for_exactly_one_controlled_testlab_send_scheduler_remains_off_then_reliability_no_duplicate_gate",
         "backend_provisioning_helper": "local_verified_5_passed_full_gateway_46_passed",
         "backend_principal_target": "nexolab-telegram_laboratory_technician_reports.read_only",
         "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled",
@@ -1912,7 +1912,7 @@
         "scheduler_prerequisite": "issue_845_pr846_merged_green_fail_closed_off",
         "state_reconciliation": "issue_860_pr861_merged_9a3556b25b257396d15db80af591d1cc3684b8f7_tg04_active",
         "main_arm64_artifact_preflight": "run_33781986481_artifact_9904235935_green_not_stage2_candidate_missing_tg04_pr842_repairs",
-        "current_gate": "real_signed_miniapp_snapshot_acceptance_after_corrected_frontend_deployment",
+        "current_gate": "controlled_testlab_single_send_approval_after_real_signed_miniapp_phone_acceptance_pass",
         "pr842_repository_merge": "merged_main_13ab26392fcb1c1385dca3c1f619da4512fe568c_issue825_kept_open",
         "stage2_exact_main_artifact": "run_33786462681_artifact_9905912342_sha256_9ea8769da2dc0466b61354aee961d5564a1565bcda6eabe74b63c437207ef97e",
         "stage2_artifact_staging": "runtime/staging/tg04-stage2-13ab2639_checksums_source_platform_node_contract_verified",
@@ -1958,7 +1958,11 @@
         "corrected_frontend_failed_attempt": "runtime/deployments/20260904T031554Z_failed_before_runtime_mutation_runtime_evidence_permission_denied_partial_removed",
         "corrected_frontend_acl_repair": "stage1_evidence_root_owner_preserved_acl_only_nexolab_rx_files_r_group_other_closed",
         "corrected_frontend_control_main": "ec243ba6531f0e1473ca81dc6c3ff777598645d5",
-        "corrected_frontend_phone_next_snapshot": "76957482-57c4-4daf-ac30-d8592847cfbd"
+        "corrected_frontend_phone_next_snapshot": "76957482-57c4-4daf-ac30-d8592847cfbd",
+        "real_signed_miniapp_phone_acceptance": "PASS_authorized_ios_telegram_2026-09-04_07_36_europe_kyiv_exact_snapshot_76957482-57c4-4daf-ac30-d8592847cfbd_rendered_canonical_persisted_report",
+        "real_signed_miniapp_gateway_evidence": "POST_/miniapp/report_HTTP_200_after_corrected_deployment",
+        "real_signed_miniapp_visual_evidence": "product_owner_screenshots_cooljet_2026-09-03_9_of_9_valid_m_packets_kpi_alarms_refrigeration_contour_no_invalid_format_error",
+        "post_cutover_xjp60d_observation": "issue_866_recurring_fc03_first_attempt_timeouts_with_successful_retries_nonblocking_for_tg04_queue_0_workers_healthy_samples_advancing"
       }
     },
     {

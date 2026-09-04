@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-04T06:33:28+03:00",
+  "timestamp": "2026-09-04T07:38:00+03:00",
   "actor": "ChatGPT Team Lead / Senior Engineer",
-  "event": "tg04_corrected_frontend_cutover_completed_phone_acceptance_gate",
+  "event": "tg04_real_signed_miniapp_phone_acceptance_passed",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -40,12 +40,20 @@
     },
     "phone_gate": {
       "snapshot_id": "76957482-57c4-4daf-ac30-d8592847cfbd",
-      "expected": "canonical_persisted_report_renders",
-      "previous_failure": "invalid_persisted_report_contract"
+      "result": "pass",
+      "client": "authorized_ios_telegram",
+      "visual_evidence": "cooljet_2026-09-03_9_of_9_valid_m_packets_kpi_alarms_refrigeration_contour_rendered_no_invalid_format_error",
+      "gateway_evidence": "POST_/miniapp/report_HTTP_200_after_corrected_deployment",
+      "telegram_safety": "delivery_false_worker_false_last_send_null_scheduler_false"
+    },
+    "acquisition_observation": {
+      "issue": 866,
+      "classification": "nonblocking_separate_read_only_acquisition_observation",
+      "bounded_delta_30s": "samples_plus_47_requests_plus_61_retries_plus_7_queue_0_workers_2_last_error_null"
     }
   },
   "observations": [],
-  "next_action": "On the authorized iOS Telegram client, open https://t.me/nex0lab_bot?startapp=report_76957482-57c4-4daf-ac30-d8592847cfbd and confirm the exact persisted report renders instead of the invalid-format state. Keep Telegram delivery OFF and the 07:50 scheduler disabled; do not send a TestLAB report until this phone gate passes.",
+  "next_action": "Stop at the explicit Product Owner gate for exactly one controlled TestLAB group send. Keep the weekday 07:50 scheduler disabled. After approval, send exactly once using the guarded Telegram delivery path, capture delivery/idempotency evidence, verify no duplicate, and then stop before reliability/failure-retry or scheduler activation if those require separate gates.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
