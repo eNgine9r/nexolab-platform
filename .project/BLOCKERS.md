@@ -20,9 +20,9 @@ Updated: 2026-09-04
 
 ## Issue #825 — TG-04 real Telegram acceptance
 
-**Repository blocker cleared; #825 is active at the production no-send dry-run gate.** Real signed iOS Mini App acceptance is PASS on exact snapshot `76957482-57c4-4daf-ac30-d8592847cfbd`. Issue #869 / PR #872 passed the full exact-head matrix at `aae75493e9360b4a33502a2b5bf8dbe82102c879` and merged GREEN to `main` as `f734af1c6a6abfda81cba99be6d30991fe01e98a`. The earlier Codex and #873 security waits are cleared.
+**Repository and no-send dry-run blockers are cleared; #825 is now hard-blocked only on explicit Product Owner approval for exactly one real TestLAB send.** Real signed iOS Mini App acceptance is PASS on exact snapshot `76957482-57c4-4daf-ac30-d8592847cfbd`. Issue #869 / PR #872 passed the full exact-head matrix and merged GREEN. The production no-send dry-run from exact clean `main` `49c585645622c6594e1be7627735b92c5407257d` returned `dry_run_ready`, exact payload SHA match, `delivery_state=absent`, `duplicate_risk=false`, and post-run inspection found no outbox DB, proving zero delivery mutation.
 
-Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. No TestLAB message has been sent in the current acceptance cycle. The remaining acceptance gate is the exact production **no-send dry-run** from current merged source with zero Telegram API calls and zero outbox mutation. Do not enable the persistent worker or scheduler. Only after a clean dry-run may exactly one real TestLAB send be separately authorized by the Product Owner.
+Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. No TestLAB message has been sent in the current acceptance cycle. Do not enable the persistent worker or scheduler. The next action requires explicit Product Owner approval for one bounded real send; after it, verify post-send runtime state and durable outbox evidence before any reliability or recurring-scheduler gate.
 
 ## Issue #824 — TG-03 completed and merged
 
