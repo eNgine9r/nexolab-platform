@@ -63,7 +63,7 @@ class FakeBackend:
 
     def get_miniapp_snapshot(self, snapshot_id: str, identity_id: str) -> dict[str, object]:
         self.calls.append((snapshot_id, identity_id))
-        return {"id": snapshot_id, "payload": {"schema": "refrigeration-daily-report/v1"}}
+        return {"id": snapshot_id, "payload": {"schema": "nexolab.daily-refrigeration-report.v1"}}
 
 
 def test_valid_init_data_uses_signed_user_and_start_param() -> None:

@@ -14,7 +14,7 @@ ORG_ID = "00000000-0000-0000-0000-000000000001"
 
 def sample_snapshot(*, snapshot_id: str = "snapshot-1", status: str = "normal") -> ReportSnapshot:
     payload: dict[str, Any] = {
-        "schema": "refrigeration-daily-report/v1",
+        "schema": "nexolab.daily-refrigeration-report.v1",
         "identity": {"equipment_name": "Cool jet", "equipment_code": "CJ-01"},
         "report": {
             "timezone": "Europe/Kyiv",
