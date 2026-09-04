@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 825,
-      "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
-      "branch": "ops/825-telegram-real-acceptance"
+      "issue": 884,
+      "title": "Make local candidate Compose validation overlay-aware",
+      "branch": "fix/884-local-compose-verifier"
     },
     "next_work_package": null
   },
@@ -1857,7 +1857,7 @@
       "issue": 825,
       "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "blocked",
       "depends_on": [
         822,
         823,
@@ -2256,6 +2256,22 @@
           "core_quality_and_merge_gate": "success:33843450152"
         }
       }
+    },
+    {
+      "issue": 883,
+      "title": "Route morning reports to Telegram forum topic \"Ранковий звіт\"",
+      "priority": "unspecified",
+      "lifecycle": "blocked",
+      "branch": "feat/883-telegram-topic-routing",
+      "evidence": {}
+    },
+    {
+      "issue": 884,
+      "title": "Make local candidate Compose validation overlay-aware",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "fix/884-local-compose-verifier",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [
