@@ -185,6 +185,72 @@ class LocalCandidateVerificationTests(unittest.TestCase):
         self.assertFalse(MODULE.compose_validation_required(impact, False))
         self.assertTrue(MODULE.compose_validation_required(impact, True))
 
+    def test_compose_validation_uses_baselines_and_registered_telegram_bundle(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nexolab-compose-route-test-") as temporary:
+            worktree = Path(temporary)
+            compose_dir = worktree / "infrastructure/compose"
+            compose_dir.mkdir(parents=True)
+            for name in ("compose.central.yaml", "compose.edge.yaml", "compose.telegram.yaml"):
+                (compose_dir / name).write_text("services: {}\n", encoding="utf-8")
+            checks = MODULE._compose_checks(
+                worktree, ["infrastructure/compose/compose.telegram.yaml"]
+            )
+
+        self.assertEqual([check.name for check in checks], [
+            "Compose contract: central",
+            "Compose contract: edge",
+            "Compose contract: telegram",
+        ])
+        self.assertEqual(
+            checks[-1].command,
+            (
+                "docker",
+                "compose",
+                "-f",
+                "compose.central.yaml",
+                "-f",
+                "compose.telegram.yaml",
+                "config",
+                "--quiet",
+            ),
+        )
+        self.assertEqual(checks[-1].env, MODULE.COMPOSE_VALIDATION_ENV)
+        self.assertNotIn("BROKER_CONTROL_JWT_SECRET", checks[-1].env or {})
+
+    def test_compose_validation_does_not_parse_unrelated_overlays_standalone(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nexolab-compose-baseline-test-") as temporary:
+            worktree = Path(temporary)
+            compose_dir = worktree / "infrastructure/compose"
+            compose_dir.mkdir(parents=True)
+            for name in ("compose.central.yaml", "compose.edge.yaml"):
+                (compose_dir / name).write_text("services: {}\n", encoding="utf-8")
+            (compose_dir / "compose.browser-acceptance.yaml").write_text(
+                "services: {minio: {}}\n", encoding="utf-8"
+            )
+            checks = MODULE._compose_checks(worktree, ["scripts/deploy-example.sh"])
+
+        self.assertEqual(
+            [check.command for check in checks],
+            [
+                ("docker", "compose", "-f", "compose.central.yaml", "config", "--quiet"),
+                ("docker", "compose", "-f", "compose.edge.yaml", "config", "--quiet"),
+            ],
+        )
+
+    def test_changed_unregistered_compose_contract_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nexolab-compose-unknown-test-") as temporary:
+            worktree = Path(temporary)
+            compose_dir = worktree / "infrastructure/compose"
+            compose_dir.mkdir(parents=True)
+            for name in ("compose.central.yaml", "compose.edge.yaml", "compose.new-overlay.yaml"):
+                (compose_dir / name).write_text("services: {}\n", encoding="utf-8")
+            with self.assertRaisesRegex(
+                MODULE.VerificationError, "compose.new-overlay.yaml"
+            ):
+                MODULE._compose_checks(
+                    worktree, ["infrastructure/compose/compose.new-overlay.yaml"]
+                )
+
     def test_run_check_disables_python_bytecode_cache(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nexolab-bytecode-test-") as temporary:
             worktree = Path(temporary)

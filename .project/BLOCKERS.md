@@ -18,6 +18,10 @@ Updated: 2026-09-04
 
 **Cleared 2026-09-04.** PR #855 exact verified head `cb4db273ab15e42654ee53ef6629e8021d182f7c` passed Core Quality/build + NEXOLAB Merge Gate (`33820118255`), Offline Bundle (`33820118249`), Telegram Gateway (`33820118259`) and Container Supply Chain (`33820118311`), then merged and closed #854. The Mini App now accepts canonical TG-01 schema `nexolab.daily-refrigeration-report.v1` while stale/unknown values remain fail-closed. No runtime mutation or Telegram send occurred.
 
+## Issue #884 — local candidate Compose overlay validation
+
+**Cleared 2026-09-04.** PR #885 exact head `e63e3c91bf41b312613d07474462a84df5cf8bd5` passed exact local candidate verification (143/143 frontend files, 697/697 tests, format/lint/typecheck/build GREEN), Core Quality and NEXOLAB Merge Gate in run `33855597946`, then squash-merged to `main` as `71ffd1a367d510a58d5147efec07d96cbe0ac8cb`. The local verifier now validates canonical Compose bundles, validates a changed Telegram overlay with its central base, and fails closed on unregistered changed Compose files. No runtime mutation, Telegram send, scheduler activation, Modbus write or hardware write occurred. #884 no longer blocks #883.
+
 ## Issue #883 — TestLAB morning-report forum-topic routing
 
 **Active focused Work Package; no hard blocker.** After the first accepted TestLAB send landed in General, the Product Owner reprioritized topic routing before the remaining #825 restart/scheduler acceptance. #883 models the destination as `chat_id + message_thread_id`, preserves legacy General `sent` evidence without delete/re-send, prevents General/topic aliasing for the same snapshot, and adds protected exact-topic capture through a one-time forum challenge. Repository implementation must keep persistent delivery and the weekday scheduler OFF. Runtime topic configuration and any real topic send remain post-merge gates.

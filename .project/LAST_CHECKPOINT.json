@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-04T11:21:21+03:00",
+  "timestamp": "2026-09-04T12:01:20+03:00",
   "actor": "chatgpt",
-  "event": "issue_883_topic_routing_implementation_in_progress",
+  "event": "issue_883_integrated_compose_verifier_prerequisite",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -18,23 +18,20 @@
   "evidence_snapshot": {
     "active_issue_evidence": {
       "product_owner_reprioritized": "2026-09-04_implement_now_and_prepare_one_topic_test",
-      "base_main_sha": "3872514c29fcca6aa592c02707c1ceb6b9ca213c",
-      "product_outcome": "future_TestLAB_morning_reports_route_to_exact_forum_topic_not_General",
-      "destination_identity": "snapshot_id_plus_chat_id_plus_message_thread_id_general_thread_internal_zero",
-      "legacy_outbox_contract": "transactional_preserve_historical_General_rows_no_delete_no_resend",
-      "topic_capture_contract": "protected_exact_challenge_in_target_topic_no_numeric_chat_or_thread_id_committed_or_printed",
+      "integrated_main": "71ffd1a367d510a58d5147efec07d96cbe0ac8cb",
+      "compose_verifier_prerequisite": "issue_884_pr885_green_merged",
       "focused_tests": "58_passed",
-      "full_gateway_offline_tests": "84_passed_network_none",
-      "runtime_send": "not_executed_repository_implementation_only",
+      "full_gateway_offline_tests": "84_passed_network_none_before_main_integration",
+      "runtime_send": "not_executed_repository_phase",
       "persistent_worker": "off",
       "scheduler_0750": "off",
       "modbus_write": "none",
       "hardware_write": "none",
-      "next_gate": "finish_repository_verification_PR_GREEN_merge_then_protected_topic_capture_and_no_send_dry_run"
+      "next_gate": "fresh_exact_local_candidate_then_PR_exact_head_CI"
     }
   },
   "observations": [],
-  "next_action": "finish topic-routing verification, publish exact-head PR, merge GREEN, then protected topic capture and production no-send dry-run",
+  "next_action": "run exact local candidate verification for #883 against integrated main, then publish PR and require all classified exact-head checks GREEN",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

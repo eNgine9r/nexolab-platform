@@ -2265,7 +2265,7 @@
       "branch": "feat/883-telegram-topic-routing",
       "evidence": {
         "product_owner_reprioritized": "2026-09-04_implement_now_and_prepare_one_topic_test",
-        "base_main_sha": "3872514c29fcca6aa592c02707c1ceb6b9ca213c",
+        "base_main_sha": "71ffd1a367d510a58d5147efec07d96cbe0ac8cb",
         "product_outcome": "future_TestLAB_morning_reports_route_to_exact_forum_topic_not_General",
         "destination_identity": "snapshot_id_plus_chat_id_plus_message_thread_id_general_thread_internal_zero",
         "legacy_outbox_contract": "transactional_preserve_historical_General_rows_no_delete_no_resend",
@@ -2277,14 +2277,36 @@
         "scheduler_0750": "off",
         "modbus_write": "none",
         "hardware_write": "none",
-        "next_gate": "finish_repository_verification_PR_GREEN_merge_then_protected_topic_capture_and_no_send_dry_run",
+        "next_gate": "rerun_exact_local_candidate_on_integrated_main_then_publish_PR_and_require_exact_head_green",
         "compose_contract": "PASS_topic_env_present_delivery_volume_present",
         "runtime_image": "PASS_disconnected_health_healthy_sha256_680102d9e164fd8939d70f514381ad4e408e4c7c991ef67ef61ea44182579a68",
-        "topic_test_authorization": "not_consumed_repository_phase_no_real_topic_send"
+        "topic_test_authorization": "not_consumed_repository_phase_no_real_topic_send",
+        "compose_verifier_prerequisite": "issue_884_pr885_exact_head_e63e3c91bf41b312613d07474462a84df5cf8bd5_green_merged_main_71ffd1a367d510a58d5147efec07d96cbe0ac8cb"
       },
       "depends_on": [
         825
       ]
+    },
+    {
+      "issue": 884,
+      "title": "Make local candidate Compose validation overlay-aware",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "fix/884-local-compose-verifier",
+      "evidence": {
+        "verified_head_sha": "e63e3c91bf41b312613d07474462a84df5cf8bd5",
+        "pull_request": 885,
+        "checks": {
+          "local_candidate": "GREEN_143_files_697_tests_build_green",
+          "core_quality": "success:33855597946",
+          "nexolab_merge_gate": "success:33855597946"
+        },
+        "main_observation": "pr885_squash_merged_71ffd1a367d510a58d5147efec07d96cbe0ac8cb",
+        "runtime_mutation": "none",
+        "telegram_send": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
     }
   ],
   "maintenance_actions": [
