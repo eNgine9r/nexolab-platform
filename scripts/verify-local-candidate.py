@@ -34,6 +34,22 @@ REGISTERED_RECOVERY_RUNTIME_PATHS = frozenset(
 )
 RECOVERY_RUNTIME_TEST = "scripts/tests/test_rebaseline_device_agent_recovery.py"
 
+COMPOSE_PATH_PREFIX = "infrastructure/compose/"
+COMPOSE_BASELINE_BUNDLES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("central", ("compose.central.yaml",)),
+    ("edge", ("compose.edge.yaml",)),
+)
+COMPOSE_CHANGED_BUNDLES: dict[str, tuple[str, ...]] = {
+    "compose.central.yaml": ("compose.central.yaml",),
+    "compose.edge.yaml": ("compose.edge.yaml",),
+    "compose.telegram.yaml": ("compose.central.yaml", "compose.telegram.yaml"),
+}
+COMPOSE_VALIDATION_ENV = {
+    "POSTGRES_PASSWORD": "local-candidate-validation-only",
+    "MINIO_ROOT_USER": "local-candidate",
+    "MINIO_ROOT_PASSWORD": "local-candidate-validation-only",
+}
+
 
 CORE_CHECKS = (
     Check(
@@ -239,18 +255,48 @@ def compose_validation_required(impact: Mapping[str, object], explicit: bool) ->
     return isinstance(classes, list) and "deployment_runtime" in classes
 
 
-def _compose_checks(worktree: Path) -> tuple[Check, ...]:
+def _compose_checks(worktree: Path, changed: Sequence[str]) -> tuple[Check, ...]:
     compose_dir = worktree / "infrastructure" / "compose"
-    files = sorted(path.name for path in compose_dir.glob("compose*.yaml"))
-    if not files:
-        raise VerificationError("Compose validation requested but no compose*.yaml files exist")
-    return tuple(
-        Check(
-            f"Compose contract: {name}",
-            ("docker", "compose", "-f", name, "config", "--quiet"),
-        )
-        for name in files
+    if not compose_dir.is_dir():
+        raise VerificationError("Compose validation requested but infrastructure/compose is missing")
+
+    bundles: list[tuple[str, tuple[str, ...]]] = list(COMPOSE_BASELINE_BUNDLES)
+    changed_compose = sorted(
+        path.removeprefix(COMPOSE_PATH_PREFIX)
+        for path in changed
+        if path.startswith(COMPOSE_PATH_PREFIX) and path.endswith(".yaml")
     )
+    for name in changed_compose:
+        bundle = COMPOSE_CHANGED_BUNDLES.get(name)
+        if bundle is None:
+            raise VerificationError(
+                "Changed Compose contract has no registered validation bundle: " + name
+            )
+        bundles.append((name.removeprefix("compose.").removesuffix(".yaml"), bundle))
+
+    checks: list[Check] = []
+    seen: set[tuple[str, ...]] = set()
+    for label, bundle in bundles:
+        if bundle in seen:
+            continue
+        seen.add(bundle)
+        missing = [name for name in bundle if not (compose_dir / name).is_file()]
+        if missing:
+            raise VerificationError(
+                "Registered Compose validation bundle is incomplete: " + ", ".join(missing)
+            )
+        command: list[str] = ["docker", "compose"]
+        for name in bundle:
+            command.extend(("-f", name))
+        command.extend(("config", "--quiet"))
+        checks.append(
+            Check(
+                f"Compose contract: {label}",
+                tuple(command),
+                COMPOSE_VALIDATION_ENV,
+            )
+        )
+    return tuple(checks)
 
 
 def verify(
@@ -338,7 +384,7 @@ def verify(
                     )
 
             if compose_validation_required(impact, include_compose):
-                for check in _compose_checks(worktree):
+                for check in _compose_checks(worktree, files):
                     _run_check(check, worktree / "infrastructure" / "compose", executed)
 
             _assert_clean(worktree)
