@@ -22,12 +22,12 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 898,
-      "title": "Add guarded recurring 07:50 TestLAB activation",
-      "branch": "ops/898-guarded-recurring-activation"
-    },
-    "next_work_package": null
+    "active_work_package": null,
+    "next_work_package": {
+      "issue": 901,
+      "title": "Refresh production Gateway to boundary-aware image with delivery OFF",
+      "branch": "ops/901-boundary-aware-gateway-refresh"
+    }
   },
   "work_packages": [
     {
@@ -1865,7 +1865,7 @@
       ],
       "branch": "ops/825-telegram-real-acceptance",
       "evidence": {
-        "blocker": "issue_898_guarded_recurring_activation_path_required_before_scheduler_delivery_cutover",
+        "blocker": "issue_901_boundary_aware_gateway_refresh_required_before_recurring_activation_preflight",
         "software_prerequisites": "tg01_tg02_tg03_merged_green",
         "production_deployment": "passed_runtime/deployments/20260904T032305Z_source_9a3556b25b257396d15db80af591d1cc3684b8f7",
         "real_telegram_contact": "read_only_getupdates_confirmed_testlab_supergroup",
@@ -1876,7 +1876,7 @@
         "group_title_observed": "TestLAB",
         "bot_username_observed": "nex0lab_bot",
         "group_numeric_identity": "confirmed_runtime_only_not_committed",
-        "next_gate": "issue_898_green_then_read_only_activation_preflight_then_explicit_product_owner_activation_approval_with_exact_predicted_immediate_catchup_count",
+        "next_gate": "issue_901_read_only_preflight_then_explicit_product_owner_gateway_refresh_approval_then_refresh_acceptance_then_fresh_recurring_activation_preflight_and_separate_activation_approval",
         "backend_provisioning_helper": "local_verified_5_passed_full_gateway_46_passed",
         "backend_principal_target": "nexolab-telegram_laboratory_technician_reports.read_only",
         "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled",
@@ -1912,7 +1912,7 @@
         "scheduler_prerequisite": "issue_845_pr846_merged_green_fail_closed_off",
         "state_reconciliation": "issue_860_pr861_merged_9a3556b25b257396d15db80af591d1cc3684b8f7_tg04_active",
         "main_arm64_artifact_preflight": "run_33781986481_artifact_9904235935_green_not_stage2_candidate_missing_tg04_pr842_repairs",
-        "current_gate": "issue_898_repository_guard_for_recurring_0750_activation",
+        "current_gate": "issue_901_boundary_aware_gateway_refresh_delivery_and_scheduler_off",
         "pr842_repository_merge": "merged_main_13ab26392fcb1c1385dca3c1f619da4512fe568c_issue825_kept_open",
         "stage2_exact_main_artifact": "run_33786462681_artifact_9905912342_sha256_9ea8769da2dc0466b61354aee961d5564a1565bcda6eabe74b63c437207ef97e",
         "stage2_artifact_staging": "runtime/staging/tg04-stage2-13ab2639_checksums_source_platform_node_contract_verified",
@@ -1996,7 +1996,8 @@
         "persistent_gateway_observation": "pre_topic_stage1_image_no_topic_env_contract_refresh_required_before_scheduler",
         "gateway_refresh_authorization": "approved_and_consumed_gateway_only_production_refresh_2026-09-04",
         "persistent_gateway_postcheck": "gateway_ready_delivery_false_miniapp_true_worker_false_last_send_null_topic_present_outbox_volume_unchanged_core_ids_unchanged_tailscale_unchanged_scheduler_false",
-        "restart_idempotency_acceptance": "PASS_two_total_sent_rows_one_General_one_topic_attempts_one_updated_at_before_refresh_non_sent_zero_duplicate_risk_zero_recovered_unknown_zero_no_resend"
+        "restart_idempotency_acceptance": "PASS_two_total_sent_rows_one_General_one_topic_attempts_one_updated_at_before_refresh_non_sent_zero_duplicate_risk_zero_recovered_unknown_zero_no_resend",
+        "issue_898_repository_guard": "completed_pr900_exact_head_e0f36abc_all_required_checks_green_codex_clean"
       }
     },
     {
@@ -2375,7 +2376,7 @@
       "issue": 898,
       "title": "Add guarded recurring 07:50 TestLAB activation",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "ops/898-guarded-recurring-activation",
       "evidence": {
         "product_outcome": "guarded_persistent_weekday_0750_testlab_activation_without_backlog_surprise_or_duplicates",
@@ -2388,7 +2389,7 @@
         "telegram_send": "none_in_repository_phase",
         "modbus_write": "none",
         "hardware_write": "none",
-        "next_gate": "behavioral current-image boundary probe remediation complete locally; canonical exact-candidate GREEN then push/resolve fresh P1/fresh exact-head CI and Codex review. After merge, current production Gateway still requires a separate Product Owner-approved delivery-OFF refresh before recurring activation can pass preflight",
+        "next_gate": "completed_pr900_exact_head_e0f36abc_all_required_exact_head_checks_green_codex_clean; next operational prerequisite issue_901 boundary-aware Gateway refresh with delivery/scheduler OFF",
         "implementation": "two_phase_scheduler_then_gateway_guard_with_exact_image_source_and_delivery_count_pins",
         "planner": "read_only_same_telemetry_due_window_semantics_cross_checks_all_eligible_snapshots_against_exact_topic_outbox",
         "planner_live_observation": "2026_09_04_2238_kyiv_generation_1_immediate_1_outbox_2_sent_non_sent_0_duplicate_risk_0",
@@ -2406,7 +2407,7 @@
         "phase2_snapshot_write_fence": "postgres_share_lock_on_refrigeration_daily_report_snapshots_replan_under_fence_hold_through_exact_delivery_acceptance_600s_hard_ceiling_120s_delivery_convergence",
         "rollback_outbound_quiesce": "gateway_must_be_delivery_disabled_or_bounded_stop_kill_before_any_telemetry_rollback_wait_fence_release_only_after_gateway_disabled",
         "planner_runtime_read_timeout_seconds": 15,
-        "latest_review_state": "exact_head_28b427c9_fresh_codex_p1_source_token_capability_check_not_behavioral_local_black_box_remediation_complete_pending_new_candidate",
+        "latest_review_state": "exact_head_e0f36abc_codex_clean_all_inline_threads_resolved",
         "post_276_review_findings": "p1_queued_snapshot_writer_after_fence_release_plus_p1_rollback_must_abort_telemetry_when_gateway_quiesce_unproved",
         "bootstrap_delivery_boundary": "fenced_plan_exact_pending_topic_snapshot_uuid_set_plus_activation_cutoff_persisted_to_gateway_blocks_unapproved_pre_cutoff_discovery_after_fence_release_future_schedule_remains_allowed",
         "rollback_quiesce_failure_contract": "already_disabled_or_bounded_stop_or_kill_or_delivery_disabled_recreate_required_before_any_telemetry_rollback_wait",
@@ -2416,7 +2417,42 @@
         "current_production_gateway_boundary_capability": "ABSENT_CONFIRMED_BEHAVIORAL_FAIL_enqueues_approved_rejected_and_post_cutoff_sha256_16a78adc_network_none_read_only",
         "candidate_gateway_boundary_capability": "PASS_BEHAVIORAL_exact_approved_plus_post_cutoff_only_sha256_3c34a4e1_network_none_read_only",
         "activation_image_policy": "recurring_guard_never_upgrades_gateway_image_current_image_must_prove_boundary_capability_before_mutation_otherwise_separate_product_owner_approved_gateway_refresh_required",
-        "behavioral_gateway_probe": "packaged_worker_discover_three_synthetic_snapshots_fake_in_memory_outbox_no_telegram_api_no_persistent_write_expected_approved_pre_cutoff_plus_due_post_cutoff_only"
+        "behavioral_gateway_probe": "packaged_worker_discover_three_synthetic_snapshots_fake_in_memory_outbox_no_telegram_api_no_persistent_write_expected_approved_pre_cutoff_plus_due_post_cutoff_only",
+        "verified_head_sha": "e0f36abc2d028f640ea81795e0ee3ddea287e7d5",
+        "pull_request": 900,
+        "checks": {
+          "core_ci": "success:33917628605",
+          "nexolab_merge_gate": "success:33917628605",
+          "telegram_gateway": "success:33917628721",
+          "telemetry_service": "success:33917628676",
+          "offline_bundle": "success:33917628637",
+          "container_supply_chain": "success:33917628665",
+          "codex_review": "clean:e0f36abc2d"
+        },
+        "repository_gate": "completed_pr900_exact_head_e0f36abc_core_telemetry_gateway_offline_supply_chain_merge_gate_green"
+      }
+    },
+    {
+      "issue": 901,
+      "title": "Refresh production Gateway to boundary-aware image with delivery OFF",
+      "priority": "high",
+      "lifecycle": "ready",
+      "branch": "ops/901-boundary-aware-gateway-refresh",
+      "depends_on": [
+        825,
+        898
+      ],
+      "evidence": {
+        "product_outcome": "persistent_gateway_boundary_capability_without_enabling_delivery_or_scheduler",
+        "preexisting_gateway_image": "sha256:16a78adc648ddc84a74d3098e8bb8338d3cd5349c6a055b801dc93ee675447c6",
+        "preexisting_gateway_boundary_capability": "behavioral_FAIL_unapproved_pre_cutoff_snapshot_enqueued",
+        "delivery_boundary": "must_remain_false_before_during_after_refresh",
+        "scheduler_boundary": "must_remain_false_before_during_after_refresh",
+        "telegram_send": "none_in_refresh_work_package",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "production_refresh_authorization": "not_yet_requested_read_only_preflight_first",
+        "next_gate": "read_only_exact_main_source_image_outbox_core_tailscale_rollback_preflight_then_explicit_product_owner_refresh_approval"
       }
     }
   ],
