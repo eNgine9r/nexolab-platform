@@ -333,7 +333,14 @@ sudo scripts/deploy-telegram-recurring-activation.sh \
 
 The guard requires scheduler and delivery to still be OFF, a clean exact `origin/main`, the pinned
 current service images, the accepted two-row historical outbox with no non-sent/duplicate-risk rows,
-and an exact planner count match. Telemetry recreation always includes the controlled
+and an exact planner count match. Before any persistent env or service mutation, it also runs the
+pinned current Gateway image as an ephemeral `--network none --pull never` container and proves that
+its packaged `Settings` plus `TelegramDeliveryWorker._discover` implement the activation cutoff and
+exact bootstrap snapshot allow-set contract. If this capability proof fails, activation stops before
+mutation. Do **not** make the recurring guard upgrade the Gateway image implicitly: use the separate
+Product Owner-approved Gateway-only refresh guard above with delivery and scheduler still OFF, then
+rerun the read-only recurring planner/capability preflight and request the recurring activation gate
+again. Telemetry recreation always includes the controlled
 `compose.observability.yaml` overlay and proves the existing `NEXOLAB_TELEMETRY_VERSION` plus
 `nexolab_telemetry_build_info` metric remain present. If the current controlled Telemetry runtime has
 local operator auth enabled, the guard also requires readable operator-owned key paths and includes
@@ -361,7 +368,8 @@ is proven held, the planner is run again under the fence and must still match th
 snapshot, outbox and immediate-delivery counts. The fence has a 600-second fail-safe ceiling, while the
 phase-two delivery convergence window is bounded to 120 seconds; losing the fence at any delivery-phase
 gate fails closed. Only then does the guard atomically persist `TELEGRAM_ENABLED=true` together with
-`TELEGRAM_MINIAPP_ENABLED=true` and recreate only `telegram-gateway` from its pinned image. Post-checks
+`TELEGRAM_MINIAPP_ENABLED=true` and recreate only `telegram-gateway` from the already capability-proven
+pinned current image; the recurring activation step does not build or promote a new Gateway image. Post-checks
 require the exact approved outbox delta, unchanged historical-row fingerprint, zero
 non-sent/duplicate-risk rows, worker polling active, the same outbox volume, unchanged PostgreSQL,
 MQTT, MinIO and Device Agent container identities, healthy Dashboard/Telemetry/Mini App, and unchanged

@@ -492,6 +492,25 @@ assert p.get("status")=="ready" and p.get("delivery_enabled") is True
 assert p.get("miniapp_enabled") is True and p.get("running") is True
 ' >/dev/null
 }
+gateway_bootstrap_boundary_capable() {
+  local image="$1"
+  timeout 15s docker run --pull never --rm --network none \
+    --entrypoint /usr/bin/python3 "$image" -c '
+import inspect
+from app.config import Settings
+from app.service import TelegramDeliveryWorker
+fields=getattr(Settings,"model_fields",{})
+assert "telegram_delivery_activation_cutoff_utc" in fields
+assert "telegram_delivery_bootstrap_snapshot_ids" in fields
+source=inspect.getsource(TelegramDeliveryWorker._discover)
+for token in (
+    "telegram_delivery_activation_cutoff_utc",
+    "telegram_delivery_bootstrap_snapshot_id_set",
+    "snapshot.id not in bootstrap_snapshot_ids",
+):
+    assert token in source
+' >/dev/null
+}
 quiesce_gateway_for_rollback() {
   if gateway_disabled_ready; then
     log "Rollback outbound boundary: PASS (Gateway already delivery-disabled)"
@@ -552,6 +571,9 @@ OLD_TELEMETRY_IMAGE_ID="$(image_id "$TELEMETRY_NAME")"
 OLD_GATEWAY_IMAGE_ID="$(image_id "$GATEWAY_NAME")"
 [[ "$OLD_TELEMETRY_IMAGE_ID" == "$EXPECTED_TELEMETRY_IMAGE_ID" ]] || { log "ERROR: Telemetry image changed since approval preparation"; exit 1; }
 [[ "$OLD_GATEWAY_IMAGE_ID" == "$EXPECTED_GATEWAY_IMAGE_ID" ]] || { log "ERROR: Gateway image changed since approval preparation"; exit 1; }
+gateway_bootstrap_boundary_capable "$OLD_GATEWAY_IMAGE_ID" \
+  || { log "ERROR: current Gateway image lacks the approved bootstrap delivery boundary; refresh it before activation"; exit 1; }
+log "Gateway bootstrap delivery boundary capability: PASS (current image, network=none)"
 OUTBOX_VOLUME="$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/app/data/telegram-delivery"}}{{.Name}}{{end}}{{end}}' "$GATEWAY_NAME")"
 [[ -n "$OUTBOX_VOLUME" ]] || { log "ERROR: Gateway outbox volume unavailable"; exit 1; }
 docker inspect "$TELEMETRY_NAME" --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -Fx 'DAILY_REPORTS_SCHEDULER_ENABLED=false' >/dev/null \
