@@ -3,40 +3,30 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-04T09:05:00+03:00",
+  "timestamp": "2026-09-04T09:28:51+03:00",
   "actor": "chatgpt",
-  "event": "issue_873_local_security_candidate_verified",
+  "event": "issue_873_completed_state_reconciled",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
-  "active_work": {
-    "issue": 873,
-    "title": "[SECURITY] Triage new util-linux HIGH CVEs blocking container release gate",
-    "branch": "security/873-util-linux-cve-triage"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "active_issue_evidence": {
-      "trigger": "pr872_container_supply_chain_run_33841404350_new_util_linux_high_findings",
-      "blocked_exact_tuples": "44_of_44_covered",
-      "cves": "CVE-2026-76642_CVE-2026-78408_CVE-2026-78409_CVE-2026-78410",
-      "installed_version": "debian_trixie_util_linux_2.41.5-0+deb13u1",
-      "fixed_series_guidance": "2.41.6_not_yet_consumable_from_trixie",
-      "cve_78409": "vendor_states_2.41_not_affected_scanner_version_mismatch",
-      "device_agent_runtime": "fresh_no_cache_distroless_nonroot_no_mount_umount_nsenter_unshare_or_fstab",
-      "telegram_gateway_runtime": "fresh_no_cache_distroless_nonroot_no_mount_umount_nsenter_unshare_or_fstab",
-      "telemetry_runtime": "uid_10001_fstab_unconfigured_no_source_mount_nsenter_unshare_invocation_bounded_broker_subprocess_only",
-      "exception_expiry": "2026-09-05_consolidated_review_due",
-      "policy_validator": "success",
-      "focused_supply_chain_tests": "41_passed",
-      "production_runtime_mutation": "none",
-      "modbus_write": "none",
-      "hardware_write": "none",
-      "next_gate": "commit_push_pr_exact_head_container_supply_chain_and_merge_gate"
-    }
+    "active_issue_evidence": {}
   },
-  "observations": [],
-  "next_action": "commit_push_open_pr_and_run_exact_head_container_supply_chain",
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-09-04T09:28:51+03:00",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 873,
+        "pull_request": 874,
+        "merge_sha": "c2ea5bc596e83c13047bd2cc9c3ef00e4e101f83"
+      }
+    }
+  ],
+  "next_action": "merge_state_pr_875_then_update_pr872_from_current_main_and_rerun_exact_head_ci",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
