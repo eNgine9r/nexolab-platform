@@ -20,11 +20,9 @@ Updated: 2026-09-04
 
 ## Issue #825 — TG-04 real Telegram acceptance
 
-**Blocked on active Issue #869 / PR #872 exact-head revalidation and GREEN merge, not on Codex or #873.** Real signed iOS Mini App acceptance is PASS on exact snapshot `76957482-57c4-4daf-ac30-d8592847cfbd`. Issue #869 is implemented on PR #872 at exact pre-integration head `eb325e4fb303d9d0cc030115887d4f0b47150707`; its local exact-commit verification and remote Core/Telegram/Telemetry checks are GREEN. The Product Owner explicitly cleared the earlier Codex wait on 2026-09-04.
+**Repository blocker cleared; #825 is active at the production no-send dry-run gate.** Real signed iOS Mini App acceptance is PASS on exact snapshot `76957482-57c4-4daf-ac30-d8592847cfbd`. Issue #869 / PR #872 passed the full exact-head matrix at `aae75493e9360b4a33502a2b5bf8dbe82102c879` and merged GREEN to `main` as `f734af1c6a6abfda81cba99be6d30991fe01e98a`. The earlier Codex and #873 security waits are cleared.
 
-Independent security prerequisite #873 is cleared: PR #874 exact head `98da92ab6948471d10312abee998972e73c0605f` passed Container Supply Chain `33843450156`, Telemetry Service `33843450225`, Core Quality and NEXOLAB Merge Gate `33843450152`, then squash-merged; #875 / PR #876 reconciled its completion and produced current `main` `2e1e6a11c111535ae52c315733ff6431789267c9`. PR #872 is integrating this `main`, preserving completed #873 evidence, and must rerun its complete required exact-head matrix before merge.
-
-Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. No TestLAB message has been sent in the current acceptance cycle. Do not enable the persistent worker or call Telegram directly. After #872 merges, the next gate is the exact production **no-send dry-run**; only after that proof may one real TestLAB send be separately requested from the Product Owner.
+Telegram Gateway remains delivery OFF / Mini App ON / worker stopped / `last_send_at=null`; `DAILY_REPORTS_SCHEDULER_ENABLED=false`. No TestLAB message has been sent in the current acceptance cycle. The remaining acceptance gate is the exact production **no-send dry-run** from current merged source with zero Telegram API calls and zero outbox mutation. Do not enable the persistent worker or scheduler. Only after a clean dry-run may exactly one real TestLAB send be separately authorized by the Product Owner.
 
 ## Issue #824 — TG-03 completed and merged
 
