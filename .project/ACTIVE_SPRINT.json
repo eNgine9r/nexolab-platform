@@ -22,12 +22,12 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 926,
-      "title": "Resolve pre-existing PostCSS/nanoid production audit findings",
-      "branch": "security/926-postcss-nanoid-audit"
-    },
-    "next_work_package": null
+    "active_work_package": null,
+    "next_work_package": {
+      "issue": 717,
+      "title": "RFX-01 Generic Instrument and Signal Registry",
+      "branch": "feat/717-rfx01-instrument-signal-registry-v2"
+    }
   },
   "work_packages": [
     {
@@ -611,20 +611,26 @@
       "issue": 717,
       "title": "RFX-01 Generic Instrument and Signal Registry",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "ready",
       "depends_on": [
         715
       ],
-      "branch": "feat/717-rfx01-instrument-signal-registry",
+      "branch": "feat/717-rfx01-instrument-signal-registry-v2",
       "evidence": {
         "product_decision_issue": 727,
         "defer_reason": "product_priority_presentation",
         "deferred_on": "2026-08-28",
-        "resume_requires_explicit_product_owner_decision": true,
+        "resume_requires_explicit_product_owner_decision": false,
         "pull_request": 718,
         "pull_request_state": "closed_unmerged",
         "historical_checkpoint_sha": "61bf4eac3f6c87b92786327e1b63416977057583",
-        "hardware_evidence": "not_claimed"
+        "hardware_evidence": "not_claimed",
+        "product_owner_hold_lifted_on": "2026-09-05",
+        "product_owner_decision": "resume_RFX_begin_with_RFX_01_issue_717",
+        "fresh_audit_main_sha": "2341f9030c079eb61c4e9ce05fb060e80b2f91fd",
+        "fresh_audit_migration_head": "20260902_0031",
+        "historical_pr_718_policy": "reference_only_closed_unmerged_do_not_reopen_or_merge_as_is",
+        "fresh_branch_required": true
       }
     },
     {
@@ -2665,7 +2671,7 @@
       "issue": 926,
       "title": "Resolve pre-existing PostCSS/nanoid production audit findings",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         925
       ],
@@ -2681,7 +2687,16 @@
         "runtime_mutation": "none",
         "production_deployment": "not_executed",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "verified_head_sha": "391c7f3ed5c325fae93a404eddb4de18792b6766",
+        "pull_request": 929,
+        "checks": {
+          "core_ci": "33988079240_green",
+          "authenticated_dashboard": "33988079213_green",
+          "offline_bundle": "33988079212_green",
+          "refrigeration_browser": "33988079209_green",
+          "nexolab_merge_gate": "green"
+        }
       }
     }
   ],
