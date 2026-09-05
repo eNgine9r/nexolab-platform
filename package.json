@@ -69,7 +69,6 @@
     ]
   },
   "overrides": {
-    "postcss": "8.5.20",
     "sharp": "0.35.3"
   }
 }

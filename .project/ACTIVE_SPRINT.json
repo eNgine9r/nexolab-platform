@@ -22,12 +22,12 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 926,
       "title": "Resolve pre-existing PostCSS/nanoid production audit findings",
       "branch": "security/926-postcss-nanoid-audit"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -2665,12 +2665,24 @@
       "issue": 926,
       "title": "Resolve pre-existing PostCSS/nanoid production audit findings",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "review",
       "depends_on": [
         925
       ],
       "branch": "security/926-postcss-nanoid-audit",
-      "evidence": {}
+      "evidence": {
+        "implementation_head_sha": "f5298c19d859cc3e9fbb77e478d3c643db130559",
+        "remediation": "remove_stale_root_postcss_override_and_refresh_transitive_lock_closure",
+        "resolved_versions": "next_16.3.4_postcss_8.5.23_nanoid_3.3.18_sharp_0.35.3",
+        "production_audit": "0_info_0_low_0_moderate_0_high_0_critical_0_total",
+        "dependency_policy": "PASS",
+        "local_candidate": "GREEN_dependency_toolchain_143_files_697_tests_build_success",
+        "required_remote_workflows": "Authenticated_Dashboard_Acceptance_Offline_Bundle_Refrigeration_Browser_Acceptance",
+        "runtime_mutation": "none",
+        "production_deployment": "not_executed",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
     }
   ],
   "maintenance_actions": [
