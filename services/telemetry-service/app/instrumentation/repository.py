@@ -57,6 +57,14 @@ class PressureReferenceRequiredError(InstrumentationRepositoryError):
     code = "pressure_reference_required"
 
 
+class InstrumentIdentityConflictError(InstrumentationRepositoryError):
+    code = "instrument_identity_immutable"
+
+
+class SignalIdentityConflictError(InstrumentationRepositoryError):
+    code = "signal_identity_immutable"
+
+
 class HistoryOrderConflictError(InstrumentationRepositoryError):
     code = "history_effective_time_conflict"
 
@@ -202,22 +210,8 @@ class InstrumentationRepository:
                             actual_version=row.version,
                         )
                     before = _instrument_snapshot(row)
-                    if payload.pressure_reference is None and session.scalar(
-                        select(Signal.id)
-                        .where(
-                            Signal.organization_id == organization_id,
-                            Signal.instrument_id == instrument_id,
-                            Signal.physical_quantity == "pressure",
-                        )
-                        .limit(1)
-                    ) is not None:
-                        raise PressureReferenceRequiredError(
-                            "pressure_reference cannot be cleared while the instrument owns "
-                            "a pressure signal"
-                        )
-                    row.inventory_key = payload.inventory_key
+                    self._require_stable_instrument_identity(session, row, payload)
                     row.display_name = payload.display_name
-                    row.instrument_kind = payload.instrument_kind
                     row.manufacturer = payload.manufacturer
                     row.model = payload.model
                     row.serial_number = payload.serial_number
@@ -365,10 +359,8 @@ class InstrumentationRepository:
                             actual_version=row.version,
                         )
                     before = _signal_snapshot(row)
-                    row.business_key = payload.business_key
+                    self._require_stable_signal_identity(row, payload)
                     row.display_name = payload.display_name
-                    row.physical_quantity = payload.physical_quantity
-                    row.engineering_unit = payload.engineering_unit
                     row.lifecycle_state = payload.lifecycle_state
                     row.attributes = dict(payload.metadata)
                     row.version += 1
@@ -494,6 +486,7 @@ class InstrumentationRepository:
         *,
         organization_id: str = DEFAULT_ORGANIZATION_ID,
     ) -> InstrumentAcceptanceRecord:
+        resolved_at = _require_aware_utc(at, "acceptance resolution timestamp")
         with Session(self._engine, expire_on_commit=False) as session:
             self._instrument(session, organization_id, instrument_id)
             rows = list(
@@ -502,10 +495,10 @@ class InstrumentationRepository:
                         InstrumentAcceptanceRecord.organization_id
                         == organization_id,
                         InstrumentAcceptanceRecord.instrument_id == instrument_id,
-                        InstrumentAcceptanceRecord.effective_from <= _as_utc(at),
+                        InstrumentAcceptanceRecord.effective_from <= resolved_at,
                         or_(
                             InstrumentAcceptanceRecord.effective_to.is_(None),
-                            InstrumentAcceptanceRecord.effective_to > _as_utc(at),
+                            InstrumentAcceptanceRecord.effective_to > resolved_at,
                         ),
                     )
                 )
@@ -634,6 +627,7 @@ class InstrumentationRepository:
         calibration_scope: str = "instrument",
         organization_id: str = DEFAULT_ORGANIZATION_ID,
     ) -> InstrumentCalibrationRecord:
+        resolved_at = _require_aware_utc(at, "calibration resolution timestamp")
         with Session(self._engine, expire_on_commit=False) as session:
             self._instrument(session, organization_id, instrument_id)
             rows = list(
@@ -643,10 +637,10 @@ class InstrumentationRepository:
                         InstrumentCalibrationRecord.instrument_id == instrument_id,
                         InstrumentCalibrationRecord.calibration_scope
                         == calibration_scope,
-                        InstrumentCalibrationRecord.valid_from <= _as_utc(at),
+                        InstrumentCalibrationRecord.valid_from <= resolved_at,
                         or_(
                             InstrumentCalibrationRecord.valid_to.is_(None),
-                            InstrumentCalibrationRecord.valid_to > _as_utc(at),
+                            InstrumentCalibrationRecord.valid_to > resolved_at,
                         ),
                     )
                 )
@@ -704,6 +698,49 @@ class InstrumentationRepository:
         if row is None:
             raise SignalNotFoundError(f"signal {signal_id!r} was not found")
         return row
+
+    @staticmethod
+    def _require_stable_instrument_identity(
+        session: Session,
+        row: Instrument,
+        payload: InstrumentUpdate,
+    ) -> None:
+        if (
+            row.inventory_key != payload.inventory_key
+            or row.instrument_kind != payload.instrument_kind
+        ):
+            raise InstrumentIdentityConflictError(
+                "instrument inventory_key and instrument_kind are stable identity fields"
+            )
+        if payload.pressure_reference != row.pressure_reference:
+            has_pressure_signal = session.scalar(
+                select(Signal.id)
+                .where(
+                    Signal.organization_id == row.organization_id,
+                    Signal.instrument_id == row.id,
+                    Signal.physical_quantity == "pressure",
+                )
+                .limit(1)
+            )
+            if has_pressure_signal is not None:
+                raise PressureReferenceRequiredError(
+                    "pressure_reference cannot change while the instrument owns a pressure signal"
+                )
+            if row.pressure_reference is not None:
+                raise InstrumentIdentityConflictError(
+                    "instrument pressure_reference cannot change after it is established"
+                )
+
+    @staticmethod
+    def _require_stable_signal_identity(row: Signal, payload: SignalUpdate) -> None:
+        if (
+            row.business_key != payload.business_key
+            or row.physical_quantity != payload.physical_quantity
+            or row.engineering_unit != payload.engineering_unit
+        ):
+            raise SignalIdentityConflictError(
+                "signal business_key, physical_quantity and engineering_unit are stable identity fields"
+            )
 
     @staticmethod
     def _close_acceptance_interval(
@@ -772,6 +809,12 @@ def _actor(value: str) -> str:
 def _as_utc(value: datetime) -> datetime:
     if value.tzinfo is None or value.utcoffset() is None:
         return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
+def _require_aware_utc(value: datetime, field_name: str) -> datetime:
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise HistoryResolutionError(f"{field_name} must include a timezone offset")
     return value.astimezone(UTC)
 
 

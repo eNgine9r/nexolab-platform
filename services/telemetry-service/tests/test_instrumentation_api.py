@@ -270,6 +270,79 @@ def test_pressure_signal_requires_typed_instrument_pressure_reference(tmp_path: 
     assert atmospheric_response.json()["pressure_reference"] == "absolute"
 
 
+def test_registry_identity_fields_are_stable_across_metadata_updates(tmp_path: Path) -> None:
+    api, _, _, _ = build_client(tmp_path)
+    created = api.post(
+        "/api/v1/instrumentation/instruments",
+        json=instrument_payload("LAB-STABLE-001"),
+    )
+    assert created.status_code == 201
+    instrument_id = created.json()["id"]
+    etag = created.headers["etag"]
+
+    changed_key = instrument_payload("LAB-STABLE-RENAMED")
+    key_response = api.put(
+        f"/api/v1/instrumentation/instruments/{instrument_id}",
+        headers={"If-Match": etag},
+        json=changed_key,
+    )
+    assert key_response.status_code == 409
+    assert key_response.json()["detail"]["code"] == "instrument_identity_immutable"
+
+    changed_kind = instrument_payload("LAB-STABLE-001")
+    changed_kind["instrument_kind"] = "humidity_transmitter"
+    kind_response = api.put(
+        f"/api/v1/instrumentation/instruments/{instrument_id}",
+        headers={"If-Match": etag},
+        json=changed_kind,
+    )
+    assert kind_response.status_code == 409
+    assert kind_response.json()["detail"]["code"] == "instrument_identity_immutable"
+
+    mutable = instrument_payload("LAB-STABLE-001")
+    mutable["display_name"] = "Updated operator label"
+    mutable_response = api.put(
+        f"/api/v1/instrumentation/instruments/{instrument_id}",
+        headers={"If-Match": etag},
+        json=mutable,
+    )
+    assert mutable_response.status_code == 200
+    assert mutable_response.json()["display_name"] == "Updated operator label"
+
+    signal = api.post(
+        f"/api/v1/instrumentation/instruments/{instrument_id}/signals",
+        json=signal_payload("LAB-STABLE-001.PRIMARY"),
+    )
+    assert signal.status_code == 201
+    signal_id = signal.json()["id"]
+    signal_etag = signal.headers["etag"]
+
+    for field, value in (
+        ("business_key", "LAB-STABLE-001.RENAMED"),
+        ("physical_quantity", "humidity"),
+        ("engineering_unit", "K"),
+    ):
+        changed = signal_payload("LAB-STABLE-001.PRIMARY")
+        changed[field] = value
+        response = api.put(
+            f"/api/v1/instrumentation/instruments/{instrument_id}/signals/{signal_id}",
+            headers={"If-Match": signal_etag},
+            json=changed,
+        )
+        assert response.status_code == 409
+        assert response.json()["detail"]["code"] == "signal_identity_immutable"
+
+    mutable_signal = signal_payload("LAB-STABLE-001.PRIMARY")
+    mutable_signal["display_name"] = "Updated signal label"
+    mutable_signal_response = api.put(
+        f"/api/v1/instrumentation/instruments/{instrument_id}/signals/{signal_id}",
+        headers={"If-Match": signal_etag},
+        json=mutable_signal,
+    )
+    assert mutable_signal_response.status_code == 200
+    assert mutable_signal_response.json()["display_name"] == "Updated signal label"
+
+
 def test_organization_unique_business_keys_return_conflict(tmp_path: Path) -> None:
     api, _, _, _ = build_client(tmp_path)
     first = api.post(

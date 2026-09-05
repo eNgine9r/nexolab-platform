@@ -14,6 +14,7 @@ from app.instrumentation.repository import InstrumentationRepository
 from app.instrumentation.schemas import (
     AcceptanceAppendRequest,
     InstrumentCreate,
+    SignalCreate,
 )
 from app.security.repository import SecurityRepository
 
@@ -294,6 +295,71 @@ def test_postgres_pressure_signal_reference_guards_fail_closed() -> None:
                     ),
                     {"organization_id": organization_id, "instrument_id": instrument.id},
                 )
+    finally:
+        database.dispose()
+
+
+def test_postgres_guards_stable_registry_identity_against_direct_sql() -> None:
+    database = Database(os.environ["DATABASE_URL"])
+    security = SecurityRepository(database)
+    repository = InstrumentationRepository(database)
+    organization_id = str(uuid4())
+    suffix = uuid4().hex
+    try:
+        security.provision_organization(
+            organization_id=organization_id,
+            slug=f"instrumentation-stable-{suffix}",
+            name="Stable instrumentation organization",
+        )
+        instrument = repository.create_instrument(
+            InstrumentCreate(
+                inventory_key=f"STABLE-{suffix}",
+                display_name="Stable pressure instrument",
+                instrument_kind="pressure_transmitter",
+                pressure_reference="gauge",
+            ),
+            actor_id="test-suite",
+            organization_id=organization_id,
+        )
+        signal = repository.create_signal(
+            instrument.id,
+            SignalCreate(
+                business_key=f"STABLE-{suffix}.PRESSURE",
+                display_name="Pressure",
+                physical_quantity="pressure",
+                engineering_unit="bar",
+            ),
+            actor_id="test-suite",
+            organization_id=organization_id,
+        )
+
+        with database.engine.begin() as connection:
+            connection.execute(
+                text("UPDATE instruments SET display_name = 'Mutable label' WHERE id = :id"),
+                {"id": instrument.id},
+            )
+            connection.execute(
+                text("UPDATE instrument_signals SET display_name = 'Mutable signal' WHERE id = :id"),
+                {"id": signal.id},
+            )
+
+        for statement in (
+            "UPDATE instruments SET inventory_key = inventory_key || '-X' WHERE id = :id",
+            "UPDATE instruments SET instrument_kind = 'humidity_transmitter' WHERE id = :id",
+            "UPDATE instruments SET pressure_reference = 'absolute' WHERE id = :id",
+        ):
+            with pytest.raises(DBAPIError):
+                with database.engine.begin() as connection:
+                    connection.execute(text(statement), {"id": instrument.id})
+
+        for statement in (
+            "UPDATE instrument_signals SET business_key = business_key || '-X' WHERE id = :id",
+            "UPDATE instrument_signals SET physical_quantity = 'humidity' WHERE id = :id",
+            "UPDATE instrument_signals SET engineering_unit = 'Pa' WHERE id = :id",
+        ):
+            with pytest.raises(DBAPIError):
+                with database.engine.begin() as connection:
+                    connection.execute(text(statement), {"id": signal.id})
     finally:
         database.dispose()
 

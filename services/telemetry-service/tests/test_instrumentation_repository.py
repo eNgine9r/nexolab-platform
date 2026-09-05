@@ -60,6 +60,24 @@ def test_as_of_resolution_fails_closed_when_no_state_exists(tmp_path: Path) -> N
         )
 
 
+def test_as_of_resolution_rejects_naive_timestamps(tmp_path: Path) -> None:
+    _, repository, instrument_id = build_repository(tmp_path)
+    naive = datetime(2026, 8, 28, 12, 0)
+
+    with pytest.raises(HistoryResolutionError, match="timezone offset"):
+        repository.resolve_acceptance(
+            instrument_id,
+            naive,
+            organization_id=ORGANIZATION_ID,
+        )
+    with pytest.raises(HistoryResolutionError, match="timezone offset"):
+        repository.resolve_calibration(
+            instrument_id,
+            naive,
+            organization_id=ORGANIZATION_ID,
+        )
+
+
 def test_as_of_resolution_fails_closed_for_ambiguous_imported_intervals(
     tmp_path: Path,
 ) -> None:

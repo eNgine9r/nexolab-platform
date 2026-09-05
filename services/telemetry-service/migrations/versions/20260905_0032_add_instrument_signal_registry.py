@@ -333,6 +333,16 @@ def _create_pressure_reference_guards() -> None:
         DECLARE
             parent_pressure_reference text;
         BEGIN
+            IF TG_OP = 'UPDATE' AND (
+                NEW.id IS DISTINCT FROM OLD.id
+                OR NEW.organization_id IS DISTINCT FROM OLD.organization_id
+                OR NEW.instrument_id IS DISTINCT FROM OLD.instrument_id
+                OR NEW.business_key IS DISTINCT FROM OLD.business_key
+                OR NEW.physical_quantity IS DISTINCT FROM OLD.physical_quantity
+                OR NEW.engineering_unit IS DISTINCT FROM OLD.engineering_unit
+            ) THEN
+                RAISE EXCEPTION 'instrument signal identity fields are immutable';
+            END IF;
             IF NEW.physical_quantity = 'pressure' THEN
                 SELECT pressure_reference
                 INTO parent_pressure_reference
@@ -353,8 +363,7 @@ def _create_pressure_reference_guards() -> None:
     op.execute(
         """
         CREATE TRIGGER trg_instrument_signal_pressure_reference_guard
-        BEFORE INSERT OR UPDATE OF organization_id, instrument_id, physical_quantity
-        ON instrument_signals
+        BEFORE INSERT OR UPDATE ON instrument_signals
         FOR EACH ROW EXECUTE FUNCTION guard_instrument_signal_pressure_reference();
         """
     )
@@ -363,15 +372,29 @@ def _create_pressure_reference_guards() -> None:
         CREATE FUNCTION guard_instrument_pressure_reference()
         RETURNS trigger AS $$
         BEGIN
-            IF NEW.pressure_reference IS NULL AND EXISTS (
+            IF (
+                NEW.id IS DISTINCT FROM OLD.id
+                OR NEW.organization_id IS DISTINCT FROM OLD.organization_id
+                OR NEW.inventory_key IS DISTINCT FROM OLD.inventory_key
+                OR NEW.instrument_kind IS DISTINCT FROM OLD.instrument_kind
+            ) THEN
+                RAISE EXCEPTION 'instrument stable identity fields are immutable';
+            END IF;
+            IF (
+                OLD.pressure_reference IS NOT NULL
+                AND NEW.pressure_reference IS DISTINCT FROM OLD.pressure_reference
+            ) THEN
+                RAISE EXCEPTION 'instrument pressure_reference is immutable once established';
+            END IF;
+            IF NEW.pressure_reference IS DISTINCT FROM OLD.pressure_reference AND EXISTS (
                 SELECT 1
                 FROM instrument_signals
-                WHERE organization_id = NEW.organization_id
-                  AND instrument_id = NEW.id
+                WHERE organization_id = OLD.organization_id
+                  AND instrument_id = OLD.id
                   AND physical_quantity = 'pressure'
             ) THEN
                 RAISE EXCEPTION
-                    'pressure_reference cannot be cleared while pressure signals exist';
+                    'pressure_reference cannot change while pressure signals exist';
             END IF;
             RETURN NEW;
         END;
@@ -381,7 +404,7 @@ def _create_pressure_reference_guards() -> None:
     op.execute(
         """
         CREATE TRIGGER trg_instrument_pressure_reference_guard
-        BEFORE UPDATE OF pressure_reference ON instruments
+        BEFORE UPDATE ON instruments
         FOR EACH ROW EXECUTE FUNCTION guard_instrument_pressure_reference();
         """
     )
