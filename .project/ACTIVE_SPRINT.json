@@ -2591,10 +2591,18 @@
     {
       "source_issue": 829,
       "title": "Review all container vulnerability exceptions expiring 2026-09-05",
-      "status": "scheduled",
+      "status": "completed",
       "due_on": "2026-09-05",
       "owner": "platform-security",
-      "rule": "Fresh no-cache scan all exact container images. Remove any exception whose finding disappears, fixed package becomes consumable, documented reachability/version/platform assumption changes, or severity becomes Critical. Renew only exact still-unreachable HIGH findings with fresh evidence and a new short expiry."
+      "rule": "Completed under Issue #909: discovery no-cache run 33957510014 retired exactly two stale Device Agent/Telegram Gateway libexpat1/CVE-2026-66046 tuples; corrected exact head 56698ab43c2b8ffa99db5f7a3085cbc41f281e86 passed Container Supply Chain 33958808993 and Core CI/NEXOLAB Merge Gate 33958808977 with 91 exact HIGH exceptions retained only through 2026-09-12 and no CRITICAL exception."
+    },
+    {
+      "source_issue": 909,
+      "title": "Review/remove consolidated HIGH container exceptions expiring 2026-09-12",
+      "status": "scheduled",
+      "due_on": "2026-09-12",
+      "owner": "platform-security",
+      "rule": "Fresh no-cache scan every controlled image before expiry. Remove any exact tuple that disappears or gains a consumable fix; fail closed on changed reachability/platform/vendor assumptions or Critical severity; re-check CVE-2026-78409 affected-version guidance against Debian/scanner and CNA/upstream evidence before any renewal."
     }
   ],
   "observations": [
