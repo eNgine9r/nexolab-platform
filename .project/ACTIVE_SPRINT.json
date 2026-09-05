@@ -2566,7 +2566,7 @@
       "evidence": {
         "baseline": "post_cutover_device_agent_healthy_queue_0_workers_2_samples_advancing_last_error_null_recurring_XJP60D_FC03_first_attempt_timeout_retry_success",
         "safety": "read_only_no_modbus_write_no_hardware_write_no_topology_rewire_no_polling_change_without_separate_evidence_backed_scope",
-        "selected_after": "issue_909_PR_910_merge_6bb92e3d"
+        "selected_after": "issue_909_completed"
       }
     }
   ],
@@ -2868,6 +2868,16 @@
         "issue_state": "closed",
         "state_reason": "completed",
         "required_checks": "green"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-05T09:57:14Z",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 909,
+        "pull_request": 910,
+        "merge_sha": "6bb92e3d952d77e7f25bd75cf470f5b2884f7606"
       }
     }
   ],
