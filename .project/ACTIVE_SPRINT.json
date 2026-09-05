@@ -22,11 +22,7 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 866,
-      "title": "Investigate recurring XJP60D read retries after controlled restart",
-      "branch": "fix/866-xjp60d-read-retries"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -2560,7 +2556,7 @@
       "issue": 866,
       "title": "Investigate recurring XJP60D read retries after controlled restart",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "fix/866-xjp60d-read-retries",
       "evidence": {
@@ -2578,7 +2574,29 @@
         "classification": "pre_existing_XJP60D_specific_device_protocol_timing_behavior_restart_specific_or_miniapp_regression_not_supported",
         "residual_mechanism": "hardware_protocol_unverified_issue_916_exact_register_or_first_after_idle_mechanism_not_proven",
         "runtime_mutation": "none_no_direct_diagnostic_modbus_request_no_service_restart_no_polling_or_topology_change_no_data_or_volume_delete",
-        "targeted_unit_tests": "PASS_xjp60d_6_of_6_modbus_rtu_and_recovery_18_of_18_adaptive_scheduler_host_import_not_run_missing_paho_no_dependency_install_on_production_pi"
+        "targeted_unit_tests": "PASS_xjp60d_6_of_6_modbus_rtu_and_recovery_18_of_18_adaptive_scheduler_host_import_not_run_missing_paho_no_dependency_install_on_production_pi",
+        "verified_head_sha": "8ff18c4097ff0c51f81b0c7f98fbaea683938719",
+        "pull_request": 917,
+        "checks": {
+          "core_ci": "33962777794_green",
+          "telemetry_service": "33962777924_green",
+          "nexolab_merge_gate": "33962777794_green"
+        }
+      }
+    },
+    {
+      "issue": 916,
+      "title": "Verify systematic recovered XJP60D first-request timeout mechanism",
+      "priority": "high",
+      "lifecycle": "hardware_validation",
+      "depends_on": [
+        866
+      ],
+      "evidence": {
+        "source_issue": 866,
+        "classification": "hardware_protocol_mechanism_unverified",
+        "gate": "explicit_product_owner_physical_validation_approval_required_before_restart_adapter_reset_rewire_power_cycle_or_controller_side_action",
+        "safety": "fc03_read_only_no_modbus_write_no_hardware_write_no_polling_retry_timeout_or_cadence_change"
       }
     }
   ],

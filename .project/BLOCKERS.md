@@ -98,11 +98,11 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 ## Issue #866 — recurring XJP60D recovered FC03 retries
 
-**Software/restart attribution cleared 2026-09-05; review candidate.** Read-only historical and live evidence proves the retry pattern existed before the 2026-09-04 restart and remains XJP60D-specific: LE-01MP on the same `rs485-main` bus and Embraco on the second bus are retry-free in the bounded comparison, while queue depth stays 0 and bus workers remain healthy. Recovered retries do not duplicate logical telemetry; terminal failures are explicitly represented as `communication_error`. No production timing/topology change is justified by #866.
+**Cleared and completed 2026-09-05.** Read-only historical and live evidence proves the retry pattern existed before the 2026-09-04 restart and remains XJP60D-specific: LE-01MP on the same `rs485-main` bus and Embraco on the second bus are retry-free in the bounded comparison, while queue depth stays 0 and bus workers remain healthy. Recovered retries do not duplicate logical telemetry; terminal failures are explicitly represented as `communication_error`. Exact candidate `8ff18c4097ff0c51f81b0c7f98fbaea683938719` passed Core CI / NEXOLAB Merge Gate `33962777794` and Telemetry Service `33962777924`; PR #917 closed #866. No production timing/topology/runtime change occurred.
 
 ## Issue #916 — exact XJP60D first-request timeout mechanism
 
-**Hardware/protocol validation required.** Current metrics aggregate physical requests by logical XJP target and cannot identify whether the value register, status register, first request after idle or an XJP-specific physical/electrical condition causes the recovered timeout. #916 owns that residual mechanism. Any service restart, adapter reset, topology isolation/rewire, termination/bias action or power cycle requires a separate explicit Product Owner approval; Modbus/controller writes remain forbidden.
+**Hardware/protocol validation hard gate.** Current metrics aggregate physical requests by logical XJP target and cannot identify whether the value register, status register, first request after idle or an XJP-specific physical/electrical condition causes the recovered timeout. #916 owns that residual mechanism and is registered as `hardware_validation` dependent on completed #866. Any service restart, adapter reset, topology isolation/rewire, termination/bias inspection/action, cable move or power cycle requires separate explicit Product Owner approval; Modbus/controller writes remain forbidden. No production retry/timeout/cadence change is authorized.
 
 ## Issue #585 — W2 / Unit 201 handback
 
@@ -150,6 +150,10 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #690 risk-aware/path-targeted PR verification — completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`; post-merge Core CI and Acquisition Scale Acceptance are GREEN.
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority while RFX-01 through RFX-19C are product-deferred under #727.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
+
+## Sprint execution gate — no independent Ready Work Package
+
+After #866 completion, the delta Ready audit found no independent `ready` item in `PRODUCTION-READINESS-1`. #189/#200/#585 are blocked, #201 is `needs_validation`, #202 and #916 are `hardware_validation`, and #717/RFX-01 through RFX-19C remain on the explicit Product Owner presentation hold. Autonomous execution must therefore stop at the hardware/product gate rather than inventing scope or performing physical actions.
 
 ## Safety boundaries
 
