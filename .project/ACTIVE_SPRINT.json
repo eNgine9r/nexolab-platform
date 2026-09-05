@@ -22,7 +22,11 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 909,
+      "title": "Revalidate consolidated HIGH container exceptions expiring 2026-09-05",
+      "branch": "chore/909-revalidate-container-exceptions"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -2524,6 +2528,19 @@
         "tailscale_serve_topology_unchanged_after_refresh": "PASS",
         "recurring_read_only_preflight": "PASS_due_2026-09-04_snapshot_absent_generate_1_immediate_delivery_1_outbox_2_sent_non_sent_0_duplicate_risk_0",
         "runtime_source_sha": "c19158b22a1632945a961726b4b6b0794d1ae330"
+      }
+    },
+    {
+      "issue": 909,
+      "title": "Revalidate consolidated HIGH container exceptions expiring 2026-09-05",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "chore/909-revalidate-container-exceptions",
+      "evidence": {
+        "baseline": "93_exact_high_exceptions_3_images_19_cves_25_packages_all_expire_2026-09-05",
+        "review_candidate": "provisional_expiry_2026-09-12_only_to_trigger_fresh_exact_head_scan_not_merge_authority",
+        "local_policy_validation": "PASS_today_2026-09-05",
+        "local_pytest": "not_run_system_python_pytest_unavailable_no_dependency_install_on_production_pi"
       }
     }
   ],

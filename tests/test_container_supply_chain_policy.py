@@ -143,7 +143,7 @@ def test_current_cjson_exception_is_exact_and_short_lived() -> None:
     assert len(matches) == 1
     decision = matches[0]
     assert decision["owner"] == "platform-security"
-    assert decision["expires_on"] == "2026-09-05"
+    assert decision["expires_on"] == "2026-09-12"
     assert "mosquitto_ctrl" in decision["reason"]
     assert "Reviewed 2026-08-17" in decision["reason"]
     MODULE.validate_exceptions(
@@ -186,7 +186,7 @@ def test_current_device_agent_expat_exception_is_exact_and_short_lived() -> None
     assert len(matches) == 1
     decision = matches[0]
     assert decision["owner"] == "platform-security"
-    assert decision["expires_on"] == "2026-09-05"
+    assert decision["expires_on"] == "2026-09-12"
     assert "33637555344" in decision["reason"]
     assert "e606b96cb65118b03e3807367322887529988d28" in decision["reason"]
     assert "no XML import/parser/input path" in decision["reason"]
@@ -218,7 +218,7 @@ def test_current_device_agent_sqlite_exceptions_are_exact_and_short_lived() -> N
         "CVE-2026-11824",
     }
     assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-09-05" for entry in matches)
+    assert all(entry["expires_on"] == "2026-09-12" for entry in matches)
     assert all("33637555344" in entry["reason"] for entry in matches)
     assert all("e606b96cb65118b03e3807367322887529988d28" in entry["reason"] for entry in matches)
     assert all("FTS5" in entry["reason"] for entry in matches)
@@ -251,7 +251,7 @@ def test_current_telemetry_fresh_scan_exceptions_are_exact_and_short_lived() -> 
     assert {(entry["package"], entry["vulnerability"]) for entry in matches} == expected
     assert len(matches) == 4
     assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-09-05" for entry in matches)
+    assert all(entry["expires_on"] == "2026-09-12" for entry in matches)
     assert all("33637555344" in entry["reason"] for entry in matches)
     assert all("e606b96cb65118b03e3807367322887529988d28" in entry["reason"] for entry in matches)
     assert all("severity becomes Critical" in entry["reason"] for entry in matches)
@@ -296,7 +296,7 @@ def test_telemetry_systemd_homed_cve_exceptions_are_exact_and_short_lived() -> N
         ("libudev1", "CVE-2026-16742"),
     }
     assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-09-05" for entry in matches)
+    assert all(entry["expires_on"] == "2026-09-12" for entry in matches)
     assert all("33683425564" in entry["reason"] for entry in matches)
     assert all("0f9327f40e9a2f4b8527be78f94c925246ab1c8d" in entry["reason"] for entry in matches)
     assert all("systemd-homed" in entry["reason"] for entry in matches)
