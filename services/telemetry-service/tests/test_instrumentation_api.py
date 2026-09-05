@@ -109,6 +109,18 @@ def test_application_composition_mounts_versioned_registry_routes(
         "/api/v1/instrumentation/instruments/{instrument_id}/calibration-history"
         in paths
     )
+    assert (
+        "/api/v1/instrumentation/instruments/{instrument_id}/signals/{signal_id}/analog-scaling-history"
+        in paths
+    )
+    assert (
+        "/api/v1/instrumentation/instruments/{instrument_id}/signals/{signal_id}/analog-scaling-profile"
+        in paths
+    )
+    assert (
+        "/api/v1/instrumentation/instruments/{instrument_id}/signals/{signal_id}/analog-scaling-evaluate"
+        in paths
+    )
 
 
 def test_instrument_and_signal_crud_use_etags_and_process_neutral_identity(

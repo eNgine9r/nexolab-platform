@@ -13,6 +13,7 @@ from app.db import Database
 from app.instrumentation.repository import InstrumentationRepository
 from app.instrumentation.schemas import (
     AcceptanceAppendRequest,
+    AnalogScalingProfileAppendRequest,
     InstrumentCreate,
     SignalCreate,
 )
@@ -29,6 +30,7 @@ REGISTRY_TABLES = {
     "instrument_signals",
     "instrument_acceptance_history",
     "instrument_calibration_history",
+    "instrument_analog_scaling_history",
 }
 
 
@@ -453,3 +455,230 @@ def test_postgres_serializes_concurrent_history_overlap(history_kind: str) -> No
         assert sorted(outcomes) == ["committed", "rejected"]
     finally:
         database.dispose()
+
+
+def test_postgres_analog_scaling_history_guards_fail_closed() -> None:
+    database = Database(os.environ["DATABASE_URL"])
+    security = SecurityRepository(database)
+    repository = InstrumentationRepository(database)
+    organization_id = str(uuid4())
+    other_organization_id = str(uuid4())
+    suffix = uuid4().hex
+    try:
+        security.provision_organization(
+            organization_id=organization_id,
+            slug=f"analog-scaling-{suffix}",
+            name="Analog scaling PostgreSQL organization",
+        )
+        security.provision_organization(
+            organization_id=other_organization_id,
+            slug=f"analog-scaling-other-{suffix}",
+            name="Other analog scaling organization",
+        )
+        instrument = repository.create_instrument(
+            InstrumentCreate(
+                inventory_key=f"ANALOG-{suffix}",
+                display_name="Analog pressure transmitter",
+                instrument_kind="pressure_transmitter",
+                pressure_reference="gauge",
+            ),
+            actor_id="test-suite",
+            organization_id=organization_id,
+        )
+        signal = repository.create_signal(
+            instrument.id,
+            SignalCreate(
+                business_key=f"ANALOG-{suffix}.PRESSURE",
+                display_name="Pressure",
+                physical_quantity="pressure",
+                engineering_unit="bar",
+            ),
+            actor_id="test-suite",
+            organization_id=organization_id,
+        )
+        start = datetime(2026, 9, 6, tzinfo=UTC)
+        profile = repository.append_analog_scaling_profile(
+            instrument.id,
+            signal.id,
+            AnalogScalingProfileAppendRequest(
+                raw_unit="mA",
+                raw_min="4",
+                raw_max="20",
+                engineering_min="0",
+                engineering_max="30",
+                engineering_unit="bar",
+                evidence_status="hardware_unverified",
+                effective_from=start,
+            ),
+            actor_id="test-suite",
+            organization_id=organization_id,
+        )
+
+        with pytest.raises(DBAPIError):
+            with database.engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "UPDATE instrument_analog_scaling_history "
+                        "SET engineering_max = 40 WHERE id = :id"
+                    ),
+                    {"id": profile.id},
+                )
+        with pytest.raises(DBAPIError):
+            with database.engine.begin() as connection:
+                connection.execute(
+                    text("DELETE FROM instrument_analog_scaling_history WHERE id = :id"),
+                    {"id": profile.id},
+                )
+
+        def direct_insert(*, row_id: str, org_id: str, unit: str, evidence_status: str,
+                          interval_from: datetime, interval_to: datetime | None, revision: int,
+                          provenance: bool = False) -> None:
+            values = {
+                "id": row_id,
+                "organization_id": org_id,
+                "signal_id": signal.id,
+                "engineering_unit": unit,
+                "evidence_status": evidence_status,
+                "effective_from": interval_from,
+                "effective_to": interval_to,
+                "revision": revision,
+                "device_family": "xjp60d" if provenance else None,
+                "profile_id": "evidence-profile" if provenance else None,
+                "profile_version": "v1" if provenance else None,
+                "channel_reference": "channel-1" if provenance else None,
+            }
+            with database.engine.begin() as connection:
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO instrument_analog_scaling_history (
+                            id, organization_id, signal_id, schema_version,
+                            electrical_input_class, raw_unit, raw_min, raw_max,
+                            engineering_min, engineering_max, engineering_unit,
+                            scaling_policy, under_range_policy, over_range_policy,
+                            acquisition_device_family, acquisition_profile_id,
+                            acquisition_profile_version, acquisition_channel_reference,
+                            calibration_scope, evidence_status, effective_from, effective_to,
+                            revision, recorded_by, recorded_at
+                        ) VALUES (
+                            :id, :organization_id, :signal_id, 'analog-scaling/v1',
+                            'current_loop_4_20ma', 'mA', 4, 20, 0, 30, :engineering_unit,
+                            'linear_two_point', 'unavailable', 'unavailable',
+                            :device_family, :profile_id, :profile_version, :channel_reference,
+                            'instrument', :evidence_status, :effective_from, :effective_to,
+                            :revision, 'test-suite', now()
+                        )
+                        """
+                    ),
+                    values,
+                )
+
+        with pytest.raises(DBAPIError):
+            direct_insert(
+                row_id=str(uuid4()),
+                org_id=organization_id,
+                unit="kPa",
+                evidence_status="hardware_unverified",
+                interval_from=start + timedelta(days=2),
+                interval_to=start + timedelta(days=3),
+                revision=90,
+            )
+        with pytest.raises(DBAPIError):
+            direct_insert(
+                row_id=str(uuid4()),
+                org_id=organization_id,
+                unit="bar",
+                evidence_status="hardware_verified",
+                interval_from=start + timedelta(days=2),
+                interval_to=start + timedelta(days=3),
+                revision=91,
+            )
+        with pytest.raises(DBAPIError):
+            direct_insert(
+                row_id=str(uuid4()),
+                org_id=other_organization_id,
+                unit="bar",
+                evidence_status="hardware_unverified",
+                interval_from=start + timedelta(days=2),
+                interval_to=start + timedelta(days=3),
+                revision=92,
+            )
+        with pytest.raises(DBAPIError):
+            direct_insert(
+                row_id=str(uuid4()),
+                org_id=organization_id,
+                unit="bar",
+                evidence_status="hardware_unverified",
+                interval_from=start + timedelta(hours=1),
+                interval_to=start + timedelta(days=1),
+                revision=93,
+            )
+        with pytest.raises(DBAPIError):
+            with database.engine.begin() as connection:
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO instrument_analog_scaling_history (
+                            id, organization_id, signal_id, schema_version,
+                            electrical_input_class, raw_unit, raw_min, raw_max,
+                            engineering_min, engineering_max, engineering_unit,
+                            scaling_policy, under_range_policy, over_range_policy,
+                            calibration_scope, evidence_status, effective_from, effective_to,
+                            revision, recorded_by, recorded_at
+                        ) VALUES (
+                            :id, :organization_id, :signal_id, 'analog-scaling/v1',
+                            'current_loop_4_20ma', 'count', 0, 'Infinity'::numeric,
+                            0, 30, 'bar', 'linear_two_point', 'unavailable', 'unavailable',
+                            'instrument', 'hardware_unverified', :effective_from, :effective_to,
+                            94, 'test-suite', now()
+                        )
+                        """
+                    ),
+                    {
+                        "id": str(uuid4()),
+                        "organization_id": organization_id,
+                        "signal_id": signal.id,
+                        "effective_from": start + timedelta(days=4),
+                        "effective_to": start + timedelta(days=5),
+                    },
+                )
+    finally:
+        database.dispose()
+
+
+def test_postgres_analog_scaling_schema_has_expected_fk_checks_and_trigger() -> None:
+    engine = create_engine(os.environ["DATABASE_URL"])
+    try:
+        inspector = inspect(engine)
+        foreign_keys = {
+            item["name"]
+            for item in inspector.get_foreign_keys("instrument_analog_scaling_history")
+        }
+        assert {
+            "fk_instrument_analog_scaling_organization",
+            "fk_instrument_analog_scaling_signal",
+        } <= foreign_keys
+        checks = {
+            item["name"]
+            for item in inspector.get_check_constraints("instrument_analog_scaling_history")
+        }
+        assert {
+            "ck_instrument_analog_scaling_schema_version",
+            "ck_instrument_analog_scaling_input_class",
+            "ck_instrument_analog_scaling_policy",
+            "ck_instrument_analog_scaling_raw_domain",
+            "ck_instrument_analog_scaling_finite_values",
+            "ck_instrument_analog_scaling_hardware_provenance",
+        } <= checks
+        with engine.connect() as connection:
+            triggers = set(
+                connection.execute(
+                    text(
+                        "SELECT tgname FROM pg_trigger WHERE NOT tgisinternal "
+                        "AND tgrelid = 'instrument_analog_scaling_history'::regclass"
+                    )
+                ).scalars()
+            )
+        assert "trg_instrument_analog_scaling_history_guard" in triggers
+    finally:
+        engine.dispose()

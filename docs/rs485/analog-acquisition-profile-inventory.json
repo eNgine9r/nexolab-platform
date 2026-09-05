@@ -1,0 +1,101 @@
+{
+  "schema_version": "nexolab-analog-acquisition-inventory/v1",
+  "updated_at": "2026-09-06T02:08:00+03:00",
+  "project_profile": "LOCAL_LAN",
+  "runtime_requirement": "offline_capable",
+  "entries": [
+    {
+      "id": "dixell-xjp60d-temperature-fc03-v1",
+      "profile_class": "temperature_probe",
+      "device_family": "xjp60d",
+      "profile_id": "dixell-xjp60d",
+      "profile_version": "dixell-xjp60d-fc03-v1",
+      "electrical_input_class": null,
+      "analog_scaling_schema": null,
+      "hardware_status": "hardware_verified_existing_path",
+      "production_status": "existing_read_only_temperature_acquisition",
+      "known_semantics": {
+        "engineering_unit": "degC",
+        "scale": "0.1",
+        "modbus_function": "FC03",
+        "channels": "1..6"
+      },
+      "evidence": [
+        "services/device-agent/xjp60d.py",
+        "docs/rs485/combined-modbus-hardware-validation.md",
+        "docs/rs485/production-modbus-cutover-validation.md"
+      ],
+      "notes": "Existing temperature acquisition only. It is not evidence for 4-20 mA analog input capability."
+    },
+    {
+      "id": "dixell-xjp60d-4-20ma-candidate",
+      "profile_class": "analog_input_candidate",
+      "device_family": "xjp60d",
+      "profile_id": null,
+      "profile_version": null,
+      "electrical_input_class": "current_loop_4_20ma",
+      "analog_scaling_schema": "analog-scaling/v1",
+      "hardware_status": "hardware_unverified",
+      "production_status": "not_configured",
+      "known_semantics": {
+        "register_reference": null,
+        "raw_encoding": null,
+        "raw_unit": null,
+        "raw_min": null,
+        "raw_max": null,
+        "channel_capability": null
+      },
+      "evidence": [
+        "docs/rs485/issue-200-current-physical-topology.md",
+        "docs/rs485/dixell-xjp60d-v1.6-library-analysis.md",
+        "runtime/vendor/dixell/xjp60d-v1.6/library-analysis-v4.json"
+      ],
+      "notes": "Architecture candidate only. Vendor-package analysis produced no accepted analog register/range candidates; do not infer capability from the model name."
+    },
+    {
+      "id": "isolated-generic-4-20ma-converter-candidate",
+      "profile_class": "analog_input_candidate",
+      "device_family": null,
+      "profile_id": null,
+      "profile_version": null,
+      "electrical_input_class": "current_loop_4_20ma",
+      "analog_scaling_schema": "analog-scaling/v1",
+      "hardware_status": "hardware_unverified",
+      "production_status": "not_selected",
+      "known_semantics": {
+        "transport": null,
+        "register_reference": null,
+        "raw_encoding": null,
+        "raw_unit": null,
+        "raw_min": null,
+        "raw_max": null
+      },
+      "evidence": ["docs/adr/0010-refrigeration-monitoring-and-derived-thermodynamics.md"],
+      "notes": "Allowed architecture alternative for an isolated analog-input/converter. Exact model and profile require separate evidence."
+    },
+    {
+      "id": "rheonik-rhe08-reference-candidate",
+      "profile_class": "reference_candidate",
+      "device_family": null,
+      "profile_id": null,
+      "profile_version": null,
+      "electrical_input_class": null,
+      "analog_scaling_schema": null,
+      "hardware_status": "hardware_unverified",
+      "production_status": "reference_only",
+      "known_semantics": {
+        "transport": null,
+        "register_reference": null,
+        "raw_encoding": null
+      },
+      "evidence": ["docs/adr/0010-refrigeration-monitoring-and-derived-thermodynamics.md"],
+      "notes": "Reference/candidate only. No production capability or protocol semantics are claimed by RFX-02."
+    }
+  ],
+  "safety": {
+    "modbus_write": "none",
+    "hardware_write": "none",
+    "production_cutover": "none",
+    "unknown_hardware_semantics_fail_closed": true
+  }
+}

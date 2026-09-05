@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any, TypeVar
 from uuid import uuid4
 
@@ -12,6 +13,12 @@ from sqlalchemy.orm import Session
 from app.db import Database
 from app.instrumentation.models import (
     ACCEPTANCE_SCHEMA_VERSION,
+    ANALOG_ELECTRICAL_INPUT_CLASSES,
+    ANALOG_EVIDENCE_STATUSES,
+    ANALOG_RANGE_POLICIES,
+    ANALOG_SCALING_POLICIES,
+    ANALOG_SCALING_SCHEMA_VERSION,
+    AnalogScalingProfileRecord,
     CALIBRATION_SCHEMA_VERSION,
     CALIBRATION_STATES,
     Instrument,
@@ -21,12 +28,14 @@ from app.instrumentation.models import (
 )
 from app.instrumentation.schemas import (
     AcceptanceAppendRequest,
+    AnalogScalingProfileAppendRequest,
     CalibrationAppendRequest,
     InstrumentCreate,
     InstrumentUpdate,
     SignalCreate,
     SignalUpdate,
 )
+from app.instrumentation.scaling import scale_linear_two_point
 from app.security.repository import AuditEventInput, SecurityRepository
 
 
@@ -75,6 +84,14 @@ class HistoryIntegrityConflictError(InstrumentationRepositoryError):
 
 class HistoryResolutionError(InstrumentationRepositoryError):
     code = "history_resolution_ambiguous"
+
+
+class AnalogScalingUnitMismatchError(InstrumentationRepositoryError):
+    code = "analog_scaling_unit_mismatch"
+
+
+class AnalogScalingResolutionError(InstrumentationRepositoryError):
+    code = "analog_scaling_resolution_unavailable"
 
 
 class InstrumentVersionConflictError(InstrumentationRepositoryError):
@@ -382,6 +399,179 @@ class InstrumentationRepository:
                 f"signal business key {payload.business_key!r} already exists "
                 "in this organization"
             ) from error
+
+    def list_analog_scaling_history(
+        self,
+        instrument_id: str,
+        signal_id: str,
+        *,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+    ) -> list[AnalogScalingProfileRecord]:
+        with Session(self._engine, expire_on_commit=False) as session:
+            self._instrument(session, organization_id, instrument_id)
+            self._signal(session, organization_id, instrument_id, signal_id)
+            rows = list(
+                session.scalars(
+                    select(AnalogScalingProfileRecord)
+                    .where(
+                        AnalogScalingProfileRecord.organization_id == organization_id,
+                        AnalogScalingProfileRecord.signal_id == signal_id,
+                    )
+                    .order_by(
+                        AnalogScalingProfileRecord.effective_from.asc(),
+                        AnalogScalingProfileRecord.revision.asc(),
+                    )
+                )
+            )
+            session.expunge_all()
+            return rows
+
+    def append_analog_scaling_profile(
+        self,
+        instrument_id: str,
+        signal_id: str,
+        payload: AnalogScalingProfileAppendRequest,
+        *,
+        actor_id: str,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+        audit_repository: SecurityRepository | None = None,
+        audit_event: AuditEventInput | None = None,
+    ) -> AnalogScalingProfileRecord:
+        try:
+            with Session(self._engine, expire_on_commit=False) as session:
+                with session.begin():
+                    self._instrument(session, organization_id, instrument_id)
+                    signal = self._signal(
+                        session,
+                        organization_id,
+                        instrument_id,
+                        signal_id,
+                        for_update=True,
+                    )
+                    if payload.engineering_unit != signal.engineering_unit:
+                        raise AnalogScalingUnitMismatchError(
+                            "analog scaling engineering_unit must match the owning Signal"
+                        )
+                    latest = session.scalar(
+                        select(AnalogScalingProfileRecord)
+                        .where(
+                            AnalogScalingProfileRecord.organization_id == organization_id,
+                            AnalogScalingProfileRecord.signal_id == signal_id,
+                        )
+                        .order_by(
+                            AnalogScalingProfileRecord.effective_from.desc(),
+                            AnalogScalingProfileRecord.revision.desc(),
+                        )
+                        .limit(1)
+                        .with_for_update()
+                    )
+                    effective_from = _as_utc(payload.effective_from)
+                    previous = (
+                        _analog_scaling_snapshot(latest) if latest is not None else None
+                    )
+                    self._close_analog_scaling_interval(latest, effective_from)
+                    if latest is not None:
+                        session.flush()
+                    revision = latest.revision + 1 if latest is not None else 1
+                    row = AnalogScalingProfileRecord(
+                        id=str(uuid4()),
+                        organization_id=organization_id,
+                        signal_id=signal_id,
+                        schema_version=payload.schema_version,
+                        electrical_input_class=payload.electrical_input_class,
+                        raw_unit=payload.raw_unit,
+                        raw_min=payload.raw_min,
+                        raw_max=payload.raw_max,
+                        engineering_min=payload.engineering_min,
+                        engineering_max=payload.engineering_max,
+                        engineering_unit=payload.engineering_unit,
+                        scaling_policy=payload.scaling_policy,
+                        under_range_policy=payload.under_range_policy,
+                        over_range_policy=payload.over_range_policy,
+                        acquisition_device_family=payload.acquisition_device_family,
+                        acquisition_profile_id=payload.acquisition_profile_id,
+                        acquisition_profile_version=payload.acquisition_profile_version,
+                        acquisition_channel_reference=payload.acquisition_channel_reference,
+                        evidence_reference=payload.evidence_reference,
+                        calibration_scope=payload.calibration_scope,
+                        evidence_status=payload.evidence_status,
+                        effective_from=effective_from,
+                        effective_to=None,
+                        revision=revision,
+                        recorded_by=_actor(actor_id),
+                        recorded_at=datetime.now(UTC),
+                    )
+                    session.add(row)
+                    session.flush()
+                    self._append_audit(
+                        session,
+                        audit_repository,
+                        audit_event,
+                        entity_id=signal_id,
+                        before=previous,
+                        after=_analog_scaling_snapshot(row),
+                    )
+                session.expunge(row)
+                return row
+        except IntegrityError as error:
+            raise HistoryIntegrityConflictError(
+                "analog scaling profile append would create an invalid or overlapping interval"
+            ) from error
+
+    def resolve_analog_scaling_profile(
+        self,
+        instrument_id: str,
+        signal_id: str,
+        at: datetime,
+        *,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+    ) -> AnalogScalingProfileRecord:
+        resolved_at = _require_aware_utc(at, "analog scaling resolution timestamp")
+        with Session(self._engine, expire_on_commit=False) as session:
+            self._instrument(session, organization_id, instrument_id)
+            signal = self._signal(session, organization_id, instrument_id, signal_id)
+            rows = list(
+                session.scalars(
+                    select(AnalogScalingProfileRecord).where(
+                        AnalogScalingProfileRecord.organization_id == organization_id,
+                        AnalogScalingProfileRecord.signal_id == signal_id,
+                        AnalogScalingProfileRecord.effective_from <= resolved_at,
+                        or_(
+                            AnalogScalingProfileRecord.effective_to.is_(None),
+                            AnalogScalingProfileRecord.effective_to > resolved_at,
+                        ),
+                    )
+                )
+            )
+            if len(rows) != 1:
+                raise AnalogScalingResolutionError(
+                    "analog scaling history must resolve exactly one effective profile"
+                )
+            row = rows[0]
+            _validate_analog_scaling_profile(row, signal)
+            session.expunge(row)
+            return row
+
+    def evaluate_analog_scaling(
+        self,
+        instrument_id: str,
+        signal_id: str,
+        raw_value: Decimal,
+        at: datetime,
+        *,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+    ) -> tuple[AnalogScalingProfileRecord, Decimal]:
+        profile = self.resolve_analog_scaling_profile(
+            instrument_id, signal_id, at, organization_id=organization_id
+        )
+        value = scale_linear_two_point(
+            raw_value,
+            raw_min=profile.raw_min,
+            raw_max=profile.raw_max,
+            engineering_min=profile.engineering_min,
+            engineering_max=profile.engineering_max,
+        )
+        return profile, value
 
     def list_acceptance_history(
         self,
@@ -743,6 +933,23 @@ class InstrumentationRepository:
             )
 
     @staticmethod
+    def _close_analog_scaling_interval(
+        latest: AnalogScalingProfileRecord | None,
+        effective_from: datetime,
+    ) -> None:
+        if latest is None:
+            return
+        if latest.effective_to is not None:
+            raise HistoryIntegrityConflictError(
+                "analog scaling history has no single open current interval"
+            )
+        if effective_from < _as_utc(latest.effective_from):
+            raise HistoryOrderConflictError(
+                "analog scaling profiles must be appended in non-decreasing effective-time order"
+            )
+        latest.effective_to = effective_from
+
+    @staticmethod
     def _close_acceptance_interval(
         latest: InstrumentAcceptanceRecord | None,
         effective_from: datetime,
@@ -818,6 +1025,53 @@ def _require_aware_utc(value: datetime, field_name: str) -> datetime:
     return value.astimezone(UTC)
 
 
+def _validate_analog_scaling_profile(
+    row: AnalogScalingProfileRecord, signal: Signal
+) -> None:
+    if (
+        row.schema_version != ANALOG_SCALING_SCHEMA_VERSION
+        or row.electrical_input_class not in ANALOG_ELECTRICAL_INPUT_CLASSES
+        or row.scaling_policy not in ANALOG_SCALING_POLICIES
+        or row.under_range_policy not in ANALOG_RANGE_POLICIES
+        or row.over_range_policy not in ANALOG_RANGE_POLICIES
+        or row.evidence_status not in ANALOG_EVIDENCE_STATUSES
+    ):
+        raise AnalogScalingResolutionError(
+            "analog scaling profile contains unsupported contract semantics"
+        )
+    if row.engineering_unit != signal.engineering_unit:
+        raise AnalogScalingResolutionError(
+            "analog scaling profile engineering unit does not match the owning Signal"
+        )
+    numeric_values = (
+        row.raw_min,
+        row.raw_max,
+        row.engineering_min,
+        row.engineering_max,
+    )
+    if any(not value.is_finite() for value in numeric_values):
+        raise AnalogScalingResolutionError(
+            "analog scaling profile contains a non-finite numeric value"
+        )
+    if row.raw_min >= row.raw_max:
+        raise AnalogScalingResolutionError(
+            "analog scaling profile raw domain is invalid"
+        )
+    if row.evidence_status == "hardware_verified" and any(
+        not value
+        for value in (
+            row.acquisition_device_family,
+            row.acquisition_profile_id,
+            row.acquisition_profile_version,
+            row.acquisition_channel_reference,
+            row.evidence_reference,
+        )
+    ):
+        raise AnalogScalingResolutionError(
+            "hardware-verified analog scaling profile lacks complete acquisition provenance"
+        )
+
+
 def _require_pressure_reference(instrument: Instrument, physical_quantity: str) -> None:
     if physical_quantity == "pressure" and instrument.pressure_reference is None:
         raise PressureReferenceRequiredError(
@@ -862,6 +1116,37 @@ def _signal_snapshot(row: Signal) -> dict[str, Any]:
         "updated_by": row.updated_by,
         "created_at": row.created_at.isoformat(),
         "updated_at": row.updated_at.isoformat(),
+    }
+
+
+def _analog_scaling_snapshot(row: AnalogScalingProfileRecord) -> dict[str, Any]:
+    return {
+        "id": row.id,
+        "organization_id": row.organization_id,
+        "signal_id": row.signal_id,
+        "schema_version": row.schema_version,
+        "electrical_input_class": row.electrical_input_class,
+        "raw_unit": row.raw_unit,
+        "raw_min": str(row.raw_min),
+        "raw_max": str(row.raw_max),
+        "engineering_min": str(row.engineering_min),
+        "engineering_max": str(row.engineering_max),
+        "engineering_unit": row.engineering_unit,
+        "scaling_policy": row.scaling_policy,
+        "under_range_policy": row.under_range_policy,
+        "over_range_policy": row.over_range_policy,
+        "acquisition_device_family": row.acquisition_device_family,
+        "acquisition_profile_id": row.acquisition_profile_id,
+        "acquisition_profile_version": row.acquisition_profile_version,
+        "acquisition_channel_reference": row.acquisition_channel_reference,
+        "evidence_reference": row.evidence_reference,
+        "calibration_scope": row.calibration_scope,
+        "evidence_status": row.evidence_status,
+        "effective_from": row.effective_from.isoformat(),
+        "effective_to": row.effective_to.isoformat() if row.effective_to else None,
+        "revision": row.revision,
+        "recorded_by": row.recorded_by,
+        "recorded_at": row.recorded_at.isoformat(),
     }
 
 

@@ -89,6 +89,9 @@ def register_models() -> None:
     assert _instrumentation_models.InstrumentCalibrationRecord.__tablename__ == (
         "instrument_calibration_history"
     )
+    assert _instrumentation_models.AnalogScalingProfileRecord.__tablename__ == (
+        "instrument_analog_scaling_history"
+    )
     assert _commissioning_models.EquipmentCommissioningSession.__tablename__ == (
         "equipment_commissioning_sessions"
     )

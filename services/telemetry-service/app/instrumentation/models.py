@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
@@ -12,6 +13,7 @@ from sqlalchemy import (
     Index,
     Integer,
     JSON,
+    Numeric,
     String,
     UniqueConstraint,
     func,
@@ -26,12 +28,21 @@ ACCEPTANCE_SCHEMA_VERSION = "acceptance-state/v1"
 CALIBRATION_SCHEMA_VERSION = "calibration-state/v1"
 CALIBRATION_STATES = ("valid", "due", "expired", "revoked", "unknown")
 REGISTRY_LIFECYCLE_STATES = ("active", "inactive", "retired")
+ANALOG_SCALING_SCHEMA_VERSION = "analog-scaling/v1"
+ANALOG_ELECTRICAL_INPUT_CLASSES = ("current_loop_4_20ma",)
+ANALOG_SCALING_POLICIES = ("linear_two_point",)
+ANALOG_RANGE_POLICIES = ("unavailable",)
+ANALOG_EVIDENCE_STATUSES = ("software_verified", "hardware_unverified", "hardware_verified")
 
 _CALIBRATION_STATE_SQL = ", ".join(f"'{state}'" for state in CALIBRATION_STATES)
 _REGISTRY_LIFECYCLE_SQL = ", ".join(
     f"'{state}'" for state in REGISTRY_LIFECYCLE_STATES
 )
 _PRESSURE_REFERENCE_SQL = "'absolute', 'gauge'"
+_ANALOG_INPUT_CLASS_SQL = ", ".join(f"'{value}'" for value in ANALOG_ELECTRICAL_INPUT_CLASSES)
+_ANALOG_SCALING_POLICY_SQL = ", ".join(f"'{value}'" for value in ANALOG_SCALING_POLICIES)
+_ANALOG_RANGE_POLICY_SQL = ", ".join(f"'{value}'" for value in ANALOG_RANGE_POLICIES)
+_ANALOG_EVIDENCE_STATUS_SQL = ", ".join(f"'{value}'" for value in ANALOG_EVIDENCE_STATUSES)
 
 
 class Instrument(Base):
@@ -175,6 +186,120 @@ class Signal(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class AnalogScalingProfileRecord(Base):
+    __tablename__ = "instrument_analog_scaling_history"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "signal_id"],
+            ["instrument_signals.organization_id", "instrument_signals.id"],
+            name="fk_instrument_analog_scaling_signal",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "signal_id",
+            "revision",
+            name="uq_instrument_analog_scaling_revision",
+        ),
+        CheckConstraint(
+            f"schema_version = '{ANALOG_SCALING_SCHEMA_VERSION}'",
+            name="ck_instrument_analog_scaling_schema_version",
+        ),
+        CheckConstraint(
+            f"electrical_input_class IN ({_ANALOG_INPUT_CLASS_SQL})",
+            name="ck_instrument_analog_scaling_input_class",
+        ),
+        CheckConstraint(
+            f"scaling_policy IN ({_ANALOG_SCALING_POLICY_SQL})",
+            name="ck_instrument_analog_scaling_policy",
+        ),
+        CheckConstraint(
+            f"under_range_policy IN ({_ANALOG_RANGE_POLICY_SQL})",
+            name="ck_instrument_analog_scaling_under_range",
+        ),
+        CheckConstraint(
+            f"over_range_policy IN ({_ANALOG_RANGE_POLICY_SQL})",
+            name="ck_instrument_analog_scaling_over_range",
+        ),
+        CheckConstraint(
+            f"evidence_status IN ({_ANALOG_EVIDENCE_STATUS_SQL})",
+            name="ck_instrument_analog_scaling_evidence_status",
+        ),
+        CheckConstraint(
+            "raw_min < raw_max",
+            name="ck_instrument_analog_scaling_raw_domain",
+        ),
+        CheckConstraint(
+            "revision >= 1",
+            name="ck_instrument_analog_scaling_revision_positive",
+        ),
+        CheckConstraint(
+            "effective_to IS NULL OR effective_to >= effective_from",
+            name="ck_instrument_analog_scaling_interval",
+        ),
+        CheckConstraint(
+            "evidence_status <> 'hardware_verified' OR "
+            "(acquisition_device_family IS NOT NULL AND acquisition_profile_id IS NOT NULL "
+            "AND acquisition_profile_version IS NOT NULL AND acquisition_channel_reference IS NOT NULL "
+            "AND evidence_reference IS NOT NULL)",
+            name="ck_instrument_analog_scaling_hardware_provenance",
+        ),
+        Index(
+            "ix_instrument_analog_scaling_as_of",
+            "organization_id",
+            "signal_id",
+            "effective_from",
+            "effective_to",
+            "revision",
+        ),
+        Index(
+            "uq_instrument_analog_scaling_open",
+            "organization_id",
+            "signal_id",
+            unique=True,
+            postgresql_where=text("effective_to IS NULL"),
+            sqlite_where=text("effective_to IS NULL"),
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_instrument_analog_scaling_organization",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    signal_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    schema_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    electrical_input_class: Mapped[str] = mapped_column(String(32), nullable=False)
+    raw_unit: Mapped[str] = mapped_column(String(32), nullable=False)
+    raw_min: Mapped[Decimal] = mapped_column(Numeric(38, 18), nullable=False)
+    raw_max: Mapped[Decimal] = mapped_column(Numeric(38, 18), nullable=False)
+    engineering_min: Mapped[Decimal] = mapped_column(Numeric(38, 18), nullable=False)
+    engineering_max: Mapped[Decimal] = mapped_column(Numeric(38, 18), nullable=False)
+    engineering_unit: Mapped[str] = mapped_column(String(64), nullable=False)
+    scaling_policy: Mapped[str] = mapped_column(String(32), nullable=False)
+    under_range_policy: Mapped[str] = mapped_column(String(32), nullable=False)
+    over_range_policy: Mapped[str] = mapped_column(String(32), nullable=False)
+    acquisition_device_family: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    acquisition_profile_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    acquisition_profile_version: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    acquisition_channel_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    evidence_reference: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    calibration_scope: Mapped[str] = mapped_column(String(64), nullable=False)
+    evidence_status: Mapped[str] = mapped_column(String(32), nullable=False)
+    effective_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    effective_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    recorded_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 

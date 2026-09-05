@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Annotated, Literal
 
 from pydantic import (
@@ -11,6 +12,7 @@ from pydantic import (
     JsonValue,
     StrictBool,
     field_validator,
+    model_validator,
 )
 
 
@@ -235,6 +237,151 @@ class CalibrationRecordResponse(BaseModel):
 
 class CalibrationHistoryResponse(BaseModel):
     items: list[CalibrationRecordResponse]
+
+
+AnalogElectricalInputClass = Literal["current_loop_4_20ma"]
+AnalogScalingPolicy = Literal["linear_two_point"]
+AnalogRangePolicy = Literal["unavailable"]
+AnalogEvidenceStatus = Literal[
+    "software_verified", "hardware_unverified", "hardware_verified"
+]
+
+
+class AnalogScalingProfileAppendRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["analog-scaling/v1"] = "analog-scaling/v1"
+    electrical_input_class: AnalogElectricalInputClass = "current_loop_4_20ma"
+    raw_unit: Annotated[str, Field(min_length=1, max_length=32)]
+    raw_min: Decimal
+    raw_max: Decimal
+    engineering_min: Decimal
+    engineering_max: Decimal
+    engineering_unit: Annotated[str, Field(min_length=1, max_length=64)]
+    scaling_policy: AnalogScalingPolicy = "linear_two_point"
+    under_range_policy: AnalogRangePolicy = "unavailable"
+    over_range_policy: AnalogRangePolicy = "unavailable"
+    acquisition_device_family: Annotated[str | None, Field(max_length=64)] = None
+    acquisition_profile_id: Annotated[str | None, Field(max_length=128)] = None
+    acquisition_profile_version: Annotated[str | None, Field(max_length=128)] = None
+    acquisition_channel_reference: Annotated[str | None, Field(max_length=255)] = None
+    evidence_reference: Annotated[str | None, Field(max_length=512)] = None
+    calibration_scope: Annotated[str, Field(min_length=1, max_length=64)] = "instrument"
+    evidence_status: AnalogEvidenceStatus = "hardware_unverified"
+    effective_from: datetime
+
+    @field_validator("raw_unit", "engineering_unit")
+    @classmethod
+    def validate_unit(cls, value: str) -> str:
+        normalized = value.strip()
+        if not _UNIT_IDENTIFIER_RE.fullmatch(normalized):
+            raise ValueError("unit must be a canonical unit identifier")
+        return normalized
+
+    @field_validator("calibration_scope")
+    @classmethod
+    def validate_calibration_scope(cls, value: str) -> str:
+        return _canonical_identifier(value, "calibration_scope")
+
+    @field_validator(
+        "acquisition_device_family",
+        "acquisition_profile_id",
+        "acquisition_profile_version",
+        "acquisition_channel_reference",
+        "evidence_reference",
+    )
+    @classmethod
+    def normalize_optional_provenance(cls, value: str | None) -> str | None:
+        return _optional_text(value)
+
+    @field_validator("effective_from")
+    @classmethod
+    def validate_effective_from(cls, value: datetime) -> datetime:
+        return _aware_utc(value, "effective_from")
+
+    @field_validator("raw_min", "raw_max", "engineering_min", "engineering_max")
+    @classmethod
+    def validate_finite_decimal(cls, value: Decimal) -> Decimal:
+        if not value.is_finite():
+            raise ValueError("analog scaling values must be finite decimals")
+        return value
+
+    @model_validator(mode="after")
+    def validate_profile(self) -> "AnalogScalingProfileAppendRequest":
+        if self.raw_min >= self.raw_max:
+            raise ValueError("raw_min must be strictly less than raw_max")
+        if self.evidence_status == "hardware_verified":
+            required = (
+                self.acquisition_device_family,
+                self.acquisition_profile_id,
+                self.acquisition_profile_version,
+                self.acquisition_channel_reference,
+                self.evidence_reference,
+            )
+            if any(value is None for value in required):
+                raise ValueError(
+                    "hardware_verified analog profiles require complete acquisition provenance"
+                )
+        return self
+
+
+class AnalogScalingProfileResponse(BaseModel):
+    id: str
+    signal_id: str
+    schema_version: Literal["analog-scaling/v1"]
+    electrical_input_class: AnalogElectricalInputClass
+    raw_unit: str
+    raw_min: Decimal
+    raw_max: Decimal
+    engineering_min: Decimal
+    engineering_max: Decimal
+    engineering_unit: str
+    scaling_policy: AnalogScalingPolicy
+    under_range_policy: AnalogRangePolicy
+    over_range_policy: AnalogRangePolicy
+    acquisition_device_family: str | None
+    acquisition_profile_id: str | None
+    acquisition_profile_version: str | None
+    acquisition_channel_reference: str | None
+    evidence_reference: str | None
+    calibration_scope: str
+    evidence_status: AnalogEvidenceStatus
+    effective_from: datetime
+    effective_to: datetime | None
+    revision: int
+    recorded_by: str
+    recorded_at: datetime
+
+
+class AnalogScalingHistoryResponse(BaseModel):
+    items: list[AnalogScalingProfileResponse]
+
+
+class AnalogScalingEvaluationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    raw_value: Decimal
+    at: datetime
+
+    @field_validator("raw_value")
+    @classmethod
+    def validate_raw_value(cls, value: Decimal) -> Decimal:
+        if not value.is_finite():
+            raise ValueError("raw_value must be a finite decimal")
+        return value
+
+    @field_validator("at")
+    @classmethod
+    def validate_at(cls, value: datetime) -> datetime:
+        return _aware_utc(value, "at")
+
+
+class AnalogScalingEvaluationResponse(BaseModel):
+    profile_id: str
+    profile_revision: int
+    raw_value: Decimal
+    engineering_value: Decimal
+    engineering_unit: str
 
 
 class ApiErrorDetail(BaseModel):

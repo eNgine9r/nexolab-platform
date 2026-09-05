@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Callable
 
 from fastapi import (
@@ -19,10 +20,13 @@ from app.instrumentation.models import (
     Instrument,
     InstrumentAcceptanceRecord,
     InstrumentCalibrationRecord,
+    AnalogScalingProfileRecord,
     Signal,
 )
 from app.instrumentation.repository import (
     DEFAULT_ORGANIZATION_ID,
+    AnalogScalingResolutionError,
+    AnalogScalingUnitMismatchError,
     HistoryIntegrityConflictError,
     HistoryOrderConflictError,
     InstrumentationRepository,
@@ -39,6 +43,11 @@ from app.instrumentation.repository import (
 )
 from app.instrumentation.schemas import (
     AcceptanceAppendRequest,
+    AnalogScalingEvaluationRequest,
+    AnalogScalingEvaluationResponse,
+    AnalogScalingHistoryResponse,
+    AnalogScalingProfileAppendRequest,
+    AnalogScalingProfileResponse,
     AcceptanceHistoryResponse,
     AcceptanceRecordResponse,
     ApiErrorDetail,
@@ -55,6 +64,7 @@ from app.instrumentation.schemas import (
     SignalResponse,
     SignalUpdate,
 )
+from app.instrumentation.scaling import AnalogScalingUnavailableError
 from app.security.authorization import AuthenticatedPrincipal, Permission, Role
 from app.security.dependencies import AuthorizedRequest, SecurityDependencies
 from app.security.repository import AuditEventInput, SecurityRepository
@@ -335,6 +345,134 @@ def create_instrumentation_router(
         return _signal_response(row)
 
     @router.get(
+        "/instruments/{instrument_id}/signals/{signal_id}/analog-scaling-history",
+        response_model=AnalogScalingHistoryResponse,
+        responses={404: {"model": ApiErrorResponse}},
+    )
+    def list_analog_scaling_history(
+        instrument_id: str,
+        signal_id: str,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> AnalogScalingHistoryResponse:
+        try:
+            rows = repository.list_analog_scaling_history(
+                instrument_id,
+                signal_id,
+                organization_id=authorized.principal.organization_id,
+            )
+        except InstrumentationRepositoryError as error:
+            raise _repository_http_error(error) from error
+        return AnalogScalingHistoryResponse(
+            items=[_analog_scaling_response(row) for row in rows]
+        )
+
+    @router.post(
+        "/instruments/{instrument_id}/signals/{signal_id}/analog-scaling-history",
+        response_model=AnalogScalingProfileResponse,
+        status_code=status.HTTP_201_CREATED,
+        responses={
+            404: {"model": ApiErrorResponse},
+            409: {"model": ApiErrorResponse},
+        },
+    )
+    def append_analog_scaling_profile(
+        instrument_id: str,
+        signal_id: str,
+        payload: AnalogScalingProfileAppendRequest,
+        request: Request,
+        audit_reason: str | None = Header(
+            default=None, alias="X-Audit-Reason", max_length=1024
+        ),
+        authorized: AuthorizedRequest = Depends(manage_access),
+    ) -> AnalogScalingProfileResponse:
+        try:
+            row = repository.append_analog_scaling_profile(
+                instrument_id,
+                signal_id,
+                payload,
+                actor_id=authorized.principal.subject,
+                organization_id=authorized.principal.organization_id,
+                audit_repository=security_repository,
+                audit_event=_audit_event(
+                    authorized,
+                    request,
+                    action="instrument_signal.analog_scaling_appended",
+                    entity_type="instrument_analog_scaling_profile",
+                    entity_id=signal_id,
+                    reason=audit_reason,
+                ),
+            )
+        except InstrumentationRepositoryError as error:
+            raise _repository_http_error(error) from error
+        return _analog_scaling_response(row)
+
+    @router.get(
+        "/instruments/{instrument_id}/signals/{signal_id}/analog-scaling-profile",
+        response_model=AnalogScalingProfileResponse,
+        responses={
+            404: {"model": ApiErrorResponse},
+            409: {"model": ApiErrorResponse},
+        },
+    )
+    def resolve_analog_scaling_profile(
+        instrument_id: str,
+        signal_id: str,
+        at: datetime = Query(...),
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> AnalogScalingProfileResponse:
+        if at.tzinfo is None or at.utcoffset() is None:
+            raise _api_http_error(
+                422,
+                "analog_scaling_timestamp_invalid",
+                "at must include a timezone offset",
+            )
+        try:
+            row = repository.resolve_analog_scaling_profile(
+                instrument_id,
+                signal_id,
+                at,
+                organization_id=authorized.principal.organization_id,
+            )
+        except InstrumentationRepositoryError as error:
+            raise _repository_http_error(error) from error
+        return _analog_scaling_response(row)
+
+    @router.post(
+        "/instruments/{instrument_id}/signals/{signal_id}/analog-scaling-evaluate",
+        response_model=AnalogScalingEvaluationResponse,
+        responses={
+            404: {"model": ApiErrorResponse},
+            409: {"model": ApiErrorResponse},
+            422: {"model": ApiErrorResponse},
+        },
+    )
+    def evaluate_analog_scaling(
+        instrument_id: str,
+        signal_id: str,
+        payload: AnalogScalingEvaluationRequest,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> AnalogScalingEvaluationResponse:
+        try:
+            profile, value = repository.evaluate_analog_scaling(
+                instrument_id,
+                signal_id,
+                payload.raw_value,
+                payload.at,
+                organization_id=authorized.principal.organization_id,
+            )
+        except AnalogScalingUnavailableError as error:
+            raise _api_http_error(422, error.code, str(error)) from error
+        except InstrumentationRepositoryError as error:
+            raise _repository_http_error(error) from error
+        return AnalogScalingEvaluationResponse(
+            profile_id=profile.id,
+            profile_revision=profile.revision,
+            raw_value=payload.raw_value,
+            engineering_value=value,
+            engineering_unit=profile.engineering_unit,
+        )
+
+    @router.get(
         "/instruments/{instrument_id}/acceptance-history",
         response_model=AcceptanceHistoryResponse,
         responses={404: {"model": ApiErrorResponse}},
@@ -548,6 +686,40 @@ def _signal_response(row: Signal) -> SignalResponse:
     )
 
 
+def _analog_scaling_response(
+    row: AnalogScalingProfileRecord,
+) -> AnalogScalingProfileResponse:
+    return AnalogScalingProfileResponse(
+        id=row.id,
+        signal_id=row.signal_id,
+        schema_version=row.schema_version,
+        electrical_input_class=row.electrical_input_class,
+        raw_unit=row.raw_unit,
+        raw_min=_response_decimal(row.raw_min),
+        raw_max=_response_decimal(row.raw_max),
+        engineering_min=_response_decimal(row.engineering_min),
+        engineering_max=_response_decimal(row.engineering_max),
+        engineering_unit=row.engineering_unit,
+        scaling_policy=row.scaling_policy,
+        under_range_policy=row.under_range_policy,
+        over_range_policy=row.over_range_policy,
+        acquisition_device_family=row.acquisition_device_family,
+        acquisition_profile_id=row.acquisition_profile_id,
+        acquisition_profile_version=row.acquisition_profile_version,
+        acquisition_channel_reference=row.acquisition_channel_reference,
+        evidence_reference=row.evidence_reference,
+        calibration_scope=row.calibration_scope,
+        evidence_status=row.evidence_status,
+        effective_from=_utc_datetime(row.effective_from),
+        effective_to=(
+            _utc_datetime(row.effective_to) if row.effective_to is not None else None
+        ),
+        revision=row.revision,
+        recorded_by=row.recorded_by,
+        recorded_at=_utc_datetime(row.recorded_at),
+    )
+
+
 def _acceptance_response(
     row: InstrumentAcceptanceRecord,
 ) -> AcceptanceRecordResponse:
@@ -583,6 +755,11 @@ def _calibration_response(
         recorded_by=row.recorded_by,
         recorded_at=_utc_datetime(row.recorded_at),
     )
+
+
+def _response_decimal(value: Decimal) -> Decimal:
+    normalized = value.normalize()
+    return Decimal(0) if normalized == 0 else normalized
 
 
 def _utc_datetime(value: datetime) -> datetime:
@@ -657,6 +834,8 @@ def _repository_http_error(error: InstrumentationRepositoryError) -> HTTPExcepti
             HistoryOrderConflictError,
             HistoryIntegrityConflictError,
             PressureReferenceRequiredError,
+            AnalogScalingUnitMismatchError,
+            AnalogScalingResolutionError,
         ),
     ):
         return _api_http_error(409, error.code, str(error))
