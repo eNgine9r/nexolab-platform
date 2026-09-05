@@ -327,6 +327,59 @@ def test_api_exposes_audited_profile_history_resolution_and_evaluation(tmp_path:
     )
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("raw_min", "4.1234567890123456789"),
+        ("raw_max", "200000000000000000000"),
+        ("engineering_min", "-100000000000000000000"),
+        ("engineering_max", "30.1234567890123456789"),
+    ],
+)
+def test_api_rejects_analog_profile_values_outside_numeric_38_18(
+    tmp_path: Path, field: str, value: str
+) -> None:
+    api, _, instrument_id, signal_id = _client_with_signal(tmp_path)
+    route = (
+        f"/api/v1/instrumentation/instruments/{instrument_id}/signals/"
+        f"{signal_id}/analog-scaling-history"
+    )
+    payload = {
+        "raw_unit": "mA",
+        "raw_min": "4",
+        "raw_max": "20",
+        "engineering_min": "0",
+        "engineering_max": "30",
+        "engineering_unit": "bar",
+        "evidence_status": "hardware_unverified",
+        "effective_from": "2026-09-06T00:00:00Z",
+    }
+    payload[field] = value
+
+    rejected = api.post(route, json=payload)
+
+    assert rejected.status_code == 422
+    assert api.get(route).json() == {"items": []}
+
+
+def test_profile_schema_accepts_numeric_38_18_boundary() -> None:
+    profile = AnalogScalingProfileAppendRequest(
+        raw_unit="mA",
+        raw_min=Decimal("4.123456789012345678"),
+        raw_max=Decimal("20"),
+        engineering_min=Decimal("-99999999999999999999.123456789012345678"),
+        engineering_max=Decimal("99999999999999999999.123456789012345678"),
+        engineering_unit="bar",
+        evidence_status="hardware_unverified",
+        effective_from=datetime(2026, 9, 6, tzinfo=UTC),
+    )
+
+    assert profile.raw_min == Decimal("4.123456789012345678")
+    assert profile.engineering_max == Decimal(
+        "99999999999999999999.123456789012345678"
+    )
+
+
 def test_api_rejects_unit_mismatch_and_unproven_hardware_verified_profile(tmp_path: Path) -> None:
     api, _, instrument_id, signal_id = _client_with_signal(tmp_path)
     route = (

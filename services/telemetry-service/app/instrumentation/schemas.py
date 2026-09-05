@@ -245,6 +245,7 @@ AnalogRangePolicy = Literal["unavailable"]
 AnalogEvidenceStatus = Literal[
     "software_verified", "hardware_unverified", "hardware_verified"
 ]
+AnalogStorageDecimal = Annotated[Decimal, Field(max_digits=38, decimal_places=18)]
 
 
 class AnalogScalingProfileAppendRequest(BaseModel):
@@ -253,10 +254,10 @@ class AnalogScalingProfileAppendRequest(BaseModel):
     schema_version: Literal["analog-scaling/v1"] = "analog-scaling/v1"
     electrical_input_class: AnalogElectricalInputClass = "current_loop_4_20ma"
     raw_unit: Annotated[str, Field(min_length=1, max_length=32)]
-    raw_min: Decimal
-    raw_max: Decimal
-    engineering_min: Decimal
-    engineering_max: Decimal
+    raw_min: AnalogStorageDecimal
+    raw_max: AnalogStorageDecimal
+    engineering_min: AnalogStorageDecimal
+    engineering_max: AnalogStorageDecimal
     engineering_unit: Annotated[str, Field(min_length=1, max_length=64)]
     scaling_policy: AnalogScalingPolicy = "linear_two_point"
     under_range_policy: AnalogRangePolicy = "unavailable"
