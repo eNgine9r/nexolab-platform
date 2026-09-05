@@ -108,9 +108,9 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
 
-## Product priority hold — RFX-01 through RFX-19C
+## RFX presentation hold — cleared 2026-09-05
 
-Issue #727 records an intentional Product Owner defer of **RFX-01 through RFX-19C until after the main presentation**. This is not a technical blocker and does not invalidate accepted RFX-00 / ADR 0010. Issue #717 is non-Ready/blocked by product decision; PR #718 is closed unmerged and retained only as a historical checkpoint. Do not auto-advance to RFX-02 or reopen/merge the pre-pause RFX-01 branch. Resume requires an explicit Product Owner restart plus a fresh Team Lead source-of-truth audit.
+The Product Owner explicitly lifted the RFX presentation hold and directed continuation with **RFX-01 / Issue #717**. The required fresh Team Lead audit is complete: accepted RFX-00 / ADR 0010 remains authoritative; historical PR #718 is closed/unmerged reference evidence only; current `main` is `2341f9030c079eb61c4e9ce05fb060e80b2f91fd`; current migration head is `20260902_0031`. #717 is Ready on a fresh branch and must rebase its migration/compatibility work from current `main`. This clears only the product-priority hold; it does not authorize RFX-02+ scope expansion, production cutover, or hardware/Modbus writes.
 
 ## Issue #909 — consolidated HIGH container exception review
 
@@ -151,9 +151,9 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority while RFX-01 through RFX-19C are product-deferred under #727.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — Issue #926 in review
+## Sprint execution gate — RFX-01 / Issue #717 Ready
 
-The previous no-Ready condition remains cleared. Issue #926 has a focused local GREEN candidate: the stale root PostCSS override is removed, the lock resolves `postcss 8.5.23` / `nanoid 3.3.18`, and production audit is zero findings. It is not blocked; exact-head GitHub browser/offline/Core verification is the remaining normal merge gate. #189/#585 remain blocked, #201 remains `needs_validation`, #202 remains `hardware_validation`, and RFX-01 through RFX-19C remain on the Product Owner presentation hold.
+Issue #926 is completed through GREEN PR #929 and no longer occupies the active slot. The Product Owner has lifted the RFX presentation hold, and the required fresh source-of-truth audit is complete. Issue #717 is the next Ready software Work Package on fresh branch `feat/717-rfx01-instrument-signal-registry-v2`; historical PR #718 must not be reopened or merged as-is. #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
 
 ## Safety boundaries
 
