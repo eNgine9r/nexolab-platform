@@ -12,7 +12,7 @@ const snapshot = {
   timezone: "Europe/Kyiv",
   status: "attention",
   payload: {
-    schema: "refrigeration-daily-report/v1",
+    schema: "nexolab.daily-refrigeration-report.v1",
     identity: { equipment_name: "Cool jet", equipment_code: "CJ-01" },
     report: {
       local_report_date: "2026-09-03",
