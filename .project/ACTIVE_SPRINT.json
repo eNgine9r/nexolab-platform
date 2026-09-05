@@ -2534,13 +2534,24 @@
       "issue": 909,
       "title": "Revalidate consolidated HIGH container exceptions expiring 2026-09-05",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "branch": "chore/909-revalidate-container-exceptions",
       "evidence": {
-        "baseline": "93_exact_high_exceptions_3_images_19_cves_25_packages_all_expire_2026-09-05",
-        "review_candidate": "provisional_expiry_2026-09-12_only_to_trigger_fresh_exact_head_scan_not_merge_authority",
-        "local_policy_validation": "PASS_today_2026-09-05",
-        "local_pytest": "not_run_system_python_pytest_unavailable_no_dependency_install_on_production_pi"
+        "baseline": "93_exact_high_exceptions_3_images_19_cves_25_packages_all_expired_or_due_2026-09-05",
+        "first_discovery_head": "a7d0e02893cd1f114a98fd24e3d38763dcfc56e7",
+        "first_exact_head_scan": "run_33957510014_fail_closed_only_on_stale_device_agent_and_telegram_gateway_libexpat1_CVE_2026_66046",
+        "stale_exception_retirement": "PASS_exactly_2_expat_tuples_removed_no_new_exception_tuple_added",
+        "corrected_registry": "91_exact_HIGH_exceptions_telemetry_51_device_agent_20_telegram_gateway_20_18_cves_24_packages_owner_platform_security_expire_2026_09_12",
+        "verified_head_sha": "56698ab43c2b8ffa99db5f7a3085cbc41f281e86",
+        "container_supply_chain": "GREEN_run_33958808993_telemetry_51_of_51_device_agent_20_of_20_telegram_gateway_20_of_20_mqtt_0_no_stale_unmatched_or_critical",
+        "core_ci": "GREEN_run_33958808977_quality_and_build_success_nexolab_merge_gate_success",
+        "util_linux_78409_review": "Red_Hat_CNA_upstream_guidance_v2_42_first_affected_conflicts_with_Debian_Trixie_2_41_5_vulnerable_no_DSA_keep_exact_short_lived_exception_until_data_converges",
+        "runtime_reachability": "READ_ONLY_device_agent_and_gateway_distroless_nonroot_no_mount_umount_nsenter_unshare_or_fstab_telemetry_uid_10001_unconfigured_fstab_no_app_mount_umount_invocation",
+        "local_policy_validation": "PASS_today_2026_09_05",
+        "project_state_validation": "PASS",
+        "python_compile": "PASS_supply_chain_validator_evaluator_and_focused_policy_test",
+        "local_pytest": "not_run_system_python_pytest_unavailable_no_dependency_install_on_production_pi",
+        "runtime_mutation": "none"
       }
     }
   ],
