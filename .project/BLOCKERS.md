@@ -102,7 +102,7 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 ## Issue #916 — exact XJP60D first-request timeout mechanism
 
-**Hardware/protocol validation hard gate.** Current metrics aggregate physical requests by logical XJP target and cannot identify whether the value register, status register, first request after idle or an XJP-specific physical/electrical condition causes the recovered timeout. #916 owns that residual mechanism and is registered as `hardware_validation` dependent on completed #866. Any service restart, adapter reset, topology isolation/rewire, termination/bias inspection/action, cable move or power cycle requires separate explicit Product Owner approval; Modbus/controller writes remain forbidden. No production retry/timeout/cadence change is authorized.
+**Read-only attribution gate cleared; review candidate 2026-09-05.** Product Owner-authorized passive attempt-level observation proved the repeated sequence is `value attempt 1 success → status attempt 1 timeout → status attempt 2 success` on Units 102, 104 and 106. The first-after-idle hypothesis is refuted, same-bus LE-01MP is retry-free, and protocol/CRC, I/O and Modbus exception-response counters remain zero. The supported classification is XJP60D status-register response/turnaround timing rather than a generic physical-bus fault. No production change is justified: bus load/queue/worker health remain bounded and terminal logical failure rate is about `0.02%`. Service restart, adapter reset, topology change, termination/bias action, cable move, power cycle or any future request-pacing experiment remain outside this Work Package; Modbus/controller writes remain forbidden.
 
 ## Issue #585 — W2 / Unit 201 handback
 

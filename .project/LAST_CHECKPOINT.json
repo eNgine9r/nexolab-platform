@@ -3,46 +3,41 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-05T14:24:17+03:00",
+  "timestamp": "2026-09-05T14:55:54+03:00",
   "actor": "ChatGPT",
-  "event": "issue_866_completed_delta_ready_audit_hardware_gate_916",
+  "event": "issue_916_status_register_timeout_localized_review_candidate",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 916,
+    "title": "Verify systematic recovered XJP60D first-request timeout mechanism",
+    "branch": "ops/916-xjp60d-readonly-protocol-validation"
+  },
   "evidence_snapshot": {
-    "completed_issue_866": {
-      "verified_head_sha": "8ff18c4097ff0c51f81b0c7f98fbaea683938719",
-      "pull_request": 917,
-      "core_ci": "33962777794_green",
-      "telemetry_service": "33962777924_green",
-      "classification": "pre_existing_XJP60D_specific_device_protocol_timing_behavior",
-      "runtime_mutation": "none"
-    },
-    "hardware_gate_issue_916": {
-      "lifecycle": "hardware_validation",
-      "depends_on": [
-        866
-      ],
-      "required_action": "explicit_product_owner_physical_validation_scope_before_any_restart_adapter_reset_rewire_power_cycle_or_controller_side_action",
-      "modbus_write": "forbidden"
-    },
-    "delta_ready_audit": {
-      "independent_ready_count": 0,
-      "blocked_or_validation_issues": [
-        189,
-        200,
-        201,
-        202,
-        585,
-        916
-      ],
-      "product_hold_issue": 717
+    "active_issue_evidence": {
+      "source_issue": 866,
+      "classification": "systematic_xjp60d_status_register_attempt1_timeout_recovered_attempt2_controller_status_phase_protocol_or_turnaround_timing_supported_generic_bus_physical_fault_not_supported",
+      "gate": "explicit_product_owner_physical_validation_approval_required_before_restart_adapter_reset_rewire_power_cycle_or_controller_side_action",
+      "safety": "fc03_read_only_no_modbus_write_no_hardware_write_no_polling_retry_timeout_or_cadence_change",
+      "product_owner_scope": "bounded_read_only_hardware_protocol_validation_approved_2026_09_05",
+      "diagnostic_document": "docs/operations/issue-916-xjp60d-status-read-timeout-validation.md",
+      "attempt_ordering": "PASS_units_102_104_106_channels_1_2_3_value_attempt1_success_status_attempt1_timeout_status_attempt2_success",
+      "address_attribution": "PASS_ch1_256_success_257_timeout_retry_success_ch2_258_success_259_timeout_retry_success_ch3_260_success_261_timeout_retry_success",
+      "first_after_idle": "REFUTED_unit104_channel3_value_first_after_long_idle_success_35_269ms_status_immediate_attempt1_timeout_312_436ms_retry_success_50_369ms",
+      "latency_summary": "4_captures_value_attempt1_success_mean_36_501ms_status_attempt1_timeout_mean_314_448ms_status_attempt2_success_mean_44_678ms",
+      "same_bus_le01mp": "PASS_unit203_7_requests_7_success_0_retry_0_timeout_0_protocol_0_io_0_exception",
+      "error_taxonomy": "PASS_rs485_main_timeouts_only_protocol_errors_0_io_errors_0_exception_responses_0_crc_mismatch_maps_to_protocol_error",
+      "post_capture_health": "PASS_status_ok_mqtt_connected_queue_0_workers_2_of_2_healthy_worker_failures_0_restarts_0_last_error_null_bus_load_about_13_98_percent",
+      "logical_impact": "xjp_1011420_attempts_1011222_success_198_terminal_failures_0_019576_percent_all_13_valid_steady_consecutive_failures_0",
+      "residual_optimization": "status_register_specific_vs_inter_register_pause_not_distinguished_no_change_justified_current_runtime_stable_separate_focused_wp_if_optimization_prioritized",
+      "hardware_evidence": "real_production_fc03_passive_attempt_level_observation",
+      "runtime_mutation": "none_no_direct_modbus_request_no_restart_no_adapter_reset_no_rewire_no_power_cycle_no_polling_retry_timeout_cadence_change_no_data_or_volume_delete"
     }
   },
   "observations": [],
-  "next_action": "obtain explicit Product Owner decision for a bounded #916 physical/protocol validation session or another Ready product priority; do not bypass hardware gates or RFX presentation hold",
+  "next_action": "run targeted XJP60D/Modbus/state checks, publish focused #916 diagnostic/state PR, require exact-head GREEN, and keep production timing/topology unchanged",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
