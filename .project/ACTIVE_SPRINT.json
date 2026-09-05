@@ -102,8 +102,8 @@
         "passive_health": "status_ok_mqtt_connected_queue_0_workers_2_of_2_healthy_worker_failures_0_restarts_0",
         "current_main_envelope": "rs485_main_93_req_min_p95_313_020ms_load_13_885pct_xjp_status_retry_behavior_known",
         "current_embraco_envelope": "13_req_min_p95_23_817ms_load_0_632pct_retries_0_timeouts_0_protocol_0_io_0_exception_0",
-        "commissioning_helper_hardening": "active_scan_protects_all_runtime_reported_production_ports_and_fails_closed_if_ownership_unavailable_or_ambiguous",
-        "runtime_negative_smoke": "PASS_both_production_adapters_refused_before_scanner_service_operations_unchanged_empty",
+        "commissioning_helper_hardening": "active_scan_requires_health_ok_and_complete_unique_runtime_reported_production_ports_fails_closed_on_missing_malformed_partial_duplicate_or_ambiguous_ownership",
+        "runtime_negative_smoke": "PASS_both_production_adapters_refused_before_scanner_service_operations_unchanged_no_operation_reported",
         "remaining_gate": "physical_unit115_topology_termination_biasing_shield_grounding_and_electrical_duplicate_id_evidence",
         "runtime_mutation": "none_passive_health_only_no_diagnostic_modbus_request_no_restart_no_config_change_no_data_or_volume_delete"
       },

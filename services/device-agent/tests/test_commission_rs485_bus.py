@@ -43,6 +43,7 @@ class CommissionRS485BusTests(unittest.TestCase):
 
     def test_runtime_health_maps_container_paths_to_host_paths(self) -> None:
         payload = {
+            "status": "ok",
             "acquisition": {
                 "rs485_buses": [
                     {"serial_device": "/host/dev/serial/by-id/bus-a"},
@@ -57,16 +58,73 @@ class CommissionRS485BusTests(unittest.TestCase):
 
     def test_runtime_health_requires_reported_bus_paths(self) -> None:
         completed = subprocess.CompletedProcess(
-            args=[], returncode=0, stdout=json.dumps({"acquisition": {}}), stderr=""
+            args=[], returncode=0, stdout=json.dumps({"status": "ok", "acquisition": {}}), stderr=""
         )
         with patch.object(MODULE.shutil, "which", return_value="/usr/bin/docker"), patch.object(
             MODULE.subprocess, "run", return_value=completed
         ):
-            with self.assertRaisesRegex(RuntimeError, "no protected RS-485 bus paths"):
+            with self.assertRaisesRegex(RuntimeError, "ownership is incomplete"):
+                MODULE.runtime_protected_ports()
+
+    def test_runtime_health_rejects_partial_bus_ownership(self) -> None:
+        payload = {
+            "status": "ok",
+            "acquisition": {
+                "rs485_buses": [
+                    {"serial_device": "/host/dev/serial/by-id/bus-a"},
+                    {"bus_id": "rs485-b"},
+                ]
+            },
+        }
+        completed = subprocess.CompletedProcess(
+            args=[], returncode=0, stdout=json.dumps(payload), stderr=""
+        )
+        with patch.object(MODULE.shutil, "which", return_value="/usr/bin/docker"), patch.object(
+            MODULE.subprocess, "run", return_value=completed
+        ):
+            with self.assertRaisesRegex(RuntimeError, "ownership is incomplete"):
+                MODULE.runtime_protected_ports()
+
+    def test_runtime_health_rejects_non_ok_device_agent(self) -> None:
+        payload = {
+            "status": "error",
+            "acquisition": {
+                "rs485_buses": [
+                    {"serial_device": "/host/dev/serial/by-id/bus-a"},
+                ]
+            },
+        }
+        completed = subprocess.CompletedProcess(
+            args=[], returncode=0, stdout=json.dumps(payload), stderr=""
+        )
+        with patch.object(MODULE.shutil, "which", return_value="/usr/bin/docker"), patch.object(
+            MODULE.subprocess, "run", return_value=completed
+        ):
+            with self.assertRaisesRegex(RuntimeError, "health is not ok"):
+                MODULE.runtime_protected_ports()
+
+    def test_runtime_health_rejects_duplicate_production_paths(self) -> None:
+        payload = {
+            "status": "ok",
+            "acquisition": {
+                "rs485_buses": [
+                    {"serial_device": "/host/dev/serial/by-id/bus-a"},
+                    {"serial_device": "/host/dev/serial/by-id/bus-a"},
+                ]
+            },
+        }
+        completed = subprocess.CompletedProcess(
+            args=[], returncode=0, stdout=json.dumps(payload), stderr=""
+        )
+        with patch.object(MODULE.shutil, "which", return_value="/usr/bin/docker"), patch.object(
+            MODULE.subprocess, "run", return_value=completed
+        ):
+            with self.assertRaisesRegex(RuntimeError, "ownership is incomplete"):
                 MODULE.runtime_protected_ports()
 
     def test_runtime_health_returns_all_production_ports(self) -> None:
         payload = {
+            "status": "ok",
             "acquisition": {
                 "rs485_buses": [
                     {"serial_device": "/host/dev/serial/by-id/bus-a"},

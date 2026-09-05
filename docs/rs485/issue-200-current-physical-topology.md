@@ -287,7 +287,10 @@ The high `rs485-main` timeout count is the already-localized XJP60D status-regis
 
 The original helper treated only one `--existing-port` as protected. That assumption became stale after `0133F246` entered production. The current #200 candidate therefore changes active-scan safety to read all production bus paths from the running Device Agent health contract and fail closed if:
 
+- Device Agent health is not `ok`;
 - current production ownership cannot be read;
+- the RS-485 bus diagnostic list is missing, empty, malformed, partial, or contains a bus without `serial_device`;
+- two production bus entries report the same stable serial path;
 - a protected production adapter is not enumerated;
 - the requested adapter is any current production adapter;
 - exactly one unprotected candidate cannot be identified; or

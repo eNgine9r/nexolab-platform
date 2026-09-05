@@ -80,17 +80,22 @@ def _host_serial_path(value: str) -> str:
 def parse_runtime_protected_ports(payload: dict[str, Any]) -> tuple[str, ...]:
     acquisition = payload.get("acquisition")
     if not isinstance(acquisition, dict):
-        return ()
+        raise ValueError("Device Agent health is missing acquisition diagnostics")
     buses = acquisition.get("rs485_buses")
-    if not isinstance(buses, list):
-        return ()
-    ports: set[str] = set()
-    for bus in buses:
+    if not isinstance(buses, list) or not buses:
+        raise ValueError("Device Agent health reported no RS-485 bus diagnostics")
+
+    ports: list[str] = []
+    for index, bus in enumerate(buses):
         if not isinstance(bus, dict):
-            continue
+            raise ValueError(f"RS-485 bus diagnostic {index} is not an object")
         value = bus.get("serial_device")
-        if isinstance(value, str) and value.strip():
-            ports.add(_host_serial_path(value.strip()))
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"RS-485 bus diagnostic {index} is missing serial_device")
+        ports.append(_host_serial_path(value.strip()))
+
+    if len(set(ports)) != len(ports):
+        raise ValueError("Device Agent health reports duplicate production RS-485 paths")
     return tuple(sorted(ports))
 
 
@@ -124,12 +129,14 @@ def runtime_protected_ports(
         raise RuntimeError("Device Agent health returned invalid JSON") from exc
     if not isinstance(payload, dict):
         raise RuntimeError("Device Agent health must be a JSON object")
-    ports = parse_runtime_protected_ports(payload)
-    if not ports:
+    if payload.get("status") != "ok":
+        raise RuntimeError("Current Device Agent health is not ok; refusing active scan")
+    try:
+        return parse_runtime_protected_ports(payload)
+    except ValueError as exc:
         raise RuntimeError(
-            "Current Device Agent reported no protected RS-485 bus paths; refusing active scan"
-        )
-    return ports
+            "Current Device Agent RS-485 ownership is incomplete; refusing active scan"
+        ) from exc
 
 
 def select_new_adapter(
