@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-05T23:55:16+03:00",
+  "timestamp": "2026-09-06T00:34:16+03:00",
   "actor": "ChatGPT",
-  "event": "issue_717_resumed_fresh_branch_after_hold_removal",
+  "event": "issue_717_local_candidate_green",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -30,11 +30,33 @@
       "fresh_audit_main_sha": "2341f9030c079eb61c4e9ce05fb060e80b2f91fd",
       "fresh_audit_migration_head": "20260902_0031",
       "historical_pr_718_policy": "reference_only_closed_unmerged_do_not_reopen_or_merge_as_is",
-      "fresh_branch_required": true
+      "fresh_branch_required": true,
+      "implementation_checkpoint_sha": "bf264729f64cb2e0e6cc66dfacdff52f1547b56b",
+      "implementation_base_main_sha": "eaaed439771f82ff335c6f097ace8ab6694e22e3",
+      "migration_head": "20260905_0032",
+      "local_candidate": "GREEN",
+      "local_candidate_impact_classes": [
+        "backend",
+        "cross_surface_or_unknown",
+        "database_migration"
+      ],
+      "local_candidate_required_remote_workflows": [
+        "Authenticated Dashboard Acceptance",
+        "Offline Bundle",
+        "Refrigeration Browser Acceptance"
+      ],
+      "focused_registry_postgresql_api_security": "17_passed",
+      "climate_refrigeration_compatibility": "48_passed",
+      "migration_roundtrip": "0032_to_0031_to_0032_sentinel_preserved_5_passed",
+      "frontend_core_candidate": "143_files_697_tests_typecheck_build_green",
+      "pressure_reference_semantics": "typed_absolute_or_gauge_signal_physical_quantity_authority_db_fail_closed",
+      "production_deployment": "not_executed",
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "observations": [],
-  "next_action": "fresh-audit ADR 0010 and current telemetry-service/migration contracts, adapt only RFX-01 registry scope from historical checkpoint, then run focused migration/API/security verification",
+  "next_action": "Commit the reconciled RFX-01 state, rerun canonical local-candidate verification on the exact final branch head, push the branch, open a fresh PR for #717, and require exact-head Core/Telemetry/Authenticated Dashboard/Offline Bundle/Refrigeration Browser/NEXOLAB Merge Gate GREEN before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
