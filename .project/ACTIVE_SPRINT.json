@@ -22,11 +22,7 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 916,
-      "title": "Verify systematic recovered XJP60D first-request timeout mechanism",
-      "branch": "ops/916-xjp60d-readonly-protocol-validation"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -2592,7 +2588,7 @@
       "issue": 916,
       "title": "Verify systematic recovered XJP60D first-request timeout mechanism",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         866
       ],
@@ -2613,7 +2609,15 @@
         "logical_impact": "xjp_1011420_attempts_1011222_success_198_terminal_failures_0_019576_percent_all_13_valid_steady_consecutive_failures_0",
         "residual_optimization": "status_register_specific_vs_inter_register_pause_not_distinguished_no_change_justified_current_runtime_stable_separate_focused_wp_if_optimization_prioritized",
         "hardware_evidence": "real_production_fc03_passive_attempt_level_observation",
-        "runtime_mutation": "none_no_direct_modbus_request_no_restart_no_adapter_reset_no_rewire_no_power_cycle_no_polling_retry_timeout_cadence_change_no_data_or_volume_delete"
+        "runtime_mutation": "none_no_direct_modbus_request_no_restart_no_adapter_reset_no_rewire_no_power_cycle_no_polling_retry_timeout_cadence_change_no_data_or_volume_delete",
+        "verified_head_sha": "d431d75b24140761edaae3fca1ccb38cc89857f4",
+        "pull_request": 920,
+        "hardware_evidence_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7",
+        "checks": {
+          "core_ci": "success",
+          "telemetry_service": "success",
+          "nexolab_merge_gate": "success"
+        }
       },
       "branch": "ops/916-xjp60d-readonly-protocol-validation"
     }

@@ -4,7 +4,7 @@ Updated: 2026-09-05
 
 ## Current Sprint
 
-`PRODUCTION-READINESS-1` remains active. TG-04 / Issue #825, the mandatory 2026-09-05 container-exception review / Issue #909, and XJP60D retry attribution / Issue #866 are completed. The Product Owner authorized bounded read-only hardware/protocol validation for Issue #916. Passive physical-attempt capture has now localized the recovered XJP60D timeout to the first FC03 attempt of the **status register**: representative Units 102, 104 and 106 repeatedly show `value attempt 1 success → status attempt 1 timeout → status attempt 2 success`. The first-request-after-idle hypothesis is refuted, same-bus LE-01MP reads remain retry-free, and current Device Agent counters show timeout-only behavior with zero protocol/CRC, I/O or Modbus exception-response errors. #916 is now a review candidate; production timing/topology remains unchanged.
+`PRODUCTION-READINESS-1` remains active. TG-04 / Issue #825, the mandatory 2026-09-05 container-exception review / Issue #909, XJP60D retry attribution / Issue #866, and the bounded read-only hardware/protocol validation / Issue #916 are completed. #916 exact candidate `d431d75b24140761edaae3fca1ccb38cc89857f4` passed Core CI / NEXOLAB Merge Gate `33965131628` and Telemetry Service `33965131627`; PR #920 then closed the Issue. The production XJP60D path remains unchanged. The post-completion delta Ready audit found no independent Ready Work Package: #189/#200/#201/#202/#585 remain physical/recovery/validation gated and RFX-01 through RFX-19C remain on the explicit Product Owner presentation hold. The next task therefore requires a Product Owner priority/authorization decision rather than autonomous scope expansion.
 
 ## Issue #866 — XJP60D recovered read-retry diagnosis completed
 
@@ -16,7 +16,7 @@ The later read-only cross-section at `2026-09-05T10:32:30Z` showed XJP `3025` ph
 
 The evidence therefore classifies the condition as **pre-existing XJP60D-specific device/protocol/timing behavior**, not a restart-specific or Mini App regression. Existing metrics do not expose the exact register address, so the lower-level value/status/first-after-idle mechanism remains unverified. That residual hardware/protocol question is isolated in Issue #916. No Modbus/controller write, direct diagnostic Modbus request, service restart, polling/retry/timeout change, topology change, data deletion or volume mutation occurred in #866. Detailed evidence is in `docs/operations/issue-866-xjp60d-read-retry-investigation.md`.
 
-## Issue #916 — XJP60D status-register timeout localized
+## Issue #916 — XJP60D status-register timeout validation completed
 
 Bounded read-only production capture resolved the mechanism left open by #866 without issuing any diagnostic Modbus request. `XJP60DReader` reads value then status, and physical-attempt metrics update after every FC03 outcome while incrementing the retry counter only for attempt ordinal greater than one. High-frequency local `/health` observation therefore exposed the physical ordering without touching the serial bus.
 
@@ -24,7 +24,7 @@ Four representative polls across Units `102`, `104` and `106` all produced the s
 
 Unit `104` channel `3` proves the first-after-idle theory false: its first value read after the 60-second target cadence succeeded immediately, while the following status read timed out. An adjacent same-bus LE-01MP Unit `203` window produced 7/7 successful FC03 requests with zero retries/timeouts. `rs485-main` remained at about `13.98%` load, queue depth `0`, protocol errors `0`, I/O errors `0`, exception responses `0`, and Device Agent remained healthy with 2/2 workers. Post-capture XJP logical evidence is `1,011,420` attempts / `1,011,222` successes / `198` terminal communication failures (`0.019576%`), with all 13 targets valid/steady and zero consecutive failures.
 
-Classification is **systematic XJP60D status-register attempt-1 response/turnaround timing**, recovered by attempt 2. Generic bus-wide physical noise, CRC corruption, host serial I/O failure, first-after-idle behavior, restart regression and Mini App regression are not supported. The narrower optimization question — status-register-specific behavior versus an inter-register pause requirement — is intentionally not tested in production because current operation is stable and such a pacing experiment would be a separate focused Work Package. Detailed evidence: `docs/operations/issue-916-xjp60d-status-read-timeout-validation.md`.
+Classification is **systematic XJP60D status-register attempt-1 response/turnaround timing**, recovered by attempt 2. Generic bus-wide physical noise, CRC corruption, host serial I/O failure, first-after-idle behavior, restart regression and Mini App regression are not supported. The narrower optimization question — status-register-specific behavior versus an inter-register pause requirement — is intentionally not tested in production because current operation is stable and such a pacing experiment would be a separate focused Work Package. Exact candidate `d431d75b24140761edaae3fca1ccb38cc89857f4` passed Core CI / NEXOLAB Merge Gate `33965131628` and Telemetry Service `33965131627`; PR #920 closed #916 completed. Detailed evidence: `docs/operations/issue-916-xjp60d-status-read-timeout-validation.md`.
 
 ## Issue #909 — consolidated HIGH container exception revalidation
 
