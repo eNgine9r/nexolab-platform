@@ -140,13 +140,17 @@ with open(sys.argv[2], encoding="utf-8") as handle:
 central_services = central["services"]
 edge_services = edge["services"]
 
-assert set(central_services["telemetry-service"]["networks"]) == {"central"}
+assert set(central_services["telemetry-service"]["networks"]) == {"central", "standalone-runtime"}
+assert central_services["telemetry-service"]["environment"]["COMMISSIONING_DEVICE_AGENT_BASE_URL"] == (
+    "http://edge-device-agent:8081"
+)
 assert set(central_services["mqtt"]["networks"]) == {"central", "standalone-runtime"}
 assert central_services["mqtt"]["networks"]["standalone-runtime"]["aliases"] == ["central-mqtt"]
 assert central["networks"]["standalone-runtime"]["name"] == "nexolab-standalone-runtime"
 
 assert set(edge_services["mqtt"]["networks"]) == {"default", "standalone-runtime"}
-assert set(edge_services["device-agent"]["networks"]) == {"default"}
+assert set(edge_services["device-agent"]["networks"]) == {"default", "standalone-runtime"}
+assert edge_services["device-agent"]["networks"]["standalone-runtime"]["aliases"] == ["edge-device-agent"]
 assert edge["networks"]["standalone-runtime"]["external"] is True
 assert edge["networks"]["standalone-runtime"]["name"] == "nexolab-standalone-runtime"
 assert edge_services["mqtt"]["environment"]["CENTRAL_MQTT_HOST"] == "central-mqtt"

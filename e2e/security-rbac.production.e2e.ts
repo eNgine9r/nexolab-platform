@@ -121,8 +121,9 @@ async function provisionEquipmentPassport(browser: Browser): Promise<void> {
 
 async function openEquipment(page: Page) {
   await page.goto(equipmentRoute, { waitUntil: "networkidle" });
-  await expect(page.locator("#layout-editor").getByText(/Чернетка v\d+$/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Вітрина №106-01" })).toBeVisible();
+  await page.getByRole("button", { name: "Схема", exact: true }).click();
+  await expect(page.locator("#layout-editor").getByText(/Чернетка v\d+$/)).toBeVisible();
 }
 
 async function expectAccessRole(page: Page, role: string) {

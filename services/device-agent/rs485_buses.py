@@ -75,13 +75,17 @@ class RS485BusTopology:
     def from_environment(
         cls,
         settings: Settings,
-        registry: AcquisitionRegistry,
+        registry: AcquisitionRegistry | None,
         *,
         environ: Mapping[str, str] | None = None,
     ) -> "RS485BusTopology":
         source = os.environ if environ is None else environ
         raw = source.get(BUS_CONFIG_ENV, "").strip()
         if not raw:
+            if registry is None:
+                raise ValueError(
+                    f"{BUS_CONFIG_ENV} is required for explicit topology parsing"
+                )
             existing_bus_ids = {item.bus_id for item in registry.document.buses}
             if existing_bus_ids - {LEGACY_BUS_ID}:
                 raise ValueError(
@@ -204,15 +208,28 @@ class RS485BusTopology:
                 )
             )
 
-        known_units = {item.unit_id for item in registry.document.devices}
-        missing = sorted(known_units - set(unit_owners))
-        if missing:
-            rendered = ", ".join(str(item) for item in missing)
-            raise ValueError(
-                "Every registry device must have one explicit RS-485 bus; "
-                f"missing Unit IDs: {rendered}"
-            )
+        if registry is not None:
+            known_units = {item.unit_id for item in registry.document.devices}
+            missing = sorted(known_units - set(unit_owners))
+            if missing:
+                rendered = ", ".join(str(item) for item in missing)
+                raise ValueError(
+                    "Every registry device must have one explicit RS-485 bus; "
+                    f"missing Unit IDs: {rendered}"
+                )
         return cls(tuple(bindings), explicit=True)
+
+    @classmethod
+    def explicit_from_environment(
+        cls,
+        settings: Settings,
+        *,
+        environ: Mapping[str, str] | None = None,
+    ) -> "RS485BusTopology | None":
+        source = os.environ if environ is None else environ
+        if not source.get(BUS_CONFIG_ENV, "").strip():
+            return None
+        return cls.from_environment(settings, None, environ=source)
 
     def binding(self, bus_id: str) -> RS485BusBinding:
         try:
@@ -234,10 +251,20 @@ class RS485BusTopology:
     def bind_registry(self, registry: AcquisitionRegistry) -> AcquisitionRegistry:
         if not self.explicit:
             return registry
-        devices = tuple(
-            replace(device, bus_id=self.bus_for_unit(device.unit_id))
-            for device in registry.document.devices
-        )
+        configured_bus_ids = set(self._by_bus)
+        devices = []
+        for device in registry.document.devices:
+            static_owner = self._unit_to_bus.get(device.unit_id)
+            if static_owner is not None:
+                bus_id = static_owner
+            elif device.bus_id in configured_bus_ids:
+                bus_id = device.bus_id
+            else:
+                raise ValueError(
+                    f"Persisted registry bus {device.bus_id!r} for Unit ID {device.unit_id} is not configured"
+                )
+            devices.append(replace(device, bus_id=bus_id))
+        devices = tuple(devices)
         cadence = rebind_policy(
             registry.document.cadence,
             old_devices=registry.document.devices,

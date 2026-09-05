@@ -10,6 +10,8 @@ ROOT = Path(__file__).resolve().parents[1]
 OFFLINE = (ROOT / '.github/workflows/offline-bundle.yml').read_text(encoding='utf-8')
 REFRIGERATION = (ROOT / '.github/workflows/refrigeration-browser-acceptance.yml').read_text(encoding='utf-8')
 DASHBOARD = (ROOT / '.github/workflows/authenticated-dashboard-acceptance.yml').read_text(encoding='utf-8')
+TELEGRAM = (ROOT / '.github/workflows/telegram-gateway.yml').read_text(encoding='utf-8')
+CONTAINER = (ROOT / '.github/workflows/container-supply-chain.yml').read_text(encoding='utf-8')
 CORE = (ROOT / '.github/workflows/ci.yml').read_text(encoding='utf-8')
 CLEAN_HELPER = ROOT / 'scripts/prepare-clean-verification-worktree.sh'
 
@@ -45,6 +47,8 @@ class RiskAwareVerificationContractTests(unittest.TestCase):
             'Authenticated Dashboard Acceptance': pull_request_paths(DASHBOARD),
             'Offline Bundle': pull_request_paths(OFFLINE),
             'Refrigeration Browser Acceptance': pull_request_paths(REFRIGERATION),
+            'Telegram Gateway': pull_request_paths(TELEGRAM),
+            'Container Supply Chain': pull_request_paths(CONTAINER),
         }
         tracked = subprocess.check_output(
             ['git', 'ls-files'], cwd=ROOT, text=True
@@ -91,6 +95,15 @@ class RiskAwareVerificationContractTests(unittest.TestCase):
         self.assertIn('required_external_workflows:', CORE)
         self.assertIn('REQUIRED_EXTERNAL_WORKFLOWS:', CORE)
         self.assertIn('--required-workflows-json "$REQUIRED_EXTERNAL_WORKFLOWS"', CORE)
+
+    def test_deployment_runtime_runs_repository_recovery_regressions(self) -> None:
+        self.assertIn("contains(fromJSON(needs.classify.outputs.classes), 'deployment_runtime')", CORE)
+        self.assertIn("rebaseline-device-agent-recovery\\.py", CORE)
+        self.assertIn("tests/test_rebaseline_device_agent_recovery\\.py", CORE)
+        self.assertIn("-p 'test_rebaseline_device_agent_recovery.py'", CORE)
+        self.assertIn("Recovery tooling changed but no recovery regression test module exists.", CORE)
+        self.assertNotIn("^scripts/.*recovery.*", CORE)
+        self.assertNotIn("-p 'test_*recovery*.py'", CORE)
 
     def test_clean_candidate_helper_uses_detached_git_worktree(self) -> None:
         self.assertTrue(CLEAN_HELPER.is_file())

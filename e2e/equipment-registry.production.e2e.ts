@@ -385,7 +385,10 @@ function cleanupEquipmentRegistryScaleFixtures(): void {
       "-v",
       `organization_id=${organizationId}`,
     ],
-    "DELETE FROM refrigeration_equipment WHERE organization_id = :'organization_id' AND created_by = 'equipment-registry-scale-acceptance';\n",
+    [
+      "DELETE FROM equipment_commissioning_sessions WHERE organization_id = :'organization_id' AND created_by = 'equipment-engineer-acceptance';",
+      "DELETE FROM refrigeration_equipment WHERE organization_id = :'organization_id' AND created_by = 'equipment-registry-scale-acceptance';",
+    ].join("\n"),
   );
 }
 
@@ -437,6 +440,7 @@ function writeDatabaseEvidence(): void {
 }
 
 test("renders and navigates the authenticated Equipment and metrology registry", async ({ browser }) => {
+  test.setTimeout(300_000);
   seedEquipmentRegistryFixtures();
   const context = await authenticatedContext(browser);
   const page = await context.newPage();
@@ -747,6 +751,59 @@ test("renders and navigates the authenticated Equipment and metrology registry",
 
         await engineerPage.goto("/equipment", { waitUntil: "domcontentloaded" });
         await expect(engineerPage.getByText(/Каталоги \d+\/\d+/, { exact: true })).toHaveCount(0);
+
+        await test.step("commission a persistent draft without touching acquisition", async () => {
+          await engineerPage.goto(`/refrigeration/${activeEquipmentId}`, {
+            waitUntil: "domcontentloaded",
+          });
+          const connectController = engineerPage.getByRole("link", { name: /Підключити контролер/ }).first();
+          await expect(connectController).toHaveAttribute(
+            "href",
+            `/equipment/onboarding/new?target=${activeEquipmentId}`,
+          );
+          await connectController.click();
+          await expect(engineerPage).toHaveURL(
+            new RegExp(`/equipment/onboarding/new\\?target=${activeEquipmentId}$`),
+          );
+          await engineerPage.getByLabel("Підтримуваний профіль").selectOption("embraco-sync");
+          await engineerPage.getByRole("button", { name: "Прив'язка до обладнання" }).click();
+          await expect(engineerPage.getByLabel("Цільове обладнання")).toHaveValue(activeEquipmentId);
+          await engineerPage.getByRole("button", { name: "Зберегти чернетку" }).click();
+          await expect(engineerPage).toHaveURL(/\/equipment\/onboarding\/[0-9a-f-]+$/);
+          const persistedDraftUrl = engineerPage.url();
+
+          await engineerPage.reload({ waitUntil: "domcontentloaded" });
+          await expect(engineerPage.getByRole("heading", { name: "Embraco Sync" })).toBeVisible();
+          await engineerPage.getByRole("button", { name: "Підключення" }).click();
+          await engineerPage.getByLabel("Node intent").fill("acceptance-edge-01");
+          await engineerPage.getByRole("button", { name: "Зберегти чернетку" }).click();
+
+          await engineerPage.getByLabel("Назад до підключень").click();
+          await expect(engineerPage).toHaveURL(/\/equipment\?section=connections$/);
+          await expect(engineerPage.getByRole("link", { name: "Реєстр" })).toBeVisible();
+          await expect(engineerPage.getByRole("link", { name: "Підключення" })).toBeVisible();
+          await expect(engineerPage.getByRole("link", { name: "Метрологія" })).toBeVisible();
+          await expect(engineerPage.getByText("LOCAL_LAN discovery inbox", { exact: true })).toBeVisible();
+          await engineerPage.getByRole("link", { name: /Embraco Sync/ }).click();
+          await expect(engineerPage).toHaveURL(persistedDraftUrl);
+          await engineerPage.getByRole("button", { name: "Скасувати чернетку" }).click();
+          await expect(engineerPage.getByText(/Чернетку скасовано/)).toBeVisible();
+
+          await engineerPage.goto("/equipment/onboarding/new", { waitUntil: "domcontentloaded" });
+          await engineerPage.getByLabel("Підтримуваний профіль").selectOption("unsupported");
+          await engineerPage.getByLabel("Виробник").fill("Unknown Acceptance");
+          await engineerPage.getByRole("textbox", { name: "Модель", exact: true }).fill("Unsupported 802");
+          await engineerPage.getByRole("button", { name: "Зберегти чернетку" }).click();
+          await expect(engineerPage).toHaveURL(/\/equipment\/onboarding\/[0-9a-f-]+$/);
+          await expect(engineerPage.getByText("unsupported", { exact: true })).toBeVisible();
+          await expect(engineerPage.getByText("Profile required", { exact: true })).toBeVisible();
+
+          expect(engineerAcquisitionMutations).toEqual([]);
+          engineerRequests.splice(0);
+        });
+
+        await engineerPage.goto("/equipment", { waitUntil: "domcontentloaded" });
+        await expect(engineerPage.getByText(/Каталоги \d+\/\d+/, { exact: true })).toHaveCount(0);
         const search = engineerPage.getByPlaceholder(
           "Код, inventory, business key, модель або серійний номер",
         );
@@ -824,6 +881,11 @@ test("renders and navigates the authenticated Equipment and metrology registry",
         `SELECT COUNT(*) FROM security_audit_events WHERE organization_id = '${organizationId}' AND actor_subject = 'equipment-engineer-acceptance' AND action IN ('measurement_device.metadata_updated', 'physical_sensor.metadata_updated')`,
       ),
     ).toBe("2");
+    expect(
+      databaseScalar(
+        `SELECT COUNT(*) FROM security_audit_events WHERE organization_id = '${organizationId}' AND actor_subject = 'equipment-engineer-acceptance' AND action LIKE 'equipment.commissioning.%'`,
+      ),
+    ).toBe("4");
     expect(
       databaseScalar(
         `SELECT unit_id::text FROM measurement_devices WHERE organization_id = '${organizationId}' AND business_key = 'met-edit-device:18'`,

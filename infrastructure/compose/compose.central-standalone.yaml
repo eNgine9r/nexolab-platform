@@ -6,6 +6,13 @@ services:
         aliases:
           - central-mqtt
 
+  telemetry-service:
+    environment:
+      COMMISSIONING_DEVICE_AGENT_BASE_URL: ${COMMISSIONING_DEVICE_AGENT_BASE_URL:-http://edge-device-agent:8081}
+    networks:
+      central: {}
+      standalone-runtime: {}
+
 networks:
   standalone-runtime:
     name: ${STANDALONE_RUNTIME_NETWORK:-nexolab-standalone-runtime}

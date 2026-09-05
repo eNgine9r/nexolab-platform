@@ -10,6 +10,7 @@ import {
   type EquipmentRegistryLoadProgress,
 } from "@/features/equipment/asset-registry";
 import type { EquipmentDiscoveryRepository } from "@/features/equipment/discovery-repository";
+import type { CommissioningRepository } from "@/features/equipment/commissioning-repository";
 import { createEquipmentRegistryRuntime } from "@/features/equipment/runtime";
 import type { ClimateCatalogRepository } from "@/features/refrigeration/climate-catalog-repository";
 import {
@@ -29,6 +30,7 @@ export type UseEquipmentRegistryResult = {
   equipmentRepository: RefrigerationEquipmentRepository | null;
   climateCatalogRepository: ClimateCatalogRepository | null;
   discoveryRepository: EquipmentDiscoveryRepository | null;
+  commissioningRepository: CommissioningRepository | null;
   retry: () => void;
 };
 
@@ -114,6 +116,7 @@ export function useEquipmentRegistry({
     equipmentRepository,
     climateCatalogRepository,
     discoveryRepository: runtime.discoveryRepository,
+    commissioningRepository: runtime.commissioningRepository,
     retry: () => setEpoch((current) => current + 1),
   };
 }

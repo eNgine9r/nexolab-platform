@@ -11,6 +11,7 @@ import {
 import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 
+import { HttpCommissioningRepository, type CommissioningRepository } from "./commissioning-repository";
 import { HttpEquipmentDiscoveryRepository, type EquipmentDiscoveryRepository } from "./discovery-repository";
 
 export type EquipmentRegistryRuntime = {
@@ -18,6 +19,7 @@ export type EquipmentRegistryRuntime = {
   equipmentRepository: RefrigerationEquipmentRepository | null;
   climateCatalogRepository: ClimateCatalogRepository | null;
   discoveryRepository: EquipmentDiscoveryRepository | null;
+  commissioningRepository: CommissioningRepository | null;
   error: string | null;
 };
 
@@ -28,6 +30,7 @@ export function createEquipmentRegistryRuntime(
   // canonical equipment repositories instead of creating a second auth model.
   const runtime = createRefrigerationEquipmentRuntime(input);
   let discoveryRepository: EquipmentDiscoveryRepository | null = null;
+  let commissioningRepository: CommissioningRepository | null = null;
   if (runtime.mode === "live" && !runtime.error) {
     const apiBaseUrl = resolveApiBaseUrl(input);
     const organizationId = normalizeOrganizationId(
@@ -41,6 +44,10 @@ export function createEquipmentRegistryRuntime(
         apiBaseUrl,
         fetchImpl: createAuthenticatedFetch(browserFetch, credentialProvider),
       });
+      commissioningRepository = new HttpCommissioningRepository({
+        apiBaseUrl,
+        fetchImpl: createAuthenticatedFetch(browserFetch, credentialProvider),
+      });
     }
   }
   return {
@@ -48,6 +55,7 @@ export function createEquipmentRegistryRuntime(
     equipmentRepository: runtime.equipmentRepository,
     climateCatalogRepository: runtime.climateCatalogRepository ?? null,
     discoveryRepository,
+    commissioningRepository,
     error: runtime.error,
   };
 }

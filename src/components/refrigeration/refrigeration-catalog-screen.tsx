@@ -33,6 +33,7 @@ import {
   type RefrigerationEquipment,
 } from "@/data/refrigeration";
 import type { ClimateChamber } from "@/features/refrigeration/climate-catalog-repository";
+import type { RefrigerationControllerSummary } from "@/features/refrigeration/controller-binding-repository";
 import { createEquipmentCopyDraft } from "@/features/refrigeration/equipment-copy";
 import type { RefrigerationEquipmentCreateInput } from "@/features/refrigeration/equipment-repository";
 import {
@@ -71,6 +72,7 @@ type LifecycleFilter = "all" | EquipmentLifecycleStatus;
 type ChamberFilter = "all" | string;
 type Notice = { tone: "success" | "error"; message: string } | null;
 type CreateIntent = "create" | "duplicate";
+type ControllerSummaryState = "loading" | "ready" | "error";
 
 export function RefrigerationCatalogScreen({
   runtime: providedRuntime,
@@ -87,6 +89,11 @@ export function RefrigerationCatalogScreen({
     runtime.mode === "demo" ? refrigerationEquipment : [],
   );
   const [chambers, setChambers] = useState<ClimateChamber[]>([]);
+  const [controllerSummaryResult, setControllerSummaryResult] = useState<{
+    repository: RefrigerationEquipmentRuntime["controllerBindingRepository"];
+    state: ControllerSummaryState;
+    summaries: RefrigerationControllerSummary[];
+  }>({ repository: null, state: "loading", summaries: [] });
   const [legacyNodeOptions, setLegacyNodeOptions] = useState<EquipmentNodeOption[]>([]);
   const [loading, setLoading] = useState(runtime.mode === "live" && runtime.repository !== null);
   const [liveCanManage, setLiveCanManage] = useState(false);
@@ -130,6 +137,25 @@ export function RefrigerationCatalogScreen({
       active = false;
     };
   }, [runtime.repository]);
+
+  useEffect(() => {
+    const repository = runtime.controllerBindingRepository;
+    if (!repository) return;
+    const controller = new AbortController();
+    void repository
+      .listSummaries(controller.signal)
+      .then((summaries) => {
+        if (!controller.signal.aborted) {
+          setControllerSummaryResult({ repository, state: "ready", summaries });
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setControllerSummaryResult({ repository, state: "error", summaries: [] });
+        }
+      });
+    return () => controller.abort();
+  }, [runtime.controllerBindingRepository]);
 
   useEffect(() => {
     const catalogRepository = runtime.climateCatalogRepository;
@@ -207,6 +233,23 @@ export function RefrigerationCatalogScreen({
     [chambers, legacyNodeOptions],
   );
   const chamberByNodeId = useMemo(() => new Map(chambers.map((item) => [item.nodeId, item])), [chambers]);
+  const controllerSummaryState: ControllerSummaryState = runtime.controllerBindingRepository
+    ? controllerSummaryResult.repository === runtime.controllerBindingRepository
+      ? controllerSummaryResult.state
+      : "loading"
+    : runtime.mode === "demo"
+      ? "ready"
+      : "error";
+  const controllerByEquipmentId = useMemo(
+    () =>
+      new Map(
+        (controllerSummaryResult.repository === runtime.controllerBindingRepository
+          ? controllerSummaryResult.summaries
+          : []
+        ).map((item) => [item.equipmentId, item]),
+      ),
+    [controllerSummaryResult, runtime.controllerBindingRepository],
+  );
 
   const equipment = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("uk-UA");
@@ -421,6 +464,8 @@ export function RefrigerationCatalogScreen({
                         : null
                     }
                     canManage={canManage}
+                    controllerSummary={controllerByEquipmentId.get(item.id) ?? null}
+                    controllerSummaryState={controllerSummaryState}
                     onDuplicate={() => openDuplicate(item)}
                     onDelete={() => {
                       setDeleteError(null);
@@ -472,12 +517,16 @@ function EquipmentCard({
   item,
   chamberName,
   canManage,
+  controllerSummary,
+  controllerSummaryState,
   onDuplicate,
   onDelete,
 }: {
   item: RefrigerationEquipment;
   chamberName: string | null;
   canManage: boolean;
+  controllerSummary: RefrigerationControllerSummary | null;
+  controllerSummaryState: ControllerSummaryState;
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
@@ -524,6 +573,32 @@ function EquipmentCard({
           <Metric icon={AlertTriangle} label="Тривоги" value={String(item.activeAlarms)} />
         </div>
 
+        {controllerSummary ? (
+          <ControllerStatusLine summary={controllerSummary} />
+        ) : controllerSummaryState !== "ready" ? (
+          <div
+            role={controllerSummaryState === "error" ? "alert" : "status"}
+            className="mt-3 rounded-xl border border-white/[0.06] bg-[#06142a]/65 px-3 py-2 text-[10px] text-slate-400"
+          >
+            {controllerSummaryState === "loading"
+              ? "Завантаження стану контролера…"
+              : "Стан контролера недоступний"}
+          </div>
+        ) : (
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.06] bg-[#06142a]/65 px-3 py-2 text-[10px]">
+            <span className="text-slate-500">○</span>
+            <span className="font-medium text-slate-300">Контролер не підключено</span>
+            {canManage && item.lifecycleStatus !== "retired" ? (
+              <Link
+                href={`/equipment/onboarding/new?target=${encodeURIComponent(item.id)}`}
+                className="ml-auto font-medium text-cyan-300 hover:text-cyan-200 focus:ring-2 focus:ring-cyan-300 focus:outline-none"
+              >
+                Підключити контролер →
+              </Link>
+            ) : null}
+          </div>
+        )}
+
         <div className="mt-4 flex items-center justify-between border-t border-white/[0.07] pt-4">
           <div className="text-[11px] text-slate-500">
             <span className="text-slate-300">
@@ -560,6 +635,39 @@ function EquipmentCard({
         </div>
       </div>
     </article>
+  );
+}
+
+function ControllerStatusLine({ summary }: { summary: RefrigerationControllerSummary }) {
+  const stateLabels: Record<number, string> = {
+    0: "Idle",
+    1: "Cooling",
+    2: "Prepare defrost",
+    3: "Defrost",
+    4: "Post-defrost",
+    5: "Pulldown",
+  };
+  const hasObservedTelemetry = summary.lastSeenAt !== null;
+  const state =
+    summary.controlState === null
+      ? "—"
+      : (stateLabels[summary.controlState] ?? `State ${summary.controlState}`);
+  const speed = summary.compressorSpeedRpm === null ? "—" : `${Math.round(summary.compressorSpeedRpm)} rpm`;
+  return (
+    <div
+      data-testid={`controller-summary-${summary.equipmentId}`}
+      className="mt-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/[0.06] bg-[#06142a]/65 px-3 py-2 text-[10px]"
+    >
+      <span
+        className={hasObservedTelemetry ? "text-emerald-300" : "text-slate-500"}
+        title={hasObservedTelemetry ? "Є persisted telemetry" : "Persisted telemetry відсутня"}
+      >
+        {hasObservedTelemetry ? "●" : "○"}
+      </span>
+      <span className="font-medium text-slate-300">Embraco</span>
+      <span className="min-w-0 truncate text-cyan-200/80">{state}</span>
+      <span className="ml-auto shrink-0 text-slate-400 tabular-nums">{speed}</span>
+    </div>
   );
 }
 

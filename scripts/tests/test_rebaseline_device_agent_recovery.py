@@ -1,0 +1,561 @@
+from __future__ import annotations
+
+import importlib.util
+import io
+import json
+import subprocess
+import sys
+import tempfile
+import tarfile
+import unittest
+from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
+
+
+ROOT = Path(__file__).resolve().parents[2]
+SCRIPT = ROOT / "scripts/rebaseline-device-agent-recovery.py"
+DEPLOY = ROOT / "scripts/deploy-current-head-raspberry-pi.sh"
+SPEC = importlib.util.spec_from_file_location("device_agent_rebaseline", SCRIPT)
+assert SPEC is not None and SPEC.loader is not None
+MODULE = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(MODULE)
+
+
+class DeploymentAuthorityTests(unittest.TestCase):
+    source = "f" * 40
+
+    def make_attempt(
+        self, root: Path, stamp: str, *, passed: bool = False, mutated: bool = False
+    ) -> Path:
+        directory = root / stamp
+        directory.mkdir()
+        summary = "DEPLOYMENT PASSED\n" if passed else "preflight failed\n"
+        (directory / "summary.txt").write_text(summary, encoding="utf-8")
+        if passed:
+            (directory / "final-state.txt").write_text(
+                f"commit={self.source}\nruntime_mode=lan\n", encoding="utf-8"
+            )
+        if mutated:
+            (directory / "runtime-mutation-started").write_text("source=x\n", encoding="utf-8")
+        return directory
+
+    def write_restore(self, directory: Path, *, mismatch: bool = False) -> None:
+        target = "e" * 40
+        image = "sha256:" + "1" * 64
+        common = {
+            "sha256": "a" * 64,
+            "bytes": 253952,
+            "registry_revision": 18,
+            "outbound_queue_count": 0,
+            "outbound_queue_high_water": 6559000,
+            "node_stream_sequences": {"telemetry": 10},
+            "deployment_evidence_id": directory.name,
+            "deployed_source": self.source,
+            "deployed_device_agent_image_id": image,
+            "target_source": target,
+        }
+        metadata = {
+            "schema_version": 1,
+            "kind": "nexolab-edge-sqlite-pre-cutover",
+            "source_quick_check": "ok",
+            "snapshot_quick_check": "ok",
+            **common,
+        }
+        result = {
+            "schema_version": 1,
+            "kind": "nexolab-edge-sqlite-restore-result",
+            "status": "restored",
+            **common,
+        }
+        if mismatch:
+            result["registry_revision"] = 19
+        (directory / "edge-sqlite-pre-cutover.json").write_text(
+            json.dumps(metadata), encoding="utf-8"
+        )
+        (directory / "edge-sqlite-restore-result.json").write_text(
+            json.dumps(result), encoding="utf-8"
+        )
+
+    def test_latest_success_with_later_pre_mutation_failure_is_authoritative(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            expected = self.make_attempt(root, "20260829T154823Z", passed=True)
+            self.make_attempt(root, "20260830T071417Z")
+            authority = MODULE.authoritative_deployment(root, expected, self.source)
+        self.assertEqual(authority["source_commit"], self.source)
+        self.assertEqual(authority["path"], "runtime/deployments/20260829T154823Z")
+
+    def test_later_unrecovered_mutation_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            expected = self.make_attempt(root, "20260829T154823Z", passed=True)
+            self.make_attempt(root, "20260830T071417Z", mutated=True)
+            with self.assertRaisesRegex(MODULE.RebaselineError, "crossed the mutation"):
+                MODULE.authoritative_deployment(root, expected, self.source)
+
+    def test_completed_restore_is_latest_deployment_authority(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.make_attempt(root, "20260829T154823Z", passed=True)
+            restored = self.make_attempt(root, "20260830T071417Z", mutated=True)
+            self.write_restore(restored)
+            authority = MODULE.authoritative_deployment(root, restored, self.source)
+        self.assertEqual(authority["source_commit"], self.source)
+        self.assertEqual(authority["path"], "runtime/deployments/20260830T071417Z")
+        self.assertEqual(authority["runtime_mode"], "lan")
+
+    def test_inconsistent_completed_restore_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.make_attempt(root, "20260829T154823Z", passed=True)
+            restored = self.make_attempt(root, "20260830T071417Z", mutated=True)
+            self.write_restore(restored, mismatch=True)
+            with self.assertRaisesRegex(MODULE.RebaselineError, "recovery authority evidence is inconsistent"):
+                MODULE.authoritative_deployment(root, restored, self.source)
+
+    def test_non_latest_success_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            expected = self.make_attempt(root, "20260829T154823Z", passed=True)
+            self.make_attempt(root, "20260830T071417Z", passed=True)
+            with self.assertRaisesRegex(MODULE.RebaselineError, "not the latest"):
+                MODULE.authoritative_deployment(root, expected, self.source)
+
+
+class ContainerSafetyTests(unittest.TestCase):
+    lost_image = "sha256:" + "8" * 64
+    container_id = "5" * 64
+
+    def container(self) -> dict[str, object]:
+        config = {
+            key: MODULE.SAFE_CONFIG[key]
+            for key in ("user", "working_dir", "entrypoint", "cmd", "exposed_ports", "healthcheck")
+        }
+        return {
+            "id": self.container_id,
+            "image_id": self.lost_image,
+            "name": "/nexolab-edge-device-agent-1",
+            "created": "2026-08-29T15:55:08Z",
+            "state": {
+                "status": "running",
+                "running": True,
+                "paused": False,
+                "restarting": False,
+                "dead": False,
+                "health": "healthy",
+            },
+            "config": config,
+            "mounts": [
+                {
+                    "Type": "volume",
+                    "Name": MODULE.EXPECTED_EDGE_VOLUME,
+                    "Source": f"/var/lib/docker/volumes/{MODULE.EXPECTED_EDGE_VOLUME}/_data",
+                    "Destination": "/var/lib/nexolab",
+                    "RW": True,
+                },
+                {
+                    "Type": "bind",
+                    "Name": "",
+                    "Source": "/dev",
+                    "Destination": "/host/dev",
+                    "RW": False,
+                },
+            ],
+            "size_root_fs": 10_000_000,
+        }
+
+    def test_exact_healthy_container_and_mount_identity_pass(self) -> None:
+        verified = MODULE.verify_container(
+            self.container(), self.container_id[:12], self.lost_image
+        )
+        self.assertEqual(verified["id"], self.container_id)
+        self.assertEqual(verified["mounts"][1]["name"], MODULE.EXPECTED_EDGE_VOLUME)
+
+    def test_unexpected_safe_config_is_rejected(self) -> None:
+        container = self.container()
+        container["config"]["cmd"] = ["adaptive_main.py"]  # type: ignore[index]
+        with self.assertRaisesRegex(MODULE.RebaselineError, "safe image configuration"):
+            MODULE.verify_container(container, None, self.lost_image)
+
+    def test_additional_mount_is_rejected(self) -> None:
+        container = self.container()
+        container["mounts"].append(  # type: ignore[union-attr]
+            {
+                "Type": "bind",
+                "Name": "",
+                "Source": "/tmp",
+                "Destination": "/unexpected",
+                "RW": False,
+            }
+        )
+        with self.assertRaisesRegex(MODULE.RebaselineError, "mount identity"):
+            MODULE.verify_container(container, None, self.lost_image)
+
+    @mock.patch.object(MODULE, "run")
+    def test_writable_layer_accepts_only_mount_point_artifacts(self, run: mock.Mock) -> None:
+        run.return_value = subprocess.CompletedProcess([], 0, "A /host/dev\nA /host\n", "")
+        self.assertEqual(MODULE.verify_diff(self.container_id), MODULE.ALLOWED_DIFF)
+        run.return_value = subprocess.CompletedProcess([], 0, "C /app/main.py\n", "")
+        with self.assertRaisesRegex(MODULE.RebaselineError, "not allowlisted"):
+            MODULE.verify_diff(self.container_id)
+
+
+class CurrentAuthorityResolverTests(unittest.TestCase):
+    source = "f" * 40
+    source_container = "5" * 64
+    source_image = "sha256:" + "8" * 64
+    recovery_image = "sha256:" + "1" * 64
+
+    def write_authority(self, repo: Path) -> SimpleNamespace:
+        deployment = repo / "runtime/deployments/20260829T154823Z"
+        deployment.mkdir(parents=True)
+        evidence = repo / "runtime/evidence/issue-768-device-agent-rebaseline-20260830T083125Z/rebaseline.json"
+        evidence.parent.mkdir(parents=True)
+        authority_root = repo / "runtime/recovery-authority/device-agent"
+        authority_root.mkdir(parents=True)
+        recovery_tag = f"nexolab-device-agent:recovery-{self.recovery_image.removeprefix('sha256:')}"
+        document = {
+            "schema_version": MODULE.SCHEMA_VERSION,
+            "kind": "nexolab-device-agent-recovery-rebaseline",
+            "status": "established",
+            "rebaseline_id": "20260830T083125Z",
+            "deployed_source": self.source,
+            "deployment": {"path": "runtime/deployments/20260829T154823Z"},
+            "source_container": {
+                "id": self.source_container,
+                "historical_image_id": self.source_image,
+                "historical_image_addressable": False,
+                "writable_layer_diff": MODULE.ALLOWED_DIFF,
+            },
+            "recovery_image": {
+                "image_id": self.recovery_image,
+                "recovery_tag": recovery_tag,
+                "runtime_environment_imported": False,
+                "derived_from_running_container_filesystem": True,
+            },
+            "safety": {"production_container_restarted": False},
+            "evidence_path": str(evidence.relative_to(repo)),
+        }
+        payload = json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        evidence.write_text(payload, encoding="utf-8")
+        (authority_root / "20260830T083125Z.json").write_text(payload, encoding="utf-8")
+        (authority_root / "current.json").write_text(payload, encoding="utf-8")
+        return SimpleNamespace(
+            repo=repo,
+            deployment_evidence=deployment,
+            expected_deployed_source=self.source,
+        )
+
+    def test_superseded_current_pointer_is_replaceable_without_deleting_immutable_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            self.write_authority(repo)
+            payload = MODULE.prepare_current_authority_replacement(repo, "e" * 40)
+            self.assertIsNotNone(payload)
+            MODULE.verify_current_authority_unchanged_before_publish(repo, payload)
+            immutable = repo / "runtime/recovery-authority/device-agent/20260830T083125Z.json"
+            self.assertTrue(immutable.is_file())
+
+    def test_same_source_current_pointer_still_blocks_replacement(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            self.write_authority(repo)
+            with self.assertRaisesRegex(MODULE.RebaselineError, "already exists for this deployed source"):
+                MODULE.prepare_current_authority_replacement(repo, self.source)
+
+    def test_changed_superseded_pointer_fails_before_publish(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary)
+            self.write_authority(repo)
+            payload = MODULE.prepare_current_authority_replacement(repo, "e" * 40)
+            current = repo / "runtime/recovery-authority/device-agent/current.json"
+            current.write_text("{}\n", encoding="utf-8")
+            with self.assertRaisesRegex(MODULE.RebaselineError, "changed during rebaseline"):
+                MODULE.verify_current_authority_unchanged_before_publish(repo, payload)
+
+    @mock.patch.object(MODULE, "docker_json")
+    @mock.patch.object(MODULE, "verify_diff")
+    @mock.patch.object(MODULE, "docker_format_json")
+    @mock.patch.object(MODULE, "matching_device_agent_container")
+    def test_resolver_rechecks_exact_writable_layer_drift(
+        self, matching: mock.Mock, inspect: mock.Mock, verify_diff: mock.Mock, docker_json: mock.Mock
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            args = self.write_authority(Path(temporary))
+            matching.return_value = "device-agent"
+            inspect.side_effect = [self.source_container, self.source_image, "healthy", True]
+            verify_diff.return_value = MODULE.ALLOWED_DIFF
+            docker_json.return_value = self.recovery_image
+            resolved = MODULE.resolve_current_authority(args)
+        self.assertEqual(resolved["recovery_image_id"], self.recovery_image)
+        verify_diff.assert_called_once_with(self.source_container)
+
+    @mock.patch.object(MODULE, "docker_json")
+    @mock.patch.object(MODULE, "verify_diff")
+    @mock.patch.object(MODULE, "docker_format_json")
+    @mock.patch.object(MODULE, "matching_device_agent_container")
+    def test_resolver_rejects_writable_layer_drift_change(
+        self, matching: mock.Mock, inspect: mock.Mock, verify_diff: mock.Mock, docker_json: mock.Mock
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            args = self.write_authority(Path(temporary))
+            matching.return_value = "device-agent"
+            inspect.side_effect = [self.source_container, self.source_image, "healthy", True]
+            verify_diff.return_value = ["C /app/main.py"]
+            with self.assertRaisesRegex(MODULE.RebaselineError, "drift changed since rebaseline"):
+                MODULE.resolve_current_authority(args)
+        docker_json.assert_not_called()
+
+
+class ImportContractTests(unittest.TestCase):
+    @mock.patch.object(MODULE.urllib.request, "urlopen")
+    def test_runtime_health_accepts_deployed_nested_scheduler(self, urlopen: mock.Mock) -> None:
+        payload = {
+            "status": "ok",
+            "node_id": "edge-01",
+            "device_mode": "modbus",
+            "mqtt_connected": True,
+            "queue_depth": 0,
+            "acquisition": {
+                "cadence_policy_revision": 18,
+                "scheduler": {"workers_healthy": True},
+            },
+        }
+        response = mock.MagicMock()
+        response.__enter__.return_value = response
+        response.__exit__.return_value = False
+        response.read.return_value = json.dumps(payload).encode()
+        urlopen.return_value = response
+        self.assertTrue(MODULE.read_runtime_health()["workers_healthy"])
+
+    @mock.patch.object(MODULE.urllib.request, "urlopen")
+    def test_runtime_health_rejects_simulator_mode(self, urlopen: mock.Mock) -> None:
+        payload = {
+            "status": "ok",
+            "node_id": "edge-01",
+            "device_mode": "simulator",
+            "mqtt_connected": True,
+            "queue_depth": 0,
+            "acquisition": {
+                "cadence_policy_revision": 18,
+                "scheduler": {"workers_healthy": True},
+            },
+        }
+        response = mock.MagicMock()
+        response.__enter__.return_value = response
+        response.__exit__.return_value = False
+        response.read.return_value = json.dumps(payload).encode()
+        urlopen.return_value = response
+        with self.assertRaisesRegex(MODULE.RebaselineError, "runtime health is not ready"):
+            MODULE.read_runtime_health()
+
+    def test_export_mount_exclusion_accepts_directory_placeholders_only(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            archive_path = Path(temporary) / "rootfs.tar"
+            with tarfile.open(archive_path, "w") as archive:
+                for name in ("var/lib/nexolab", "host/dev", "app/main.py"):
+                    info = tarfile.TarInfo(name)
+                    if name in {"var/lib/nexolab", "host/dev"}:
+                        info.type = tarfile.DIRTYPE
+                        archive.addfile(info)
+                    else:
+                        payload = b"safe"
+                        info.size = len(payload)
+                        archive.addfile(info, io.BytesIO(payload))
+            result = MODULE.verify_export_mount_exclusion(archive_path)
+        self.assertTrue(result["verified"])
+        self.assertEqual(result["nested_entry_count"], 0)
+
+    def test_export_mount_exclusion_rejects_mounted_payload(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            archive_path = Path(temporary) / "rootfs.tar"
+            with tarfile.open(archive_path, "w") as archive:
+                info = tarfile.TarInfo("var/lib/nexolab/edge.db")
+                payload = b"must-not-be-exported"
+                info.size = len(payload)
+                archive.addfile(info, io.BytesIO(payload))
+            with self.assertRaisesRegex(MODULE.RebaselineError, "mounted-path payloads"):
+                MODULE.verify_export_mount_exclusion(archive_path)
+
+    @mock.patch.object(MODULE, "docker_format_json")
+    @mock.patch.object(MODULE, "run")
+    def test_validation_container_removal_failure_fails_closed(
+        self, run: mock.Mock, docker_format_json: mock.Mock
+    ) -> None:
+        image_id = "sha256:" + "1" * 64
+        container_id = "5" * 64
+        run.side_effect = [
+            subprocess.CompletedProcess([], 0, container_id + "\n", ""),
+            subprocess.CompletedProcess([], 1, "", "remove failed"),
+        ]
+        docker_format_json.side_effect = ["created", image_id]
+        with self.assertRaisesRegex(MODULE.RebaselineError, "could not be removed"):
+            MODULE.validate_create(image_id, "20260830T120000Z")
+
+    @mock.patch.object(MODULE, "docker_format_json")
+    @mock.patch.object(MODULE, "run")
+    def test_validation_container_reports_removed_only_after_successful_cleanup(
+        self, run: mock.Mock, docker_format_json: mock.Mock
+    ) -> None:
+        image_id = "sha256:" + "1" * 64
+        container_id = "5" * 64
+        run.side_effect = [
+            subprocess.CompletedProcess([], 0, container_id + "\n", ""),
+            subprocess.CompletedProcess([], 0, container_id + "\n", ""),
+        ]
+        docker_format_json.side_effect = ["created", image_id]
+        result = MODULE.validate_create(image_id, "20260830T120000Z")
+        self.assertTrue(result["removed"])
+
+    def test_import_config_is_a_fixed_non_secret_allowlist(self) -> None:
+        changes = MODULE.import_changes("20260830T120000Z", "f" * 40, "5" * 64)
+        rendered = "\n".join(changes)
+        self.assertIn("ENV PYTHONPATH=/app/site-packages", rendered)
+        self.assertIn('ENTRYPOINT ["/usr/bin/python3.13"]', rendered)
+        self.assertIn('CMD ["dual_bus_main.py"]', rendered)
+        self.assertIn("HEALTHCHECK", rendered)
+        self.assertNotIn("MQTT_", rendered)
+        self.assertNotIn("RS485_", rendered)
+        self.assertNotIn("SERIAL_", rendered)
+
+    def test_source_container_environment_is_never_requested(self) -> None:
+        text = SCRIPT.read_text(encoding="utf-8")
+        self.assertNotIn('docker_format_json(container, ".Config.Env")', text)
+        self.assertIn('"runtime_environment_imported": False', text)
+
+    def test_cli_requires_explicit_execute_acknowledgement(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT),
+                "--deployment-evidence",
+                "runtime/deployments/20260829T154823Z",
+                "--expected-deployed-source",
+                "f" * 40,
+                "--lost-image-id",
+                "sha256:" + "8" * 64,
+            ],
+            cwd=ROOT,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("explicit --execute", result.stderr)
+
+
+class PostgreSQLAuthorityTests(unittest.TestCase):
+    container_id = "7" * 64
+    image_id = "sha256:" + "2" * 64
+
+    def expected_mounts(self) -> list[dict[str, object]]:
+        return [
+            {
+                "Type": "volume",
+                "Name": MODULE.EXPECTED_POSTGRES_VOLUME,
+                "Destination": MODULE.EXPECTED_POSTGRES_DESTINATION,
+                "RW": True,
+            }
+        ]
+
+    @mock.patch.object(MODULE, "docker_format_json")
+    @mock.patch.object(MODULE, "run")
+    def test_exact_production_postgres_volume_is_accepted(
+        self, run: mock.Mock, docker_format_json: mock.Mock
+    ) -> None:
+        run.return_value = subprocess.CompletedProcess([], 0, self.container_id + "\n", "")
+        docker_format_json.side_effect = [
+            self.container_id,
+            "healthy",
+            self.image_id,
+            self.expected_mounts(),
+        ]
+        result = MODULE.postgresql_authority()
+        self.assertEqual(
+            result["volumes"],
+            [
+                {
+                    "name": MODULE.EXPECTED_POSTGRES_VOLUME,
+                    "destination": MODULE.EXPECTED_POSTGRES_DESTINATION,
+                    "read_write": True,
+                }
+            ],
+        )
+
+    @mock.patch.object(MODULE, "docker_format_json")
+    @mock.patch.object(MODULE, "run")
+    def test_wrong_postgres_volume_name_fails_closed(
+        self, run: mock.Mock, docker_format_json: mock.Mock
+    ) -> None:
+        mounts = self.expected_mounts()
+        mounts[0]["Name"] = "unrelated-postgres-data"
+        run.return_value = subprocess.CompletedProcess([], 0, self.container_id + "\n", "")
+        docker_format_json.side_effect = [self.container_id, "healthy", self.image_id, mounts]
+        with self.assertRaisesRegex(MODULE.RebaselineError, "exact production data-volume mount"):
+            MODULE.postgresql_authority()
+
+    @mock.patch.object(MODULE, "docker_format_json")
+    @mock.patch.object(MODULE, "run")
+    def test_wrong_postgres_destination_or_read_only_mount_fails_closed(
+        self, run: mock.Mock, docker_format_json: mock.Mock
+    ) -> None:
+        for destination, read_write in (("/tmp/postgres", True), (MODULE.EXPECTED_POSTGRES_DESTINATION, False)):
+            mounts = self.expected_mounts()
+            mounts[0]["Destination"] = destination
+            mounts[0]["RW"] = read_write
+            run.return_value = subprocess.CompletedProcess([], 0, self.container_id + "\n", "")
+            docker_format_json.side_effect = [self.container_id, "healthy", self.image_id, mounts]
+            with self.assertRaisesRegex(MODULE.RebaselineError, "exact production data-volume mount"):
+                MODULE.postgresql_authority()
+            docker_format_json.reset_mock(side_effect=True)
+
+
+class DeploymentIntegrationContractTests(unittest.TestCase):
+    def test_rebaseline_resolution_precedes_prebuild_preservation(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        resolver = text.index("--resolve-current")
+        preserve_call = text.index("\npreserve_deployed_device_agent_image_for_recovery\n")
+        candidate_build = text.index('docker build --pull -t nexolab-device-agent:local')
+        self.assertLess(resolver, preserve_call)
+        self.assertLess(preserve_call, candidate_build)
+
+    def test_snapshot_uses_addressable_recovery_image_for_rebaseline(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        capture_start = text.index("capture_edge_sqlite_snapshot()")
+        capture_end = text.index("\n}\n\npersist_edge_device_agent_quiesce_record()", capture_start)
+        capture = text[capture_start:capture_end]
+        self.assertIn('recovery_image="$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID"', capture)
+        self.assertIn('"$recovery_image"', capture)
+        self.assertIn('--deployed-device-agent-image-id "$recovery_image"', capture)
+
+    def test_unavailable_recorded_image_falls_back_to_matching_rebaseline(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        resolver_start = text.index("resolve_latest_deployment_evidence()")
+        resolver_end = text.index("\n}\n\nresolve_deployed_source_authority()", resolver_start)
+        resolver = text[resolver_start:resolver_end]
+        self.assertIn('! docker image inspect "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID"', resolver)
+        self.assertIn('recorded_device_agent_image_unavailable="1"', resolver)
+        self.assertIn('"$recorded_device_agent_image_unavailable" == "1"', resolver)
+        self.assertIn('rebaseline_pointer_source" == "$VERIFIED_DEPLOYED_SOURCE', resolver)
+        self.assertIn("--resolve-current", resolver)
+
+    def test_successful_deployment_records_exact_device_agent_image_authority(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        self.assertIn('echo "deployed_device_agent_image_id=$DEPLOYED_DEVICE_AGENT_IMAGE_ID"', text)
+        self.assertIn('docker image inspect "$DEPLOYED_DEVICE_AGENT_IMAGE_ID"', text)
+        self.assertIn("docker image inspect --format '{{.Id}}' nexolab-device-agent:local", text)
+        self.assertIn('elif key == "deployed_device_agent_image_id" and image_re.fullmatch(value):', text)
+
+    def test_quiesce_keeps_source_container_identity_separate(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+        quiesce_start = text.index("quiesce_edge_device_agent_for_cutover()")
+        quiesce_end = text.index("\n}\n\nwrite_durable_runtime_mutation_marker()", quiesce_start)
+        quiesce = text[quiesce_start:quiesce_end]
+        self.assertIn("VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID", quiesce)
+        self.assertIn("VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID", quiesce)
+
+
+if __name__ == "__main__":
+    unittest.main()

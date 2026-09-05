@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+# Process-internal cache only. Never trust inherited environment values for capacity authority.
+NEXOLAB_CAPACITY_PG_DUMP_CACHE_CONTAINER=
+NEXOLAB_CAPACITY_PG_DUMP_CACHE_BYTES=
+
 nexolab_capacity_uint() {
   local name=$1
   local value=$2
@@ -56,6 +60,7 @@ nexolab_capacity_deployment_bytes() {
 nexolab_prune_deployment_evidence() {
   local deployments_dir=$1
   local current_audit_dir=$2
+  local protected_evidence_dir=${3:-}
   local protected_count max_count max_age_days max_bytes
   protected_count="$(nexolab_capacity_uint NEXOLAB_DEPLOY_EVIDENCE_PROTECTED_COUNT "${NEXOLAB_DEPLOY_EVIDENCE_PROTECTED_COUNT:-}" 3)" || return $?
   max_count="$(nexolab_capacity_uint NEXOLAB_DEPLOY_EVIDENCE_MAX_COUNT "${NEXOLAB_DEPLOY_EVIDENCE_MAX_COUNT:-}" 12)" || return $?
@@ -67,6 +72,40 @@ nexolab_prune_deployment_evidence() {
     return 64
   }
   [[ -d "$deployments_dir" ]] || return 0
+
+  local canonical_deployments_dir canonical_current_audit_dir
+  canonical_deployments_dir="$(cd "$deployments_dir" && pwd -P)" || {
+    printf 'ERROR: deployment evidence root cannot be canonicalized: %s\n' "$deployments_dir" >&2
+    return 70
+  }
+  [[ -d "$current_audit_dir" ]] || {
+    printf 'ERROR: current deployment audit directory is unavailable: %s\n' "$current_audit_dir" >&2
+    return 70
+  }
+  canonical_current_audit_dir="$(cd "$current_audit_dir" && pwd -P)" || {
+    printf 'ERROR: current deployment audit directory cannot be canonicalized: %s\n' "$current_audit_dir" >&2
+    return 70
+  }
+  deployments_dir="$canonical_deployments_dir"
+  current_audit_dir="$canonical_current_audit_dir"
+
+  if [[ -n "$protected_evidence_dir" ]]; then
+    local protected_base canonical_protected_evidence_dir
+    protected_base="$(basename "$protected_evidence_dir")"
+    [[ -d "$protected_evidence_dir" && ! -L "$protected_evidence_dir" ]] || {
+      printf 'ERROR: protected deployment evidence is unavailable or unsafe: %s\n' "$protected_evidence_dir" >&2
+      return 70
+    }
+    canonical_protected_evidence_dir="$(cd "$protected_evidence_dir" && pwd -P)" || {
+      printf 'ERROR: protected deployment evidence cannot be canonicalized: %s\n' "$protected_evidence_dir" >&2
+      return 70
+    }
+    protected_evidence_dir="$canonical_protected_evidence_dir"
+    [[ "$(dirname "$protected_evidence_dir")" == "$deployments_dir" && "$protected_base" =~ ^[0-9]{8}T[0-9]{6}Z$ ]] || {
+      printf 'ERROR: protected deployment evidence is outside the deployment evidence root: %s\n' "$protected_evidence_dir" >&2
+      return 70
+    }
+  fi
 
   local -a dirs=()
   local dir base
@@ -100,6 +139,7 @@ nexolab_prune_deployment_evidence() {
   for ((index = 0; index < count; index += 1)); do
     dir="${dirs[$index]}"
     [[ "$dir" != "$current_audit_dir" ]] || continue
+    [[ -z "$protected_evidence_dir" || "$dir" != "$protected_evidence_dir" ]] || continue
     [[ ! -e "$dir/.nexolab-preserve" ]] || continue
     (( index < protected_from )) || continue
 
@@ -173,6 +213,48 @@ nexolab_capacity_measure_postgres() {
   fi
 }
 
+nexolab_capacity_measure_postgres_dump() {
+  local pg_container=$1
+  NEXOLAB_CAPACITY_PG_DUMP_SOURCE=none
+  NEXOLAB_CAPACITY_PG_DUMP_BYTES=0
+  [[ -n "$pg_container" ]] || return 0
+
+  if [[ "${NEXOLAB_CAPACITY_PG_DUMP_CACHE_CONTAINER:-}" == "$pg_container" && "${NEXOLAB_CAPACITY_PG_DUMP_CACHE_BYTES:-}" =~ ^[1-9][0-9]*$ ]]; then
+    NEXOLAB_CAPACITY_PG_DUMP_SOURCE=streamed_pg_dump_cache
+    NEXOLAB_CAPACITY_PG_DUMP_BYTES="$NEXOLAB_CAPACITY_PG_DUMP_CACHE_BYTES"
+    return 0
+  fi
+
+  local status_file measured dump_rc
+  if ! status_file="$(mktemp "${TMPDIR:-/tmp}/nexolab-pg-dump-status.XXXXXX")"; then
+    NEXOLAB_CAPACITY_PG_DUMP_SOURCE=unavailable
+    NEXOLAB_CAPACITY_PG_DUMP_BYTES=0
+    return 0
+  fi
+  measured="$(
+    {
+      set +e
+      docker exec "$pg_container" sh -ec \
+        'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' 2>/dev/null
+      printf '%s\n' "$?" > "$status_file"
+    } | wc -c
+  )"
+  dump_rc="$(tr -d '[:space:]' < "$status_file" 2>/dev/null || true)"
+  rm -f -- "$status_file"
+  measured="${measured//$'\r'/}"
+  measured="${measured//$'\n'/}"
+
+  if [[ "$dump_rc" == 0 && "$measured" =~ ^[1-9][0-9]*$ ]]; then
+    NEXOLAB_CAPACITY_PG_DUMP_SOURCE=streamed_pg_dump
+    NEXOLAB_CAPACITY_PG_DUMP_BYTES=$measured
+    NEXOLAB_CAPACITY_PG_DUMP_CACHE_CONTAINER="$pg_container"
+    NEXOLAB_CAPACITY_PG_DUMP_CACHE_BYTES="$measured"
+  else
+    NEXOLAB_CAPACITY_PG_DUMP_SOURCE=unavailable
+    NEXOLAB_CAPACITY_PG_DUMP_BYTES=0
+  fi
+}
+
 nexolab_capacity_preflight() {
   local repo=$1
   local audit_dir=$2
@@ -196,10 +278,15 @@ nexolab_capacity_preflight() {
   fi
 
   nexolab_capacity_measure_postgres "$pg_container"
-  local pg_estimate=0 pg_measurement_failed=false
+  local pg_estimate=0 pg_measurement_failed=false pg_backup_estimate_source=none
   [[ "$NEXOLAB_CAPACITY_PG_SOURCE" != unavailable ]] || pg_measurement_failed=true
-  if (( NEXOLAB_CAPACITY_PG_BYTES > 0 )); then
+  nexolab_capacity_measure_postgres_dump "$pg_container"
+  if (( NEXOLAB_CAPACITY_PG_DUMP_BYTES > 0 )); then
+    pg_estimate="$(nexolab_capacity_scaled_bytes "$NEXOLAB_CAPACITY_PG_DUMP_BYTES" "$pg_percent" "$pg_fixed_bytes")"
+    pg_backup_estimate_source="$NEXOLAB_CAPACITY_PG_DUMP_SOURCE"
+  elif (( NEXOLAB_CAPACITY_PG_BYTES > 0 )); then
     pg_estimate="$(nexolab_capacity_scaled_bytes "$NEXOLAB_CAPACITY_PG_BYTES" "$pg_percent" "$pg_fixed_bytes")"
+    pg_backup_estimate_source=database_size_fallback
   fi
 
   local free_bytes required_bytes deployment_bytes npm_cache_bytes=0 npm_cache_path=""
@@ -239,6 +326,8 @@ nexolab_capacity_preflight() {
     printf 'runtime_evidence_archive_estimate_bytes=%s\n' "$archive_estimate"
     printf 'postgresql_estimate_source=%s\n' "$NEXOLAB_CAPACITY_PG_SOURCE"
     printf 'postgresql_database_bytes=%s\n' "$NEXOLAB_CAPACITY_PG_BYTES"
+    printf 'postgresql_backup_measurement_source=%s\n' "$pg_backup_estimate_source"
+    printf 'postgresql_backup_measured_bytes=%s\n' "$NEXOLAB_CAPACITY_PG_DUMP_BYTES"
     printf 'postgresql_backup_estimate_bytes=%s\n' "$pg_estimate"
     printf 'deployment_evidence_bytes=%s\n' "$deployment_bytes"
     printf 'npm_cache_bytes=%s\n' "$npm_cache_bytes"

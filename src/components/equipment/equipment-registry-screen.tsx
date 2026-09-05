@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Boxes, RotateCcw } from "lucide-react";
+import { Boxes, Cable, RotateCcw, Thermometer } from "lucide-react";
 
 import { SecurityGate } from "@/components/dashboard/security-gate";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
-import { EquipmentDiscoveryInbox } from "@/components/equipment/equipment-discovery-inbox";
+import { EquipmentConnectionsWorkspace } from "@/components/equipment/equipment-connections-workspace";
 import { EquipmentRegistryCatalog } from "@/components/equipment/equipment-registry-catalog";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { useEquipmentRegistry } from "@/hooks/use-equipment-registry";
@@ -60,6 +60,7 @@ function EquipmentRegistryModeGate({
 
 export function EquipmentRegistryScreen() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const security = useDashboardSecurity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const securityReady = security.mode === "live" && security.state === "ready";
@@ -67,6 +68,9 @@ export function EquipmentRegistryScreen() {
     enabled: securityReady && Boolean(security.membership),
     organizationId: security.membership?.organizationId ?? null,
   });
+  const requestedSection = searchParams.get("section");
+  const section =
+    requestedSection === "connections" || requestedSection === "metrology" ? requestedSection : "registry";
 
   if (security.mode === "demo") {
     return (
@@ -128,25 +132,86 @@ export function EquipmentRegistryScreen() {
           <div className="pointer-events-none absolute -top-40 -right-24 h-[420px] w-[420px] rounded-full bg-blue-500/[0.07] blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-cyan-400/[0.035] blur-3xl" />
           <div className="relative mx-auto max-w-[1900px] space-y-4">
-            <EquipmentDiscoveryInbox
-              repository={registry.discoveryRepository}
-              canManage={security.membership.permissions.includes("equipment.manage")}
-              assets={registry.assets}
-            />
-            <EquipmentRegistryCatalog
-              state={registry.state}
-              assets={registry.assets}
-              failures={registry.failures}
-              error={registry.error}
-              progress={registry.progress}
-              canManage={security.membership.permissions.includes("equipment.manage")}
-              equipmentRepository={registry.equipmentRepository}
-              climateCatalogRepository={registry.climateCatalogRepository}
-              onRetry={registry.retry}
-            />
+            <nav
+              aria-label="Розділи обладнання"
+              className="flex min-w-0 gap-1 overflow-x-auto rounded-2xl border border-white/[0.07] bg-[#091a31]/85 p-1.5"
+            >
+              <EquipmentSectionLink href="/equipment" active={section === "registry"} icon={Boxes}>
+                Реєстр
+              </EquipmentSectionLink>
+              <EquipmentSectionLink
+                href="/equipment?section=connections"
+                active={section === "connections"}
+                icon={Cable}
+              >
+                Підключення
+              </EquipmentSectionLink>
+              <EquipmentSectionLink
+                href="/equipment?section=metrology"
+                active={section === "metrology"}
+                icon={Thermometer}
+              >
+                Метрологія
+              </EquipmentSectionLink>
+            </nav>
+
+            {section === "connections" ? (
+              <EquipmentConnectionsWorkspace
+                repository={registry.commissioningRepository}
+                discoveryRepository={registry.discoveryRepository}
+                canManage={security.membership.permissions.includes("equipment.manage")}
+                assets={registry.assets}
+              />
+            ) : (
+              <>
+                {section === "metrology" ? (
+                  <section className="rounded-2xl border border-cyan-300/10 bg-cyan-400/[0.035] px-4 py-3 text-xs leading-5 text-slate-400">
+                    Метрологічний реєстр використовує чинні calibration-статуси й паспорт активу.
+                    Функціональний обсяг у цій версії не розширювався.
+                  </section>
+                ) : null}
+                <EquipmentRegistryCatalog
+                  state={registry.state}
+                  assets={registry.assets}
+                  failures={registry.failures}
+                  error={registry.error}
+                  progress={registry.progress}
+                  canManage={security.membership.permissions.includes("equipment.manage")}
+                  equipmentRepository={registry.equipmentRepository}
+                  climateCatalogRepository={registry.climateCatalogRepository}
+                  onRetry={registry.retry}
+                />
+              </>
+            )}
           </div>
         </main>
       </div>
     </div>
+  );
+}
+
+function EquipmentSectionLink({
+  href,
+  active,
+  icon: Icon,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  icon: typeof Boxes;
+  children: string;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-4 text-xs font-medium transition focus:ring-2 focus:ring-cyan-300 focus:outline-none ${
+        active
+          ? "border-cyan-300/20 bg-cyan-400/10 text-cyan-100"
+          : "border-transparent text-slate-500 hover:bg-white/[0.035] hover:text-slate-200"
+      }`}
+    >
+      <Icon className="h-4 w-4" /> {children}
+    </Link>
   );
 }

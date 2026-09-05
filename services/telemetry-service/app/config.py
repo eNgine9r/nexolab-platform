@@ -142,6 +142,17 @@ class Settings(BaseSettings):
     # A five-minute floor prevents accidental high-frequency LAN scanning.
     equipment_discovery_schedule_interval_seconds: int = Field(default=0, ge=0, le=86_400)
 
+    # Internal LOCAL_LAN-only Device Agent endpoint used by operator-initiated
+    # supported-device commissioning preflight. Empty means fail closed.
+    commissioning_device_agent_base_url: str | None = None
+    commissioning_preflight_deadline_seconds: float = Field(default=5.0, ge=1.0, le=10.0)
+    commissioning_preflight_freshness_seconds: float = Field(
+        default=300.0, ge=30.0, le=3600.0
+    )
+    commissioning_activation_verification_timeout_seconds: float = Field(
+        default=20.0, ge=5.0, le=120.0
+    )
+
     auth_mode: Literal["disabled", "jwt"] = "disabled"
     auth_default_organization_id: str = (
         "00000000-0000-0000-0000-000000000001"
@@ -180,6 +191,13 @@ class Settings(BaseSettings):
     dead_letter_retention_days: int = Field(default=30, ge=1, le=3650)
     retention_interval_seconds: int = Field(default=3600, ge=60, le=86_400)
     retention_batch_size: int = Field(default=1000, ge=1, le=100_000)
+
+    # Local deterministic refrigeration morning reports. Scheduling is
+    # acceptance-gated and therefore fail-closed unless explicitly enabled.
+    # The scheduler only reads local persisted telemetry and remains independent
+    # of Telegram delivery.
+    daily_reports_scheduler_enabled: bool = False
+    daily_reports_scheduler_interval_seconds: int = Field(default=60, ge=10, le=3600)
 
     @model_validator(mode="after")
     def validate_runtime_secrets(self) -> "Settings":

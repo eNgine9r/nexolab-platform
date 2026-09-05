@@ -209,7 +209,7 @@ test("viewer sees discovery evidence without automatic scan or mutation path", a
   const fixture = discoveryFixture();
   await page.route("**/api/v1/equipment-discovery**", fixture.handler);
 
-  await page.goto("/equipment");
+  await page.goto("/equipment?section=connections");
   await expect(page.getByRole("heading", { name: "Нові пристрої" })).toBeVisible();
   await expect(page.getByText("lab-controller-02")).toBeVisible();
   await expect(page.getByText(/TCP 443 · https · connect succeeded/)).toBeVisible();
@@ -245,7 +245,7 @@ test("engineer explicitly scans configured scope and adopts only an administrati
     }
   });
 
-  await page.goto("/equipment");
+  await page.goto("/equipment?section=connections");
   await expect(page.getByRole("heading", { name: "Нові пристрої" })).toBeVisible();
   await page.getByRole("button", { name: "Запустити scan" }).click();
   await expect

@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import ast
 from datetime import UTC, datetime
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -30,6 +31,13 @@ EXPECTED_BRANCH = "main"
 DEVICE_AGENT_HEALTH_URL = "http://127.0.0.1:8081/health"
 SOURCE_AUTHORITY = "controlled_source_deployment"
 SHA = re.compile(r"^[0-9a-f]{40}$")
+
+_FORWARD_PATH = Path(__file__).with_name("forward_deployment_recovery.py")
+_FORWARD_SPEC = importlib.util.spec_from_file_location("nexolab_forward_deployment_recovery", _FORWARD_PATH)
+if _FORWARD_SPEC is None or _FORWARD_SPEC.loader is None:
+    raise RuntimeError("forward deployment recovery helper is unavailable")
+forward_recovery = importlib.util.module_from_spec(_FORWARD_SPEC)
+_FORWARD_SPEC.loader.exec_module(forward_recovery)
 
 
 class AdoptionFailure(RuntimeError):
@@ -123,39 +131,74 @@ def parse_key_value_file(path: Path) -> dict[str, str]:
     return facts
 
 
-def repository_schema_head(repo: Path) -> str:
+def _migration_revision_facts(source: str) -> tuple[str | None, str | tuple[str, ...] | list[str] | None]:
+    tree = ast.parse(source)
+    values: dict[str, Any] = {}
+    for node in tree.body:
+        name: str | None = None
+        value: ast.expr | None = None
+        if (
+            isinstance(node, ast.Assign)
+            and len(node.targets) == 1
+            and isinstance(node.targets[0], ast.Name)
+        ):
+            name = node.targets[0].id
+            value = node.value
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            name = node.target.id
+            value = node.value
+        if name in {"revision", "down_revision"} and value is not None:
+            values[name] = ast.literal_eval(value)
+    revision = values.get("revision")
+    parent = values.get("down_revision")
+    return revision if isinstance(revision, str) else None, parent
+
+
+def repository_schema_head(repo: Path, source_commit: str | None = None) -> str:
     revisions: set[str] = set()
     parents: set[str] = set()
-    migration_root = repo / "services" / "telemetry-service" / "migrations" / "versions"
-    for path in migration_root.glob("*.py"):
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-        values: dict[str, Any] = {}
-        for node in tree.body:
-            name: str | None = None
-            value: ast.expr | None = None
-            if (
-                isinstance(node, ast.Assign)
-                and len(node.targets) == 1
-                and isinstance(node.targets[0], ast.Name)
-            ):
-                name = node.targets[0].id
-                value = node.value
-            elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
-                name = node.target.id
-                value = node.value
-            if name in {"revision", "down_revision"} and value is not None:
-                values[name] = ast.literal_eval(value)
-        revision = values.get("revision")
-        parent = values.get("down_revision")
-        if isinstance(revision, str) and revision:
+    migration_relative = "services/telemetry-service/migrations/versions"
+    sources: list[tuple[str, str]] = []
+
+    if source_commit is None:
+        migration_root = repo / migration_relative
+        sources = [
+            (path.as_posix(), path.read_text(encoding="utf-8"))
+            for path in migration_root.glob("*.py")
+        ]
+    else:
+        if not SHA.fullmatch(source_commit):
+            raise AdoptionFailure("source commit for schema inspection is invalid")
+        listing = git(
+            repo,
+            "ls-tree",
+            "-r",
+            "--name-only",
+            source_commit,
+            "--",
+            migration_relative,
+        )
+        for relative in listing.splitlines():
+            if not relative.endswith(".py"):
+                continue
+            sources.append((relative, git(repo, "show", f"{source_commit}:{relative}")))
+
+    for label, source in sources:
+        try:
+            revision, parent = _migration_revision_facts(source)
+        except (SyntaxError, ValueError) as error:
+            raise AdoptionFailure(f"invalid migration metadata in {label}") from error
+        if revision:
             revisions.add(revision)
         if isinstance(parent, str):
             parents.add(parent)
         elif isinstance(parent, (tuple, list)):
             parents.update(item for item in parent if isinstance(item, str))
+
     heads = sorted(revisions - parents)
     if len(heads) != 1:
-        raise AdoptionFailure(f"expected one repository Alembic head, found {heads}")
+        scope = source_commit or "working tree"
+        raise AdoptionFailure(f"expected one repository Alembic head at {scope}, found {heads}")
     return heads[0]
 
 
@@ -222,6 +265,80 @@ def verify_live_runtime(api_base_url: str) -> str:
     return "degraded" if device.get("status") == "degraded" else "ready"
 
 
+DEPLOYMENT_STAMP = re.compile(r"^\d{8}T\d{6}Z$")
+LEGACY_RUNTIME_MUTATION_MARKERS = (
+    "Starting central backend, MinIO and observability",
+    "Starting real-hardware edge stack",
+    "Activating verified frontend release",
+    "RUNTIME MUTATION STARTED",
+)
+
+
+def _valid_deployment_stamp(name: str) -> bool:
+    if not DEPLOYMENT_STAMP.fullmatch(name):
+        return False
+    try:
+        datetime.strptime(name, "%Y%m%dT%H%M%SZ")
+    except ValueError:
+        return False
+    return True
+
+
+def authoritative_source_deployment(repo: Path) -> tuple[Path, str]:
+    deployments_root = (repo.resolve() / "runtime" / "deployments").resolve()
+    if not deployments_root.is_dir():
+        raise AdoptionFailure("deployment evidence root is unavailable")
+
+    attempts: list[tuple[str, Path, bool, str | None]] = []
+    for directory in deployments_root.iterdir():
+        if (
+            not directory.is_dir()
+            or directory.is_symlink()
+            or not _valid_deployment_stamp(directory.name)
+        ):
+            continue
+        summary = directory / "summary.txt"
+        summary_text = (
+            summary.read_text(encoding="utf-8", errors="replace") if summary.is_file() else ""
+        )
+        final_state = directory / "final-state.txt"
+        commit: str | None = None
+        if final_state.is_file():
+            candidate = parse_key_value_file(final_state).get("commit")
+            if isinstance(candidate, str) and SHA.fullmatch(candidate):
+                commit = candidate
+        passed = "DEPLOYMENT PASSED" in summary_text and commit is not None
+        effective_commit = commit if passed else None
+        forward_result = directory / "forward-recovery-result.json"
+        if forward_result.exists():
+            try:
+                recovered = forward_recovery.load_published_authority(repo, directory)
+            except forward_recovery.RecoveryFailure as error:
+                raise AdoptionFailure(
+                    f"forward recovery authority evidence is invalid: {directory}: {error}"
+                ) from error
+            effective_commit = recovered["target_source"]
+        mutated = (directory / "runtime-mutation-started").is_file() or any(
+            marker in summary_text for marker in LEGACY_RUNTIME_MUTATION_MARKERS
+        )
+        attempts.append((directory.name, directory.resolve(), mutated, effective_commit))
+
+    successful = [(stamp, directory, commit) for stamp, directory, _mutated, commit in attempts if commit]
+    if not successful:
+        raise AdoptionFailure("no authoritative successful source deployment evidence is available")
+
+    success_stamp, success_dir, success_commit = max(successful, key=lambda item: item[0])
+    for stamp, directory, mutated, commit in attempts:
+        if stamp <= success_stamp:
+            continue
+        if mutated and commit is None:
+            raise AdoptionFailure(
+                "newer deployment attempt crossed runtime mutation boundary without success: "
+                f"{directory}"
+            )
+    return success_dir, success_commit
+
+
 def deployment_evidence(repo: Path, evidence_dir: Path) -> tuple[Path, dict[str, str]]:
     repo = repo.resolve()
     deployments_root = (repo / "runtime" / "deployments").resolve()
@@ -231,6 +348,28 @@ def deployment_evidence(repo: Path, evidence_dir: Path) -> tuple[Path, dict[str,
         resolved.relative_to(deployments_root)
     except ValueError as error:
         raise AdoptionFailure("deployment evidence must live under runtime/deployments") from error
+
+    forward_result = resolved / "forward-recovery-result.json"
+    if forward_result.exists():
+        try:
+            recovered = forward_recovery.load_published_authority(repo, resolved)
+        except forward_recovery.RecoveryFailure as error:
+            raise AdoptionFailure(f"forward recovery deployment evidence is invalid: {error}") from error
+        facts = {
+            "deployed_at": recovered["runtime_activated_at"],
+            "commit": recovered["target_source"],
+            "runtime_mode": recovered["runtime_mode"],
+            "dashboard": recovered["dashboard"],
+            "api": recovered["api"],
+            "auth_mode": recovered["auth_mode"],
+            "local_auth_overlay": "true" if recovered["local_auth_overlay"] else "false",
+            "dashboard_auth_provider": recovered["dashboard_auth_provider"],
+            "requested_source_ref": recovered["target_source"],
+            "control_origin_main": recovered["control_origin_main"],
+            "expected_deployed_source": recovered["previous_source"],
+        }
+        return resolved, facts
+
     summary = resolved / "summary.txt"
     final_state = resolved / "final-state.txt"
     if not summary.is_file() or not final_state.is_file():
@@ -239,14 +378,8 @@ def deployment_evidence(repo: Path, evidence_dir: Path) -> tuple[Path, dict[str,
         raise AdoptionFailure("deployment evidence does not contain DEPLOYMENT PASSED")
     facts = parse_key_value_file(final_state)
     required = {
-        "deployed_at",
-        "commit",
-        "runtime_mode",
-        "dashboard",
-        "api",
-        "auth_mode",
-        "local_auth_overlay",
-        "dashboard_auth_provider",
+        "deployed_at", "commit", "runtime_mode", "dashboard", "api", "auth_mode",
+        "local_auth_overlay", "dashboard_auth_provider",
     }
     missing = sorted(required - facts.keys())
     if missing:
@@ -286,8 +419,40 @@ def adopt(args: argparse.Namespace) -> dict[str, Any]:
     git(repo, "merge-base", "--is-ancestor", head, origin_head)
 
     evidence_dir, facts = deployment_evidence(repo, args.evidence_dir)
-    if facts["commit"] != head:
-        raise AdoptionFailure("deployment evidence commit does not match repository HEAD")
+    authoritative_dir, authoritative_commit = authoritative_source_deployment(repo)
+    if evidence_dir != authoritative_dir or facts["commit"] != authoritative_commit:
+        raise AdoptionFailure(
+            "deployment evidence is not the latest authoritative successful source deployment"
+        )
+    source_commit = facts["commit"]
+    if not SHA.fullmatch(source_commit):
+        raise AdoptionFailure("deployment evidence source commit is invalid")
+    historical_source = source_commit != head
+
+    if historical_source:
+        requested_source = facts.get("requested_source_ref")
+        control_main = facts.get("control_origin_main")
+        previous_source = facts.get("expected_deployed_source")
+        if requested_source != source_commit:
+            raise AdoptionFailure(
+                "historical deployment evidence is not bound to its requested source commit"
+            )
+        if not isinstance(control_main, str) or not SHA.fullmatch(control_main):
+            raise AdoptionFailure("historical deployment evidence has no valid control main")
+        if not isinstance(previous_source, str) or not SHA.fullmatch(previous_source):
+            raise AdoptionFailure("historical deployment evidence has no valid prior deployed source")
+        git(repo, "cat-file", "-e", f"{source_commit}^{{commit}}")
+        git(repo, "cat-file", "-e", f"{control_main}^{{commit}}")
+        git(repo, "merge-base", "--is-ancestor", previous_source, source_commit)
+        git(repo, "merge-base", "--is-ancestor", source_commit, control_main)
+        git(repo, "merge-base", "--is-ancestor", control_main, head)
+        git(repo, "merge-base", "--is-ancestor", source_commit, origin_head)
+        git(repo, "merge-base", "--is-ancestor", control_main, origin_head)
+    elif facts.get("requested_source_ref") not in {None, "", "current_origin_main", source_commit}:
+        raise AdoptionFailure("current-main deployment evidence has inconsistent requested source")
+    else:
+        git(repo, "cat-file", "-e", f"{source_commit}^{{commit}}")
+
     runtime_mode_path = repo / "runtime" / "runtime-mode"
     runtime_mode = runtime_mode_path.read_text(encoding="utf-8").strip()
     if runtime_mode not in {"lan", "standalone"} or facts["runtime_mode"] != runtime_mode:
@@ -297,12 +462,12 @@ def adopt(args: argparse.Namespace) -> dict[str, Any]:
     if facts["local_auth_overlay"] == "true" and facts["dashboard_auth_provider"] != "local":
         raise AdoptionFailure("local-auth deployment evidence does not match dashboard provider")
 
-    schema_head = repository_schema_head(repo)
+    schema_head = repository_schema_head(repo, source_commit)
     verify_live_schema(schema_head)
     health = verify_live_runtime(facts["api"])
     platform_name = host_platform()
-    build_timestamp = git(repo, "show", "-s", "--format=%cI", head)
-    source_identity = f"source-main-{head[:12]}"
+    build_timestamp = git(repo, "show", "-s", "--format=%cI", source_commit)
+    source_identity = f"source-main-{source_commit[:12]}"
     relative_evidence = evidence_dir.relative_to(repo).as_posix()
     current_path = root / "current.json"
     existing = _existing_current(current_path)
@@ -314,10 +479,20 @@ def adopt(args: argparse.Namespace) -> dict[str, Any]:
             raise AdoptionFailure("current deployment evidence already exists; refusing to replace it")
         existing_commit = existing.get("source_commit")
         existing_evidence = existing.get("source_deployment_evidence")
-        if existing_commit == head and existing_evidence == relative_evidence:
+        if not isinstance(existing_commit, str) or not SHA.fullmatch(existing_commit):
+            raise AdoptionFailure("existing source deployment authority has an invalid source commit")
+        if existing_commit != source_commit:
+            git(repo, "cat-file", "-e", f"{existing_commit}^{{commit}}")
+            try:
+                git(repo, "merge-base", "--is-ancestor", existing_commit, source_commit)
+            except AdoptionFailure as error:
+                raise AdoptionFailure(
+                    "source adoption would move existing source authority backward"
+                ) from error
+        if existing_commit == source_commit and existing_evidence == relative_evidence:
             return {
                 "status": "already_recorded",
-                "source_commit": head,
+                "source_commit": source_commit,
                 "runtime_mode": runtime_mode,
                 "platform": platform_name,
                 "schema_head": schema_head,
@@ -336,7 +511,7 @@ def adopt(args: argparse.Namespace) -> dict[str, Any]:
         "bundle_id": source_identity,
         "bundle_root": None,
         "release": source_identity,
-        "source_commit": head,
+        "source_commit": source_commit,
         "build_timestamp": build_timestamp,
         "runtime_mode": runtime_mode,
         "platform": platform_name,
@@ -354,6 +529,10 @@ def adopt(args: argparse.Namespace) -> dict[str, Any]:
         "source_auth_mode": facts["auth_mode"],
         "source_local_auth_overlay": facts["local_auth_overlay"] == "true",
         "source_dashboard_auth_provider": facts["dashboard_auth_provider"],
+        "source_historical_main": historical_source,
+        "source_control_checkout_commit": head,
+        "source_control_origin_main": origin_head,
+        "source_deployment_control_main": facts.get("control_origin_main"),
         "previous_source_commit": previous_source_commit,
         "previous_source_deployment_evidence": previous_source_evidence,
         "recorded_at": now(),
@@ -361,7 +540,7 @@ def adopt(args: argparse.Namespace) -> dict[str, Any]:
     atomic_json(current_path, payload)
     return {
         "status": "recorded",
-        "source_commit": head,
+        "source_commit": source_commit,
         "runtime_mode": runtime_mode,
         "platform": platform_name,
         "schema_head": schema_head,

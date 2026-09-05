@@ -315,6 +315,49 @@ class SecurityRepository:
             ),
         )
 
+    def resolve_principal_by_identity_id(
+        self,
+        identity_id: str,
+        *,
+        organization_id: str,
+    ) -> tuple[str, AuthenticatedPrincipal]:
+        normalized_identity_id = identity_id.strip()
+        if not normalized_identity_id:
+            raise IdentityNotProvisionedError("linked identity is not provisioned")
+        with Session(self._engine) as session:
+            identity = session.scalar(
+                select(SecurityIdentity).where(
+                    SecurityIdentity.id == normalized_identity_id,
+                    SecurityIdentity.is_active.is_(True),
+                )
+            )
+            if identity is None:
+                raise IdentityNotProvisionedError("linked identity is not provisioned")
+            membership = next(
+                (
+                    item
+                    for item in self._membership_summaries(session, identity.id)
+                    if item.organization_id == organization_id
+                ),
+                None,
+            )
+            if membership is None:
+                raise OrganizationMembershipNotFoundError(
+                    f"identity is not a member of organization {organization_id!r}"
+                )
+            return (
+                identity.id,
+                AuthenticatedPrincipal(
+                    subject=identity.subject,
+                    organization_id=organization_id,
+                    roles=membership.roles,
+                    email=identity.email,
+                    display_name=identity.display_name,
+                    provider=identity.provider,
+                    granted_permissions=membership.granted_permissions,
+                ),
+            )
+
     def append_audit_event(
         self,
         event: AuditEventInput,

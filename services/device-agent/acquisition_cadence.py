@@ -7,7 +7,7 @@ from typing import Any, Iterable, Mapping
 CADENCE_PRESETS_SECONDS = (10, 30, 60)
 CADENCE_MIN_SECONDS = 10.0
 CADENCE_MAX_SECONDS = 3600.0
-SUPPORTED_DEVICE_FAMILIES = frozenset({"xjp60d", "le01mp"})
+SUPPORTED_DEVICE_FAMILIES = frozenset({"xjp60d", "le01mp", "embraco"})
 
 
 @dataclass(frozen=True)

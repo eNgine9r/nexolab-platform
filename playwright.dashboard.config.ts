@@ -27,6 +27,7 @@ export default defineConfig({
         "equipment-discovery.production.e2e.ts",
         "settings.production.e2e.ts",
         "cameras.production.e2e.ts",
+        "telegram-miniapp.production.e2e.ts",
         "telemetry-acquisition-invariant.production.e2e.ts",
         "telemetry-navigation.production.e2e.ts",
       ],

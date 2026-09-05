@@ -1,0 +1,1 @@
+"""Deterministic refrigeration morning reports."""

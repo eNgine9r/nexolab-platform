@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
@@ -159,6 +159,7 @@ async function openProductionEquipment(page: Page, equipment: EquipmentPayload, 
     waitUntil: "domcontentloaded",
   });
   await expect(page.getByRole("heading", { name: equipment.name })).toBeVisible();
+  await page.getByRole("button", { name: "Схема", exact: true }).click();
   await expect(editor(page).getByText(`Чернетка v${draftVersion}`, { exact: true })).toBeVisible();
 }
 
@@ -328,6 +329,142 @@ test("requires a climate chamber before creating or copying refrigeration equipm
 
   await page.screenshot({
     path: path.join(evidenceDirectory, "camera-scoped-catalog-after-safe-delete.png"),
+    fullPage: true,
+  });
+});
+
+test("renders the read-only Embraco digital twin without fabricating temperature scaling", async ({
+  page,
+}) => {
+  mkdirSync(evidenceDirectory, { recursive: true });
+  const chamber = await resolveClimateChamber(page.request);
+  const equipment = await createEquipmentViaApi(page.request, chamber, {
+    code: "ACCEPTANCE-EMBRACO-729",
+    name: "Cool jet acceptance",
+    serialNumber: "NX-EMBRACO-729",
+    totalSensors: 4,
+  });
+
+  const bindingResponse = await page.request.put(
+    `${apiBaseUrl}/api/v1/equipment/${equipment.id}/controller-binding`,
+    {
+      headers: { "X-Audit-Reason": "Issue 729 read-only Embraco browser acceptance" },
+      data: {
+        node_id: "edge-01",
+        controller_family: "embraco",
+        controller_equipment_id: "EMBRACO-2",
+        unit_id: 2,
+        profile_version: "embraco-sync-fc03-v1.00.04",
+      },
+    },
+  );
+  expect(bindingResponse.status()).toBe(200);
+
+  await page.goto(absoluteRoute("/refrigeration"), { waitUntil: "networkidle" });
+  const controllerSummary = page.getByTestId(`controller-summary-${equipment.id}`);
+  await expect(controllerSummary).toBeVisible();
+  await expect(controllerSummary).toContainText("Embraco");
+  await expect(controllerSummary).toContainText("Pulldown");
+  await expect(controllerSummary).toContainText("4500 rpm");
+
+  await page.goto(absoluteRoute(`/refrigeration/${equipment.id}`), { waitUntil: "networkidle" });
+  await expect(page.getByRole("heading", { name: equipment.name })).toBeVisible();
+  for (const tab of ["Огляд", "Схема", "Графіки", "Контролер"]) {
+    await expect(page.getByRole("button", { name: tab, exact: true })).toBeVisible();
+  }
+
+  const overview = page.getByTestId("refrigeration-controller-overview");
+  await expect(overview).toBeVisible();
+  await expect(overview).toContainText("4500 rpm");
+  await expect(overview).toContainText("Pulldown");
+  await expect(overview).toContainText("Активних тривог контролера немає");
+  await expect(overview.getByText("Scale unverified", { exact: true })).toHaveCount(3);
+
+  await page.getByRole("button", { name: "Графіки", exact: true }).click();
+  const history = page.getByTestId("refrigeration-controller-history");
+  await expect(history).toBeVisible();
+  for (const period of ["1 год", "12 год", "24 год", "Кастом"]) {
+    await expect(history.getByRole("button", { name: period, exact: true })).toBeVisible();
+  }
+  const duty = history.getByText("Коефіцієнт роботи", { exact: true }).locator("..");
+  await expect(duty).toContainText(/\d+\.\d %/);
+  await expect(history.getByText(/Температурний scale ще не підтверджений/)).toBeVisible();
+  await expect(history.getByRole("heading", { name: "Режими та реле" })).toBeVisible();
+  await expect(history.getByText("Пуски компресора", { exact: true })).toBeVisible();
+  const relayLanes = history.getByTestId("relay-analysis-lanes");
+  for (const relay of ["Relay 1", "Relay 2", "Relay 3", "Relay 4"]) {
+    await expect(relayLanes.getByText(relay, { exact: true })).toBeVisible();
+  }
+  await expect(history.getByTestId("relay-transition-journal")).toContainText("Журнал перемикань реле");
+  await expect(history.getByTestId("relay-transition-journal")).toContainText(/Подій: [1-9]\d*/);
+
+  const compressorChart = history.locator(
+    '[data-testid="refrigeration-controller-chart"][data-chart-title="Швидкість компресора"]',
+  );
+  const compressorHost = compressorChart.getByTestId("chart-renderer-host");
+  const compressorSurface = compressorChart.getByTestId("chart-renderer-surface");
+  await expect(compressorHost).toHaveAttribute("data-range-selection-enabled", "true");
+  await compressorSurface.scrollIntoViewIfNeeded();
+  await expect(compressorSurface).toBeInViewport();
+  const compressorBounds = await compressorSurface.boundingBox();
+  expect(compressorBounds).not.toBeNull();
+  if (!compressorBounds) throw new Error("Compressor chart bounds are unavailable");
+  const selectionY = compressorBounds.y + compressorBounds.height * 0.5;
+  await page.mouse.move(compressorBounds.x + compressorBounds.width * 0.3, selectionY);
+  await page.mouse.down();
+  await page.mouse.move(compressorBounds.x + compressorBounds.width * 0.7, selectionY, { steps: 8 });
+  await page.mouse.up();
+  await expect(compressorSurface).toHaveAttribute("data-range-selection-input", "committed");
+  await expect(history.getByTestId("compressor-analysis-range")).toContainText("Вибраний відрізок графіка");
+
+  const downloadPromise = page.waitForEvent("download");
+  await history.getByRole("button", { name: "Export CSV", exact: true }).click();
+  const csvDownload = await downloadPromise;
+  expect(csvDownload.suggestedFilename()).toMatch(/^nexolab-EMBRACO-2-.*\.csv$/i);
+  const controllerExportPath = path.join(evidenceDirectory, "issue-792-controller-analysis.csv");
+  await csvDownload.saveAs(controllerExportPath);
+  const controllerCsv = readFileSync(controllerExportPath, "utf8");
+  expect(controllerCsv).toContain("selected_from_utc,selected_to_utc");
+  expect(controllerCsv).toContain("compressor.start_count");
+  expect(controllerCsv).toContain("controller.relay_state_bits");
+  expect(controllerCsv).toContain("relay_transition");
+  const csvLines = controllerCsv
+    .replace(/^\uFEFF/, "")
+    .trim()
+    .split(/\r?\n/);
+  const selectedRangeColumns = csvLines[1]?.split(",") ?? [];
+  expect(Date.parse(selectedRangeColumns[1] ?? "") - Date.parse(selectedRangeColumns[0] ?? "")).toBeLessThan(
+    60 * 60 * 1000,
+  );
+
+  await history.getByRole("button", { name: "Скинути вибір", exact: true }).click();
+  await expect(history.getByTestId("compressor-analysis-range")).toContainText("Повний період");
+
+  await history.getByRole("button", { name: "Кастом", exact: true }).click();
+  await expect(history.getByLabel("Від", { exact: true })).toBeVisible();
+  await expect(history.getByLabel("До", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Контролер", exact: true }).click();
+  const controller = page.getByTestId("refrigeration-controller-detail");
+  await expect(controller).toBeVisible();
+  await expect(controller).toContainText("embraco-sync-fc03-v1.00.04");
+  await expect(controller).toContainText("Modbus RTU · FC03 read-only");
+  await expect(controller).toContainText("Remote control locked");
+  await expect(controller).toContainText("не містить FC06/FC16");
+  await expect(controller.getByText(/Raw 82 · scale unverified/)).toBeVisible();
+
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(page.getByRole("button", { name: "Контролер", exact: true })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await expect(page.getByTestId("refrigeration-controller-detail")).toBeVisible();
+
+  await page.getByRole("button", { name: "Схема", exact: true }).click();
+  await expect(editor(page).getByText("Чернетка v1", { exact: true })).toBeVisible();
+
+  await page.screenshot({
+    path: path.join(evidenceDirectory, "issue-729-embraco-digital-twin.png"),
     fullPage: true,
   });
 });

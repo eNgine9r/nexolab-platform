@@ -24,6 +24,8 @@ STATE_PATHS = {
 ROOT_DOCS = {"README.md"}
 
 DEPENDENCY_TOOLCHAIN_PATHS = {
+    ".prettierignore",
+    "scripts/tests/lint-staged-v17.mjs",
     "package.json",
     "package-lock.json",
     ".nvmrc",
@@ -46,6 +48,8 @@ DEPENDENCY_TOOLCHAIN_PATHS = {
 AUTHENTICATED_DASHBOARD_WORKFLOW = "Authenticated Dashboard Acceptance"
 OFFLINE_BUNDLE_WORKFLOW = "Offline Bundle"
 REFRIGERATION_BROWSER_WORKFLOW = "Refrigeration Browser Acceptance"
+TELEGRAM_GATEWAY_WORKFLOW = "Telegram Gateway"
+CONTAINER_SUPPLY_CHAIN_WORKFLOW = "Container Supply Chain"
 
 DASHBOARD_EXTERNAL_TOOLCHAIN_PATHS = {
     "package.json",
@@ -122,7 +126,20 @@ REFRIGERATION_PATTERNS = (
     "docs/refrigeration-browser-central-acceptance.md",
 )
 
+TELEGRAM_CROSS_CONTRACT_TEST_PATTERNS = (
+    "tests/telegram-*.test.ts",
+)
+
+TELEGRAM_GATEWAY_PATTERNS = (
+    "services/telegram-gateway/**",
+    "infrastructure/compose/compose.telegram.yaml",
+    "infrastructure/compose/telegram.env.example",
+    ".github/workflows/telegram-gateway.yml",
+    *TELEGRAM_CROSS_CONTRACT_TEST_PATTERNS,
+)
+
 OFFLINE_BUNDLE_PATTERNS = (
+    "services/telegram-gateway/**",
     "infrastructure/compose/**",
     "infrastructure/offline/**",
     "services/device-agent/**",
@@ -146,6 +163,11 @@ CONTAINER_SUPPLY_CHAIN_TEST_PATHS = {
     "tests/test_container_release_aggregate.py",
 }
 
+INSPECTION_SECURITY_PATTERNS = (
+    "scripts/inspection/**",
+    "tests/test_opera_tailscale_inspection.py",
+)
+
 CI_GOVERNANCE_PATHS = {
     "PROJECT_PROFILE.yaml",
     "AGENTS.md",
@@ -154,6 +176,7 @@ CI_GOVERNANCE_PATHS = {
     "scripts/validate-project-state.py",
     "scripts/verify-pr-workflow-matrix.py",
     "scripts/prepare-clean-verification-worktree.sh",
+    "scripts/verify-local-candidate.py",
     "tests/test_ci_change_impact.py",
     "tests/test_ci_project_state_validation.py",
     "tests/test_ci_workflow_matrix.py",
@@ -214,6 +237,19 @@ def _verification_for_paths(
         dashboard_mode = "none"
         dashboard_test_match = None
 
+    telegram_gateway = any(_matches(path, TELEGRAM_GATEWAY_PATTERNS) for path in normalized)
+    container_supply_chain = any(
+        _matches(
+            path,
+            (
+                "services/telegram-gateway/**",
+                "security/container-images.json",
+                ".github/workflows/container-supply-chain.yml",
+            ),
+        )
+        for path in normalized
+    )
+
     required = []
     if dashboard_mode != "none":
         required.append(AUTHENTICATED_DASHBOARD_WORKFLOW)
@@ -221,6 +257,10 @@ def _verification_for_paths(
         required.append(OFFLINE_BUNDLE_WORKFLOW)
     if refrigeration_browser:
         required.append(REFRIGERATION_BROWSER_WORKFLOW)
+    if telegram_gateway:
+        required.append(TELEGRAM_GATEWAY_WORKFLOW)
+    if container_supply_chain:
+        required.append(CONTAINER_SUPPLY_CHAIN_WORKFLOW)
 
     return {
         "dashboard_mode": dashboard_mode,
@@ -298,8 +338,19 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
             classes.add("frontend")
             matched = True
 
-        if path.startswith("services/telemetry-service/") or path.startswith("contracts/"):
+        if (
+            path.startswith("services/telemetry-service/")
+            or path.startswith("services/telegram-gateway/")
+            or path.startswith("contracts/")
+        ):
             classes.add("backend")
+            matched = True
+
+        if _matches(path, TELEGRAM_CROSS_CONTRACT_TEST_PATTERNS):
+            # Cross-contract tests exercise both the browser envelope and the
+            # Telegram gateway fixture boundary. Keep the pattern narrow so
+            # unrelated root tests continue to fail closed.
+            classes.update({"frontend", "backend"})
             matched = True
 
         if path.startswith("services/telemetry-service/migrations/"):
@@ -320,11 +371,17 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
                     "scripts/*deploy*",
                     "scripts/build-offline-bundle.sh",
                     "scripts/*runtime*",
+                    "scripts/rebaseline-device-agent-recovery.py",
+                    "scripts/tests/test_rebaseline_device_agent_recovery.py",
                     "scripts/*raspberry-pi*",
                 ),
             )
         ):
             classes.add("deployment_runtime")
+            matched = True
+
+        if _matches(path, INSPECTION_SECURITY_PATTERNS):
+            classes.add("security_tooling")
             matched = True
 
         if (

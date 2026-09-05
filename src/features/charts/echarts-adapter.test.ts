@@ -11,6 +11,7 @@ class FakeEChartsInstance {
   resizeCount = 0;
   disposeCount = 0;
   convertFinders: object[] = [];
+  convertValues: Array<number | number[]> = [];
 
   setOption(option: unknown) {
     this.options.push(option);
@@ -32,9 +33,11 @@ class FakeEChartsInstance {
     return true;
   }
 
-  convertFromPixel(finder: object, value: [number, number]) {
+  convertFromPixel(finder: object, value: number | number[]) {
     this.convertFinders.push(finder);
-    return BENCHMARK_START_MS + value[0];
+    this.convertValues.push(value);
+    const x = Array.isArray(value) ? value[0] : value;
+    return BENCHMARK_START_MS + x;
   }
 
   resize() {
@@ -107,6 +110,92 @@ describe("ECharts renderer adapter lifecycle", () => {
           preventDefaultMouseMove: true,
         },
       ],
+    });
+  });
+
+  it("uses adapter-owned mouse drag selection without rendering a range slider", () => {
+    const instance = new FakeEChartsInstance();
+    const onRangeSelectionChange = vi.fn();
+    const onXDomainChange = vi.fn();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = {
+      ...createBenchmarkScene(1),
+      rangeSelectionEnabled: true,
+      rangeSelection: null,
+    };
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 320,
+      bottom: 200,
+      width: 320,
+      height: 200,
+      toJSON: () => ({}),
+    });
+
+    adapter.initialize({
+      container,
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor: vi.fn(),
+      onXDomainChange,
+      onRangeSelectionChange,
+    });
+    adapter.setScene(scene);
+    vi.spyOn(instance, "containPixel").mockReturnValue(false);
+
+    const option = instance.options.at(-1) as { dataZoom: unknown[]; brush?: unknown };
+    expect(option).toMatchObject({
+      grid: { bottom: 58 },
+      dataZoom: [
+        {
+          type: "inside",
+          startValue: scene.xDomain.fromMs,
+          endValue: scene.xDomain.toMs,
+          moveOnMouseMove: false,
+        },
+      ],
+    });
+    expect(option.dataZoom).toHaveLength(1);
+    expect(option.brush).toBeUndefined();
+
+    const observedPointerDown = vi.fn();
+    container.addEventListener("pointerdown", observedPointerDown);
+
+    container.dispatchEvent(
+      new MouseEvent("pointerdown", { button: 0, clientX: 90, clientY: 100, bubbles: true }),
+    );
+    instance.handlers.get("dataZoom")?.({ start: 10, end: 90 });
+    window.dispatchEvent(new MouseEvent("pointermove", { buttons: 1, clientX: 30, clientY: 100 }));
+    window.dispatchEvent(new MouseEvent("pointerup", { button: 0, clientX: 30, clientY: 100 }));
+
+    expect(observedPointerDown).not.toHaveBeenCalled();
+    expect(instance.convertFinders[0]).toEqual({ xAxisIndex: 0 });
+    expect(instance.convertValues[0]).toBe(90);
+    expect(onXDomainChange).not.toHaveBeenCalled();
+    expect(onRangeSelectionChange).toHaveBeenCalledWith({
+      fromMs: BENCHMARK_START_MS + 30,
+      toMs: BENCHMARK_START_MS + 90,
+    });
+
+    adapter.setScene({
+      ...scene,
+      rangeSelection: { fromMs: BENCHMARK_START_MS + 30, toMs: BENCHMARK_START_MS + 90 },
+    });
+    expect(optionSeries(instance)[0]).toMatchObject({
+      markArea: {
+        silent: true,
+        data: [
+          [
+            { name: "Selected analysis interval", xAxis: BENCHMARK_START_MS + 30 },
+            { xAxis: BENCHMARK_START_MS + 90 },
+          ],
+        ],
+      },
     });
   });
 

@@ -27,8 +27,13 @@ class TopologyAwareEnrollmentStore(AcquisitionRegistryStore):
         database_path: Path,
         *,
         bus_for_unit: Callable[[int], str],
+        bind_registry: Callable[[AcquisitionRegistry], AcquisitionRegistry],
     ) -> None:
-        super().__init__(database_path)
+        super().__init__(
+            database_path,
+            registry_binding=bind_registry,
+            embraco_bus_for_unit=bus_for_unit,
+        )
         self._bus_for_unit = bus_for_unit
 
     def enroll_xjp60d(
@@ -40,6 +45,7 @@ class TopologyAwareEnrollmentStore(AcquisitionRegistryStore):
         actor: str,
         reason: str,
         profile_version: str = XJP60D_PROFILE_VERSION,
+        bus_for_unit: Callable[[int], str] | None = None,
     ) -> AcquisitionRegistry:
         normalized_actor = actor.strip()[:200]
         normalized_reason = reason.strip()[:500]
@@ -71,7 +77,7 @@ class TopologyAwareEnrollmentStore(AcquisitionRegistryStore):
 
         additions: list[tuple[int, str]] = []
         for unit_id in sorted(requested):
-            bus_id = self._bus_for_unit(unit_id)
+            bus_id = (bus_for_unit or self._bus_for_unit)(unit_id)
             if bus_id not in configured_buses:
                 raise ValueError(
                     f"Configured bus {bus_id!r} is absent from acquisition registry"
