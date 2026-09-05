@@ -298,9 +298,9 @@ The original helper treated only one `--existing-port` as protected. That assump
 
 Inventory-only mode remains non-invasive. Active discovery still delegates only to the repository read-only scanner and does not activate a bus, mutate the registry, restart Device Agent, or write controller registers.
 
-### Remaining Issue #200 hardware boundary
+### Pre-closure residual physical boundary
 
-Software-observable acceptance is now substantially stronger, but Issue #200 is **not complete**. The following still require real physical evidence:
+Before the Product Owner closure decision below, the following residual items still required real physical evidence:
 
 - actual physical presence/absence and field location of historical Unit `115`;
 - cable route/topology and branch/stub layout;
@@ -309,4 +309,12 @@ Software-observable acceptance is now substantially stronger, but Issue #200 is 
 - shield termination and grounding/common-reference observations;
 - any claim that duplicate Unit IDs are electrically impossible outside the currently responding/scheduled endpoint set.
 
-Until those items are inspected, Issue #200 remains hardware-gated. No rewiring, termination/bias change, adapter reset, power cycle, controller setting change, Modbus write, production cutover, data deletion, or volume deletion belongs to this reconciliation.
+These items were the remaining hardware gate at the time of the software reconciliation. The subsequent Product Owner decision below de-scopes them from the current Issue #200 acceptance without treating them as hardware-verified. No rewiring, termination/bias change, adapter reset, power cycle, controller setting change, Modbus write, production cutover, data deletion, or volume deletion belongs to this reconciliation.
+
+## 2026-09-05 Product Owner closure decision
+
+The Product Owner explicitly decided that additional photos and physical inspection are not required for the current NEXOLAB product scope and directed Issue #200 to be closed. The residual physical questions — Unit `115` presence/location, cable route/stubs, termination, bias/failsafe, shield/ground/common-reference observations, and electrical duplicate-ID proof beyond current runtime ownership — are therefore de-scoped from Issue #200 acceptance.
+
+This decision does **not** convert those residual items into hardware-verified facts. They remain unknown/unverified and must not be cited later as physical acceptance evidence. The accepted scope is the evidence already established: stable production adapter ownership for both buses, known active serial profiles and scheduled ownership, bounded polling/runtime diagnostics, no cross-bus duplicate scheduled Unit ownership, and fail-closed commissioning-helper protection for every runtime-reported production adapter.
+
+No Modbus write, controller/hardware write, wiring change, restart, adapter reset, power cycle, production cutover, persistent-data deletion or volume deletion occurred as part of this closure.

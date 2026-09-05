@@ -94,7 +94,7 @@
       "issue": 200,
       "title": "Verify the physical RS-485 topology and portable polling envelope",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "completed",
       "depends_on": [],
       "evidence": {
         "current_production_topology_2026_09_05": "rs485_main_0133F090_9600_8N1_xjp_le_and_rs485_embraco_0133F246_9600_8N2_unit2",
@@ -104,8 +104,9 @@
         "current_embraco_envelope": "13_req_min_p95_23_817ms_load_0_632pct_retries_0_timeouts_0_protocol_0_io_0_exception_0",
         "commissioning_helper_hardening": "active_scan_requires_health_ok_and_complete_unique_runtime_reported_production_ports_fails_closed_on_missing_malformed_partial_duplicate_or_ambiguous_ownership",
         "runtime_negative_smoke": "PASS_both_production_adapters_refused_before_scanner_service_operations_unchanged_no_operation_reported",
-        "remaining_gate": "physical_unit115_topology_termination_biasing_shield_grounding_and_electrical_duplicate_id_evidence",
-        "runtime_mutation": "none_passive_health_only_no_diagnostic_modbus_request_no_restart_no_config_change_no_data_or_volume_delete"
+        "runtime_mutation": "none_passive_health_only_no_diagnostic_modbus_request_no_restart_no_config_change_no_data_or_volume_delete",
+        "remaining_physical_acceptance": "de_scoped_by_product_owner_2026_09_05_not_hardware_verified",
+        "completion_basis": "software_runtime_topology_reconciled_and_commissioning_helper_hardened_remaining_photo_physical_inspection_not_required_by_product_owner"
       },
       "branch": "chore/200-rs485-topology-evidence"
     },

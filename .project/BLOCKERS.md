@@ -84,9 +84,9 @@ Final external gates are cleared: source/version authority is recorded as `contr
 
 The stale hosted recovery-package blocker is **cleared by Issue #832**. Offline Bundle run `33653777090` accepted exact deployed source `893573a86faf6629e5e3cefc0e41c47230a7f8c7` on `linux/arm64` with local auth, disconnected runtime, and update/rollback preservation of required named volumes, markers and authentication continuity; artifact `9856886787`, bundle SHA-256 `234b93648d25245730c0c845c6a3cd267625d07c1f4dfbaf263fb552b1257ea1`. #189 remains blocked only on the separately gated **actual-host** current-source reboot/recovery and controlled power-loss acceptance. Those actions require explicit approval and real host evidence; hosted/QEMU acceptance does not substitute for them.
 
-## Issue #200 — physical RS-485 topology
+## Issue #200 — physical RS-485 topology — cleared for current scope
 
-Software-observable topology was reconciled again on 2026-09-05. Production now has two stable, healthy workers: `rs485-main` on `0133F090` at 9600 8N1 and `rs485-embraco` on `0133F246` at 9600 8N2 with Embraco Unit 2 only. Current scheduler ownership has no cross-bus duplicate Unit ID, both stable paths are present, and the commissioning helper on draft PR #659 now protects every runtime-reported production adapter from active discovery rather than assuming only Bus 1 is production. Active scan additionally fails closed unless Device Agent health is `ok` and every reported bus has one unique stable `serial_device`; partial/malformed ownership cannot silently leave a production adapter unprotected. **Hardware blocker remains:** physical Unit 115 reality/location, actual cable topology, termination, biasing, shielding/ground/common-reference observations and electrical duplicate-ID exclusion cannot be established from software. No physical action was performed in this reconciliation.
+Software/runtime topology is reconciled: production has two stable healthy workers, `rs485-main` on `0133F090` at 9600 8N1 and `rs485-embraco` on `0133F246` at 9600 8N2 with Embraco Unit 2 only. Current scheduler ownership has no cross-bus duplicate Unit ID, both stable paths are present, and the commissioning helper protects every runtime-reported production adapter from active discovery while failing closed on incomplete/malformed ownership diagnostics. On 2026-09-05 the Product Owner explicitly de-scoped the remaining photo/physical-inspection items from #200 acceptance. Unit 115 physical reality/location, cable topology, termination, biasing, shielding/ground/common-reference and electrical duplicate-ID exclusion remain **not hardware-verified**, but they are no longer current-scope blockers. No physical action was performed in this reconciliation.
 
 ## Issue #201 — LE-01MP cumulative energy
 
@@ -153,7 +153,7 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 
 ## Sprint execution gate — no independent Ready Work Package
 
-After #866 completion, the delta Ready audit found no independent `ready` item in `PRODUCTION-READINESS-1`. #189/#200/#585 are blocked, #201 is `needs_validation`, #202 and #916 are `hardware_validation`, and #717/RFX-01 through RFX-19C remain on the explicit Product Owner presentation hold. Autonomous execution must therefore stop at the hardware/product gate rather than inventing scope or performing physical actions.
+After #866 completion and the subsequent #200 closure decision, the delta Ready audit still has no independent `ready` item in `PRODUCTION-READINESS-1`. #189/#585 are blocked, #201 is `needs_validation`, #202 is `hardware_validation`, #916 is completed, and #717/RFX-01 through RFX-19C remain on the explicit Product Owner presentation hold. Autonomous execution must therefore stop at the hardware/product gate rather than inventing scope or performing physical actions.
 
 ## Safety boundaries
 
