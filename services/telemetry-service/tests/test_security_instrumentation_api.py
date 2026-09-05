@@ -239,3 +239,87 @@ def test_cross_organization_registry_ids_do_not_leak_or_link(tmp_path: Path) -> 
         pass
     else:
         raise AssertionError("cross-organization Instrument -> Signal link was accepted")
+
+
+def test_analog_scaling_read_uses_dashboard_permission_and_mutation_requires_manage(
+    tmp_path: Path,
+) -> None:
+    api, _, repository = build_client(tmp_path, subject="viewer", roles={Role.VIEWER})
+    instrument = repository.create_instrument(
+        InstrumentCreate(
+            inventory_key="SECURE-ANALOG-001",
+            display_name="Secure analog instrument",
+            instrument_kind="humidity_transmitter",
+        ),
+        actor_id="fixture",
+        organization_id=ORGANIZATION_ID,
+    )
+    signal = repository.create_signal(
+        instrument.id,
+        SignalCreate(
+            business_key="SECURE-ANALOG-001.RH",
+            display_name="Relative humidity",
+            physical_quantity="relative_humidity",
+            engineering_unit="percent",
+        ),
+        actor_id="fixture",
+        organization_id=ORGANIZATION_ID,
+    )
+    route = (
+        f"/api/v1/instrumentation/instruments/{instrument.id}/signals/"
+        f"{signal.id}/analog-scaling-history"
+    )
+
+    readable = api.get(route, headers=headers("viewer"))
+    assert readable.status_code == 200
+    assert readable.json() == {"items": []}
+
+    denied = api.post(
+        route,
+        headers=headers("viewer"),
+        json={
+            "raw_unit": "mA",
+            "raw_min": "4",
+            "raw_max": "20",
+            "engineering_min": "0",
+            "engineering_max": "100",
+            "engineering_unit": "percent",
+            "evidence_status": "hardware_unverified",
+            "effective_from": "2026-09-06T00:00:00Z",
+        },
+    )
+    assert denied.status_code == 403
+    assert denied.json()["detail"]["code"] == "permission_denied"
+
+
+def test_analog_scaling_cross_organization_signal_is_not_visible(tmp_path: Path) -> None:
+    api, _, repository = build_client(
+        tmp_path, subject="admin-analog", roles={Role.ADMINISTRATOR}
+    )
+    other = repository.create_instrument(
+        InstrumentCreate(
+            inventory_key="OTHER-ANALOG-001",
+            display_name="Other analog instrument",
+            instrument_kind="temperature_transmitter",
+        ),
+        actor_id="other-system",
+        organization_id=OTHER_ORGANIZATION_ID,
+    )
+    other_signal = repository.create_signal(
+        other.id,
+        SignalCreate(
+            business_key="OTHER-ANALOG-001.TEMP",
+            display_name="Other temperature",
+            physical_quantity="temperature",
+            engineering_unit="degC",
+        ),
+        actor_id="other-system",
+        organization_id=OTHER_ORGANIZATION_ID,
+    )
+    hidden = api.get(
+        f"/api/v1/instrumentation/instruments/{other.id}/signals/"
+        f"{other_signal.id}/analog-scaling-history",
+        headers=headers("admin-analog"),
+    )
+    assert hidden.status_code == 404
+    assert hidden.json()["detail"]["code"] == "instrument_not_found"

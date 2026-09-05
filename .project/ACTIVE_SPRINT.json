@@ -18,14 +18,14 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
+    "accepted_product_sha": "3a423136333b0de6c011294ccf27500f2f6d46d3",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
     "active_work_package": {
-      "issue": 717,
-      "title": "RFX-01 Generic Instrument and Signal Registry",
-      "branch": "feat/717-rfx01-instrument-signal-registry-v2"
+      "issue": 935,
+      "title": "RFX-02 Versioned 4-20 mA Analog Scaling Profile Contract",
+      "branch": "feat/935-rfx02-analog-scaling-profile"
     },
     "next_work_package": null
   },
@@ -611,7 +611,7 @@
       "issue": 717,
       "title": "RFX-01 Generic Instrument and Signal Registry",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         715
       ],
@@ -657,7 +657,18 @@
         "alembic_head": "20260905_0032_single_head",
         "offline_migration_sql": "2631_lines_passed",
         "scoped_team_lead_review": "clean_no_new_p1_p2",
-        "codex_review_verdict": "not_claimed_no_pending_process_after_rollover"
+        "codex_review_verdict": "not_claimed_no_pending_process_after_rollover",
+        "verified_head_sha": "3a423136333b0de6c011294ccf27500f2f6d46d3",
+        "checks": {
+          "core_ci": "success",
+          "telemetry_service": "success",
+          "authenticated_dashboard": "success",
+          "offline_bundle": "success",
+          "refrigeration_browser": "success",
+          "nexolab_merge_gate": "success",
+          "codex_review": "resolved_scope_false_positive"
+        },
+        "fresh_pull_request": 934
       }
     },
     {
@@ -2725,6 +2736,38 @@
           "nexolab_merge_gate": "green"
         }
       }
+    },
+    {
+      "issue": 935,
+      "title": "RFX-02 Versioned 4-20 mA Analog Scaling Profile Contract",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "feat/935-rfx02-analog-scaling-profile",
+      "evidence": {
+        "implementation_base_main_sha": "97c59ca87c35a5316d6622d7cd1102497632feb3",
+        "rfx01_verified_head_sha": "3a423136333b0de6c011294ccf27500f2f6d46d3",
+        "rfx01_pull_request": 934,
+        "current_alembic_head": "20260906_0033",
+        "xjp60d_temperature_compatibility": "must_remain_unchanged",
+        "xjp60d_analog_hardware": "unverified",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "production_deployment": "not_authorized",
+        "analog_scaling_contract": "decimal_linear_two_point_fail_closed",
+        "focused_non_postgresql_api_security": "29_passed",
+        "postgresql_guard_suite_before_final_finite_constraint": "8_passed",
+        "final_finite_constraint_execution": "pending_exact_head_telemetry_ci",
+        "migration_roundtrip": "0033_to_0032_to_0033_rfx01_signal_sentinel_preserved_before_final_finite_constraint",
+        "offline_migration_sql": "2750_lines_final_sql_generated",
+        "climate_refrigeration_compatibility": "48_passed_disposable_postgresql",
+        "xjp60d_temperature_and_acquisition_compatibility": "24_passed",
+        "hardware_inventory": "docs/rs485/analog-acquisition-profile-inventory.json",
+        "hardware_verified_profile_requires_evidence_reference": "enforced_schema_and_final_migration_contract",
+        "local_candidate_status": "GREEN_TARGETED_PENDING_FINAL_POSTGRESQL_CI"
+      },
+      "depends_on": [
+        717
+      ]
     }
   ],
   "maintenance_actions": [
@@ -3044,6 +3087,19 @@
       "data": {
         "issue": 866,
         "main_sha": "6bb92e3d952d77e7f25bd75cf470f5b2884f7606"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-06T01:57:49+03:00",
+      "kind": "issue_717_merge_reconciliation",
+      "data": {
+        "issue": 717,
+        "pull_request": 934,
+        "verified_head_sha": "3a423136333b0de6c011294ccf27500f2f6d46d3",
+        "merge_sha": "97c59ca87c35a5316d6622d7cd1102497632feb3",
+        "issue_state": "closed",
+        "required_checks": "green"
       }
     }
   ],
