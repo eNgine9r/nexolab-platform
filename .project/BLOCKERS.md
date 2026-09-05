@@ -96,6 +96,14 @@ Normal-operation semantics are accepted. Controlled restart/power-cycle disconti
 
 Representative KK1/KK2 physical evidence, Unit 115 resolution and extended semantics still require real hardware evidence. Unconfirmed fields remain unmapped.
 
+## Issue #866 — recurring XJP60D recovered FC03 retries
+
+**Software/restart attribution cleared 2026-09-05; review candidate.** Read-only historical and live evidence proves the retry pattern existed before the 2026-09-04 restart and remains XJP60D-specific: LE-01MP on the same `rs485-main` bus and Embraco on the second bus are retry-free in the bounded comparison, while queue depth stays 0 and bus workers remain healthy. Recovered retries do not duplicate logical telemetry; terminal failures are explicitly represented as `communication_error`. No production timing/topology change is justified by #866.
+
+## Issue #916 — exact XJP60D first-request timeout mechanism
+
+**Hardware/protocol validation required.** Current metrics aggregate physical requests by logical XJP target and cannot identify whether the value register, status register, first request after idle or an XJP-specific physical/electrical condition causes the recovered timeout. #916 owns that residual mechanism. Any service restart, adapter reset, topology isolation/rewire, termination/bias action or power cycle requires a separate explicit Product Owner approval; Modbus/controller writes remain forbidden.
+
 ## Issue #585 — W2 / Unit 201 handback
 
 Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
