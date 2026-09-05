@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 901,
-      "title": "Refresh production Gateway to boundary-aware image with delivery OFF",
-      "branch": "ops/901-boundary-aware-gateway-refresh"
+      "issue": 825,
+      "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
+      "branch": "ops/825-telegram-real-acceptance"
     },
     "next_work_package": null
   },
@@ -1857,7 +1857,7 @@
       "issue": 825,
       "title": "Connect NEXOLAB bot and Mini App to Telegram group \"Тест лаб\"",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "in_progress",
       "depends_on": [
         822,
         823,
@@ -1865,7 +1865,7 @@
       ],
       "branch": "ops/825-telegram-real-acceptance",
       "evidence": {
-        "blocker": "issue_901_boundary_aware_gateway_refresh_required_before_recurring_activation_preflight",
+        "blocker": "product_owner_recurring_activation_approval_required_after_issue_901_completed",
         "software_prerequisites": "tg01_tg02_tg03_merged_green",
         "production_deployment": "passed_runtime/deployments/20260904T032305Z_source_9a3556b25b257396d15db80af591d1cc3684b8f7",
         "real_telegram_contact": "read_only_getupdates_confirmed_testlab_supergroup",
@@ -1876,7 +1876,7 @@
         "group_title_observed": "TestLAB",
         "bot_username_observed": "nex0lab_bot",
         "group_numeric_identity": "confirmed_runtime_only_not_committed",
-        "next_gate": "issue_901_read_only_preflight_then_explicit_product_owner_gateway_refresh_approval_then_refresh_acceptance_then_fresh_recurring_activation_preflight_and_separate_activation_approval",
+        "next_gate": "explicit_product_owner_recurring_activation_approval_then_guarded_activation_if_exact_replan_still_matches_approved_count",
         "backend_provisioning_helper": "local_verified_5_passed_full_gateway_46_passed",
         "backend_principal_target": "nexolab-telegram_laboratory_technician_reports.read_only",
         "runtime_env_preparation": "helper_ready_both_telegram_switches_disabled",
@@ -1912,7 +1912,7 @@
         "scheduler_prerequisite": "issue_845_pr846_merged_green_fail_closed_off",
         "state_reconciliation": "issue_860_pr861_merged_9a3556b25b257396d15db80af591d1cc3684b8f7_tg04_active",
         "main_arm64_artifact_preflight": "run_33781986481_artifact_9904235935_green_not_stage2_candidate_missing_tg04_pr842_repairs",
-        "current_gate": "issue_901_boundary_aware_gateway_refresh_delivery_and_scheduler_off",
+        "current_gate": "separate_product_owner_recurring_activation_approval_current_predicted_immediate_delivery_count_1_replan_at_execution",
         "pr842_repository_merge": "merged_main_13ab26392fcb1c1385dca3c1f619da4512fe568c_issue825_kept_open",
         "stage2_exact_main_artifact": "run_33786462681_artifact_9905912342_sha256_9ea8769da2dc0466b61354aee961d5564a1565bcda6eabe74b63c437207ef97e",
         "stage2_artifact_staging": "runtime/staging/tg04-stage2-13ab2639_checksums_source_platform_node_contract_verified",
@@ -1979,7 +1979,7 @@
         "real_testlab_payload_sha256": "3c4cb6e4e5100054914a70001ba8a9d430794c01fbbc5f11c25f543291f59f34",
         "topic_routing_request": "product_owner_requests_future_morning_reports_to_existing_forum_topic_Rankovyi_zvit_current_acceptance_send_was_General",
         "topic_routing_implementation": "issue_883_completed_pr886_main_6ea1996ef7bf3da6bed35220b813d0706d64a17f",
-        "recurring_scheduler_activation": "not_authorized_remains_false_issue_898_required",
+        "recurring_scheduler_activation": "not_authorized_remains_false_product_owner_gate",
         "topic_capture": "PASS_protected_exact_forum_challenge_configured_runtime_only_numeric_thread_id_not_committed_or_printed",
         "topic_no_send_dry_run": "PASS_exact_main_2e1a72cedc016f0333e7b1dfa20cd6b40ef9fb41_snapshot_76957482-57c4-4daf-ac30-d8592847cfbd",
         "topic_no_send_result": "status_dry_run_ready_delivery_state_absent_duplicate_risk_false_payload_sha256_match",
@@ -1990,14 +1990,16 @@
         "real_topic_send": "PASS_exact_snapshot_76957482-57c4-4daf-ac30-d8592847cfbd_status_sent_delivery_state_sent_duplicate_risk_false_payload_sha256_match",
         "real_topic_outbox": "two_distinct_sent_rows_same_snapshot_one_General_one_topic_non_sent_zero_duplicate_risk_zero_both_message_ids_present",
         "real_topic_postcheck": "gateway_ready_delivery_false_miniapp_true_worker_false_last_send_null_scheduler_false_ephemeral_container_removed",
-        "persistent_gateway_image": "topic_aware_tg04_refresh_52d14cbd4122_sha256_16a78adc648ddc84a74d3098e8bb8338d3cd5349c6a055b801dc93ee675447c6",
+        "persistent_gateway_image": "boundary_aware_c19158b22a16_sha256_f3f846a21b946ccef6ae61879777cab08bf9334f0207ccf070aed0a2b64a7ffd",
         "persistent_gateway_refresh": "PASS_exact_main_52d14cbd41224b15b0f3b396aaf9c60ab2f9571c_image_sha256_16a78adc648ddc84a74d3098e8bb8338d3cd5349c6a055b801dc93ee675447c6_evidence_runtime/evidence/tg04-telegram-refresh-20260904T121232Z",
         "gateway_refresh_issue": "893_completed_pr894_green_exact_head_bfab69e6c9f9fd5804277081a2bd8e333885cd59",
         "persistent_gateway_observation": "pre_topic_stage1_image_no_topic_env_contract_refresh_required_before_scheduler",
         "gateway_refresh_authorization": "approved_and_consumed_gateway_only_production_refresh_2026-09-04",
-        "persistent_gateway_postcheck": "gateway_ready_delivery_false_miniapp_true_worker_false_last_send_null_topic_present_outbox_volume_unchanged_core_ids_unchanged_tailscale_unchanged_scheduler_false",
+        "persistent_gateway_postcheck": "gateway_ready_delivery_false_miniapp_true_worker_false_last_send_null_outbox_hash_unchanged_core_ids_unchanged_tailscale_unchanged_scheduler_false",
         "restart_idempotency_acceptance": "PASS_two_total_sent_rows_one_General_one_topic_attempts_one_updated_at_before_refresh_non_sent_zero_duplicate_risk_zero_recovered_unknown_zero_no_resend",
-        "issue_898_repository_guard": "completed_pr900_exact_head_e0f36abc_all_required_checks_green_codex_clean"
+        "issue_898_repository_guard": "completed_pr900_exact_head_e0f36abc_all_required_checks_green_codex_clean",
+        "issue_901_completion": "PASS_pr904_merged_c19158b2_gateway_refresh_exact_target_f3f846a2_runtime_evidence_tg04-telegram-refresh-20260905T034958Z",
+        "recurring_activation_preflight": "PASS_2026-09-05T06:51_Europe_Kyiv_due_2026-09-04_snapshot_absent_generation_1_immediate_delivery_1_outbox_2_non_sent_0_duplicate_risk_0"
       }
     },
     {
@@ -2436,7 +2438,7 @@
       "issue": 901,
       "title": "Refresh production Gateway to boundary-aware image with delivery OFF",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "ops/901-boundary-aware-gateway-refresh",
       "depends_on": [
         825,
@@ -2451,8 +2453,8 @@
         "telegram_send": "none_in_refresh_work_package",
         "modbus_write": "none",
         "hardware_write": "none",
-        "production_refresh_authorization": "NOT_REQUESTED_PR904_MUST_MERGE_GREEN_THEN_FRESH_EXACT_MAIN_PREFLIGHT",
-        "next_gate": "state checkpoint verify -> push exact PR #904 head containing a0c0dd16 remediation -> require fresh exact-head GitHub CI and Codex review -> resolve all threads -> merge only GREEN; then fresh exact-merged-main immutable target build/read-only production preflight before Product Owner refresh approval",
+        "production_refresh_authorization": "approved_and_consumed_2026-09-05_exact_source_current_target_tuple",
+        "next_gate": "parent_825_separate_product_owner_recurring_activation_approval_current_predicted_immediate_delivery_count_1_replan_at_execution",
         "guard_hardening": "target_image_must_be_prebuilt_preapproved_exact_image_id_with_exact_OCI_revision_and_behavioral_boundary_before_MUTATED",
         "post_approval_build": "forbidden_removed_from_refresh_guard",
         "target_image_contract": "local_exact_preapproved_sha256_image_required_not_equal_current_image",
@@ -2478,7 +2480,7 @@
         "gateway_last_send_after_preflight": "null",
         "rollback_image_available": "sha256:16a78adc648ddc84a74d3098e8bb8338d3cd5349c6a055b801dc93ee675447c6",
         "source_authority": "controlled_source_deployment:9a3556b25b257396d15db80af591d1cc3684b8f7:schema_20260902_0031:linux_arm64:lan:ready",
-        "runtime_evidence_path": "runtime/evidence/tg04-901-preflight-20260904T211013Z",
+        "runtime_evidence_path": "runtime/evidence/tg04-telegram-refresh-20260905T034958Z",
         "approval_target_status": "PROVISIONAL_INVALID_FOR_FINAL_APPROVAL_AFTER_PR904_MERGE_REBUILD_REQUIRED",
         "latest_review_finding": "p1_immutable_build_context_resolved; p1_stale_origin_main_and_p2_missing_preapproval_probe_resolved; fresh_p2_root_sudo_fetch_credential_context_resolved_locally_pending_exact_head_authority",
         "review_p1_remediation": "exact_git_object_gateway_subtree_streamed_by_git_archive_into_docker_build_plus_source_tree_label_verified_by_refresh_guard_before_behavioral_probe_and_mutation",
@@ -2494,7 +2496,24 @@
         "local_canonical_verifier": "GREEN_on_dda39db7_full_core_quality_143_files_697_tests_production_build_central_edge_compose; not claimed for a0c0dd16",
         "latest_code_candidate_sha": "a0c0dd16ca836605126a1966c41075b1cf574390",
         "latest_exact_head_local_targeted": "47_passed_gateway_refresh_recurring_activation_stage1_safety_plus_shell_syntax_git_diff_check",
-        "heavy_local_exact_head_gate": "not_rerun_on_production_4gb_pi_swap_saturated_remote_github_exact_head_full_ci_required"
+        "heavy_local_exact_head_gate": "not_rerun_on_production_4gb_pi_swap_saturated_remote_github_exact_head_full_ci_required",
+        "repository_pull_request": 904,
+        "repository_exact_head_sha": "f3975ff2727035b2c1c8ffb0d5aec4b70863a5e3",
+        "repository_checks": "core_quality_build_success;telemetry_service_success;nexolab_merge_gate_success;fresh_codex_review_clean;all_review_threads_resolved",
+        "final_preflight_source_sha": "c19158b22a1632945a961726b4b6b0794d1ae330",
+        "final_preflight_current_gateway_image_id": "sha256:16a78adc648ddc84a74d3098e8bb8338d3cd5349c6a055b801dc93ee675447c6",
+        "final_preflight_target_gateway_image_id": "sha256:f3f846a21b946ccef6ae61879777cab08bf9334f0207ccf070aed0a2b64a7ffd",
+        "final_preflight_boundary_proof": "PASS_exact_git_object_revision_tree_network_none_read_only",
+        "final_preflight_evidence_path": "runtime/evidence/tg04-901-postmerge-preflight-20260904T232410Z",
+        "production_refresh": "PASS_gateway_only_guard_exit_0_2026-09-05T06:50_Europe_Kyiv",
+        "post_refresh_gateway": "healthy_exact_target_delivery_false_miniapp_true_worker_false_last_send_null",
+        "post_refresh_scheduler": "OFF",
+        "post_refresh_outbox": "2_sent_attempts_1_1_message_ids_present_non_sent_0_duplicate_risk_0",
+        "outbox_fingerprint_unchanged_after_refresh": "PASS",
+        "core_container_identities_unchanged_after_refresh": "PASS",
+        "tailscale_serve_topology_unchanged_after_refresh": "PASS",
+        "recurring_read_only_preflight": "PASS_due_2026-09-04_snapshot_absent_generate_1_immediate_delivery_1_outbox_2_sent_non_sent_0_duplicate_risk_0",
+        "runtime_source_sha": "c19158b22a1632945a961726b4b6b0794d1ae330"
       }
     }
   ],
