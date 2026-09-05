@@ -29,6 +29,7 @@ from app.instrumentation.repository import (
     InstrumentationRepositoryError,
     InstrumentKeyConflictError,
     InstrumentNotFoundError,
+    PressureReferenceRequiredError,
     InstrumentVersionConflictError,
     SignalKeyConflictError,
     SignalNotFoundError,
@@ -516,6 +517,7 @@ def _instrument_response(row: Instrument) -> InstrumentResponse:
         manufacturer=row.manufacturer,
         model=row.model,
         serial_number=row.serial_number,
+        pressure_reference=row.pressure_reference,
         lifecycle_state=row.lifecycle_state,
         metadata=dict(row.attributes),
         version=row.version,
@@ -650,6 +652,7 @@ def _repository_http_error(error: InstrumentationRepositoryError) -> HTTPExcepti
             SignalKeyConflictError,
             HistoryOrderConflictError,
             HistoryIntegrityConflictError,
+            PressureReferenceRequiredError,
         ),
     ):
         return _api_http_error(409, error.code, str(error))

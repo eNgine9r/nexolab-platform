@@ -43,6 +43,24 @@ def test_migration_created_org_scoped_registry_schema() -> None:
             "fk_instrument_signals_organization",
             "fk_instrument_signals_instrument",
         } <= signal_foreign_keys
+        instrument_checks = {
+            item["name"] for item in inspector.get_check_constraints("instruments")
+        }
+        assert "ck_instruments_pressure_reference" in instrument_checks
+        with engine.connect() as connection:
+            trigger_names = set(
+                connection.execute(
+                    text(
+                        "SELECT tgname FROM pg_trigger "
+                        "WHERE NOT tgisinternal AND tgrelid IN "
+                        "('instruments'::regclass, 'instrument_signals'::regclass)"
+                    )
+                ).scalars()
+            )
+        assert {
+            "trg_instrument_pressure_reference_guard",
+            "trg_instrument_signal_pressure_reference_guard",
+        } <= trigger_names
         acceptance_checks = {
             item["name"]
             for item in inspector.get_check_constraints(
@@ -184,6 +202,97 @@ def test_postgres_prevents_cross_org_links_overlap_and_history_rewrite() -> None
                 connection.execute(
                     text("DELETE FROM instrument_acceptance_history WHERE id = :id"),
                     {"id": first.id},
+                )
+    finally:
+        database.dispose()
+
+
+def test_postgres_pressure_signal_reference_guards_fail_closed() -> None:
+    database = Database(os.environ["DATABASE_URL"])
+    security = SecurityRepository(database)
+    repository = InstrumentationRepository(database)
+    organization_id = str(uuid4())
+    suffix = uuid4().hex
+    try:
+        security.provision_organization(
+            organization_id=organization_id,
+            slug=f"instrumentation-pressure-{suffix}",
+            name="Pressure reference guard organization",
+        )
+        instrument = repository.create_instrument(
+            InstrumentCreate(
+                inventory_key=f"PRESS-{suffix}",
+                display_name="Pressure reference guard probe",
+                instrument_kind="pressure_transmitter",
+            ),
+            actor_id="test-suite",
+            organization_id=organization_id,
+        )
+        signal_id = str(uuid4())
+        with pytest.raises(DBAPIError):
+            with database.engine.begin() as connection:
+                connection.execute(
+                    text(
+                        """
+                        INSERT INTO instrument_signals (
+                            id, organization_id, instrument_id, business_key,
+                            display_name, physical_quantity, engineering_unit,
+                            lifecycle_state, metadata, version, created_by, updated_by,
+                            created_at, updated_at
+                        ) VALUES (
+                            :id, :organization_id, :instrument_id, :business_key,
+                            'Pressure', 'pressure', 'bar', 'active', '{}'::json, 1,
+                            'test-suite', 'test-suite', now(), now()
+                        )
+                        """
+                    ),
+                    {
+                        "id": signal_id,
+                        "organization_id": organization_id,
+                        "instrument_id": instrument.id,
+                        "business_key": f"PRESS-{suffix}.PRIMARY",
+                    },
+                )
+
+        with database.engine.begin() as connection:
+            connection.execute(
+                text(
+                    "UPDATE instruments SET pressure_reference = 'gauge' "
+                    "WHERE organization_id = :organization_id AND id = :instrument_id"
+                ),
+                {"organization_id": organization_id, "instrument_id": instrument.id},
+            )
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO instrument_signals (
+                        id, organization_id, instrument_id, business_key,
+                        display_name, physical_quantity, engineering_unit,
+                        lifecycle_state, metadata, version, created_by, updated_by,
+                        created_at, updated_at
+                    ) VALUES (
+                        :id, :organization_id, :instrument_id, :business_key,
+                        'Pressure', 'pressure', 'bar', 'active', '{}'::json, 1,
+                        'test-suite', 'test-suite', now(), now()
+                    )
+                    """
+                ),
+                {
+                    "id": signal_id,
+                    "organization_id": organization_id,
+                    "instrument_id": instrument.id,
+                    "business_key": f"PRESS-{suffix}.PRIMARY",
+                },
+            )
+
+        with pytest.raises(DBAPIError):
+            with database.engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "UPDATE instruments SET pressure_reference = NULL "
+                        "WHERE organization_id = :organization_id AND id = :instrument_id"
+                    ),
+                    {"organization_id": organization_id, "instrument_id": instrument.id},
                 )
     finally:
         database.dispose()

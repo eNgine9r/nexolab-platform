@@ -16,6 +16,7 @@ from pydantic import (
 
 RegistryLifecycleState = Literal["active", "inactive", "retired"]
 CalibrationState = Literal["valid", "due", "expired", "revoked", "unknown"]
+PressureReference = Literal["absolute", "gauge"]
 
 _CANONICAL_IDENTIFIER_RE = re.compile(r"^[a-z][a-z0-9_.-]*$")
 _UNIT_IDENTIFIER_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_.%/^-]*$")
@@ -29,7 +30,6 @@ _FUTURE_PROCESS_ROLES = frozenset(
     }
 )
 
-
 class InstrumentWrite(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -39,6 +39,7 @@ class InstrumentWrite(BaseModel):
     manufacturer: Annotated[str | None, Field(max_length=128)] = None
     model: Annotated[str | None, Field(max_length=128)] = None
     serial_number: Annotated[str | None, Field(max_length=128)] = None
+    pressure_reference: PressureReference | None = None
     lifecycle_state: RegistryLifecycleState = "active"
     metadata: dict[str, JsonValue] = Field(default_factory=dict)
 
@@ -79,6 +80,7 @@ class InstrumentResponse(BaseModel):
     manufacturer: str | None
     model: str | None
     serial_number: str | None
+    pressure_reference: PressureReference | None
     lifecycle_state: RegistryLifecycleState
     metadata: dict[str, JsonValue]
     version: int

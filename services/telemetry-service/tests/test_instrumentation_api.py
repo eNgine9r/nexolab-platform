@@ -46,6 +46,20 @@ def signal_payload(key: str = "LAB-TEMP-001.PRIMARY") -> dict[str, object]:
     }
 
 
+def pressure_instrument_payload(key: str = "LAB-PRESS-001") -> dict[str, object]:
+    return {
+        "inventory_key": key,
+        "display_name": "Еталонний датчик тиску",
+        "instrument_kind": "pressure_transmitter",
+        "manufacturer": "NEXOLAB",
+        "model": "P-30",
+        "serial_number": "PSN-001",
+        "pressure_reference": "gauge",
+        "lifecycle_state": "active",
+        "metadata": {},
+    }
+
+
 def build_client(
     tmp_path: Path,
 ) -> tuple[TestClient, Database, SecurityRepository, InstrumentationRepository]:
@@ -187,6 +201,73 @@ def test_instrument_and_signal_crud_use_etags_and_process_neutral_identity(
     )
     assert rejected.status_code == 422
     assert "process-neutral" in rejected.text
+
+
+def test_pressure_signal_requires_typed_instrument_pressure_reference(tmp_path: Path) -> None:
+    api, _, _, _ = build_client(tmp_path)
+
+    missing_reference = pressure_instrument_payload("LAB-PRESS-MISSING")
+    missing_reference.pop("pressure_reference")
+    created_without_reference = api.post(
+        "/api/v1/instrumentation/instruments",
+        json=missing_reference,
+    )
+    assert created_without_reference.status_code == 201
+    instrument_id = created_without_reference.json()["id"]
+
+    pressure_signal = signal_payload("LAB-PRESS-MISSING.PRIMARY")
+    pressure_signal["display_name"] = "Тиск"
+    pressure_signal["physical_quantity"] = "pressure"
+    pressure_signal["engineering_unit"] = "bar"
+    rejected_signal = api.post(
+        f"/api/v1/instrumentation/instruments/{instrument_id}/signals",
+        json=pressure_signal,
+    )
+    assert rejected_signal.status_code == 409
+    assert rejected_signal.json()["detail"]["code"] == "pressure_reference_required"
+
+    invalid_reference = pressure_instrument_payload("LAB-PRESS-INVALID")
+    invalid_reference["pressure_reference"] = "differential"
+    invalid_response = api.post(
+        "/api/v1/instrumentation/instruments",
+        json=invalid_reference,
+    )
+    assert invalid_response.status_code == 422
+
+    with_reference = dict(missing_reference)
+    with_reference["pressure_reference"] = "gauge"
+    updated = api.put(
+        f"/api/v1/instrumentation/instruments/{instrument_id}",
+        headers={"If-Match": created_without_reference.headers["etag"]},
+        json=with_reference,
+    )
+    assert updated.status_code == 200
+    assert updated.json()["pressure_reference"] == "gauge"
+
+    created_signal = api.post(
+        f"/api/v1/instrumentation/instruments/{instrument_id}/signals",
+        json=pressure_signal,
+    )
+    assert created_signal.status_code == 201
+    assert created_signal.json()["physical_quantity"] == "pressure"
+
+    remove_reference = dict(missing_reference)
+    rejected_update = api.put(
+        f"/api/v1/instrumentation/instruments/{instrument_id}",
+        headers={"If-Match": updated.headers["etag"]},
+        json=remove_reference,
+    )
+    assert rejected_update.status_code == 409
+    assert rejected_update.json()["detail"]["code"] == "pressure_reference_required"
+
+    atmospheric = pressure_instrument_payload("LAB-ATM-001")
+    atmospheric["pressure_reference"] = "absolute"
+    atmospheric_response = api.post(
+        "/api/v1/instrumentation/instruments",
+        json=atmospheric,
+    )
+    assert atmospheric_response.status_code == 201
+    assert atmospheric_response.json()["pressure_reference"] == "absolute"
 
 
 def test_organization_unique_business_keys_return_conflict(tmp_path: Path) -> None:

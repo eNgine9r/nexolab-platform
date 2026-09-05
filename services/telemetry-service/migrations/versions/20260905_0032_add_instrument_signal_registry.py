@@ -27,6 +27,7 @@ def upgrade() -> None:
         sa.Column("manufacturer", sa.String(length=128), nullable=True),
         sa.Column("model", sa.String(length=128), nullable=True),
         sa.Column("serial_number", sa.String(length=128), nullable=True),
+        sa.Column("pressure_reference", sa.String(length=16), nullable=True),
         sa.Column(
             "lifecycle_state",
             sa.String(length=16),
@@ -59,6 +60,10 @@ def upgrade() -> None:
         sa.CheckConstraint(
             "lifecycle_state IN ('active', 'inactive', 'retired')",
             name="ck_instruments_lifecycle_state",
+        ),
+        sa.CheckConstraint(
+            "pressure_reference IS NULL OR pressure_reference IN ('absolute', 'gauge')",
+            name="ck_instruments_pressure_reference",
         ),
         sa.CheckConstraint("version >= 1", name="ck_instruments_version_positive"),
         sa.ForeignKeyConstraint(
@@ -316,7 +321,70 @@ def upgrade() -> None:
         postgresql_where=sa.text("valid_to IS NULL"),
     )
 
+    _create_pressure_reference_guards()
     _create_history_guards()
+
+
+def _create_pressure_reference_guards() -> None:
+    op.execute(
+        """
+        CREATE FUNCTION guard_instrument_signal_pressure_reference()
+        RETURNS trigger AS $$
+        DECLARE
+            parent_pressure_reference text;
+        BEGIN
+            IF NEW.physical_quantity = 'pressure' THEN
+                SELECT pressure_reference
+                INTO parent_pressure_reference
+                FROM instruments
+                WHERE organization_id = NEW.organization_id
+                  AND id = NEW.instrument_id
+                FOR UPDATE;
+                IF parent_pressure_reference IS NULL THEN
+                    RAISE EXCEPTION
+                        'pressure signals require instrument pressure_reference';
+                END IF;
+            END IF;
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+        """
+    )
+    op.execute(
+        """
+        CREATE TRIGGER trg_instrument_signal_pressure_reference_guard
+        BEFORE INSERT OR UPDATE OF organization_id, instrument_id, physical_quantity
+        ON instrument_signals
+        FOR EACH ROW EXECUTE FUNCTION guard_instrument_signal_pressure_reference();
+        """
+    )
+    op.execute(
+        """
+        CREATE FUNCTION guard_instrument_pressure_reference()
+        RETURNS trigger AS $$
+        BEGIN
+            IF NEW.pressure_reference IS NULL AND EXISTS (
+                SELECT 1
+                FROM instrument_signals
+                WHERE organization_id = NEW.organization_id
+                  AND instrument_id = NEW.id
+                  AND physical_quantity = 'pressure'
+            ) THEN
+                RAISE EXCEPTION
+                    'pressure_reference cannot be cleared while pressure signals exist';
+            END IF;
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+        """
+    )
+    op.execute(
+        """
+        CREATE TRIGGER trg_instrument_pressure_reference_guard
+        BEFORE UPDATE OF pressure_reference ON instruments
+        FOR EACH ROW EXECUTE FUNCTION guard_instrument_pressure_reference();
+        """
+    )
 
 
 def _create_history_guards() -> None:
@@ -412,6 +480,15 @@ def _create_history_guards() -> None:
 
 
 def downgrade() -> None:
+    op.execute(
+        "DROP TRIGGER IF EXISTS trg_instrument_pressure_reference_guard ON instruments"
+    )
+    op.execute("DROP FUNCTION IF EXISTS guard_instrument_pressure_reference()")
+    op.execute(
+        "DROP TRIGGER IF EXISTS trg_instrument_signal_pressure_reference_guard "
+        "ON instrument_signals"
+    )
+    op.execute("DROP FUNCTION IF EXISTS guard_instrument_signal_pressure_reference()")
     op.execute(
         "DROP TRIGGER IF EXISTS trg_instrument_calibration_history_guard "
         "ON instrument_calibration_history"

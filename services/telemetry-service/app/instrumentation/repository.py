@@ -53,6 +53,10 @@ class SignalKeyConflictError(InstrumentationRepositoryError):
     code = "signal_business_key_conflict"
 
 
+class PressureReferenceRequiredError(InstrumentationRepositoryError):
+    code = "pressure_reference_required"
+
+
 class HistoryOrderConflictError(InstrumentationRepositoryError):
     code = "history_effective_time_conflict"
 
@@ -142,6 +146,7 @@ class InstrumentationRepository:
             manufacturer=payload.manufacturer,
             model=payload.model,
             serial_number=payload.serial_number,
+            pressure_reference=payload.pressure_reference,
             lifecycle_state=payload.lifecycle_state,
             attributes=dict(payload.metadata),
             version=1,
@@ -197,12 +202,26 @@ class InstrumentationRepository:
                             actual_version=row.version,
                         )
                     before = _instrument_snapshot(row)
+                    if payload.pressure_reference is None and session.scalar(
+                        select(Signal.id)
+                        .where(
+                            Signal.organization_id == organization_id,
+                            Signal.instrument_id == instrument_id,
+                            Signal.physical_quantity == "pressure",
+                        )
+                        .limit(1)
+                    ) is not None:
+                        raise PressureReferenceRequiredError(
+                            "pressure_reference cannot be cleared while the instrument owns "
+                            "a pressure signal"
+                        )
                     row.inventory_key = payload.inventory_key
                     row.display_name = payload.display_name
                     row.instrument_kind = payload.instrument_kind
                     row.manufacturer = payload.manufacturer
                     row.model = payload.model
                     row.serial_number = payload.serial_number
+                    row.pressure_reference = payload.pressure_reference
                     row.lifecycle_state = payload.lifecycle_state
                     row.attributes = dict(payload.metadata)
                     row.version += 1
@@ -273,12 +292,13 @@ class InstrumentationRepository:
         try:
             with Session(self._engine, expire_on_commit=False) as session:
                 with session.begin():
-                    self._instrument(
+                    instrument = self._instrument(
                         session,
                         organization_id,
                         instrument_id,
                         for_update=True,
                     )
+                    _require_pressure_reference(instrument, payload.physical_quantity)
                     row = Signal(
                         id=str(uuid4()),
                         organization_id=organization_id,
@@ -328,7 +348,10 @@ class InstrumentationRepository:
         try:
             with Session(self._engine, expire_on_commit=False) as session:
                 with session.begin():
-                    self._instrument(session, organization_id, instrument_id)
+                    instrument = self._instrument(
+                        session, organization_id, instrument_id, for_update=True
+                    )
+                    _require_pressure_reference(instrument, payload.physical_quantity)
                     row = self._signal(
                         session,
                         organization_id,
@@ -752,6 +775,13 @@ def _as_utc(value: datetime) -> datetime:
     return value.astimezone(UTC)
 
 
+def _require_pressure_reference(instrument: Instrument, physical_quantity: str) -> None:
+    if physical_quantity == "pressure" and instrument.pressure_reference is None:
+        raise PressureReferenceRequiredError(
+            "pressure signals require an Instrument pressure_reference of absolute or gauge"
+        )
+
+
 def _instrument_snapshot(row: Instrument) -> dict[str, Any]:
     return {
         "id": row.id,
@@ -762,6 +792,7 @@ def _instrument_snapshot(row: Instrument) -> dict[str, Any]:
         "manufacturer": row.manufacturer,
         "model": row.model,
         "serial_number": row.serial_number,
+        "pressure_reference": row.pressure_reference,
         "lifecycle_state": row.lifecycle_state,
         "metadata": dict(row.attributes),
         "version": row.version,

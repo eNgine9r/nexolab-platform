@@ -31,6 +31,7 @@ _CALIBRATION_STATE_SQL = ", ".join(f"'{state}'" for state in CALIBRATION_STATES)
 _REGISTRY_LIFECYCLE_SQL = ", ".join(
     f"'{state}'" for state in REGISTRY_LIFECYCLE_STATES
 )
+_PRESSURE_REFERENCE_SQL = "'absolute', 'gauge'"
 
 
 class Instrument(Base):
@@ -49,6 +50,10 @@ class Instrument(Base):
         CheckConstraint(
             f"lifecycle_state IN ({_REGISTRY_LIFECYCLE_SQL})",
             name="ck_instruments_lifecycle_state",
+        ),
+        CheckConstraint(
+            f"pressure_reference IS NULL OR pressure_reference IN ({_PRESSURE_REFERENCE_SQL})",
+            name="ck_instruments_pressure_reference",
         ),
         CheckConstraint("version >= 1", name="ck_instruments_version_positive"),
         Index(
@@ -76,6 +81,7 @@ class Instrument(Base):
     manufacturer: Mapped[str | None] = mapped_column(String(128), nullable=True)
     model: Mapped[str | None] = mapped_column(String(128), nullable=True)
     serial_number: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    pressure_reference: Mapped[str | None] = mapped_column(String(16), nullable=True)
     lifecycle_state: Mapped[str] = mapped_column(
         String(16), nullable=False, default="active", server_default="active"
     )
