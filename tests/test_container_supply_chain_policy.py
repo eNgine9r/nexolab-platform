@@ -170,7 +170,7 @@ def test_openssl_quic_exception_is_fully_retired_after_fresh_scan() -> None:
     )
 
 
-def test_current_device_agent_expat_exception_is_exact_and_short_lived() -> None:
+def test_expat_exception_is_retired_after_2026_09_05_fresh_scan() -> None:
     root = Path(__file__).resolve().parents[1]
     payload = json.loads(
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
@@ -178,25 +178,46 @@ def test_current_device_agent_expat_exception_is_exact_and_short_lived() -> None
     matches = [
         entry
         for entry in payload["exceptions"]
-        if entry["image_id"] == "device-agent"
-        and entry["package"] == "libexpat1"
+        if entry["package"] == "libexpat1"
         and entry["vulnerability"] == "CVE-2026-66046"
     ]
 
-    assert len(matches) == 1
-    decision = matches[0]
-    assert decision["owner"] == "platform-security"
-    assert decision["expires_on"] == "2026-09-12"
-    assert "33637555344" in decision["reason"]
-    assert "e606b96cb65118b03e3807367322887529988d28" in decision["reason"]
-    assert "no XML import/parser/input path" in decision["reason"]
-    assert "PR #1321" in decision["reason"]
-    assert "2.8.4" in decision["reason"]
-    assert "finding disappears" in decision["reason"]
-    assert "severity becomes Critical" in decision["reason"]
+    assert matches == []
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 8, 28),
+        date(2026, 9, 5),
+    )
+
+
+def test_util_linux_78409_disagreement_is_explicit_and_short_lived() -> None:
+    root = Path(__file__).resolve().parents[1]
+    payload = json.loads(
+        (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
+    )
+    matches = [
+        entry
+        for entry in payload["exceptions"]
+        if entry["vulnerability"] == "CVE-2026-78409"
+    ]
+
+    assert len(matches) == 11
+    assert {entry["image_id"] for entry in matches} == {
+        "device-agent",
+        "telegram-gateway",
+        "telemetry-service",
+    }
+    assert all(entry["owner"] == "platform-security" for entry in matches)
+    assert all(entry["expires_on"] == "2026-09-12" for entry in matches)
+    assert all("33957510014" in entry["reason"] for entry in matches)
+    assert all("2.41.5-0+deb13u1" in entry["reason"] for entry in matches)
+    assert all("Red Hat CNA" in entry["reason"] for entry in matches)
+    assert all("GHSA-8f2p-47x3-43mv" in entry["reason"] for entry in matches)
+    assert all("Debian Security Tracker" in entry["reason"] for entry in matches)
+    assert all("authoritative source data currently disagrees" in entry["reason"] for entry in matches)
+    assert all("severity becomes Critical" in entry["reason"] for entry in matches)
+    MODULE.validate_exceptions(
+        root / "security/vulnerability-exceptions.json",
+        date(2026, 9, 5),
     )
 
 
