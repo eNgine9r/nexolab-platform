@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-06T00:41:24+03:00",
+  "timestamp": "2026-09-06T01:38:06+03:00",
   "actor": "ChatGPT",
-  "event": "issue_717_state_prose_aligned_with_active_candidate",
+  "event": "issue_717_review_remediation_and_compatibility_green",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -31,10 +31,10 @@
       "fresh_audit_migration_head": "20260902_0031",
       "historical_pr_718_policy": "reference_only_closed_unmerged_do_not_reopen_or_merge_as_is",
       "fresh_branch_required": true,
-      "implementation_checkpoint_sha": "bf264729f64cb2e0e6cc66dfacdff52f1547b56b",
+      "implementation_checkpoint_sha": "7d5ee2c595cc4415636b6d24cfc1d5bbff21c273",
       "implementation_base_main_sha": "eaaed439771f82ff335c6f097ace8ab6694e22e3",
       "migration_head": "20260905_0032",
-      "local_candidate": "GREEN",
+      "local_candidate": "GREEN_TARGETED_REVIEW_REMEDIATION",
       "local_candidate_impact_classes": [
         "backend",
         "cross_surface_or_unknown",
@@ -45,18 +45,23 @@
         "Offline Bundle",
         "Refrigeration Browser Acceptance"
       ],
-      "focused_registry_postgresql_api_security": "17_passed",
-      "climate_refrigeration_compatibility": "48_passed",
-      "migration_roundtrip": "0032_to_0031_to_0032_sentinel_preserved_5_passed",
+      "focused_registry_postgresql_api_security": "20_passed",
+      "climate_refrigeration_compatibility": "48_passed_disposable_postgresql_2026-09-06",
+      "migration_roundtrip": "0032_to_0031_to_0032_sentinel_preserved_6_postgresql_passed",
       "frontend_core_candidate": "143_files_697_tests_typecheck_build_green",
-      "pressure_reference_semantics": "typed_absolute_or_gauge_signal_physical_quantity_authority_db_fail_closed",
+      "pressure_reference_semantics": "typed_absolute_or_gauge_signal_physical_quantity_authority_stable_identity_db_fail_closed",
       "production_deployment": "not_executed",
       "modbus_write": "none",
-      "hardware_write": "none"
+      "hardware_write": "none",
+      "focused_registry_non_postgresql_api_security": "14_passed",
+      "alembic_head": "20260905_0032_single_head",
+      "offline_migration_sql": "2631_lines_passed",
+      "scoped_team_lead_review": "clean_no_new_p1_p2",
+      "codex_review_verdict": "not_claimed_no_pending_process_after_rollover"
     }
   },
   "observations": [],
-  "next_action": "Commit the state-prose correction, finish fresh read-only Codex review, rerun canonical local-candidate verification on the resulting exact head, then push and open the fresh #717 pull request.",
+  "next_action": "Run the canonical local-candidate verifier on the committed exact RFX-01 head, then push the fresh feature branch, open a new #717 pull request, and require exact-head Core/Telemetry/Authenticated Dashboard/Offline Bundle/Refrigeration Browser/NEXOLAB Merge Gate GREEN before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
