@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-06T00:34:16+03:00",
+  "timestamp": "2026-09-06T00:41:24+03:00",
   "actor": "ChatGPT",
-  "event": "issue_717_local_candidate_green",
+  "event": "issue_717_state_prose_aligned_with_active_candidate",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -56,7 +56,7 @@
     }
   },
   "observations": [],
-  "next_action": "Commit the reconciled RFX-01 state, rerun canonical local-candidate verification on the exact final branch head, push the branch, open a fresh PR for #717, and require exact-head Core/Telemetry/Authenticated Dashboard/Offline Bundle/Refrigeration Browser/NEXOLAB Merge Gate GREEN before merge.",
+  "next_action": "Commit the state-prose correction, finish fresh read-only Codex review, rerun canonical local-candidate verification on the resulting exact head, then push and open the fresh #717 pull request.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
