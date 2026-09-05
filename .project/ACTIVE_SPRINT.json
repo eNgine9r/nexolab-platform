@@ -22,11 +22,7 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 926,
-      "title": "Resolve pre-existing PostCSS/nanoid production audit findings",
-      "branch": "security/926-postcss-nanoid-audit"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -2665,7 +2661,7 @@
       "issue": 926,
       "title": "Resolve pre-existing PostCSS/nanoid production audit findings",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         925
       ],
@@ -2681,7 +2677,17 @@
         "runtime_mutation": "none",
         "production_deployment": "not_executed",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "verified_head_sha": "391c7f3ed5c325fae93a404eddb4de18792b6766",
+        "pull_request": 929,
+        "checks": {
+          "CI": "success:33988079240",
+          "Authenticated Dashboard Acceptance": "success:33988079213",
+          "Offline Bundle": "success:33988079212",
+          "Refrigeration Browser Acceptance": "success:33988079209",
+          "NEXOLAB Merge Gate": "success:33988079240",
+          "review_threads": "0_unresolved"
+        }
       }
     }
   ],
