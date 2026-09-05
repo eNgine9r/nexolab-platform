@@ -1,6 +1,15 @@
 from __future__ import annotations
 
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN, localcontext
+
+
+ANALOG_SCALING_STORAGE_PRECISION = 38
+ANALOG_SCALING_STORAGE_SCALE = 18
+# Two persisted NUMERIC(38,18) ranges may be multiplied before division.
+# Keep enough guard precision for the 76-digit intermediate, then quantize
+# the engineering result back to the canonical 18-decimal storage scale.
+_ANALOG_SCALING_INTERMEDIATE_PRECISION = (ANALOG_SCALING_STORAGE_PRECISION * 2) + 4
+_ANALOG_SCALING_OUTPUT_QUANTUM = Decimal(1).scaleb(-ANALOG_SCALING_STORAGE_SCALE)
 
 
 class AnalogScalingUnavailableError(ValueError):
@@ -54,4 +63,17 @@ def scale_linear_two_point(
             "analog_over_range", "raw value is above the accepted analog profile domain"
         )
 
-    return eng_lower + (raw - lower) * (eng_upper - eng_lower) / (upper - lower)
+    with localcontext() as context:
+        context.prec = _ANALOG_SCALING_INTERMEDIATE_PRECISION
+        context.rounding = ROUND_HALF_EVEN
+        scaled = eng_lower + (raw - lower) * (eng_upper - eng_lower) / (upper - lower)
+        try:
+            return scaled.quantize(
+                _ANALOG_SCALING_OUTPUT_QUANTUM,
+                rounding=ROUND_HALF_EVEN,
+            )
+        except InvalidOperation as error:
+            raise AnalogScalingUnavailableError(
+                "analog_scaled_value_invalid",
+                "scaled analog value cannot be represented at canonical precision",
+            ) from error

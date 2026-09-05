@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import Decimal, localcontext
 
 import pytest
 
@@ -22,6 +22,38 @@ def test_linear_4_20ma_scaling_is_decimal_exact() -> None:
     assert scale_linear_two_point(Decimal("4"), **profile) == Decimal("0")
     assert scale_linear_two_point(Decimal("12"), **profile) == Decimal("15")
     assert scale_linear_two_point(Decimal("20"), **profile) == Decimal("30")
+
+
+def test_linear_scaling_pins_decimal_context_and_quantizes_to_storage_scale() -> None:
+    expected = Decimal("6172839450617283945.061728394506172839")
+    profile = dict(
+        raw_min=Decimal("4"),
+        raw_max=Decimal("20"),
+        engineering_min=Decimal("0"),
+        engineering_max=Decimal("12345678901234567890.123456789012345678"),
+    )
+
+    with localcontext() as context:
+        context.prec = 6
+        constrained_context_result = scale_linear_two_point(Decimal("12"), **profile)
+
+    with localcontext() as context:
+        context.prec = 50
+        expanded_context_result = scale_linear_two_point(Decimal("12"), **profile)
+
+    assert constrained_context_result == expected
+    assert expanded_context_result == expected
+    assert constrained_context_result.as_tuple().exponent == -18
+
+
+def test_linear_scaling_rounds_non_terminating_results_half_even_to_18_places() -> None:
+    assert scale_linear_two_point(
+        Decimal("1"),
+        raw_min=Decimal("0"),
+        raw_max=Decimal("3"),
+        engineering_min=Decimal("0"),
+        engineering_max=Decimal("1"),
+    ) == Decimal("0.333333333333333333")
 
 
 def test_linear_scaling_supports_negative_engineering_ranges() -> None:
