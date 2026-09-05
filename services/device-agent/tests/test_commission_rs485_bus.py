@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -37,44 +39,141 @@ class CommissionRS485BusTests(unittest.TestCase):
 
             self.assertEqual(len(adapters), 1)
             self.assertEqual(adapters[0].real_path, str(target))
+            self.assertEqual(adapters[0].stable_path, str(root / "usb-test-if00-port0"))
+
+    def test_runtime_health_maps_container_paths_to_host_paths(self) -> None:
+        payload = {
+            "acquisition": {
+                "rs485_buses": [
+                    {"serial_device": "/host/dev/serial/by-id/bus-a"},
+                    {"serial_device": "/host/dev/serial/by-id/bus-b"},
+                ]
+            }
+        }
+        self.assertEqual(
+            MODULE.parse_runtime_protected_ports(payload),
+            ("/dev/serial/by-id/bus-a", "/dev/serial/by-id/bus-b"),
+        )
+
+    def test_runtime_health_requires_reported_bus_paths(self) -> None:
+        completed = subprocess.CompletedProcess(
+            args=[], returncode=0, stdout=json.dumps({"acquisition": {}}), stderr=""
+        )
+        with patch.object(MODULE.shutil, "which", return_value="/usr/bin/docker"), patch.object(
+            MODULE.subprocess, "run", return_value=completed
+        ):
+            with self.assertRaisesRegex(RuntimeError, "no protected RS-485 bus paths"):
+                MODULE.runtime_protected_ports()
+
+    def test_runtime_health_returns_all_production_ports(self) -> None:
+        payload = {
+            "acquisition": {
+                "rs485_buses": [
+                    {"serial_device": "/host/dev/serial/by-id/bus-a"},
+                    {"serial_device": "/host/dev/serial/by-id/bus-b"},
+                ]
+            }
+        }
+        completed = subprocess.CompletedProcess(
+            args=[], returncode=0, stdout=json.dumps(payload), stderr=""
+        )
+        with patch.object(MODULE.shutil, "which", return_value="/usr/bin/docker"), patch.object(
+            MODULE.subprocess, "run", return_value=completed
+        ):
             self.assertEqual(
-                adapters[0].stable_path,
-                str(root / "usb-test-if00-port0"),
+                MODULE.runtime_protected_ports(),
+                ("/dev/serial/by-id/bus-a", "/dev/serial/by-id/bus-b"),
             )
 
-    def test_selects_only_adapter_not_used_by_bus1(self) -> None:
-        existing = self.adapter("/dev/serial/by-id/existing", "/dev/ttyUSB0")
-        candidate = self.adapter("/dev/serial/by-id/new", "/dev/ttyUSB1")
-
+    def test_selects_only_adapter_outside_all_production_ports(self) -> None:
+        bus_a = self.adapter("/dev/serial/by-id/bus-a", "/dev/ttyUSB0")
+        bus_b = self.adapter("/dev/serial/by-id/bus-b", "/dev/ttyUSB1")
+        candidate = self.adapter("/dev/serial/by-id/new", "/dev/ttyUSB2")
         selected = MODULE.select_new_adapter(
-            (existing, candidate),
-            existing_port=existing.stable_path,
+            (bus_a, bus_b, candidate),
+            protected_ports=(bus_a.stable_path, bus_b.stable_path),
             requested_port=None,
         )
-
         self.assertEqual(selected, candidate)
-    def test_ambiguous_new_adapter_requires_explicit_selection(self) -> None:
-        adapters = (
-            self.adapter("/dev/serial/by-id/a"),
-            self.adapter("/dev/serial/by-id/b"),
-        )
 
-        with self.assertRaisesRegex(ValueError, "unambiguously"):
+    def test_refuses_either_current_production_adapter(self) -> None:
+        bus_a = self.adapter("/dev/serial/by-id/bus-a")
+        bus_b = self.adapter("/dev/serial/by-id/bus-b")
+        for requested in (bus_a.stable_path, bus_b.stable_path):
+            with self.subTest(requested=requested), self.assertRaisesRegex(
+                ValueError, "current production"
+            ):
+                MODULE.select_new_adapter(
+                    (bus_a, bus_b),
+                    protected_ports=(bus_a.stable_path, bus_b.stable_path),
+                    requested_port=requested,
+                )
+
+    def test_missing_production_adapter_fails_closed(self) -> None:
+        candidate = self.adapter("/dev/serial/by-id/new")
+        with self.assertRaisesRegex(ValueError, "not currently enumerated"):
             MODULE.select_new_adapter(
-                adapters,
-                existing_port=None,
+                (candidate,),
+                protected_ports=("/dev/serial/by-id/production",),
+                requested_port=candidate.stable_path,
+            )
+
+    def test_no_unprotected_adapter_fails_closed(self) -> None:
+        bus_a = self.adapter("/dev/serial/by-id/bus-a")
+        bus_b = self.adapter("/dev/serial/by-id/bus-b")
+        with self.assertRaisesRegex(ValueError, "one unprotected adapter"):
+            MODULE.select_new_adapter(
+                (bus_a, bus_b),
+                protected_ports=(bus_a.stable_path, bus_b.stable_path),
                 requested_port=None,
             )
 
-    def test_refuses_existing_production_adapter(self) -> None:
-        existing = self.adapter("/dev/serial/by-id/existing")
+    def test_main_refuses_scan_when_runtime_ownership_is_unavailable(self) -> None:
+        candidate = self.adapter("/dev/serial/by-id/new")
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            MODULE, "inventory_adapters", return_value=(candidate,)
+        ), patch.object(
+            MODULE, "runtime_protected_ports", side_effect=RuntimeError("ownership unavailable")
+        ), patch.object(
+            MODULE, "busy_pids"
+        ) as busy, patch.object(
+            sys,
+            "argv",
+            [
+                "commission_rs485_bus.py",
+                "--scan",
+                "--adapter",
+                candidate.stable_path,
+                "--output-root",
+                directory,
+            ],
+        ):
+            self.assertEqual(MODULE.main(), 2)
+            busy.assert_not_called()
 
-        with self.assertRaisesRegex(ValueError, "existing production"):
-            MODULE.select_new_adapter(
-                (existing,),
-                existing_port=existing.stable_path,
-                requested_port=existing.stable_path,
-            )
+    def test_main_refuses_runtime_production_adapter_before_busy_probe(self) -> None:
+        bus_a = self.adapter("/dev/serial/by-id/bus-a", "/dev/ttyUSB0")
+        bus_b = self.adapter("/dev/serial/by-id/bus-b", "/dev/ttyUSB1")
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            MODULE, "inventory_adapters", return_value=(bus_a, bus_b)
+        ), patch.object(
+            MODULE,
+            "runtime_protected_ports",
+            return_value=(bus_a.stable_path, bus_b.stable_path),
+        ), patch.object(MODULE, "busy_pids") as busy, patch.object(
+            sys,
+            "argv",
+            [
+                "commission_rs485_bus.py",
+                "--scan",
+                "--adapter",
+                bus_b.stable_path,
+                "--output-root",
+                directory,
+            ],
+        ):
+            self.assertEqual(MODULE.main(), 2)
+            busy.assert_not_called()
 
     def test_scan_command_uses_repository_read_only_scanner(self) -> None:
         candidate = self.adapter("/dev/serial/by-id/new")
@@ -84,7 +183,6 @@ class CommissionRS485BusTests(unittest.TestCase):
             unit_ids="1-32",
             full=False,
         )
-
         self.assertIn("scan_rs485.py", command[1])
         self.assertIn("--quick", command)
         self.assertIn("--deep", command)
@@ -98,7 +196,6 @@ class CommissionRS485BusTests(unittest.TestCase):
             unit_ids="1-247",
             full=True,
         )
-
         self.assertNotIn("--quick", command)
         self.assertIn("--deep", command)
 

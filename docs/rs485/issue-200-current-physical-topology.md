@@ -1,6 +1,6 @@
-# Issue #200 — current physical RS-485 topology evidence
+# Issue #200 — physical RS-485 topology evidence
 
-Updated: 2026-08-23
+Updated: 2026-09-05
 Profile: `LOCAL_LAN`
 Host: `nexolab-edge-01`
 
@@ -16,7 +16,7 @@ runtime/evidence/issue-200-passive-20260823T070935Z
 
 They contain Device Agent health/diagnostic state only; no credentials, environment files, or production telemetry values are committed here.
 
-## Verified host adapter inventory
+## 2026-08-23 verified host adapter inventory
 
 At the observation time Linux exposed exactly one USB serial adapter:
 
@@ -39,7 +39,7 @@ SERIAL_TIMEOUT_SECONDS=0.30
 SERIAL_RETRIES=1
 ```
 
-Therefore the currently deployed hardware is a **single physical adapter / single logical `rs485-main` runtime**, not the two-adapter `rs485-kk1` + `rs485-kk2` topology required for Issue #607 hardware acceptance.
+Therefore, **at the 2026-08-23 observation time**, the deployed hardware was a single physical adapter / single logical `rs485-main` runtime. This historical checkpoint is superseded for current production ownership by the 2026-09-05 reconciliation below.
 
 ## Persisted registry snapshot
 
@@ -258,3 +258,52 @@ Shared-bus polling was then exercised with one master alternating between units 
 The live refrigerated-display controller at unit `2` was strictly verified at its configured `9600 8N2` profile. Manual-defined FC03 registers `0..12` were sampled individually for three passes; all `13/13` registers answered on every pass. Observed values included cabinet `1693/1678/1678`, evaporator `2256/2236/2236`, condenser `3717`, cooling state `5` (Pulldown), relay bitfield `11`, compressor speed `4500` and alarm bitfield `0`.
 
 This bounded evidence confirms that both Embraco Sync slaves coexist on Bus 2 without observed collisions. It does not yet approve mixed stop-bit settings as the production standard, and temperature scaling remains pending physical/display correlation. No Modbus write, hardware write, parameter change or production Bus 2 activation was performed.
+
+## 2026-09-05 production topology reconciliation
+
+The earlier Bus 2 commissioning sections above are historical evidence. Issue #760 later completed the controlled activation of the refrigerated-display Embraco Unit `2` on the second stable adapter. A fresh passive `/health` snapshot on 2026-09-05 confirms that both CP2104 identities are now production-owned and that the Device Agent is healthy with two independent serialized bus workers. No additional Modbus request was generated for this reconciliation.
+
+### Current production bus ownership
+
+| Bus             | Stable adapter           | Serial profile                           | Active logical ownership                                                    |
+| --------------- | ------------------------ | ---------------------------------------- | --------------------------------------------------------------------------- |
+| `rs485-main`    | `...0133F090-if00-port0` | `9600 8N1`, timeout `0.3 s`, retries `1` | XJP60D Units `102,104,106,108,126,127,129,131`; LE-01MP Units `200,202,203` |
+| `rs485-embraco` | `...0133F246-if00-port0` | `9600 8N2`, timeout `0.3 s`, retries `1` | Embraco Unit `2` only                                                       |
+
+Both stable paths are present. Scheduler ownership contains no Unit ID assigned to more than one bus. Unit `115` has no current scheduled target; this remains evidence of runtime/registry absence only, not proof of physical absence from the field installation.
+
+### Current passive polling envelope
+
+The same health snapshot reports:
+
+- Device Agent `status=ok`, MQTT connected, queue depth `0`, `2/2` bus workers healthy, worker failures/restarts `0`, `last_error=null`;
+- `rs485-main`: `22,839` accumulated physical requests, `3,211` retries/timeouts, `0` protocol errors, `0` I/O errors, `0` exception responses, `93 req/min`, p95 latency `313.020 ms`, bus load about `13.885%`;
+- `rs485-embraco`: `3,203` accumulated physical requests, `0` retries/timeouts, `0` protocol errors, `0` I/O errors, `0` exception responses, `13 req/min`, p95 latency `23.817 ms`, bus load about `0.632%`;
+- current logical ownership: `13` XJP targets, `27` LE-01MP targets, `13` Embraco targets; duplicate cross-bus Unit ownership: none.
+
+The high `rs485-main` timeout count is the already-localized XJP60D status-register attempt-1 behavior from Issues #866/#916; it is not evidence of generic bus corruption. No production polling/retry/timeout/cadence change is justified by this checkpoint.
+
+### Commissioning-helper safety after Bus 2 activation
+
+The original helper treated only one `--existing-port` as protected. That assumption became stale after `0133F246` entered production. The current #200 candidate therefore changes active-scan safety to read all production bus paths from the running Device Agent health contract and fail closed if:
+
+- current production ownership cannot be read;
+- a protected production adapter is not enumerated;
+- the requested adapter is any current production adapter;
+- exactly one unprotected candidate cannot be identified; or
+- the candidate is owned by another process.
+
+Inventory-only mode remains non-invasive. Active discovery still delegates only to the repository read-only scanner and does not activate a bus, mutate the registry, restart Device Agent, or write controller registers.
+
+### Remaining Issue #200 hardware boundary
+
+Software-observable acceptance is now substantially stronger, but Issue #200 is **not complete**. The following still require real physical evidence:
+
+- actual physical presence/absence and field location of historical Unit `115`;
+- cable route/topology and branch/stub layout;
+- termination resistor placement/value;
+- biasing/failsafe arrangement;
+- shield termination and grounding/common-reference observations;
+- any claim that duplicate Unit IDs are electrically impossible outside the currently responding/scheduled endpoint set.
+
+Until those items are inspected, Issue #200 remains hardware-gated. No rewiring, termination/bias change, adapter reset, power cycle, controller setting change, Modbus write, production cutover, data deletion, or volume deletion belongs to this reconciliation.

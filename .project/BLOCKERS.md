@@ -86,7 +86,7 @@ The stale hosted recovery-package blocker is **cleared by Issue #832**. Offline 
 
 ## Issue #200 — physical RS-485 topology
 
-Issue #760 now verifies the second CP2104 production adapter `0133F246` and read-only Embraco Unit 2 ownership on isolated `rs485-embraco` at 9600 8N2 while preserving Bus 1. Full #200 acceptance still requires the remaining physical-topology evidence: Unit 115 reality, duplicate-ID isolation beyond the accepted Unit 2 scope, termination, biasing, shielding and grounding.
+Software-observable topology was reconciled again on 2026-09-05. Production now has two stable, healthy workers: `rs485-main` on `0133F090` at 9600 8N1 and `rs485-embraco` on `0133F246` at 9600 8N2 with Embraco Unit 2 only. Current scheduler ownership has no cross-bus duplicate Unit ID, both stable paths are present, and the commissioning helper on draft PR #659 now protects every runtime-reported production adapter from active discovery rather than assuming only Bus 1 is production. **Hardware blocker remains:** physical Unit 115 reality/location, actual cable topology, termination, biasing, shielding/ground/common-reference observations and electrical duplicate-ID exclusion cannot be established from software. No physical action was performed in this reconciliation.
 
 ## Issue #201 — LE-01MP cumulative energy
 
