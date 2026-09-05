@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-05T12:58:39+03:00",
+  "timestamp": "2026-09-05T13:29:02+03:00",
   "actor": "chatgpt",
-  "event": "issue_909_merged_delta_ready_audit_selected_issue_866",
+  "event": "post_pr913_review_state_alias_correction_candidate",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -25,14 +25,23 @@
       "runtime_mutation": "none"
     },
     "active_issue_866_baseline": {
-      "starting_main_sha": "6bb92e3d952d77e7f25bd75cf470f5b2884f7606",
       "observation": "XJP60D_FC03_first_attempt_timeouts_recover_on_retry",
       "health": "device_agent_healthy_mqtt_connected_queue_0_bus_workers_2_samples_advancing_last_error_null",
       "scope": "read_only_investigation_no_modbus_or_hardware_write_no_topology_rewire"
     }
   },
-  "observations": [],
-  "next_action": "finish and merge state-only Issue #911 exact-head GREEN, then start fix/866-xjp60d-read-retries and perform evidence-first read-only historical/runtime retry analysis",
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-09-05T09:58:39Z",
+      "kind": "issue_selection_snapshot",
+      "data": {
+        "issue": 866,
+        "main_sha": "6bb92e3d952d77e7f25bd75cf470f5b2884f7606"
+      }
+    }
+  ],
+  "next_action": "merge Issue #914 state-only correction after exact-head GREEN, resolve the post-merge PR #913 review thread, then resume Issue #866 evidence-first read-only diagnosis on fix/866-xjp60d-read-retries",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
