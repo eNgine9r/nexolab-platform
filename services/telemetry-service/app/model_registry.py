@@ -15,6 +15,7 @@ def register_models() -> None:
     from app.daily_reports.immutability import register_daily_report_immutability
     from app.commissioning import models as _commissioning_models
     from app.equipment_discovery import models as _equipment_discovery_models
+    from app.instrumentation import models as _instrumentation_models
     from app.live_dashboard import models as _live_dashboard_models
     from app.nodes import broker_models as _broker_models
     from app.nodes import models as _node_models
@@ -79,6 +80,14 @@ def register_models() -> None:
     )
     assert _equipment_discovery_models.EquipmentNetworkAsset.__tablename__ == (
         "equipment_network_assets"
+    )
+    assert _instrumentation_models.Instrument.__tablename__ == "instruments"
+    assert _instrumentation_models.Signal.__tablename__ == "instrument_signals"
+    assert _instrumentation_models.InstrumentAcceptanceRecord.__tablename__ == (
+        "instrument_acceptance_history"
+    )
+    assert _instrumentation_models.InstrumentCalibrationRecord.__tablename__ == (
+        "instrument_calibration_history"
     )
     assert _commissioning_models.EquipmentCommissioningSession.__tablename__ == (
         "equipment_commissioning_sessions"

@@ -110,7 +110,7 @@ Blocked until the Product Owner confirms the temporary external RS-485 owner has
 
 ## RFX presentation hold — cleared 2026-09-05
 
-The Product Owner explicitly lifted the RFX presentation hold and directed continuation with **RFX-01 / Issue #717**. The required fresh Team Lead audit is complete: accepted RFX-00 / ADR 0010 remains authoritative; historical PR #718 is closed/unmerged reference evidence only; current `main` is `2341f9030c079eb61c4e9ce05fb060e80b2f91fd`; current migration head is `20260902_0031`. #717 is Ready on a fresh branch and must rebase its migration/compatibility work from current `main`. This clears only the product-priority hold; it does not authorize RFX-02+ scope expansion, production cutover, or hardware/Modbus writes.
+The Product Owner explicitly lifted the RFX presentation hold and directed continuation with **RFX-01 / Issue #717**. The required fresh Team Lead audit remains satisfied: accepted RFX-00 / ADR 0010 is authoritative; historical PR #718 is closed/unmerged reference evidence only; implementation is active on fresh branch `feat/717-rfx01-instrument-signal-registry-v2` from `main` `eaaed439771f82ff335c6f097ace8ab6694e22e3`, with migration `20260905_0032` rebased from `20260902_0031`. Review-remediation head `7d5ee2c5...` is GREEN for focused registry tests, migration round-trip/sentinel preservation and a reconstructed `48/48` climate/refrigeration compatibility suite on disposable PostgreSQL; Team Lead scoped review is clean with no new P1/P2. The next gate is canonical exact-head local verification followed by a fresh PR/exact-head remote verification. This clears only the product-priority hold; it does not authorize RFX-02+ scope expansion, production cutover, or hardware/Modbus writes.
 
 ## Issue #909 — consolidated HIGH container exception review
 
@@ -148,12 +148,12 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #719 / PR #721 fresh Device Agent security reconciliation — completed and merged at `1f2654dec0f02263aec6c2314187cfa62e5723e9`; #722 triage is completed.
 - #723 / PR #724 CI routing maintenance — completed and merged at `8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb`.
 - #690 risk-aware/path-targeted PR verification — completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`; post-merge Core CI and Acquisition Scale Acceptance are GREEN.
-- #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority while RFX-01 through RFX-19C are product-deferred under #727.
+- #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 RFX presentation hold was explicitly lifted by the Product Owner on 2026-09-05; #717 is active and RFX-02+ remains sequenced behind it.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — RFX-01 / Issue #717 Ready
+## Sprint execution gate — RFX-01 / Issue #717 active
 
-Issue #926 is completed through GREEN PR #929 and no longer occupies the active slot. The Product Owner has lifted the RFX presentation hold, and the required fresh source-of-truth audit is complete. Issue #717 is the next Ready software Work Package on fresh branch `feat/717-rfx01-instrument-signal-registry-v2`; historical PR #718 must not be reopened or merged as-is. #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
+Issue #926 is completed through GREEN PR #929 and no longer occupies the active slot. RFX-01 / #717 is the active software Work Package on `feat/717-rfx01-instrument-signal-registry-v2`; review-remediation head `7d5ee2c5...` has clean scoped Team Lead review, focused `14/14` non-PostgreSQL and `20/20` PostgreSQL/API/security verification, migration round-trip with sentinel preservation and post-round-trip `6/6`, plus reconstructed climate/refrigeration compatibility `48/48`. Historical PR #718 remains reference-only. The next gate is canonical exact-head local verification, then a fresh PR plus exact-head Core/Telemetry/Authenticated Dashboard/Offline Bundle/Refrigeration Browser/NEXOLAB Merge Gate verification. #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
 
 ## Safety boundaries
 
