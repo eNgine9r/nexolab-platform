@@ -3,33 +3,32 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-05T12:05:34+03:00",
+  "timestamp": "2026-09-05T12:50:10+03:00",
   "actor": "chatgpt",
-  "event": "tg04_recurring_activation_passed_state_reconciliation_candidate",
+  "event": "issue_909_corrected_security_head_green_state_finalization_candidate",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 909,
+    "branch": "chore/909-revalidate-container-exceptions",
+    "lifecycle": "review",
+    "verified_head_sha": "56698ab43c2b8ffa99db5f7a3085cbc41f281e86"
+  },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "issue_825": "runtime_acceptance_complete_state_reconciliation_907",
-      "runtime_source_sha": "9310ab30d735eb6253316230c7c479df0e3339a4",
-      "activation_evidence": "runtime/evidence/tg04-recurring-activation-20260905T085419Z",
-      "telemetry_image": "sha256:c14acb4cba7bc01b014923c12f6bfcb4aa6d52d2744aeaab37946289b852d732",
-      "gateway_image": "sha256:f3f846a21b946ccef6ae61879777cab08bf9334f0207ccf070aed0a2b64a7ffd",
-      "scheduler": "enabled_Europe_Kyiv_Mon_Fri_0750_720m",
-      "gateway_state": "ready_delivery_true_miniapp_true_worker_running_last_error_null_sent_3",
-      "due_snapshot": "9dca3a7b-faaf-4958-bbb9-db76adb12c02_2026-09-04_sha256_b3f9a7d9cabad98ad932c2e482b0f03e489a1e3becce46e02c7405fbedcda839",
-      "outbox": "3_sent_historical_two_unchanged_new_topic_attempts_1_message_id_present_non_sent_0_duplicate_risk_0",
-      "post_activation_plan": "due_snapshot_exists_generation_0_immediate_delivery_0",
-      "visual_acceptance": "product_owner_screenshot_report_visible_in_Rankovyi_zvit_with_open_nexolab_action_and_persisted_values_match",
-      "core_container_ids": "postgres_mqtt_minio_device_agent_unchanged",
-      "tailscale_serve_hash": "2c7409c7999892e0b6b26acaa862d6c4c14cf498828f875a0b58e53070aef329_unchanged"
+      "first_scan": "33957510014_fail_closed_two_stale_expat_CVE_2026_66046_tuples",
+      "registry": "91_exact_HIGH_telemetry_51_device_agent_20_telegram_gateway_20_expire_2026_09_12",
+      "container_supply_chain": "33958808993_GREEN_exact_head_56698ab4",
+      "core_ci_merge_gate": "33958808977_GREEN_exact_head_56698ab4",
+      "util_linux_78409": "CNA_vs_Debian_affected_version_disagreement_recorded_and_runtime_reachability_bounded",
+      "local_checks": "policy_state_compile_tuple_reconciliation_diff_check_PASS",
+      "runtime": "unchanged_no_deployment_no_restart_no_secret_no_modbus_or_hardware_write_no_data_or_volume_delete"
     }
   },
   "observations": [],
-  "next_action": "verify and merge state-only #907 after exact-head GREEN, then close #825 and run delta Ready audit; prioritize the mandatory 2026-09-05 security exception review before deferred or hardware-gated work",
+  "next_action": "commit and push the state finalization, require final exact-head Container Supply Chain and NEXOLAB Merge Gate GREEN, then merge PR #910; after merge perform material state reconciliation and select the next Ready Work Package",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
