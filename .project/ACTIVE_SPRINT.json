@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 909,
-      "title": "Revalidate consolidated HIGH container exceptions expiring 2026-09-05",
-      "branch": "chore/909-revalidate-container-exceptions"
+      "issue": 866,
+      "title": "Investigate recurring XJP60D read retries after controlled restart",
+      "branch": "fix/866-xjp60d-read-retries"
     },
     "next_work_package": null
   },
@@ -2534,7 +2534,7 @@
       "issue": 909,
       "title": "Revalidate consolidated HIGH container exceptions expiring 2026-09-05",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "chore/909-revalidate-container-exceptions",
       "evidence": {
         "baseline": "93_exact_high_exceptions_3_images_19_cves_25_packages_all_expired_or_due_2026-09-05",
@@ -2542,9 +2542,11 @@
         "first_exact_head_scan": "run_33957510014_fail_closed_only_on_stale_device_agent_and_telegram_gateway_libexpat1_CVE_2026_66046",
         "stale_exception_retirement": "PASS_exactly_2_expat_tuples_removed_no_new_exception_tuple_added",
         "corrected_registry": "91_exact_HIGH_exceptions_telemetry_51_device_agent_20_telegram_gateway_20_18_cves_24_packages_owner_platform_security_expire_2026_09_12",
-        "verified_head_sha": "56698ab43c2b8ffa99db5f7a3085cbc41f281e86",
-        "container_supply_chain": "GREEN_run_33958808993_telemetry_51_of_51_device_agent_20_of_20_telegram_gateway_20_of_20_mqtt_0_no_stale_unmatched_or_critical",
-        "core_ci": "GREEN_run_33958808977_quality_and_build_success_nexolab_merge_gate_success",
+        "verified_head_sha": "8c314af3e372ab2720d7570662929f51c932ab60",
+        "container_supply_chain": "GREEN_final_exact_head_run_33959133577_all_controlled_images_policy_enforced_no_stale_unmatched_or_critical",
+        "core_ci": "GREEN_final_exact_head_run_33959133555_format_lint_typecheck_tests_build_nexolab_merge_gate_success",
+        "pull_request": 910,
+        "completed_at": "2026-09-05T12:57:14+03:00",
         "util_linux_78409_review": "Red_Hat_CNA_upstream_guidance_v2_42_first_affected_conflicts_with_Debian_Trixie_2_41_5_vulnerable_no_DSA_keep_exact_short_lived_exception_until_data_converges",
         "runtime_reachability": "READ_ONLY_device_agent_and_gateway_distroless_nonroot_no_mount_umount_nsenter_unshare_or_fstab_telemetry_uid_10001_unconfigured_fstab_no_app_mount_umount_invocation",
         "local_policy_validation": "PASS_today_2026_09_05",
@@ -2552,6 +2554,19 @@
         "python_compile": "PASS_supply_chain_validator_evaluator_and_focused_policy_test",
         "local_pytest": "not_run_system_python_pytest_unavailable_no_dependency_install_on_production_pi",
         "runtime_mutation": "none"
+      }
+    },
+    {
+      "issue": 866,
+      "title": "Investigate recurring XJP60D read retries after controlled restart",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "branch": "fix/866-xjp60d-read-retries",
+      "evidence": {
+        "baseline": "post_cutover_device_agent_healthy_queue_0_workers_2_samples_advancing_last_error_null_recurring_XJP60D_FC03_first_attempt_timeout_retry_success",
+        "safety": "read_only_no_modbus_write_no_hardware_write_no_topology_rewire_no_polling_change_without_separate_evidence_backed_scope",
+        "selected_after": "issue_909_PR_910_merge_6bb92e3d"
       }
     }
   ],

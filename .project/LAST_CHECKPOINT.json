@@ -3,32 +3,36 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-05T12:50:10+03:00",
+  "timestamp": "2026-09-05T12:58:39+03:00",
   "actor": "chatgpt",
-  "event": "issue_909_corrected_security_head_green_state_finalization_candidate",
+  "event": "issue_909_merged_delta_ready_audit_selected_issue_866",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 909,
-    "branch": "chore/909-revalidate-container-exceptions",
-    "lifecycle": "review",
-    "verified_head_sha": "56698ab43c2b8ffa99db5f7a3085cbc41f281e86"
+    "issue": 866,
+    "branch": "fix/866-xjp60d-read-retries",
+    "lifecycle": "in_progress"
   },
   "evidence_snapshot": {
-    "active_issue_evidence": {
-      "first_scan": "33957510014_fail_closed_two_stale_expat_CVE_2026_66046_tuples",
+    "completed_issue_909": {
+      "pull_request": 910,
+      "final_head_sha": "8c314af3e372ab2720d7570662929f51c932ab60",
+      "container_supply_chain": "33959133577_GREEN",
+      "core_ci_merge_gate": "33959133555_GREEN",
       "registry": "91_exact_HIGH_telemetry_51_device_agent_20_telegram_gateway_20_expire_2026_09_12",
-      "container_supply_chain": "33958808993_GREEN_exact_head_56698ab4",
-      "core_ci_merge_gate": "33958808977_GREEN_exact_head_56698ab4",
-      "util_linux_78409": "CNA_vs_Debian_affected_version_disagreement_recorded_and_runtime_reachability_bounded",
-      "local_checks": "policy_state_compile_tuple_reconciliation_diff_check_PASS",
-      "runtime": "unchanged_no_deployment_no_restart_no_secret_no_modbus_or_hardware_write_no_data_or_volume_delete"
+      "runtime_mutation": "none"
+    },
+    "active_issue_866_baseline": {
+      "starting_main_sha": "6bb92e3d952d77e7f25bd75cf470f5b2884f7606",
+      "observation": "XJP60D_FC03_first_attempt_timeouts_recover_on_retry",
+      "health": "device_agent_healthy_mqtt_connected_queue_0_bus_workers_2_samples_advancing_last_error_null",
+      "scope": "read_only_investigation_no_modbus_or_hardware_write_no_topology_rewire"
     }
   },
   "observations": [],
-  "next_action": "commit and push the state finalization, require final exact-head Container Supply Chain and NEXOLAB Merge Gate GREEN, then merge PR #910; after merge perform material state reconciliation and select the next Ready Work Package",
+  "next_action": "finish and merge state-only Issue #911 exact-head GREEN, then start fix/866-xjp60d-read-retries and perform evidence-first read-only historical/runtime retry analysis",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
