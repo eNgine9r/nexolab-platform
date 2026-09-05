@@ -2560,13 +2560,25 @@
       "issue": 866,
       "title": "Investigate recurring XJP60D read retries after controlled restart",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "depends_on": [],
       "branch": "fix/866-xjp60d-read-retries",
       "evidence": {
         "baseline": "post_cutover_device_agent_healthy_queue_0_workers_2_samples_advancing_last_error_null_recurring_XJP60D_FC03_first_attempt_timeout_retry_success",
         "safety": "read_only_no_modbus_write_no_hardware_write_no_topology_rewire_no_polling_change_without_separate_evidence_backed_scope",
-        "selected_after": "issue_909_completed"
+        "selected_after": "issue_909_completed",
+        "diagnostic_document": "docs/operations/issue-866-xjp60d-read-retry-investigation.md",
+        "historical_pre_restart": "PASS_20260903T191159Z_uptime_6s_xjp_37_requests_12_retries_12_timeouts_25_success_le01mp_retries_0_embraco_retries_0_queue_0_workers_2_healthy",
+        "fresh_bounded_window": "PASS_2026_09_05T10_19_14Z_to_10_19_59Z_45_007s_samples_plus49_requests_plus65_retries_plus8_timeouts_plus8_success_plus57_queue_0_workers_healthy",
+        "fresh_target_attribution": "8_due_xjp_targets_each_plus3_physical_plus1_retry_plus1_timeout_plus2_success_le01mp_same_bus_retry_0_embraco_retry_0",
+        "current_family_snapshot": "2026_09_05T10_32_30Z_xjp_13_targets_3025_requests_1009_retries_1009_timeouts_2016_success_le01mp_4185_success_0_retry_embraco_1001_success_0_retry",
+        "persistent_logical_attempts": "xjp_1010394_attempts_1010196_success_198_terminal_communication_failures_0_019596_percent_all_13_valid_steady_consecutive_failures_0",
+        "device_agent_source_regression_check": "ZERO_diff_services_device_agent_between_13ab26392fcb1c1385dca3c1f619da4512fe568c_and_9a3556b25b257396d15db80af591d1cc3684b8f7",
+        "telemetry_semantics": "recovered_physical_retry_yields_one_logical_record_terminal_failure_quality_communication_error_latest_success_not_silently_rewritten_as_fresh_valid",
+        "classification": "pre_existing_XJP60D_specific_device_protocol_timing_behavior_restart_specific_or_miniapp_regression_not_supported",
+        "residual_mechanism": "hardware_protocol_unverified_issue_916_exact_register_or_first_after_idle_mechanism_not_proven",
+        "runtime_mutation": "none_no_direct_diagnostic_modbus_request_no_service_restart_no_polling_or_topology_change_no_data_or_volume_delete",
+        "targeted_unit_tests": "PASS_xjp60d_6_of_6_modbus_rtu_and_recovery_18_of_18_adaptive_scheduler_host_import_not_run_missing_paho_no_dependency_install_on_production_pi"
       }
     }
   ],
@@ -2878,6 +2890,15 @@
         "issue": 909,
         "pull_request": 910,
         "merge_sha": "6bb92e3d952d77e7f25bd75cf470f5b2884f7606"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-05T09:58:39Z",
+      "kind": "issue_selection_snapshot",
+      "data": {
+        "issue": 866,
+        "main_sha": "6bb92e3d952d77e7f25bd75cf470f5b2884f7606"
       }
     }
   ],
