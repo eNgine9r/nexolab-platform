@@ -467,6 +467,7 @@ def create_instrumentation_router(
         return AnalogScalingEvaluationResponse(
             profile_id=profile.id,
             profile_revision=profile.revision,
+            evidence_status=profile.evidence_status,
             raw_value=payload.raw_value,
             engineering_value=value,
             engineering_unit=profile.engineering_unit,
@@ -758,8 +759,12 @@ def _calibration_response(
 
 
 def _response_decimal(value: Decimal) -> Decimal:
-    normalized = value.normalize()
-    return Decimal(0) if normalized == 0 else normalized
+    if value == 0:
+        return Decimal(0)
+    rendered = format(value, "f")
+    if "." in rendered:
+        rendered = rendered.rstrip("0").rstrip(".")
+    return Decimal(rendered)
 
 
 def _utc_datetime(value: datetime) -> datetime:

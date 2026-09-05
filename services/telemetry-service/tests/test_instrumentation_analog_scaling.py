@@ -254,7 +254,7 @@ def test_repository_resolution_fails_closed_without_profile(tmp_path: Path) -> N
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.instrumentation.api import create_instrumentation_router
+from app.instrumentation.api import _response_decimal, create_instrumentation_router
 
 
 def _client_with_signal(tmp_path: Path) -> tuple[TestClient, SecurityRepository, str, str]:
@@ -343,6 +343,7 @@ def test_api_exposes_audited_profile_history_resolution_and_evaluation(tmp_path:
     assert evaluated.status_code == 200, evaluated.text
     assert Decimal(str(evaluated.json()["engineering_value"])) == Decimal("15")
     assert evaluated.json()["engineering_unit"] == "bar"
+    assert evaluated.json()["evidence_status"] == "hardware_unverified"
 
     under = api.post(
         f"/api/v1/instrumentation/instruments/{instrument_id}/signals/{signal_id}/analog-scaling-evaluate",
@@ -411,6 +412,17 @@ def test_profile_schema_accepts_numeric_38_18_boundary() -> None:
         "99999999999999999999.123456789012345678"
     )
 
+
+def test_response_decimal_preserves_full_numeric_38_18_precision_without_context_rounding() -> None:
+    exact = Decimal("99999999999999999999.123456789012345678")
+    negative = Decimal("-99999999999999999999.123456789012345678")
+
+    with localcontext() as context:
+        context.prec = 6
+        assert _response_decimal(exact) == exact
+        assert _response_decimal(negative) == negative
+        assert _response_decimal(Decimal("4.000000000000000000")) == Decimal("4")
+        assert _response_decimal(Decimal("0E-18")) == Decimal(0)
 
 def test_api_rejects_unit_mismatch_and_unproven_hardware_verified_profile(tmp_path: Path) -> None:
     api, _, instrument_id, signal_id = _client_with_signal(tmp_path)

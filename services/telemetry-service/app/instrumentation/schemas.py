@@ -380,6 +380,7 @@ class AnalogScalingEvaluationRequest(BaseModel):
 class AnalogScalingEvaluationResponse(BaseModel):
     profile_id: str
     profile_revision: int
+    evidence_status: AnalogEvidenceStatus
     raw_value: Decimal
     engineering_value: Decimal
     engineering_unit: str

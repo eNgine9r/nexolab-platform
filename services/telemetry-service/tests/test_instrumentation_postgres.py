@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from threading import Barrier, Thread
 from uuid import uuid4
 
@@ -642,6 +643,75 @@ def test_postgres_analog_scaling_history_guards_fail_closed() -> None:
                         "effective_to": start + timedelta(days=5),
                     },
                 )
+    finally:
+        database.dispose()
+
+
+def test_postgres_analog_scaling_preserves_numeric_38_18_precision() -> None:
+    database = Database(os.environ["DATABASE_URL"])
+    security = SecurityRepository(database)
+    repository = InstrumentationRepository(database)
+    organization_id = str(uuid4())
+    suffix = uuid4().hex
+    exact_min = Decimal("-99999999999999999999.123456789012345678")
+    exact_max = Decimal("99999999999999999999.123456789012345678")
+    try:
+        security.provision_organization(
+            organization_id=organization_id,
+            slug=f"analog-precision-{suffix}",
+            name="Analog precision PostgreSQL organization",
+        )
+        instrument = repository.create_instrument(
+            InstrumentCreate(
+                inventory_key=f"ANALOG-PRECISION-{suffix}",
+                display_name="Precision pressure transmitter",
+                instrument_kind="pressure_transmitter",
+                pressure_reference="gauge",
+            ),
+            actor_id="test-suite",
+            organization_id=organization_id,
+        )
+        signal = repository.create_signal(
+            instrument.id,
+            SignalCreate(
+                business_key=f"ANALOG-PRECISION-{suffix}.PRESSURE",
+                display_name="Pressure",
+                physical_quantity="pressure",
+                engineering_unit="bar",
+            ),
+            actor_id="test-suite",
+            organization_id=organization_id,
+        )
+        start = datetime(2026, 9, 6, tzinfo=UTC)
+        created = repository.append_analog_scaling_profile(
+            instrument.id,
+            signal.id,
+            AnalogScalingProfileAppendRequest(
+                raw_unit="mA",
+                raw_min="4.123456789012345678",
+                raw_max="20",
+                engineering_min=exact_min,
+                engineering_max=exact_max,
+                engineering_unit="bar",
+                evidence_status="hardware_unverified",
+                effective_from=start,
+            ),
+            actor_id="test-suite",
+            organization_id=organization_id,
+        )
+        history = repository.list_analog_scaling_history(
+            instrument.id, signal.id, organization_id=organization_id
+        )
+        resolved = repository.resolve_analog_scaling_profile(
+            instrument.id, signal.id, start, organization_id=organization_id
+        )
+
+        assert created.engineering_min == exact_min
+        assert created.engineering_max == exact_max
+        assert history[0].engineering_min == exact_min
+        assert history[0].engineering_max == exact_max
+        assert resolved.engineering_min == exact_min
+        assert resolved.engineering_max == exact_max
     finally:
         database.dispose()
 
