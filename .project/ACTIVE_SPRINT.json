@@ -22,12 +22,12 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 926,
       "title": "Resolve pre-existing PostCSS/nanoid production audit findings",
       "branch": "security/926-postcss-nanoid-audit"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -2665,7 +2665,7 @@
       "issue": 926,
       "title": "Resolve pre-existing PostCSS/nanoid production audit findings",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [
         925
       ],
