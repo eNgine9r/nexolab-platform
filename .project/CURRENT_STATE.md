@@ -4,9 +4,11 @@ Updated: 2026-09-05
 
 ## Current Sprint
 
-`PRODUCTION-READINESS-1` remains active. TG-04 / Issue #825 and the mandatory 2026-09-05 container-exception review / Issue #909 are completed. The active Work Package is Issue #866. Its read-only runtime/source investigation is now a review candidate: the recurring XJP60D FC03 timeout/retry behavior is proven to predate the 2026-09-04 controlled restart, is isolated to XJP60D rather than all traffic on `rs485-main`, and is not supported as a Mini App/frontend regression. No production acquisition setting or topology change is justified by #866. The unresolved exact register/idle-turnaround/physical mechanism is split to hardware/protocol Issue #916. RFX-01 through RFX-19C remain on the explicit Product Owner presentation hold.
+`PRODUCTION-READINESS-1` remains active. TG-04 / Issue #825, the mandatory 2026-09-05 container-exception review / Issue #909, and the XJP60D read-retry diagnosis / Issue #866 are completed. #866 exact candidate `8ff18c4097ff0c51f81b0c7f98fbaea683938719` passed Core CI / NEXOLAB Merge Gate run `33962777794` and Telemetry Service run `33962777924`; PR #917 then completed the diagnostic Work Package without runtime mutation. The residual exact register/first-after-idle/physical mechanism is isolated in Issue #916 and is hardware/protocol-validation gated. There is currently no independent Ready Work Package: #189/#200/#585 are blocked physical/recovery work, #201/#202/#916 require validation/hardware evidence, and RFX-01 through RFX-19C remain on the explicit Product Owner presentation hold.
 
-## Issue #866 — XJP60D recovered read-retry diagnosis
+## Issue #866 — XJP60D recovered read-retry diagnosis completed
+
+#866 is completed. Exact candidate `8ff18c4097ff0c51f81b0c7f98fbaea683938719` passed Core CI / NEXOLAB Merge Gate `33962777794` and Telemetry Service `33962777924`, and PR #917 closed the Issue. No runtime, deployment, Modbus/hardware, polling/cadence, data or volume mutation occurred.
 
 Historical deployment evidence from `runtime/deployments/20260903T191159Z/final-state.txt` already shows the XJP retry signature before the questioned 2026-09-04 restart: 37 XJP physical requests contained 12 retries/timeouts and 25 successes while LE-01MP and Embraco had zero retries, with queue depth 0 and both bus workers healthy. A fresh 45.007-second production observation on 2026-09-05 reproduced the behavior without mutation: eight due XJP targets each added exactly three physical requests, one timeout/retry and two successes; LE-01MP due on the same `rs485-main` bus and Embraco due on the second bus remained retry-free.
 

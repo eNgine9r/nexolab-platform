@@ -3,39 +3,46 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-05T13:36:01+03:00",
+  "timestamp": "2026-09-05T14:24:17+03:00",
   "actor": "ChatGPT",
-  "event": "issue_866_read_only_diagnosis_review_candidate",
+  "event": "issue_866_completed_delta_ready_audit_hardware_gate_916",
   "baselines": {
     "accepted_product_sha": "31cd4fd5e43672b81af34c8ac1f53e185cf4752e",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
-  "active_work": {
-    "issue": 866,
-    "title": "Investigate recurring XJP60D read retries after controlled restart",
-    "branch": "fix/866-xjp60d-read-retries"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "active_issue_evidence": {
-      "baseline": "post_cutover_device_agent_healthy_queue_0_workers_2_samples_advancing_last_error_null_recurring_XJP60D_FC03_first_attempt_timeout_retry_success",
-      "safety": "read_only_no_modbus_write_no_hardware_write_no_topology_rewire_no_polling_change_without_separate_evidence_backed_scope",
-      "selected_after": "issue_909_completed",
-      "diagnostic_document": "docs/operations/issue-866-xjp60d-read-retry-investigation.md",
-      "historical_pre_restart": "PASS_20260903T191159Z_uptime_6s_xjp_37_requests_12_retries_12_timeouts_25_success_le01mp_retries_0_embraco_retries_0_queue_0_workers_2_healthy",
-      "fresh_bounded_window": "PASS_2026_09_05T10_19_14Z_to_10_19_59Z_45_007s_samples_plus49_requests_plus65_retries_plus8_timeouts_plus8_success_plus57_queue_0_workers_healthy",
-      "fresh_target_attribution": "8_due_xjp_targets_each_plus3_physical_plus1_retry_plus1_timeout_plus2_success_le01mp_same_bus_retry_0_embraco_retry_0",
-      "current_family_snapshot": "2026_09_05T10_32_30Z_xjp_13_targets_3025_requests_1009_retries_1009_timeouts_2016_success_le01mp_4185_success_0_retry_embraco_1001_success_0_retry",
-      "persistent_logical_attempts": "xjp_1010394_attempts_1010196_success_198_terminal_communication_failures_0_019596_percent_all_13_valid_steady_consecutive_failures_0",
-      "device_agent_source_regression_check": "ZERO_diff_services_device_agent_between_13ab26392fcb1c1385dca3c1f619da4512fe568c_and_9a3556b25b257396d15db80af591d1cc3684b8f7",
-      "telemetry_semantics": "recovered_physical_retry_yields_one_logical_record_terminal_failure_quality_communication_error_latest_success_not_silently_rewritten_as_fresh_valid",
-      "classification": "pre_existing_XJP60D_specific_device_protocol_timing_behavior_restart_specific_or_miniapp_regression_not_supported",
-      "residual_mechanism": "hardware_protocol_unverified_issue_916_exact_register_or_first_after_idle_mechanism_not_proven",
-      "runtime_mutation": "none_no_direct_diagnostic_modbus_request_no_service_restart_no_polling_or_topology_change_no_data_or_volume_delete",
-      "targeted_unit_tests": "PASS_xjp60d_6_of_6_modbus_rtu_and_recovery_18_of_18_adaptive_scheduler_host_import_not_run_missing_paho_no_dependency_install_on_production_pi"
+    "completed_issue_866": {
+      "verified_head_sha": "8ff18c4097ff0c51f81b0c7f98fbaea683938719",
+      "pull_request": 917,
+      "core_ci": "33962777794_green",
+      "telemetry_service": "33962777924_green",
+      "classification": "pre_existing_XJP60D_specific_device_protocol_timing_behavior",
+      "runtime_mutation": "none"
+    },
+    "hardware_gate_issue_916": {
+      "lifecycle": "hardware_validation",
+      "depends_on": [
+        866
+      ],
+      "required_action": "explicit_product_owner_physical_validation_scope_before_any_restart_adapter_reset_rewire_power_cycle_or_controller_side_action",
+      "modbus_write": "forbidden"
+    },
+    "delta_ready_audit": {
+      "independent_ready_count": 0,
+      "blocked_or_validation_issues": [
+        189,
+        200,
+        201,
+        202,
+        585,
+        916
+      ],
+      "product_hold_issue": 717
     }
   },
   "observations": [],
-  "next_action": "publish Issue #866 diagnostic/state candidate, require exact-head review and CI GREEN, merge if clean, then run delta Ready audit while Issue #916 remains hardware-gated",
+  "next_action": "obtain explicit Product Owner decision for a bounded #916 physical/protocol validation session or another Ready product priority; do not bypass hardware gates or RFX presentation hold",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
