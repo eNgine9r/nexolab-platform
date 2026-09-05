@@ -23,7 +23,11 @@
   },
   "selection": {
     "active_work_package": null,
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 926,
+      "title": "Resolve pre-existing PostCSS/nanoid production audit findings",
+      "branch": "security/926-postcss-nanoid-audit"
+    }
   },
   "work_packages": [
     {
@@ -2632,6 +2636,41 @@
         }
       },
       "branch": "ops/916-xjp60d-readonly-protocol-validation"
+    },
+    {
+      "issue": 925,
+      "title": "Upgrade Next.js 16.2.12 to 16.3.4 for upstream critical RCE fixes",
+      "priority": "high",
+      "lifecycle": "completed",
+      "branch": "dependabot/npm_and_yarn/next-16.3.3",
+      "evidence": {
+        "verified_head_sha": "c04449cd0f8121384061165d516a760c888a8286",
+        "pull_request": 774,
+        "checks": {
+          "local_candidate": "GREEN_dependency_toolchain_143_files_697_tests_build",
+          "core_ci": "success:33981767214",
+          "authenticated_dashboard": "success:33981767211",
+          "offline_bundle": "success:33981767183",
+          "refrigeration_browser": "success:33981767209",
+          "nexolab_merge_gate": "success:33981767214",
+          "production_audit_delta": "3_findings_main_to_2_candidate_preexisting_postcss_nanoid_split_to_926"
+        },
+        "merge_observation_sha": "573bbe06d073fd275943b508f7edc23b96ffefd4",
+        "production_deployment": "not_executed",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 926,
+      "title": "Resolve pre-existing PostCSS/nanoid production audit findings",
+      "priority": "high",
+      "lifecycle": "ready",
+      "depends_on": [
+        925
+      ],
+      "branch": "security/926-postcss-nanoid-audit",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [

@@ -151,9 +151,9 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority while RFX-01 through RFX-19C are product-deferred under #727.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — no independent Ready Work Package
+## Sprint execution gate — independent Ready security maintenance available
 
-After #866 completion and the subsequent #200 closure decision, the delta Ready audit still has no independent `ready` item in `PRODUCTION-READINESS-1`. #189/#585 are blocked, #201 is `needs_validation`, #202 is `hardware_validation`, #916 is completed, and #717/RFX-01 through RFX-19C remain on the explicit Product Owner presentation hold. Autonomous execution must therefore stop at the hardware/product gate rather than inventing scope or performing physical actions.
+The previous no-Ready condition is cleared. Issue #925 / PR #774 completed the focused Next.js 16.3.4 security upgrade and exposed two pre-existing transitive production audit findings without worsening the candidate. Issue #926 is now an independent Ready Work Package for the PostCSS/nanoid findings. #189/#585 remain blocked, #201 remains `needs_validation`, #202 remains `hardware_validation`, and RFX-01 through RFX-19C remain on the Product Owner presentation hold.
 
 ## Safety boundaries
 

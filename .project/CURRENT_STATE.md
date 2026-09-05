@@ -264,3 +264,13 @@ Repository implementation remains verified on product head `da3569969ad39be4e409
 Core NEXOLAB remains `LOCAL_LAN` / offline-first with no mandatory public internet, paid runtime service, CDN, remote font or external runtime API.
 
 #679 hosted-QEMU acceptance is completed; its GREEN evidence does not authorize Raspberry Pi runtime mutation. Package authority/staging/activation, `establish-package-authority`, source→packaged transition and actual-host update/rollback remain production cutover boundaries requiring separate approval. No destructive restore, persistent-data deletion, named-volume deletion, Modbus/controller write or hardware write is authorized.
+
+## Issue #925 — Next.js 16.3.4 security maintenance
+
+Issue #925 is completed through focused Dependabot PR #774. Exact head `c04449cd0f8121384061165d516a760c888a8286` changed only `package.json` and `package-lock.json`, upgrading Next.js `16.2.12` to `16.3.4`. The local candidate verifier was GREEN for dependency policy, formatting, lint, typecheck, 143 Vitest files / 697 tests and production build; exact-head CI, Authenticated Dashboard Acceptance, Offline Bundle, Refrigeration Browser Acceptance and NEXOLAB Merge Gate were GREEN. PR #774 squash-merged to repository `main` as `573bbe06d073fd275943b508f7edc23b96ffefd4`. Repository synchronization does **not** imply production deployment; deployed runtime authority remains unchanged.
+
+A production-only audit comparison showed the candidate improves the finding count relative to the previous main while retaining two pre-existing transitive findings (`postcss` / `nanoid`). Those findings are explicitly separated into Issue #926 rather than being mixed into #925. No production/site cutover, Modbus write, hardware write, data deletion or named-volume deletion occurred.
+
+## Issue #926 — pre-existing PostCSS / nanoid production audit findings
+
+Issue #926 is the next independent Ready security-maintenance Work Package. It owns the pre-existing production audit findings for `postcss 8.5.20` and `nanoid 3.3.16`, must establish exact dependency/reachability ownership, choose the smallest compatible patched closure or bounded exception, and preserve the `LOCAL_LAN` offline-first runtime boundary. It must remain separate from unrelated Dependabot proposals and does not authorize production deployment or hardware activity.
