@@ -800,9 +800,20 @@ class InstrumentationRepository:
         profile = self.resolve_analog_scaling_profile(
             instrument_id, signal_id, at, organization_id=organization_id
         )
+        effective_acquisition_source_id = expected_acquisition_source_id
         if (
-            expected_acquisition_source_id is not None
-            and profile.acquisition_source_id != expected_acquisition_source_id
+            profile.acquisition_source_id is not None
+            and effective_acquisition_source_id is None
+        ):
+            effective_acquisition_source_id = self.resolve_acquisition_source(
+                instrument_id,
+                signal_id,
+                at,
+                organization_id=organization_id,
+            ).id
+        if (
+            effective_acquisition_source_id is not None
+            and profile.acquisition_source_id != effective_acquisition_source_id
         ):
             raise AnalogScalingSourceMismatchError(
                 "analog scaling profile is not explicitly linked to the effective acquisition source"

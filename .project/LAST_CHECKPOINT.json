@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-06T04:35:43+03:00",
+  "timestamp": "2026-09-06T04:52:39+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_937_codex_p2_remediated_state_canonical_pending_exact_head_ci_review",
+  "event": "issue_937_second_codex_p2_remediated_pending_new_exact_head_ci_review",
   "baselines": {
     "accepted_product_sha": "4decaaefcf58c64f91e231c70f0980bdeac97c93",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -36,14 +36,14 @@
       "team_lead_exact_non_postgresql": "44_passed_11_postgresql_skipped_after_explicit_source_profile_link_remediation",
       "team_lead_identity_normalization": "trim_only_matches_existing_canonical_telemetry_identity_behavior",
       "post_postgresql_change_scope": "rfx03_migration_now_adds_explicit_profile_to_source_fk_and_ci_roundtrip_test_final_postgresql_evidence_pending",
-      "local_candidate_status": "CODEX_P2_REMEDIATED_STATE_V2_CANONICAL_PENDING_EXACT_HEAD_CI_AND_FRESH_CODEX_REVIEW",
-      "team_lead_review": "codex_p2_source_profile_compatibility_reproduced_and_remediated_locally",
-      "codex_reviewed_head": "683aaea23d4b30b74489d6ad8ed78f6d0f10427e",
-      "codex_review_finding": "P2_validate_source_profile_compatibility_before_scaling",
-      "codex_p2_remediation": "analog_profile_explicit_acquisition_source_id_composite_org_signal_fk_and_pre_scaling_fail_closed_guard",
+      "local_candidate_status": "GREEN_NON_POSTGRESQL_SECOND_CODEX_P2_REMEDIATED_REQUIRES_FINAL_EXACT_HEAD_CI_AND_FRESH_CODEX_REVIEW",
+      "team_lead_review": "two_codex_p2_findings_reproduced_and_remediated_locally",
+      "codex_reviewed_head": "de8140c6cd2264dcb4f616a8421f58c0ea08425d",
+      "codex_review_finding": "P2_require_source_matching_for_every_scaling_evaluation",
+      "codex_p2_remediation": "linked_profiles_auto_validate_effective_source_in_shared_rfx02_evaluator_before_scaling;humidity_requires_explicit_link",
       "source_binding_contract": "acquisition-source/v1_explicit_identity_half_open_append_oriented",
       "humidity_identity": "humidity_transmitter_relative_humidity_%RH",
-      "humidity_scaling_authority": "rfx02_decimal_scaler_with_expected_acquisition_source_guard_before_scaling",
+      "humidity_scaling_authority": "shared_rfx02_decimal_scaler_auto_validates_effective_source_for_linked_profiles;humidity_requires_explicit_matching_link",
       "core_ci_policy_local": "174_ci_policy_tests_passed_and_state_model_v2_validation_passed_after_canonical_observation_fix"
     }
   },
@@ -59,9 +59,21 @@
         "finding": "validate_source_profile_compatibility_before_scaling",
         "remediation_head_sha": "eb9fbf2900d145afaec292d0e73b3ae5fa87e5ce"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-06T01:43:39Z",
+      "kind": "codex_review_finding",
+      "data": {
+        "pull_request": 938,
+        "reviewed_head_sha": "de8140c6cd2264dcb4f616a8421f58c0ea08425d",
+        "severity": "P2",
+        "finding": "require_source_matching_for_every_scaling_evaluation",
+        "remediation_status": "locally_remediated_exact_head_review_pending"
+      }
     }
   ],
-  "next_action": "Require the final exact-head Telemetry PostgreSQL suite including the automated 0034→0033→0034 round-trip, all routed workflows, NEXOLAB Merge Gate, and a fresh Codex review with no unresolved P1/P2; then recheck main/head freshness and mergeability before squash merge.",
+  "next_action": "Require fresh exact-head Telemetry PostgreSQL/full suite, all routed workflows, NEXOLAB Merge Gate and Codex review with no unresolved P1/P2; then recheck main/head freshness and mergeability before squash merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

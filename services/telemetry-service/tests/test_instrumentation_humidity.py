@@ -253,6 +253,16 @@ def test_humidity_evaluation_fails_closed_when_source_is_rebound_without_new_pro
         organization_id=ORGANIZATION_ID,
     )
 
+    with pytest.raises(AnalogScalingSourceMismatchError) as generic_failure:
+        repository.evaluate_analog_scaling(
+            instrument_id,
+            signal_id,
+            Decimal("12"),
+            boundary,
+            organization_id=ORGANIZATION_ID,
+        )
+    assert generic_failure.value.code == "analog_scaling_source_mismatch"
+
     with pytest.raises(AnalogScalingSourceMismatchError) as failure:
         repository.evaluate_humidity_observation(
             instrument_id,
@@ -378,6 +388,42 @@ def test_humidity_api_preserves_source_profile_and_unverified_evidence(
         "profile_evidence_status": "hardware_unverified",
         "evidence_status": "hardware_unverified",
     }
+
+    boundary = at + timedelta(hours=1)
+    second_source = repository.append_acquisition_source(
+        instrument_id,
+        signal_id,
+        _source(boundary, channel_id="analog-input-3"),
+        actor_id="test-suite",
+        organization_id=ORGANIZATION_ID,
+    )
+    generic_endpoint = (
+        f"/api/v1/instrumentation/instruments/{instrument_id}/signals/"
+        f"{signal_id}/analog-scaling-evaluate"
+    )
+    stale_generic = api.post(
+        generic_endpoint,
+        json={"raw_value": "12", "at": boundary.isoformat()},
+    )
+    assert stale_generic.status_code == 409
+    assert stale_generic.json()["detail"]["code"] == "analog_scaling_source_mismatch"
+
+    replacement_profile = repository.append_analog_scaling_profile(
+        instrument_id,
+        signal_id,
+        _profile(boundary, acquisition_source_id=second_source.id),
+        actor_id="test-suite",
+        organization_id=ORGANIZATION_ID,
+    )
+    rebound_generic = api.post(
+        generic_endpoint,
+        json={"raw_value": "12", "at": boundary.isoformat()},
+    )
+    assert rebound_generic.status_code == 200
+    assert rebound_generic.json()["profile_id"] == replacement_profile.id
+    assert Decimal(str(rebound_generic.json()["engineering_value"])) == Decimal(
+        "50.000000000000000000"
+    )
 
     outside = api.post(
         endpoint,
