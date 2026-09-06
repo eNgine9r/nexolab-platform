@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import subprocess
+import sys
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from threading import Barrier, Thread
@@ -842,6 +844,34 @@ def test_postgres_acquisition_source_guards_unit_overlap_and_immutability() -> N
         connection.execute(
             text(
                 """
+                INSERT INTO instrument_analog_scaling_history (
+                    id, organization_id, signal_id, schema_version,
+                    electrical_input_class, raw_unit, raw_min, raw_max,
+                    engineering_min, engineering_max, engineering_unit,
+                    scaling_policy, under_range_policy, over_range_policy,
+                    acquisition_source_id, calibration_scope, evidence_status,
+                    effective_from, effective_to, revision, recorded_by, recorded_at
+                ) VALUES (
+                    :id, :organization_id, :signal_id, 'analog-scaling/v1',
+                    'current_loop_4_20ma', 'mA', 4, 20, 10, 90, '%RH',
+                    'linear_two_point', 'unavailable', 'unavailable',
+                    :acquisition_source_id, 'instrument', 'hardware_unverified',
+                    :effective_from, NULL, 99, 'test-suite', now()
+                )
+                """
+            ),
+            {
+                "id": str(uuid4()),
+                "organization_id": organization_id,
+                "signal_id": signal.id,
+                "acquisition_source_id": str(uuid4()),
+                "effective_from": start,
+            },
+        )
+    with pytest.raises(DBAPIError), database.engine.begin() as connection:
+        connection.execute(
+            text(
+                """
                 INSERT INTO instrument_signal_acquisition_history (
                     id, organization_id, signal_id, schema_version, node_id,
                     equipment_id, channel_id, metric, unit, evidence_status,
@@ -909,3 +939,116 @@ def test_postgres_acquisition_source_guards_unit_overlap_and_immutability() -> N
             },
         )
     database.dispose()
+
+
+def test_postgres_rfx03_migration_roundtrip_preserves_rfx01_rfx02_sentinels() -> None:
+    database = Database(os.environ["DATABASE_URL"])
+    security = SecurityRepository(database)
+    repository = InstrumentationRepository(database)
+    organization_id = str(uuid4())
+    suffix = uuid4().hex
+    security.provision_organization(
+        organization_id=organization_id,
+        slug=f"rfx03-roundtrip-{suffix}",
+        name="RFX-03 migration round-trip",
+    )
+    instrument = repository.create_instrument(
+        InstrumentCreate(
+            inventory_key=f"RFX03-{suffix}",
+            display_name="RFX-03 round-trip instrument",
+            instrument_kind="humidity_transmitter",
+        ),
+        actor_id="test-suite",
+        organization_id=organization_id,
+    )
+    signal = repository.create_signal(
+        instrument.id,
+        SignalCreate(
+            business_key=f"RFX03-{suffix}.RH",
+            display_name="RFX-03 round-trip signal",
+            physical_quantity="relative_humidity",
+            engineering_unit="%RH",
+        ),
+        actor_id="test-suite",
+        organization_id=organization_id,
+    )
+    profile = repository.append_analog_scaling_profile(
+        instrument.id,
+        signal.id,
+        AnalogScalingProfileAppendRequest(
+            raw_unit="mA",
+            raw_min="4",
+            raw_max="20",
+            engineering_min="10",
+            engineering_max="90",
+            engineering_unit="%RH",
+            evidence_status="hardware_unverified",
+            effective_from=datetime(2026, 9, 6, tzinfo=UTC),
+        ),
+        actor_id="test-suite",
+        organization_id=organization_id,
+    )
+    database.dispose()
+
+    def run_alembic(*args: str) -> None:
+        subprocess.run(
+            [sys.executable, "-m", "alembic", *args],
+            check=True,
+            env=os.environ.copy(),
+        )
+
+    run_alembic("downgrade", "20260906_0033")
+    try:
+        downgraded = create_engine(os.environ["DATABASE_URL"])
+        try:
+            with downgraded.connect() as connection:
+                assert connection.scalar(
+                    text("SELECT count(*) FROM instrument_signals WHERE id = :id"),
+                    {"id": signal.id},
+                ) == 1
+                assert connection.scalar(
+                    text(
+                        "SELECT count(*) FROM instrument_analog_scaling_history WHERE id = :id"
+                    ),
+                    {"id": profile.id},
+                ) == 1
+            downgraded_inspector = inspect(downgraded)
+            assert "instrument_signal_acquisition_history" not in set(
+                downgraded_inspector.get_table_names()
+            )
+            assert "acquisition_source_id" not in {
+                column["name"]
+                for column in downgraded_inspector.get_columns(
+                    "instrument_analog_scaling_history"
+                )
+            }
+        finally:
+            downgraded.dispose()
+    finally:
+        run_alembic("upgrade", "head")
+
+    upgraded = create_engine(os.environ["DATABASE_URL"])
+    try:
+        upgraded_inspector = inspect(upgraded)
+        assert "instrument_signal_acquisition_history" in set(
+            upgraded_inspector.get_table_names()
+        )
+        assert "acquisition_source_id" in {
+            column["name"]
+            for column in upgraded_inspector.get_columns(
+                "instrument_analog_scaling_history"
+            )
+        }
+        with upgraded.connect() as connection:
+            assert connection.scalar(
+                text("SELECT count(*) FROM instrument_signals WHERE id = :id"),
+                {"id": signal.id},
+            ) == 1
+            assert connection.scalar(
+                text(
+                    "SELECT count(*) FROM instrument_analog_scaling_history WHERE id = :id"
+                ),
+                {"id": profile.id},
+            ) == 1
+    finally:
+        upgraded.dispose()

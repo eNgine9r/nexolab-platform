@@ -14,6 +14,7 @@ from app.instrumentation.repository import (
     AcquisitionSourceResolutionError,
     AcquisitionSourceUnitMismatchError,
     HumiditySignalUnsupportedError,
+    AnalogScalingSourceMismatchError,
     InstrumentNotFoundError,
     InstrumentationRepository,
 )
@@ -79,7 +80,9 @@ def _source(at: datetime, **changes: object) -> AcquisitionSourceAppendRequest:
     return AcquisitionSourceAppendRequest.model_validate(values)
 
 
-def _profile(at: datetime) -> AnalogScalingProfileAppendRequest:
+def _profile(
+    at: datetime, *, acquisition_source_id: str | None = None
+) -> AnalogScalingProfileAppendRequest:
     return AnalogScalingProfileAppendRequest(
         raw_unit="mA",
         raw_min=Decimal("4"),
@@ -87,6 +90,7 @@ def _profile(at: datetime) -> AnalogScalingProfileAppendRequest:
         engineering_min=Decimal("10"),
         engineering_max=Decimal("90"),
         engineering_unit="%RH",
+        acquisition_source_id=acquisition_source_id,
         evidence_status="hardware_unverified",
         effective_from=at,
     )
@@ -182,7 +186,7 @@ def test_humidity_evaluation_delegates_to_rfx02_and_never_persists_telemetry(
 ) -> None:
     database, repository, instrument_id, signal_id = _humidity_repository(tmp_path)
     at = datetime(2026, 9, 6, tzinfo=UTC)
-    repository.append_acquisition_source(
+    source_binding = repository.append_acquisition_source(
         instrument_id,
         signal_id,
         _source(at),
@@ -192,7 +196,7 @@ def test_humidity_evaluation_delegates_to_rfx02_and_never_persists_telemetry(
     repository.append_analog_scaling_profile(
         instrument_id,
         signal_id,
-        _profile(at),
+        _profile(at, acquisition_source_id=source_binding.id),
         actor_id="test-suite",
         organization_id=ORGANIZATION_ID,
     )
@@ -218,6 +222,65 @@ def test_humidity_evaluation_delegates_to_rfx02_and_never_persists_telemetry(
     assert source.evidence_status == profile.evidence_status == "hardware_unverified"
     assert database.count_samples() == 0
     assert database.count_latest_samples() == 0
+
+
+def test_humidity_evaluation_fails_closed_when_source_is_rebound_without_new_profile(
+    tmp_path: Path,
+) -> None:
+    _, repository, instrument_id, signal_id = _humidity_repository(tmp_path)
+    start = datetime(2026, 9, 6, tzinfo=UTC)
+    first_source = repository.append_acquisition_source(
+        instrument_id,
+        signal_id,
+        _source(start),
+        actor_id="test-suite",
+        organization_id=ORGANIZATION_ID,
+    )
+    repository.append_analog_scaling_profile(
+        instrument_id,
+        signal_id,
+        _profile(start, acquisition_source_id=first_source.id),
+        actor_id="test-suite",
+        organization_id=ORGANIZATION_ID,
+    )
+
+    boundary = start + timedelta(hours=1)
+    second_source = repository.append_acquisition_source(
+        instrument_id,
+        signal_id,
+        _source(boundary, channel_id="analog-input-3"),
+        actor_id="test-suite",
+        organization_id=ORGANIZATION_ID,
+    )
+
+    with pytest.raises(AnalogScalingSourceMismatchError) as failure:
+        repository.evaluate_humidity_observation(
+            instrument_id,
+            signal_id,
+            Decimal("12"),
+            boundary,
+            organization_id=ORGANIZATION_ID,
+        )
+    assert failure.value.code == "analog_scaling_source_mismatch"
+
+    new_profile = repository.append_analog_scaling_profile(
+        instrument_id,
+        signal_id,
+        _profile(boundary, acquisition_source_id=second_source.id),
+        actor_id="test-suite",
+        organization_id=ORGANIZATION_ID,
+    )
+    source, profile, value = repository.evaluate_humidity_observation(
+        instrument_id,
+        signal_id,
+        Decimal("12"),
+        boundary,
+        organization_id=ORGANIZATION_ID,
+    )
+    assert source.id == second_source.id
+    assert profile.id == new_profile.id
+    assert profile.acquisition_source_id == second_source.id
+    assert value == Decimal("50.000000000000000000")
 
 
 def test_humidity_evaluation_rejects_non_humidity_signal(tmp_path: Path) -> None:
@@ -286,7 +349,7 @@ def test_humidity_api_preserves_source_profile_and_unverified_evidence(
     profile = repository.append_analog_scaling_profile(
         instrument_id,
         signal_id,
-        _profile(at),
+        _profile(at, acquisition_source_id=source.id),
         actor_id="test-suite",
         organization_id=ORGANIZATION_ID,
     )

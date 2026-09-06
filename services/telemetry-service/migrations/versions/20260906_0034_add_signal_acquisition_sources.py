@@ -85,6 +85,12 @@ def upgrade() -> None:
             "revision",
             name="uq_instrument_signal_acquisition_revision",
         ),
+        sa.UniqueConstraint(
+            "organization_id",
+            "signal_id",
+            "id",
+            name="uq_instrument_signal_acquisition_identity",
+        ),
     )
     op.create_index(
         "ix_instrument_signal_acquisition_as_of",
@@ -97,6 +103,18 @@ def upgrade() -> None:
         ["organization_id", "signal_id"],
         unique=True,
         postgresql_where=sa.text("valid_to IS NULL"),
+    )
+    op.add_column(
+        "instrument_analog_scaling_history",
+        sa.Column("acquisition_source_id", sa.String(length=36), nullable=True),
+    )
+    op.create_foreign_key(
+        "fk_instrument_analog_scaling_acquisition_source",
+        "instrument_analog_scaling_history",
+        "instrument_signal_acquisition_history",
+        ["organization_id", "signal_id", "acquisition_source_id"],
+        ["organization_id", "signal_id", "id"],
+        ondelete="RESTRICT",
     )
     _create_history_guard()
 
@@ -161,6 +179,15 @@ def _create_history_guard() -> None:
 
 
 def downgrade() -> None:
+    op.drop_constraint(
+        "fk_instrument_analog_scaling_acquisition_source",
+        "instrument_analog_scaling_history",
+        type_="foreignkey",
+    )
+    op.drop_column(
+        "instrument_analog_scaling_history",
+        "acquisition_source_id",
+    )
     op.execute(
         "DROP TRIGGER IF EXISTS trg_instrument_signal_acquisition_history_guard "
         "ON instrument_signal_acquisition_history"

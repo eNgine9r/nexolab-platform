@@ -200,6 +200,16 @@ class AnalogScalingProfileRecord(Base):
             name="fk_instrument_analog_scaling_signal",
             ondelete="RESTRICT",
         ),
+        ForeignKeyConstraint(
+            ["organization_id", "signal_id", "acquisition_source_id"],
+            [
+                "instrument_signal_acquisition_history.organization_id",
+                "instrument_signal_acquisition_history.signal_id",
+                "instrument_signal_acquisition_history.id",
+            ],
+            name="fk_instrument_analog_scaling_acquisition_source",
+            ondelete="RESTRICT",
+        ),
         UniqueConstraint(
             "organization_id",
             "signal_id",
@@ -293,6 +303,7 @@ class AnalogScalingProfileRecord(Base):
     acquisition_profile_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     acquisition_profile_version: Mapped[str | None] = mapped_column(String(128), nullable=True)
     acquisition_channel_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    acquisition_source_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     evidence_reference: Mapped[str | None] = mapped_column(String(512), nullable=True)
     calibration_scope: Mapped[str] = mapped_column(String(64), nullable=False)
     evidence_status: Mapped[str] = mapped_column(String(32), nullable=False)
@@ -319,6 +330,12 @@ class SignalAcquisitionSourceRecord(Base):
             "signal_id",
             "revision",
             name="uq_instrument_signal_acquisition_revision",
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "signal_id",
+            "id",
+            name="uq_instrument_signal_acquisition_identity",
         ),
         CheckConstraint(
             f"schema_version = '{ACQUISITION_SOURCE_SCHEMA_VERSION}'",

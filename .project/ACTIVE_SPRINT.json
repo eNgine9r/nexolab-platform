@@ -2792,10 +2792,10 @@
         "rfx02_verified_head_sha": "4decaaefcf58c64f91e231c70f0980bdeac97c93",
         "rfx02_pull_request": 936,
         "current_alembic_head": "20260906_0034",
-        "focused_instrumentation_and_security": "43_passed_10_skipped_without_postgresql",
-        "postgresql_instrumentation_guards": "10_passed_disposable_postgresql",
-        "migration_roundtrip": "0034_to_0033_to_0034_rfx01_signal_and_rfx02_profile_sentinels_preserved",
-        "offline_migration_sql": "2837_lines_generated",
+        "focused_instrumentation_and_security": "44_passed_11_postgresql_skipped_after_codex_p2_remediation",
+        "postgresql_instrumentation_guards": "10_passed_pre_codex_p2_remediation_final_11_test_exact_head_ci_pending",
+        "migration_roundtrip": "automated_0034_to_0033_to_0034_rfx01_rfx02_sentinel_test_added_exact_head_postgresql_ci_pending",
+        "offline_migration_sql": "2842_lines_generated_after_source_profile_link_remediation",
         "xjp60d_temperature_and_acquisition_compatibility": "27_passed",
         "climate_and_structural_refrigeration_compatibility": "25_passed",
         "xjp60d_humidity_hardware": "unverified",
@@ -2804,10 +2804,14 @@
         "modbus_write": "none",
         "hardware_write": "none",
         "production_deployment": "not_authorized",
-        "team_lead_exact_non_postgresql": "43_passed_10_postgresql_skipped_after_identity_normalization_remediation",
+        "team_lead_exact_non_postgresql": "44_passed_11_postgresql_skipped_after_explicit_source_profile_link_remediation",
         "team_lead_identity_normalization": "trim_only_matches_existing_canonical_telemetry_identity_behavior",
-        "post_postgresql_change_scope": "request_identity_trim_only_plus_state_reconciliation_db_and_migration_code_unchanged",
-        "local_candidate_status": "GREEN_TARGETED_TEAM_LEAD_REVIEWED_PENDING_EXACT_HEAD_CI_CODEX_REVIEW"
+        "post_postgresql_change_scope": "rfx03_migration_now_adds_explicit_profile_to_source_fk_and_ci_roundtrip_test_final_postgresql_evidence_pending",
+        "local_candidate_status": "GREEN_NON_POSTGRESQL_CODEX_P2_REMEDIATED_PENDING_NEW_EXACT_HEAD_CI_AND_FRESH_CODEX_REVIEW",
+        "team_lead_review": "codex_p2_source_profile_compatibility_reproduced_and_remediated_locally",
+        "codex_reviewed_head": "683aaea23d4b30b74489d6ad8ed78f6d0f10427e",
+        "codex_review_finding": "P2_validate_source_profile_compatibility_before_scaling",
+        "codex_p2_remediation": "analog_profile_explicit_acquisition_source_id_composite_org_signal_fk_and_pre_scaling_fail_closed_guard"
       }
     }
   ],

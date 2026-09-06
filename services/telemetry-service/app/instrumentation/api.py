@@ -846,6 +846,7 @@ def _analog_scaling_response(
         acquisition_profile_id=row.acquisition_profile_id,
         acquisition_profile_version=row.acquisition_profile_version,
         acquisition_channel_reference=row.acquisition_channel_reference,
+        acquisition_source_id=row.acquisition_source_id,
         evidence_reference=row.evidence_reference,
         calibration_scope=row.calibration_scope,
         evidence_status=row.evidence_status,

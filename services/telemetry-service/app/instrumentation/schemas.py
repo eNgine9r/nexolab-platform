@@ -266,6 +266,7 @@ class AnalogScalingProfileAppendRequest(BaseModel):
     acquisition_profile_id: Annotated[str | None, Field(max_length=128)] = None
     acquisition_profile_version: Annotated[str | None, Field(max_length=128)] = None
     acquisition_channel_reference: Annotated[str | None, Field(max_length=255)] = None
+    acquisition_source_id: Annotated[str | None, Field(max_length=36)] = None
     evidence_reference: Annotated[str | None, Field(max_length=512)] = None
     calibration_scope: Annotated[str, Field(min_length=1, max_length=64)] = "instrument"
     evidence_status: AnalogEvidenceStatus = "hardware_unverified"
@@ -289,6 +290,7 @@ class AnalogScalingProfileAppendRequest(BaseModel):
         "acquisition_profile_id",
         "acquisition_profile_version",
         "acquisition_channel_reference",
+        "acquisition_source_id",
         "evidence_reference",
     )
     @classmethod
@@ -344,6 +346,7 @@ class AnalogScalingProfileResponse(BaseModel):
     acquisition_profile_id: str | None
     acquisition_profile_version: str | None
     acquisition_channel_reference: str | None
+    acquisition_source_id: str | None
     evidence_reference: str | None
     calibration_scope: str
     evidence_status: AnalogEvidenceStatus

@@ -109,6 +109,10 @@ class HumiditySignalUnsupportedError(InstrumentationRepositoryError):
     code = "humidity_signal_unsupported"
 
 
+class AnalogScalingSourceMismatchError(AcquisitionSourceResolutionError):
+    code = "analog_scaling_source_mismatch"
+
+
 class InstrumentVersionConflictError(InstrumentationRepositoryError):
     code = "instrument_version_conflict"
 
@@ -616,7 +620,12 @@ class InstrumentationRepository:
             instrument_id, signal_id, at, organization_id=organization_id
         )
         profile, value = self.evaluate_analog_scaling(
-            instrument_id, signal_id, raw_value, at, organization_id=organization_id
+            instrument_id,
+            signal_id,
+            raw_value,
+            at,
+            organization_id=organization_id,
+            expected_acquisition_source_id=source.id,
         )
         return source, profile, value
 
@@ -660,6 +669,37 @@ class InstrumentationRepository:
                         .with_for_update()
                     )
                     effective_from = _as_utc(payload.effective_from)
+                    if payload.acquisition_source_id is not None:
+                        acquisition_source = session.scalar(
+                            select(SignalAcquisitionSourceRecord).where(
+                                SignalAcquisitionSourceRecord.id
+                                == payload.acquisition_source_id,
+                                SignalAcquisitionSourceRecord.organization_id
+                                == organization_id,
+                                SignalAcquisitionSourceRecord.signal_id == signal_id,
+                            )
+                        )
+                        if acquisition_source is None:
+                            raise AcquisitionSourceResolutionError(
+                                "analog scaling acquisition_source_id must reference "
+                                "the owning Signal's acquisition source"
+                            )
+                        source_valid_from = _as_utc(acquisition_source.valid_from)
+                        source_valid_to = (
+                            _as_utc(acquisition_source.valid_to)
+                            if acquisition_source.valid_to is not None
+                            else None
+                        )
+                        if not (
+                            source_valid_from <= effective_from
+                            and (
+                                source_valid_to is None
+                                or source_valid_to > effective_from
+                            )
+                        ):
+                            raise AcquisitionSourceResolutionError(
+                                "analog scaling acquisition source must be effective when the profile begins"
+                            )
                     previous = (
                         _analog_scaling_snapshot(latest) if latest is not None else None
                     )
@@ -686,6 +726,7 @@ class InstrumentationRepository:
                         acquisition_profile_id=payload.acquisition_profile_id,
                         acquisition_profile_version=payload.acquisition_profile_version,
                         acquisition_channel_reference=payload.acquisition_channel_reference,
+                        acquisition_source_id=payload.acquisition_source_id,
                         evidence_reference=payload.evidence_reference,
                         calibration_scope=payload.calibration_scope,
                         evidence_status=payload.evidence_status,
@@ -754,10 +795,18 @@ class InstrumentationRepository:
         at: datetime,
         *,
         organization_id: str = DEFAULT_ORGANIZATION_ID,
+        expected_acquisition_source_id: str | None = None,
     ) -> tuple[AnalogScalingProfileRecord, Decimal]:
         profile = self.resolve_analog_scaling_profile(
             instrument_id, signal_id, at, organization_id=organization_id
         )
+        if (
+            expected_acquisition_source_id is not None
+            and profile.acquisition_source_id != expected_acquisition_source_id
+        ):
+            raise AnalogScalingSourceMismatchError(
+                "analog scaling profile is not explicitly linked to the effective acquisition source"
+            )
         value = scale_linear_two_point(
             raw_value,
             raw_min=profile.raw_min,
@@ -1350,6 +1399,7 @@ def _analog_scaling_snapshot(row: AnalogScalingProfileRecord) -> dict[str, Any]:
         "acquisition_profile_id": row.acquisition_profile_id,
         "acquisition_profile_version": row.acquisition_profile_version,
         "acquisition_channel_reference": row.acquisition_channel_reference,
+        "acquisition_source_id": row.acquisition_source_id,
         "evidence_reference": row.evidence_reference,
         "calibration_scope": row.calibration_scope,
         "evidence_status": row.evidence_status,
