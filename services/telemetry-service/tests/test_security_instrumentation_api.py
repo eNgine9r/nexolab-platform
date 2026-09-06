@@ -487,3 +487,84 @@ def test_dashboard_read_can_evaluate_pressure_but_cross_org_stays_closed(
     )
     assert denied.status_code == 403
     assert denied.json()["detail"]["code"] == "organization_membership_not_found"
+
+
+def test_dashboard_read_can_evaluate_atmospheric_pressure_but_cross_org_stays_closed(
+    tmp_path: Path,
+) -> None:
+    api, _, repository = build_client(
+        tmp_path, subject="atmosphere-viewer", roles={Role.VIEWER}
+    )
+    at = datetime(2026, 9, 6, tzinfo=UTC)
+    instrument = repository.create_instrument(
+        InstrumentCreate(
+            inventory_key="ATMOSPHERE-SECURE-001",
+            display_name="Secure barometric pressure sensor",
+            instrument_kind="barometric_pressure_sensor",
+            pressure_reference="absolute",
+        ),
+        actor_id="fixture",
+        organization_id=ORGANIZATION_ID,
+    )
+    signal = repository.create_signal(
+        instrument.id,
+        SignalCreate(
+            business_key="ATMOSPHERE-SECURE-001.PRIMARY",
+            display_name="Atmospheric pressure measurement",
+            physical_quantity="pressure",
+            engineering_unit="kPa",
+        ),
+        actor_id="fixture",
+        organization_id=ORGANIZATION_ID,
+    )
+    source = repository.append_acquisition_source(
+        instrument.id,
+        signal.id,
+        AcquisitionSourceAppendRequest(
+            node_id="edge-01",
+            equipment_id="environment-reference-01",
+            channel_id="ai-2",
+            metric="pressure.environmental",
+            unit="kPa",
+            valid_from=at,
+        ),
+        actor_id="fixture",
+        organization_id=ORGANIZATION_ID,
+    )
+    repository.append_analog_scaling_profile(
+        instrument.id,
+        signal.id,
+        AnalogScalingProfileAppendRequest(
+            raw_unit="mA",
+            raw_min=Decimal("4"),
+            raw_max=Decimal("20"),
+            engineering_min=Decimal("80"),
+            engineering_max=Decimal("120"),
+            engineering_unit="kPa",
+            acquisition_source_id=source.id,
+            effective_from=at,
+        ),
+        actor_id="fixture",
+        organization_id=ORGANIZATION_ID,
+    )
+    endpoint = (
+        f"/api/v1/instrumentation/instruments/{instrument.id}/signals/{signal.id}/"
+        "atmospheric-pressure-observation-evaluate"
+    )
+
+    allowed = api.post(
+        endpoint,
+        headers=headers("atmosphere-viewer"),
+        json={"raw_value": "12", "at": at.isoformat()},
+    )
+    assert allowed.status_code == 200
+    assert allowed.json()["pressure_reference"] == "absolute"
+    assert allowed.json()["physical_quantity"] == "pressure"
+
+    denied = api.post(
+        endpoint,
+        headers=headers("atmosphere-viewer", OTHER_ORGANIZATION_ID),
+        json={"raw_value": "12", "at": at.isoformat()},
+    )
+    assert denied.status_code == 403
+    assert denied.json()["detail"]["code"] == "organization_membership_not_found"

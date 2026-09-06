@@ -22,12 +22,12 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 943,
       "title": "RFX-05 Typed Atmospheric Pressure Sensor/Reference Vertical Slice",
       "branch": "feat/943-rfx05-atmospheric-reference"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -2883,7 +2883,7 @@
       "issue": 943,
       "title": "RFX-05 Typed Atmospheric Pressure Sensor/Reference Vertical Slice",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "branch": "feat/943-rfx05-atmospheric-reference",
       "depends_on": [
         939
@@ -2903,8 +2903,20 @@
         "atmospheric_hardware": "unverified",
         "modbus_write": "none",
         "hardware_write": "none",
-        "production_deployment": "not_authorized",
-        "review_gate": "manual_team_lead_plus_exact_head_ci_per_product_owner_no_codex_decision"
+        "production_deployment": "not_executed_not_authorized",
+        "review_gate": "manual_team_lead_plus_exact_head_ci_per_product_owner_no_codex_decision",
+        "implementation_base_main_sha": "e3aadfe2c5666880fec493bc0b8f48bbdb754be6",
+        "canonical_instrument_kind": "barometric_pressure_sensor",
+        "repository_convention_search": "no_existing_barometric_instrument_kind_synonym_found",
+        "local_atmospheric_pressure_regression": "27_passed",
+        "local_instrumentation_api_security_suite": "59_passed_13_postgresql_only_skipped",
+        "local_compile": "passed",
+        "git_diff_check": "passed",
+        "telemetry_persistence": "none_software_evaluation_only",
+        "migration": "none_existing_registry_source_scaling_contracts_sufficient",
+        "runtime_mutation": "none",
+        "state_model_v2": "passed",
+        "ci_policy_tests": "174_passed_1_environment_skip"
       }
     }
   ],
