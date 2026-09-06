@@ -5,7 +5,7 @@
   "sprint": "PRODUCTION-READINESS-1",
   "timestamp": "2026-09-06T04:35:43+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_937_codex_p2_remediated_pending_new_exact_head_ci_review",
+  "event": "issue_937_codex_p2_remediated_state_canonical_pending_exact_head_ci_review",
   "baselines": {
     "accepted_product_sha": "4decaaefcf58c64f91e231c70f0980bdeac97c93",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -36,14 +36,15 @@
       "team_lead_exact_non_postgresql": "44_passed_11_postgresql_skipped_after_explicit_source_profile_link_remediation",
       "team_lead_identity_normalization": "trim_only_matches_existing_canonical_telemetry_identity_behavior",
       "post_postgresql_change_scope": "rfx03_migration_now_adds_explicit_profile_to_source_fk_and_ci_roundtrip_test_final_postgresql_evidence_pending",
-      "local_candidate_status": "GREEN_NON_POSTGRESQL_CODEX_P2_REMEDIATED_PENDING_NEW_EXACT_HEAD_CI_AND_FRESH_CODEX_REVIEW",
+      "local_candidate_status": "CODEX_P2_REMEDIATED_STATE_V2_CANONICAL_PENDING_EXACT_HEAD_CI_AND_FRESH_CODEX_REVIEW",
       "team_lead_review": "codex_p2_source_profile_compatibility_reproduced_and_remediated_locally",
       "codex_reviewed_head": "683aaea23d4b30b74489d6ad8ed78f6d0f10427e",
       "codex_review_finding": "P2_validate_source_profile_compatibility_before_scaling",
       "codex_p2_remediation": "analog_profile_explicit_acquisition_source_id_composite_org_signal_fk_and_pre_scaling_fail_closed_guard",
       "source_binding_contract": "acquisition-source/v1_explicit_identity_half_open_append_oriented",
       "humidity_identity": "humidity_transmitter_relative_humidity_%RH",
-      "humidity_scaling_authority": "rfx02_decimal_scaler_with_expected_acquisition_source_guard_before_scaling"
+      "humidity_scaling_authority": "rfx02_decimal_scaler_with_expected_acquisition_source_guard_before_scaling",
+      "core_ci_policy_local": "174_ci_policy_tests_passed_and_state_model_v2_validation_passed_after_canonical_observation_fix"
     }
   },
   "observations": [
@@ -60,7 +61,7 @@
       }
     }
   ],
-  "next_action": "Commit and push the Codex-P2 remediation, then require the new exact-head Telemetry PostgreSQL suite (including the automated 0034→0033→0034 round-trip), all routed workflows, NEXOLAB Merge Gate, and a fresh Codex review with no unresolved P1/P2 before merge.",
+  "next_action": "Require the final exact-head Telemetry PostgreSQL suite including the automated 0034→0033→0034 round-trip, all routed workflows, NEXOLAB Merge Gate, and a fresh Codex review with no unresolved P1/P2; then recheck main/head freshness and mergeability before squash merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
