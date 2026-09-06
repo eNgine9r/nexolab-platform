@@ -33,6 +33,7 @@ ANALOG_ELECTRICAL_INPUT_CLASSES = ("current_loop_4_20ma",)
 ANALOG_SCALING_POLICIES = ("linear_two_point",)
 ANALOG_RANGE_POLICIES = ("unavailable",)
 ANALOG_EVIDENCE_STATUSES = ("software_verified", "hardware_unverified", "hardware_verified")
+ACQUISITION_SOURCE_SCHEMA_VERSION = "acquisition-source/v1"
 
 _CALIBRATION_STATE_SQL = ", ".join(f"'{state}'" for state in CALIBRATION_STATES)
 _REGISTRY_LIFECYCLE_SQL = ", ".join(
@@ -297,6 +298,94 @@ class AnalogScalingProfileRecord(Base):
     evidence_status: Mapped[str] = mapped_column(String(32), nullable=False)
     effective_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     effective_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    recorded_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class SignalAcquisitionSourceRecord(Base):
+    __tablename__ = "instrument_signal_acquisition_history"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "signal_id"],
+            ["instrument_signals.organization_id", "instrument_signals.id"],
+            name="fk_instrument_signal_acquisition_signal",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "organization_id",
+            "signal_id",
+            "revision",
+            name="uq_instrument_signal_acquisition_revision",
+        ),
+        CheckConstraint(
+            f"schema_version = '{ACQUISITION_SOURCE_SCHEMA_VERSION}'",
+            name="ck_instrument_signal_acquisition_schema_version",
+        ),
+        CheckConstraint(
+            f"evidence_status IN ({_ANALOG_EVIDENCE_STATUS_SQL})",
+            name="ck_instrument_signal_acquisition_evidence_status",
+        ),
+        CheckConstraint(
+            "evidence_status <> 'hardware_verified' OR "
+            "(evidence_reference IS NOT NULL AND trim(evidence_reference) <> '')",
+            name="ck_instrument_signal_acquisition_hardware_evidence",
+        ),
+        CheckConstraint(
+            "revision >= 1", name="ck_instrument_signal_acquisition_revision_positive"
+        ),
+        CheckConstraint(
+            "valid_to IS NULL OR valid_to >= valid_from",
+            name="ck_instrument_signal_acquisition_interval",
+        ),
+        CheckConstraint(
+            "trim(node_id) <> '' AND trim(equipment_id) <> '' AND "
+            "trim(channel_id) <> '' AND trim(metric) <> '' AND trim(unit) <> ''",
+            name="ck_instrument_signal_acquisition_identity_nonempty",
+        ),
+        Index(
+            "ix_instrument_signal_acquisition_as_of",
+            "organization_id",
+            "signal_id",
+            "valid_from",
+            "valid_to",
+            "revision",
+        ),
+        Index(
+            "uq_instrument_signal_acquisition_open",
+            "organization_id",
+            "signal_id",
+            unique=True,
+            postgresql_where=text("valid_to IS NULL"),
+            sqlite_where=text("valid_to IS NULL"),
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_instrument_signal_acquisition_organization",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    signal_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    schema_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    node_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    equipment_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    channel_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    metric: Mapped[str] = mapped_column(String(128), nullable=False)
+    unit: Mapped[str] = mapped_column(String(64), nullable=False)
+    evidence_status: Mapped[str] = mapped_column(String(32), nullable=False)
+    evidence_reference: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    valid_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    valid_to: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     revision: Mapped[int] = mapped_column(Integer, nullable=False)
     recorded_by: Mapped[str] = mapped_column(String(255), nullable=False)
     recorded_at: Mapped[datetime] = mapped_column(

@@ -22,13 +22,17 @@ from app.instrumentation.models import (
     InstrumentCalibrationRecord,
     AnalogScalingProfileRecord,
     Signal,
+    SignalAcquisitionSourceRecord,
 )
 from app.instrumentation.repository import (
+    AcquisitionSourceResolutionError,
+    AcquisitionSourceUnitMismatchError,
     DEFAULT_ORGANIZATION_ID,
     AnalogScalingResolutionError,
     AnalogScalingUnitMismatchError,
     HistoryIntegrityConflictError,
     HistoryOrderConflictError,
+    HumiditySignalUnsupportedError,
     InstrumentationRepository,
     InstrumentationRepositoryError,
     InstrumentIdentityConflictError,
@@ -43,6 +47,9 @@ from app.instrumentation.repository import (
 )
 from app.instrumentation.schemas import (
     AcceptanceAppendRequest,
+    AcquisitionSourceAppendRequest,
+    AcquisitionSourceHistoryResponse,
+    AcquisitionSourceResponse,
     AnalogScalingEvaluationRequest,
     AnalogScalingEvaluationResponse,
     AnalogScalingHistoryResponse,
@@ -59,6 +66,8 @@ from app.instrumentation.schemas import (
     InstrumentListResponse,
     InstrumentResponse,
     InstrumentUpdate,
+    HumidityObservationRequest,
+    HumidityObservationResponse,
     SignalCreate,
     SignalListResponse,
     SignalResponse,
@@ -343,6 +352,135 @@ def create_instrumentation_router(
             raise _repository_http_error(error) from error
         response.headers["ETag"] = signal_etag(row.version)
         return _signal_response(row)
+
+    @router.get(
+        "/instruments/{instrument_id}/signals/{signal_id}/acquisition-source-history",
+        response_model=AcquisitionSourceHistoryResponse,
+        responses={404: {"model": ApiErrorResponse}},
+    )
+    def list_acquisition_source_history(
+        instrument_id: str,
+        signal_id: str,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> AcquisitionSourceHistoryResponse:
+        try:
+            rows = repository.list_acquisition_source_history(
+                instrument_id,
+                signal_id,
+                organization_id=authorized.principal.organization_id,
+            )
+        except InstrumentationRepositoryError as error:
+            raise _repository_http_error(error) from error
+        return AcquisitionSourceHistoryResponse(
+            items=[_acquisition_source_response(row) for row in rows]
+        )
+
+    @router.post(
+        "/instruments/{instrument_id}/signals/{signal_id}/acquisition-source-history",
+        response_model=AcquisitionSourceResponse,
+        status_code=status.HTTP_201_CREATED,
+        responses={404: {"model": ApiErrorResponse}, 409: {"model": ApiErrorResponse}},
+    )
+    def append_acquisition_source(
+        instrument_id: str,
+        signal_id: str,
+        payload: AcquisitionSourceAppendRequest,
+        request: Request,
+        audit_reason: str | None = Header(
+            default=None, alias="X-Audit-Reason", max_length=1024
+        ),
+        authorized: AuthorizedRequest = Depends(manage_access),
+    ) -> AcquisitionSourceResponse:
+        try:
+            row = repository.append_acquisition_source(
+                instrument_id,
+                signal_id,
+                payload,
+                actor_id=authorized.principal.subject,
+                organization_id=authorized.principal.organization_id,
+                audit_repository=security_repository,
+                audit_event=_audit_event(
+                    authorized,
+                    request,
+                    action="instrument_signal.acquisition_source_appended",
+                    entity_type="instrument_signal_acquisition_source",
+                    entity_id=signal_id,
+                    reason=audit_reason,
+                ),
+            )
+        except InstrumentationRepositoryError as error:
+            raise _repository_http_error(error) from error
+        return _acquisition_source_response(row)
+
+    @router.get(
+        "/instruments/{instrument_id}/signals/{signal_id}/acquisition-source",
+        response_model=AcquisitionSourceResponse,
+        responses={404: {"model": ApiErrorResponse}, 409: {"model": ApiErrorResponse}},
+    )
+    def resolve_acquisition_source(
+        instrument_id: str,
+        signal_id: str,
+        at: datetime = Query(...),
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> AcquisitionSourceResponse:
+        if at.tzinfo is None or at.utcoffset() is None:
+            raise _api_http_error(
+                422,
+                "acquisition_source_timestamp_invalid",
+                "at must include a timezone offset",
+            )
+        try:
+            row = repository.resolve_acquisition_source(
+                instrument_id,
+                signal_id,
+                at,
+                organization_id=authorized.principal.organization_id,
+            )
+        except InstrumentationRepositoryError as error:
+            raise _repository_http_error(error) from error
+        return _acquisition_source_response(row)
+
+    @router.post(
+        "/instruments/{instrument_id}/signals/{signal_id}/humidity-observation-evaluate",
+        response_model=HumidityObservationResponse,
+        responses={
+            404: {"model": ApiErrorResponse},
+            409: {"model": ApiErrorResponse},
+            422: {"model": ApiErrorResponse},
+        },
+    )
+    def evaluate_humidity_observation(
+        instrument_id: str,
+        signal_id: str,
+        payload: HumidityObservationRequest,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> HumidityObservationResponse:
+        try:
+            source, profile, value = repository.evaluate_humidity_observation(
+                instrument_id,
+                signal_id,
+                payload.raw_value,
+                payload.at,
+                organization_id=authorized.principal.organization_id,
+            )
+        except AnalogScalingUnavailableError as error:
+            raise _api_http_error(422, error.code, str(error)) from error
+        except HumiditySignalUnsupportedError as error:
+            raise _api_http_error(422, error.code, str(error)) from error
+        except InstrumentationRepositoryError as error:
+            raise _repository_http_error(error) from error
+        return HumidityObservationResponse(
+            signal_id=signal_id,
+            physical_quantity="relative_humidity",
+            raw_value=payload.raw_value,
+            value=value,
+            unit="%RH",
+            source=_acquisition_source_response(source),
+            profile_id=profile.id,
+            profile_revision=profile.revision,
+            profile_evidence_status=profile.evidence_status,
+            evidence_status="hardware_unverified",
+        )
 
     @router.get(
         "/instruments/{instrument_id}/signals/{signal_id}/analog-scaling-history",
@@ -721,6 +859,28 @@ def _analog_scaling_response(
     )
 
 
+def _acquisition_source_response(
+    row: SignalAcquisitionSourceRecord,
+) -> AcquisitionSourceResponse:
+    return AcquisitionSourceResponse(
+        id=row.id,
+        signal_id=row.signal_id,
+        schema_version=row.schema_version,
+        node_id=row.node_id,
+        equipment_id=row.equipment_id,
+        channel_id=row.channel_id,
+        metric=row.metric,
+        unit=row.unit,
+        evidence_status=row.evidence_status,
+        evidence_reference=row.evidence_reference,
+        valid_from=_utc_datetime(row.valid_from),
+        valid_to=_utc_datetime(row.valid_to) if row.valid_to is not None else None,
+        revision=row.revision,
+        recorded_by=row.recorded_by,
+        recorded_at=_utc_datetime(row.recorded_at),
+    )
+
+
 def _acceptance_response(
     row: InstrumentAcceptanceRecord,
 ) -> AcceptanceRecordResponse:
@@ -841,6 +1001,8 @@ def _repository_http_error(error: InstrumentationRepositoryError) -> HTTPExcepti
             PressureReferenceRequiredError,
             AnalogScalingUnitMismatchError,
             AnalogScalingResolutionError,
+            AcquisitionSourceUnitMismatchError,
+            AcquisitionSourceResolutionError,
         ),
     ):
         return _api_http_error(409, error.code, str(error))

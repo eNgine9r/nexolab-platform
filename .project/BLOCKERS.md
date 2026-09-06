@@ -1,6 +1,6 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-05
+Updated: 2026-09-06
 
 ## Issue #843 — Telemetry planner-choice CI nondeterminism
 
@@ -108,9 +108,9 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
 
-## RFX presentation hold — cleared; RFX-02 active
+## RFX presentation hold — cleared; RFX-03 active
 
-The Product Owner lifted the RFX presentation hold on 2026-09-05. RFX-01 / #717 is now completed through exact-head GREEN PR #934; verified product head `3a423136333b0de6c011294ccf27500f2f6d46d3` is the durable accepted baseline and observed squash merge is `97c59ca87c35a5316d6622d7cd1102497632feb3`. Historical PR #718 remains closed/unmerged reference evidence only. RFX-02 / #935 is active on `feat/935-rfx02-analog-scaling-profile`. Its software/profile scope does not authorize live analog polling, guessed XJP60D registers, Modbus/hardware writes, production cutover or hardware acceptance. Current XJP60D analog/converter candidates remain hardware-unverified. The final finite-value PostgreSQL constraint is represented in generated offline SQL but still requires exact-head Telemetry CI execution because a fresh local disposable migration write was blocked by the execution safety layer after that hardening was added.
+The Product Owner lifted the RFX presentation hold on 2026-09-05. RFX-01 / #717 is completed through exact-head GREEN PR #934. RFX-02 / #935 is completed through PR #936: verified product head `4decaaefcf58c64f91e231c70f0980bdeac97c93` passed all 19 registered exact-head workflows and squash-merged as observed main `6b63518f55e2c4c382a183fbe06ded74d99efb12`. RFX-03 / #937 is active on `feat/937-rfx03-humidity-acquisition`. Its software-only scope does not authorize live analog/humidity polling, guessed XJP60D registers or ranges, Modbus/hardware writes, production cutover or hardware acceptance. Current XJP60D analog/converter humidity candidates remain hardware-unverified.
 
 ## Issue #909 — consolidated HIGH container exception review
 
@@ -148,12 +148,12 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #719 / PR #721 fresh Device Agent security reconciliation — completed and merged at `1f2654dec0f02263aec6c2314187cfa62e5723e9`; #722 triage is completed.
 - #723 / PR #724 CI routing maintenance — completed and merged at `8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb`.
 - #690 risk-aware/path-targeted PR verification — completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`; post-merge Core CI and Acquisition Scale Acceptance are GREEN.
-- #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; #717/RFX-01 is completed through GREEN PR #934 and #935/RFX-02 is active.
+- #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; #717/RFX-01 and #935/RFX-02 are completed through GREEN PRs #934 and #936, and #937/RFX-03 is active.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — RFX-02 / Issue #935 active
+## Sprint execution gate — RFX-03 / Issue #937 active
 
-RFX-01 / #717 is completed through GREEN PR #934. RFX-02 / #935 is the active software Work Package on `feat/935-rfx02-analog-scaling-profile`, based on merged main `97c59ca...`. Targeted local evidence is GREEN for `29/29` instrumentation/API/security tests, `24/24` existing XJP60D/acquisition compatibility and `48/48` climate/refrigeration compatibility. Migration head is `20260906_0033`; offline PostgreSQL SQL generation is `2750` lines. An earlier PostgreSQL guard suite passed `8/8` and migration round-trip preserved an RFX-01 Signal sentinel, but the final non-finite direct-SQL constraint still awaits fresh exact-head Telemetry CI execution. #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
+RFX-01 / #717 and RFX-02 / #935 are completed through GREEN PRs #934 and #936. RFX-03 / #937 is the active software Work Package on `feat/937-rfx03-humidity-acquisition`, based on merged main `6b63518f...`. Targeted local evidence is GREEN for `43` instrumentation/API/security tests plus `10/10` PostgreSQL instrumentation guards, `27/27` existing XJP60D/acquisition compatibility and `25/25` climate/structural-refrigeration compatibility. Migration head is `20260906_0034`; offline PostgreSQL SQL generation is `2837` lines, and a disposable migration round-trip preserved RFX-01 Signal and RFX-02 analog-profile sentinels. Exact-head CI/review remain pending. #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
 
 ## Safety boundaries
 
