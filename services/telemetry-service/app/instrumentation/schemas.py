@@ -517,6 +517,25 @@ class PressureObservationResponse(BaseModel):
     evidence_status: AcquisitionEvidenceStatus
 
 
+class AtmosphericPressureObservationRequest(AnalogScalingEvaluationRequest):
+    pass
+
+
+class AtmosphericPressureObservationResponse(BaseModel):
+    signal_id: str
+    physical_quantity: Literal["pressure"]
+    pressure_reference: Literal["absolute"]
+    raw_value: Decimal
+    value: Decimal
+    unit: str
+    source: AcquisitionSourceResponse
+    profile_id: str
+    profile_revision: int
+    profile_evidence_status: AnalogEvidenceStatus
+    profile_evidence_reference: str | None
+    evidence_status: AcquisitionEvidenceStatus
+
+
 class ApiErrorDetail(BaseModel):
     code: str
     message: str

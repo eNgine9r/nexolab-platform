@@ -113,6 +113,10 @@ class PressureSignalUnsupportedError(InstrumentationRepositoryError):
     code = "pressure_signal_unsupported"
 
 
+class AtmosphericPressureSignalUnsupportedError(InstrumentationRepositoryError):
+    code = "atmospheric_pressure_signal_unsupported"
+
+
 class AnalogScalingSourceMismatchError(AcquisitionSourceResolutionError):
     code = "analog_scaling_source_mismatch"
 
@@ -689,6 +693,50 @@ class InstrumentationRepository:
             session.expunge(source)
             session.expunge(profile)
             return source, profile, value, pressure_reference
+
+    def evaluate_atmospheric_pressure_observation(
+        self,
+        instrument_id: str,
+        signal_id: str,
+        raw_value: Decimal,
+        at: datetime,
+        *,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+    ) -> tuple[SignalAcquisitionSourceRecord, AnalogScalingProfileRecord, Decimal]:
+        resolved_at = _require_aware_utc(at, "atmospheric pressure observation timestamp")
+        with Session(self._engine, expire_on_commit=False) as session:
+            with session.begin():
+                instrument = self._instrument(
+                    session, organization_id, instrument_id, for_update=True
+                )
+                signal = self._signal(
+                    session,
+                    organization_id,
+                    instrument_id,
+                    signal_id,
+                    for_update=True,
+                )
+                if (
+                    instrument.instrument_kind != "barometric_pressure_sensor"
+                    or signal.physical_quantity != "pressure"
+                    or instrument.pressure_reference != "absolute"
+                ):
+                    raise AtmosphericPressureSignalUnsupportedError(
+                        "atmospheric pressure evaluation requires "
+                        "barometric_pressure_sensor / pressure / absolute pressure reference"
+                    )
+                source, profile, value = self._evaluate_analog_scaling_locked(
+                    session,
+                    signal,
+                    raw_value,
+                    resolved_at,
+                    organization_id=organization_id,
+                    require_acquisition_source=True,
+                )
+            assert source is not None
+            session.expunge(source)
+            session.expunge(profile)
+            return source, profile, value
 
     def append_analog_scaling_profile(
         self,

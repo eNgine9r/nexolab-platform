@@ -27,6 +27,7 @@ from app.instrumentation.models import (
 from app.instrumentation.repository import (
     AcquisitionSourceResolutionError,
     AcquisitionSourceUnitMismatchError,
+    AtmosphericPressureSignalUnsupportedError,
     DEFAULT_ORGANIZATION_ID,
     AnalogScalingResolutionError,
     AnalogScalingUnitMismatchError,
@@ -56,6 +57,8 @@ from app.instrumentation.schemas import (
     AnalogScalingHistoryResponse,
     AnalogScalingProfileAppendRequest,
     AnalogScalingProfileResponse,
+    AtmosphericPressureObservationRequest,
+    AtmosphericPressureObservationResponse,
     AcceptanceHistoryResponse,
     AcceptanceRecordResponse,
     ApiErrorDetail,
@@ -520,6 +523,50 @@ def create_instrumentation_router(
             signal_id=signal_id,
             physical_quantity="pressure",
             pressure_reference=pressure_reference,
+            raw_value=payload.raw_value,
+            value=value,
+            unit=profile.engineering_unit,
+            source=_acquisition_source_response(source),
+            profile_id=profile.id,
+            profile_revision=profile.revision,
+            profile_evidence_status=profile.evidence_status,
+            profile_evidence_reference=profile.evidence_reference,
+            evidence_status="hardware_unverified",
+        )
+
+    @router.post(
+        "/instruments/{instrument_id}/signals/{signal_id}/atmospheric-pressure-observation-evaluate",
+        response_model=AtmosphericPressureObservationResponse,
+        responses={
+            404: {"model": ApiErrorResponse},
+            409: {"model": ApiErrorResponse},
+            422: {"model": ApiErrorResponse},
+        },
+    )
+    def evaluate_atmospheric_pressure_observation(
+        instrument_id: str,
+        signal_id: str,
+        payload: AtmosphericPressureObservationRequest,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> AtmosphericPressureObservationResponse:
+        try:
+            source, profile, value = repository.evaluate_atmospheric_pressure_observation(
+                instrument_id,
+                signal_id,
+                payload.raw_value,
+                payload.at,
+                organization_id=authorized.principal.organization_id,
+            )
+        except AnalogScalingUnavailableError as error:
+            raise _api_http_error(422, error.code, str(error)) from error
+        except AtmosphericPressureSignalUnsupportedError as error:
+            raise _api_http_error(422, error.code, str(error)) from error
+        except InstrumentationRepositoryError as error:
+            raise _repository_http_error(error) from error
+        return AtmosphericPressureObservationResponse(
+            signal_id=signal_id,
+            physical_quantity="pressure",
+            pressure_reference="absolute",
             raw_value=payload.raw_value,
             value=value,
             unit=profile.engineering_unit,
