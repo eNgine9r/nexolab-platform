@@ -124,7 +124,6 @@ def test_postgres_prevents_cross_org_links_overlap_and_history_rewrite() -> None
     database = Database(os.environ["DATABASE_URL"])
     security = SecurityRepository(database)
     repository = InstrumentationRepository(database)
-    writer_repository = InstrumentationRepository(database)
     organization_id = str(uuid4())
     other_organization_id = str(uuid4())
     suffix = uuid4().hex
@@ -953,6 +952,7 @@ def test_postgres_humidity_evaluation_serializes_concurrent_source_rebind(
     database = Database(os.environ["DATABASE_URL"])
     security = SecurityRepository(database)
     repository = InstrumentationRepository(database)
+    writer_repository = InstrumentationRepository(database)
     organization_id = str(uuid4())
     suffix = uuid4().hex
     security.provision_organization(
