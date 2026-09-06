@@ -18,16 +18,16 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "4decaaefcf58c64f91e231c70f0980bdeac97c93",
+    "accepted_product_sha": "03a9d8eca63b9715d25727e76f26b0a080df793b",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 937,
-      "title": "RFX-03 Relative-Humidity Acquisition Vertical Slice",
-      "branch": "feat/937-rfx03-humidity-acquisition"
-    },
-    "next_work_package": null
+    "active_work_package": null,
+    "next_work_package": {
+      "issue": 939,
+      "title": "RFX-04 Typed Pressure Acquisition and Reference Vertical Slice",
+      "branch": "feat/939-rfx04-pressure-reference"
+    }
   },
   "work_packages": [
     {
@@ -2782,7 +2782,7 @@
       "issue": 937,
       "title": "RFX-03 Relative-Humidity Acquisition Vertical Slice",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "feat/937-rfx03-humidity-acquisition",
       "depends_on": [
         935
@@ -2793,9 +2793,9 @@
         "rfx02_pull_request": 936,
         "current_alembic_head": "20260906_0034",
         "focused_instrumentation_and_security": "45_passed_12_postgresql_skipped_after_third_codex_consistency_remediation",
-        "postgresql_instrumentation_guards": "exact_head_81886974_telemetry_641_passed_1_failed_test_harness_nameerror_writer_repository_local_fix_ready_next_exact_head_required",
-        "migration_roundtrip": "exact_head_4382d9fd_automated_0034_to_0033_to_0034_sentinel_green_before_third_codex_remediation_rerun_required",
-        "offline_migration_sql": "2842_lines_generated_after_source_profile_link_remediation",
+        "postgresql_instrumentation_guards": "success:34006304654_including_source_rebind_concurrency_regression",
+        "migration_roundtrip": "success:34006304654_0034_to_0033_to_0034_rfx01_rfx02_sentinels_preserved",
+        "offline_migration_sql": "success:34006304654",
         "xjp60d_temperature_and_acquisition_compatibility": "27_passed",
         "climate_and_structural_refrigeration_compatibility": "25_passed",
         "xjp60d_humidity_hardware": "unverified",
@@ -2806,15 +2806,57 @@
         "production_deployment": "not_authorized",
         "team_lead_exact_non_postgresql": "45_passed_12_postgresql_skipped_after_locked_consistency_boundary_and_unlinked_profile_fail_closed_remediation",
         "team_lead_identity_normalization": "trim_only_matches_existing_canonical_telemetry_identity_behavior",
-        "post_postgresql_change_scope": "test_harness_only_after_81886974_telemetry_failure;product_repository_logic_unchanged;new_exact_head_telemetry_required",
-        "local_candidate_status": "GREEN_LOCAL_CODEX_P1_POSTGRES_TEST_HARNESS_FIXED_REQUIRES_NEW_EXACT_HEAD_CI_AND_FRESH_CODEX_REVIEW",
-        "team_lead_review": "four_product_consistency_p2s_remediated;81886974_review_single_p1_test_harness_nameerror_fixed_locally",
+        "post_postgresql_change_scope": "final_03a9d8ec_change_test_harness_only_product_repository_logic_unchanged_from_81886974",
+        "local_candidate_status": "GREEN_EXACT_HEAD_AND_MERGED",
+        "team_lead_review": "manual_exact_head_pr938_clean_no_blocking_findings_after_product_owner_no_codex_gate_override",
         "codex_reviewed_head": "81886974f57c0380bd86425237e7b1d093255662",
         "codex_review_finding": "P1_instantiate_writer_repository_in_postgresql_concurrency_test",
         "codex_p2_remediation": "four_product_consistency_p2s_remediated_in_product_code;latest_81886974_review_only_p1_is_test_harness_nameerror_and_is_fixed_in_candidate",
         "codex_review_findings": [
           "P1_instantiate_writer_repository_in_postgresql_concurrency_test"
-        ]
+        ],
+        "verified_head_sha": "03a9d8eca63b9715d25727e76f26b0a080df793b",
+        "pull_request": 938,
+        "checks": {
+          "telemetry_service": "success:34006304654",
+          "authenticated_dashboard": "success:34006304684",
+          "offline_bundle": "success:34006304707",
+          "capacity_release_gate": "success:34006304699",
+          "core_ci_and_merge_gate": "success:34006304672",
+          "registered_exact_head_workflows": "19_success"
+        },
+        "codex_review_status": "historical_findings_resolved_final_fresh_gate_explicitly_overridden_by_product_owner_2026_09_06",
+        "product_owner_review_gate_override": "work_without_codex_manual_team_lead_review_plus_exact_head_ci_authoritative_for_pr938",
+        "product_owner_review_gate_override_comment": 5556458329,
+        "merge_observation_sha": "76b7c76e25233abfe6ee9c40bbdcc98197f6d08b",
+        "issue_state": "closed_completed",
+        "codex_review_findings_status": "all_historical_p1_p2_findings_remediated_and_threads_resolved"
+      }
+    },
+    {
+      "issue": 939,
+      "title": "RFX-04 Typed Pressure Acquisition and Reference Vertical Slice",
+      "priority": "high",
+      "lifecycle": "ready",
+      "branch": "feat/939-rfx04-pressure-reference",
+      "depends_on": [
+        937
+      ],
+      "evidence": {
+        "implementation_base_main_sha": "76b7c76e25233abfe6ee9c40bbdcc98197f6d08b",
+        "rfx03_verified_head_sha": "03a9d8eca63b9715d25727e76f26b0a080df793b",
+        "rfx03_pull_request": 938,
+        "current_alembic_head": "20260906_0034",
+        "pressure_reference_contract": "existing_rfx01_absolute_or_gauge",
+        "acquisition_source_contract": "reuse_rfx03_acquisition_source_v1",
+        "analog_scaling_contract": "reuse_rfx02_decimal_linear_two_point_fail_closed",
+        "atmospheric_compensation": "out_of_scope_rfx05",
+        "live_pressure_polling": "not_enabled",
+        "pressure_hardware": "unverified",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "production_deployment": "not_authorized",
+        "review_gate": "manual_team_lead_plus_exact_head_ci_per_product_owner_no_codex_decision"
       }
     }
   ],
