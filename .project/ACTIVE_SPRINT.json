@@ -22,12 +22,12 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 939,
       "title": "RFX-04 Typed Pressure Acquisition and Reference Vertical Slice",
       "branch": "feat/939-rfx04-pressure-reference"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -2837,19 +2837,26 @@
       "issue": 939,
       "title": "RFX-04 Typed Pressure Acquisition and Reference Vertical Slice",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "branch": "feat/939-rfx04-pressure-reference",
       "depends_on": [
         937
       ],
       "evidence": {
-        "implementation_base_main_sha": "76b7c76e25233abfe6ee9c40bbdcc98197f6d08b",
+        "implementation_base_main_sha": "0ad198a0c7b1fbb9eb33d7931cb5607e3ab88fbc",
         "rfx03_verified_head_sha": "03a9d8eca63b9715d25727e76f26b0a080df793b",
         "rfx03_pull_request": 938,
         "current_alembic_head": "20260906_0034",
         "pressure_reference_contract": "existing_rfx01_absolute_or_gauge",
         "acquisition_source_contract": "reuse_rfx03_acquisition_source_v1",
         "analog_scaling_contract": "reuse_rfx02_decimal_linear_two_point_fail_closed",
+        "local_rfx04_module_tests": "52_passed_13_postgresql_only_skipped",
+        "local_compile": "passed",
+        "state_model_v2": "passed",
+        "git_diff_check": "passed",
+        "local_json_parse": "passed",
+        "local_postgresql_tests": "skipped_database_url_not_configured_ci_required",
+        "local_prettier": "not_run_node_runtime_absent_ci_required",
         "atmospheric_compensation": "out_of_scope_rfx05",
         "live_pressure_polling": "not_enabled",
         "pressure_hardware": "unverified",

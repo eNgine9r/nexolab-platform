@@ -39,6 +39,7 @@ from app.instrumentation.repository import (
     InstrumentKeyConflictError,
     InstrumentNotFoundError,
     PressureReferenceRequiredError,
+    PressureSignalUnsupportedError,
     InstrumentVersionConflictError,
     SignalIdentityConflictError,
     SignalKeyConflictError,
@@ -68,6 +69,8 @@ from app.instrumentation.schemas import (
     InstrumentUpdate,
     HumidityObservationRequest,
     HumidityObservationResponse,
+    PressureObservationRequest,
+    PressureObservationResponse,
     SignalCreate,
     SignalListResponse,
     SignalResponse,
@@ -479,6 +482,52 @@ def create_instrumentation_router(
             profile_id=profile.id,
             profile_revision=profile.revision,
             profile_evidence_status=profile.evidence_status,
+            evidence_status="hardware_unverified",
+        )
+
+    @router.post(
+        "/instruments/{instrument_id}/signals/{signal_id}/pressure-observation-evaluate",
+        response_model=PressureObservationResponse,
+        responses={
+            404: {"model": ApiErrorResponse},
+            409: {"model": ApiErrorResponse},
+            422: {"model": ApiErrorResponse},
+        },
+    )
+    def evaluate_pressure_observation(
+        instrument_id: str,
+        signal_id: str,
+        payload: PressureObservationRequest,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> PressureObservationResponse:
+        try:
+            source, profile, value, pressure_reference = (
+                repository.evaluate_pressure_observation(
+                    instrument_id,
+                    signal_id,
+                    payload.raw_value,
+                    payload.at,
+                    organization_id=authorized.principal.organization_id,
+                )
+            )
+        except AnalogScalingUnavailableError as error:
+            raise _api_http_error(422, error.code, str(error)) from error
+        except PressureSignalUnsupportedError as error:
+            raise _api_http_error(422, error.code, str(error)) from error
+        except InstrumentationRepositoryError as error:
+            raise _repository_http_error(error) from error
+        return PressureObservationResponse(
+            signal_id=signal_id,
+            physical_quantity="pressure",
+            pressure_reference=pressure_reference,
+            raw_value=payload.raw_value,
+            value=value,
+            unit=profile.engineering_unit,
+            source=_acquisition_source_response(source),
+            profile_id=profile.id,
+            profile_revision=profile.revision,
+            profile_evidence_status=profile.evidence_status,
+            profile_evidence_reference=profile.evidence_reference,
             evidence_status="hardware_unverified",
         )
 

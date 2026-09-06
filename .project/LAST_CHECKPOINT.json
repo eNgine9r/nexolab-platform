@@ -3,63 +3,41 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-06T06:00:37+03:00",
+  "timestamp": "2026-09-06T06:40:58+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_937_merged_state_reconciled_rfx04_939_ready",
+  "event": "issue_939_rfx04_local_candidate_verified_ci_pending",
   "baselines": {
     "accepted_product_sha": "03a9d8eca63b9715d25727e76f26b0a080df793b",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 939,
+    "branch": "feat/939-rfx04-pressure-reference",
+    "base_main_sha": "0ad198a0c7b1fbb9eb33d7931cb5607e3ab88fbc",
+    "status": "implementation_locally_verified_ci_pending"
+  },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "local_module_tests": "52_passed_13_postgresql_only_skipped",
+      "python_compile": "passed",
+      "git_diff_check": "passed",
+      "state_model_v2": "passed",
+      "json_parse": "passed"
+    }
   },
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-09-06T02:52:47Z",
-      "kind": "issue_937_merge_reconciliation",
+      "observed_at": "2026-09-06T03:03:30Z",
+      "kind": "rfx04_base_main_ci",
       "data": {
-        "issue": 937,
-        "issue_state": "closed",
-        "pull_request": 938,
-        "verified_head_sha": "03a9d8eca63b9715d25727e76f26b0a080df793b",
-        "merge_sha": "76b7c76e25233abfe6ee9c40bbdcc98197f6d08b",
-        "registered_exact_head_workflows": "19_success",
-        "telemetry_service_run": 34006304654,
-        "authenticated_dashboard_run": 34006304684,
-        "offline_bundle_run": 34006304707,
-        "capacity_release_gate_run": 34006304699,
-        "core_ci_merge_gate_run": 34006304672
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-06T03:00:37Z",
-      "kind": "product_owner_review_gate_override_recorded",
-      "data": {
-        "pull_request": 938,
-        "comment_id": 5556458329,
-        "decision": "work_without_codex_for_final_pr938_gate",
-        "replacement_gate": "manual_team_lead_review_plus_exact_head_ci",
-        "manual_team_lead_review": "clean_no_blocking_findings",
-        "historical_codex_findings": "all_remediated_and_threads_resolved"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-06T02:56:01Z",
-      "kind": "rfx04_ready_issue_created",
-      "data": {
-        "issue": 939,
-        "title": "RFX-04 Typed Pressure Acquisition and Reference Vertical Slice",
-        "lifecycle": "ready",
-        "depends_on": 937,
-        "planned_branch": "feat/939-rfx04-pressure-reference"
+        "main_sha": "0ad198a0c7b1fbb9eb33d7931cb5607e3ab88fbc",
+        "ci_run": 34008014072,
+        "conclusion": "success"
       }
     }
   ],
-  "next_action": "Merge Issue #940 state reconciliation after exact-head GREEN checks, then begin RFX-04 / Issue #939 from merged main using the Product Owner manual-Team-Lead-plus-CI review gate and unchanged hardware/runtime safety boundaries.",
+  "next_action": "Commit and push the focused RFX-04 candidate, create/update the Issue #939 pull request, require exact-head Telemetry Service PostgreSQL coverage and all change-impact-routed workflows including NEXOLAB Merge Gate GREEN, then perform manual Team Lead exact-head review before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -109,6 +109,10 @@ class HumiditySignalUnsupportedError(InstrumentationRepositoryError):
     code = "humidity_signal_unsupported"
 
 
+class PressureSignalUnsupportedError(InstrumentationRepositoryError):
+    code = "pressure_signal_unsupported"
+
+
 class AnalogScalingSourceMismatchError(AcquisitionSourceResolutionError):
     code = "analog_scaling_source_mismatch"
 
@@ -637,6 +641,54 @@ class InstrumentationRepository:
             session.expunge(source)
             session.expunge(profile)
             return source, profile, value
+
+    def evaluate_pressure_observation(
+        self,
+        instrument_id: str,
+        signal_id: str,
+        raw_value: Decimal,
+        at: datetime,
+        *,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+    ) -> tuple[
+        SignalAcquisitionSourceRecord, AnalogScalingProfileRecord, Decimal, str
+    ]:
+        resolved_at = _require_aware_utc(at, "pressure observation timestamp")
+        with Session(self._engine, expire_on_commit=False) as session:
+            with session.begin():
+                instrument = self._instrument(
+                    session, organization_id, instrument_id, for_update=True
+                )
+                signal = self._signal(
+                    session,
+                    organization_id,
+                    instrument_id,
+                    signal_id,
+                    for_update=True,
+                )
+                pressure_reference = instrument.pressure_reference
+                if (
+                    instrument.instrument_kind != "pressure_transmitter"
+                    or signal.physical_quantity != "pressure"
+                    or pressure_reference not in {"absolute", "gauge"}
+                ):
+                    raise PressureSignalUnsupportedError(
+                        "pressure evaluation requires pressure_transmitter / pressure "
+                        "with an absolute or gauge pressure reference"
+                    )
+                source, profile, value = self._evaluate_analog_scaling_locked(
+                    session,
+                    signal,
+                    raw_value,
+                    resolved_at,
+                    organization_id=organization_id,
+                    require_acquisition_source=True,
+                )
+            assert source is not None
+            assert pressure_reference is not None
+            session.expunge(source)
+            session.expunge(profile)
+            return source, profile, value, pressure_reference
 
     def append_analog_scaling_profile(
         self,

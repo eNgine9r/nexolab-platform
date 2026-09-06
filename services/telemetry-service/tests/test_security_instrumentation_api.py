@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 
 import jwt
@@ -13,7 +14,12 @@ from app.instrumentation.repository import (
     InstrumentNotFoundError,
     InstrumentationRepository,
 )
-from app.instrumentation.schemas import InstrumentCreate, SignalCreate
+from app.instrumentation.schemas import (
+    AcquisitionSourceAppendRequest,
+    AnalogScalingProfileAppendRequest,
+    InstrumentCreate,
+    SignalCreate,
+)
 from app.model_registry import register_models
 from app.security.authentication import JwtAuthenticator, VerifiedIdentityClaims
 from app.security.authorization import Role
@@ -400,3 +406,84 @@ def test_analog_scaling_cross_organization_signal_is_not_visible(tmp_path: Path)
     )
     assert hidden.status_code == 404
     assert hidden.json()["detail"]["code"] == "instrument_not_found"
+
+
+def test_dashboard_read_can_evaluate_pressure_but_cross_org_stays_closed(
+    tmp_path: Path,
+) -> None:
+    api, _, repository = build_client(
+        tmp_path, subject="pressure-viewer", roles={Role.VIEWER}
+    )
+    at = datetime(2026, 9, 6, tzinfo=UTC)
+    instrument = repository.create_instrument(
+        InstrumentCreate(
+            inventory_key="PRESSURE-SECURE-001",
+            display_name="Secure pressure transmitter",
+            instrument_kind="pressure_transmitter",
+            pressure_reference="gauge",
+        ),
+        actor_id="fixture",
+        organization_id=ORGANIZATION_ID,
+    )
+    signal = repository.create_signal(
+        instrument.id,
+        SignalCreate(
+            business_key="PRESSURE-SECURE-001.PRIMARY",
+            display_name="Pressure",
+            physical_quantity="pressure",
+            engineering_unit="bar",
+        ),
+        actor_id="fixture",
+        organization_id=ORGANIZATION_ID,
+    )
+    source = repository.append_acquisition_source(
+        instrument.id,
+        signal.id,
+        AcquisitionSourceAppendRequest(
+            node_id="edge-01",
+            equipment_id="pressure-01",
+            channel_id="ai-1",
+            metric="pressure.process",
+            unit="bar",
+            valid_from=at,
+        ),
+        actor_id="fixture",
+        organization_id=ORGANIZATION_ID,
+    )
+    repository.append_analog_scaling_profile(
+        instrument.id,
+        signal.id,
+        AnalogScalingProfileAppendRequest(
+            raw_unit="mA",
+            raw_min=Decimal("4"),
+            raw_max=Decimal("20"),
+            engineering_min=Decimal("0"),
+            engineering_max=Decimal("16"),
+            engineering_unit="bar",
+            acquisition_source_id=source.id,
+            effective_from=at,
+        ),
+        actor_id="fixture",
+        organization_id=ORGANIZATION_ID,
+    )
+    endpoint = (
+        f"/api/v1/instrumentation/instruments/{instrument.id}/signals/{signal.id}/"
+        "pressure-observation-evaluate"
+    )
+
+    allowed = api.post(
+        endpoint,
+        headers=headers("pressure-viewer"),
+        json={"raw_value": "12", "at": at.isoformat()},
+    )
+    assert allowed.status_code == 200
+    assert allowed.json()["pressure_reference"] == "gauge"
+    assert allowed.json()["value"] == "8.000000000000000000"
+
+    denied = api.post(
+        endpoint,
+        headers=headers("pressure-viewer", OTHER_ORGANIZATION_ID),
+        json={"raw_value": "12", "at": at.isoformat()},
+    )
+    assert denied.status_code == 403
+    assert denied.json()["detail"]["code"] == "organization_membership_not_found"
