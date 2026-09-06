@@ -3,59 +3,57 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-06T10:57:38+03:00",
+  "timestamp": "2026-09-06T11:26:00+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_948_rfx05_merge_state_reconciliation_candidate_rfx06_ready",
+  "event": "issue_947_rfx06_circuit_domain_locally_verified_precommit_candidate",
   "baselines": {
     "accepted_product_sha": "5f7ac8de85c601f9d57ce4d219f520c62c246685",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 948,
-    "branch": "chore/948-reconcile-rfx05-state",
-    "base_main_sha": "912f5fdbc65c74e0a5f5d6ea8f8b42193b8732d2",
-    "status": "state_reconciliation_locally_verified_ready_to_commit"
+    "issue": 947,
+    "branch": "feat/947-rfx06-circuit-domain",
+    "base_main_sha": "95d1266c77309bffa037cf2b2af33c1156e3705c",
+    "status": "locally_verified_ready_to_commit"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
       "rfx05_verified_head_sha": "5f7ac8de85c601f9d57ce4d219f520c62c246685",
-      "rfx05_pull_request": 946,
-      "rfx05_exact_head_workflows": "12_success",
-      "rfx05_manual_review": "clean_zero_unresolved_threads",
       "rfx06_issue": 947,
+      "alembic_head": "20260906_0035",
+      "domain_tests": "9_passed",
+      "security_api_tests": "13_passed",
+      "postgres_contract_tests": "4_passed",
+      "refrigeration_instrumentation_compatibility": "120_passed_1_skip",
+      "migration_upgrade": "passed",
+      "migration_roundtrip": "0035_to_0034_to_0035_passed",
+      "historical_binding_authority": "as_of_acceptance_preserved_after_current_retirement",
+      "binding_handover_provenance": "passed",
+      "property_provider": "not_adopted",
+      "derived_thermodynamics": "not_implemented",
       "state_model_v2": "passed",
       "ci_policy_tests": "174_passed_1_environment_skip",
       "touched_markdown_prettier": "passed",
-      "git_diff_check": "passed",
-      "json_parse": "passed",
-      "state_only_scope": "passed"
+      "python_compileall": "passed",
+      "fatal_python_static_checks": "ruff_f401_f821_passed",
+      "offline_migration_sql": "passed",
+      "git_diff_check": "passed"
     }
   },
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-09-06T07:51:13Z",
-      "kind": "rfx05_merge_completed",
+      "observed_at": "2026-09-06T08:02:15Z",
+      "kind": "rfx05_state_reconciliation_merged",
       "data": {
-        "issue": 943,
-        "pull_request": 946,
-        "verified_head_sha": "5f7ac8de85c601f9d57ce4d219f520c62c246685",
-        "merge_sha": "912f5fdbc65c74e0a5f5d6ea8f8b42193b8732d2",
-        "final_premerge_comment": 5557847789
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-06T07:55:15Z",
-      "kind": "rfx06_work_package_created",
-      "data": {
-        "issue": 947,
-        "branch": "feat/947-rfx06-circuit-domain",
-        "status": "ready"
+        "issue": 948,
+        "pull_request": 949,
+        "merge_sha": "95d1266c77309bffa037cf2b2af33c1156e3705c",
+        "rfx06_issue": 947
       }
     }
   ],
-  "next_action": "Verify the focused #948 state-only reconciliation locally, commit/push and require the exact-head state-integrity lane GREEN; after merge, start RFX-06 / #947 from reconciled main.",
+  "next_action": "Commit and push the focused RFX-06 candidate, open the single #947 PR, then require exact-head routed GitHub CI plus manual Team Lead review before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

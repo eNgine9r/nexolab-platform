@@ -19,6 +19,7 @@ def register_models() -> None:
     from app.live_dashboard import models as _live_dashboard_models
     from app.nodes import broker_models as _broker_models
     from app.nodes import models as _node_models
+    from app.refrigeration import circuit_models as _refrigeration_circuit_models
     from app.refrigeration import models as _refrigeration_models
     from app.reports import models as _report_models
     from app.reports.immutability import register_report_immutability
@@ -118,6 +119,21 @@ def register_models() -> None:
     )
     assert _refrigeration_models.RefrigerationLayoutDraft.__tablename__ == (
         "refrigeration_layout_drafts"
+    )
+    assert _refrigeration_circuit_models.RefrigerationCircuit.__tablename__ == (
+        "refrigeration_circuits"
+    )
+    assert (
+        _refrigeration_circuit_models.RefrigerationCircuitLifecycleRecord.__tablename__
+        == "refrigeration_circuit_lifecycle_history"
+    )
+    assert (
+        _refrigeration_circuit_models.RefrigerationCircuitConfigurationRecord.__tablename__
+        == "refrigeration_circuit_configuration_history"
+    )
+    assert (
+        _refrigeration_circuit_models.RefrigerationCircuitSignalBinding.__tablename__
+        == "refrigeration_circuit_signal_bindings"
     )
     assert _report_models.TestReportVersion.__tablename__ == "test_report_versions"
     assert _report_models.TestReportArtifact.__tablename__ == "test_report_artifacts"

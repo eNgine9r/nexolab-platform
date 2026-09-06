@@ -22,12 +22,12 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 947,
       "title": "RFX-06 Refrigeration Circuit, Refrigerant Configuration and Semantic Role Binding Domain",
       "branch": "feat/947-rfx06-circuit-domain"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -2936,7 +2936,7 @@
       "issue": 947,
       "title": "RFX-06 Refrigeration Circuit, Refrigerant Configuration and Semantic Role Binding Domain",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "branch": "feat/947-rfx06-circuit-domain",
       "depends_on": [
         943
@@ -2944,7 +2944,7 @@
       "evidence": {
         "rfx05_verified_head_sha": "5f7ac8de85c601f9d57ce4d219f520c62c246685",
         "rfx05_pull_request": 946,
-        "current_alembic_head": "20260906_0034",
+        "current_alembic_head": "20260906_0035",
         "product_owner_roadmap_authority": "issue_717_newer_partition_overrides_adr_0010_followup_numbering",
         "adr_authority": "docs/adr/0010-refrigeration-monitoring-and-derived-thermodynamics.md",
         "domain_scope": "refrigeration_circuit_refrigerant_configuration_semantic_signal_role_binding",
@@ -2958,7 +2958,29 @@
         "hardware_write": "none",
         "production_deployment": "not_authorized",
         "hardware_acceptance": "not_in_scope",
-        "review_gate": "manual_team_lead_plus_exact_head_ci_per_product_owner_no_codex_decision"
+        "review_gate": "manual_team_lead_plus_exact_head_ci_per_product_owner_no_codex_decision",
+        "implementation_base_main_sha": "95d1266c77309bffa037cf2b2af33c1156e3705c",
+        "circuit_tables": "refrigeration_circuits+lifecycle_history+configuration_history+signal_bindings",
+        "local_domain_tests": "9_passed",
+        "local_security_api_tests": "13_passed",
+        "local_postgresql_contract_tests": "4_passed",
+        "local_refrigeration_instrumentation_compatibility": "120_passed_1_skip",
+        "postgres_migration_upgrade": "passed_clean_database_to_20260906_0035",
+        "postgres_migration_roundtrip": "passed_0035_to_0034_to_0035",
+        "postgres_direct_sql_guards": "passed_cross_org_overlap_immutability_role_compatibility",
+        "historical_binding_resolution": "accepted_as_of_authority_not_current_lifecycle",
+        "binding_handover_provenance": "valid_to_ended_by_ended_at_verified",
+        "standard_atmosphere_fallback": "none",
+        "gauge_to_absolute_normalization": "none",
+        "telemetry_persistence": "none",
+        "runtime_mutation": "none",
+        "state_model_v2": "passed",
+        "ci_policy_tests": "174_passed_1_environment_skip",
+        "touched_markdown_prettier": "passed",
+        "python_compileall": "passed",
+        "fatal_python_static_checks": "ruff_f401_f821_passed",
+        "offline_migration_sql": "passed",
+        "git_diff_check": "passed"
       }
     }
   ],
