@@ -3,138 +3,63 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-06T05:16:58+03:00",
+  "timestamp": "2026-09-06T06:00:37+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_937_codex_p1_postgres_concurrency_test_harness_fixed_requires_new_exact_head_gates",
+  "event": "issue_937_merged_state_reconciled_rfx04_939_ready",
   "baselines": {
-    "accepted_product_sha": "4decaaefcf58c64f91e231c70f0980bdeac97c93",
+    "accepted_product_sha": "03a9d8eca63b9715d25727e76f26b0a080df793b",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
-  "active_work": {
-    "issue": 937,
-    "title": "RFX-03 Relative-Humidity Acquisition Vertical Slice",
-    "branch": "feat/937-rfx03-humidity-acquisition"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "active_issue_evidence": {
-      "implementation_base_main_sha": "6b63518f55e2c4c382a183fbe06ded74d99efb12",
-      "rfx02_verified_head_sha": "4decaaefcf58c64f91e231c70f0980bdeac97c93",
-      "rfx02_pull_request": 936,
-      "current_alembic_head": "20260906_0034",
-      "focused_instrumentation_and_security": "45_passed_12_postgresql_skipped_after_third_codex_consistency_remediation",
-      "postgresql_instrumentation_guards": "exact_head_81886974_telemetry_641_passed_1_failed_test_harness_nameerror_writer_repository_local_fix_ready_next_exact_head_required",
-      "migration_roundtrip": "exact_head_4382d9fd_automated_0034_to_0033_to_0034_sentinel_green_before_third_codex_remediation_rerun_required",
-      "offline_migration_sql": "2842_lines_generated_after_source_profile_link_remediation",
-      "xjp60d_temperature_and_acquisition_compatibility": "27_passed",
-      "climate_and_structural_refrigeration_compatibility": "25_passed",
-      "xjp60d_humidity_hardware": "unverified",
-      "live_humidity_polling": "not_enabled",
-      "synthetic_telemetry_persistence": "none",
-      "modbus_write": "none",
-      "hardware_write": "none",
-      "production_deployment": "not_authorized",
-      "team_lead_exact_non_postgresql": "45_passed_12_postgresql_skipped_after_locked_consistency_boundary_and_unlinked_profile_fail_closed_remediation",
-      "team_lead_identity_normalization": "trim_only_matches_existing_canonical_telemetry_identity_behavior",
-      "post_postgresql_change_scope": "test_harness_only_after_81886974_telemetry_failure;product_repository_logic_unchanged;new_exact_head_telemetry_required",
-      "local_candidate_status": "GREEN_LOCAL_CODEX_P1_POSTGRES_TEST_HARNESS_FIXED_REQUIRES_NEW_EXACT_HEAD_CI_AND_FRESH_CODEX_REVIEW",
-      "team_lead_review": "four_product_consistency_p2s_remediated;81886974_review_single_p1_test_harness_nameerror_fixed_locally",
-      "codex_reviewed_head": "81886974f57c0380bd86425237e7b1d093255662",
-      "codex_review_finding": "P1_instantiate_writer_repository_in_postgresql_concurrency_test",
-      "codex_p2_remediation": "four_product_consistency_p2s_remediated_in_product_code;latest_81886974_review_only_p1_is_test_harness_nameerror_and_is_fixed_in_candidate",
-      "source_binding_contract": "acquisition-source/v1_explicit_identity_half_open_append_oriented",
-      "humidity_identity": "humidity_transmitter_relative_humidity_%RH",
-      "humidity_scaling_authority": "shared_rfx02_decimal_scaler_after_single_transaction_source_profile_consistency_check;humidity_requires_explicit_matching_source",
-      "core_ci_policy_local": "174_ci_policy_tests_passed_and_state_model_v2_validation_passed_after_canonical_observation_fix",
-      "codex_review_findings": [
-        "P1_instantiate_writer_repository_in_postgresql_concurrency_test"
-      ]
-    }
+    "active_issue_evidence": {}
   },
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-09-06T01:40:01Z",
-      "kind": "codex_review_finding",
+      "observed_at": "2026-09-06T02:52:47Z",
+      "kind": "issue_937_merge_reconciliation",
       "data": {
+        "issue": 937,
+        "issue_state": "closed",
         "pull_request": 938,
-        "reviewed_head_sha": "683aaea23d4b30b74489d6ad8ed78f6d0f10427e",
-        "severity": "P2",
-        "finding": "validate_source_profile_compatibility_before_scaling",
-        "remediation_head_sha": "eb9fbf2900d145afaec292d0e73b3ae5fa87e5ce"
+        "verified_head_sha": "03a9d8eca63b9715d25727e76f26b0a080df793b",
+        "merge_sha": "76b7c76e25233abfe6ee9c40bbdcc98197f6d08b",
+        "registered_exact_head_workflows": "19_success",
+        "telemetry_service_run": 34006304654,
+        "authenticated_dashboard_run": 34006304684,
+        "offline_bundle_run": 34006304707,
+        "capacity_release_gate_run": 34006304699,
+        "core_ci_merge_gate_run": 34006304672
       }
     },
     {
       "source": "github",
-      "observed_at": "2026-09-06T01:43:39Z",
-      "kind": "codex_review_finding",
+      "observed_at": "2026-09-06T03:00:37Z",
+      "kind": "product_owner_review_gate_override_recorded",
       "data": {
         "pull_request": 938,
-        "reviewed_head_sha": "de8140c6cd2264dcb4f616a8421f58c0ea08425d",
-        "severity": "P2",
-        "finding": "require_source_matching_for_every_scaling_evaluation",
-        "remediation_status": "locally_remediated_fresh_exact_head_review_required"
+        "comment_id": 5556458329,
+        "decision": "work_without_codex_for_final_pr938_gate",
+        "replacement_gate": "manual_team_lead_review_plus_exact_head_ci",
+        "manual_team_lead_review": "clean_no_blocking_findings",
+        "historical_codex_findings": "all_remediated_and_threads_resolved"
       }
     },
     {
       "source": "github",
-      "observed_at": "2026-09-06T01:59:24Z",
-      "kind": "codex_review_finding",
+      "observed_at": "2026-09-06T02:56:01Z",
+      "kind": "rfx04_ready_issue_created",
       "data": {
-        "pull_request": 938,
-        "reviewed_head_sha": "4382d9fd2a162f8a1b17ae73e4ee1a178fa93593",
-        "severity": "P2",
-        "findings": [
-          "reject_unlinked_profiles_once_source_history_exists",
-          "resolve_source_and_profile_within_one_consistency_boundary"
-        ],
-        "remediation_status": "locally_remediated_fresh_exact_head_review_required"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-06T01:59:10Z",
-      "kind": "ci_failure",
-      "data": {
-        "pull_request": 938,
-        "head_sha": "4382d9fd2a162f8a1b17ae73e4ee1a178fa93593",
-        "workflow": "Authenticated Dashboard Acceptance",
-        "run_id": 34005091738,
-        "result": "19_passed_1_failed_runtime_sockets_maximum_received_2_expected_lte_1",
-        "same_pr_prior_exact_head_successes": [
-          "683aaea23d4b30b74489d6ad8ed78f6d0f10427e",
-          "de8140c6cd2264dcb4f616a8421f58c0ea08425d"
-        ],
-        "merge_authority": "superseded_by_local_third_codex_remediation"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-06T02:15:31Z",
-      "kind": "codex_review_finding",
-      "data": {
-        "pull_request": 938,
-        "reviewed_head_sha": "81886974f57c0380bd86425237e7b1d093255662",
-        "severity": "P1",
-        "finding": "instantiate_writer_repository_in_postgresql_concurrency_test",
-        "remediation_status": "locally_fixed_fresh_exact_head_review_required"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-06T02:14:40Z",
-      "kind": "ci_failure",
-      "data": {
-        "pull_request": 938,
-        "head_sha": "81886974f57c0380bd86425237e7b1d093255662",
-        "workflow": "Telemetry service",
-        "run_id": 34005807055,
-        "result": "641_passed_1_failed",
-        "failure": "postgresql_concurrency_test_writer_repository_nameerror",
-        "product_logic_failure": false
+        "issue": 939,
+        "title": "RFX-04 Typed Pressure Acquisition and Reference Vertical Slice",
+        "lifecycle": "ready",
+        "depends_on": 937,
+        "planned_branch": "feat/939-rfx04-pressure-reference"
       }
     }
   ],
-  "next_action": "Require the resulting exact-head Telemetry PostgreSQL/full suite, all routed workflows, NEXOLAB Merge Gate and fresh Codex review with no unresolved P1/P2; then recheck main/head freshness and mergeability before squash merge.",
+  "next_action": "Merge Issue #940 state reconciliation after exact-head GREEN checks, then begin RFX-04 / Issue #939 from merged main using the Product Owner manual-Team-Lead-plus-CI review gate and unchanged hardware/runtime safety boundaries.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
