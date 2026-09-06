@@ -18,16 +18,16 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "03a9d8eca63b9715d25727e76f26b0a080df793b",
+    "accepted_product_sha": "797c0ab1b780644a04bd8a55a5e0c2a137d5adb1",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 939,
-      "title": "RFX-04 Typed Pressure Acquisition and Reference Vertical Slice",
-      "branch": "feat/939-rfx04-pressure-reference"
-    },
-    "next_work_package": null
+    "active_work_package": null,
+    "next_work_package": {
+      "issue": 943,
+      "title": "RFX-05 Typed Atmospheric Pressure Sensor/Reference Vertical Slice",
+      "branch": "feat/943-rfx05-atmospheric-reference"
+    }
   },
   "work_packages": [
     {
@@ -2837,7 +2837,7 @@
       "issue": 939,
       "title": "RFX-04 Typed Pressure Acquisition and Reference Vertical Slice",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "feat/939-rfx04-pressure-reference",
       "depends_on": [
         937
@@ -2855,11 +2855,52 @@
         "state_model_v2": "passed",
         "git_diff_check": "passed",
         "local_json_parse": "passed",
-        "local_postgresql_tests": "skipped_database_url_not_configured_ci_required",
-        "local_prettier": "not_run_node_runtime_absent_ci_required",
         "atmospheric_compensation": "out_of_scope_rfx05",
         "live_pressure_polling": "not_enabled",
         "pressure_hardware": "unverified",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "production_deployment": "not_executed",
+        "review_gate": "manual_team_lead_plus_exact_head_ci_per_product_owner_no_codex_decision",
+        "verified_head_sha": "797c0ab1b780644a04bd8a55a5e0c2a137d5adb1",
+        "pull_request": 942,
+        "exact_head_routed_workflows": "12_success",
+        "telemetry_service": "success:34016149527",
+        "offline_bundle": "success:34016149529",
+        "authenticated_dashboard": "success:34016149642",
+        "capacity_release_gate": "success:34016149508",
+        "core_ci_and_merge_gate": "success:34016149695",
+        "husky_lint_staged_prettier": "passed",
+        "commitlint": "passed",
+        "manual_team_lead_review": "clean_no_blocking_findings",
+        "unresolved_review_threads": 0,
+        "final_premerge_comment": 5557462943,
+        "merge_observation_sha": "f214b83e03365533ceb7023f0b7f728d01fbc927",
+        "issue_state": "closed_completed"
+      }
+    },
+    {
+      "issue": 943,
+      "title": "RFX-05 Typed Atmospheric Pressure Sensor/Reference Vertical Slice",
+      "priority": "high",
+      "lifecycle": "ready",
+      "branch": "feat/943-rfx05-atmospheric-reference",
+      "depends_on": [
+        939
+      ],
+      "evidence": {
+        "rfx04_verified_head_sha": "797c0ab1b780644a04bd8a55a5e0c2a137d5adb1",
+        "rfx04_pull_request": 942,
+        "rfx04_merge_observation_sha": "f214b83e03365533ceb7023f0b7f728d01fbc927",
+        "current_alembic_head": "20260906_0034",
+        "product_owner_roadmap_authority": "issue_717_newer_partition_overrides_adr_0010_followup_numbering",
+        "canonical_instrument_kind_candidate": "barometric_pressure_sensor_subject_to_repository_convention_check",
+        "signal_physical_quantity": "pressure",
+        "pressure_reference": "absolute_required",
+        "process_role_atmospheric_pressure": "out_of_scope_reserved_rfx06",
+        "standard_atmosphere_fallback": "prohibited",
+        "live_atmospheric_polling": "not_enabled",
+        "atmospheric_hardware": "unverified",
         "modbus_write": "none",
         "hardware_write": "none",
         "production_deployment": "not_authorized",
