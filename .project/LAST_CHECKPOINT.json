@@ -47,9 +47,18 @@
     }
   },
   "observations": [
-    "Fresh Codex review of exact head 683aaea23d found one P2: a rebound Signal source could be evaluated with an older open analog scaling profile.",
-    "Remediation adds an explicit acquisition_source_id on analog profile revisions, organization+Signal+source database linkage, and fail-closed compatibility validation before scaling.",
-    "Production Raspberry Pi remains resource constrained (root 95%, swap saturated); no second local PostgreSQL container was started. Final PostgreSQL/FK/migration round-trip evidence is delegated to the new exact-head GitHub Telemetry job via a focused automated PostgreSQL test."
+    {
+      "source": "github",
+      "observed_at": "2026-09-06T01:40:01Z",
+      "kind": "codex_review_finding",
+      "data": {
+        "pull_request": 938,
+        "reviewed_head_sha": "683aaea23d4b30b74489d6ad8ed78f6d0f10427e",
+        "severity": "P2",
+        "finding": "validate_source_profile_compatibility_before_scaling",
+        "remediation_head_sha": "eb9fbf2900d145afaec292d0e73b3ae5fa87e5ce"
+      }
+    }
   ],
   "next_action": "Commit and push the Codex-P2 remediation, then require the new exact-head Telemetry PostgreSQL suite (including the automated 0034→0033→0034 round-trip), all routed workflows, NEXOLAB Merge Gate, and a fresh Codex review with no unresolved P1/P2 before merge.",
   "safety": {
