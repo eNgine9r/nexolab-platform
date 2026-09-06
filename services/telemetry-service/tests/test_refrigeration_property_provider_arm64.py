@@ -9,8 +9,8 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-TELEMETRY = ROOT / "services" / "telemetry-service"
+TELEMETRY = Path(__file__).resolve().parents[1]
+ROOT = TELEMETRY.parents[1]
 sys.path.insert(0, str(TELEMETRY))
 
 from app.refrigeration.property_provider import (

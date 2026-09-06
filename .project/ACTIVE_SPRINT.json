@@ -3027,7 +3027,7 @@
         "target_runtime": "nexolab-edge-01_linux_aarch64_python_3.13.5",
         "offline_wheelhouse_install": "passed_no_index",
         "network_syscall_smoke": "none_observed_strace_20_calls",
-        "arm64_resource_verifier": "passed_init_2.786903s_rss_89.562MiB_mean_call_102.506us",
+        "arm64_resource_verifier": "passed_init_2.812569s_rss_88.516MiB_mean_call_106.870us",
         "provider_targeted_tests": "24_passed",
         "postgresql_refrigeration_instrumentation_compatibility": "149_passed_1_skip",
         "production_arm64_container": "build_pip_check_import_and_r290_call_passed_size_145213313_bytes",

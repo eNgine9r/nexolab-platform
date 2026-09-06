@@ -28,7 +28,7 @@
       "numpy_arm64_wheel_sha256": "0aadf13b60048d501e05fa699efaf7734e2494f3498a4c2a5521d822640324f3",
       "offline_wheelhouse_install": "passed_no_index",
       "network_syscall_smoke": "none_observed_strace_20_calls",
-      "arm64_resource_verifier": "passed_init_2.786903s_rss_89.562MiB_mean_call_102.506us",
+      "arm64_resource_verifier": "passed_init_2.812569s_rss_88.516MiB_mean_call_106.870us",
       "provider_tests": "24_passed_explicit_heos",
       "postgresql_refrigeration_instrumentation_compatibility": "149_passed_1_skip",
       "production_arm64_container": "build_pip_check_import_call_passed_size_145213313_bytes",
