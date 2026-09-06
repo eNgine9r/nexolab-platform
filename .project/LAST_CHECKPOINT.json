@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-06T04:52:39+03:00",
+  "timestamp": "2026-09-06T05:07:41+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_937_second_codex_p2_remediated_pending_new_exact_head_ci_review",
+  "event": "issue_937_third_codex_review_two_p2_remediated_requires_final_exact_head_gates",
   "baselines": {
     "accepted_product_sha": "4decaaefcf58c64f91e231c70f0980bdeac97c93",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -21,9 +21,9 @@
       "rfx02_verified_head_sha": "4decaaefcf58c64f91e231c70f0980bdeac97c93",
       "rfx02_pull_request": 936,
       "current_alembic_head": "20260906_0034",
-      "focused_instrumentation_and_security": "44_passed_11_postgresql_skipped_after_codex_p2_remediation",
-      "postgresql_instrumentation_guards": "10_passed_pre_codex_p2_remediation_final_11_test_exact_head_ci_pending",
-      "migration_roundtrip": "automated_0034_to_0033_to_0034_rfx01_rfx02_sentinel_test_added_exact_head_postgresql_ci_pending",
+      "focused_instrumentation_and_security": "45_passed_12_postgresql_skipped_after_third_codex_consistency_remediation",
+      "postgresql_instrumentation_guards": "exact_head_4382d9fd_telemetry_green_before_third_codex_remediation_new_concurrency_guard_pending_next_exact_head",
+      "migration_roundtrip": "exact_head_4382d9fd_automated_0034_to_0033_to_0034_sentinel_green_before_third_codex_remediation_rerun_required",
       "offline_migration_sql": "2842_lines_generated_after_source_profile_link_remediation",
       "xjp60d_temperature_and_acquisition_compatibility": "27_passed",
       "climate_and_structural_refrigeration_compatibility": "25_passed",
@@ -33,18 +33,22 @@
       "modbus_write": "none",
       "hardware_write": "none",
       "production_deployment": "not_authorized",
-      "team_lead_exact_non_postgresql": "44_passed_11_postgresql_skipped_after_explicit_source_profile_link_remediation",
+      "team_lead_exact_non_postgresql": "45_passed_12_postgresql_skipped_after_locked_consistency_boundary_and_unlinked_profile_fail_closed_remediation",
       "team_lead_identity_normalization": "trim_only_matches_existing_canonical_telemetry_identity_behavior",
       "post_postgresql_change_scope": "rfx03_migration_now_adds_explicit_profile_to_source_fk_and_ci_roundtrip_test_final_postgresql_evidence_pending",
-      "local_candidate_status": "GREEN_NON_POSTGRESQL_SECOND_CODEX_P2_REMEDIATED_REQUIRES_FINAL_EXACT_HEAD_CI_AND_FRESH_CODEX_REVIEW",
-      "team_lead_review": "two_codex_p2_findings_reproduced_and_remediated_locally",
-      "codex_reviewed_head": "de8140c6cd2264dcb4f616a8421f58c0ea08425d",
+      "local_candidate_status": "GREEN_LOCAL_THIRD_CODEX_TWO_P2_REMEDIATED_REQUIRES_FINAL_EXACT_HEAD_CI_AND_FRESH_CODEX_REVIEW",
+      "team_lead_review": "four_total_codex_p2_findings_across_three_reviews_latest_two_remediated_locally",
+      "codex_reviewed_head": "4382d9fd2a162f8a1b17ae73e4ee1a178fa93593",
       "codex_review_finding": "P2_require_source_matching_for_every_scaling_evaluation",
-      "codex_p2_remediation": "linked_profiles_auto_validate_effective_source_in_shared_rfx02_evaluator_before_scaling;humidity_requires_explicit_link",
+      "codex_p2_remediation": "legacy_unlinked_scaling_only_when_signal_has_no_source_history;source_and_profile_resolve_under_owning_signal_lock_in_one_transaction;postgresql_concurrency_guard_added_pending_exact_head_ci",
       "source_binding_contract": "acquisition-source/v1_explicit_identity_half_open_append_oriented",
       "humidity_identity": "humidity_transmitter_relative_humidity_%RH",
-      "humidity_scaling_authority": "shared_rfx02_decimal_scaler_auto_validates_effective_source_for_linked_profiles;humidity_requires_explicit_matching_link",
-      "core_ci_policy_local": "174_ci_policy_tests_passed_and_state_model_v2_validation_passed_after_canonical_observation_fix"
+      "humidity_scaling_authority": "shared_rfx02_decimal_scaler_after_single_transaction_source_profile_consistency_check;humidity_requires_explicit_matching_source",
+      "core_ci_policy_local": "174_ci_policy_tests_passed_and_state_model_v2_validation_passed_after_canonical_observation_fix",
+      "codex_review_findings": [
+        "P2_reject_unlinked_profiles_once_source_history_exists",
+        "P2_resolve_source_and_profile_within_one_consistency_boundary"
+      ]
     }
   },
   "observations": [
@@ -69,11 +73,43 @@
         "reviewed_head_sha": "de8140c6cd2264dcb4f616a8421f58c0ea08425d",
         "severity": "P2",
         "finding": "require_source_matching_for_every_scaling_evaluation",
-        "remediation_status": "locally_remediated_exact_head_review_pending"
+        "remediation_status": "locally_remediated_fresh_exact_head_review_required"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-06T01:59:24Z",
+      "kind": "codex_review_finding",
+      "data": {
+        "pull_request": 938,
+        "reviewed_head_sha": "4382d9fd2a162f8a1b17ae73e4ee1a178fa93593",
+        "severity": "P2",
+        "findings": [
+          "reject_unlinked_profiles_once_source_history_exists",
+          "resolve_source_and_profile_within_one_consistency_boundary"
+        ],
+        "remediation_status": "locally_remediated_fresh_exact_head_review_required"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-06T01:59:10Z",
+      "kind": "ci_failure",
+      "data": {
+        "pull_request": 938,
+        "head_sha": "4382d9fd2a162f8a1b17ae73e4ee1a178fa93593",
+        "workflow": "Authenticated Dashboard Acceptance",
+        "run_id": 34005091738,
+        "result": "19_passed_1_failed_runtime_sockets_maximum_received_2_expected_lte_1",
+        "same_pr_prior_exact_head_successes": [
+          "683aaea23d4b30b74489d6ad8ed78f6d0f10427e",
+          "de8140c6cd2264dcb4f616a8421f58c0ea08425d"
+        ],
+        "merge_authority": "superseded_by_local_third_codex_remediation"
       }
     }
   ],
-  "next_action": "Require fresh exact-head Telemetry PostgreSQL/full suite, all routed workflows, NEXOLAB Merge Gate and Codex review with no unresolved P1/P2; then recheck main/head freshness and mergeability before squash merge.",
+  "next_action": "Require the resulting exact-head Telemetry PostgreSQL suite including the concurrency guard and migration round-trip, all routed workflows, NEXOLAB Merge Gate, and fresh Codex review with no unresolved P1/P2 before final freshness and squash merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

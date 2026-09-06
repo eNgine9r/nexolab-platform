@@ -2792,9 +2792,9 @@
         "rfx02_verified_head_sha": "4decaaefcf58c64f91e231c70f0980bdeac97c93",
         "rfx02_pull_request": 936,
         "current_alembic_head": "20260906_0034",
-        "focused_instrumentation_and_security": "44_passed_11_postgresql_skipped_after_codex_p2_remediation",
-        "postgresql_instrumentation_guards": "10_passed_pre_codex_p2_remediation_final_11_test_exact_head_ci_pending",
-        "migration_roundtrip": "automated_0034_to_0033_to_0034_rfx01_rfx02_sentinel_test_added_exact_head_postgresql_ci_pending",
+        "focused_instrumentation_and_security": "45_passed_12_postgresql_skipped_after_third_codex_consistency_remediation",
+        "postgresql_instrumentation_guards": "exact_head_4382d9fd_telemetry_green_before_third_codex_remediation_new_concurrency_guard_pending_next_exact_head",
+        "migration_roundtrip": "exact_head_4382d9fd_automated_0034_to_0033_to_0034_sentinel_green_before_third_codex_remediation_rerun_required",
         "offline_migration_sql": "2842_lines_generated_after_source_profile_link_remediation",
         "xjp60d_temperature_and_acquisition_compatibility": "27_passed",
         "climate_and_structural_refrigeration_compatibility": "25_passed",
@@ -2804,14 +2804,18 @@
         "modbus_write": "none",
         "hardware_write": "none",
         "production_deployment": "not_authorized",
-        "team_lead_exact_non_postgresql": "44_passed_11_postgresql_skipped_after_explicit_source_profile_link_remediation",
+        "team_lead_exact_non_postgresql": "45_passed_12_postgresql_skipped_after_locked_consistency_boundary_and_unlinked_profile_fail_closed_remediation",
         "team_lead_identity_normalization": "trim_only_matches_existing_canonical_telemetry_identity_behavior",
-        "post_postgresql_change_scope": "rfx03_migration_now_adds_explicit_profile_to_source_fk_and_ci_roundtrip_test_final_postgresql_evidence_pending",
-        "local_candidate_status": "GREEN_NON_POSTGRESQL_SECOND_CODEX_P2_REMEDIATED_PENDING_FINAL_EXACT_HEAD_CI_AND_FRESH_CODEX_REVIEW",
-        "team_lead_review": "two_codex_p2_findings_reproduced_and_remediated_locally",
-        "codex_reviewed_head": "de8140c6cd2264dcb4f616a8421f58c0ea08425d",
+        "post_postgresql_change_scope": "third_codex_remediation_changes_repository_consistency_logic_and_tests_only_migration_0034_unchanged_exact_head_telemetry_rerun_required",
+        "local_candidate_status": "GREEN_LOCAL_THIRD_CODEX_TWO_P2_REMEDIATED_REQUIRES_FINAL_EXACT_HEAD_CI_AND_FRESH_CODEX_REVIEW",
+        "team_lead_review": "four_total_codex_p2_findings_reproduced_or_adjudicated_three_reviews_latest_two_remediated_locally",
+        "codex_reviewed_head": "4382d9fd2a162f8a1b17ae73e4ee1a178fa93593",
         "codex_review_finding": "P2_require_source_matching_for_every_scaling_evaluation",
-        "codex_p2_remediation": "linked_profiles_auto_validate_effective_source_in_shared_rfx02_evaluator_before_scaling;humidity_requires_explicit_link"
+        "codex_p2_remediation": "legacy_unlinked_scaling_only_when_signal_has_no_source_history;source_and_profile_resolve_under_owning_signal_lock_in_one_transaction;postgresql_concurrency_guard_added_pending_exact_head_ci",
+        "codex_review_findings": [
+          "P2_reject_unlinked_profiles_once_source_history_exists",
+          "P2_resolve_source_and_profile_within_one_consistency_boundary"
+        ]
       }
     }
   ],

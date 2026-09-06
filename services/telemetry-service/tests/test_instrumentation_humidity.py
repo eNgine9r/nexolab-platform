@@ -5,6 +5,8 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
+
+import app.instrumentation.repository as instrumentation_repository_module
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -201,14 +203,16 @@ def test_humidity_evaluation_delegates_to_rfx02_and_never_persists_telemetry(
         organization_id=ORGANIZATION_ID,
     )
     delegated = False
-    rfx02_evaluator = repository.evaluate_analog_scaling
+    rfx02_scaler = instrumentation_repository_module.scale_linear_two_point
 
-    def recorded_delegate(*args: object, **kwargs: object):
+    def recorded_scale(raw_value: Decimal, **kwargs: Decimal) -> Decimal:
         nonlocal delegated
         delegated = True
-        return rfx02_evaluator(*args, **kwargs)
+        return rfx02_scaler(raw_value, **kwargs)
 
-    monkeypatch.setattr(repository, "evaluate_analog_scaling", recorded_delegate)
+    monkeypatch.setattr(
+        instrumentation_repository_module, "scale_linear_two_point", recorded_scale
+    )
     source, profile, value = repository.evaluate_humidity_observation(
         instrument_id,
         signal_id,
@@ -222,6 +226,62 @@ def test_humidity_evaluation_delegates_to_rfx02_and_never_persists_telemetry(
     assert source.evidence_status == profile.evidence_status == "hardware_unverified"
     assert database.count_samples() == 0
     assert database.count_latest_samples() == 0
+
+
+def test_generic_scaling_rejects_unlinked_profile_once_source_history_exists(
+    tmp_path: Path,
+) -> None:
+    _, repository, instrument_id, signal_id = _humidity_repository(tmp_path)
+    start = datetime(2026, 9, 6, tzinfo=UTC)
+    profile = repository.append_analog_scaling_profile(
+        instrument_id,
+        signal_id,
+        _profile(start),
+        actor_id="test-suite",
+        organization_id=ORGANIZATION_ID,
+    )
+    resolved_profile, value = repository.evaluate_analog_scaling(
+        instrument_id,
+        signal_id,
+        Decimal("12"),
+        start,
+        organization_id=ORGANIZATION_ID,
+    )
+    assert resolved_profile.id == profile.id
+    assert value == Decimal("50.000000000000000000")
+
+    boundary = start + timedelta(hours=1)
+    repository.append_acquisition_source(
+        instrument_id,
+        signal_id,
+        _source(boundary),
+        actor_id="test-suite",
+        organization_id=ORGANIZATION_ID,
+    )
+    with pytest.raises(AnalogScalingSourceMismatchError) as failure:
+        repository.evaluate_analog_scaling(
+            instrument_id,
+            signal_id,
+            Decimal("12"),
+            boundary,
+            organization_id=ORGANIZATION_ID,
+        )
+    assert failure.value.code == "analog_scaling_source_mismatch"
+
+    app = FastAPI()
+    app.include_router(
+        create_instrumentation_router(
+            repository, default_organization_id=ORGANIZATION_ID
+        )
+    )
+    api = TestClient(app)
+    response = api.post(
+        f"/api/v1/instrumentation/instruments/{instrument_id}/signals/"
+        f"{signal_id}/analog-scaling-evaluate",
+        json={"raw_value": "12", "at": boundary.isoformat()},
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "analog_scaling_source_mismatch"
 
 
 def test_humidity_evaluation_fails_closed_when_source_is_rebound_without_new_profile(
