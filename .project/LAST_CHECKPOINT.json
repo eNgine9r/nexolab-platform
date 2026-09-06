@@ -3,50 +3,59 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-06T10:30:57+03:00",
+  "timestamp": "2026-09-06T10:57:38+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_943_rfx05_atmospheric_local_candidate_verified_ci_pending",
+  "event": "issue_948_rfx05_merge_state_reconciliation_candidate_rfx06_ready",
   "baselines": {
-    "accepted_product_sha": "797c0ab1b780644a04bd8a55a5e0c2a137d5adb1",
+    "accepted_product_sha": "5f7ac8de85c601f9d57ce4d219f520c62c246685",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 943,
-    "branch": "feat/943-rfx05-atmospheric-reference",
-    "base_main_sha": "e3aadfe2c5666880fec493bc0b8f48bbdb754be6",
-    "status": "implementation_locally_verified_ready_to_commit"
+    "issue": 948,
+    "branch": "chore/948-reconcile-rfx05-state",
+    "base_main_sha": "912f5fdbc65c74e0a5f5d6ea8f8b42193b8732d2",
+    "status": "state_reconciliation_locally_verified_ready_to_commit"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "dependency_rfx04_issue": 939,
-      "state_reconciliation_pr": 945,
-      "canonical_instrument_kind": "barometric_pressure_sensor",
-      "signal_physical_quantity": "pressure",
-      "pressure_reference": "absolute_required",
-      "local_atmospheric_pressure_regression": "27_passed",
-      "local_instrumentation_api_security_suite": "59_passed_13_postgresql_only_skipped",
-      "local_compile": "passed",
-      "git_diff_check": "passed",
-      "migration": "none",
-      "telemetry_write": "none",
-      "hardware_evidence": "unverified",
+      "rfx05_verified_head_sha": "5f7ac8de85c601f9d57ce4d219f520c62c246685",
+      "rfx05_pull_request": 946,
+      "rfx05_exact_head_workflows": "12_success",
+      "rfx05_manual_review": "clean_zero_unresolved_threads",
+      "rfx06_issue": 947,
       "state_model_v2": "passed",
-      "ci_policy_tests": "174_passed_1_environment_skip"
+      "ci_policy_tests": "174_passed_1_environment_skip",
+      "touched_markdown_prettier": "passed",
+      "git_diff_check": "passed",
+      "json_parse": "passed",
+      "state_only_scope": "passed"
     }
   },
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-09-06T07:22:52Z",
-      "kind": "rfx04_state_reconciliation_merged",
+      "observed_at": "2026-09-06T07:51:13Z",
+      "kind": "rfx05_merge_completed",
       "data": {
-        "issue": 944,
-        "pull_request": 945,
-        "merge_sha": "e3aadfe2c5666880fec493bc0b8f48bbdb754be6"
+        "issue": 943,
+        "pull_request": 946,
+        "verified_head_sha": "5f7ac8de85c601f9d57ce4d219f520c62c246685",
+        "merge_sha": "912f5fdbc65c74e0a5f5d6ea8f8b42193b8732d2",
+        "final_premerge_comment": 5557847789
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-06T07:55:15Z",
+      "kind": "rfx06_work_package_created",
+      "data": {
+        "issue": 947,
+        "branch": "feat/947-rfx06-circuit-domain",
+        "status": "ready"
       }
     }
   ],
-  "next_action": "Commit and push the locally verified RFX-05 candidate, open the focused PR for #943, require exact-head routed workflows and NEXOLAB Merge Gate GREEN, then perform manual Team Lead exact-head review before merge.",
+  "next_action": "Verify the focused #948 state-only reconciliation locally, commit/push and require the exact-head state-integrity lane GREEN; after merge, start RFX-06 / #947 from reconciled main.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
