@@ -222,6 +222,14 @@ def test_circuit_api_binding_preserves_pressure_reference_and_has_no_normalizati
     assert atmospheric_response.status_code == 201, atmospheric_response.text
     assert atmospheric_response.json()["engineering_unit"] == "kPa"
     assert atmospheric_response.json()["pressure_reference"] == "absolute"
+    binding_id = atmospheric_response.json()["id"]
+
+    direct_read = api.get(
+        f"/api/v1/refrigeration/circuits/{circuit_id}/bindings/{binding_id}"
+    )
+    assert direct_read.status_code == 200
+    assert direct_read.json()["id"] == binding_id
+    assert direct_read.json()["signal_id"] == atmospheric.id
 
     resolved = api.get(
         f"/api/v1/refrigeration/circuits/{circuit_id}/bindings/atmospheric_pressure/effective",

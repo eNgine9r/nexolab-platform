@@ -412,6 +412,30 @@ class RefrigerationCircuitRepository:
             session.expunge_all()
             return result
 
+    def get_binding(
+        self,
+        circuit_id: str,
+        binding_id: str,
+        *,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+    ) -> ResolvedCircuitBinding:
+        with Session(self._engine, expire_on_commit=False) as session:
+            self._circuit(session, organization_id, circuit_id)
+            row = session.scalar(
+                select(RefrigerationCircuitSignalBinding).where(
+                    RefrigerationCircuitSignalBinding.organization_id == organization_id,
+                    RefrigerationCircuitSignalBinding.circuit_id == circuit_id,
+                    RefrigerationCircuitSignalBinding.id == binding_id,
+                )
+            )
+            if row is None:
+                raise CircuitBindingNotFoundError(
+                    f"semantic binding {binding_id!r} was not found"
+                )
+            result = self._binding_view(session, row, organization_id)
+            session.expunge_all()
+            return result
+
     def append_binding(
         self,
         circuit_id: str,

@@ -499,6 +499,10 @@ def test_binding_can_end_without_synthetic_replacement_and_then_resolves_unavail
     )
     assert ended.binding.id == bound.binding.id
     assert ended.binding.ended_by == "operator"
+    persisted = repository.get_binding(circuit.id, bound.binding.id)
+    assert persisted.binding.id == bound.binding.id
+    assert persisted.binding.valid_to is not None
+    assert persisted.binding.ended_by == "operator"
     with pytest.raises(CircuitResolutionError):
         repository.resolve_binding(
             circuit.id, "suction_line_temperature", T0 + timedelta(hours=3)

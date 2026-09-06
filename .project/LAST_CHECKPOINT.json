@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-06T12:49:27+03:00",
+  "timestamp": "2026-09-06T13:08:29+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_947_rfx06_manual_review_gap_remediated_locally_verified_candidate",
+  "event": "issue_947_rfx06_manual_review_contract_completed_locally_verified_candidate",
   "baselines": {
     "accepted_product_sha": "5f7ac8de85c601f9d57ce4d219f520c62c246685",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -14,7 +14,7 @@
     "issue": 947,
     "branch": "feat/947-rfx06-circuit-domain",
     "base_main_sha": "95d1266c77309bffa037cf2b2af33c1156e3705c",
-    "status": "manual_review_gap_remediated_locally_verified_ready_to_commit"
+    "status": "manual_review_contract_completed_locally_verified_ready_to_commit"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
@@ -38,7 +38,9 @@
       "offline_migration_sql": "passed",
       "git_diff_check": "passed",
       "api_security_tests": "6_passed",
-      "manual_review_gap": "organization_unique_display_name_and_binding_end_provenance_fixed"
+      "manual_review_gap": "organization_unique_display_name_binding_end_provenance_and_direct_binding_read_fixed",
+      "semantic_binding_direct_read": "binding_id_read_dashboard_permission_cross_org_fail_closed_passed",
+      "targeted_domain_api_security": "16_passed"
     }
   },
   "observations": [
@@ -54,7 +56,7 @@
       }
     }
   ],
-  "next_action": "Run final state/static/offline gates, commit and push the RFX-06 review remediation, then require exact-head routed GitHub CI and manual Team Lead review before merge.",
+  "next_action": "Run final exact-candidate compatibility/state/static gates, commit and push the complete RFX-06 manual-review remediation, then require new exact-head routed GitHub CI and final Team Lead review before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

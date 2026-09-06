@@ -151,6 +151,11 @@ def test_dashboard_read_can_list_but_equipment_manage_is_required_to_create(tmp_
         "/api/v1/refrigeration/circuits",
         headers=_headers("viewer", ORG),
     ).status_code == 200
+    viewer_binding_read = api.get(
+        "/api/v1/refrigeration/circuits/missing/bindings/missing",
+        headers=_headers("viewer", ORG),
+    )
+    assert viewer_binding_read.status_code == 404
     denied = api.post(
         "/api/v1/refrigeration/circuits",
         headers=_headers("viewer", ORG),
@@ -177,6 +182,13 @@ def test_circuit_mutation_is_audited_and_cross_org_reads_fail_closed(tmp_path: P
     )
     assert other_read.status_code == 404
     assert other_read.json()["detail"]["code"] == "refrigeration_circuit_not_found"
+
+    other_binding_read = api.get(
+        f"/api/v1/refrigeration/circuits/{circuit_id}/bindings/missing",
+        headers=_headers("other-engineer", OTHER),
+    )
+    assert other_binding_read.status_code == 404
+    assert other_binding_read.json()["detail"]["code"] == "refrigeration_circuit_not_found"
 
     events = security.list_audit_events(
         organization_id=ORG,

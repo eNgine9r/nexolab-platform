@@ -2981,9 +2981,11 @@
         "offline_migration_sql": "passed",
         "git_diff_check": "passed",
         "local_api_security_tests": "6_passed",
-        "manual_exact_head_review": "acceptance_gap_found_and_fixed_before_final_ci",
+        "manual_exact_head_review": "acceptance_gaps_found_and_fixed_before_final_ci",
         "organization_unique_circuit_display_name": "enforced_and_tested",
-        "binding_end_provenance_constraint": "enforced_and_tested"
+        "binding_end_provenance_constraint": "enforced_and_tested",
+        "binding_end_provenance_consistency": "enforced_and_tested",
+        "semantic_binding_direct_read": "binding_id_read_implemented_dashboard_read_cross_org_fail_closed_tested"
       }
     }
   ],

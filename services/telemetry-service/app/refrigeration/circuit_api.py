@@ -273,6 +273,25 @@ def create_refrigeration_circuit_router(
             raise _http_error(error) from error
         return CircuitBindingListResponse(items=[_binding_response(row) for row in rows])
 
+    @router.get(
+        "/{circuit_id}/bindings/{binding_id}",
+        response_model=CircuitBindingResponse,
+    )
+    def get_binding(
+        circuit_id: str,
+        binding_id: str,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> CircuitBindingResponse:
+        try:
+            row = repository.get_binding(
+                circuit_id,
+                binding_id,
+                organization_id=authorized.principal.organization_id,
+            )
+        except CircuitDomainError as error:
+            raise _http_error(error) from error
+        return _binding_response(row)
+
     @router.post(
         "/{circuit_id}/bindings",
         response_model=CircuitBindingResponse,
