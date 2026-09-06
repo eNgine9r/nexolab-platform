@@ -21,7 +21,7 @@ CalibrationState = Literal["valid", "due", "expired", "revoked", "unknown"]
 PressureReference = Literal["absolute", "gauge"]
 
 _CANONICAL_IDENTIFIER_RE = re.compile(r"^[a-z][a-z0-9_.-]*$")
-_UNIT_IDENTIFIER_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_.%/^-]*$")
+_UNIT_IDENTIFIER_RE = re.compile(r"^(?:%RH|[A-Za-z][A-Za-z0-9_.%/^-]*)$")
 _FUTURE_PROCESS_ROLES = frozenset(
     {
         "suction_pressure",
@@ -266,6 +266,7 @@ class AnalogScalingProfileAppendRequest(BaseModel):
     acquisition_profile_id: Annotated[str | None, Field(max_length=128)] = None
     acquisition_profile_version: Annotated[str | None, Field(max_length=128)] = None
     acquisition_channel_reference: Annotated[str | None, Field(max_length=255)] = None
+    acquisition_source_id: Annotated[str | None, Field(max_length=36)] = None
     evidence_reference: Annotated[str | None, Field(max_length=512)] = None
     calibration_scope: Annotated[str, Field(min_length=1, max_length=64)] = "instrument"
     evidence_status: AnalogEvidenceStatus = "hardware_unverified"
@@ -289,6 +290,7 @@ class AnalogScalingProfileAppendRequest(BaseModel):
         "acquisition_profile_id",
         "acquisition_profile_version",
         "acquisition_channel_reference",
+        "acquisition_source_id",
         "evidence_reference",
     )
     @classmethod
@@ -344,6 +346,7 @@ class AnalogScalingProfileResponse(BaseModel):
     acquisition_profile_id: str | None
     acquisition_profile_version: str | None
     acquisition_channel_reference: str | None
+    acquisition_source_id: str | None
     evidence_reference: str | None
     calibration_scope: str
     evidence_status: AnalogEvidenceStatus
@@ -384,6 +387,115 @@ class AnalogScalingEvaluationResponse(BaseModel):
     raw_value: Decimal
     engineering_value: Decimal
     engineering_unit: str
+
+
+AcquisitionEvidenceStatus = Literal[
+    "software_verified", "hardware_unverified", "hardware_verified"
+]
+
+
+class AcquisitionSourceAppendRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["acquisition-source/v1"] = "acquisition-source/v1"
+    node_id: Annotated[str, Field(min_length=1, max_length=128)]
+    equipment_id: Annotated[str, Field(min_length=1, max_length=128)]
+    channel_id: Annotated[str, Field(min_length=1, max_length=128)]
+    metric: Annotated[str, Field(min_length=1, max_length=128)]
+    unit: Annotated[str, Field(min_length=1, max_length=64)]
+    evidence_status: AcquisitionEvidenceStatus = "hardware_unverified"
+    evidence_reference: Annotated[str | None, Field(max_length=512)] = None
+    valid_from: datetime
+
+    @field_validator("node_id", "equipment_id", "channel_id", "metric")
+    @classmethod
+    def normalize_source_identity(cls, value: str, info: object) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError(
+                f"{getattr(info, 'field_name', 'source identity')} must not be blank"
+            )
+        return normalized
+
+    @field_validator("unit")
+    @classmethod
+    def validate_unit(cls, value: str) -> str:
+        normalized = value.strip()
+        if not _UNIT_IDENTIFIER_RE.fullmatch(normalized):
+            raise ValueError("unit must be a canonical unit identifier")
+        return normalized
+
+    @field_validator("evidence_reference")
+    @classmethod
+    def normalize_evidence_reference(cls, value: str | None) -> str | None:
+        return _optional_text(value)
+
+    @field_validator("valid_from")
+    @classmethod
+    def validate_valid_from(cls, value: datetime) -> datetime:
+        return _aware_utc(value, "valid_from")
+
+    @model_validator(mode="after")
+    def validate_hardware_evidence(self) -> "AcquisitionSourceAppendRequest":
+        if self.evidence_status == "hardware_verified" and not self.evidence_reference:
+            raise ValueError(
+                "hardware_verified acquisition sources require an evidence_reference"
+            )
+        return self
+
+
+class AcquisitionSourceResponse(BaseModel):
+    id: str
+    signal_id: str
+    schema_version: Literal["acquisition-source/v1"]
+    node_id: str
+    equipment_id: str
+    channel_id: str
+    metric: str
+    unit: str
+    evidence_status: AcquisitionEvidenceStatus
+    evidence_reference: str | None
+    valid_from: datetime
+    valid_to: datetime | None
+    revision: int
+    recorded_by: str
+    recorded_at: datetime
+
+
+class AcquisitionSourceHistoryResponse(BaseModel):
+    items: list[AcquisitionSourceResponse]
+
+
+class HumidityObservationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    raw_value: Decimal
+    at: datetime
+
+    @field_validator("raw_value")
+    @classmethod
+    def validate_raw_value(cls, value: Decimal) -> Decimal:
+        if not value.is_finite():
+            raise ValueError("raw_value must be a finite decimal")
+        return value
+
+    @field_validator("at")
+    @classmethod
+    def validate_at(cls, value: datetime) -> datetime:
+        return _aware_utc(value, "at")
+
+
+class HumidityObservationResponse(BaseModel):
+    signal_id: str
+    physical_quantity: Literal["relative_humidity"]
+    raw_value: Decimal
+    value: Decimal
+    unit: Literal["%RH"]
+    source: AcquisitionSourceResponse
+    profile_id: str
+    profile_revision: int
+    profile_evidence_status: AnalogEvidenceStatus
+    evidence_status: AcquisitionEvidenceStatus
 
 
 class ApiErrorDetail(BaseModel):

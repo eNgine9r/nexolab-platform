@@ -18,14 +18,14 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "3a423136333b0de6c011294ccf27500f2f6d46d3",
+    "accepted_product_sha": "4decaaefcf58c64f91e231c70f0980bdeac97c93",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
     "active_work_package": {
-      "issue": 935,
-      "title": "RFX-02 Versioned 4-20 mA Analog Scaling Profile Contract",
-      "branch": "feat/935-rfx02-analog-scaling-profile"
+      "issue": 937,
+      "title": "RFX-03 Relative-Humidity Acquisition Vertical Slice",
+      "branch": "feat/937-rfx03-humidity-acquisition"
     },
     "next_work_package": null
   },
@@ -2741,7 +2741,7 @@
       "issue": 935,
       "title": "RFX-02 Versioned 4-20 mA Analog Scaling Profile Contract",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "feat/935-rfx02-analog-scaling-profile",
       "evidence": {
         "implementation_base_main_sha": "97c59ca87c35a5316d6622d7cd1102497632feb3",
@@ -2756,18 +2756,66 @@
         "analog_scaling_contract": "decimal_linear_two_point_fail_closed",
         "focused_non_postgresql_api_security": "29_passed",
         "postgresql_guard_suite_before_final_finite_constraint": "8_passed",
-        "final_finite_constraint_execution": "pending_exact_head_telemetry_ci",
+        "final_finite_constraint_execution": "success:33999369723",
         "migration_roundtrip": "0033_to_0032_to_0033_rfx01_signal_sentinel_preserved_before_final_finite_constraint",
         "offline_migration_sql": "2750_lines_final_sql_generated",
         "climate_refrigeration_compatibility": "48_passed_disposable_postgresql",
         "xjp60d_temperature_and_acquisition_compatibility": "24_passed",
         "hardware_inventory": "docs/rs485/analog-acquisition-profile-inventory.json",
         "hardware_verified_profile_requires_evidence_reference": "enforced_schema_and_final_migration_contract",
-        "local_candidate_status": "GREEN_TARGETED_PENDING_FINAL_POSTGRESQL_CI"
+        "local_candidate_status": "GREEN_TARGETED_AND_EXACT_HEAD_CI",
+        "verified_head_sha": "4decaaefcf58c64f91e231c70f0980bdeac97c93",
+        "pull_request": 936,
+        "merge_observation_sha": "6b63518f55e2c4c382a183fbe06ded74d99efb12",
+        "checks": {
+          "telemetry_service": "success:33999369723",
+          "core_ci_and_merge_gate": "success:33999369683",
+          "offline_bundle": "success:33999369712",
+          "registered_exact_head_workflows": "19_success"
+        }
       },
       "depends_on": [
         717
       ]
+    },
+    {
+      "issue": 937,
+      "title": "RFX-03 Relative-Humidity Acquisition Vertical Slice",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "feat/937-rfx03-humidity-acquisition",
+      "depends_on": [
+        935
+      ],
+      "evidence": {
+        "implementation_base_main_sha": "6b63518f55e2c4c382a183fbe06ded74d99efb12",
+        "rfx02_verified_head_sha": "4decaaefcf58c64f91e231c70f0980bdeac97c93",
+        "rfx02_pull_request": 936,
+        "current_alembic_head": "20260906_0034",
+        "focused_instrumentation_and_security": "45_passed_12_postgresql_skipped_after_third_codex_consistency_remediation",
+        "postgresql_instrumentation_guards": "exact_head_81886974_telemetry_641_passed_1_failed_test_harness_nameerror_writer_repository_local_fix_ready_next_exact_head_required",
+        "migration_roundtrip": "exact_head_4382d9fd_automated_0034_to_0033_to_0034_sentinel_green_before_third_codex_remediation_rerun_required",
+        "offline_migration_sql": "2842_lines_generated_after_source_profile_link_remediation",
+        "xjp60d_temperature_and_acquisition_compatibility": "27_passed",
+        "climate_and_structural_refrigeration_compatibility": "25_passed",
+        "xjp60d_humidity_hardware": "unverified",
+        "live_humidity_polling": "not_enabled",
+        "synthetic_telemetry_persistence": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "production_deployment": "not_authorized",
+        "team_lead_exact_non_postgresql": "45_passed_12_postgresql_skipped_after_locked_consistency_boundary_and_unlinked_profile_fail_closed_remediation",
+        "team_lead_identity_normalization": "trim_only_matches_existing_canonical_telemetry_identity_behavior",
+        "post_postgresql_change_scope": "test_harness_only_after_81886974_telemetry_failure;product_repository_logic_unchanged;new_exact_head_telemetry_required",
+        "local_candidate_status": "GREEN_LOCAL_CODEX_P1_POSTGRES_TEST_HARNESS_FIXED_REQUIRES_NEW_EXACT_HEAD_CI_AND_FRESH_CODEX_REVIEW",
+        "team_lead_review": "four_product_consistency_p2s_remediated;81886974_review_single_p1_test_harness_nameerror_fixed_locally",
+        "codex_reviewed_head": "81886974f57c0380bd86425237e7b1d093255662",
+        "codex_review_finding": "P1_instantiate_writer_repository_in_postgresql_concurrency_test",
+        "codex_p2_remediation": "four_product_consistency_p2s_remediated_in_product_code;latest_81886974_review_only_p1_is_test_harness_nameerror_and_is_fixed_in_candidate",
+        "codex_review_findings": [
+          "P1_instantiate_writer_repository_in_postgresql_concurrency_test"
+        ]
+      }
     }
   ],
   "maintenance_actions": [

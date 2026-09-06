@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.db import Database
 from app.instrumentation.models import (
     ACCEPTANCE_SCHEMA_VERSION,
+    ACQUISITION_SOURCE_SCHEMA_VERSION,
     ANALOG_ELECTRICAL_INPUT_CLASSES,
     ANALOG_EVIDENCE_STATUSES,
     ANALOG_RANGE_POLICIES,
@@ -25,9 +26,11 @@ from app.instrumentation.models import (
     InstrumentAcceptanceRecord,
     InstrumentCalibrationRecord,
     Signal,
+    SignalAcquisitionSourceRecord,
 )
 from app.instrumentation.schemas import (
     AcceptanceAppendRequest,
+    AcquisitionSourceAppendRequest,
     AnalogScalingProfileAppendRequest,
     CalibrationAppendRequest,
     InstrumentCreate,
@@ -92,6 +95,22 @@ class AnalogScalingUnitMismatchError(InstrumentationRepositoryError):
 
 class AnalogScalingResolutionError(InstrumentationRepositoryError):
     code = "analog_scaling_resolution_unavailable"
+
+
+class AcquisitionSourceUnitMismatchError(InstrumentationRepositoryError):
+    code = "acquisition_source_unit_mismatch"
+
+
+class AcquisitionSourceResolutionError(InstrumentationRepositoryError):
+    code = "acquisition_source_resolution_unavailable"
+
+
+class HumiditySignalUnsupportedError(InstrumentationRepositoryError):
+    code = "humidity_signal_unsupported"
+
+
+class AnalogScalingSourceMismatchError(AcquisitionSourceResolutionError):
+    code = "analog_scaling_source_mismatch"
 
 
 class InstrumentVersionConflictError(InstrumentationRepositoryError):
@@ -426,6 +445,199 @@ class InstrumentationRepository:
             session.expunge_all()
             return rows
 
+    def list_acquisition_source_history(
+        self,
+        instrument_id: str,
+        signal_id: str,
+        *,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+    ) -> list[SignalAcquisitionSourceRecord]:
+        with Session(self._engine, expire_on_commit=False) as session:
+            self._instrument(session, organization_id, instrument_id)
+            self._signal(session, organization_id, instrument_id, signal_id)
+            rows = list(
+                session.scalars(
+                    select(SignalAcquisitionSourceRecord)
+                    .where(
+                        SignalAcquisitionSourceRecord.organization_id
+                        == organization_id,
+                        SignalAcquisitionSourceRecord.signal_id == signal_id,
+                    )
+                    .order_by(
+                        SignalAcquisitionSourceRecord.valid_from.asc(),
+                        SignalAcquisitionSourceRecord.revision.asc(),
+                    )
+                )
+            )
+            session.expunge_all()
+            return rows
+
+    def append_acquisition_source(
+        self,
+        instrument_id: str,
+        signal_id: str,
+        payload: AcquisitionSourceAppendRequest,
+        *,
+        actor_id: str,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+        audit_repository: SecurityRepository | None = None,
+        audit_event: AuditEventInput | None = None,
+    ) -> SignalAcquisitionSourceRecord:
+        try:
+            with Session(self._engine, expire_on_commit=False) as session:
+                with session.begin():
+                    self._instrument(session, organization_id, instrument_id)
+                    signal = self._signal(
+                        session,
+                        organization_id,
+                        instrument_id,
+                        signal_id,
+                        for_update=True,
+                    )
+                    if payload.unit != signal.engineering_unit:
+                        raise AcquisitionSourceUnitMismatchError(
+                            "acquisition source unit must match the owning Signal"
+                        )
+                    latest = session.scalar(
+                        select(SignalAcquisitionSourceRecord)
+                        .where(
+                            SignalAcquisitionSourceRecord.organization_id
+                            == organization_id,
+                            SignalAcquisitionSourceRecord.signal_id == signal_id,
+                        )
+                        .order_by(
+                            SignalAcquisitionSourceRecord.valid_from.desc(),
+                            SignalAcquisitionSourceRecord.revision.desc(),
+                        )
+                        .limit(1)
+                        .with_for_update()
+                    )
+                    valid_from = _as_utc(payload.valid_from)
+                    previous = _acquisition_source_snapshot(latest) if latest else None
+                    self._close_acquisition_source_interval(latest, valid_from)
+                    if latest is not None:
+                        session.flush()
+                    row = SignalAcquisitionSourceRecord(
+                        id=str(uuid4()),
+                        organization_id=organization_id,
+                        signal_id=signal_id,
+                        schema_version=payload.schema_version,
+                        node_id=payload.node_id,
+                        equipment_id=payload.equipment_id,
+                        channel_id=payload.channel_id,
+                        metric=payload.metric,
+                        unit=payload.unit,
+                        evidence_status=payload.evidence_status,
+                        evidence_reference=payload.evidence_reference,
+                        valid_from=valid_from,
+                        valid_to=None,
+                        revision=(latest.revision + 1 if latest else 1),
+                        recorded_by=_actor(actor_id),
+                        recorded_at=datetime.now(UTC),
+                    )
+                    session.add(row)
+                    session.flush()
+                    self._append_audit(
+                        session,
+                        audit_repository,
+                        audit_event,
+                        entity_id=signal_id,
+                        before=previous,
+                        after=_acquisition_source_snapshot(row),
+                    )
+                session.expunge(row)
+                return row
+        except IntegrityError as error:
+            raise HistoryIntegrityConflictError(
+                "acquisition source append would create an invalid or overlapping interval"
+            ) from error
+
+    def resolve_acquisition_source(
+        self,
+        instrument_id: str,
+        signal_id: str,
+        at: datetime,
+        *,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+    ) -> SignalAcquisitionSourceRecord:
+        resolved_at = _require_aware_utc(at, "acquisition source resolution timestamp")
+        with Session(self._engine, expire_on_commit=False) as session:
+            self._instrument(session, organization_id, instrument_id)
+            signal = self._signal(session, organization_id, instrument_id, signal_id)
+            rows = list(
+                session.scalars(
+                    select(SignalAcquisitionSourceRecord).where(
+                        SignalAcquisitionSourceRecord.organization_id
+                        == organization_id,
+                        SignalAcquisitionSourceRecord.signal_id == signal_id,
+                        SignalAcquisitionSourceRecord.valid_from <= resolved_at,
+                        or_(
+                            SignalAcquisitionSourceRecord.valid_to.is_(None),
+                            SignalAcquisitionSourceRecord.valid_to > resolved_at,
+                        ),
+                    )
+                )
+            )
+            if len(rows) != 1:
+                raise AcquisitionSourceResolutionError(
+                    "acquisition source history must resolve exactly one effective binding"
+                )
+            row = rows[0]
+            if (
+                row.schema_version != ACQUISITION_SOURCE_SCHEMA_VERSION
+                or row.evidence_status not in ANALOG_EVIDENCE_STATUSES
+                or row.unit != signal.engineering_unit
+                or not all((row.node_id, row.equipment_id, row.channel_id, row.metric))
+            ):
+                raise AcquisitionSourceResolutionError(
+                    "acquisition source binding contains unsupported or inconsistent semantics"
+                )
+            session.expunge(row)
+            return row
+
+    def evaluate_humidity_observation(
+        self,
+        instrument_id: str,
+        signal_id: str,
+        raw_value: Decimal,
+        at: datetime,
+        *,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+    ) -> tuple[SignalAcquisitionSourceRecord, AnalogScalingProfileRecord, Decimal]:
+        resolved_at = _require_aware_utc(at, "humidity observation timestamp")
+        with Session(self._engine, expire_on_commit=False) as session:
+            with session.begin():
+                instrument = self._instrument(
+                    session, organization_id, instrument_id, for_update=True
+                )
+                signal = self._signal(
+                    session,
+                    organization_id,
+                    instrument_id,
+                    signal_id,
+                    for_update=True,
+                )
+                if (
+                    instrument.instrument_kind != "humidity_transmitter"
+                    or signal.physical_quantity != "relative_humidity"
+                    or signal.engineering_unit != "%RH"
+                ):
+                    raise HumiditySignalUnsupportedError(
+                        "humidity evaluation requires humidity_transmitter / relative_humidity / %RH"
+                    )
+                source, profile, value = self._evaluate_analog_scaling_locked(
+                    session,
+                    signal,
+                    raw_value,
+                    resolved_at,
+                    organization_id=organization_id,
+                    require_acquisition_source=True,
+                )
+            assert source is not None
+            session.expunge(source)
+            session.expunge(profile)
+            return source, profile, value
+
     def append_analog_scaling_profile(
         self,
         instrument_id: str,
@@ -466,6 +678,37 @@ class InstrumentationRepository:
                         .with_for_update()
                     )
                     effective_from = _as_utc(payload.effective_from)
+                    if payload.acquisition_source_id is not None:
+                        acquisition_source = session.scalar(
+                            select(SignalAcquisitionSourceRecord).where(
+                                SignalAcquisitionSourceRecord.id
+                                == payload.acquisition_source_id,
+                                SignalAcquisitionSourceRecord.organization_id
+                                == organization_id,
+                                SignalAcquisitionSourceRecord.signal_id == signal_id,
+                            )
+                        )
+                        if acquisition_source is None:
+                            raise AcquisitionSourceResolutionError(
+                                "analog scaling acquisition_source_id must reference "
+                                "the owning Signal's acquisition source"
+                            )
+                        source_valid_from = _as_utc(acquisition_source.valid_from)
+                        source_valid_to = (
+                            _as_utc(acquisition_source.valid_to)
+                            if acquisition_source.valid_to is not None
+                            else None
+                        )
+                        if not (
+                            source_valid_from <= effective_from
+                            and (
+                                source_valid_to is None
+                                or source_valid_to > effective_from
+                            )
+                        ):
+                            raise AcquisitionSourceResolutionError(
+                                "analog scaling acquisition source must be effective when the profile begins"
+                            )
                     previous = (
                         _analog_scaling_snapshot(latest) if latest is not None else None
                     )
@@ -492,6 +735,7 @@ class InstrumentationRepository:
                         acquisition_profile_id=payload.acquisition_profile_id,
                         acquisition_profile_version=payload.acquisition_profile_version,
                         acquisition_channel_reference=payload.acquisition_channel_reference,
+                        acquisition_source_id=payload.acquisition_source_id,
                         evidence_reference=payload.evidence_reference,
                         calibration_scope=payload.calibration_scope,
                         evidence_status=payload.evidence_status,
@@ -561,9 +805,59 @@ class InstrumentationRepository:
         *,
         organization_id: str = DEFAULT_ORGANIZATION_ID,
     ) -> tuple[AnalogScalingProfileRecord, Decimal]:
-        profile = self.resolve_analog_scaling_profile(
-            instrument_id, signal_id, at, organization_id=organization_id
+        resolved_at = _require_aware_utc(at, "analog scaling evaluation timestamp")
+        with Session(self._engine, expire_on_commit=False) as session:
+            with session.begin():
+                self._instrument(session, organization_id, instrument_id)
+                signal = self._signal(
+                    session,
+                    organization_id,
+                    instrument_id,
+                    signal_id,
+                    for_update=True,
+                )
+                _, profile, value = self._evaluate_analog_scaling_locked(
+                    session,
+                    signal,
+                    raw_value,
+                    resolved_at,
+                    organization_id=organization_id,
+                    require_acquisition_source=False,
+                )
+            session.expunge(profile)
+            return profile, value
+
+    def _evaluate_analog_scaling_locked(
+        self,
+        session: Session,
+        signal: Signal,
+        raw_value: Decimal,
+        resolved_at: datetime,
+        *,
+        organization_id: str,
+        require_acquisition_source: bool,
+    ) -> tuple[
+        SignalAcquisitionSourceRecord | None, AnalogScalingProfileRecord, Decimal
+    ]:
+        source = self._resolve_acquisition_source_for_evaluation(
+            session, signal, resolved_at, organization_id=organization_id
         )
+        if source is None and require_acquisition_source:
+            raise AcquisitionSourceResolutionError(
+                "acquisition source history must resolve exactly one effective binding"
+            )
+        profile = self._resolve_analog_scaling_profile_for_evaluation(
+            session, signal, resolved_at, organization_id=organization_id
+        )
+        if source is None:
+            if profile.acquisition_source_id is not None:
+                raise AnalogScalingSourceMismatchError(
+                    "analog scaling profile references acquisition source history that is not effective"
+                )
+        elif profile.acquisition_source_id != source.id:
+            raise AnalogScalingSourceMismatchError(
+                "analog scaling profile is not explicitly linked to the effective acquisition source"
+            )
         value = scale_linear_two_point(
             raw_value,
             raw_min=profile.raw_min,
@@ -571,7 +865,91 @@ class InstrumentationRepository:
             engineering_min=profile.engineering_min,
             engineering_max=profile.engineering_max,
         )
-        return profile, value
+        return source, profile, value
+
+    def _resolve_acquisition_source_for_evaluation(
+        self,
+        session: Session,
+        signal: Signal,
+        resolved_at: datetime,
+        *,
+        organization_id: str,
+    ) -> SignalAcquisitionSourceRecord | None:
+        rows = list(
+            session.scalars(
+                select(SignalAcquisitionSourceRecord)
+                .where(
+                    SignalAcquisitionSourceRecord.organization_id == organization_id,
+                    SignalAcquisitionSourceRecord.signal_id == signal.id,
+                    SignalAcquisitionSourceRecord.valid_from <= resolved_at,
+                    or_(
+                        SignalAcquisitionSourceRecord.valid_to.is_(None),
+                        SignalAcquisitionSourceRecord.valid_to > resolved_at,
+                    ),
+                )
+                .with_for_update()
+            )
+        )
+        if len(rows) == 1:
+            row = rows[0]
+            if (
+                row.schema_version != ACQUISITION_SOURCE_SCHEMA_VERSION
+                or row.evidence_status not in ANALOG_EVIDENCE_STATUSES
+                or row.unit != signal.engineering_unit
+                or not all((row.node_id, row.equipment_id, row.channel_id, row.metric))
+            ):
+                raise AcquisitionSourceResolutionError(
+                    "acquisition source binding contains unsupported or inconsistent semantics"
+                )
+            return row
+        if len(rows) > 1:
+            raise AcquisitionSourceResolutionError(
+                "acquisition source history must resolve exactly one effective binding"
+            )
+        history_exists = session.scalar(
+            select(SignalAcquisitionSourceRecord.id)
+            .where(
+                SignalAcquisitionSourceRecord.organization_id == organization_id,
+                SignalAcquisitionSourceRecord.signal_id == signal.id,
+            )
+            .limit(1)
+        )
+        if history_exists is None:
+            return None
+        raise AcquisitionSourceResolutionError(
+            "acquisition source history exists but has no effective binding at the evaluation timestamp"
+        )
+
+    def _resolve_analog_scaling_profile_for_evaluation(
+        self,
+        session: Session,
+        signal: Signal,
+        resolved_at: datetime,
+        *,
+        organization_id: str,
+    ) -> AnalogScalingProfileRecord:
+        rows = list(
+            session.scalars(
+                select(AnalogScalingProfileRecord)
+                .where(
+                    AnalogScalingProfileRecord.organization_id == organization_id,
+                    AnalogScalingProfileRecord.signal_id == signal.id,
+                    AnalogScalingProfileRecord.effective_from <= resolved_at,
+                    or_(
+                        AnalogScalingProfileRecord.effective_to.is_(None),
+                        AnalogScalingProfileRecord.effective_to > resolved_at,
+                    ),
+                )
+                .with_for_update()
+            )
+        )
+        if len(rows) != 1:
+            raise AnalogScalingResolutionError(
+                "analog scaling history must resolve exactly one effective profile"
+            )
+        row = rows[0]
+        _validate_analog_scaling_profile(row, signal)
+        return row
 
     def list_acceptance_history(
         self,
@@ -950,6 +1328,23 @@ class InstrumentationRepository:
         latest.effective_to = effective_from
 
     @staticmethod
+    def _close_acquisition_source_interval(
+        latest: SignalAcquisitionSourceRecord | None,
+        valid_from: datetime,
+    ) -> None:
+        if latest is None:
+            return
+        if latest.valid_to is not None:
+            raise HistoryIntegrityConflictError(
+                "acquisition source history has no single open current interval"
+            )
+        if valid_from < _as_utc(latest.valid_from):
+            raise HistoryOrderConflictError(
+                "acquisition source bindings must be appended in non-decreasing validity-time order"
+            )
+        latest.valid_to = valid_from
+
+    @staticmethod
     def _close_acceptance_interval(
         latest: InstrumentAcceptanceRecord | None,
         effective_from: datetime,
@@ -1139,11 +1534,35 @@ def _analog_scaling_snapshot(row: AnalogScalingProfileRecord) -> dict[str, Any]:
         "acquisition_profile_id": row.acquisition_profile_id,
         "acquisition_profile_version": row.acquisition_profile_version,
         "acquisition_channel_reference": row.acquisition_channel_reference,
+        "acquisition_source_id": row.acquisition_source_id,
         "evidence_reference": row.evidence_reference,
         "calibration_scope": row.calibration_scope,
         "evidence_status": row.evidence_status,
         "effective_from": row.effective_from.isoformat(),
         "effective_to": row.effective_to.isoformat() if row.effective_to else None,
+        "revision": row.revision,
+        "recorded_by": row.recorded_by,
+        "recorded_at": row.recorded_at.isoformat(),
+    }
+
+
+def _acquisition_source_snapshot(
+    row: SignalAcquisitionSourceRecord,
+) -> dict[str, Any]:
+    return {
+        "id": row.id,
+        "organization_id": row.organization_id,
+        "signal_id": row.signal_id,
+        "schema_version": row.schema_version,
+        "node_id": row.node_id,
+        "equipment_id": row.equipment_id,
+        "channel_id": row.channel_id,
+        "metric": row.metric,
+        "unit": row.unit,
+        "evidence_status": row.evidence_status,
+        "evidence_reference": row.evidence_reference,
+        "valid_from": row.valid_from.isoformat(),
+        "valid_to": row.valid_to.isoformat() if row.valid_to else None,
         "revision": row.revision,
         "recorded_by": row.recorded_by,
         "recorded_at": row.recorded_at.isoformat(),

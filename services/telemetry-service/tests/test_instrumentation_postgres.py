@@ -1,19 +1,27 @@
 from __future__ import annotations
 
 import os
+import subprocess
+import sys
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-from threading import Barrier, Thread
+from threading import Barrier, Event, Thread
 from uuid import uuid4
 
 import pytest
+
+import app.instrumentation.repository as instrumentation_repository_module
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.exc import DBAPIError
 
 from app.db import Database
-from app.instrumentation.repository import InstrumentationRepository
+from app.instrumentation.repository import (
+    AnalogScalingSourceMismatchError,
+    InstrumentationRepository,
+)
 from app.instrumentation.schemas import (
     AcceptanceAppendRequest,
+    AcquisitionSourceAppendRequest,
     AnalogScalingProfileAppendRequest,
     InstrumentCreate,
     SignalCreate,
@@ -32,6 +40,7 @@ REGISTRY_TABLES = {
     "instrument_acceptance_history",
     "instrument_calibration_history",
     "instrument_analog_scaling_history",
+    "instrument_signal_acquisition_history",
 }
 
 
@@ -65,6 +74,26 @@ def test_migration_created_org_scoped_registry_schema() -> None:
             "trg_instrument_pressure_reference_guard",
             "trg_instrument_signal_pressure_reference_guard",
         } <= trigger_names
+        acquisition_foreign_keys = {
+            item["name"]
+            for item in inspector.get_foreign_keys(
+                "instrument_signal_acquisition_history"
+            )
+        }
+        assert {
+            "fk_instrument_signal_acquisition_organization",
+            "fk_instrument_signal_acquisition_signal",
+        } <= acquisition_foreign_keys
+        with engine.connect() as connection:
+            acquisition_triggers = set(
+                connection.execute(
+                    text(
+                        "SELECT tgname FROM pg_trigger WHERE NOT tgisinternal "
+                        "AND tgrelid = 'instrument_signal_acquisition_history'::regclass"
+                    )
+                ).scalars()
+            )
+        assert "trg_instrument_signal_acquisition_history_guard" in acquisition_triggers
         acceptance_checks = {
             item["name"]
             for item in inspector.get_check_constraints(
@@ -752,3 +781,439 @@ def test_postgres_analog_scaling_schema_has_expected_fk_checks_and_trigger() -> 
         assert "trg_instrument_analog_scaling_history_guard" in triggers
     finally:
         engine.dispose()
+
+
+def test_postgres_acquisition_source_guards_unit_overlap_and_immutability() -> None:
+    database = Database(os.environ["DATABASE_URL"])
+    security = SecurityRepository(database)
+    repository = InstrumentationRepository(database)
+    organization_id = str(uuid4())
+    other_organization_id = str(uuid4())
+    suffix = uuid4().hex
+    security.provision_organization(
+        organization_id=organization_id,
+        slug=f"humidity-source-{suffix}",
+        name="Humidity source PostgreSQL guard",
+    )
+    security.provision_organization(
+        organization_id=other_organization_id,
+        slug=f"humidity-source-other-{suffix}",
+        name="Other humidity source organization",
+    )
+    instrument = repository.create_instrument(
+        InstrumentCreate(
+            inventory_key=f"RH-{suffix}",
+            display_name="Humidity transmitter",
+            instrument_kind="humidity_transmitter",
+        ),
+        actor_id="test-suite",
+        organization_id=organization_id,
+    )
+    signal = repository.create_signal(
+        instrument.id,
+        SignalCreate(
+            business_key=f"RH-{suffix}.PRIMARY",
+            display_name="Relative humidity",
+            physical_quantity="relative_humidity",
+            engineering_unit="%RH",
+        ),
+        actor_id="test-suite",
+        organization_id=organization_id,
+    )
+    start = datetime(2026, 9, 6, tzinfo=UTC)
+    source = repository.append_acquisition_source(
+        instrument.id,
+        signal.id,
+        AcquisitionSourceAppendRequest(
+            node_id="edge-01",
+            equipment_id="humidity-01",
+            channel_id="ai-1",
+            metric="humidity.relative",
+            unit="%RH",
+            evidence_status="hardware_unverified",
+            valid_from=start,
+        ),
+        actor_id="test-suite",
+        organization_id=organization_id,
+    )
+
+    with pytest.raises(DBAPIError), database.engine.begin() as connection:
+        connection.execute(
+            text(
+                "UPDATE instrument_signal_acquisition_history SET metric = 'guessed' "
+                "WHERE id = :id"
+            ),
+            {"id": source.id},
+        )
+    with pytest.raises(DBAPIError), database.engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                INSERT INTO instrument_analog_scaling_history (
+                    id, organization_id, signal_id, schema_version,
+                    electrical_input_class, raw_unit, raw_min, raw_max,
+                    engineering_min, engineering_max, engineering_unit,
+                    scaling_policy, under_range_policy, over_range_policy,
+                    acquisition_source_id, calibration_scope, evidence_status,
+                    effective_from, effective_to, revision, recorded_by, recorded_at
+                ) VALUES (
+                    :id, :organization_id, :signal_id, 'analog-scaling/v1',
+                    'current_loop_4_20ma', 'mA', 4, 20, 10, 90, '%RH',
+                    'linear_two_point', 'unavailable', 'unavailable',
+                    :acquisition_source_id, 'instrument', 'hardware_unverified',
+                    :effective_from, NULL, 99, 'test-suite', now()
+                )
+                """
+            ),
+            {
+                "id": str(uuid4()),
+                "organization_id": organization_id,
+                "signal_id": signal.id,
+                "acquisition_source_id": str(uuid4()),
+                "effective_from": start,
+            },
+        )
+    with pytest.raises(DBAPIError), database.engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                INSERT INTO instrument_signal_acquisition_history (
+                    id, organization_id, signal_id, schema_version, node_id,
+                    equipment_id, channel_id, metric, unit, evidence_status,
+                    valid_from, valid_to, revision, recorded_by, recorded_at
+                ) VALUES (
+                    :id, :organization_id, :signal_id, 'acquisition-source/v1',
+                    'edge-other', 'humidity-other', 'ai-1', 'humidity.relative',
+                    '%RH', 'hardware_unverified', :valid_from, NULL, 1,
+                    'test-suite', now()
+                )
+                """
+            ),
+            {
+                "id": str(uuid4()),
+                "organization_id": other_organization_id,
+                "signal_id": signal.id,
+                "valid_from": start,
+            },
+        )
+    with pytest.raises(DBAPIError), database.engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                INSERT INTO instrument_signal_acquisition_history (
+                    id, organization_id, signal_id, schema_version, node_id,
+                    equipment_id, channel_id, metric, unit, evidence_status,
+                    valid_from, valid_to, revision, recorded_by, recorded_at
+                ) VALUES (
+                    :id, :organization_id, :signal_id, 'acquisition-source/v1',
+                    'edge-02', 'humidity-02', 'ai-2', 'humidity.relative',
+                    :unit, 'hardware_unverified', :valid_from, NULL, 2,
+                    'test-suite', now()
+                )
+                """
+            ),
+            {
+                "id": str(uuid4()),
+                "organization_id": organization_id,
+                "signal_id": signal.id,
+                "unit": "degC",
+                "valid_from": start + timedelta(hours=1),
+            },
+        )
+    with pytest.raises(DBAPIError), database.engine.begin() as connection:
+        connection.execute(
+            text(
+                """
+                INSERT INTO instrument_signal_acquisition_history (
+                    id, organization_id, signal_id, schema_version, node_id,
+                    equipment_id, channel_id, metric, unit, evidence_status,
+                    valid_from, valid_to, revision, recorded_by, recorded_at
+                ) VALUES (
+                    :id, :organization_id, :signal_id, 'acquisition-source/v1',
+                    'edge-02', 'humidity-02', 'ai-2', 'humidity.relative',
+                    '%RH', 'hardware_unverified', :valid_from, NULL, 3,
+                    'test-suite', now()
+                )
+                """
+            ),
+            {
+                "id": str(uuid4()),
+                "organization_id": organization_id,
+                "signal_id": signal.id,
+                "valid_from": start + timedelta(hours=1),
+            },
+        )
+    database.dispose()
+
+
+def test_postgres_humidity_evaluation_serializes_concurrent_source_rebind(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database = Database(os.environ["DATABASE_URL"])
+    security = SecurityRepository(database)
+    repository = InstrumentationRepository(database)
+    writer_repository = InstrumentationRepository(database)
+    organization_id = str(uuid4())
+    suffix = uuid4().hex
+    security.provision_organization(
+        organization_id=organization_id,
+        slug=f"humidity-consistency-{suffix}",
+        name="Humidity consistency boundary",
+    )
+    instrument = repository.create_instrument(
+        InstrumentCreate(
+            inventory_key=f"RH-CONSISTENCY-{suffix}",
+            display_name="Humidity consistency transmitter",
+            instrument_kind="humidity_transmitter",
+        ),
+        actor_id="test-suite",
+        organization_id=organization_id,
+    )
+    signal = repository.create_signal(
+        instrument.id,
+        SignalCreate(
+            business_key=f"RH-CONSISTENCY-{suffix}.PRIMARY",
+            display_name="Relative humidity",
+            physical_quantity="relative_humidity",
+            engineering_unit="%RH",
+        ),
+        actor_id="test-suite",
+        organization_id=organization_id,
+    )
+    start = datetime(2026, 9, 6, tzinfo=UTC)
+    first_source = repository.append_acquisition_source(
+        instrument.id,
+        signal.id,
+        AcquisitionSourceAppendRequest(
+            node_id="edge-01",
+            equipment_id="humidity-01",
+            channel_id="ai-1",
+            metric="humidity.relative",
+            unit="%RH",
+            evidence_status="hardware_unverified",
+            valid_from=start,
+        ),
+        actor_id="test-suite",
+        organization_id=organization_id,
+    )
+    repository.append_analog_scaling_profile(
+        instrument.id,
+        signal.id,
+        AnalogScalingProfileAppendRequest(
+            raw_unit="mA",
+            raw_min="4",
+            raw_max="20",
+            engineering_min="10",
+            engineering_max="90",
+            engineering_unit="%RH",
+            acquisition_source_id=first_source.id,
+            evidence_status="hardware_unverified",
+            effective_from=start,
+        ),
+        actor_id="test-suite",
+        organization_id=organization_id,
+    )
+    boundary = start + timedelta(hours=1)
+    scale_entered = Event()
+    release_scale = Event()
+    writer_lock_attempted = Event()
+    writer_done = Event()
+    errors: list[Exception] = []
+    evaluation: dict[str, str] = {}
+    rfx02_scaler = instrumentation_repository_module.scale_linear_two_point
+
+    def blocking_scale(raw_value: Decimal, **kwargs: Decimal) -> Decimal:
+        scale_entered.set()
+        if not release_scale.wait(timeout=5):
+            raise AssertionError("timed out waiting to release the consistency probe")
+        return rfx02_scaler(raw_value, **kwargs)
+
+    monkeypatch.setattr(
+        instrumentation_repository_module, "scale_linear_two_point", blocking_scale
+    )
+    writer_signal = writer_repository._signal
+
+    def recorded_writer_signal(*args: object, **kwargs: object):
+        writer_lock_attempted.set()
+        return writer_signal(*args, **kwargs)
+
+    monkeypatch.setattr(writer_repository, "_signal", recorded_writer_signal)
+
+    def evaluate() -> None:
+        try:
+            source, _, _ = repository.evaluate_humidity_observation(
+                instrument.id,
+                signal.id,
+                Decimal("12"),
+                boundary,
+                organization_id=organization_id,
+            )
+            evaluation["source_id"] = source.id
+        except Exception as error:  # pragma: no cover - surfaced below
+            errors.append(error)
+
+    def rebind() -> None:
+        try:
+            writer_repository.append_acquisition_source(
+                instrument.id,
+                signal.id,
+                AcquisitionSourceAppendRequest(
+                    node_id="edge-01",
+                    equipment_id="humidity-01",
+                    channel_id="ai-2",
+                    metric="humidity.relative",
+                    unit="%RH",
+                    evidence_status="hardware_unverified",
+                    valid_from=boundary,
+                ),
+                actor_id="test-suite",
+                organization_id=organization_id,
+            )
+        except Exception as error:  # pragma: no cover - surfaced below
+            errors.append(error)
+        finally:
+            writer_done.set()
+
+    evaluation_thread = Thread(target=evaluate)
+    evaluation_thread.start()
+    assert scale_entered.wait(timeout=5)
+    writer_thread = Thread(target=rebind)
+    writer_thread.start()
+    try:
+        assert writer_lock_attempted.wait(timeout=5)
+        assert writer_done.wait(timeout=0.25) is False
+    finally:
+        release_scale.set()
+        evaluation_thread.join(timeout=5)
+        writer_thread.join(timeout=5)
+
+    assert not evaluation_thread.is_alive()
+    assert not writer_thread.is_alive()
+    assert errors == []
+    assert evaluation["source_id"] == first_source.id
+    rebound = repository.resolve_acquisition_source(
+        instrument.id, signal.id, boundary, organization_id=organization_id
+    )
+    assert rebound.channel_id == "ai-2"
+    with pytest.raises(AnalogScalingSourceMismatchError):
+        repository.evaluate_humidity_observation(
+            instrument.id,
+            signal.id,
+            Decimal("12"),
+            boundary,
+            organization_id=organization_id,
+        )
+    database.dispose()
+
+
+def test_postgres_rfx03_migration_roundtrip_preserves_rfx01_rfx02_sentinels() -> None:
+    database = Database(os.environ["DATABASE_URL"])
+    security = SecurityRepository(database)
+    repository = InstrumentationRepository(database)
+    organization_id = str(uuid4())
+    suffix = uuid4().hex
+    security.provision_organization(
+        organization_id=organization_id,
+        slug=f"rfx03-roundtrip-{suffix}",
+        name="RFX-03 migration round-trip",
+    )
+    instrument = repository.create_instrument(
+        InstrumentCreate(
+            inventory_key=f"RFX03-{suffix}",
+            display_name="RFX-03 round-trip instrument",
+            instrument_kind="humidity_transmitter",
+        ),
+        actor_id="test-suite",
+        organization_id=organization_id,
+    )
+    signal = repository.create_signal(
+        instrument.id,
+        SignalCreate(
+            business_key=f"RFX03-{suffix}.RH",
+            display_name="RFX-03 round-trip signal",
+            physical_quantity="relative_humidity",
+            engineering_unit="%RH",
+        ),
+        actor_id="test-suite",
+        organization_id=organization_id,
+    )
+    profile = repository.append_analog_scaling_profile(
+        instrument.id,
+        signal.id,
+        AnalogScalingProfileAppendRequest(
+            raw_unit="mA",
+            raw_min="4",
+            raw_max="20",
+            engineering_min="10",
+            engineering_max="90",
+            engineering_unit="%RH",
+            evidence_status="hardware_unverified",
+            effective_from=datetime(2026, 9, 6, tzinfo=UTC),
+        ),
+        actor_id="test-suite",
+        organization_id=organization_id,
+    )
+    database.dispose()
+
+    def run_alembic(*args: str) -> None:
+        subprocess.run(
+            [sys.executable, "-m", "alembic", *args],
+            check=True,
+            env=os.environ.copy(),
+        )
+
+    run_alembic("downgrade", "20260906_0033")
+    try:
+        downgraded = create_engine(os.environ["DATABASE_URL"])
+        try:
+            with downgraded.connect() as connection:
+                assert connection.scalar(
+                    text("SELECT count(*) FROM instrument_signals WHERE id = :id"),
+                    {"id": signal.id},
+                ) == 1
+                assert connection.scalar(
+                    text(
+                        "SELECT count(*) FROM instrument_analog_scaling_history WHERE id = :id"
+                    ),
+                    {"id": profile.id},
+                ) == 1
+            downgraded_inspector = inspect(downgraded)
+            assert "instrument_signal_acquisition_history" not in set(
+                downgraded_inspector.get_table_names()
+            )
+            assert "acquisition_source_id" not in {
+                column["name"]
+                for column in downgraded_inspector.get_columns(
+                    "instrument_analog_scaling_history"
+                )
+            }
+        finally:
+            downgraded.dispose()
+    finally:
+        run_alembic("upgrade", "head")
+
+    upgraded = create_engine(os.environ["DATABASE_URL"])
+    try:
+        upgraded_inspector = inspect(upgraded)
+        assert "instrument_signal_acquisition_history" in set(
+            upgraded_inspector.get_table_names()
+        )
+        assert "acquisition_source_id" in {
+            column["name"]
+            for column in upgraded_inspector.get_columns(
+                "instrument_analog_scaling_history"
+            )
+        }
+        with upgraded.connect() as connection:
+            assert connection.scalar(
+                text("SELECT count(*) FROM instrument_signals WHERE id = :id"),
+                {"id": signal.id},
+            ) == 1
+            assert connection.scalar(
+                text(
+                    "SELECT count(*) FROM instrument_analog_scaling_history WHERE id = :id"
+                ),
+                {"id": profile.id},
+            ) == 1
+    finally:
+        upgraded.dispose()

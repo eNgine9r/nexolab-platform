@@ -139,6 +139,83 @@ def test_dashboard_read_can_list_but_equipment_manage_is_required_to_mutate(
     assert denied.status_code == 403
     assert denied.json()["detail"]["code"] == "permission_denied"
 
+    source_denied = api.post(
+        "/api/v1/instrumentation/instruments/missing/signals/missing/acquisition-source-history",
+        headers=headers("viewer"),
+        json={
+            "node_id": "edge-01",
+            "equipment_id": "humidity-01",
+            "channel_id": "ai-1",
+            "metric": "humidity.relative",
+            "unit": "%RH",
+            "valid_from": "2026-09-06T00:00:00Z",
+        },
+    )
+    assert source_denied.status_code == 403
+    assert source_denied.json()["detail"]["code"] == "permission_denied"
+
+
+def test_acquisition_source_mutation_is_organization_scoped_and_audited(
+    tmp_path: Path,
+) -> None:
+    api, security, repository = build_client(
+        tmp_path, subject="humidity-engineer", roles={Role.ENGINEER}
+    )
+    instrument = repository.create_instrument(
+        InstrumentCreate(
+            inventory_key="RH-SECURE-001",
+            display_name="Secure humidity transmitter",
+            instrument_kind="humidity_transmitter",
+        ),
+        actor_id="fixture",
+        organization_id=ORGANIZATION_ID,
+    )
+    signal = repository.create_signal(
+        instrument.id,
+        SignalCreate(
+            business_key="RH-SECURE-001.PRIMARY",
+            display_name="Relative humidity",
+            physical_quantity="relative_humidity",
+            engineering_unit="%RH",
+        ),
+        actor_id="fixture",
+        organization_id=ORGANIZATION_ID,
+    )
+    response = api.post(
+        f"/api/v1/instrumentation/instruments/{instrument.id}/signals/{signal.id}/acquisition-source-history",
+        headers={
+            **headers("humidity-engineer"),
+            "X-Audit-Reason": "Bind recorded humidity source",
+        },
+        json={
+            "node_id": "edge-01",
+            "equipment_id": "humidity-01",
+            "channel_id": "ai-1",
+            "metric": "humidity.relative",
+            "unit": "%RH",
+            "valid_from": "2026-09-06T00:00:00Z",
+        },
+    )
+    assert response.status_code == 201
+    assert response.json()["evidence_status"] == "hardware_unverified"
+    events = security.list_audit_events(
+        organization_id=ORGANIZATION_ID,
+        entity_type="instrument_signal_acquisition_source",
+        entity_id=signal.id,
+        limit=10,
+    )
+    assert [event.action for event in events] == [
+        "instrument_signal.acquisition_source_appended"
+    ]
+    assert events[0].actor_subject == "humidity-engineer"
+    assert events[0].reason == "Bind recorded humidity source"
+
+    hidden = api.get(
+        f"/api/v1/instrumentation/instruments/{instrument.id}/signals/{signal.id}/acquisition-source-history",
+        headers=headers("humidity-engineer", OTHER_ORGANIZATION_ID),
+    )
+    assert hidden.status_code == 403
+
 
 def test_registry_mutations_use_verified_actor_and_local_audit_conventions(
     tmp_path: Path,
