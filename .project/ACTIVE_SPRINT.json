@@ -18,16 +18,16 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "797c0ab1b780644a04bd8a55a5e0c2a137d5adb1",
+    "accepted_product_sha": "5f7ac8de85c601f9d57ce4d219f520c62c246685",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 943,
-      "title": "RFX-05 Typed Atmospheric Pressure Sensor/Reference Vertical Slice",
-      "branch": "feat/943-rfx05-atmospheric-reference"
-    },
-    "next_work_package": null
+    "active_work_package": null,
+    "next_work_package": {
+      "issue": 947,
+      "title": "RFX-06 Refrigeration Circuit, Refrigerant Configuration and Semantic Role Binding Domain",
+      "branch": "feat/947-rfx06-circuit-domain"
+    }
   },
   "work_packages": [
     {
@@ -2883,7 +2883,7 @@
       "issue": 943,
       "title": "RFX-05 Typed Atmospheric Pressure Sensor/Reference Vertical Slice",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "feat/943-rfx05-atmospheric-reference",
       "depends_on": [
         939
@@ -2916,7 +2916,49 @@
         "migration": "none_existing_registry_source_scaling_contracts_sufficient",
         "runtime_mutation": "none",
         "state_model_v2": "passed",
-        "ci_policy_tests": "174_passed_1_environment_skip"
+        "ci_policy_tests": "174_passed_1_environment_skip",
+        "verified_head_sha": "5f7ac8de85c601f9d57ce4d219f520c62c246685",
+        "pull_request": 946,
+        "exact_head_routed_workflows": "12_success",
+        "telemetry_service": "success:34019638916",
+        "offline_bundle": "success:34019638885",
+        "authenticated_dashboard": "success:34019638863",
+        "capacity_release_gate": "success:34019638941",
+        "core_ci_nexolab_merge_gate": "success:34019638884",
+        "manual_team_lead_exact_head_review": "clean_no_blocking_p1_p2",
+        "unresolved_review_threads": 0,
+        "final_premerge_comment": 5557847789,
+        "github_issue_state": "closed_completed",
+        "software_atmospheric_observation": "verified"
+      }
+    },
+    {
+      "issue": 947,
+      "title": "RFX-06 Refrigeration Circuit, Refrigerant Configuration and Semantic Role Binding Domain",
+      "priority": "high",
+      "lifecycle": "ready",
+      "branch": "feat/947-rfx06-circuit-domain",
+      "depends_on": [
+        943
+      ],
+      "evidence": {
+        "rfx05_verified_head_sha": "5f7ac8de85c601f9d57ce4d219f520c62c246685",
+        "rfx05_pull_request": 946,
+        "current_alembic_head": "20260906_0034",
+        "product_owner_roadmap_authority": "issue_717_newer_partition_overrides_adr_0010_followup_numbering",
+        "adr_authority": "docs/adr/0010-refrigeration-monitoring-and-derived-thermodynamics.md",
+        "domain_scope": "refrigeration_circuit_refrigerant_configuration_semantic_signal_role_binding",
+        "existing_layout_bindings": "preserve_not_reinterpreted",
+        "existing_controller_bindings": "preserve_not_reinterpreted",
+        "property_provider": "out_of_scope_future_package",
+        "derived_thermodynamics": "out_of_scope_future_package",
+        "frontend_ui": "out_of_scope",
+        "live_polling_change": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "production_deployment": "not_authorized",
+        "hardware_acceptance": "not_in_scope",
+        "review_gate": "manual_team_lead_plus_exact_head_ci_per_product_owner_no_codex_decision"
       }
     }
   ],
