@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-06T11:26:00+03:00",
+  "timestamp": "2026-09-06T12:49:27+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_947_rfx06_circuit_domain_locally_verified_precommit_candidate",
+  "event": "issue_947_rfx06_manual_review_gap_remediated_locally_verified_candidate",
   "baselines": {
     "accepted_product_sha": "5f7ac8de85c601f9d57ce4d219f520c62c246685",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -14,17 +14,16 @@
     "issue": 947,
     "branch": "feat/947-rfx06-circuit-domain",
     "base_main_sha": "95d1266c77309bffa037cf2b2af33c1156e3705c",
-    "status": "locally_verified_ready_to_commit"
+    "status": "manual_review_gap_remediated_locally_verified_ready_to_commit"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
       "rfx05_verified_head_sha": "5f7ac8de85c601f9d57ce4d219f520c62c246685",
       "rfx06_issue": 947,
       "alembic_head": "20260906_0035",
-      "domain_tests": "9_passed",
-      "security_api_tests": "13_passed",
+      "domain_tests": "10_passed",
       "postgres_contract_tests": "4_passed",
-      "refrigeration_instrumentation_compatibility": "120_passed_1_skip",
+      "refrigeration_instrumentation_compatibility": "121_passed_1_skip",
       "migration_upgrade": "passed",
       "migration_roundtrip": "0035_to_0034_to_0035_passed",
       "historical_binding_authority": "as_of_acceptance_preserved_after_current_retirement",
@@ -37,7 +36,9 @@
       "python_compileall": "passed",
       "fatal_python_static_checks": "ruff_f401_f821_passed",
       "offline_migration_sql": "passed",
-      "git_diff_check": "passed"
+      "git_diff_check": "passed",
+      "api_security_tests": "6_passed",
+      "manual_review_gap": "organization_unique_display_name_and_binding_end_provenance_fixed"
     }
   },
   "observations": [
@@ -53,7 +54,7 @@
       }
     }
   ],
-  "next_action": "Commit and push the focused RFX-06 candidate, open the single #947 PR, then require exact-head routed GitHub CI plus manual Team Lead review before merge.",
+  "next_action": "Run final state/static/offline gates, commit and push the RFX-06 review remediation, then require exact-head routed GitHub CI and manual Team Lead review before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

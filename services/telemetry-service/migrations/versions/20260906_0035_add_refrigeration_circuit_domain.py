@@ -63,6 +63,11 @@ def upgrade() -> None:
             "business_key",
             name="uq_refrigeration_circuits_organization_business_key",
         ),
+        sa.UniqueConstraint(
+            "organization_id",
+            "display_name",
+            name="uq_refrigeration_circuits_organization_display_name",
+        ),
     )
     op.create_index(
         "ix_refrigeration_circuits_equipment",
@@ -203,6 +208,12 @@ def upgrade() -> None:
         sa.CheckConstraint(
             "valid_to IS NULL OR valid_to > valid_from",
             name="ck_refrigeration_circuit_signal_binding_interval",
+        ),
+        sa.CheckConstraint(
+            "(valid_to IS NULL AND ended_by IS NULL AND ended_at IS NULL) OR "
+            "(valid_to IS NOT NULL AND ended_by IS NOT NULL AND btrim(ended_by) <> '' "
+            "AND ended_at IS NOT NULL)",
+            name="ck_refrigeration_circuit_signal_binding_end_provenance",
         ),
         sa.CheckConstraint(
             "revision >= 1", name="ck_refrigeration_circuit_signal_binding_revision"

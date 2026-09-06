@@ -2961,10 +2961,9 @@
         "review_gate": "manual_team_lead_plus_exact_head_ci_per_product_owner_no_codex_decision",
         "implementation_base_main_sha": "95d1266c77309bffa037cf2b2af33c1156e3705c",
         "circuit_tables": "refrigeration_circuits+lifecycle_history+configuration_history+signal_bindings",
-        "local_domain_tests": "9_passed",
-        "local_security_api_tests": "13_passed",
+        "local_domain_tests": "10_passed",
         "local_postgresql_contract_tests": "4_passed",
-        "local_refrigeration_instrumentation_compatibility": "120_passed_1_skip",
+        "local_refrigeration_instrumentation_compatibility": "121_passed_1_skip",
         "postgres_migration_upgrade": "passed_clean_database_to_20260906_0035",
         "postgres_migration_roundtrip": "passed_0035_to_0034_to_0035",
         "postgres_direct_sql_guards": "passed_cross_org_overlap_immutability_role_compatibility",
@@ -2980,7 +2979,11 @@
         "python_compileall": "passed",
         "fatal_python_static_checks": "ruff_f401_f821_passed",
         "offline_migration_sql": "passed",
-        "git_diff_check": "passed"
+        "git_diff_check": "passed",
+        "local_api_security_tests": "6_passed",
+        "manual_exact_head_review": "acceptance_gap_found_and_fixed_before_final_ci",
+        "organization_unique_circuit_display_name": "enforced_and_tested",
+        "binding_end_provenance_constraint": "enforced_and_tested"
       }
     }
   ],

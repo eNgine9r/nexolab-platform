@@ -369,6 +369,42 @@ def test_postgres_direct_sql_guards_fail_closed() -> None:
             with database.engine.begin() as connection:
                 connection.execute(
                     text(
+                        "INSERT INTO refrigeration_circuit_signal_bindings "
+                        "(id, organization_id, circuit_id, signal_id, role, valid_from, valid_to, "
+                        "revision, recorded_by) "
+                        "VALUES (:id, :org, :circuit, :signal, 'suction_pressure', :start, :finish, "
+                        "1, 'direct-sql')"
+                    ),
+                    {
+                        "id": str(uuid4()),
+                        "org": organization_id,
+                        "circuit": circuit.id,
+                        "signal": gauge_signal.id,
+                        "start": T0 + timedelta(hours=3),
+                        "finish": T0 + timedelta(hours=4),
+                    },
+                )
+
+        with pytest.raises(DBAPIError):
+            with database.engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "INSERT INTO refrigeration_circuits "
+                        "(id, organization_id, equipment_id, business_key, display_name, created_by) "
+                        "VALUES (:id, :org, :equipment, :key, 'Guard circuit', 'direct-sql')"
+                    ),
+                    {
+                        "id": str(uuid4()),
+                        "org": organization_id,
+                        "equipment": equipment_id,
+                        "key": f"duplicate-name-{uuid4().hex}",
+                    },
+                )
+
+        with pytest.raises(DBAPIError):
+            with database.engine.begin() as connection:
+                connection.execute(
+                    text(
                         "INSERT INTO refrigeration_circuits "
                         "(id, organization_id, equipment_id, business_key, display_name, created_by) "
                         "VALUES (:id, :org, :equipment, :key, 'Cross org', 'direct-sql')"

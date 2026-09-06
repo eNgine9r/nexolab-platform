@@ -43,6 +43,11 @@ class RefrigerationCircuit(Base):
             "business_key",
             name="uq_refrigeration_circuits_organization_business_key",
         ),
+        UniqueConstraint(
+            "organization_id",
+            "display_name",
+            name="uq_refrigeration_circuits_organization_display_name",
+        ),
         ForeignKeyConstraint(
             ["organization_id", "equipment_id"],
             ["refrigeration_equipment.organization_id", "refrigeration_equipment.id"],
@@ -221,6 +226,12 @@ class RefrigerationCircuitSignalBinding(Base):
         CheckConstraint(
             "valid_to IS NULL OR valid_to > valid_from",
             name="ck_refrigeration_circuit_signal_binding_interval",
+        ),
+        CheckConstraint(
+            "(valid_to IS NULL AND ended_by IS NULL AND ended_at IS NULL) OR "
+            "(valid_to IS NOT NULL AND ended_by IS NOT NULL AND trim(ended_by) <> '' "
+            "AND ended_at IS NOT NULL)",
+            name="ck_refrigeration_circuit_signal_binding_end_provenance",
         ),
         CheckConstraint("revision >= 1", name="ck_refrigeration_circuit_signal_binding_revision"),
         Index(

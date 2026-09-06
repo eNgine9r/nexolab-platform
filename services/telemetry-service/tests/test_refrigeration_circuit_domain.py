@@ -12,6 +12,7 @@ from app.instrumentation.schemas import AcceptanceAppendRequest, InstrumentCreat
 from app.model_registry import register_models
 from app.refrigeration.circuit_repository import (
     CircuitBindingCompatibilityError,
+    CircuitConflictError,
     CircuitEquipmentNotFoundError,
     CircuitHistoryOrderError,
     CircuitResolutionError,
@@ -173,6 +174,22 @@ def test_circuit_lifecycle_is_historical_and_calculation_enabled_is_derived(tmp_
                 valid_from=T0 + timedelta(hours=12),
             ),
             actor_id="operator",
+        )
+
+
+def test_circuit_display_name_is_unique_within_organization(tmp_path: Path) -> None:
+    _, repository, _ = _repositories(tmp_path)
+    _circuit(repository)
+
+    with pytest.raises(CircuitConflictError):
+        repository.create_circuit(
+            CircuitCreateRequest(
+                equipment_id="equipment-1",
+                business_key="CIRCUIT-2",
+                display_name="Primary circuit",
+                valid_from=T0 + timedelta(seconds=1),
+            ),
+            actor_id="test-suite",
         )
 
 
