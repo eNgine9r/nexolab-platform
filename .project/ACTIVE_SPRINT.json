@@ -18,15 +18,11 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "5f7ac8de85c601f9d57ce4d219f520c62c246685",
+    "accepted_product_sha": "1f0e6db9bb582f20a8c25457d0c9331215f72193",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 947,
-      "title": "RFX-06 Refrigeration Circuit, Refrigerant Configuration and Semantic Role Binding Domain",
-      "branch": "feat/947-rfx06-circuit-domain"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -2936,7 +2932,7 @@
       "issue": 947,
       "title": "RFX-06 Refrigeration Circuit, Refrigerant Configuration and Semantic Role Binding Domain",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "feat/947-rfx06-circuit-domain",
       "depends_on": [
         943
@@ -2985,7 +2981,24 @@
         "organization_unique_circuit_display_name": "enforced_and_tested",
         "binding_end_provenance_constraint": "enforced_and_tested",
         "binding_end_provenance_consistency": "enforced_and_tested",
-        "semantic_binding_direct_read": "binding_id_read_implemented_dashboard_read_cross_org_fail_closed_tested"
+        "semantic_binding_direct_read": "binding_id_read_implemented_dashboard_read_cross_org_fail_closed_tested",
+        "verified_head_sha": "1f0e6db9bb582f20a8c25457d0c9331215f72193",
+        "pull_request": 950,
+        "merge_observation_sha": "6438d1d370d8dabccdfff2229d50642a6da8dfd7",
+        "github_issue_state": "closed_completed",
+        "exact_head_routed_workflows": "20_success",
+        "core_ci_nexolab_merge_gate": "success:34027869498",
+        "telemetry_service": "success:34027869472",
+        "offline_bundle": "success:34027869464",
+        "authenticated_dashboard": "success:34027869461",
+        "refrigeration_browser": "success:34027869536",
+        "capacity_release_gate": "success:34027869587",
+        "manual_team_lead_exact_head_review": "clean_no_blocking_p1_p2_after_acceptance_gap_remediation",
+        "unresolved_review_threads": 0,
+        "final_premerge_comment": 5558707541,
+        "detached_exact_candidate_verifier": "green_rc_0_143_files_697_tests_lint_typecheck_build",
+        "focused_domain_api_security": "16_passed",
+        "next_ready_work_package": "none_defined_by_newer_product_owner_partition"
       }
     }
   ],
