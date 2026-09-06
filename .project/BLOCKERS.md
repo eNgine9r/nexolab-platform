@@ -108,9 +108,9 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
 
-## RFX presentation hold — cleared; RFX-04 ready
+## RFX presentation hold — cleared; RFX-05 ready
 
-The Product Owner lifted the RFX presentation hold on 2026-09-05. RFX-01 / #717, RFX-02 / #935 and RFX-03 / #937 are completed through GREEN PRs #934, #936 and #938. RFX-03 exact verified head `03a9d8eca63b9715d25727e76f26b0a080df793b` passed all 19 registered workflows and manual Team Lead review; squash merge `76b7c76e25233abfe6ee9c40bbdcc98197f6d08b` is current main. The Product Owner explicitly directed final #938 work without Codex when the service quota blocked a fresh review; this was recorded as a review-gate override, not a fabricated Codex success. Issue #940 is reconciling durable state only. RFX-04 / #939 is next Ready and remains software-only; live pressure polling, atmospheric compensation, guessed hardware profiles, Modbus/hardware writes, production cutover and hardware acceptance are not authorized.
+The Product Owner lifted the RFX presentation hold on 2026-09-05. RFX-01 / #717, RFX-02 / #935, RFX-03 / #937 and RFX-04 / #939 are completed through GREEN PRs #934, #936, #938 and #942. RFX-04 exact verified head `797c0ab1b780644a04bd8a55a5e0c2a137d5adb1` passed all 12 routed workflows and manual Team Lead review; squash merge `f214b83e03365533ceb7023f0b7f728d01fbc927` is current main. The Product Owner explicitly directed work without Codex; for #942 the authoritative gate was manual Team Lead exact-head review plus exact-head CI, not a fabricated Codex success. Issue #944 reconciles durable state only. RFX-05 / #943 is next Ready and remains software-only; standard-atmosphere fallback, future RFX-06 process-role Binding, live atmospheric polling, guessed hardware profiles/registers, Modbus/hardware writes, production cutover and hardware acceptance are not authorized.
 
 ## Issue #909 — consolidated HIGH container exception review
 
@@ -148,17 +148,17 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #719 / PR #721 fresh Device Agent security reconciliation — completed and merged at `1f2654dec0f02263aec6c2314187cfa62e5723e9`; #722 triage is completed.
 - #723 / PR #724 CI routing maintenance — completed and merged at `8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb`.
 - #690 risk-aware/path-targeted PR verification — completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`; post-merge Core CI and Acquisition Scale Acceptance are GREEN.
-- #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; #717/RFX-01, #935/RFX-02 and #937/RFX-03 are completed through GREEN PRs #934, #936 and #938; #939/RFX-04 is next Ready.
+- #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; #717/RFX-01, #935/RFX-02, #937/RFX-03 and #939/RFX-04 are completed through GREEN PRs #934, #936, #938 and #942; #943/RFX-05 is next Ready under the newer Product Owner roadmap recorded in #717.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — RFX-04 / Issue #939 ready
+## Sprint execution gate — RFX-05 / Issue #943 ready
 
-RFX-03 / #937 is completed and merged through PR #938 with exact verified head `03a9d8eca63b9715d25727e76f26b0a080df793b`, all 19 registered exact-head workflows GREEN, Telemetry PostgreSQL/full suite GREEN, Authenticated Dashboard/Offline Bundle/Capacity Release Gate GREEN and NEXOLAB Merge Gate GREEN. All historical Codex P1/P2 findings were remediated/resolved; the unavailable final Codex gate was explicitly replaced by Product Owner decision with manual Team Lead review plus exact-head CI, and manual review was clean. Issue #940 is the state-only reconciliation that removes the stale pre-merge wording. RFX-04 / #939 is the next Ready product package and depends on completed #937. #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
+RFX-04 / #939 is completed and merged through PR #942 with exact verified head `797c0ab1b780644a04bd8a55a5e0c2a137d5adb1`, all 12 routed exact-head workflows GREEN, Telemetry PostgreSQL/full suite GREEN, Authenticated Dashboard/Offline Bundle/Capacity Release Gate GREEN and NEXOLAB Merge Gate GREEN. The Product Owner no-Codex decision makes manual Team Lead exact-head review plus exact-head CI authoritative; manual review was clean with zero unresolved threads. Issue #944 is the state-only reconciliation that removes stale pre-merge wording. RFX-05 / #943 is the next Ready product package and depends on completed #939. Issue #717 is the authority for the newer RFX Work Package numbering; ADR 0010 remains architecture/safety authority. #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
 
 ## Safety boundaries
 
 No blocker may be bypassed by Modbus/controller write, hardware write, production/site cutover without approval, persistent-data deletion, named-volume deletion, secret exposure or mandatory cloud dependency.
 
-## RFX-04 / Issue #939 — no product blocker; exact-head CI pending
+## RFX-05 / Issue #943 — Ready; no software blocker
 
-The software-only pressure observation candidate is locally verified and has no implementation blocker. PostgreSQL-only consistency tests cannot run in the host Python environment because no isolated `DATABASE_URL` is configured; this is a verification pending item, not a product blocker, and must pass in the exact-head Telemetry Service CI before merge. Local Prettier is likewise unavailable because Node is not installed on the Pi and remains an exact-head CI gate. Pressure acquisition hardware stays `hardware_unverified`; live polling, atmospheric compensation, deployment, Modbus/hardware writes and hardware acceptance remain outside RFX-04.
+RFX-04 closed its previously pending PostgreSQL/formatting gates on exact head `797c0ab1b780644a04bd8a55a5e0c2a137d5adb1`: Telemetry Service `34016149527`, Core CI / NEXOLAB Merge Gate `34016149695` and Offline Bundle `34016149529` are GREEN, and Husky lint-staged/Prettier plus commitlint passed before the exact-head commit. RFX-05 / #943 is Ready after state reconciliation. Atmospheric acquisition hardware remains `hardware_unverified`; no standard-atmosphere fallback, live polling, RFX-06 process-role Binding, deployment, Modbus/hardware writes or hardware acceptance is authorized.

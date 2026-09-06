@@ -3,41 +3,86 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-06T06:40:58+03:00",
+  "timestamp": "2026-09-06T09:34:56+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_939_rfx04_local_candidate_verified_ci_pending",
+  "event": "issue_944_rfx04_merge_state_reconciliation_candidate_rfx05_ready",
   "baselines": {
-    "accepted_product_sha": "03a9d8eca63b9715d25727e76f26b0a080df793b",
+    "accepted_product_sha": "797c0ab1b780644a04bd8a55a5e0c2a137d5adb1",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 939,
-    "branch": "feat/939-rfx04-pressure-reference",
-    "base_main_sha": "0ad198a0c7b1fbb9eb33d7931cb5607e3ab88fbc",
-    "status": "implementation_locally_verified_ci_pending"
+    "issue": 944,
+    "branch": "chore/944-reconcile-rfx04-state",
+    "base_main_sha": "f214b83e03365533ceb7023f0b7f728d01fbc927",
+    "status": "state_reconciliation_locally_verified_ready_to_commit"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "local_module_tests": "52_passed_13_postgresql_only_skipped",
-      "python_compile": "passed",
-      "git_diff_check": "passed",
+      "rfx04_verified_head_sha": "797c0ab1b780644a04bd8a55a5e0c2a137d5adb1",
+      "rfx04_pull_request": 942,
+      "rfx04_routed_workflows": "12_success",
+      "telemetry_service_run": 34016149527,
+      "offline_bundle_run": 34016149529,
+      "authenticated_dashboard_run": 34016149642,
+      "capacity_release_gate_run": 34016149508,
+      "core_ci_merge_gate_run": 34016149695,
+      "manual_team_lead_review": "clean_no_blocking_findings",
+      "unresolved_review_threads": 0,
+      "final_premerge_comment": 5557462943,
+      "next_ready_issue": 943,
       "state_model_v2": "passed",
-      "json_parse": "passed"
+      "ci_policy_tests": "174_passed_1_environment_skip",
+      "touched_markdown_prettier": "passed",
+      "git_diff_check": "passed"
     }
   },
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-09-06T03:03:30Z",
-      "kind": "rfx04_base_main_ci",
+      "observed_at": "2026-09-06T06:29:44Z",
+      "kind": "rfx04_merge_completion",
       "data": {
-        "main_sha": "0ad198a0c7b1fbb9eb33d7931cb5607e3ab88fbc",
-        "ci_run": 34008014072,
-        "conclusion": "success"
+        "issue": 939,
+        "issue_state": "closed",
+        "pull_request": 942,
+        "verified_head_sha": "797c0ab1b780644a04bd8a55a5e0c2a137d5adb1",
+        "merge_sha": "f214b83e03365533ceb7023f0b7f728d01fbc927",
+        "routed_exact_head_workflows": "12_success",
+        "telemetry_service_run": 34016149527,
+        "offline_bundle_run": 34016149529,
+        "authenticated_dashboard_run": 34016149642,
+        "capacity_release_gate_run": 34016149508,
+        "core_ci_merge_gate_run": 34016149695,
+        "manual_team_lead_review": "clean_no_blocking_findings",
+        "unresolved_review_threads": 0
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-06T06:32:22Z",
+      "kind": "rfx05_ready_issue_created",
+      "data": {
+        "issue": 943,
+        "title": "RFX-05 Typed Atmospheric Pressure Sensor/Reference Vertical Slice",
+        "lifecycle": "ready",
+        "depends_on": 939,
+        "planned_branch": "feat/943-rfx05-atmospheric-reference"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-06T06:32:43Z",
+      "kind": "product_owner_rfx_roadmap_authority_reconciled",
+      "data": {
+        "authority_issue": 717,
+        "decision": "newer_product_owner_partition_overrides_adr_0010_older_followup_numbering_only",
+        "adr_0010_architecture_safety_invariants": "preserved",
+        "rfx05": "atmospheric_sensor_reference",
+        "rfx06": "circuit_refrigerant_process_role_binding"
       }
     }
   ],
-  "next_action": "Commit and push the focused RFX-04 candidate, create/update the Issue #939 pull request, require exact-head Telemetry Service PostgreSQL coverage and all change-impact-routed workflows including NEXOLAB Merge Gate GREEN, then perform manual Team Lead exact-head review before merge.",
+  "next_action": "Validate the focused Issue #944 state-only reconciliation, commit/push it, require exact-head State Model/Core CI/NEXOLAB Merge Gate GREEN, merge it, then begin Ready RFX-05 / Issue #943 from the reconciled main without runtime or hardware mutation.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
