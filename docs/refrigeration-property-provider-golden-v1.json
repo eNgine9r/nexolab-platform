@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "provider": {
+    "id": "coolprop-heos",
+    "version": "8.0.0",
+    "profile": "coolprop-heos/8.0.0",
+    "git_revision": "ae81610e7d23efc57f9d051c8e70a4d66e87537f",
+    "wheel": "coolprop-8.0.0-cp312-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",
+    "wheel_sha256": "113fc0e97f2b64617141d453ddc0439987b32aa3f6f4a45b928b2030c68292fa",
+    "generation_platform": "nexolab-edge-01 linux aarch64 python 3.13.5",
+    "generation_method": "controlled CoolProp 8.0.0 PropsSI generation on target ARM64 host",
+    "temperature_tolerance_k": 1e-6
+  },
+  "saturation_cases": [
+    {
+      "refrigerant": "R290",
+      "pressure_pa": 100000.0,
+      "phase": "bubble_condensation",
+      "expected_temperature_k": 230.7382284011443
+    },
+    {
+      "refrigerant": "R290",
+      "pressure_pa": 100000.0,
+      "phase": "dew_evaporation",
+      "expected_temperature_k": 230.7382284011443
+    },
+    {
+      "refrigerant": "R290",
+      "pressure_pa": 500000.0,
+      "phase": "dew_evaporation",
+      "expected_temperature_k": 274.8786795385305
+    },
+    {
+      "refrigerant": "R290",
+      "pressure_pa": 1000000.0,
+      "phase": "dew_evaporation",
+      "expected_temperature_k": 300.0923309498734
+    },
+    {
+      "refrigerant": "R290",
+      "pressure_pa": 2000000.0,
+      "phase": "bubble_condensation",
+      "expected_temperature_k": 330.41229165076163
+    },
+    {
+      "refrigerant": "R134A",
+      "pressure_pa": 500000.0,
+      "phase": "bubble_condensation",
+      "expected_temperature_k": 288.88463942028477
+    },
+    {
+      "refrigerant": "R134A",
+      "pressure_pa": 500000.0,
+      "phase": "dew_evaporation",
+      "expected_temperature_k": 288.88463942028477
+    },
+    {
+      "refrigerant": "R404A",
+      "pressure_pa": 1000000.0,
+      "phase": "bubble_condensation",
+      "expected_temperature_k": 289.79020580932064
+    },
+    {
+      "refrigerant": "R404A",
+      "pressure_pa": 1000000.0,
+      "phase": "dew_evaporation",
+      "expected_temperature_k": 290.231283538503
+    },
+    {
+      "refrigerant": "R407C",
+      "pressure_pa": 1000000.0,
+      "phase": "bubble_condensation",
+      "expected_temperature_k": 291.83720090941966
+    },
+    {
+      "refrigerant": "R407C",
+      "pressure_pa": 1000000.0,
+      "phase": "dew_evaporation",
+      "expected_temperature_k": 297.46894513609925
+    }
+  ]
+}
