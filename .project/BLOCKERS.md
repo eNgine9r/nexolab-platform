@@ -158,3 +158,7 @@ RFX-03 / #937 is completed and merged through PR #938 with exact verified head `
 ## Safety boundaries
 
 No blocker may be bypassed by Modbus/controller write, hardware write, production/site cutover without approval, persistent-data deletion, named-volume deletion, secret exposure or mandatory cloud dependency.
+
+## RFX-04 / Issue #939 — no product blocker; exact-head CI pending
+
+The software-only pressure observation candidate is locally verified and has no implementation blocker. PostgreSQL-only consistency tests cannot run in the host Python environment because no isolated `DATABASE_URL` is configured; this is a verification pending item, not a product blocker, and must pass in the exact-head Telemetry Service CI before merge. Local Prettier is likewise unavailable because Node is not installed on the Pi and remains an exact-head CI gate. Pressure acquisition hardware stays `hardware_unverified`; live polling, atmospheric compensation, deployment, Modbus/hardware writes and hardware acceptance remain outside RFX-04.

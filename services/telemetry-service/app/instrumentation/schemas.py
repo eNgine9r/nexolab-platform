@@ -498,6 +498,25 @@ class HumidityObservationResponse(BaseModel):
     evidence_status: AcquisitionEvidenceStatus
 
 
+class PressureObservationRequest(AnalogScalingEvaluationRequest):
+    pass
+
+
+class PressureObservationResponse(BaseModel):
+    signal_id: str
+    physical_quantity: Literal["pressure"]
+    pressure_reference: PressureReference
+    raw_value: Decimal
+    value: Decimal
+    unit: str
+    source: AcquisitionSourceResponse
+    profile_id: str
+    profile_revision: int
+    profile_evidence_status: AnalogEvidenceStatus
+    profile_evidence_reference: str | None
+    evidence_status: AcquisitionEvidenceStatus
+
+
 class ApiErrorDetail(BaseModel):
     code: str
     message: str
