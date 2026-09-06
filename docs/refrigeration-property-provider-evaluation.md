@@ -83,7 +83,7 @@ Fixture tolerance is `1e-6 K` for the pinned-provider regression. These fixtures
 
 ## Fail-closed behavior
 
-The NEXOLAB adapter rejects non-finite, zero, and negative pressure before calling the provider. Unsupported refrigerants fail with `unsupported_refrigerant`. Positive pressures outside the provider saturation domain return `provider_domain_error`. Non-finite results and unexpected provider failures have distinct typed failure reasons.
+The NEXOLAB adapter rejects non-finite, zero, and negative pressure before calling the provider. Unsupported refrigerants fail with `unsupported_refrigerant`. Positive pressures outside the provider saturation domain return `provider_domain_error`. The committed regression probes both sides explicitly: R407C at 100 Pa absolute is rejected below its supported saturation domain, and R290 at 1,000,000,000 Pa absolute is rejected above its supported saturation domain. Non-finite results and unexpected provider failures have distinct typed failure reasons.
 
 There is no standard-atmosphere fallback, online lookup, generic refrigerant substitution, or inferred alias outside the explicitly accepted mapping.
 

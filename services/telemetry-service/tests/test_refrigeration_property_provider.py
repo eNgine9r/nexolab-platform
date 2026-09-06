@@ -88,10 +88,19 @@ def test_unsupported_refrigerant_fails_closed_without_alias_guessing() -> None:
         assert exc.value.reason == "unsupported_refrigerant"
 
 
-def test_out_of_domain_pressure_is_a_typed_provider_failure() -> None:
+@pytest.mark.parametrize(
+    ("refrigerant", "pressure"),
+    [("R407C", 100.0), ("R290", 1_000_000_000.0)],
+    ids=["below-saturation-domain", "above-saturation-domain"],
+)
+def test_out_of_domain_pressure_is_a_typed_provider_failure(
+    refrigerant: str, pressure: float
+) -> None:
     provider = create_refrigerant_property_provider(CANONICAL_PROPERTY_PROVIDER_PROFILE)
     with pytest.raises(PropertyProviderError) as exc:
-        provider.saturation_temperature("R290", 1_000_000_000.0, SaturationPhase.DEW_EVAPORATION)
+        provider.saturation_temperature(
+            refrigerant, pressure, SaturationPhase.DEW_EVAPORATION
+        )
     assert exc.value.reason == "provider_domain_error"
 
 
