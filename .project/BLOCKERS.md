@@ -148,17 +148,17 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #719 / PR #721 fresh Device Agent security reconciliation — completed and merged at `1f2654dec0f02263aec6c2314187cfa62e5723e9`; #722 triage is completed.
 - #723 / PR #724 CI routing maintenance — completed and merged at `8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb`.
 - #690 risk-aware/path-targeted PR verification — completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`; post-merge Core CI and Acquisition Scale Acceptance are GREEN.
-- #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-07 are completed through GREEN focused PRs, including #953 / PR #954. RFX-08A / #957 is the current Ready/active bounded kernel Work Package; RFX-08B remains the follow-up orchestration/policy-authority package after #957.
+- #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-08A are completed through GREEN focused PRs, including #953 / PR #954 and #957 / PR #958. RFX-08B / #960 is the next Ready orchestration/policy-authority Work Package.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — RFX-08A / Issue #957 active
+## Sprint execution gate — RFX-08B / Issue #960 Ready
 
-RFX-07 / #953 is completed through exact verified head `9be98a10489079caf91d4bc686508328c04faa8c` and GREEN PR #954, squash-merged as `e96e812f6bcd863d13805b65581b994dbfd18a70`. RFX-08A / #957 is now active with no software hard blocker. It is pure calculation/provenance code only and does not authorize production deployment or hardware activity. RFX-08B is intentionally deferred until the kernel is merged because authoritative acquisition/scaling-profile acceptance history and persisted calculation-policy selection belong to that follow-up boundary. #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
+RFX-08A / #957 is completed through exact verified head `ea9d0d020a299403da3d9378e9593ff2a388d9ad` and GREEN PR #958, squash-merged as `dc64dcdcfcd7c507fb90a52f938a3d10e1ac79a4`. All 15 exact-head workflows are GREEN after one unrelated Authenticated Dashboard WebSocket-count flake passed on a same-SHA rerun; final Team Lead review is clean with zero unresolved threads. RFX-08B / #960 is Ready and depends on completed #957. #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
 
 ## Safety boundaries
 
 No blocker may be bypassed by Modbus/controller write, hardware write, production/site cutover without approval, persistent-data deletion, named-volume deletion, secret exposure or mandatory cloud dependency.
 
-## RFX-08A / Issue #957 — active; no software blocker
+## RFX-08B / Issue #960 — Ready; no software hard blocker
 
-RFX-07 provider adoption is closed and merged with exact-head CI/manual review GREEN. RFX-08A / #957 has no hard blocker: the deterministic kernel is isolated from mutable repository state and receives explicit policy/evidence inputs, while the known acquisition-profile acceptance and calculation-policy persistence gap is reserved for RFX-08B rather than guessed in this PR. Current local evidence is 65 focused kernel/provider tests PASS, 107 refrigeration compatibility PASS with 5 skips and one migration-only environment test deselected, plus 51 instrumentation compatibility PASS / 13 SKIP. Production runtime remains unchanged; no Modbus write, hardware write, production cutover or hardware acceptance is authorized by #957.
+Exact-main audit confirms #960 can proceed without a new Product Owner threshold decision: the Work Package persists explicit versioned policies but seeds no production thresholds, so an unresolved `calculation_policy_version` fails closed. It also adds independent acquisition/scaling-profile `acceptance-state/v1` authority and historical orchestration over raw `telemetry_samples`; no `telemetry_latest`, polling, UI, runtime deployment or hardware action becomes authoritative. Production runtime remains unchanged; no Modbus write, hardware write, production cutover or hardware acceptance is authorized.
