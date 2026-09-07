@@ -22,7 +22,11 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 953,
+      "title": "RFX-07 Offline Refrigerant Property Provider Evaluation",
+      "branch": "feat/953-rfx07-property-provider"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -1159,7 +1163,7 @@
         "postgresql_volume": "nexolab-central-postgres-data",
         "structural_docker_create": "success_never_started_removed",
         "focused_recovery_tests": "31_passed",
-        "edge_snapshot_tests": "24_passed",
+        "edge_snapshot_tests": "25_passed",
         "focused_deployment_recovery_tests": "102_passed_final_47_plus_24_plus_31",
         "standalone_offline_runtime_contract": "passed_7_plus_8",
         "read_only_real_preflight": "passed",
@@ -2756,7 +2760,7 @@
         "migration_roundtrip": "0033_to_0032_to_0033_rfx01_signal_sentinel_preserved_before_final_finite_constraint",
         "offline_migration_sql": "2750_lines_final_sql_generated",
         "climate_refrigeration_compatibility": "48_passed_disposable_postgresql",
-        "xjp60d_temperature_and_acquisition_compatibility": "24_passed",
+        "xjp60d_temperature_and_acquisition_compatibility": "25_passed",
         "hardware_inventory": "docs/rs485/analog-acquisition-profile-inventory.json",
         "hardware_verified_profile_requires_evidence_reference": "enforced_schema_and_final_migration_contract",
         "local_candidate_status": "GREEN_TARGETED_AND_EXACT_HEAD_CI",
@@ -2999,6 +3003,48 @@
         "detached_exact_candidate_verifier": "green_rc_0_143_files_697_tests_lint_typecheck_build",
         "focused_domain_api_security": "16_passed",
         "next_ready_work_package": "none_defined_by_newer_product_owner_partition"
+      }
+    },
+    {
+      "issue": 953,
+      "title": "RFX-07 Offline Refrigerant Property Provider Evaluation",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "feat/953-rfx07-property-provider",
+      "depends_on": [
+        947
+      ],
+      "evidence": {
+        "rfx06_verified_head_sha": "1f0e6db9bb582f20a8c25457d0c9331215f72193",
+        "rfx06_pull_request": 950,
+        "implementation_base_main_sha": "597a75603da99ad51cb86f6bf788ebed0a994c0f",
+        "provider_candidate": "coolprop-heos/8.0.0",
+        "provider_dependency": "CoolProp==8.0.0",
+        "numpy_dependency": "numpy==2.5.2",
+        "license": "MIT",
+        "coolprop_arm64_wheel_sha256": "113fc0e97f2b64617141d453ddc0439987b32aa3f6f4a45b928b2030c68292fa",
+        "numpy_arm64_wheel_sha256": "0aadf13b60048d501e05fa699efaf7734e2494f3498a4c2a5521d822640324f3",
+        "target_runtime": "nexolab-edge-01_linux_aarch64_python_3.13.5",
+        "offline_wheelhouse_install": "passed_no_index",
+        "network_syscall_smoke": "none_observed_strace_20_calls",
+        "arm64_resource_verifier": "passed_init_2.812569s_rss_88.516MiB_mean_call_106.870us",
+        "provider_targeted_tests": "25_passed",
+        "postgresql_refrigeration_instrumentation_compatibility": "150_passed_1_skip",
+        "production_arm64_container": "build_pip_check_import_and_r290_call_passed_size_145213313_bytes",
+        "current_alembic_head": "20260906_0035_no_new_migration",
+        "supported_initial_refrigerants": "R290_R134A_R404A_R407C",
+        "known_unsupported_identifiers": "R448A_R449A_R452A_fail_closed",
+        "derived_thermodynamics": "out_of_scope_future_rfx08",
+        "runtime_mutation": "none",
+        "production_deployment": "not_executed_not_authorized",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "hardware_acceptance": "not_in_scope",
+        "review_gate": "manual_team_lead_plus_exact_head_ci",
+        "provider_tests": "25_passed_explicit_heos",
+        "refrigeration_rfx_postgresql_compatibility": "150_passed_1_skip",
+        "alembic_head": "20260906_0035_single_head",
+        "arm64_container": "built_import_call_passed_145213313_bytes"
       }
     }
   ],

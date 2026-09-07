@@ -3,70 +3,71 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-06T13:51:24+03:00",
+  "timestamp": "2026-09-06T14:58:00+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_947_rfx06_completed_merged_state_reconciliation",
+  "event": "issue_953_rfx07_property_provider_locally_verified_ready_to_commit",
   "baselines": {
     "accepted_product_sha": "1f0e6db9bb582f20a8c25457d0c9331215f72193",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 951,
-    "branch": "chore/951-reconcile-rfx06-state",
-    "base_main_sha": "6438d1d370d8dabccdfff2229d50642a6da8dfd7",
+    "issue": 953,
+    "branch": "feat/953-rfx07-property-provider",
+    "base_main_sha": "597a75603da99ad51cb86f6bf788ebed0a994c0f",
     "status": "locally_verified_ready_to_commit"
   },
   "evidence_snapshot": {
-    "rfx06_completion": {
-      "issue": 947,
-      "pull_request": 950,
-      "verified_head_sha": "1f0e6db9bb582f20a8c25457d0c9331215f72193",
-      "exact_head_workflows": "20_success",
-      "core_ci_nexolab_merge_gate": "success:34027869498",
-      "telemetry_service": "success:34027869472",
-      "offline_bundle": "success:34027869464",
-      "authenticated_dashboard": "success:34027869461",
-      "refrigeration_browser": "success:34027869536",
-      "capacity_release_gate": "success:34027869587",
-      "manual_team_lead_review": "clean_no_blocking_p1_p2",
-      "unresolved_review_threads": 0,
-      "final_premerge_comment": 5558707541,
-      "focused_domain_api_security": "16_passed",
-      "postgres_contract_migration": "4_passed",
-      "refrigeration_rfx_compatibility": "121_passed_1_environment_skip",
-      "alembic_head": "20260906_0035",
+    "rfx07_property_provider": {
+      "issue": 953,
+      "provider_profile": "coolprop-heos/8.0.0",
+      "provider_dependency": "CoolProp==8.0.0",
+      "numpy_dependency": "numpy==2.5.2",
+      "license": "MIT",
+      "coolprop_revision": "ae81610e7d23efc57f9d051c8e70a4d66e87537f",
+      "coolprop_arm64_wheel_sha256": "113fc0e97f2b64617141d453ddc0439987b32aa3f6f4a45b928b2030c68292fa",
+      "numpy_arm64_wheel_sha256": "0aadf13b60048d501e05fa699efaf7734e2494f3498a4c2a5521d822640324f3",
+      "offline_wheelhouse_install": "passed_no_index",
+      "network_syscall_smoke": "none_observed_strace_20_calls",
+      "arm64_resource_verifier": "passed_init_2.812569s_rss_88.516MiB_mean_call_106.870us",
+      "provider_tests": "25_passed_explicit_heos",
+      "postgresql_refrigeration_instrumentation_compatibility": "150_passed_1_skip",
+      "production_arm64_container": "build_pip_check_import_call_passed_size_145213313_bytes",
+      "supported_refrigerants": "R290_R134A_R404A_R407C",
+      "unsupported_identifiers": "R448A_R449A_R452A_fail_closed",
+      "alembic_head": "20260906_0035_single_head",
+      "derived_thermodynamics": "not_implemented_out_of_scope",
       "runtime_mutation": "none",
       "production_deployment": "not_executed",
-      "hardware_acceptance": "not_claimed"
+      "hardware_acceptance": "not_claimed",
+      "refrigeration_rfx_postgresql_compatibility": "150_passed_1_skip",
+      "arm64_container": "built_import_call_passed_145213313_bytes",
+      "state_model_v2": "passed",
+      "dependency_policy": "passed",
+      "ruff": "passed",
+      "python_compile": "passed",
+      "ci_policy_tests": "174_passed_1_skip",
+      "git_diff_check": "passed",
+      "prettier": "passed",
+      "scope_audit": "ten_permitted_files_only"
     },
     "roadmap": {
-      "newer_partition_authority": "issue_717",
-      "next_ready_work_package": "none_defined",
-      "adr_0010_old_rfx07_numbering": "not_promoted_without_product_owner_decision"
-    },
-    "state_reconciliation": {
-      "state_model_v2": "passed",
-      "ci_policy_tests": "174_passed_1_environment_skip",
-      "touched_markdown_prettier": "passed",
-      "json_parse": "passed",
-      "git_diff_check": "passed",
-      "scope": "four_project_state_files_only"
+      "product_owner_continuation": "property_provider_then_derived_thermodynamics_then_hardware_acceptance",
+      "current_package": "RFX-07_issue_953",
+      "future_rfx08": "derived_thermodynamics_not_started"
     }
   },
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-09-06T10:51:24Z",
-      "kind": "rfx06_merged_completed",
+      "observed_at": "2026-09-06T11:58:00Z",
+      "kind": "rfx07_issue_open",
       "data": {
-        "issue": 947,
-        "pull_request": 950,
-        "merge_sha": "6438d1d370d8dabccdfff2229d50642a6da8dfd7",
-        "state_reason": "completed"
+        "issue": 953,
+        "state": "open"
       }
     }
   ],
-  "next_action": "Commit and push Issue #951 state-only reconciliation, open one focused PR, require exact-head state CI and NEXOLAB Merge Gate GREEN, then merge and request Product Owner roadmap direction because no next Ready Work Package is defined.",
+  "next_action": "Commit exact RFX-07 candidate, run detached local-candidate verification on the committed SHA, then push, open the focused Issue #953 PR and require exact-head routed CI plus manual Team Lead review before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
