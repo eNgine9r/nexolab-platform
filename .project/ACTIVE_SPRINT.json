@@ -18,14 +18,14 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "1f0e6db9bb582f20a8c25457d0c9331215f72193",
+    "accepted_product_sha": "9be98a10489079caf91d4bc686508328c04faa8c",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
     "active_work_package": {
-      "issue": 953,
-      "title": "RFX-07 Offline Refrigerant Property Provider Evaluation",
-      "branch": "feat/953-rfx07-property-provider"
+      "issue": 957,
+      "title": "RFX-08A Deterministic Derived Thermodynamics Kernel",
+      "branch": "feat/957-rfx08a-thermo-kernel"
     },
     "next_work_package": null
   },
@@ -3009,7 +3009,7 @@
       "issue": 953,
       "title": "RFX-07 Offline Refrigerant Property Provider Evaluation",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "feat/953-rfx07-property-provider",
       "depends_on": [
         947
@@ -3036,7 +3036,7 @@
         "known_unsupported_identifiers": "R448A_R449A_R452A_fail_closed",
         "derived_thermodynamics": "out_of_scope_future_rfx08",
         "runtime_mutation": "none",
-        "production_deployment": "not_executed_not_authorized",
+        "production_deployment": "not_executed",
         "modbus_write": "none",
         "hardware_write": "none",
         "hardware_acceptance": "not_in_scope",
@@ -3044,7 +3044,42 @@
         "provider_tests": "25_passed_explicit_heos",
         "refrigeration_rfx_postgresql_compatibility": "150_passed_1_skip",
         "alembic_head": "20260906_0035_single_head",
-        "arm64_container": "built_import_call_passed_145213313_bytes"
+        "arm64_container": "built_import_call_passed_145213313_bytes",
+        "verified_head_sha": "9be98a10489079caf91d4bc686508328c04faa8c",
+        "pull_request": 954,
+        "checks": {
+          "exact_head_workflows": "15_success",
+          "telemetry_service": "success",
+          "offline_bundle": "success",
+          "nexolab_merge_gate": "success",
+          "manual_team_lead_review": "clean_no_blocking_p1_p2",
+          "unresolved_review_threads": "0"
+        },
+        "merge_observation_sha": "e96e812f6bcd863d13805b65581b994dbfd18a70",
+        "github_issue_state": "closed_completed"
+      }
+    },
+    {
+      "issue": 957,
+      "title": "RFX-08A Deterministic Derived Thermodynamics Kernel",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "feat/957-rfx08a-thermo-kernel",
+      "evidence": {
+        "implementation_base_main_sha": "e96e812f6bcd863d13805b65581b994dbfd18a70",
+        "rfx07_verified_head_sha": "9be98a10489079caf91d4bc686508328c04faa8c",
+        "rfx07_pull_request": 954,
+        "kernel_scope": "pure_deterministic_no_db_query_no_runtime_activation",
+        "focused_kernel_provider_tests": "65_passed",
+        "refrigeration_compatibility_non_migration": "107_passed_5_skipped_1_migration_only_deselected",
+        "instrumentation_compatibility": "51_passed_13_skipped",
+        "manual_review_hardening": "invalid_source_context_provenance_and_nonpositive_atmosphere_fail_closed",
+        "database_migration": "none",
+        "dependency_change": "none",
+        "production_deployment": "not_executed",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "hardware_acceptance": "not_claimed"
       }
     }
   ],

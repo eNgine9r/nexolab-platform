@@ -3,71 +3,38 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-06T14:58:00+03:00",
+  "timestamp": "2026-09-07T14:18:00+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_953_rfx07_property_provider_locally_verified_ready_to_commit",
+  "event": "issue_957_rfx08a_precommit_verification_green",
   "baselines": {
-    "accepted_product_sha": "1f0e6db9bb582f20a8c25457d0c9331215f72193",
+    "accepted_product_sha": "9be98a10489079caf91d4bc686508328c04faa8c",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 953,
-    "branch": "feat/953-rfx07-property-provider",
-    "base_main_sha": "597a75603da99ad51cb86f6bf788ebed0a994c0f",
-    "status": "locally_verified_ready_to_commit"
+    "issue": 957,
+    "title": "RFX-08A Deterministic Derived Thermodynamics Kernel",
+    "branch": "feat/957-rfx08a-thermo-kernel"
   },
   "evidence_snapshot": {
-    "rfx07_property_provider": {
-      "issue": 953,
-      "provider_profile": "coolprop-heos/8.0.0",
-      "provider_dependency": "CoolProp==8.0.0",
-      "numpy_dependency": "numpy==2.5.2",
-      "license": "MIT",
-      "coolprop_revision": "ae81610e7d23efc57f9d051c8e70a4d66e87537f",
-      "coolprop_arm64_wheel_sha256": "113fc0e97f2b64617141d453ddc0439987b32aa3f6f4a45b928b2030c68292fa",
-      "numpy_arm64_wheel_sha256": "0aadf13b60048d501e05fa699efaf7734e2494f3498a4c2a5521d822640324f3",
-      "offline_wheelhouse_install": "passed_no_index",
-      "network_syscall_smoke": "none_observed_strace_20_calls",
-      "arm64_resource_verifier": "passed_init_2.812569s_rss_88.516MiB_mean_call_106.870us",
-      "provider_tests": "25_passed_explicit_heos",
-      "postgresql_refrigeration_instrumentation_compatibility": "150_passed_1_skip",
-      "production_arm64_container": "build_pip_check_import_call_passed_size_145213313_bytes",
-      "supported_refrigerants": "R290_R134A_R404A_R407C",
-      "unsupported_identifiers": "R448A_R449A_R452A_fail_closed",
-      "alembic_head": "20260906_0035_single_head",
-      "derived_thermodynamics": "not_implemented_out_of_scope",
-      "runtime_mutation": "none",
+    "active_issue_evidence": {
+      "implementation_base_main_sha": "e96e812f6bcd863d13805b65581b994dbfd18a70",
+      "rfx07_verified_head_sha": "9be98a10489079caf91d4bc686508328c04faa8c",
+      "rfx07_pull_request": 954,
+      "kernel_scope": "pure_deterministic_no_db_query_no_runtime_activation",
+      "focused_kernel_provider_tests": "65_passed",
+      "refrigeration_compatibility_non_migration": "107_passed_5_skipped_1_migration_only_deselected",
+      "instrumentation_compatibility": "51_passed_13_skipped",
+      "manual_review_hardening": "invalid_source_context_provenance_and_nonpositive_atmosphere_fail_closed",
+      "database_migration": "none",
+      "dependency_change": "none",
       "production_deployment": "not_executed",
-      "hardware_acceptance": "not_claimed",
-      "refrigeration_rfx_postgresql_compatibility": "150_passed_1_skip",
-      "arm64_container": "built_import_call_passed_145213313_bytes",
-      "state_model_v2": "passed",
-      "dependency_policy": "passed",
-      "ruff": "passed",
-      "python_compile": "passed",
-      "ci_policy_tests": "174_passed_1_skip",
-      "git_diff_check": "passed",
-      "prettier": "passed",
-      "scope_audit": "ten_permitted_files_only"
-    },
-    "roadmap": {
-      "product_owner_continuation": "property_provider_then_derived_thermodynamics_then_hardware_acceptance",
-      "current_package": "RFX-07_issue_953",
-      "future_rfx08": "derived_thermodynamics_not_started"
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "hardware_acceptance": "not_claimed"
     }
   },
-  "observations": [
-    {
-      "source": "github",
-      "observed_at": "2026-09-06T11:58:00Z",
-      "kind": "rfx07_issue_open",
-      "data": {
-        "issue": 953,
-        "state": "open"
-      }
-    }
-  ],
-  "next_action": "Commit exact RFX-07 candidate, run detached local-candidate verification on the committed SHA, then push, open the focused Issue #953 PR and require exact-head routed CI plus manual Team Lead review before merge.",
+  "observations": [],
+  "next_action": "Commit the exact RFX-08A candidate, run detached clean local-candidate verification against that commit, then push and open the focused Issue #957 pull request.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
