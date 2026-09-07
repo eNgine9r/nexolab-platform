@@ -18,16 +18,16 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "9be98a10489079caf91d4bc686508328c04faa8c",
+    "accepted_product_sha": "ea9d0d020a299403da3d9378e9593ff2a388d9ad",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 957,
-      "title": "RFX-08A Deterministic Derived Thermodynamics Kernel",
-      "branch": "feat/957-rfx08a-thermo-kernel"
-    },
-    "next_work_package": null
+    "active_work_package": null,
+    "next_work_package": {
+      "issue": 960,
+      "title": "RFX-08B Authoritative Policy, Profile Acceptance and Historical Derived-Read Orchestration",
+      "branch": "feat/960-rfx08b-derived-orchestration"
+    }
   },
   "work_packages": [
     {
@@ -3063,7 +3063,7 @@
       "issue": 957,
       "title": "RFX-08A Deterministic Derived Thermodynamics Kernel",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "feat/957-rfx08a-thermo-kernel",
       "evidence": {
         "implementation_base_main_sha": "e96e812f6bcd863d13805b65581b994dbfd18a70",
@@ -3079,6 +3079,41 @@
         "production_deployment": "not_executed",
         "modbus_write": "none",
         "hardware_write": "none",
+        "hardware_acceptance": "not_claimed",
+        "verified_head_sha": "ea9d0d020a299403da3d9378e9593ff2a388d9ad",
+        "pull_request": 958,
+        "checks": {
+          "exact_head_workflows": "15_success",
+          "telemetry_service": "success:34118367244",
+          "offline_bundle": "success:34118367211",
+          "authenticated_dashboard": "success_same_sha_rerun:34118367183",
+          "refrigeration_browser": "success:34118367207",
+          "capacity_release_gate": "success:34118367225",
+          "nexolab_merge_gate": "success:34118367212",
+          "manual_team_lead_review": "clean_no_blocking_p1_p2",
+          "unresolved_review_threads": "0",
+          "detached_local_candidate": "green"
+        },
+        "merge_observation_sha": "dc64dcdcfcd7c507fb90a52f938a3d10e1ac79a4",
+        "github_issue_state": "closed_completed",
+        "exact_head_dashboard_initial_attempt": "unrelated_websocket_count_flake_19_of_20_passed",
+        "exact_head_dashboard_rerun": "same_sha_success"
+      }
+    },
+    {
+      "issue": 960,
+      "title": "RFX-08B Authoritative Policy, Profile Acceptance and Historical Derived-Read Orchestration",
+      "priority": "high",
+      "lifecycle": "ready",
+      "branch": "feat/960-rfx08b-derived-orchestration",
+      "depends_on": [
+        957
+      ],
+      "evidence": {
+        "planning_authority": "issue_957_rfx08_partition_and_issue_960_exact_main_audit",
+        "implementation_base_main_sha": "dc64dcdcfcd7c507fb90a52f938a3d10e1ac79a4",
+        "production_policy_thresholds": "not_seeded_not_inferred",
+        "runtime_mutation": "none_planning_only",
         "hardware_acceptance": "not_claimed"
       }
     }

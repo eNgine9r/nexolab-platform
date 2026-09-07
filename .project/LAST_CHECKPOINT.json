@@ -3,38 +3,73 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-07T14:18:00+03:00",
+  "timestamp": "2026-09-07T15:08:59+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_957_rfx08a_precommit_verification_green",
+  "event": "issue_957_rfx08a_completed_merged_rfx08b_ready_state_reconciliation",
   "baselines": {
-    "accepted_product_sha": "9be98a10489079caf91d4bc686508328c04faa8c",
+    "accepted_product_sha": "ea9d0d020a299403da3d9378e9593ff2a388d9ad",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 957,
-    "title": "RFX-08A Deterministic Derived Thermodynamics Kernel",
-    "branch": "feat/957-rfx08a-thermo-kernel"
+    "issue": 959,
+    "branch": "chore/959-reconcile-rfx08a-state",
+    "base_main_sha": "dc64dcdcfcd7c507fb90a52f938a3d10e1ac79a4",
+    "status": "locally_prepared_state_only"
   },
   "evidence_snapshot": {
-    "active_issue_evidence": {
-      "implementation_base_main_sha": "e96e812f6bcd863d13805b65581b994dbfd18a70",
-      "rfx07_verified_head_sha": "9be98a10489079caf91d4bc686508328c04faa8c",
-      "rfx07_pull_request": 954,
-      "kernel_scope": "pure_deterministic_no_db_query_no_runtime_activation",
-      "focused_kernel_provider_tests": "65_passed",
-      "refrigeration_compatibility_non_migration": "107_passed_5_skipped_1_migration_only_deselected",
-      "instrumentation_compatibility": "51_passed_13_skipped",
-      "manual_review_hardening": "invalid_source_context_provenance_and_nonpositive_atmosphere_fail_closed",
-      "database_migration": "none",
-      "dependency_change": "none",
+    "rfx08a_completion": {
+      "issue": 957,
+      "pull_request": 958,
+      "verified_head_sha": "ea9d0d020a299403da3d9378e9593ff2a388d9ad",
+      "exact_head_workflows": "15_success",
+      "telemetry_service": "success:34118367244",
+      "offline_bundle": "success:34118367211",
+      "authenticated_dashboard": "success_same_sha_rerun:34118367183",
+      "refrigeration_browser": "success:34118367207",
+      "capacity_release_gate": "success:34118367225",
+      "nexolab_merge_gate": "success:34118367212",
+      "manual_team_lead_review": "clean_no_blocking_p1_p2",
+      "unresolved_review_threads": 0,
+      "merge_observation_sha": "dc64dcdcfcd7c507fb90a52f938a3d10e1ac79a4",
+      "github_issue_state": "closed_completed",
       "production_deployment": "not_executed",
-      "modbus_write": "none",
-      "hardware_write": "none",
       "hardware_acceptance": "not_claimed"
+    },
+    "roadmap": {
+      "next_ready_issue": 960,
+      "next_ready_title": "RFX-08B Authoritative Policy, Profile Acceptance and Historical Derived-Read Orchestration",
+      "production_policy_thresholds": "not_seeded_not_inferred"
+    },
+    "state_reconciliation": {
+      "scope": "four_project_state_files_only",
+      "state_model_v2": "passed",
+      "state_tests": "27_passed_1_skipped",
+      "git_diff_check": "passed"
     }
   },
-  "observations": [],
-  "next_action": "Commit the exact RFX-08A candidate, run detached clean local-candidate verification against that commit, then push and open the focused Issue #957 pull request.",
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-09-07T12:00:06Z",
+      "kind": "rfx08a_merged_completed",
+      "data": {
+        "issue": 957,
+        "pull_request": 958,
+        "merge_sha": "dc64dcdcfcd7c507fb90a52f938a3d10e1ac79a4",
+        "state_reason": "completed"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-07T12:08:00Z",
+      "kind": "rfx08b_issue_created_ready_planning_boundary",
+      "data": {
+        "issue": 960,
+        "state": "open"
+      }
+    }
+  ],
+  "next_action": "Commit and push the exact Issue #959 state-only candidate, open one focused PR, require exact-head State integrity GREEN, merge, then begin Ready RFX-08B / Issue #960 from updated main.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
