@@ -1,6 +1,6 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-06
+Updated: 2026-09-07
 
 ## Issue #843 — Telemetry planner-choice CI nondeterminism
 
@@ -148,17 +148,17 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #719 / PR #721 fresh Device Agent security reconciliation — completed and merged at `1f2654dec0f02263aec6c2314187cfa62e5723e9`; #722 triage is completed.
 - #723 / PR #724 CI routing maintenance — completed and merged at `8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb`.
 - #690 risk-aware/path-targeted PR verification — completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`; post-merge Core CI and Acquisition Scale Acceptance are GREEN.
-- #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; #717/RFX-01, #935/RFX-02, #937/RFX-03, #939/RFX-04 and #943/RFX-05 are completed through GREEN PRs #934, #936, #938, #942 and #946; #947/RFX-06 is completed through GREEN PR #950; no later Ready RFX package is currently defined by the newer Product Owner roadmap recorded in #717.
+- #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-07 are completed through GREEN focused PRs, including #953 / PR #954. RFX-08A / #957 is the current Ready/active bounded kernel Work Package; RFX-08B remains the follow-up orchestration/policy-authority package after #957.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — RFX-07 / Issue #953 active
+## Sprint execution gate — RFX-08A / Issue #957 active
 
-RFX-06 / #947 is completed and merged through PR #950 with exact verified head `1f0e6db9bb582f20a8c25457d0c9331215f72193`; all 20 exact-head workflows are GREEN, including Telemetry Service `34027869472`, Offline Bundle `34027869464`, Authenticated Dashboard `34027869461`, Refrigeration Browser `34027869536`, Capacity Release Gate `34027869587` and Core CI / NEXOLAB Merge Gate `34027869498`. Manual Team Lead exact-head review found no remaining blocking P1/P2 and review threads are zero. Issue #717 remains the authority for the newer RFX Work Package partition, but it defines the chain only through RFX-06. ADR 0010 remains architecture/safety authority; its older RFX-07 label refers to a pre-repartition hardware/runtime-acceptance phase and must not be selected as the next package without an explicit Product Owner roadmap decision. No independent Ready Work Package remains in ACTIVE_SPRINT after reconciling #947. #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
+RFX-07 / #953 is completed through exact verified head `9be98a10489079caf91d4bc686508328c04faa8c` and GREEN PR #954, squash-merged as `e96e812f6bcd863d13805b65581b994dbfd18a70`. RFX-08A / #957 is now active with no software hard blocker. It is pure calculation/provenance code only and does not authorize production deployment or hardware activity. RFX-08B is intentionally deferred until the kernel is merged because authoritative acquisition/scaling-profile acceptance history and persisted calculation-policy selection belong to that follow-up boundary. #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
 
 ## Safety boundaries
 
 No blocker may be bypassed by Modbus/controller write, hardware write, production/site cutover without approval, persistent-data deletion, named-volume deletion, secret exposure or mandatory cloud dependency.
 
-## RFX-07 / Issue #953 — active; no software blocker
+## RFX-08A / Issue #957 — active; no software blocker
 
-RFX-06 software gates are closed on exact head `1f0e6db9bb582f20a8c25457d0c9331215f72193`: all 20 exact-head workflows are GREEN and PR #950 is merged as `6438d1d370d8dabccdfff2229d50642a6da8dfd7`. Existing cabinet placement/controller bindings remain separate; no deployment, Modbus/hardware write or hardware acceptance occurred. The Product Owner continued on 2026-09-06 with the recommended sequence, so the prior roadmap blocker is cleared. RFX-07 / #953 evaluates and pins the local/offline refrigerant-property provider only. Local CoolProp 8.0.0 + NumPy 2.5.2 ARM64/offline/resource/container evidence is GREEN; exact-head GitHub CI and manual Team Lead review remain required. Derived thermodynamics is explicitly reserved for a later RFX-08 package, and controlled hardware/runtime acceptance remains later still.
+RFX-07 provider adoption is closed and merged with exact-head CI/manual review GREEN. RFX-08A / #957 has no hard blocker: the deterministic kernel is isolated from mutable repository state and receives explicit policy/evidence inputs, while the known acquisition-profile acceptance and calculation-policy persistence gap is reserved for RFX-08B rather than guessed in this PR. Current local evidence is 65 focused kernel/provider tests PASS, 107 refrigeration compatibility PASS with 5 skips and one migration-only environment test deselected, plus 51 instrumentation compatibility PASS / 13 SKIP. Production runtime remains unchanged; no Modbus write, hardware write, production cutover or hardware acceptance is authorized by #957.
