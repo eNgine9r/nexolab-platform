@@ -3138,10 +3138,19 @@
         "modbus_write": "none",
         "hardware_write": "none",
         "hardware_acceptance": "not_claimed",
-        "local_candidate_status": "review_hardening_green_new_exact_candidate_pending",
+        "local_candidate_status": "ci_fixture_repair_verified_commit_pending",
         "affected_postgres_combined_matrix": "224_passed_1_skipped_after_lifecycle_ordering_hardening",
         "instrument_version_replay": "highest_valid_monotonic_version_equal_timestamp_uuid_independent",
-        "lifecycle_authority_order": "inactive_fails_closed_before_configuration_binding_source_resolution"
+        "lifecycle_authority_order": "inactive_fails_closed_before_configuration_binding_source_resolution",
+        "published_pr": 962,
+        "published_exact_head_before_ci_fixture_repair": "4b4880b4324d788da8aa0c76329745d0cbdd318c",
+        "telemetry_ci_failed_run": "34188696748_test_fixture_chronology_only_8_failures_772_passed",
+        "telemetry_ci_failure_root_cause": "derived_test_T0_now_plus_1min_expired_during_full_suite_causing_instrument_created_at_after_sample_at",
+        "test_fixture_chronology_repair": "fixed_datetime_2100_01_01_utc_no_production_code_change",
+        "ci_failure_reproduction_fix_postgres": "original_8_failed_tests_now_8_passed",
+        "post_fix_refrigeration_instrumentation_postgres": "214_passed_1_skipped",
+        "post_fix_full_telemetry_postgres": "778_passed_2_skipped_2_deselected",
+        "post_fix_scratch_postgres_migration": "empty_to_20260907_0036_green"
       }
     }
   ],

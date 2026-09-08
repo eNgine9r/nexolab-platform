@@ -46,7 +46,7 @@ from app.security.repository import AuditEventInput, SecurityRepository
 
 ORG = "00000000-0000-0000-0000-000000000001"
 OTHER_ORG = "22222222-2222-2222-2222-222222222222"
-T0 = datetime.now(UTC).replace(microsecond=0) + timedelta(minutes=1)
+T0 = datetime(2100, 1, 1, 10, 0, tzinfo=UTC)
 
 
 def _equipment(
