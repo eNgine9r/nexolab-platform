@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-08T13:08:00+03:00",
+  "timestamp": "2026-09-08T13:44:52+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_968_ssd_prepare_passed_cutover_ready_pending_runtime_stability",
+  "event": "issue_968_review_p1_hardening_complete_cutover_pending_exact_head_green",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -44,7 +44,13 @@
       "postgresql_archive_entries": 494,
       "edge_sqlite_quick_check": "ok",
       "seed_copy_total_bytes": 55174431322,
-      "device_agent_high_io_reproduction": "sqlite_database_locked_restart_count_5_then_healthy"
+      "device_agent_high_io_reproduction": "sqlite_database_locked_restart_count_5_then_healthy",
+      "review_p1_restart_eligibility": "addressed",
+      "review_p1_quiesce_failure": "addressed",
+      "review_p1_post_boot_acceptance": "addressed",
+      "docker_live_restore": "false",
+      "running_container_restart_policy": "all_12_unless_stopped",
+      "runtime_acceptance_dry_run": "pass_samples_2969_to_3040_queue_0_workers_2_of_2_restart_5_stable_dashboard_login_auth_postgres"
     }
   },
   "observations": [
@@ -58,7 +64,7 @@
       }
     }
   ],
-  "next_action": "Commit and verify Issue #968 migration tooling, require exact-head CI GREEN, then perform the separate privileged cutover only after Device Agent is stably healthy; verify SSD-backed boot and NEXOLAB runtime after reboot.",
+  "next_action": "Commit/push the three P1 review fixes, require exact-head CI and NEXOLAB Merge Gate GREEN, resolve the review threads, merge PR #969, then require the Product Owner to run the privileged SSD cutover command and perform fail-closed post-boot verification.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

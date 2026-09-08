@@ -102,6 +102,8 @@ if [[ "$MODE" == "preflight" ]]; then
 fi
 
 if [[ "$MODE" == "verify" ]]; then
+  (( EUID == 0 )) || fail "verify requires root privileges"
+  for cmd in docker timeout python3 udevadm find sort comm curl lsusb df awk tail wc; do need "$cmd"; done
   identity_report
   ROOT_PARENT_NOW="/dev/$(lsblk -no PKNAME "$ROOT_REAL" 2>/dev/null | head -1)"
   [[ "$ROOT_PARENT_NOW" == "$TARGET_DEVICE" ]] || fail "root is not running from approved SSD: root=$ROOT_REAL parent=$ROOT_PARENT_NOW"
@@ -111,9 +113,67 @@ if [[ "$MODE" == "verify" ]]; then
   VERIFY_MARKER=/var/backups/nexolab/issue-968-prepared.marker
   [[ -f "$VERIFY_MARKER" ]] || fail "Issue #968 prepare marker is missing from active SSD root"
   grep -qx "target_serial=$ACTUAL_SERIAL" "$VERIFY_MARKER" || fail "active SSD prepare marker serial mismatch"
+  grep -qx "root_partuuid=$(blkid -s PARTUUID -o value "$ROOT_REAL")" "$VERIFY_MARKER" || fail "active SSD root PARTUUID does not match prepare marker"
+  grep -qx "boot_partuuid=$(blkid -s PARTUUID -o value "$BOOT_REAL")" "$VERIFY_MARKER" || fail "active SSD boot PARTUUID does not match prepare marker"
+
+  ROOT_BYTES="$(df -B1 --output=size / | tail -1 | trim)"
+  [[ "$ROOT_BYTES" =~ ^[0-9]+$ ]] || fail "cannot determine active root filesystem capacity"
+  (( ROOT_BYTES >= 200000000000 )) || fail "active root filesystem is smaller than expected SSD capacity: $ROOT_BYTES bytes"
+  UDEV_PROPERTIES="$(udevadm info -q property -n "$TARGET_DEVICE")" || fail "cannot read SSD udev properties"
+  grep -qx 'ID_USB_DRIVER=uas' <<< "$UDEV_PROPERTIES" || fail "approved SSD is not using UAS"
+  lsusb -t | grep -Eq 'Mass Storage, Driver=uas, 5000M' || fail "USB 3 / UAS 5 Gbit/s transport not observed"
+
+  for adapter in \
+    /dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0 \
+    /dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F246-if00-port0; do
+    [[ -L "$adapter" ]] || fail "stable RS-485 adapter identity missing: $adapter"
+    [[ -c "$(readlink -f -- "$adapter")" ]] || fail "stable RS-485 adapter does not resolve to a character device: $adapter"
+  done
+
+  BACKUP_ROOT=/var/backups/nexolab/issue-968-ssd-migration
+  LATEST_BACKUP="$(find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d | sort | tail -1)"
+  [[ -n "$LATEST_BACKUP" && -f "$LATEST_BACKUP/docker-volumes.txt" && -f "$LATEST_BACKUP/docker-containers.txt" ]] || fail "prepared runtime inventory is missing from SSD"
+  CURRENT_VOLUMES="$(mktemp)"
+  docker volume ls --format '{{.Name}}' | sort > "$CURRENT_VOLUMES"
+  MISSING_VOLUMES="$(comm -23 "$LATEST_BACKUP/docker-volumes.txt" "$CURRENT_VOLUMES")"
+  rm -f "$CURRENT_VOLUMES"
+  [[ -z "$MISSING_VOLUMES" ]] || fail "Docker volumes missing after SSD boot: $MISSING_VOLUMES"
+
+  while read -r name _; do
+    [[ -n "$name" ]] || continue
+    state="$(timeout 15s docker inspect -f '{{.State.Running}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$name")" || fail "prepared container missing after SSD boot: $name"
+    [[ "$state" == 'true|healthy' || "$state" == 'true|none' ]] || fail "prepared container is not running/healthy after SSD boot: $name ($state)"
+  done < "$LATEST_BACKUP/docker-containers.txt"
+
+  timeout 15s docker exec nexolab-central-postgres-1 sh -ceu 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"' >/dev/null || fail "PostgreSQL readiness failed after SSD boot"
+  [[ "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 8 http://127.0.0.1:3000/)" == 200 ]] || fail "Dashboard root is not HTTP 200 after SSD boot"
+  [[ "$(curl -sS -o /dev/null -w '%{http_code}' --max-time 8 http://127.0.0.1:3000/login)" == 200 ]] || fail "Local login surface is not HTTP 200 after SSD boot"
+  AUTH_SESSION_CODE="$(timeout 15s docker exec nexolab-central-telemetry-service-1 python3 -c 'import urllib.request,urllib.error; req=urllib.request.Request("http://127.0.0.1:8082/api/v1/auth/session");
+try:
+ urllib.request.urlopen(req,timeout=5); print(200)
+except urllib.error.HTTPError as e:
+ print(e.code)')" || fail "local auth session route probe failed"
+  [[ "$AUTH_SESSION_CODE" == 401 ]] || fail "local auth session route did not fail closed with HTTP 401: $AUTH_SESSION_CODE"
+
+  agent_snapshot() {
+    timeout 15s docker exec nexolab-edge-device-agent-1 python3 -c 'import json,urllib.request; d=json.load(urllib.request.urlopen("http://127.0.0.1:8081/health",timeout=5)); s=d.get("acquisition",{}).get("scheduler",{}); print("|".join(map(str,[d.get("samples_total",-1),d.get("last_sample_at") or "",str(bool(d.get("mqtt_connected"))).lower(),d.get("queue_size",d.get("queue_depth",-1)),s.get("expected_bus_workers",-1),s.get("active_bus_workers",-1),str(bool(s.get("workers_healthy"))).lower()])))'
+  }
+  IFS='|' read -r samples_before sample_at_before mqtt_before queue_before expected_before active_before workers_before <<< "$(agent_snapshot)"
+  restart_before="$(timeout 15s docker inspect -f '{{.RestartCount}}' nexolab-edge-device-agent-1)" || fail "cannot read Device Agent restart count during SSD verification"
+  sleep 40
+  IFS='|' read -r samples_after sample_at_after mqtt_after queue_after expected_after active_after workers_after <<< "$(agent_snapshot)"
+  restart_after="$(timeout 15s docker inspect -f '{{.RestartCount}}' nexolab-edge-device-agent-1)" || fail "cannot re-read Device Agent restart count during SSD verification"
+  [[ "$samples_before" =~ ^[0-9]+$ && "$samples_after" =~ ^[0-9]+$ && "$samples_after" -gt "$samples_before" ]] || fail "Device Agent samples did not advance after SSD boot: $samples_before -> $samples_after"
+  [[ -n "$sample_at_before" && -n "$sample_at_after" && "$sample_at_after" != "$sample_at_before" ]] || fail "Device Agent last_sample_at did not advance after SSD boot"
+  [[ "$mqtt_before" == true && "$mqtt_after" == true ]] || fail "Device Agent MQTT is not continuously connected after SSD boot"
+  [[ "$queue_before" =~ ^[0-9]+$ && "$queue_after" =~ ^[0-9]+$ && "$queue_before" -le 10 && "$queue_after" -le 10 ]] || fail "Device Agent queue is not bounded after SSD boot: $queue_before -> $queue_after"
+  [[ "$expected_before" =~ ^[1-9][0-9]*$ && "$expected_before" == "$active_before" && "$expected_after" == "$active_after" && "$expected_before" == "$expected_after" ]] || fail "Device Agent bus workers are incomplete after SSD boot"
+  [[ "$workers_before" == true && "$workers_after" == true ]] || fail "Device Agent bus workers are not healthy after SSD boot"
+  [[ "$restart_before" == "$restart_after" ]] || fail "Device Agent restarted during SSD verification: $restart_before -> $restart_after"
+
   df -hT /
-  if command -v docker >/dev/null 2>&1; then docker ps --format 'table {{.Names}}\t{{.Status}}'; fi
-  log "VERIFY PASSED: root and boot are SSD-backed"
+  docker ps --format 'table {{.Names}}\t{{.Status}}'
+  log "VERIFY PASSED: SSD root/boot, UAS transport, volumes, services, local auth surface, RS-485 identities, and advancing acquisition are healthy"
   exit 0
 fi
 
@@ -124,6 +184,7 @@ for cmd in sfdisk wipefs mkfs.vfat mkfs.ext4 mount umount mountpoint rsync udeva
 RUNTIME_STOPPED=0
 CUTOVER_COMMITTED=0
 RUNNING_FILE=""
+RUNNING_PID_FILE=""
 cleanup() {
   local rc=$?
   set +e
@@ -228,33 +289,52 @@ require_healthy_container() {
 }
 
 validate_pre_cutover_runtime() {
-  local restart_before restart_after
+  local restart_before restart_after live_restore
   for name in nexolab-central-postgres-1 nexolab-central-telemetry-service-1 nexolab-central-minio-1 nexolab-central-mqtt-1 nexolab-edge-mqtt-1 nexolab-edge-device-agent-1; do
     require_healthy_container "$name"
   done
+  live_restore="$(timeout 15s docker info --format '{{.LiveRestoreEnabled}}')" || fail "cannot read Docker live-restore state"
+  [[ "$live_restore" == false ]] || fail "Docker live-restore must be disabled for daemon-level filesystem quiesce"
   restart_before="$(timeout 15s docker inspect -f '{{.RestartCount}}' nexolab-edge-device-agent-1)" || fail "cannot read Device Agent restart count"
   sleep 10
   require_healthy_container nexolab-edge-device-agent-1
   restart_after="$(timeout 15s docker inspect -f '{{.RestartCount}}' nexolab-edge-device-agent-1)" || fail "cannot re-read Device Agent restart count"
   [[ "$restart_after" == "$restart_before" ]] || fail "Device Agent restarted during pre-cutover stability window: $restart_before -> $restart_after"
-  log "Pre-cutover runtime validation passed: required services healthy, Device Agent restart count stable at $restart_after"
+  log "Pre-cutover runtime validation passed: required services healthy, live-restore disabled, Device Agent restart count stable at $restart_after"
 }
 
 quiesce_runtime() {
+  local name policy pid
   RUNNING_FILE="$(mktemp)"
-  docker ps --format '{{.Names}}' | sort > "$RUNNING_FILE"
+  RUNNING_PID_FILE="$(mktemp)"
+  timeout 20s docker ps --format '{{.Names}}' | sort > "$RUNNING_FILE" || fail "cannot enumerate running containers before quiesce"
+  [[ -s "$RUNNING_FILE" ]] || fail "no running containers found before cutover quiesce"
+  while IFS= read -r name; do
+    [[ -n "$name" ]] || continue
+    policy="$(timeout 15s docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' "$name")" || fail "cannot read restart policy for $name"
+    [[ "$policy" == always || "$policy" == unless-stopped ]] || fail "running container lacks reboot-safe restart policy: $name ($policy)"
+    pid="$(timeout 15s docker inspect -f '{{.State.Pid}}' "$name")" || fail "cannot read runtime PID for $name"
+    [[ "$pid" =~ ^[1-9][0-9]*$ ]] || fail "invalid runtime PID for $name: $pid"
+    printf '%s|%s\n' "$name" "$pid" >> "$RUNNING_PID_FILE"
+  done < "$RUNNING_FILE"
+
+  # Do not call `docker stop`: with `restart: unless-stopped` that would persist
+  # manual-stop intent and could keep the production stack down after reboot.
   RUNTIME_STOPPED=1
-  if [[ -s "$RUNNING_FILE" ]]; then
-    mapfile -t running < "$RUNNING_FILE"
-    log "Stopping ${#running[@]} running Docker containers for filesystem-consistent sync"
-    docker stop --time 45 "${running[@]}" >/dev/null
-  fi
-  systemctl stop docker.service docker.socket >/dev/null 2>&1 || true
-  systemctl stop containerd.service >/dev/null 2>&1 || true
+  log "Stopping Docker daemon without manual container stops to preserve restart eligibility"
+  timeout 120s systemctl stop docker.socket || fail "failed to stop docker.socket"
+  timeout 120s systemctl stop docker.service || fail "failed to stop docker.service"
+  timeout 120s systemctl stop containerd.service || fail "failed to stop containerd.service"
   if systemctl is-active --quiet docker.service || systemctl is-active --quiet docker.socket || systemctl is-active --quiet containerd.service; then
     fail "Docker/containerd remained active after quiesce request"
   fi
-  log "Docker and containerd are quiesced for final filesystem sync"
+  while IFS='|' read -r name pid; do
+    [[ -n "$name" && -n "$pid" ]] || continue
+    if kill -0 "$pid" 2>/dev/null; then
+      fail "container process remained alive after daemon quiesce: $name pid=$pid"
+    fi
+  done < "$RUNNING_PID_FILE"
+  log "Docker/containerd are quiesced and restart eligibility is preserved for final filesystem sync"
 }
 
 restore_runtime() {

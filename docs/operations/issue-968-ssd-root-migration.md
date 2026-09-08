@@ -89,7 +89,7 @@ The seed copy covered 858,485 files / 55,174,431,322 bytes. During this high-I/O
 
 ## Phase 3 — controlled cutover
 
-The cutover phase is intentionally separate. It revalidates the exact SSD identity and prepared backups, requires the critical PostgreSQL/Telemetry/MinIO/MQTT/Device Agent containers healthy, proves the Device Agent restart count remains unchanged across a bounded stability window, then performs one final Docker/containerd-quiesced sync before switching boot order to NVMe/USB ahead of SD fallback and rebooting.
+The cutover phase is intentionally separate. It revalidates the exact SSD identity and prepared backups, requires the critical PostgreSQL/Telemetry/MinIO/MQTT/Device Agent containers healthy, proves the Device Agent restart count remains unchanged across a bounded stability window, and requires Docker live-restore to be disabled. It then records every running container and its PID/restart policy, rejects any running container without `always` or `unless-stopped`, and quiesces the stack by stopping the Docker socket/daemon and containerd **without** issuing `docker stop`. This preserves restart eligibility for `restart: unless-stopped` containers while still proving every recorded container PID exited before the final filesystem sync. Only then does it switch boot order to NVMe/USB ahead of SD fallback and reboot.
 Operator command:
 
 ```bash
