@@ -2,9 +2,9 @@
 
 Updated: 2026-09-08
 
-## Issue #968 — final normal-boot SSD acceptance
+## Issue #968 — SSD migration completed; simultaneous-media check deferred
 
-**Active Product Owner reboot gate; supersedes the old cutover instruction.** The privileged `cutover` already ran and must not be repeated. Its first SSD boot exposed missing empty root mountpoints and kernel-panicked after successfully mounting `/dev/sda2`; rollback to the untouched microSD passed. The target was repaired in place, filesystem checks returned `0`, and the repaired-target retry boot is now successful with live `/=/dev/sda2` and `/boot/firmware=/dev/sda1`. All 12 NEXOLAB containers are healthy; PostgreSQL is ready; Dashboard/Login are HTTP 200; unauthenticated auth is 401; both stable CP2104 paths exist; Device Agent samples advanced `640→720` with MQTT connected, queue `0`, workers `2/2 healthy`, RestartCount `0`; failed systemd units are `0`; root has about 170 GiB free. Normal `cmdline.txt` has been restored and the temporary diagnostic journald override removed. EEPROM remains `BOOT_ORDER=0xf461` for safe SD-first rollback. Remaining acceptance is one Product Owner-controlled reboot with the restored normal configuration, then UAS/runtime/persistence verification. No `prepare` or `cutover` rerun is authorized or required.
+**Cleared for current scope.** Normal SSD boot and the repository-owned fail-closed `verify` passed with `/=/dev/sda2`, `/boot/firmware=/dev/sda1`, UAS 5000M, all 12 containers healthy, PostgreSQL/local-auth/dashboard surfaces healthy, stable RS-485 identities present and Device Agent acquisition advancing. EEPROM is `BOOT_ORDER=0xf146`, and the following reboot again selected the SSD. The original microSD previously passed a real standalone rollback boot after the first failed SSD attempt. The Product Owner explicitly deferred installing microSD alongside the SSD, so simultaneous SSD+microSD coexistence boot remains unverified and is not claimed; it is not a blocker for the current accepted storage scope. `prepare` and `cutover` must not be rerun.
 
 ## Issue #843 — Telemetry planner-choice CI nondeterminism
 
@@ -155,15 +155,15 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-08B are completed through GREEN focused PRs, including #953 / PR #954, #957 / PR #958 and #960 / PR #962. The next independent Ready software Work Package is #933.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — RFX-08B completed; Issue #933 Ready
+## Sprint execution gate — SSD migration accepted; Issue #933 resumed
 
 RFX-08B / #960 is completed through exact verified product head `c1c7f8bc4988c35bc13436c59750f038ddc59811`, PR #962 and observed squash merge `044e2feeda21e6f84d2b0a589ef3678a1004a923`. All 20 exact-head workflows are GREEN, including Telemetry Service, disconnected Offline Bundle, same-SHA Authenticated Dashboard rerun and Core CI / NEXOLAB Merge Gate; final Team Lead review is clean and review threads are zero. Production runtime remains on deployed source `9a3556b25b257396d15db80af591d1cc3684b8f7`.
 
-Issue #933 is the next Ready independent software Work Package. Its repository-side reproduction and SQLite contention hardening have no software hard blocker and require no Modbus/hardware write or production cutover. #930 remains independent lower-risk maintenance. #189/#585 remain blocked; #201 remains `needs_validation`; #202 remains `hardware_validation`.
+Issue #933 is the active resumed independent software Work Package. Its repository-side reproduction and SQLite contention hardening have no software hard blocker and require no Modbus/hardware write or production cutover. The preserved dirty worktree must first be reconciled with current `main` after the completed SSD migration. #930 remains independent lower-risk maintenance. #189/#585 remain blocked; #201 remains `needs_validation`; #202 remains `hardware_validation`.
 
-## Issue #970 — SSD migration omitted required empty root mountpoints
+## Issue #970 — SSD migration mountpoint defect completed
 
-**Repository completion pending exact-head merge gate.** The real #968 failure is diagnosed and the operational SSD repair is accepted: required mountpoints were recreated without reformatting and the repaired SSD boot reached a healthy NEXOLAB userspace on `/dev/sda2`. PR #971 now hardens the helper to preserve/recreate/validate those mountpoints, uses deterministic FAT mount masks, and registers its regression contract in CI impact routing. The latest candidate must complete final exact-head review/CI after durable-state reconciliation; no runtime rewrite, SSD reformat, product-data deletion, Docker-volume deletion, Modbus write or hardware write belongs to #970.
+**Cleared and merged 2026-09-08.** Exact verified head `50de09b63093fdaca27e82d51b0767bb6b472c30` hardened required target-root mountpoints, deterministic FAT mount permissions and CI regression routing. All required exact-head workflows were GREEN with zero unresolved review threads; PR #971 squash-merged to `main` as `88d484dc8007469d1654fb17434e22ef1cfbc1eb` and GitHub closed #970 completed. Real repaired-target boot and the later official #968 verify prove the operational fix. No SSD reformat, product-data deletion, Docker-volume deletion, Modbus write or hardware write belonged to #970.
 
 ## Safety boundaries
 

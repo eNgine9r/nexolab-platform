@@ -23,15 +23,11 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 968,
-      "title": "Migrate nexolab-edge-01 system and NEXOLAB runtime from microSD to 256 GB SSD",
-      "branch": "ops/968-ssd-root-migration"
-    },
-    "next_work_package": {
       "issue": 933,
       "title": "Prevent Device Agent exit on transient SQLite lock contention",
       "branch": "fix/933-device-agent-sqlite-lock-contention"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -3176,7 +3172,7 @@
       "issue": 933,
       "title": "Prevent Device Agent exit on transient SQLite lock contention",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "branch": "fix/933-device-agent-sqlite-lock-contention",
       "depends_on": [],
       "evidence": {
@@ -3186,14 +3182,18 @@
         "observed_error": "sqlite3_OperationalError_database_is_locked",
         "production_deployment": "not_authorized_not_required_for_software_fix",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "interrupted_by_storage_migration_issue": 968,
+        "storage_migration_interruption_status": "cleared_ssd_root_accepted",
+        "dirty_worktree_preserved": "/home/nexolab/recovery/issue-968-pre-ssd-20260908T091750Z",
+        "resume_base_requires_main_reconciliation": "origin_main_88d484dc_after_issue_970_merge"
       }
     },
     {
       "issue": 968,
       "title": "Migrate nexolab-edge-01 system and NEXOLAB runtime from microSD to 256 GB SSD",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "ops/968-ssd-root-migration",
       "depends_on": [],
       "evidence": {
@@ -3224,7 +3224,7 @@
         "runtime_acceptance_dry_run": "pass_dashboard_200_login_200_auth_401_postgres_ready_device_agent_samples_2969_to_3040_queue_0_workers_2_of_2_restart_5_stable",
         "docker_live_restore": "false",
         "running_container_restart_policy": "all_12_unless_stopped",
-        "production_cutover": "completed_to_ssd_root_retry_boot_runtime_healthy_final_normal_reboot_pending",
+        "production_cutover": "completed_ssd_root_and_boot_accepted",
         "first_ssd_boot": "kernel_panic_after_sda2_mount_missing_dev_proc_sys_run_mountpoints",
         "first_ssd_boot_root_detected": "/dev/sda2_ext4_mounted_successfully",
         "rollback_to_microsd": "pass_root_mmcblk0p2_boot_mmcblk0p1_boot_order_0xf461_runtime_12_of_12_healthy",
@@ -3236,20 +3236,32 @@
         "retry_boot_runtime": "pass_12_containers_postgres_dashboard_login_auth_rs485_samples_640_to_720_queue_0_workers_2_of_2_restart_0",
         "current_root": "/dev/sda2",
         "current_boot": "/dev/sda1",
-        "current_root_capacity": "about_234GiB_about_170GiB_free",
+        "current_root_capacity": "234GiB_52GiB_used_170GiB_free_24_percent",
         "normal_cmdline_restored": true,
         "diagnostic_journald_override_removed": true,
-        "boot_order": "0xf461_sd_first_rollback_safe",
-        "final_acceptance": "pending_product_owner_controlled_normal_boot_reboot_then_uas_runtime_verify",
+        "boot_order": "0xf146_ssd_usb_first_sd_fallback_when_present",
+        "final_acceptance": "completed_with_simultaneous_media_coexistence_test_deferred",
         "original_source_root": "/dev/mmcblk0p2",
-        "original_source_root_usage_percent": 97
+        "original_source_root_usage_percent": 97,
+        "normal_boot_verify": "passed_2026-09-08T19:47:14+03:00",
+        "official_verify": "passed_ssd_root_boot_uas_volumes_services_auth_rs485_advancing_acquisition",
+        "ssd_first_reboot": "passed_root_sda2_boot_sda1_after_boot_order_b2",
+        "runtime_acceptance_final": "pass_12_containers_postgres_dashboard_login_auth_rs485_device_agent_advancing",
+        "fstrim_timer": "enabled_active",
+        "performance_smoke": "512MiB_direct_io_write_284MiB_s_read_360MiB_s_file_deleted",
+        "repository_regression_pr": 971,
+        "standalone_microsd_rollback": "hardware_verified_after_first_failed_ssd_boot",
+        "simultaneous_ssd_microsd_boot": "deferred_by_product_owner_not_verified_not_blocking_current_scope",
+        "product_data_delete": "none",
+        "volume_delete": "none",
+        "repository_regression_completion": "issue_970_fix_verified_and_merged_to_main"
       }
     },
     {
       "issue": 970,
       "title": "Preserve required root mountpoints during SSD migration",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "fix/970-ssd-root-mountpoints",
       "evidence": {
@@ -3262,7 +3274,10 @@
         "volume_delete": "none",
         "repaired_target_boot": "pass_root_sda2_boot_sda1",
         "runtime_acceptance": "pass_12_containers_postgres_http_auth_rs485_device_agent_advancing",
-        "repository_status": "pr_971_final_state_reconciliation_pending_exact_head_ci_merge"
+        "repository_status": "merged_pr_971",
+        "exact_head_ci": "green_core_telemetry_dashboard_refrigeration_offline_telegram_merge_gate",
+        "unresolved_review_threads": 0,
+        "repository_completion": "verified_fix_merged_and_issue_closed"
       }
     }
   ],
