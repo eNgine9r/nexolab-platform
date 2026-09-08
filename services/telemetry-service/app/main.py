@@ -16,6 +16,8 @@ from app.api import create_api_router
 from app.config import Settings
 from app.ingestion import TelemetryIngestor
 from app.instrumentation.api import create_instrumentation_router
+from app.instrumentation.profile_acceptance import AcquisitionProfileAcceptanceRepository
+from app.instrumentation.profile_acceptance_api import create_profile_acceptance_router
 from app.instrumentation.repository import InstrumentationRepository
 from app.live import LiveTelemetryHub
 from app.live_api import create_live_router
@@ -35,8 +37,12 @@ from app.nodes.broker_worker import BrokerControlWorker
 from app.nodes.ingress import NodeIngressAuthorizer
 from app.nodes.repository import NodeRepository
 from app.refrigeration.api import create_refrigeration_router
+from app.refrigeration.calculation_policy import CalculationPolicyRepository
+from app.refrigeration.calculation_policy_api import create_calculation_policy_router
 from app.refrigeration.circuit_api import create_refrigeration_circuit_router
 from app.refrigeration.circuit_repository import RefrigerationCircuitRepository
+from app.refrigeration.derived_api import create_derived_read_router
+from app.refrigeration.derived_read import HistoricalDerivedReadService
 from app.refrigeration.controller_binding_api import create_refrigeration_controller_binding_router
 from app.refrigeration.controller_binding_repository import PostgresRefrigerationControllerBindingRepository
 from app.refrigeration.equipment_api import create_refrigeration_equipment_router
@@ -105,11 +111,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         PostgresRefrigerationControllerBindingRepository(database)
     )
     refrigeration_circuit_repository = RefrigerationCircuitRepository(database)
+    calculation_policy_repository = CalculationPolicyRepository(database)
     equipment_lifecycle_repository = PostgresEquipmentLifecycleRepository(database)
     sensor_configuration_repository = PostgresSensorConfigurationRepository(database)
     live_dashboard_repository = LiveDashboardRepository(database)
     security_repository = SecurityRepository(database)
     instrumentation_repository = InstrumentationRepository(database)
+    profile_acceptance_repository = AcquisitionProfileAcceptanceRepository(database)
+    derived_read_service = HistoricalDerivedReadService(
+        database,
+        refrigeration_circuit_repository,
+        instrumentation_repository,
+        profile_acceptance_repository,
+        calculation_policy_repository,
+    )
     security_dependencies, local_auth_service = _create_security_runtime(
         resolved,
         database,
@@ -251,6 +266,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.refrigeration_repository = refrigeration_repository
     app.state.refrigeration_equipment_repository = refrigeration_equipment_repository
     app.state.refrigeration_circuit_repository = refrigeration_circuit_repository
+    app.state.calculation_policy_repository = calculation_policy_repository
     app.state.equipment_lifecycle_repository = equipment_lifecycle_repository
     app.state.sensor_configuration_repository = sensor_configuration_repository
     app.state.live_dashboard_repository = live_dashboard_repository
@@ -263,6 +279,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.report_output_query_repository = report_output_query_repository
     app.state.security_repository = security_repository
     app.state.instrumentation_repository = instrumentation_repository
+    app.state.profile_acceptance_repository = profile_acceptance_repository
+    app.state.derived_read_service = derived_read_service
     app.state.security_dependencies = security_dependencies
     app.state.local_auth_service = local_auth_service
     app.state.version_management_store = version_management_store
@@ -277,6 +295,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(
         create_instrumentation_router(
             instrumentation_repository,
+            security_dependencies=security_dependencies,
+            security_repository=security_repository,
+            default_organization_id=resolved.auth_default_organization_id,
+        )
+    )
+    app.include_router(
+        create_profile_acceptance_router(
+            profile_acceptance_repository,
             security_dependencies=security_dependencies,
             security_repository=security_repository,
             default_organization_id=resolved.auth_default_organization_id,
@@ -337,10 +363,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
     )
     app.include_router(
+        create_calculation_policy_router(
+            calculation_policy_repository,
+            security_dependencies=security_dependencies,
+            security_repository=security_repository,
+            default_organization_id=resolved.auth_default_organization_id,
+        )
+    )
+    app.include_router(
         create_refrigeration_circuit_router(
             refrigeration_circuit_repository,
             security_dependencies=security_dependencies,
             security_repository=security_repository,
+            default_organization_id=resolved.auth_default_organization_id,
+        )
+    )
+    app.include_router(
+        create_derived_read_router(
+            derived_read_service,
+            security_dependencies=security_dependencies,
             default_organization_id=resolved.auth_default_organization_id,
         )
     )

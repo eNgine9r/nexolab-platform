@@ -3,12 +3,15 @@ from __future__ import annotations
 from datetime import datetime
 
 from sqlalchemy import (
+    BigInteger,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
     ForeignKeyConstraint,
     Index,
     Integer,
+    JSON,
     String,
     UniqueConstraint,
     func,
@@ -30,6 +33,8 @@ CIRCUIT_PROCESS_ROLES = (
 )
 _LIFECYCLE_SQL = ", ".join(f"'{item}'" for item in CIRCUIT_LIFECYCLE_STATES)
 _ROLE_SQL = ", ".join(f"'{item}'" for item in CIRCUIT_PROCESS_ROLES)
+CALCULATION_POLICY_SCHEMA_VERSION = "refrigeration-calculation-policy/v1"
+CALIBRATION_VOCABULARY_VERSION = "calibration-state/v1"
 
 
 class RefrigerationCircuit(Base):
@@ -77,6 +82,58 @@ class RefrigerationCircuit(Base):
     equipment_id: Mapped[str] = mapped_column(String(36), nullable=False)
     business_key: Mapped[str] = mapped_column(String(128), nullable=False)
     display_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class RefrigerationCalculationPolicyRecord(Base):
+    __tablename__ = "refrigeration_calculation_policies"
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id",
+            "version",
+            name="uq_refrigeration_calculation_policy_version",
+        ),
+        CheckConstraint(
+            f"schema_version = '{CALCULATION_POLICY_SCHEMA_VERSION}'",
+            name="ck_refrigeration_calculation_policy_schema",
+        ),
+        CheckConstraint(
+            f"calibration_vocabulary_version = '{CALIBRATION_VOCABULARY_VERSION}'",
+            name="ck_refrigeration_calculation_policy_calibration_vocabulary",
+        ),
+        CheckConstraint(
+            "maximum_age_ms >= 0 AND maximum_future_clock_skew_ms >= 0 "
+            "AND maximum_cross_input_skew_ms >= 0",
+            name="ck_refrigeration_calculation_policy_durations",
+        ),
+        CheckConstraint(
+            "trim(version) <> ''",
+            name="ck_refrigeration_calculation_policy_version_nonempty",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_refrigeration_calculation_policy_organization",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    schema_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    version: Mapped[str] = mapped_column(String(128), nullable=False)
+    maximum_age_ms: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    maximum_future_clock_skew_ms: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    maximum_cross_input_skew_ms: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    calibration_vocabulary_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    accepted_calibration_states: Mapped[list[str]] = mapped_column(JSON, nullable=False)
+    require_calibration_at_observation: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    calibration_required_roles: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     created_by: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

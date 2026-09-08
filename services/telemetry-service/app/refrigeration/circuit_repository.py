@@ -599,6 +599,43 @@ class RefrigerationCircuitRepository:
             session.expunge_all()
             return view
 
+    def resolve_binding_identity(
+        self,
+        circuit_id: str,
+        role: str,
+        at: datetime,
+        *,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+    ) -> ResolvedCircuitBinding:
+        """Resolve historical binding identity without conflating acceptance gates."""
+        if role not in CIRCUIT_PROCESS_ROLES:
+            raise CircuitBindingCompatibilityError(f"unsupported circuit role {role!r}")
+        resolved_at = _require_aware(at, "binding resolution timestamp")
+        with Session(self._engine, expire_on_commit=False) as session:
+            self._circuit(session, organization_id, circuit_id)
+            rows = list(
+                session.scalars(
+                    select(RefrigerationCircuitSignalBinding).where(
+                        RefrigerationCircuitSignalBinding.organization_id == organization_id,
+                        RefrigerationCircuitSignalBinding.circuit_id == circuit_id,
+                        RefrigerationCircuitSignalBinding.role == role,
+                        RefrigerationCircuitSignalBinding.valid_from <= resolved_at,
+                        or_(
+                            RefrigerationCircuitSignalBinding.valid_to.is_(None),
+                            RefrigerationCircuitSignalBinding.valid_to > resolved_at,
+                        ),
+                    )
+                )
+            )
+            if len(rows) != 1:
+                raise CircuitResolutionError(
+                    f"role {role!r} must resolve exactly one effective Signal binding"
+                )
+            view = self._binding_view(session, rows[0], organization_id)
+            self._validate_role_shape(view.signal, view.instrument, role)
+            session.expunge_all()
+            return view
+
     def _circuit(
         self,
         session: Session,
