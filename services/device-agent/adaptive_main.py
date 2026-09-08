@@ -56,12 +56,6 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
         self._sqlite_busy_supervisor_limit = SQLITE_BUSY_SUPERVISOR_GRACE_CYCLES
         self._sqlite_busy_supervisor_delay_seconds = 1.0
         self._fatal_persistence_error: Exception | None = None
-        self._latest_summary_cache: dict[str, Any] = {
-            "schema_version": 1,
-            "count": 0,
-            "last_attempt_at": None,
-            "last_success_at": None,
-        }
         self.latest_values = LatestValueStore(settings.database_path)
         self.scheduler_policy = SchedulerPolicy.from_environment(
             legacy_interval_seconds=self.settings.sample_interval_seconds
@@ -90,26 +84,7 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
 
     def health_snapshot(self) -> dict[str, Any]:
         payload = super().health_snapshot()
-        latest_summary_stale = False
-        try:
-            latest_summary = self.scheduler.latest_summary()
-            self._latest_summary_cache = latest_summary
-        except sqlite3.OperationalError as error:
-            if not _is_sqlite_busy_error(error):
-                raise
-            latest_summary_stale = True
-            latest_summary = dict(
-                getattr(
-                    self,
-                    "_latest_summary_cache",
-                    {
-                        "schema_version": 1,
-                        "count": 0,
-                        "last_attempt_at": None,
-                        "last_success_at": None,
-                    },
-                )
-            )
+        latest_summary, latest_summary_stale = self.latest_values.health_summary()
         payload["latest_values"] = latest_summary
         base_contention = payload.get("sqlite_contention", {})
         queue_contention = (

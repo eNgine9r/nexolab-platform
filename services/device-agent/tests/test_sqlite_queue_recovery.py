@@ -193,6 +193,52 @@ class OfflineQueueLockRecoveryTests(unittest.TestCase):
         self.assertEqual(queue.contention_snapshot()["health_stale_total"], 1)
         self.assertEqual(queue.health_depth(), (1, False))
 
+    def test_health_state_does_not_wait_for_contended_operation_mutex(self) -> None:
+        queue = OfflineQueue(
+            self.database_path,
+            busy_timeout_ms=500,
+            busy_retry_attempts=3,
+            busy_retry_delay_seconds=0.01,
+            health_busy_timeout_ms=20,
+        )
+        queue.enqueue("topic", "payload", "event-health-concurrent")
+        self.assertEqual(queue.health_depth(), (1, False))
+        blocker = sqlite3.connect(
+            self.database_path, timeout=0, check_same_thread=False
+        )
+        blocker.execute("BEGIN EXCLUSIVE")
+        errors: list[Exception] = []
+
+        def blocked_size() -> None:
+            try:
+                queue.size()
+            except Exception as error:  # noqa: BLE001
+                errors.append(error)
+
+        worker = threading.Thread(target=blocked_size)
+        worker.start()
+        deadline = time.monotonic() + 0.5
+        while not queue._lock.locked() and time.monotonic() < deadline:  # noqa: SLF001
+            time.sleep(0.005)
+        self.assertTrue(queue._lock.locked())  # noqa: SLF001
+
+        started = time.monotonic()
+        try:
+            depth, stale = queue.health_depth()
+            contention = queue.contention_snapshot()
+            elapsed = time.monotonic() - started
+        finally:
+            blocker.rollback()
+            blocker.close()
+            worker.join(timeout=2)
+
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(errors, [])
+        self.assertLess(elapsed, 0.5)
+        self.assertEqual(depth, 1)
+        self.assertTrue(stale)
+        self.assertGreaterEqual(contention["health_stale_total"], 1)
+
     def test_reserved_write_lock_allows_health_read_but_blocks_enqueue(self) -> None:
         queue = OfflineQueue(
             self.database_path,

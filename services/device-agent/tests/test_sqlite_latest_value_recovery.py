@@ -7,6 +7,7 @@ import time
 import unittest
 from pathlib import Path
 from typing import Any, Callable
+from unittest.mock import patch
 
 from adaptive_scheduler import ScheduledResult, SchedulerTarget
 from latest_values import LatestValueStore
@@ -151,6 +152,68 @@ class LatestValueStoreLockRecoveryTests(unittest.TestCase):
         self.assertEqual(contention["busy_exhausted_total"], 0)
         self.assertEqual(contention["busy_recoveries_total"], 1)
         self.assertEqual(contention["consecutive_exhaustions"], 0)
+
+    def test_health_summary_does_not_wait_for_contended_operation_mutex(self) -> None:
+        store = LatestValueStore(
+            self.database_path,
+            busy_timeout_ms=500,
+            busy_retry_attempts=3,
+            busy_retry_delay_seconds=0.01,
+            health_busy_timeout_ms=20,
+        )
+        store.record_attempt(
+            self.target(),
+            self.result("2026-09-08T06:00:00+00:00", 4.2),
+        )
+        summary, stale = store.health_summary()
+        self.assertFalse(stale)
+        self.assertEqual(summary["count"], 1)
+
+        blocker = sqlite3.connect(
+            self.database_path, timeout=0, check_same_thread=False
+        )
+        blocker.execute("BEGIN EXCLUSIVE")
+        errors: list[Exception] = []
+
+        def blocked_summary() -> None:
+            try:
+                store.summary()
+            except Exception as error:  # noqa: BLE001
+                errors.append(error)
+
+        worker = threading.Thread(target=blocked_summary)
+        worker.start()
+        deadline = time.monotonic() + 0.5
+        while not store._lock.locked() and time.monotonic() < deadline:  # noqa: SLF001
+            time.sleep(0.005)
+        self.assertTrue(store._lock.locked())  # noqa: SLF001
+
+        started = time.monotonic()
+        try:
+            cached, stale = store.health_summary()
+            contention = store.contention_snapshot()
+            elapsed = time.monotonic() - started
+        finally:
+            blocker.rollback()
+            blocker.close()
+            worker.join(timeout=2)
+
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(errors, [])
+        self.assertLess(elapsed, 0.5)
+        self.assertTrue(stale)
+        self.assertEqual(cached["count"], 1)
+        self.assertGreaterEqual(contention["health_stale_total"], 1)
+
+    def test_health_summary_does_not_hide_structural_failure(self) -> None:
+        store = LatestValueStore(self.database_path)
+        with patch.object(
+            store,
+            "_read_health_summary",
+            side_effect=sqlite3.OperationalError("disk I/O error"),
+        ):
+            with self.assertRaisesRegex(sqlite3.OperationalError, "disk I/O error"):
+                store.health_summary()
 
     def test_persistent_lock_fails_boundedly_without_partial_latest_update(self) -> None:
         store = LatestValueStore(

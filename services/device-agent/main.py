@@ -349,6 +349,7 @@ class OfflineQueue:
             raise ValueError("health_busy_timeout_ms must be positive")
         database_path.parent.mkdir(parents=True, exist_ok=True)
         self._database_path = database_path
+        self._database_uri = database_path.absolute().as_uri()
         self._health_busy_timeout_ms = health_busy_timeout_ms
         self._connection = sqlite3.connect(
             database_path,
@@ -357,6 +358,7 @@ class OfflineQueue:
         )
         self._connection.execute(f"PRAGMA busy_timeout = {busy_timeout_ms}")
         self._lock = threading.Lock()
+        self._state_lock = threading.Lock()
         self._busy_retry_attempts = busy_retry_attempts
         self._busy_retry_delay_seconds = busy_retry_delay_seconds
         self._busy_events_total = 0
@@ -393,7 +395,8 @@ class OfflineQueue:
                 row = self._connection.execute(
                     "SELECT COUNT(*) FROM outbound_queue"
                 ).fetchone()
-                self._last_known_size = int(row[0] if row else 0)
+                with self._state_lock:
+                    self._last_known_size = int(row[0] if row else 0)
 
         with self._lock:
             self._retry_busy("initialize", initialize)
@@ -408,9 +411,10 @@ class OfflineQueue:
         for attempt in range(1, self._busy_retry_attempts + 1):
             try:
                 result = operation()
-                if saw_busy:
-                    self._busy_recoveries_total += 1
-                self._busy_consecutive_exhaustions = 0
+                with self._state_lock:
+                    if saw_busy:
+                        self._busy_recoveries_total += 1
+                    self._busy_consecutive_exhaustions = 0
                 return result
             except sqlite3.OperationalError as error:
                 if self._connection.in_transaction:
@@ -418,12 +422,17 @@ class OfflineQueue:
                 if not self._is_busy_error(error):
                     raise
                 saw_busy = True
-                self._busy_events_total += 1
-                self._busy_last_operation = label
-                self._busy_last_error = str(error)
-                if attempt >= self._busy_retry_attempts:
-                    self._busy_exhausted_total += 1
-                    self._busy_consecutive_exhaustions += 1
+                exhausted = attempt >= self._busy_retry_attempts
+                with self._state_lock:
+                    self._busy_events_total += 1
+                    self._busy_last_operation = label
+                    self._busy_last_error = str(error)
+                    if exhausted:
+                        self._busy_exhausted_total += 1
+                        self._busy_consecutive_exhaustions += 1
+                    else:
+                        self._busy_retries_total += 1
+                if exhausted:
                     LOG.error(
                         "SQLite queue %s exhausted lock-contention retry budget %s/%s",
                         label,
@@ -431,7 +440,6 @@ class OfflineQueue:
                         self._busy_retry_attempts,
                     )
                     raise
-                self._busy_retries_total += 1
                 LOG.warning(
                     "SQLite queue %s deferred by lock contention; retry %s/%s",
                     label,
@@ -443,7 +451,7 @@ class OfflineQueue:
         raise RuntimeError("SQLite busy retry loop exhausted unexpectedly")
 
     def contention_snapshot(self) -> dict[str, Any]:
-        with self._lock:
+        with self._state_lock:
             return {
                 "schema_version": 1,
                 "busy_events_total": self._busy_events_total,
@@ -503,7 +511,8 @@ class OfflineQueue:
                 "SELECT COUNT(*) FROM outbound_queue"
             ).fetchone()
             value = int(row[0] if row else 0)
-            self._last_known_size = value
+            with self._state_lock:
+                self._last_known_size = value
             return value
 
         with self._lock:
@@ -511,7 +520,7 @@ class OfflineQueue:
 
     def _read_health_depth(self) -> int:
         connection = sqlite3.connect(
-            f"file:{self._database_path}?mode=ro",
+            f"{self._database_uri}?mode=ro",
             uri=True,
             timeout=self._health_busy_timeout_ms / 1000,
         )
@@ -533,10 +542,10 @@ class OfflineQueue:
         except sqlite3.OperationalError as error:
             if not self._is_busy_error(error):
                 raise
-            with self._lock:
+            with self._state_lock:
                 self._health_stale_total += 1
                 return self._last_known_size, True
-        with self._lock:
+        with self._state_lock:
             self._last_known_size = value
         return value, False
 

@@ -412,6 +412,7 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
             "consecutive_exhaustions": 0,
         }
         value.latest_values = Mock()
+        value.latest_values.health_summary.return_value = ({}, False)
         value.latest_values.contention_snapshot.return_value = {
             "consecutive_exhaustions": 0,
         }
@@ -431,7 +432,6 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
             }
         )
         value.scheduler = Mock()
-        value.scheduler.latest_summary.return_value = {}
         value.scheduler.current_error.return_value = (
             "adaptive acquisition worker unavailable: "
             "1 bus worker(s) inactive"
@@ -462,6 +462,7 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
             "busy_exhausted_total": 0,
         }
         value.latest_values = Mock()
+        value.latest_values.health_summary.return_value = ({}, False)
         value.latest_values.contention_snapshot.return_value = {
             "consecutive_exhaustions": 1,
             "busy_exhausted_total": 2,
@@ -474,7 +475,6 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
             }
         )
         value.scheduler = Mock()
-        value.scheduler.latest_summary.return_value = {}
 
         payload = value.health_snapshot()
 
@@ -503,6 +503,10 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
             "last_operation": "size",
         }
         value.latest_values = Mock()
+        value.latest_values.health_summary.return_value = (
+            {"schema_version": 1, "count": 2},
+            False,
+        )
         value.latest_values.contention_snapshot.return_value = {
             "consecutive_exhaustions": 0,
         }
@@ -514,10 +518,6 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
             }
         )
         value.scheduler = Mock()
-        value.scheduler.latest_summary.return_value = {
-            "schema_version": 1,
-            "count": 2,
-        }
 
         payload = value.health_snapshot()
 
@@ -539,6 +539,15 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
             "consecutive_exhaustions": 0,
         }
         value.latest_values = Mock()
+        value.latest_values.health_summary.return_value = (
+            {
+                "schema_version": 1,
+                "count": 4,
+                "last_attempt_at": "2026-09-08T17:00:00+00:00",
+                "last_success_at": "2026-09-08T17:00:00+00:00",
+            },
+            True,
+        )
         value.latest_values.contention_snapshot.return_value = {
             "consecutive_exhaustions": 1,
             "busy_exhausted_total": 1,
@@ -552,15 +561,6 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
             }
         )
         value.scheduler = Mock()
-        value.scheduler.latest_summary.side_effect = sqlite3.OperationalError(
-            "database is locked"
-        )
-        value._latest_summary_cache = {
-            "schema_version": 1,
-            "count": 4,
-            "last_attempt_at": "2026-09-08T17:00:00+00:00",
-            "last_success_at": "2026-09-08T17:00:00+00:00",
-        }
 
         payload = value.health_snapshot()
 
@@ -581,6 +581,10 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
         value.queue.contention_snapshot.return_value = {
             "consecutive_exhaustions": 0,
         }
+        value.latest_values = Mock()
+        value.latest_values.health_summary.side_effect = sqlite3.OperationalError(
+            "disk I/O error"
+        )
         value.acquisition_snapshot = Mock(
             return_value={
                 "scheduler": {
@@ -589,9 +593,6 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
             }
         )
         value.scheduler = Mock()
-        value.scheduler.latest_summary.side_effect = sqlite3.OperationalError(
-            "disk I/O error"
-        )
 
         with self.assertRaisesRegex(sqlite3.OperationalError, "disk I/O error"):
             value.health_snapshot()

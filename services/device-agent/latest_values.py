@@ -26,6 +26,7 @@ class LatestValueStore:
         busy_timeout_ms: int = 2000,
         busy_retry_attempts: int = 3,
         busy_retry_delay_seconds: float = 0.05,
+        health_busy_timeout_ms: int = 100,
     ) -> None:
         if busy_timeout_ms <= 0:
             raise ValueError("busy_timeout_ms must be positive")
@@ -33,7 +34,11 @@ class LatestValueStore:
             raise ValueError("busy_retry_attempts must be positive")
         if busy_retry_delay_seconds < 0:
             raise ValueError("busy_retry_delay_seconds must be non-negative")
+        if health_busy_timeout_ms <= 0:
+            raise ValueError("health_busy_timeout_ms must be positive")
         database_path.parent.mkdir(parents=True, exist_ok=True)
+        self._database_uri = database_path.absolute().as_uri()
+        self._health_busy_timeout_ms = health_busy_timeout_ms
         self._connection = sqlite3.connect(
             database_path,
             check_same_thread=False,
@@ -41,6 +46,7 @@ class LatestValueStore:
         )
         self._connection.execute(f"PRAGMA busy_timeout = {busy_timeout_ms}")
         self._lock = threading.Lock()
+        self._state_lock = threading.Lock()
         self._busy_retry_attempts = busy_retry_attempts
         self._busy_retry_delay_seconds = busy_retry_delay_seconds
         self._busy_events_total = 0
@@ -50,6 +56,13 @@ class LatestValueStore:
         self._busy_consecutive_exhaustions = 0
         self._busy_last_operation: str | None = None
         self._busy_last_error: str | None = None
+        self._health_stale_total = 0
+        self._health_summary_cache: dict[str, Any] = {
+            "schema_version": 1,
+            "count": 0,
+            "last_attempt_at": None,
+            "last_success_at": None,
+        }
 
         def initialize() -> None:
             with self._connection:
@@ -64,6 +77,9 @@ class LatestValueStore:
                     )
                     """
                 )
+                summary = self._summary_from_connection(self._connection)
+                with self._state_lock:
+                    self._health_summary_cache = summary
 
         with self._lock:
             self._retry_busy("initialize", initialize)
@@ -78,9 +94,10 @@ class LatestValueStore:
         for attempt in range(1, self._busy_retry_attempts + 1):
             try:
                 result = operation()
-                if saw_busy:
-                    self._busy_recoveries_total += 1
-                self._busy_consecutive_exhaustions = 0
+                with self._state_lock:
+                    if saw_busy:
+                        self._busy_recoveries_total += 1
+                    self._busy_consecutive_exhaustions = 0
                 return result
             except sqlite3.OperationalError as error:
                 if self._connection.in_transaction:
@@ -88,12 +105,17 @@ class LatestValueStore:
                 if not self._is_busy_error(error):
                     raise
                 saw_busy = True
-                self._busy_events_total += 1
-                self._busy_last_operation = label
-                self._busy_last_error = str(error)
-                if attempt >= self._busy_retry_attempts:
-                    self._busy_exhausted_total += 1
-                    self._busy_consecutive_exhaustions += 1
+                exhausted = attempt >= self._busy_retry_attempts
+                with self._state_lock:
+                    self._busy_events_total += 1
+                    self._busy_last_operation = label
+                    self._busy_last_error = str(error)
+                    if exhausted:
+                        self._busy_exhausted_total += 1
+                        self._busy_consecutive_exhaustions += 1
+                    else:
+                        self._busy_retries_total += 1
+                if exhausted:
                     LOG.error(
                         "SQLite latest-value %s exhausted lock-contention retry budget %s/%s",
                         label,
@@ -101,7 +123,6 @@ class LatestValueStore:
                         self._busy_retry_attempts,
                     )
                     raise
-                self._busy_retries_total += 1
                 LOG.warning(
                     "SQLite latest-value %s deferred by lock contention; retry %s/%s",
                     label,
@@ -113,7 +134,7 @@ class LatestValueStore:
         raise RuntimeError("SQLite busy retry loop exhausted unexpectedly")
 
     def contention_snapshot(self) -> dict[str, Any]:
-        with self._lock:
+        with self._state_lock:
             return {
                 "schema_version": 1,
                 "busy_events_total": self._busy_events_total,
@@ -123,6 +144,7 @@ class LatestValueStore:
                 "consecutive_exhaustions": self._busy_consecutive_exhaustions,
                 "last_operation": self._busy_last_operation,
                 "last_error": self._busy_last_error,
+                "health_stale_total": self._health_stale_total,
             }
 
     def record_attempt(
@@ -265,26 +287,61 @@ class LatestValueStore:
         with self._lock:
             return self._retry_busy("payloads_for", operation)
 
+    @staticmethod
+    def _summary_from_connection(connection: sqlite3.Connection) -> dict[str, Any]:
+        row = connection.execute(
+            """
+            SELECT
+                COUNT(*),
+                MAX(last_attempt_at),
+                MAX(last_success_at)
+            FROM acquisition_latest_values
+            """
+        ).fetchone()
+        return {
+            "schema_version": 1,
+            "count": int(row[0] if row else 0),
+            "last_attempt_at": str(row[1]) if row and row[1] else None,
+            "last_success_at": str(row[2]) if row and row[2] else None,
+        }
+
     def summary(self) -> dict[str, Any]:
         def operation() -> dict[str, Any]:
-            row = self._connection.execute(
-                """
-                SELECT
-                    COUNT(*),
-                    MAX(last_attempt_at),
-                    MAX(last_success_at)
-                FROM acquisition_latest_values
-                """
-            ).fetchone()
-            return {
-                "schema_version": 1,
-                "count": int(row[0] if row else 0),
-                "last_attempt_at": str(row[1]) if row and row[1] else None,
-                "last_success_at": str(row[2]) if row and row[2] else None,
-            }
+            result = self._summary_from_connection(self._connection)
+            with self._state_lock:
+                self._health_summary_cache = dict(result)
+            return result
 
         with self._lock:
             return self._retry_busy("summary", operation)
+
+    def _read_health_summary(self) -> dict[str, Any]:
+        connection = sqlite3.connect(
+            f"{self._database_uri}?mode=ro",
+            uri=True,
+            timeout=self._health_busy_timeout_ms / 1000,
+        )
+        try:
+            connection.execute(
+                f"PRAGMA busy_timeout = {self._health_busy_timeout_ms}"
+            )
+            return self._summary_from_connection(connection)
+        finally:
+            connection.close()
+
+    def health_summary(self) -> tuple[dict[str, Any], bool]:
+        """Return latest-value summary without waiting behind persistence work."""
+        try:
+            result = self._read_health_summary()
+        except sqlite3.OperationalError as error:
+            if not self._is_busy_error(error):
+                raise
+            with self._state_lock:
+                self._health_stale_total += 1
+                return dict(self._health_summary_cache), True
+        with self._state_lock:
+            self._health_summary_cache = dict(result)
+        return result, False
 
     def snapshot(self, *, limit: int = 500) -> dict[str, Any]:
         bounded = min(2000, max(1, limit))
