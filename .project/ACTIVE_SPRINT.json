@@ -3205,7 +3205,7 @@
         "working_tree_snapshot": "/home/nexolab/recovery/issue-968-pre-ssd-20260908T091750Z",
         "preflight": "passed_read_only_exact_model_serial_root_separation",
         "destructive_prepare": "passed_2026-09-08T12:59:53+03:00",
-        "cutover": "pending_privileged_operator_execution",
+        "cutover": "first_attempt_failed_rollback_passed_retry_pending",
         "modbus_write": "none",
         "hardware_write": "none",
         "postgresql_dump_measured_bytes": 496133350,
@@ -3226,7 +3226,32 @@
         "runtime_acceptance_dry_run": "pass_dashboard_200_login_200_auth_401_postgres_ready_device_agent_samples_2969_to_3040_queue_0_workers_2_of_2_restart_5_stable",
         "docker_live_restore": "false",
         "running_container_restart_policy": "all_12_unless_stopped",
-        "production_cutover": "not_run"
+        "production_cutover": "first_ssd_boot_failed_before_userspace_acceptance_rollback_passed",
+        "first_ssd_boot": "kernel_panic_after_sda2_mount_missing_dev_proc_sys_run_mountpoints",
+        "first_ssd_boot_root_detected": "/dev/sda2_ext4_mounted_successfully",
+        "rollback_to_microsd": "pass_root_mmcblk0p2_boot_mmcblk0p1_boot_order_0xf461_runtime_12_of_12_healthy",
+        "ssd_root_mountpoint_readback": "missing_dev_proc_sys_run_tmp_mnt_media_with_boot_and_boot_firmware_present",
+        "ssd_root_mountpoint_repair": "pass_dev755_proc555_sys555_run755_tmp1777_mnt755_media755_root_owned",
+        "post_repair_filesystem_checks": "pass_ext4_rc0_fat_rc0",
+        "repository_regression_issue": 970,
+        "retry_boot": "pending_product_owner_controlled_boot_without_microsd"
+      }
+    },
+    {
+      "issue": 970,
+      "title": "Preserve required root mountpoints during SSD migration",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "branch": "fix/970-ssd-root-mountpoints",
+      "evidence": {
+        "discovered_during_issue": 968,
+        "real_failure": "initramfs_kernel_panic_missing_target_root_mountpoints",
+        "operational_ssd_repair": "completed_in_place_no_reformat",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "product_data_delete": "none",
+        "volume_delete": "none"
       }
     }
   ],

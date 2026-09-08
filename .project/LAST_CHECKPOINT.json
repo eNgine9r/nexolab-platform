@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-08T13:44:52+03:00",
+  "timestamp": "2026-09-08T16:12:03+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_968_review_p1_hardening_complete_cutover_pending_exact_head_green",
+  "event": "issue_968_first_ssd_boot_failure_diagnosed_repaired_issue_970_hardening_active",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -31,7 +31,7 @@
       "migration_preflight": "pass",
       "negative_wrong_serial_test": "pass_fail_closed",
       "destructive_prepare": "pass",
-      "production_cutover": "not_run",
+      "production_cutover": "first_attempt_failed_before_userspace_acceptance_rollback_passed",
       "modbus_write": "none",
       "hardware_write": "none",
       "postgresql_dump_measured_bytes": 496133350,
@@ -50,21 +50,39 @@
       "review_p1_post_boot_acceptance": "addressed",
       "docker_live_restore": "false",
       "running_container_restart_policy": "all_12_unless_stopped",
-      "runtime_acceptance_dry_run": "pass_samples_2969_to_3040_queue_0_workers_2_of_2_restart_5_stable_dashboard_login_auth_postgres"
+      "runtime_acceptance_dry_run": "pass_samples_2969_to_3040_queue_0_workers_2_of_2_restart_5_stable_dashboard_login_auth_postgres",
+      "first_ssd_boot_failure": "sda2_mounted_then_missing_root_dev_proc_sys_run_caused_initramfs_kernel_panic",
+      "first_ssd_boot_console_evidence": "attempted_to_kill_init_after_root_dev_console_missing",
+      "boot_order_after_rollback": "0xf461_sd_first",
+      "rollback_runtime": "microSD_root_and_boot_12_of_12_containers_healthy",
+      "ssd_root_mountpoint_repair": "pass_dev755_proc555_sys555_run755_tmp1777_mnt755_media755_root_owned",
+      "ssd_post_repair_fsck": "ext4_rc0_fat_rc0",
+      "repository_bug_issue": 970,
+      "repository_bug_branch": "fix/970-ssd-root-mountpoints",
+      "retry_boot": "pending_product_owner_controlled_action"
     }
   },
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-09-08T12:17:05+03:00",
+      "observed_at": "2026-09-08T16:12:03+03:00",
       "kind": "github_issue_lifecycle",
       "data": {
         "issue": 968,
         "state": "open"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-08T16:12:03+03:00",
+      "kind": "github_issue_lifecycle",
+      "data": {
+        "issue": 970,
+        "state": "open"
+      }
     }
   ],
-  "next_action": "Commit/push the three P1 review fixes, require exact-head CI and NEXOLAB Merge Gate GREEN, resolve the review threads, merge PR #969, then require the Product Owner to run the privileged SSD cutover command and perform fail-closed post-boot verification.",
+  "next_action": "Finish Issue #970 mountpoint regression hardening with targeted checks, PR and exact-head CI; then perform the Product Owner-controlled SSD boot retry from the repaired target and run fail-closed SSD runtime verification.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

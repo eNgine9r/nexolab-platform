@@ -161,6 +161,10 @@ RFX-08B / #960 is completed through exact verified product head `c1c7f8bc4988c35
 
 Issue #933 is the next Ready independent software Work Package. Its repository-side reproduction and SQLite contention hardening have no software hard blocker and require no Modbus/hardware write or production cutover. #930 remains independent lower-risk maintenance. #189/#585 remain blocked; #201 remains `needs_validation`; #202 remains `hardware_validation`.
 
+## Issue #970 — SSD migration omitted required empty root mountpoints
+
+**Active focused prerequisite discovered 2026-09-08.** Real #968 SSD boot mounted `/dev/sda2` successfully, then initramfs failed because `/root/dev`, `/root/run`, `/root/sys` and `/root/proc` did not exist; `/root/dev/console` was therefore unavailable and the kernel panicked. microSD rollback passed and the prepared SSD was repaired in place by recreating the required empty mountpoints with source-matching ownership/modes; ext4 and FAT read-only checks returned `0`. #970 hardens the migration helper and adds deterministic regression coverage before the repaired SSD is retried. No reformat, product-data deletion, Docker-volume deletion, Modbus write or hardware write is required.
+
 ## Safety boundaries
 
 No blocker may be bypassed by Modbus/controller write, hardware write, production/site cutover without approval, persistent-data deletion, named-volume deletion, secret exposure or mandatory cloud dependency.
