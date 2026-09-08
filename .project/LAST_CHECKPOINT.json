@@ -3,35 +3,33 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-08T16:12:03+03:00",
+  "timestamp": "2026-09-08T18:49:00+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_968_first_ssd_boot_failure_diagnosed_repaired_issue_970_hardening_active",
+  "event": "issue_968_repaired_ssd_boot_runtime_passed_issue_970_final_state_review_active",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 968,
-    "title": "Migrate nexolab-edge-01 system and NEXOLAB runtime from microSD to 256 GB SSD",
-    "branch": "ops/968-ssd-root-migration"
+    "issue": 970,
+    "title": "Preserve required root mountpoints during SSD migration",
+    "branch": "fix/970-ssd-root-mountpoints"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "issue": 968,
+      "issue": 970,
       "target_stable_id": "ata-Micron_MTFDDAK256TBN_17521B5686D5",
       "target_device": "/dev/sda",
       "target_size_bytes": 256060514304,
       "target_transport": "usb3_uas_5000M",
-      "source_root": "/dev/mmcblk0p2",
-      "source_boot": "/dev/mmcblk0p1",
       "source_root_usage": "97_percent_1_9GiB_free",
-      "boot_order": "0xf461_sd_first",
+      "boot_order": "0xf461_sd_first_rollback_safe",
       "issue_933_snapshot": "/home/nexolab/recovery/issue-968-pre-ssd-20260908T091750Z",
       "issue_933_patch_sha256": "3bff4838087e3985e05b3c96876e6067fcda2f538c13ce3e3d7dfa25cfd192c",
       "migration_preflight": "pass",
       "negative_wrong_serial_test": "pass_fail_closed",
       "destructive_prepare": "pass",
-      "production_cutover": "first_attempt_failed_before_userspace_acceptance_rollback_passed",
+      "production_cutover": "completed_to_ssd_root_repaired_retry_runtime_passed_final_normal_reboot_pending",
       "modbus_write": "none",
       "hardware_write": "none",
       "postgresql_dump_measured_bytes": 496133350,
@@ -51,7 +49,7 @@
       "docker_live_restore": "false",
       "running_container_restart_policy": "all_12_unless_stopped",
       "runtime_acceptance_dry_run": "pass_samples_2969_to_3040_queue_0_workers_2_of_2_restart_5_stable_dashboard_login_auth_postgres",
-      "first_ssd_boot_failure": "sda2_mounted_then_missing_root_dev_proc_sys_run_caused_initramfs_kernel_panic",
+      "first_ssd_boot_failure": "sda2_mounted_then_missing_root_mountpoints_kernel_panic",
       "first_ssd_boot_console_evidence": "attempted_to_kill_init_after_root_dev_console_missing",
       "boot_order_after_rollback": "0xf461_sd_first",
       "rollback_runtime": "microSD_root_and_boot_12_of_12_containers_healthy",
@@ -59,7 +57,24 @@
       "ssd_post_repair_fsck": "ext4_rc0_fat_rc0",
       "repository_bug_issue": 970,
       "repository_bug_branch": "fix/970-ssd-root-mountpoints",
-      "retry_boot": "pending_product_owner_controlled_action"
+      "retry_boot": "passed_live_root_sda2_boot_sda1_runtime_healthy",
+      "parent_issue": 968,
+      "operational_repair": "required_mountpoints_recreated_no_reformat_fsck_ext4_fat_rc0",
+      "repaired_target_boot": "pass_live_root_sda2_boot_sda1",
+      "runtime_acceptance": "12_containers_healthy_postgres_ready_dashboard_200_login_200_auth_401_rs485_ids_present",
+      "device_agent_runtime": "samples_640_to_720_mqtt_true_queue_0_workers_2_of_2_healthy_restart_0",
+      "normal_cmdline_restored": true,
+      "diagnostic_journald_override_removed": true,
+      "pr": 971,
+      "verified_head_before_state_reconciliation": "93dda51dcfbffbbcef46964a09b225f454b93fb6",
+      "product_data_delete": "none",
+      "volume_delete": "none",
+      "original_source_root": "/dev/mmcblk0p2",
+      "original_source_boot": "/dev/mmcblk0p1",
+      "current_root": "/dev/sda2",
+      "current_boot": "/dev/sda1",
+      "current_root_capacity": "about_234GiB_about_170GiB_free",
+      "final_acceptance": "pending_product_owner_controlled_normal_boot_reboot_then_uas_runtime_verify"
     }
   },
   "observations": [
@@ -82,7 +97,7 @@
       }
     }
   ],
-  "next_action": "Finish Issue #970 mountpoint regression hardening with targeted checks, PR and exact-head CI; then perform the Product Owner-controlled SSD boot retry from the repaired target and run fail-closed SSD runtime verification.",
+  "next_action": "Resolve the final PR #971 durable-state review finding, rerun exact-head verification, merge #971, then request one Product Owner-controlled reboot with normal SSD boot configuration and run UAS/runtime persistence verification for #968.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
