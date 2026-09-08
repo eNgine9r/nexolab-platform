@@ -113,8 +113,8 @@ async function chooseClimateChamber(page: Page, chamber: ClimateChamberPayload):
   await selector.selectOption(chamber.id);
   const channelSummary = page.getByText(/Температурні канали:/);
   await expect(channelSummary).toBeVisible();
-  await expect(channelSummary).toContainText("84");
-  await expect(page.getByText(/Dixell:/)).toContainText("14");
+  await expect(channelSummary).toContainText("114");
+  await expect(page.getByText(/Dixell:/)).toContainText("19");
   await expect(page.getByText(/Лічильники:/)).toContainText("0");
   await expect(
     page.getByText("До цієї кліматичної камери лічильники електроенергії ще не підключені.", { exact: true }),
