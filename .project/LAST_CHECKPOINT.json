@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-08T11:45:27+03:00",
+  "timestamp": "2026-09-08T11:53:19+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_966_refrigeration_browser_cardinality_contract_repaired",
+  "event": "issue_966_telemetry_catalog_fixture_repaired_after_exact_head_ci",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -14,7 +14,7 @@
     "issue": 966,
     "title": "Correct KK2 sensor numbering and Dixell channel mapping from physical panel evidence",
     "branch": "fix/966-kk2-panel-catalog",
-    "implementation_head_sha": "eee5ce0f6ed290685d716056759fa73c5a9ef8a3"
+    "implementation_head_sha": "671638feba62dafb5802120f8035da65224950d3"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
@@ -29,11 +29,13 @@
       "offline_migration_sql": "passed",
       "compose_config": "passed",
       "refrigeration_browser_first_exact_head": "failure_34205641156_stale_expected_84_14_actual_114_19_two_other_tests_passed",
-      "browser_fixture_repair_commit": "eee5ce0f6ed290685d716056759fa73c5a9ef8a3"
+      "browser_fixture_repair_commit": "eee5ce0f6ed290685d716056759fa73c5a9ef8a3",
+      "telemetry_exact_head_failure": "run_34206258208_785_passed_1_failed_only_stale_84_channel_expectation_migrations_to_0037_passed",
+      "telemetry_fixture_repair_commit": "671638feba62dafb5802120f8035da65224950d3"
     }
   },
   "observations": [],
-  "next_action": "Push the #966 browser-cardinality repair/state checkpoint, require all exact-head workflows including Refrigeration Browser Acceptance, Telemetry Service, Device Agent Fleet, Offline Bundle and NEXOLAB Merge Gate to be GREEN, then merge PR #967 and promote Issue #965.",
+  "next_action": "Push the #966 Telemetry fixture repair/state checkpoint and require a fresh exact-head matrix. Merge PR #967 only after Telemetry Service, Offline Bundle, Refrigeration Browser Acceptance, Core Quality/build and NEXOLAB Merge Gate are all GREEN; then promote Issue #965.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

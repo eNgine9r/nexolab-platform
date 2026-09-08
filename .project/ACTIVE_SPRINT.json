@@ -3198,7 +3198,7 @@
       "depends_on": [],
       "evidence": {
         "product_owner_authority": "physical_KK1_KK2_panel_evidence_and_issue_966_contract_2026_09_08",
-        "implementation_head_sha": "eee5ce0f6ed290685d716056759fa73c5a9ef8a3",
+        "implementation_head_sha": "671638feba62dafb5802120f8035da65224950d3",
         "kk1_mapping": "126_138_x_6_inputs_to_physical_inventory_197_274_unchanged",
         "kk2_mapping": "96_114_x_6_inputs_to_physical_inventory_441_554_one_sensor_per_input",
         "canonical_channel_identity": "K101_K114_channel_ids_preserved_K96_K100_added_without_hot_poll_enrollment",
@@ -3217,7 +3217,9 @@
         "hardware_write": "none",
         "hardware_acceptance": "panel_identity_evidence_only_K96_K100_communication_unverified",
         "refrigeration_browser_first_exact_head": "failure_34205641156_stale_fixture_expected_84_channels_14_controllers_actual_correct_114_19",
-        "refrigeration_browser_fixture_repair": "eee5ce0f_test_only_update_84_to_114_and_14_to_19"
+        "refrigeration_browser_fixture_repair": "eee5ce0f_test_only_update_84_to_114_and_14_to_19",
+        "telemetry_first_post_browser_head": "failure_34206258208_785_passed_1_failed_stale_KK2_channel_count_84_vs_114",
+        "telemetry_fixture_repair": "671638fe_updates_KK2_count_114_and_first_channel_096_01"
       }
     },
     {
