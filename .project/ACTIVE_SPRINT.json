@@ -22,7 +22,11 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 968,
+      "title": "Migrate nexolab-edge-01 system and NEXOLAB runtime from microSD to 256 GB SSD",
+      "branch": "ops/968-ssd-root-migration"
+    },
     "next_work_package": {
       "issue": 933,
       "title": "Prevent Device Agent exit on transient SQLite lock contention",
@@ -3184,6 +3188,46 @@
         "modbus_write": "none",
         "hardware_write": "none"
       }
+    },
+    {
+      "issue": 968,
+      "title": "Migrate nexolab-edge-01 system and NEXOLAB runtime from microSD to 256 GB SSD",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "ops/968-ssd-root-migration",
+      "depends_on": [],
+      "evidence": {
+        "target_disk": "Micron_MTFDDAK256TBN_17521B5686D5",
+        "target_size_bytes": 256060514304,
+        "source_root": "/dev/mmcblk0p2",
+        "source_root_usage_percent": 97,
+        "usb_transport": "uas_5000M",
+        "working_tree_snapshot": "/home/nexolab/recovery/issue-968-pre-ssd-20260908T091750Z",
+        "preflight": "passed_read_only_exact_model_serial_root_separation",
+        "destructive_prepare": "passed_2026-09-08T12:59:53+03:00",
+        "cutover": "pending_privileged_operator_execution",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "postgresql_dump_measured_bytes": 496133350,
+        "source_free_bytes": 1945370624,
+        "prepared_boot_partuuid": "4299a96f-01",
+        "prepared_root_partuuid": "4299a96f-02",
+        "prepared_root_uuid": "e704b091-7ce2-4d47-a049-64b19c0e709e",
+        "backup_set": "20260908T094149Z",
+        "backup_checksums": "all_6_pass_path_independent",
+        "postgresql_archive_entries": 494,
+        "edge_sqlite_quick_check": "ok",
+        "seed_copy_files": 858485,
+        "seed_copy_total_bytes": 55174431322,
+        "device_agent_high_io_observation": "restart_count_5_sqlite_database_locked_then_recovered_healthy",
+        "review_p1_restart_eligibility": "addressed_daemon_level_quiesce_without_docker_stop",
+        "review_p1_quiesce_failure": "addressed_fail_closed_systemd_stop_and_recorded_pid_exit",
+        "review_p1_post_boot_acceptance": "addressed_fail_closed_ssd_runtime_acceptance",
+        "runtime_acceptance_dry_run": "pass_dashboard_200_login_200_auth_401_postgres_ready_device_agent_samples_2969_to_3040_queue_0_workers_2_of_2_restart_5_stable",
+        "docker_live_restore": "false",
+        "running_container_restart_policy": "all_12_unless_stopped",
+        "production_cutover": "not_run"
+      }
     }
   ],
   "maintenance_actions": [
@@ -3536,6 +3580,16 @@
         "issue": 960,
         "state": "closed",
         "state_reason": "completed"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-08T12:17:05+03:00",
+      "kind": "github_issue_lifecycle",
+      "data": {
+        "issue": 968,
+        "state": "open",
+        "title": "[OPS][STORAGE] Migrate nexolab-edge-01 system and NEXOLAB runtime from microSD to 256 GB SSD"
       }
     }
   ],

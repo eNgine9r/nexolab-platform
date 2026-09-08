@@ -2,6 +2,10 @@
 
 Updated: 2026-09-08
 
+## Issue #968 — privileged SSD boot cutover
+
+**Active operator-action gate.** Product Owner-authorized SSD `prepare` passed on Micron `MTFDDAK256TBN`, serial `17521B5686D5`: partitions/filesystems are created, target boot identity is SSD-only, all prepared backup checksums match, PostgreSQL archive listing and edge SQLite quick-check pass, and the original microSD remains the active untouched rollback root. High seed-copy I/O also reproduced Issue #933 SQLite lock contention; Device Agent reached RestartCount 5 and then recovered healthy. PR #969 review found three P1 migration-safety gaps; the superseding candidate now preserves `unless-stopped` restart eligibility by avoiding `docker stop`, fails closed unless Docker/containerd and all recorded container PIDs are fully quiesced, and requires comprehensive SSD/runtime/acquisition post-boot verification. Runtime-equivalent assertions pass on the current host, but the revised exact head still requires GREEN CI and resolved review threads. The remaining destructive/runtime boundary is the separate privileged `cutover`; the assistant cannot enter the Product Owner's sudo credential. No Modbus/hardware write, product-data deletion or Docker named-volume deletion is permitted.
+
 ## Issue #843 — Telemetry planner-choice CI nondeterminism
 
 **Repository-side blocker cleared 2026-09-03.** PR #844 exact verified implementation head `fcd9d2429ef19c9410fdfe9292d6f5d04cdc7c1b` passed all 11 registered workflows, including Telemetry Service `33770161208`, Core CI/NEXOLAB Merge Gate `33770159789` and Offline Bundle `33770159680`. The repair preserves the production query and schema while replacing an optimizer-specific exact-index-name assertion with independent canonical-index catalog validation plus an index-backed latest-value probe. Local repeated PostgreSQL 16 and transactional negative evidence are GREEN. No production deployment, runtime mutation, Modbus/hardware write or data/volume mutation occurred. GitHub merge status is queried online; after PR #844 merges, integrate current `main` into TG-04 PR #842 and rerun its exact-head verification.
