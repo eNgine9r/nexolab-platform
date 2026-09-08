@@ -3198,7 +3198,7 @@
       "depends_on": [],
       "evidence": {
         "product_owner_authority": "physical_KK1_KK2_panel_evidence_and_issue_966_contract_2026_09_08",
-        "implementation_head_sha": "f45142f64ed8e7d3cb7ae7b557e40dcd9ab5bbd7",
+        "implementation_head_sha": "eee5ce0f6ed290685d716056759fa73c5a9ef8a3",
         "kk1_mapping": "126_138_x_6_inputs_to_physical_inventory_197_274_unchanged",
         "kk2_mapping": "96_114_x_6_inputs_to_physical_inventory_441_554_one_sensor_per_input",
         "canonical_channel_identity": "K101_K114_channel_ids_preserved_K96_K100_added_without_hot_poll_enrollment",
@@ -3215,7 +3215,9 @@
         "runtime_mutation": "none_read_only_database_snapshot_only",
         "modbus_write": "none",
         "hardware_write": "none",
-        "hardware_acceptance": "panel_identity_evidence_only_K96_K100_communication_unverified"
+        "hardware_acceptance": "panel_identity_evidence_only_K96_K100_communication_unverified",
+        "refrigeration_browser_first_exact_head": "failure_34205641156_stale_fixture_expected_84_channels_14_controllers_actual_correct_114_19",
+        "refrigeration_browser_fixture_repair": "eee5ce0f_test_only_update_84_to_114_and_14_to_19"
       }
     },
     {

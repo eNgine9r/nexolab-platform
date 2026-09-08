@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-08T11:28:31+03:00",
+  "timestamp": "2026-09-08T11:45:27+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_966_kk2_panel_catalog_product_candidate_ready_for_pr",
+  "event": "issue_966_refrigeration_browser_cardinality_contract_repaired",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -14,7 +14,7 @@
     "issue": 966,
     "title": "Correct KK2 sensor numbering and Dixell channel mapping from physical panel evidence",
     "branch": "fix/966-kk2-panel-catalog",
-    "implementation_head_sha": "f45142f64ed8e7d3cb7ae7b557e40dcd9ab5bbd7"
+    "implementation_head_sha": "eee5ce0f6ed290685d716056759fa73c5a9ef8a3"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
@@ -27,11 +27,13 @@
       "device_agent": "7_unittest_passed_and_3_hardware_contract_pytest_passed",
       "frontend": "3_passed",
       "offline_migration_sql": "passed",
-      "compose_config": "passed"
+      "compose_config": "passed",
+      "refrigeration_browser_first_exact_head": "failure_34205641156_stale_expected_84_14_actual_114_19_two_other_tests_passed",
+      "browser_fixture_repair_commit": "eee5ce0f6ed290685d716056759fa73c5a9ef8a3"
     }
   },
   "observations": [],
-  "next_action": "Push Issue #966 implementation/state branch, open the focused PR, require exact-head CI GREEN and merge before starting Issue #965 sensor-placement UX implementation. Keep Issue #933 Ready and its separate local WIP untouched.",
+  "next_action": "Push the #966 browser-cardinality repair/state checkpoint, require all exact-head workflows including Refrigeration Browser Acceptance, Telemetry Service, Device Agent Fleet, Offline Bundle and NEXOLAB Merge Gate to be GREEN, then merge PR #967 and promote Issue #965.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
