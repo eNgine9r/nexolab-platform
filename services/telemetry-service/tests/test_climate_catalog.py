@@ -42,9 +42,13 @@ ORGANIZATION_ID = "00000000-0000-0000-0000-000000000001"
         ("KK1", 126, 6, 202),
         ("KK1", 127, 1, 203),
         ("KK1", 138, 6, 274),
+        ("KK2", 96, 1, 441),
+        ("KK2", 96, 6, 446),
         ("KK2", 101, 1, 471),
         ("KK2", 101, 6, 476),
-        ("KK2", 102, 1, 477),
+        ("KK2", 106, 1, 501),
+        ("KK2", 106, 6, 506),
+        ("KK2", 114, 1, 549),
         ("KK2", 114, 6, 554),
     ],
 )
@@ -59,6 +63,7 @@ def test_logical_sensor_number_formula(
 
 def test_temperature_channel_business_keys_and_bounds() -> None:
     assert temperature_channel_id("KK1", 126, 1) == "126-01"
+    assert temperature_channel_id("KK2", 96, 1) == "096-01"
     assert temperature_channel_id("KK2", 114, 6) == "114-06"
     with pytest.raises(ClimateCatalogError):
         logical_sensor_number("KK1", 125, 1)
@@ -70,19 +75,19 @@ def test_domain_catalog_has_exact_channel_ranges() -> None:
     kk1 = list(iter_temperature_channels("KK1"))
     kk2 = list(iter_temperature_channels("KK2"))
     assert len(kk1) == 78
-    assert len(kk2) == 84
+    assert len(kk2) == 114
     assert (kk1[0].logical_sensor_number, kk1[-1].logical_sensor_number) == (
         197,
         274,
     )
     assert (kk2[0].logical_sensor_number, kk2[-1].logical_sensor_number) == (
-        471,
+        441,
         554,
     )
     assert kk1[0].channel_id == kk1[0].source_channel_id == "126-01"
-    assert kk2[0].channel_id == kk2[0].source_channel_id == "101-01"
+    assert kk2[0].channel_id == kk2[0].source_channel_id == "096-01"
     assert kk1[0].physical_sensor_inventory_numbers == ("197",)
-    assert kk2[0].physical_sensor_inventory_numbers == ("471-A", "471-B")
+    assert kk2[0].physical_sensor_inventory_numbers == ("441",)
 
 
 def build_catalog(
@@ -114,9 +119,9 @@ def test_seed_is_idempotent_and_creates_exact_catalog(tmp_path: Path) -> None:
     assert first.nodes_created == 1
     assert first.buses_created == 1
     assert first.chambers_created == 2
-    assert first.devices_created == 31
-    assert first.channels_created == 162
-    assert first.physical_sensors_created == 246
+    assert first.devices_created == 36
+    assert first.channels_created == 192
+    assert first.physical_sensors_created == 192
     assert first.changed is True
     assert second.skipped is False
     assert second.changed is False
@@ -131,9 +136,9 @@ def test_seed_is_idempotent_and_creates_exact_catalog(tmp_path: Path) -> None:
         assert session.scalar(select(func.count()).select_from(CentralNode)) == 1
         assert session.scalar(select(func.count()).select_from(MeasurementBus)) == 1
         assert session.scalar(select(func.count()).select_from(ClimateChamber)) == 2
-        assert session.scalar(select(func.count()).select_from(MeasurementDevice)) == 31
-        assert session.scalar(select(func.count()).select_from(MeasurementChannel)) == 162
-        assert session.scalar(select(func.count()).select_from(PhysicalSensor)) == 246
+        assert session.scalar(select(func.count()).select_from(MeasurementDevice)) == 36
+        assert session.scalar(select(func.count()).select_from(MeasurementChannel)) == 192
+        assert session.scalar(select(func.count()).select_from(PhysicalSensor)) == 192
         node = session.scalar(select(CentralNode))
         bus = session.scalar(select(MeasurementBus))
         assert node is not None and node.node_id == DEFAULT_EDGE_NODE_ID
@@ -201,22 +206,22 @@ def test_catalog_api_isolates_kk1_and_kk2(tmp_path: Path) -> None:
         for item in kk1_payload["temperatureChannels"]
     )
 
-    assert len(kk2_payload["temperatureControllers"]) == 14
-    assert len(kk2_payload["temperatureChannels"]) == 84
+    assert len(kk2_payload["temperatureControllers"]) == 19
+    assert len(kk2_payload["temperatureChannels"]) == 114
     assert kk2_payload["energyMeters"] == []
     assert kk2_payload["energyMeterEmptyMessage"] == (
         "До цієї кліматичної камери лічильники електроенергії ще не підключені."
     )
-    assert kk2_payload["temperatureChannels"][0]["channel_id"] == "101-01"
-    assert kk2_payload["temperatureChannels"][0]["source_channel_id"] == "101-01"
-    assert kk2_payload["temperatureChannels"][0]["logical_sensor_number"] == 471
+    assert kk2_payload["temperatureChannels"][0]["channel_id"] == "096-01"
+    assert kk2_payload["temperatureChannels"][0]["source_channel_id"] == "096-01"
+    assert kk2_payload["temperatureChannels"][0]["logical_sensor_number"] == 441
     assert kk2_payload["temperatureChannels"][-1]["logical_sensor_number"] == 554
     assert all(
-        item["physical_sensor_count"] == 2
+        item["physical_sensor_count"] == 1
         for item in kk2_payload["temperatureChannels"]
     )
     assert all(
-        len(item["physical_sensors"]) == 2
+        len(item["physical_sensors"]) == 1
         for item in kk2_payload["temperatureChannels"]
     )
     assert {

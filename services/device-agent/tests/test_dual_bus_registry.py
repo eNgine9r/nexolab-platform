@@ -47,7 +47,7 @@ def explicit_payload() -> list[dict[str, object]]:
         {
             "bus_id": "rs485-kk2",
             "serial_device": "/host/dev/serial/by-id/usb-kk2",
-            "unit_ids": [106, 115],
+            "unit_ids": [96, 106],
         },
     ]
 
@@ -82,18 +82,18 @@ class TopologyAwareEnrollmentStoreTests(unittest.TestCase):
         enrolled = self.store.enroll_xjp60d(
             self.bound_registry,
             expected_revision=self.bound_registry.revision,
-            unit_ids=(115,),
+            unit_ids=(96,),
             actor="test:discovery",
             reason="prove explicit-bus discovery enrollment",
         )
 
         devices = {item.device_id: item for item in enrolled.document.devices}
-        self.assertEqual(devices["xjp60d-115"].bus_id, "rs485-kk2")
-        self.assertEqual(devices["xjp60d-115"].lifecycle, "discovery_only")
+        self.assertEqual(devices["xjp60d-96"].bus_id, "rs485-kk2")
+        self.assertEqual(devices["xjp60d-96"].lifecycle, "discovery_only")
         targets = [
             item
             for item in enrolled.document.targets
-            if item.device_id == "xjp60d-115"
+            if item.device_id == "xjp60d-96"
         ]
         self.assertEqual(len(targets), 6)
         self.assertTrue(all(item.lifecycle == "discovery_only" for item in targets))
@@ -105,7 +105,7 @@ class TopologyAwareEnrollmentStoreTests(unittest.TestCase):
             legacy_active_points=self.settings.xjp60d_points,
         )
         persisted = {item.device_id: item for item in reloaded.document.devices}
-        self.assertEqual(persisted["xjp60d-115"].bus_id, "rs485-kk2")
+        self.assertEqual(persisted["xjp60d-96"].bus_id, "rs485-kk2")
         self.assertEqual(
             {item.bus_id for item in reloaded.document.buses},
             {"rs485-kk1", "rs485-kk2"},

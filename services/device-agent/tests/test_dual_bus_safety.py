@@ -52,7 +52,7 @@ def bus_payload(*, include_unused: bool = False) -> list[dict[str, object]]:
         {
             "bus_id": "rs485-kk2",
             "serial_device": "/host/dev/serial/by-id/usb-kk2",
-            "unit_ids": [106, 115],
+            "unit_ids": [96, 106],
         },
     ]
     if include_unused:
@@ -71,7 +71,7 @@ class DualBusSafetyTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.database_path = Path(self.temporary.name) / "edge.db"
         self.settings = settings(self.database_path)
-        # Simulate an older persisted catalog that predates Unit 115 enrollment.
+        # Simulate an older persisted catalog that predates K96-K100 enrollment.
         AcquisitionRegistryStore(self.database_path).load_or_migrate(
             self.settings,
             discovery_units=(106, 126),
@@ -81,7 +81,7 @@ class DualBusSafetyTests(unittest.TestCase):
             os.environ,
             {
                 BUS_CONFIG_ENV: json.dumps(bus_payload()),
-                "XJP60D_DISCOVERY_UNITS": "106,115,126",
+                "XJP60D_DISCOVERY_UNITS": "96,106,126",
             },
             clear=False,
         )
@@ -136,7 +136,7 @@ class DualBusSafetyTests(unittest.TestCase):
             os.environ,
             {
                 BUS_CONFIG_ENV: json.dumps(bus_payload(include_unused=True)),
-                "XJP60D_DISCOVERY_UNITS": "106,115,126",
+                "XJP60D_DISCOVERY_UNITS": "96,106,126",
             },
             clear=False,
         ):
@@ -182,15 +182,15 @@ class DualBusSafetyTests(unittest.TestCase):
         after = self.agent._registry_snapshot()  # noqa: SLF001
 
         devices = {item.device_id: item for item in after.document.devices}
-        self.assertEqual(devices["xjp60d-115"].bus_id, "rs485-kk2")
-        self.assertEqual(devices["xjp60d-115"].lifecycle, "discovery_only")
+        self.assertEqual(devices["xjp60d-96"].bus_id, "rs485-kk2")
+        self.assertEqual(devices["xjp60d-96"].lifecycle, "discovery_only")
         self.assertEqual(after.revision, before + 1)
         self.assertEqual(
             {item["bus_id"] for item in result["buses"]},
             {"rs485-kk1", "rs485-kk2"},
         )
         self.assertNotIn(
-            "xjp60d:115-01",
+            "xjp60d:96-01",
             {
                 item["target_id"]
                 for item in self.agent.scheduler.snapshot()["targets"]
@@ -205,7 +205,7 @@ class DualBusSafetyTests(unittest.TestCase):
         persisted_devices = {
             item.device_id: item for item in persisted.document.devices
         }
-        self.assertEqual(persisted_devices["xjp60d-115"].bus_id, "rs485-kk2")
+        self.assertEqual(persisted_devices["xjp60d-96"].bus_id, "rs485-kk2")
 
 
 if __name__ == "__main__":
