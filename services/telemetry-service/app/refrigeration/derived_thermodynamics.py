@@ -130,6 +130,14 @@ class ResolvedSourceEvidence:
     instrument_acceptance_at_observation: AcceptanceEvidence | None
     acquisition_acceptance_at_sample: AcceptanceEvidence | None
     acquisition_acceptance_at_observation: AcceptanceEvidence | None
+    acquisition_source_id: str | None = None
+    acquisition_source_revision: int | None = None
+    acquisition_source_valid_from: datetime | None = None
+    acquisition_source_valid_to: datetime | None = None
+    scaling_profile_id: str | None = None
+    scaling_profile_revision: int | None = None
+    scaling_profile_valid_from: datetime | None = None
+    scaling_profile_valid_to: datetime | None = None
     calibration_scope: str | None = None
     calibration_at_sample: CalibrationEvidence | None = None
     calibration_at_observation: CalibrationEvidence | None = None

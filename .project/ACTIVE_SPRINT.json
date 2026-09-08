@@ -22,12 +22,12 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 960,
       "title": "RFX-08B Authoritative Policy, Profile Acceptance and Historical Derived-Read Orchestration",
       "branch": "feat/960-rfx08b-derived-orchestration"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -3104,17 +3104,43 @@
       "issue": 960,
       "title": "RFX-08B Authoritative Policy, Profile Acceptance and Historical Derived-Read Orchestration",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "branch": "feat/960-rfx08b-derived-orchestration",
       "depends_on": [
         957
       ],
       "evidence": {
         "planning_authority": "issue_957_rfx08_partition_and_issue_960_exact_main_audit",
-        "implementation_base_main_sha": "dc64dcdcfcd7c507fb90a52f938a3d10e1ac79a4",
+        "implementation_base_main_sha": "368443a46f6f7efaa30f63793cd86a105a800e93",
+        "migration_head": "20260907_0036",
+        "calculation_policy_authority": "immutable_org_scoped_versioned_no_seeded_defaults",
+        "acquisition_profile_acceptance": "generic_digital_and_analog_acceptance_state_v1",
+        "historical_raw_selector": "telemetry_samples_only_adr0010_at_before_then_nearest_future_event_id_tiebreak",
+        "derived_read_api": "read_only_four_rfx08a_metrics_with_typed_provenance",
+        "focused_combined_tests": "97_passed",
+        "derived_orchestration_edge_tests": "12_passed",
+        "derived_api_tests": "2_passed",
+        "security_derived_tests": "3_passed",
+        "affected_sqlite_security_compatibility": "132_passed",
+        "postgres_authority_tests": "4_passed",
+        "postgres_instrumentation_compatibility": "13_passed",
+        "postgres_circuit_authority_compatibility": "8_passed",
+        "postgres_refrigeration_matrix": "140_passed_1_skipped",
+        "postgres_instrumentation_matrix": "69_passed",
+        "application_composition_smoke": "4_passed",
+        "postgres_migration_roundtrip": "scratch_upgrade_to_0036_downgrade_0035_reupgrade_0036_green",
+        "static_checks": "ruff_new_files_format_compile_state_diff_alembic_head_offline_scope_green",
         "production_policy_thresholds": "not_seeded_not_inferred",
-        "runtime_mutation": "none_planning_only",
-        "hardware_acceptance": "not_claimed"
+        "dependency_change": "none",
+        "mandatory_online_runtime_dependency": "none",
+        "production_deployment": "not_executed",
+        "runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "hardware_acceptance": "not_claimed",
+        "local_candidate_status": "precommit_gate_green_commit_pending",
+        "affected_postgres_combined_matrix": "223_passed_1_skipped_after_instrument_version_hardening",
+        "instrument_version_replay": "highest_valid_monotonic_version_equal_timestamp_uuid_independent"
       }
     }
   ],

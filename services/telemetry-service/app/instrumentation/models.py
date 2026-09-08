@@ -216,6 +216,12 @@ class AnalogScalingProfileRecord(Base):
             "revision",
             name="uq_instrument_analog_scaling_revision",
         ),
+        UniqueConstraint(
+            "organization_id",
+            "signal_id",
+            "id",
+            name="uq_instrument_analog_scaling_identity",
+        ),
         CheckConstraint(
             f"schema_version = '{ANALOG_SCALING_SCHEMA_VERSION}'",
             name="ck_instrument_analog_scaling_schema_version",
@@ -351,6 +357,16 @@ class SignalAcquisitionSourceRecord(Base):
             name="ck_instrument_signal_acquisition_hardware_evidence",
         ),
         CheckConstraint(
+            "(acquisition_profile_id IS NULL AND acquisition_profile_version IS NULL) OR "
+            "(acquisition_profile_id IS NOT NULL AND trim(acquisition_profile_id) <> '' "
+            "AND acquisition_profile_version IS NOT NULL AND trim(acquisition_profile_version) <> '')",
+            name="ck_instrument_signal_acquisition_profile_identity",
+        ),
+        CheckConstraint(
+            "calibration_scope IS NULL OR trim(calibration_scope) <> ''",
+            name="ck_instrument_signal_acquisition_calibration_scope",
+        ),
+        CheckConstraint(
             "revision >= 1", name="ck_instrument_signal_acquisition_revision_positive"
         ),
         CheckConstraint(
@@ -399,10 +415,101 @@ class SignalAcquisitionSourceRecord(Base):
     unit: Mapped[str] = mapped_column(String(64), nullable=False)
     evidence_status: Mapped[str] = mapped_column(String(32), nullable=False)
     evidence_reference: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    acquisition_profile_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    acquisition_profile_version: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    calibration_scope: Mapped[str | None] = mapped_column(String(64), nullable=True)
     valid_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     valid_to: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    recorded_by: Mapped[str] = mapped_column(String(255), nullable=False)
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+
+class AcquisitionProfileAcceptanceRecord(Base):
+    __tablename__ = "instrument_acquisition_profile_acceptance_history"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "signal_id", "acquisition_source_id"],
+            [
+                "instrument_signal_acquisition_history.organization_id",
+                "instrument_signal_acquisition_history.signal_id",
+                "instrument_signal_acquisition_history.id",
+            ],
+            name="fk_instrument_acquisition_profile_acceptance_source",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["organization_id", "signal_id", "scaling_profile_id"],
+            [
+                "instrument_analog_scaling_history.organization_id",
+                "instrument_analog_scaling_history.signal_id",
+                "instrument_analog_scaling_history.id",
+            ],
+            name="fk_instrument_acquisition_profile_acceptance_scaling_profile",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "organization_id", "signal_id", "profile_target_key", "revision",
+            name="uq_instrument_acquisition_profile_acceptance_revision",
+        ),
+        CheckConstraint(
+            f"schema_version = '{ACCEPTANCE_SCHEMA_VERSION}'",
+            name="ck_instrument_acquisition_profile_acceptance_schema_version",
+        ),
+        CheckConstraint(
+            "revision >= 1",
+            name="ck_instrument_acquisition_profile_acceptance_revision_positive",
+        ),
+        CheckConstraint(
+            "effective_to IS NULL OR effective_to >= effective_from",
+            name="ck_instrument_acquisition_profile_acceptance_interval",
+        ),
+        CheckConstraint(
+            "trim(profile_target_key) <> '' AND trim(acquisition_profile_id) <> '' "
+            "AND trim(acquisition_profile_version) <> ''",
+            name="ck_instrument_acquisition_profile_acceptance_identity",
+        ),
+        Index(
+            "ix_instrument_acquisition_profile_acceptance_as_of",
+            "organization_id", "signal_id", "profile_target_key",
+            "effective_from", "effective_to", "revision",
+        ),
+        Index(
+            "uq_instrument_acquisition_profile_acceptance_open",
+            "organization_id", "signal_id", "profile_target_key",
+            unique=True,
+            postgresql_where=text("effective_to IS NULL"),
+            sqlite_where=text("effective_to IS NULL"),
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey(
+            "security_organizations.id",
+            name="fk_instrument_acquisition_profile_acceptance_organization",
+            ondelete="RESTRICT",
+        ),
+        nullable=False,
+    )
+    signal_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    acquisition_source_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    scaling_profile_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    profile_target_key: Mapped[str] = mapped_column(String(160), nullable=False)
+    schema_version: Mapped[str] = mapped_column(
+        String(32), nullable=False, default=ACCEPTANCE_SCHEMA_VERSION
+    )
+    acquisition_profile_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    acquisition_profile_version: Mapped[str] = mapped_column(String(128), nullable=False)
+    accepted_for_calculation: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    state_label: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    effective_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    effective_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     revision: Mapped[int] = mapped_column(Integer, nullable=False)
     recorded_by: Mapped[str] = mapped_column(String(255), nullable=False)
     recorded_at: Mapped[datetime] = mapped_column(

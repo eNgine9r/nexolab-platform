@@ -405,6 +405,9 @@ class AcquisitionSourceAppendRequest(BaseModel):
     unit: Annotated[str, Field(min_length=1, max_length=64)]
     evidence_status: AcquisitionEvidenceStatus = "hardware_unverified"
     evidence_reference: Annotated[str | None, Field(max_length=512)] = None
+    acquisition_profile_id: Annotated[str | None, Field(max_length=128)] = None
+    acquisition_profile_version: Annotated[str | None, Field(max_length=128)] = None
+    calibration_scope: Annotated[str | None, Field(max_length=64)] = None
     valid_from: datetime
 
     @field_validator("node_id", "equipment_id", "channel_id", "metric")
@@ -425,10 +428,19 @@ class AcquisitionSourceAppendRequest(BaseModel):
             raise ValueError("unit must be a canonical unit identifier")
         return normalized
 
-    @field_validator("evidence_reference")
+    @field_validator(
+        "evidence_reference", "acquisition_profile_id", "acquisition_profile_version"
+    )
     @classmethod
-    def normalize_evidence_reference(cls, value: str | None) -> str | None:
+    def normalize_optional_source_provenance(cls, value: str | None) -> str | None:
         return _optional_text(value)
+
+    @field_validator("calibration_scope")
+    @classmethod
+    def normalize_calibration_scope(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return _canonical_identifier(value, "calibration_scope")
 
     @field_validator("valid_from")
     @classmethod
@@ -440,6 +452,11 @@ class AcquisitionSourceAppendRequest(BaseModel):
         if self.evidence_status == "hardware_verified" and not self.evidence_reference:
             raise ValueError(
                 "hardware_verified acquisition sources require an evidence_reference"
+            )
+        profile_identity = (self.acquisition_profile_id, self.acquisition_profile_version)
+        if (profile_identity[0] is None) != (profile_identity[1] is None):
+            raise ValueError(
+                "acquisition_profile_id and acquisition_profile_version must be provided together"
             )
         return self
 
@@ -455,6 +472,9 @@ class AcquisitionSourceResponse(BaseModel):
     unit: str
     evidence_status: AcquisitionEvidenceStatus
     evidence_reference: str | None
+    acquisition_profile_id: str | None
+    acquisition_profile_version: str | None
+    calibration_scope: str | None
     valid_from: datetime
     valid_to: datetime | None
     revision: int

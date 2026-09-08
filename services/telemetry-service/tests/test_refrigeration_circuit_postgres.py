@@ -449,6 +449,6 @@ def test_postgres_circuit_migration_round_trip() -> None:
     try:
         assert TABLES <= set(inspect(upgraded).get_table_names())
         with upgraded.connect() as connection:
-            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "20260906_0035"
+            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "20260907_0036"
     finally:
         upgraded.dispose()

@@ -3,79 +3,45 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-07T15:08:59+03:00",
+  "timestamp": "2026-09-08T06:27:36+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_957_rfx08a_completed_merged_rfx08b_ready_state_reconciliation",
+  "event": "issue_960_rfx08b_precommit_gate_green_ready_to_commit",
   "baselines": {
     "accepted_product_sha": "ea9d0d020a299403da3d9378e9593ff2a388d9ad",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 959,
-    "branch": "chore/959-reconcile-rfx08a-state",
-    "base_main_sha": "dc64dcdcfcd7c507fb90a52f938a3d10e1ac79a4",
-    "status": "locally_prepared_state_only"
+    "issue": 960,
+    "title": "RFX-08B Authoritative Policy, Profile Acceptance and Historical Derived-Read Orchestration",
+    "branch": "feat/960-rfx08b-derived-orchestration"
   },
   "evidence_snapshot": {
-    "rfx08a_completion": {
-      "issue": 957,
-      "pull_request": 958,
-      "verified_head_sha": "ea9d0d020a299403da3d9378e9593ff2a388d9ad",
-      "exact_head_workflows": "15_success",
-      "telemetry_service": "success:34118367244",
-      "offline_bundle": "success:34118367211",
-      "authenticated_dashboard": "success_same_sha_rerun:34118367183",
-      "refrigeration_browser": "success:34118367207",
-      "capacity_release_gate": "success:34118367225",
-      "nexolab_merge_gate": "success:34118367212",
-      "manual_team_lead_review": "clean_no_blocking_p1_p2",
-      "unresolved_review_threads": 0,
-      "merge_observation_sha": "dc64dcdcfcd7c507fb90a52f938a3d10e1ac79a4",
-      "github_issue_state": "closed_completed",
-      "production_deployment": "not_executed",
-      "hardware_acceptance": "not_claimed"
-    },
-    "roadmap": {
-      "next_ready_issue": 960,
-      "next_ready_title": "RFX-08B Authoritative Policy, Profile Acceptance and Historical Derived-Read Orchestration",
-      "production_policy_thresholds": "not_seeded_not_inferred"
-    },
-    "state_reconciliation": {
-      "scope": "four_project_state_files_only",
-      "state_model_v2": "passed",
-      "state_tests": "27_passed_1_skipped",
-      "git_diff_check": "passed"
-    }
+    "implementation_base_main_sha": "368443a46f6f7efaa30f63793cd86a105a800e93",
+    "migration_head": "20260907_0036",
+    "focused_combined_tests": "97_passed",
+    "derived_orchestration_edge_tests": "12_passed",
+    "affected_sqlite_security_compatibility": "132_passed",
+    "postgres_refrigeration_matrix": "140_passed_1_skipped",
+    "postgres_instrumentation_matrix": "69_passed",
+    "postgres_authority_tests": "4_passed",
+    "postgres_instrumentation_compatibility": "13_passed",
+    "postgres_circuit_authority_compatibility": "8_passed",
+    "application_composition_smoke": "4_passed",
+    "postgres_migration_roundtrip": "upgrade_0036_downgrade_0035_reupgrade_0036_green",
+    "static_checks": "ruff_new_files_format_compile_state_diff_alembic_head_offline_scope_green",
+    "offline_dependency_review": "no_dependency_change_no_new_online_runtime_service",
+    "production_runtime": "unchanged",
+    "affected_postgres_combined_matrix": "223_passed_1_skipped_after_instrument_version_hardening",
+    "instrument_version_replay": "highest_valid_monotonic_version_equal_timestamp_uuid_independent"
   },
-  "observations": [
-    {
-      "source": "github",
-      "observed_at": "2026-09-07T12:00:06Z",
-      "kind": "rfx08a_merged_completed",
-      "data": {
-        "issue": 957,
-        "pull_request": 958,
-        "merge_sha": "dc64dcdcfcd7c507fb90a52f938a3d10e1ac79a4",
-        "state_reason": "completed"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-07T12:08:00Z",
-      "kind": "rfx08b_issue_created_ready_planning_boundary",
-      "data": {
-        "issue": 960,
-        "state": "open"
-      }
-    }
-  ],
-  "next_action": "Commit and push the exact Issue #959 state-only candidate, open one focused PR, require exact-head State integrity GREEN, merge, then begin Ready RFX-08B / Issue #960 from updated main.",
+  "observations": [],
+  "next_action": "Stage the exact Issue #960 scope, run the repository pre-commit hook, create the exact candidate commit, then run the clean detached local-candidate verifier.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
-    "production_cutover_authorized": false,
-    "mandatory_public_runtime_dependency": "none"
+    "mandatory_public_runtime_dependency": "none",
+    "production_cutover_authorized": false
   }
 }

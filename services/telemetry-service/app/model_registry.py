@@ -96,6 +96,9 @@ def register_models() -> None:
     assert _instrumentation_models.SignalAcquisitionSourceRecord.__tablename__ == (
         "instrument_signal_acquisition_history"
     )
+    assert _instrumentation_models.AcquisitionProfileAcceptanceRecord.__tablename__ == (
+        "instrument_acquisition_profile_acceptance_history"
+    )
     assert _commissioning_models.EquipmentCommissioningSession.__tablename__ == (
         "equipment_commissioning_sessions"
     )
@@ -134,6 +137,10 @@ def register_models() -> None:
     assert (
         _refrigeration_circuit_models.RefrigerationCircuitSignalBinding.__tablename__
         == "refrigeration_circuit_signal_bindings"
+    )
+    assert (
+        _refrigeration_circuit_models.RefrigerationCalculationPolicyRecord.__tablename__
+        == "refrigeration_calculation_policies"
     )
     assert _report_models.TestReportVersion.__tablename__ == "test_report_versions"
     assert _report_models.TestReportArtifact.__tablename__ == "test_report_artifacts"
