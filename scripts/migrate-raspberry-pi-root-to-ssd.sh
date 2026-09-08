@@ -178,7 +178,7 @@ except urllib.error.HTTPError as e:
 fi
 
 (( EUID == 0 )) || fail "$MODE requires root privileges"
-for cmd in sfdisk wipefs mkfs.vfat mkfs.ext4 mount umount mountpoint rsync udevadm partprobe sync docker systemctl find sort tail wc python3 timeout sleep; do need "$cmd"; done
+for cmd in sfdisk wipefs mkfs.vfat mkfs.ext4 mount umount mountpoint rsync udevadm partprobe sync docker systemctl find sort tail wc python3 timeout sleep stat chmod; do need "$cmd"; done
 [[ "$ROOT_REAL" == /dev/mmcblk0p2 ]] || fail "Issue #968 mutation expected active root /dev/mmcblk0p2; got $ROOT_REAL"
 
 RUNTIME_STOPPED=0
@@ -216,7 +216,39 @@ mount_target() {
   mkdir -p "$TARGET_ROOT"
   mount "$P2" "$TARGET_ROOT"
   mkdir -p "$TARGET_ROOT/boot/firmware"
-  mount "$P1" "$TARGET_ROOT/boot/firmware"
+  chmod 0755 "$TARGET_ROOT/boot" "$TARGET_ROOT/boot/firmware"
+  mount -o uid=0,gid=0,fmask=0022,dmask=0022 "$P1" "$TARGET_ROOT/boot/firmware"
+}
+
+ensure_target_root_mountpoints() {
+  mkdir -p \
+    "$TARGET_ROOT/dev" \
+    "$TARGET_ROOT/proc" \
+    "$TARGET_ROOT/sys" \
+    "$TARGET_ROOT/run" \
+    "$TARGET_ROOT/tmp" \
+    "$TARGET_ROOT/mnt" \
+    "$TARGET_ROOT/media" \
+    "$TARGET_ROOT/boot" \
+    "$TARGET_ROOT/boot/firmware"
+  chmod 0755 "$TARGET_ROOT/dev" "$TARGET_ROOT/run" "$TARGET_ROOT/mnt" "$TARGET_ROOT/media" "$TARGET_ROOT/boot"
+  chmod 0555 "$TARGET_ROOT/proc" "$TARGET_ROOT/sys"
+  chmod 1777 "$TARGET_ROOT/tmp"
+}
+
+validate_target_root_mountpoints() {
+  local spec relative expected_mode path actual_mode owner
+  for spec in \
+    'dev:755' 'proc:555' 'sys:555' 'run:755' 'tmp:1777' \
+    'mnt:755' 'media:755' 'boot:755' 'boot/firmware:755'; do
+    IFS=: read -r relative expected_mode <<< "$spec"
+    path="$TARGET_ROOT/$relative"
+    [[ -d "$path" ]] || fail "required target root mountpoint is missing: /$relative"
+    actual_mode="$(stat -c '%a' "$path")"
+    [[ "$actual_mode" == "$expected_mode" ]] || fail "target root mountpoint /$relative mode mismatch: expected $expected_mode, got $actual_mode"
+    owner="$(stat -c '%u:%g' "$path")"
+    [[ "$owner" == '0:0' ]] || fail "target root mountpoint /$relative must be root-owned, got $owner"
+  done
 }
 
 root_rsync() {
@@ -236,6 +268,9 @@ root_rsync() {
     / "$TARGET_ROOT/"
   # The boot filesystem is FAT32; do not request Unix ACL/xattr/owner preservation there.
   rsync -rt --delete --modify-window=1 /boot/firmware/ "$TARGET_ROOT/boot/firmware/"
+  # Excluding pseudo/runtime trees must not remove the empty mountpoints required by initramfs.
+  ensure_target_root_mountpoints
+  validate_target_root_mountpoints
 }
 
 configure_target_boot() {

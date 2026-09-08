@@ -2,9 +2,9 @@
 
 Updated: 2026-09-08
 
-## Issue #968 — privileged SSD boot cutover
+## Issue #968 — final normal-boot SSD acceptance
 
-**Active operator-action gate.** Product Owner-authorized SSD `prepare` passed on Micron `MTFDDAK256TBN`, serial `17521B5686D5`: partitions/filesystems are created, target boot identity is SSD-only, all prepared backup checksums match, PostgreSQL archive listing and edge SQLite quick-check pass, and the original microSD remains the active untouched rollback root. High seed-copy I/O also reproduced Issue #933 SQLite lock contention; Device Agent reached RestartCount 5 and then recovered healthy. PR #969 review found three P1 migration-safety gaps; the superseding candidate now preserves `unless-stopped` restart eligibility by avoiding `docker stop`, fails closed unless Docker/containerd and all recorded container PIDs are fully quiesced, and requires comprehensive SSD/runtime/acquisition post-boot verification. Runtime-equivalent assertions pass on the current host, but the revised exact head still requires GREEN CI and resolved review threads. The remaining destructive/runtime boundary is the separate privileged `cutover`; the assistant cannot enter the Product Owner's sudo credential. No Modbus/hardware write, product-data deletion or Docker named-volume deletion is permitted.
+**Active Product Owner reboot gate; supersedes the old cutover instruction.** The privileged `cutover` already ran and must not be repeated. Its first SSD boot exposed missing empty root mountpoints and kernel-panicked after successfully mounting `/dev/sda2`; rollback to the untouched microSD passed. The target was repaired in place, filesystem checks returned `0`, and the repaired-target retry boot is now successful with live `/=/dev/sda2` and `/boot/firmware=/dev/sda1`. All 12 NEXOLAB containers are healthy; PostgreSQL is ready; Dashboard/Login are HTTP 200; unauthenticated auth is 401; both stable CP2104 paths exist; Device Agent samples advanced `640→720` with MQTT connected, queue `0`, workers `2/2 healthy`, RestartCount `0`; failed systemd units are `0`; root has about 170 GiB free. Normal `cmdline.txt` has been restored and the temporary diagnostic journald override removed. EEPROM remains `BOOT_ORDER=0xf461` for safe SD-first rollback. Remaining acceptance is one Product Owner-controlled reboot with the restored normal configuration, then UAS/runtime/persistence verification. No `prepare` or `cutover` rerun is authorized or required.
 
 ## Issue #843 — Telemetry planner-choice CI nondeterminism
 
@@ -160,6 +160,10 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 RFX-08B / #960 is completed through exact verified product head `c1c7f8bc4988c35bc13436c59750f038ddc59811`, PR #962 and observed squash merge `044e2feeda21e6f84d2b0a589ef3678a1004a923`. All 20 exact-head workflows are GREEN, including Telemetry Service, disconnected Offline Bundle, same-SHA Authenticated Dashboard rerun and Core CI / NEXOLAB Merge Gate; final Team Lead review is clean and review threads are zero. Production runtime remains on deployed source `9a3556b25b257396d15db80af591d1cc3684b8f7`.
 
 Issue #933 is the next Ready independent software Work Package. Its repository-side reproduction and SQLite contention hardening have no software hard blocker and require no Modbus/hardware write or production cutover. #930 remains independent lower-risk maintenance. #189/#585 remain blocked; #201 remains `needs_validation`; #202 remains `hardware_validation`.
+
+## Issue #970 — SSD migration omitted required empty root mountpoints
+
+**Repository completion pending exact-head merge gate.** The real #968 failure is diagnosed and the operational SSD repair is accepted: required mountpoints were recreated without reformatting and the repaired SSD boot reached a healthy NEXOLAB userspace on `/dev/sda2`. PR #971 now hardens the helper to preserve/recreate/validate those mountpoints, uses deterministic FAT mount masks, and registers its regression contract in CI impact routing. The latest candidate must complete final exact-head review/CI after durable-state reconciliation; no runtime rewrite, SSD reformat, product-data deletion, Docker-volume deletion, Modbus write or hardware write belongs to #970.
 
 ## Safety boundaries
 

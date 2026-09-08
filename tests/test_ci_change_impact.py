@@ -60,6 +60,21 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertEqual(result["unknown_files"], [])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_ssd_migration_regression_is_known_deployment_runtime(self) -> None:
+        result = classify(
+            [
+                "scripts/migrate-raspberry-pi-root-to-ssd.sh",
+                "scripts/tests/test_ssd_root_mountpoint_contract.py",
+                "scripts/tests/standalone-offline-runtime-contract.sh",
+                "docs/operations/issue-968-ssd-root-migration.md",
+                ".project/CURRENT_STATE.md",
+            ]
+        )
+        self.assertIn("deployment_runtime", result["classes"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(result["verification"]["required_external_workflows"], [])
+
     def test_unregistered_recovery_tooling_remains_fail_closed(self) -> None:
         result = classify(["scripts/run-disaster-recovery-acceptance.sh"])
         self.assertTrue(result["fail_closed"])

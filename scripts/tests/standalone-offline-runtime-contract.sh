@@ -21,6 +21,7 @@ bash -n "$REPO_ROOT/scripts/lib/raspberry-pi-runtime-mode.sh"
 bash -n "$REPO_ROOT/scripts/lib/frontend-candidate-liveness.sh"
 python3 "$REPO_ROOT/scripts/tests/test_deploy_current_head_raspberry_pi_auth.py"
 python3 "$REPO_ROOT/scripts/tests/test_deploy_current_head_raspberry_pi_candidate_cleanup.py"
+python3 "$REPO_ROOT/scripts/tests/test_ssd_root_mountpoint_contract.py"
 
 nexolab_configure_runtime_contract standalone ""
 assert_eq standalone "$NEXOLAB_RUNTIME_MODE" "standalone mode"
