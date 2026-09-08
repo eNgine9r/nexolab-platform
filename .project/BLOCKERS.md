@@ -1,6 +1,6 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-07
+Updated: 2026-09-08
 
 ## Issue #843 — Telemetry planner-choice CI nondeterminism
 
@@ -148,17 +148,15 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #719 / PR #721 fresh Device Agent security reconciliation — completed and merged at `1f2654dec0f02263aec6c2314187cfa62e5723e9`; #722 triage is completed.
 - #723 / PR #724 CI routing maintenance — completed and merged at `8e9333fe76bce4a5babccaf7a3bedf35c5fe49bb`.
 - #690 risk-aware/path-targeted PR verification — completed and merged in PR #714 at `4ee7f836442fbfc9ed257c2c8eaf8ad2e22fbe51`; post-merge Core CI and Acquisition Scale Acceptance are GREEN.
-- #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-08A are completed through GREEN focused PRs, including #953 / PR #954 and #957 / PR #958. RFX-08B / #960 is the active orchestration/policy-authority Work Package; local implementation and PostgreSQL verification are GREEN, with candidate commit/PR/CI pending.
+- #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-08B are completed through GREEN focused PRs, including #953 / PR #954, #957 / PR #958 and #960 / PR #962. The next independent Ready software Work Package is #933.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — RFX-08B / Issue #960 active
+## Sprint execution gate — RFX-08B completed; Issue #933 Ready
 
-RFX-08A / #957 is completed through exact verified head `ea9d0d020a299403da3d9378e9593ff2a388d9ad` and GREEN PR #958, squash-merged as `dc64dcdcfcd7c507fb90a52f938a3d10e1ac79a4`. All 15 exact-head workflows are GREEN after one unrelated Authenticated Dashboard WebSocket-count flake passed on a same-SHA rerun; final Team Lead review is clean with zero unresolved threads. RFX-08B / #960 is active from state-reconciled `main` `368443a46f6f7efaa30f63793cd86a105a800e93` and depends on completed #957; no software hard blocker is currently known. #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
+RFX-08B / #960 is completed through exact verified product head `c1c7f8bc4988c35bc13436c59750f038ddc59811`, PR #962 and observed squash merge `044e2feeda21e6f84d2b0a589ef3678a1004a923`. All 20 exact-head workflows are GREEN, including Telemetry Service, disconnected Offline Bundle, same-SHA Authenticated Dashboard rerun and Core CI / NEXOLAB Merge Gate; final Team Lead review is clean and review threads are zero. Production runtime remains on deployed source `9a3556b25b257396d15db80af591d1cc3684b8f7`.
+
+Issue #933 is the next Ready independent software Work Package. Its repository-side reproduction and SQLite contention hardening have no software hard blocker and require no Modbus/hardware write or production cutover. #930 remains independent lower-risk maintenance. #189/#585 remain blocked; #201 remains `needs_validation`; #202 remains `hardware_validation`.
 
 ## Safety boundaries
 
 No blocker may be bypassed by Modbus/controller write, hardware write, production/site cutover without approval, persistent-data deletion, named-volume deletion, secret exposure or mandatory cloud dependency.
-
-## RFX-08B / Issue #960 — active; Telemetry exact-head CI fixture repair in progress (soft blocker)
-
-#960 is implemented in PR #962. Exact head `4b4880b4324d788da8aa0c76329745d0cbdd318c` passed the clean detached verifier and all completed routed workflows except Telemetry Service run `34188696748`, which failed 8 new derived tests after the full suite outlived their test-only `T0 = now + 1 minute` fixture. This is a soft CI/test blocker, not a production authority defect: fail-closed Instrument history correctly rejected samples timestamped before Instrument creation. The fixture is locally changed to a fixed UTC anchor with no production-code change; the original 8 failures pass 8/8 on PostgreSQL, the affected refrigeration/instrumentation PostgreSQL matrix is 214 passed / 1 skipped, and broad PostgreSQL Telemetry is 778 passed / 2 skipped / 2 deselected after a clean empty→`20260907_0036` migration. Next gate: commit the fixture repair, clean detached candidate GREEN, push, then fresh exact-head Telemetry/Offline/Browser/Core Merge Gate GREEN. Production runtime remains unchanged; no Modbus write, hardware write, production cutover or hardware acceptance is authorized.
