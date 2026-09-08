@@ -3,40 +3,62 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-08T09:25:45+03:00",
+  "timestamp": "2026-09-08T13:08:00+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_960_rfx08b_completed_merged_issue_933_ready",
+  "event": "issue_968_ssd_prepare_passed_cutover_ready_pending_runtime_stability",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 968,
+    "title": "Migrate nexolab-edge-01 system and NEXOLAB runtime from microSD to 256 GB SSD",
+    "branch": "ops/968-ssd-root-migration"
+  },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "issue": 968,
+      "target_stable_id": "ata-Micron_MTFDDAK256TBN_17521B5686D5",
+      "target_device": "/dev/sda",
+      "target_size_bytes": 256060514304,
+      "target_transport": "usb3_uas_5000M",
+      "source_root": "/dev/mmcblk0p2",
+      "source_boot": "/dev/mmcblk0p1",
+      "source_root_usage": "97_percent_1_9GiB_free",
+      "boot_order": "0xf461_sd_first",
+      "issue_933_snapshot": "/home/nexolab/recovery/issue-968-pre-ssd-20260908T091750Z",
+      "issue_933_patch_sha256": "3bff4838087e3985e05b3c96876e6067fcda2f538c13ce3e3d7dfa25cfd192c",
+      "migration_preflight": "pass",
+      "negative_wrong_serial_test": "pass_fail_closed",
+      "destructive_prepare": "pass",
+      "production_cutover": "not_run",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "postgresql_dump_measured_bytes": 496133350,
+      "source_free_bytes": 1945370624,
+      "prepared_boot_partuuid": "4299a96f-01",
+      "prepared_root_partuuid": "4299a96f-02",
+      "prepared_root_uuid": "e704b091-7ce2-4d47-a049-64b19c0e709e",
+      "backup_set": "20260908T094149Z",
+      "backup_checksums": "pass_6_of_6",
+      "postgresql_archive_entries": 494,
+      "edge_sqlite_quick_check": "ok",
+      "seed_copy_total_bytes": 55174431322,
+      "device_agent_high_io_reproduction": "sqlite_database_locked_restart_count_5_then_healthy"
+    }
   },
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-09-08T09:23:00+03:00",
-      "kind": "historical_merge",
-      "data": {
-        "issue": 960,
-        "pull_request": 962,
-        "merge_sha": "044e2feeda21e6f84d2b0a589ef3678a1004a923"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-08T09:23:00+03:00",
+      "observed_at": "2026-09-08T12:17:05+03:00",
       "kind": "github_issue_lifecycle",
       "data": {
-        "issue": 960,
-        "state": "closed",
-        "state_reason": "completed"
+        "issue": 968,
+        "state": "open"
       }
     }
   ],
-  "next_action": "Complete state-only Issue #963 verification/PR/CI/merge, then begin Issue #933 on fix/933-device-agent-sqlite-lock-contention and reproduce SQLite lock contention on disposable data.",
+  "next_action": "Commit and verify Issue #968 migration tooling, require exact-head CI GREEN, then perform the separate privileged cutover only after Device Agent is stably healthy; verify SSD-backed boot and NEXOLAB runtime after reboot.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
