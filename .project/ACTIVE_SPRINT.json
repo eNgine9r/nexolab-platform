@@ -3118,7 +3118,7 @@
         "historical_raw_selector": "telemetry_samples_only_adr0010_at_before_then_nearest_future_event_id_tiebreak",
         "derived_read_api": "read_only_four_rfx08a_metrics_with_typed_provenance",
         "focused_combined_tests": "97_passed",
-        "derived_orchestration_edge_tests": "12_passed",
+        "derived_orchestration_edge_tests": "13_passed",
         "derived_api_tests": "2_passed",
         "security_derived_tests": "3_passed",
         "affected_sqlite_security_compatibility": "132_passed",
@@ -3138,9 +3138,10 @@
         "modbus_write": "none",
         "hardware_write": "none",
         "hardware_acceptance": "not_claimed",
-        "local_candidate_status": "precommit_gate_green_commit_pending",
-        "affected_postgres_combined_matrix": "223_passed_1_skipped_after_instrument_version_hardening",
-        "instrument_version_replay": "highest_valid_monotonic_version_equal_timestamp_uuid_independent"
+        "local_candidate_status": "review_hardening_green_new_exact_candidate_pending",
+        "affected_postgres_combined_matrix": "224_passed_1_skipped_after_lifecycle_ordering_hardening",
+        "instrument_version_replay": "highest_valid_monotonic_version_equal_timestamp_uuid_independent",
+        "lifecycle_authority_order": "inactive_fails_closed_before_configuration_binding_source_resolution"
       }
     }
   ],

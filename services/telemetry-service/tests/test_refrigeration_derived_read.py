@@ -31,6 +31,7 @@ from app.refrigeration.circuit_schemas import (
     CircuitBindingAppendRequest,
     CircuitConfigurationAppendRequest,
     CircuitCreateRequest,
+    CircuitLifecycleAppendRequest,
 )
 from app.refrigeration.derived_read import (
     ALL_DERIVED_METRICS,
@@ -474,6 +475,35 @@ def test_profile_acceptance_is_independent_at_observation_time(tmp_path: Path) -
     assert item.availability == "unavailable"
     assert item.kernel_result is not None
     assert item.reason_codes == ("acquisition_not_accepted",)
+
+
+def test_inactive_lifecycle_fails_before_configuration_binding_or_source_resolution(
+    tmp_path: Path,
+) -> None:
+    scope = _scope(tmp_path)
+    _, circuits, _, _, _, circuit, service = scope
+    observation = T0 + timedelta(seconds=20)
+    circuits.append_lifecycle(
+        circuit.id,
+        CircuitLifecycleAppendRequest(
+            state="inactive",
+            valid_from=T0 + timedelta(seconds=15),
+        ),
+        actor_id="test-suite",
+        organization_id=ORG,
+    )
+
+    item = service.calculate(
+        circuit.id,
+        observation,
+        organization_id=ORG,
+        metrics=["refrigeration.superheat"],
+        computed_at=observation + timedelta(seconds=1),
+    )[0]
+
+    assert item.availability == "unavailable"
+    assert item.reason_codes == ("circuit_not_active",)
+    assert item.kernel_result is None
 
 
 def test_missing_policy_and_cross_org_access_fail_closed(tmp_path: Path) -> None:

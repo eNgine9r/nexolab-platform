@@ -61,6 +61,7 @@ ALL_DERIVED_METRICS: tuple[MetricId, ...] = (
 OrchestrationReason = Literal[
     "invalid_observation_timestamp",
     "circuit_lifecycle_unresolved",
+    "circuit_not_active",
     "circuit_configuration_unresolved",
     "calculation_policy_unresolved",
     "property_provider_profile_unresolved",
@@ -143,6 +144,13 @@ class HistoricalDerivedReadService:
                 observation_at,
                 resolved_computed_at,
                 "circuit_lifecycle_unresolved",
+            )
+        if lifecycle.state != "active":
+            return self._all_unavailable(
+                requested,
+                observation_at,
+                resolved_computed_at,
+                "circuit_not_active",
             )
 
         try:

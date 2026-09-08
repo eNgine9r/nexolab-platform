@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-08T06:27:36+03:00",
+  "timestamp": "2026-09-08T06:43:25+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_960_rfx08b_precommit_gate_green_ready_to_commit",
+  "event": "issue_960_rfx08b_lifecycle_ordering_hardening_green",
   "baselines": {
     "accepted_product_sha": "ea9d0d020a299403da3d9378e9593ff2a388d9ad",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -19,7 +19,7 @@
     "implementation_base_main_sha": "368443a46f6f7efaa30f63793cd86a105a800e93",
     "migration_head": "20260907_0036",
     "focused_combined_tests": "97_passed",
-    "derived_orchestration_edge_tests": "12_passed",
+    "derived_orchestration_edge_tests": "13_passed",
     "affected_sqlite_security_compatibility": "132_passed",
     "postgres_refrigeration_matrix": "140_passed_1_skipped",
     "postgres_instrumentation_matrix": "69_passed",
@@ -31,11 +31,12 @@
     "static_checks": "ruff_new_files_format_compile_state_diff_alembic_head_offline_scope_green",
     "offline_dependency_review": "no_dependency_change_no_new_online_runtime_service",
     "production_runtime": "unchanged",
-    "affected_postgres_combined_matrix": "223_passed_1_skipped_after_instrument_version_hardening",
-    "instrument_version_replay": "highest_valid_monotonic_version_equal_timestamp_uuid_independent"
+    "affected_postgres_combined_matrix": "224_passed_1_skipped_after_lifecycle_ordering_hardening",
+    "instrument_version_replay": "highest_valid_monotonic_version_equal_timestamp_uuid_independent",
+    "lifecycle_authority_order": "inactive_fails_closed_before_configuration_binding_source_resolution"
   },
   "observations": [],
-  "next_action": "Stage the exact Issue #960 scope, run the repository pre-commit hook, create the exact candidate commit, then run the clean detached local-candidate verifier.",
+  "next_action": "Commit lifecycle-ordering review hardening, verify the new exact candidate in a clean detached worktree, push it, then require fresh exact-head CI GREEN.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
