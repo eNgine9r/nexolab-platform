@@ -50,6 +50,55 @@ class OfflineQueueLockRecoveryTests(unittest.TestCase):
             release_thread.join(timeout=1)
             self.assertFalse(release_thread.is_alive())
 
+    def test_transient_initialization_lock_recovers(self) -> None:
+        blocker = sqlite3.connect(
+            self.database_path, timeout=0, check_same_thread=False
+        )
+        blocker.execute("BEGIN EXCLUSIVE")
+
+        def release() -> None:
+            time.sleep(0.06)
+            blocker.rollback()
+            blocker.close()
+
+        thread = threading.Thread(target=release)
+        thread.start()
+        try:
+            queue = OfflineQueue(
+                self.database_path,
+                busy_timeout_ms=10,
+                busy_retry_attempts=8,
+                busy_retry_delay_seconds=0.01,
+            )
+        finally:
+            thread.join(timeout=1)
+            self.assertFalse(thread.is_alive())
+
+        contention = queue.contention_snapshot()
+        self.assertEqual(contention["last_operation"], "initialize")
+        self.assertGreater(contention["busy_retries_total"], 0)
+        self.assertEqual(contention["busy_exhausted_total"], 0)
+        self.assertEqual(queue.size(), 0)
+
+    def test_persistent_initialization_lock_fails_boundedly(self) -> None:
+        blocker = sqlite3.connect(
+            self.database_path, timeout=0, check_same_thread=False
+        )
+        blocker.execute("BEGIN EXCLUSIVE")
+        started = time.monotonic()
+        try:
+            with self.assertRaisesRegex(sqlite3.OperationalError, "locked"):
+                OfflineQueue(
+                    self.database_path,
+                    busy_timeout_ms=10,
+                    busy_retry_attempts=2,
+                    busy_retry_delay_seconds=0.01,
+                )
+        finally:
+            blocker.rollback()
+            blocker.close()
+        self.assertLess(time.monotonic() - started, 0.5)
+
     def test_transient_lock_recovers_across_all_queue_operations(self) -> None:
         self.queue.enqueue("topic", "payload-1", "event-1")
 
@@ -115,12 +164,13 @@ class OfflineQueueLockRecoveryTests(unittest.TestCase):
         recovered = queue.contention_snapshot()
         self.assertEqual(recovered["consecutive_exhaustions"], 0)
 
-    def test_health_depth_uses_last_known_value_after_busy_retry_exhaustion(self) -> None:
+    def test_health_depth_returns_cached_value_within_probe_budget(self) -> None:
         queue = OfflineQueue(
             self.database_path,
             busy_timeout_ms=10,
             busy_retry_attempts=2,
             busy_retry_delay_seconds=0.01,
+            health_busy_timeout_ms=20,
         )
         queue.enqueue("topic", "payload", "event-health")
         self.assertEqual(queue.size(), 1)
@@ -130,21 +180,44 @@ class OfflineQueueLockRecoveryTests(unittest.TestCase):
             check_same_thread=False,
         )
         blocker.execute("BEGIN EXCLUSIVE")
+        started = time.monotonic()
         try:
             depth, stale = queue.health_depth()
         finally:
             blocker.rollback()
             blocker.close()
 
+        self.assertLess(time.monotonic() - started, 0.5)
         self.assertEqual(depth, 1)
         self.assertTrue(stale)
-        self.assertEqual(queue.contention_snapshot()["last_operation"], "size")
+        self.assertEqual(queue.contention_snapshot()["health_stale_total"], 1)
         self.assertEqual(queue.health_depth(), (1, False))
+
+    def test_reserved_write_lock_allows_health_read_but_blocks_enqueue(self) -> None:
+        queue = OfflineQueue(
+            self.database_path,
+            busy_timeout_ms=10,
+            busy_retry_attempts=2,
+            busy_retry_delay_seconds=0.01,
+            health_busy_timeout_ms=20,
+        )
+        blocker = sqlite3.connect(
+            self.database_path, timeout=0, check_same_thread=False
+        )
+        blocker.execute("BEGIN IMMEDIATE")
+        try:
+            self.assertEqual(queue.health_depth(), (0, False))
+            with self.assertRaisesRegex(sqlite3.OperationalError, "locked"):
+                queue.enqueue("topic", "payload", "event-blocked")
+        finally:
+            blocker.rollback()
+            blocker.close()
+        self.assertEqual(queue.size(), 0)
 
     def test_health_depth_does_not_hide_structural_sqlite_failure(self) -> None:
         with patch.object(
             self.queue,
-            "size",
+            "_read_health_depth",
             side_effect=sqlite3.OperationalError("disk I/O error"),
         ):
             with self.assertRaisesRegex(sqlite3.OperationalError, "disk I/O error"):

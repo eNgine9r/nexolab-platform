@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import sqlite3
 import tempfile
 import threading
 import time
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from acquisition_registry import (
     AcquisitionRegistry,
@@ -215,6 +216,25 @@ class AdaptiveSchedulerTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
+
+    def test_structural_latest_error_notifies_fatal_after_canonical_callback(self) -> None:
+        current = registry(self.database_path)
+        harness = SchedulerHarness(current, self.database_path)
+        order: list[str] = []
+        harness.store.record_attempt = Mock(
+            side_effect=sqlite3.OperationalError("disk I/O error")
+        )
+        harness.scheduler._record_result = (  # noqa: SLF001
+            lambda target, result: order.append("canonical")
+        )
+        harness.scheduler._persistence_error_handler = (  # noqa: SLF001
+            lambda error: order.append(f"fatal:{error}")
+        )
+        harness.make_all_due()
+
+        self.assertTrue(harness.scheduler.run_once("rs485-main"))
+
+        self.assertEqual(order, ["canonical", "fatal:disk I/O error"])
 
     def test_registry_jobs_use_persisted_cadence_while_priority_only_orders(self) -> None:
         current = registry(self.database_path)

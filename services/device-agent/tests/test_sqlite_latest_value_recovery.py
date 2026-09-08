@@ -79,6 +79,55 @@ class LatestValueStoreLockRecoveryTests(unittest.TestCase):
             thread.join(timeout=1)
             self.assertFalse(thread.is_alive())
 
+    def test_transient_initialization_lock_recovers(self) -> None:
+        blocker = sqlite3.connect(
+            self.database_path, timeout=0, check_same_thread=False
+        )
+        blocker.execute("BEGIN EXCLUSIVE")
+
+        def release() -> None:
+            time.sleep(0.06)
+            blocker.rollback()
+            blocker.close()
+
+        thread = threading.Thread(target=release)
+        thread.start()
+        try:
+            store = LatestValueStore(
+                self.database_path,
+                busy_timeout_ms=10,
+                busy_retry_attempts=8,
+                busy_retry_delay_seconds=0.01,
+            )
+        finally:
+            thread.join(timeout=1)
+            self.assertFalse(thread.is_alive())
+
+        contention = store.contention_snapshot()
+        self.assertEqual(contention["last_operation"], "initialize")
+        self.assertGreater(contention["busy_retries_total"], 0)
+        self.assertEqual(contention["busy_exhausted_total"], 0)
+        self.assertEqual(store.summary()["count"], 0)
+
+    def test_persistent_initialization_lock_fails_boundedly(self) -> None:
+        blocker = sqlite3.connect(
+            self.database_path, timeout=0, check_same_thread=False
+        )
+        blocker.execute("BEGIN EXCLUSIVE")
+        started = time.monotonic()
+        try:
+            with self.assertRaisesRegex(sqlite3.OperationalError, "locked"):
+                LatestValueStore(
+                    self.database_path,
+                    busy_timeout_ms=10,
+                    busy_retry_attempts=2,
+                    busy_retry_delay_seconds=0.01,
+                )
+        finally:
+            blocker.rollback()
+            blocker.close()
+        self.assertLess(time.monotonic() - started, 0.5)
+
     def test_transient_lock_recovers_latest_value_atomically(self) -> None:
         store = LatestValueStore(
             self.database_path,

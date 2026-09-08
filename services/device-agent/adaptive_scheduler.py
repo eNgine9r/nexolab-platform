@@ -55,6 +55,7 @@ class AdaptiveAcquisitionScheduler:
         read_target: Callable[[SchedulerTarget], ScheduledResult],
         record_result: Callable[[SchedulerTarget, ScheduledResult], None],
         stop_event: threading.Event,
+        persistence_error_handler: Callable[[Exception], None] | None = None,
         bus_locks: Mapping[str, threading.Lock] | None = None,
         clock: Callable[[], float] = time.monotonic,
         wall_clock: Callable[[], datetime] | None = None,
@@ -64,6 +65,7 @@ class AdaptiveAcquisitionScheduler:
         self._read_target = read_target
         self._record_result = record_result
         self._stop_event = stop_event
+        self._persistence_error_handler = persistence_error_handler
         self._clock = clock
         self._wall_clock = wall_clock or (lambda: datetime.now(timezone.utc))
         self._condition = threading.Condition()
@@ -356,11 +358,13 @@ class AdaptiveAcquisitionScheduler:
                 job.target.target_id,
             )
 
+        persistence_error: Exception | None = None
         if result is not None:
             try:
                 self._latest_store.record_attempt(job.target, result)
-            except Exception:  # noqa: BLE001
+            except Exception as error:  # noqa: BLE001
                 callback_error = True
+                persistence_error = error
                 LOG.exception(
                     "Latest-value persistence failed for %s",
                     job.target.target_id,
@@ -386,6 +390,8 @@ class AdaptiveAcquisitionScheduler:
                     "Scheduled result publication failed for %s",
                     job.target.target_id,
                 )
+        if persistence_error is not None and self._persistence_error_handler is not None:
+            self._persistence_error_handler(persistence_error)
         return True
 
     def _complete(

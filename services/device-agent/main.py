@@ -337,6 +337,7 @@ class OfflineQueue:
         busy_timeout_ms: int = 2000,
         busy_retry_attempts: int = 3,
         busy_retry_delay_seconds: float = 0.05,
+        health_busy_timeout_ms: int = 100,
     ) -> None:
         if busy_timeout_ms <= 0:
             raise ValueError("busy_timeout_ms must be positive")
@@ -344,7 +345,11 @@ class OfflineQueue:
             raise ValueError("busy_retry_attempts must be positive")
         if busy_retry_delay_seconds < 0:
             raise ValueError("busy_retry_delay_seconds must be non-negative")
+        if health_busy_timeout_ms <= 0:
+            raise ValueError("health_busy_timeout_ms must be positive")
         database_path.parent.mkdir(parents=True, exist_ok=True)
+        self._database_path = database_path
+        self._health_busy_timeout_ms = health_busy_timeout_ms
         self._connection = sqlite3.connect(
             database_path,
             check_same_thread=False,
@@ -362,30 +367,36 @@ class OfflineQueue:
         self._busy_last_operation: str | None = None
         self._busy_last_error: str | None = None
         self._last_known_size = 0
-        with self._connection:
-            self._connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS outbound_queue (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    event_id TEXT NOT NULL UNIQUE,
-                    topic TEXT NOT NULL,
-                    payload TEXT NOT NULL,
-                    created_at TEXT NOT NULL
+        self._health_stale_total = 0
+
+        def initialize() -> None:
+            with self._connection:
+                self._connection.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS outbound_queue (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        event_id TEXT NOT NULL UNIQUE,
+                        topic TEXT NOT NULL,
+                        payload TEXT NOT NULL,
+                        created_at TEXT NOT NULL
+                    )
+                    """
                 )
-                """
-            )
-            self._connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS node_stream_sequences (
-                    stream TEXT PRIMARY KEY,
-                    last_sequence INTEGER NOT NULL CHECK(last_sequence >= 0)
+                self._connection.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS node_stream_sequences (
+                        stream TEXT PRIMARY KEY,
+                        last_sequence INTEGER NOT NULL CHECK(last_sequence >= 0)
+                    )
+                    """
                 )
-                """
-            )
-            row = self._connection.execute(
-                "SELECT COUNT(*) FROM outbound_queue"
-            ).fetchone()
-            self._last_known_size = int(row[0] if row else 0)
+                row = self._connection.execute(
+                    "SELECT COUNT(*) FROM outbound_queue"
+                ).fetchone()
+                self._last_known_size = int(row[0] if row else 0)
+
+        with self._lock:
+            self._retry_busy("initialize", initialize)
 
     @staticmethod
     def _is_busy_error(error: sqlite3.OperationalError) -> bool:
@@ -442,6 +453,7 @@ class OfflineQueue:
                 "consecutive_exhaustions": self._busy_consecutive_exhaustions,
                 "last_operation": self._busy_last_operation,
                 "last_error": self._busy_last_error,
+                "health_stale_total": self._health_stale_total,
             }
 
     def enqueue(self, topic: str, payload: str, event_id: str) -> None:
@@ -497,15 +509,36 @@ class OfflineQueue:
         with self._lock:
             return int(self._retry_busy("size", operation))
 
-    def health_depth(self) -> tuple[int, bool]:
-        """Return queue depth without turning transient lock contention into health loss."""
+    def _read_health_depth(self) -> int:
+        connection = sqlite3.connect(
+            f"file:{self._database_path}?mode=ro",
+            uri=True,
+            timeout=self._health_busy_timeout_ms / 1000,
+        )
         try:
-            return self.size(), False
+            connection.execute(
+                f"PRAGMA busy_timeout = {self._health_busy_timeout_ms}"
+            )
+            row = connection.execute(
+                "SELECT COUNT(*) FROM outbound_queue"
+            ).fetchone()
+            return int(row[0] if row else 0)
+        finally:
+            connection.close()
+
+    def health_depth(self) -> tuple[int, bool]:
+        """Return queue depth within the health-probe budget."""
+        try:
+            value = self._read_health_depth()
         except sqlite3.OperationalError as error:
             if not self._is_busy_error(error):
                 raise
             with self._lock:
+                self._health_stale_total += 1
                 return self._last_known_size, True
+        with self._lock:
+            self._last_known_size = value
+        return value, False
 
     def next_sequence(self, stream: str) -> int:
         normalized = stream.strip().lower()

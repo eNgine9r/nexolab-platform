@@ -5,6 +5,7 @@ import os
 import signal
 import sqlite3
 import threading
+import time
 import uuid
 from datetime import datetime, timezone
 from http import HTTPStatus
@@ -53,6 +54,8 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
         self._publish_lock = threading.Lock()
         self._sqlite_busy_supervisor_consecutive = 0
         self._sqlite_busy_supervisor_limit = SQLITE_BUSY_SUPERVISOR_GRACE_CYCLES
+        self._sqlite_busy_supervisor_delay_seconds = 1.0
+        self._fatal_persistence_error: Exception | None = None
         self._latest_summary_cache: dict[str, Any] = {
             "schema_version": 1,
             "count": 0,
@@ -70,6 +73,7 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
             read_target=self._read_scheduled_target,
             record_result=self._record_scheduled_result,
             stop_event=self.stop_event,
+            persistence_error_handler=self._handle_latest_persistence_error,
             bus_locks={
                 bus.bus_id: self._bus_operation_lock
                 for bus in self._registry_snapshot().document.buses
@@ -348,6 +352,94 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
             communication_failed=False,
         )
 
+    def _raise_fatal_persistence_error(self) -> None:
+        error = getattr(self, "_fatal_persistence_error", None)
+        if error is not None:
+            raise error
+
+    def _mark_fatal_persistence_error(
+        self,
+        error: Exception,
+        *,
+        operation: str,
+    ) -> None:
+        self._fatal_persistence_error = error
+        self.state.update(
+            last_error=f"SQLite {operation} persistence failed: {error}"
+        )
+        self.stop_event.set()
+
+    def _handle_latest_persistence_error(self, error: Exception) -> None:
+        if isinstance(error, sqlite3.OperationalError) and _is_sqlite_busy_error(error):
+            return
+        self._mark_fatal_persistence_error(
+            error, operation="latest-value"
+        )
+
+    def _register_busy_supervisor_cycle(
+        self,
+        error: sqlite3.OperationalError,
+        *,
+        operation: str,
+    ) -> bool:
+        consecutive = int(
+            getattr(self, "_sqlite_busy_supervisor_consecutive", 0)
+        ) + 1
+        limit = int(
+            getattr(
+                self,
+                "_sqlite_busy_supervisor_limit",
+                SQLITE_BUSY_SUPERVISOR_GRACE_CYCLES,
+            )
+        )
+        self._sqlite_busy_supervisor_consecutive = consecutive
+        message = (
+            f"SQLite {operation} lock contention; "
+            f"supervisor cycle {consecutive}/{limit}"
+        )
+        self.state.update(last_error=message)
+        if consecutive >= limit:
+            self._mark_fatal_persistence_error(error, operation=operation)
+            LOG.error("%s; failing closed after bounded grace", message)
+            return False
+        LOG.warning("%s; keeping runtime alive", message)
+        return True
+
+    def _reset_busy_supervisor(self) -> None:
+        consecutive = int(
+            getattr(self, "_sqlite_busy_supervisor_consecutive", 0)
+        )
+        if consecutive:
+            LOG.info(
+                "SQLite persistence contention recovered after %s supervisor cycle(s)",
+                consecutive,
+            )
+        self._sqlite_busy_supervisor_consecutive = 0
+
+    def _publish_scheduled_record(self, record: TelemetryRecord) -> bool:
+        while True:
+            self._raise_fatal_persistence_error()
+            try:
+                published = self.publish_or_queue(record)
+            except sqlite3.OperationalError as error:
+                if not _is_sqlite_busy_error(error):
+                    self._mark_fatal_persistence_error(
+                        error, operation="telemetry queue"
+                    )
+                    raise
+                if not self._register_busy_supervisor_cycle(
+                    error, operation="telemetry queue"
+                ):
+                    raise
+                delay = float(
+                    getattr(self, "_sqlite_busy_supervisor_delay_seconds", 1.0)
+                )
+                if delay:
+                    time.sleep(delay)
+                continue
+            self._reset_busy_supervisor()
+            return published
+
     def _record_scheduled_result(
         self,
         target: SchedulerTarget,
@@ -356,7 +448,7 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
         del target
         record = result.record
         with self._publish_lock:
-            publish_ok = self.publish_or_queue(record)
+            publish_ok = self._publish_scheduled_record(record)
             errors = [
                 value
                 for value in (
@@ -396,45 +488,26 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
         )
         try:
             while not self.stop_event.is_set():
+                self._raise_fatal_persistence_error()
                 self.scheduler.supervise_workers()
                 with self._publish_lock:
+                    self._raise_fatal_persistence_error()
                     try:
                         queue_size = self.queue.size()
                         flush_ok = self.flush_queue()
                     except sqlite3.OperationalError as error:
                         if not _is_sqlite_busy_error(error):
-                            raise
-                        consecutive = int(
-                            getattr(self, "_sqlite_busy_supervisor_consecutive", 0)
-                        ) + 1
-                        limit = int(
-                            getattr(
-                                self,
-                                "_sqlite_busy_supervisor_limit",
-                                SQLITE_BUSY_SUPERVISOR_GRACE_CYCLES,
-                            )
-                        )
-                        self._sqlite_busy_supervisor_consecutive = consecutive
-                        message = (
-                            "SQLite queue lock contention; "
-                            f"supervisor cycle {consecutive}/{limit}"
-                        )
-                        self.state.update(last_error=message)
-                        if consecutive >= limit:
-                            LOG.error(
-                                "%s; failing closed after bounded grace",
-                                message,
+                            self._mark_fatal_persistence_error(
+                                error, operation="queue supervisor"
                             )
                             raise
-                        LOG.warning("%s; keeping runtime alive", message)
+                        if not self._register_busy_supervisor_cycle(
+                            error, operation="queue supervisor"
+                        ):
+                            raise
                         self.stop_event.wait(1.0)
                         continue
-                    if getattr(self, "_sqlite_busy_supervisor_consecutive", 0):
-                        LOG.info(
-                            "SQLite queue contention recovered after %s supervisor cycle(s)",
-                            self._sqlite_busy_supervisor_consecutive,
-                        )
-                    self._sqlite_busy_supervisor_consecutive = 0
+                    self._reset_busy_supervisor()
                     errors = [
                         value
                         for value in (
@@ -459,6 +532,7 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
                             last_error="node health publish failed"
                         )
                 self.stop_event.wait(1.0)
+            self._raise_fatal_persistence_error()
         finally:
             self.scheduler.stop()
             if self.modbus_client is not None:

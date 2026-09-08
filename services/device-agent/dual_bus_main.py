@@ -174,6 +174,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             read_target=self._read_scheduled_target,
             record_result=self._record_scheduled_result,
             stop_event=self.stop_event,
+            persistence_error_handler=self._handle_latest_persistence_error,
             bus_locks=self._bus_operation_locks,
         )
 

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-08T20:57:35+03:00",
+  "timestamp": "2026-09-08T22:05:25+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_933_sqlite_contention_candidate_locally_verified",
+  "event": "issue_933_blocking_review_fixes_final_local_verification_complete",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -14,7 +14,7 @@
     "issue": 933,
     "title": "Prevent Device Agent exit on transient SQLite lock contention",
     "branch": "fix/933-device-agent-sqlite-lock-contention",
-    "status": "locally_verified_candidate_ready_to_commit"
+    "status": "final_local_verified_ready_to_commit_push_and_exact_head_ci"
   },
   "evidence_snapshot": {
     "issue_933_candidate": {
@@ -38,7 +38,21 @@
       "modbus_write": "none",
       "hardware_write": "none",
       "product_data_delete": "none",
-      "volume_delete": "none"
+      "volume_delete": "none",
+      "pull_request": 976,
+      "prior_exact_head": "0cb7d1fd74fc852277a0ccb29eb9c35e154b9001",
+      "prior_exact_head_ci": "9_of_9_required_workflows_green_including_merge_gate",
+      "review_findings": "2_P1_and_1_P2_valid_blocking_findings_received_after_green",
+      "enqueue_review_fix": "BEGIN_IMMEDIATE_readable_write_locked_case_retries_same_record_under_publish_lock_no_loss_or_duplicate_persistent_busy_sets_fatal_stop_after_3_cycles",
+      "initialization_review_fix": "OfflineQueue_and_LatestValueStore_schema_initialization_use_bounded_busy_retry",
+      "health_probe_review_fix": "dedicated_read_only_health_depth_query_default_100ms_and_cached_stale_fallback_within_probe_budget",
+      "team_lead_structural_hardening": "structural_latest_value_persistence_error_sets_fatal_agent_stop_while_retryable_busy_remains_observable",
+      "targeted_tests_after_review_fix": "46_passed_after_final_structural_ordering_regression",
+      "full_device_agent_tests_after_review_fix": "240_passed_repository_shaped_source_after_final_ordering_fix",
+      "final_candidate_image_build": "passed_final2",
+      "final_candidate_image_full_tests": "240_passed_packaged_imports_verified_from_app",
+      "final_structural_ordering": "canonical_record_result_before_structural_latest_persistence_fatal_notification",
+      "exact_head_reverification": "pending_new_commit_and_push"
     }
   },
   "observations": [
@@ -63,7 +77,7 @@
       }
     }
   ],
-  "next_action": "Commit and push the locally verified Issue #933 candidate, open one focused pull request, require exact-head Device Agent/Core CI and NEXOLAB Merge Gate GREEN, resolve review findings, then merge without production deployment.",
+  "next_action": "Commit and push the Issue #933 blocking-review remediations, reply to and resolve the three review threads, require all exact-head routed workflows and NEXOLAB Merge Gate GREEN on the new SHA, perform final Team Lead review, then squash-merge PR #976 without production deployment.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

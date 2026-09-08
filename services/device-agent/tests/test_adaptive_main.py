@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import sqlite3
+import tempfile
 import threading
+import time
 import unittest
 from contextlib import nullcontext
 from pathlib import Path
@@ -12,8 +14,8 @@ from acquisition_registry import (
     build_initial_document,
 )
 from adaptive_main import AdaptiveRegistryDeviceAgent
-from adaptive_scheduler import SchedulerTarget
-from main import Settings
+from adaptive_scheduler import ScheduledResult, SchedulerTarget
+from main import OfflineQueue, Settings, TelemetryRecord
 from modbus_rtu import ModbusError
 
 
@@ -162,6 +164,151 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
         value.client.loop_stop.assert_called_once_with()
 
 
+    def test_scheduled_enqueue_busy_retries_same_record_without_loss(self) -> None:
+        value = agent()
+        value.stop_event = threading.Event()
+        value._publish_lock = threading.Lock()
+        value._sqlite_busy_supervisor_consecutive = 0
+        value._sqlite_busy_supervisor_limit = 3
+        value._sqlite_busy_supervisor_delay_seconds = 0.01
+        value._fatal_persistence_error = None
+        value.state = Mock(samples_total=0, mqtt_connected=False)
+        value.scheduler = Mock()
+        value.scheduler.current_error.return_value = None
+        value.operational = None
+
+        with tempfile.TemporaryDirectory() as temporary:
+            database_path = Path(temporary) / "edge.db"
+            value.queue = OfflineQueue(
+                database_path,
+                busy_timeout_ms=10,
+                busy_retry_attempts=2,
+                busy_retry_delay_seconds=0.01,
+            )
+            blocker = sqlite3.connect(
+                database_path, timeout=0, check_same_thread=False
+            )
+            blocker.execute("BEGIN IMMEDIATE")
+
+            def release() -> None:
+                time.sleep(0.06)
+                blocker.rollback()
+                blocker.close()
+
+            release_thread = threading.Thread(target=release)
+            release_thread.start()
+            record = TelemetryRecord(
+                event_id="event-enqueue-recovery",
+                node_id="edge-01",
+                captured_at="2026-09-08T18:30:00+00:00",
+                metric="temperature.probe",
+                value=4.2,
+                unit="degC",
+                quality="valid",
+                source="xjp60d",
+                equipment_id="K106",
+                channel_id="106-03",
+            )
+            result = ScheduledResult(
+                record=record, communication_failed=False
+            )
+            try:
+                value._record_scheduled_result(Mock(), result)
+            finally:
+                release_thread.join(timeout=1)
+                self.assertFalse(release_thread.is_alive())
+
+            rows = value.queue.oldest()
+            self.assertEqual(len(rows), 1)
+            self.assertIn(record.event_id, rows[0][2])
+            self.assertEqual(value._sqlite_busy_supervisor_consecutive, 0)
+            self.assertFalse(value.stop_event.is_set())
+
+    def test_persistent_scheduled_enqueue_busy_sets_fatal_stop(self) -> None:
+        value = agent()
+        value.stop_event = threading.Event()
+        value._publish_lock = threading.Lock()
+        value._sqlite_busy_supervisor_consecutive = 0
+        value._sqlite_busy_supervisor_limit = 3
+        value._sqlite_busy_supervisor_delay_seconds = 0
+        value._fatal_persistence_error = None
+        value.publish_or_queue = Mock(
+            side_effect=sqlite3.OperationalError("database is locked")
+        )
+        value.state = Mock(samples_total=0, mqtt_connected=False)
+        value.scheduler = Mock()
+        value.scheduler.current_error.return_value = None
+        value.operational = None
+        record = Mock(captured_at="2026-09-08T18:31:00+00:00")
+        result = Mock(record=record, error=None)
+
+        with self.assertRaisesRegex(sqlite3.OperationalError, "database is locked"):
+            value._record_scheduled_result(Mock(), result)
+
+        self.assertEqual(value.publish_or_queue.call_count, 3)
+        self.assertTrue(
+            all(call.args[0] is record for call in value.publish_or_queue.call_args_list)
+        )
+        self.assertEqual(value._sqlite_busy_supervisor_consecutive, 3)
+        self.assertTrue(value.stop_event.is_set())
+        self.assertIsInstance(
+            value._fatal_persistence_error, sqlite3.OperationalError
+        )
+        self.assertFalse(
+            any("samples_total" in call.kwargs for call in value.state.update.call_args_list)
+        )
+
+    def test_latest_busy_exhaustion_stays_observable_without_immediate_fatal(self) -> None:
+        value = agent()
+        value.stop_event = threading.Event()
+        value._fatal_persistence_error = None
+        value.state = Mock()
+
+        value._handle_latest_persistence_error(
+            sqlite3.OperationalError("database is locked")
+        )
+
+        self.assertFalse(value.stop_event.is_set())
+        self.assertIsNone(value._fatal_persistence_error)
+
+    def test_structural_latest_persistence_failure_sets_fatal_stop(self) -> None:
+        value = agent()
+        value.stop_event = threading.Event()
+        value._fatal_persistence_error = None
+        value.state = Mock()
+        error = sqlite3.OperationalError("disk I/O error")
+
+        value._handle_latest_persistence_error(error)
+
+        self.assertTrue(value.stop_event.is_set())
+        self.assertIs(value._fatal_persistence_error, error)
+        self.assertIn(
+            "latest-value persistence failed",
+            value.state.update.call_args.kwargs["last_error"],
+        )
+
+    def test_fatal_scheduled_persistence_error_makes_run_fail_closed(self) -> None:
+        value = agent()
+        value.stop_event = threading.Event()
+        value.stop_event.set()
+        value._fatal_persistence_error = sqlite3.OperationalError(
+            "database is locked"
+        )
+        value.connect = Mock()
+        value.scheduler = Mock()
+        value._publish_lock = threading.Lock()
+        value.state = Mock(mqtt_connected=False)
+        value.modbus_client = None
+        value.operational = None
+        value.client = Mock()
+
+        with self.assertRaisesRegex(sqlite3.OperationalError, "database is locked"):
+            value.run()
+
+        value.scheduler.stop.assert_called_once_with()
+        value.client.disconnect.assert_called_once_with()
+        value.client.loop_stop.assert_called_once_with()
+
     def test_transient_queue_busy_exhaustion_keeps_adaptive_runtime_alive(self) -> None:
         value = agent()
         value.stop_event = threading.Event()
@@ -194,7 +341,7 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
         self.assertEqual(value.queue.size.call_count, 2)
         self.assertEqual(value._sqlite_busy_supervisor_consecutive, 0)
         self.assertIn(
-            "SQLite queue lock contention",
+            "SQLite queue supervisor lock contention",
             value.state.update.call_args_list[0].kwargs["last_error"],
         )
         value.scheduler.stop.assert_called_once_with()

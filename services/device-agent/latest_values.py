@@ -50,18 +50,23 @@ class LatestValueStore:
         self._busy_consecutive_exhaustions = 0
         self._busy_last_operation: str | None = None
         self._busy_last_error: str | None = None
-        with self._connection:
-            self._connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS acquisition_latest_values (
-                    target_id TEXT PRIMARY KEY,
-                    payload TEXT NOT NULL,
-                    last_attempt_at TEXT NOT NULL,
-                    last_success_at TEXT,
-                    updated_at TEXT NOT NULL
+
+        def initialize() -> None:
+            with self._connection:
+                self._connection.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS acquisition_latest_values (
+                        target_id TEXT PRIMARY KEY,
+                        payload TEXT NOT NULL,
+                        last_attempt_at TEXT NOT NULL,
+                        last_success_at TEXT,
+                        updated_at TEXT NOT NULL
+                    )
+                    """
                 )
-                """
-            )
+
+        with self._lock:
+            self._retry_busy("initialize", initialize)
 
     @staticmethod
     def _is_busy_error(error: sqlite3.OperationalError) -> bool:
