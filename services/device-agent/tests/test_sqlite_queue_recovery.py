@@ -7,6 +7,7 @@ import time
 import unittest
 from pathlib import Path
 from typing import Any, Callable
+from unittest.mock import patch
 
 from main import OfflineQueue
 
@@ -75,6 +76,12 @@ class OfflineQueueLockRecoveryTests(unittest.TestCase):
         rows = self.queue.oldest()
         self.assertEqual(len(rows), 1)
         self.assertIn("payload-2", rows[0][2])
+        contention = self.queue.contention_snapshot()
+        self.assertGreaterEqual(contention["busy_events_total"], 5)
+        self.assertGreaterEqual(contention["busy_retries_total"], 5)
+        self.assertGreaterEqual(contention["busy_recoveries_total"], 5)
+        self.assertEqual(contention["busy_exhausted_total"], 0)
+        self.assertEqual(contention["consecutive_exhaustions"], 0)
 
     def test_persistent_lock_fails_boundedly_without_data_loss(self) -> None:
         queue = OfflineQueue(
@@ -99,8 +106,49 @@ class OfflineQueueLockRecoveryTests(unittest.TestCase):
             blocker.close()
 
         self.assertLess(time.monotonic() - started, 0.5)
+        exhausted = queue.contention_snapshot()
+        self.assertEqual(exhausted["busy_exhausted_total"], 1)
+        self.assertEqual(exhausted["consecutive_exhaustions"], 1)
+        self.assertEqual(exhausted["last_operation"], "size")
         self.assertEqual(queue.size(), 1)
         self.assertEqual(queue.oldest()[0][2], "payload")
+        recovered = queue.contention_snapshot()
+        self.assertEqual(recovered["consecutive_exhaustions"], 0)
+
+    def test_health_depth_uses_last_known_value_after_busy_retry_exhaustion(self) -> None:
+        queue = OfflineQueue(
+            self.database_path,
+            busy_timeout_ms=10,
+            busy_retry_attempts=2,
+            busy_retry_delay_seconds=0.01,
+        )
+        queue.enqueue("topic", "payload", "event-health")
+        self.assertEqual(queue.size(), 1)
+        blocker = sqlite3.connect(
+            self.database_path,
+            timeout=0,
+            check_same_thread=False,
+        )
+        blocker.execute("BEGIN EXCLUSIVE")
+        try:
+            depth, stale = queue.health_depth()
+        finally:
+            blocker.rollback()
+            blocker.close()
+
+        self.assertEqual(depth, 1)
+        self.assertTrue(stale)
+        self.assertEqual(queue.contention_snapshot()["last_operation"], "size")
+        self.assertEqual(queue.health_depth(), (1, False))
+
+    def test_health_depth_does_not_hide_structural_sqlite_failure(self) -> None:
+        with patch.object(
+            self.queue,
+            "size",
+            side_effect=sqlite3.OperationalError("disk I/O error"),
+        ):
+            with self.assertRaisesRegex(sqlite3.OperationalError, "disk I/O error"):
+                self.queue.health_depth()
 
 
 if __name__ == "__main__":

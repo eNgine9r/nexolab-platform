@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import unittest
 from collections import defaultdict
 from typing import Any
@@ -126,6 +127,35 @@ class NodeOperationalPublisherTests(unittest.TestCase):
         self.assertEqual(offline[1]["node_sequence"], 5)
         self.assertTrue(offline[3])
         self.assertEqual(sequences.values["status"], 5)
+
+    def test_health_publish_defers_busy_snapshot_without_raising(self) -> None:
+        publisher, client, _sequences = self.build_publisher()
+        publisher._state_snapshot = lambda: (_ for _ in ()).throw(
+            sqlite3.OperationalError("database is locked")
+        )
+
+        self.assertFalse(publisher.publish_health_if_due(force=True))
+        self.assertEqual(client.published, [])
+        self.assertIsNone(publisher.publish_health_if_due())
+
+    def test_health_publish_defers_busy_sequence_without_raising(self) -> None:
+        publisher, client, _sequences = self.build_publisher()
+        publisher._next_sequence = lambda stream: (_ for _ in ()).throw(
+            sqlite3.OperationalError("database is busy")
+        )
+
+        self.assertFalse(publisher.publish_health_if_due(force=True))
+        self.assertEqual(client.published, [])
+        self.assertIsNone(publisher.publish_health_if_due())
+
+    def test_health_publish_does_not_hide_structural_sqlite_failure(self) -> None:
+        publisher, _client, _sequences = self.build_publisher()
+        publisher._state_snapshot = lambda: (_ for _ in ()).throw(
+            sqlite3.OperationalError("disk I/O error")
+        )
+
+        with self.assertRaisesRegex(sqlite3.OperationalError, "disk I/O error"):
+            publisher.publish_health_if_due(force=True)
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import signal
+import sqlite3
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -31,6 +32,12 @@ from registry_main import (
 )
 
 LATEST_PATH = "/api/v1/acquisition-latest"
+SQLITE_BUSY_SUPERVISOR_GRACE_CYCLES = 3
+
+
+def _is_sqlite_busy_error(error: sqlite3.OperationalError) -> bool:
+    message = str(error).casefold()
+    return "locked" in message or "busy" in message
 
 
 class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
@@ -44,6 +51,14 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
     ) -> None:
         super().__init__(settings, registry_store=registry_store)
         self._publish_lock = threading.Lock()
+        self._sqlite_busy_supervisor_consecutive = 0
+        self._sqlite_busy_supervisor_limit = SQLITE_BUSY_SUPERVISOR_GRACE_CYCLES
+        self._latest_summary_cache: dict[str, Any] = {
+            "schema_version": 1,
+            "count": 0,
+            "last_attempt_at": None,
+            "last_success_at": None,
+        }
         self.latest_values = LatestValueStore(settings.database_path)
         self.scheduler_policy = SchedulerPolicy.from_environment(
             legacy_interval_seconds=self.settings.sample_interval_seconds
@@ -71,20 +86,79 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
 
     def health_snapshot(self) -> dict[str, Any]:
         payload = super().health_snapshot()
-        payload["latest_values"] = self.scheduler.latest_summary()
+        latest_summary_stale = False
+        try:
+            latest_summary = self.scheduler.latest_summary()
+            self._latest_summary_cache = latest_summary
+        except sqlite3.OperationalError as error:
+            if not _is_sqlite_busy_error(error):
+                raise
+            latest_summary_stale = True
+            latest_summary = dict(
+                getattr(
+                    self,
+                    "_latest_summary_cache",
+                    {
+                        "schema_version": 1,
+                        "count": 0,
+                        "last_attempt_at": None,
+                        "last_success_at": None,
+                    },
+                )
+            )
+        payload["latest_values"] = latest_summary
+        base_contention = payload.get("sqlite_contention", {})
+        queue_contention = (
+            base_contention.get("queue", self.queue.contention_snapshot())
+            if isinstance(base_contention, dict)
+            else self.queue.contention_snapshot()
+        )
+        queue_depth_stale = (
+            bool(base_contention.get("queue_depth_stale", False))
+            if isinstance(base_contention, dict)
+            else False
+        )
+        latest_contention = self.latest_values.contention_snapshot()
+        supervisor_consecutive = int(
+            getattr(self, "_sqlite_busy_supervisor_consecutive", 0)
+        )
+        supervisor_limit = int(
+            getattr(
+                self,
+                "_sqlite_busy_supervisor_limit",
+                SQLITE_BUSY_SUPERVISOR_GRACE_CYCLES,
+            )
+        )
+        payload["sqlite_contention"] = {
+            "schema_version": 1,
+            "queue_depth_stale": queue_depth_stale,
+            "latest_summary_stale": latest_summary_stale,
+            "queue": queue_contention,
+            "latest_values": latest_contention,
+            "supervisor": {
+                "consecutive_busy_cycles": supervisor_consecutive,
+                "fail_closed_after_cycles": supervisor_limit,
+            },
+        }
 
+        errors = [payload.get("last_error")]
         scheduler = payload["acquisition"]["scheduler"]
         if not scheduler.get("workers_healthy", False):
             payload["status"] = "error"
-            worker_error = self.scheduler.current_error()
-            current_error = payload.get("last_error")
-            payload["last_error"] = "; ".join(
-                dict.fromkeys(
-                    value
-                    for value in (worker_error, current_error)
-                    if value
-                )
-            ) or None
+            errors.insert(0, self.scheduler.current_error())
+        if latest_summary_stale or int(
+            latest_contention.get("consecutive_exhaustions", 0)
+        ) > 0:
+            if payload.get("status") == "ok":
+                payload["status"] = "degraded"
+            errors.insert(0, "SQLite latest-value store is lock-contended")
+        if supervisor_consecutive > 0:
+            if payload.get("status") == "ok":
+                payload["status"] = "degraded"
+            errors.insert(0, "SQLite queue persistence is lock-contended")
+        payload["last_error"] = "; ".join(
+            dict.fromkeys(value for value in errors if value)
+        ) or None
         return payload
 
     def replace_active_points(
@@ -324,8 +398,43 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
             while not self.stop_event.is_set():
                 self.scheduler.supervise_workers()
                 with self._publish_lock:
-                    queue_size = self.queue.size()
-                    flush_ok = self.flush_queue()
+                    try:
+                        queue_size = self.queue.size()
+                        flush_ok = self.flush_queue()
+                    except sqlite3.OperationalError as error:
+                        if not _is_sqlite_busy_error(error):
+                            raise
+                        consecutive = int(
+                            getattr(self, "_sqlite_busy_supervisor_consecutive", 0)
+                        ) + 1
+                        limit = int(
+                            getattr(
+                                self,
+                                "_sqlite_busy_supervisor_limit",
+                                SQLITE_BUSY_SUPERVISOR_GRACE_CYCLES,
+                            )
+                        )
+                        self._sqlite_busy_supervisor_consecutive = consecutive
+                        message = (
+                            "SQLite queue lock contention; "
+                            f"supervisor cycle {consecutive}/{limit}"
+                        )
+                        self.state.update(last_error=message)
+                        if consecutive >= limit:
+                            LOG.error(
+                                "%s; failing closed after bounded grace",
+                                message,
+                            )
+                            raise
+                        LOG.warning("%s; keeping runtime alive", message)
+                        self.stop_event.wait(1.0)
+                        continue
+                    if getattr(self, "_sqlite_busy_supervisor_consecutive", 0):
+                        LOG.info(
+                            "SQLite queue contention recovered after %s supervisor cycle(s)",
+                            self._sqlite_busy_supervisor_consecutive,
+                        )
+                    self._sqlite_busy_supervisor_consecutive = 0
                     errors = [
                         value
                         for value in (

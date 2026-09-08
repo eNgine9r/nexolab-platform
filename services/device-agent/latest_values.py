@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 import json
+import logging
 import sqlite3
 import threading
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -10,14 +13,43 @@ if TYPE_CHECKING:
     from adaptive_scheduler import ScheduledResult, SchedulerTarget
 
 
+LOG = logging.getLogger("nexolab.device_agent.latest_values")
+
+
 class LatestValueStore:
     """Atomic latest-value read model stored in the existing edge SQLite file."""
 
-    def __init__(self, database_path: Path) -> None:
+    def __init__(
+        self,
+        database_path: Path,
+        *,
+        busy_timeout_ms: int = 2000,
+        busy_retry_attempts: int = 3,
+        busy_retry_delay_seconds: float = 0.05,
+    ) -> None:
+        if busy_timeout_ms <= 0:
+            raise ValueError("busy_timeout_ms must be positive")
+        if busy_retry_attempts <= 0:
+            raise ValueError("busy_retry_attempts must be positive")
+        if busy_retry_delay_seconds < 0:
+            raise ValueError("busy_retry_delay_seconds must be non-negative")
         database_path.parent.mkdir(parents=True, exist_ok=True)
-        self._connection = sqlite3.connect(database_path, check_same_thread=False)
-        self._connection.execute("PRAGMA busy_timeout = 5000")
+        self._connection = sqlite3.connect(
+            database_path,
+            check_same_thread=False,
+            timeout=busy_timeout_ms / 1000,
+        )
+        self._connection.execute(f"PRAGMA busy_timeout = {busy_timeout_ms}")
         self._lock = threading.Lock()
+        self._busy_retry_attempts = busy_retry_attempts
+        self._busy_retry_delay_seconds = busy_retry_delay_seconds
+        self._busy_events_total = 0
+        self._busy_retries_total = 0
+        self._busy_exhausted_total = 0
+        self._busy_recoveries_total = 0
+        self._busy_consecutive_exhaustions = 0
+        self._busy_last_operation: str | None = None
+        self._busy_last_error: str | None = None
         with self._connection:
             self._connection.execute(
                 """
@@ -31,110 +63,175 @@ class LatestValueStore:
                 """
             )
 
+    @staticmethod
+    def _is_busy_error(error: sqlite3.OperationalError) -> bool:
+        message = str(error).casefold()
+        return "locked" in message or "busy" in message
+
+    def _retry_busy(self, label: str, operation: Callable[[], Any]) -> Any:
+        saw_busy = False
+        for attempt in range(1, self._busy_retry_attempts + 1):
+            try:
+                result = operation()
+                if saw_busy:
+                    self._busy_recoveries_total += 1
+                self._busy_consecutive_exhaustions = 0
+                return result
+            except sqlite3.OperationalError as error:
+                if self._connection.in_transaction:
+                    self._connection.rollback()
+                if not self._is_busy_error(error):
+                    raise
+                saw_busy = True
+                self._busy_events_total += 1
+                self._busy_last_operation = label
+                self._busy_last_error = str(error)
+                if attempt >= self._busy_retry_attempts:
+                    self._busy_exhausted_total += 1
+                    self._busy_consecutive_exhaustions += 1
+                    LOG.error(
+                        "SQLite latest-value %s exhausted lock-contention retry budget %s/%s",
+                        label,
+                        attempt,
+                        self._busy_retry_attempts,
+                    )
+                    raise
+                self._busy_retries_total += 1
+                LOG.warning(
+                    "SQLite latest-value %s deferred by lock contention; retry %s/%s",
+                    label,
+                    attempt,
+                    self._busy_retry_attempts,
+                )
+                if self._busy_retry_delay_seconds:
+                    time.sleep(self._busy_retry_delay_seconds * attempt)
+        raise RuntimeError("SQLite busy retry loop exhausted unexpectedly")
+
+    def contention_snapshot(self) -> dict[str, Any]:
+        with self._lock:
+            return {
+                "schema_version": 1,
+                "busy_events_total": self._busy_events_total,
+                "busy_retries_total": self._busy_retries_total,
+                "busy_exhausted_total": self._busy_exhausted_total,
+                "busy_recoveries_total": self._busy_recoveries_total,
+                "consecutive_exhaustions": self._busy_consecutive_exhaustions,
+                "last_operation": self._busy_last_operation,
+                "last_error": self._busy_last_error,
+            }
+
     def record_attempt(
         self,
         target: SchedulerTarget,
         result: ScheduledResult,
     ) -> None:
         record = result.record
-        with self._lock, self._connection:
-            row = self._connection.execute(
-                """
-                SELECT payload, last_success_at
-                FROM acquisition_latest_values
-                WHERE target_id = ?
-                """,
-                (target.target_id,),
-            ).fetchone()
-            previous = json.loads(str(row[0])) if row else {}
-            attempts_total = int(previous.get("attempts_total", 0)) + 1
-            successes_total = int(previous.get("successes_total", 0))
-            communication_failures_total = int(
-                previous.get("communication_failures_total", 0)
-            )
-            consecutive_failures = int(
-                previous.get("consecutive_failures", 0)
-            )
-            if result.communication_failed:
-                communication_failures_total += 1
-                consecutive_failures += 1
-            else:
-                successes_total += 1
-            payload = {
-                **previous,
-                "target_id": target.target_id,
-                "source_target": target.target_id,
-                "bus_id": target.bus_id,
-                "device_family": target.device_family,
-                "unit_id": target.unit_id,
-                "metric": record.metric,
-                "equipment_id": record.equipment_id,
-                "channel_id": record.channel_id,
-                "unit": record.unit,
-                "quality": record.quality,
-                "last_attempt_at": record.captured_at,
-                "source": record.source,
-                "last_error": (
-                    result.error if result.communication_failed else None
-                ),
-                "attempts_total": attempts_total,
-                "successes_total": successes_total,
-                "communication_failures_total": communication_failures_total,
-                "consecutive_failures": consecutive_failures,
-            }
-            last_success = (
-                str(row[1]) if row and row[1] is not None else None
-            )
-            if not result.communication_failed:
-                if consecutive_failures > 0:
-                    payload["last_recovered_at"] = record.captured_at
-                payload.update(
-                    value=record.value,
-                    captured_at=record.captured_at,
-                    last_success_at=record.captured_at,
-                    alarm=record.alarm,
-                    raw_value=record.raw_value,
-                    raw_status=record.raw_status,
-                    consecutive_failures=0,
+
+        def operation() -> None:
+            with self._connection:
+                row = self._connection.execute(
+                    """
+                    SELECT payload, last_success_at
+                    FROM acquisition_latest_values
+                    WHERE target_id = ?
+                    """,
+                    (target.target_id,),
+                ).fetchone()
+                previous = json.loads(str(row[0])) if row else {}
+                attempts_total = int(previous.get("attempts_total", 0)) + 1
+                successes_total = int(previous.get("successes_total", 0))
+                communication_failures_total = int(
+                    previous.get("communication_failures_total", 0)
                 )
-                last_success = record.captured_at
-            payload_json = json.dumps(
-                payload,
-                separators=(",", ":"),
-                ensure_ascii=False,
-            )
-            self._connection.execute(
-                """
-                INSERT INTO acquisition_latest_values(
-                    target_id, payload, last_attempt_at, last_success_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT(target_id) DO UPDATE SET
-                    payload = excluded.payload,
-                    last_attempt_at = excluded.last_attempt_at,
-                    last_success_at = excluded.last_success_at,
-                    updated_at = excluded.updated_at
-                """,
-                (
-                    target.target_id,
-                    payload_json,
-                    record.captured_at,
-                    last_success,
-                    record.captured_at,
-                ),
-            )
+                consecutive_failures = int(
+                    previous.get("consecutive_failures", 0)
+                )
+                if result.communication_failed:
+                    communication_failures_total += 1
+                    consecutive_failures += 1
+                else:
+                    successes_total += 1
+                payload = {
+                    **previous,
+                    "target_id": target.target_id,
+                    "source_target": target.target_id,
+                    "bus_id": target.bus_id,
+                    "device_family": target.device_family,
+                    "unit_id": target.unit_id,
+                    "metric": record.metric,
+                    "equipment_id": record.equipment_id,
+                    "channel_id": record.channel_id,
+                    "unit": record.unit,
+                    "quality": record.quality,
+                    "last_attempt_at": record.captured_at,
+                    "source": record.source,
+                    "last_error": (
+                        result.error if result.communication_failed else None
+                    ),
+                    "attempts_total": attempts_total,
+                    "successes_total": successes_total,
+                    "communication_failures_total": communication_failures_total,
+                    "consecutive_failures": consecutive_failures,
+                }
+                last_success = (
+                    str(row[1]) if row and row[1] is not None else None
+                )
+                if not result.communication_failed:
+                    if consecutive_failures > 0:
+                        payload["last_recovered_at"] = record.captured_at
+                    payload.update(
+                        value=record.value,
+                        captured_at=record.captured_at,
+                        last_success_at=record.captured_at,
+                        alarm=record.alarm,
+                        raw_value=record.raw_value,
+                        raw_status=record.raw_status,
+                        consecutive_failures=0,
+                    )
+                    last_success = record.captured_at
+                payload_json = json.dumps(
+                    payload,
+                    separators=(",", ":"),
+                    ensure_ascii=False,
+                )
+                self._connection.execute(
+                    """
+                    INSERT INTO acquisition_latest_values(
+                        target_id, payload, last_attempt_at, last_success_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(target_id) DO UPDATE SET
+                        payload = excluded.payload,
+                        last_attempt_at = excluded.last_attempt_at,
+                        last_success_at = excluded.last_success_at,
+                        updated_at = excluded.updated_at
+                    """,
+                    (
+                        target.target_id,
+                        payload_json,
+                        record.captured_at,
+                        last_success,
+                        record.captured_at,
+                    ),
+                )
+
+        with self._lock:
+            self._retry_busy("record_attempt", operation)
 
     def last_attempts(self) -> dict[str, str]:
-        with self._lock:
+        def operation() -> dict[str, str]:
             rows = self._connection.execute(
                 """
                 SELECT target_id, last_attempt_at
                 FROM acquisition_latest_values
                 """
             ).fetchall()
-        return {
-            str(target_id): str(last_attempt)
-            for target_id, last_attempt in rows
-        }
+            return {
+                str(target_id): str(last_attempt)
+                for target_id, last_attempt in rows
+            }
+
+        with self._lock:
+            return self._retry_busy("last_attempts", operation)
 
     def payloads_for(
         self,
@@ -142,8 +239,9 @@ class LatestValueStore:
     ) -> dict[str, dict[str, Any]]:
         if not target_ids:
             return {}
-        result: dict[str, dict[str, Any]] = {}
-        with self._lock:
+
+        def operation() -> dict[str, dict[str, Any]]:
+            result: dict[str, dict[str, Any]] = {}
             for offset in range(0, len(target_ids), 500):
                 batch = target_ids[offset : offset + 500]
                 placeholders = ",".join("?" for _ in batch)
@@ -157,10 +255,13 @@ class LatestValueStore:
                 ).fetchall()
                 for target_id, payload in rows:
                     result[str(target_id)] = json.loads(str(payload))
-        return result
+            return result
+
+        with self._lock:
+            return self._retry_busy("payloads_for", operation)
 
     def summary(self) -> dict[str, Any]:
-        with self._lock:
+        def operation() -> dict[str, Any]:
             row = self._connection.execute(
                 """
                 SELECT
@@ -170,16 +271,20 @@ class LatestValueStore:
                 FROM acquisition_latest_values
                 """
             ).fetchone()
-        return {
-            "schema_version": 1,
-            "count": int(row[0] if row else 0),
-            "last_attempt_at": str(row[1]) if row and row[1] else None,
-            "last_success_at": str(row[2]) if row and row[2] else None,
-        }
+            return {
+                "schema_version": 1,
+                "count": int(row[0] if row else 0),
+                "last_attempt_at": str(row[1]) if row and row[1] else None,
+                "last_success_at": str(row[2]) if row and row[2] else None,
+            }
+
+        with self._lock:
+            return self._retry_busy("summary", operation)
 
     def snapshot(self, *, limit: int = 500) -> dict[str, Any]:
         bounded = min(2000, max(1, limit))
-        with self._lock:
+
+        def operation() -> dict[str, Any]:
             rows = self._connection.execute(
                 """
                 SELECT payload
@@ -192,8 +297,11 @@ class LatestValueStore:
             count = self._connection.execute(
                 "SELECT COUNT(*) FROM acquisition_latest_values"
             ).fetchone()
-        return {
-            "schema_version": 1,
-            "count": int(count[0] if count else 0),
-            "items": [json.loads(str(row[0])) for row in rows],
-        }
+            return {
+                "schema_version": 1,
+                "count": int(count[0] if count else 0),
+                "items": [json.loads(str(row[0])) for row in rows],
+            }
+
+        with self._lock:
+            return self._retry_busy("snapshot", operation)

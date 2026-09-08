@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-08T20:22:00+03:00",
+  "timestamp": "2026-09-08T20:57:35+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_968_ssd_migration_accepted_issue_933_resumed_state_reconciliation_pending",
+  "event": "issue_933_sqlite_contention_candidate_locally_verified",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -14,73 +14,56 @@
     "issue": 933,
     "title": "Prevent Device Agent exit on transient SQLite lock contention",
     "branch": "fix/933-device-agent-sqlite-lock-contention",
-    "status": "resumed_read_only_audit_state_reconciliation_pending"
+    "status": "locally_verified_candidate_ready_to_commit"
   },
   "evidence_snapshot": {
-    "ssd_migration_completion": {
-      "issue": 968,
-      "target_stable_id": "ata-Micron_MTFDDAK256TBN_17521B5686D5",
-      "current_root": "/dev/sda2",
-      "current_boot": "/dev/sda1",
-      "root_capacity": "234GiB_52GiB_used_170GiB_free_24_percent",
-      "transport": "uas_5000M",
-      "boot_order": "0xf146",
-      "normal_boot_verify": "passed_2026-09-08T19:47:14+03:00",
-      "official_verify_result": "pass",
-      "runtime": "12_containers_healthy_postgres_ready_dashboard_200_login_200_auth_401",
-      "device_agent": "advancing_acquisition_mqtt_connected_queue_0_workers_2_of_2_healthy_restart_stable",
-      "rs485_stable_ids": "both_cp2104_present",
-      "fstrim": "enabled_active",
-      "ssd_direct_io_smoke": "write_284MiB_s_read_360MiB_s_512MiB_disposable_file_deleted",
-      "ssd_first_reboot_after_b2": "pass_root_sda2_boot_sda1",
-      "standalone_microsd_rollback": "hardware_verified_earlier",
-      "simultaneous_ssd_microsd_boot": "deferred_by_product_owner_not_verified",
+    "issue_933_candidate": {
+      "production_evidence": "database_locked_exit_code_1_not_oom_reproduced_again_during_issue_968_seed_copy",
+      "recovery_snapshot": "/home/nexolab/recovery/issue-933-post-ssd-20260908T172419Z",
+      "transient_queue_lock": "bounded_retry_then_recovery_without_process_exit",
+      "persistent_queue_lock": "adaptive_supervisor_fails_closed_after_3_exhausted_busy_cycles",
+      "latest_value_lock": "bounded_atomic_retry_no_partial_update_or_silent_drop",
+      "health_queue_depth": "last_known_value_stale_degraded_not_exception",
+      "health_latest_summary": "last_known_value_stale_degraded_not_exception",
+      "operational_health": "busy_locked_deferred_false_and_rate_limited_non_busy_errors_propagate",
+      "contention_observability": "structured_queue_latest_and_supervisor_counters_last_operation_last_error",
+      "targeted_tests": "23_passed",
+      "full_device_agent_tests": "229_passed",
+      "candidate_image_build": "passed",
+      "candidate_image_full_tests": "229_passed",
+      "compileall": "passed",
+      "git_diff_check": "passed",
+      "runtime_mutation": "none",
+      "production_deployment": "not_executed",
       "modbus_write": "none",
       "hardware_write": "none",
       "product_data_delete": "none",
       "volume_delete": "none"
-    },
-    "repository_fix": {
-      "issue": 970,
-      "pull_request": 971,
-      "verified_head": "50de09b63093fdaca27e82d51b0767bb6b472c30",
-      "exact_head_checks": "all_required_green",
-      "unresolved_review_threads": 0,
-      "repository_completion": "verified_fix_merged_issue_closed"
-    },
-    "next_work": {
-      "issue": 933,
-      "branch": "fix/933-device-agent-sqlite-lock-contention",
-      "dirty_worktree_preserved": true,
-      "snapshot": "/home/nexolab/recovery/issue-968-pre-ssd-20260908T091750Z"
-    },
-    "state_reconciliation": {
-      "issue": 973,
-      "scope": "four_project_state_files_only",
-      "state_model_v2": "passed",
-      "json_parse": "passed",
-      "prettier_markdown": "passed",
-      "git_diff_check": "passed",
-      "active_selection": "issue_933_in_progress",
-      "pull_request": 974,
-      "branch": "chore/973-reconcile-ssd-migration-state",
-      "status": "exact_head_reverification_required_after_review_fix"
     }
   },
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-09-08T20:05:00+03:00",
-      "kind": "issue_970_completed_pr_971_merged",
+      "observed_at": "2026-09-08T20:22:00+03:00",
+      "kind": "ssd_state_reconciliation_merged",
       "data": {
-        "issue": 970,
-        "pull_request": 971,
-        "merge_sha": "88d484dc8007469d1654fb17434e22ef1cfbc1eb",
+        "issue": 973,
+        "pull_request": 974,
+        "merge_sha": "b3b78c971dfb34ff1171070bbba14c851051f41f",
+        "state": "merged"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-08T20:22:00+03:00",
+      "kind": "storage_migration_issue_completed",
+      "data": {
+        "issue": 968,
         "state": "closed_completed"
       }
     }
   ],
-  "next_action": "Finish Issue #973 / PR #974 exact-head state reconciliation and merge; then reconcile the preserved Issue #933 dirty worktree with current main and continue targeted SQLite contention verification without mixing state-only changes.",
+  "next_action": "Commit and push the locally verified Issue #933 candidate, open one focused pull request, require exact-head Device Agent/Core CI and NEXOLAB Merge Gate GREEN, resolve review findings, then merge without production deployment.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

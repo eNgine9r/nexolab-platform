@@ -354,6 +354,14 @@ class OfflineQueue:
         self._lock = threading.Lock()
         self._busy_retry_attempts = busy_retry_attempts
         self._busy_retry_delay_seconds = busy_retry_delay_seconds
+        self._busy_events_total = 0
+        self._busy_retries_total = 0
+        self._busy_exhausted_total = 0
+        self._busy_recoveries_total = 0
+        self._busy_consecutive_exhaustions = 0
+        self._busy_last_operation: str | None = None
+        self._busy_last_error: str | None = None
+        self._last_known_size = 0
         with self._connection:
             self._connection.execute(
                 """
@@ -374,6 +382,10 @@ class OfflineQueue:
                 )
                 """
             )
+            row = self._connection.execute(
+                "SELECT COUNT(*) FROM outbound_queue"
+            ).fetchone()
+            self._last_known_size = int(row[0] if row else 0)
 
     @staticmethod
     def _is_busy_error(error: sqlite3.OperationalError) -> bool:
@@ -381,17 +393,34 @@ class OfflineQueue:
         return "locked" in message or "busy" in message
 
     def _retry_busy(self, label: str, operation: Callable[[], Any]) -> Any:
+        saw_busy = False
         for attempt in range(1, self._busy_retry_attempts + 1):
             try:
-                return operation()
+                result = operation()
+                if saw_busy:
+                    self._busy_recoveries_total += 1
+                self._busy_consecutive_exhaustions = 0
+                return result
             except sqlite3.OperationalError as error:
                 if self._connection.in_transaction:
                     self._connection.rollback()
-                if (
-                    not self._is_busy_error(error)
-                    or attempt >= self._busy_retry_attempts
-                ):
+                if not self._is_busy_error(error):
                     raise
+                saw_busy = True
+                self._busy_events_total += 1
+                self._busy_last_operation = label
+                self._busy_last_error = str(error)
+                if attempt >= self._busy_retry_attempts:
+                    self._busy_exhausted_total += 1
+                    self._busy_consecutive_exhaustions += 1
+                    LOG.error(
+                        "SQLite queue %s exhausted lock-contention retry budget %s/%s",
+                        label,
+                        attempt,
+                        self._busy_retry_attempts,
+                    )
+                    raise
+                self._busy_retries_total += 1
                 LOG.warning(
                     "SQLite queue %s deferred by lock contention; retry %s/%s",
                     label,
@@ -401,6 +430,19 @@ class OfflineQueue:
                 if self._busy_retry_delay_seconds:
                     time.sleep(self._busy_retry_delay_seconds * attempt)
         raise RuntimeError("SQLite busy retry loop exhausted unexpectedly")
+
+    def contention_snapshot(self) -> dict[str, Any]:
+        with self._lock:
+            return {
+                "schema_version": 1,
+                "busy_events_total": self._busy_events_total,
+                "busy_retries_total": self._busy_retries_total,
+                "busy_exhausted_total": self._busy_exhausted_total,
+                "busy_recoveries_total": self._busy_recoveries_total,
+                "consecutive_exhaustions": self._busy_consecutive_exhaustions,
+                "last_operation": self._busy_last_operation,
+                "last_error": self._busy_last_error,
+            }
 
     def enqueue(self, topic: str, payload: str, event_id: str) -> None:
         def operation() -> None:
@@ -448,10 +490,22 @@ class OfflineQueue:
             row = self._connection.execute(
                 "SELECT COUNT(*) FROM outbound_queue"
             ).fetchone()
-            return int(row[0] if row else 0)
+            value = int(row[0] if row else 0)
+            self._last_known_size = value
+            return value
 
         with self._lock:
             return int(self._retry_busy("size", operation))
+
+    def health_depth(self) -> tuple[int, bool]:
+        """Return queue depth without turning transient lock contention into health loss."""
+        try:
+            return self.size(), False
+        except sqlite3.OperationalError as error:
+            if not self._is_busy_error(error):
+                raise
+            with self._lock:
+                return self._last_known_size, True
 
     def next_sequence(self, stream: str) -> int:
         normalized = stream.strip().lower()
@@ -579,9 +633,7 @@ class DeviceAgent:
                 device_mode=settings.device_mode,
                 health_interval_seconds=settings.health_interval_seconds,
                 next_sequence=self.queue.next_sequence,
-                state_snapshot=lambda: self.state.snapshot(
-                    self.queue.size(), self.settings
-                ),
+                state_snapshot=self._state_snapshot_for_health,
             )
         self.modbus_client: ModbusRTUClient | None = None
         self.xjp60d_reader: XJP60DReader | None = None
@@ -620,6 +672,28 @@ class DeviceAgent:
                 temperature_scale=settings.embraco_temperature_scale,
                 control_scale=settings.embraco_control_scale,
             )
+
+    def _state_snapshot_for_health(self) -> dict[str, Any]:
+        queue_depth, queue_depth_stale = self.queue.health_depth()
+        payload = self.state.snapshot(queue_depth, self.settings)
+        payload["sqlite_contention"] = {
+            "schema_version": 1,
+            "queue_depth_stale": queue_depth_stale,
+            "queue": self.queue.contention_snapshot(),
+        }
+        if queue_depth_stale:
+            payload["status"] = "degraded"
+            contention_error = (
+                "SQLite queue depth is lock-contended; reporting last known value"
+            )
+            payload["last_error"] = "; ".join(
+                dict.fromkeys(
+                    value
+                    for value in (contention_error, payload.get("last_error"))
+                    if value
+                )
+            )
+        return payload
 
     def _on_connect(
         self,
@@ -949,10 +1023,7 @@ class HealthHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        payload = self.agent.state.snapshot(
-            self.agent.queue.size(),
-            self.agent.settings,
-        )
+        payload = self.agent._state_snapshot_for_health()
         status = 200 if payload["status"] in {"ok", "degraded"} else 503
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
