@@ -217,7 +217,7 @@ mount_target() {
   mount "$P2" "$TARGET_ROOT"
   mkdir -p "$TARGET_ROOT/boot/firmware"
   chmod 0755 "$TARGET_ROOT/boot" "$TARGET_ROOT/boot/firmware"
-  mount "$P1" "$TARGET_ROOT/boot/firmware"
+  mount -o uid=0,gid=0,fmask=0022,dmask=0022 "$P1" "$TARGET_ROOT/boot/firmware"
 }
 
 ensure_target_root_mountpoints() {

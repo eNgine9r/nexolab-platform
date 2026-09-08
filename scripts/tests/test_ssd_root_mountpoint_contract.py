@@ -65,6 +65,14 @@ class SsdRootMountpointContractTest(unittest.TestCase):
                 self.assertEqual(stat.S_IMODE(path.stat().st_mode), expected, relative)
             self.assertTrue((Path(tmp) / "boot/firmware").is_dir())
 
+    def test_fat_mount_masks_are_deterministic(self) -> None:
+        mount_target = re.search(r"mount_target\(\) \{(?P<body>.*?)\n\}", self.text, re.S)
+        self.assertIsNotNone(mount_target)
+        self.assertIn(
+            'mount -o uid=0,gid=0,fmask=0022,dmask=0022 "$P1" "$TARGET_ROOT/boot/firmware"',
+            mount_target.group("body"),
+        )
+
     def test_validator_requires_root_ownership(self) -> None:
         self.assertIn("[[ \"$owner\" == '0:0' ]]", self.text)
         for relative, mode in VALIDATED_MODES.items():
