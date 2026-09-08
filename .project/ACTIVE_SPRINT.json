@@ -18,16 +18,16 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "ea9d0d020a299403da3d9378e9593ff2a388d9ad",
+    "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 960,
-      "title": "RFX-08B Authoritative Policy, Profile Acceptance and Historical Derived-Read Orchestration",
-      "branch": "feat/960-rfx08b-derived-orchestration"
-    },
-    "next_work_package": null
+    "active_work_package": null,
+    "next_work_package": {
+      "issue": 933,
+      "title": "Prevent Device Agent exit on transient SQLite lock contention",
+      "branch": "fix/933-device-agent-sqlite-lock-contention"
+    }
   },
   "work_packages": [
     {
@@ -3104,7 +3104,7 @@
       "issue": 960,
       "title": "RFX-08B Authoritative Policy, Profile Acceptance and Historical Derived-Read Orchestration",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "feat/960-rfx08b-derived-orchestration",
       "depends_on": [
         957
@@ -3150,7 +3150,39 @@
         "ci_failure_reproduction_fix_postgres": "original_8_failed_tests_now_8_passed",
         "post_fix_refrigeration_instrumentation_postgres": "214_passed_1_skipped",
         "post_fix_full_telemetry_postgres": "778_passed_2_skipped_2_deselected",
-        "post_fix_scratch_postgres_migration": "empty_to_20260907_0036_green"
+        "post_fix_scratch_postgres_migration": "empty_to_20260907_0036_green",
+        "verified_head_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
+        "pull_request": 962,
+        "checks": {
+          "exact_head_workflows": "20_success",
+          "telemetry_service": "success:34192639978",
+          "offline_bundle": "success:34192639971",
+          "authenticated_dashboard": "success_same_sha_rerun:34192639953",
+          "core_ci_merge_gate": "success_same_sha_rerun:34192639904",
+          "manual_team_lead_review": "clean_no_blocking_p1_p2:5137952445",
+          "unresolved_review_threads": "0",
+          "local_candidate": "green"
+        },
+        "authenticated_dashboard_initial_attempt": "known_unrelated_websocket_count_flake_19_of_20_passed",
+        "authenticated_dashboard_rerun": "same_sha_success",
+        "production_deployed_source_unchanged": "9a3556b25b257396d15db80af591d1cc3684b8f7"
+      }
+    },
+    {
+      "issue": 933,
+      "title": "Prevent Device Agent exit on transient SQLite lock contention",
+      "priority": "high",
+      "lifecycle": "ready",
+      "branch": "fix/933-device-agent-sqlite-lock-contention",
+      "depends_on": [],
+      "evidence": {
+        "planning_authority": "github_issue_933_observed_production_restart_evidence",
+        "observed_restart_count": "7",
+        "observed_exit_code": "1_not_oom",
+        "observed_error": "sqlite3_OperationalError_database_is_locked",
+        "production_deployment": "not_authorized_not_required_for_software_fix",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     }
   ],
@@ -3484,6 +3516,26 @@
         "merge_sha": "97c59ca87c35a5316d6622d7cd1102497632feb3",
         "issue_state": "closed",
         "required_checks": "green"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-08T09:23:00+03:00",
+      "kind": "historical_merge",
+      "data": {
+        "issue": 960,
+        "pull_request": 962,
+        "merge_sha": "044e2feeda21e6f84d2b0a589ef3678a1004a923"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-08T09:23:00+03:00",
+      "kind": "github_issue_lifecycle",
+      "data": {
+        "issue": 960,
+        "state": "closed",
+        "state_reason": "completed"
       }
     }
   ],
