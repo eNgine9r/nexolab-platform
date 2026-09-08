@@ -3,40 +3,35 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-08T09:25:45+03:00",
+  "timestamp": "2026-09-08T11:28:31+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_960_rfx08b_completed_merged_issue_933_ready",
+  "event": "issue_966_kk2_panel_catalog_product_candidate_ready_for_pr",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
-  "active_work": null,
-  "evidence_snapshot": {
-    "active_issue_evidence": {}
+  "active_work": {
+    "issue": 966,
+    "title": "Correct KK2 sensor numbering and Dixell channel mapping from physical panel evidence",
+    "branch": "fix/966-kk2-panel-catalog",
+    "implementation_head_sha": "f45142f64ed8e7d3cb7ae7b557e40dcd9ab5bbd7"
   },
-  "observations": [
-    {
-      "source": "github",
-      "observed_at": "2026-09-08T09:23:00+03:00",
-      "kind": "historical_merge",
-      "data": {
-        "issue": 960,
-        "pull_request": 962,
-        "merge_sha": "044e2feeda21e6f84d2b0a589ef3678a1004a923"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-08T09:23:00+03:00",
-      "kind": "github_issue_lifecycle",
-      "data": {
-        "issue": 960,
-        "state": "closed",
-        "state_reason": "completed"
-      }
+  "evidence_snapshot": {
+    "active_issue_evidence": {
+      "production_schema_head": "20260902_0031",
+      "production_kk2_legacy_shape": "14_controllers_84_channels_168_A_B_physical_rows_471_554",
+      "production_synthetic_B_safety": "metadata_0_discovery_refs_0_audit_refs_0",
+      "production_active_channel_bindings": "9_preserved_by_unchanged_canonical_channel_ids",
+      "postgres_migration": "2_passed_real_alembic_0031_to_0037_in_isolated_postgresql",
+      "catalog_tests": "17_passed",
+      "device_agent": "7_unittest_passed_and_3_hardware_contract_pytest_passed",
+      "frontend": "3_passed",
+      "offline_migration_sql": "passed",
+      "compose_config": "passed"
     }
-  ],
-  "next_action": "Complete state-only Issue #963 verification/PR/CI/merge, then begin Issue #933 on fix/933-device-agent-sqlite-lock-contention and reproduce SQLite lock contention on disposable data.",
+  },
+  "observations": [],
+  "next_action": "Push Issue #966 implementation/state branch, open the focused PR, require exact-head CI GREEN and merge before starting Issue #965 sensor-placement UX implementation. Keep Issue #933 Ready and its separate local WIP untouched.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

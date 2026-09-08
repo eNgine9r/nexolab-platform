@@ -22,11 +22,15 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 966,
+      "title": "Correct KK2 sensor numbering and Dixell channel mapping from physical panel evidence",
+      "branch": "fix/966-kk2-panel-catalog"
+    },
     "next_work_package": {
-      "issue": 933,
-      "title": "Prevent Device Agent exit on transient SQLite lock contention",
-      "branch": "fix/933-device-agent-sqlite-lock-contention"
+      "issue": 965,
+      "title": "Simplify sensor placement and marker naming on equipment layouts",
+      "branch": "feat/965-sensor-placement-ux"
     }
   },
   "work_packages": [
@@ -3181,6 +3185,54 @@
         "observed_exit_code": "1_not_oom",
         "observed_error": "sqlite3_OperationalError_database_is_locked",
         "production_deployment": "not_authorized_not_required_for_software_fix",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 966,
+      "title": "Correct KK2 sensor numbering and Dixell channel mapping from physical panel evidence",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "fix/966-kk2-panel-catalog",
+      "depends_on": [],
+      "evidence": {
+        "product_owner_authority": "physical_KK1_KK2_panel_evidence_and_issue_966_contract_2026_09_08",
+        "implementation_head_sha": "f45142f64ed8e7d3cb7ae7b557e40dcd9ab5bbd7",
+        "kk1_mapping": "126_138_x_6_inputs_to_physical_inventory_197_274_unchanged",
+        "kk2_mapping": "96_114_x_6_inputs_to_physical_inventory_441_554_one_sensor_per_input",
+        "canonical_channel_identity": "K101_K114_channel_ids_preserved_K96_K100_added_without_hot_poll_enrollment",
+        "production_read_only_snapshot": "schema_0031_14_controllers_84_channels_168_physical_A_B_rows_inventory_471_554_B_metadata_0_B_discovery_refs_0_B_audit_refs_0_active_channel_bindings_9",
+        "local_catalog_tests": "17_passed",
+        "local_postgres_migration_tests": "2_passed_production_like_0031_to_0037_success_and_metadata_fail_closed",
+        "local_device_agent_tests": "7_passed_unittest_plus_3_passed_hardware_polling_pytest",
+        "local_frontend_parser_tests": "3_passed",
+        "offline_migration_sql": "passed_3546_lines",
+        "compose_validation": "passed_edge_central_hardware_bundle",
+        "prettier_touched_files": "passed",
+        "python_syntax_and_git_diff_check": "passed",
+        "production_deployment": "not_executed_not_authorized",
+        "runtime_mutation": "none_read_only_database_snapshot_only",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "hardware_acceptance": "panel_identity_evidence_only_K96_K100_communication_unverified"
+      }
+    },
+    {
+      "issue": 965,
+      "title": "Simplify sensor placement and marker naming on equipment layouts",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "branch": "feat/965-sensor-placement-ux",
+      "depends_on": [
+        966
+      ],
+      "evidence": {
+        "product_owner_goal": "pick_place_continue_minimal_click_sensor_layout_workflow",
+        "chromium_audit": "current_generic_selector_and_advanced_slot_controls_confirmed_overloaded",
+        "marker_identity_contract": "physical_sensor_inventory_number_primary_channel_id_secondary",
+        "dependency_reason": "KK2_physical_inventory_authority_requires_issue_966_before_final_marker_acceptance",
+        "production_deployment": "not_authorized",
         "modbus_write": "none",
         "hardware_write": "none"
       }

@@ -2,6 +2,10 @@
 
 Updated: 2026-09-08
 
+## Issue #965 — sensor-placement UX waits on physical inventory authority
+
+**Soft blocker only.** The Chromium UX audit is complete and #965 is defined, but its Product Owner-approved marker contract requires the physical sensor inventory number to be the primary short label. KK1 already has authoritative numeric inventory; KK2 depends on #966 correcting the legacy synthetic A/B catalog to panel-backed `441..554`. #966 has a locally GREEN implementation candidate and does not require production cutover to merge. After #966 is exact-head GREEN and merged, #965 becomes immediately Ready. #933 remains an independent Ready reliability WP and is deferred only by Product Owner priority, not blocked.
+
 ## Issue #843 — Telemetry planner-choice CI nondeterminism
 
 **Repository-side blocker cleared 2026-09-03.** PR #844 exact verified implementation head `fcd9d2429ef19c9410fdfe9292d6f5d04cdc7c1b` passed all 11 registered workflows, including Telemetry Service `33770161208`, Core CI/NEXOLAB Merge Gate `33770159789` and Offline Bundle `33770159680`. The repair preserves the production query and schema while replacing an optimizer-specific exact-index-name assertion with independent canonical-index catalog validation plus an index-backed latest-value probe. Local repeated PostgreSQL 16 and transactional negative evidence are GREEN. No production deployment, runtime mutation, Modbus/hardware write or data/volume mutation occurred. GitHub merge status is queried online; after PR #844 merges, integrate current `main` into TG-04 PR #842 and rerun its exact-head verification.
