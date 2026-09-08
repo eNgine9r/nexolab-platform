@@ -89,7 +89,7 @@ The seed copy covered 858,485 files / 55,174,431,322 bytes. During this high-I/O
 
 ## Phase 3 — controlled cutover
 
-The cutover phase is intentionally separate. It revalidates the exact SSD identity, performs one final service-quiesced sync, switches boot order to NVMe/USB before SD fallback, and reboots.
+The cutover phase is intentionally separate. It revalidates the exact SSD identity and prepared backups, requires the critical PostgreSQL/Telemetry/MinIO/MQTT/Device Agent containers healthy, proves the Device Agent restart count remains unchanged across a bounded stability window, then performs one final Docker/containerd-quiesced sync before switching boot order to NVMe/USB ahead of SD fallback and rebooting.
 Operator command:
 
 ```bash
@@ -108,7 +108,7 @@ After the host returns:
 
 ```bash
 cd /home/nexolab/nexolab-968
-./scripts/migrate-raspberry-pi-root-to-ssd.sh verify \
+sudo ./scripts/migrate-raspberry-pi-root-to-ssd.sh verify \
   --target-disk /dev/disk/by-id/ata-Micron_MTFDDAK256TBN_17521B5686D5 \
   --expected-model 'Micron MTFDDAK256TBN' \
   --expected-serial '17521B5686D5'

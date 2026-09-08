@@ -118,7 +118,7 @@ if [[ "$MODE" == "verify" ]]; then
 fi
 
 (( EUID == 0 )) || fail "$MODE requires root privileges"
-for cmd in sfdisk wipefs mkfs.vfat mkfs.ext4 mount umount mountpoint rsync udevadm partprobe sync docker systemctl find sort tail wc python3; do need "$cmd"; done
+for cmd in sfdisk wipefs mkfs.vfat mkfs.ext4 mount umount mountpoint rsync udevadm partprobe sync docker systemctl find sort tail wc python3 timeout sleep; do need "$cmd"; done
 [[ "$ROOT_REAL" == /dev/mmcblk0p2 ]] || fail "Issue #968 mutation expected active root /dev/mmcblk0p2; got $ROOT_REAL"
 
 RUNTIME_STOPPED=0
@@ -221,9 +221,29 @@ validate_prepare_marker() {
   grep -qx "boot_partuuid=$(blkid -s PARTUUID -o value "$P1")" "$marker" || fail "prepare marker boot PARTUUID mismatch"
 }
 
+require_healthy_container() {
+  local name="$1" state
+  state="$(timeout 15s docker inspect -f '{{.State.Running}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$name")" || fail "cannot inspect required container: $name"
+  [[ "$state" == 'true|healthy' ]] || fail "required container is not running/healthy: $name ($state)"
+}
+
+validate_pre_cutover_runtime() {
+  local restart_before restart_after
+  for name in nexolab-central-postgres-1 nexolab-central-telemetry-service-1 nexolab-central-minio-1 nexolab-central-mqtt-1 nexolab-edge-mqtt-1 nexolab-edge-device-agent-1; do
+    require_healthy_container "$name"
+  done
+  restart_before="$(timeout 15s docker inspect -f '{{.RestartCount}}' nexolab-edge-device-agent-1)" || fail "cannot read Device Agent restart count"
+  sleep 10
+  require_healthy_container nexolab-edge-device-agent-1
+  restart_after="$(timeout 15s docker inspect -f '{{.RestartCount}}' nexolab-edge-device-agent-1)" || fail "cannot re-read Device Agent restart count"
+  [[ "$restart_after" == "$restart_before" ]] || fail "Device Agent restarted during pre-cutover stability window: $restart_before -> $restart_after"
+  log "Pre-cutover runtime validation passed: required services healthy, Device Agent restart count stable at $restart_after"
+}
+
 quiesce_runtime() {
   RUNNING_FILE="$(mktemp)"
   docker ps --format '{{.Names}}' | sort > "$RUNNING_FILE"
+  RUNTIME_STOPPED=1
   if [[ -s "$RUNNING_FILE" ]]; then
     mapfile -t running < "$RUNNING_FILE"
     log "Stopping ${#running[@]} running Docker containers for filesystem-consistent sync"
@@ -231,7 +251,10 @@ quiesce_runtime() {
   fi
   systemctl stop docker.service docker.socket >/dev/null 2>&1 || true
   systemctl stop containerd.service >/dev/null 2>&1 || true
-  RUNTIME_STOPPED=1
+  if systemctl is-active --quiet docker.service || systemctl is-active --quiet docker.socket || systemctl is-active --quiet containerd.service; then
+    fail "Docker/containerd remained active after quiesce request"
+  fi
+  log "Docker and containerd are quiesced for final filesystem sync"
 }
 
 restore_runtime() {
@@ -342,6 +365,7 @@ if [[ "$MODE" == "cutover" ]]; then
   mount_target
   validate_prepare_marker
   validate_prepared_backups
+  validate_pre_cutover_runtime
   log "Quiescing Docker for final cutover sync"
   quiesce_runtime
   root_rsync
