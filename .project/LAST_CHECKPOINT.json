@@ -3,19 +3,18 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-08T20:05:00+03:00",
+  "timestamp": "2026-09-08T20:22:00+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_968_ssd_migration_accepted_issue_973_state_reconciliation_active",
+  "event": "issue_968_ssd_migration_accepted_issue_933_resumed_state_reconciliation_pending",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 973,
-    "title": "Reconcile completed SSD migration acceptance",
-    "branch": "chore/973-reconcile-ssd-migration-state",
-    "base_main_sha": "88d484dc8007469d1654fb17434e22ef1cfbc1eb",
-    "status": "locally_verified_ready_to_commit"
+    "issue": 933,
+    "title": "Prevent Device Agent exit on transient SQLite lock contention",
+    "branch": "fix/933-device-agent-sqlite-lock-contention",
+    "status": "resumed_read_only_audit_state_reconciliation_pending"
   },
   "evidence_snapshot": {
     "ssd_migration_completion": {
@@ -62,7 +61,10 @@
       "json_parse": "passed",
       "prettier_markdown": "passed",
       "git_diff_check": "passed",
-      "active_selection": "issue_933_in_progress"
+      "active_selection": "issue_933_in_progress",
+      "pull_request": 974,
+      "branch": "chore/973-reconcile-ssd-migration-state",
+      "status": "exact_head_reverification_required_after_review_fix"
     }
   },
   "observations": [
@@ -78,7 +80,7 @@
       }
     }
   ],
-  "next_action": "Verify, commit and merge Issue #973 state-only reconciliation, close Issue #968 as completed with simultaneous SSD+microSD coexistence explicitly deferred, then resume Issue #933 from its preserved dirty worktree and reconcile it with current main before implementation verification.",
+  "next_action": "Finish Issue #973 / PR #974 exact-head state reconciliation and merge; then reconcile the preserved Issue #933 dirty worktree with current main and continue targeted SQLite contention verification without mixing state-only changes.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
