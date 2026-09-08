@@ -27,7 +27,7 @@ from modbus_rtu import ModbusError, ModbusRequestMeasurement
 from xjp60d import XJP60DReader
 
 LOG = logging.getLogger("nexolab.device_agent")
-DEFAULT_DISCOVERY_UNITS = (*range(101, 115), *range(126, 139))
+DEFAULT_DISCOVERY_UNITS = (*range(96, 115), *range(126, 139))
 _MAX_REQUEST_BYTES = 32 * 1024
 _LATENCY_BUCKETS_MS = (10, 25, 50, 100, 250, 500, 1000)
 

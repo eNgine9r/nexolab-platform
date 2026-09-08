@@ -132,10 +132,10 @@ CLIMATE_CHAMBERS: Final[tuple[ClimateChamberDefinition, ...]] = (
         name="Кліматична камера №2",
         display_order=2,
         bus_key=DEFAULT_RS485_BUS_KEY,
-        controller_start=101,
+        controller_start=96,
         controller_end=114,
-        logical_sensor_start=471,
-        physical_sensor_count=2,
+        logical_sensor_start=441,
+        physical_sensor_count=1,
         energy_meters=(),
     ),
 )
