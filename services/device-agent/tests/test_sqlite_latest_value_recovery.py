@@ -153,6 +153,48 @@ class LatestValueStoreLockRecoveryTests(unittest.TestCase):
         self.assertEqual(contention["busy_recoveries_total"], 1)
         self.assertEqual(contention["consecutive_exhaustions"], 0)
 
+    def test_clean_success_counts_recovery_after_prior_exhaustion(self) -> None:
+        store = LatestValueStore(
+            self.database_path,
+            busy_timeout_ms=10,
+            busy_retry_attempts=1,
+            busy_retry_delay_seconds=0,
+        )
+        target = self.target()
+        store.record_attempt(
+            target,
+            self.result("2026-09-08T06:00:00+00:00", 4.2),
+        )
+        blocker = sqlite3.connect(
+            self.database_path, timeout=0, check_same_thread=False
+        )
+        blocker.execute("BEGIN EXCLUSIVE")
+        try:
+            with self.assertRaisesRegex(sqlite3.OperationalError, "locked"):
+                store.record_attempt(
+                    target,
+                    self.result("2026-09-08T06:00:05+00:00", 4.3),
+                )
+        finally:
+            blocker.rollback()
+            blocker.close()
+
+        exhausted = store.contention_snapshot()
+        self.assertEqual(exhausted["busy_exhausted_total"], 1)
+        self.assertEqual(exhausted["busy_recoveries_total"], 0)
+        self.assertEqual(exhausted["consecutive_exhaustions"], 1)
+
+        store.record_attempt(
+            target,
+            self.result("2026-09-08T06:00:05+00:00", 4.3),
+        )
+        recovered = store.contention_snapshot()
+        self.assertEqual(recovered["busy_recoveries_total"], 1)
+        self.assertEqual(recovered["consecutive_exhaustions"], 0)
+        payload = store.payloads_for([target.target_id])[target.target_id]
+        self.assertEqual(payload["value"], 4.3)
+        self.assertEqual(payload["attempts_total"], 2)
+
     def test_health_summary_does_not_wait_for_contended_operation_mutex(self) -> None:
         store = LatestValueStore(
             self.database_path,

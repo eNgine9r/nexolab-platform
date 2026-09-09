@@ -188,6 +188,35 @@ class OfflineQueueLockRecoveryTests(unittest.TestCase):
         recovered = queue.contention_snapshot()
         self.assertEqual(recovered["consecutive_exhaustions"], 0)
 
+    def test_clean_success_counts_recovery_after_prior_exhaustion(self) -> None:
+        queue = OfflineQueue(
+            self.database_path,
+            busy_timeout_ms=10,
+            busy_retry_attempts=1,
+            busy_retry_delay_seconds=0,
+        )
+        queue.enqueue("topic", "payload", "event-recovery")
+        blocker = sqlite3.connect(
+            self.database_path, timeout=0, check_same_thread=False
+        )
+        blocker.execute("BEGIN EXCLUSIVE")
+        try:
+            with self.assertRaisesRegex(sqlite3.OperationalError, "locked"):
+                queue.size()
+        finally:
+            blocker.rollback()
+            blocker.close()
+
+        exhausted = queue.contention_snapshot()
+        self.assertEqual(exhausted["busy_exhausted_total"], 1)
+        self.assertEqual(exhausted["busy_recoveries_total"], 0)
+        self.assertEqual(exhausted["consecutive_exhaustions"], 1)
+
+        self.assertEqual(queue.size(), 1)
+        recovered = queue.contention_snapshot()
+        self.assertEqual(recovered["busy_recoveries_total"], 1)
+        self.assertEqual(recovered["consecutive_exhaustions"], 0)
+
     def test_health_depth_returns_cached_value_within_probe_budget(self) -> None:
         queue = OfflineQueue(
             self.database_path,

@@ -412,7 +412,7 @@ class OfflineQueue:
             try:
                 result = operation()
                 with self._state_lock:
-                    if saw_busy:
+                    if saw_busy or self._busy_consecutive_exhaustions > 0:
                         self._busy_recoveries_total += 1
                     self._busy_consecutive_exhaustions = 0
                 return result

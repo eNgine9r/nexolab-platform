@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-09T08:18:00+03:00",
+  "timestamp": "2026-09-09T09:00:21+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_933_latest_value_truthful_publication_P1_local_verification_complete",
+  "event": "issue_933_P2_recovery_accounting_local_verification_complete",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -72,13 +72,15 @@
       "pull_request": 976,
       "main_reconciled_sha": "7252295de3d76dab1f3554b1f257918f1e9a5891",
       "reconciliation_merge_commit": "ca64ce30b1b79ddec055cb2c754c513f67955865",
-      "truthful_latest_publication_P1": "same_scheduled_result_outer_retry_latest_persist_before_publish_fail_closed_on_exhaustion",
-      "tests": "targeted_61_of_61_full_source_250_of_250_packaged_250_of_250_pass",
-      "packaged_image": "nexolab-device-agent:issue933-final5",
+      "truthful_latest_publication_P1": "verified_same_scheduled_result_outer_retry_latest_persist_before_publish_fail_closed_on_exhaustion",
+      "tests": "targeted_63_of_63_full_source_252_of_252_packaged_252_of_252_pass",
+      "packaged_image": "nexolab-device-agent:issue933-final6",
       "packaged_provenance": "/app",
       "production_deployment": "not_executed",
       "modbus_write": "none",
-      "hardware_write": "none"
+      "hardware_write": "none",
+      "recovery_accounting_P2": "local_verified_queue_and_latest_store_count_clean_outer_success_after_prior_exhaustion_as_recovery",
+      "previous_exact_head_ci": "541b3ae68f067f716e2f28aeafb4759001bfb38e_9_of_9_green_superseded_by_post_green_P2"
     },
     "issue_978_security_interrupt": {
       "issue": 978,
@@ -90,12 +92,12 @@
     },
     "issue_933_review_blocker": {
       "pull_request": 976,
-      "reviewed_head": "6764370ce89ac0b81aa839a6cc0941bc90509ac4",
-      "thread": "PRRT_kwDOTe72wM6gfnXC",
-      "severity": "P1",
-      "finding": "latest_value_update_can_be_permanently_dropped_after_record_attempt_busy_exhaustion_while_same_result_is_published_or_queued",
-      "required_outcome": "retry_same_latest_update_or_fail_closed_before_result_is_lost",
-      "origin_main_after_issue_978": "7252295de3d76dab1f3554b1f257918f1e9a5891"
+      "reviewed_head": "541b3ae68f067f716e2f28aeafb4759001bfb38e",
+      "thread": "PRRT_kwDOTe72wM6gg-F0",
+      "severity": "P2",
+      "finding": "busy_recoveries_total_not_incremented_when_prior_inner_retry_exhaustion_is_recovered_by_a_clean_successful_outer_call",
+      "required_outcome": "count_recovery_before_clearing_prior_consecutive_exhaustions_in_offline_queue_and_latest_value_store",
+      "local_fix_status": "verified_pending_commit_push_and_exact_head_CI"
     }
   },
   "observations": [
@@ -133,7 +135,7 @@
       }
     }
   ],
-  "next_action": "Commit and push the locally verified Issue #933 truthful latest-value publication P1 fix, reply to and resolve the remaining blocking review thread, require fresh exact-head routed workflows including Container Supply Chain and NEXOLAB Merge Gate GREEN, perform final Team Lead review, then squash-merge PR #976 only if review-clean; no production deployment in this Work Package.",
+  "next_action": "Commit and push the locally verified Issue #933 P2 recovery-accounting fix, reply to and resolve review thread PRRT_kwDOTe72wM6gg-F0, require a fresh exact-head routed workflow matrix including Container Supply Chain, Offline Bundle and NEXOLAB Merge Gate GREEN, perform final Team Lead review, then squash-merge PR #976 only if review-clean; no production deployment in this Work Package.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
