@@ -3,18 +3,18 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-09T07:02:25+03:00",
+  "timestamp": "2026-09-09T07:40:00+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_978_libexpat_high_security_interrupt_active_issue_933_soft_blocked",
+  "event": "issue_978_security_gate_restored_completion_candidate_issue_933_next",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 978,
-    "title": "Review new libexpat1 HIGH CVEs blocking Device Agent and Telegram Gateway",
-    "branch": "security/978-libexpat-high-review",
-    "status": "candidate_exact_exceptions_pending_local_and_exact_head_CI"
+    "issue": 933,
+    "title": "Prevent Device Agent exit on transient SQLite lock contention",
+    "branch": "fix/933-device-agent-sqlite-lock-contention",
+    "status": "resume_after_PR_979_merge_and_origin_main_reconciliation"
   },
   "evidence_snapshot": {
     "ssd_migration_completion": {
@@ -73,11 +73,12 @@
       "exact_head": "6764370ce89ac0b81aa839a6cc0941bc90509ac4",
       "tests": "targeted_57_of_57_full_source_246_of_246_packaged_246_of_246_pass",
       "ci": "all_routed_non_security_lanes_green_container_supply_chain_blocked_new_libexpat_findings",
-      "status": "soft_blocked_by_issue_978"
+      "status": "security_interrupt_cleared_resume_after_PR_979_merge"
     },
     "issue_978_security_interrupt": {
       "issue": 978,
-      "branch": "security/978-libexpat-high-review",
+      "pull_request": 979,
+      "verified_substantive_head": "e90b034a04d47ce5c2eae3c2833d06b573cf7fe8",
       "trigger_run": 34307375095,
       "findings": [
         "device-agent/libexpat1/CVE-2026-76956",
@@ -85,11 +86,12 @@
         "telegram-gateway/libexpat1/CVE-2026-76956",
         "telegram-gateway/libexpat1/CVE-2026-76957"
       ],
-      "installed_version": "2.8.3-1~deb13u1",
-      "debian_trixie": "vulnerable_no_DSA",
-      "upstream_fixed": "2.8.4",
-      "runtime_reachability": "no_XML_parser_path_found_in_device_agent_or_telegram_gateway_runtime_source",
-      "candidate_disposition": "four_exact_HIGH_exceptions_expire_2026_09_12",
+      "disposition": "four_exact_HIGH_exceptions_expire_2026_09_12",
+      "container_supply_chain": "GREEN_34309529777",
+      "core_ci_merge_gate": "GREEN_34309529802",
+      "telemetry_service": "GREEN_34309529811",
+      "review_threads": 0,
+      "state": "completion_candidate_final_state_head_must_reverify_before_merge",
       "deployment": "none",
       "modbus_write": "none",
       "hardware_write": "none"
@@ -119,7 +121,7 @@
       }
     }
   ],
-  "next_action": "Run local Issue #978 supply-chain/state checks, commit and push the focused security candidate, require fresh exact-head no-cache Container Supply Chain plus Core/NEXOLAB Merge Gate GREEN, merge #978, then update #933 to current main and rerun its full exact-head matrix.",
+  "next_action": "Require fresh exact-current-head Container Supply Chain plus Core/NEXOLAB Merge Gate on the final PR #979 state commit, merge #979 only if GREEN and review-clean, then update PR #976 to the resulting origin/main and rerun its full exact-head verification matrix.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

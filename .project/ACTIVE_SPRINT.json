@@ -23,15 +23,11 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 978,
-      "title": "Review new libexpat1 HIGH CVEs blocking Device Agent and Telegram Gateway",
-      "branch": "security/978-libexpat-high-review"
-    },
-    "next_work_package": {
       "issue": 933,
       "title": "Prevent Device Agent exit on transient SQLite lock contention",
       "branch": "fix/933-device-agent-sqlite-lock-contention"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -3194,8 +3190,8 @@
         "software_candidate_head": "6764370ce89ac0b81aa839a6cc0941bc90509ac4",
         "software_verification": "targeted_57_of_57_full_source_246_of_246_packaged_246_of_246_pass",
         "exact_head_ci": "all_routed_non_security_lanes_green_container_supply_chain_fail_only_new_cross_image_libexpat_highs",
-        "soft_blocked_by_issue": 978,
-        "soft_blocker": "new_device_agent_and_telegram_gateway_libexpat1_CVE_2026_76956_CVE_2026_76957_policy_findings"
+        "security_interrupt_issue_978": "cleared_by_verified_PR_979_substantive_head_e90b034a04d47ce5c2eae3c2833d06b573cf7fe8",
+        "resume_gate": "merge_PR_979_then_reconcile_branch_with_origin_main_and_rerun_full_exact_head_matrix"
       }
     },
     {
@@ -3293,7 +3289,7 @@
       "issue": 978,
       "title": "Review new libexpat1 HIGH CVEs blocking Device Agent and Telegram Gateway",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "security/978-libexpat-high-review",
       "depends_on": [],
       "evidence": {
@@ -3307,10 +3303,17 @@
         "debian_status_2026_09_09": "trixie_security_2_8_3_vulnerable_no_DSA_forky_sid_2_8_4_fixed",
         "upstream_fix": "Expat_2_8_4",
         "reachability": "no_runtime_XML_parser_imports_device_agent_JSON_MQTT_read_only_Modbus_telegram_JSON_Pydantic_URL_encoded_initData_nonroot_distroless_loopback_ports",
-        "disposition": "4_exact_HIGH_exceptions_through_2026_09_12_pending_exact_head_fresh_scan",
+        "disposition": "4_exact_HIGH_exceptions_expire_2026_09_12",
         "production_deployment": "none",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "substantive_head": "e90b034a04d47ce5c2eae3c2833d06b573cf7fe8",
+        "pull_request": 979,
+        "container_supply_chain_final": "GREEN_run_34309529777_all_controlled_images_policy_enforced",
+        "core_ci_final": "GREEN_run_34309529802_quality_build_and_NEXOLAB_Merge_Gate",
+        "telemetry_service_final": "GREEN_run_34309529811",
+        "review_threads": 0,
+        "repository_status": "completion_candidate_state_reconciled_exact_head_reverification_required_before_merge"
       }
     }
   ],
@@ -3688,6 +3691,20 @@
         "container_supply_chain_run": 34307375095,
         "blocked_findings": 4,
         "policy": "fail_closed"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-09T07:40:00+03:00",
+      "kind": "issue_978_security_gate_restored",
+      "data": {
+        "issue": 978,
+        "pull_request": 979,
+        "verified_substantive_head": "e90b034a04d47ce5c2eae3c2833d06b573cf7fe8",
+        "container_supply_chain_run": 34309529777,
+        "core_ci_run": 34309529802,
+        "telemetry_service_run": 34309529811,
+        "review_threads": 0
       }
     }
   ],
