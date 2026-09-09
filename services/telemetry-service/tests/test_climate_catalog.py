@@ -63,7 +63,7 @@ def test_logical_sensor_number_formula(
 
 def test_temperature_channel_business_keys_and_bounds() -> None:
     assert temperature_channel_id("KK1", 126, 1) == "126-01"
-    assert temperature_channel_id("KK2", 96, 1) == "096-01"
+    assert temperature_channel_id("KK2", 96, 1) == "96-01"
     assert temperature_channel_id("KK2", 114, 6) == "114-06"
     with pytest.raises(ClimateCatalogError):
         logical_sensor_number("KK1", 125, 1)
@@ -85,7 +85,7 @@ def test_domain_catalog_has_exact_channel_ranges() -> None:
         554,
     )
     assert kk1[0].channel_id == kk1[0].source_channel_id == "126-01"
-    assert kk2[0].channel_id == kk2[0].source_channel_id == "096-01"
+    assert kk2[0].channel_id == kk2[0].source_channel_id == "96-01"
     assert kk1[0].physical_sensor_inventory_numbers == ("197",)
     assert kk2[0].physical_sensor_inventory_numbers == ("441",)
 
@@ -212,8 +212,8 @@ def test_catalog_api_isolates_kk1_and_kk2(tmp_path: Path) -> None:
     assert kk2_payload["energyMeterEmptyMessage"] == (
         "До цієї кліматичної камери лічильники електроенергії ще не підключені."
     )
-    assert kk2_payload["temperatureChannels"][0]["channel_id"] == "096-01"
-    assert kk2_payload["temperatureChannels"][0]["source_channel_id"] == "096-01"
+    assert kk2_payload["temperatureChannels"][0]["channel_id"] == "96-01"
+    assert kk2_payload["temperatureChannels"][0]["source_channel_id"] == "96-01"
     assert kk2_payload["temperatureChannels"][0]["logical_sensor_number"] == 441
     assert kk2_payload["temperatureChannels"][-1]["logical_sensor_number"] == 554
     assert all(

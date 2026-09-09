@@ -20,6 +20,7 @@ from app.climate_catalog.models import (
     PhysicalSensor,
 )
 from app.climate_catalog.repository import PostgresClimateCatalogRepository
+from app.climate_catalog.seed import _seed_catalogs
 from app.db import Database
 from app.nodes.models import CentralNode
 from app.security.repository import SecurityRepository
@@ -272,7 +273,7 @@ def test_kk2_legacy_ab_catalog_migrates_to_numeric_panel_inventory() -> None:
             assert retained.inventory_number == "471"
             assert retained.serial_number == "KK2-A-PRESERVE"
             assert retained.calibration_status == "current"
-            assert retained.version == 3
+            assert retained.version == 4
             assert session.get(PhysicalSensor, deleted_b_id) is None
 
             kk2 = session.scalar(
@@ -302,9 +303,9 @@ def test_kk2_legacy_ab_catalog_migrates_to_numeric_panel_inventory() -> None:
                 )
             ) == 84
 
-        seeded = PostgresClimateCatalogRepository(database).seed_default_catalog(
-            organization_id=organization_id,
-            actor_subject="test:kk2-migration-seed",
+        seeded = _seed_catalogs(
+            database,
+            default_organization_id=str(uuid4()),
         )
         assert seeded.devices_created == 22  # K96..K100 plus 13 KK1 controllers and four LE-01MP meters.
         assert seeded.channels_created == 108  # 30 KK2 plus 78 KK1 channels.
@@ -341,7 +342,7 @@ def test_kk2_legacy_ab_catalog_migrates_to_numeric_panel_inventory() -> None:
             first_channel = session.scalar(
                 select(MeasurementChannel).where(
                     MeasurementChannel.organization_id == organization_id,
-                    MeasurementChannel.channel_id == "096-01",
+                    MeasurementChannel.channel_id == "96-01",
                 )
             )
             assert first_channel is not None

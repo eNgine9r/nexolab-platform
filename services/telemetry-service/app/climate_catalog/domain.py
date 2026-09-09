@@ -171,7 +171,7 @@ def temperature_source_channel_id(controller_unit_id: int, channel_number: int) 
     if controller_unit_id < 1:
         raise ClimateCatalogError("controller unit id must be positive")
     _validate_channel(channel_number)
-    return f"{controller_unit_id:03d}-{channel_number:02d}"
+    return f"{controller_unit_id}-{channel_number:02d}"
 
 
 def temperature_channel_id(

@@ -33,7 +33,6 @@ from main import (
     TelemetryRecord,
     mode_uses_le01mp,
     mode_uses_xjp60d,
-    parse_unit_ids,
 )
 from managed_main import (
     DEFAULT_DISCOVERY_UNITS,
@@ -41,6 +40,7 @@ from managed_main import (
     ManagedDeviceAgent,
     ManagedHealthHandler,
     canonical_point,
+    discovery_units_from_environment,
 )
 from modbus_rtu import ModbusError
 from xjp60d import XJP60DReader
@@ -59,11 +59,7 @@ class RegistryManagedDeviceAgent(ManagedDeviceAgent):
         registry_store: AcquisitionRegistryStore | None = None,
     ) -> None:
         discovery_value = os.getenv("XJP60D_DISCOVERY_UNITS", "").strip()
-        discovery_units = (
-            parse_unit_ids(discovery_value, label="XJP60D discovery")
-            if discovery_value
-            else DEFAULT_DISCOVERY_UNITS
-        )
+        discovery_units = discovery_units_from_environment(discovery_value)
         original_settings = settings
         super().__init__(settings)
         self._registry_lock = threading.Lock()

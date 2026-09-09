@@ -207,6 +207,7 @@ $nexolab$;
 _UPGRADE_RECONCILE = r"""
 UPDATE physical_sensors AS ps
 SET inventory_number = mc.logical_sensor_number::text,
+    version = ps.version + 1,
     updated_at = CURRENT_TIMESTAMP
 FROM measurement_channels AS mc,
      climate_chambers AS cc,

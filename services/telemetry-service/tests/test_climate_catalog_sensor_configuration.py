@@ -119,7 +119,7 @@ def test_catalog_channels_exist_without_telemetry_and_reject_cross_chamber_bindi
     assert len(kk2_channels.json()["items"]) == 114
     assert kk1_channels.json()["items"][0]["channel_id"] == "126-01"
     assert kk1_channels.json()["items"][-1]["channel_id"] == "138-06"
-    assert kk2_channels.json()["items"][0]["channel_id"] == "096-01"
+    assert kk2_channels.json()["items"][0]["channel_id"] == "96-01"
     assert kk2_channels.json()["items"][-1]["channel_id"] == "114-06"
     kk2_by_id = {
         item["channel_id"]: item for item in kk2_channels.json()["items"]
