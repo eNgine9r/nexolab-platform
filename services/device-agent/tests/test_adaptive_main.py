@@ -604,6 +604,40 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
         self.assertTrue(payload["sqlite_contention"]["queue_depth_stale"])
         self.assertIn("queue depth is lock-contended", payload["last_error"] or "")
 
+    def test_health_exposes_unresolved_queue_write_contention(self) -> None:
+        value = agent()
+        value.state = Mock()
+        value.state.snapshot.return_value = {
+            "status": "ok",
+            "last_error": None,
+        }
+        value.queue = Mock()
+        value.queue.health_depth.return_value = (0, False)
+        value.queue.contention_snapshot.return_value = {
+            "consecutive_exhaustions": 1,
+            "busy_exhausted_total": 1,
+            "last_operation": "next_sequence",
+        }
+        value.latest_values = Mock()
+        value.latest_values.health_summary.return_value = ({}, False)
+        value.latest_values.contention_snapshot.return_value = {
+            "consecutive_exhaustions": 0,
+        }
+        value.acquisition_snapshot = Mock(
+            return_value={
+                "scheduler": {
+                    "workers_healthy": True,
+                },
+            }
+        )
+        value.scheduler = Mock()
+
+        payload = value.health_snapshot()
+
+        self.assertEqual(payload["status"], "degraded")
+        self.assertFalse(payload["sqlite_contention"]["queue_depth_stale"])
+        self.assertIn("unresolved lock contention", payload["last_error"] or "")
+
     def test_health_uses_cached_latest_summary_during_busy_contention(self) -> None:
         value = agent()
         value.state = Mock()

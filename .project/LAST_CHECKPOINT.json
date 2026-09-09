@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-09T09:31:00+03:00",
+  "timestamp": "2026-09-09T09:55:34+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_933_P2_per_operation_recovery_accounting_local_verification_complete",
+  "event": "issue_933_P2_queue_health_visibility_local_verification_complete",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -14,7 +14,7 @@
     "issue": 933,
     "title": "Prevent Device Agent exit on transient SQLite lock contention",
     "branch": "fix/933-device-agent-sqlite-lock-contention",
-    "status": "P1_local_verified_ready_to_commit_push_exact_head_CI"
+    "status": "P2_health_visibility_local_verified_pending_commit_push_exact_head_CI"
   },
   "evidence_snapshot": {
     "ssd_migration_completion": {
@@ -73,16 +73,17 @@
       "main_reconciled_sha": "7252295de3d76dab1f3554b1f257918f1e9a5891",
       "reconciliation_merge_commit": "ca64ce30b1b79ddec055cb2c754c513f67955865",
       "truthful_latest_publication_P1": "verified_same_scheduled_result_outer_retry_latest_persist_before_publish_fail_closed_on_exhaustion",
-      "tests": "sqlite_modules_19_of_19_full_source_254_of_254_packaged_254_of_254_pass",
-      "packaged_image": "nexolab-device-agent:issue933-final7",
+      "tests": "health_regressions_3_of_3_full_source_255_of_255_packaged_255_of_255_pass",
+      "packaged_image": "nexolab-device-agent:issue933-final8",
       "packaged_provenance": "/app",
       "production_deployment": "not_executed",
       "modbus_write": "none",
       "hardware_write": "none",
       "recovery_accounting_P2": "per_operation_unresolved_exhaustion_ledger_prevents_unrelated_read_success_from_clearing_write_exhaustion",
-      "previous_exact_head_ci": "541b3ae68f067f716e2f28aeafb4759001bfb38e_9_of_9_green_superseded_by_post_green_P2",
-      "reviewed_parent_head": "bf4068ce62a3a1f92c58a37acfdae5729db6f170",
-      "dashboard_same_sha_rerun": "attempt1_failed_1_of_20_live_retry_value_timeout_attempt2_success"
+      "previous_exact_head_ci": "7832e1f6d095b0703402c334988dab48b466537f_9_of_9_green_superseded_by_post_green_P2_health_visibility_review",
+      "reviewed_parent_head": "7832e1f6d095b0703402c334988dab48b466537f",
+      "dashboard_same_sha_rerun": "attempt1_failed_1_of_20_live_retry_value_timeout_attempt2_success",
+      "queue_health_visibility_P2": "unresolved_queue_exhaustion_degrades_health_even_when_queue_depth_read_is_fresh"
     },
     "issue_978_security_interrupt": {
       "issue": 978,
@@ -94,12 +95,12 @@
     },
     "issue_933_review_blocker": {
       "pull_request": 976,
-      "reviewed_head": "bf4068ce62a3a1f92c58a37acfdae5729db6f170",
-      "thread": "PRRT_kwDOTe72wM6ghnaX",
+      "reviewed_head": "7832e1f6d095b0703402c334988dab48b466537f",
+      "thread": "PRRT_kwDOTe72wM6giEld",
       "severity": "P2",
-      "finding": "unrelated_read_success_can_falsely_clear_unresolved_write_exhaustion_and_increment_busy_recoveries_total",
-      "required_outcome": "track_unresolved_exhaustion_per_operation_so_only_matching_operation_success_clears_it",
-      "local_fix_status": "verified_4_exact_regressions_19_sqlite_modules_254_source_254_packaged_pending_commit_push_exact_head_CI"
+      "finding": "unresolved_queue_exhaustion_can_be_hidden_when_probe_depth_read_succeeds_and_agent_last_error_is_overwritten",
+      "required_outcome": "degrade_health_when_queue_contention_reports_unresolved_exhaustion_even_if_queue_depth_stale_is_false",
+      "local_fix_status": "verified_3_health_regressions_255_source_255_packaged_pending_commit_push_exact_head_CI"
     }
   },
   "observations": [
@@ -137,7 +138,7 @@
       }
     }
   ],
-  "next_action": "Commit and push the locally verified Issue #933 per-operation recovery-accounting P2 fix, reply to and resolve review thread PRRT_kwDOTe72wM6ghnaX, require fresh exact-head routed workflows including Container Supply Chain, Offline Bundle and NEXOLAB Merge Gate GREEN, verify zero blocking review findings, then squash-merge PR #976 only if review-clean; no production deployment in this Work Package.",
+  "next_action": "Commit and push the locally verified Issue #933 queue-health visibility P2 fix, reply to and resolve review thread PRRT_kwDOTe72wM6giEld, require fresh exact-head routed workflows including Container Supply Chain, Offline Bundle and NEXOLAB Merge Gate GREEN, verify zero blocking review findings, then squash-merge PR #976 only if review-clean; no production deployment in this Work Package.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

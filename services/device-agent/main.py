@@ -779,20 +779,34 @@ class DeviceAgent:
     def _state_snapshot_for_health(self) -> dict[str, Any]:
         queue_depth, queue_depth_stale = self.queue.health_depth()
         payload = self.state.snapshot(queue_depth, self.settings)
+        queue_contention = self.queue.contention_snapshot()
         payload["sqlite_contention"] = {
             "schema_version": 1,
             "queue_depth_stale": queue_depth_stale,
-            "queue": self.queue.contention_snapshot(),
+            "queue": queue_contention,
         }
-        if queue_depth_stale:
+        queue_exhaustion_unresolved = (
+            int(queue_contention.get("consecutive_exhaustions", 0)) > 0
+        )
+        if queue_depth_stale or queue_exhaustion_unresolved:
             payload["status"] = "degraded"
-            contention_error = (
-                "SQLite queue depth is lock-contended; reporting last known value"
+            contention_errors = (
+                (
+                    "SQLite queue depth is lock-contended; "
+                    "reporting last known value"
+                )
+                if queue_depth_stale
+                else None,
+                (
+                    "SQLite queue operation has unresolved lock contention"
+                )
+                if queue_exhaustion_unresolved
+                else None,
             )
             payload["last_error"] = "; ".join(
                 dict.fromkeys(
                     value
-                    for value in (contention_error, payload.get("last_error"))
+                    for value in (*contention_errors, payload.get("last_error"))
                     if value
                 )
             )
