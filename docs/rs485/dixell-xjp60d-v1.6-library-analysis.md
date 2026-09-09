@@ -169,6 +169,6 @@ python tools/rs485_discovery/profile_registers.py \
   --output runtime/discovery/xjp60d-v1.6/k106-library-correlation.json
 ```
 
-Correlate the resulting values with paired channels `106-03` and `106-04`. Keep `115-04` in the registry as physically present but communication-unreachable until Unit ID `115` becomes accessible.
+Correlate the resulting values with paired channels `106-03` and `106-04`. Historical probes of Unit IDs `115-125` remain communication evidence only; those IDs are not part of the corrected KK1/KK2 physical catalog and must not be restored as physical inventory.
 
 All hardware validation remains read-only. Do not switch the Device Agent from `simulator` to `hardware` until the register meanings, data types, scales and missing-sensor representation are confirmed.
