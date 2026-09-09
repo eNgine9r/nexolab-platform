@@ -22,11 +22,7 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 933,
-      "title": "Prevent Device Agent exit on transient SQLite lock contention",
-      "branch": "fix/933-device-agent-sqlite-lock-contention"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -3172,7 +3168,7 @@
       "issue": 933,
       "title": "Prevent Device Agent exit on transient SQLite lock contention",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/933-device-agent-sqlite-lock-contention",
       "depends_on": [],
       "evidence": {
@@ -3187,22 +3183,34 @@
         "storage_migration_interruption_status": "cleared_ssd_root_accepted",
         "dirty_worktree_preserved": "/home/nexolab/recovery/issue-968-pre-ssd-20260908T091750Z",
         "resume_base_requires_main_reconciliation": "origin_main_88d484dc_after_issue_970_merge",
-        "software_candidate_head": "local_verified_candidate_based_on_7832e1f6d095b0703402c334988dab48b466537f",
+        "software_candidate_head": "30eb8b9fa1823dd2531093e8e51f8ad37580d43b",
         "software_verification": "health_regressions_3_of_3_full_source_255_of_255_packaged_255_of_255_pass",
-        "exact_head_ci": "head_7832e1f6d095b0703402c334988dab48b466537f_9_of_9_green_then_superseded_by_post_green_P2_health_visibility_review",
+        "exact_head_ci": "all_required_green_head_30eb8b9_core_attempt2_dashboard_attempt2_offline_supply_chain",
         "security_interrupt_issue_978": "cleared_by_verified_PR_979_substantive_head_e90b034a04d47ce5c2eae3c2833d06b573cf7fe8",
-        "resume_gate": "merge_PR_979_then_reconcile_branch_with_origin_main_and_rerun_full_exact_head_matrix",
+        "resume_gate": "completed",
         "main_reconciled_after_security_issue_978": "origin_main_7252295de3d76dab1f3554b1f257918f1e9a5891",
         "review_blocker": "P2_unresolved_queue_exhaustion_can_leave_health_ok_when_probe_depth_read_succeeds",
         "review_thread": "PRRT_kwDOTe72wM6giEld",
-        "review_status": "local_verified_fix_pending_commit_push_exact_head_review",
+        "review_status": "resolved_zero_unresolved_threads_final_team_lead_clean",
         "latest_value_truthful_publication_fix": "verified_same_ScheduledResult_retried_until_latest_persist_succeeds_or_fail_closed_before_publication",
         "packaged_image": "nexolab-device-agent:issue933-final8",
         "packaged_provenance": "imports_from_/app",
-        "next_gate": "commit_push_resolve_health_P2_fresh_exact_head_all_routed_CI_review_then_merge",
+        "next_gate": "completed_pr_976_merged_issue_933_closed",
         "sqlite_recovery_accounting_fix": "local_verified_per_operation_unresolved_exhaustion_ledger_only_matching_operation_success_clears_prior_exhaustion",
-        "dashboard_same_sha_rerun": "bf4068ce62a3a1f92c58a37acfdae5729db6f170_attempt1_19_of_20_with_live_retry_timeout_attempt2_green_browser_flake_evidence",
-        "queue_health_unresolved_exhaustion_fix": "local_verified_health_degrades_on_unresolved_queue_exhaustion_even_when_queue_depth_stale_false"
+        "dashboard_same_sha_rerun": "head_30eb8b9_attempt1_19_of_20_energy_history_read_count_flake_attempt2_20_of_20_green",
+        "queue_health_unresolved_exhaustion_fix": "local_verified_health_degrades_on_unresolved_queue_exhaustion_even_when_queue_depth_stale_false",
+        "verified_head_sha": "30eb8b9fa1823dd2531093e8e51f8ad37580d43b",
+        "pull_request": 976,
+        "checks": {
+          "core_ci_merge_gate": "success:34321455165_attempt2",
+          "authenticated_dashboard": "success_same_sha_rerun:34321455176_attempt2",
+          "offline_bundle": "success:34321455194",
+          "container_supply_chain": "success:34321455170",
+          "final_team_lead_review": "clean_zero_unresolved_threads"
+        },
+        "merged_sha": "8596a2f3f4fa7f6ae93e0b850a301cea12a24708",
+        "merged_at": "2026-09-09T10:32:29+03:00",
+        "issue_state": "closed_completed"
       }
     },
     {
@@ -3256,7 +3264,7 @@
         "normal_cmdline_restored": true,
         "diagnostic_journald_override_removed": true,
         "boot_order": "0xf146_ssd_usb_first_sd_fallback_when_present",
-        "final_acceptance": "completed_with_simultaneous_media_coexistence_test_deferred",
+        "final_acceptance": "completed_with_simultaneous_ssd_microsd_coexistence_verified_2026_09_09",
         "original_source_root": "/dev/mmcblk0p2",
         "original_source_root_usage_percent": 97,
         "normal_boot_verify": "passed_2026-09-08T19:47:14+03:00",
@@ -3267,10 +3275,17 @@
         "performance_smoke": "512MiB_direct_io_write_284MiB_s_read_360MiB_s_file_deleted",
         "repository_regression_pr": 971,
         "standalone_microsd_rollback": "hardware_verified_after_first_failed_ssd_boot",
-        "simultaneous_ssd_microsd_boot": "deferred_by_product_owner_not_verified_not_blocking_current_scope",
+        "simultaneous_ssd_microsd_boot": "hardware_verified_boot_2026_09_09T10_00_41_plus03_microsd_detected_at_0_670688s_root_sda2_boot_sda1",
         "product_data_delete": "none",
         "volume_delete": "none",
-        "repository_regression_completion": "issue_970_fix_verified_and_merged_to_main"
+        "repository_regression_completion": "issue_970_fix_verified_and_merged_to_main",
+        "coexistence_boot_kernel_evidence": "mmcblk0_detected_0_670688s_p1_p2_0_672204s_sda_attached_1_001962s_sda2_mounted_4_097094s_rw_4_747403s",
+        "coexistence_runtime_evidence": "root_sda2_boot_sda1_12_containers_healthy_device_agent_ok_mqtt_connected_queue_0_advancing_dashboard_200_login_200",
+        "microsd_boot_partition_mount": "/media/nexolab/bootfs",
+        "microsd_root_partition_mount": "unmounted",
+        "microsd_boot_fat_warning": "volume_not_properly_unmounted_some_data_may_be_corrupt_fsck_recommended",
+        "microsd_filesystem_repair": "not_executed",
+        "coexistence_reboot_required": "no_existing_boot_already_proves_simultaneous_media_selection"
       }
     },
     {
@@ -3742,6 +3757,19 @@
         "thread": "PRRT_kwDOTe72wM6gg-F0",
         "severity": "P2",
         "status": "unresolved_at_observation"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-09T10:32:30+03:00",
+      "kind": "issue_933_pr_976_merged",
+      "data": {
+        "issue": 933,
+        "pull_request": 976,
+        "verified_head": "30eb8b9fa1823dd2531093e8e51f8ad37580d43b",
+        "merge_sha": "8596a2f3f4fa7f6ae93e0b850a301cea12a24708",
+        "state": "closed",
+        "unresolved_review_threads": 0
       }
     }
   ],

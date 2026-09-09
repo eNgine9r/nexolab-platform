@@ -3,142 +3,60 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-09T09:55:34+03:00",
+  "timestamp": "2026-09-09T10:40:11+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_933_P2_queue_health_visibility_local_verification_complete",
+  "event": "issue_933_merged_and_ssd_microsd_coexistence_verified",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
-  "active_work": {
-    "issue": 933,
-    "title": "Prevent Device Agent exit on transient SQLite lock contention",
-    "branch": "fix/933-device-agent-sqlite-lock-contention",
-    "status": "P2_health_visibility_local_verified_pending_commit_push_exact_head_CI"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "ssd_migration_completion": {
-      "issue": 968,
-      "target_stable_id": "ata-Micron_MTFDDAK256TBN_17521B5686D5",
-      "current_root": "/dev/sda2",
-      "current_boot": "/dev/sda1",
-      "root_capacity": "234GiB_52GiB_used_170GiB_free_24_percent",
-      "transport": "uas_5000M",
-      "boot_order": "0xf146",
-      "normal_boot_verify": "passed_2026-09-08T19:47:14+03:00",
-      "official_verify_result": "pass",
-      "runtime": "12_containers_healthy_postgres_ready_dashboard_200_login_200_auth_401",
-      "device_agent": "advancing_acquisition_mqtt_connected_queue_0_workers_2_of_2_healthy_restart_stable",
-      "rs485_stable_ids": "both_cp2104_present",
-      "fstrim": "enabled_active",
-      "ssd_direct_io_smoke": "write_284MiB_s_read_360MiB_s_512MiB_disposable_file_deleted",
-      "ssd_first_reboot_after_b2": "pass_root_sda2_boot_sda1",
-      "standalone_microsd_rollback": "hardware_verified_earlier",
-      "simultaneous_ssd_microsd_boot": "deferred_by_product_owner_not_verified",
-      "modbus_write": "none",
-      "hardware_write": "none",
-      "product_data_delete": "none",
-      "volume_delete": "none"
-    },
-    "repository_fix": {
-      "issue": 970,
-      "pull_request": 971,
-      "verified_head": "50de09b63093fdaca27e82d51b0767bb6b472c30",
-      "exact_head_checks": "all_required_green",
-      "unresolved_review_threads": 0,
-      "repository_completion": "verified_fix_merged_issue_closed"
-    },
-    "next_work": {
+    "issue_933_completion": {
       "issue": 933,
-      "branch": "fix/933-device-agent-sqlite-lock-contention",
-      "dirty_worktree_preserved": true,
-      "snapshot": "/home/nexolab/recovery/issue-968-pre-ssd-20260908T091750Z"
+      "pull_request": 976,
+      "verified_head_sha": "30eb8b9fa1823dd2531093e8e51f8ad37580d43b",
+      "issue_state": "closed",
+      "software_tests": "3_of_3_health_255_source_255_packaged_offline",
+      "dashboard": "attempt2_20_of_20_green_same_sha",
+      "merge_gate": "green_attempt2_34321455165",
+      "unresolved_review_threads": 0
+    },
+    "ssd_microsd_coexistence": {
+      "issue": 968,
+      "boot_started_at": "2026-09-09T10:00:41+03:00",
+      "microsd_detected_at_kernel_seconds": 0.670688,
+      "microsd_device": "/dev/mmcblk0",
+      "root": "/dev/sda2",
+      "boot": "/dev/sda1",
+      "boot_order": "0xf146",
+      "runtime": "12_containers_healthy_agent_ok_mqtt_connected_queue_0_dashboard_200_login_200",
+      "simultaneous_media_boot": "hardware_verified",
+      "microsd_boot_mount": "/media/nexolab/bootfs",
+      "microsd_root_mount": "unmounted",
+      "microsd_fat_warning": "not_properly_unmounted_fsck_recommended",
+      "filesystem_repair": "not_executed"
     },
     "state_reconciliation": {
-      "issue": 973,
-      "scope": "four_project_state_files_only",
-      "state_model_v2": "passed",
-      "json_parse": "passed",
-      "prettier_markdown": "passed",
-      "git_diff_check": "passed",
-      "active_selection": "issue_933_in_progress",
-      "pull_request": 974,
-      "branch": "chore/973-reconcile-ssd-migration-state",
-      "status": "completed_pr_974_merged",
-      "merge_head": "b3b78c971dfb34ff1171070bbba14c851051f41f"
-    },
-    "issue_933_candidate": {
-      "issue": 933,
-      "pull_request": 976,
-      "main_reconciled_sha": "7252295de3d76dab1f3554b1f257918f1e9a5891",
-      "reconciliation_merge_commit": "ca64ce30b1b79ddec055cb2c754c513f67955865",
-      "truthful_latest_publication_P1": "verified_same_scheduled_result_outer_retry_latest_persist_before_publish_fail_closed_on_exhaustion",
-      "tests": "health_regressions_3_of_3_full_source_255_of_255_packaged_255_of_255_pass",
-      "packaged_image": "nexolab-device-agent:issue933-final8",
-      "packaged_provenance": "/app",
-      "production_deployment": "not_executed",
-      "modbus_write": "none",
-      "hardware_write": "none",
-      "recovery_accounting_P2": "per_operation_unresolved_exhaustion_ledger_prevents_unrelated_read_success_from_clearing_write_exhaustion",
-      "previous_exact_head_ci": "7832e1f6d095b0703402c334988dab48b466537f_9_of_9_green_superseded_by_post_green_P2_health_visibility_review",
-      "reviewed_parent_head": "7832e1f6d095b0703402c334988dab48b466537f",
-      "dashboard_same_sha_rerun": "attempt1_failed_1_of_20_live_retry_value_timeout_attempt2_success",
-      "queue_health_visibility_P2": "unresolved_queue_exhaustion_degrades_health_even_when_queue_depth_read_is_fresh"
-    },
-    "issue_978_security_interrupt": {
-      "issue": 978,
-      "pull_request": 979,
-      "state": "completed_merged_closed",
-      "deployment": "none",
-      "modbus_write": "none",
-      "hardware_write": "none"
-    },
-    "issue_933_review_blocker": {
-      "pull_request": 976,
-      "reviewed_head": "7832e1f6d095b0703402c334988dab48b466537f",
-      "thread": "PRRT_kwDOTe72wM6giEld",
-      "severity": "P2",
-      "finding": "unresolved_queue_exhaustion_can_be_hidden_when_probe_depth_read_succeeds_and_agent_last_error_is_overwritten",
-      "required_outcome": "degrade_health_when_queue_contention_reports_unresolved_exhaustion_even_if_queue_depth_stale_is_false",
-      "local_fix_status": "verified_3_health_regressions_255_source_255_packaged_pending_commit_push_exact_head_CI"
+      "issue": 980,
+      "branch": "chore/980-state-reconcile-ssd-coexistence",
+      "scope": "four_project_state_files_only"
     }
   },
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-09-08T20:05:00+03:00",
-      "kind": "issue_970_completed_pr_971_merged",
+      "observed_at": "2026-09-09T10:32:30+03:00",
+      "kind": "issue_933_pr_976_merged",
       "data": {
-        "issue": 970,
-        "pull_request": 971,
-        "merge_sha": "88d484dc8007469d1654fb17434e22ef1cfbc1eb",
-        "state": "closed_completed"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-09T07:02:25+03:00",
-      "kind": "issue_978_security_interrupt_created",
-      "data": {
-        "issue": 978,
-        "trigger_pull_request": 976,
-        "trigger_container_supply_chain_run": 34307375095,
-        "candidate": "four_exact_high_exceptions_expire_2026_09_12"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-09T07:50:32+03:00",
-      "kind": "issue_978_pr_979_merged",
-      "data": {
-        "issue": 978,
-        "pull_request": 979,
-        "merge_sha": "7252295de3d76dab1f3554b1f257918f1e9a5891",
+        "issue": 933,
+        "pull_request": 976,
+        "merge_sha": "8596a2f3f4fa7f6ae93e0b850a301cea12a24708",
         "state": "merged_closed"
       }
     }
   ],
-  "next_action": "Commit and push the locally verified Issue #933 queue-health visibility P2 fix, reply to and resolve review thread PRRT_kwDOTe72wM6giEld, require fresh exact-head routed workflows including Container Supply Chain, Offline Bundle and NEXOLAB Merge Gate GREEN, verify zero blocking review findings, then squash-merge PR #976 only if review-clean; no production deployment in this Work Package.",
+  "next_action": "Verify and merge state-only Issue #980, then select next Ready Work Package from current GitHub state; #930 is the known lower-risk candidate.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
