@@ -1,10 +1,10 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-08
+Updated: 2026-09-09
 
-## Issue #968 — SSD migration completed; simultaneous-media check deferred
+## Issue #968 — SSD migration completed; simultaneous-media boot verified
 
-**Cleared for current scope.** Normal SSD boot and the repository-owned fail-closed `verify` passed with `/=/dev/sda2`, `/boot/firmware=/dev/sda1`, UAS 5000M, all 12 containers healthy, PostgreSQL/local-auth/dashboard surfaces healthy, stable RS-485 identities present and Device Agent acquisition advancing. EEPROM is `BOOT_ORDER=0xf146`, and the following reboot again selected the SSD. The original microSD previously passed a real standalone rollback boot after the first failed SSD attempt. The Product Owner explicitly deferred installing microSD alongside the SSD, so simultaneous SSD+microSD coexistence boot remains unverified and is not claimed; it is not a blocker for the current accepted storage scope. `prepare` and `cutover` must not be rerun.
+**Cleared for accepted storage scope; coexistence now hardware-verified.** Normal SSD boot and the repository-owned fail-closed `verify` had already passed with `/=/dev/sda2`, `/boot/firmware=/dev/sda1`, UAS 5000M, healthy runtime and advancing acquisition. On the 2026-09-09 `10:00:41+03:00` boot, the installed microSD was detected as `/dev/mmcblk0` at kernel ~`0.67 s`, while the Pi still selected SSD `/dev/sda2` + `/dev/sda1` under `BOOT_ORDER=0xf146`. Post-boot evidence again showed 12 healthy containers, Device Agent `ok`, MQTT connected, queue `0`, advancing samples, and Dashboard `/` + `/login` HTTP 200. Therefore simultaneous SSD+microSD boot is no longer a blocker or unverified claim. Residual maintenance risk: the auto-mounted microSD FAT boot partition emitted a `Volume was not properly unmounted` warning; no `fsck`/repair was executed. `prepare` and `cutover` must not be rerun.
 
 ## Issue #843 — Telemetry planner-choice CI nondeterminism
 
@@ -155,11 +155,11 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-08B are completed through GREEN focused PRs, including #953 / PR #954, #957 / PR #958 and #960 / PR #962. The next independent Ready software Work Package is #933.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — SSD migration accepted; Issue #933 resumed
+## Sprint execution gate — SSD coexistence verified; Issue #933 completed
 
 RFX-08B / #960 is completed through exact verified product head `c1c7f8bc4988c35bc13436c59750f038ddc59811`, PR #962 and observed squash merge `044e2feeda21e6f84d2b0a589ef3678a1004a923`. All 20 exact-head workflows are GREEN, including Telemetry Service, disconnected Offline Bundle, same-SHA Authenticated Dashboard rerun and Core CI / NEXOLAB Merge Gate; final Team Lead review is clean and review threads are zero. Production runtime remains on deployed source `9a3556b25b257396d15db80af591d1cc3684b8f7`.
 
-Issue #933 remains active. Exact head `7832e1f6d095b0703402c334988dab48b466537f` passed all 9 routed GitHub workflows and the NEXOLAB Merge Gate, but post-GREEN review thread `PRRT_kwDOTe72wM6giEld` identified a valid P2 health-visibility defect: unresolved queue contention such as an exhausted operational `next_sequence()` write could remain invisible in `/health` when the probe-specific queue-depth read still succeeded. The local fix explicitly degrades health when `queue.contention_snapshot().consecutive_exhaustions > 0`, independent of `queue_depth_stale`, while preserving the existing bounded probe path. Focused health regressions are 3/3 PASS; the full Device Agent source suite is 255/255 PASS and fresh packaged image `nexolab-device-agent:issue933-final8` is 255/255 PASS with `/app` provenance, all offline. Remaining blocker is repository verification only: commit/push, resolve the P2 thread, fresh exact-head routed CI including Container Supply Chain, Offline Bundle and NEXOLAB Merge Gate, zero blocking review findings, final Team Lead review, then merge. Production deployment remains intentionally not executed. #930 remains independent lower-risk maintenance. #189/#585 remain blocked; #201 remains `needs_validation`; #202 remains `hardware_validation`.
+Issue #933 is **cleared/completed**. Exact head `30eb8b9fa1823dd2531093e8e51f8ad37580d43b` passed the focused and full Device Agent verification, fresh packaged-image tests, Container Supply Chain, Offline Bundle and the same-SHA Authenticated Dashboard rerun; Core CI attempt 2 passed the NEXOLAB Merge Gate. Final Team Lead review was clean with zero unresolved threads. PR #976 squash-merged as `8596a2f3f4fa7f6ae93e0b850a301cea12a24708` and Issue #933 closed. No production deployment, runtime restart, Modbus/controller write or hardware write occurred. #930 remains the next known independent Ready maintenance candidate; #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
 
 ## Issue #978 — new libexpat1 HIGH supply-chain gate
 
