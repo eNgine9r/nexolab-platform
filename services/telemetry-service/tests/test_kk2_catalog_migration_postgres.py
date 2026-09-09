@@ -197,7 +197,7 @@ def _insert_legacy_kk2(database: Database, organization_id: str) -> tuple[str, s
                                 climate_chamber_id=chamber_id,
                                 channel_id=channel_id,
                                 sensor_position="A",
-                                inventory_number=f"{logical}-A",
+                                inventory_number="LAB-471" if preserve else f"{logical}-A",
                                 serial_number="KK2-A-PRESERVE" if preserve else None,
                                 calibration_status="current" if preserve else "untracked",
                                 status="active",
@@ -250,6 +250,9 @@ def test_kk2_legacy_ab_catalog_migrates_to_numeric_panel_inventory() -> None:
             assert legacy_101_01 is not None
             retained_channel_id = legacy_101_01.id
             assert legacy_101_01.physical_sensor_count == 2
+            edited_retained_sensor = session.get(PhysicalSensor, retained_a_id)
+            assert edited_retained_sensor is not None
+            assert edited_retained_sensor.inventory_number == "LAB-471"
 
         database.dispose()
         database = None

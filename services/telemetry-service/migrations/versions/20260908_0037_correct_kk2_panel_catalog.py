@@ -76,9 +76,10 @@ BEGIN
             'KK2 catalog reconciliation refused: legacy channel identity/cardinality differs from expected #173 shape';
     END IF;
 
-    -- Each legacy channel must still have the exact synthetic A/B rows.  The A
-    -- row is retained (including serial/calibration metadata); the B row can be
-    -- removed only while it remains an untouched synthetic projection.
+    -- Each legacy channel must still have one A and one B row.  The A row is
+    -- retained (including operator-edited inventory and audit history) and its
+    -- inventory is reconciled to panel truth.  The B row can be removed only
+    -- while it remains an untouched synthetic projection.
     SELECT count(*) INTO bad_count
     FROM measurement_channels AS mc
     JOIN climate_chambers AS cc
@@ -99,7 +100,6 @@ BEGIN
               WHERE ps.organization_id = mc.organization_id
                 AND ps.channel_id = mc.id
                 AND ps.sensor_position = 'A'
-                AND ps.inventory_number = mc.logical_sensor_number::text || '-A'
           )
           OR NOT EXISTS (
               SELECT 1 FROM physical_sensors AS ps
@@ -221,8 +221,7 @@ WHERE ps.organization_id = mc.organization_id
   AND md.organization_id = mc.organization_id
   AND md.id = mc.device_id
   AND md.device_type = 'temperature_controller'
-  AND md.unit_id BETWEEN 101 AND 114
-  AND ps.inventory_number = mc.logical_sensor_number::text || '-A';
+  AND md.unit_id BETWEEN 101 AND 114;
 
 DELETE FROM physical_sensors AS ps
 USING measurement_channels AS mc,
