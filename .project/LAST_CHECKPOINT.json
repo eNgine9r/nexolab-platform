@@ -3,14 +3,19 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-09T10:40:11+03:00",
+  "timestamp": "2026-09-09T11:08:44+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_933_merged_and_ssd_microsd_coexistence_verified",
+  "event": "issue_930_activated_from_current_main",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 930,
+    "title": "Remove stale Sharp override after Next.js 16.3.4 alignment",
+    "branch": "fix/930-sharp-override-alignment",
+    "status": "in_progress_revalidate_recovered_candidate"
+  },
   "evidence_snapshot": {
     "issue_933_completion": {
       "issue": 933,
@@ -41,6 +46,17 @@
       "issue": 980,
       "branch": "chore/980-state-reconcile-ssd-coexistence",
       "scope": "four_project_state_files_only"
+    },
+    "issue_930_activation": {
+      "issue": 930,
+      "branch": "fix/930-sharp-override-alignment",
+      "current_main_base": "f186d690746e3f5ba810749e8d7b289bc7cfe833",
+      "recovered_local_candidate_commit": "4d61aaabf8a48a5788f89272f1318559c3c62723",
+      "recovered_candidate_disposition": "evidence_only_revalidate_product_diff_on_current_main",
+      "current_contract": "next_16_3_4_root_sharp_override_0_35_3_next_declares_sharp_caret_0_35_4",
+      "production_deployment": "not_executed",
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "observations": [
@@ -56,7 +72,7 @@
       }
     }
   ],
-  "next_action": "Verify and merge state-only Issue #980, then select next Ready Work Package from current GitHub state; #930 is the known lower-risk candidate.",
+  "next_action": "Revalidate the recovered Sharp 0.35.4/libvips 1.3.3 minimal closure on current main, implement only package.json/package-lock.json plus normal state evidence, then run exact local and routed remote gates.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

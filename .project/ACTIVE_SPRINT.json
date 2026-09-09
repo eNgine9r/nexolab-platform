@@ -22,7 +22,11 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 930,
+      "title": "Remove stale Sharp override after Next.js 16.3.4 alignment",
+      "branch": "fix/930-sharp-override-alignment"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -3340,6 +3344,27 @@
         "telemetry_service_final": "GREEN_run_34309529811",
         "review_threads": 0,
         "repository_status": "merged_closed"
+      }
+    },
+    {
+      "issue": 930,
+      "title": "Remove stale Sharp override after Next.js 16.3.4 alignment",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "fix/930-sharp-override-alignment",
+      "depends_on": [
+        926
+      ],
+      "evidence": {
+        "planning_authority": "github_issue_930_dependency_compatibility_scope",
+        "recovered_local_candidate_commit": "4d61aaabf8a48a5788f89272f1318559c3c62723",
+        "recovered_candidate_base": "2341f9030c079eb61c4e9ce05fb060e80b2f91fd",
+        "recovered_candidate_scope": "remove_root_sharp_0_35_3_override_resolve_sharp_0_35_4_libvips_1_3_3",
+        "current_main_base": "f186d690746e3f5ba810749e8d7b289bc7cfe833",
+        "production_deployment": "not_executed",
+        "runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     }
   ],
