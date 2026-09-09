@@ -175,6 +175,8 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             record_result=self._record_scheduled_result,
             stop_event=self.stop_event,
             persistence_error_handler=self._handle_latest_persistence_error,
+            latest_persistence_retry_attempts=self._sqlite_busy_supervisor_limit,
+            latest_persistence_retry_delay_seconds=self._sqlite_busy_supervisor_delay_seconds,
             bus_locks=self._bus_operation_locks,
         )
 

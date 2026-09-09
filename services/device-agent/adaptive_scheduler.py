@@ -55,7 +55,9 @@ class AdaptiveAcquisitionScheduler:
         read_target: Callable[[SchedulerTarget], ScheduledResult],
         record_result: Callable[[SchedulerTarget, ScheduledResult], None],
         stop_event: threading.Event,
-        persistence_error_handler: Callable[[Exception], None] | None = None,
+        persistence_error_handler: Callable[[Exception, int, int], bool] | None = None,
+        latest_persistence_retry_attempts: int = 3,
+        latest_persistence_retry_delay_seconds: float = 1.0,
         bus_locks: Mapping[str, threading.Lock] | None = None,
         clock: Callable[[], float] = time.monotonic,
         wall_clock: Callable[[], datetime] | None = None,
@@ -64,8 +66,16 @@ class AdaptiveAcquisitionScheduler:
         self._latest_store = latest_store
         self._read_target = read_target
         self._record_result = record_result
+        if latest_persistence_retry_attempts <= 0:
+            raise ValueError("latest_persistence_retry_attempts must be positive")
+        if latest_persistence_retry_delay_seconds < 0:
+            raise ValueError("latest_persistence_retry_delay_seconds must be non-negative")
         self._stop_event = stop_event
         self._persistence_error_handler = persistence_error_handler
+        self._latest_persistence_retry_attempts = latest_persistence_retry_attempts
+        self._latest_persistence_retry_delay_seconds = (
+            latest_persistence_retry_delay_seconds
+        )
         self._clock = clock
         self._wall_clock = wall_clock or (lambda: datetime.now(timezone.utc))
         self._condition = threading.Condition()
@@ -358,17 +368,8 @@ class AdaptiveAcquisitionScheduler:
                 job.target.target_id,
             )
 
-        persistence_error: Exception | None = None
         if result is not None:
-            try:
-                self._latest_store.record_attempt(job.target, result)
-            except Exception as error:  # noqa: BLE001
-                callback_error = True
-                persistence_error = error
-                LOG.exception(
-                    "Latest-value persistence failed for %s",
-                    job.target.target_id,
-                )
+            self._persist_latest_result(job.target, result)
 
         completed = self._clock()
         self._complete(
@@ -390,9 +391,50 @@ class AdaptiveAcquisitionScheduler:
                     "Scheduled result publication failed for %s",
                     job.target.target_id,
                 )
-        if persistence_error is not None and self._persistence_error_handler is not None:
-            self._persistence_error_handler(persistence_error)
         return True
+
+    def _persist_latest_result(
+        self,
+        target: SchedulerTarget,
+        result: ScheduledResult,
+    ) -> None:
+        for attempt in range(1, self._latest_persistence_retry_attempts + 1):
+            try:
+                self._latest_store.record_attempt(target, result)
+                if attempt > 1:
+                    LOG.info(
+                        "Latest-value persistence recovered for %s after %s outer attempt(s)",
+                        target.target_id,
+                        attempt,
+                    )
+                return
+            except Exception as error:  # noqa: BLE001
+                LOG.exception(
+                    "Latest-value persistence failed for %s on outer attempt %s/%s",
+                    target.target_id,
+                    attempt,
+                    self._latest_persistence_retry_attempts,
+                )
+                should_retry = False
+                if self._persistence_error_handler is not None:
+                    should_retry = bool(
+                        self._persistence_error_handler(
+                            error,
+                            attempt,
+                            self._latest_persistence_retry_attempts,
+                        )
+                    )
+                if (
+                    not should_retry
+                    or attempt >= self._latest_persistence_retry_attempts
+                    or self._stop_event.is_set()
+                ):
+                    raise
+                if self._latest_persistence_retry_delay_seconds and self._stop_event.wait(
+                    self._latest_persistence_retry_delay_seconds
+                ):
+                    raise
+        raise RuntimeError("Latest-value persistence retry loop exhausted unexpectedly")
 
     def _complete(
         self,

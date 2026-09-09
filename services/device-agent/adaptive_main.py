@@ -68,6 +68,8 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
             record_result=self._record_scheduled_result,
             stop_event=self.stop_event,
             persistence_error_handler=self._handle_latest_persistence_error,
+            latest_persistence_retry_attempts=SQLITE_BUSY_SUPERVISOR_GRACE_CYCLES,
+            latest_persistence_retry_delay_seconds=self._sqlite_busy_supervisor_delay_seconds,
             bus_locks={
                 bus.bus_id: self._bus_operation_lock
                 for bus in self._registry_snapshot().document.buses
@@ -344,12 +346,31 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
         )
         self.stop_event.set()
 
-    def _handle_latest_persistence_error(self, error: Exception) -> None:
+    def _handle_latest_persistence_error(
+        self,
+        error: Exception,
+        attempt: int,
+        limit: int,
+    ) -> bool:
         if isinstance(error, sqlite3.OperationalError) and _is_sqlite_busy_error(error):
-            return
-        self._mark_fatal_persistence_error(
-            error, operation="latest-value"
-        )
+            if attempt < limit:
+                message = (
+                    "SQLite latest-value lock contention; "
+                    f"outer retry {attempt}/{limit}"
+                )
+                self.state.update(last_error=message)
+                LOG.warning("%s; retaining scheduled result before publication", message)
+                return True
+            self._mark_fatal_persistence_error(error, operation="latest-value")
+            LOG.error(
+                "SQLite latest-value lock contention exhausted outer retry %s/%s; "
+                "failing closed before telemetry publication",
+                attempt,
+                limit,
+            )
+            return False
+        self._mark_fatal_persistence_error(error, operation="latest-value")
+        return False
 
     def _register_busy_supervisor_cycle(
         self,

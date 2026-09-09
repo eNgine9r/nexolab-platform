@@ -318,18 +318,35 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
             any("samples_total" in call.kwargs for call in value.state.update.call_args_list)
         )
 
-    def test_latest_busy_exhaustion_stays_observable_without_immediate_fatal(self) -> None:
+    def test_latest_busy_outer_retry_stays_observable_without_fatal(self) -> None:
         value = agent()
         value.stop_event = threading.Event()
         value._fatal_persistence_error = None
         value.state = Mock()
+        error = sqlite3.OperationalError("database is locked")
 
-        value._handle_latest_persistence_error(
-            sqlite3.OperationalError("database is locked")
-        )
+        should_retry = value._handle_latest_persistence_error(error, 1, 3)
 
+        self.assertTrue(should_retry)
         self.assertFalse(value.stop_event.is_set())
         self.assertIsNone(value._fatal_persistence_error)
+        self.assertIn(
+            "outer retry 1/3",
+            value.state.update.call_args.kwargs["last_error"],
+        )
+
+    def test_latest_busy_outer_retry_exhaustion_sets_fatal_stop(self) -> None:
+        value = agent()
+        value.stop_event = threading.Event()
+        value._fatal_persistence_error = None
+        value.state = Mock()
+        error = sqlite3.OperationalError("database is locked")
+
+        should_retry = value._handle_latest_persistence_error(error, 3, 3)
+
+        self.assertFalse(should_retry)
+        self.assertTrue(value.stop_event.is_set())
+        self.assertIs(value._fatal_persistence_error, error)
 
     def test_structural_latest_persistence_failure_sets_fatal_stop(self) -> None:
         value = agent()
@@ -338,8 +355,9 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
         value.state = Mock()
         error = sqlite3.OperationalError("disk I/O error")
 
-        value._handle_latest_persistence_error(error)
+        should_retry = value._handle_latest_persistence_error(error, 1, 3)
 
+        self.assertFalse(should_retry)
         self.assertTrue(value.stop_event.is_set())
         self.assertIs(value._fatal_persistence_error, error)
         self.assertIn(
