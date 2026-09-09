@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 930,
-      "title": "Remove stale Sharp override after Next.js 16.3.4 alignment",
-      "branch": "fix/930-sharp-override-alignment"
+      "issue": 966,
+      "title": "Correct KK2 sensor numbering and Dixell channel mapping from physical panel evidence",
+      "branch": "fix/966-kk2-catalog-correction"
     },
     "next_work_package": null
   },
@@ -3350,7 +3350,7 @@
       "issue": 930,
       "title": "Remove stale Sharp override after Next.js 16.3.4 alignment",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "fix/930-sharp-override-alignment",
       "depends_on": [
         926
@@ -3370,8 +3370,22 @@
         "production_deployment": "not_executed",
         "runtime_mutation": "none",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "verified_head_sha": "17d2277e27d5bcb5660362469391eef7849b6ebf",
+        "pull_request": 982,
+        "checks": {
+          "all_routed_workflows": "success",
+          "review_threads": "zero_unresolved"
+        }
       }
+    },
+    {
+      "issue": 966,
+      "title": "Correct KK2 sensor numbering and Dixell channel mapping from physical panel evidence",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "fix/966-kk2-catalog-correction",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [
