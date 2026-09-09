@@ -23,11 +23,15 @@
   },
   "selection": {
     "active_work_package": {
+      "issue": 978,
+      "title": "Review new libexpat1 HIGH CVEs blocking Device Agent and Telegram Gateway",
+      "branch": "security/978-libexpat-high-review"
+    },
+    "next_work_package": {
       "issue": 933,
       "title": "Prevent Device Agent exit on transient SQLite lock contention",
       "branch": "fix/933-device-agent-sqlite-lock-contention"
-    },
-    "next_work_package": null
+    }
   },
   "work_packages": [
     {
@@ -3186,7 +3190,12 @@
         "interrupted_by_storage_migration_issue": 968,
         "storage_migration_interruption_status": "cleared_ssd_root_accepted",
         "dirty_worktree_preserved": "/home/nexolab/recovery/issue-968-pre-ssd-20260908T091750Z",
-        "resume_base_requires_main_reconciliation": "origin_main_88d484dc_after_issue_970_merge"
+        "resume_base_requires_main_reconciliation": "origin_main_88d484dc_after_issue_970_merge",
+        "software_candidate_head": "6764370ce89ac0b81aa839a6cc0941bc90509ac4",
+        "software_verification": "targeted_57_of_57_full_source_246_of_246_packaged_246_of_246_pass",
+        "exact_head_ci": "all_routed_non_security_lanes_green_container_supply_chain_fail_only_new_cross_image_libexpat_highs",
+        "soft_blocked_by_issue": 978,
+        "soft_blocker": "new_device_agent_and_telegram_gateway_libexpat1_CVE_2026_76956_CVE_2026_76957_policy_findings"
       }
     },
     {
@@ -3279,6 +3288,30 @@
         "unresolved_review_threads": 0,
         "repository_completion": "verified_fix_merged_and_issue_closed"
       }
+    },
+    {
+      "issue": 978,
+      "title": "Review new libexpat1 HIGH CVEs blocking Device Agent and Telegram Gateway",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "security/978-libexpat-high-review",
+      "depends_on": [],
+      "evidence": {
+        "trigger_issue": 933,
+        "trigger_pr": 976,
+        "trigger_exact_head": "6764370ce89ac0b81aa839a6cc0941bc90509ac4",
+        "container_supply_chain_run": 34307375095,
+        "findings": "4_exact_HIGH_tuples_device_agent_and_telegram_gateway_libexpat1_CVE_2026_76956_CVE_2026_76957",
+        "installed_version": "2.8.3-1~deb13u1",
+        "scanner_fixed_version": "none",
+        "debian_status_2026_09_09": "trixie_security_2_8_3_vulnerable_no_DSA_forky_sid_2_8_4_fixed",
+        "upstream_fix": "Expat_2_8_4",
+        "reachability": "no_runtime_XML_parser_imports_device_agent_JSON_MQTT_read_only_Modbus_telegram_JSON_Pydantic_URL_encoded_initData_nonroot_distroless_loopback_ports",
+        "disposition": "4_exact_HIGH_exceptions_through_2026_09_12_pending_exact_head_fresh_scan",
+        "production_deployment": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
     }
   ],
   "maintenance_actions": [
@@ -3328,7 +3361,7 @@
       "status": "scheduled",
       "due_on": "2026-09-12",
       "owner": "platform-security",
-      "rule": "Fresh no-cache scan every controlled image before expiry. Remove any exact tuple that disappears or gains a consumable fix; fail closed on changed reachability/platform/vendor assumptions or Critical severity; re-check CVE-2026-78409 affected-version guidance against Debian/scanner and CNA/upstream evidence before any renewal."
+      "rule": "Fresh no-cache scan every controlled image before expiry. Remove any exact tuple that disappears or gains a consumable fix; fail closed on changed reachability/platform/vendor assumptions or Critical severity; re-check CVE-2026-78409 affected-version guidance and Issue #978 libexpat1 CVE-2026-76956/CVE-2026-76957 Trixie package availability plus XML/custom-encoding reachability before any renewal."
     }
   ],
   "observations": [
@@ -3641,6 +3674,20 @@
         "issue": 968,
         "state": "open",
         "title": "[OPS][STORAGE] Migrate nexolab-edge-01 system and NEXOLAB runtime from microSD to 256 GB SSD"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-09T07:02:25+03:00",
+      "kind": "security_supply_chain_interrupt",
+      "data": {
+        "issue": 978,
+        "trigger_issue": 933,
+        "trigger_pr": 976,
+        "trigger_exact_head": "6764370ce89ac0b81aa839a6cc0941bc90509ac4",
+        "container_supply_chain_run": 34307375095,
+        "blocked_findings": 4,
+        "policy": "fail_closed"
       }
     }
   ],
