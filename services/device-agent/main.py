@@ -337,6 +337,7 @@ class OfflineQueue:
         busy_timeout_ms: int = 2000,
         busy_retry_attempts: int = 3,
         busy_retry_delay_seconds: float = 0.05,
+        health_busy_timeout_ms: int = 100,
     ) -> None:
         if busy_timeout_ms <= 0:
             raise ValueError("busy_timeout_ms must be positive")
@@ -344,7 +345,12 @@ class OfflineQueue:
             raise ValueError("busy_retry_attempts must be positive")
         if busy_retry_delay_seconds < 0:
             raise ValueError("busy_retry_delay_seconds must be non-negative")
+        if health_busy_timeout_ms <= 0:
+            raise ValueError("health_busy_timeout_ms must be positive")
         database_path.parent.mkdir(parents=True, exist_ok=True)
+        self._database_path = database_path
+        self._database_uri = database_path.absolute().as_uri()
+        self._health_busy_timeout_ms = health_busy_timeout_ms
         self._connection = sqlite3.connect(
             database_path,
             check_same_thread=False,
@@ -352,28 +358,49 @@ class OfflineQueue:
         )
         self._connection.execute(f"PRAGMA busy_timeout = {busy_timeout_ms}")
         self._lock = threading.Lock()
+        self._state_lock = threading.Lock()
         self._busy_retry_attempts = busy_retry_attempts
         self._busy_retry_delay_seconds = busy_retry_delay_seconds
-        with self._connection:
-            self._connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS outbound_queue (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    event_id TEXT NOT NULL UNIQUE,
-                    topic TEXT NOT NULL,
-                    payload TEXT NOT NULL,
-                    created_at TEXT NOT NULL
+        self._busy_events_total = 0
+        self._busy_retries_total = 0
+        self._busy_exhausted_total = 0
+        self._busy_recoveries_total = 0
+        self._busy_consecutive_exhaustions = 0
+        self._busy_unresolved_exhaustions: dict[str, int] = {}
+        self._busy_last_operation: str | None = None
+        self._busy_last_error: str | None = None
+        self._last_known_size = 0
+        self._health_stale_total = 0
+
+        def initialize() -> None:
+            with self._connection:
+                self._connection.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS outbound_queue (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        event_id TEXT NOT NULL UNIQUE,
+                        topic TEXT NOT NULL,
+                        payload TEXT NOT NULL,
+                        created_at TEXT NOT NULL
+                    )
+                    """
                 )
-                """
-            )
-            self._connection.execute(
-                """
-                CREATE TABLE IF NOT EXISTS node_stream_sequences (
-                    stream TEXT PRIMARY KEY,
-                    last_sequence INTEGER NOT NULL CHECK(last_sequence >= 0)
+                self._connection.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS node_stream_sequences (
+                        stream TEXT PRIMARY KEY,
+                        last_sequence INTEGER NOT NULL CHECK(last_sequence >= 0)
+                    )
+                    """
                 )
-                """
-            )
+                row = self._connection.execute(
+                    "SELECT COUNT(*) FROM outbound_queue"
+                ).fetchone()
+                with self._state_lock:
+                    self._last_known_size = int(row[0] if row else 0)
+
+        with self._lock:
+            self._retry_busy("initialize", initialize)
 
     @staticmethod
     def _is_busy_error(error: sqlite3.OperationalError) -> bool:
@@ -381,16 +408,46 @@ class OfflineQueue:
         return "locked" in message or "busy" in message
 
     def _retry_busy(self, label: str, operation: Callable[[], Any]) -> Any:
+        saw_busy = False
         for attempt in range(1, self._busy_retry_attempts + 1):
             try:
-                return operation()
+                result = operation()
+                with self._state_lock:
+                    unresolved = self._busy_unresolved_exhaustions.pop(label, 0)
+                    if saw_busy or unresolved > 0:
+                        self._busy_recoveries_total += 1
+                    self._busy_consecutive_exhaustions = sum(
+                        self._busy_unresolved_exhaustions.values()
+                    )
+                return result
             except sqlite3.OperationalError as error:
                 if self._connection.in_transaction:
                     self._connection.rollback()
-                if (
-                    not self._is_busy_error(error)
-                    or attempt >= self._busy_retry_attempts
-                ):
+                if not self._is_busy_error(error):
+                    raise
+                saw_busy = True
+                exhausted = attempt >= self._busy_retry_attempts
+                with self._state_lock:
+                    self._busy_events_total += 1
+                    self._busy_last_operation = label
+                    self._busy_last_error = str(error)
+                    if exhausted:
+                        self._busy_exhausted_total += 1
+                        self._busy_unresolved_exhaustions[label] = (
+                            self._busy_unresolved_exhaustions.get(label, 0) + 1
+                        )
+                        self._busy_consecutive_exhaustions = sum(
+                            self._busy_unresolved_exhaustions.values()
+                        )
+                    else:
+                        self._busy_retries_total += 1
+                if exhausted:
+                    LOG.error(
+                        "SQLite queue %s exhausted lock-contention retry budget %s/%s",
+                        label,
+                        attempt,
+                        self._busy_retry_attempts,
+                    )
                     raise
                 LOG.warning(
                     "SQLite queue %s deferred by lock contention; retry %s/%s",
@@ -401,6 +458,20 @@ class OfflineQueue:
                 if self._busy_retry_delay_seconds:
                     time.sleep(self._busy_retry_delay_seconds * attempt)
         raise RuntimeError("SQLite busy retry loop exhausted unexpectedly")
+
+    def contention_snapshot(self) -> dict[str, Any]:
+        with self._state_lock:
+            return {
+                "schema_version": 1,
+                "busy_events_total": self._busy_events_total,
+                "busy_retries_total": self._busy_retries_total,
+                "busy_exhausted_total": self._busy_exhausted_total,
+                "busy_recoveries_total": self._busy_recoveries_total,
+                "consecutive_exhaustions": self._busy_consecutive_exhaustions,
+                "last_operation": self._busy_last_operation,
+                "last_error": self._busy_last_error,
+                "health_stale_total": self._health_stale_total,
+            }
 
     def enqueue(self, topic: str, payload: str, event_id: str) -> None:
         def operation() -> None:
@@ -420,6 +491,80 @@ class OfflineQueue:
 
         with self._lock:
             self._retry_busy("enqueue", operation)
+
+    def _next_sequence_in_transaction(self, stream: str) -> int:
+        self._connection.execute(
+            """
+            INSERT INTO node_stream_sequences(stream, last_sequence)
+            VALUES (?, 0)
+            ON CONFLICT(stream) DO NOTHING
+            """,
+            (stream,),
+        )
+        self._connection.execute(
+            """
+            UPDATE node_stream_sequences
+            SET last_sequence = last_sequence + 1
+            WHERE stream = ?
+            """,
+            (stream,),
+        )
+        row = self._connection.execute(
+            "SELECT last_sequence FROM node_stream_sequences WHERE stream = ?",
+            (stream,),
+        ).fetchone()
+        if row is None:
+            raise RuntimeError("node stream sequence allocation failed")
+        return int(row[0])
+
+    def enqueue_with_sequence(
+        self,
+        topic: str,
+        payload_data: dict[str, Any],
+        event_id: str,
+        *,
+        stream: str,
+    ) -> str:
+        normalized = stream.strip().lower()
+        if not normalized:
+            raise ValueError("stream is required")
+
+        def operation() -> str:
+            with self._connection:
+                # Serialize writers before checking event_id so sequence allocation
+                # and durable enqueue are one idempotent transaction. A retry after
+                # a later flush failure reuses the existing queued payload instead
+                # of consuming another node_sequence.
+                self._connection.execute("BEGIN IMMEDIATE")
+                existing = self._connection.execute(
+                    "SELECT payload FROM outbound_queue WHERE event_id = ?",
+                    (event_id,),
+                ).fetchone()
+                if existing is not None:
+                    return str(existing[0])
+
+                sequence = self._next_sequence_in_transaction(normalized)
+                sequenced_payload = dict(payload_data)
+                sequenced_payload["node_sequence"] = sequence
+                payload = json.dumps(
+                    sequenced_payload, separators=(",", ":"), ensure_ascii=False
+                )
+                self._connection.execute(
+                    """
+                    INSERT INTO outbound_queue(event_id, topic, payload, created_at)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (
+                        event_id,
+                        topic,
+                        payload,
+                        datetime.now(timezone.utc).isoformat(),
+                    ),
+                )
+                return payload
+
+        with self._lock:
+            return str(self._retry_busy("enqueue_with_sequence", operation))
 
     def oldest(self, limit: int = 100) -> list[tuple[int, str, str]]:
         def operation() -> list[tuple[int, str, str]]:
@@ -448,10 +593,44 @@ class OfflineQueue:
             row = self._connection.execute(
                 "SELECT COUNT(*) FROM outbound_queue"
             ).fetchone()
-            return int(row[0] if row else 0)
+            value = int(row[0] if row else 0)
+            with self._state_lock:
+                self._last_known_size = value
+            return value
 
         with self._lock:
             return int(self._retry_busy("size", operation))
+
+    def _read_health_depth(self) -> int:
+        connection = sqlite3.connect(
+            f"{self._database_uri}?mode=ro",
+            uri=True,
+            timeout=self._health_busy_timeout_ms / 1000,
+        )
+        try:
+            connection.execute(
+                f"PRAGMA busy_timeout = {self._health_busy_timeout_ms}"
+            )
+            row = connection.execute(
+                "SELECT COUNT(*) FROM outbound_queue"
+            ).fetchone()
+            return int(row[0] if row else 0)
+        finally:
+            connection.close()
+
+    def health_depth(self) -> tuple[int, bool]:
+        """Return queue depth within the health-probe budget."""
+        try:
+            value = self._read_health_depth()
+        except sqlite3.OperationalError as error:
+            if not self._is_busy_error(error):
+                raise
+            with self._state_lock:
+                self._health_stale_total += 1
+                return self._last_known_size, True
+        with self._state_lock:
+            self._last_known_size = value
+        return value, False
 
     def next_sequence(self, stream: str) -> int:
         normalized = stream.strip().lower()
@@ -460,29 +639,7 @@ class OfflineQueue:
 
         def operation() -> int:
             with self._connection:
-                self._connection.execute(
-                    """
-                    INSERT INTO node_stream_sequences(stream, last_sequence)
-                    VALUES (?, 0)
-                    ON CONFLICT(stream) DO NOTHING
-                    """,
-                    (normalized,),
-                )
-                self._connection.execute(
-                    """
-                    UPDATE node_stream_sequences
-                    SET last_sequence = last_sequence + 1
-                    WHERE stream = ?
-                    """,
-                    (normalized,),
-                )
-                row = self._connection.execute(
-                    "SELECT last_sequence FROM node_stream_sequences WHERE stream = ?",
-                    (normalized,),
-                ).fetchone()
-                if row is None:
-                    raise RuntimeError("node stream sequence allocation failed")
-                return int(row[0])
+                return self._next_sequence_in_transaction(normalized)
 
         with self._lock:
             return int(self._retry_busy("next_sequence", operation))
@@ -579,9 +736,7 @@ class DeviceAgent:
                 device_mode=settings.device_mode,
                 health_interval_seconds=settings.health_interval_seconds,
                 next_sequence=self.queue.next_sequence,
-                state_snapshot=lambda: self.state.snapshot(
-                    self.queue.size(), self.settings
-                ),
+                state_snapshot=self._state_snapshot_for_health,
             )
         self.modbus_client: ModbusRTUClient | None = None
         self.xjp60d_reader: XJP60DReader | None = None
@@ -620,6 +775,42 @@ class DeviceAgent:
                 temperature_scale=settings.embraco_temperature_scale,
                 control_scale=settings.embraco_control_scale,
             )
+
+    def _state_snapshot_for_health(self) -> dict[str, Any]:
+        queue_depth, queue_depth_stale = self.queue.health_depth()
+        payload = self.state.snapshot(queue_depth, self.settings)
+        queue_contention = self.queue.contention_snapshot()
+        payload["sqlite_contention"] = {
+            "schema_version": 1,
+            "queue_depth_stale": queue_depth_stale,
+            "queue": queue_contention,
+        }
+        queue_exhaustion_unresolved = (
+            int(queue_contention.get("consecutive_exhaustions", 0)) > 0
+        )
+        if queue_depth_stale or queue_exhaustion_unresolved:
+            payload["status"] = "degraded"
+            contention_errors = (
+                (
+                    "SQLite queue depth is lock-contended; "
+                    "reporting last known value"
+                )
+                if queue_depth_stale
+                else None,
+                (
+                    "SQLite queue operation has unresolved lock contention"
+                )
+                if queue_exhaustion_unresolved
+                else None,
+            )
+            payload["last_error"] = "; ".join(
+                dict.fromkeys(
+                    value
+                    for value in (*contention_errors, payload.get("last_error"))
+                    if value
+                )
+            )
+        return payload
 
     def _on_connect(
         self,
@@ -854,18 +1045,26 @@ class DeviceAgent:
 
     def publish_or_queue(self, record: TelemetryRecord) -> bool:
         payload_data = asdict(record)
-        if self.settings.organization_id is not None:
-            payload_data["node_sequence"] = self.queue.next_sequence("telemetry")
-        payload = json.dumps(
-            payload_data, separators=(",", ":"), ensure_ascii=False
-        )
         topic = self.settings.resolved_telemetry_topic
 
-        # Persist before touching the network. A successful ``publish()`` return
-        # only means Paho accepted the message locally; durability starts only
-        # after the QoS 1 acknowledgement is observed and the queued row is
-        # deleted. This also preserves FIFO ordering across reconnects.
-        self.queue.enqueue(topic, payload, record.event_id)
+        # Persist before touching the network. For organization-scoped telemetry,
+        # sequence allocation and enqueue are one idempotent SQLite transaction so
+        # retrying the same event after a later flush failure cannot consume a new
+        # node_sequence. Operational stream sequencing remains independent.
+        if self.settings.organization_id is not None:
+            payload = self.queue.enqueue_with_sequence(
+                topic, payload_data, record.event_id, stream="telemetry"
+            )
+        else:
+            payload = json.dumps(
+                payload_data, separators=(",", ":"), ensure_ascii=False
+            )
+            self.queue.enqueue(topic, payload, record.event_id)
+
+        # A successful ``publish()`` return only means Paho accepted the message
+        # locally; durability starts only after the QoS 1 acknowledgement is
+        # observed and the queued row is deleted. This preserves FIFO ordering
+        # across reconnects.
         if not self.state.mqtt_connected:
             return False
         return self.flush_queue()
@@ -949,10 +1148,7 @@ class HealthHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
-        payload = self.agent.state.snapshot(
-            self.agent.queue.size(),
-            self.agent.settings,
-        )
+        payload = self.agent._state_snapshot_for_health()
         status = 200 if payload["status"] in {"ok", "degraded"} else 503
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)

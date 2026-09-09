@@ -97,6 +97,24 @@ class MQTTBacklogOrderingTests(unittest.TestCase):
         self.assertEqual(agent.queue.size(), 1)
         agent.client.publish.assert_not_called()
 
+    def test_repeated_event_reuses_existing_telemetry_sequence(self) -> None:
+        agent = self.make_agent()
+        agent.state.update(mqtt_connected=False)
+
+        first = self.record("event-1")
+        self.assertFalse(DeviceAgent.publish_or_queue(agent, first))
+        self.assertFalse(DeviceAgent.publish_or_queue(agent, first))
+        self.assertFalse(
+            DeviceAgent.publish_or_queue(agent, self.record("event-2"))
+        )
+
+        rows = agent.queue.oldest()
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(
+            [json.loads(payload)["node_sequence"] for _, _, payload in rows],
+            [1, 2],
+        )
+
     def test_flush_uses_sqlite_order_without_resequencing(self) -> None:
         agent = object.__new__(DeviceAgent)
         agent.state = AgentState()

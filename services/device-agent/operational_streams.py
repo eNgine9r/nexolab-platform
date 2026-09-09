@@ -1,11 +1,21 @@
 from __future__ import annotations
 
 import json
+import logging
+import sqlite3
 import threading
 import time
 import uuid
 from datetime import UTC, datetime
 from typing import Any, Callable, Protocol
+
+
+LOG = logging.getLogger("nexolab.device_agent.operational_streams")
+
+
+def _is_sqlite_busy_error(error: sqlite3.OperationalError) -> bool:
+    message = str(error).casefold()
+    return "locked" in message or "busy" in message
 
 
 class PublishResult(Protocol):
@@ -106,14 +116,25 @@ class NodeOperationalPublisher:
                 < self._health_interval_seconds
             ):
                 return None
-            snapshot = self._state_snapshot()
+            try:
+                snapshot = self._state_snapshot()
+                node_sequence = self._next_sequence("health")
+            except sqlite3.OperationalError as error:
+                if not _is_sqlite_busy_error(error):
+                    raise
+                self._last_health_monotonic = now_monotonic
+                LOG.warning(
+                    "Node health publish deferred by SQLite lock contention: %s",
+                    error,
+                )
+                return False
             last_error = snapshot.get("last_error")
             payload = {
                 "schema_version": 1,
                 "event_id": str(uuid.uuid4()),
                 "node_id": self._node_id,
                 "captured_at": _now(),
-                "node_sequence": self._next_sequence("health"),
+                "node_sequence": node_sequence,
                 "health": "degraded" if last_error else "healthy",
                 "uptime_seconds": max(0, int(snapshot.get("uptime_seconds", 0))),
                 "queue_depth": max(0, int(snapshot.get("queue_depth", 0))),

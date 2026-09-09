@@ -496,7 +496,7 @@ class ManagedDeviceAgent(DeviceAgent):
         )
 
     def health_snapshot(self) -> dict[str, Any]:
-        payload = self.state.snapshot(self.queue.size(), self.settings)
+        payload = self._state_snapshot_for_health()
         payload["acquisition"] = self.acquisition_snapshot()
         return payload
 

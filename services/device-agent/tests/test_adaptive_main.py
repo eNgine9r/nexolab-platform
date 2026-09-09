@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
 import sqlite3
+import tempfile
 import threading
+import time
 import unittest
 from contextlib import nullcontext
 from pathlib import Path
@@ -12,8 +15,8 @@ from acquisition_registry import (
     build_initial_document,
 )
 from adaptive_main import AdaptiveRegistryDeviceAgent
-from adaptive_scheduler import SchedulerTarget
-from main import Settings
+from adaptive_scheduler import ScheduledResult, SchedulerTarget
+from main import AgentState, DeviceAgent, OfflineQueue, Settings, TelemetryRecord
 from modbus_rtu import ModbusError
 
 
@@ -162,15 +165,280 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
         value.client.loop_stop.assert_called_once_with()
 
 
-
-    def test_persistent_queue_failure_escapes_top_adaptive_runtime(self) -> None:
+    def test_scheduled_enqueue_busy_retries_same_record_without_loss(self) -> None:
         value = agent()
         value.stop_event = threading.Event()
+        value._publish_lock = threading.Lock()
+        value._sqlite_busy_supervisor_consecutive = 0
+        value._sqlite_busy_supervisor_limit = 3
+        value._sqlite_busy_supervisor_delay_seconds = 0.01
+        value._fatal_persistence_error = None
+        value.state = Mock(samples_total=0, mqtt_connected=False)
+        value.scheduler = Mock()
+        value.scheduler.current_error.return_value = None
+        value.operational = None
+
+        with tempfile.TemporaryDirectory() as temporary:
+            database_path = Path(temporary) / "edge.db"
+            value.queue = OfflineQueue(
+                database_path,
+                busy_timeout_ms=10,
+                busy_retry_attempts=2,
+                busy_retry_delay_seconds=0.01,
+            )
+            blocker = sqlite3.connect(
+                database_path, timeout=0, check_same_thread=False
+            )
+            blocker.execute("BEGIN IMMEDIATE")
+
+            def release() -> None:
+                time.sleep(0.06)
+                blocker.rollback()
+                blocker.close()
+
+            release_thread = threading.Thread(target=release)
+            release_thread.start()
+            record = TelemetryRecord(
+                event_id="event-enqueue-recovery",
+                node_id="edge-01",
+                captured_at="2026-09-08T18:30:00+00:00",
+                metric="temperature.probe",
+                value=4.2,
+                unit="degC",
+                quality="valid",
+                source="xjp60d",
+                equipment_id="K106",
+                channel_id="106-03",
+            )
+            result = ScheduledResult(
+                record=record, communication_failed=False
+            )
+            try:
+                value._record_scheduled_result(Mock(), result)
+            finally:
+                release_thread.join(timeout=1)
+                self.assertFalse(release_thread.is_alive())
+
+            rows = value.queue.oldest()
+            self.assertEqual(len(rows), 1)
+            self.assertIn(record.event_id, rows[0][2])
+            self.assertEqual(value._sqlite_busy_supervisor_consecutive, 0)
+            self.assertFalse(value.stop_event.is_set())
+
+    def test_flush_busy_retry_preserves_queued_node_sequence(self) -> None:
+        value = agent()
+        value.stop_event = threading.Event()
+        value._sqlite_busy_supervisor_consecutive = 0
+        value._sqlite_busy_supervisor_limit = 3
+        value._sqlite_busy_supervisor_delay_seconds = 0
+        value._fatal_persistence_error = None
+        value.state = AgentState()
+        value.state.update(mqtt_connected=True)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            database_path = Path(temporary) / "edge.db"
+            value.settings = Settings(
+                **{
+                    **settings().__dict__,
+                    "organization_id": "00000000-0000-0000-0000-000000000001",
+                    "database_path": database_path,
+                }
+            )
+            value.queue = OfflineQueue(database_path)
+            value.flush_queue = Mock(
+                side_effect=[
+                    sqlite3.OperationalError("database is locked"),
+                    False,
+                ]
+            )
+            first = TelemetryRecord(
+                event_id="event-flush-retry",
+                node_id="edge-01",
+                captured_at="2026-09-09T03:00:00+00:00",
+                metric="temperature.probe",
+                value=4.2,
+                unit="degC",
+                quality="valid",
+                source="xjp60d",
+            )
+
+            self.assertFalse(value._publish_scheduled_record(first))
+            value.state.update(mqtt_connected=False)
+            second = TelemetryRecord(
+                event_id="event-after-retry",
+                node_id="edge-01",
+                captured_at="2026-09-09T03:00:01+00:00",
+                metric="temperature.probe",
+                value=4.3,
+                unit="degC",
+                quality="valid",
+                source="xjp60d",
+            )
+            self.assertFalse(DeviceAgent.publish_or_queue(value, second))
+
+            rows = value.queue.oldest()
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(
+                [json.loads(payload)["node_sequence"] for _, _, payload in rows],
+                [1, 2],
+            )
+            self.assertEqual(value._sqlite_busy_supervisor_consecutive, 0)
+
+    def test_persistent_scheduled_enqueue_busy_sets_fatal_stop(self) -> None:
+        value = agent()
+        value.stop_event = threading.Event()
+        value._publish_lock = threading.Lock()
+        value._sqlite_busy_supervisor_consecutive = 0
+        value._sqlite_busy_supervisor_limit = 3
+        value._sqlite_busy_supervisor_delay_seconds = 0
+        value._fatal_persistence_error = None
+        value.publish_or_queue = Mock(
+            side_effect=sqlite3.OperationalError("database is locked")
+        )
+        value.state = Mock(samples_total=0, mqtt_connected=False)
+        value.scheduler = Mock()
+        value.scheduler.current_error.return_value = None
+        value.operational = None
+        record = Mock(captured_at="2026-09-08T18:31:00+00:00")
+        result = Mock(record=record, error=None)
+
+        with self.assertRaisesRegex(sqlite3.OperationalError, "database is locked"):
+            value._record_scheduled_result(Mock(), result)
+
+        self.assertEqual(value.publish_or_queue.call_count, 3)
+        self.assertTrue(
+            all(call.args[0] is record for call in value.publish_or_queue.call_args_list)
+        )
+        self.assertEqual(value._sqlite_busy_supervisor_consecutive, 3)
+        self.assertTrue(value.stop_event.is_set())
+        self.assertIsInstance(
+            value._fatal_persistence_error, sqlite3.OperationalError
+        )
+        self.assertFalse(
+            any("samples_total" in call.kwargs for call in value.state.update.call_args_list)
+        )
+
+    def test_latest_busy_outer_retry_stays_observable_without_fatal(self) -> None:
+        value = agent()
+        value.stop_event = threading.Event()
+        value._fatal_persistence_error = None
+        value.state = Mock()
+        error = sqlite3.OperationalError("database is locked")
+
+        should_retry = value._handle_latest_persistence_error(error, 1, 3)
+
+        self.assertTrue(should_retry)
+        self.assertFalse(value.stop_event.is_set())
+        self.assertIsNone(value._fatal_persistence_error)
+        self.assertIn(
+            "outer retry 1/3",
+            value.state.update.call_args.kwargs["last_error"],
+        )
+
+    def test_latest_busy_outer_retry_exhaustion_sets_fatal_stop(self) -> None:
+        value = agent()
+        value.stop_event = threading.Event()
+        value._fatal_persistence_error = None
+        value.state = Mock()
+        error = sqlite3.OperationalError("database is locked")
+
+        should_retry = value._handle_latest_persistence_error(error, 3, 3)
+
+        self.assertFalse(should_retry)
+        self.assertTrue(value.stop_event.is_set())
+        self.assertIs(value._fatal_persistence_error, error)
+
+    def test_structural_latest_persistence_failure_sets_fatal_stop(self) -> None:
+        value = agent()
+        value.stop_event = threading.Event()
+        value._fatal_persistence_error = None
+        value.state = Mock()
+        error = sqlite3.OperationalError("disk I/O error")
+
+        should_retry = value._handle_latest_persistence_error(error, 1, 3)
+
+        self.assertFalse(should_retry)
+        self.assertTrue(value.stop_event.is_set())
+        self.assertIs(value._fatal_persistence_error, error)
+        self.assertIn(
+            "latest-value persistence failed",
+            value.state.update.call_args.kwargs["last_error"],
+        )
+
+    def test_fatal_scheduled_persistence_error_makes_run_fail_closed(self) -> None:
+        value = agent()
+        value.stop_event = threading.Event()
+        value.stop_event.set()
+        value._fatal_persistence_error = sqlite3.OperationalError(
+            "database is locked"
+        )
+        value.connect = Mock()
+        value.scheduler = Mock()
+        value._publish_lock = threading.Lock()
+        value.state = Mock(mqtt_connected=False)
+        value.modbus_client = None
+        value.operational = None
+        value.client = Mock()
+
+        with self.assertRaisesRegex(sqlite3.OperationalError, "database is locked"):
+            value.run()
+
+        value.scheduler.stop.assert_called_once_with()
+        value.client.disconnect.assert_called_once_with()
+        value.client.loop_stop.assert_called_once_with()
+
+    def test_transient_queue_busy_exhaustion_keeps_adaptive_runtime_alive(self) -> None:
+        value = agent()
+        value.stop_event = threading.Event()
+        value.connect = Mock()
+        value.scheduler = Mock()
+        value.scheduler.current_error.return_value = None
+        value._publish_lock = threading.Lock()
+        value.queue = Mock()
+        calls = 0
+
+        def queue_size() -> int:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise sqlite3.OperationalError("database is locked")
+            value.stop_event.set()
+            return 0
+
+        value.queue.size.side_effect = queue_size
+        value.flush_queue = Mock(return_value=True)
+        value.state = Mock()
+        value._sqlite_busy_supervisor_consecutive = 0
+        value._sqlite_busy_supervisor_limit = 3
+        value.modbus_client = None
+        value.operational = None
+        value.client = Mock()
+
+        value.run()
+
+        self.assertEqual(value.queue.size.call_count, 2)
+        self.assertEqual(value._sqlite_busy_supervisor_consecutive, 0)
+        self.assertIn(
+            "SQLite queue supervisor lock contention",
+            value.state.update.call_args_list[0].kwargs["last_error"],
+        )
+        value.scheduler.stop.assert_called_once_with()
+        value.client.disconnect.assert_called_once_with()
+        value.client.loop_stop.assert_called_once_with()
+
+    def test_persistent_queue_busy_exhaustion_fails_after_bounded_grace(self) -> None:
+        value = agent()
+        value.stop_event = Mock()
+        value.stop_event.is_set.return_value = False
+        value.stop_event.wait.return_value = False
         value.connect = Mock()
         value.scheduler = Mock()
         value._publish_lock = threading.Lock()
         value.queue = Mock()
         value.queue.size.side_effect = sqlite3.OperationalError("database is locked")
+        value.state = Mock()
+        value._sqlite_busy_supervisor_consecutive = 0
+        value._sqlite_busy_supervisor_limit = 3
         value.modbus_client = None
         value.operational = None
         value.client = Mock()
@@ -181,10 +449,31 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
         ):
             value.run()
 
-        value.scheduler.start.assert_called_once_with()
+        self.assertEqual(value.queue.size.call_count, 3)
+        self.assertEqual(value._sqlite_busy_supervisor_consecutive, 3)
         value.scheduler.stop.assert_called_once_with()
         value.client.disconnect.assert_called_once_with()
         value.client.loop_stop.assert_called_once_with()
+
+    def test_non_busy_sqlite_failure_fails_adaptive_runtime_immediately(self) -> None:
+        value = agent()
+        value.stop_event = Mock()
+        value.stop_event.is_set.return_value = False
+        value.connect = Mock()
+        value.scheduler = Mock()
+        value._publish_lock = threading.Lock()
+        value.queue = Mock()
+        value.queue.size.side_effect = sqlite3.OperationalError("disk I/O error")
+        value.state = Mock()
+        value.modbus_client = None
+        value.operational = None
+        value.client = Mock()
+
+        with self.assertRaisesRegex(sqlite3.OperationalError, "disk I/O error"):
+            value.run()
+
+        self.assertEqual(value.queue.size.call_count, 1)
+        value.stop_event.wait.assert_not_called()
 
     def test_health_fails_closed_when_eligible_bus_worker_is_dead(
         self,
@@ -196,7 +485,15 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
             "last_error": None,
         }
         value.queue = Mock()
-        value.queue.size.return_value = 0
+        value.queue.health_depth.return_value = (0, False)
+        value.queue.contention_snapshot.return_value = {
+            "consecutive_exhaustions": 0,
+        }
+        value.latest_values = Mock()
+        value.latest_values.health_summary.return_value = ({}, False)
+        value.latest_values.contention_snapshot.return_value = {
+            "consecutive_exhaustions": 0,
+        }
         value.registry_summary = Mock(
             return_value={
                 "poll_eligible_targets": 1,
@@ -213,7 +510,6 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
             }
         )
         value.scheduler = Mock()
-        value.scheduler.latest_summary.return_value = {}
         value.scheduler.current_error.return_value = (
             "adaptive acquisition worker unavailable: "
             "1 bus worker(s) inactive"
@@ -229,6 +525,189 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
             ],
             0,
         )
+
+    def test_health_exposes_active_latest_value_sqlite_contention(self) -> None:
+        value = agent()
+        value.state = Mock()
+        value.state.snapshot.return_value = {
+            "status": "ok",
+            "last_error": None,
+        }
+        value.queue = Mock()
+        value.queue.health_depth.return_value = (0, False)
+        value.queue.contention_snapshot.return_value = {
+            "consecutive_exhaustions": 0,
+            "busy_exhausted_total": 0,
+        }
+        value.latest_values = Mock()
+        value.latest_values.health_summary.return_value = ({}, False)
+        value.latest_values.contention_snapshot.return_value = {
+            "consecutive_exhaustions": 1,
+            "busy_exhausted_total": 2,
+        }
+        value.acquisition_snapshot = Mock(
+            return_value={
+                "scheduler": {
+                    "workers_healthy": True,
+                },
+            }
+        )
+        value.scheduler = Mock()
+
+        payload = value.health_snapshot()
+
+        self.assertEqual(payload["status"], "degraded")
+        self.assertIn("latest-value store", payload["last_error"] or "")
+        self.assertEqual(
+            payload["sqlite_contention"]["latest_values"][
+                "busy_exhausted_total"
+            ],
+            2,
+        )
+
+    def test_health_uses_last_known_queue_depth_during_busy_contention(self) -> None:
+        value = agent()
+        value.state = Mock()
+        value.state.snapshot.side_effect = lambda queue_depth, settings: {
+            "status": "ok",
+            "queue_depth": queue_depth,
+            "last_error": None,
+        }
+        value.queue = Mock()
+        value.queue.health_depth.return_value = (7, True)
+        value.queue.contention_snapshot.return_value = {
+            "consecutive_exhaustions": 1,
+            "busy_exhausted_total": 1,
+            "last_operation": "size",
+        }
+        value.latest_values = Mock()
+        value.latest_values.health_summary.return_value = (
+            {"schema_version": 1, "count": 2},
+            False,
+        )
+        value.latest_values.contention_snapshot.return_value = {
+            "consecutive_exhaustions": 0,
+        }
+        value.acquisition_snapshot = Mock(
+            return_value={
+                "scheduler": {
+                    "workers_healthy": True,
+                },
+            }
+        )
+        value.scheduler = Mock()
+
+        payload = value.health_snapshot()
+
+        self.assertEqual(payload["status"], "degraded")
+        self.assertEqual(payload["queue_depth"], 7)
+        self.assertTrue(payload["sqlite_contention"]["queue_depth_stale"])
+        self.assertIn("queue depth is lock-contended", payload["last_error"] or "")
+
+    def test_health_exposes_unresolved_queue_write_contention(self) -> None:
+        value = agent()
+        value.state = Mock()
+        value.state.snapshot.return_value = {
+            "status": "ok",
+            "last_error": None,
+        }
+        value.queue = Mock()
+        value.queue.health_depth.return_value = (0, False)
+        value.queue.contention_snapshot.return_value = {
+            "consecutive_exhaustions": 1,
+            "busy_exhausted_total": 1,
+            "last_operation": "next_sequence",
+        }
+        value.latest_values = Mock()
+        value.latest_values.health_summary.return_value = ({}, False)
+        value.latest_values.contention_snapshot.return_value = {
+            "consecutive_exhaustions": 0,
+        }
+        value.acquisition_snapshot = Mock(
+            return_value={
+                "scheduler": {
+                    "workers_healthy": True,
+                },
+            }
+        )
+        value.scheduler = Mock()
+
+        payload = value.health_snapshot()
+
+        self.assertEqual(payload["status"], "degraded")
+        self.assertFalse(payload["sqlite_contention"]["queue_depth_stale"])
+        self.assertIn("unresolved lock contention", payload["last_error"] or "")
+
+    def test_health_uses_cached_latest_summary_during_busy_contention(self) -> None:
+        value = agent()
+        value.state = Mock()
+        value.state.snapshot.return_value = {
+            "status": "ok",
+            "last_error": None,
+        }
+        value.queue = Mock()
+        value.queue.health_depth.return_value = (0, False)
+        value.queue.contention_snapshot.return_value = {
+            "consecutive_exhaustions": 0,
+        }
+        value.latest_values = Mock()
+        value.latest_values.health_summary.return_value = (
+            {
+                "schema_version": 1,
+                "count": 4,
+                "last_attempt_at": "2026-09-08T17:00:00+00:00",
+                "last_success_at": "2026-09-08T17:00:00+00:00",
+            },
+            True,
+        )
+        value.latest_values.contention_snapshot.return_value = {
+            "consecutive_exhaustions": 1,
+            "busy_exhausted_total": 1,
+            "last_operation": "summary",
+        }
+        value.acquisition_snapshot = Mock(
+            return_value={
+                "scheduler": {
+                    "workers_healthy": True,
+                },
+            }
+        )
+        value.scheduler = Mock()
+
+        payload = value.health_snapshot()
+
+        self.assertEqual(payload["status"], "degraded")
+        self.assertEqual(payload["latest_values"]["count"], 4)
+        self.assertTrue(payload["sqlite_contention"]["latest_summary_stale"])
+        self.assertIn("latest-value store is lock-contended", payload["last_error"] or "")
+
+    def test_health_does_not_hide_structural_latest_value_failure(self) -> None:
+        value = agent()
+        value.state = Mock()
+        value.state.snapshot.return_value = {
+            "status": "ok",
+            "last_error": None,
+        }
+        value.queue = Mock()
+        value.queue.health_depth.return_value = (0, False)
+        value.queue.contention_snapshot.return_value = {
+            "consecutive_exhaustions": 0,
+        }
+        value.latest_values = Mock()
+        value.latest_values.health_summary.side_effect = sqlite3.OperationalError(
+            "disk I/O error"
+        )
+        value.acquisition_snapshot = Mock(
+            return_value={
+                "scheduler": {
+                    "workers_healthy": True,
+                },
+            }
+        )
+        value.scheduler = Mock()
+
+        with self.assertRaisesRegex(sqlite3.OperationalError, "disk I/O error"):
+            value.health_snapshot()
 
 
 if __name__ == "__main__":

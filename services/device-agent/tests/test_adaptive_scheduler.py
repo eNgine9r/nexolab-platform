@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import sqlite3
 import tempfile
 import threading
 import time
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from acquisition_registry import (
     AcquisitionRegistry,
@@ -215,6 +216,135 @@ class AdaptiveSchedulerTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
+
+    def test_transient_latest_busy_retries_same_result_before_publication(self) -> None:
+        current = registry(self.database_path)
+        harness = SchedulerHarness(current, self.database_path)
+        order: list[str] = []
+        persisted_result_ids: list[int] = []
+        attempts = 0
+
+        def persist(target: SchedulerTarget, result: ScheduledResult) -> None:
+            del target
+            nonlocal attempts
+            attempts += 1
+            persisted_result_ids.append(id(result))
+            order.append(f"persist:{attempts}")
+            if attempts == 1:
+                raise sqlite3.OperationalError("database is locked")
+
+        harness.store.record_attempt = Mock(side_effect=persist)
+        harness.scheduler._record_result = (  # noqa: SLF001
+            lambda target, result: order.append("canonical")
+        )
+        harness.scheduler._persistence_error_handler = (  # noqa: SLF001
+            lambda error, attempt, limit: (
+                order.append(f"handler:{attempt}/{limit}") or True
+            )
+        )
+        harness.scheduler._latest_persistence_retry_attempts = 3  # noqa: SLF001
+        harness.scheduler._latest_persistence_retry_delay_seconds = 0  # noqa: SLF001
+        harness.make_all_due()
+
+        self.assertTrue(harness.scheduler.run_once("rs485-main"))
+
+        self.assertEqual(
+            order,
+            ["persist:1", "handler:1/3", "persist:2", "canonical"],
+        )
+        self.assertEqual(len(set(persisted_result_ids)), 1)
+
+    def test_real_latest_lock_recovers_before_communication_error_publication(self) -> None:
+        current = registry(self.database_path)
+        harness = SchedulerHarness(current, self.database_path)
+        store = LatestValueStore(
+            self.database_path,
+            busy_timeout_ms=10,
+            busy_retry_attempts=1,
+            busy_retry_delay_seconds=0,
+        )
+        harness.scheduler._latest_store = store  # noqa: SLF001
+        target = harness.scheduler._jobs["xjp60d:106-03"].target  # noqa: SLF001
+        captured_at = "2026-09-09T04:55:00+00:00"
+        result = failure_result(target, captured_at)
+        harness.results[target.target_id] = result
+        publication_snapshots: list[dict[str, object]] = []
+        harness.scheduler._record_result = (  # noqa: SLF001
+            lambda scheduled_target, scheduled_result: publication_snapshots.append(
+                store.payloads_for([scheduled_target.target_id])[scheduled_target.target_id]
+            )
+        )
+        blocker = sqlite3.connect(
+            self.database_path,
+            timeout=0,
+            check_same_thread=False,
+        )
+        blocker.execute("BEGIN EXCLUSIVE")
+        handled: list[tuple[int, int]] = []
+
+        def handle(error: Exception, attempt: int, limit: int) -> bool:
+            self.assertIsInstance(error, sqlite3.OperationalError)
+            handled.append((attempt, limit))
+            blocker.commit()
+            return True
+
+        harness.scheduler._persistence_error_handler = handle  # noqa: SLF001
+        harness.scheduler._latest_persistence_retry_attempts = 3  # noqa: SLF001
+        harness.scheduler._latest_persistence_retry_delay_seconds = 0  # noqa: SLF001
+        harness.make_all_due()
+        try:
+            self.assertTrue(harness.scheduler.run_once("rs485-main"))
+        finally:
+            blocker.close()
+
+        self.assertEqual(handled, [(1, 3)])
+        self.assertEqual(len(publication_snapshots), 1)
+        latest = publication_snapshots[0]
+        self.assertEqual(latest["quality"], "communication_error")
+        self.assertEqual(latest["last_attempt_at"], captured_at)
+        self.assertEqual(latest["communication_failures_total"], 1)
+        self.assertEqual(latest["attempts_total"], 1)
+
+    def test_persistent_latest_busy_fails_closed_before_publication(self) -> None:
+        current = registry(self.database_path)
+        harness = SchedulerHarness(current, self.database_path)
+        harness.store.record_attempt = Mock(
+            side_effect=sqlite3.OperationalError("database is locked")
+        )
+        harness.scheduler._record_result = Mock()  # noqa: SLF001
+        harness.scheduler._persistence_error_handler = (  # noqa: SLF001
+            lambda error, attempt, limit: attempt < limit
+        )
+        harness.scheduler._latest_persistence_retry_attempts = 3  # noqa: SLF001
+        harness.scheduler._latest_persistence_retry_delay_seconds = 0  # noqa: SLF001
+        harness.make_all_due()
+
+        with self.assertRaisesRegex(sqlite3.OperationalError, "database is locked"):
+            harness.scheduler.run_once("rs485-main")
+
+        self.assertEqual(harness.store.record_attempt.call_count, 3)
+        harness.scheduler._record_result.assert_not_called()  # noqa: SLF001
+
+    def test_structural_latest_error_fails_closed_before_publication(self) -> None:
+        current = registry(self.database_path)
+        harness = SchedulerHarness(current, self.database_path)
+        error = sqlite3.OperationalError("disk I/O error")
+        harness.store.record_attempt = Mock(side_effect=error)
+        harness.scheduler._record_result = Mock()  # noqa: SLF001
+        handled: list[tuple[Exception, int, int]] = []
+
+        def handle(value: Exception, attempt: int, limit: int) -> bool:
+            handled.append((value, attempt, limit))
+            return False
+
+        harness.scheduler._persistence_error_handler = handle  # noqa: SLF001
+        harness.make_all_due()
+
+        with self.assertRaisesRegex(sqlite3.OperationalError, "disk I/O error"):
+            harness.scheduler.run_once("rs485-main")
+
+        self.assertEqual(handled, [(error, 1, 3)])
+        harness.scheduler._record_result.assert_not_called()  # noqa: SLF001
 
     def test_registry_jobs_use_persisted_cadence_while_priority_only_orders(self) -> None:
         current = registry(self.database_path)
