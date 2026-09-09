@@ -195,6 +195,50 @@ class LatestValueStoreLockRecoveryTests(unittest.TestCase):
         self.assertEqual(payload["value"], 4.3)
         self.assertEqual(payload["attempts_total"], 2)
 
+    def test_read_success_does_not_clear_unresolved_record_exhaustion(self) -> None:
+        store = LatestValueStore(
+            self.database_path,
+            busy_timeout_ms=10,
+            busy_retry_attempts=1,
+            busy_retry_delay_seconds=0,
+        )
+        target = self.target()
+        store.record_attempt(
+            target,
+            self.result("2026-09-08T06:00:00+00:00", 4.2),
+        )
+        blocker = sqlite3.connect(
+            self.database_path, timeout=0, check_same_thread=False
+        )
+        blocker.execute("BEGIN IMMEDIATE")
+        try:
+            with self.assertRaisesRegex(sqlite3.OperationalError, "locked"):
+                store.record_attempt(
+                    target,
+                    self.result("2026-09-08T06:00:05+00:00", 4.3),
+                )
+
+            self.assertEqual(store.summary()["count"], 1)
+            unresolved = store.contention_snapshot()
+            self.assertEqual(unresolved["busy_exhausted_total"], 1)
+            self.assertEqual(unresolved["busy_recoveries_total"], 0)
+            self.assertEqual(unresolved["consecutive_exhaustions"], 1)
+            self.assertEqual(unresolved["last_operation"], "record_attempt")
+        finally:
+            blocker.rollback()
+            blocker.close()
+
+        store.record_attempt(
+            target,
+            self.result("2026-09-08T06:00:05+00:00", 4.3),
+        )
+        recovered = store.contention_snapshot()
+        self.assertEqual(recovered["busy_recoveries_total"], 1)
+        self.assertEqual(recovered["consecutive_exhaustions"], 0)
+        payload = store.payloads_for([target.target_id])[target.target_id]
+        self.assertEqual(payload["value"], 4.3)
+        self.assertEqual(payload["attempts_total"], 2)
+
     def test_health_summary_does_not_wait_for_contended_operation_mutex(self) -> None:
         store = LatestValueStore(
             self.database_path,

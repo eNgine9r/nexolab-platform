@@ -366,6 +366,7 @@ class OfflineQueue:
         self._busy_exhausted_total = 0
         self._busy_recoveries_total = 0
         self._busy_consecutive_exhaustions = 0
+        self._busy_unresolved_exhaustions: dict[str, int] = {}
         self._busy_last_operation: str | None = None
         self._busy_last_error: str | None = None
         self._last_known_size = 0
@@ -412,9 +413,12 @@ class OfflineQueue:
             try:
                 result = operation()
                 with self._state_lock:
-                    if saw_busy or self._busy_consecutive_exhaustions > 0:
+                    unresolved = self._busy_unresolved_exhaustions.pop(label, 0)
+                    if saw_busy or unresolved > 0:
                         self._busy_recoveries_total += 1
-                    self._busy_consecutive_exhaustions = 0
+                    self._busy_consecutive_exhaustions = sum(
+                        self._busy_unresolved_exhaustions.values()
+                    )
                 return result
             except sqlite3.OperationalError as error:
                 if self._connection.in_transaction:
@@ -429,7 +433,12 @@ class OfflineQueue:
                     self._busy_last_error = str(error)
                     if exhausted:
                         self._busy_exhausted_total += 1
-                        self._busy_consecutive_exhaustions += 1
+                        self._busy_unresolved_exhaustions[label] = (
+                            self._busy_unresolved_exhaustions.get(label, 0) + 1
+                        )
+                        self._busy_consecutive_exhaustions = sum(
+                            self._busy_unresolved_exhaustions.values()
+                        )
                     else:
                         self._busy_retries_total += 1
                 if exhausted:
