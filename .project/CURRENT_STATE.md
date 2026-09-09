@@ -1,6 +1,6 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-08
+Updated: 2026-09-09
 
 ## Current Sprint
 
@@ -14,7 +14,7 @@ EEPROM is now `BOOT_ORDER=0xf146` (USB/NVMe before SD fallback), and a subsequen
 
 No `prepare` or `cutover` rerun is required or authorized. No Modbus/controller write, hardware output write, product-data deletion or Docker named-volume deletion occurred during the migration. The core runtime remains LOCAL_LAN/offline-first and the storage migration does not advance the separately tracked deployed product-source authority.
 
-Issue #933 is resumed as the active Ready software reliability Work Package on `fix/933-device-agent-sqlite-lock-contention`. Its dirty worktree and recovery snapshot survived the storage migration unchanged; before further implementation it must be reconciled carefully with current `main` without discarding or mixing the preserved work. #930 remains lower-risk maintenance; #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
+Issue #933 has a verified software candidate at `6764370ce89ac0b81aa839a6cc0941bc90509ac4`: targeted Device Agent tests are 57/57 PASS, full repository-shaped source tests 246/246 PASS, and fresh packaged-image tests 246/246 PASS. Its original exact-head non-security routed workflows are GREEN. The cross-image `libexpat1` policy interrupt is now cleared by Issue #978 / PR #979 substantive head `e90b034a04d47ce5c2eae3c2833d06b573cf7fe8`, whose fresh Container Supply Chain run `34309529777`, Core/NEXOLAB Merge Gate run `34309529802`, and Telemetry Service run `34309529811` are GREEN with zero review threads. #933 is therefore the next active Work Package; before merge it must consume the `main` containing #978 and repeat its own full exact-head matrix. #930 remains lower-risk maintenance; #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
 
 ## Issue #200 — dual-bus topology reconciliation completed
 
@@ -45,6 +45,14 @@ Four representative polls across Units `102`, `104` and `106` all produced the s
 Unit `104` channel `3` proves the first-after-idle theory false: its first value read after the 60-second target cadence succeeded immediately, while the following status read timed out. An adjacent same-bus LE-01MP Unit `203` window produced 7/7 successful FC03 requests with zero retries/timeouts. `rs485-main` remained at about `13.98%` load, queue depth `0`, protocol errors `0`, I/O errors `0`, exception responses `0`, and Device Agent remained healthy with 2/2 workers. Post-capture XJP logical evidence is `1,011,420` attempts / `1,011,222` successes / `198` terminal communication failures (`0.019576%`), with all 13 targets valid/steady and zero consecutive failures.
 
 Classification is **systematic XJP60D status-register attempt-1 response/turnaround timing**, recovered by attempt 2. Generic bus-wide physical noise, CRC corruption, host serial I/O failure, first-after-idle behavior, restart regression and Mini App regression are not supported. The narrower optimization question — status-register-specific behavior versus an inter-register pause requirement — is intentionally not tested in production because current operation is stable and such a pacing experiment would be a separate focused Work Package. Exact candidate `d431d75b24140761edaae3fca1ccb38cc89857f4` passed Core CI / NEXOLAB Merge Gate `33965131628` and Telemetry Service `33965131627`; PR #920 closed #916 completed. Detailed evidence: `docs/operations/issue-916-xjp60d-status-read-timeout-validation.md`.
+
+## Issue #978 — new libexpat1 HIGH supply-chain interrupt
+
+PR #976 / Issue #933 exact head `6764370ce89ac0b81aa839a6cc0941bc90509ac4` passed its Device Agent software verification and every routed non-security workflow, but fresh no-cache Container Supply Chain run `34307375095` failed closed after successful image builds, SBOM generation and Trivy scans. The only new blockers are four exact HIGH tuples: `device-agent` and `telegram-gateway`, each with `libexpat1 2.8.3-1~deb13u1` / `CVE-2026-76956` and `CVE-2026-76957`. Telemetry Service and MQTT dynamic-security remained policy-GREEN.
+
+Current Debian Security Tracker evidence on 2026-09-09 marks Trixie/security `2.8.3-1~deb13u1` vulnerable/no-DSA for both findings while Expat `2.8.4` is fixed in forky/sid; the exact no-cache Debian 13/distroless builds therefore have no consumable stable fix yet. Upstream Expat 2.8.4 contains the fixes. `CVE-2026-76956` requires crafted XML to reach the Expat hash-flood path; `CVE-2026-76957` requires parser re-entry through application-provided custom encoding callbacks. Static source review found no XML/pyexpat parser import in either runtime. Device Agent external parsing is JSON/MQTT plus read-only Modbus RTU and its declared dependencies are `paho-mqtt` and `pyserial`; Telegram Gateway uses JSON/Pydantic, URL-encoded Telegram initData, JSON service responses and SQLite/JSON persistence. Both final images are distroless Debian 13 `nonroot`; production Compose binds their service ports to loopback and Telegram secrets are read-only.
+
+Issue #978 records four exact, short-lived HIGH exceptions only through the already scheduled consolidated review on `2026-09-12`, owned by `platform-security`, with immediate removal required if a fixed Trixie base is consumed, the tuples disappear, XML/custom-encoding reachability appears, or severity becomes Critical. No wildcard or Critical exception is permitted. Substantive PR #979 head `e90b034a04d47ce5c2eae3c2833d06b573cf7fe8` passed fresh no-cache Container Supply Chain `34309529777` for all controlled images, Core CI plus NEXOLAB Merge Gate `34309529802`, and Telemetry Service `34309529811`; review threads are zero. The policy disposition is therefore verified and the remaining repository gate is exact-current-head revalidation of this final state reconciliation before merge. No deployment, service restart, Modbus/hardware write, product-data deletion or named-volume deletion is part of #978. Detailed review: `docs/operations/issue-978-libexpat-high-review.md`.
 
 ## Issue #909 — consolidated HIGH container exception revalidation
 
