@@ -14,7 +14,7 @@ from acquisition_registry import (
     build_initial_document,
 )
 from main import Settings
-from managed_main import ManagedDeviceAgent
+from managed_main import DEFAULT_DISCOVERY_UNITS, ManagedDeviceAgent, discovery_units_from_environment
 from registry_main import RegistryManagedDeviceAgent
 
 
@@ -62,6 +62,18 @@ def agent_with_registry(value: AcquisitionRegistry) -> RegistryManagedDeviceAgen
     agent.settings = settings()
     agent.acquisition_metrics = Mock()
     return agent
+
+
+class DiscoveryUnitUpgradeTests(unittest.TestCase):
+    def test_exact_legacy_default_is_upgraded_to_current_panel_range(self) -> None:
+        legacy = ",".join(str(unit) for unit in (*range(101, 116), *range(126, 139)))
+        self.assertEqual(discovery_units_from_environment(legacy), DEFAULT_DISCOVERY_UNITS)
+        self.assertIn(96, discovery_units_from_environment(legacy))
+        self.assertNotIn(115, discovery_units_from_environment(legacy))
+
+    def test_explicit_custom_discovery_units_are_not_rewritten(self) -> None:
+        self.assertEqual(discovery_units_from_environment("101,106,126"), (101, 106, 126))
+
 
 
 class RegistryPollingTests(unittest.TestCase):

@@ -8,11 +8,11 @@ This procedure replaces broad register sweeps with analysis of the official Cope
 - library/profile version: `1.6`;
 - official library identifier: `XJP60D_000E00100001`;
 - Modbus profile observed on the current bus: `9600 8N1`, FC03;
-- climate chamber 2: physical controllers `K101-K114`, observed online IDs `101-114`;
-- climate chamber 1: physical controllers `K115-K138`, observed online IDs `126-138`;
-- `115-125` remain communication-unreachable on the current connection;
+- climate chamber 2: physical panel inventory `K96-K114`; prior runtime evidence covered the `101-114` subset, while K96-K100 communication remains hardware-unverified;
+- climate chamber 1: authoritative software/communication catalog Unit IDs `126-138`; the brown physical-panel `D.`/`K.` markings are known incorrect and are not mapping authority;
+- historical Unit IDs `115-125` are not part of the corrected KK1/KK2 physical catalog; prior communication attempts there do not override panel-backed identity;
 - connector `503` in chamber 2 maps to controller `K106`, paired channels `3/4`;
-- connector `200` in chamber 1 maps to controller `K115`, channel `4`.
+- physical sensor `200` in chamber 1 maps to telemetry input `126-04`; the large numeric sensor label is authoritative for the short identifier.
 
 Do not interpret panel connector numbers as Modbus unit IDs.
 
@@ -169,6 +169,6 @@ python tools/rs485_discovery/profile_registers.py \
   --output runtime/discovery/xjp60d-v1.6/k106-library-correlation.json
 ```
 
-Correlate the resulting values with paired channels `106-03` and `106-04`. Keep `115-04` in the registry as physically present but communication-unreachable until Unit ID `115` becomes accessible.
+Correlate the resulting values with paired channels `106-03` and `106-04`. Historical probes of Unit IDs `115-125` remain communication evidence only; those IDs are not part of the corrected KK1/KK2 physical catalog and must not be restored as physical inventory.
 
 All hardware validation remains read-only. Do not switch the Device Agent from `simulator` to `hardware` until the register meanings, data types, scales and missing-sensor representation are confirmed.

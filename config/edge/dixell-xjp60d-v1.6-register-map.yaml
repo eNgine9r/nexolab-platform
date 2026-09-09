@@ -75,20 +75,23 @@ probes:
 
 nexolab_topology:
   chamber_2:
-    controllers: K101-K114
+    controllers: K96-K114
     observed_online_unit_ids: 101-114
+    hardware_unverified_unit_ids: 96-100
     active_connector:
       panel_connector: 503
       controller: K106
       unit_id: 106
       channels: [3, 4]
   chamber_1:
-    controllers: K115-K138
+    controllers: K126-K138
     observed_online_unit_ids: 126-138
-    observed_unreachable_unit_ids: 115-125
     active_connector:
       panel_connector: 200
-      controller: K115
-      unit_id: 115
+      controller: K126
+      unit_id: 126
       channels: [4]
-      communication_status: unreachable
+      communication_status: observed_online
+  historical_observations:
+    superseded_unreachable_unit_ids: 115-125
+    authority: not_part_of_corrected_physical_catalog

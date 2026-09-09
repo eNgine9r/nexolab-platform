@@ -18,7 +18,7 @@ Raspberry Pi 5
 
 The repository-backed XJP60D address catalog identifies:
 
-- KK2: Unit IDs `101..115`;
+- KK2: Unit IDs `96..114`;
 - KK1: Unit IDs `126..138`.
 
 Current repository evidence does **not** establish whether LE-01MP Unit IDs `200..203` belong to KK1 or KK2. They must therefore be assigned explicitly before combined `DEVICE_MODE=modbus` dual-bus operation. The runtime never guesses that ownership.

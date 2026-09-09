@@ -28,17 +28,19 @@ def test_hardware_compose_keeps_continuous_polling_bounded() -> None:
 def test_hardware_compose_keeps_full_catalog_for_on_demand_discovery_only() -> None:
     content = HARDWARE_COMPOSE.read_text(encoding="utf-8")
     match = re.search(
-        r"XJP60D_DISCOVERY_UNITS:\s*\$\{XJP60D_DISCOVERY_UNITS:-(?P<units>[^}]+)\}",
+        r"XJP60D_DISCOVERY_UNITS:\s*[\"']?\$\{XJP60D_DISCOVERY_UNITS:-(?P<units>[^}]+)\}",
         content,
     )
     assert match is not None
 
     units = parse_unit_ids(match.group("units"), label="XJP60D discovery")
-    expected = (*range(101, 115), *range(126, 139))
+    expected = (*range(96, 115), *range(126, 139))
 
     assert units == expected
-    assert len(units) == 27
+    assert len(units) == 32
+    assert 96 in units
     assert 106 in units
+    assert 115 not in units
     assert 126 in units  # KK1 sensor inventory number 200 maps to 126-04.
 
 

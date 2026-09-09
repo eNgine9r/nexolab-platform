@@ -25,11 +25,11 @@ const channel = (code: "KK1" | "KK2", controller: number, input: number, sensor:
   channel_number: input,
   logical_sensor_number: sensor,
   display_name: `Dixell №${controller}_${input}`,
-  physical_sensor_count: code === "KK1" ? 1 : 2,
-  physical_sensors: (code === "KK1" ? ["A"] : ["A", "B"]).map((position) => ({
+  physical_sensor_count: 1,
+  physical_sensors: ["A"].map((position) => ({
     id: `${code}-${sensor}-${position}`,
     sensor_position: position,
-    inventory_number: code === "KK1" ? `${sensor}` : `${sensor}-${position}`,
+    inventory_number: `${sensor}`,
     serial_number: null,
     calibration_status: "untracked",
     status: "active",
@@ -74,7 +74,7 @@ describe("HttpClimateCatalogRepository", () => {
     );
   });
 
-  it("parses KK2 physical A/B sensors and the neutral energy-meter empty state", async () => {
+  it("parses corrected KK2 numeric physical sensors and the neutral energy-meter empty state", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
       response({
         climateChamber: chamber("KK2", 2),
@@ -119,11 +119,10 @@ describe("HttpClimateCatalogRepository", () => {
       channelId: "101-01",
       sourceChannelId: "101-01",
       logicalSensorNumber: 471,
-      physicalSensorCount: 2,
+      physicalSensorCount: 1,
     });
     expect(catalog.temperatureChannels[0]?.physicalSensors.map((item) => item.inventoryNumber)).toEqual([
-      "471-A",
-      "471-B",
+      "471",
     ]);
     expect(catalog.energyMeters).toEqual([]);
     expect(catalog.energyMeterEmptyMessage).toBe(

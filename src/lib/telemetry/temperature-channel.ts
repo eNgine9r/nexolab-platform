@@ -1,6 +1,6 @@
 import type { TelemetrySample } from "./types";
 
-const CONTROLLER_CHANNEL_PATTERN = /^\d{3}-(?:0?[1-6])$/;
+const CONTROLLER_CHANNEL_PATTERN = /^\d{2,3}-(?:0?[1-6])$/;
 
 export function normalizeTelemetryMetric(value: string): string {
   return value.trim().toLowerCase().replaceAll("-", "_").replaceAll(".", "_").replaceAll(" ", "_");

@@ -25,11 +25,14 @@ function sample(overrides: Partial<TelemetrySample> = {}): TelemetrySample {
 describe("temperature channel classification", () => {
   it("accepts canonical controller inputs regardless of transport source", () => {
     expect(isTemperatureProbeSample(sample())).toBe(true);
+    expect(isTemperatureProbeSample(sample({ channel_id: "96-01" }))).toBe(true);
     expect(isTemperatureProbeSample(sample({ source: "dixell-xjp60d", channel_id: "110-06" }))).toBe(true);
   });
 
   it("rejects non-temperature and non-controller channels", () => {
     expect(isTemperatureProbeSample(sample({ metric: "electrical.power.active" }))).toBe(false);
+    expect(isTemperatureProbeSample(sample({ channel_id: "9-01" }))).toBe(false);
+    expect(isTemperatureProbeSample(sample({ channel_id: "1096-01" }))).toBe(false);
     expect(isTemperatureProbeSample(sample({ channel_id: "200-active-power" }))).toBe(false);
   });
 });

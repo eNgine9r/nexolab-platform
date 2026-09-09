@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 from uuid import NAMESPACE_URL, uuid5
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.climate_catalog.repository import PostgresClimateCatalogRepository
+from app.climate_catalog.models import ClimateChamber
+from app.climate_catalog.repository import CatalogSeedResult, PostgresClimateCatalogRepository
 from app.config import Settings
 from app.security.models import SecurityOrganization
 from app.sessions.telemetry_attribution import SessionAwareDatabase
@@ -26,9 +28,9 @@ def main() -> int:
             database,
             organization_id=organization_id,
         )
-        result = PostgresClimateCatalogRepository(database).seed_default_catalog(
-            organization_id=organization_id,
-            actor_subject=SEED_ACTOR,
+        result = _seed_catalogs(
+            database,
+            default_organization_id=organization_id,
         )
         print(
             json.dumps(
@@ -49,6 +51,51 @@ def main() -> int:
         return 0
     finally:
         database.dispose()
+
+
+def _catalog_seed_organization_ids(
+    database: SessionAwareDatabase,
+    *,
+    default_organization_id: str,
+) -> tuple[str, ...]:
+    """Seed the default tenant plus every tenant that already owns a KK2 catalog."""
+    with Session(database.engine) as session:
+        existing = tuple(
+            session.scalars(
+                select(ClimateChamber.organization_id)
+                .where(ClimateChamber.code == "KK2")
+                .distinct()
+                .order_by(ClimateChamber.organization_id.asc())
+            )
+        )
+    return tuple(dict.fromkeys((default_organization_id, *existing)))
+
+
+def _seed_catalogs(
+    database: SessionAwareDatabase,
+    *,
+    default_organization_id: str,
+) -> CatalogSeedResult:
+    repository = PostgresClimateCatalogRepository(database)
+    results = [
+        repository.seed_default_catalog(
+            organization_id=organization_id,
+            actor_subject=SEED_ACTOR,
+        )
+        for organization_id in _catalog_seed_organization_ids(
+            database,
+            default_organization_id=default_organization_id,
+        )
+    ]
+    return CatalogSeedResult(
+        skipped=all(result.skipped for result in results),
+        nodes_created=sum(result.nodes_created for result in results),
+        buses_created=sum(result.buses_created for result in results),
+        chambers_created=sum(result.chambers_created for result in results),
+        devices_created=sum(result.devices_created for result in results),
+        channels_created=sum(result.channels_created for result in results),
+        physical_sensors_created=sum(result.physical_sensors_created for result in results),
+    )
 
 
 def _ensure_default_organization(

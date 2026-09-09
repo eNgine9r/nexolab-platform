@@ -158,7 +158,7 @@ Example shape:
 ]
 ```
 
-The current XJP60D catalog maps KK2 to Unit IDs `101..115` and KK1 to `126..138`. LE-01MP Unit IDs `200..203` have no repository-backed KK1/KK2 ownership yet and must be assigned explicitly before combined dual-bus operation.
+The current XJP60D catalog maps KK2 to Unit IDs `96..114` and KK1 to `126..138`. LE-01MP Unit IDs `200..203` have no repository-backed KK1/KK2 ownership yet and must be assigned explicitly before combined dual-bus operation.
 
 Duplicate bus IDs, duplicate stable paths, ambiguous Unit ownership, malformed serial settings and unassigned registry devices fail closed. Discovery is partitioned by bus and newly responsive controllers are persisted as `discovery_only` on the bus where they were read.
 

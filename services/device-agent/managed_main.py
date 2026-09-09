@@ -27,13 +27,27 @@ from modbus_rtu import ModbusError, ModbusRequestMeasurement
 from xjp60d import XJP60DReader
 
 LOG = logging.getLogger("nexolab.device_agent")
-DEFAULT_DISCOVERY_UNITS = (*range(101, 115), *range(126, 139))
+DEFAULT_DISCOVERY_UNITS = (*range(96, 115), *range(126, 139))
+LEGACY_DEFAULT_DISCOVERY_UNITS = (*range(101, 116), *range(126, 139))
 _MAX_REQUEST_BYTES = 32 * 1024
 _LATENCY_BUCKETS_MS = (10, 25, 50, 100, 250, 500, 1000)
 
 
 def canonical_point(unit_id: int, channel: int) -> str:
     return f"{unit_id}-{channel:02d}"
+
+
+def discovery_units_from_environment(value: str) -> tuple[int, ...]:
+    """Upgrade the repository's former default without rewriting custom enrollment lists."""
+    if not value:
+        return DEFAULT_DISCOVERY_UNITS
+    parsed = parse_unit_ids(value, label="XJP60D discovery")
+    if parsed == LEGACY_DEFAULT_DISCOVERY_UNITS:
+        LOG.warning(
+            "Normalizing legacy XJP60D discovery default 101..115 to current KK2 96..114"
+        )
+        return DEFAULT_DISCOVERY_UNITS
+    return parsed
 
 
 def parse_control_points(value: object) -> tuple[tuple[int, int], ...]:
@@ -464,11 +478,7 @@ class ManagedDeviceAgent(DeviceAgent):
         super().__init__(managed_settings)
 
         discovery_value = os.getenv("XJP60D_DISCOVERY_UNITS", "").strip()
-        self.discovery_units = (
-            parse_unit_ids(discovery_value, label="XJP60D discovery")
-            if discovery_value
-            else DEFAULT_DISCOVERY_UNITS
-        )
+        self.discovery_units = discovery_units_from_environment(discovery_value)
         self._configuration_lock = threading.Lock()
         self._bus_operation_lock = threading.Lock()
         self._discovery_lock = threading.Lock()
