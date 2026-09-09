@@ -3177,47 +3177,25 @@
       "depends_on": [],
       "evidence": {
         "planning_authority": "github_issue_933_observed_production_restart_evidence",
-        "production_reproduction": "sqlite_database_locked_restart_count_7_original_and_5_during_issue_968_seed_copy_not_oom",
-        "resume_reconciliation": "preserved_dirty_worktree_fast_forwarded_cleanly_after_ssd_state_merge",
-        "recovery_snapshot": "/home/nexolab/recovery/issue-933-post-ssd-20260908T172419Z",
-        "queue_busy_policy": "2000ms_busy_timeout_3_attempts_bounded_backoff_with_contention_counters",
-        "latest_value_busy_policy": "2000ms_busy_timeout_3_attempts_bounded_backoff_with_atomic_rollback",
-        "adaptive_supervisor_busy_grace_cycles": 3,
-        "health_queue_depth_behavior": "dedicated_read_only_100ms_file_uri_query_plus_independent_health_state_lock_with_immediate_last_known_stale_degraded_fallback_inside_probe_budget",
-        "latest_summary_behavior": "dedicated_read_only_100ms_health_summary_query_plus_independent_health_state_lock_with_cached_stale_degraded_fallback_inside_probe_budget",
-        "operational_health_busy_behavior": "deferred_without_process_exit_and_health_interval_backoff",
-        "structural_sqlite_failure_behavior": "queue_and_latest_value_structural_failures_set_fatal_stop_and_propagate_fail_closed",
-        "targeted_sqlite_adaptive_operational_tests": "57_passed_offline_arm64_disposable_container_after_atomic_sequence_fix",
-        "full_device_agent_tests": "246_passed_offline_repository_shaped_arm64_container_after_atomic_sequence_fix",
-        "candidate_image_build": "passed_final4_local_device_agent_image_after_atomic_sequence_fix",
-        "candidate_image_tests": "246_passed_against_final4_built_candidate_image_with_packaged_imports_verified_under_app",
-        "python_compileall": "passed",
-        "git_diff_check": "passed",
-        "production_deployment": "not_executed_not_authorized",
+        "observed_restart_count": "7",
+        "observed_exit_code": "1_not_oom",
+        "observed_error": "sqlite3_OperationalError_database_is_locked",
+        "production_deployment": "not_authorized_not_required_for_software_fix",
         "modbus_write": "none",
         "hardware_write": "none",
-        "persistent_data_delete": "none",
-        "volume_delete": "none",
-        "pull_request": 976,
-        "prior_exact_head": "0cb7d1fd74fc852277a0ccb29eb9c35e154b9001",
-        "prior_exact_head_ci": "9_of_9_required_workflows_green_but_superseded_by_blocking_review_findings",
-        "blocking_review_findings": "2_P1_enqueue_persistence_and_init_retry_plus_1_P2_health_probe_budget",
-        "enqueue_persistence_recovery": "same_record_retried_under_publish_lock_BEGIN_IMMEDIATE_case_no_loss_or_duplicate_then_fatal_stop_after_3_outer_busy_cycles",
-        "queue_initialization": "bounded_busy_retry_transient_recovery_persistent_fail_closed",
-        "latest_value_initialization": "bounded_busy_retry_transient_recovery_persistent_fail_closed",
-        "targeted_sqlite_scheduler_tests": "57_passed_offline_arm64_disposable_container_after_atomic_sequence_fix",
-        "final_structural_ordering": "canonical_record_result_runs_before_structural_latest_persistence_fatal_notification_no_silent_loss_then_fail_closed",
-        "review_fix_exact_head_ci": "9_of_9_required_workflows_green_including_merge_gate_but_superseded_by_team_lead_health_mutex_finding",
-        "review_fix_exact_head": "de22e92b5dce953e56762ab0fe88f35fa2c45d74",
-        "team_lead_followup_finding": "health_probe_cache_contention_and_latest_summary_could_wait_on_normal_persistence_mutex",
-        "health_mutex_hardening": "separate_operation_and_health_state_locks_plus_bounded_read_only_queue_and_latest_health_queries",
-        "health_mutex_regressions": "concurrent_operation_mutex_and_exclusive_sqlite_lock_return_health_within_probe_budget_and_preserve_structural_fail_closed",
-        "health_mutex_exact_head": "05b3833c1fcaa007ffbd6292dae127c31afa8a62",
-        "health_mutex_exact_head_ci": "9_of_9_required_workflows_green_including_merge_gate_but_superseded_by_node_sequence_retry_P2",
-        "latest_blocking_review_finding": "P2_flush_busy_retry_could_consume_second_node_sequence_for_same_event",
-        "telemetry_sequence_atomic_enqueue": "BEGIN_IMMEDIATE_event_id_check_sequence_allocation_and_outbox_insert_one_transaction_existing_event_reuses_original_payload_sequence",
-        "sequence_regressions": "adaptive_flush_busy_retry_and_direct_duplicate_event_keep_contiguous_1_2_plus_atomic_enqueue_recovers_after_transient_lock",
-        "exact_head_reverification": "pending_commit_push_of_atomic_sequence_fix_and_fresh_exact_head_ci"
+        "interrupted_by_storage_migration_issue": 968,
+        "storage_migration_interruption_status": "cleared_ssd_root_accepted",
+        "dirty_worktree_preserved": "/home/nexolab/recovery/issue-968-pre-ssd-20260908T091750Z",
+        "resume_base_requires_main_reconciliation": "origin_main_88d484dc_after_issue_970_merge",
+        "software_candidate_head": "6764370ce89ac0b81aa839a6cc0941bc90509ac4",
+        "software_verification": "targeted_57_of_57_full_source_246_of_246_packaged_246_of_246_pass",
+        "exact_head_ci": "all_routed_non_security_lanes_green_container_supply_chain_fail_only_new_cross_image_libexpat_highs",
+        "security_interrupt_issue_978": "cleared_by_verified_PR_979_substantive_head_e90b034a04d47ce5c2eae3c2833d06b573cf7fe8",
+        "resume_gate": "merge_PR_979_then_reconcile_branch_with_origin_main_and_rerun_full_exact_head_matrix",
+        "main_reconciled_after_security_issue_978": "origin_main_7252295de3d76dab1f3554b1f257918f1e9a5891",
+        "review_blocker": "P1_latest_value_update_can_be_dropped_after_record_attempt_busy_exhaustion_if_queue_persistence_then_recovers",
+        "review_thread": "PRRT_kwDOTe72wM6gfnXC",
+        "review_status": "unresolved_fix_required"
       }
     },
     {
@@ -3310,6 +3288,37 @@
         "unresolved_review_threads": 0,
         "repository_completion": "verified_fix_merged_and_issue_closed"
       }
+    },
+    {
+      "issue": 978,
+      "title": "Review new libexpat1 HIGH CVEs blocking Device Agent and Telegram Gateway",
+      "priority": "high",
+      "lifecycle": "completed",
+      "branch": "security/978-libexpat-high-review",
+      "depends_on": [],
+      "evidence": {
+        "trigger_issue": 933,
+        "trigger_pr": 976,
+        "trigger_exact_head": "6764370ce89ac0b81aa839a6cc0941bc90509ac4",
+        "container_supply_chain_run": 34307375095,
+        "findings": "4_exact_HIGH_tuples_device_agent_and_telegram_gateway_libexpat1_CVE_2026_76956_CVE_2026_76957",
+        "installed_version": "2.8.3-1~deb13u1",
+        "scanner_fixed_version": "none",
+        "debian_status_2026_09_09": "trixie_security_2_8_3_vulnerable_no_DSA_forky_sid_2_8_4_fixed",
+        "upstream_fix": "Expat_2_8_4",
+        "reachability": "no_runtime_XML_parser_imports_device_agent_JSON_MQTT_read_only_Modbus_telegram_JSON_Pydantic_URL_encoded_initData_nonroot_distroless_loopback_ports",
+        "disposition": "4_exact_HIGH_exceptions_expire_2026_09_12",
+        "production_deployment": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "substantive_head": "e90b034a04d47ce5c2eae3c2833d06b573cf7fe8",
+        "pull_request": 979,
+        "container_supply_chain_final": "GREEN_run_34309529777_all_controlled_images_policy_enforced",
+        "core_ci_final": "GREEN_run_34309529802_quality_build_and_NEXOLAB_Merge_Gate",
+        "telemetry_service_final": "GREEN_run_34309529811",
+        "review_threads": 0,
+        "repository_status": "completion_candidate_state_reconciled_exact_head_reverification_required_before_merge"
+      }
     }
   ],
   "maintenance_actions": [
@@ -3359,7 +3368,7 @@
       "status": "scheduled",
       "due_on": "2026-09-12",
       "owner": "platform-security",
-      "rule": "Fresh no-cache scan every controlled image before expiry. Remove any exact tuple that disappears or gains a consumable fix; fail closed on changed reachability/platform/vendor assumptions or Critical severity; re-check CVE-2026-78409 affected-version guidance against Debian/scanner and CNA/upstream evidence before any renewal."
+      "rule": "Fresh no-cache scan every controlled image before expiry. Remove any exact tuple that disappears or gains a consumable fix; fail closed on changed reachability/platform/vendor assumptions or Critical severity; re-check CVE-2026-78409 affected-version guidance and Issue #978 libexpat1 CVE-2026-76956/CVE-2026-76957 Trixie package availability plus XML/custom-encoding reachability before any renewal."
     }
   ],
   "observations": [
@@ -3672,6 +3681,47 @@
         "issue": 968,
         "state": "open",
         "title": "[OPS][STORAGE] Migrate nexolab-edge-01 system and NEXOLAB runtime from microSD to 256 GB SSD"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-09T07:02:25+03:00",
+      "kind": "security_supply_chain_interrupt",
+      "data": {
+        "issue": 978,
+        "trigger_issue": 933,
+        "trigger_pr": 976,
+        "trigger_exact_head": "6764370ce89ac0b81aa839a6cc0941bc90509ac4",
+        "container_supply_chain_run": 34307375095,
+        "blocked_findings": 4,
+        "policy": "fail_closed"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-09T07:40:00+03:00",
+      "kind": "issue_978_security_gate_restored",
+      "data": {
+        "issue": 978,
+        "pull_request": 979,
+        "verified_substantive_head": "e90b034a04d47ce5c2eae3c2833d06b573cf7fe8",
+        "container_supply_chain_run": 34309529777,
+        "core_ci_run": 34309529802,
+        "telemetry_service_run": 34309529811,
+        "review_threads": 0
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-09T07:53:42+03:00",
+      "kind": "issue_933_p1_latest_value_drop_review",
+      "data": {
+        "issue": 933,
+        "pull_request": 976,
+        "head": "6764370ce89ac0b81aa839a6cc0941bc90509ac4",
+        "thread": "PRRT_kwDOTe72wM6gfnXC",
+        "severity": "P1",
+        "status": "unresolved"
       }
     }
   ],

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-09T06:27:48+03:00",
+  "timestamp": "2026-09-09T07:53:42+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_933_atomic_telemetry_sequence_retry_fix_local_verification_complete",
+  "event": "issue_933_main_reconciled_after_978_new_p1_latest_value_retry_gap_active",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -14,80 +14,123 @@
     "issue": 933,
     "title": "Prevent Device Agent exit on transient SQLite lock contention",
     "branch": "fix/933-device-agent-sqlite-lock-contention",
-    "status": "atomic_sequence_fix_local_verified_ready_to_commit_push_and_exact_head_ci"
+    "status": "P1_latest_value_retry_gap_fix_required"
   },
   "evidence_snapshot": {
-    "issue_933_candidate": {
-      "production_evidence": "database_locked_exit_code_1_not_oom_reproduced_again_during_issue_968_seed_copy",
-      "recovery_snapshot": "/home/nexolab/recovery/issue-933-post-ssd-20260908T172419Z",
-      "transient_queue_lock": "bounded_retry_then_recovery_without_process_exit",
-      "persistent_queue_lock": "adaptive_supervisor_fails_closed_after_3_exhausted_busy_cycles",
-      "latest_value_lock": "bounded_atomic_retry_no_partial_update_or_silent_drop",
-      "health_queue_depth": "bounded_read_only_file_uri_query_plus_independent_state_lock_cached_stale_degraded",
-      "health_latest_summary": "bounded_read_only_file_uri_query_plus_independent_state_lock_cached_stale_degraded",
-      "operational_health": "busy_locked_deferred_false_and_rate_limited_non_busy_errors_propagate",
-      "contention_observability": "structured_queue_latest_and_supervisor_counters_last_operation_last_error",
-      "targeted_tests": "49_passed_after_health_mutex_hardening",
-      "full_device_agent_tests": "243_passed_repository_shaped_source_after_health_mutex_hardening",
-      "candidate_image_build": "passed_final3",
-      "candidate_image_full_tests": "243_passed_packaged_imports_verified_from_app",
-      "compileall": "passed",
-      "git_diff_check": "passed",
-      "runtime_mutation": "none",
-      "production_deployment": "not_executed",
+    "ssd_migration_completion": {
+      "issue": 968,
+      "target_stable_id": "ata-Micron_MTFDDAK256TBN_17521B5686D5",
+      "current_root": "/dev/sda2",
+      "current_boot": "/dev/sda1",
+      "root_capacity": "234GiB_52GiB_used_170GiB_free_24_percent",
+      "transport": "uas_5000M",
+      "boot_order": "0xf146",
+      "normal_boot_verify": "passed_2026-09-08T19:47:14+03:00",
+      "official_verify_result": "pass",
+      "runtime": "12_containers_healthy_postgres_ready_dashboard_200_login_200_auth_401",
+      "device_agent": "advancing_acquisition_mqtt_connected_queue_0_workers_2_of_2_healthy_restart_stable",
+      "rs485_stable_ids": "both_cp2104_present",
+      "fstrim": "enabled_active",
+      "ssd_direct_io_smoke": "write_284MiB_s_read_360MiB_s_512MiB_disposable_file_deleted",
+      "ssd_first_reboot_after_b2": "pass_root_sda2_boot_sda1",
+      "standalone_microsd_rollback": "hardware_verified_earlier",
+      "simultaneous_ssd_microsd_boot": "deferred_by_product_owner_not_verified",
       "modbus_write": "none",
       "hardware_write": "none",
       "product_data_delete": "none",
-      "volume_delete": "none",
+      "volume_delete": "none"
+    },
+    "repository_fix": {
+      "issue": 970,
+      "pull_request": 971,
+      "verified_head": "50de09b63093fdaca27e82d51b0767bb6b472c30",
+      "exact_head_checks": "all_required_green",
+      "unresolved_review_threads": 0,
+      "repository_completion": "verified_fix_merged_issue_closed"
+    },
+    "next_work": {
+      "issue": 933,
+      "branch": "fix/933-device-agent-sqlite-lock-contention",
+      "dirty_worktree_preserved": true,
+      "snapshot": "/home/nexolab/recovery/issue-968-pre-ssd-20260908T091750Z"
+    },
+    "state_reconciliation": {
+      "issue": 973,
+      "scope": "four_project_state_files_only",
+      "state_model_v2": "passed",
+      "json_parse": "passed",
+      "prettier_markdown": "passed",
+      "git_diff_check": "passed",
+      "active_selection": "issue_933_in_progress",
+      "pull_request": 974,
+      "branch": "chore/973-reconcile-ssd-migration-state",
+      "status": "completed_pr_974_merged",
+      "merge_head": "b3b78c971dfb34ff1171070bbba14c851051f41f"
+    },
+    "issue_933_candidate": {
+      "issue": 933,
       "pull_request": 976,
-      "prior_exact_head": "0cb7d1fd74fc852277a0ccb29eb9c35e154b9001",
-      "prior_exact_head_ci": "9_of_9_required_workflows_green_including_merge_gate",
-      "review_findings": "2_P1_and_1_P2_valid_blocking_findings_received_after_green",
-      "enqueue_review_fix": "BEGIN_IMMEDIATE_readable_write_locked_case_retries_same_record_under_publish_lock_no_loss_or_duplicate_persistent_busy_sets_fatal_stop_after_3_cycles",
-      "initialization_review_fix": "OfflineQueue_and_LatestValueStore_schema_initialization_use_bounded_busy_retry",
-      "health_probe_review_fix": "dedicated_read_only_health_depth_query_default_100ms_and_cached_stale_fallback_within_probe_budget",
-      "team_lead_structural_hardening": "structural_latest_value_persistence_error_sets_fatal_agent_stop_while_retryable_busy_remains_observable",
-      "targeted_tests_after_review_fix": "57_passed_after_atomic_sequence_fix",
-      "full_device_agent_tests_after_review_fix": "246_passed_repository_shaped_source_after_atomic_sequence_fix",
-      "final_candidate_image_build": "passed_final4",
-      "final_candidate_image_full_tests": "246_passed_packaged_imports_verified_from_app",
-      "final_structural_ordering": "canonical_record_result_before_structural_latest_persistence_fatal_notification",
-      "exact_head_reverification": "pending_new_atomic_sequence_commit_and_push",
-      "review_fix_exact_head": "de22e92b5dce953e56762ab0fe88f35fa2c45d74",
-      "review_fix_exact_head_ci": "9_of_9_green_including_merge_gate_but_superseded_by_team_lead_health_mutex_finding",
-      "team_lead_followup_finding": "health_cache_contention_and_latest_summary_reads_could_block_on_normal_persistence_mutex",
-      "health_mutex_hardening": "separate_operation_and health-state locks with bounded read-only queue/latest health queries",
-      "health_mutex_regressions": "concurrent normal operation mutex plus exclusive sqlite lock returns bounded stale health and structural errors still propagate",
-      "health_mutex_exact_head": "05b3833c1fcaa007ffbd6292dae127c31afa8a62",
-      "health_mutex_exact_head_ci": "9_of_9_green_including_merge_gate_but_superseded_by_node_sequence_retry_P2",
-      "latest_review_finding": "P2_same_event_flush_busy_retry_consumed_extra_node_sequence",
-      "atomic_telemetry_sequence_fix": "BEGIN_IMMEDIATE_event_id_idempotence_sequence_allocation_and_outbox_insert_same_transaction",
-      "sequence_retry_regressions": "flush_busy_adaptive_retry_duplicate_replay_and_transient_lock_all_preserve_contiguous_1_2"
+      "exact_head": "6764370ce89ac0b81aa839a6cc0941bc90509ac4",
+      "tests": "targeted_57_of_57_full_source_246_of_246_packaged_246_of_246_pass",
+      "ci": "all_routed_non_security_lanes_green_container_supply_chain_blocked_new_libexpat_findings",
+      "status": "security_interrupt_cleared_resume_after_PR_979_merge"
+    },
+    "issue_978_security_interrupt": {
+      "issue": 978,
+      "pull_request": 979,
+      "verified_substantive_head": "e90b034a04d47ce5c2eae3c2833d06b573cf7fe8",
+      "trigger_run": 34307375095,
+      "findings": [
+        "device-agent/libexpat1/CVE-2026-76956",
+        "device-agent/libexpat1/CVE-2026-76957",
+        "telegram-gateway/libexpat1/CVE-2026-76956",
+        "telegram-gateway/libexpat1/CVE-2026-76957"
+      ],
+      "disposition": "four_exact_HIGH_exceptions_expire_2026_09_12",
+      "container_supply_chain": "GREEN_34309529777",
+      "core_ci_merge_gate": "GREEN_34309529802",
+      "telemetry_service": "GREEN_34309529811",
+      "review_threads": 0,
+      "state": "completion_candidate_final_state_head_must_reverify_before_merge",
+      "deployment": "none",
+      "modbus_write": "none",
+      "hardware_write": "none"
+    },
+    "issue_933_review_blocker": {
+      "pull_request": 976,
+      "reviewed_head": "6764370ce89ac0b81aa839a6cc0941bc90509ac4",
+      "thread": "PRRT_kwDOTe72wM6gfnXC",
+      "severity": "P1",
+      "finding": "latest_value_update_can_be_permanently_dropped_after_record_attempt_busy_exhaustion_while_same_result_is_published_or_queued",
+      "required_outcome": "retry_same_latest_update_or_fail_closed_before_result_is_lost",
+      "origin_main_after_issue_978": "7252295de3d76dab1f3554b1f257918f1e9a5891"
     }
   },
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-09-08T20:22:00+03:00",
-      "kind": "ssd_state_reconciliation_merged",
+      "observed_at": "2026-09-08T20:05:00+03:00",
+      "kind": "issue_970_completed_pr_971_merged",
       "data": {
-        "issue": 973,
-        "pull_request": 974,
-        "merge_sha": "b3b78c971dfb34ff1171070bbba14c851051f41f",
-        "state": "merged"
+        "issue": 970,
+        "pull_request": 971,
+        "merge_sha": "88d484dc8007469d1654fb17434e22ef1cfbc1eb",
+        "state": "closed_completed"
       }
     },
     {
       "source": "github",
-      "observed_at": "2026-09-08T20:22:00+03:00",
-      "kind": "storage_migration_issue_completed",
+      "observed_at": "2026-09-09T07:02:25+03:00",
+      "kind": "issue_978_security_interrupt_created",
       "data": {
-        "issue": 968,
-        "state": "closed_completed"
+        "issue": 978,
+        "trigger_pull_request": 976,
+        "trigger_container_supply_chain_run": 34307375095,
+        "candidate": "four_exact_high_exceptions_expire_2026_09_12"
       }
     }
   ],
-  "next_action": "Commit and push the Issue #933 atomic telemetry-sequence retry fix, reply to and resolve the new P2 review thread with regression evidence, require all exact-head routed workflows and NEXOLAB Merge Gate GREEN on the new SHA, perform final Team Lead review, then squash-merge PR #976 without production deployment.",
+  "next_action": "Fix the unresolved PR #976 P1 so a scheduled result whose latest-value persistence exhausts transient SQLite retries is not advanced/published while the latest read model is silently stale; add deterministic regression coverage, rerun targeted/full packaged tests, resolve the review thread, then require fresh exact-head routed CI and NEXOLAB Merge Gate GREEN before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
