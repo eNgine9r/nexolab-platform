@@ -3,14 +3,19 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-09T10:40:11+03:00",
+  "timestamp": "2026-09-09T13:04:42+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_933_merged_and_ssd_microsd_coexistence_verified",
+  "event": "issue_930_local_candidate_complete_entered_review",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 930,
+    "title": "Remove stale Sharp override after Next.js 16.3.4 alignment",
+    "branch": "fix/930-sharp-override-alignment",
+    "status": "review_exact_head_remote_gates"
+  },
   "evidence_snapshot": {
     "issue_933_completion": {
       "issue": 933,
@@ -41,6 +46,25 @@
       "issue": 980,
       "branch": "chore/980-state-reconcile-ssd-coexistence",
       "scope": "four_project_state_files_only"
+    },
+    "issue_930_candidate": {
+      "issue": 930,
+      "pull_request": 982,
+      "branch": "fix/930-sharp-override-alignment",
+      "current_main_base": "f186d690746e3f5ba810749e8d7b289bc7cfe833",
+      "product_candidate_sha": "cc1ca9d77b07c2fc01aa485c4370b71b6fb9a09b",
+      "historical_recovered_candidate": "4d61aaabf8a48a5788f89272f1318559c3c62723",
+      "historical_candidate_disposition": "evidence_only_not_reused_as_current_state",
+      "implementation": "root_sharp_0_35_3_override_removed_sharp_0_35_4_libvips_1_3_3",
+      "dependency_drift": "sharp_and_libvips_family_only_27_lock_entries",
+      "arm64_native_smoke": "sharp_0_35_4_libvips_loaded_png_transform_pass",
+      "production_audit": "zero_vulnerabilities",
+      "local_exact_candidate_verifier": "green_node_22_23_1_143_test_files_697_tests_lint_typecheck_build_pass",
+      "remote_exact_head_gates": "required_after_durable_state_alignment",
+      "production_deployment": "not_executed",
+      "runtime_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "observations": [
@@ -54,9 +78,19 @@
         "merge_sha": "8596a2f3f4fa7f6ae93e0b850a301cea12a24708",
         "state": "merged_closed"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-09T12:22:23+03:00",
+      "kind": "issue_930_pr_982_open_review_fix",
+      "data": {
+        "issue": 930,
+        "pull_request": 982,
+        "state": "open_exact_head_ci_required"
+      }
     }
   ],
-  "next_action": "Verify and merge state-only Issue #980, then select next Ready Work Package from current GitHub state; #930 is the known lower-risk candidate.",
+  "next_action": "Wait for fresh exact-head GitHub browser/offline/Core gates on PR #982, require zero unresolved review blockers, and merge only when the exact current head is fully GREEN; no implementation work remains.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

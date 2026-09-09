@@ -22,7 +22,11 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 930,
+      "title": "Remove stale Sharp override after Next.js 16.3.4 alignment",
+      "branch": "fix/930-sharp-override-alignment"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -3340,6 +3344,33 @@
         "telemetry_service_final": "GREEN_run_34309529811",
         "review_threads": 0,
         "repository_status": "merged_closed"
+      }
+    },
+    {
+      "issue": 930,
+      "title": "Remove stale Sharp override after Next.js 16.3.4 alignment",
+      "priority": "high",
+      "lifecycle": "review",
+      "branch": "fix/930-sharp-override-alignment",
+      "depends_on": [
+        926
+      ],
+      "evidence": {
+        "planning_authority": "github_issue_930_dependency_compatibility_scope",
+        "current_main_base": "f186d690746e3f5ba810749e8d7b289bc7cfe833",
+        "product_candidate_sha": "cc1ca9d77b07c2fc01aa485c4370b71b6fb9a09b",
+        "historical_recovered_candidate": "4d61aaabf8a48a5788f89272f1318559c3c62723",
+        "historical_candidate_disposition": "recovery_evidence_only",
+        "implementation": "remove_root_sharp_0_35_3_override_resolve_sharp_0_35_4_libvips_1_3_3",
+        "dependency_drift": "27_sharp_libvips_family_lock_entries_only",
+        "arm64_native_smoke": "PASS_sharp_0_35_4_native_libvips_png_transform",
+        "production_audit": "PASS_zero_vulnerabilities",
+        "local_exact_candidate_verifier": "GREEN_node_22_23_1_143_test_files_697_tests_format_lint_typecheck_build",
+        "remaining_gate": "fresh_exact_head_browser_offline_core_ci_zero_review_blockers_then_merge",
+        "production_deployment": "not_executed",
+        "runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     }
   ],

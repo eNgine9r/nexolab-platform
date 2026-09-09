@@ -67,8 +67,5 @@
     "*.{json,md,mdx,css,yml,yaml}": [
       "prettier --write"
     ]
-  },
-  "overrides": {
-    "sharp": "0.35.3"
   }
 }
