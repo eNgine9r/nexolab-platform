@@ -422,7 +422,7 @@ def test_kk2_migration_refuses_synthetic_b_sensor_with_user_metadata() -> None:
         with Session(database.engine) as session:
             retained_a = session.get(PhysicalSensor, retained_a_id)
             protected_b = session.get(PhysicalSensor, protected_b_id)
-            assert retained_a is not None and retained_a.inventory_number == "471-A"
+            assert retained_a is not None and retained_a.inventory_number == "LAB-471"
             assert protected_b is not None
             assert protected_b.inventory_number == "471-B"
             assert protected_b.serial_number == "USER-METADATA-MUST-NOT-BE-DELETED"
