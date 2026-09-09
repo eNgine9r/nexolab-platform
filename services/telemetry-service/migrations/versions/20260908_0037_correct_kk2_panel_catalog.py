@@ -155,20 +155,99 @@ BEGIN
             'KK2 catalog reconciliation refused: a synthetic B sensor has audit history';
     END IF;
 
-    -- Numeric 441..554 inventory values are the target namespace.  Existing
-    -- rows there would make a silent merge unsafe.  The legacy KK2 rows use
-    -- -A/-B suffixes, while KK1 occupies 197..274.
+    -- Numeric 441..554 inventory values are the target namespace.  A retained
+    -- legacy A row may already own any value in that namespace because the
+    -- metadata API permits operator edits; every other owner in an organization
+    -- being reconciled would make the final canonical assignment ambiguous.
     SELECT count(*) INTO bad_count
     FROM physical_sensors AS ps
-    JOIN climate_chambers AS cc
-      ON cc.organization_id = ps.organization_id
-     AND cc.id = ps.climate_chamber_id
-    WHERE cc.code <> 'KK2'
-      AND ps.inventory_number ~ '^[0-9]+$'
-      AND ps.inventory_number::integer BETWEEN 441 AND 554;
+    JOIN climate_chambers AS kk2
+      ON kk2.organization_id = ps.organization_id
+     AND kk2.code = 'KK2'
+    WHERE ps.inventory_number ~ '^[0-9]+$'
+      AND ps.inventory_number::integer BETWEEN 441 AND 554
+      AND EXISTS (
+          SELECT 1
+          FROM measurement_channels AS legacy_mc
+          JOIN measurement_devices AS legacy_md
+            ON legacy_md.organization_id = legacy_mc.organization_id
+           AND legacy_md.id = legacy_mc.device_id
+          WHERE legacy_mc.organization_id = kk2.organization_id
+            AND legacy_mc.climate_chamber_id = kk2.id
+            AND legacy_md.device_type = 'temperature_controller'
+            AND legacy_md.unit_id BETWEEN 101 AND 114
+      )
+      AND NOT EXISTS (
+          SELECT 1
+          FROM measurement_channels AS target_mc
+          JOIN measurement_devices AS target_md
+            ON target_md.organization_id = target_mc.organization_id
+           AND target_md.id = target_mc.device_id
+          WHERE target_mc.organization_id = ps.organization_id
+            AND target_mc.climate_chamber_id = kk2.id
+            AND target_mc.id = ps.channel_id
+            AND ps.sensor_position = 'A'
+            AND target_md.device_type = 'temperature_controller'
+            AND target_md.unit_id BETWEEN 101 AND 114
+      );
     IF bad_count <> 0 THEN
         RAISE EXCEPTION
-            'KK2 catalog reconciliation refused: physical inventory 441..554 conflicts with another chamber';
+            'KK2 catalog reconciliation refused: physical inventory 441..554 conflicts with a non-retained sensor';
+    END IF;
+
+    -- Retained A rows are staged through a deterministic collision-free
+    -- namespace before canonical numbers are assigned.  This makes swaps such
+    -- as 471<->472 safe under the non-deferrable organization/inventory unique
+    -- constraint.  Fail closed if either the generated stage namespace itself
+    -- collides or an existing row already occupies a generated stage value.
+    SELECT count(*) INTO bad_count
+    FROM (
+        SELECT ps.organization_id,
+               md5('nexolab-0037-stage:' || ps.id::text) AS staged_inventory
+        FROM physical_sensors AS ps
+        JOIN measurement_channels AS mc
+          ON mc.organization_id = ps.organization_id
+         AND mc.id = ps.channel_id
+        JOIN climate_chambers AS cc
+          ON cc.organization_id = mc.organization_id
+         AND cc.id = mc.climate_chamber_id
+        JOIN measurement_devices AS md
+          ON md.organization_id = mc.organization_id
+         AND md.id = mc.device_id
+        WHERE cc.code = 'KK2'
+          AND ps.sensor_position = 'A'
+          AND md.device_type = 'temperature_controller'
+          AND md.unit_id BETWEEN 101 AND 114
+        GROUP BY ps.organization_id, staged_inventory
+        HAVING count(*) > 1
+    ) AS duplicate_stage_values;
+    IF bad_count <> 0 THEN
+        RAISE EXCEPTION
+            'KK2 catalog reconciliation refused: generated staging inventory is not unique';
+    END IF;
+
+    SELECT count(*) INTO bad_count
+    FROM physical_sensors AS target
+    JOIN measurement_channels AS mc
+      ON mc.organization_id = target.organization_id
+     AND mc.id = target.channel_id
+    JOIN climate_chambers AS cc
+      ON cc.organization_id = mc.organization_id
+     AND cc.id = mc.climate_chamber_id
+    JOIN measurement_devices AS md
+      ON md.organization_id = mc.organization_id
+     AND md.id = mc.device_id
+    JOIN physical_sensors AS occupied
+      ON occupied.organization_id = target.organization_id
+     AND occupied.inventory_number = md5('nexolab-0037-stage:' || target.id::text)
+     AND occupied.id <> target.id
+    WHERE cc.code = 'KK2'
+      AND target.sensor_position = 'A'
+      AND md.device_type = 'temperature_controller'
+      AND md.unit_id BETWEEN 101 AND 114;
+    IF bad_count <> 0 THEN
+        RAISE EXCEPTION
+            'KK2 catalog reconciliation refused: generated staging inventory is already occupied';
     END IF;
 
     -- K96..K100 are added by the normal seed.  Fail early if their stable
@@ -205,9 +284,11 @@ $nexolab$;
 
 
 _UPGRADE_RECONCILE = r"""
+-- Stage every retained A row away from both its operator-edited value and the
+-- final numeric namespace before assigning canonical panel numbers.  The
+-- deterministic MD5 value fits the existing VARCHAR(32) inventory column.
 UPDATE physical_sensors AS ps
-SET inventory_number = mc.logical_sensor_number::text,
-    version = ps.version + 1,
+SET inventory_number = md5('nexolab-0037-stage:' || ps.id::text),
     updated_at = CURRENT_TIMESTAMP
 FROM measurement_channels AS mc,
      climate_chambers AS cc,
@@ -244,6 +325,24 @@ SET physical_sensor_count = 1,
 FROM climate_chambers AS cc,
      measurement_devices AS md
 WHERE cc.organization_id = mc.organization_id
+  AND cc.id = mc.climate_chamber_id
+  AND cc.code = 'KK2'
+  AND md.organization_id = mc.organization_id
+  AND md.id = mc.device_id
+  AND md.device_type = 'temperature_controller'
+  AND md.unit_id BETWEEN 101 AND 114;
+
+UPDATE physical_sensors AS ps
+SET inventory_number = mc.logical_sensor_number::text,
+    version = ps.version + 1,
+    updated_at = CURRENT_TIMESTAMP
+FROM measurement_channels AS mc,
+     climate_chambers AS cc,
+     measurement_devices AS md
+WHERE ps.organization_id = mc.organization_id
+  AND ps.channel_id = mc.id
+  AND ps.sensor_position = 'A'
+  AND cc.organization_id = mc.organization_id
   AND cc.id = mc.climate_chamber_id
   AND cc.code = 'KK2'
   AND md.organization_id = mc.organization_id

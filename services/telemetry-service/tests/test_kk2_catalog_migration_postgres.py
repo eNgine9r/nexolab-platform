@@ -381,6 +381,63 @@ def test_kk2_legacy_ab_catalog_migrates_to_numeric_panel_inventory() -> None:
         _drop_isolated_database(admin_engine, database_name)
 
 
+def test_kk2_migration_stages_operator_swapped_numeric_inventory_before_canonical_assignment() -> None:
+    service_root = Path(__file__).resolve().parents[1]
+    database_url, admin_engine, database_name = _create_isolated_database()
+    database: Database | None = None
+    try:
+        _alembic(service_root, database_url, "upgrade", "20260902_0031")
+        database = Database(database_url)
+        organization_id = str(uuid4())
+        first_a_id, _ = _insert_legacy_kk2(database, organization_id)
+
+        with Session(database.engine) as session:
+            with session.begin():
+                first_channel = session.scalar(
+                    select(MeasurementChannel).where(
+                        MeasurementChannel.organization_id == organization_id,
+                        MeasurementChannel.channel_id == "101-01",
+                    )
+                )
+                second_channel = session.scalar(
+                    select(MeasurementChannel).where(
+                        MeasurementChannel.organization_id == organization_id,
+                        MeasurementChannel.channel_id == "101-02",
+                    )
+                )
+                assert first_channel is not None and second_channel is not None
+                first_a = session.get(PhysicalSensor, first_a_id)
+                second_a = session.scalar(
+                    select(PhysicalSensor).where(
+                        PhysicalSensor.organization_id == organization_id,
+                        PhysicalSensor.channel_id == second_channel.id,
+                        PhysicalSensor.sensor_position == "A",
+                    )
+                )
+                assert first_a is not None and second_a is not None
+                second_a_id = second_a.id
+                first_a.inventory_number = "472"
+                second_a.inventory_number = "471"
+
+        database.dispose()
+        database = None
+        _alembic(service_root, database_url, "upgrade", "head")
+        database = Database(database_url)
+
+        with Session(database.engine) as session:
+            first_a = session.get(PhysicalSensor, first_a_id)
+            second_a = session.get(PhysicalSensor, second_a_id)
+            assert first_a is not None and second_a is not None
+            assert first_a.inventory_number == "471"
+            assert second_a.inventory_number == "472"
+            assert first_a.version == 4
+            assert second_a.version == 2
+    finally:
+        if database is not None:
+            database.dispose()
+        _drop_isolated_database(admin_engine, database_name)
+
+
 def test_kk2_migration_refuses_synthetic_b_sensor_with_user_metadata() -> None:
     service_root = Path(__file__).resolve().parents[1]
     database_url, admin_engine, database_name = _create_isolated_database()
