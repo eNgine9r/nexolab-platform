@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-09T12:22:23+03:00",
+  "timestamp": "2026-09-09T12:36:00+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_930_candidate_implemented_local_green_remote_gates_pending",
+  "event": "issue_930_durable_state_aligned_remote_gates_pending",
   "baselines": {
     "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -14,7 +14,7 @@
     "issue": 930,
     "title": "Remove stale Sharp override after Next.js 16.3.4 alignment",
     "branch": "fix/930-sharp-override-alignment",
-    "status": "in_progress_exact_head_remote_gates"
+    "status": "in_progress_exact_head_remote_gates_after_state_alignment"
   },
   "evidence_snapshot": {
     "issue_933_completion": {
@@ -60,7 +60,7 @@
       "arm64_native_smoke": "sharp_0_35_4_libvips_loaded_png_transform_pass",
       "production_audit": "zero_vulnerabilities",
       "local_exact_candidate_verifier": "green_node_22_23_1_143_test_files_697_tests_lint_typecheck_build_pass",
-      "remote_exact_head_gates": "required_after_checkpoint_review_fix",
+      "remote_exact_head_gates": "required_after_durable_state_alignment",
       "production_deployment": "not_executed",
       "runtime_mutation": "none",
       "modbus_write": "none",
@@ -90,7 +90,7 @@
       }
     }
   ],
-  "next_action": "Run the routed exact-head workflows after this checkpoint-only review fix, resolve all review threads, and merge PR #982 only after the NEXOLAB Merge Gate and required browser/offline checks are GREEN; then perform a delta Ready audit and select the next independent Work Package.",
+  "next_action": "Run the routed exact-head workflows after the durable CURRENT_STATE/ACTIVE_SPRINT alignment, confirm zero unresolved review blockers, and merge PR #982 only after the NEXOLAB Merge Gate and required browser/offline checks are GREEN; then perform a delta Ready audit and materially complete #930 state in a focused state-only follow-up if required.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
