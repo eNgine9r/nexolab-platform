@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 import tempfile
 import threading
@@ -15,7 +16,7 @@ from acquisition_registry import (
 )
 from adaptive_main import AdaptiveRegistryDeviceAgent
 from adaptive_scheduler import ScheduledResult, SchedulerTarget
-from main import OfflineQueue, Settings, TelemetryRecord
+from main import AgentState, DeviceAgent, OfflineQueue, Settings, TelemetryRecord
 from modbus_rtu import ModbusError
 
 
@@ -223,6 +224,65 @@ class AdaptiveRegistryReadTests(unittest.TestCase):
             self.assertIn(record.event_id, rows[0][2])
             self.assertEqual(value._sqlite_busy_supervisor_consecutive, 0)
             self.assertFalse(value.stop_event.is_set())
+
+    def test_flush_busy_retry_preserves_queued_node_sequence(self) -> None:
+        value = agent()
+        value.stop_event = threading.Event()
+        value._sqlite_busy_supervisor_consecutive = 0
+        value._sqlite_busy_supervisor_limit = 3
+        value._sqlite_busy_supervisor_delay_seconds = 0
+        value._fatal_persistence_error = None
+        value.state = AgentState()
+        value.state.update(mqtt_connected=True)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            database_path = Path(temporary) / "edge.db"
+            value.settings = Settings(
+                **{
+                    **settings().__dict__,
+                    "organization_id": "00000000-0000-0000-0000-000000000001",
+                    "database_path": database_path,
+                }
+            )
+            value.queue = OfflineQueue(database_path)
+            value.flush_queue = Mock(
+                side_effect=[
+                    sqlite3.OperationalError("database is locked"),
+                    False,
+                ]
+            )
+            first = TelemetryRecord(
+                event_id="event-flush-retry",
+                node_id="edge-01",
+                captured_at="2026-09-09T03:00:00+00:00",
+                metric="temperature.probe",
+                value=4.2,
+                unit="degC",
+                quality="valid",
+                source="xjp60d",
+            )
+
+            self.assertFalse(value._publish_scheduled_record(first))
+            value.state.update(mqtt_connected=False)
+            second = TelemetryRecord(
+                event_id="event-after-retry",
+                node_id="edge-01",
+                captured_at="2026-09-09T03:00:01+00:00",
+                metric="temperature.probe",
+                value=4.3,
+                unit="degC",
+                quality="valid",
+                source="xjp60d",
+            )
+            self.assertFalse(DeviceAgent.publish_or_queue(value, second))
+
+            rows = value.queue.oldest()
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(
+                [json.loads(payload)["node_sequence"] for _, _, payload in rows],
+                [1, 2],
+            )
+            self.assertEqual(value._sqlite_busy_supervisor_consecutive, 0)
 
     def test_persistent_scheduled_enqueue_busy_sets_fatal_stop(self) -> None:
         value = agent()

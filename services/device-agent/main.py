@@ -483,6 +483,80 @@ class OfflineQueue:
         with self._lock:
             self._retry_busy("enqueue", operation)
 
+    def _next_sequence_in_transaction(self, stream: str) -> int:
+        self._connection.execute(
+            """
+            INSERT INTO node_stream_sequences(stream, last_sequence)
+            VALUES (?, 0)
+            ON CONFLICT(stream) DO NOTHING
+            """,
+            (stream,),
+        )
+        self._connection.execute(
+            """
+            UPDATE node_stream_sequences
+            SET last_sequence = last_sequence + 1
+            WHERE stream = ?
+            """,
+            (stream,),
+        )
+        row = self._connection.execute(
+            "SELECT last_sequence FROM node_stream_sequences WHERE stream = ?",
+            (stream,),
+        ).fetchone()
+        if row is None:
+            raise RuntimeError("node stream sequence allocation failed")
+        return int(row[0])
+
+    def enqueue_with_sequence(
+        self,
+        topic: str,
+        payload_data: dict[str, Any],
+        event_id: str,
+        *,
+        stream: str,
+    ) -> str:
+        normalized = stream.strip().lower()
+        if not normalized:
+            raise ValueError("stream is required")
+
+        def operation() -> str:
+            with self._connection:
+                # Serialize writers before checking event_id so sequence allocation
+                # and durable enqueue are one idempotent transaction. A retry after
+                # a later flush failure reuses the existing queued payload instead
+                # of consuming another node_sequence.
+                self._connection.execute("BEGIN IMMEDIATE")
+                existing = self._connection.execute(
+                    "SELECT payload FROM outbound_queue WHERE event_id = ?",
+                    (event_id,),
+                ).fetchone()
+                if existing is not None:
+                    return str(existing[0])
+
+                sequence = self._next_sequence_in_transaction(normalized)
+                sequenced_payload = dict(payload_data)
+                sequenced_payload["node_sequence"] = sequence
+                payload = json.dumps(
+                    sequenced_payload, separators=(",", ":"), ensure_ascii=False
+                )
+                self._connection.execute(
+                    """
+                    INSERT INTO outbound_queue(event_id, topic, payload, created_at)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (
+                        event_id,
+                        topic,
+                        payload,
+                        datetime.now(timezone.utc).isoformat(),
+                    ),
+                )
+                return payload
+
+        with self._lock:
+            return str(self._retry_busy("enqueue_with_sequence", operation))
+
     def oldest(self, limit: int = 100) -> list[tuple[int, str, str]]:
         def operation() -> list[tuple[int, str, str]]:
             rows = self._connection.execute(
@@ -556,29 +630,7 @@ class OfflineQueue:
 
         def operation() -> int:
             with self._connection:
-                self._connection.execute(
-                    """
-                    INSERT INTO node_stream_sequences(stream, last_sequence)
-                    VALUES (?, 0)
-                    ON CONFLICT(stream) DO NOTHING
-                    """,
-                    (normalized,),
-                )
-                self._connection.execute(
-                    """
-                    UPDATE node_stream_sequences
-                    SET last_sequence = last_sequence + 1
-                    WHERE stream = ?
-                    """,
-                    (normalized,),
-                )
-                row = self._connection.execute(
-                    "SELECT last_sequence FROM node_stream_sequences WHERE stream = ?",
-                    (normalized,),
-                ).fetchone()
-                if row is None:
-                    raise RuntimeError("node stream sequence allocation failed")
-                return int(row[0])
+                return self._next_sequence_in_transaction(normalized)
 
         with self._lock:
             return int(self._retry_busy("next_sequence", operation))
@@ -970,18 +1022,26 @@ class DeviceAgent:
 
     def publish_or_queue(self, record: TelemetryRecord) -> bool:
         payload_data = asdict(record)
-        if self.settings.organization_id is not None:
-            payload_data["node_sequence"] = self.queue.next_sequence("telemetry")
-        payload = json.dumps(
-            payload_data, separators=(",", ":"), ensure_ascii=False
-        )
         topic = self.settings.resolved_telemetry_topic
 
-        # Persist before touching the network. A successful ``publish()`` return
-        # only means Paho accepted the message locally; durability starts only
-        # after the QoS 1 acknowledgement is observed and the queued row is
-        # deleted. This also preserves FIFO ordering across reconnects.
-        self.queue.enqueue(topic, payload, record.event_id)
+        # Persist before touching the network. For organization-scoped telemetry,
+        # sequence allocation and enqueue are one idempotent SQLite transaction so
+        # retrying the same event after a later flush failure cannot consume a new
+        # node_sequence. Operational stream sequencing remains independent.
+        if self.settings.organization_id is not None:
+            payload = self.queue.enqueue_with_sequence(
+                topic, payload_data, record.event_id, stream="telemetry"
+            )
+        else:
+            payload = json.dumps(
+                payload_data, separators=(",", ":"), ensure_ascii=False
+            )
+            self.queue.enqueue(topic, payload, record.event_id)
+
+        # A successful ``publish()`` return only means Paho accepted the message
+        # locally; durability starts only after the QoS 1 acknowledgement is
+        # observed and the queued row is deleted. This preserves FIFO ordering
+        # across reconnects.
         if not self.state.mqtt_connected:
             return False
         return self.flush_queue()

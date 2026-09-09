@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 import tempfile
 import threading
@@ -131,6 +132,29 @@ class OfflineQueueLockRecoveryTests(unittest.TestCase):
         self.assertGreaterEqual(contention["busy_recoveries_total"], 5)
         self.assertEqual(contention["busy_exhausted_total"], 0)
         self.assertEqual(contention["consecutive_exhaustions"], 0)
+
+    def test_atomic_sequenced_enqueue_recovers_without_sequence_gap(self) -> None:
+        first_payload = {"event_id": "event-seq-1", "value": 4.2}
+        second_payload = {"event_id": "event-seq-2", "value": 4.3}
+
+        self._run_during_exclusive_lock(
+            lambda: self.queue.enqueue_with_sequence(
+                "topic", first_payload, "event-seq-1", stream="telemetry"
+            )
+        )
+        self.queue.enqueue_with_sequence(
+            "topic", second_payload, "event-seq-2", stream="telemetry"
+        )
+
+        rows = self.queue.oldest()
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(
+            [json.loads(payload)["node_sequence"] for _, _, payload in rows],
+            [1, 2],
+        )
+        contention = self.queue.contention_snapshot()
+        self.assertGreater(contention["busy_retries_total"], 0)
+        self.assertEqual(contention["busy_exhausted_total"], 0)
 
     def test_persistent_lock_fails_boundedly_without_data_loss(self) -> None:
         queue = OfflineQueue(
