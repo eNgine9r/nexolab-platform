@@ -3350,7 +3350,7 @@
       "issue": 930,
       "title": "Remove stale Sharp override after Next.js 16.3.4 alignment",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "branch": "fix/930-sharp-override-alignment",
       "depends_on": [
         926
