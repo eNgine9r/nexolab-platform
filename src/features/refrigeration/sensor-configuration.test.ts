@@ -8,6 +8,7 @@ import {
   attachPhysicalSensorInventory,
   availableSensorSnapPoints,
   buildStagedSensorConfiguration,
+  channelTelemetryLabel,
   defaultMarkerLabel,
   refreshStagedSensorChannelMetadata,
   sensorSlotCapacity,
@@ -69,6 +70,16 @@ describe("sensor configuration marker identity", () => {
       shelf: 1,
       position: 1,
     });
+  });
+
+  it("classifies communication errors as Offline before generic error quality", () => {
+    const channel = {
+      ...available("106-03", "441"),
+      latestValue: null,
+      quality: "communication_error",
+    };
+
+    expect(channelTelemetryLabel(channel)).toBe("Offline");
   });
 
   it("recovers legacy zero capacity consistently for actual placement", () => {

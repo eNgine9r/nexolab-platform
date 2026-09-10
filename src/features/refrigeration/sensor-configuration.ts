@@ -288,11 +288,11 @@ export function channelPlacementConflict(channel: AvailableSensor, equipmentId?:
 export function channelTelemetryLabel(channel: AvailableSensor, now = Date.now()): string {
   if (channel.latestValue === null) {
     const quality = channel.quality.toLowerCase();
-    if (quality.includes("sensor") || quality.includes("fault") || quality.includes("error")) {
-      return "Помилка датчика";
-    }
     if (quality.includes("offline") || quality.includes("communication")) {
       return "Offline";
+    }
+    if (quality.includes("sensor") || quality.includes("fault") || quality.includes("error")) {
+      return "Помилка датчика";
     }
     if (quality.includes("planned")) {
       return "Запланований";
