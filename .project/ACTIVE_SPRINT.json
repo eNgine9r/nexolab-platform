@@ -23,11 +23,15 @@
   },
   "selection": {
     "active_work_package": {
+      "issue": 988,
+      "title": "Decouple remote administration from Raspberry Pi Connect and harden Pi recovery",
+      "branch": "fix/988-remote-admin-self-healing"
+    },
+    "next_work_package": {
       "issue": 965,
       "title": "Simplify sensor placement and marker naming on equipment layouts",
       "branch": "feat/965-sensor-placement-quick-add"
-    },
-    "next_work_package": null
+    }
   },
   "work_packages": [
     {
@@ -3405,12 +3409,30 @@
       "issue": 965,
       "title": "Simplify sensor placement and marker naming on equipment layouts",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "blocked",
       "depends_on": [
         966
       ],
       "branch": "feat/965-sensor-placement-quick-add",
       "evidence": {}
+    },
+    {
+      "issue": 988,
+      "title": "Decouple remote administration from Raspberry Pi Connect and harden Pi recovery",
+      "priority": "critical",
+      "lifecycle": "review",
+      "branch": "fix/988-remote-admin-self-healing",
+      "evidence": {
+        "verified_head_sha": "8055c31e0106bf82e066cf4caa5748f02ea5a34f",
+        "checks": {
+          "targeted_reliability_tests": "success",
+          "remote_cgroup_isolation": "success",
+          "remote_self_healing": "success",
+          "controlled_reboot_acceptance": "success",
+          "persistent_journal_previous_boot": "success",
+          "production_runtime_recovery": "success"
+        }
+      }
     }
   ],
   "maintenance_actions": [

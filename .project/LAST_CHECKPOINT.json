@@ -3,23 +3,33 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-10T09:42:21+03:00",
-  "actor": "ChatGPT-Team-Lead",
-  "event": "issue_966_completed_issue_965_activated",
+  "timestamp": "2026-09-10T12:33:26+03:00",
+  "actor": "ChatGPT",
+  "event": "issue_988_host_reboot_acceptance_green",
   "baselines": {
     "accepted_product_sha": "cb7a533119e42d0ab5481634da37ecf47aa235bd",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 965,
-    "title": "Simplify sensor placement and marker naming on equipment layouts",
-    "branch": "feat/965-sensor-placement-quick-add"
+    "issue": 988,
+    "title": "Decouple remote administration from Raspberry Pi Connect and harden Pi recovery",
+    "branch": "fix/988-remote-admin-self-healing"
   },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "verified_head_sha": "8055c31e0106bf82e066cf4caa5748f02ea5a34f",
+      "checks": {
+        "targeted_reliability_tests": "success",
+        "remote_cgroup_isolation": "success",
+        "remote_self_healing": "success",
+        "controlled_reboot_acceptance": "success",
+        "persistent_journal_previous_boot": "success",
+        "production_runtime_recovery": "success"
+      }
+    }
   },
   "observations": [],
-  "next_action": "Merge state-only Issue #986 after GREEN State integrity/NEXOLAB Merge Gate, then begin Issue #965 from current main on feat/965-sensor-placement-quick-add.",
+  "next_action": "Publish PR #988 candidate, verify exact-head CI, merge when GREEN, then restore Issue #965 as active.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
