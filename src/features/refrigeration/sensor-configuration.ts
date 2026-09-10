@@ -5,13 +5,16 @@ import type {
   SensorBinding,
   SensorConfigurationItem,
 } from "@/features/refrigeration/equipment-lifecycle-repository";
-import type { LayoutPlacement } from "@/features/refrigeration/layout-editor";
+import type { LayoutPlacement, NormalizedPoint } from "@/features/refrigeration/layout-editor";
 
 export type StagedSensorConfiguration = RefrigerationSensor & {
   slotKey: string;
   metric: string;
   unit: string;
 };
+
+const DEFAULT_SENSOR_SLOT_CAPACITY = 48;
+const MAX_SENSOR_SLOT_CAPACITY = 48;
 
 export function buildStagedSensorConfiguration(
   bindings: readonly SensorBinding[],
@@ -210,6 +213,31 @@ export function attachPhysicalSensorInventory(
   }));
 }
 
+export function sensorSlotCapacity(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return DEFAULT_SENSOR_SLOT_CAPACITY;
+  return Math.min(MAX_SENSOR_SLOT_CAPACITY, Math.max(1, Math.trunc(value)));
+}
+
+export function availableSensorSnapPoints(
+  current: readonly StagedSensorConfiguration[],
+  totalSlots: number,
+): NormalizedPoint[] {
+  const usedSlots = new Set(current.map((sensor) => sensor.slotKey));
+  const occupiedPoints = current.map(({ x, y }) => ({ x, y }));
+  const points: NormalizedPoint[] = [];
+
+  for (let index = 0; index < sensorSlotCapacity(totalSlots); index += 1) {
+    const slot = slotForIndex(index);
+    if (usedSlots.has(slot.slotKey)) continue;
+    const placement = defaultPlacement(slot.side, slot.shelf, slot.position);
+    const point = { x: placement.x, y: placement.y };
+    if (occupiedPoints.some((occupied) => pointsEqual(occupied, point))) continue;
+    points.push(point);
+  }
+
+  return points;
+}
+
 export function unusedClimateChamberChannels(
   channels: readonly AvailableSensor[],
   configuration: readonly StagedSensorConfiguration[],
@@ -258,25 +286,26 @@ export function channelTelemetryLabel(channel: AvailableSensor, now = Date.now()
 function firstAvailableSlot(
   current: readonly StagedSensorConfiguration[],
   totalSlots: number,
-): { slotKey: string; label: string; side: SensorSide; shelf: number; position: number } | null {
+): { slotKey: string; side: SensorSide; shelf: number; position: number } | null {
   const used = new Set(current.map((sensor) => sensor.slotKey));
-  const capacity = Math.min(48, Math.max(0, totalSlots));
-  for (let index = 0; index < capacity; index += 1) {
-    const side: SensorSide = index < 24 ? "front" : "rear";
-    const localIndex = index % 24;
-    const shelf = Math.floor(localIndex / 6) + 1;
-    const position = (localIndex % 6) + 1;
-    const slotKey = slotKeyFor(side, shelf, position);
-    if (used.has(slotKey)) continue;
-    return {
-      slotKey,
-      label: `${String(localIndex + 1).padStart(2, "0")}${side === "front" ? "F" : "R"}`,
-      side,
-      shelf,
-      position,
-    };
+  for (let index = 0; index < sensorSlotCapacity(totalSlots); index += 1) {
+    const slot = slotForIndex(index);
+    if (!used.has(slot.slotKey)) return slot;
   }
   return null;
+}
+
+function slotForIndex(index: number): {
+  slotKey: string;
+  side: SensorSide;
+  shelf: number;
+  position: number;
+} {
+  const side: SensorSide = index < 24 ? "front" : "rear";
+  const localIndex = index % 24;
+  const shelf = Math.floor(localIndex / 6) + 1;
+  const position = (localIndex % 6) + 1;
+  return { slotKey: slotKeyFor(side, shelf, position), side, shelf, position };
 }
 
 function slotKeyFor(side: SensorSide, shelf: number, position: number): string {
@@ -320,6 +349,10 @@ function compareStagedSensors(first: StagedSensorConfiguration, second: StagedSe
     first.position - second.position ||
     first.id.localeCompare(second.id)
   );
+}
+
+function pointsEqual(first: NormalizedPoint, second: NormalizedPoint): boolean {
+  return Math.abs(first.x - second.x) < 0.000001 && Math.abs(first.y - second.y) < 0.000001;
 }
 
 function clampCoordinate(value: number): number {

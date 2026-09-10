@@ -6,8 +6,10 @@ import type { AvailableSensor, SensorBinding } from "@/features/refrigeration/eq
 import {
   addChannelToConfiguration,
   attachPhysicalSensorInventory,
+  availableSensorSnapPoints,
   buildStagedSensorConfiguration,
   defaultMarkerLabel,
+  sensorSlotCapacity,
 } from "./sensor-configuration";
 
 function available(channelId: string, inventoryNumber?: string | null): AvailableSensor {
@@ -66,6 +68,27 @@ describe("sensor configuration marker identity", () => {
       shelf: 1,
       position: 1,
     });
+  });
+
+  it("recovers legacy zero capacity consistently for actual placement", () => {
+    expect(sensorSlotCapacity(0)).toBe(48);
+    expect(sensorSlotCapacity(72)).toBe(48);
+
+    const next = addChannelToConfiguration([], available("106-03", "441"), 0, "showcase-kk2");
+    expect(next[0]).toMatchObject({ slotKey: "front-01", side: "front", shelf: 1, position: 1 });
+  });
+
+  it("offers only free deterministic snap points for newly placed sensors", () => {
+    const [existing] = addChannelToConfiguration([], available("106-03", "441"), 48, "showcase-kk2");
+    if (!existing) throw new Error("Expected configured sensor");
+
+    const movedOntoNextSlot = { ...existing, x: 0.268, y: 0.21 };
+    const points = availableSensorSnapPoints([movedOntoNextSlot], 0);
+
+    expect(points).toHaveLength(46);
+    expect(points).not.toContainEqual({ x: 0.138, y: 0.21 });
+    expect(points).not.toContainEqual({ x: 0.268, y: 0.21 });
+    expect(points[0]).toEqual({ x: 0.398, y: 0.21 });
   });
 
   it("falls back to canonical channel ID when physical inventory metadata is unavailable", () => {

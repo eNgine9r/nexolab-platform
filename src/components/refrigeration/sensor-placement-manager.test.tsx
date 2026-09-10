@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { refrigerationEquipment } from "@/data/refrigeration";
 import type { AvailableSensor } from "@/features/refrigeration/equipment-lifecycle-repository";
@@ -77,12 +77,14 @@ function renderManager({
   pendingChannelId = null,
   totalSlots = 48,
   organizationId = "org-equipment-map",
+  availableChannels = channels,
 }: {
   configuration?: StagedSensorConfiguration[];
   editingSensorId?: string | null;
   pendingChannelId?: string | null;
   totalSlots?: number;
   organizationId?: string | null;
+  availableChannels?: AvailableSensor[];
 } = {}) {
   const onConfigurationChange = vi.fn();
   const onEditingSensorIdChange = vi.fn();
@@ -93,7 +95,7 @@ function renderManager({
       equipment={equipment}
       organizationId={organizationId}
       totalSlots={totalSlots}
-      channels={channels}
+      channels={availableChannels}
       configuration={configuration}
       editingSensorId={editingSensorId}
       pendingChannelId={pendingChannelId}
@@ -109,6 +111,11 @@ function renderManager({
 function openAddSelector() {
   fireEvent.click(screen.getByRole("button", { name: "Додати датчик" }));
   return screen.getByTestId("equipment-map-quick-sensor-picker");
+}
+
+function openAddSelectorAfterRender(availableChannels: AvailableSensor[]) {
+  renderManager({ availableChannels });
+  return openAddSelector();
 }
 
 function chooseQuickPoint(selector: HTMLElement, channelId: string) {
@@ -128,6 +135,10 @@ describe("SensorPlacementManager", () => {
     vi.restoreAllMocks();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("selects a no-data channel in one click without mutating configuration", () => {
     const { onConfigurationChange, onPendingChannelChange } = renderManager();
     const selector = openAddSelector();
@@ -141,6 +152,19 @@ describe("SensorPlacementManager", () => {
     fireEvent.click(within(selector).getByRole("button", { name: "Закрити" }));
     expect(onPendingChannelChange).toHaveBeenLastCalledWith(null);
     expect(screen.queryByTestId("equipment-map-quick-sensor-picker")).not.toBeInTheDocument();
+  });
+
+  it("recomputes channel freshness while the quick picker remains open", () => {
+    vi.useFakeTimers();
+    const now = new Date("2026-09-10T12:00:00.000Z");
+    vi.setSystemTime(now);
+    const freshChannel = { ...channels[0]!, capturedAt: now.toISOString() };
+    const selector = openAddSelectorAfterRender([freshChannel]);
+    const channelButton = within(selector).getByRole("button", { name: /канал 106-03/ });
+
+    expect(channelButton).toHaveTextContent("106-03 · Live");
+    act(() => vi.advanceTimersByTime(31_000));
+    expect(channelButton).toHaveTextContent("106-03 · Stale");
   });
 
   it("keeps quick add available without organization context while advanced replacement stays fail-closed", () => {

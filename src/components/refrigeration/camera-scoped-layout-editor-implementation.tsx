@@ -25,10 +25,12 @@ import type {
 } from "@/features/refrigeration/layout-repository";
 import {
   addChannelToConfiguration,
+  availableSensorSnapPoints,
   buildStagedSensorConfiguration,
   configurationPayload,
   configurationsEqual,
   moveConfiguredSensor,
+  sensorSlotCapacity,
   type StagedSensorConfiguration,
 } from "@/features/refrigeration/sensor-configuration";
 
@@ -108,6 +110,10 @@ export function CameraScopedLayoutEditor({
     [configuration],
   );
   const snapSlots = useMemo(() => configuration.map(({ x, y }) => ({ x, y })), [configuration]);
+  const placementSnapSlots = useMemo(
+    () => availableSensorSnapPoints(configuration, equipment.totalSensors),
+    [configuration, equipment.totalSensors],
+  );
   const viewSensorIds = useMemo(() => new Set(visibleSensors.map((sensor) => sensor.id)), [visibleSensors]);
   const canvasSensors = useMemo(
     () => (mode === "edit" ? configuration : configuration.filter((sensor) => viewSensorIds.has(sensor.id))),
@@ -206,10 +212,15 @@ export function CameraScopedLayoutEditor({
       return;
     }
     try {
-      const added = addChannelToConfiguration(configuration, channel, equipment.totalSensors, equipment.id);
+      const added = addChannelToConfiguration(
+        configuration,
+        channel,
+        sensorSlotCapacity(equipment.totalSensors),
+        equipment.id,
+      );
       const snapped = applySnap(point, snapMode, {
         gridDivisions: 40,
-        slots: snapSlots,
+        slots: placementSnapSlots,
       });
       const placed = moveConfiguredSensor(added, channel.channelId, snapped.x, snapped.y);
       updateConfiguration(placed);

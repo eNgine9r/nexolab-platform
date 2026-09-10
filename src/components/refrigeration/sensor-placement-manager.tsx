@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Pencil, Plus, Replace, Trash2, X } from "lucide-react";
 
 import { RefrigerationIconButton } from "@/components/refrigeration/refrigeration-icon-button";
@@ -13,6 +13,7 @@ import {
   removeConfiguredSensor,
   replaceConfiguredChannel,
   selectableReplacementChannels,
+  sensorSlotCapacity,
   type StagedSensorConfiguration,
   unusedClimateChamberChannels,
   updateConfiguredSensor,
@@ -23,8 +24,6 @@ import {
   type SensorTelemetrySelectionModel,
 } from "@/features/refrigeration/sensor-telemetry-selection";
 
-const DEFAULT_SENSOR_SLOT_CAPACITY = 48;
-const MAX_SENSOR_SLOT_CAPACITY = 48;
 type PickerState = { kind: "add" } | { kind: "replace"; sensorId: string } | null;
 type SelectionModelResult = {
   model: SensorTelemetrySelectionModel | null;
@@ -72,9 +71,18 @@ export function SensorPlacementManager({
   );
   const [picker, setPicker] = useState<PickerState>(null);
   const [search, setSearch] = useState("");
+  const [freshnessNow, setFreshnessNow] = useState(() => Date.now());
   const [error, setError] = useState<string | null>(null);
   const [renamingSensorId, setRenamingSensorId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
+  useEffect(() => {
+    if (picker?.kind !== "add") return;
+    const refreshFreshness = () => setFreshnessNow(Date.now());
+    refreshFreshness();
+    const timer = window.setInterval(refreshFreshness, 1000);
+    return () => window.clearInterval(timer);
+  }, [picker?.kind]);
+
   const selectedSensor = configuration.find((sensor) => sensor.id === editingSensorId) ?? null;
   const pendingChannel = assignable.find((channel) => channel.channelId === pendingChannelId) ?? null;
   const filteredAssignable = useMemo(() => {
@@ -280,7 +288,7 @@ export function SensorPlacementManager({
                   >
                     <span className="block truncate text-xs font-semibold">{label}</span>
                     <span className="mt-0.5 block truncate text-[9px] text-slate-500">
-                      {channel.channelId} · {channelTelemetryLabel(channel)}
+                      {channel.channelId} · {channelTelemetryLabel(channel, freshnessNow)}
                     </span>
                   </button>
                 );
@@ -475,11 +483,6 @@ export function SensorPlacementManager({
       ) : null}
     </section>
   );
-}
-
-export function sensorSlotCapacity(value: number): number {
-  if (!Number.isFinite(value) || value <= 0) return DEFAULT_SENSOR_SLOT_CAPACITY;
-  return Math.min(MAX_SENSOR_SLOT_CAPACITY, Math.max(1, Math.trunc(value)));
 }
 
 function quickChannelLabel(channel: AvailableSensor): string {
