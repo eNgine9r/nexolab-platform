@@ -3,23 +3,23 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-09T13:51:34+03:00",
+  "timestamp": "2026-09-10T09:42:21+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_930_completed_issue_966_selected",
+  "event": "issue_966_completed_issue_965_activated",
   "baselines": {
-    "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
+    "accepted_product_sha": "cb7a533119e42d0ab5481634da37ecf47aa235bd",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 966,
-    "title": "Correct KK2 sensor numbering and Dixell channel mapping from physical panel evidence",
-    "branch": "fix/966-kk2-catalog-correction"
+    "issue": 965,
+    "title": "Simplify sensor placement and marker naming on equipment layouts",
+    "branch": "feat/965-sensor-placement-quick-add"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Complete state-only Issue #983, merge after GREEN state integrity, then begin Issue #966 from current main as the next Ready catalog-correctness dependency for #965.",
+  "next_action": "Merge state-only Issue #986 after GREEN State integrity/NEXOLAB Merge Gate, then begin Issue #965 from current main on feat/965-sensor-placement-quick-add.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

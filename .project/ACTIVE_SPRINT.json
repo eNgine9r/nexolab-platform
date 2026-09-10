@@ -18,14 +18,14 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "c1c7f8bc4988c35bc13436c59750f038ddc59811",
+    "accepted_product_sha": "cb7a533119e42d0ab5481634da37ecf47aa235bd",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
     "active_work_package": {
-      "issue": 966,
-      "title": "Correct KK2 sensor numbering and Dixell channel mapping from physical panel evidence",
-      "branch": "fix/966-kk2-catalog-correction"
+      "issue": 965,
+      "title": "Simplify sensor placement and marker naming on equipment layouts",
+      "branch": "feat/965-sensor-placement-quick-add"
     },
     "next_work_package": null
   },
@@ -3383,8 +3383,33 @@
       "issue": 966,
       "title": "Correct KK2 sensor numbering and Dixell channel mapping from physical panel evidence",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/966-kk2-catalog-correction",
+      "evidence": {
+        "verified_head_sha": "cb7a533119e42d0ab5481634da37ecf47aa235bd",
+        "pull_request": 985,
+        "merge_observation_sha": "3d845803c180fa3d1cbb6f2dcdd1a257a0597dfe",
+        "checks": {
+          "exact_head_workflows": "16_success",
+          "nexolab_merge_gate": "success",
+          "review_threads": "zero_unresolved"
+        },
+        "production_deployment": "not_executed",
+        "production_migration": "not_executed",
+        "k96_k100_hardware_acceptance": "unverified_not_automatically_polled",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 965,
+      "title": "Simplify sensor placement and marker naming on equipment layouts",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        966
+      ],
+      "branch": "feat/965-sensor-placement-quick-add",
       "evidence": {}
     }
   ],
@@ -3815,6 +3840,19 @@
         "merge_sha": "8596a2f3f4fa7f6ae93e0b850a301cea12a24708",
         "state": "closed",
         "unresolved_review_threads": 0
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-10T09:42:21+03:00",
+      "kind": "issue_966_pr_985_merged",
+      "data": {
+        "issue": 966,
+        "pull_request": 985,
+        "verified_head_sha": "cb7a533119e42d0ab5481634da37ecf47aa235bd",
+        "merge_sha": "3d845803c180fa3d1cbb6f2dcdd1a257a0597dfe",
+        "issue_state": "closed_completed",
+        "required_checks": "green"
       }
     }
   ],
