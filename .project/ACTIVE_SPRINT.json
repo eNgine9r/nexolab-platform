@@ -3423,7 +3423,7 @@
       "lifecycle": "review",
       "branch": "fix/988-remote-admin-self-healing",
       "evidence": {
-        "verified_head_sha": "d7052f93b15ceeb905bd643748421bb9d415124c",
+        "verified_head_sha": "f2fd502ba0b2d102246e44cbe3deb1f491a791d4",
         "checks": {
           "targeted_reliability_tests": "success",
           "remote_cgroup_isolation": "success",
@@ -3433,7 +3433,10 @@
           "production_runtime_recovery": "success",
           "persistent_log_payload_minimization": "success",
           "standalone_offline_runtime_contract": "success",
-          "review_p2_findings_addressed": "success"
+          "review_p2_findings_addressed": "success",
+          "effective_journal_bounds": "success",
+          "remote_channel_connectivity_diagnostic": "success",
+          "diagnostic_historical_payload_filter": "success"
         }
       }
     }

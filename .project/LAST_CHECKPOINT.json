@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-10T12:51:00+03:00",
+  "timestamp": "2026-09-10T13:03:53+03:00",
   "actor": "ChatGPT",
-  "event": "issue_988_review_findings_fixed",
+  "event": "issue_988_final_review_hardening_green",
   "baselines": {
     "accepted_product_sha": "cb7a533119e42d0ab5481634da37ecf47aa235bd",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -17,7 +17,7 @@
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "verified_head_sha": "d7052f93b15ceeb905bd643748421bb9d415124c",
+      "verified_head_sha": "f2fd502ba0b2d102246e44cbe3deb1f491a791d4",
       "checks": {
         "targeted_reliability_tests": "success",
         "remote_cgroup_isolation": "success",
@@ -27,12 +27,15 @@
         "production_runtime_recovery": "success",
         "persistent_log_payload_minimization": "success",
         "standalone_offline_runtime_contract": "success",
-        "review_p2_findings_addressed": "success"
+        "review_p2_findings_addressed": "success",
+        "effective_journal_bounds": "success",
+        "remote_channel_connectivity_diagnostic": "success",
+        "diagnostic_historical_payload_filter": "success"
       }
     }
   },
   "observations": [],
-  "next_action": "Push final #988 candidate, verify exact-head CI and zero unresolved review threads, merge when GREEN, then restore Issue #965 as active.",
+  "next_action": "Push final #988 head, require exact-head CI GREEN and zero unresolved review threads, merge, then restore Issue #965 as active.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
