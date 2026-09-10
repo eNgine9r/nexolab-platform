@@ -23,15 +23,11 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 988,
-      "title": "Decouple remote administration from Raspberry Pi Connect and harden Pi recovery",
-      "branch": "fix/988-remote-admin-self-healing"
-    },
-    "next_work_package": {
       "issue": 965,
       "title": "Simplify sensor placement and marker naming on equipment layouts",
       "branch": "feat/965-sensor-placement-quick-add"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -3409,7 +3405,7 @@
       "issue": 965,
       "title": "Simplify sensor placement and marker naming on equipment layouts",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "in_progress",
       "depends_on": [
         966
       ],
@@ -3420,10 +3416,10 @@
       "issue": 988,
       "title": "Decouple remote administration from Raspberry Pi Connect and harden Pi recovery",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "fix/988-remote-admin-self-healing",
       "evidence": {
-        "verified_head_sha": "a09360948ae75d4deaf088d7ffc9e090fc150e05",
+        "verified_head_sha": "87423df3d9bd6e11f0fe0e0786480625e1efedd7",
         "checks": {
           "standalone_offline_runtime_contract": "success",
           "remote_cgroup_isolation": "success",
@@ -3442,9 +3438,12 @@
           "upstream_rotation_persistence_tests_17": "success",
           "live_transient_self_update_handoff": "success",
           "effective_service_policy_after_handoff": "success",
-          "review_p2_findings_addressed": "pending_exact_head_review",
+          "review_p2_findings_addressed": "success",
           "targeted_reliability_tests_11": "success",
-          "staged_release_pre_promotion_verification": "success"
+          "staged_release_pre_promotion_verification": "success",
+          "exact_head_ci": "success",
+          "authenticated_dashboard_same_sha_rerun": "success",
+          "nexolab_merge_gate": "success"
         }
       }
     }
