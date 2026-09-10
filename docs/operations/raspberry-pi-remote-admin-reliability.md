@@ -70,6 +70,14 @@ After any unexpected reconnect or reboot, run:
 
 The diagnostic is read-only and includes current/previous boot signals, power/thermal/watchdog state, zram backing, service/cgroup identity, NetworkManager, Tailscale, Raspberry Pi Connect and SSD USB transport. It probes system/root and kernel-journal readability before using those logs. If either probe is unavailable, the affected evidence sections are explicitly reported as `unavailable` rather than being shown as empty. Run the diagnostic as the normal NEXOLAB user; do not run the whole script with `sudo`, because that would inspect root's user-service manager instead of the `nexolab` user services. Journal access is an evidence-quality condition, not a reason to grant broader privileges automatically.
 
+## Temporary rotated-session persistence pin
+
+Desktop Commander `0.2.48` has a confirmed persisted-session defect: after Supabase rotates a refresh token, the running process updates the fresh token in memory but the released package can leave the old token in `~/.desktop-commander-device/device.json`. A later restart then fails with `Invalid Refresh Token: Already Used`. NEXOLAB temporarily pins upstream PR #685 source commit `7edee255c17101bfe50f684bd61e7f818e552205`, which persists every complete rotated session atomically and drains pending persistence during graceful shutdown. The source pin is explicit in `infrastructure/remote-admin/desktop-commander-source.env`; installation uses immutable `releases/<SHA>` directories and an atomic `current` symlink.
+
+This is an operational dependency workaround, not a NEXOLAB product-runtime dependency. Core monitoring remains offline-capable without Desktop Commander. When the fix is merged and published upstream, replace this temporary source pin through a separate reviewed Work Package rather than switching to a floating `@latest` release.
+
+On Raspberry Pi ARM64, the exact pinned compiled artifact passed upstream `test-remote-session-persistence.js` **17/17** using synthetic sessions only. A live controlled self-update from inside `nexolab-remote-desktop-commander.service` then completed through a separate transient systemd unit: PID `276367 → 279190`, `NRestarts=0`, `last-handoff.env=status=success`, with no `Invalid Refresh Token`, `Already Used`, or startup-failure log after reconnect.
+
 ## Host acceptance evidence — 2026-09-10
 
 The staged legacy handoff removed the `remote-desktop` tmux server and activated `nexolab-remote-desktop-commander.service` without running two remote processes concurrently. The service became enabled/active in its own cgroup.

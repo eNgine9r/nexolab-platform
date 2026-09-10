@@ -116,6 +116,14 @@ for unit in rpi-connect.service nexolab-remote-desktop-commander.service; do
     | paste -sd ' ' - || printf 'details=unavailable\n'
 done
 
+HANDOFF_STATE="${HOME}/.local/state/nexolab-remote-admin/last-handoff.env"
+if [[ -r "${HANDOFF_STATE}" ]]; then
+  echo 'remote_admin_last_handoff=present'
+  sed -n -E '/^(timestamp|service|status|exit_code)=/p' "${HANDOFF_STATE}"
+else
+  echo 'remote_admin_last_handoff=none'
+fi
+
 section "SSD USB TRANSPORT"
 lsusb -t 2>/dev/null || true
 if [[ "${KERNEL_JOURNAL_ACCESS}" == "available" ]]; then

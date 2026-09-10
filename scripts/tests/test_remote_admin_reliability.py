@@ -13,6 +13,8 @@ JOURNAL = ROOT / "infrastructure/systemd/journald/60-nexolab-persistent.conf"
 USER_INSTALLER = ROOT / "scripts/install-raspberry-pi-remote-admin.sh"
 JOURNAL_INSTALLER = ROOT / "scripts/install-raspberry-pi-persistent-journal.sh"
 DIAGNOSTIC = ROOT / "scripts/diagnose-raspberry-pi-remote-admin.sh"
+VERIFIER = ROOT / "scripts/verify-raspberry-pi-remote-admin-service.sh"
+SOURCE_PIN = ROOT / "infrastructure/remote-admin/desktop-commander-source.env"
 
 
 class RemoteAdminReliabilityTests(unittest.TestCase):
@@ -23,7 +25,7 @@ class RemoteAdminReliabilityTests(unittest.TestCase):
         self.assertIn("Restart=always", text)
         self.assertIn("StartLimitIntervalSec=0", text)
         self.assertIn(f"/.nvm/versions/node/v{node_version}/bin/node", text)
-        self.assertIn("@wonderwhy-er/desktop-commander/dist/index.js remote", text)
+        self.assertIn("/nexolab-remote-admin/current/node_modules/@wonderwhy-er/desktop-commander/dist/index.js remote", text)
         self.assertIn("WantedBy=default.target", text)
         self.assertIn("StandardOutput=null", text)
         self.assertIn("StandardError=journal", text)
@@ -31,6 +33,23 @@ class RemoteAdminReliabilityTests(unittest.TestCase):
         self.assertNotIn("npx", text)
         self.assertNotIn("@latest", text)
         self.assertNotIn("rpi-connect.service", text)
+
+    def test_remote_commander_source_is_exactly_pinned(self) -> None:
+        text = SOURCE_PIN.read_text(encoding="utf-8")
+        installer = USER_INSTALLER.read_text(encoding="utf-8")
+        verifier = VERIFIER.read_text(encoding="utf-8")
+
+        self.assertIn("DESKTOP_COMMANDER_VERSION=0.2.48", text)
+        self.assertIn("DESKTOP_COMMANDER_SOURCE_REPO=https://github.com/Darmonia/DesktopCommanderMCP.git", text)
+        self.assertIn("DESKTOP_COMMANDER_SOURCE_SHA=7edee255c17101bfe50f684bd61e7f818e552205", text)
+        self.assertIn("releases/${DESKTOP_COMMANDER_SOURCE_SHA}", installer)
+        self.assertIn("git+${DESKTOP_COMMANDER_SOURCE_REPO}#${DESKTOP_COMMANDER_SOURCE_SHA}", installer)
+        self.assertIn("writePersistedConfigSnapshot", installer)
+        self.assertIn("Existing immutable release failed verification; refusing mutation", installer)
+        self.assertIn("onSessionRotated", installer)
+        self.assertIn("Unexpected current release", verifier)
+        self.assertIn("Source SHA provenance mismatch", verifier)
+        self.assertIn("Rotated-session persistence missing", verifier)
 
     def test_journald_policy_is_persistent_and_bounded(self) -> None:
         text = JOURNAL.read_text(encoding="utf-8")
@@ -43,7 +62,7 @@ class RemoteAdminReliabilityTests(unittest.TestCase):
         self.assertNotIn("ForwardToNetwork", text)
 
     def test_shell_scripts_parse_and_installers_support_dry_run(self) -> None:
-        scripts = (USER_INSTALLER, JOURNAL_INSTALLER, DIAGNOSTIC)
+        scripts = (USER_INSTALLER, JOURNAL_INSTALLER, DIAGNOSTIC, VERIFIER)
         for script in scripts:
             subprocess.run(["bash", "-n", str(script)], cwd=ROOT, check=True)
 
@@ -60,7 +79,8 @@ class RemoteAdminReliabilityTests(unittest.TestCase):
             )
             self.assertIn("dry_run=true", user.stdout)
             self.assertIn("desktop_commander_version=0.2.48", user.stdout)
-            self.assertIn("nexolab-remote-desktop-commander.service", user.stdout)
+            self.assertIn("desktop_commander_source_sha=7edee255c17101bfe50f684bd61e7f818e552205", user.stdout)
+            self.assertIn("/releases/7edee255c17101bfe50f684bd61e7f818e552205", user.stdout)
 
             deferred = subprocess.run(
                 ["bash", str(USER_INSTALLER), "--dry-run", "--defer-start"],
@@ -85,12 +105,35 @@ class RemoteAdminReliabilityTests(unittest.TestCase):
 
     def test_installers_fail_closed_and_apply_updated_service(self) -> None:
         user_text = USER_INSTALLER.read_text(encoding="utf-8")
+        verifier_text = VERIFIER.read_text(encoding="utf-8")
         journal_text = JOURNAL_INSTALLER.read_text(encoding="utf-8")
 
-        self.assertIn('systemctl --user restart "${SERVICE_NAME}"', user_text)
+        self.assertIn('systemd-run --user --quiet --collect', user_text)
+        self.assertIn('"${VERIFIER}" --policy-only', user_text)
+        self.assertIn('"${VERIFIER}" --restart', user_text)
         self.assertIn("Refusing --defer-start while the managed service is already active", user_text)
+        self.assertIn("Refusing to restart the managed service from inside its own cgroup", verifier_text)
+        self.assertIn('systemctl --user restart "${SERVICE_NAME}"', verifier_text)
         self.assertIn("[[ ! -r /proc/device-tree/model ]] ||", journal_text)
         self.assertIn("without verified Raspberry Pi identity", journal_text)
+
+    def test_verifier_rejects_effective_service_overrides(self) -> None:
+        text = VERIFIER.read_text(encoding="utf-8")
+
+        self.assertIn("FragmentPath", text)
+        self.assertIn("DropInPaths", text)
+        self.assertIn("Restart", text)
+        self.assertIn("StandardOutput", text)
+        self.assertIn("StandardError", text)
+        self.assertIn("KillMode", text)
+        self.assertIn("ExecStart", text)
+        self.assertIn("Refusing effective service drop-ins", text)
+        self.assertIn("Unexpected Restart policy", text)
+        self.assertIn("Unexpected StandardOutput policy", text)
+        self.assertIn("Unexpected StandardError policy", text)
+        self.assertIn("Unexpected ExecStart", text)
+        self.assertIn("NRestarts", text)
+        self.assertIn("Service did not remain stable after restart", text)
 
     def test_journal_installer_checks_every_effective_bound(self) -> None:
         text = JOURNAL_INSTALLER.read_text(encoding="utf-8")
