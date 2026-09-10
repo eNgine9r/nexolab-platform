@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-10T17:20:00+03:00",
+  "timestamp": "2026-09-10T19:31:14+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_965_candidate_ready_for_exact_head_ci",
+  "event": "issue_965_review_findings_addressed",
   "baselines": {
     "accepted_product_sha": "cb7a533119e42d0ab5481634da37ecf47aa235bd",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -17,9 +17,9 @@
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "verified_head_sha": "1ec18502ff3bbcbd710da240a2875a991886d3c8",
+      "verified_head_sha": "1fa285a7a0e89f58e279a38838eda2bb1441528d",
       "checks": {
-        "focused_sensor_placement_tests_14": "success",
+        "focused_sensor_placement_tests_17": "success",
         "targeted_eslint": "success",
         "targeted_prettier": "success",
         "git_diff_check": "success",
@@ -28,7 +28,11 @@
         "direct_canvas_placement": "success",
         "initial_snap_semantics": "success",
         "physical_inventory_default_labels": "success",
-        "atomic_save_contract": "covered_by_browser_candidate",
+        "picker_freshness_clock_refresh": "success",
+        "legacy_zero_capacity_consistency": "success",
+        "free_deterministic_slot_snap_targets": "success",
+        "late_review_findings_3": "addressed_locally",
+        "previous_exact_head_chromium_4": "success",
         "chromium_acceptance": "pending_exact_head_ci",
         "typecheck": "pending_exact_head_ci",
         "production_build": "pending_exact_head_ci",
@@ -39,8 +43,22 @@
       "hardware_write": "none"
     }
   },
-  "observations": [],
-  "next_action": "Push Issue #965 candidate, open one focused PR, require exact-head frontend/build and Refrigeration Browser acceptance, resolve review findings, and merge only when GREEN.",
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-09-10T19:31:14+03:00",
+      "kind": "pull_request_review",
+      "data": {
+        "issue": 965,
+        "pull_request": 992,
+        "previous_exact_head_sha": "c478d7ed5b802b8e5e3eabb28dd00d55ea8c5240",
+        "previous_exact_head_ci": "success",
+        "late_review_findings": 3,
+        "implementation_fix_sha": "1fa285a7a0e89f58e279a38838eda2bb1441528d"
+      }
+    }
+  ],
+  "next_action": "Push the #965 three-finding review fix and state anchor, require a fresh exact-head Chromium/typecheck/build/merge-gate run, resolve only verified review threads, and merge only when GREEN.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
