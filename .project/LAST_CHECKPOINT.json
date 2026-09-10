@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-10T19:31:14+03:00",
+  "timestamp": "2026-09-10T22:49:45+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_965_review_findings_addressed",
+  "event": "issue_965_second_late_review_findings_addressed",
   "baselines": {
     "accepted_product_sha": "cb7a533119e42d0ab5481634da37ecf47aa235bd",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -17,9 +17,8 @@
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "verified_head_sha": "1fa285a7a0e89f58e279a38838eda2bb1441528d",
+      "verified_head_sha": "755ea1bde77ca5b84dd5adb83965935e820e24ac",
       "checks": {
-        "focused_sensor_placement_tests_17": "success",
         "targeted_eslint": "success",
         "targeted_prettier": "success",
         "git_diff_check": "success",
@@ -36,7 +35,13 @@
         "chromium_acceptance": "pending_exact_head_ci",
         "typecheck": "pending_exact_head_ci",
         "production_build": "pending_exact_head_ci",
-        "review_threads": "pending_exact_head_review"
+        "review_threads": "pending_exact_head_review",
+        "focused_sensor_placement_tests_26": "success",
+        "rename_staged_before_global_save": "success",
+        "rename_enter_blur_escape_semantics": "success",
+        "metadata_refresh_preserves_active_draft": "success",
+        "binding_identity_churn_no_rehydrate": "success",
+        "late_review_findings_2": "addressed_locally"
       },
       "production_deployment": "not_executed",
       "modbus_write": "none",
@@ -46,19 +51,20 @@
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-09-10T19:31:14+03:00",
+      "observed_at": "2026-09-10T22:49:45+03:00",
       "kind": "pull_request_review",
       "data": {
         "issue": 965,
         "pull_request": 992,
-        "previous_exact_head_sha": "c478d7ed5b802b8e5e3eabb28dd00d55ea8c5240",
+        "previous_exact_head_sha": "286be2e84645fb9c5d300803cd9b6f54ed48bcdb",
         "previous_exact_head_ci": "success",
-        "late_review_findings": 3,
-        "implementation_fix_sha": "1fa285a7a0e89f58e279a38838eda2bb1441528d"
+        "late_review_findings": 2,
+        "implementation_fix_sha": "755ea1bde77ca5b84dd5adb83965935e820e24ac",
+        "focused_tests": "26_passed"
       }
     }
   ],
-  "next_action": "Push the #965 three-finding review fix and state anchor, require a fresh exact-head Chromium/typecheck/build/merge-gate run, resolve only verified review threads, and merge only when GREEN.",
+  "next_action": "Commit and push the #965 two-finding late-review fix state anchor, require fresh exact-head Chromium/typecheck/build/merge-gate verification, resolve only verified review threads, and merge only when GREEN.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
