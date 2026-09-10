@@ -1,0 +1,18 @@
+[Unit]
+Description=NEXOLAB Remote Desktop Commander
+Documentation=https://github.com/eNgine9r/nexolab-platform/issues/988
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Environment=HOME=/home/nexolab
+Environment=PATH=/home/nexolab/.nvm/versions/node/v22.23.1/bin:/usr/local/bin:/usr/bin:/bin
+WorkingDirectory=/home/nexolab
+ExecStart=/home/nexolab/.nvm/versions/node/v22.23.1/bin/node /home/nexolab/.local/share/nexolab-remote-admin/node_modules/@wonderwhy-er/desktop-commander/dist/index.js remote
+Restart=always
+RestartSec=10s
+TimeoutStopSec=20s
+KillMode=mixed
+
+[Install]
+WantedBy=default.target
