@@ -53,11 +53,7 @@ source "${SOURCE_CONFIG}"
 RELEASES_DIR="${PACKAGE_BASE}/releases"
 RELEASE_DIR="${RELEASES_DIR}/${DESKTOP_COMMANDER_SOURCE_SHA}"
 CURRENT_LINK="${PACKAGE_BASE}/current"
-PROVENANCE_FILE="${RELEASE_DIR}/NEXOLAB_SOURCE.env"
 PACKAGE_SPEC="git+${DESKTOP_COMMANDER_SOURCE_REPO}#${DESKTOP_COMMANDER_SOURCE_SHA}"
-PACKAGE_JSON="${RELEASE_DIR}/node_modules/@wonderwhy-er/desktop-commander/package.json"
-DEVICE_JS="${RELEASE_DIR}/node_modules/@wonderwhy-er/desktop-commander/dist/remote-device/device.js"
-CHANNEL_JS="${RELEASE_DIR}/node_modules/@wonderwhy-er/desktop-commander/dist/remote-device/remote-channel.js"
 NODE="${NODE_BIN_DIR}/node"
 NPM="${NODE_BIN_DIR}/npm"
 
@@ -85,15 +81,20 @@ if [[ "${DEFER_START}" == "1" ]] && systemctl --user is-active --quiet "${SERVIC
 fi
 
 verify_release() {
-  [[ -f "${PACKAGE_JSON}" && -f "${PROVENANCE_FILE}" && -f "${DEVICE_JS}" && -f "${CHANNEL_JS}" ]] || return 1
+  local release_path="${1:-${RELEASE_DIR}}"
+  local provenance_file="${release_path}/NEXOLAB_SOURCE.env"
+  local package_json="${release_path}/node_modules/@wonderwhy-er/desktop-commander/package.json"
+  local device_js="${release_path}/node_modules/@wonderwhy-er/desktop-commander/dist/remote-device/device.js"
+  local channel_js="${release_path}/node_modules/@wonderwhy-er/desktop-commander/dist/remote-device/remote-channel.js"
   local installed_version
-  installed_version="$("${NODE}" -e 'console.log(require(process.argv[1]).version)' "${PACKAGE_JSON}")"
+  [[ -f "${package_json}" && -f "${provenance_file}" && -f "${device_js}" && -f "${channel_js}" ]] || return 1
+  installed_version="$("${NODE}" -e 'console.log(require(process.argv[1]).version)' "${package_json}")"
   [[ "${installed_version}" == "${DESKTOP_COMMANDER_VERSION}" ]] || return 1
-  grep -Fxq "source_repo=${DESKTOP_COMMANDER_SOURCE_REPO}" "${PROVENANCE_FILE}" || return 1
-  grep -Fxq "source_sha=${DESKTOP_COMMANDER_SOURCE_SHA}" "${PROVENANCE_FILE}" || return 1
-  grep -Fq 'onSessionRotated' "${DEVICE_JS}" || return 1
-  grep -Fq 'onSessionRotated' "${CHANNEL_JS}" || return 1
-  grep -Fq 'writePersistedConfigSnapshot' "${DEVICE_JS}" || return 1
+  grep -Fxq "source_repo=${DESKTOP_COMMANDER_SOURCE_REPO}" "${provenance_file}" || return 1
+  grep -Fxq "source_sha=${DESKTOP_COMMANDER_SOURCE_SHA}" "${provenance_file}" || return 1
+  grep -Fq 'onSessionRotated' "${device_js}" || return 1
+  grep -Fq 'onSessionRotated' "${channel_js}" || return 1
+  grep -Fq 'writePersistedConfigSnapshot' "${device_js}" || return 1
 }
 
 mkdir -p "${RELEASES_DIR}" "${SYSTEMD_USER_DIR}"
@@ -114,9 +115,10 @@ else
     printf 'source_sha=%s\n' "${DESKTOP_COMMANDER_SOURCE_SHA}"
   } >"${STAGING_DIR}/NEXOLAB_SOURCE.env"
   chmod 0644 "${STAGING_DIR}/NEXOLAB_SOURCE.env"
+  verify_release "${STAGING_DIR}" || { echo 'Staged pinned Desktop Commander release failed verification.' >&2; exit 1; }
   mv -- "${STAGING_DIR}" "${RELEASE_DIR}"
   trap - EXIT
-  verify_release || { echo 'Installed pinned Desktop Commander release failed verification.' >&2; exit 1; }
+  verify_release "${RELEASE_DIR}" || { echo 'Installed pinned Desktop Commander release failed post-promotion verification.' >&2; exit 1; }
 fi
 
 CURRENT_TMP="${PACKAGE_BASE}/.current.$$"

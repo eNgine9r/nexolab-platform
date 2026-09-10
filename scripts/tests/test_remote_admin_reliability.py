@@ -51,6 +51,17 @@ class RemoteAdminReliabilityTests(unittest.TestCase):
         self.assertIn("Source SHA provenance mismatch", verifier)
         self.assertIn("Rotated-session persistence missing", verifier)
 
+    def test_staged_remote_release_is_verified_before_immutable_promotion(self) -> None:
+        installer = USER_INSTALLER.read_text(encoding="utf-8")
+        verify_staging = 'verify_release "${STAGING_DIR}"'
+        promote = 'mv -- "${STAGING_DIR}" "${RELEASE_DIR}"'
+
+        self.assertIn(verify_staging, installer)
+        self.assertIn("Staged pinned Desktop Commander release failed verification", installer)
+        self.assertIn(promote, installer)
+        self.assertLess(installer.index(verify_staging), installer.index(promote))
+        self.assertGreater(installer.index("trap - EXIT"), installer.index(promote))
+
     def test_journald_policy_is_persistent_and_bounded(self) -> None:
         text = JOURNAL.read_text(encoding="utf-8")
 
