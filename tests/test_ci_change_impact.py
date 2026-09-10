@@ -75,6 +75,25 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertEqual(result["unknown_files"], [])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_remote_admin_reliability_is_known_deployment_runtime(self) -> None:
+        result = classify(
+            [
+                "scripts/diagnose-raspberry-pi-remote-admin.sh",
+                "scripts/install-raspberry-pi-persistent-journal.sh",
+                "scripts/install-raspberry-pi-remote-admin.sh",
+                "scripts/tests/standalone-offline-runtime-contract.sh",
+                "scripts/tests/test_remote_admin_reliability.py",
+                "infrastructure/systemd/journald/60-nexolab-persistent.conf",
+                "infrastructure/systemd/user/nexolab-remote-desktop-commander.service",
+                "docs/operations/raspberry-pi-remote-admin-reliability.md",
+                ".project/CURRENT_STATE.md",
+            ]
+        )
+        self.assertEqual(result["classes"], ["deployment_runtime"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(result["verification"]["required_external_workflows"], [])
+
     def test_unregistered_recovery_tooling_remains_fail_closed(self) -> None:
         result = classify(["scripts/run-disaster-recovery-acceptance.sh"])
         self.assertTrue(result["fail_closed"])
