@@ -17,19 +17,20 @@
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "verified_head_sha": "8055c31e0106bf82e066cf4caa5748f02ea5a34f",
+      "verified_head_sha": "fb29292f97e0189a247f7a9d74ebeba3c4a73657",
       "checks": {
         "targeted_reliability_tests": "success",
         "remote_cgroup_isolation": "success",
         "remote_self_healing": "success",
         "controlled_reboot_acceptance": "success",
         "persistent_journal_previous_boot": "success",
-        "production_runtime_recovery": "success"
+        "production_runtime_recovery": "success",
+        "persistent_log_payload_minimization": "success"
       }
     }
   },
   "observations": [],
-  "next_action": "Publish PR #988 candidate, verify exact-head CI, merge when GREEN, then restore Issue #965 as active.",
+  "next_action": "Publish updated PR #989 head, verify exact-head CI and review, merge when GREEN, then restore Issue #965 as active.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
