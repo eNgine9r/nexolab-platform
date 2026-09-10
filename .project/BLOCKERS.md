@@ -1,6 +1,6 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-09
+Updated: 2026-09-10
 
 ## Issue #968 — SSD migration completed; simultaneous-media boot verified
 
@@ -155,11 +155,11 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-08B are completed through GREEN focused PRs, including #953 / PR #954, #957 / PR #958 and #960 / PR #962. RFX state remains completed through #960; current independent maintenance is tracked separately by the active Work Package.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — Issue #930 completed; Issue #966 selected Ready
+## Sprint execution gate — Issue #966 completed; Issue #965 active
 
 RFX-08B / #960 is completed through exact verified product head `c1c7f8bc4988c35bc13436c59750f038ddc59811`, PR #962 and observed squash merge `044e2feeda21e6f84d2b0a589ef3678a1004a923`. All 20 exact-head workflows are GREEN, including Telemetry Service, disconnected Offline Bundle, same-SHA Authenticated Dashboard rerun and Core CI / NEXOLAB Merge Gate; final Team Lead review is clean and review threads are zero. Production runtime remains on deployed source `9a3556b25b257396d15db80af591d1cc3684b8f7`.
 
-Issue #933 is **cleared/completed**. Exact head `30eb8b9fa1823dd2531093e8e51f8ad37580d43b` passed the focused and full Device Agent verification, fresh packaged-image tests, Container Supply Chain, Offline Bundle and the same-SHA Authenticated Dashboard rerun; Core CI attempt 2 passed the NEXOLAB Merge Gate. Final Team Lead review was clean with zero unresolved threads. PR #976 squash-merged as `8596a2f3f4fa7f6ae93e0b850a301cea12a24708` and Issue #933 closed. No production deployment, runtime restart, Modbus/controller write or hardware write occurred. #930 is completed: PR #982 exact head `17d2277e27d5bcb5660362469391eef7849b6ebf` passed all 11 routed workflows with zero unresolved review threads, then squash-merged to `main` as `e53c1e1ce849cb14e4074412d3070d155c86aa80`. Delta Ready audit selects #966 next; it is not blocked and is the catalog-correctness dependency for #965. Production migration/activation remains a separate explicit gate. #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
+Issue #933 is **cleared/completed**. Exact head `30eb8b9fa1823dd2531093e8e51f8ad37580d43b` passed the focused and full Device Agent verification, fresh packaged-image tests, Container Supply Chain, Offline Bundle and the same-SHA Authenticated Dashboard rerun; Core CI attempt 2 passed the NEXOLAB Merge Gate. Final Team Lead review was clean with zero unresolved threads. PR #976 squash-merged as `8596a2f3f4fa7f6ae93e0b850a301cea12a24708` and Issue #933 closed. No production deployment, runtime restart, Modbus/controller write or hardware write occurred. #930 is completed. #966 is also **cleared/completed** through PR #985: exact head `cb7a533119e42d0ab5481634da37ecf47aa235bd` passed all 16 routed workflows plus NEXOLAB Merge Gate with zero unresolved review threads and merged as `3d845803c180fa3d1cbb6f2dcdd1a257a0597dfe`. #965 is now active and has no repository dependency blocker. Production migration/activation remains a separate explicit gate; K96–K100 remain hardware-unverified and excluded from automatic production polling. #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
 
 ## Issue #978 — new libexpat1 HIGH supply-chain gate
 
