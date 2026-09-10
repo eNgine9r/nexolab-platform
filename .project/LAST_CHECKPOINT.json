@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-10T13:16:13+03:00",
+  "timestamp": "2026-09-10T13:37:47+03:00",
   "actor": "ChatGPT",
-  "event": "issue_988_ci_routing_reconciled",
+  "event": "issue_988_journal_access_diagnostic_hardened",
   "baselines": {
     "accepted_product_sha": "cb7a533119e42d0ab5481634da37ecf47aa235bd",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -17,7 +17,7 @@
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "verified_head_sha": "bc4a64d7065a10ccd9cbc2524a245fb75552ebc3",
+      "verified_head_sha": "c251e217896e84f6a1c488159bbf87a8a78f3243",
       "checks": {
         "targeted_reliability_tests": "success",
         "remote_cgroup_isolation": "success",
@@ -31,13 +31,14 @@
         "effective_journal_bounds": "success",
         "remote_channel_connectivity_diagnostic": "success",
         "diagnostic_historical_payload_filter": "success",
+        "diagnostic_journal_access_visibility": "success",
         "ci_impact_routing": "success",
         "ci_governance_tests_176": "success"
       }
     }
   },
   "observations": [],
-  "next_action": "Push final #988 CI-routing head, require exact-head routed workflows and NEXOLAB Merge Gate GREEN with zero unresolved review threads, then merge and restore Issue #965.",
+  "next_action": "Push the #988 journal-access diagnostic fix, require exact-head routed workflows and NEXOLAB Merge Gate GREEN with zero unresolved review threads, then merge and restore Issue #965.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
