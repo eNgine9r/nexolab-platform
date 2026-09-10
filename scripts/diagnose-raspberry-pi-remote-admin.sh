@@ -23,6 +23,29 @@ user_service_state() {
   printf '%s active=' "${unit}"
   systemctl --user is-active "${unit}" 2>/dev/null || printf 'unknown\n'
 }
+
+journal_probe_access() {
+  local output rc=0
+  if output="$(journalctl "$@" -n 1 --no-pager 2>&1)"; then
+    rc=0
+  else
+    rc=$?
+  fi
+  if ((rc != 0)) || grep -Eqi 'insufficient permissions|permission denied|not seeing messages from other users|No journal files were opened' <<<"${output}"; then
+    return 1
+  fi
+  [[ -n "${output}" ]] && ! grep -qx -- '-- No entries --' <<<"${output}"
+}
+
+SYSTEM_JOURNAL_ACCESS=unavailable
+KERNEL_JOURNAL_ACCESS=unavailable
+if journal_probe_access -b _UID=0; then
+  SYSTEM_JOURNAL_ACCESS=available
+fi
+if journal_probe_access -b -k; then
+  KERNEL_JOURNAL_ACCESS=available
+fi
+
 section "HOST"
 printf 'timestamp='; date -Is
 printf 'hostname='; hostname
@@ -30,7 +53,13 @@ printf 'boot_id='; cat /proc/sys/kernel/random/boot_id
 printf 'uptime='; uptime -p
 printf 'root='; findmnt -no SOURCE,FSTYPE / 2>/dev/null || true
 printf 'boot='; findmnt -no SOURCE,FSTYPE /boot/firmware 2>/dev/null || true
-journalctl --list-boots --no-pager 2>/dev/null | tail -5 || true
+printf 'system_journal_access=%s\n' "${SYSTEM_JOURNAL_ACCESS}"
+printf 'kernel_journal_access=%s\n' "${KERNEL_JOURNAL_ACCESS}"
+if [[ "${SYSTEM_JOURNAL_ACCESS}" == "available" ]]; then
+  journalctl --list-boots --no-pager 2>/dev/null | tail -5 || true
+else
+  echo 'journal_boot_list=unavailable'
+fi
 
 section "MEMORY AND SWAP"
 free -h || true
@@ -89,23 +118,38 @@ done
 
 section "SSD USB TRANSPORT"
 lsusb -t 2>/dev/null || true
-journalctl -b -k --no-pager 2>/dev/null \
-  | grep -Ei 'uas|usb.*reset|usb disconnect|I/O error|ext4.*error|sda.*error' \
-  | tail -60 || true
+if [[ "${KERNEL_JOURNAL_ACCESS}" == "available" ]]; then
+  journalctl -b -k --no-pager 2>/dev/null \
+    | grep -Ei 'uas|usb.*reset|usb disconnect|I/O error|ext4.*error|sda.*error' \
+    | tail -60 || true
+else
+  echo 'ssd_kernel_journal=unavailable'
+fi
+
 section "CURRENT BOOT FAILURE SIGNALS"
-journalctl -b --no-pager 2>/dev/null \
-  _TRANSPORT=kernel \
-  + SYSLOG_IDENTIFIER=systemd \
-  + SYSLOG_IDENTIFIER=systemd-shutdown \
-  + SYSLOG_IDENTIFIER=systemd-oomd \
-  + SYSLOG_IDENTIFIER=NetworkManager \
-  + SYSLOG_IDENTIFIER=tailscaled \
-  + SYSLOG_IDENTIFIER=rpi-connect \
-  | grep -Ei 'watchdog|under.?voltage|oom|out of memory|killed process|thermal|I/O error|ext4.*error|usb.*reset|usb disconnect|hung task|blocked for more than|network is unreachable' \
-  | tail -120 || true
+if [[ "${SYSTEM_JOURNAL_ACCESS}" == "available" && "${KERNEL_JOURNAL_ACCESS}" == "available" ]]; then
+  journalctl -b --no-pager 2>/dev/null \
+    _TRANSPORT=kernel \
+    + SYSLOG_IDENTIFIER=systemd \
+    + SYSLOG_IDENTIFIER=systemd-shutdown \
+    + SYSLOG_IDENTIFIER=systemd-oomd \
+    + SYSLOG_IDENTIFIER=NetworkManager \
+    + SYSLOG_IDENTIFIER=tailscaled \
+    + SYSLOG_IDENTIFIER=rpi-connect \
+    | grep -Ei 'watchdog|under.?voltage|oom|out of memory|killed process|thermal|I/O error|ext4.*error|usb.*reset|usb disconnect|hung task|blocked for more than|network is unreachable' \
+    | tail -120 || true
+else
+  echo 'current_boot_failure_signals=unavailable'
+  printf 'current_boot_system_journal_access=%s\n' "${SYSTEM_JOURNAL_ACCESS}"
+  printf 'current_boot_kernel_journal_access=%s\n' "${KERNEL_JOURNAL_ACCESS}"
+fi
 
 section "PREVIOUS BOOT FAILURE SIGNALS"
-if journalctl -b -1 -n 1 --no-pager >/dev/null 2>&1; then
+if [[ "${SYSTEM_JOURNAL_ACCESS}" != "available" || "${KERNEL_JOURNAL_ACCESS}" != "available" ]]; then
+  echo 'previous_boot_failure_signals=unavailable'
+  printf 'previous_boot_system_journal_access=%s\n' "${SYSTEM_JOURNAL_ACCESS}"
+  printf 'previous_boot_kernel_journal_access=%s\n' "${KERNEL_JOURNAL_ACCESS}"
+elif journalctl -b -1 -n 1 --no-pager >/dev/null 2>&1; then
   journalctl -b -1 --no-pager 2>/dev/null \
     _TRANSPORT=kernel \
     + SYSLOG_IDENTIFIER=systemd \

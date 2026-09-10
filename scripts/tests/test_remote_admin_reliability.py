@@ -114,6 +114,34 @@ class RemoteAdminReliabilityTests(unittest.TestCase):
         self.assertIn("SYSLOG_IDENTIFIER=tailscaled", text)
         self.assertIn("SYSLOG_IDENTIFIER=rpi-connect", text)
 
+    def test_diagnostic_surfaces_missing_system_journal_access(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fake_journalctl = Path(temp_dir) / "journalctl"
+            fake_journalctl.write_text(
+                "#!/usr/bin/env bash\n"
+                "echo 'Hint: You are currently not seeing messages from other users and the system.' >&2\n"
+                "echo '-- No entries --'\n"
+                "exit 0\n",
+                encoding="utf-8",
+            )
+            fake_journalctl.chmod(0o755)
+            env = os.environ.copy()
+            env["PATH"] = f"{temp_dir}:{env['PATH']}"
+            result = subprocess.run(
+                ["bash", str(DIAGNOSTIC)],
+                cwd=ROOT,
+                env=env,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertIn("system_journal_access=unavailable", result.stdout)
+        self.assertIn("kernel_journal_access=unavailable", result.stdout)
+        self.assertIn("journal_boot_list=unavailable", result.stdout)
+        self.assertIn("current_boot_failure_signals=unavailable", result.stdout)
+        self.assertIn("previous_boot_failure_signals=unavailable", result.stdout)
+
     def test_diagnostic_script_remains_read_only(self) -> None:
         text = DIAGNOSTIC.read_text(encoding="utf-8")
         forbidden = (

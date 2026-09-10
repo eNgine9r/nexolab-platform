@@ -68,7 +68,7 @@ After any unexpected reconnect or reboot, run:
 ./scripts/diagnose-raspberry-pi-remote-admin.sh
 ```
 
-The diagnostic is read-only and includes current/previous boot signals, power/thermal/watchdog state, zram backing, service/cgroup identity, NetworkManager, Tailscale, Raspberry Pi Connect and SSD USB transport.
+The diagnostic is read-only and includes current/previous boot signals, power/thermal/watchdog state, zram backing, service/cgroup identity, NetworkManager, Tailscale, Raspberry Pi Connect and SSD USB transport. It probes system/root and kernel-journal readability before using those logs. If either probe is unavailable, the affected evidence sections are explicitly reported as `unavailable` rather than being shown as empty. Run the diagnostic as the normal NEXOLAB user; do not run the whole script with `sudo`, because that would inspect root's user-service manager instead of the `nexolab` user services. Journal access is an evidence-quality condition, not a reason to grant broader privileges automatically.
 
 ## Host acceptance evidence — 2026-09-10
 
