@@ -13,6 +13,10 @@ Restart=always
 RestartSec=10s
 TimeoutStopSec=20s
 KillMode=mixed
+# Do not persist normal MCP tool-call payloads in journald.
+StandardOutput=null
+StandardError=journal
+SyslogIdentifier=nexolab-remote-desktop-commander
 
 [Install]
 WantedBy=default.target
