@@ -213,6 +213,27 @@ export function attachPhysicalSensorInventory(
   }));
 }
 
+export function refreshStagedSensorChannelMetadata(
+  current: readonly StagedSensorConfiguration[],
+  channels: readonly AvailableSensor[],
+): StagedSensorConfiguration[] {
+  const channelById = new Map(channels.map((channel) => [channel.channelId, channel]));
+  return current.map((sensor) => {
+    const channel = channelById.get(sensor.id);
+    if (!channel) return sensor;
+    return {
+      ...sensor,
+      name: sensorName(channel, sensor.id),
+      temperatureC: channel.latestValue,
+      status: statusFromQuality(channel),
+      updatedAt: channel.capturedAt,
+      trend: channel.latestValue === null ? [] : [channel.latestValue],
+      metric: channel.metric,
+      unit: channel.unit,
+    };
+  });
+}
+
 export function sensorSlotCapacity(value: number): number {
   if (!Number.isFinite(value) || value <= 0) return DEFAULT_SENSOR_SLOT_CAPACITY;
   return Math.min(MAX_SENSOR_SLOT_CAPACITY, Math.max(1, Math.trunc(value)));

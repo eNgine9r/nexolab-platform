@@ -234,20 +234,55 @@ describe("SensorPlacementManager", () => {
     expect(screen.queryByTestId("equipment-map-replace-telemetry-selector")).not.toBeInTheDocument();
   });
 
-  it("commits inline rename with Enter, cancels with Escape, and keeps remove advanced", () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    const { onConfigurationChange, onEditingSensorIdChange } = renderManager({
+  it("stages inline rename immediately and trims it on blur", () => {
+    const { onConfigurationChange } = renderManager({
       configuration: [configured],
       editingSensorId: configured.id,
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Перейменувати маркер 01F" }));
     const rename = screen.getByRole("textbox", { name: "Нова назва маркера" });
-    fireEvent.change(rename, { target: { value: "Тест-пакет 01" } });
-    fireEvent.keyDown(rename, { key: "Enter" });
-    expect(onConfigurationChange).toHaveBeenCalledWith([
+    fireEvent.change(rename, { target: { value: "  Тест-пакет 01  " } });
+    expect(onConfigurationChange).toHaveBeenLastCalledWith([
+      expect.objectContaining({ id: configured.id, label: "  Тест-пакет 01  " }),
+    ]);
+
+    fireEvent.blur(rename);
+    expect(onConfigurationChange).toHaveBeenLastCalledWith([
       expect.objectContaining({ id: configured.id, label: "Тест-пакет 01" }),
     ]);
+  });
+
+  it("commits inline rename with Enter and restores the original label with Escape", () => {
+    const { onConfigurationChange } = renderManager({
+      configuration: [configured],
+      editingSensorId: configured.id,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Перейменувати маркер 01F" }));
+    let rename = screen.getByRole("textbox", { name: "Нова назва маркера" });
+    fireEvent.change(rename, { target: { value: "Тест-пакет 01" } });
+    fireEvent.keyDown(rename, { key: "Enter" });
+    expect(onConfigurationChange).toHaveBeenLastCalledWith([
+      expect.objectContaining({ id: configured.id, label: "Тест-пакет 01" }),
+    ]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Перейменувати маркер 01F" }));
+    rename = screen.getByRole("textbox", { name: "Нова назва маркера" });
+    fireEvent.change(rename, { target: { value: "Тимчасова назва" } });
+    fireEvent.keyDown(rename, { key: "Escape" });
+    expect(onConfigurationChange).toHaveBeenLastCalledWith([
+      expect.objectContaining({ id: configured.id, label: "01F" }),
+    ]);
+    expect(screen.queryByRole("textbox", { name: "Нова назва маркера" })).not.toBeInTheDocument();
+  });
+
+  it("keeps remove in advanced settings", () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const { onConfigurationChange, onEditingSensorIdChange } = renderManager({
+      configuration: [configured],
+      editingSensorId: configured.id,
+    });
 
     fireEvent.click(screen.getByText("Додаткові параметри"));
     fireEvent.click(screen.getByRole("button", { name: "Видалити датчик з підкладки" }));

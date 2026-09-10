@@ -9,6 +9,7 @@ import {
   availableSensorSnapPoints,
   buildStagedSensorConfiguration,
   defaultMarkerLabel,
+  refreshStagedSensorChannelMetadata,
   sensorSlotCapacity,
 } from "./sensor-configuration";
 
@@ -89,6 +90,31 @@ describe("sensor configuration marker identity", () => {
     expect(points).not.toContainEqual({ x: 0.138, y: 0.21 });
     expect(points).not.toContainEqual({ x: 0.268, y: 0.21 });
     expect(points[0]).toEqual({ x: 0.398, y: 0.21 });
+  });
+
+  it("refreshes channel metadata without overwriting staged layout edits", () => {
+    const [existing] = addChannelToConfiguration([], available("106-03", "441"), 48, "showcase-kk2");
+    if (!existing) throw new Error("Expected configured sensor");
+    const staged = { ...existing, label: "Operator label", x: 0.77, y: 0.66, shelf: 3, position: 4 };
+    const refreshedChannel = {
+      ...available("106-03", "441"),
+      latestValue: 7.5,
+      capturedAt: "2026-09-10T16:45:00.000Z",
+      metric: "temperature",
+      unit: "degC",
+    };
+
+    const [refreshed] = refreshStagedSensorChannelMetadata([staged], [refreshedChannel]);
+    expect(refreshed).toMatchObject({
+      id: "106-03",
+      label: "Operator label",
+      x: 0.77,
+      y: 0.66,
+      shelf: 3,
+      position: 4,
+      temperatureC: 7.5,
+      updatedAt: "2026-09-10T16:45:00.000Z",
+    });
   });
 
   it("falls back to canonical channel ID when physical inventory metadata is unavailable", () => {

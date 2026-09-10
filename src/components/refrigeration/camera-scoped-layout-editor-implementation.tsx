@@ -30,6 +30,7 @@ import {
   configurationPayload,
   configurationsEqual,
   moveConfiguredSensor,
+  refreshStagedSensorChannelMetadata,
   sensorSlotCapacity,
   type StagedSensorConfiguration,
 } from "@/features/refrigeration/sensor-configuration";
@@ -82,8 +83,20 @@ export function CameraScopedLayoutEditor({
   const [notice, setNotice] = useState<string | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
+  const channelsRef = useRef(channels);
+  const bindingsRef = useRef(bindings);
+  const hydratedBindingKeyRef = useRef<string | null>(null);
+
+  const dirty = !configurationsEqual(configuration, persisted);
+  const bindingHydrationKey = useMemo(() => sensorBindingHydrationKey(bindings), [bindings]);
 
   useEffect(() => {
+    channelsRef.current = channels;
+    bindingsRef.current = bindings;
+  }, [bindings, channels]);
+
+  useEffect(() => {
+    if (dirty || hydratedBindingKeyRef.current === bindingHydrationKey) return;
     let cancelled = false;
     void repository.getDraft(equipment.id).then((result) => {
       if (cancelled) return;
@@ -92,7 +105,12 @@ export function CameraScopedLayoutEditor({
         setState("ready");
         return;
       }
-      const next = buildStagedSensorConfiguration(bindings, channels, result.value.placements);
+      const next = buildStagedSensorConfiguration(
+        bindingsRef.current,
+        channelsRef.current,
+        result.value.placements,
+      );
+      hydratedBindingKeyRef.current = bindingHydrationKey;
       setDraft(result.value);
       setPersisted(next);
       setConfiguration(next);
@@ -101,23 +119,30 @@ export function CameraScopedLayoutEditor({
     return () => {
       cancelled = true;
     };
-  }, [bindings, channels, equipment.id, repository]);
-
-  const dirty = !configurationsEqual(configuration, persisted);
+  }, [bindingHydrationKey, dirty, equipment.id, repository]);
+  const visibleConfiguration = useMemo(
+    () => refreshStagedSensorChannelMetadata(configuration, channels),
+    [channels, configuration],
+  );
   const placementBySensorId = useMemo<ReadonlyMap<string, LayoutPlacement>>(
     () =>
-      new Map(configuration.map((sensor) => [sensor.id, { sensorId: sensor.id, x: sensor.x, y: sensor.y }])),
-    [configuration],
+      new Map(
+        visibleConfiguration.map((sensor) => [sensor.id, { sensorId: sensor.id, x: sensor.x, y: sensor.y }]),
+      ),
+    [visibleConfiguration],
   );
-  const snapSlots = useMemo(() => configuration.map(({ x, y }) => ({ x, y })), [configuration]);
+  const snapSlots = useMemo(() => visibleConfiguration.map(({ x, y }) => ({ x, y })), [visibleConfiguration]);
   const placementSnapSlots = useMemo(
-    () => availableSensorSnapPoints(configuration, equipment.totalSensors),
-    [configuration, equipment.totalSensors],
+    () => availableSensorSnapPoints(visibleConfiguration, equipment.totalSensors),
+    [equipment.totalSensors, visibleConfiguration],
   );
   const viewSensorIds = useMemo(() => new Set(visibleSensors.map((sensor) => sensor.id)), [visibleSensors]);
   const canvasSensors = useMemo(
-    () => (mode === "edit" ? configuration : configuration.filter((sensor) => viewSensorIds.has(sensor.id))),
-    [configuration, mode, viewSensorIds],
+    () =>
+      mode === "edit"
+        ? visibleConfiguration
+        : visibleConfiguration.filter((sensor) => viewSensorIds.has(sensor.id)),
+    [mode, viewSensorIds, visibleConfiguration],
   );
 
   useEffect(() => {
@@ -362,7 +387,7 @@ export function CameraScopedLayoutEditor({
             organizationId={organizationId}
             totalSlots={equipment.totalSensors}
             channels={channels}
-            configuration={configuration}
+            configuration={visibleConfiguration}
             editingSensorId={editingSensorId}
             pendingChannelId={pendingChannelId}
             onEditingSensorIdChange={setEditingSensorId}
@@ -419,6 +444,30 @@ export function CameraScopedLayoutEditor({
       </div>
     </div>
   );
+}
+
+function sensorBindingHydrationKey(bindings: readonly SensorBinding[]): string {
+  return [...bindings]
+    .sort((first, second) => first.id.localeCompare(second.id))
+    .map((binding) =>
+      [
+        binding.id,
+        binding.equipmentId,
+        binding.nodeId,
+        binding.channelId,
+        binding.slotKey,
+        binding.label,
+        binding.side,
+        binding.shelf,
+        binding.position,
+        binding.version,
+        binding.boundBy,
+        binding.boundAt,
+        binding.unboundBy ?? "",
+        binding.unboundAt ?? "",
+      ].join("\u001f"),
+    )
+    .join("\u001e");
 }
 
 function pointFromPointer(

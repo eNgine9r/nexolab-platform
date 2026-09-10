@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Pencil, Plus, Replace, Trash2, X } from "lucide-react";
 
 import { RefrigerationIconButton } from "@/components/refrigeration/refrigeration-icon-button";
@@ -75,6 +75,8 @@ export function SensorPlacementManager({
   const [error, setError] = useState<string | null>(null);
   const [renamingSensorId, setRenamingSensorId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
+  const [renameOriginalLabel, setRenameOriginalLabel] = useState("");
+  const ignoreNextRenameBlurRef = useRef(false);
   useEffect(() => {
     if (picker?.kind !== "add") return;
     const refreshFreshness = () => setFreshnessNow(Date.now());
@@ -178,25 +180,39 @@ export function SensorPlacementManager({
     setError(null);
   };
 
-  const startRename = () => {
-    if (!selectedSensor) return;
-    setRenameDraft(selectedSensor.label);
-    setRenamingSensorId(selectedSensor.id);
-  };
-
-  const cancelRename = () => {
+  const closeRename = () => {
     setRenamingSensorId(null);
     setRenameDraft("");
+    setRenameOriginalLabel("");
   };
-  const commitRename = () => {
-    if (!selectedSensor || renamingSensorId !== selectedSensor.id) return;
+  const startRename = () => {
+    if (!selectedSensor) return;
+    ignoreNextRenameBlurRef.current = false;
+    setRenameDraft(selectedSensor.label);
+    setRenameOriginalLabel(selectedSensor.label);
+    setRenamingSensorId(selectedSensor.id);
+  };
+  const stageRename = (label: string) => {
+    setRenameDraft(label);
+    update({ label });
+  };
+  const cancelRename = () => {
+    ignoreNextRenameBlurRef.current = true;
+    if (selectedSensor && renamingSensorId === selectedSensor.id) {
+      update({ label: renameOriginalLabel });
+    }
+    closeRename();
+  };
+  const commitRename = (): boolean => {
+    if (!selectedSensor || renamingSensorId !== selectedSensor.id) return true;
     const label = renameDraft.trim();
     if (!label) {
       setError("Назва маркера не може бути порожньою.");
-      return;
+      return false;
     }
-    update({ label });
-    cancelRename();
+    if (label !== selectedSensor.label) update({ label });
+    closeRename();
+    return true;
   };
 
   const replacementPickerOpen =
@@ -341,10 +357,24 @@ export function SensorPlacementManager({
                   aria-label="Нова назва маркера"
                   value={renameDraft}
                   maxLength={128}
-                  onChange={(event) => setRenameDraft(event.target.value)}
+                  onChange={(event) => stageRename(event.target.value)}
+                  onBlur={() => {
+                    if (ignoreNextRenameBlurRef.current) {
+                      ignoreNextRenameBlurRef.current = false;
+                      return;
+                    }
+                    commitRename();
+                  }}
                   onKeyDown={(event) => {
-                    if (event.key === "Enter") commitRename();
-                    if (event.key === "Escape") cancelRename();
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      ignoreNextRenameBlurRef.current = true;
+                      commitRename();
+                    }
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      cancelRename();
+                    }
                   }}
                   className={`${inputClass} max-w-md`}
                 />
@@ -369,7 +399,7 @@ export function SensorPlacementManager({
             <RefrigerationIconButton
               label="Закрити налаштування датчика"
               onClick={() => {
-                cancelRename();
+                if (!commitRename()) return;
                 setPicker(null);
                 onEditingSensorIdChange(null);
               }}

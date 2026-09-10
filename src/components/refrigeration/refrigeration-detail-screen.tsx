@@ -242,23 +242,23 @@ export function RefrigerationDetailScreen({
           bindings: loadedBindings,
           channels: availableChannels,
         }));
-    const catalogRequest =
-      runtime.climateCatalogRepository && chamberId
-        ? runtime.climateCatalogRepository
-            .getEquipment(chamberId)
-            .then((catalog) => catalog.temperatureChannels)
-            .catch(() => null)
-        : Promise.resolve(null);
-    void Promise.all([request, catalogRequest])
-      .then(([loaded, catalogChannels]) => {
+    void request
+      .then((loaded) => {
         if (!active) return;
-        const availableChannels = catalogChannels
-          ? attachPhysicalSensorInventory(loaded.channels, catalogChannels)
-          : loaded.channels;
         if (loaded.equipment) setEquipmentRecord(loaded.equipment);
         setBindings(loaded.bindings);
-        setChannels(availableChannels);
-        setBindingSensors(buildBindingSensors(loaded.bindings, availableChannels));
+        setChannels(loaded.channels);
+        setBindingSensors(buildBindingSensors(loaded.bindings, loaded.channels));
+
+        const catalog = runtime.climateCatalogRepository;
+        if (!catalog || !chamberId) return;
+        void catalog
+          .getEquipment(chamberId)
+          .then((catalogEquipment) => {
+            if (!active) return;
+            setChannels(attachPhysicalSensorInventory(loaded.channels, catalogEquipment.temperatureChannels));
+          })
+          .catch(() => undefined);
       })
       .catch((cause) => {
         if (!active) return;
