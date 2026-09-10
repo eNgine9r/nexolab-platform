@@ -57,10 +57,24 @@ sleep 1
 journalctl --flush
 
 EFFECTIVE="$(systemd-analyze cat-config systemd/journald.conf)"
-if ! grep -q '^Storage=persistent$' <<<"${EFFECTIVE}"; then
-  echo "Effective journald configuration is not persistent." >&2
-  exit 1
-fi
+effective_value() {
+  local key="$1"
+  awk -v key="${key}" '
+    $0 ~ "^[[:space:]]*" key "[[:space:]]*=" {
+      value=$0
+      sub(/^[^=]*=[[:space:]]*/, "", value)
+      sub(/[[:space:]]+$/, "", value)
+    }
+    END { if (value == "") exit 1; print value }
+  '
+}
+while IFS='=' read -r key expected; do
+  actual="$(effective_value "${key}" <<<"${EFFECTIVE}" || true)"
+  if [[ "${actual}" != "${expected}" ]]; then
+    printf 'Effective journald %s mismatch: expected %s, got %s\n' "${key}" "${expected}" "${actual:-<unset>}" >&2
+    exit 1
+  fi
+done < <(grep -E '^(Storage|SystemMaxUse|SystemKeepFree|MaxRetentionSec|SyncIntervalSec)=' "${SOURCE}")
 if ! journalctl --directory=/var/log/journal -b --no-pager | grep -q "${MARKER}"; then
   echo "Persistent journal marker was not found in /var/log/journal." >&2
   exit 1

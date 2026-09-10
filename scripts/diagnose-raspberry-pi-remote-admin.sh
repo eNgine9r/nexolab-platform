@@ -51,11 +51,33 @@ systemctl show -p RuntimeWatchdogUSec -p RuntimeWatchdogPreUSec 2>/dev/null || t
 section "NETWORK AND REMOTE SERVICES"
 service_state NetworkManager.service
 service_state tailscaled.service
+if command -v tailscale >/dev/null 2>&1; then
+  if TAILSCALE_STATUS="$(tailscale status --json 2>/dev/null)"; then
+    python3 -c 'import json,sys; d=json.load(sys.stdin); s=d.get("Self") or {}; print("tailscale_backend_state=" + str(d.get("BackendState", "unknown"))); print("tailscale_self_online=" + str(bool(s.get("Online"))).lower()); print("tailscale_ips=" + ",".join(d.get("TailscaleIPs") or []))' <<<"${TAILSCALE_STATUS}" || echo 'tailscale_connectivity=unparseable'
+  else
+    echo 'tailscale_connectivity=unavailable'
+  fi
+else
+  echo 'tailscale_connectivity=command_missing'
+fi
 if command -v nmcli >/dev/null 2>&1; then
   printf 'eth0_state='; nmcli -g GENERAL.STATE device show eth0 2>/dev/null || printf 'unavailable\n'
 fi
 printf 'linger='; loginctl show-user "$(id -un)" -p Linger --value 2>/dev/null || printf 'unknown\n'
 user_service_state rpi-connect.service
+if command -v rpi-connect >/dev/null 2>&1; then
+  if RPI_CONNECT_STATUS="$(rpi-connect status 2>&1)"; then
+    RPI_CONNECT_STATUS_RC=0
+  else
+    RPI_CONNECT_STATUS_RC=$?
+  fi
+  printf 'rpi_connect_status_rc=%s\n' "${RPI_CONNECT_STATUS_RC}"
+  while IFS= read -r line; do
+    printf 'rpi_connect_status=%s\n' "${line}"
+  done <<<"${RPI_CONNECT_STATUS}"
+else
+  echo 'rpi_connect_status=command_missing'
+fi
 user_service_state rpi-connect-wayvnc.service
 user_service_state nexolab-remote-desktop-commander.service
 
@@ -72,12 +94,26 @@ journalctl -b -k --no-pager 2>/dev/null \
   | tail -60 || true
 section "CURRENT BOOT FAILURE SIGNALS"
 journalctl -b --no-pager 2>/dev/null \
+  _TRANSPORT=kernel \
+  + SYSLOG_IDENTIFIER=systemd \
+  + SYSLOG_IDENTIFIER=systemd-shutdown \
+  + SYSLOG_IDENTIFIER=systemd-oomd \
+  + SYSLOG_IDENTIFIER=NetworkManager \
+  + SYSLOG_IDENTIFIER=tailscaled \
+  + SYSLOG_IDENTIFIER=rpi-connect \
   | grep -Ei 'watchdog|under.?voltage|oom|out of memory|killed process|thermal|I/O error|ext4.*error|usb.*reset|usb disconnect|hung task|blocked for more than|network is unreachable' \
   | tail -120 || true
 
 section "PREVIOUS BOOT FAILURE SIGNALS"
 if journalctl -b -1 -n 1 --no-pager >/dev/null 2>&1; then
   journalctl -b -1 --no-pager 2>/dev/null \
+    _TRANSPORT=kernel \
+    + SYSLOG_IDENTIFIER=systemd \
+    + SYSLOG_IDENTIFIER=systemd-shutdown \
+    + SYSLOG_IDENTIFIER=systemd-oomd \
+    + SYSLOG_IDENTIFIER=NetworkManager \
+    + SYSLOG_IDENTIFIER=tailscaled \
+    + SYSLOG_IDENTIFIER=rpi-connect \
     | grep -Ei 'watchdog|under.?voltage|oom|out of memory|killed process|kernel panic|thermal|I/O error|ext4.*error|uas|usb.*reset|usb disconnect|hung task|blocked for more than|network is unreachable|reboot|shutdown' \
     | tail -160 || true
 else

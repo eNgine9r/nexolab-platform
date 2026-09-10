@@ -92,6 +92,28 @@ class RemoteAdminReliabilityTests(unittest.TestCase):
         self.assertIn("[[ ! -r /proc/device-tree/model ]] ||", journal_text)
         self.assertIn("without verified Raspberry Pi identity", journal_text)
 
+    def test_journal_installer_checks_every_effective_bound(self) -> None:
+        text = JOURNAL_INSTALLER.read_text(encoding="utf-8")
+
+        self.assertIn("systemd-analyze cat-config systemd/journald.conf", text)
+        self.assertIn("while IFS='=' read -r key expected", text)
+        self.assertIn('actual="$(effective_value "${key}" <<<"${EFFECTIVE}" || true)"', text)
+        self.assertIn("Effective journald %s mismatch", text)
+        for key in ("Storage", "SystemMaxUse", "SystemKeepFree", "MaxRetentionSec", "SyncIntervalSec"):
+            self.assertIn(key, JOURNAL.read_text(encoding="utf-8"))
+
+    def test_diagnostic_reports_remote_channel_connectivity(self) -> None:
+        text = DIAGNOSTIC.read_text(encoding="utf-8")
+
+        self.assertIn("tailscale status --json", text)
+        self.assertIn("tailscale_backend_state=", text)
+        self.assertIn("tailscale_self_online=", text)
+        self.assertIn("rpi-connect status", text)
+        self.assertIn("rpi_connect_status_rc=", text)
+        self.assertIn("_TRANSPORT=kernel", text)
+        self.assertIn("SYSLOG_IDENTIFIER=tailscaled", text)
+        self.assertIn("SYSLOG_IDENTIFIER=rpi-connect", text)
+
     def test_diagnostic_script_remains_read_only(self) -> None:
         text = DIAGNOSTIC.read_text(encoding="utf-8")
         forbidden = (
