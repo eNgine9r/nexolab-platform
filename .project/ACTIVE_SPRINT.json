@@ -3405,12 +3405,33 @@
       "issue": 965,
       "title": "Simplify sensor placement and marker naming on equipment layouts",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "depends_on": [
         966
       ],
       "branch": "feat/965-sensor-placement-quick-add",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "1ec18502ff3bbcbd710da240a2875a991886d3c8",
+        "checks": {
+          "focused_sensor_placement_tests_14": "success",
+          "targeted_eslint": "success",
+          "targeted_prettier": "success",
+          "git_diff_check": "success",
+          "quick_add_without_org_context": "success",
+          "advanced_replacement_without_org_context": "fail_closed_expected",
+          "direct_canvas_placement": "success",
+          "initial_snap_semantics": "success",
+          "physical_inventory_default_labels": "success",
+          "atomic_save_contract": "covered_by_browser_candidate",
+          "chromium_acceptance": "pending_exact_head_ci",
+          "typecheck": "pending_exact_head_ci",
+          "production_build": "pending_exact_head_ci",
+          "review_threads": "pending_exact_head_review"
+        },
+        "production_deployment": "not_executed",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
     },
     {
       "issue": 988,

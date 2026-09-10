@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-10T16:30:05+03:00",
-  "actor": "ChatGPT",
-  "event": "issue_988_completed_issue_965_resumed",
+  "timestamp": "2026-09-10T17:20:00+03:00",
+  "actor": "ChatGPT-Team-Lead",
+  "event": "issue_965_candidate_ready_for_exact_head_ci",
   "baselines": {
     "accepted_product_sha": "cb7a533119e42d0ab5481634da37ecf47aa235bd",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -16,25 +16,31 @@
     "branch": "feat/965-sensor-placement-quick-add"
   },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
-  },
-  "observations": [
-    {
-      "source": "github",
-      "observed_at": "2026-09-10T16:30:05+03:00",
-      "kind": "work_package_merge",
-      "data": {
-        "issue": 988,
-        "pull_request": 989,
-        "exact_head_sha": "87423df3d9bd6e11f0fe0e0786480625e1efedd7",
-        "implementation_sha": "a09360948ae75d4deaf088d7ffc9e090fc150e05",
-        "merge_sha": "38e1e735d94fa9c4af4655153206ad2fa0f66945",
-        "ci": "success",
-        "review_threads_unresolved": 0
-      }
+    "active_issue_evidence": {
+      "verified_head_sha": "1ec18502ff3bbcbd710da240a2875a991886d3c8",
+      "checks": {
+        "focused_sensor_placement_tests_14": "success",
+        "targeted_eslint": "success",
+        "targeted_prettier": "success",
+        "git_diff_check": "success",
+        "quick_add_without_org_context": "success",
+        "advanced_replacement_without_org_context": "fail_closed_expected",
+        "direct_canvas_placement": "success",
+        "initial_snap_semantics": "success",
+        "physical_inventory_default_labels": "success",
+        "atomic_save_contract": "covered_by_browser_candidate",
+        "chromium_acceptance": "pending_exact_head_ci",
+        "typecheck": "pending_exact_head_ci",
+        "production_build": "pending_exact_head_ci",
+        "review_threads": "pending_exact_head_review"
+      },
+      "production_deployment": "not_executed",
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
-  ],
-  "next_action": "Resume Issue #965 on feat/965-sensor-placement-quick-add from its preserved implementation state; rebase/synchronize safely against current main without discarding feature changes, then complete focused UX verification and PR gates.",
+  },
+  "observations": [],
+  "next_action": "Push Issue #965 candidate, open one focused PR, require exact-head frontend/build and Refrigeration Browser acceptance, resolve review findings, and merge only when GREEN.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
