@@ -173,11 +173,37 @@ async function enterEditMode(page: Page) {
   await expect(editor(page).getByRole("button", { name: "Зберегти всі зміни" })).toBeVisible();
 }
 
-async function openAddTelemetrySelector(page: Page) {
-  await editor(page).getByRole("button", { name: "Вибрати датчик або прилад для додавання" }).click();
-  const selector = editor(page).getByTestId("equipment-map-add-telemetry-selector");
-  await expect(selector).toBeVisible();
-  return selector;
+async function openQuickSensorPicker(page: Page) {
+  const picker = editor(page).getByTestId("equipment-map-quick-sensor-picker");
+  if (!(await picker.isVisible())) {
+    await editor(page).getByRole("button", { name: "Додати датчик" }).click();
+  }
+  await expect(picker).toBeVisible();
+  return picker;
+}
+
+async function chooseQuickSensor(picker: ReturnType<Page["locator"]>, channelId: string) {
+  const search = picker.getByRole("searchbox", { name: "Пошук датчика" });
+  await search.fill(channelId);
+  const point = picker.getByRole("button", { name: new RegExp(`канал ${channelId}$`) });
+  await expect(point).toHaveCount(1);
+  await point.click();
+}
+
+async function placePendingSensor(page: Page, xRatio = 0.5, yRatio = 0.5) {
+  const stage = editor(page).getByTestId("equipment-image-stage");
+  await expect(stage).toHaveAttribute("data-placement-mode", "active");
+  const bounds = await stage.boundingBox();
+  expect(bounds).not.toBeNull();
+  if (!bounds) throw new Error("Equipment image stage bounds are unavailable");
+  await stage.click({ position: { x: bounds.width * xRatio, y: bounds.height * yRatio } });
+  await expect(stage).toHaveAttribute("data-placement-mode", "idle");
+}
+
+async function addChannel(page: Page, channelId: string, xRatio = 0.5, yRatio = 0.5) {
+  const picker = await openQuickSensorPicker(page);
+  await chooseQuickSensor(picker, channelId);
+  await placePendingSensor(page, xRatio, yRatio);
 }
 
 async function chooseTelemetryPoint(selector: ReturnType<Page["locator"]>, channelId: string) {
@@ -186,14 +212,15 @@ async function chooseTelemetryPoint(selector: ReturnType<Page["locator"]>, chann
   const point = selector.getByRole("treeitem").filter({ hasText: channelId });
   await expect(point).toHaveCount(1);
   await point.click();
-  await expect(selector.getByTestId("telemetry-selection-count")).toContainText("1 / 1");
 }
 
-async function addChannel(page: Page, channelId: string) {
-  const selector = await openAddTelemetrySelector(page);
-  await chooseTelemetryPoint(selector, channelId);
-  await selector.getByRole("button", { name: "Підтвердити вибір" }).click();
-  await expect(selector).toHaveCount(0);
+async function ensureAdvancedSensorParametersOpen(page: Page) {
+  const summary = editor(page).getByText("Додаткові параметри", { exact: true });
+  const details = summary.locator("..");
+  if ((await details.getAttribute("open")) === null) {
+    await summary.click();
+  }
+  await expect(details).toHaveAttribute("open", "");
 }
 
 async function replaceChannel(page: Page, channelId: string) {
@@ -501,7 +528,7 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     await enterEditMode(pageA);
     await enterEditMode(pageB);
 
-    await addChannel(pageB, channelIds.temperatureTwo);
+    await addChannel(pageB, channelIds.temperatureTwo, 0.32, 0.32);
     await expect(editor(pageB).getByText("Незбережені зміни")).toBeVisible();
 
     let configurationWrites = 0;
@@ -514,19 +541,19 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
       }
     });
 
-    const cancelledSelector = await openAddTelemetrySelector(pageA);
-    await chooseTelemetryPoint(cancelledSelector, channelIds.temperatureOne);
+    const cancelledSelector = await openQuickSensorPicker(pageA);
+    await chooseQuickSensor(cancelledSelector, channelIds.temperatureOne);
     await expect(editor(pageA).getByText("Незбережені зміни")).toHaveCount(0);
     expect(configurationWrites).toBe(0);
     await expectNoDocumentOverflow(pageA, 360);
     await expectNoDocumentOverflow(pageA, 1440);
     await expectNoDocumentOverflow(pageA, 1920);
-    await cancelledSelector.getByRole("button", { name: "Скасувати" }).click();
+    await cancelledSelector.getByRole("button", { name: "Закрити" }).click();
     await expect(cancelledSelector).toHaveCount(0);
     await expect(editor(pageA).getByText("Незбережені зміни")).toHaveCount(0);
 
-    await addChannel(pageA, channelIds.temperatureOne);
-    await addChannel(pageA, channelIds.temperatureTwo);
+    await addChannel(pageA, channelIds.temperatureOne, 0.3, 0.3);
+    await addChannel(pageA, channelIds.temperatureTwo, 0.62, 0.62);
     expect(configurationWrites).toBe(0);
 
     const preSaveBindings = await readBindings(operatorA.request, equipment.id);
@@ -535,17 +562,22 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     expect(preSaveDraft.version).toBe(1);
     expect(preSaveDraft.placements).toEqual([]);
 
-    await pageA.getByRole("button", { name: "Редагувати датчик 01F" }).click();
+    await pageA.getByRole("button", { name: "Редагувати датчик 471" }).click();
+    await ensureAdvancedSensorParametersOpen(pageA);
     await replaceChannel(pageA, channelIds.replacement);
-    await editor(pageA).getByLabel("Підпис датчика").fill("T-03");
+    await editor(pageA).getByRole("button", { name: "Перейменувати маркер 471" }).click();
+    const renameInput = editor(pageA).getByRole("textbox", { name: "Нова назва маркера" });
+    await renameInput.fill("T-03");
+    await renameInput.press("Enter");
     await editor(pageA).getByLabel("Полиця датчика").selectOption("2");
     await editor(pageA).getByLabel("Позиція датчика").selectOption("3");
 
-    await pageA.getByRole("button", { name: "Редагувати датчик 02F" }).click();
+    await pageA.getByRole("button", { name: "Редагувати датчик 472" }).click();
+    await ensureAdvancedSensorParametersOpen(pageA);
     pageA.once("dialog", (dialog) => void dialog.accept());
     await editor(pageA).getByRole("button", { name: "Видалити датчик з підкладки" }).click();
 
-    await addChannel(pageA, channelIds.temperatureOne);
+    await addChannel(pageA, channelIds.temperatureOne, 0.78, 0.76);
     const replacementMarker = sensorMarker(pageA, "T-03");
     await expect(replacementMarker).toBeVisible();
     const xBefore = await replacementMarker.getAttribute("data-x");
@@ -553,17 +585,17 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     const xAfter = await replacementMarker.getAttribute("data-x");
     expect(xBefore).not.toBe(xAfter);
 
-    const availableSelector = await openAddTelemetrySelector(pageA);
-    const availableSearch = availableSelector.getByRole("searchbox", { name: "Пошук" });
+    const availableSelector = await openQuickSensorPicker(pageA);
+    const availableSearch = availableSelector.getByRole("searchbox", { name: "Пошук датчика" });
     await availableSearch.fill(channelIds.temperatureTwo);
     await expect(
-      availableSelector.getByRole("treeitem").filter({ hasText: channelIds.temperatureTwo }),
+      availableSelector.getByRole("button", { name: new RegExp(`канал ${channelIds.temperatureTwo}$`) }),
     ).toHaveCount(1);
     await availableSearch.fill(channelIds.replacement);
-    await expect(availableSelector.getByText("Точок телеметрії не знайдено")).toBeVisible();
+    await expect(availableSelector.getByText("Доступних датчиків не знайдено.")).toBeVisible();
     await availableSearch.fill(channelIds.temperatureOne);
-    await expect(availableSelector.getByText("Точок телеметрії не знайдено")).toBeVisible();
-    await availableSelector.getByRole("button", { name: "Скасувати" }).click();
+    await expect(availableSelector.getByText("Доступних датчиків не знайдено.")).toBeVisible();
+    await availableSelector.getByRole("button", { name: "Закрити" }).click();
     await expect(availableSelector).toHaveCount(0);
     expect(configurationWrites).toBe(0);
 
@@ -629,7 +661,7 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     await pageB.reload({ waitUntil: "networkidle" });
     await expect(editor(pageB).getByText("Чернетка v2", { exact: true })).toBeVisible();
     await expect(sensorMarker(pageB, "T-03")).toBeVisible();
-    await expect(sensorMarker(pageB, "01F")).toBeVisible();
+    await expect(sensorMarker(pageB, "471")).toBeVisible();
     await expect(pageB.getByRole("button", { name: /^Редагувати датчик/ })).toHaveCount(0);
 
     let imageUploadWrites = 0;
@@ -761,4 +793,105 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
   } finally {
     await Promise.allSettled([operatorB.close(), operatorA.close()]);
   }
+});
+
+test("places five sensors through the bounded quick-placement interaction budget", async ({ page }) => {
+  mkdirSync(evidenceDirectory, { recursive: true });
+  const chamber = await resolveClimateChamber(page.request);
+  const equipment = await createEquipmentViaApi(page.request, chamber, {
+    code: "ACCEPTANCE-QUICK-PLACEMENT-965",
+    name: "Вітрина quick placement 965",
+    serialNumber: "NX-QUICK-PLACEMENT-0965",
+    totalSensors: 6,
+  });
+  const sequence = [
+    { channelId: "102-01", label: "477", x: 0.18, y: 0.22 },
+    { channelId: "102-02", label: "478", x: 0.34, y: 0.36 },
+    { channelId: "102-03", label: "479", x: 0.5, y: 0.5 },
+    { channelId: "102-04", label: "480", x: 0.66, y: 0.64 },
+    { channelId: "102-05", label: "481", x: 0.82, y: 0.78 },
+  ] as const;
+  let configurationWrites = 0;
+  page.on("request", (pending) => {
+    if (
+      pending.method() === "PUT" &&
+      new URL(pending.url()).pathname === sensorConfigurationPath(equipment.id)
+    ) {
+      configurationWrites += 1;
+    }
+  });
+  await openProductionEquipment(page, equipment, 1);
+  await enterEditMode(page);
+  const picker = await openQuickSensorPicker(page);
+  await expect(picker.getByRole("searchbox", { name: "Пошук датчика" })).toBeFocused();
+  await expectNoDocumentOverflow(page, 360);
+  await expectNoDocumentOverflow(page, 1440);
+  await expectNoDocumentOverflow(page, 1920);
+
+  let primaryPointerActions = 1;
+  const pointerActionsPerSensor: number[] = [];
+  for (const [index, item] of sequence.entries()) {
+    const before = primaryPointerActions;
+    await chooseQuickSensor(picker, item.channelId);
+    primaryPointerActions += 1;
+    await expect(
+      editor(page).getByText(new RegExp(`${item.channelId}: натисніть потрібну точку на фото`)),
+    ).toBeVisible();
+    await placePendingSensor(page, item.x, item.y);
+    primaryPointerActions += 1;
+    pointerActionsPerSensor.push(primaryPointerActions - before + (index === 0 ? 1 : 0));
+    await expect(sensorMarker(page, item.label)).toBeVisible();
+    await expect(editor(page).getByText("Додаткові параметри")).toHaveCount(0);
+  }
+
+  expect(pointerActionsPerSensor).toEqual([3, 2, 2, 2, 2]);
+  expect(primaryPointerActions).toBe(11);
+  expect(configurationWrites).toBe(0);
+  const beforeSaveBindings = await readBindings(page.request, equipment.id);
+  const beforeSaveDraft = await readDraft(page.request, equipment.id);
+  expect(beforeSaveBindings.items).toEqual([]);
+  expect(beforeSaveDraft.placements).toEqual([]);
+
+  const saveResponsePromise = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PUT" &&
+      new URL(response.url()).pathname === sensorConfigurationPath(equipment.id),
+  );
+  await editor(page).getByRole("button", { name: "Зберегти всі зміни" }).click();
+  const saveResponse = await saveResponsePromise;
+  expect(saveResponse.status()).toBe(200);
+  expect(configurationWrites).toBe(1);
+
+  const bindings = await readBindings(page.request, equipment.id);
+  const draft = await readDraft(page.request, equipment.id);
+  expect(bindings.items).toHaveLength(5);
+  expect(bindings.items.map((item) => item.channel_id).sort()).toEqual(
+    sequence.map((item) => item.channelId).sort(),
+  );
+  expect(bindings.items.map((item) => item.label).sort()).toEqual(sequence.map((item) => item.label).sort());
+  expect(draft.placements).toHaveLength(5);
+
+  await page.screenshot({
+    path: path.join(evidenceDirectory, "issue-965-five-sensor-quick-placement.png"),
+    fullPage: true,
+  });
+  writeFileSync(
+    path.join(evidenceDirectory, "issue-965-quick-placement-summary.json"),
+    `${JSON.stringify(
+      {
+        equipmentId: equipment.id,
+        climateChamberCode: chamber.code,
+        firstSensorPrimaryPointerActions: pointerActionsPerSensor[0],
+        nextSensorPrimaryPointerActions: pointerActionsPerSensor.slice(1),
+        totalPrimaryPointerActionsForFiveSensors: primaryPointerActions,
+        searchTypingExcludedFromPointerBudget: true,
+        configuredChannels: bindings.items.map((item) => item.channel_id).sort(),
+        persistedLabels: bindings.items.map((item) => item.label).sort(),
+        sensorConfigurationWrites: configurationWrites,
+        viewportWidthsVerified: [360, 1440, 1920],
+      },
+      null,
+      2,
+    )}\n`,
+  );
 });

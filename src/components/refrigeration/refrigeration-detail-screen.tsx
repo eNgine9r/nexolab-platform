@@ -24,6 +24,7 @@ import type {
 } from "@/data/refrigeration";
 import type { AvailableSensor, SensorBinding } from "@/features/refrigeration/equipment-lifecycle-repository";
 import { createRefrigerationEquipmentRuntime } from "@/features/refrigeration/equipment-repository-runtime";
+import { attachPhysicalSensorInventory } from "@/features/refrigeration/sensor-configuration";
 import { useRefrigerationController } from "@/features/refrigeration/use-refrigeration-controller";
 import type { RefrigerationStructuralSnapshot } from "@/features/refrigeration/structural-snapshot-repository";
 import { hasPermission } from "@/features/security/security-session";
@@ -241,13 +242,23 @@ export function RefrigerationDetailScreen({
           bindings: loadedBindings,
           channels: availableChannels,
         }));
-    void request
-      .then((loaded) => {
+    const catalogRequest =
+      runtime.climateCatalogRepository && chamberId
+        ? runtime.climateCatalogRepository
+            .getEquipment(chamberId)
+            .then((catalog) => catalog.temperatureChannels)
+            .catch(() => null)
+        : Promise.resolve(null);
+    void Promise.all([request, catalogRequest])
+      .then(([loaded, catalogChannels]) => {
         if (!active) return;
+        const availableChannels = catalogChannels
+          ? attachPhysicalSensorInventory(loaded.channels, catalogChannels)
+          : loaded.channels;
         if (loaded.equipment) setEquipmentRecord(loaded.equipment);
         setBindings(loaded.bindings);
-        setChannels(loaded.channels);
-        setBindingSensors(buildBindingSensors(loaded.bindings, loaded.channels));
+        setChannels(availableChannels);
+        setBindingSensors(buildBindingSensors(loaded.bindings, availableChannels));
       })
       .catch((cause) => {
         if (!active) return;

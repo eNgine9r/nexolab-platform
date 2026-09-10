@@ -24,6 +24,7 @@ import type {
   RefrigerationLayoutRepository,
 } from "@/features/refrigeration/layout-repository";
 import {
+  addChannelToConfiguration,
   buildStagedSensorConfiguration,
   configurationPayload,
   configurationsEqual,
@@ -72,6 +73,7 @@ export function CameraScopedLayoutEditor({
   const [persisted, setPersisted] = useState<StagedSensorConfiguration[]>([]);
   const [configuration, setConfiguration] = useState<StagedSensorConfiguration[]>([]);
   const [editingSensorId, setEditingSensorId] = useState<string | null>(null);
+  const [pendingChannelId, setPendingChannelId] = useState<string | null>(null);
   const [snapMode, setSnapMode] = useState<SnapMode>("none");
   const [state, setState] = useState<"loading" | "ready" | "saving">("loading");
   const [error, setError] = useState<string | null>(null);
@@ -152,6 +154,7 @@ export function CameraScopedLayoutEditor({
       setPersisted(next);
       setConfiguration(next);
       setEditingSensorId(null);
+      setPendingChannelId(null);
       onEquipmentChange(result.equipment);
       onDraftChange(result.draft);
       onModeChange("view");
@@ -175,6 +178,7 @@ export function CameraScopedLayoutEditor({
   const cancel = () => {
     setConfiguration(persisted.map((sensor) => ({ ...sensor, trend: [...sensor.trend] })));
     setEditingSensorId(null);
+    setPendingChannelId(null);
     setError(null);
     setNotice(null);
     onModeChange("view");
@@ -191,6 +195,29 @@ export function CameraScopedLayoutEditor({
       slots: snapSlots,
     });
     updateConfiguration(moveConfiguredSensor(configuration, sensorId, snapped.x, snapped.y));
+  };
+
+  const placePendingChannel = (point: NormalizedPoint) => {
+    if (!pendingChannelId) return;
+    const channel = channels.find((candidate) => candidate.channelId === pendingChannelId);
+    if (!channel) {
+      setPendingChannelId(null);
+      setError("Вибраний канал більше недоступний для розміщення.");
+      return;
+    }
+    try {
+      const added = addChannelToConfiguration(configuration, channel, equipment.totalSensors, equipment.id);
+      const snapped = applySnap(point, snapMode, {
+        gridDivisions: 40,
+        slots: snapSlots,
+      });
+      const placed = moveConfiguredSensor(added, channel.channelId, snapped.x, snapped.y);
+      updateConfiguration(placed);
+      onSelect(channel.channelId);
+      setPendingChannelId(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Не вдалося розмістити датчик.");
+    }
   };
 
   const markerKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, sensorId: string) => {
@@ -326,7 +353,9 @@ export function CameraScopedLayoutEditor({
             channels={channels}
             configuration={configuration}
             editingSensorId={editingSensorId}
+            pendingChannelId={pendingChannelId}
             onEditingSensorIdChange={setEditingSensorId}
+            onPendingChannelChange={setPendingChannelId}
             onConfigurationChange={updateConfiguration}
             onSelect={onSelect}
           />
@@ -368,6 +397,12 @@ export function CameraScopedLayoutEditor({
           onMarkerPointerDown={markerPointerDown}
           onMarkerPointerMove={markerPointerMove}
           onMarkerPointerUp={markerPointerUp}
+          pendingPlacement={
+            pendingChannelId
+              ? (channels.find((channel) => channel.channelId === pendingChannelId) ?? null)
+              : null
+          }
+          onPlaceAtPoint={placePendingChannel}
           onImageDimensions={() => undefined}
         />
       </div>

@@ -12,7 +12,8 @@ import { clsx } from "clsx";
 import { Expand, ImageIcon, Maximize2, Minimize2, Minus, Pencil, Plus, Scan, Shrink } from "lucide-react";
 
 import type { EquipmentImageMetadata, RefrigerationSensor } from "@/data/refrigeration";
-import type { LayoutPlacement, SnapMode } from "@/features/refrigeration/layout-editor";
+import type { AvailableSensor } from "@/features/refrigeration/equipment-lifecycle-repository";
+import type { LayoutPlacement, NormalizedPoint, SnapMode } from "@/features/refrigeration/layout-editor";
 
 export function CameraScopedImageCanvas({
   equipmentName,
@@ -29,6 +30,8 @@ export function CameraScopedImageCanvas({
   onMarkerPointerDown,
   onMarkerPointerMove,
   onMarkerPointerUp,
+  pendingPlacement,
+  onPlaceAtPoint,
   onImageDimensions,
 }: {
   equipmentId: string;
@@ -46,6 +49,8 @@ export function CameraScopedImageCanvas({
   onMarkerPointerDown: (event: ReactPointerEvent<HTMLButtonElement>, sensorId: string) => void;
   onMarkerPointerMove: (event: ReactPointerEvent<HTMLButtonElement>) => void;
   onMarkerPointerUp: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  pendingPlacement: AvailableSensor | null;
+  onPlaceAtPoint: (point: NormalizedPoint) => void;
   onImageDimensions: (widthPx: number, heightPx: number) => void;
 }) {
   const sliderId = useId();
@@ -195,7 +200,21 @@ export function CameraScopedImageCanvas({
             data-testid="equipment-image-stage"
             data-scale-percent={scalePercent}
             data-fit-contour={fitContour}
-            className="relative isolate overflow-hidden rounded-lg border border-white/[0.06] bg-slate-950/60 shadow-[0_18px_48px_rgba(0,0,0,.28)]"
+            data-placement-mode={pendingPlacement ? "active" : "idle"}
+            onPointerDown={(event) => {
+              if (!pendingPlacement || mode !== "edit" || event.button !== 0) return;
+              const rect = event.currentTarget.getBoundingClientRect();
+              if (rect.width <= 0 || rect.height <= 0) return;
+              event.preventDefault();
+              onPlaceAtPoint({
+                x: (event.clientX - rect.left) / rect.width,
+                y: (event.clientY - rect.top) / rect.height,
+              });
+            }}
+            className={clsx(
+              "relative isolate overflow-hidden rounded-lg border border-white/[0.06] bg-slate-950/60 shadow-[0_18px_48px_rgba(0,0,0,.28)]",
+              pendingPlacement && mode === "edit" && "cursor-crosshair ring-2 ring-cyan-300/35",
+            )}
             style={
               fitContour
                 ? {
@@ -233,6 +252,15 @@ export function CameraScopedImageCanvas({
 
             {mode === "edit" && snapMode === "grid" ? (
               <div className="pointer-events-none absolute inset-0 z-20 rounded-lg bg-[linear-gradient(rgba(56,189,248,.12)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,.12)_1px,transparent_1px)] bg-[size:2.5%_2.5%]" />
+            ) : null}
+
+            {pendingPlacement && mode === "edit" ? (
+              <div className="pointer-events-none absolute top-3 left-1/2 z-50 -translate-x-1/2 rounded-full border border-cyan-200/30 bg-[#06142a]/95 px-3 py-1.5 text-[10px] font-semibold text-cyan-100 shadow-xl">
+                {pendingPlacement.inventoryNumber?.trim()
+                  ? `№ ${pendingPlacement.inventoryNumber.trim()}`
+                  : pendingPlacement.channelId}{" "}
+                · натисніть на фото
+              </div>
             ) : null}
 
             <div data-testid="sensor-marker-layer" className="pointer-events-none absolute inset-0 z-40">
@@ -275,7 +303,10 @@ export function CameraScopedImageCanvas({
                       data-y={placement.y.toFixed(4)}
                       onClick={() => onSelect(sensor.id)}
                       onKeyDown={(event) => onMarkerKeyDown(event, sensor.id)}
-                      onPointerDown={(event) => onMarkerPointerDown(event, sensor.id)}
+                      onPointerDown={(event) => {
+                        event.stopPropagation();
+                        onMarkerPointerDown(event, sensor.id);
+                      }}
                       onPointerMove={onMarkerPointerMove}
                       onPointerUp={onMarkerPointerUp}
                       onPointerCancel={onMarkerPointerUp}

@@ -1,4 +1,5 @@
 import type { RefrigerationSensor, SensorSide, SensorStatus } from "@/data/refrigeration";
+import type { MeasurementChannel } from "@/features/refrigeration/climate-catalog-repository";
 import type {
   AvailableSensor,
   SensorBinding,
@@ -64,7 +65,7 @@ export function addChannelToConfiguration(
   const sensor: StagedSensorConfiguration = {
     id: channel.channelId,
     slotKey: slot.slotKey,
-    label: slot.label,
+    label: defaultMarkerLabel(channel),
     name: sensorName(channel, channel.channelId),
     side: slot.side,
     shelf: slot.shelf,
@@ -193,6 +194,22 @@ export function configurationsEqual(
   });
 }
 
+export function attachPhysicalSensorInventory(
+  channels: readonly AvailableSensor[],
+  catalogChannels: readonly MeasurementChannel[],
+): AvailableSensor[] {
+  const inventoryByChannel = new Map(
+    catalogChannels.map((channel) => [
+      channel.channelId,
+      channel.physicalSensors.length === 1 ? (channel.physicalSensors[0]?.inventoryNumber ?? null) : null,
+    ]),
+  );
+  return channels.map((channel) => ({
+    ...channel,
+    inventoryNumber: inventoryByChannel.get(channel.channelId) ?? channel.inventoryNumber ?? null,
+  }));
+}
+
 export function unusedClimateChamberChannels(
   channels: readonly AvailableSensor[],
   configuration: readonly StagedSensorConfiguration[],
@@ -277,6 +294,10 @@ function defaultPlacement(side: SensorSide, shelf: number, position: number): La
     x: Math.min(0.94, xBase + rearOffset),
     y: Math.min(0.91, yBase + (side === "rear" ? 0.055 : 0)),
   };
+}
+
+export function defaultMarkerLabel(channel: Pick<AvailableSensor, "channelId" | "inventoryNumber">): string {
+  return channel.inventoryNumber?.trim() || channel.channelId;
 }
 
 function sensorName(channel: AvailableSensor | undefined, channelId: string): string {

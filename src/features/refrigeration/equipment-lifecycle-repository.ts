@@ -29,6 +29,7 @@ export type SensorBinding = {
 
 export type AvailableSensor = {
   channelId: string;
+  inventoryNumber?: string | null;
   metric: string;
   unit: string;
   latestValue: number | null;
@@ -456,6 +457,7 @@ function parseAvailableSensor(value: unknown): AvailableSensor {
   }
   return {
     channelId,
+    inventoryNumber: readOptionalString(record?.inventory_number),
     metric,
     unit,
     latestValue: readNullableNumber(record?.latest_value),
