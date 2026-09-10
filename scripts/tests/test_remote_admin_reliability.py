@@ -83,6 +83,15 @@ class RemoteAdminReliabilityTests(unittest.TestCase):
         self.assertIn("Storage=persistent", journal.stdout)
         self.assertIn("SystemMaxUse=256M", journal.stdout)
 
+    def test_installers_fail_closed_and_apply_updated_service(self) -> None:
+        user_text = USER_INSTALLER.read_text(encoding="utf-8")
+        journal_text = JOURNAL_INSTALLER.read_text(encoding="utf-8")
+
+        self.assertIn('systemctl --user restart "${SERVICE_NAME}"', user_text)
+        self.assertIn("Refusing --defer-start while the managed service is already active", user_text)
+        self.assertIn("[[ ! -r /proc/device-tree/model ]] ||", journal_text)
+        self.assertIn("without verified Raspberry Pi identity", journal_text)
+
     def test_diagnostic_script_remains_read_only(self) -> None:
         text = DIAGNOSTIC.read_text(encoding="utf-8")
         forbidden = (

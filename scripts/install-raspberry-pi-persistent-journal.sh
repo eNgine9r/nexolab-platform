@@ -42,8 +42,8 @@ if [[ "${EUID}" -ne 0 ]]; then
   exit 1
 fi
 
-if [[ -r /proc/device-tree/model ]] && ! grep -q 'Raspberry Pi' /proc/device-tree/model; then
-  echo "Refusing to install Raspberry Pi journal policy on a non-Raspberry Pi host." >&2
+if [[ ! -r /proc/device-tree/model ]] || ! grep -q 'Raspberry Pi' /proc/device-tree/model; then
+  echo "Refusing to install Raspberry Pi journal policy without verified Raspberry Pi identity." >&2
   exit 1
 fi
 

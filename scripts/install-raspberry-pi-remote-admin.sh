@@ -89,6 +89,10 @@ if [[ "$(loginctl show-user "$(id -un)" -p Linger --value)" != "yes" ]]; then
   echo "User linger must be enabled before installing the remote service." >&2
   exit 1
 fi
+if [[ "${DEFER_START}" == "1" ]] && systemctl --user is-active --quiet "${SERVICE_NAME}"; then
+  echo "Refusing --defer-start while the managed service is already active." >&2
+  exit 1
+fi
 
 mkdir -p "${PACKAGE_ROOT}" "${SYSTEMD_USER_DIR}"
 if [[ "${SKIP_PACKAGE_INSTALL}" != "1" ]]; then
@@ -110,10 +114,10 @@ fi
 
 install -m 0644 "${UNIT_SOURCE}" "${UNIT_TARGET}"
 systemctl --user daemon-reload
-if [[ "${DEFER_START}" == "1" ]]; then
-  systemctl --user enable "${SERVICE_NAME}"
-else
-  systemctl --user enable --now "${SERVICE_NAME}"
+systemctl --user enable "${SERVICE_NAME}"
+if [[ "${DEFER_START}" != "1" ]]; then
+  # `enable --now` does not restart an already-active unit after package/unit replacement.
+  systemctl --user restart "${SERVICE_NAME}"
 fi
 ENABLED="$(systemctl --user is-enabled "${SERVICE_NAME}")"
 ACTIVE="$(systemctl --user is-active "${SERVICE_NAME}" || true)"
