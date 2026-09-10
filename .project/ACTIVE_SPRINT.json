@@ -3411,7 +3411,7 @@
       ],
       "branch": "feat/965-sensor-placement-quick-add",
       "evidence": {
-        "verified_head_sha": "755ea1bde77ca5b84dd5adb83965935e820e24ac",
+        "verified_head_sha": "c4fabe1817708bb496f19bb1bdd22eac19beb2e3",
         "checks": {
           "targeted_eslint": "success",
           "targeted_prettier": "success",
@@ -3430,12 +3430,14 @@
           "typecheck": "pending_exact_head_ci",
           "production_build": "pending_exact_head_ci",
           "review_threads": "pending_exact_head_review",
-          "focused_sensor_placement_tests_26": "success",
           "rename_staged_before_global_save": "success",
           "rename_enter_blur_escape_semantics": "success",
           "metadata_refresh_preserves_active_draft": "success",
           "binding_identity_churn_no_rehydrate": "success",
-          "late_review_findings_2": "addressed_locally"
+          "late_review_findings_2": "addressed_locally",
+          "focused_sensor_placement_tests_27": "success",
+          "communication_error_quality_offline": "success",
+          "late_review_findings_1": "addressed_locally"
         },
         "production_deployment": "not_executed",
         "modbus_write": "none",
