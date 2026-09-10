@@ -3423,23 +3423,27 @@
       "lifecycle": "review",
       "branch": "fix/988-remote-admin-self-healing",
       "evidence": {
-        "verified_head_sha": "c251e217896e84f6a1c488159bbf87a8a78f3243",
+        "verified_head_sha": "1db10bab844c81e034c7dcdd125d4599fff00813",
         "checks": {
-          "targeted_reliability_tests": "success",
+          "targeted_reliability_tests_10": "success",
+          "standalone_offline_runtime_contract": "success",
           "remote_cgroup_isolation": "success",
           "remote_self_healing": "success",
           "controlled_reboot_acceptance": "success",
           "persistent_journal_previous_boot": "success",
           "production_runtime_recovery": "success",
           "persistent_log_payload_minimization": "success",
-          "standalone_offline_runtime_contract": "success",
-          "review_p2_findings_addressed": "success",
           "effective_journal_bounds": "success",
           "remote_channel_connectivity_diagnostic": "success",
-          "diagnostic_historical_payload_filter": "success",
           "diagnostic_journal_access_visibility": "success",
           "ci_impact_routing": "success",
-          "ci_governance_tests_176": "success"
+          "ci_governance_tests_176": "success",
+          "pinned_remote_source_provenance": "success",
+          "immutable_remote_release_layout": "success",
+          "upstream_rotation_persistence_tests_17": "success",
+          "live_transient_self_update_handoff": "success",
+          "effective_service_policy_after_handoff": "success",
+          "review_p2_findings_addressed": "pending_exact_head_review"
         }
       }
     }

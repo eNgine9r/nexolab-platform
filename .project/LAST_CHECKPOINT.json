@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-10T13:37:47+03:00",
+  "timestamp": "2026-09-10T14:50:09+03:00",
   "actor": "ChatGPT",
-  "event": "issue_988_journal_access_diagnostic_hardened",
+  "event": "issue_988_rotated_session_restart_recovery_verified",
   "baselines": {
     "accepted_product_sha": "cb7a533119e42d0ab5481634da37ecf47aa235bd",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -17,28 +17,32 @@
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "verified_head_sha": "c251e217896e84f6a1c488159bbf87a8a78f3243",
+      "verified_head_sha": "1db10bab844c81e034c7dcdd125d4599fff00813",
       "checks": {
-        "targeted_reliability_tests": "success",
+        "targeted_reliability_tests_10": "success",
+        "standalone_offline_runtime_contract": "success",
         "remote_cgroup_isolation": "success",
         "remote_self_healing": "success",
         "controlled_reboot_acceptance": "success",
         "persistent_journal_previous_boot": "success",
         "production_runtime_recovery": "success",
         "persistent_log_payload_minimization": "success",
-        "standalone_offline_runtime_contract": "success",
-        "review_p2_findings_addressed": "success",
         "effective_journal_bounds": "success",
         "remote_channel_connectivity_diagnostic": "success",
-        "diagnostic_historical_payload_filter": "success",
         "diagnostic_journal_access_visibility": "success",
         "ci_impact_routing": "success",
-        "ci_governance_tests_176": "success"
+        "ci_governance_tests_176": "success",
+        "pinned_remote_source_provenance": "success",
+        "immutable_remote_release_layout": "success",
+        "upstream_rotation_persistence_tests_17": "success",
+        "live_transient_self_update_handoff": "success",
+        "effective_service_policy_after_handoff": "success",
+        "review_p2_findings_addressed": "pending_exact_head_review"
       }
     }
   },
   "observations": [],
-  "next_action": "Push the #988 journal-access diagnostic fix, require exact-head routed workflows and NEXOLAB Merge Gate GREEN with zero unresolved review threads, then merge and restore Issue #965.",
+  "next_action": "Push Issue #988 implementation/state commits, require new exact-head CI and review with zero unresolved threads, merge only when GREEN, then restore Issue #965 as active.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
