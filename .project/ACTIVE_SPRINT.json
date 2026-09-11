@@ -3411,7 +3411,7 @@
       ],
       "branch": "feat/965-sensor-placement-quick-add",
       "evidence": {
-        "verified_head_sha": "bf0d14135bcdc71cc73a92e4b149a3aea60cd0b2",
+        "verified_head_sha": "a0b69ba5e1d56c0e7059ea0d514d690afaee1863",
         "checks": {
           "targeted_eslint": "success",
           "targeted_prettier": "success",
@@ -3443,7 +3443,11 @@
           "raw_pi_typecheck": "runtime_snapshot_pollution_not_candidate_failure",
           "telemetry_refresh_while_picker_open": "success",
           "climate_channel_structural_cache_bypass": "success",
-          "reload_delayed_inventory_provenance": "success"
+          "reload_delayed_inventory_provenance": "success",
+          "non_good_non_null_quality_stale": "success",
+          "focused_sensor_placement_tests_36": "success",
+          "exact_clean_worktree_typecheck": "success",
+          "late_review_quality_finding": "addressed_locally"
         },
         "production_deployment": "not_executed",
         "modbus_write": "none",

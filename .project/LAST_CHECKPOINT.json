@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-11T16:43:37+03:00",
+  "timestamp": "2026-09-11T17:10:18+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_965_late_review_candidate_ready_for_exact_head_ci",
+  "event": "issue_965_non_good_quality_p1_candidate_ready",
   "baselines": {
     "accepted_product_sha": "cb7a533119e42d0ab5481634da37ecf47aa235bd",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -17,7 +17,7 @@
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "verified_head_sha": "bf0d14135bcdc71cc73a92e4b149a3aea60cd0b2",
+      "verified_head_sha": "a0b69ba5e1d56c0e7059ea0d514d690afaee1863",
       "checks": {
         "focused_sensor_placement_tests_30": "success",
         "targeted_eslint": "success",
@@ -30,14 +30,18 @@
         "raw_pi_typecheck": "runtime_snapshot_pollution_not_candidate_failure",
         "chromium_acceptance": "pending_exact_head_ci",
         "production_build": "pending_exact_head_ci",
-        "review_threads": "pending_exact_head_review"
+        "review_threads": "pending_exact_head_review",
+        "focused_sensor_placement_tests_36": "success",
+        "non_good_non_null_quality_stale": "success",
+        "exact_clean_worktree_typecheck": "success",
+        "late_review_quality_finding": "addressed_locally"
       },
       "production_deployment": "not_executed",
       "modbus_write": "none",
       "hardware_write": "none"
     }
   },
-  "next_action": "Push the coherent #965 candidate and state anchor, require fresh exact-head GitHub CI/Refrigeration Browser/production build plus clean review, resolve remaining review threads, and merge only if the final gate remains GREEN.",
+  "next_action": "Commit and push the #965 state anchor, require fresh exact-head Core/Browser/Security/DR/Merge Gate verification, resolve only evidence-backed review threads, and merge only if no new review finding appears.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
