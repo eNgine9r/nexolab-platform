@@ -11,6 +11,7 @@ import {
   channelTelemetryLabel,
   defaultMarkerLabel,
   refreshStagedSensorChannelMetadata,
+  replaceConfiguredChannel,
   sensorSlotCapacity,
 } from "./sensor-configuration";
 
@@ -159,6 +160,43 @@ describe("sensor configuration marker identity", () => {
     expect(enriched).toMatchObject({
       id: "106-04",
       label: "Мій датчик",
+    });
+  });
+
+  it("updates an automatic marker label when its channel is deliberately replaced", () => {
+    const [configured] = addChannelToConfiguration([], available("101-01", "471"), 48, "showcase-kk2");
+    if (!configured) throw new Error("Expected configured sensor");
+
+    const [replaced] = replaceConfiguredChannel(
+      [configured],
+      "101-01",
+      available("101-03", "473"),
+      "showcase-kk2",
+    );
+
+    expect(replaced).toMatchObject({
+      id: "101-03",
+      label: "473",
+      automaticLabelSource: "physical_inventory",
+    });
+  });
+
+  it("preserves an operator marker label when its channel is deliberately replaced", () => {
+    const [configured] = addChannelToConfiguration([], available("101-01", "471"), 48, "showcase-kk2");
+    if (!configured) throw new Error("Expected configured sensor");
+    const operatorNamed = { ...configured, label: "T-03", automaticLabelSource: undefined };
+
+    const [replaced] = replaceConfiguredChannel(
+      [operatorNamed],
+      "101-01",
+      available("101-03", "473"),
+      "showcase-kk2",
+    );
+
+    expect(replaced).toMatchObject({
+      id: "101-03",
+      label: "T-03",
+      automaticLabelSource: undefined,
     });
   });
 

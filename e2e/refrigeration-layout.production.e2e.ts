@@ -565,7 +565,7 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     await pageA.getByRole("button", { name: "Редагувати датчик 471" }).click();
     await ensureAdvancedSensorParametersOpen(pageA);
     await replaceChannel(pageA, channelIds.replacement);
-    await editor(pageA).getByRole("button", { name: "Перейменувати маркер 471" }).click();
+    await editor(pageA).getByRole("button", { name: "Перейменувати маркер 473" }).click();
     const renameInput = editor(pageA).getByRole("textbox", { name: "Нова назва маркера" });
     await renameInput.fill("T-03");
     await renameInput.press("Enter");
