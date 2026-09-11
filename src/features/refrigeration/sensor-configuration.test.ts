@@ -83,6 +83,32 @@ describe("sensor configuration marker identity", () => {
     expect(channelTelemetryLabel(channel)).toBe("Offline");
   });
 
+  it.each(["stale", "unknown", "sensor_error"])(
+    "does not label a recent non-null %s sample as Live",
+    (quality) => {
+      const now = Date.parse("2026-09-11T13:55:00.000Z");
+      const channel = {
+        ...available("106-03", "441"),
+        latestValue: 4.2,
+        quality,
+        capturedAt: "2026-09-11T13:54:55.000Z",
+      };
+
+      expect(channelTelemetryLabel(channel, now)).toBe("Stale");
+    },
+  );
+
+  it.each(["good", "ok", "valid"])("labels a recent %s sample as Live", (quality) => {
+    const now = Date.parse("2026-09-11T13:55:00.000Z");
+    const channel = {
+      ...available("106-03", "441"),
+      quality,
+      capturedAt: "2026-09-11T13:54:55.000Z",
+    };
+
+    expect(channelTelemetryLabel(channel, now)).toBe("Live");
+  });
+
   it("recovers legacy zero capacity consistently for actual placement", () => {
     expect(sensorSlotCapacity(0)).toBe(48);
     expect(sensorSlotCapacity(72)).toBe(48);

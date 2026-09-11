@@ -16,6 +16,7 @@ export type StagedSensorConfiguration = RefrigerationSensor & {
 
 const DEFAULT_SENSOR_SLOT_CAPACITY = 48;
 const MAX_SENSOR_SLOT_CAPACITY = 48;
+const GOOD_TELEMETRY_QUALITIES = new Set(["good", "ok", "valid"]);
 
 export function buildStagedSensorConfiguration(
   bindings: readonly SensorBinding[],
@@ -318,8 +319,8 @@ export function channelPlacementConflict(channel: AvailableSensor, equipmentId?:
 }
 
 export function channelTelemetryLabel(channel: AvailableSensor, now = Date.now()): string {
+  const quality = channel.quality.trim().toLowerCase();
   if (channel.latestValue === null) {
-    const quality = channel.quality.toLowerCase();
     if (quality.includes("offline") || quality.includes("communication")) {
       return "Offline";
     }
@@ -331,6 +332,7 @@ export function channelTelemetryLabel(channel: AvailableSensor, now = Date.now()
     }
     return "Немає даних";
   }
+  if (!GOOD_TELEMETRY_QUALITIES.has(quality)) return "Stale";
   const capturedAt = Date.parse(channel.capturedAt);
   if (!Number.isFinite(capturedAt) || now - capturedAt > 30_000) return "Stale";
   return "Live";
