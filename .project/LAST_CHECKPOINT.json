@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-10T23:03:09+03:00",
+  "timestamp": "2026-09-11T16:43:37+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_965_communication_quality_review_fix",
+  "event": "issue_965_late_review_candidate_ready_for_exact_head_ci",
   "baselines": {
     "accepted_product_sha": "cb7a533119e42d0ab5481634da37ecf47aa235bd",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -17,57 +17,27 @@
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "verified_head_sha": "c4fabe1817708bb496f19bb1bdd22eac19beb2e3",
+      "verified_head_sha": "bf0d14135bcdc71cc73a92e4b149a3aea60cd0b2",
       "checks": {
+        "focused_sensor_placement_tests_30": "success",
         "targeted_eslint": "success",
         "targeted_prettier": "success",
+        "source_only_typecheck": "success",
         "git_diff_check": "success",
-        "quick_add_without_org_context": "success",
-        "advanced_replacement_without_org_context": "fail_closed_expected",
-        "direct_canvas_placement": "success",
-        "initial_snap_semantics": "success",
-        "physical_inventory_default_labels": "success",
-        "picker_freshness_clock_refresh": "success",
-        "legacy_zero_capacity_consistency": "success",
-        "free_deterministic_slot_snap_targets": "success",
-        "late_review_findings_3": "addressed_locally",
-        "previous_exact_head_chromium_4": "success",
+        "telemetry_refresh_while_picker_open": "success",
+        "climate_channel_structural_cache_bypass": "success",
+        "reload_delayed_inventory_provenance": "success",
+        "raw_pi_typecheck": "runtime_snapshot_pollution_not_candidate_failure",
         "chromium_acceptance": "pending_exact_head_ci",
-        "typecheck": "pending_exact_head_ci",
         "production_build": "pending_exact_head_ci",
-        "review_threads": "pending_exact_head_review",
-        "rename_staged_before_global_save": "success",
-        "rename_enter_blur_escape_semantics": "success",
-        "metadata_refresh_preserves_active_draft": "success",
-        "binding_identity_churn_no_rehydrate": "success",
-        "late_review_findings_2": "addressed_locally",
-        "focused_sensor_placement_tests_27": "success",
-        "communication_error_quality_offline": "success",
-        "late_review_findings_1": "addressed_locally"
+        "review_threads": "pending_exact_head_review"
       },
       "production_deployment": "not_executed",
       "modbus_write": "none",
       "hardware_write": "none"
     }
   },
-  "observations": [
-    {
-      "source": "github",
-      "observed_at": "2026-09-10T23:03:09+03:00",
-      "kind": "pull_request_review",
-      "data": {
-        "issue": 965,
-        "pull_request": 992,
-        "previous_exact_head_sha": "13f43a171ea0ad61e9f7e536e40afbe2e90e193c",
-        "previous_exact_head_ci": "success",
-        "late_review_findings": 1,
-        "implementation_fix_sha": "c4fabe1817708bb496f19bb1bdd22eac19beb2e3",
-        "focused_tests": "27_passed",
-        "finding": "communication_error_quality_must_render_offline_before_generic_error"
-      }
-    }
-  ],
-  "next_action": "Push the final #965 communication-quality review fix and state anchor, require fresh exact-head Chromium/typecheck/build/merge-gate verification, resolve the verified review thread, then merge only if the late-review gate remains clean.",
+  "next_action": "Push the coherent #965 candidate and state anchor, require fresh exact-head GitHub CI/Refrigeration Browser/production build plus clean review, resolve remaining review threads, and merge only if the final gate remains GREEN.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
