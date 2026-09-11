@@ -109,6 +109,28 @@ describe("sensor configuration marker identity", () => {
     expect(channelTelemetryLabel(channel, now)).toBe("Live");
   });
 
+  it("rejects a good-quality sample beyond the allowed future clock-skew window", () => {
+    const now = Date.parse("2026-09-11T13:55:00.000Z");
+    const channel = {
+      ...available("106-03", "441"),
+      quality: "valid",
+      capturedAt: "2026-09-11T13:55:30.001Z",
+    };
+
+    expect(channelTelemetryLabel(channel, now)).toBe("Stale");
+  });
+
+  it("accepts a good-quality sample exactly at the future clock-skew boundary", () => {
+    const now = Date.parse("2026-09-11T13:55:00.000Z");
+    const channel = {
+      ...available("106-03", "441"),
+      quality: "valid",
+      capturedAt: "2026-09-11T13:55:30.000Z",
+    };
+
+    expect(channelTelemetryLabel(channel, now)).toBe("Live");
+  });
+
   it("recovers legacy zero capacity consistently for actual placement", () => {
     expect(sensorSlotCapacity(0)).toBe(48);
     expect(sensorSlotCapacity(72)).toBe(48);

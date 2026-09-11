@@ -334,7 +334,9 @@ export function channelTelemetryLabel(channel: AvailableSensor, now = Date.now()
   }
   if (!GOOD_TELEMETRY_QUALITIES.has(quality)) return "Stale";
   const capturedAt = Date.parse(channel.capturedAt);
-  if (!Number.isFinite(capturedAt) || now - capturedAt > 30_000) return "Stale";
+  if (!Number.isFinite(capturedAt) || capturedAt > now + 30_000 || now - capturedAt > 30_000) {
+    return "Stale";
+  }
   return "Live";
 }
 
