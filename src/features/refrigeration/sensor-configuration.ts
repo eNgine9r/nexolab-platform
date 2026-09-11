@@ -11,6 +11,7 @@ export type StagedSensorConfiguration = RefrigerationSensor & {
   slotKey: string;
   metric: string;
   unit: string;
+  automaticLabelSource?: "channel_id_fallback" | "physical_inventory";
 };
 
 const DEFAULT_SENSOR_SLOT_CAPACITY = 48;
@@ -69,6 +70,7 @@ export function addChannelToConfiguration(
     id: channel.channelId,
     slotKey: slot.slotKey,
     label: defaultMarkerLabel(channel),
+    automaticLabelSource: channel.inventoryNumber?.trim() ? "physical_inventory" : "channel_id_fallback",
     name: sensorName(channel, channel.channelId),
     side: slot.side,
     shelf: slot.shelf,
@@ -97,28 +99,37 @@ export function replaceConfiguredChannel(
   const conflict = channelPlacementConflict(channel, equipmentId);
   if (channel.channelId !== sensorId && conflict) throw new Error(conflict);
   return current
-    .map((sensor) =>
-      sensor.id === sensorId
-        ? {
-            ...sensor,
-            id: channel.channelId,
-            name: sensorName(channel, channel.channelId),
-            temperatureC: channel.latestValue,
-            status: statusFromQuality(channel),
-            updatedAt: channel.capturedAt,
-            trend: channel.latestValue === null ? [] : [channel.latestValue],
-            metric: channel.metric,
-            unit: channel.unit,
-          }
-        : sensor,
-    )
+    .map((sensor) => {
+      if (sensor.id !== sensorId) return sensor;
+      const keepsAutomaticLabel = sensor.automaticLabelSource !== undefined;
+      const automaticLabelSource: StagedSensorConfiguration["automaticLabelSource"] = keepsAutomaticLabel
+        ? channel.inventoryNumber?.trim()
+          ? "physical_inventory"
+          : "channel_id_fallback"
+        : undefined;
+      return {
+        ...sensor,
+        id: channel.channelId,
+        label: keepsAutomaticLabel ? defaultMarkerLabel(channel) : sensor.label,
+        automaticLabelSource,
+        name: sensorName(channel, channel.channelId),
+        temperatureC: channel.latestValue,
+        status: statusFromQuality(channel),
+        updatedAt: channel.capturedAt,
+        trend: channel.latestValue === null ? [] : [channel.latestValue],
+        metric: channel.metric,
+        unit: channel.unit,
+      };
+    })
     .sort(compareStagedSensors);
 }
 
 export function updateConfiguredSensor(
   current: readonly StagedSensorConfiguration[],
   sensorId: string,
-  patch: Partial<Pick<StagedSensorConfiguration, "label" | "side" | "shelf" | "position">>,
+  patch: Partial<
+    Pick<StagedSensorConfiguration, "label" | "side" | "shelf" | "position" | "automaticLabelSource">
+  >,
 ): StagedSensorConfiguration[] {
   return current
     .map((sensor) => {
@@ -131,9 +142,15 @@ export function updateConfiguredSensor(
         (candidate) => candidate.id !== sensorId && candidate.slotKey === slotKey,
       );
       if (conflict) throw new Error("Вибрана позиція вже зайнята іншим датчиком.");
+      const labelPatched = Object.prototype.hasOwnProperty.call(patch, "label");
       return {
         ...sensor,
         ...patch,
+        automaticLabelSource: labelPatched
+          ? Object.prototype.hasOwnProperty.call(patch, "automaticLabelSource")
+            ? patch.automaticLabelSource
+            : undefined
+          : sensor.automaticLabelSource,
         side,
         shelf,
         position,
@@ -221,8 +238,15 @@ export function refreshStagedSensorChannelMetadata(
   return current.map((sensor) => {
     const channel = channelById.get(sensor.id);
     if (!channel) return sensor;
+    const inventoryNumber = channel.inventoryNumber?.trim();
+    const promoteFallbackLabel =
+      sensor.automaticLabelSource === "channel_id_fallback" &&
+      sensor.label === sensor.id &&
+      Boolean(inventoryNumber);
     return {
       ...sensor,
+      label: promoteFallbackLabel ? inventoryNumber! : sensor.label,
+      automaticLabelSource: promoteFallbackLabel ? "physical_inventory" : sensor.automaticLabelSource,
       name: sensorName(channel, sensor.id),
       temperatureC: channel.latestValue,
       status: statusFromQuality(channel),

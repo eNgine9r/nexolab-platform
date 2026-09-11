@@ -120,6 +120,7 @@ export function CameraScopedLayoutEditor({
       cancelled = true;
     };
   }, [bindingHydrationKey, dirty, equipment.id, repository]);
+
   const visibleConfiguration = useMemo(
     () => refreshStagedSensorChannelMetadata(configuration, channels),
     [channels, configuration],
@@ -166,7 +167,7 @@ export function CameraScopedLayoutEditor({
 
   const save = async () => {
     if (!draft || state === "saving") return;
-    if (configuration.some((sensor) => !sensor.label.trim())) {
+    if (visibleConfiguration.some((sensor) => !sensor.label.trim())) {
       setError("Кожен датчик повинен мати непорожній підпис маркера.");
       return;
     }
@@ -178,7 +179,7 @@ export function CameraScopedLayoutEditor({
         equipment.id,
         equipment.version,
         draft.version,
-        configurationPayload(configuration),
+        configurationPayload(visibleConfiguration),
       );
       const next = buildStagedSensorConfiguration(result.bindings, channels, result.draft.placements);
       setDraft(result.draft);
@@ -438,6 +439,7 @@ export function CameraScopedLayoutEditor({
               ? (channels.find((channel) => channel.channelId === pendingChannelId) ?? null)
               : null
           }
+          suggestedPlacement={placementSnapSlots[0] ?? null}
           onPlaceAtPoint={placePendingChannel}
           onImageDimensions={() => undefined}
         />

@@ -31,6 +31,7 @@ export function CameraScopedImageCanvas({
   onMarkerPointerMove,
   onMarkerPointerUp,
   pendingPlacement,
+  suggestedPlacement,
   onPlaceAtPoint,
   onImageDimensions,
 }: {
@@ -50,11 +51,18 @@ export function CameraScopedImageCanvas({
   onMarkerPointerMove: (event: ReactPointerEvent<HTMLButtonElement>) => void;
   onMarkerPointerUp: (event: ReactPointerEvent<HTMLButtonElement>) => void;
   pendingPlacement: AvailableSensor | null;
+  suggestedPlacement: NormalizedPoint | null;
   onPlaceAtPoint: (point: NormalizedPoint) => void;
   onImageDimensions: (widthPx: number, heightPx: number) => void;
 }) {
   const sliderId = useId();
   const workspaceRef = useRef<HTMLDivElement>(null);
+  const placementGestureRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    moved: boolean;
+  } | null>(null);
   const [scalePercent, setScalePercent] = useState(100);
   const [fitContour, setFitContour] = useState(true);
   const [expanded, setExpanded] = useState(false);
@@ -67,6 +75,14 @@ export function CameraScopedImageCanvas({
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
+
+  useEffect(() => {
+    if (!pendingPlacement) placementGestureRef.current = null;
+  }, [pendingPlacement]);
+
+  const pendingPlacementLabel = pendingPlacement
+    ? pendingPlacement.inventoryNumber?.trim() || pendingPlacement.channelId
+    : null;
 
   const updateScale = (value: number) => {
     setFitContour(false);
@@ -202,14 +218,47 @@ export function CameraScopedImageCanvas({
             data-fit-contour={fitContour}
             data-placement-mode={pendingPlacement ? "active" : "idle"}
             onPointerDown={(event) => {
-              if (!pendingPlacement || mode !== "edit" || event.button !== 0) return;
+              if (
+                !pendingPlacement ||
+                mode !== "edit" ||
+                event.button !== 0 ||
+                isInteractivePlacementTarget(event.target)
+              )
+                return;
+              placementGestureRef.current = {
+                pointerId: event.pointerId,
+                startX: event.clientX,
+                startY: event.clientY,
+                moved: false,
+              };
+            }}
+            onPointerMove={(event) => {
+              const gesture = placementGestureRef.current;
+              if (!gesture || gesture.pointerId !== event.pointerId) return;
+              if (Math.hypot(event.clientX - gesture.startX, event.clientY - gesture.startY) > 8)
+                gesture.moved = true;
+            }}
+            onPointerUp={(event) => {
+              const gesture = placementGestureRef.current;
+              if (!gesture || gesture.pointerId !== event.pointerId) return;
+              placementGestureRef.current = null;
+              if (
+                gesture.moved ||
+                !pendingPlacement ||
+                mode !== "edit" ||
+                isInteractivePlacementTarget(event.target)
+              )
+                return;
               const rect = event.currentTarget.getBoundingClientRect();
               if (rect.width <= 0 || rect.height <= 0) return;
-              event.preventDefault();
               onPlaceAtPoint({
                 x: (event.clientX - rect.left) / rect.width,
                 y: (event.clientY - rect.top) / rect.height,
               });
+            }}
+            onPointerCancel={(event) => {
+              if (placementGestureRef.current?.pointerId === event.pointerId)
+                placementGestureRef.current = null;
             }}
             className={clsx(
               "relative isolate overflow-hidden rounded-lg border border-white/[0.06] bg-slate-950/60 shadow-[0_18px_48px_rgba(0,0,0,.28)]",
@@ -255,11 +304,27 @@ export function CameraScopedImageCanvas({
             ) : null}
 
             {pendingPlacement && mode === "edit" ? (
-              <div className="pointer-events-none absolute top-3 left-1/2 z-50 -translate-x-1/2 rounded-full border border-cyan-200/30 bg-[#06142a]/95 px-3 py-1.5 text-[10px] font-semibold text-cyan-100 shadow-xl">
-                {pendingPlacement.inventoryNumber?.trim()
-                  ? `№ ${pendingPlacement.inventoryNumber.trim()}`
-                  : pendingPlacement.channelId}{" "}
-                · натисніть на фото
+              <div className="pointer-events-none absolute top-3 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-cyan-200/30 bg-[#06142a]/95 px-3 py-1.5 text-[10px] font-semibold text-cyan-100 shadow-xl">
+                <span>
+                  {pendingPlacement.inventoryNumber?.trim()
+                    ? `№ ${pendingPlacement.inventoryNumber.trim()}`
+                    : pendingPlacement.channelId}{" "}
+                  · натисніть на фото
+                </span>
+                {suggestedPlacement ? (
+                  <button
+                    type="button"
+                    aria-label={`Розмістити датчик ${pendingPlacementLabel} на рекомендованій позиції`}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onPlaceAtPoint(suggestedPlacement);
+                    }}
+                    className="pointer-events-auto rounded-full border border-cyan-200/25 bg-cyan-400/10 px-2 py-1 text-[9px] text-cyan-50 hover:bg-cyan-400/20 focus:ring-2 focus:ring-cyan-200 focus:outline-none"
+                  >
+                    Рекомендована позиція
+                  </button>
+                ) : null}
               </div>
             ) : null}
 
@@ -331,6 +396,10 @@ export function CameraScopedImageCanvas({
       </div>
     </div>
   );
+}
+
+function isInteractivePlacementTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest("button") !== null;
 }
 
 function PhotoPlaceholder({ equipmentName }: { equipmentName: string }) {

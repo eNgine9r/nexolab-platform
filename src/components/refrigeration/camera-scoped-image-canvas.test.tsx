@@ -66,6 +66,7 @@ function renderCanvas(options: { pendingPlacement?: AvailableSensor | null } = {
       onMarkerPointerMove={() => undefined}
       onMarkerPointerUp={() => undefined}
       pendingPlacement={options.pendingPlacement === undefined ? pending : options.pendingPlacement}
+      suggestedPlacement={{ x: 0.25, y: 0.35 }}
       onPlaceAtPoint={onPlaceAtPoint}
       onImageDimensions={() => undefined}
     />,
@@ -87,13 +88,22 @@ function renderCanvas(options: { pendingPlacement?: AvailableSensor | null } = {
   return { stage, onPlaceAtPoint, onSelect, onEditSensor, onMarkerPointerDown };
 }
 describe("CameraScopedImageCanvas placement mode", () => {
-  it("places the pending channel at normalized canvas coordinates with one pointer action", () => {
+  it("places the pending channel only after a completed tap", () => {
     const { stage, onPlaceAtPoint } = renderCanvas();
 
     expect(stage).toHaveAttribute("data-placement-mode", "active");
-    expect(screen.getByText("№ 442 · натисніть на фото")).toBeInTheDocument();
+    expect(screen.getByText(/№ 442 · натисніть на фото/)).toBeInTheDocument();
+    const photoSurface = screen.getByText("Фото Showcase KK2 не завантажено");
 
-    fireEvent.pointerDown(stage, {
+    fireEvent.pointerDown(photoSurface, {
+      pointerId: 3,
+      button: 0,
+      clientX: 500,
+      clientY: 350,
+    });
+    expect(onPlaceAtPoint).not.toHaveBeenCalled();
+    fireEvent.pointerUp(photoSurface, {
+      pointerId: 3,
       button: 0,
       clientX: 500,
       clientY: 350,
@@ -101,6 +111,28 @@ describe("CameraScopedImageCanvas placement mode", () => {
 
     expect(onPlaceAtPoint).toHaveBeenCalledTimes(1);
     expect(onPlaceAtPoint).toHaveBeenCalledWith({ x: 0.5, y: 0.5 });
+  });
+
+  it("does not place while a touch gesture moves as part of scrolling", () => {
+    const { stage, onPlaceAtPoint } = renderCanvas();
+
+    fireEvent.pointerDown(stage, { pointerId: 5, button: 0, clientX: 500, clientY: 350 });
+    fireEvent.pointerMove(stage, { pointerId: 5, clientX: 500, clientY: 370 });
+    fireEvent.pointerUp(stage, { pointerId: 5, button: 0, clientX: 500, clientY: 370 });
+
+    expect(onPlaceAtPoint).not.toHaveBeenCalled();
+  });
+
+  it("provides a native keyboard-accessible default placement action", () => {
+    const { onPlaceAtPoint } = renderCanvas();
+    const suggested = screen.getByRole("button", {
+      name: "Розмістити датчик 442 на рекомендованій позиції",
+    });
+
+    fireEvent.click(suggested);
+
+    expect(onPlaceAtPoint).toHaveBeenCalledTimes(1);
+    expect(onPlaceAtPoint).toHaveBeenCalledWith({ x: 0.25, y: 0.35 });
   });
 
   it("does not place a second sensor when the operator interacts with an existing marker", () => {

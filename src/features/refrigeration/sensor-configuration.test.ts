@@ -136,6 +136,32 @@ describe("sensor configuration marker identity", () => {
     expect(next[0]?.label).toBe("106-04");
   });
 
+  it("promotes an untouched fallback label when delayed inventory metadata arrives", () => {
+    const [fallback] = addChannelToConfiguration([], available("106-04", null), 48, "showcase-kk2");
+    if (!fallback) throw new Error("Expected fallback sensor");
+
+    const [enriched] = refreshStagedSensorChannelMetadata([fallback], [available("106-04", "442")]);
+
+    expect(enriched).toMatchObject({
+      id: "106-04",
+      label: "442",
+      automaticLabelSource: "physical_inventory",
+    });
+  });
+
+  it("does not overwrite an operator label when delayed inventory metadata arrives", () => {
+    const [fallback] = addChannelToConfiguration([], available("106-04", null), 48, "showcase-kk2");
+    if (!fallback) throw new Error("Expected fallback sensor");
+    const operatorNamed = { ...fallback, label: "Мій датчик", automaticLabelSource: undefined };
+
+    const [enriched] = refreshStagedSensorChannelMetadata([operatorNamed], [available("106-04", "442")]);
+
+    expect(enriched).toMatchObject({
+      id: "106-04",
+      label: "Мій датчик",
+    });
+  });
+
   it("enriches current-chamber channels without changing their canonical IDs", () => {
     const channels = [available("106-03"), available("106-04", "legacy")];
     const enriched = attachPhysicalSensorInventory(channels, [catalogChannel("106-03", "441")]);

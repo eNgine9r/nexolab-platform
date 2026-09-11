@@ -76,6 +76,8 @@ export function SensorPlacementManager({
   const [renamingSensorId, setRenamingSensorId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
   const [renameOriginalLabel, setRenameOriginalLabel] = useState("");
+  const [renameOriginalAutomaticLabelSource, setRenameOriginalAutomaticLabelSource] =
+    useState<StagedSensorConfiguration["automaticLabelSource"]>(undefined);
   const ignoreNextRenameBlurRef = useRef(false);
   useEffect(() => {
     if (picker?.kind !== "add") return;
@@ -160,7 +162,9 @@ export function SensorPlacementManager({
     }
   };
   const update = (
-    patch: Partial<Pick<StagedSensorConfiguration, "label" | "side" | "shelf" | "position">>,
+    patch: Partial<
+      Pick<StagedSensorConfiguration, "label" | "side" | "shelf" | "position" | "automaticLabelSource">
+    >,
   ) => {
     if (!selectedSensor) return;
     setError(null);
@@ -184,12 +188,14 @@ export function SensorPlacementManager({
     setRenamingSensorId(null);
     setRenameDraft("");
     setRenameOriginalLabel("");
+    setRenameOriginalAutomaticLabelSource(undefined);
   };
   const startRename = () => {
     if (!selectedSensor) return;
     ignoreNextRenameBlurRef.current = false;
     setRenameDraft(selectedSensor.label);
     setRenameOriginalLabel(selectedSensor.label);
+    setRenameOriginalAutomaticLabelSource(selectedSensor.automaticLabelSource);
     setRenamingSensorId(selectedSensor.id);
   };
   const stageRename = (label: string) => {
@@ -199,7 +205,10 @@ export function SensorPlacementManager({
   const cancelRename = () => {
     ignoreNextRenameBlurRef.current = true;
     if (selectedSensor && renamingSensorId === selectedSensor.id) {
-      update({ label: renameOriginalLabel });
+      update({
+        label: renameOriginalLabel,
+        automaticLabelSource: renameOriginalAutomaticLabelSource,
+      });
     }
     closeRename();
   };
