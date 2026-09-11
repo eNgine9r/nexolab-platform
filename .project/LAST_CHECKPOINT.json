@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-11T17:10:18+03:00",
+  "timestamp": "2026-09-11T17:22:32+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_965_non_good_quality_p1_candidate_ready",
+  "event": "issue_965_future_skew_p1_candidate_ready",
   "baselines": {
     "accepted_product_sha": "cb7a533119e42d0ab5481634da37ecf47aa235bd",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -17,7 +17,7 @@
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "verified_head_sha": "a0b69ba5e1d56c0e7059ea0d514d690afaee1863",
+      "verified_head_sha": "c3f68d9fd65b421c3ff6e2b281077506223eb982",
       "checks": {
         "focused_sensor_placement_tests_30": "success",
         "targeted_eslint": "success",
@@ -34,14 +34,17 @@
         "focused_sensor_placement_tests_36": "success",
         "non_good_non_null_quality_stale": "success",
         "exact_clean_worktree_typecheck": "success",
-        "late_review_quality_finding": "addressed_locally"
+        "late_review_quality_finding": "addressed_locally",
+        "focused_sensor_placement_tests_38": "success",
+        "future_timestamp_skew_rejected": "success",
+        "future_skew_boundary_30s": "success"
       },
       "production_deployment": "not_executed",
       "modbus_write": "none",
       "hardware_write": "none"
     }
   },
-  "next_action": "Commit and push the #965 state anchor, require fresh exact-head Core/Browser/Security/DR/Merge Gate verification, resolve only evidence-backed review threads, and merge only if no new review finding appears.",
+  "next_action": "Commit and push the #965 future-skew state anchor, require fresh exact-head Core/Browser/Security/DR/Merge Gate verification, resolve evidence-backed review threads only after GREEN, then merge if no new finding appears.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
