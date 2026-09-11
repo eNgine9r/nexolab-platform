@@ -78,6 +78,7 @@ function renderManager({
   totalSlots = 48,
   organizationId = "org-equipment-map",
   availableChannels = channels,
+  onRefreshChannels,
 }: {
   configuration?: StagedSensorConfiguration[];
   editingSensorId?: string | null;
@@ -85,6 +86,7 @@ function renderManager({
   totalSlots?: number;
   organizationId?: string | null;
   availableChannels?: AvailableSensor[];
+  onRefreshChannels?: () => void | Promise<void>;
 } = {}) {
   const onConfigurationChange = vi.fn();
   const onEditingSensorIdChange = vi.fn();
@@ -103,6 +105,7 @@ function renderManager({
       onPendingChannelChange={onPendingChannelChange}
       onConfigurationChange={onConfigurationChange}
       onSelect={onSelect}
+      onRefreshChannels={onRefreshChannels}
     />,
   );
   return { onConfigurationChange, onEditingSensorIdChange, onPendingChannelChange, onSelect };
@@ -152,6 +155,18 @@ describe("SensorPlacementManager", () => {
     fireEvent.click(within(selector).getByRole("button", { name: "Закрити" }));
     expect(onPendingChannelChange).toHaveBeenLastCalledWith(null);
     expect(screen.queryByTestId("equipment-map-quick-sensor-picker")).not.toBeInTheDocument();
+  });
+
+  it("refreshes channel samples while the quick picker remains open", async () => {
+    vi.useFakeTimers();
+    const onRefreshChannels = vi.fn();
+    renderManager({ onRefreshChannels });
+    openAddSelector();
+
+    expect(onRefreshChannels).toHaveBeenCalledTimes(1);
+    await act(async () => undefined);
+    await act(async () => vi.advanceTimersByTime(10_000));
+    expect(onRefreshChannels).toHaveBeenCalledTimes(2);
   });
 
   it("recomputes channel freshness while the quick picker remains open", () => {

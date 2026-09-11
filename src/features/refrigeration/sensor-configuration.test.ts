@@ -181,6 +181,43 @@ describe("sensor configuration marker identity", () => {
     });
   });
 
+  it("reconstructs automatic physical marker identity after reload and delayed inventory enrichment", () => {
+    const binding: SensorBinding = {
+      id: "binding-101-01",
+      equipmentId: "showcase-kk2",
+      nodeId: "edge-01",
+      channelId: "101-01",
+      slotKey: "front-01",
+      label: "471",
+      side: "front",
+      shelf: 1,
+      position: 1,
+      version: 1,
+      boundBy: "operator",
+      boundAt: "2026-09-10T07:00:00.000Z",
+      unboundBy: null,
+      unboundAt: null,
+    };
+    const loadedWithoutInventory = buildStagedSensorConfiguration([binding], [available("101-01", null)], []);
+    expect(loadedWithoutInventory[0]?.automaticLabelSource).toBeUndefined();
+
+    const enriched = refreshStagedSensorChannelMetadata(loadedWithoutInventory, [available("101-01", "471")]);
+    expect(enriched[0]?.automaticLabelSource).toBe("physical_inventory");
+
+    const [replaced] = replaceConfiguredChannel(
+      enriched,
+      "101-01",
+      available("101-03", "473"),
+      "showcase-kk2",
+    );
+
+    expect(replaced).toMatchObject({
+      id: "101-03",
+      label: "473",
+      automaticLabelSource: "physical_inventory",
+    });
+  });
+
   it("preserves an operator marker label when its channel is deliberately replaced", () => {
     const [configured] = addChannelToConfiguration([], available("101-01", "471"), 48, "showcase-kk2");
     if (!configured) throw new Error("Expected configured sensor");

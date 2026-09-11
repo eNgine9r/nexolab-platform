@@ -49,6 +49,7 @@ export type CameraScopedLayoutEditorProps = {
   bindings: readonly SensorBinding[];
   onEquipmentChange: (equipment: RefrigerationEquipment) => void;
   onDraftChange: (draft: RefrigerationLayoutDraft) => void;
+  onRefreshChannels?: () => void | Promise<void>;
 };
 
 type DragState = {
@@ -71,6 +72,7 @@ export function CameraScopedLayoutEditor({
   bindings,
   onEquipmentChange,
   onDraftChange,
+  onRefreshChannels,
 }: CameraScopedLayoutEditorProps) {
   const [draft, setDraft] = useState<RefrigerationLayoutDraft | null>(null);
   const [persisted, setPersisted] = useState<StagedSensorConfiguration[]>([]);
@@ -395,6 +397,7 @@ export function CameraScopedLayoutEditor({
             onPendingChannelChange={setPendingChannelId}
             onConfigurationChange={updateConfiguration}
             onSelect={onSelect}
+            onRefreshChannels={onRefreshChannels}
           />
         ) : null}
 

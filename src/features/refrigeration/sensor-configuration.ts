@@ -36,6 +36,7 @@ export function buildStagedSensorConfiguration(
         id: binding.channelId,
         slotKey: binding.slotKey,
         label: binding.label,
+        automaticLabelSource: automaticLabelSourceForBinding(binding, channel),
         name: sensorName(channel, binding.channelId),
         side: binding.side,
         shelf: binding.shelf,
@@ -243,10 +244,17 @@ export function refreshStagedSensorChannelMetadata(
       sensor.automaticLabelSource === "channel_id_fallback" &&
       sensor.label === sensor.id &&
       Boolean(inventoryNumber);
+    const reconstructPhysicalInventorySource =
+      sensor.automaticLabelSource === undefined &&
+      Boolean(inventoryNumber) &&
+      sensor.label === inventoryNumber;
     return {
       ...sensor,
       label: promoteFallbackLabel ? inventoryNumber! : sensor.label,
-      automaticLabelSource: promoteFallbackLabel ? "physical_inventory" : sensor.automaticLabelSource,
+      automaticLabelSource:
+        promoteFallbackLabel || reconstructPhysicalInventorySource
+          ? "physical_inventory"
+          : sensor.automaticLabelSource,
       name: sensorName(channel, sensor.id),
       temperatureC: channel.latestValue,
       status: statusFromQuality(channel),
@@ -372,6 +380,16 @@ function defaultPlacement(side: SensorSide, shelf: number, position: number): La
 
 export function defaultMarkerLabel(channel: Pick<AvailableSensor, "channelId" | "inventoryNumber">): string {
   return channel.inventoryNumber?.trim() || channel.channelId;
+}
+
+function automaticLabelSourceForBinding(
+  binding: SensorBinding,
+  channel: AvailableSensor | undefined,
+): StagedSensorConfiguration["automaticLabelSource"] {
+  const inventoryNumber = channel?.inventoryNumber?.trim();
+  if (inventoryNumber && binding.label === inventoryNumber) return "physical_inventory";
+  if (binding.label === binding.channelId) return "channel_id_fallback";
+  return undefined;
 }
 
 function sensorName(channel: AvailableSensor | undefined, channelId: string): string {

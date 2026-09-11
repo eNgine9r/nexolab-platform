@@ -42,6 +42,7 @@ export function SensorPlacementManager({
   onPendingChannelChange,
   onConfigurationChange,
   onSelect,
+  onRefreshChannels,
 }: {
   equipment: RefrigerationEquipment;
   organizationId: string | null;
@@ -54,6 +55,7 @@ export function SensorPlacementManager({
   onPendingChannelChange: (channelId: string | null) => void;
   onConfigurationChange: (configuration: StagedSensorConfiguration[]) => void;
   onSelect: (sensorId: string) => void;
+  onRefreshChannels?: () => void | Promise<void>;
 }) {
   const effectiveTotalSlots = sensorSlotCapacity(totalSlots);
   const recoveredZeroCapacity = totalSlots <= 0;
@@ -81,11 +83,26 @@ export function SensorPlacementManager({
   const ignoreNextRenameBlurRef = useRef(false);
   useEffect(() => {
     if (picker?.kind !== "add") return;
+    let refreshInFlight = false;
     const refreshFreshness = () => setFreshnessNow(Date.now());
+    const refreshSamples = () => {
+      if (!onRefreshChannels || refreshInFlight) return;
+      refreshInFlight = true;
+      void Promise.resolve(onRefreshChannels())
+        .catch(() => undefined)
+        .finally(() => {
+          refreshInFlight = false;
+        });
+    };
     refreshFreshness();
-    const timer = window.setInterval(refreshFreshness, 1000);
-    return () => window.clearInterval(timer);
-  }, [picker?.kind]);
+    refreshSamples();
+    const freshnessTimer = window.setInterval(refreshFreshness, 1000);
+    const sampleTimer = window.setInterval(refreshSamples, 10_000);
+    return () => {
+      window.clearInterval(freshnessTimer);
+      window.clearInterval(sampleTimer);
+    };
+  }, [onRefreshChannels, picker?.kind]);
 
   const selectedSensor = configuration.find((sensor) => sensor.id === editingSensorId) ?? null;
   const pendingChannel = assignable.find((channel) => channel.channelId === pendingChannelId) ?? null;
