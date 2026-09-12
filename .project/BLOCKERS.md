@@ -1,6 +1,6 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-10
+Updated: 2026-09-12
 
 ## Issue #968 — SSD migration completed; simultaneous-media boot verified
 
@@ -112,13 +112,13 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
 
-## RFX presentation hold — cleared; RFX-06 active
+## RFX presentation hold — cleared; RFX-08B completed
 
-The Product Owner lifted the RFX presentation hold on 2026-09-05. RFX-01 / #717, RFX-02 / #935, RFX-03 / #937, RFX-04 / #939 and RFX-05 / #943 are completed through GREEN PRs #934, #936, #938, #942 and #946. RFX-05 exact verified head `5f7ac8de85c601f9d57ce4d219f520c62c246685` passed all 12 routed workflows and manual Team Lead review; PR #946 squash-merged as `912f5fdbc65c74e0a5f5d6ea8f8b42193b8732d2`. The Product Owner explicitly directed work without Codex; the authoritative gate is manual Team Lead exact-head review plus exact-head CI. Issue #948 reconciles the material durable-state transition. RFX-06 / #947 is active with a locally GREEN software/domain candidate; property-provider adoption, derived thermodynamics, live polling, guessed hardware profiles/registers, Modbus/hardware writes, production cutover and hardware acceptance are not authorized.
+The Product Owner lifted the RFX presentation hold on 2026-09-05. RFX-01 through RFX-08B are completed through their focused GREEN PRs, including RFX-05 / #943 → PR #946, RFX-06 / #947, RFX-07 and RFX-08B / #960 → PR #962. The accepted RFX software evidence does not authorize guessed hardware profiles/registers, Modbus/hardware writes, production cutover or unverified hardware acceptance; those boundaries remain governed by their dedicated Work Packages.
 
 ## Issue #909 — consolidated HIGH container exception review
 
-**Cleared and merged 2026-09-05.** First exact-head no-cache scan `33957510014` correctly failed closed on two stale `libexpat1 / CVE-2026-66046` exceptions, one in Device Agent and one in Telegram Gateway; both were removed. Final candidate `8c314af3e372ab2720d7570662929f51c932ab60` passed Container Supply Chain `33959133577` and Core CI / NEXOLAB Merge Gate `33959133555`; PR #910 then squash-merged to `main` as `6bb92e3d952d77e7f25bd75cf470f5b2884f7606` and GitHub closed #909 completed. The remaining 91 exact HIGH exceptions expire `2026-09-12`; CVE-2026-78409 explicitly records the current CNA/upstream versus Debian/scanner affected-version disagreement and bounded runtime reachability. The next mandatory review is scheduled for `2026-09-12`. No production deployment, runtime mutation, Modbus/hardware write or data/volume change occurred under #909.
+**Cleared and merged 2026-09-05.** First exact-head no-cache scan `33957510014` correctly failed closed on two stale `libexpat1 / CVE-2026-66046` exceptions, one in Device Agent and one in Telegram Gateway; both were removed. Final candidate `8c314af3e372ab2720d7570662929f51c932ab60` passed Container Supply Chain `33959133577` and Core CI / NEXOLAB Merge Gate `33959133555`; PR #910 then squash-merged to `main` as `6bb92e3d952d77e7f25bd75cf470f5b2884f7606` and GitHub closed #909 completed. The scheduled 2026-09-12 review is now active as Issue #994. After the four #978 Expat tuples, the current registry contains 95 exact HIGH exceptions; none may be retained beyond today without #994 fresh no-cache scan and current evidence. CVE-2026-78409 and the #978 Expat findings require explicit revalidation. No production deployment, runtime mutation, Modbus/hardware write or data/volume change is authorized by the review.
 
 ## Issue #755 — approved bounded #709 / #711 controlled deployment
 
@@ -155,12 +155,11 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-08B are completed through GREEN focused PRs, including #953 / PR #954, #957 / PR #958 and #960 / PR #962. RFX state remains completed through #960; current independent maintenance is tracked separately by the active Work Package.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — Issue #988 completed; Issue #965 active
+## Sprint execution gate — Issue #965 completed; Issue #994 active
 
-RFX-08B / #960, #933, #930 and #966 remain completed with their accepted exact-head evidence unchanged. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; the #988 host-reliability work does not deploy a new product source.
+RFX-08B / #960, #933, #930, #966, #988 and #965 remain completed with their accepted evidence unchanged. Issue #965 / PR #992 final head `c61c3d0637cb0d8903c4148a5df91db11b1a94bf` passed Core Quality/build, Refrigeration Browser Acceptance, Security Browser Acceptance, Disaster Recovery Browser and `NEXOLAB Merge Gate` with zero unresolved review threads; PR #992 squash-merged as `f2f96ceefc956a50fdf8645055fd27625487fc29` and GitHub closed #965 completed. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository completion does not imply deployment.
 
-Issue #988 is completed. PR #989 exact head `87423df3d9bd6e11f0fe0e0786480625e1efedd7` passed the required exact-head matrix after a justified same-SHA Authenticated Dashboard rerun cleared a one-off socket-count flake; Core Quality/build, Telemetry Service, Refrigeration Browser Acceptance, Offline Bundle, Telegram Gateway and NEXOLAB Merge Gate are GREEN, with zero unresolved review threads. PR #989 squash-merged to `main` as `38e1e735d94fa9c4af4655153206ad2fa0f66945`, closing #988. Real-host reboot/service recovery, persistent previous-boot journaling, exact upstream rotated-session persistence pin, ARM64 17/17 upstream tests, live transient self-update handoff and staged-release-before-promotion verification remain the accepted evidence.
-Issue #965 is still the active verification gate. Local implementation candidate `c3f68d9fd65b421c3ff6e2b281077506223eb982` adds the future-timestamp skew rejection on top of the live picker refresh, automatic-label provenance and non-good-quality remediations. Exact clean-worktree verification is 38/38 focused tests PASS with targeted ESLint, Prettier, TypeScript and whitespace checks GREEN. The previous exact head `5347f3364917513f190638ccb9d570e1ec766966` passed the full Core/Browser/Security/DR/Merge Gate matrix, but that evidence is superseded for merge purposes by the newest product-code change. Merge remains gated on fresh exact-head GitHub CI and a clean final review. This is a verification gate, not a product/hardware blocker. K96–K100 remain hardware-unverified and excluded from automatic production polling. #189/#585 remain blocked, #201 remains `needs_validation`, and #202 remains `hardware_validation`.
+Issue #994 is the active independent software/security Work Package because the consolidated container HIGH exception gate is due on 2026-09-12. The current registry contains 95 exact HIGH exceptions (Telemetry Service 51, Device Agent 22, Telegram Gateway 22), all expiring today. #994 must fresh-scan every controlled image without cache, reconcile all tuples, remove disappeared/fixed entries, fail closed on new HIGH/CRITICAL findings and revalidate any retained exception before a new short expiry. This is not a production runtime change. #189/#585 remain blocked, #201 remains `needs_validation`, #202 remains `hardware_validation`, and K96–K100 remain hardware-unverified/excluded from automatic production polling.
 
 The exact cause of the earlier unplanned 2026-09-10 reboot remains unknown because Raspberry Pi OS used volatile journald at the time. Current evidence does not support changing UAS, disabling the hardware watchdog, changing power hardware or modifying swap. Any such change requires new retained failure evidence.
 

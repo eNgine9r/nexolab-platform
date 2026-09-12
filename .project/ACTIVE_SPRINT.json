@@ -18,14 +18,14 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "cb7a533119e42d0ab5481634da37ecf47aa235bd",
+    "accepted_product_sha": "c3f68d9fd65b421c3ff6e2b281077506223eb982",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
     "active_work_package": {
-      "issue": 965,
-      "title": "Simplify sensor placement and marker naming on equipment layouts",
-      "branch": "feat/965-sensor-placement-quick-add"
+      "issue": 994,
+      "title": "Revalidate consolidated HIGH container exceptions expiring 2026-09-12",
+      "branch": "security/994-container-exception-review"
     },
     "next_work_package": null
   },
@@ -3405,7 +3405,7 @@
       "issue": 965,
       "title": "Simplify sensor placement and marker naming on equipment layouts",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         966
       ],
@@ -3450,11 +3450,20 @@
           "late_review_quality_finding": "addressed_locally",
           "future_timestamp_skew_rejected": "success",
           "focused_sensor_placement_tests_38": "success",
-          "future_skew_boundary_30s": "success"
+          "future_skew_boundary_30s": "success",
+          "final_pr_exact_head_c61c3d06": "success",
+          "final_core_ci": "success",
+          "final_production_build": "success",
+          "final_refrigeration_browser": "success",
+          "final_security_browser": "success",
+          "final_disaster_recovery_browser": "success",
+          "final_nexolab_merge_gate": "success",
+          "final_review_threads": "resolved"
         },
         "production_deployment": "not_executed",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "pull_request": 992
       }
     },
     {
@@ -3491,6 +3500,15 @@
           "nexolab_merge_gate": "success"
         }
       }
+    },
+    {
+      "issue": 994,
+      "title": "Revalidate consolidated HIGH container exceptions expiring 2026-09-12",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "security/994-container-exception-review",
+      "evidence": {},
+      "depends_on": []
     }
   ],
   "maintenance_actions": [
@@ -3537,10 +3555,10 @@
     {
       "source_issue": 909,
       "title": "Review/remove consolidated HIGH container exceptions expiring 2026-09-12",
-      "status": "scheduled",
+      "status": "in_progress",
       "due_on": "2026-09-12",
       "owner": "platform-security",
-      "rule": "Fresh no-cache scan every controlled image before expiry. Remove any exact tuple that disappears or gains a consumable fix; fail closed on changed reachability/platform/vendor assumptions or Critical severity; re-check CVE-2026-78409 affected-version guidance and Issue #978 libexpat1 CVE-2026-76956/CVE-2026-76957 Trixie package availability plus XML/custom-encoding reachability before any renewal."
+      "rule": "Fresh no-cache scan every controlled image before expiry. Remove any exact tuple that disappears or gains a consumable fix; fail closed on changed reachability/platform/vendor assumptions or Critical severity; re-check CVE-2026-78409 affected-version guidance and Issue #978 libexpat1 CVE-2026-76956/CVE-2026-76957 Trixie package availability plus XML/custom-encoding reachability before any renewal. Activated as focused Issue #994 after #965 completion."
     }
   ],
   "observations": [
@@ -3933,6 +3951,16 @@
         "merge_sha": "3d845803c180fa3d1cbb6f2dcdd1a257a0597dfe",
         "issue_state": "closed_completed",
         "required_checks": "green"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-12T14:13:02Z",
+      "kind": "work_package_completed",
+      "data": {
+        "issue": 965,
+        "pull_request": 992,
+        "merge_sha": "f2f96ceefc956a50fdf8645055fd27625487fc29"
       }
     }
   ],
