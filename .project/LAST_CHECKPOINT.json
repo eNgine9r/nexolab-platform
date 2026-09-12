@@ -17,7 +17,7 @@
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "verified_head_sha": "7fb27f19cd7a9a8a48f4bcc0ce74def7f7d760d2",
+      "verified_head_sha": "be925a074780cb5fc7ac09b551f26e3152e1fcfb",
       "checks": {
         "discovery_no_cache_run_34699985764": "fail_closed_four_stale_telemetry",
         "device_agent_discovery_policy": "success",

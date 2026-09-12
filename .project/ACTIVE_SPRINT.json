@@ -3508,7 +3508,7 @@
       "lifecycle": "review",
       "branch": "security/994-container-exception-review",
       "evidence": {
-        "verified_head_sha": "7fb27f19cd7a9a8a48f4bcc0ce74def7f7d760d2",
+        "verified_head_sha": "be925a074780cb5fc7ac09b551f26e3152e1fcfb",
         "checks": {
           "discovery_no_cache_run_34699985764": "fail_closed_four_stale_telemetry",
           "device_agent_discovery_policy": "success",
@@ -3584,7 +3584,7 @@
       "status": "review",
       "due_on": "2026-09-12",
       "owner": "platform-security",
-      "rule": "Issue #994 candidate removes four stale Telemetry Service tuples found by fresh no-cache discovery run 34699985764, retains 91 exact HIGH exceptions only through 2026-09-15 after current reachability/version review, and now requires fresh exact-head Container Supply Chain plus NEXOLAB Merge Gate before merge."
+      "rule": "Issue #994 candidate removes four stale Telemetry Service tuples found by fresh no-cache discovery run 34699985764, then exact-head run 34702355254 identifies one new telemetry-service/libcjson1/CVE-2026-87933 HIGH tuple whose vulnerable cJSON Utils MergePatch path is not linked or referenced by mosquitto_ctrl. The final candidate therefore retains 92 exact HIGH exceptions only through 2026-09-15 after current reachability/version review and requires fresh exact-head Container Supply Chain, Telemetry Service, Core CI and NEXOLAB Merge Gate before merge."
     }
   ],
   "observations": [
