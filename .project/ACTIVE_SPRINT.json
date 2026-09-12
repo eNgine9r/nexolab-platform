@@ -22,11 +22,7 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 994,
-      "title": "Revalidate consolidated HIGH container exceptions expiring 2026-09-12",
-      "branch": "security/994-container-exception-review"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -3505,7 +3501,7 @@
       "issue": 994,
       "title": "Revalidate consolidated HIGH container exceptions expiring 2026-09-12",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "security/994-container-exception-review",
       "evidence": {
         "verified_head_sha": "be925a074780cb5fc7ac09b551f26e3152e1fcfb",
@@ -3530,7 +3526,14 @@
           "final_local_supply_chain_validator": "success",
           "final_local_python_compile": "success",
           "final_local_prettier": "success",
-          "final_local_diff_check": "success"
+          "final_local_diff_check": "success",
+          "final_pr_head_0a5dcbdf": "success",
+          "final_container_supply_chain_run_34708285488": "success",
+          "final_telemetry_service_run_34708285495": "success",
+          "final_core_ci_run_34708285493": "success",
+          "final_nexolab_merge_gate": "success",
+          "final_review_threads": "resolved",
+          "merged_main_sha_78d03670": "success"
         },
         "pull_request": 996
       },
@@ -3581,10 +3584,18 @@
     {
       "source_issue": 909,
       "title": "Review/remove consolidated HIGH container exceptions expiring 2026-09-12",
-      "status": "review",
+      "status": "completed",
       "due_on": "2026-09-12",
       "owner": "platform-security",
-      "rule": "Issue #994 candidate removes four stale Telemetry Service tuples found by fresh no-cache discovery run 34699985764, then exact-head run 34702355254 identifies one new telemetry-service/libcjson1/CVE-2026-87933 HIGH tuple whose vulnerable cJSON Utils MergePatch path is not linked or referenced by mosquitto_ctrl. The final candidate therefore retains 92 exact HIGH exceptions only through 2026-09-15 after current reachability/version review and requires fresh exact-head Container Supply Chain, Telemetry Service, Core CI and NEXOLAB Merge Gate before merge."
+      "rule": "Completed under Issue #994 / PR #996. Fresh no-cache discovery run 34699985764 retired four stale Telemetry Service tuples; later exact-head run 34702355254 introduced one new telemetry-service/libcjson1/CVE-2026-87933 HIGH tuple whose cJSON Utils MergePatch path is not linked or referenced by mosquitto_ctrl. Final policy retains 92 exact HIGH exceptions only through 2026-09-15. Final PR head 0a5dcbdf653414634c6750b89a6a37ea130c0601 passed Container Supply Chain 34708285488, Telemetry Service 34708285495 and Core CI/NEXOLAB Merge Gate 34708285493 with zero unresolved review threads; PR #996 squash-merged as 78d03670bbc9032216865dc10a6f630f9be3fc2b."
+    },
+    {
+      "source_issue": 994,
+      "title": "Review/remove consolidated HIGH container exceptions expiring 2026-09-15",
+      "status": "scheduled",
+      "due_on": "2026-09-15",
+      "owner": "platform-security",
+      "rule": "Rebuild all controlled images with fresh pull/no-cache evidence and reconcile every retained exact HIGH tuple before expiry. Remove immediately when a finding disappears, a consumable fixed package/base is available, runtime reachability changes, authoritative affected-version guidance changes materially, or severity becomes Critical. No blanket renewal is permitted."
     }
   ],
   "observations": [
