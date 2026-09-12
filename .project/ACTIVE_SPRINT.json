@@ -3505,9 +3505,35 @@
       "issue": 994,
       "title": "Revalidate consolidated HIGH container exceptions expiring 2026-09-12",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "branch": "security/994-container-exception-review",
-      "evidence": {},
+      "evidence": {
+        "verified_head_sha": "be925a074780cb5fc7ac09b551f26e3152e1fcfb",
+        "checks": {
+          "discovery_no_cache_run_34699985764": "fail_closed_four_stale_telemetry",
+          "device_agent_discovery_policy": "success",
+          "telegram_gateway_discovery_policy": "success",
+          "mqtt_discovery_policy": "success",
+          "stale_telemetry_exceptions_removed_4": "success",
+          "registry_exact_high_count_91": "success",
+          "current_source_reachability_sweep": "success",
+          "supply_chain_validator": "success",
+          "focused_supply_chain_tests_42": "success",
+          "python_compile": "success",
+          "lint_staged": "success",
+          "git_diff_check": "success",
+          "late_exact_head_run_34702355254": "fail_closed_new_cve_2026_87933",
+          "late_cjson_candidate_be925a07": "success",
+          "late_cjson_mergepatch_reachability": "unreachable",
+          "registry_exact_high_count_92": "success",
+          "focused_supply_chain_tests_current_33": "success",
+          "final_local_supply_chain_validator": "success",
+          "final_local_python_compile": "success",
+          "final_local_prettier": "success",
+          "final_local_diff_check": "success"
+        },
+        "pull_request": 996
+      },
       "depends_on": []
     }
   ],
@@ -3555,10 +3581,10 @@
     {
       "source_issue": 909,
       "title": "Review/remove consolidated HIGH container exceptions expiring 2026-09-12",
-      "status": "in_progress",
+      "status": "review",
       "due_on": "2026-09-12",
       "owner": "platform-security",
-      "rule": "Fresh no-cache scan every controlled image before expiry. Remove any exact tuple that disappears or gains a consumable fix; fail closed on changed reachability/platform/vendor assumptions or Critical severity; re-check CVE-2026-78409 affected-version guidance and Issue #978 libexpat1 CVE-2026-76956/CVE-2026-76957 Trixie package availability plus XML/custom-encoding reachability before any renewal. Activated as focused Issue #994 after #965 completion."
+      "rule": "Issue #994 candidate removes four stale Telemetry Service tuples found by fresh no-cache discovery run 34699985764, then exact-head run 34702355254 identifies one new telemetry-service/libcjson1/CVE-2026-87933 HIGH tuple whose vulnerable cJSON Utils MergePatch path is not linked or referenced by mosquitto_ctrl. The final candidate therefore retains 92 exact HIGH exceptions only through 2026-09-15 after current reachability/version review and requires fresh exact-head Container Supply Chain, Telemetry Service, Core CI and NEXOLAB Merge Gate before merge."
     }
   ],
   "observations": [

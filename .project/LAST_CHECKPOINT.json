@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-12T17:27:16+03:00",
+  "timestamp": "2026-09-12T20:17:22+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_965_completed_security_review_994_active",
+  "event": "issue_994_late_cve_candidate_ready",
   "baselines": {
     "accepted_product_sha": "c3f68d9fd65b421c3ff6e2b281077506223eb982",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -16,10 +16,36 @@
     "branch": "security/994-container-exception-review"
   },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "verified_head_sha": "be925a074780cb5fc7ac09b551f26e3152e1fcfb",
+      "checks": {
+        "discovery_no_cache_run_34699985764": "fail_closed_four_stale_telemetry",
+        "device_agent_discovery_policy": "success",
+        "telegram_gateway_discovery_policy": "success",
+        "mqtt_discovery_policy": "success",
+        "stale_telemetry_exceptions_removed_4": "success",
+        "registry_exact_high_count_91": "success",
+        "current_source_reachability_sweep": "success",
+        "supply_chain_validator": "success",
+        "focused_supply_chain_tests_42": "success",
+        "python_compile": "success",
+        "lint_staged": "success",
+        "git_diff_check": "success",
+        "late_exact_head_run_34702355254": "fail_closed_new_cve_2026_87933",
+        "late_cjson_candidate_be925a07": "success",
+        "late_cjson_mergepatch_reachability": "unreachable",
+        "registry_exact_high_count_92": "success",
+        "focused_supply_chain_tests_current_33": "success",
+        "final_local_supply_chain_validator": "success",
+        "final_local_python_compile": "success",
+        "final_local_prettier": "success",
+        "final_local_diff_check": "success"
+      },
+      "pull_request": 996
+    }
   },
   "observations": [],
-  "next_action": "Complete Issue #993 state reconciliation, then execute Issue #994 fresh no-cache container exception review and reconcile all 95 expiring HIGH tuples before any renewal.",
+  "next_action": "Commit and push the #994 late-CVE state anchor, require fresh exact-head Container Supply Chain, Telemetry Service, Core CI and NEXOLAB Merge Gate on the new PR head, recheck review threads, then merge only if all required gates are GREEN.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
