@@ -3521,8 +3521,18 @@
           "focused_supply_chain_tests_42": "success",
           "python_compile": "success",
           "lint_staged": "success",
-          "git_diff_check": "success"
-        }
+          "git_diff_check": "success",
+          "late_exact_head_run_34702355254": "fail_closed_new_cve_2026_87933",
+          "late_cjson_candidate_be925a07": "success",
+          "late_cjson_mergepatch_reachability": "unreachable",
+          "registry_exact_high_count_92": "success",
+          "focused_supply_chain_tests_current_33": "success",
+          "final_local_supply_chain_validator": "success",
+          "final_local_python_compile": "success",
+          "final_local_prettier": "success",
+          "final_local_diff_check": "success"
+        },
+        "pull_request": 996
       },
       "depends_on": []
     }
