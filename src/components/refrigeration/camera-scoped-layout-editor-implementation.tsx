@@ -24,10 +24,14 @@ import type {
   RefrigerationLayoutRepository,
 } from "@/features/refrigeration/layout-repository";
 import {
+  addChannelToConfiguration,
+  availableSensorSnapPoints,
   buildStagedSensorConfiguration,
   configurationPayload,
   configurationsEqual,
   moveConfiguredSensor,
+  refreshStagedSensorChannelMetadata,
+  sensorSlotCapacity,
   type StagedSensorConfiguration,
 } from "@/features/refrigeration/sensor-configuration";
 
@@ -45,6 +49,7 @@ export type CameraScopedLayoutEditorProps = {
   bindings: readonly SensorBinding[];
   onEquipmentChange: (equipment: RefrigerationEquipment) => void;
   onDraftChange: (draft: RefrigerationLayoutDraft) => void;
+  onRefreshChannels?: () => void | Promise<void>;
 };
 
 type DragState = {
@@ -67,19 +72,33 @@ export function CameraScopedLayoutEditor({
   bindings,
   onEquipmentChange,
   onDraftChange,
+  onRefreshChannels,
 }: CameraScopedLayoutEditorProps) {
   const [draft, setDraft] = useState<RefrigerationLayoutDraft | null>(null);
   const [persisted, setPersisted] = useState<StagedSensorConfiguration[]>([]);
   const [configuration, setConfiguration] = useState<StagedSensorConfiguration[]>([]);
   const [editingSensorId, setEditingSensorId] = useState<string | null>(null);
+  const [pendingChannelId, setPendingChannelId] = useState<string | null>(null);
   const [snapMode, setSnapMode] = useState<SnapMode>("none");
   const [state, setState] = useState<"loading" | "ready" | "saving">("loading");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
+  const channelsRef = useRef(channels);
+  const bindingsRef = useRef(bindings);
+  const hydratedBindingKeyRef = useRef<string | null>(null);
+
+  const dirty = !configurationsEqual(configuration, persisted);
+  const bindingHydrationKey = useMemo(() => sensorBindingHydrationKey(bindings), [bindings]);
 
   useEffect(() => {
+    channelsRef.current = channels;
+    bindingsRef.current = bindings;
+  }, [bindings, channels]);
+
+  useEffect(() => {
+    if (dirty || hydratedBindingKeyRef.current === bindingHydrationKey) return;
     let cancelled = false;
     void repository.getDraft(equipment.id).then((result) => {
       if (cancelled) return;
@@ -88,7 +107,12 @@ export function CameraScopedLayoutEditor({
         setState("ready");
         return;
       }
-      const next = buildStagedSensorConfiguration(bindings, channels, result.value.placements);
+      const next = buildStagedSensorConfiguration(
+        bindingsRef.current,
+        channelsRef.current,
+        result.value.placements,
+      );
+      hydratedBindingKeyRef.current = bindingHydrationKey;
       setDraft(result.value);
       setPersisted(next);
       setConfiguration(next);
@@ -97,19 +121,31 @@ export function CameraScopedLayoutEditor({
     return () => {
       cancelled = true;
     };
-  }, [bindings, channels, equipment.id, repository]);
+  }, [bindingHydrationKey, dirty, equipment.id, repository]);
 
-  const dirty = !configurationsEqual(configuration, persisted);
+  const visibleConfiguration = useMemo(
+    () => refreshStagedSensorChannelMetadata(configuration, channels),
+    [channels, configuration],
+  );
   const placementBySensorId = useMemo<ReadonlyMap<string, LayoutPlacement>>(
     () =>
-      new Map(configuration.map((sensor) => [sensor.id, { sensorId: sensor.id, x: sensor.x, y: sensor.y }])),
-    [configuration],
+      new Map(
+        visibleConfiguration.map((sensor) => [sensor.id, { sensorId: sensor.id, x: sensor.x, y: sensor.y }]),
+      ),
+    [visibleConfiguration],
   );
-  const snapSlots = useMemo(() => configuration.map(({ x, y }) => ({ x, y })), [configuration]);
+  const snapSlots = useMemo(() => visibleConfiguration.map(({ x, y }) => ({ x, y })), [visibleConfiguration]);
+  const placementSnapSlots = useMemo(
+    () => availableSensorSnapPoints(visibleConfiguration, equipment.totalSensors),
+    [equipment.totalSensors, visibleConfiguration],
+  );
   const viewSensorIds = useMemo(() => new Set(visibleSensors.map((sensor) => sensor.id)), [visibleSensors]);
   const canvasSensors = useMemo(
-    () => (mode === "edit" ? configuration : configuration.filter((sensor) => viewSensorIds.has(sensor.id))),
-    [configuration, mode, viewSensorIds],
+    () =>
+      mode === "edit"
+        ? visibleConfiguration
+        : visibleConfiguration.filter((sensor) => viewSensorIds.has(sensor.id)),
+    [mode, viewSensorIds, visibleConfiguration],
   );
 
   useEffect(() => {
@@ -133,7 +169,7 @@ export function CameraScopedLayoutEditor({
 
   const save = async () => {
     if (!draft || state === "saving") return;
-    if (configuration.some((sensor) => !sensor.label.trim())) {
+    if (visibleConfiguration.some((sensor) => !sensor.label.trim())) {
       setError("Кожен датчик повинен мати непорожній підпис маркера.");
       return;
     }
@@ -145,13 +181,14 @@ export function CameraScopedLayoutEditor({
         equipment.id,
         equipment.version,
         draft.version,
-        configurationPayload(configuration),
+        configurationPayload(visibleConfiguration),
       );
       const next = buildStagedSensorConfiguration(result.bindings, channels, result.draft.placements);
       setDraft(result.draft);
       setPersisted(next);
       setConfiguration(next);
       setEditingSensorId(null);
+      setPendingChannelId(null);
       onEquipmentChange(result.equipment);
       onDraftChange(result.draft);
       onModeChange("view");
@@ -175,6 +212,7 @@ export function CameraScopedLayoutEditor({
   const cancel = () => {
     setConfiguration(persisted.map((sensor) => ({ ...sensor, trend: [...sensor.trend] })));
     setEditingSensorId(null);
+    setPendingChannelId(null);
     setError(null);
     setNotice(null);
     onModeChange("view");
@@ -191,6 +229,34 @@ export function CameraScopedLayoutEditor({
       slots: snapSlots,
     });
     updateConfiguration(moveConfiguredSensor(configuration, sensorId, snapped.x, snapped.y));
+  };
+
+  const placePendingChannel = (point: NormalizedPoint) => {
+    if (!pendingChannelId) return;
+    const channel = channels.find((candidate) => candidate.channelId === pendingChannelId);
+    if (!channel) {
+      setPendingChannelId(null);
+      setError("Вибраний канал більше недоступний для розміщення.");
+      return;
+    }
+    try {
+      const added = addChannelToConfiguration(
+        configuration,
+        channel,
+        sensorSlotCapacity(equipment.totalSensors),
+        equipment.id,
+      );
+      const snapped = applySnap(point, snapMode, {
+        gridDivisions: 40,
+        slots: placementSnapSlots,
+      });
+      const placed = moveConfiguredSensor(added, channel.channelId, snapped.x, snapped.y);
+      updateConfiguration(placed);
+      onSelect(channel.channelId);
+      setPendingChannelId(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Не вдалося розмістити датчик.");
+    }
   };
 
   const markerKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, sensorId: string) => {
@@ -324,11 +390,14 @@ export function CameraScopedLayoutEditor({
             organizationId={organizationId}
             totalSlots={equipment.totalSensors}
             channels={channels}
-            configuration={configuration}
+            configuration={visibleConfiguration}
             editingSensorId={editingSensorId}
+            pendingChannelId={pendingChannelId}
             onEditingSensorIdChange={setEditingSensorId}
+            onPendingChannelChange={setPendingChannelId}
             onConfigurationChange={updateConfiguration}
             onSelect={onSelect}
+            onRefreshChannels={onRefreshChannels}
           />
         ) : null}
 
@@ -368,11 +437,42 @@ export function CameraScopedLayoutEditor({
           onMarkerPointerDown={markerPointerDown}
           onMarkerPointerMove={markerPointerMove}
           onMarkerPointerUp={markerPointerUp}
+          pendingPlacement={
+            pendingChannelId
+              ? (channels.find((channel) => channel.channelId === pendingChannelId) ?? null)
+              : null
+          }
+          suggestedPlacement={placementSnapSlots[0] ?? null}
+          onPlaceAtPoint={placePendingChannel}
           onImageDimensions={() => undefined}
         />
       </div>
     </div>
   );
+}
+
+function sensorBindingHydrationKey(bindings: readonly SensorBinding[]): string {
+  return [...bindings]
+    .sort((first, second) => first.id.localeCompare(second.id))
+    .map((binding) =>
+      [
+        binding.id,
+        binding.equipmentId,
+        binding.nodeId,
+        binding.channelId,
+        binding.slotKey,
+        binding.label,
+        binding.side,
+        binding.shelf,
+        binding.position,
+        binding.version,
+        binding.boundBy,
+        binding.boundAt,
+        binding.unboundBy ?? "",
+        binding.unboundAt ?? "",
+      ].join("\u001f"),
+    )
+    .join("\u001e");
 }
 
 function pointFromPointer(

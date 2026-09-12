@@ -49,6 +49,7 @@ type SecurityAwareLayoutWorkspaceProps = {
   onSelect: (sensorId: string) => void;
   onEquipmentChange?: (equipment: RefrigerationEquipment) => void;
   onConfigurationSaved?: () => void;
+  onRefreshChannels?: () => void | Promise<void>;
   onCapabilitiesChange?: (capabilities: LayoutCapabilities) => void;
 };
 
@@ -81,6 +82,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   onSelect,
   onEquipmentChange,
   onConfigurationSaved,
+  onRefreshChannels,
   onCapabilitiesChange,
 }: SecurityAwareLayoutWorkspaceProps) {
   const runtime = useMemo(() => createRefrigerationLayoutRuntime({ equipment }), [equipment]);
@@ -310,6 +312,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
           lifecycleRepository={effectiveLifecycleRepository}
           channels={effectiveChannels}
           bindings={bindings}
+          onRefreshChannels={onRefreshChannels}
           onEquipmentChange={(updated) => {
             onEquipmentChange?.(updated);
             configurationChanged();

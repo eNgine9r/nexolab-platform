@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { refrigerationEquipment } from "@/data/refrigeration";
 import type { AvailableSensor } from "@/features/refrigeration/equipment-lifecycle-repository";
@@ -74,37 +74,60 @@ const configured: StagedSensorConfiguration = {
 function renderManager({
   configuration = [],
   editingSensorId = null,
+  pendingChannelId = null,
   totalSlots = 48,
+  organizationId = "org-equipment-map",
+  availableChannels = channels,
+  onRefreshChannels,
 }: {
   configuration?: StagedSensorConfiguration[];
   editingSensorId?: string | null;
+  pendingChannelId?: string | null;
   totalSlots?: number;
+  organizationId?: string | null;
+  availableChannels?: AvailableSensor[];
+  onRefreshChannels?: () => void | Promise<void>;
 } = {}) {
   const onConfigurationChange = vi.fn();
   const onEditingSensorIdChange = vi.fn();
+  const onPendingChannelChange = vi.fn();
   const onSelect = vi.fn();
   render(
     <SensorPlacementManager
       equipment={equipment}
-      organizationId="org-equipment-map"
+      organizationId={organizationId}
       totalSlots={totalSlots}
-      channels={channels}
+      channels={availableChannels}
       configuration={configuration}
       editingSensorId={editingSensorId}
+      pendingChannelId={pendingChannelId}
       onEditingSensorIdChange={onEditingSensorIdChange}
+      onPendingChannelChange={onPendingChannelChange}
       onConfigurationChange={onConfigurationChange}
       onSelect={onSelect}
+      onRefreshChannels={onRefreshChannels}
     />,
   );
-  return { onConfigurationChange, onEditingSensorIdChange, onSelect };
+  return { onConfigurationChange, onEditingSensorIdChange, onPendingChannelChange, onSelect };
 }
 
 function openAddSelector() {
-  fireEvent.click(screen.getByRole("button", { name: "Вибрати датчик або прилад для додавання" }));
-  return screen.getByTestId("equipment-map-add-telemetry-selector");
+  fireEvent.click(screen.getByRole("button", { name: "Додати датчик" }));
+  return screen.getByTestId("equipment-map-quick-sensor-picker");
 }
 
-function choosePoint(selector: HTMLElement, channelId: string) {
+function openAddSelectorAfterRender(availableChannels: AvailableSensor[]) {
+  renderManager({ availableChannels });
+  return openAddSelector();
+}
+
+function chooseQuickPoint(selector: HTMLElement, channelId: string) {
+  const search = within(selector).getByRole("searchbox", { name: "Пошук датчика" });
+  fireEvent.change(search, { target: { value: channelId } });
+  fireEvent.click(within(selector).getByRole("button", { name: new RegExp(`канал ${channelId}`) }));
+}
+
+function chooseReplacementPoint(selector: HTMLElement, channelId: string) {
   const search = within(selector).getByRole("searchbox", { name: "Пошук" });
   fireEvent.change(search, { target: { value: channelId } });
   fireEvent.click(within(selector).getByRole("treeitem", { name: new RegExp(channelId) }));
@@ -115,130 +138,168 @@ describe("SensorPlacementManager", () => {
     vi.restoreAllMocks();
   });
 
-  it("keeps no-data channels eligible and mutates staged configuration only after Confirm", () => {
-    const { onConfigurationChange, onEditingSensorIdChange, onSelect } = renderManager();
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
+  it("selects a no-data channel in one click without mutating configuration", () => {
+    const { onConfigurationChange, onPendingChannelChange } = renderManager();
     const selector = openAddSelector();
-    choosePoint(selector, "106-04");
-    expect(within(selector).getByTestId("telemetry-selection-count")).toHaveTextContent("1 / 1");
+    const search = within(selector).getByRole("searchbox", { name: "Пошук датчика" });
+    expect(search).toHaveFocus();
+    chooseQuickPoint(selector, "106-04");
+
+    expect(search).toHaveValue("");
+    expect(onPendingChannelChange).toHaveBeenLastCalledWith("106-04");
     expect(onConfigurationChange).not.toHaveBeenCalled();
+    fireEvent.click(within(selector).getByRole("button", { name: "Закрити" }));
+    expect(onPendingChannelChange).toHaveBeenLastCalledWith(null);
+    expect(screen.queryByTestId("equipment-map-quick-sensor-picker")).not.toBeInTheDocument();
+  });
 
-    fireEvent.click(within(selector).getByRole("button", { name: "Скасувати" }));
-    expect(onConfigurationChange).not.toHaveBeenCalled();
-    expect(screen.queryByTestId("equipment-map-add-telemetry-selector")).not.toBeInTheDocument();
+  it("refreshes channel samples while the quick picker remains open", async () => {
+    vi.useFakeTimers();
+    const onRefreshChannels = vi.fn();
+    renderManager({ onRefreshChannels });
+    openAddSelector();
 
-    const confirmedSelector = openAddSelector();
-    choosePoint(confirmedSelector, "106-04");
-    fireEvent.click(within(confirmedSelector).getByRole("button", { name: "Підтвердити вибір" }));
+    expect(onRefreshChannels).toHaveBeenCalledTimes(1);
+    await act(async () => undefined);
+    await act(async () => vi.advanceTimersByTime(10_000));
+    expect(onRefreshChannels).toHaveBeenCalledTimes(2);
+  });
 
-    expect(onConfigurationChange).toHaveBeenCalledTimes(1);
-    expect(onConfigurationChange.mock.calls[0]?.[0]).toEqual([
-      expect.objectContaining({
-        id: "106-04",
-        slotKey: "front-01",
-        side: "front",
-        shelf: 1,
-        position: 1,
-        temperatureC: null,
-        status: "no-data",
-      }),
-    ]);
-    expect(onSelect).toHaveBeenCalledWith("106-04");
-    expect(onEditingSensorIdChange).toHaveBeenCalledWith("106-04");
+  it("recomputes channel freshness while the quick picker remains open", () => {
+    vi.useFakeTimers();
+    const now = new Date("2026-09-10T12:00:00.000Z");
+    vi.setSystemTime(now);
+    const freshChannel = { ...channels[0]!, capturedAt: now.toISOString() };
+    const selector = openAddSelectorAfterRender([freshChannel]);
+    const channelButton = within(selector).getByRole("button", { name: /канал 106-03/ });
+
+    expect(channelButton).toHaveTextContent("106-03 · Live");
+    act(() => vi.advanceTimersByTime(31_000));
+    expect(channelButton).toHaveTextContent("106-03 · Stale");
+  });
+
+  it("keeps quick add available without organization context while advanced replacement stays fail-closed", () => {
+    const { onPendingChannelChange } = renderManager({
+      configuration: [configured],
+      editingSensorId: configured.id,
+      organizationId: null,
+    });
+
+    expect(screen.getByRole("button", { name: "Додати датчик" })).toBeEnabled();
+    chooseQuickPoint(openAddSelector(), "106-04");
+    expect(onPendingChannelChange).toHaveBeenLastCalledWith("106-04");
+
+    fireEvent.click(screen.getByText("Додаткові параметри"));
+    expect(screen.getByRole("button", { name: "Вибрати інший канал вимірювання" })).toBeDisabled();
+    expect(screen.getByText(/Контекст організації недоступний/)).toBeInTheDocument();
   });
 
   it("recovers a legacy zero-capacity passport as a 48-slot layout", () => {
-    const { onConfigurationChange } = renderManager({ totalSlots: 0 });
-
+    const { onPendingChannelChange } = renderManager({ totalSlots: 0 });
     expect(screen.getByText("0/48")).toBeInTheDocument();
     expect(screen.getByText(/місткість датчиків була задана як 0/)).toBeInTheDocument();
-
-    const selector = openAddSelector();
-    choosePoint(selector, "106-03");
-    fireEvent.click(within(selector).getByRole("button", { name: "Підтвердити вибір" }));
-
-    expect(onConfigurationChange).toHaveBeenCalledWith([
-      expect.objectContaining({ id: "106-03", slotKey: "front-01" }),
-    ]);
+    chooseQuickPoint(openAddSelector(), "106-03");
+    expect(onPendingChannelChange).toHaveBeenLastCalledWith("106-03");
   });
-
-  it("keeps foreign-bound channels visible as conflicts but outside the selectable tree", () => {
+  it("keeps foreign-bound channels visible as conflicts but outside quick selection", () => {
     renderManager();
-
     expect(screen.getByText(/Недоступні через активну прив’язку: 107-01/)).toBeInTheDocument();
     const selector = openAddSelector();
-    const search = within(selector).getByRole("searchbox", { name: "Пошук" });
+    const search = within(selector).getByRole("searchbox", { name: "Пошук датчика" });
     fireEvent.change(search, { target: { value: "107-01" } });
-    expect(within(selector).getByText("Точок телеметрії не знайдено")).toBeInTheDocument();
+    expect(within(selector).getByText("Доступних датчиків не знайдено.")).toBeInTheDocument();
   });
 
-  it("does not offer an already configured channel in Add and confirms replacement explicitly", () => {
+  it("keeps configured channels out of Add and preserves explicit replacement", () => {
     const { onConfigurationChange } = renderManager({
       configuration: [configured],
       editingSensorId: configured.id,
     });
-
     const addSelector = openAddSelector();
-    const addSearch = within(addSelector).getByRole("searchbox", { name: "Пошук" });
+    const addSearch = within(addSelector).getByRole("searchbox", { name: "Пошук датчика" });
     fireEvent.change(addSearch, { target: { value: "106-03" } });
-    expect(within(addSelector).getByText("Точок телеметрії не знайдено")).toBeInTheDocument();
-    fireEvent.click(within(addSelector).getByRole("button", { name: "Скасувати" }));
+    expect(within(addSelector).getByText("Доступних датчиків не знайдено.")).toBeInTheDocument();
+    fireEvent.click(within(addSelector).getByRole("button", { name: "Закрити" }));
 
-    expect(screen.getByRole("button", { name: "Вибрати інший канал вимірювання" })).toHaveTextContent(
-      "106-03 · temperature · degC",
-    );
+    fireEvent.click(screen.getByText("Додаткові параметри"));
     fireEvent.click(screen.getByRole("button", { name: "Вибрати інший канал вимірювання" }));
-    const replaceSelector = screen.getByTestId("equipment-map-replace-telemetry-selector");
-    choosePoint(replaceSelector, "106-04");
+    const selector = screen.getByTestId("equipment-map-replace-telemetry-selector");
+    chooseReplacementPoint(selector, "106-04");
     expect(onConfigurationChange).not.toHaveBeenCalled();
-
-    fireEvent.click(within(replaceSelector).getByRole("button", { name: "Скасувати" }));
-    expect(onConfigurationChange).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole("button", { name: "Вибрати інший канал вимірювання" }));
-    const confirmedSelector = screen.getByTestId("equipment-map-replace-telemetry-selector");
-    choosePoint(confirmedSelector, "106-04");
-    fireEvent.click(within(confirmedSelector).getByRole("button", { name: "Підтвердити вибір" }));
-
+    fireEvent.click(within(selector).getByRole("button", { name: "Підтвердити вибір" }));
     expect(onConfigurationChange).toHaveBeenCalledWith([
-      expect.objectContaining({
-        id: "106-04",
-        slotKey: "front-01",
-        label: "01F",
-        status: "no-data",
-      }),
+      expect.objectContaining({ id: "106-04", slotKey: "front-01", label: "01F" }),
     ]);
   });
-
   it("treats confirming the current replacement channel as a no-op", () => {
     const { onConfigurationChange } = renderManager({
       configuration: [configured],
       editingSensorId: configured.id,
     });
-
+    fireEvent.click(screen.getByText("Додаткові параметри"));
     fireEvent.click(screen.getByRole("button", { name: "Вибрати інший канал вимірювання" }));
     const selector = screen.getByTestId("equipment-map-replace-telemetry-selector");
-    choosePoint(selector, "106-03");
+    chooseReplacementPoint(selector, "106-03");
     fireEvent.click(within(selector).getByRole("button", { name: "Підтвердити вибір" }));
-
     expect(onConfigurationChange).not.toHaveBeenCalled();
     expect(screen.queryByTestId("equipment-map-replace-telemetry-selector")).not.toBeInTheDocument();
   });
 
-  it("stages marker parameter edits and removal only through edit controls", () => {
+  it("stages inline rename immediately and trims it on blur", () => {
+    const { onConfigurationChange } = renderManager({
+      configuration: [configured],
+      editingSensorId: configured.id,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Перейменувати маркер 01F" }));
+    const rename = screen.getByRole("textbox", { name: "Нова назва маркера" });
+    fireEvent.change(rename, { target: { value: "  Тест-пакет 01  " } });
+    expect(onConfigurationChange).toHaveBeenLastCalledWith([
+      expect.objectContaining({ id: configured.id, label: "  Тест-пакет 01  " }),
+    ]);
+
+    fireEvent.blur(rename);
+    expect(onConfigurationChange).toHaveBeenLastCalledWith([
+      expect.objectContaining({ id: configured.id, label: "Тест-пакет 01" }),
+    ]);
+  });
+
+  it("commits inline rename with Enter and restores the original label with Escape", () => {
+    const { onConfigurationChange } = renderManager({
+      configuration: [configured],
+      editingSensorId: configured.id,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Перейменувати маркер 01F" }));
+    let rename = screen.getByRole("textbox", { name: "Нова назва маркера" });
+    fireEvent.change(rename, { target: { value: "Тест-пакет 01" } });
+    fireEvent.keyDown(rename, { key: "Enter" });
+    expect(onConfigurationChange).toHaveBeenLastCalledWith([
+      expect.objectContaining({ id: configured.id, label: "Тест-пакет 01" }),
+    ]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Перейменувати маркер 01F" }));
+    rename = screen.getByRole("textbox", { name: "Нова назва маркера" });
+    fireEvent.change(rename, { target: { value: "Тимчасова назва" } });
+    fireEvent.keyDown(rename, { key: "Escape" });
+    expect(onConfigurationChange).toHaveBeenLastCalledWith([
+      expect.objectContaining({ id: configured.id, label: "01F" }),
+    ]);
+    expect(screen.queryByRole("textbox", { name: "Нова назва маркера" })).not.toBeInTheDocument();
+  });
+
+  it("keeps remove in advanced settings", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     const { onConfigurationChange, onEditingSensorIdChange } = renderManager({
       configuration: [configured],
       editingSensorId: configured.id,
     });
 
-    fireEvent.change(screen.getByRole("textbox", { name: "Підпис датчика" }), {
-      target: { value: "Тест-пакет 01" },
-    });
-    expect(onConfigurationChange).toHaveBeenCalledWith([
-      expect.objectContaining({ id: configured.id, label: "Тест-пакет 01" }),
-    ]);
-
+    fireEvent.click(screen.getByText("Додаткові параметри"));
     fireEvent.click(screen.getByRole("button", { name: "Видалити датчик з підкладки" }));
     expect(onConfigurationChange).toHaveBeenLastCalledWith([]);
     expect(onEditingSensorIdChange).toHaveBeenCalledWith(null);

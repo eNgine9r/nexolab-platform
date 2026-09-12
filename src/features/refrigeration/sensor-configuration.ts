@@ -1,16 +1,22 @@
 import type { RefrigerationSensor, SensorSide, SensorStatus } from "@/data/refrigeration";
+import type { MeasurementChannel } from "@/features/refrigeration/climate-catalog-repository";
 import type {
   AvailableSensor,
   SensorBinding,
   SensorConfigurationItem,
 } from "@/features/refrigeration/equipment-lifecycle-repository";
-import type { LayoutPlacement } from "@/features/refrigeration/layout-editor";
+import type { LayoutPlacement, NormalizedPoint } from "@/features/refrigeration/layout-editor";
 
 export type StagedSensorConfiguration = RefrigerationSensor & {
   slotKey: string;
   metric: string;
   unit: string;
+  automaticLabelSource?: "channel_id_fallback" | "physical_inventory";
 };
+
+const DEFAULT_SENSOR_SLOT_CAPACITY = 48;
+const MAX_SENSOR_SLOT_CAPACITY = 48;
+const GOOD_TELEMETRY_QUALITIES = new Set(["good", "ok", "valid"]);
 
 export function buildStagedSensorConfiguration(
   bindings: readonly SensorBinding[],
@@ -31,6 +37,7 @@ export function buildStagedSensorConfiguration(
         id: binding.channelId,
         slotKey: binding.slotKey,
         label: binding.label,
+        automaticLabelSource: automaticLabelSourceForBinding(binding, channel),
         name: sensorName(channel, binding.channelId),
         side: binding.side,
         shelf: binding.shelf,
@@ -64,7 +71,8 @@ export function addChannelToConfiguration(
   const sensor: StagedSensorConfiguration = {
     id: channel.channelId,
     slotKey: slot.slotKey,
-    label: slot.label,
+    label: defaultMarkerLabel(channel),
+    automaticLabelSource: channel.inventoryNumber?.trim() ? "physical_inventory" : "channel_id_fallback",
     name: sensorName(channel, channel.channelId),
     side: slot.side,
     shelf: slot.shelf,
@@ -93,28 +101,37 @@ export function replaceConfiguredChannel(
   const conflict = channelPlacementConflict(channel, equipmentId);
   if (channel.channelId !== sensorId && conflict) throw new Error(conflict);
   return current
-    .map((sensor) =>
-      sensor.id === sensorId
-        ? {
-            ...sensor,
-            id: channel.channelId,
-            name: sensorName(channel, channel.channelId),
-            temperatureC: channel.latestValue,
-            status: statusFromQuality(channel),
-            updatedAt: channel.capturedAt,
-            trend: channel.latestValue === null ? [] : [channel.latestValue],
-            metric: channel.metric,
-            unit: channel.unit,
-          }
-        : sensor,
-    )
+    .map((sensor) => {
+      if (sensor.id !== sensorId) return sensor;
+      const keepsAutomaticLabel = sensor.automaticLabelSource !== undefined;
+      const automaticLabelSource: StagedSensorConfiguration["automaticLabelSource"] = keepsAutomaticLabel
+        ? channel.inventoryNumber?.trim()
+          ? "physical_inventory"
+          : "channel_id_fallback"
+        : undefined;
+      return {
+        ...sensor,
+        id: channel.channelId,
+        label: keepsAutomaticLabel ? defaultMarkerLabel(channel) : sensor.label,
+        automaticLabelSource,
+        name: sensorName(channel, channel.channelId),
+        temperatureC: channel.latestValue,
+        status: statusFromQuality(channel),
+        updatedAt: channel.capturedAt,
+        trend: channel.latestValue === null ? [] : [channel.latestValue],
+        metric: channel.metric,
+        unit: channel.unit,
+      };
+    })
     .sort(compareStagedSensors);
 }
 
 export function updateConfiguredSensor(
   current: readonly StagedSensorConfiguration[],
   sensorId: string,
-  patch: Partial<Pick<StagedSensorConfiguration, "label" | "side" | "shelf" | "position">>,
+  patch: Partial<
+    Pick<StagedSensorConfiguration, "label" | "side" | "shelf" | "position" | "automaticLabelSource">
+  >,
 ): StagedSensorConfiguration[] {
   return current
     .map((sensor) => {
@@ -127,9 +144,15 @@ export function updateConfiguredSensor(
         (candidate) => candidate.id !== sensorId && candidate.slotKey === slotKey,
       );
       if (conflict) throw new Error("Вибрана позиція вже зайнята іншим датчиком.");
+      const labelPatched = Object.prototype.hasOwnProperty.call(patch, "label");
       return {
         ...sensor,
         ...patch,
+        automaticLabelSource: labelPatched
+          ? Object.prototype.hasOwnProperty.call(patch, "automaticLabelSource")
+            ? patch.automaticLabelSource
+            : undefined
+          : sensor.automaticLabelSource,
         side,
         shelf,
         position,
@@ -193,6 +216,82 @@ export function configurationsEqual(
   });
 }
 
+export function attachPhysicalSensorInventory(
+  channels: readonly AvailableSensor[],
+  catalogChannels: readonly MeasurementChannel[],
+): AvailableSensor[] {
+  const inventoryByChannel = new Map(
+    catalogChannels.map((channel) => [
+      channel.channelId,
+      channel.physicalSensors.length === 1 ? (channel.physicalSensors[0]?.inventoryNumber ?? null) : null,
+    ]),
+  );
+  return channels.map((channel) => ({
+    ...channel,
+    inventoryNumber: inventoryByChannel.get(channel.channelId) ?? channel.inventoryNumber ?? null,
+  }));
+}
+
+export function refreshStagedSensorChannelMetadata(
+  current: readonly StagedSensorConfiguration[],
+  channels: readonly AvailableSensor[],
+): StagedSensorConfiguration[] {
+  const channelById = new Map(channels.map((channel) => [channel.channelId, channel]));
+  return current.map((sensor) => {
+    const channel = channelById.get(sensor.id);
+    if (!channel) return sensor;
+    const inventoryNumber = channel.inventoryNumber?.trim();
+    const promoteFallbackLabel =
+      sensor.automaticLabelSource === "channel_id_fallback" &&
+      sensor.label === sensor.id &&
+      Boolean(inventoryNumber);
+    const reconstructPhysicalInventorySource =
+      sensor.automaticLabelSource === undefined &&
+      Boolean(inventoryNumber) &&
+      sensor.label === inventoryNumber;
+    return {
+      ...sensor,
+      label: promoteFallbackLabel ? inventoryNumber! : sensor.label,
+      automaticLabelSource:
+        promoteFallbackLabel || reconstructPhysicalInventorySource
+          ? "physical_inventory"
+          : sensor.automaticLabelSource,
+      name: sensorName(channel, sensor.id),
+      temperatureC: channel.latestValue,
+      status: statusFromQuality(channel),
+      updatedAt: channel.capturedAt,
+      trend: channel.latestValue === null ? [] : [channel.latestValue],
+      metric: channel.metric,
+      unit: channel.unit,
+    };
+  });
+}
+
+export function sensorSlotCapacity(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return DEFAULT_SENSOR_SLOT_CAPACITY;
+  return Math.min(MAX_SENSOR_SLOT_CAPACITY, Math.max(1, Math.trunc(value)));
+}
+
+export function availableSensorSnapPoints(
+  current: readonly StagedSensorConfiguration[],
+  totalSlots: number,
+): NormalizedPoint[] {
+  const usedSlots = new Set(current.map((sensor) => sensor.slotKey));
+  const occupiedPoints = current.map(({ x, y }) => ({ x, y }));
+  const points: NormalizedPoint[] = [];
+
+  for (let index = 0; index < sensorSlotCapacity(totalSlots); index += 1) {
+    const slot = slotForIndex(index);
+    if (usedSlots.has(slot.slotKey)) continue;
+    const placement = defaultPlacement(slot.side, slot.shelf, slot.position);
+    const point = { x: placement.x, y: placement.y };
+    if (occupiedPoints.some((occupied) => pointsEqual(occupied, point))) continue;
+    points.push(point);
+  }
+
+  return points;
+}
+
 export function unusedClimateChamberChannels(
   channels: readonly AvailableSensor[],
   configuration: readonly StagedSensorConfiguration[],
@@ -220,46 +319,50 @@ export function channelPlacementConflict(channel: AvailableSensor, equipmentId?:
 }
 
 export function channelTelemetryLabel(channel: AvailableSensor, now = Date.now()): string {
+  const quality = channel.quality.trim().toLowerCase();
   if (channel.latestValue === null) {
-    const quality = channel.quality.toLowerCase();
-    if (quality.includes("sensor") || quality.includes("fault") || quality.includes("error")) {
-      return "Помилка датчика";
-    }
     if (quality.includes("offline") || quality.includes("communication")) {
       return "Offline";
+    }
+    if (quality.includes("sensor") || quality.includes("fault") || quality.includes("error")) {
+      return "Помилка датчика";
     }
     if (quality.includes("planned")) {
       return "Запланований";
     }
     return "Немає даних";
   }
+  if (!GOOD_TELEMETRY_QUALITIES.has(quality)) return "Stale";
   const capturedAt = Date.parse(channel.capturedAt);
-  if (!Number.isFinite(capturedAt) || now - capturedAt > 30_000) return "Stale";
+  if (!Number.isFinite(capturedAt) || capturedAt > now + 30_000 || now - capturedAt > 30_000) {
+    return "Stale";
+  }
   return "Live";
 }
 
 function firstAvailableSlot(
   current: readonly StagedSensorConfiguration[],
   totalSlots: number,
-): { slotKey: string; label: string; side: SensorSide; shelf: number; position: number } | null {
+): { slotKey: string; side: SensorSide; shelf: number; position: number } | null {
   const used = new Set(current.map((sensor) => sensor.slotKey));
-  const capacity = Math.min(48, Math.max(0, totalSlots));
-  for (let index = 0; index < capacity; index += 1) {
-    const side: SensorSide = index < 24 ? "front" : "rear";
-    const localIndex = index % 24;
-    const shelf = Math.floor(localIndex / 6) + 1;
-    const position = (localIndex % 6) + 1;
-    const slotKey = slotKeyFor(side, shelf, position);
-    if (used.has(slotKey)) continue;
-    return {
-      slotKey,
-      label: `${String(localIndex + 1).padStart(2, "0")}${side === "front" ? "F" : "R"}`,
-      side,
-      shelf,
-      position,
-    };
+  for (let index = 0; index < sensorSlotCapacity(totalSlots); index += 1) {
+    const slot = slotForIndex(index);
+    if (!used.has(slot.slotKey)) return slot;
   }
   return null;
+}
+
+function slotForIndex(index: number): {
+  slotKey: string;
+  side: SensorSide;
+  shelf: number;
+  position: number;
+} {
+  const side: SensorSide = index < 24 ? "front" : "rear";
+  const localIndex = index % 24;
+  const shelf = Math.floor(localIndex / 6) + 1;
+  const position = (localIndex % 6) + 1;
+  return { slotKey: slotKeyFor(side, shelf, position), side, shelf, position };
 }
 
 function slotKeyFor(side: SensorSide, shelf: number, position: number): string {
@@ -277,6 +380,20 @@ function defaultPlacement(side: SensorSide, shelf: number, position: number): La
     x: Math.min(0.94, xBase + rearOffset),
     y: Math.min(0.91, yBase + (side === "rear" ? 0.055 : 0)),
   };
+}
+
+export function defaultMarkerLabel(channel: Pick<AvailableSensor, "channelId" | "inventoryNumber">): string {
+  return channel.inventoryNumber?.trim() || channel.channelId;
+}
+
+function automaticLabelSourceForBinding(
+  binding: SensorBinding,
+  channel: AvailableSensor | undefined,
+): StagedSensorConfiguration["automaticLabelSource"] {
+  const inventoryNumber = channel?.inventoryNumber?.trim();
+  if (inventoryNumber && binding.label === inventoryNumber) return "physical_inventory";
+  if (binding.label === binding.channelId) return "channel_id_fallback";
+  return undefined;
 }
 
 function sensorName(channel: AvailableSensor | undefined, channelId: string): string {
@@ -299,6 +416,10 @@ function compareStagedSensors(first: StagedSensorConfiguration, second: StagedSe
     first.position - second.position ||
     first.id.localeCompare(second.id)
   );
+}
+
+function pointsEqual(first: NormalizedPoint, second: NormalizedPoint): boolean {
+  return Math.abs(first.x - second.x) < 0.000001 && Math.abs(first.y - second.y) < 0.000001;
 }
 
 function clampCoordinate(value: number): number {

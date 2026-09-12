@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { clsx } from "clsx";
 import { AlertTriangle, ArrowLeft, FileText, RadioTower, SlidersHorizontal, X } from "lucide-react";
 
@@ -24,6 +24,7 @@ import type {
 } from "@/data/refrigeration";
 import type { AvailableSensor, SensorBinding } from "@/features/refrigeration/equipment-lifecycle-repository";
 import { createRefrigerationEquipmentRuntime } from "@/features/refrigeration/equipment-repository-runtime";
+import { attachPhysicalSensorInventory } from "@/features/refrigeration/sensor-configuration";
 import { useRefrigerationController } from "@/features/refrigeration/use-refrigeration-controller";
 import type { RefrigerationStructuralSnapshot } from "@/features/refrigeration/structural-snapshot-repository";
 import { hasPermission } from "@/features/security/security-session";
@@ -214,6 +215,28 @@ export function RefrigerationDetailScreen({
     };
   }, [runtime]);
 
+  const refreshChannelSamples = useCallback(async () => {
+    const lifecycle = runtime.lifecycleRepository;
+    const chamberId = equipmentRecord.climateChamberId;
+    if (!lifecycle || !chamberId) return;
+
+    try {
+      const refreshed = await lifecycle.listClimateChamberChannels(chamberId);
+      setChannels((current) => {
+        const inventoryByChannel = new Map(
+          current.map((channel) => [channel.channelId, channel.inventoryNumber ?? null]),
+        );
+        return refreshed.map((channel) => ({
+          ...channel,
+          inventoryNumber: channel.inventoryNumber ?? inventoryByChannel.get(channel.channelId) ?? null,
+        }));
+      });
+    } catch {
+      // The structural request owns the visible error state. A background picker refresh
+      // must not replace usable cached options with an intermittent API error.
+    }
+  }, [equipmentRecord.climateChamberId, runtime]);
+
   useEffect(() => {
     const structural = runtime.structuralSnapshotRepository;
     const lifecycle = runtime.lifecycleRepository;
@@ -248,6 +271,18 @@ export function RefrigerationDetailScreen({
         setBindings(loaded.bindings);
         setChannels(loaded.channels);
         setBindingSensors(buildBindingSensors(loaded.bindings, loaded.channels));
+
+        const catalog = runtime.climateCatalogRepository;
+        if (!catalog || !chamberId) return;
+        void catalog
+          .getEquipment(chamberId)
+          .then((catalogEquipment) => {
+            if (!active) return;
+            setChannels((current) =>
+              attachPhysicalSensorInventory(current, catalogEquipment.temperatureChannels),
+            );
+          })
+          .catch(() => undefined);
       })
       .catch((cause) => {
         if (!active) return;
@@ -439,6 +474,7 @@ export function RefrigerationDetailScreen({
                 sensorConfigurationRepository={runtime.sensorConfigurationRepository}
                 onEquipmentChange={setEquipmentRecord}
                 onConfigurationSaved={() => setBindingEpoch((current) => current + 1)}
+                onRefreshChannels={refreshChannelSamples}
                 forceReadOnly={retired}
                 toolbarTools={filterMenu}
                 toolbarTarget={headerToolbarTarget}

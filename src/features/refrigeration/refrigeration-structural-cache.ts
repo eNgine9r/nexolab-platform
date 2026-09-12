@@ -158,10 +158,10 @@ export function createCachedEquipmentLifecycleRepository(
 ): EquipmentLifecycleRepository {
   return {
     listNodes: () => cached(scope, "nodes", () => repository.listNodes()),
-    listClimateChamberChannels: (chamberId) =>
-      cached(scope, `chamber:${encodeURIComponent(chamberId)}`, () =>
-        repository.listClimateChamberChannels(chamberId),
-      ),
+    // Channel option payloads include latest_value / captured_at and therefore must not
+    // enter the structural cache. Callers may poll this method while the placement picker
+    // is open to keep Live/Stale status truthful without rehydrating the active draft.
+    listClimateChamberChannels: (chamberId) => repository.listClimateChamberChannels(chamberId),
     listImages: (equipmentId) =>
       cached(scope, `equipment:${encodeURIComponent(equipmentId)}:images`, () =>
         repository.listImages(equipmentId),

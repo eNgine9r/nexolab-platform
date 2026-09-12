@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { refrigerationEquipment, type RefrigerationEquipment } from "@/data/refrigeration";
 
 import type { RefrigerationEquipmentRepository } from "./equipment-repository";
+import type { EquipmentLifecycleRepository } from "./equipment-lifecycle-repository";
 import type {
   RefrigerationLayoutDraft,
   RefrigerationLayoutRepository,
@@ -10,6 +11,7 @@ import type {
 } from "./layout-repository";
 import {
   clearAllRefrigerationStructuralCaches,
+  createCachedEquipmentLifecycleRepository,
   createCachedLayoutRepository,
   createCachedRefrigerationEquipmentRepository,
   inspectRefrigerationStructuralCache,
@@ -59,6 +61,22 @@ describe("refrigeration structural cache sharing", () => {
     expect(firstRaw.list).toHaveBeenCalledTimes(1);
     expect(secondRaw.list).not.toHaveBeenCalled();
     expect(inspectRefrigerationStructuralCache()).toMatchObject({ scopes: 1, entries: 32 });
+  });
+
+  it("does not cache climate-chamber channel telemetry snapshots", async () => {
+    const listClimateChamberChannels = vi
+      .fn()
+      .mockResolvedValueOnce([{ channelId: "106-03", capturedAt: "2026-09-11T10:00:00Z" }])
+      .mockResolvedValueOnce([{ channelId: "106-03", capturedAt: "2026-09-11T10:00:10Z" }]);
+    const raw = { listClimateChamberChannels } as unknown as EquipmentLifecycleRepository;
+    const cached = createCachedEquipmentLifecycleRepository(raw, scope);
+
+    const first = await cached.listClimateChamberChannels("kk2");
+    const second = await cached.listClimateChamberChannels("kk2");
+
+    expect(first[0]?.capturedAt).toBe("2026-09-11T10:00:00Z");
+    expect(second[0]?.capturedAt).toBe("2026-09-11T10:00:10Z");
+    expect(listClimateChamberChannels).toHaveBeenCalledTimes(2);
   });
 
   it("invalidates the shared equipment catalog after a mutation", async () => {
