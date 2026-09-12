@@ -13,7 +13,7 @@ Removed stale Telemetry Service tuples:
 - `libsqlite3-0 / CVE-2026-11824`;
 - `libwebsockets19t64 / CVE-2026-78161`.
 
-The registry therefore moves from 95 to 91 exact HIGH entries. No Critical exception is permitted.
+The discovery registry therefore moved from 95 to 91 exact HIGH entries. No Critical exception is permitted.
 
 ## Current reachability review
 
@@ -27,8 +27,12 @@ Debian Security Tracker still marks Trixie/security Expat `2.8.3-1~deb13u1` vuln
 
 For `CVE-2026-78409`, Red Hat's current statement says the affected `X-mount.subdir` detached-tree path is util-linux `2.42` through `2.42.2` and explicitly states earlier v2.41 is not affected. Debian/Trivy still report the installed `2.41.5` package lineage, so exact exceptions remain only as a bounded scanner/vendor mapping disagreement; the NEXOLAB runtime also exposes no mount/fstab path.
 
+## Late exact-head finding
+
+After PR #998 restored the unrelated Telemetry Service MinIO CI fixture and `main` advanced, exact-head no-cache Container Supply Chain run `34702355254` at source `1e1576b9edc5eac5f3be017753c382fc39c19278` reported one new HIGH finding: `telemetry-service / libcjson1 / CVE-2026-87933`. Debian Trixie `1.7.18-3.1+deb13u1` is currently vulnerable with no fixed package. The defect is in `cJSONUtils_MergePatch*`. Debian Trixie package introspection confirms the vulnerable symbols are exported by `libcjson_utils.so.1.7.18`, while `mosquitto_ctrl` links `libcjson.so.1` but not `libcjson_utils.so.1` and has no cJSON Utils symbol reference. The NEXOLAB path remains the bounded authenticated `nexolab-dynsec-admin → mosquitto_ctrl dynsec` command contract, with no arbitrary JSON Merge Patch input. One exact short-lived exception is therefore added through `2026-09-15`, taking the candidate registry from 91 to 92 entries.
+
 ## Renewal boundary
 
-All 91 retained exact HIGH exceptions are shortened to `2026-09-15`, owner `platform-security`. Remove earlier if a tuple disappears, the current distroless base consumes a fixed package, runtime reachability changes, authoritative affected-version guidance converges, or severity becomes Critical. The final candidate must pass a fresh exact-head no-cache Container Supply Chain run and NEXOLAB Merge Gate before merge.
+All 92 retained exact HIGH exceptions are shortened to `2026-09-15`, owner `platform-security`. Remove earlier if a tuple disappears, the current distroless base consumes a fixed package, runtime reachability changes, authoritative affected-version guidance converges, or severity becomes Critical. The final candidate must pass a fresh exact-head no-cache Container Supply Chain run and NEXOLAB Merge Gate before merge.
 
 No production deployment, service restart, Modbus/controller write, hardware write, secret operation, product-data deletion or named-volume deletion belongs to this review.

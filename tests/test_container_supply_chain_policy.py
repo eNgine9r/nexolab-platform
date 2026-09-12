@@ -268,12 +268,17 @@ def test_2026_09_12_consolidated_review_removes_stale_telemetry_exceptions() -> 
         for entry in exceptions
     }
 
-    assert len(exceptions) == 91
-    assert len(keys) == 91
+    assert len(exceptions) == 92
+    assert len(keys) == 92
     assert keys.isdisjoint(stale)
     assert all(entry["owner"] == "platform-security" for entry in exceptions)
     assert all(entry["expires_on"] == "2026-09-15" for entry in exceptions)
-    assert all("34699985764" in entry["reason"] for entry in exceptions)
+    late = [entry for entry in exceptions if entry["vulnerability"] == "CVE-2026-87933"]
+    discovery = [entry for entry in exceptions if entry["vulnerability"] != "CVE-2026-87933"]
+    assert len(late) == 1
+    assert len(discovery) == 91
+    assert all("34699985764" in entry["reason"] for entry in discovery)
+    assert "34702355254" in late[0]["reason"]
 
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
@@ -309,6 +314,33 @@ def test_telemetry_systemd_homed_cve_exceptions_are_exact_and_short_lived() -> N
         root / "security/vulnerability-exceptions.json",
         date(2026, 9, 3),
     )
+
+
+def test_telemetry_cjson_mergepatch_exception_is_exact_and_unreachable() -> None:
+    root = Path(__file__).resolve().parents[1]
+    payload = json.loads(
+        (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
+    )
+    matches = [
+        entry
+        for entry in payload["exceptions"]
+        if entry["image_id"] == "telemetry-service"
+        and entry["package"] == "libcjson1"
+        and entry["vulnerability"] == "CVE-2026-87933"
+    ]
+
+    assert len(matches) == 1
+    decision = matches[0]
+    assert decision["owner"] == "platform-security"
+    assert decision["expires_on"] == "2026-09-15"
+    assert "34702355254" in decision["reason"]
+    assert "1e1576b9edc5eac5f3be017753c382fc39c19278" in decision["reason"]
+    assert "libcjson_utils.so.1.7.18" in decision["reason"]
+    assert "DT_NEEDED" in decision["reason"]
+    assert "mosquitto_ctrl" in decision["reason"]
+    assert "Merge Patch" in decision["reason"]
+    assert "severity becomes Critical" in decision["reason"]
+
 
 
 def test_telemetry_image_installs_only_required_dynsec_client() -> None:
