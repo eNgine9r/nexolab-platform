@@ -6,7 +6,6 @@ describe("KpiCard", () => {
   it("renders the metric label, value and details", () => {
     render(
       <KpiCard
-        index={0}
         item={{
           label: "Вузлів онлайн",
           value: "6 / 6",

@@ -1,6 +1,10 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-12
+Updated: 2026-09-13
+
+## Issue #1001 — Overview operator-first dashboard
+
+**Active; no local software blocker.** The presentation-only candidate is GREEN in clean-worktree focused/full frontend verification, production build and authenticated Chromium acceptance. Production runtime has not been changed. Remaining gate is repository lifecycle only: exact feature-head commit/push, focused PR, routed GitHub CI, final diff/review and merge only after required checks are GREEN.
 
 ## Issue #968 — SSD migration completed; simultaneous-media boot verified
 
@@ -155,11 +159,11 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-08B are completed through GREEN focused PRs, including #953 / PR #954, #957 / PR #958 and #960 / PR #962. RFX state remains completed through #960; current independent maintenance is tracked separately by the active Work Package.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — Issue #994 completed; no independent Ready Work Package
+## Sprint execution gate — Issue #1001 active
 
-RFX-08B / #960, #933, #930, #966, #988, #965 and #994 remain completed with their accepted evidence unchanged. Issue #994 / PR #996 final head `0a5dcbdf653414634c6750b89a6a37ea130c0601` passed Container Supply Chain `34708285488`, Telemetry Service `34708285495`, Core CI / `NEXOLAB Merge Gate` `34708285493`, and all review threads are resolved. PR #996 squash-merged as `78d03670bbc9032216865dc10a6f630f9be3fc2b`; GitHub closed #994 completed. The retained registry contains 92 exact HIGH exceptions only through `2026-09-15`; a fresh consolidated review is scheduled for that date and no blanket renewal is permitted. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository completion does not imply deployment.
+RFX-08B / #960, #933, #930, #966, #988, #965 and #994 remain completed with their accepted evidence unchanged. The Product Owner selected #1001 as the current focused product Work Package; local implementation/browser verification is GREEN and repository exact-head CI is the remaining software gate. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
 
-There is currently no independent Ready software Work Package in `PRODUCTION-READINESS-1`. #189/#585 remain blocked, #201 remains `needs_validation`, #202 remains `hardware_validation`, and K96–K100 remain hardware-unverified/excluded from automatic production polling. Starting a new product backlog item therefore requires Product Owner scope/prioritization; the scheduled 2026-09-15 security review remains independent dated maintenance.
+#189/#585 remain blocked, #201 remains `needs_validation`, #202 remains `hardware_validation`, and K96–K100 remain hardware-unverified/excluded from automatic production polling. The scheduled 2026-09-15 security review remains independent dated maintenance and must still execute when due.
 
 The exact cause of the earlier unplanned 2026-09-10 reboot remains unknown because Raspberry Pi OS used volatile journald at the time. Current evidence does not support changing UAS, disabling the hardware watchdog, changing power hardware or modifying swap. Any such change requires new retained failure evidence.
 

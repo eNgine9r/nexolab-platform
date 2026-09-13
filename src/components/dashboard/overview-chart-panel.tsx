@@ -35,9 +35,10 @@ export function OverviewChartPanel({
   return (
     <div data-testid="overview-chart-panel">
       <ChartShell
-        title={`XJP60D temperature history · ${group.nativeUnit}`}
-        context={`${group.physicalQuantity} · Overview`}
+        title={`Історія температур XJP60D · ${group.nativeUnit}`}
+        context="Температура · Огляд"
         selectedRange={rangeLabel}
+        locale="uk"
         series={group.scene.series}
         inspection={inspection}
         onToggleSeries={onToggleSeries}

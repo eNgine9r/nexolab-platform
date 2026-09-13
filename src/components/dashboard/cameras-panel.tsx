@@ -9,17 +9,17 @@ export function CamerasPanel() {
   return (
     <div className="p-3 sm:p-4">
       {inventory.items.length === 0 ? (
-        <div className="grid min-h-48 place-items-center rounded-xl border border-dashed border-cyan-300/20 bg-[#0b2749]/65 p-5 text-center">
+        <div className="grid min-h-32 place-items-center rounded-xl border border-dashed border-cyan-300/15 bg-[#0b2749]/45 p-4 text-center">
           <div>
-            <VideoOff className="mx-auto h-7 w-7 text-cyan-300" />
-            <p className="mt-3 text-sm font-medium text-slate-100">Камери не налаштовані</p>
-            <p className="mt-1 max-w-sm text-xs leading-5 text-slate-400">
+            <VideoOff className="mx-auto h-5 w-5 text-cyan-300" />
+            <p className="mt-2 text-[11px] font-medium text-slate-100">Камери не налаштовані</p>
+            <p className="mt-1 max-w-sm text-[9px] leading-4 text-slate-500">
               Декоративні сцени не показуються як LIVE. Потрібен перевірений локальний inventory і безпечний
               media contract.
             </p>
             <Link
               href="/cameras"
-              className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs text-cyan-200 hover:border-cyan-300/30"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1.5 text-[9px] text-cyan-200 hover:border-cyan-300/30"
             >
               Відкрити стан камер
               <ArrowUpRight className="h-3.5 w-3.5" />

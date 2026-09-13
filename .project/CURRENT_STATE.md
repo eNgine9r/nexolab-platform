@@ -1,8 +1,14 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-12
+Updated: 2026-09-13
 
 ## Current Sprint
+
+### Issue #1001 — Overview operator-first dashboard active
+
+The Product Owner approved a focused presentation Work Package for the initial `Огляд` page. Implementation is on `feat/1001-overview-operator-dashboard` from base `c198a57ec1252f260a3e383d21233d15cb487d49`. The candidate compacts system health and KPI presentation, replaces the massive `PRODUCTION TELEMETRY` area with bounded `Поточні значення` tiles and an explicit `+ N датчиків · Показати всі` expansion, makes the temperature history chart the dominant workspace, places `Потребує уваги` beside it, moves infrastructure below, compacts healthy/empty states, and localizes Overview chart controls without changing telemetry semantics.
+
+Clean-worktree verification is GREEN: 21/21 focused tests; 146/146 test files and 731/731 full frontend tests; ESLint, TypeScript, Prettier and `git diff --check`; Next.js 16.3.4/Turbopack production build with all 22 static routes; and authenticated system-Chromium acceptance 2/2 across 360/1440/1920 widths with no horizontal overflow, active history/WebSocket behavior, zero acquisition mutations and zero mandatory public runtime requests. Production runtime is unchanged. No deployment, Modbus/controller write, hardware write, product-data deletion or named-volume deletion occurred. Repository lifecycle is now commit/push/PR/exact-head CI/review.
 
 `PRODUCTION-READINESS-1` remains active. RFX-01 through RFX-08B are completed. RFX-08B / Issue #960 exact verified product head `c1c7f8bc4988c35bc13436c59750f038ddc59811` passed the clean detached local candidate verifier and all 20 exact-head GitHub workflows. Telemetry Service `34192639978` is GREEN after the deterministic test-only chronology repair; Offline Bundle `34192639971` is GREEN with disconnected runtime and persistent-data update/rollback proof; Authenticated Dashboard `34192639953` is GREEN on the same SHA after one known unrelated WebSocket-count flake; Core CI / NEXOLAB Merge Gate `34192639904` is GREEN after the same-SHA failed-job rerun. Final Team Lead review `5137952445` found no blocking P1/P2 and review threads are zero. PR #962 squash-merged with observed `main` SHA `044e2feeda21e6f84d2b0a589ef3678a1004a923`, and GitHub closed #960 completed. Production runtime remains intentionally unchanged at deployed source `9a3556b25b257396d15db80af591d1cc3684b8f7`.
 

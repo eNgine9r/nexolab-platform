@@ -1,7 +1,5 @@
 import { Activity, AlertTriangle, Bolt, Network, Radio, Thermometer } from "lucide-react";
 
-import { Sparkline } from "./sparkline";
-
 const icons = {
   network: Network,
   signal: Radio,
@@ -40,46 +38,48 @@ export interface KpiCardItem {
 
 interface KpiCardProps {
   item: KpiCardItem;
-  index: number;
 }
 
-const fallbackSparks = [
-  [10, 11, 10, 12, 11, 14, 13, 18, 16, 22],
-  [14, 12, 16, 15, 18, 16, 19, 18, 21, 20],
-  [12, 13, 13, 14, 14, 15, 16, 16, 16, 17],
-  [20, 18, 19, 17, 18, 21, 19, 23, 20, 19],
-  [18, 17, 16, 17, 15, 14, 16, 21, 19, 24],
-  [12, 12, 13, 14, 13, 16, 17, 16, 20, 19],
-];
-
-export function KpiCard({ item, index }: KpiCardProps) {
+export function KpiCard({ item }: KpiCardProps) {
   const Icon = icons[item.icon];
   const tone = toneStyles[item.tone];
   const badgeTone = item.badgeTone ?? "demo";
 
+  const isLiveBadge = badgeTone === "live";
+
   return (
-    <article className="group relative min-w-0 overflow-hidden rounded-2xl border border-white/[0.065] bg-[linear-gradient(145deg,rgba(16,39,76,.93),rgba(8,24,49,.95))] p-3.5 shadow-[0_12px_36px_rgba(0,0,0,.16)] transition duration-300 hover:-translate-y-0.5 hover:border-cyan-300/20 hover:shadow-[0_15px_42px_rgba(0,119,255,.12)]">
-      <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/25 to-transparent opacity-0 transition group-hover:opacity-100" />
-      <div className="flex items-start justify-between gap-2">
-        <div className={`grid h-9 w-9 place-items-center rounded-xl ${tone.bg}`}>
-          <Icon className={`h-[18px] w-[18px] ${tone.icon}`} strokeWidth={1.9} />
+    <article className="group relative min-w-0 overflow-hidden rounded-xl border border-white/[0.06] bg-[linear-gradient(145deg,rgba(16,39,76,.88),rgba(8,24,49,.92))] px-3 py-2.5 transition hover:border-cyan-300/18">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <div className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${tone.bg}`}>
+          <Icon className={`h-3.5 w-3.5 ${tone.icon}`} strokeWidth={1.9} />
         </div>
-        <span
-          className={`rounded-full border px-2 py-1 text-[9px] tracking-[0.12em] uppercase ${badgeStyles[badgeTone]}`}
-        >
-          {item.badge ?? "demo"}
-        </span>
-      </div>
-      <p className="mt-3 truncate text-[10px] font-medium text-slate-400">{item.label}</p>
-      <p className="mt-1 truncate text-[22px] font-semibold tracking-tight text-slate-50 xl:text-2xl">
-        {item.value}
-      </p>
-      <div className="mt-2 flex items-end justify-between gap-2">
-        <div className="min-w-0">
-          <p className={`truncate text-[9px] font-medium ${tone.icon}`}>{item.detail}</p>
-          <p className="mt-1 truncate text-[8px] text-slate-600">{item.trend}</p>
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <p className="truncate text-[9px] font-medium text-slate-400">{item.label}</p>
+            {isLiveBadge ? (
+              <span
+                className="inline-flex shrink-0 items-center gap-1 text-[8px] font-medium text-emerald-300"
+                aria-label="Live"
+                title="Live"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              </span>
+            ) : (
+              <span
+                className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[7px] tracking-[0.1em] uppercase ${badgeStyles[badgeTone]}`}
+              >
+                {item.badge ?? "demo"}
+              </span>
+            )}
+          </div>
+          <div className="mt-0.5 flex min-w-0 items-baseline justify-between gap-2">
+            <p className="truncate text-base font-semibold tracking-tight text-slate-50 xl:text-lg">
+              {item.value}
+            </p>
+            <p className={`truncate text-right text-[8px] font-medium ${tone.icon}`}>{item.detail}</p>
+          </div>
+          <p className="mt-0.5 truncate text-[7px] text-slate-600">{item.trend}</p>
         </div>
-        <Sparkline points={fallbackSparks[index] ?? fallbackSparks[0]} stroke={tone.line} />
       </div>
     </article>
   );

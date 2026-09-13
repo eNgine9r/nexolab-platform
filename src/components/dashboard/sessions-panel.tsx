@@ -43,7 +43,7 @@ export function SessionsPanel({ organizationId }: { organizationId: string | nul
   }
   if (sessions.length === 0) {
     return (
-      <div className="grid min-h-48 place-items-center px-5 text-center">
+      <div className="grid min-h-28 place-items-center px-5 py-4 text-center">
         <div>
           {sessionsModel.error ? (
             <p className="mb-2 text-[9px] text-amber-300">

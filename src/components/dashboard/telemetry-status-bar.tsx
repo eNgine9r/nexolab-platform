@@ -130,31 +130,49 @@ export function TelemetryStatusBar({
   const Icon = copy.icon;
   const canRetry =
     mode === "live" && (status === "offline" || status === "error" || status === "configuration_error");
+  const compactHealthy =
+    mode === "live" && status === "live" && error === null && rejectedFutureSamples === 0;
 
   return (
     <section
-      className={`mb-3 flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center ${copy.classes}`}
+      className={`mb-2 flex flex-col border sm:flex-row sm:items-center ${
+        compactHealthy ? "gap-2 rounded-xl px-3 py-2" : "gap-3 rounded-2xl px-4 py-3"
+      } ${copy.classes}`}
       aria-live="polite"
       aria-label="Стан live telemetry"
     >
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-current/15 bg-black/10">
+      <div className={`flex min-w-0 items-center ${compactHealthy ? "gap-2" : "gap-3"}`}>
+        <span
+          className={`grid shrink-0 place-items-center border border-current/15 bg-black/10 ${
+            compactHealthy ? "h-7 w-7 rounded-lg" : "h-9 w-9 rounded-xl"
+          }`}
+        >
           <Icon
-            className={`h-4 w-4 ${status === "connecting" || status === "reconnecting" ? "animate-spin" : ""}`}
+            className={`${compactHealthy ? "h-3.5 w-3.5" : "h-4 w-4"} ${
+              status === "connecting" || status === "reconnecting" ? "animate-spin" : ""
+            }`}
           />
         </span>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-[11px] font-semibold text-current">{copy.title}</p>
-            <span className="rounded-full border border-current/15 bg-black/10 px-2 py-0.5 text-[8px] font-semibold tracking-[0.12em] uppercase">
-              {mode}
-            </span>
+            {!compactHealthy ? (
+              <span className="rounded-full border border-current/15 bg-black/10 px-2 py-0.5 text-[8px] font-semibold tracking-[0.12em] uppercase">
+                {mode}
+              </span>
+            ) : null}
           </div>
-          <p className="mt-0.5 text-[9px] text-slate-400">{error?.message ?? copy.detail}</p>
+          <p className={`${compactHealthy ? "mt-0 text-[8px]" : "mt-0.5 text-[9px]"} text-slate-400`}>
+            {error?.message ?? copy.detail}
+          </p>
         </div>
       </div>
 
-      <div className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-[9px] text-slate-400">
+      <div
+        className={`ml-auto flex flex-wrap items-center gap-y-1 text-slate-400 ${
+          compactHealthy ? "gap-x-3 text-[8px]" : "gap-x-4 text-[9px]"
+        }`}
+      >
         <span>
           Останній пакет:{" "}
           <strong className="font-medium text-slate-200">{timestampLabel(lastCapturedAt)}</strong>

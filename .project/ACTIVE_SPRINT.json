@@ -22,7 +22,9 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1001
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -3538,6 +3540,34 @@
         "pull_request": 996
       },
       "depends_on": []
+    },
+    {
+      "issue": 1001,
+      "title": "Simplify Overview into a compact operator-first dashboard",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [],
+      "branch": "feat/1001-overview-operator-dashboard",
+      "evidence": {
+        "implementation_base_main_sha": "c198a57ec1252f260a3e383d21233d15cb487d49",
+        "scope": "frontend_overview_presentation_only",
+        "targeted_tests": "21_passed_clean_worktree",
+        "full_frontend_tests": "146_files_731_tests_passed_clean_worktree",
+        "eslint": "success_clean_worktree",
+        "typecheck": "success_clean_worktree",
+        "prettier": "success",
+        "git_diff_check": "success",
+        "production_build": "success_next_16_3_4_turbopack_22_static_routes",
+        "chromium_authenticated_dashboard": "success_2_of_2_system_chromium",
+        "responsive_widths": "360_1440_1920_no_horizontal_overflow",
+        "acquisition_mutations": "none",
+        "mandatory_public_runtime_dependency": "none",
+        "production_deployment": "not_executed",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "pull_request": null,
+        "exact_head_ci": "pending_commit_push_pr"
+      }
     }
   ],
   "maintenance_actions": [

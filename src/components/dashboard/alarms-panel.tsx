@@ -110,14 +110,16 @@ export function AlarmsPanel({
 
     if (liveAlerts.length === 0) {
       return (
-        <div className="flex min-h-48 flex-col items-center justify-center p-5 text-center">
-          <span className="grid h-10 w-10 place-items-center rounded-xl border border-emerald-300/10 bg-emerald-400/[0.04] text-emerald-300">
-            <CheckCircle2 className="h-4 w-4" />
-          </span>
-          <p className="mt-3 text-[11px] font-medium text-slate-200">Активні тривоги відсутні</p>
-          <p className="mt-1 max-w-52 text-[9px] leading-5 text-slate-500">
-            Перевірено organization-scoped alert instances у central backend.
-          </p>
+        <div className="p-3 sm:p-4">
+          <div className="flex items-center gap-3 rounded-xl border border-emerald-300/10 bg-emerald-400/[0.035] px-3 py-3">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-400/[0.07] text-emerald-300">
+              <CheckCircle2 className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold text-slate-100">Усе спокійно</p>
+              <p className="mt-0.5 text-[8px] text-slate-500">Активних тривог немає</p>
+            </div>
+          </div>
           {alertsModel.error ? (
             <p className="mt-2 text-[9px] text-amber-300">
               Оновлення не вдалося; показано останній валідний snapshot.

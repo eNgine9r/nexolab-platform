@@ -2,31 +2,35 @@ import type { ReactNode } from "react";
 
 interface OverviewWorkspaceLayoutProps {
   primary: ReactNode;
-  secondaryStart: ReactNode;
-  secondaryEnd: ReactNode;
+  attention: ReactNode;
+  supporting: ReactNode;
 }
 
-export function OverviewWorkspaceLayout({
-  primary,
-  secondaryStart,
-  secondaryEnd,
-}: OverviewWorkspaceLayoutProps) {
+export function OverviewWorkspaceLayout({ primary, attention, supporting }: OverviewWorkspaceLayoutProps) {
   return (
     <>
       <section
-        className="mt-3 min-w-0"
-        data-testid="overview-primary-workspace"
-        aria-label="Основний графік телеметрії"
+        className="mt-3 grid min-w-0 grid-cols-1 items-start gap-3 xl:grid-cols-12"
+        data-testid="overview-command-grid"
+        aria-label="Основний стан системи"
       >
-        {primary}
+        <div className="min-w-0 xl:col-span-9" data-testid="overview-primary-workspace">
+          {primary}
+        </div>
+        <aside
+          className="min-w-0 xl:col-span-3"
+          data-testid="overview-attention-workspace"
+          aria-label="Потребує уваги"
+        >
+          {attention}
+        </aside>
       </section>
       <section
-        className="mt-3 grid min-w-0 grid-cols-1 gap-3 xl:grid-cols-2"
+        className="mt-3 min-w-0"
         data-testid="overview-secondary-grid"
-        aria-label="Додатковий стан системи"
+        aria-label="Стан інфраструктури"
       >
-        {secondaryStart}
-        {secondaryEnd}
+        {supporting}
       </section>
     </>
   );
