@@ -136,8 +136,8 @@ TELEMETRY_IMAGE="nexolab/telemetry-service:${VERSION}-${ARCH}"
 DEVICE_AGENT_IMAGE="nexolab/device-agent:${VERSION}-${ARCH}"
 MQTT_IMAGE="eclipse-mosquitto:2.0.22"
 POSTGRES_IMAGE="postgres:16-alpine"
-MINIO_IMAGE="minio/minio:RELEASE.2025-09-07T16-13-09Z"
-MINIO_CLIENT_IMAGE="minio/mc:RELEASE.2025-08-13T08-35-41Z"
+MINIO_IMAGE="quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
+MINIO_CLIENT_IMAGE="quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z"
 
 build_image() {
   local reference="$1" dockerfile="$2" context="$3"
