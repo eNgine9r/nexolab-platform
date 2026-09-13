@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "offline-bundle.yml"
+OFFLINE_BUILDER = ROOT / "scripts" / "build-offline-bundle.sh"
 PRESERVATION = ROOT / "scripts" / "verify-offline-volume-preservation.sh"
 INSTALLER = ROOT / "scripts" / "install-offline-bundle.sh"
 SMOKE = ROOT / "scripts" / "offline-bundle-smoke.sh"
@@ -18,6 +19,7 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.workflow = WORKFLOW.read_text(encoding="utf-8")
+        cls.offline_builder = OFFLINE_BUILDER.read_text(encoding="utf-8")
         cls.preservation = PRESERVATION.read_text(encoding="utf-8")
         cls.installer = INSTALLER.read_text(encoding="utf-8")
         cls.smoke = SMOKE.read_text(encoding="utf-8")
@@ -125,6 +127,20 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
             with self.subTest(dashboard=dashboard, api=api, websocket=websocket):
                 result = self._run_url_contract(dashboard, api, websocket)
                 self.assertNotEqual(result.returncode, 0)
+
+    def test_offline_minio_images_use_exact_quay_releases(self) -> None:
+        server = "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
+        client = "quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z"
+
+        self.assertIn(f'MINIO_IMAGE="{server}"', self.offline_builder)
+        self.assertIn(f'MINIO_CLIENT_IMAGE="{client}"', self.offline_builder)
+        self.assertNotIn('MINIO_IMAGE="minio/minio:', self.offline_builder)
+        self.assertNotIn('MINIO_CLIENT_IMAGE="minio/mc:', self.offline_builder)
+
+        self.assertIn(f"OFFLINE_MINIO_IMAGE={server}", self.workflow)
+        self.assertIn(f"OFFLINE_MINIO_CLIENT_IMAGE={client}", self.workflow)
+        self.assertNotIn("OFFLINE_MINIO_IMAGE=minio/minio:", self.workflow)
+        self.assertNotIn("OFFLINE_MINIO_CLIENT_IMAGE=minio/mc:", self.workflow)
 
     def test_pull_request_lane_keeps_existing_safe_defaults(self) -> None:
         self.assertIn('platform="linux/amd64"', self.workflow)
