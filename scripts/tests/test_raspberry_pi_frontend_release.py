@@ -333,6 +333,7 @@ class RaspberryPiFrontendReleaseTests(unittest.TestCase):
         self.assertIn("Setup QEMU", ci)
         self.assertIn("Setup QEMU", release)
         self.assertIn("ARM64", builder)
+        self.assertIn('docker create --platform "$PLATFORM" "$IMAGE"', builder)
 
     def test_unactivated_release_cleanup_is_path_bounded(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

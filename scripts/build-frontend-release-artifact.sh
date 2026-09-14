@@ -103,7 +103,7 @@ IMAGE_REVISION="$(docker image inspect "$IMAGE" --format '{{index .Config.Labels
 [[ "$IMAGE_OS/$IMAGE_ARCH" == "$PLATFORM" ]] || { echo "ERROR: built image platform mismatch" >&2; exit 70; }
 [[ "$IMAGE_REVISION" == "$SOURCE_SHA" ]] || { echo "ERROR: built image source label mismatch" >&2; exit 70; }
 
-CONTAINER_ID="$(docker create "$IMAGE")"
+CONTAINER_ID="$(docker create --platform "$PLATFORM" "$IMAGE")"
 docker cp "$CONTAINER_ID:/app/.next" "$STAGING/.next"
 docker cp "$CONTAINER_ID:/app/node_modules" "$STAGING/node_modules"
 docker cp "$CONTAINER_ID:/app/package.json" "$STAGING/package.json"

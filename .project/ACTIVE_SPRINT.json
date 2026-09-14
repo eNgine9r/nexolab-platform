@@ -22,7 +22,11 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1020,
+      "title": "Fix cross-platform frontend artifact extraction on GitHub runner",
+      "branch": "fix/1020-frontend-artifact-platform"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -3636,6 +3640,14 @@
           "review_threads": "zero"
         }
       }
+    },
+    {
+      "issue": 1020,
+      "title": "Fix cross-platform frontend artifact extraction on GitHub runner",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "fix/1020-frontend-artifact-platform",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [
