@@ -345,6 +345,33 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertFalse(result["fail_closed"])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_frontend_release_tooling_is_known_deployment_runtime(self) -> None:
+        for path in (
+            "scripts/build-frontend-release-artifact.sh",
+            "scripts/tests/test_raspberry_pi_frontend_release.py",
+        ):
+            with self.subTest(path=path):
+                result = classify([path])
+                self.assertEqual(result["classes"], ["deployment_runtime"])
+                self.assertFalse(result["fail_closed"])
+                self.assertEqual(result["unknown_files"], [])
+                self.assertEqual(result["verification"]["required_external_workflows"], [])
+
+    def test_frontend_release_tooling_with_dashboard_dockerfile_requires_offline_only(self) -> None:
+        result = classify(
+            [
+                "scripts/build-frontend-release-artifact.sh",
+                "scripts/tests/test_raspberry_pi_frontend_release.py",
+                "infrastructure/offline/Dockerfile.dashboard",
+            ]
+        )
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(
+            result["verification"]["required_external_workflows"],
+            ["Offline Bundle"],
+        )
+
     def test_unknown_path_broadens_external_verification_fail_closed(self) -> None:
         result = classify(["new-area/unknown.file"])
         verification = result["verification"]
