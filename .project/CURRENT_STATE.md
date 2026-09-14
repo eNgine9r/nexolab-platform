@@ -315,6 +315,12 @@ Repository implementation remains verified/merged through PR #710. Production ru
 
 Repository implementation remains verified on product head `da3569969ad39be4e409fe91bc0821e2587368a0` and is included in deployed historical-main target `ff86b10b...`. Real post-deployment verification used 8,573 raw 24h active-power records from the three live meters and acquisition-registry revision 18. Exact continuity/downsampling logic produced 717 render records with 7 durable breaks and 0 inferred breaks, compared with the pre-fix 448 false breaks observed for the same 717-record shape. Remaining breaks correspond to genuine long silent/runtime interruption boundaries, while normal ~30 s cadence jitter is no longer segmented. No interpolation, acquisition-cadence mutation, Modbus write, hardware write or persistence mutation was introduced.
 
+## Issue #1012 — HIGH container exception revalidation
+
+Issue #1012 repository security scope is completed on verified implementation head `24d99f6f30b90ca4bb3d4fca00515ddec11981cf` in PR #1013. Fresh no-cache Container Supply Chain evidence corrected the registry from 92 to 80 exact HIGH tuples by retiring 12 stale Device Agent / Telegram Gateway Python and SQLite exceptions. The corrected registry matches fresh HIGH findings 80/80 with zero CRITICAL findings. Current source reachability was rechecked; retained exceptions are bounded only through **2026-09-21** and the policy fails closed as expired on 2026-09-22.
+
+Exact implementation-head Container Supply Chain run `34828653792`, Telemetry Service run `34828653794`, Core CI / NEXOLAB Merge Gate run `34828653811`, 34/34 focused policy tests, State Model validation and review-thread check are GREEN. PR #1013 still requires the final state-only exact-head gate before merge. This maintenance changes no accepted/deployed product baseline and performs no production deployment, runtime restart, persistent-data mutation, Modbus write or hardware write.
+
 ## Runtime and safety boundary
 
 Core NEXOLAB remains `LOCAL_LAN` / offline-first with no mandatory public internet, paid runtime service, CDN, remote font or external runtime API.
