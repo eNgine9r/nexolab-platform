@@ -319,7 +319,11 @@ Repository implementation remains verified on product head `da3569969ad39be4e409
 
 Issue #1012 repository security scope is completed on verified implementation head `24d99f6f30b90ca4bb3d4fca00515ddec11981cf` in PR #1013. Fresh no-cache Container Supply Chain evidence corrected the registry from 92 to 80 exact HIGH tuples by retiring 12 stale Device Agent / Telegram Gateway Python and SQLite exceptions. The corrected registry matches fresh HIGH findings 80/80 with zero CRITICAL findings. Current source reachability was rechecked; retained exceptions are bounded only through **2026-09-21** and the policy fails closed as expired on 2026-09-22.
 
-Exact implementation-head Container Supply Chain run `34828653792`, Telemetry Service run `34828653794`, Core CI / NEXOLAB Merge Gate run `34828653811`, 34/34 focused policy tests, State Model validation and review-thread check are GREEN. PR #1013 still requires the final state-only exact-head gate before merge. This maintenance changes no accepted/deployed product baseline and performs no production deployment, runtime restart, persistent-data mutation, Modbus write or hardware write.
+Exact implementation-head Container Supply Chain run `34828653792`, Telemetry Service run `34828653794`, Core CI / NEXOLAB Merge Gate run `34828653811`, 34/34 focused policy tests, State Model validation and review-thread check are GREEN. PR #1013 passed its final exact-head gates and squash-merged to `main` as `2c30e7cb11eed892093f8ceb8bf94cb88fee7f75` on 2026-09-14; Issue #1012 is closed completed. This maintenance changes no accepted/deployed product baseline and performs no production deployment, runtime restart, persistent-data mutation, Modbus write or hardware write.
+
+## Issue #1014 — post-merge state reconciliation
+
+Issue #1014 is completed in repository state scope. Verified state-only head `68270a8bb55fa3625b26d003a8e703829671562c` records PR #1013 merged into `main` as `2c30e7cb11eed892093f8ceb8bf94cb88fee7f75`, preserves the #1012 security evidence and 2026-09-21 fail-closed exception boundary, and keeps accepted/deployed product baselines unchanged. Exact-head State integrity and NEXOLAB Merge Gate run `34835287419` are GREEN with zero unresolved review threads. PR #1015 is the focused state-only carrier for this reconciliation; no product/runtime acceptance is implied by the state update.
 
 ## Runtime and safety boundary
 

@@ -3601,6 +3601,24 @@
           "review_threads": "zero"
         }
       }
+    },
+    {
+      "issue": 1014,
+      "title": "Reconcile #1012 post-merge security review state",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "chore/1014-reconcile-1012-merge-state",
+      "evidence": {
+        "verified_head_sha": "68270a8bb55fa3625b26d003a8e703829671562c",
+        "pull_request": 1015,
+        "checks": {
+          "state_integrity_run_34835287419": "success",
+          "nexolab_merge_gate": "success",
+          "exact_state_only_diff": "success",
+          "review_threads": "zero",
+          "merged_security_pr_1013_main_2c30e7cb": "success"
+        }
+      }
     }
   ],
   "maintenance_actions": [

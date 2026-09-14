@@ -161,7 +161,7 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 
 ## Sprint execution gate — no independent Ready software Work Package selected
 
-RFX-08B / #960, #933, #930, #966, #988, #965, #994 and #1001 are completed in repository/software scope with their accepted evidence unchanged. Issue #1001 accepted product/test head is `b245b48e7ab64a42680fb9d516646926b45d1b41`; no new independent Ready software Work Package is currently selected. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
+RFX-08B / #960, #933, #930, #966, #988, #965, #994, #1001 and #1014 are completed in repository/software/state scope with their accepted evidence unchanged. Issue #1001 accepted product/test head is `b245b48e7ab64a42680fb9d516646926b45d1b41`; no new independent Ready software Work Package is currently selected. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
 
 #189/#585 remain blocked, #201 remains `needs_validation`, #202 remains `hardware_validation`, and K96–K100 remain hardware-unverified/excluded from automatic production polling. Issue #1012 completed the previously scheduled 2026-09-15 security review early; the next fail-closed exception boundary is 2026-09-21.
 
@@ -177,7 +177,7 @@ The exact cause of the earlier unplanned 2026-09-10 reboot remains unknown becau
 
 ## Issue #1012 — HIGH container exception review — cleared for repository scope
 
-**Cleared 2026-09-14.** Fresh no-cache evidence retired 12 stale tuples and leaves 80 exact HIGH / 0 CRITICAL findings with 1:1 registry reconciliation. Verified implementation head `24d99f6f30b90ca4bb3d4fca00515ddec11981cf` passed Container Supply Chain `34828653792`, Telemetry Service `34828653794`, Core CI / NEXOLAB Merge Gate `34828653811`, focused policy tests and zero-thread review. Retained exceptions expire **2026-09-21** and fail closed after that boundary. PR #1013 is pending only its final state-only exact-head gate and merge; no production/hardware action is authorized.
+**Cleared 2026-09-14.** Fresh no-cache evidence retired 12 stale tuples and leaves 80 exact HIGH / 0 CRITICAL findings with 1:1 registry reconciliation. Verified implementation head `24d99f6f30b90ca4bb3d4fca00515ddec11981cf` passed Container Supply Chain `34828653792`, Telemetry Service `34828653794`, Core CI / NEXOLAB Merge Gate `34828653811`, focused policy tests and zero-thread review. Retained exceptions expire **2026-09-21** and fail closed after that boundary. PR #1013 passed the final state-only exact-head gate and squash-merged to `main` as `2c30e7cb11eed892093f8ceb8bf94cb88fee7f75`; Issue #1012 is closed completed. No production/hardware action was authorized or performed.
 
 ## Safety boundaries
 

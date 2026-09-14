@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-14T13:32:52+03:00",
+  "timestamp": "2026-09-14T13:53:59+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_1012_repository_security_scope_completed",
+  "event": "issue_1014_post_merge_state_reconciliation_completed",
   "baselines": {
     "accepted_product_sha": "b245b48e7ab64a42680fb9d516646926b45d1b41",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -13,47 +13,34 @@
   "active_work": null,
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "verified_head_sha": "24d99f6f30b90ca4bb3d4fca00515ddec11981cf",
-      "pull_request": 1013,
+      "verified_head_sha": "68270a8bb55fa3625b26d003a8e703829671562c",
+      "pull_request": 1015,
       "checks": {
-        "fresh_registry_exact_high_80": "success",
-        "retired_stale_tuples_12": "success",
-        "fresh_critical_0": "success",
-        "exact_tuple_reconciliation_80_of_80": "success",
-        "focused_policy_tests_34": "success",
-        "policy_boundary_2026_09_21": "success",
-        "policy_expired_2026_09_22": "fail_closed",
-        "current_source_reachability_sweep": "success",
-        "container_supply_chain_run_34828653792": "success",
-        "telemetry_service_run_34828653794": "success",
-        "core_ci_run_34828653811": "success",
+        "state_integrity_run_34835287419": "success",
         "nexolab_merge_gate": "success",
-        "review_threads": "zero"
+        "exact_state_only_diff": "success",
+        "review_threads": "zero",
+        "merged_security_pr_1013_main_2c30e7cb": "success"
       }
     }
   },
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-09-14T13:32:52+03:00",
-      "kind": "pull_request_exact_security_head_verification",
+      "observed_at": "2026-09-14T13:53:59+03:00",
+      "kind": "pull_request_exact_state_head_verification",
       "data": {
-        "pull_request": 1013,
-        "security_head_sha": "24d99f6f30b90ca4bb3d4fca00515ddec11981cf",
-        "workflows": {
-          "container_supply_chain": "success:34828653792",
-          "telemetry_service": "success:34828653794",
-          "core_ci_and_merge_gate": "success:34828653811"
-        },
-        "fresh_high_findings": 80,
-        "fresh_critical_findings": 0,
-        "retired_stale_tuples": 12,
-        "exception_expiry": "2026-09-21",
-        "unresolved_review_threads": 0
+        "pull_request": 1015,
+        "state_head_sha": "68270a8bb55fa3625b26d003a8e703829671562c",
+        "state_integrity": "success:34835287419",
+        "nexolab_merge_gate": "success:34835287419",
+        "unresolved_review_threads": 0,
+        "reconciled_merged_pr": 1013,
+        "reconciled_main_sha": "2c30e7cb11eed892093f8ceb8bf94cb88fee7f75"
       }
     }
   ],
-  "next_action": "Run exact-head state-only CI for PR #1013; merge only after required checks are GREEN and review threads remain zero, then sync main and select the next independent Ready Work Package.",
+  "next_action": "Run final exact-head State integrity and NEXOLAB Merge Gate for PR #1015; merge only if GREEN and review threads remain zero, then sync main and select the next independent Ready Work Package.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
