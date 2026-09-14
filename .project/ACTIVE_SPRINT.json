@@ -3575,6 +3575,32 @@
           "review_threads": "zero"
         }
       }
+    },
+    {
+      "issue": 1012,
+      "title": "Revalidate HIGH container exceptions expiring 2026-09-15",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "security/1012-high-container-review",
+      "evidence": {
+        "verified_head_sha": "24d99f6f30b90ca4bb3d4fca00515ddec11981cf",
+        "pull_request": 1013,
+        "checks": {
+          "fresh_registry_exact_high_80": "success",
+          "retired_stale_tuples_12": "success",
+          "fresh_critical_0": "success",
+          "exact_tuple_reconciliation_80_of_80": "success",
+          "focused_policy_tests_34": "success",
+          "policy_boundary_2026_09_21": "success",
+          "policy_expired_2026_09_22": "fail_closed",
+          "current_source_reachability_sweep": "success",
+          "container_supply_chain_run_34828653792": "success",
+          "telemetry_service_run_34828653794": "success",
+          "core_ci_run_34828653811": "success",
+          "nexolab_merge_gate": "success",
+          "review_threads": "zero"
+        }
+      }
     }
   ],
   "maintenance_actions": [

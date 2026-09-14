@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-14T07:10:11+03:00",
+  "timestamp": "2026-09-14T13:32:52+03:00",
   "actor": "ChatGPT-Team-Lead",
-  "event": "issue_1001_repository_software_scope_completed",
+  "event": "issue_1012_repository_security_scope_completed",
   "baselines": {
     "accepted_product_sha": "b245b48e7ab64a42680fb9d516646926b45d1b41",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -13,31 +13,21 @@
   "active_work": null,
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "implementation_base_main_sha": "c198a57ec1252f260a3e383d21233d15cb487d49",
-      "scope": "frontend_overview_presentation_only",
-      "targeted_tests": "21_passed_clean_worktree",
-      "full_frontend_tests": "146_files_731_tests_passed_clean_worktree",
-      "eslint": "success_clean_worktree",
-      "typecheck": "success_clean_worktree",
-      "prettier": "success",
-      "git_diff_check": "success",
-      "production_build": "success_next_16_3_4_turbopack_22_static_routes",
-      "chromium_authenticated_dashboard": "success_2_of_2_system_chromium",
-      "responsive_widths": "360_1440_1920_no_horizontal_overflow",
-      "acquisition_mutations": "none",
-      "mandatory_public_runtime_dependency": "none",
-      "production_deployment": "not_executed",
-      "modbus_write": "none",
-      "hardware_write": "none",
-      "pull_request": 1002,
-      "exact_head_ci": "success",
-      "verified_head_sha": "b245b48e7ab64a42680fb9d516646926b45d1b41",
-      "review_remediation": "faulted_channels_prioritized_before_compact_limit_and_live_kpi_has_visible_text",
-      "navigation_acceptance_contract": "success_updated_overview_heading",
+      "verified_head_sha": "24d99f6f30b90ca4bb3d4fca00515ddec11981cf",
+      "pull_request": 1013,
       "checks": {
-        "core_ci": "success",
-        "authenticated_dashboard": "success",
-        "alerts_browser": "success",
+        "fresh_registry_exact_high_80": "success",
+        "retired_stale_tuples_12": "success",
+        "fresh_critical_0": "success",
+        "exact_tuple_reconciliation_80_of_80": "success",
+        "focused_policy_tests_34": "success",
+        "policy_boundary_2026_09_21": "success",
+        "policy_expired_2026_09_22": "fail_closed",
+        "current_source_reachability_sweep": "success",
+        "container_supply_chain_run_34828653792": "success",
+        "telemetry_service_run_34828653794": "success",
+        "core_ci_run_34828653811": "success",
+        "nexolab_merge_gate": "success",
         "review_threads": "zero"
       }
     }
@@ -45,25 +35,25 @@
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-09-14T07:10:11+03:00",
-      "kind": "pull_request_exact_product_head_verification",
+      "observed_at": "2026-09-14T13:32:52+03:00",
+      "kind": "pull_request_exact_security_head_verification",
       "data": {
-        "pull_request": 1002,
-        "product_head_sha": "b245b48e7ab64a42680fb9d516646926b45d1b41",
+        "pull_request": 1013,
+        "security_head_sha": "24d99f6f30b90ca4bb3d4fca00515ddec11981cf",
         "workflows": {
-          "ci": "success",
-          "authenticated_dashboard_acceptance": "success",
-          "alerts_browser_acceptance": "success"
+          "container_supply_chain": "success:34828653792",
+          "telemetry_service": "success:34828653794",
+          "core_ci_and_merge_gate": "success:34828653811"
         },
-        "unresolved_review_threads": 0,
-        "merged_prerequisites": [
-          1003,
-          1005
-        ]
+        "fresh_high_findings": 80,
+        "fresh_critical_findings": 0,
+        "retired_stale_tuples": 12,
+        "exception_expiry": "2026-09-21",
+        "unresolved_review_threads": 0
       }
     }
   ],
-  "next_action": "Select the next independent Ready Work Package when available; otherwise await Product Owner scope or execute the scheduled 2026-09-15 security review when due.",
+  "next_action": "Run exact-head state-only CI for PR #1013; merge only after required checks are GREEN and review threads remain zero, then sync main and select the next independent Ready Work Package.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
