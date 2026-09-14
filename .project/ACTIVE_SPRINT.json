@@ -22,7 +22,11 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1016,
+      "title": "Finalize post-merge checkpoint after #1015",
+      "branch": "chore/1016-finalize-postmerge-checkpoint"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -3619,6 +3623,14 @@
           "merged_security_pr_1013_main_2c30e7cb": "success"
         }
       }
+    },
+    {
+      "issue": 1016,
+      "title": "Finalize post-merge checkpoint after #1015",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "chore/1016-finalize-postmerge-checkpoint",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [

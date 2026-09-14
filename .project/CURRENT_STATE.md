@@ -323,7 +323,11 @@ Exact implementation-head Container Supply Chain run `34828653792`, Telemetry Se
 
 ## Issue #1014 — post-merge state reconciliation
 
-Issue #1014 is completed in repository state scope. Verified state-only head `68270a8bb55fa3625b26d003a8e703829671562c` records PR #1013 merged into `main` as `2c30e7cb11eed892093f8ceb8bf94cb88fee7f75`, preserves the #1012 security evidence and 2026-09-21 fail-closed exception boundary, and keeps accepted/deployed product baselines unchanged. Exact-head State integrity and NEXOLAB Merge Gate run `34835287419` are GREEN with zero unresolved review threads. PR #1015 is the focused state-only carrier for this reconciliation; no product/runtime acceptance is implied by the state update.
+Issue #1014 is completed in repository state scope. Verified state-only head `68270a8bb55fa3625b26d003a8e703829671562c` records PR #1013 merged into `main` as `2c30e7cb11eed892093f8ceb8bf94cb88fee7f75`, preserves the #1012 security evidence and 2026-09-21 fail-closed exception boundary, and keeps accepted/deployed product baselines unchanged. Exact-head State integrity and NEXOLAB Merge Gate were GREEN with zero unresolved review threads; PR #1015 then squash-merged to `main` as `9b501927f671e97f46494bb0ec75b284ce50d476` on 2026-09-14. No product/runtime acceptance is implied by the state update.
+
+## Issue #1016 — final post-merge checkpoint reconciliation
+
+Issue #1016 is the active state-only reconciliation for removing the stale post-merge instruction left in `LAST_CHECKPOINT` after PR #1015 merged. It changes no product/runtime code or accepted/deployed baseline.
 
 ## Runtime and safety boundary
 
