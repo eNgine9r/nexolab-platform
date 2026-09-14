@@ -168,6 +168,11 @@ INSPECTION_SECURITY_PATTERNS = (
     "tests/test_opera_tailscale_inspection.py",
 )
 
+FRONTEND_RELEASE_TOOLING_PATHS = {
+    "scripts/build-frontend-release-artifact.sh",
+    "scripts/tests/test_raspberry_pi_frontend_release.py",
+}
+
 CI_GOVERNANCE_PATHS = {
     "PROJECT_PROFILE.yaml",
     "AGENTS.md",
@@ -359,6 +364,10 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
 
         if path.startswith("services/device-agent/") or path.startswith("config/device-profiles/"):
             classes.add("device_agent")
+            matched = True
+
+        if path in FRONTEND_RELEASE_TOOLING_PATHS:
+            classes.add("deployment_runtime")
             matched = True
 
         if (

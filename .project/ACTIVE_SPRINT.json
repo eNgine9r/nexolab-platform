@@ -3642,6 +3642,25 @@
       }
     },
     {
+      "issue": 1022,
+      "title": "Classify frontend release tooling without unrelated browser lanes",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "fix/1022-frontend-release-ci-routing",
+      "evidence": {
+        "verified_head_sha": "4c0cdf7c55f5c92b5e153b21e29d3b41a23f890d",
+        "pull_request": 1023,
+        "checks": {
+          "core_ci": "success",
+          "authenticated_dashboard": "success",
+          "refrigeration_browser": "success",
+          "offline_bundle": "success",
+          "telegram_gateway": "success",
+          "nexolab_merge_gate": "success"
+        }
+      }
+    },
+    {
       "issue": 1020,
       "title": "Fix cross-platform frontend artifact extraction on GitHub runner",
       "priority": "unspecified",
