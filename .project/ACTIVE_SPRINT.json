@@ -22,7 +22,11 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1014,
+      "title": "Reconcile #1012 post-merge security review state",
+      "branch": "chore/1014-reconcile-1012-merge-state"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -3601,6 +3605,14 @@
           "review_threads": "zero"
         }
       }
+    },
+    {
+      "issue": 1014,
+      "title": "Reconcile #1012 post-merge security review state",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "chore/1014-reconcile-1012-merge-state",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [
