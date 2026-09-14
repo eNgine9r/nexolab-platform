@@ -233,7 +233,18 @@ function LiveTemperatureGrid({
       sample,
       visualIndex,
     })),
-  ].sort((left, right) => compareChannels(left.channelId, right.channelId));
+  ].sort((left, right) => {
+    const leftProblem =
+      left.kind === "sample" && (left.sample.quality !== "valid" || left.sample.alarm !== null);
+    const rightProblem =
+      right.kind === "sample" && (right.sample.quality !== "valid" || right.sample.alarm !== null);
+
+    if (leftProblem !== rightProblem) {
+      return leftProblem ? -1 : 1;
+    }
+
+    return compareChannels(left.channelId, right.channelId);
+  });
   const displayedTiles = sensorGridExpanded ? sensorTiles : sensorTiles.slice(0, COMPACT_SENSOR_LIMIT);
   const hiddenSensorCount = Math.max(0, sensorTiles.length - displayedTiles.length);
 

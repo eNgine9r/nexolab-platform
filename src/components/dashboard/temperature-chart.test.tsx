@@ -140,7 +140,13 @@ describe("TemperatureChart live discovery", () => {
         <TemperatureChart
           mode="live"
           status="live"
-          samples={channels.map((channelId, index) => sample(channelId, 3 + index / 10))}
+          samples={channels.map((channelId, index) =>
+            sample(
+              channelId,
+              channelId === "102-04" ? null : 3 + index / 10,
+              channelId === "102-04" ? "sensor_error" : "valid",
+            ),
+          )}
         />,
       );
       await Promise.resolve();
@@ -148,14 +154,16 @@ describe("TemperatureChart live discovery", () => {
 
     expect(screen.getByText("Поточні значення")).toBeInTheDocument();
     expect(screen.getByText("101-01")).toBeInTheDocument();
-    expect(screen.getByText("102-02")).toBeInTheDocument();
+    expect(screen.getByText("102-04")).toBeInTheDocument();
+    expect(screen.getByText("sensor_error")).toBeInTheDocument();
+    expect(screen.queryByText("102-02")).not.toBeInTheDocument();
     expect(screen.queryByText("102-03")).not.toBeInTheDocument();
-    expect(screen.queryByText("102-04")).not.toBeInTheDocument();
 
     const expand = screen.getByRole("button", { name: /\+ 2 датчиків · Показати всі/ });
     expect(expand).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(expand);
 
+    expect(screen.getByText("102-02")).toBeInTheDocument();
     expect(screen.getByText("102-03")).toBeInTheDocument();
     expect(screen.getByText("102-04")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Згорнути" })).toHaveAttribute("aria-expanded", "true");

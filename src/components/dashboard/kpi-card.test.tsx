@@ -21,4 +21,22 @@ describe("KpiCard", () => {
     expect(screen.getByText("6 / 6")).toBeInTheDocument();
     expect(screen.getByText("100% доступності")).toBeInTheDocument();
   });
+  it("keeps live freshness visible without relying on color alone", () => {
+    render(
+      <KpiCard
+        item={{
+          label: "Вузлів онлайн",
+          value: "6 / 6",
+          detail: "100% доступності",
+          trend: "Свіжі дані",
+          tone: "green",
+          icon: "network",
+          badge: "live",
+          badgeTone: "live",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("LIVE")).toBeVisible();
+  });
 });
