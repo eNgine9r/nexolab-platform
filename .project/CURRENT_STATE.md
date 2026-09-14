@@ -327,7 +327,7 @@ Issue #1014 is completed in repository state scope. Verified state-only head `68
 
 ## Issue #1016 — final post-merge checkpoint reconciliation
 
-Issue #1016 is the active state-only reconciliation for removing the stale post-merge instruction left in `LAST_CHECKPOINT` after PR #1015 merged. It changes no product/runtime code or accepted/deployed baseline.
+Issue #1016 is completed in state-only repository scope. Verified state head `ec233301a779098d69296f2713e9d95a10c1fdd8` passed exact-head State integrity and NEXOLAB Merge Gate run `34837116495` with zero unresolved review threads. The canonical checkpoint no longer instructs merging already-merged PR #1015; no independent Ready software Work Package is selected, and the next fail-closed HIGH container exception review is due no later than **2026-09-21**. Accepted/deployed product baselines remain unchanged and no production/runtime or hardware action occurred.
 
 ## Runtime and safety boundary
 

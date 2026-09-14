@@ -22,11 +22,7 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1016,
-      "title": "Finalize post-merge checkpoint after #1015",
-      "branch": "chore/1016-finalize-postmerge-checkpoint"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -3628,9 +3624,18 @@
       "issue": 1016,
       "title": "Finalize post-merge checkpoint after #1015",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "chore/1016-finalize-postmerge-checkpoint",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "ec233301a779098d69296f2713e9d95a10c1fdd8",
+        "pull_request": 1017,
+        "checks": {
+          "state_integrity_run_34837116495": "success",
+          "nexolab_merge_gate": "success",
+          "exact_state_only_diff": "success",
+          "review_threads": "zero"
+        }
+      }
     }
   ],
   "maintenance_actions": [
