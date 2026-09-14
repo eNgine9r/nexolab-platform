@@ -158,7 +158,7 @@ async function waitForOverviewBackgroundReadModelsSettled(page: Page): Promise<v
 
 async function waitForRouteUsable(page: Page, route: RouteKey): Promise<void> {
   if (route === "overview") {
-    await expect(page.getByRole("heading", { name: "XJP60D температури", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Температура · XJP60D", exact: true })).toBeVisible();
     await expect(page.getByRole("region", { name: "Стан live telemetry" })).not.toContainText("Connecting");
     await expect(page.getByText("edge-live-01", { exact: true })).toBeVisible();
     await expect(page.getByText(/°C/).first()).toBeVisible();
