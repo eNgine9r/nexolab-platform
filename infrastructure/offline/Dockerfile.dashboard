@@ -21,7 +21,9 @@ COPY . .
 RUN test -n "$NEXT_PUBLIC_NEXOLAB_API_BASE_URL" \
     && test -n "$NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL" \
     && npm run build \
-    && npm prune --omit=dev
+    && cp package-lock.json /tmp/nexolab-package-lock.json \
+    && npm prune --omit=dev \
+    && mv /tmp/nexolab-package-lock.json package-lock.json
 
 FROM ${NODE_IMAGE} AS runtime
 ENV NODE_ENV=production \
