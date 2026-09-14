@@ -18,13 +18,11 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "c3f68d9fd65b421c3ff6e2b281077506223eb982",
+    "accepted_product_sha": "b245b48e7ab64a42680fb9d516646926b45d1b41",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1001
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -3545,7 +3543,7 @@
       "issue": 1001,
       "title": "Simplify Overview into a compact operator-first dashboard",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "feat/1001-overview-operator-dashboard",
       "evidence": {
@@ -3565,8 +3563,17 @@
         "production_deployment": "not_executed",
         "modbus_write": "none",
         "hardware_write": "none",
-        "pull_request": null,
-        "exact_head_ci": "pending_commit_push_pr"
+        "pull_request": 1002,
+        "exact_head_ci": "success",
+        "verified_head_sha": "b245b48e7ab64a42680fb9d516646926b45d1b41",
+        "review_remediation": "faulted_channels_prioritized_before_compact_limit_and_live_kpi_has_visible_text",
+        "navigation_acceptance_contract": "success_updated_overview_heading",
+        "checks": {
+          "core_ci": "success",
+          "authenticated_dashboard": "success",
+          "alerts_browser": "success",
+          "review_threads": "zero"
+        }
       }
     }
   ],

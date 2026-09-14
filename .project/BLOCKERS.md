@@ -1,10 +1,10 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-13
+Updated: 2026-09-14
 
 ## Issue #1001 — Overview operator-first dashboard
 
-**Active; no local software blocker.** The presentation-only candidate is GREEN in clean-worktree focused/full frontend verification, production build and authenticated Chromium acceptance. Production runtime has not been changed. Remaining gate is repository lifecycle only: exact feature-head commit/push, focused PR, routed GitHub CI, final diff/review and merge only after required checks are GREEN.
+**Cleared for repository/software scope.** PR #1002 product/test head `b245b48e7ab64a42680fb9d516646926b45d1b41` is GREEN in clean-worktree verification, production build, authenticated Chromium acceptance and all routed exact-head GitHub checks. The P1 hidden-fault and P2 color-only LIVE review findings are fixed, the stale Overview navigation acceptance label is aligned, and review threads are zero. Production runtime has not been changed; this presentation-only Work Package requires no hardware acceptance.
 
 ## Issue #968 — SSD migration completed; simultaneous-media boot verified
 
@@ -159,9 +159,9 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-08B are completed through GREEN focused PRs, including #953 / PR #954, #957 / PR #958 and #960 / PR #962. RFX state remains completed through #960; current independent maintenance is tracked separately by the active Work Package.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — Issue #1001 active
+## Sprint execution gate — no independent Ready software Work Package selected
 
-RFX-08B / #960, #933, #930, #966, #988, #965 and #994 remain completed with their accepted evidence unchanged. The Product Owner selected #1001 as the current focused product Work Package; local implementation/browser verification is GREEN and repository exact-head CI is the remaining software gate. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
+RFX-08B / #960, #933, #930, #966, #988, #965, #994 and #1001 are completed in repository/software scope with their accepted evidence unchanged. Issue #1001 accepted product/test head is `b245b48e7ab64a42680fb9d516646926b45d1b41`; no new independent Ready software Work Package is currently selected. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
 
 #189/#585 remain blocked, #201 remains `needs_validation`, #202 remains `hardware_validation`, and K96–K100 remain hardware-unverified/excluded from automatic production polling. The scheduled 2026-09-15 security review remains independent dated maintenance and must still execute when due.
 
