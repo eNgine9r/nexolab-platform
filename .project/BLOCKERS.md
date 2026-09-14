@@ -161,7 +161,7 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 
 ## Sprint execution gate — no independent Ready software Work Package selected
 
-RFX-08B / #960, #933, #930, #966, #988, #965, #994 and #1001 are completed in repository/software scope with their accepted evidence unchanged. Issue #1001 accepted product/test head is `b245b48e7ab64a42680fb9d516646926b45d1b41`; no new independent Ready software Work Package is currently selected. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
+RFX-08B / #960, #933, #930, #966, #988, #965, #994, #1001 and #1014 are completed in repository/software/state scope with their accepted evidence unchanged. Issue #1001 accepted product/test head is `b245b48e7ab64a42680fb9d516646926b45d1b41`; no new independent Ready software Work Package is currently selected. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
 
 #189/#585 remain blocked, #201 remains `needs_validation`, #202 remains `hardware_validation`, and K96–K100 remain hardware-unverified/excluded from automatic production polling. Issue #1012 completed the previously scheduled 2026-09-15 security review early; the next fail-closed exception boundary is 2026-09-21.
 
