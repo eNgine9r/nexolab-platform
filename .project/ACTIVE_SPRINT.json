@@ -22,7 +22,11 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1012,
+      "title": "Revalidate HIGH container exceptions expiring 2026-09-15",
+      "branch": "security/1012-high-container-review"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -3575,6 +3579,14 @@
           "review_threads": "zero"
         }
       }
+    },
+    {
+      "issue": 1012,
+      "title": "Revalidate HIGH container exceptions expiring 2026-09-15",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "security/1012-high-container-review",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [

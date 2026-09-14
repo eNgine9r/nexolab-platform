@@ -221,37 +221,41 @@ def test_util_linux_78409_disagreement_is_explicit_and_short_lived() -> None:
     )
 
 
-def test_current_device_agent_sqlite_exceptions_are_exact_and_short_lived() -> None:
+def test_2026_09_14_fresh_scan_retires_stale_python_and_sqlite_exceptions() -> None:
     root = Path(__file__).resolve().parents[1]
     payload = json.loads(
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
     )
-    matches = [
-        entry
-        for entry in payload["exceptions"]
-        if entry["image_id"] == "device-agent"
-        and entry["package"] == "libsqlite3-0"
-        and entry["vulnerability"] in {"CVE-2026-11822", "CVE-2026-11824"}
-    ]
-
-    assert {entry["vulnerability"] for entry in matches} == {
-        "CVE-2026-11822",
-        "CVE-2026-11824",
+    exceptions = payload["exceptions"]
+    stale = {
+        (image_id, package, vulnerability)
+        for image_id in {"device-agent", "telegram-gateway"}
+        for package, vulnerability in {
+            ("libpython3.13-minimal", "CVE-2026-11940"),
+            ("libpython3.13-stdlib", "CVE-2026-11940"),
+            ("python3.13-minimal", "CVE-2026-11940"),
+            ("python3.13-venv", "CVE-2026-11940"),
+            ("libsqlite3-0", "CVE-2026-11822"),
+            ("libsqlite3-0", "CVE-2026-11824"),
+        }
     }
-    assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-09-15" for entry in matches)
-    assert all("33637555344" in entry["reason"] for entry in matches)
-    assert all("e606b96cb65118b03e3807367322887529988d28" in entry["reason"] for entry in matches)
-    assert all("FTS5" in entry["reason"] for entry in matches)
-    assert all("arbitrary-SQL" in entry["reason"] for entry in matches)
-    assert all("severity becomes Critical" in entry["reason"] for entry in matches)
+    keys = {
+        (entry["image_id"], entry["package"], entry["vulnerability"])
+        for entry in exceptions
+    }
+
+    assert len(exceptions) == 80
+    assert len(keys) == 80
+    assert keys.isdisjoint(stale)
+    assert all(entry["owner"] == "platform-security" for entry in exceptions)
+    assert all(entry["expires_on"] == "2026-09-15" for entry in exceptions)
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 8, 26),
+        date(2026, 9, 14),
     )
 
 
-def test_2026_09_12_consolidated_review_removes_stale_telemetry_exceptions() -> None:
+def test_2026_09_12_consolidated_review_keeps_telemetry_stale_findings_retired() -> None:
     root = Path(__file__).resolve().parents[1]
     payload = json.loads(
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
@@ -268,23 +272,12 @@ def test_2026_09_12_consolidated_review_removes_stale_telemetry_exceptions() -> 
         for entry in exceptions
     }
 
-    assert len(exceptions) == 92
-    assert len(keys) == 92
     assert keys.isdisjoint(stale)
     assert all(entry["owner"] == "platform-security" for entry in exceptions)
-    assert all(entry["expires_on"] == "2026-09-15" for entry in exceptions)
-    late = [entry for entry in exceptions if entry["vulnerability"] == "CVE-2026-87933"]
-    discovery = [entry for entry in exceptions if entry["vulnerability"] != "CVE-2026-87933"]
-    assert len(late) == 1
-    assert len(discovery) == 91
-    assert all("34699985764" in entry["reason"] for entry in discovery)
-    assert "34702355254" in late[0]["reason"]
-
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 9, 12),
+        date(2026, 9, 14),
     )
-
 
 def test_telemetry_systemd_homed_cve_exceptions_are_exact_and_short_lived() -> None:
     root = Path(__file__).resolve().parents[1]
