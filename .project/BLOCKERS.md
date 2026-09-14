@@ -182,3 +182,7 @@ The exact cause of the earlier unplanned 2026-09-10 reboot remains unknown becau
 ## Safety boundaries
 
 No blocker may be bypassed by Modbus/controller write, hardware write, production/site cutover without approval, persistent-data deletion, named-volume deletion, secret exposure or mandatory cloud dependency.
+
+## Issue #1018 — Overview UI production cutover — hard blocker
+
+**Blocked 2026-09-14 before runtime mutation.** The exact `9a3556b... → 2658ffbb...` source transition includes substantial backend/runtime/database-migration scope beyond the requested Overview UI activation. Source lineage validation passed, but the broader production scope has not been explicitly approved. Production remains on `9a3556b25b257396d15db80af591d1cc3684b8f7` and all critical services were healthy at the stop point. Product Owner must choose either full current-main cutover or a separately engineered frontend-only compatibility deployment.
