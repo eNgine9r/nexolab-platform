@@ -208,14 +208,14 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
       await expect(page.getByText("edge-live-02", { exact: true })).toBeVisible();
       await expect(page.getByText("K106", { exact: true })).toBeVisible();
       await expect(page.getByText("M200", { exact: true })).toBeVisible();
-      await expect(page.getByText("PostgreSQL history", { exact: true })).toBeVisible();
+      await expect(page.getByText("Історія температур", { exact: true })).toBeVisible();
       await expect(page.getByText(/4[,.]5 °C/).first()).toBeVisible();
 
       const panel = page.getByTestId("overview-chart-panel");
       await expect(panel).toHaveCount(1);
       const host = panel.getByTestId("chart-renderer-host");
       await expect(host).toBeVisible();
-      await expect(panel.getByTestId("chart-accessible-summary")).toContainText("XJP60D temperature history");
+      await expect(panel.getByTestId("chart-accessible-summary")).toContainText("Історія температур XJP60D");
       await expect.poll(() => panel.locator("canvas").count()).toBeGreaterThan(0);
       await expect(panel.locator("svg")).toHaveCount(0);
 
@@ -270,9 +270,9 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
         historyRequestsBeforeInteraction,
       );
 
-      await panel.getByRole("button", { name: "Hide" }).first().click();
-      await expect(panel.getByRole("button", { name: "Show" })).toHaveCount(1);
-      await panel.getByRole("button", { name: "Solo" }).first().click();
+      await panel.getByRole("button", { name: "Приховати" }).first().click();
+      await expect(panel.getByRole("button", { name: "Показати" })).toHaveCount(1);
+      await panel.getByRole("button", { name: "Лише цей" }).first().click();
 
       await host.scrollIntoViewIfNeeded();
       const box = await host.boundingBox();
@@ -297,22 +297,27 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
       await page.mouse.down();
       await page.mouse.move(box.x + box.width * 0.45, box.y + box.height * 0.5, { steps: 5 });
       await page.mouse.up();
-      await panel.getByRole("button", { name: "Reset zoom" }).click();
+      await panel.getByRole("button", { name: "Скинути масштаб" }).click();
       await expect(host).toBeVisible();
       expect(requests.filter((item) => item.url.includes("/history")).length).toBe(
         historyRequestsBeforeInteraction,
       );
 
+      const commandGrid = page.getByTestId("overview-command-grid");
       const primaryWorkspace = page.getByTestId("overview-primary-workspace");
+      const attentionWorkspace = page.getByTestId("overview-attention-workspace");
       const secondaryGrid = page.getByTestId("overview-secondary-grid");
+      await expect(commandGrid).toBeVisible();
       await expect(primaryWorkspace).toBeVisible();
+      await expect(attentionWorkspace).toBeVisible();
       await expect(secondaryGrid).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Потребує уваги" })).toBeVisible();
       expect(
         await page.evaluate(() => {
-          const primary = document.querySelector('[data-testid="overview-primary-workspace"]');
+          const command = document.querySelector('[data-testid="overview-command-grid"]');
           const secondary = document.querySelector('[data-testid="overview-secondary-grid"]');
-          if (!primary || !secondary) return false;
-          return Boolean(primary.compareDocumentPosition(secondary) & Node.DOCUMENT_POSITION_FOLLOWING);
+          if (!command || !secondary) return false;
+          return Boolean(command.compareDocumentPosition(secondary) & Node.DOCUMENT_POSITION_FOLLOWING);
         }),
       ).toBe(true);
 
@@ -323,23 +328,20 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
           .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
           .toBe(true);
 
+        const commandBox = await commandGrid.boundingBox();
         const primaryBox = await primaryWorkspace.boundingBox();
-        const contentBox = await primaryWorkspace.locator("..").boundingBox();
-        if (!primaryBox || !contentBox) throw new Error(`Overview layout missing at ${width}px`);
-        expect(Math.abs(primaryBox.width - contentBox.width)).toBeLessThanOrEqual(2);
-
-        const secondaryPanels = secondaryGrid.locator(":scope > section");
-        await expect(secondaryPanels).toHaveCount(2);
-        const firstSecondaryBox = await secondaryPanels.nth(0).boundingBox();
-        const secondSecondaryBox = await secondaryPanels.nth(1).boundingBox();
-        if (!firstSecondaryBox || !secondSecondaryBox) {
-          throw new Error(`Overview secondary layout missing at ${width}px`);
+        const attentionBox = await attentionWorkspace.boundingBox();
+        const secondaryBox = await secondaryGrid.boundingBox();
+        if (!commandBox || !primaryBox || !attentionBox || !secondaryBox) {
+          throw new Error(`Overview layout missing at ${width}px`);
         }
+        expect(secondaryBox.y).toBeGreaterThan(commandBox.y);
         if (width >= 1280) {
-          expect(Math.abs(firstSecondaryBox.y - secondSecondaryBox.y)).toBeLessThanOrEqual(2);
-          expect(firstSecondaryBox.x).toBeLessThan(secondSecondaryBox.x);
+          expect(Math.abs(primaryBox.y - attentionBox.y)).toBeLessThanOrEqual(2);
+          expect(primaryBox.x).toBeLessThan(attentionBox.x);
+          expect(primaryBox.width).toBeGreaterThan(attentionBox.width * 2);
         } else {
-          expect(firstSecondaryBox.y).toBeLessThan(secondSecondaryBox.y);
+          expect(primaryBox.y).toBeLessThan(attentionBox.y);
         }
       }
 
@@ -365,8 +367,9 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
             canonicalOverviewChart: true,
             overviewHistorySvg: false,
             overviewGraphFirst: true,
-            overviewPrimaryFullWidth: true,
-            overviewSecondaryGridBelow: true,
+            overviewPrimaryDominant: true,
+            overviewAttentionBesideGraph: true,
+            overviewSupportingStateBelow: true,
             overviewResponsiveWidths: [360, 1440, 1920],
             cursorLayoutStable: true,
             liveCanvasIdentityStable: true,

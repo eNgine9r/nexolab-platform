@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, LoaderCircle, RotateCcw, Thermometer } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, LoaderCircle, RotateCcw, Thermometer } from "lucide-react";
 
 import { OverviewChartPanel } from "@/components/dashboard/overview-chart-panel";
 import { chartSeries } from "@/data/dashboard";
-import type { ChartXDomain } from "@/features/charts/domain";
+import { CHART_SERIES_TOKENS, type ChartXDomain } from "@/features/charts/domain";
 import { buildOverviewChartGroups, overviewResetDomain } from "@/features/dashboard/overview-chart";
 import type { DashboardHistoryRange, DashboardHistoryStatus } from "@/hooks/use-dashboard-telemetry";
 import type { Xjp60dTargetDiagnostic } from "@/hooks/use-xjp60d-sensor-management";
 import type { DashboardTelemetryStatus } from "@/lib/telemetry/dashboard-state";
 import { isTemperatureProbeSample } from "@/lib/telemetry/temperature-channel";
 import type { TelemetrySample } from "@/lib/telemetry/types";
+
+const COMPACT_SENSOR_LIMIT = 8;
 
 const ranges: Array<{ value: DashboardHistoryRange; label: string }> = [
   { value: "1h", label: "1г" },
@@ -116,14 +118,14 @@ function HistoryChart({
 
   return (
     <section
-      className="mt-4 rounded-2xl border border-white/[0.055] bg-[#071a35]/60 p-3"
+      className="mt-3 rounded-2xl border border-white/[0.055] bg-[#071a35]/60 p-3"
       data-testid="overview-history-chart-system"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-medium text-slate-200">PostgreSQL history</p>
+          <p className="text-[10px] font-medium text-slate-200">Історія температур</p>
           <p className="mt-0.5 text-[9px] text-slate-500">
-            {samples.length} записів · {seriesCount} температурних каналів
+            {samples.length} записів · {seriesCount} каналів
           </p>
         </div>
         <div className="flex gap-1 rounded-xl border border-white/[0.06] p-1">
@@ -216,83 +218,142 @@ function LiveTemperatureGrid({
   const awaitingFirstSample = targetDiagnostics
     .filter((item) => item.state === "initializing" && !visibleChannels.has(item.channel_id))
     .sort((left, right) => compareChannels(left.channel_id, right.channel_id));
+  const [sensorGridExpanded, setSensorGridExpanded] = useState(false);
+  const sensorTiles = [
+    ...awaitingFirstSample.map((diagnostic) => ({
+      kind: "initializing" as const,
+      key: diagnostic.target_id,
+      channelId: diagnostic.channel_id,
+      diagnostic,
+    })),
+    ...visible.map((sample, visualIndex) => ({
+      kind: "sample" as const,
+      key: `${sample.node_id}:${sample.channel_id}`,
+      channelId: sample.channel_id,
+      sample,
+      visualIndex,
+    })),
+  ].sort((left, right) => {
+    const leftProblem =
+      left.kind === "sample" && (left.sample.quality !== "valid" || left.sample.alarm !== null);
+    const rightProblem =
+      right.kind === "sample" && (right.sample.quality !== "valid" || right.sample.alarm !== null);
+
+    if (leftProblem !== rightProblem) {
+      return leftProblem ? -1 : 1;
+    }
+
+    return compareChannels(left.channelId, right.channelId);
+  });
+  const displayedTiles = sensorGridExpanded ? sensorTiles : sensorTiles.slice(0, COMPACT_SENSOR_LIMIT);
+  const hiddenSensorCount = Math.max(0, sensorTiles.length - displayedTiles.length);
 
   return (
-    <div className="p-4 sm:p-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
+    <div className="p-3 sm:p-4">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-[10px] tracking-[0.14em] text-cyan-300 uppercase">Production telemetry</p>
-          <p className="mt-1 text-[11px] text-slate-400">
-            Опитуються лише обрані оператором канали КК1 і КК2
+          <p className="text-[10px] font-semibold text-slate-200">Поточні значення</p>
+          <p className="mt-0.5 text-[8px] text-slate-500">
+            Обрані канали КК1 і КК2 · {sensorTiles.length} на Огляді
           </p>
         </div>
-        <span className="rounded-full border border-white/[0.07] px-3 py-1.5 text-[9px] text-slate-300">
-          {status} · {visible.filter((sample) => sample.quality === "valid").length} valid
+        <span className="rounded-full border border-white/[0.07] px-2 py-1 text-[8px] text-slate-400">
+          {status} · {visible.filter((sample) => sample.quality === "valid").length} валідних
         </span>
       </div>
 
       {allMonitoredChannelsHidden ? (
-        <div className="grid min-h-32 place-items-center rounded-2xl border border-dashed border-white/[0.07] text-center">
+        <div className="grid min-h-24 place-items-center rounded-xl border border-dashed border-white/[0.07] px-4 text-center">
           <div>
-            <Thermometer className="mx-auto h-5 w-5 text-slate-600" />
-            <p className="mt-2 text-[10px] text-slate-400">Усі температурні канали приховані на Огляді.</p>
-            <p className="mt-1 text-[9px] text-slate-600">
-              Безперервний збір даних продовжується. Змініть налаштування відображення у заголовку панелі.
-            </p>
+            <Thermometer className="mx-auto h-4 w-4 text-slate-600" />
+            <p className="mt-1.5 text-[9px] text-slate-400">Усі температурні канали приховані на Огляді.</p>
+            <p className="mt-0.5 text-[8px] text-slate-600">Безперервний збір даних продовжується.</p>
           </div>
         </div>
-      ) : visible.length === 0 && awaitingFirstSample.length === 0 ? (
-        <div className="grid min-h-32 place-items-center rounded-2xl border border-dashed border-white/[0.07] text-center">
+      ) : sensorTiles.length === 0 ? (
+        <div className="grid min-h-24 place-items-center rounded-xl border border-dashed border-white/[0.07] px-4 text-center">
           <div>
-            <Thermometer className="mx-auto h-5 w-5 text-slate-600" />
-            <p className="mt-2 text-[10px] text-slate-400">Немає активних температурних каналів.</p>
-            <p className="mt-1 text-[9px] text-slate-600">
-              Відкрийте керування датчиками у заголовку панелі.
-            </p>
+            <Thermometer className="mx-auto h-4 w-4 text-slate-600" />
+            <p className="mt-1.5 text-[9px] text-slate-400">Немає активних температурних каналів.</p>
+            <p className="mt-0.5 text-[8px] text-slate-600">Додайте канали через налаштування панелі.</p>
           </div>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {awaitingFirstSample.map((diagnostic) => (
-            <article
-              key={diagnostic.target_id}
-              className="rounded-2xl border border-cyan-300/10 bg-[#071a35]/70 p-4"
-            >
-              <div className="flex items-center gap-3">
-                <LoaderCircle className="h-4 w-4 animate-spin text-cyan-300" />
-                <div>
-                  <p className="text-[10px] font-semibold text-white">{diagnostic.channel_id}</p>
-                  <p className="text-[9px] text-cyan-200">Ініціалізація</p>
-                </div>
-              </div>
-              <p className="mt-4 text-[10px] text-slate-400">Очікується перша планова спроба зчитування.</p>
-            </article>
-          ))}
-          {visible.map((sample) => {
-            const problem = sample.quality !== "valid" || sample.alarm !== null;
-            return (
-              <article
-                key={`${sample.node_id}:${sample.channel_id}`}
-                className={`rounded-2xl border p-4 ${
-                  problem ? "border-red-300/15 bg-red-400/[0.045]" : "border-cyan-300/10 bg-[#071a35]/70"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  {problem ? (
-                    <AlertTriangle className="h-4 w-4 text-red-300" />
-                  ) : (
-                    <Thermometer className="h-4 w-4 text-cyan-300" />
-                  )}
-                  <div>
-                    <p className="text-[10px] font-semibold text-white">{sample.channel_id}</p>
-                    <p className="text-[9px] text-slate-500">{sample.quality}</p>
+        <>
+          <div
+            className="grid grid-cols-2 gap-2 md:grid-cols-4 2xl:grid-cols-6"
+            data-testid="overview-live-value-grid"
+          >
+            {displayedTiles.map((tile) => {
+              if (tile.kind === "initializing") {
+                return (
+                  <article
+                    key={tile.key}
+                    className="min-w-0 rounded-xl border border-cyan-300/10 bg-[#071a35]/60 px-3 py-2.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-cyan-300" />
+                        <p className="truncate text-[9px] font-semibold text-white">{tile.channelId}</p>
+                      </div>
+                      <LoaderCircle className="h-3 w-3 shrink-0 animate-spin text-cyan-300" />
+                    </div>
+                    <p className="mt-1.5 text-sm font-semibold text-slate-400">—</p>
+                    <p className="mt-0.5 truncate text-[7px] text-cyan-200">Ініціалізація</p>
+                  </article>
+                );
+              }
+
+              const sample = tile.sample;
+              const token = CHART_SERIES_TOKENS[tile.visualIndex % CHART_SERIES_TOKENS.length];
+              const problem = sample.quality !== "valid" || sample.alarm !== null;
+              return (
+                <article
+                  key={tile.key}
+                  className={`min-w-0 rounded-xl border px-3 py-2.5 ${
+                    problem ? "border-red-300/15 bg-red-400/[0.04]" : "border-white/[0.055] bg-[#071a35]/60"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: token.color }}
+                        aria-hidden="true"
+                      />
+                      <p className="truncate text-[9px] font-semibold text-white">{sample.channel_id}</p>
+                    </div>
+                    {problem ? (
+                      <AlertTriangle className="h-3 w-3 shrink-0 text-red-300" aria-label="Проблема каналу" />
+                    ) : null}
                   </div>
-                </div>
-                <p className="mt-4 text-3xl font-semibold text-white">{formatValue(sample)}</p>
-              </article>
-            );
-          })}
-        </div>
+                  <p className="mt-1.5 truncate text-base font-semibold text-white">{formatValue(sample)}</p>
+                  <p className={`mt-0.5 truncate text-[7px] ${problem ? "text-red-300" : "text-slate-500"}`}>
+                    {sample.quality}
+                  </p>
+                </article>
+              );
+            })}
+          </div>
+          {sensorTiles.length > COMPACT_SENSOR_LIMIT ? (
+            <button
+              type="button"
+              onClick={() => setSensorGridExpanded((current) => !current)}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-1.5 text-[8px] font-medium text-slate-400 transition hover:border-cyan-300/20 hover:text-cyan-200"
+              aria-expanded={sensorGridExpanded}
+            >
+              {sensorGridExpanded ? (
+                <>
+                  <ChevronUp className="h-3 w-3" /> Згорнути
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3 w-3" /> + {hiddenSensorCount} датчиків · Показати всі
+                </>
+              )}
+            </button>
+          ) : null}
+        </>
       )}
 
       {!allMonitoredChannelsHidden ? (

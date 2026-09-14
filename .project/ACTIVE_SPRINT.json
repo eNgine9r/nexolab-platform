@@ -18,7 +18,7 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "c3f68d9fd65b421c3ff6e2b281077506223eb982",
+    "accepted_product_sha": "b245b48e7ab64a42680fb9d516646926b45d1b41",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
@@ -3538,6 +3538,43 @@
         "pull_request": 996
       },
       "depends_on": []
+    },
+    {
+      "issue": 1001,
+      "title": "Simplify Overview into a compact operator-first dashboard",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "feat/1001-overview-operator-dashboard",
+      "evidence": {
+        "implementation_base_main_sha": "c198a57ec1252f260a3e383d21233d15cb487d49",
+        "scope": "frontend_overview_presentation_only",
+        "targeted_tests": "21_passed_clean_worktree",
+        "full_frontend_tests": "146_files_731_tests_passed_clean_worktree",
+        "eslint": "success_clean_worktree",
+        "typecheck": "success_clean_worktree",
+        "prettier": "success",
+        "git_diff_check": "success",
+        "production_build": "success_next_16_3_4_turbopack_22_static_routes",
+        "chromium_authenticated_dashboard": "success_2_of_2_system_chromium",
+        "responsive_widths": "360_1440_1920_no_horizontal_overflow",
+        "acquisition_mutations": "none",
+        "mandatory_public_runtime_dependency": "none",
+        "production_deployment": "not_executed",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "pull_request": 1002,
+        "exact_head_ci": "success",
+        "verified_head_sha": "b245b48e7ab64a42680fb9d516646926b45d1b41",
+        "review_remediation": "faulted_channels_prioritized_before_compact_limit_and_live_kpi_has_visible_text",
+        "navigation_acceptance_contract": "success_updated_overview_heading",
+        "checks": {
+          "core_ci": "success",
+          "authenticated_dashboard": "success",
+          "alerts_browser": "success",
+          "review_threads": "zero"
+        }
+      }
     }
   ],
   "maintenance_actions": [

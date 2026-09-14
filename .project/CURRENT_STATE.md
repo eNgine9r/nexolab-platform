@@ -1,8 +1,14 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-12
+Updated: 2026-09-14
 
 ## Current Sprint
+
+### Issue #1001 — Overview operator-first dashboard completed
+
+The Product Owner-approved presentation Work Package for the initial `Огляд` page is repository/software complete at verified product/test head `b245b48e7ab64a42680fb9d516646926b45d1b41` in PR #1002. The accepted candidate compacts system health and KPI presentation, replaces the oversized `PRODUCTION TELEMETRY` area with bounded `Поточні значення` tiles and explicit `+ N датчиків · Показати всі` expansion, keeps faulted channels ahead of the compact limit, makes the temperature history chart the dominant workspace, places `Потребує уваги` beside it, moves infrastructure below, compacts healthy/empty states, preserves a visible non-color `LIVE` KPI marker, and localizes Overview chart controls without changing telemetry semantics.
+
+Verification is GREEN: clean-worktree 21/21 focused tests; 146/146 test files and 731/731 full frontend tests; ESLint, TypeScript, Prettier and `git diff --check`; Next.js 16.3.4/Turbopack production build with all 22 static routes; authenticated system-Chromium acceptance 2/2 across 360/1440/1920 widths with no horizontal overflow, active history/WebSocket behavior, zero acquisition mutations and zero mandatory public runtime requests; plus exact-head GitHub CI, Authenticated Dashboard Acceptance and Alerts Browser Acceptance on `b245b48e7ab64a42680fb9d516646926b45d1b41`. The two blocking review findings were remediated and all review threads are resolved. Production runtime is unchanged. No deployment, Modbus/controller write, hardware write, product-data deletion or named-volume deletion occurred.
 
 `PRODUCTION-READINESS-1` remains active. RFX-01 through RFX-08B are completed. RFX-08B / Issue #960 exact verified product head `c1c7f8bc4988c35bc13436c59750f038ddc59811` passed the clean detached local candidate verifier and all 20 exact-head GitHub workflows. Telemetry Service `34192639978` is GREEN after the deterministic test-only chronology repair; Offline Bundle `34192639971` is GREEN with disconnected runtime and persistent-data update/rollback proof; Authenticated Dashboard `34192639953` is GREEN on the same SHA after one known unrelated WebSocket-count flake; Core CI / NEXOLAB Merge Gate `34192639904` is GREEN after the same-SHA failed-job rerun. Final Team Lead review `5137952445` found no blocking P1/P2 and review threads are zero. PR #962 squash-merged with observed `main` SHA `044e2feeda21e6f84d2b0a589ef3678a1004a923`, and GitHub closed #960 completed. Production runtime remains intentionally unchanged at deployed source `9a3556b25b257396d15db80af591d1cc3684b8f7`.
 
@@ -256,7 +262,7 @@ Issue #245 is completed with real Raspberry Pi standalone hardware evidence. Iss
 
 ## Durable baselines
 
-Latest accepted product/software baseline is Issue #965 implementation commit `c3f68d9fd65b421c3ff6e2b281077506223eb982`; its final PR head `c61c3d0637cb0d8903c4148a5df91db11b1a94bf` passed the required exact-head Core/browser/security/DR/merge-gate matrix before PR #992 merged. The currently deployed production source is still `9a3556b25b257396d15db80af591d1cc3684b8f7`, intentionally older than the accepted software baseline. Repository synchronization and completion of later RFX/catalog/UI Work Packages do not imply production deployment of their software/schema changes.
+Latest accepted product/software baseline is Issue #1001 verified product/test head `b245b48e7ab64a42680fb9d516646926b45d1b41` in PR #1002. It passed the required exact-head Core CI, Authenticated Dashboard Acceptance and Alerts Browser Acceptance after the #1003 browser-fixture and #1005 offline-bundle MinIO registry prerequisites were merged. The currently deployed production source is still `9a3556b25b257396d15db80af591d1cc3684b8f7`, intentionally older than the accepted software baseline. Repository acceptance of the Overview UI does not imply production deployment or any hardware acceptance.
 
 Controlled-source version authority is recorded for `9a3556b25b257396d15db80af591d1cc3684b8f7`, evidence `runtime/deployments/20260904T032305Z`, schema `20260902_0031`, `linux/arm64`, LOCAL_LAN, health `ready`. Real authorized Embraco Unit 2 read-only hardware evidence remains anchored to the deployed source. Temperature/control engineering scaling remains explicitly unverified where existing production semantics are unknown.
 

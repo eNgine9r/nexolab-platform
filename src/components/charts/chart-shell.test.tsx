@@ -219,4 +219,30 @@ describe("ChartShell accessibility contract", () => {
     expect(row).toHaveTextContent("—");
     expect(row).not.toHaveTextContent(`${series.segments[0].points[0].value}`);
   });
+
+  it("supports Ukrainian operator copy without changing the default chart contract", () => {
+    const scene = createBenchmarkScene(1);
+    render(
+      <ChartShell
+        title="Історія температур XJP60D · °C"
+        context="Температура · Огляд"
+        selectedRange="1г"
+        series={scene.series}
+        inspection={null}
+        onToggleSeries={vi.fn()}
+        onSoloSeries={vi.fn()}
+        onResetZoom={vi.fn()}
+        locale="uk"
+      >
+        <div>plot</div>
+      </ChartShell>,
+    );
+
+    expect(screen.getByRole("button", { name: "Скинути масштаб" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Приховати" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Лише цей" })).toBeVisible();
+    expect(screen.getByLabelText("Легенда графіка")).toHaveTextContent("Актуально");
+    expect(screen.getByTestId("chart-inspector")).toHaveTextContent("Точні значення");
+    expect(screen.getByTestId("chart-accessible-summary")).toHaveTextContent("Період 1г");
+  });
 });

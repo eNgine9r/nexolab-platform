@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { TelemetrySample } from "@/lib/telemetry/types";
@@ -119,5 +119,53 @@ describe("TemperatureChart live discovery", () => {
     expect(screen.getByText("101-01")).toBeInTheDocument();
     expect(screen.getByText("sensor_error")).toBeInTheDocument();
     expect(screen.getByTestId("overview-chart-panel")).toBeVisible();
+  });
+
+  it("bounds many live values by default and expands only on operator request", async () => {
+    const channels = [
+      "101-01",
+      "101-02",
+      "101-03",
+      "101-04",
+      "101-05",
+      "101-06",
+      "102-01",
+      "102-02",
+      "102-03",
+      "102-04",
+    ];
+
+    await act(async () => {
+      render(
+        <TemperatureChart
+          mode="live"
+          status="live"
+          samples={channels.map((channelId, index) =>
+            sample(
+              channelId,
+              channelId === "102-04" ? null : 3 + index / 10,
+              channelId === "102-04" ? "sensor_error" : "valid",
+            ),
+          )}
+        />,
+      );
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText("Поточні значення")).toBeInTheDocument();
+    expect(screen.getByText("101-01")).toBeInTheDocument();
+    expect(screen.getByText("102-04")).toBeInTheDocument();
+    expect(screen.getByText("sensor_error")).toBeInTheDocument();
+    expect(screen.queryByText("102-02")).not.toBeInTheDocument();
+    expect(screen.queryByText("102-03")).not.toBeInTheDocument();
+
+    const expand = screen.getByRole("button", { name: /\+ 2 датчиків · Показати всі/ });
+    expect(expand).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(expand);
+
+    expect(screen.getByText("102-02")).toBeInTheDocument();
+    expect(screen.getByText("102-03")).toBeInTheDocument();
+    expect(screen.getByText("102-04")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Згорнути" })).toHaveAttribute("aria-expanded", "true");
   });
 });

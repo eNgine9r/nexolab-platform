@@ -138,18 +138,18 @@ export function DashboardShell() {
             />
 
             <section
-              className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-6 xl:gap-3"
+              className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6"
               aria-label="Ключові показники"
             >
-              {telemetry.kpis.map((item, index) => (
-                <KpiCard key={item.label} item={item} index={index} />
+              {telemetry.kpis.map((item) => (
+                <KpiCard key={item.label} item={item} />
               ))}
             </section>
 
             <OverviewWorkspaceLayout
               primary={
                 <Panel
-                  title={telemetry.mode === "live" ? "XJP60D температури" : "Температури · demo preview"}
+                  title={telemetry.mode === "live" ? "Температура · XJP60D" : "Температури · demo preview"}
                   action={
                     telemetry.mode === "live" ? (
                       <button
@@ -189,9 +189,18 @@ export function DashboardShell() {
                   />
                 </Panel>
               }
-              secondaryStart={
+              attention={
                 <Panel
-                  title={telemetry.mode === "live" ? "Production node" : "Вузли системи · demo"}
+                  title={telemetry.mode === "live" ? "Потребує уваги" : "Тривоги · demo"}
+                  action={<PanelAction label="Всі тривоги" href="/alerts" />}
+                  className="min-w-0"
+                >
+                  <AlarmsPanel mode={telemetry.mode} organizationId={organizationId} samples={liveSamples} />
+                </Panel>
+              }
+              supporting={
+                <Panel
+                  title={telemetry.mode === "live" ? "Стан інфраструктури" : "Вузли системи · demo"}
                   action={<PanelAction label="Всі вузли" href="/nodes" />}
                   className="min-w-0"
                 >
@@ -200,15 +209,6 @@ export function DashboardShell() {
                   ) : (
                     <NodesPanel />
                   )}
-                </Panel>
-              }
-              secondaryEnd={
-                <Panel
-                  title={telemetry.mode === "live" ? "Telemetry alarms" : "Тривоги · demo"}
-                  action={<PanelAction label="Всі тривоги" href="/alerts" />}
-                  className="min-w-0"
-                >
-                  <AlarmsPanel mode={telemetry.mode} organizationId={organizationId} samples={liveSamples} />
                 </Panel>
               }
             />
