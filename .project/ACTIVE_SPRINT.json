@@ -22,11 +22,7 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1022,
-      "title": "Classify frontend release tooling without unrelated browser lanes",
-      "branch": "fix/1022-frontend-release-ci-routing"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -3645,9 +3641,20 @@
       "issue": 1022,
       "title": "Classify frontend release tooling without unrelated browser lanes",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/1022-frontend-release-ci-routing",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "4c0cdf7c55f5c92b5e153b21e29d3b41a23f890d",
+        "pull_request": 1023,
+        "checks": {
+          "core_ci": "success",
+          "authenticated_dashboard": "success",
+          "refrigeration_browser": "success",
+          "offline_bundle": "success",
+          "telegram_gateway": "success",
+          "nexolab_merge_gate": "success"
+        }
+      }
     }
   ],
   "maintenance_actions": [

@@ -1,6 +1,10 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-14
+Updated: 2026-09-15
+
+## Issue #1022 — frontend release CI routing repair
+
+**Cleared for software scope.** PR #1023 exact implementation head `4c0cdf7c55f5c92b5e153b21e29d3b41a23f890d` passed the full routed matrix and zero review threads. The false browser-workflow requirement for frontend release tooling is removed while unknown paths remain fail-closed. #1020 remains dependent only on merging this governance repair and then rerunning its exact-head checks; #1019 remains blocked on #1020. Production runtime is unchanged.
 
 ## Issue #1001 — Overview operator-first dashboard
 

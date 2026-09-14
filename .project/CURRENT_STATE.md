@@ -1,8 +1,12 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-14
+Updated: 2026-09-15
 
 ## Current Sprint
+
+### Issue #1022 — frontend release CI routing repair completed
+
+Issue #1022 is software-complete at exact implementation head `4c0cdf7c55f5c92b5e153b21e29d3b41a23f890d` in PR #1023. The classifier now treats only `scripts/build-frontend-release-artifact.sh` and `scripts/tests/test_raspberry_pi_frontend_release.py` as known `deployment_runtime` tooling instead of unknown fail-closed paths. Focused classifier/routing tests passed 52/52, State Model validation and `git diff --check` passed, and the exact-head GitHub matrix is GREEN across Core CI/NEXOLAB Merge Gate, Authenticated Dashboard Acceptance, Refrigeration Browser Acceptance, Offline Bundle and Telegram Gateway. Genuine unknown paths still fail closed. No production deployment, service restart, database change, Modbus/controller write or hardware write occurred. After #1023 merges, resume #1020 artifact-builder completion and then #1019 frontend-only Overview compatibility deployment.
 
 ### Issue #1001 — Overview operator-first dashboard completed
 
