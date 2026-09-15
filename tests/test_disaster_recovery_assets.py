@@ -135,3 +135,39 @@ def test_policy_copy_is_independent() -> None:
     second["assets"][0]["id"] = "changed"
 
     assert first["assets"][0]["id"] == "postgresql"
+
+
+def test_disaster_recovery_acceptance_seeds_latest_projection_with_history() -> None:
+    script = (ROOT / "scripts" / "run-disaster-recovery-acceptance.sh").read_text(
+        encoding="utf-8"
+    )
+
+    history_marker = "INSERT INTO telemetry_samples ("
+    latest_marker = "INSERT INTO telemetry_latest ("
+    startup_marker = "compose up -d --wait source-auth-service"
+    seeded_events = (
+        "20000000-0000-0000-0000-000000000001",
+        "20000000-0000-0000-0000-000000000002",
+    )
+
+    assert history_marker in script
+    assert latest_marker in script
+    assert startup_marker in script
+    assert script.index(history_marker) < script.index(latest_marker) < script.index(startup_marker)
+    assert "sample_id = EXCLUDED.sample_id" in script
+    assert "EXCLUDED.sample_id > telemetry_latest.sample_id" in script
+    for event_id in seeded_events:
+        assert script.count(event_id) >= 2
+
+
+def test_disaster_recovery_minio_defaults_use_pinned_quay_images() -> None:
+    compose = (
+        ROOT / "infrastructure" / "compose" / "compose.disaster-recovery.yaml"
+    ).read_text(encoding="utf-8")
+    server = "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
+    client = "quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z"
+
+    assert compose.count(f"${{DR_MINIO_IMAGE:-{server}}}") == 2
+    assert compose.count(f"${{DR_MINIO_CLIENT_IMAGE:-{client}}}") == 1
+    assert "DR_MINIO_IMAGE:-minio/minio:" not in compose
+    assert "DR_MINIO_CLIENT_IMAGE:-minio/mc:" not in compose
