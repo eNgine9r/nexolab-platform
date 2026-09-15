@@ -13,6 +13,7 @@ from http.server import ThreadingHTTPServer
 from typing import Any
 
 from acquisition_capacity import BusCapacityProfile
+from akcc25 import AKCC25ProReader
 from acquisition_registry import AcquisitionRegistry, DeviceLifecycleMutation, LifecycleMutation
 from commissioning_activation import (
     CommissioningActivationJournal,
@@ -343,6 +344,28 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                                 semantic=reading.semantic,
                             )
                         )
+                elif profile.profile_id == "danfoss-ak-cc25-pro":
+                    reader = AKCC25ProReader(client)
+                    for key in (
+                        "control_state",
+                        "compressor_state",
+                        "compressor_speed",
+                        "fan_state",
+                        "defrost_state",
+                        "network_status",
+                        "alarm_status",
+                        "network_address",
+                        "baudrate_setting",
+                        "parity_setting",
+                    ):
+                        reading = reader.read_metric(unit_id, key)
+                        observations.append(
+                            PreflightObservation(
+                                key=key,
+                                quality=reading.quality,
+                                semantic=reading.semantic,
+                            )
+                        )
                 else:
                     raise PreflightExecutionError("unsupported_profile", "Preflight profile is unsupported")
         except ModbusTimeoutError as error:
@@ -377,6 +400,8 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         profile = PROFILES.get(request.profile_id)
         if profile is None or profile.profile_version != request.profile_version:
             raise ValueError("activation profile/version is unsupported")
+        if not profile.activation_supported:
+            raise ValueError("activation profile is discovery-only")
         bus = self.preflight_bus(request.bus_id)
         if canonical_serial_identifier(bus.serial_device) != canonical_serial_identifier(request.stable_transport_identifier):
             raise ValueError("activation stable adapter identity does not match configured bus")

@@ -57,6 +57,8 @@ def parse_activation_request(payload: object) -> CommissioningActivationRequest:
     profile = PROFILES.get(profile_id)
     if profile is None or profile.profile_version != profile_version:
         raise ValueError("unsupported activation profile/version")
+    if not profile.activation_supported:
+        raise ValueError("activation profile is discovery-only")
     return CommissioningActivationRequest(
         activation_id, action, node_id, bus_id, stable, unit_id, profile_id, profile_version
     )

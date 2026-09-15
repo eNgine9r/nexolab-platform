@@ -3,32 +3,37 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-15T07:46:18+03:00",
+  "timestamp": "2026-09-15T13:19:46+03:00",
   "actor": "ChatGPT",
-  "event": "Moved frontend artifact repair #1020 into review after #1023 merge and exact integration gates",
+  "event": "Activated Issue #1024 AK-CC25 Pro read-only discovery after #1020 merge; software probe candidate and full Device Agent verification are green",
   "baselines": {
     "accepted_product_sha": "b245b48e7ab64a42680fb9d516646926b45d1b41",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 1020,
-    "branch": "fix/1020-frontend-artifact-platform",
-    "status": "review",
-    "head_sha": "83ee68db553e70ceaa2a00a078ea0559e8924293"
+    "issue": 1024,
+    "title": "Verify Danfoss AK-CC25 Pro Unit 35 read-only Modbus integration",
+    "branch": "feat/1024-ak-cc25-discovery"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "implementation_head_sha": "d9c36306568f4f796c6626388420d692e03048b9",
-      "pull_request": 1021,
-      "frontend_release_artifact_product_head_run": 34845415982,
-      "core_ci_integration_head_run": 34903994749,
-      "offline_bundle_integration_head_run": 34903994721,
-      "review_threads": "zero",
-      "remaining_gate": "final_exact_head_frontend_release_artifact_after_state_alignment"
+      "physical_model": "Danfoss_AK_CC25_Pro_084B4022",
+      "documented_software_family": "SW_1.3x",
+      "product_owner_observed_o03": 35,
+      "unit_id_candidate": 35,
+      "profile_version": "danfoss-ak-cc25-pro-sw1.3x-fc03-v1",
+      "read_contract": "FC03_single_register_only_no_modbus_writes",
+      "focused_tests": "27_passed",
+      "device_agent_full_suite": "272_passed",
+      "production_adapter_negative_smoke": "PASS_refused_before_serial_scan",
+      "hardware_status": "hardware_unverified_no_spare_isolated_usb_rs485_adapter_present",
+      "production_runtime_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "observations": [],
-  "next_action": "Commit/push this state alignment, run Frontend Release Artifact on the new exact #1020 head with the canonical LOCAL_LAN inputs, require fresh exact-head CI and zero review blockers, then merge PR #1021. After #1020 closes, unblock #1019 and prepare its frontend-only production cutover without executing the cutover absent the explicit deployment boundary.",
+  "next_action": "Finish exact branch review/commit/push and open the focused #1024 PR. Run exact-head CI. Real hardware acceptance then requires a third isolated USB-RS485 adapter for Unit 35; never probe either production-owned adapter.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1020,
-      "title": "Fix cross-platform frontend artifact extraction on GitHub runner",
-      "branch": "fix/1020-frontend-artifact-platform"
+      "issue": 1024,
+      "title": "Verify Danfoss AK-CC25 Pro Unit 35 read-only Modbus integration",
+      "branch": "feat/1024-ak-cc25-discovery"
     },
     "next_work_package": null
   },
@@ -3664,7 +3664,7 @@
       "issue": 1020,
       "title": "Fix cross-platform frontend artifact extraction on GitHub runner",
       "priority": "unspecified",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "fix/1020-frontend-artifact-platform",
       "evidence": {
         "implementation_head_sha": "d9c36306568f4f796c6626388420d692e03048b9",
@@ -3680,8 +3680,35 @@
           "core_ci_integration_head_run_34903994749": "success",
           "offline_bundle_integration_head_run_34903994721": "success",
           "review_threads": "zero",
-          "frontend_release_artifact_final_exact_head": "pending_after_state_alignment"
-        }
+          "frontend_release_artifact_final_exact_head": "success_run_34930280105",
+          "core_ci_final_34930268286": "success",
+          "offline_bundle_final_34930268213": "success",
+          "frontend_release_artifact_final_34930280105": "success",
+          "review_threads_final": "zero"
+        },
+        "verified_head_sha": "8cfe9ec6f282aa2ba112db32701052f39c1f0de8"
+      }
+    },
+    {
+      "issue": 1024,
+      "title": "Verify Danfoss AK-CC25 Pro Unit 35 read-only Modbus integration",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "feat/1024-ak-cc25-discovery",
+      "evidence": {
+        "physical_model": "Danfoss_AK_CC25_Pro_084B4022",
+        "documented_software_family": "SW_1.3x",
+        "product_owner_observed_o03": 35,
+        "unit_id_candidate": 35,
+        "profile_version": "danfoss-ak-cc25-pro-sw1.3x-fc03-v1",
+        "read_contract": "FC03_single_register_only_no_modbus_writes",
+        "focused_tests": "27_passed",
+        "device_agent_full_suite": "272_passed",
+        "production_adapter_negative_smoke": "PASS_refused_before_serial_scan",
+        "hardware_status": "hardware_unverified_no_spare_isolated_usb_rs485_adapter_present",
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     }
   ],

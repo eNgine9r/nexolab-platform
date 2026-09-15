@@ -2,6 +2,10 @@
 
 Updated: 2026-09-15
 
+## Issue #1024 — AK-CC25 Pro real-device read requires an isolated adapter
+
+**Hardware acceptance blocked; software discovery proceeds.** The physical target is Danfoss AK-CC25 Pro `084B4022`, candidate Unit ID `35` from observed `o03=35`. The Raspberry Pi currently has only the two production-owned CP2104 paths: `0133F090` (`rs485-main`) and `0133F246` (`rs485-embraco`). The repository-owned AK-CC25 probe correctly refuses those production adapters before any serial request. A third isolated USB-RS485 adapter, connected only to the AK-CC25 Pro A+/B− pair, is required for the real FC03 acceptance pass unless a separately approved safe physical topology is established. No second Modbus master will be introduced on a live production bus, and no controller communication/output parameter will be written.
+
 ## Issue #1022 — frontend release CI routing repair
 
 **Cleared for software scope and merged.** PR #1023 exact implementation head `4c0cdf7c55f5c92b5e153b21e29d3b41a23f890d` passed the full routed matrix and zero review threads, then merged to `main` as `5c8ade60cda6f4a5b8cac9610741e212bff0c3a3`. The false browser-workflow requirement for frontend release tooling is removed while unknown paths remain fail-closed. #1020 has resumed and is in review on current integration head `83ee68db553e70ceaa2a00a078ea0559e8924293`; its Core CI / NEXOLAB Merge Gate and Offline Bundle are GREEN, with only the final exact-head Frontend Release Artifact gate plus merge remaining. #1019 remains blocked only until #1020 merges. Production runtime is unchanged.

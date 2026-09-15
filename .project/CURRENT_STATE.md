@@ -4,9 +4,17 @@ Updated: 2026-09-15
 
 ## Current Sprint
 
-### Issue #1020 — ARM64 frontend release artifact builder in review
+### Issue #1024 — Danfoss AK-CC25 Pro Unit 35 read-only discovery active
 
-Issue #1020 is implementation-complete and in review on `fix/1020-frontend-artifact-platform`. Product implementation commit `d9c36306568f4f796c6626388420d692e03048b9` fixes cross-platform ARM64 image extraction and preserves the canonical root `package-lock.json` across production pruning while still removing dev-only dependencies. Local verification passed shell syntax, 13/13 focused frontend-release tests, State Model v2, `git diff --check`, and the isolated prune/lockfile proof. Manual Frontend Release Artifact run `34845415982` passed on the product head. After #1023 merged to `main` as `5c8ade60cda6f4a5b8cac9610741e212bff0c3a3`, current integration head `83ee68db553e70ceaa2a00a078ea0559e8924293` is up to date with `main`; exact-head Core CI / NEXOLAB Merge Gate run `34903994749` and Offline Bundle run `34903994721` are GREEN with zero review threads. Remaining work is limited to one final manual Frontend Release Artifact build on the post-state-alignment exact head, its resulting exact-head CI authority, final merge review, and PR #1021 merge. No production deployment, service restart, database change, Modbus/controller write, hardware write, product-data deletion or named-volume deletion has occurred. #1019 remains blocked only until #1020 is merged; its production dashboard-only activation remains a separate explicit cutover boundary.
+The Product Owner introduced a new physical **Danfoss AK-CC25 Pro, 084B4022** integration need and confirmed front-panel `o03 = 35`. The supplied Danfoss Modbus programming guide is for **SW 1.3x** and defines `o03` as network address, so Unit ID `35` is the bounded discovery target. It also documents Modbus RTU, `oa1` baud-rate selection, `oa2` parity selection, and read-only integer service values including control state, compressor state/speed, fan state, defrost state, network status and alarm status.
+
+Issue #1024 is active on `feat/1024-ak-cc25-discovery`. The software candidate adds an explicitly discovery-only `danfoss-ak-cc25-pro-sw1.3x-fc03-v1` profile, FC03 single-register decoder/probe coverage, raw request/response evidence capture, and a fail-closed activation guard. Floating-point temperature/service values remain deliberately unmapped until real wire-format evidence exists. The isolated hardware probe refuses any adapter currently owned by the production Device Agent and exposes no Modbus write path. Focused AK-CC25/preflight/runtime tests are GREEN and the full Device Agent suite is **272/272 PASS**.
+
+Real hardware acceptance is still **hardware_unverified**. The Raspberry Pi currently exposes only the two production-owned CP2104 adapters (`0133F090` / `rs485-main` and `0133F246` / `rs485-embraco`); no third isolated USB-RS485 adapter is present. A real Unit 35 probe will not be attempted on either live production path. No Modbus/controller write, hardware write, service restart, production polling activation or site cutover has occurred.
+
+### Issue #1020 — frontend artifact repair completed
+
+Issue #1020 is completed through PR #1021. Final exact PR head `8cfe9ec6f282aa2ba112db32701052f39c1f0de8` passed Core CI / NEXOLAB Merge Gate `34930268286`, Offline Bundle `34930268213`, and Frontend Release Artifact `34930280105`; PR #1021 then merged to `main` as `cbd9197f6c63cafd46a48752076c43a790eb61e3` and closed #1020. No production deployment or runtime/hardware mutation belonged to #1020. The previously blocked #1019 frontend-only production activation prerequisite is therefore cleared at repository level, but that separate cutover remains unexecuted and requires its own production boundary.
 
 ### Issue #1022 — frontend release CI routing repair completed
 
