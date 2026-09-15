@@ -3,6 +3,8 @@ set -Eeuo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 SERVICE_NAME="nexolab-remote-desktop-commander.service"
+GUARD_SERVICE_NAME="nexolab-remote-desktop-conflict-guard.service"
+GUARD_TIMER_NAME="nexolab-remote-desktop-conflict-guard.timer"
 SOURCE_CONFIG="${ROOT_DIR}/infrastructure/remote-admin/desktop-commander-source.env"
 HOME_DIR="${NEXOLAB_REMOTE_ADMIN_HOME:-${HOME}}"
 SYSTEMD_USER_DIR="${NEXOLAB_SYSTEMD_USER_DIR:-${HOME_DIR}/.config/systemd/user}"
@@ -11,6 +13,10 @@ NODE_VERSION="$(tr -d '[:space:]' <"${ROOT_DIR}/.nvmrc")"
 NODE_BIN_DIR="${NEXOLAB_NODE_BIN_DIR:-${HOME_DIR}/.nvm/versions/node/v${NODE_VERSION}/bin}"
 UNIT_SOURCE="${ROOT_DIR}/infrastructure/systemd/user/${SERVICE_NAME}"
 UNIT_TARGET="${SYSTEMD_USER_DIR}/${SERVICE_NAME}"
+GUARD_SERVICE_SOURCE="${ROOT_DIR}/infrastructure/systemd/user/${GUARD_SERVICE_NAME}"
+GUARD_TIMER_SOURCE="${ROOT_DIR}/infrastructure/systemd/user/${GUARD_TIMER_NAME}"
+GUARD_SERVICE_TARGET="${SYSTEMD_USER_DIR}/${GUARD_SERVICE_NAME}"
+GUARD_TIMER_TARGET="${SYSTEMD_USER_DIR}/${GUARD_TIMER_NAME}"
 VERIFIER="${ROOT_DIR}/scripts/verify-raspberry-pi-remote-admin-service.sh"
 HANDOFF_STATE_DIR="${HOME_DIR}/.local/state/nexolab-remote-admin"
 HANDOFF_STATE_FILE="${HANDOFF_STATE_DIR}/last-handoff.env"
@@ -41,7 +47,7 @@ while (($# > 0)); do
   shift
 done
 
-for required in "${SOURCE_CONFIG}" "${UNIT_SOURCE}" "${VERIFIER}"; do
+for required in "${SOURCE_CONFIG}" "${UNIT_SOURCE}" "${GUARD_SERVICE_SOURCE}" "${GUARD_TIMER_SOURCE}" "${VERIFIER}"; do
   [[ -f "${required}" ]] || { printf 'Missing required file: %s\n' "${required}" >&2; exit 1; }
 done
 [[ -x "${VERIFIER}" ]] || { printf 'Missing executable service verifier: %s\n' "${VERIFIER}" >&2; exit 1; }
@@ -64,6 +70,7 @@ if [[ "${DRY_RUN}" == "1" ]]; then
   printf 'desktop_commander_source_sha=%s\n' "${DESKTOP_COMMANDER_SOURCE_SHA}"
   printf 'release_dir=%s\ncurrent_link=%s\nnode=%s\ndefer_start=%s\n' \
     "${RELEASE_DIR}" "${CURRENT_LINK}" "${NODE}" "${DEFER_START}"
+  printf 'guard_service=%s\nguard_timer=%s\n' "${GUARD_SERVICE_NAME}" "${GUARD_TIMER_NAME}"
   exit 0
 fi
 
@@ -128,8 +135,11 @@ mv -Tf -- "${CURRENT_TMP}" "${CURRENT_LINK}"
 [[ "$(readlink -f "${CURRENT_LINK}")" == "${RELEASE_DIR}" ]] || { echo 'Atomic current-link switch failed.' >&2; exit 1; }
 
 install -m 0644 "${UNIT_SOURCE}" "${UNIT_TARGET}"
+install -m 0644 "${GUARD_SERVICE_SOURCE}" "${GUARD_SERVICE_TARGET}"
+install -m 0644 "${GUARD_TIMER_SOURCE}" "${GUARD_TIMER_TARGET}"
 systemctl --user daemon-reload
 systemctl --user enable "${SERVICE_NAME}"
+systemctl --user enable --now "${GUARD_TIMER_NAME}"
 "${VERIFIER}" --policy-only
 
 if [[ "${DEFER_START}" == "1" ]]; then

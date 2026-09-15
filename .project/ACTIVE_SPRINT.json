@@ -18,16 +18,20 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "b245b48e7ab64a42680fb9d516646926b45d1b41",
+    "accepted_product_sha": "84a47eb15517af18d5ec5139ea8fa00d8e834542",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
     "active_work_package": {
-      "issue": 1024,
-      "title": "Verify Danfoss AK-CC25 Pro Unit 35 read-only Modbus integration",
-      "branch": "feat/1024-ak-cc25-discovery"
+      "issue": 1037,
+      "title": "Stabilize Raspberry Pi host under development/test load",
+      "branch": "fix/1037-edge-host-stability"
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 1031,
+      "title": "Add Danfoss AK-CC25 Pro to supported equipment onboarding catalog",
+      "branch": "feat/1031-ak-cc25-onboarding"
+    }
   },
   "work_packages": [
     {
@@ -3693,7 +3697,7 @@
       "issue": 1024,
       "title": "Verify Danfoss AK-CC25 Pro Unit 35 read-only Modbus integration",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "feat/1024-ak-cc25-discovery",
       "evidence": {
         "physical_model": "Danfoss_AK_CC25_Pro_084B4022",
@@ -3719,7 +3723,69 @@
         "isolated_probe_passes": "3_full_passes_after_initial_partial_timeout_pass",
         "temperature_status": "hardware_unverified_no_temperature_sensors_connected",
         "existing_bus_post_probe_health": "PASS_status_ok_queue_0_workers_running",
-        "production_activation_performed": false
+        "production_activation_performed": false,
+        "verified_head_sha": "84a47eb15517af18d5ec5139ea8fa00d8e834542",
+        "pull_request": 1025,
+        "checks": {
+          "exact_head_ci": "success",
+          "review_threads": "zero"
+        }
+      }
+    },
+    {
+      "issue": 1031,
+      "title": "Add Danfoss AK-CC25 Pro to supported equipment onboarding catalog",
+      "priority": "high",
+      "lifecycle": "ready",
+      "depends_on": [
+        1024
+      ],
+      "branch": "feat/1031-ak-cc25-onboarding",
+      "evidence": {
+        "local_worktree": "/home/nexolab/nexolab-1031",
+        "implementation_candidate": "preserved_uncommitted_during_issue_1037_host_stability_interrupt",
+        "focused_frontend_tests": "17_passed",
+        "focused_backend_tests": "24_passed",
+        "production_activation": "not_executed_fail_closed",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1037,
+      "title": "Stabilize Raspberry Pi host under development/test load",
+      "priority": "unspecified",
+      "lifecycle": "review",
+      "branch": "fix/1037-edge-host-stability",
+      "evidence": {
+        "incident_classification": "host_wide_resource_starvation_during_heavy_local_verification",
+        "oom_evidence": "none_observed",
+        "thermal_throttling": "none_get_throttled_0x0",
+        "optional_services": "nexolab_browser_and_opera_inspection_disabled_inactive_on_demand",
+        "legacy_remote_owner": "removed_remote_desktop_tmux_and_unmanaged_npx_stack",
+        "managed_remote_cpu_weight": 200,
+        "managed_remote_io_weight": 200,
+        "conflict_guard": "enabled_active_timer_bounded_to_tmux_session_remote_desktop",
+        "conflict_guard_dummy_acceptance": "pass_removes_dummy_remote_desktop_tmux_preserves_managed_rdc_pid",
+        "remote_admin_handoff": "success_main_pid_175833",
+        "memory_after_stabilization": "about_2_4_GiB_available_1_7_GiB_swap_free",
+        "bounded_load": "384MiB_touched_memory_plus_cpu_90s_systemd_scope",
+        "bounded_load_admin": "rdc_active_tailscale_active",
+        "bounded_load_runtime": "device_agent_ok_queue_0_telemetry_ready_dashboard_200",
+        "bounded_load_boot_id": "unchanged_7c0c992e_6d39_4892_b965_6f5b46066123",
+        "post_load_containers": "12_of_12_healthy",
+        "post_load_failure_signals": "none_for_oom_watchdog_thermal_undervoltage_remote_timeouts",
+        "host_stability_verifier": "pass",
+        "targeted_reliability_tests": "14_passed",
+        "shell_syntax": "pass",
+        "systemd_unit_validation": "pass",
+        "git_diff_check": "pass_pre_state_finalize",
+        "watchdog_policy": "unchanged_runtime_watchdog_1min",
+        "swap_policy": "rpi_swap_zram_plus_file_2GiB_zram_var_swap_backing_not_second_swapon",
+        "production_runtime_mutation": "none_application_containers_unchanged",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "reboot": "none"
       }
     }
   ],

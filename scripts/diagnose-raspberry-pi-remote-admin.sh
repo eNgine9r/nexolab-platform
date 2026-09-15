@@ -64,12 +64,16 @@ fi
 section "MEMORY AND SWAP"
 free -h || true
 cat /proc/swaps 2>/dev/null || true
+if grep -qw 'cgroup_disable=memory' /proc/cmdline 2>/dev/null; then echo 'memory_cgroup=disabled'; else echo 'memory_cgroup=enabled_or_unspecified'; fi
 for file in /sys/block/zram0/backing_dev /sys/block/zram0/disksize /sys/block/zram0/mm_stat /sys/block/zram0/bd_stat; do
   if [[ -r "${file}" ]]; then
     printf '%s=' "$(basename "${file}")"
     cat "${file}"
   fi
 done
+
+if [[ -r /proc/pressure/memory ]]; then printf 'memory_pressure='; tr '\n' ';' </proc/pressure/memory; echo; else echo 'memory_pressure=unavailable'; fi
+if [[ -r /proc/pressure/io ]]; then printf 'io_pressure='; tr '\n' ';' </proc/pressure/io; echo; else echo 'io_pressure=unavailable'; fi
 
 section "POWER THERMAL WATCHDOG"
 if command -v vcgencmd >/dev/null 2>&1; then
@@ -109,6 +113,16 @@ else
 fi
 user_service_state rpi-connect-wayvnc.service
 user_service_state nexolab-remote-desktop-commander.service
+user_service_state nexolab-browser.service
+user_service_state nexolab-opera-inspection.service
+printf 'legacy_remote_desktop_tmux='; if tmux has-session -t remote-desktop 2>/dev/null; then echo present; else echo absent; fi
+unmanaged_remote=0
+while read -r pid; do
+  [[ -n "${pid}" ]] || continue
+  cgroup="$(cat "/proc/${pid}/cgroup" 2>/dev/null || true)"
+  [[ "${cgroup}" == *'/nexolab-remote-desktop-commander.service' ]] || unmanaged_remote=$((unmanaged_remote + 1))
+done < <(pgrep -f '[d]esktop-commander' 2>/dev/null || true)
+printf 'unmanaged_desktop_commander_processes=%s\n' "${unmanaged_remote}"
 
 for unit in rpi-connect.service nexolab-remote-desktop-commander.service; do
   printf '%s ' "${unit}"

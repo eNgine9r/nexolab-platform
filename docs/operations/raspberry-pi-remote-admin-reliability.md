@@ -29,6 +29,10 @@ Current hardware/runtime observations at diagnosis were non-failing: `vcgencmd g
 
 Raspberry Pi OS uses `rpi-swap` in `zram+file` mode. `/dev/zram0` is the active 2 GiB swap device and `/var/swap` is attached through `/dev/loop0` as the zram backing/writeback device. Do not add an independent `swapon /var/swap` action.
 
+## 2026-09-15 resource-starvation follow-up
+
+Retained evidence now shows a separate host-wide resource-starvation incident during heavyweight local verification. See `docs/operations/raspberry-pi-host-stability.md` / Issue #1037. Optional Chromium/inspection services are now on-demand, legacy duplicate Desktop Commander/tmux ownership is prohibited, and CI-equivalent suites are routed away from the production 4 GiB edge host. The zram+file topology remains valid and is not replaced by an independent `/var/swap` swap device.
+
 ## Remote Desktop Commander service
 
 Install from an exact repository checkout as the ordinary `nexolab` user:
@@ -94,4 +98,4 @@ Persistent journal reboot proof passed: `journalctl --list-boots` retained the p
 
 ## Safety boundary
 
-This reliability repair does not deploy NEXOLAB product code, change the deployed product-source authority, change Modbus polling, issue Modbus/controller writes, change SSD UAS policy, disable the watchdog, repair the rollback microSD, delete product data, or delete Docker named volumes. Heavy full-repository verification must not compete with the production 4 GiB Raspberry Pi runtime; use a detached verifier or GitHub CI instead.
+This reliability repair does not deploy NEXOLAB product code, change the deployed product-source authority, change Modbus polling, issue Modbus/controller writes, change SSD UAS policy, disable the watchdog, repair the rollback microSD, delete product data, or delete Docker named volumes. Heavy full-repository or full-service CI-equivalent verification must not compete with the production 4 GiB Raspberry Pi runtime; use GitHub CI (or a detached verifier on a non-production host) instead.

@@ -1,0 +1,17 @@
+[Unit]
+Description=NEXOLAB legacy Remote Desktop Commander conflict guard
+Documentation=https://github.com/eNgine9r/nexolab-platform/issues/1037
+After=nexolab-remote-desktop-commander.service
+
+[Service]
+Type=oneshot
+ExecCondition=/usr/bin/systemctl --user is-active --quiet nexolab-remote-desktop-commander.service
+ExecCondition=/usr/bin/test -x /usr/bin/tmux
+ExecCondition=/usr/bin/tmux has-session -t remote-desktop
+ExecStart=/usr/bin/tmux kill-session -t remote-desktop
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+StandardOutput=null
+StandardError=null
+SyslogIdentifier=nexolab-remote-desktop-conflict-guard

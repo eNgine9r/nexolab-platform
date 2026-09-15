@@ -1,10 +1,18 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-15
+Updated: 2026-09-16
+
+## Issue #1037 — Raspberry Pi host stability
+
+**Operational blocker substantially mitigated; PR #1038 review/CI pending.** The repeated disconnect pattern is now tied to avoidable host-wide resource starvation during heavyweight local verification, not to OOM, overheating, SSD failure or Ethernet hardware errors. Optional browser/inspection services are disabled and on-demand; the legacy duplicate `remote-desktop` tmux/npx Remote Desktop Commander path is removed and guarded; the managed RDC receives higher relative CPU/I/O weight. A 90-second bounded memory/CPU load kept RDC, Tailscale, Device Agent, Telemetry and Dashboard responsive, preserved the boot ID, and left all 12 NEXOLAB containers healthy. Remaining gate: PR #1038 exact-head CI GREEN and zero blocking review findings before merge. No reboot is required for the current user-level stabilization.
+
+## Issue #1031 — AK-CC25 Pro onboarding
+
+**Soft-blocked only by #1037 stabilization completion.** The local onboarding implementation is preserved on `feat/1031-ak-cc25-onboarding` with focused frontend 17/17 and backend 24/24 checks previously GREEN. It remains next Ready work after #1037. Production activation stays fail-closed; no Modbus/controller write or hardware write is permitted.
 
 ## Issue #1024 — AK-CC25 Pro read-only hardware discovery
 
-**Hardware discovery blocker cleared 2026-09-15.** A dedicated third adapter is now present as `usb-FTDI_FT232R_USB_UART_A10Q2SI7-if00-port0` and is not owned by either production bus. Real FC03 evidence on physical AK-CC25 Pro `084B4022`, Unit `35`, verifies `9600 8E1`, `o03=35`, `oa1=1` (Auto), `oa2=1` (Even), and the Danfoss one-based ADU to zero-based PDU rule `ADU - 1`. After one initial partial-response pass, three consecutive bounded probes returned the complete fixed integer subset. Existing `rs485-main` and `rs485-embraco` remained healthy with Device Agent `status=ok`, queue depth `0`, and both workers running. Temperature semantics remain intentionally hardware-unverified because the controller currently has no temperature sensors or refrigeration equipment connected. Production polling/activation is still out of scope for #1024 and requires a separate Work Package. No Modbus write, hardware write, controller parameter change or production cutover occurred.
+**Cleared and merged.** PR #1025 exact verified head `84a47eb15517af18d5ec5139ea8fa00d8e834542` merged to `main` as `e92502ba5a372e60b9f38304372224c1ed6aa4b7`, closing #1024 completed. Real Unit 35 hardware evidence remains valid for the FC03-only discovery subset. Temperature semantics remain intentionally hardware-unverified because no sensors are connected; production polling/activation requires a separate Work Package.
 
 ## Issue #1022 — frontend release CI routing repair
 
@@ -167,9 +175,9 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-08B are completed through GREEN focused PRs, including #953 / PR #954, #957 / PR #958 and #960 / PR #962. RFX state remains completed through #960; current independent maintenance is tracked separately by the active Work Package.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — no independent Ready software Work Package selected
+## Sprint execution gate — #1037 active; #1031 next Ready
 
-RFX-08B / #960, #933, #930, #966, #988, #965, #994, #1001 and #1014 are completed in repository/software/state scope with their accepted evidence unchanged. Issue #1001 accepted product/test head is `b245b48e7ab64a42680fb9d516646926b45d1b41`; no new independent Ready software Work Package is currently selected. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
+Issue #1037 is the active host-stability Work Package and Issue #1031 is the next Ready software Work Package after #1037 completes. Latest accepted repository software baseline is #1024 head `84a47eb15517af18d5ec5139ea8fa00d8e834542`; the latest accepted Overview/UI product baseline remains #1001 head `b245b48e7ab64a42680fb9d516646926b45d1b41`. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
 
 #189/#585 remain blocked, #201 remains `needs_validation`, #202 remains `hardware_validation`, and K96–K100 remain hardware-unverified/excluded from automatic production polling. Issue #1012 completed the previously scheduled 2026-09-15 security review early; the next fail-closed exception boundary is 2026-09-21.
 

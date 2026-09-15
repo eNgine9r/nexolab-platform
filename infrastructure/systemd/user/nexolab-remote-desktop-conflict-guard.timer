@@ -1,0 +1,13 @@
+[Unit]
+Description=Periodically enforce single NEXOLAB Remote Desktop Commander ownership
+Documentation=https://github.com/eNgine9r/nexolab-platform/issues/1037
+
+[Timer]
+OnBootSec=45s
+OnUnitActiveSec=60s
+AccuracySec=10s
+Unit=nexolab-remote-desktop-conflict-guard.service
+Persistent=false
+
+[Install]
+WantedBy=timers.target
