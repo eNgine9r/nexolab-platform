@@ -175,9 +175,9 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-08B are completed through GREEN focused PRs, including #953 / PR #954, #957 / PR #958 and #960 / PR #962. RFX state remains completed through #960; current independent maintenance is tracked separately by the active Work Package.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — no independent Ready software Work Package selected
+## Sprint execution gate — #1037 active; #1031 next Ready
 
-RFX-08B / #960, #933, #930, #966, #988, #965, #994, #1001 and #1014 are completed in repository/software/state scope with their accepted evidence unchanged. Issue #1001 accepted product/test head is `b245b48e7ab64a42680fb9d516646926b45d1b41`; no new independent Ready software Work Package is currently selected. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
+Issue #1037 is the active host-stability Work Package and Issue #1031 is the next Ready software Work Package after #1037 completes. Latest accepted repository software baseline is #1024 head `84a47eb15517af18d5ec5139ea8fa00d8e834542`; the latest accepted Overview/UI product baseline remains #1001 head `b245b48e7ab64a42680fb9d516646926b45d1b41`. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
 
 #189/#585 remain blocked, #201 remains `needs_validation`, #202 remains `hardware_validation`, and K96–K100 remain hardware-unverified/excluded from automatic production polling. Issue #1012 completed the previously scheduled 2026-09-15 security review early; the next fail-closed exception boundary is 2026-09-21.
 
