@@ -1,10 +1,18 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-15
+Updated: 2026-09-16
+
+## Issue #1037 — Raspberry Pi host stability
+
+**Operational blocker substantially mitigated; repository completion pending.** The repeated disconnect pattern is now tied to avoidable host-wide resource starvation during heavyweight local verification, not to OOM, overheating, SSD failure or Ethernet hardware errors. Optional browser/inspection services are disabled and on-demand; the legacy duplicate `remote-desktop` tmux/npx Remote Desktop Commander path is removed and guarded; the managed RDC receives higher relative CPU/I/O weight. A 90-second bounded memory/CPU load kept RDC, Tailscale, Device Agent, Telemetry and Dashboard responsive, preserved the boot ID, and left all 12 NEXOLAB containers healthy. Remaining gate: finish repository/state review, commit/push PR #1037 candidate and obtain exact-head CI GREEN. No reboot is required for the current user-level stabilization.
+
+## Issue #1031 — AK-CC25 Pro onboarding
+
+**Soft-blocked only by #1037 stabilization completion.** The local onboarding implementation is preserved on `feat/1031-ak-cc25-onboarding` with focused frontend 17/17 and backend 24/24 checks previously GREEN. It remains next Ready work after #1037. Production activation stays fail-closed; no Modbus/controller write or hardware write is permitted.
 
 ## Issue #1024 — AK-CC25 Pro read-only hardware discovery
 
-**Hardware discovery blocker cleared 2026-09-15.** A dedicated third adapter is now present as `usb-FTDI_FT232R_USB_UART_A10Q2SI7-if00-port0` and is not owned by either production bus. Real FC03 evidence on physical AK-CC25 Pro `084B4022`, Unit `35`, verifies `9600 8E1`, `o03=35`, `oa1=1` (Auto), `oa2=1` (Even), and the Danfoss one-based ADU to zero-based PDU rule `ADU - 1`. After one initial partial-response pass, three consecutive bounded probes returned the complete fixed integer subset. Existing `rs485-main` and `rs485-embraco` remained healthy with Device Agent `status=ok`, queue depth `0`, and both workers running. Temperature semantics remain intentionally hardware-unverified because the controller currently has no temperature sensors or refrigeration equipment connected. Production polling/activation is still out of scope for #1024 and requires a separate Work Package. No Modbus write, hardware write, controller parameter change or production cutover occurred.
+**Cleared and merged.** PR #1025 exact verified head `84a47eb15517af18d5ec5139ea8fa00d8e834542` merged to `main` as `e92502ba5a372e60b9f38304372224c1ed6aa4b7`, closing #1024 completed. Real Unit 35 hardware evidence remains valid for the FC03-only discovery subset. Temperature semantics remain intentionally hardware-unverified because no sensors are connected; production polling/activation requires a separate Work Package.
 
 ## Issue #1022 — frontend release CI routing repair
 

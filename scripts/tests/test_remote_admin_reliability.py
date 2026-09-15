@@ -9,11 +9,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SERVICE = ROOT / "infrastructure/systemd/user/nexolab-remote-desktop-commander.service"
+GUARD_SERVICE = ROOT / "infrastructure/systemd/user/nexolab-remote-desktop-conflict-guard.service"
+GUARD_TIMER = ROOT / "infrastructure/systemd/user/nexolab-remote-desktop-conflict-guard.timer"
 JOURNAL = ROOT / "infrastructure/systemd/journald/60-nexolab-persistent.conf"
 USER_INSTALLER = ROOT / "scripts/install-raspberry-pi-remote-admin.sh"
 JOURNAL_INSTALLER = ROOT / "scripts/install-raspberry-pi-persistent-journal.sh"
 DIAGNOSTIC = ROOT / "scripts/diagnose-raspberry-pi-remote-admin.sh"
 VERIFIER = ROOT / "scripts/verify-raspberry-pi-remote-admin-service.sh"
+HOST_STABILIZER = ROOT / "scripts/stabilize-raspberry-pi-development-host.sh"
+HOST_VERIFIER = ROOT / "scripts/verify-raspberry-pi-host-stability.sh"
 SOURCE_PIN = ROOT / "infrastructure/remote-admin/desktop-commander-source.env"
 
 
@@ -30,9 +34,25 @@ class RemoteAdminReliabilityTests(unittest.TestCase):
         self.assertIn("StandardOutput=null", text)
         self.assertIn("StandardError=journal", text)
         self.assertIn("SyslogIdentifier=nexolab-remote-desktop-commander", text)
+        self.assertIn("CPUWeight=200", text)
+        self.assertIn("IOWeight=200", text)
         self.assertNotIn("npx", text)
         self.assertNotIn("@latest", text)
         self.assertNotIn("rpi-connect.service", text)
+
+    def test_remote_commander_conflict_guard_is_narrow_and_periodic(self) -> None:
+        service = GUARD_SERVICE.read_text(encoding="utf-8")
+        timer = GUARD_TIMER.read_text(encoding="utf-8")
+
+        self.assertIn("ExecCondition=/usr/bin/systemctl --user is-active --quiet nexolab-remote-desktop-commander.service", service)
+        self.assertIn("ExecCondition=/usr/bin/test -x /usr/bin/tmux", service)
+        self.assertIn("ExecCondition=/usr/bin/tmux has-session -t remote-desktop", service)
+        self.assertIn("ExecStart=/usr/bin/tmux kill-session -t remote-desktop", service)
+        self.assertNotIn("pkill", service)
+        self.assertNotIn("killall", service)
+        self.assertIn("OnUnitActiveSec=60s", timer)
+        self.assertIn("Unit=nexolab-remote-desktop-conflict-guard.service", timer)
+        self.assertIn("WantedBy=timers.target", timer)
 
     def test_remote_commander_source_is_exactly_pinned(self) -> None:
         text = SOURCE_PIN.read_text(encoding="utf-8")
@@ -73,7 +93,7 @@ class RemoteAdminReliabilityTests(unittest.TestCase):
         self.assertNotIn("ForwardToNetwork", text)
 
     def test_shell_scripts_parse_and_installers_support_dry_run(self) -> None:
-        scripts = (USER_INSTALLER, JOURNAL_INSTALLER, DIAGNOSTIC, VERIFIER)
+        scripts = (USER_INSTALLER, JOURNAL_INSTALLER, DIAGNOSTIC, VERIFIER, HOST_STABILIZER, HOST_VERIFIER)
         for script in scripts:
             subprocess.run(["bash", "-n", str(script)], cwd=ROOT, check=True)
 
@@ -92,6 +112,8 @@ class RemoteAdminReliabilityTests(unittest.TestCase):
             self.assertIn("desktop_commander_version=0.2.48", user.stdout)
             self.assertIn("desktop_commander_source_sha=7edee255c17101bfe50f684bd61e7f818e552205", user.stdout)
             self.assertIn("/releases/7edee255c17101bfe50f684bd61e7f818e552205", user.stdout)
+            self.assertIn("guard_service=nexolab-remote-desktop-conflict-guard.service", user.stdout)
+            self.assertIn("guard_timer=nexolab-remote-desktop-conflict-guard.timer", user.stdout)
 
             deferred = subprocess.run(
                 ["bash", str(USER_INSTALLER), "--dry-run", "--defer-start"],
@@ -122,6 +144,7 @@ class RemoteAdminReliabilityTests(unittest.TestCase):
         self.assertIn('systemd-run --user --quiet --collect', user_text)
         self.assertIn('"${VERIFIER}" --policy-only', user_text)
         self.assertIn('"${VERIFIER}" --restart', user_text)
+        self.assertIn('systemctl --user enable --now "${GUARD_TIMER_NAME}"', user_text)
         self.assertIn("Refusing --defer-start while the managed service is already active", user_text)
         self.assertIn("Refusing to restart the managed service from inside its own cgroup", verifier_text)
         self.assertIn('systemctl --user restart "${SERVICE_NAME}"', verifier_text)
@@ -143,8 +166,13 @@ class RemoteAdminReliabilityTests(unittest.TestCase):
         self.assertIn("Unexpected StandardOutput policy", text)
         self.assertIn("Unexpected StandardError policy", text)
         self.assertIn("Unexpected ExecStart", text)
+        self.assertIn("Unexpected CPUWeight", text)
+        self.assertIn("Unexpected IOWeight", text)
+        self.assertIn("Conflict guard timer is not enabled", text)
         self.assertIn("NRestarts", text)
         self.assertIn("Service did not remain stable after restart", text)
+        self.assertIn("Service restarted unexpectedly after controlled restart", text)
+        self.assertIn("service_restart_counter_before", text)
 
     def test_journal_installer_checks_every_effective_bound(self) -> None:
         text = JOURNAL_INSTALLER.read_text(encoding="utf-8")
@@ -155,6 +183,49 @@ class RemoteAdminReliabilityTests(unittest.TestCase):
         self.assertIn("Effective journald %s mismatch", text)
         for key in ("Storage", "SystemMaxUse", "SystemKeepFree", "MaxRetentionSec", "SyncIntervalSec"):
             self.assertIn(key, JOURNAL.read_text(encoding="utf-8"))
+
+    def test_host_stability_guard_is_bounded_and_keeps_auxiliary_ui_on_demand(self) -> None:
+        stabilizer = HOST_STABILIZER.read_text(encoding="utf-8")
+        verifier = HOST_VERIFIER.read_text(encoding="utf-8")
+
+        self.assertIn("nexolab-browser.service", stabilizer)
+        self.assertIn("nexolab-opera-inspection.service", stabilizer)
+        self.assertIn("tmux kill-session", stabilizer)
+        self.assertIn("nexolab-remote-desktop-commander.service", stabilizer)
+        self.assertIn("NEXOLAB_STABILITY_MIN_MEM_AVAILABLE_KIB", verifier)
+        self.assertIn("NEXOLAB_STABILITY_MIN_SWAP_FREE_KIB", verifier)
+        self.assertIn("single_remote_admin_owner", verifier)
+        self.assertIn("legacy_remote_desktop_tmux_absent", verifier)
+        self.assertIn("cgroup_disable=memory", verifier)
+        self.assertIn("NEXOLAB_STABILITY_COMMAND_TIMEOUT_SECONDS", verifier)
+        self.assertIn("timeout --foreground", verifier)
+        self.assertIn("nexolab-central-telemetry-service-1", verifier)
+        self.assertIn("nexolab-edge-device-agent-1", verifier)
+        self.assertIn("nexolab-edge-mqtt-1", verifier)
+        self.assertIn("running|healthy", verifier)
+        self.assertIn("modbus_write=none", verifier)
+        self.assertIn("hardware_write=none", verifier)
+
+        for forbidden in ("sudo ", "swapoff ", "swapon ", "reboot", "shutdown", "docker rm", "docker compose down"):
+            self.assertNotIn(forbidden, stabilizer)
+            self.assertNotIn(forbidden, verifier)
+
+    def test_host_stabilizer_dry_run_is_non_mutating(self) -> None:
+        env = os.environ.copy()
+        env["NEXOLAB_HOST_STABILITY_ALLOW_NON_RPI"] = "1"
+        result = subprocess.run(
+            ["bash", str(HOST_STABILIZER), "--dry-run"],
+            cwd=ROOT,
+            env=env,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        self.assertIn("mode=dry-run", result.stdout)
+        self.assertIn("would_disable_and_stop=nexolab-browser.service", result.stdout)
+        self.assertIn("would_disable_and_stop=nexolab-opera-inspection.service", result.stdout)
+        self.assertIn("would_remove_legacy_tmux=remote-desktop", result.stdout)
+        self.assertIn("production_runtime_mutation=none", result.stdout)
 
     def test_diagnostic_reports_remote_channel_connectivity(self) -> None:
         text = DIAGNOSTIC.read_text(encoding="utf-8")

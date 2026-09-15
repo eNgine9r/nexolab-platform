@@ -154,8 +154,10 @@ authoritative before merge.
 Run the full non-state Core lane on a development workstation or dedicated CI host with
 sufficient RAM, swap and disk headroom. The production 4 GB Raspberry Pi is reserved
 for targeted ARM64/runtime/offline/hardware evidence and the dependency-free state lane;
-it is not the default host for `npm ci` plus a full Next.js production build. This keeps
-verification from competing with live NEXOLAB acquisition and monitoring services.
+it is not the default host for `npm ci` plus a full Next.js production build, a full
+Telemetry Service PostgreSQL/pytest suite, or browser-matrix CI-equivalent runs. This keeps
+verification from competing with live NEXOLAB acquisition and monitoring services. Use
+`scripts/verify-raspberry-pi-host-stability.sh` before any bounded on-host verification.
 
 ## State Model v2 interaction
 

@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 SERVICE_NAME="nexolab-remote-desktop-commander.service"
+GUARD_TIMER_NAME="nexolab-remote-desktop-conflict-guard.timer"
 SOURCE_CONFIG="${ROOT_DIR}/infrastructure/remote-admin/desktop-commander-source.env"
 HOME_DIR="${NEXOLAB_REMOTE_ADMIN_HOME:-${HOME}}"
 SYSTEMD_USER_DIR="${NEXOLAB_SYSTEMD_USER_DIR:-${HOME_DIR}/.config/systemd/user}"
@@ -86,13 +87,15 @@ verify_source() {
 }
 
 verify_policy() {
-  local fragment dropins restart_policy stdout_policy stderr_policy kill_mode exec_start
+  local fragment dropins restart_policy stdout_policy stderr_policy kill_mode cpu_weight io_weight exec_start
   fragment="$(property FragmentPath)"
   dropins="$(property DropInPaths)"
   restart_policy="$(property Restart)"
   stdout_policy="$(property StandardOutput)"
   stderr_policy="$(property StandardError)"
   kill_mode="$(property KillMode)"
+  cpu_weight="$(property CPUWeight)"
+  io_weight="$(property IOWeight)"
   exec_start="$(property ExecStart)"
   [[ "${fragment}" == "${UNIT_TARGET}" ]] || { printf 'Unexpected FragmentPath: %s\n' "${fragment}" >&2; return 1; }
   [[ -z "${dropins}" ]] || { printf 'Refusing effective service drop-ins: %s\n' "${dropins}" >&2; return 1; }
@@ -100,6 +103,8 @@ verify_policy() {
   [[ "${stdout_policy}" == "null" ]] || { printf 'Unexpected StandardOutput policy: %s\n' "${stdout_policy}" >&2; return 1; }
   [[ "${stderr_policy}" == "journal" ]] || { printf 'Unexpected StandardError policy: %s\n' "${stderr_policy}" >&2; return 1; }
   [[ "${kill_mode}" == "mixed" ]] || { printf 'Unexpected KillMode: %s\n' "${kill_mode}" >&2; return 1; }
+  [[ "${cpu_weight}" == "200" ]] || { printf 'Unexpected CPUWeight: %s\n' "${cpu_weight}" >&2; return 1; }
+  [[ "${io_weight}" == "200" ]] || { printf 'Unexpected IOWeight: %s\n' "${io_weight}" >&2; return 1; }
   [[ "${exec_start}" == *"path=${NODE}"* ]] || { printf 'Unexpected ExecStart node path: %s\n' "${exec_start}" >&2; return 1; }
   [[ "${exec_start}" == *"${ENTRYPOINT} remote"* ]] || { printf 'Unexpected ExecStart entrypoint: %s\n' "${exec_start}" >&2; return 1; }
   [[ "${exec_start}" != *"npx"* && "${exec_start}" != *"@latest"* ]] || { printf 'Unpinned ExecStart rejected: %s\n' "${exec_start}" >&2; return 1; }
@@ -109,6 +114,8 @@ verify_source
 verify_policy
 ENABLED="$(systemctl --user is-enabled "${SERVICE_NAME}")"
 [[ "${ENABLED}" == "enabled" ]] || { printf 'Service is not enabled: %s\n' "${ENABLED}" >&2; exit 1; }
+GUARD_ENABLED="$(systemctl --user is-enabled "${GUARD_TIMER_NAME}" 2>/dev/null || true)"
+[[ "${GUARD_ENABLED}" == "enabled" ]] || { printf 'Conflict guard timer is not enabled: %s\n' "${GUARD_ENABLED:-missing}" >&2; exit 1; }
 
 if [[ "${RESTART}" == "1" ]]; then
   grep -Fq "/${SERVICE_NAME}" "/proc/$$/cgroup" 2>/dev/null && { echo 'Refusing to restart the managed service from inside its own cgroup.' >&2; exit 1; }
@@ -125,9 +132,10 @@ if [[ "${RESTART}" == "1" ]]; then
   [[ "${ACTIVE_A}" == "active" && "${ACTIVE_B}" == "active" && "${PID_A}" != "0" && "${PID_A}" == "${PID_B}" ]] || {
     printf 'Service did not remain stable after restart: active=%s/%s pid=%s/%s\n' "${ACTIVE_A}" "${ACTIVE_B}" "${PID_A}" "${PID_B}" >&2; exit 1;
   }
-  [[ "${RESTARTS_A}" == "${BEFORE_RESTARTS}" && "${RESTARTS_B}" == "${BEFORE_RESTARTS}" ]] || {
-    printf 'Service restarted unexpectedly during stabilization: before=%s after=%s/%s\n' "${BEFORE_RESTARTS}" "${RESTARTS_A}" "${RESTARTS_B}" >&2; exit 1;
+  [[ "${RESTARTS_A}" == "${RESTARTS_B}" ]] || {
+    printf 'Service restarted unexpectedly after controlled restart: before=%s stable_window=%s/%s\n' "${BEFORE_RESTARTS}" "${RESTARTS_A}" "${RESTARTS_B}" >&2; exit 1;
   }
+  printf 'service_restart_counter_before=%s\nservice_restart_counter_after=%s\n' "${BEFORE_RESTARTS}" "${RESTARTS_B}"
   verify_source
   verify_policy
 fi
@@ -136,9 +144,12 @@ if [[ "${POLICY_ONLY}" != "1" ]]; then
   ACTIVE="$(systemctl --user is-active "${SERVICE_NAME}" || true)"
   MAIN_PID="$(property MainPID)"
   [[ "${ACTIVE}" == "active" && "${MAIN_PID}" != "0" ]] || { printf 'Service runtime verification failed: active=%s pid=%s\n' "${ACTIVE}" "${MAIN_PID}" >&2; exit 1; }
-  printf 'service_active=%s\nservice_main_pid=%s\n' "${ACTIVE}" "${MAIN_PID}"
+  GUARD_ACTIVE="$(systemctl --user is-active "${GUARD_TIMER_NAME}" 2>/dev/null || true)"
+  [[ "${GUARD_ACTIVE}" == "active" ]] || { printf 'Conflict guard timer is not active: %s\n' "${GUARD_ACTIVE:-missing}" >&2; exit 1; }
+  printf 'service_active=%s\nservice_main_pid=%s\nguard_timer_active=%s\n' "${ACTIVE}" "${MAIN_PID}" "${GUARD_ACTIVE}"
 fi
 
-printf 'service_enabled=%s\nsource_sha=%s\neffective_release=%s\n' "${ENABLED}" "${DESKTOP_COMMANDER_SOURCE_SHA}" "$(readlink -f "${CURRENT_ROOT}")"
+printf 'service_enabled=%s\nguard_timer_enabled=%s\nsource_sha=%s\neffective_release=%s\n' "${ENABLED}" "${GUARD_ENABLED}" "${DESKTOP_COMMANDER_SOURCE_SHA}" "$(readlink -f "${CURRENT_ROOT}")"
 printf 'effective_fragment=%s\neffective_restart=%s\neffective_standard_output=%s\neffective_standard_error=%s\neffective_dropins=none\n' \
   "$(property FragmentPath)" "$(property Restart)" "$(property StandardOutput)" "$(property StandardError)"
+printf 'effective_cpu_weight=%s\neffective_io_weight=%s\n' "$(property CPUWeight)" "$(property IOWeight)"
