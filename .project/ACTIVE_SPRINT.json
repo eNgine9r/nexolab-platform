@@ -3664,9 +3664,25 @@
       "issue": 1020,
       "title": "Fix cross-platform frontend artifact extraction on GitHub runner",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "branch": "fix/1020-frontend-artifact-platform",
-      "evidence": {}
+      "evidence": {
+        "implementation_head_sha": "d9c36306568f4f796c6626388420d692e03048b9",
+        "integration_head_sha": "83ee68db553e70ceaa2a00a078ea0559e8924293",
+        "pull_request": 1021,
+        "checks": {
+          "shell_syntax": "success",
+          "focused_frontend_release_tests": "success_13_of_13",
+          "state_model_v2": "success",
+          "git_diff_check": "success",
+          "production_prune_lockfile_proof": "success",
+          "frontend_release_artifact_product_head_run_34845415982": "success",
+          "core_ci_integration_head_run_34903994749": "success",
+          "offline_bundle_integration_head_run_34903994721": "success",
+          "review_threads": "zero",
+          "frontend_release_artifact_final_exact_head": "pending_after_state_alignment"
+        }
+      }
     }
   ],
   "maintenance_actions": [

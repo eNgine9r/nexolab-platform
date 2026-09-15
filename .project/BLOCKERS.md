@@ -4,7 +4,7 @@ Updated: 2026-09-15
 
 ## Issue #1022 — frontend release CI routing repair
 
-**Cleared for software scope.** PR #1023 exact implementation head `4c0cdf7c55f5c92b5e153b21e29d3b41a23f890d` passed the full routed matrix and zero review threads. The false browser-workflow requirement for frontend release tooling is removed while unknown paths remain fail-closed. #1020 remains dependent only on merging this governance repair and then rerunning its exact-head checks; #1019 remains blocked on #1020. Production runtime is unchanged.
+**Cleared for software scope and merged.** PR #1023 exact implementation head `4c0cdf7c55f5c92b5e153b21e29d3b41a23f890d` passed the full routed matrix and zero review threads, then merged to `main` as `5c8ade60cda6f4a5b8cac9610741e212bff0c3a3`. The false browser-workflow requirement for frontend release tooling is removed while unknown paths remain fail-closed. #1020 has resumed and is in review on current integration head `83ee68db553e70ceaa2a00a078ea0559e8924293`; its Core CI / NEXOLAB Merge Gate and Offline Bundle are GREEN, with only the final exact-head Frontend Release Artifact gate plus merge remaining. #1019 remains blocked only until #1020 merges. Production runtime is unchanged.
 
 ## Issue #1001 — Overview operator-first dashboard
 
