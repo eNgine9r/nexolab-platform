@@ -17,6 +17,7 @@ The repeated disconnects were host-wide stalls, not an isolated Remote Desktop C
 The host did **not** show an OOM kill, thermal throttling or NIC hardware errors. `vcgencmd get_throttled=0x0`, temperature was about 49 C, SSD free space was ample, and `eth0` remained 1 Gbps full-duplex with zero error counters.
 
 The avoidable load was significant: `nexolab-browser.service` and `nexolab-opera-inspection.service` were both enabled permanently, while a second legacy `tmux`/`npx @wonderwhy-er/desktop-commander@latest remote` stack duplicated the repository-managed Remote Desktop Commander. Together with full local pytest/PostgreSQL verification this exhausted practical host headroom and starved network/container control paths.
+
 ## Memory and swap policy
 
 Raspberry Pi OS is intentionally using `rpi-swap` in `zram+file` mode. `/dev/zram0` is the active 2 GiB swap device; `/var/swap` is attached through `/dev/loop0` as zram backing/writeback storage. It is **not** a missing second swap device and must not be activated independently with `swapon /var/swap`.
@@ -39,6 +40,7 @@ Use the repository guard before and after development work:
 ./scripts/stabilize-raspberry-pi-development-host.sh --check
 ./scripts/stabilize-raspberry-pi-development-host.sh --apply
 ```
+
 `--apply` performs only reversible user-level maintenance: it disables/stops the two optional inspection services, removes the legacy `remote-desktop` tmux session if present, and ensures the repository-managed Remote Desktop Commander service is enabled and running. It does not touch production containers, swap, networking, Modbus, hardware or persistent product data.
 
 The verifier fails closed when host headroom is below its default thresholds (1 GiB `MemAvailable`, 512 MiB `SwapFree`, 10% root free), when `eth0` is down/erroring, when Tailscale or the managed remote service is unavailable, when optional inspection services are persistently active, or when an unmanaged Desktop Commander process/tmux session exists.
