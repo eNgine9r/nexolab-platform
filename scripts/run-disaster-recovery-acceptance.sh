@@ -245,6 +245,71 @@ INSERT INTO telemetry_samples (
     'SIM-DR-02', 'ambient-temperature', NULL, 41, 0,
     '{"sequence":1,"proof":"source"}'::json, true
   );
+
+-- The DR fixture inserts retained history after migrations, so mirror the same
+-- transactional latest-projection invariant used by production ingestion.
+-- Starting Telemetry Service with history but an empty telemetry_latest table is
+-- intentionally rejected by reconcile_latest_projection().
+INSERT INTO telemetry_latest (
+  sample_id,
+  event_id,
+  node_id,
+  captured_at,
+  metric,
+  value,
+  unit,
+  quality,
+  source,
+  equipment_id,
+  channel_id,
+  alarm,
+  raw_value,
+  raw_status,
+  stale_after_seconds,
+  received_at
+)
+SELECT
+  sample.id,
+  sample.event_id,
+  sample.node_id,
+  sample.captured_at,
+  sample.metric,
+  sample.value,
+  sample.unit,
+  sample.quality,
+  sample.source,
+  sample.equipment_id,
+  sample.channel_id,
+  sample.alarm,
+  sample.raw_value,
+  sample.raw_status,
+  NULL,
+  sample.received_at
+FROM telemetry_samples AS sample
+WHERE sample.event_id IN (
+  '20000000-0000-0000-0000-000000000001',
+  '20000000-0000-0000-0000-000000000002'
+)
+ON CONFLICT (node_id, equipment_id, channel_id, metric)
+DO UPDATE SET
+  sample_id = EXCLUDED.sample_id,
+  event_id = EXCLUDED.event_id,
+  captured_at = EXCLUDED.captured_at,
+  value = EXCLUDED.value,
+  unit = EXCLUDED.unit,
+  quality = EXCLUDED.quality,
+  source = EXCLUDED.source,
+  alarm = EXCLUDED.alarm,
+  raw_value = EXCLUDED.raw_value,
+  raw_status = EXCLUDED.raw_status,
+  stale_after_seconds = EXCLUDED.stale_after_seconds,
+  received_at = EXCLUDED.received_at
+WHERE
+  EXCLUDED.captured_at > telemetry_latest.captured_at
+  OR (
+    EXCLUDED.captured_at = telemetry_latest.captured_at
+    AND EXCLUDED.sample_id > telemetry_latest.sample_id
+  );
 SQL
 
 LOCAL_AUTH_USERNAME="recovery-administrator"
