@@ -61,7 +61,7 @@ services:
     networks: [dr]
 
   source-minio:
-    image: ${DR_MINIO_IMAGE:-minio/minio:RELEASE.2025-09-07T16-13-09Z}
+    image: ${DR_MINIO_IMAGE:-quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z}
     restart: "no"
     init: true
     command: ["server", "/data", "--console-address", ":9001"]
@@ -76,7 +76,7 @@ services:
     networks: [dr]
 
   restore-minio:
-    image: ${DR_MINIO_IMAGE:-minio/minio:RELEASE.2025-09-07T16-13-09Z}
+    image: ${DR_MINIO_IMAGE:-quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z}
     restart: "no"
     init: true
     command: ["server", "/data", "--console-address", ":9001"]
@@ -188,7 +188,7 @@ services:
     networks: [dr]
 
   minio-client:
-    image: ${DR_MINIO_CLIENT_IMAGE:-minio/mc:RELEASE.2025-08-13T08-35-41Z}
+    image: ${DR_MINIO_CLIENT_IMAGE:-quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z}
     restart: "no"
     entrypoint: ["/bin/sh", "-ec"]
     command: ["exit 0"]
