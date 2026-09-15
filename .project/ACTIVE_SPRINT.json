@@ -22,11 +22,7 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1037,
-      "title": "Stabilize Raspberry Pi host under development/test load",
-      "branch": "fix/1037-edge-host-stability"
-    },
+    "active_work_package": null,
     "next_work_package": {
       "issue": 1031,
       "title": "Add Danfoss AK-CC25 Pro to supported equipment onboarding catalog",
@@ -3755,7 +3751,7 @@
       "issue": 1037,
       "title": "Stabilize Raspberry Pi host under development/test load",
       "priority": "unspecified",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "fix/1037-edge-host-stability",
       "evidence": {
         "incident_classification": "host_wide_resource_starvation_during_heavy_local_verification",
@@ -3785,7 +3781,15 @@
         "production_runtime_mutation": "none_application_containers_unchanged",
         "modbus_write": "none",
         "hardware_write": "none",
-        "reboot": "none"
+        "reboot": "none",
+        "verified_head_sha": "6e864c7650a0fe01a24e13e6d5ee1eadade331bd",
+        "pull_request": 1038,
+        "checks": {
+          "core_ci_35035434536": "success",
+          "telemetry_service_35035434492": "success",
+          "nexolab_merge_gate_104604292366": "success",
+          "review_threads": "zero"
+        }
       }
     }
   ],
