@@ -165,6 +165,45 @@ class DualBusAdaptiveRuntimeTests(unittest.TestCase):
         lock.acquire.assert_called_once()
         client.instrumentation_scope.assert_not_called()
 
+    def test_akcc25_preflight_uses_fixed_documented_fc03_integer_subset(self) -> None:
+        agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
+        topology = Mock()
+        topology.explicit = True
+        agent.rs485_topology = topology
+        client = Mock()
+        client.instrumentation_scope.return_value = nullcontext()
+        values = {2006: 0, 2509: 1, 2684: 73, 2510: 1, 2511: 0, 2681: 100, 2540: 0, 2007: 35, 2250: 1, 2254: 1}
+        client.read_holding_register.side_effect = lambda unit_id, address: values[address]
+        lock = Mock()
+        lock.acquire.return_value = True
+        agent._bus_clients = {"rs485-main": client}
+        agent._bus_operation_locks = {"rs485-main": lock}
+        agent._bus_xjp60d_readers = {}
+        agent._bus_le01mp_readers = {}
+        agent._bus_embraco_readers = {}
+
+        observations = agent.preflight_read_profile(
+            PROFILES["danfoss-ak-cc25-pro"],
+            bus_id="rs485-main",
+            unit_id=35,
+            deadline_monotonic=time.monotonic() + 1.0,
+        )
+
+        self.assertEqual(
+            [item.key for item in observations],
+            ["control_state", "compressor_state", "compressor_speed", "fan_state", "defrost_state", "network_status", "alarm_status", "network_address", "baudrate_setting", "parity_setting"],
+        )
+        self.assertEqual(
+            [item.semantic for item in observations],
+            ["normal_control", "on", None, "on", "off", None, "off", None, "auto", "even"],
+        )
+        self.assertEqual(
+            [item.args for item in client.read_holding_register.call_args_list],
+            [(35, 2006), (35, 2509), (35, 2684), (35, 2510), (35, 2511), (35, 2681), (35, 2540), (35, 2007), (35, 2250), (35, 2254)],
+        )
+        client.write_single_register.assert_not_called()
+        lock.release.assert_called_once_with()
+
     def test_composition_uses_distinct_clients_locks_and_registry_bus_ids(self) -> None:
         self.assertIsNone(self.agent.modbus_client)
         self.assertEqual(
@@ -505,6 +544,20 @@ class CommissioningActivationRuntimeTests(unittest.TestCase):
             serial_device="/host/dev/serial/by-id/usb-kk1",
             path_present=True,
         )
+
+    def test_discovery_only_akcc25_profile_cannot_bypass_activation_parser(self) -> None:
+        request = CommissioningActivationRequest(
+            activation_id="activation-akcc25-35",
+            action="activate",
+            node_id="edge-01",
+            bus_id="rs485-kk1",
+            stable_transport_identifier="/dev/serial/by-id/usb-kk1",
+            unit_id=35,
+            profile_id="danfoss-ak-cc25-pro",
+            profile_version="danfoss-ak-cc25-pro-sw1.3x-fc03-v1",
+        )
+        with self.assertRaisesRegex(ValueError, "discovery-only"):
+            self.agent.commissioning_activation(request)
 
     def test_commissioning_activation_enrolls_new_unit_on_verified_bus_and_is_idempotent(self) -> None:
         self._allow_activation_adapter()

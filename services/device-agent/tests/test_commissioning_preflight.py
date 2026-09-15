@@ -4,6 +4,7 @@ import unittest
 
 from commissioning_preflight import (
     CommissioningPreflightRequest,
+    PROFILES,
     PreflightBus,
     PreflightExecutionError,
     PreflightObservation,
@@ -82,6 +83,24 @@ class CommissioningPreflightContractTests(unittest.TestCase):
         self.assertEqual(result["observations"], [{"key": "control_state", "quality": "valid", "semantic": "cooling"}])
         self.assertEqual(runtime.read_calls, [("embraco-sync", "rs485-main", 2)])
         self.assertNotIn("raw_value", str(result))
+
+    def test_akcc25_profile_is_bounded_discovery_only(self) -> None:
+        runtime = FakeRuntime()
+        result = execute_preflight(
+            request(
+                unit_id=35,
+                profile_id="danfoss-ak-cc25-pro",
+                profile_version="danfoss-ak-cc25-pro-sw1.3x-fc03-v1",
+            ),
+            runtime,
+        )
+
+        self.assertEqual(result["result"], "passed")
+        self.assertEqual(result["evidence_level"], "hardware_verified")
+        self.assertEqual(result["function_codes"], [3])
+        self.assertEqual(runtime.read_calls, [("danfoss-ak-cc25-pro", "rs485-main", 35)])
+        self.assertFalse(PROFILES["danfoss-ak-cc25-pro"].activation_supported)
+        self.assertTrue(any("discovery-only" in warning for warning in result["warnings"]))
 
     def test_request_rejects_arbitrary_modbus_write_or_register_fields(self) -> None:
         base = {

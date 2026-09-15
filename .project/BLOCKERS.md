@@ -2,6 +2,10 @@
 
 Updated: 2026-09-15
 
+## Issue #1024 — AK-CC25 Pro read-only hardware discovery
+
+**Hardware discovery blocker cleared 2026-09-15.** A dedicated third adapter is now present as `usb-FTDI_FT232R_USB_UART_A10Q2SI7-if00-port0` and is not owned by either production bus. Real FC03 evidence on physical AK-CC25 Pro `084B4022`, Unit `35`, verifies `9600 8E1`, `o03=35`, `oa1=1` (Auto), `oa2=1` (Even), and the Danfoss one-based ADU to zero-based PDU rule `ADU - 1`. After one initial partial-response pass, three consecutive bounded probes returned the complete fixed integer subset. Existing `rs485-main` and `rs485-embraco` remained healthy with Device Agent `status=ok`, queue depth `0`, and both workers running. Temperature semantics remain intentionally hardware-unverified because the controller currently has no temperature sensors or refrigeration equipment connected. Production polling/activation is still out of scope for #1024 and requires a separate Work Package. No Modbus write, hardware write, controller parameter change or production cutover occurred.
+
 ## Issue #1022 — frontend release CI routing repair
 
 **Cleared for software scope and merged.** PR #1023 exact implementation head `4c0cdf7c55f5c92b5e153b21e29d3b41a23f890d` passed the full routed matrix and zero review threads, then merged to `main` as `5c8ade60cda6f4a5b8cac9610741e212bff0c3a3`. The false browser-workflow requirement for frontend release tooling is removed while unknown paths remain fail-closed. #1020 has resumed and is in review on current integration head `83ee68db553e70ceaa2a00a078ea0559e8924293`; its Core CI / NEXOLAB Merge Gate and Offline Bundle are GREEN, with only the final exact-head Frontend Release Artifact gate plus merge remaining. #1019 remains blocked only until #1020 merges. Production runtime is unchanged.

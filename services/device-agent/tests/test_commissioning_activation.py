@@ -43,6 +43,16 @@ class CommissioningActivationContractTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     parse_activation_request(payload(**{field: value}))
 
+    def test_discovery_only_profile_cannot_be_activated(self) -> None:
+        with self.assertRaisesRegex(ValueError, "discovery-only"):
+            parse_activation_request(
+                payload(
+                    unit_id=35,
+                    profile_id="danfoss-ak-cc25-pro",
+                    profile_version="danfoss-ak-cc25-pro-sw1.3x-fc03-v1",
+                )
+            )
+
     def test_fingerprint_is_stable_across_activate_and_rollback(self) -> None:
         activate = parse_activation_request(payload(action="activate"))
         rollback = parse_activation_request(payload(action="rollback"))

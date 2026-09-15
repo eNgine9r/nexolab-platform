@@ -12,6 +12,7 @@ class PreflightProfile:
     device_family: str
     evidence_level: str
     warnings: tuple[str, ...] = ()
+    activation_supported: bool = True
 
 
 PROFILES: dict[str, PreflightProfile] = {
@@ -41,6 +42,17 @@ PROFILES: dict[str, PreflightProfile] = {
         warnings=(
             "Engineering temperature/control scaling is not inferred by preflight and remains unverified where current production semantics are unknown.",
         ),
+    ),
+    "danfoss-ak-cc25-pro": PreflightProfile(
+        profile_id="danfoss-ak-cc25-pro",
+        profile_version="danfoss-ak-cc25-pro-sw1.3x-fc03-v1",
+        device_family="akcc25",
+        evidence_level="hardware_verified",
+        warnings=(
+            "Profile is discovery-only: real Unit 35 FC03 evidence verifies the documented integer subset at 9600 8E1 with Danfoss ADU-to-PDU address translation (ADU - 1).",
+            "Production activation remains disabled; temperature inputs were not connected during acceptance, so temperature values are not published until sensor-backed correlation is completed.",
+        ),
+        activation_supported=False,
     ),
 }
 
