@@ -3693,7 +3693,7 @@
       "issue": 1024,
       "title": "Verify Danfoss AK-CC25 Pro Unit 35 read-only Modbus integration",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "branch": "feat/1024-ak-cc25-discovery",
       "evidence": {
         "physical_model": "Danfoss_AK_CC25_Pro_084B4022",

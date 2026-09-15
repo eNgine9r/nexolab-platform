@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-15T15:18:26+03:00",
+  "timestamp": "2026-09-15T17:57:12+03:00",
   "actor": "ChatGPT",
-  "event": "AK-CC25 Pro Unit 35 read-only discovery hardware-verified on dedicated FTDI adapter; ADU-to-PDU offset corrected and existing production buses remained healthy",
+  "event": "AK-CC25 Pro #1024 updated by normal merge onto GREEN Disaster Recovery prerequisite main; fresh local verification passed and PR #1025 moved to final review",
   "baselines": {
     "accepted_product_sha": "b245b48e7ab64a42680fb9d516646926b45d1b41",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -13,7 +13,9 @@
   "active_work": {
     "issue": 1024,
     "title": "Verify Danfoss AK-CC25 Pro Unit 35 read-only Modbus integration",
-    "branch": "feat/1024-ak-cc25-discovery"
+    "branch": "feat/1024-ak-cc25-discovery",
+    "status": "review",
+    "pull_request": 1025
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
@@ -34,11 +36,15 @@
       "hardware_status": "hardware_verified_read_only_discovery",
       "production_activation_performed": false,
       "modbus_write": "none",
-      "hardware_write": "none"
+      "hardware_write": "none",
+      "disaster_recovery_prerequisite_main": "b28612643c845cdb0c19eb2e78679860aef72b01",
+      "post_prerequisite_focused_tests": "42_passed",
+      "post_prerequisite_device_agent_full_suite": "275_passed",
+      "post_prerequisite_state_validation": "passed"
     }
   },
   "observations": [],
-  "next_action": "Finalize corrected #1024 candidate, run formatting/state/compile checks, commit and push, then require exact-head CI before merging. Production polling of AK-CC25 belongs to a separate Work Package; temperature semantics wait for real sensors.",
+  "next_action": "Require exact-head GitHub CI and zero unresolved review threads for PR #1025; if GREEN, merge #1025 and close #1024 completed. Then start Ready Issue #1031 to expose Danfoss AK-CC25 Pro in the supported equipment onboarding catalog while keeping activation fail-closed.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
