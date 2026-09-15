@@ -1,8 +1,20 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-14
+Updated: 2026-09-15
 
 ## Current Sprint
+
+### Issue #1019 — frontend-only Overview compatibility release active
+
+Issue #1019 is now the active Work Package on `deploy/1019-overview-frontend-compat`. Product Owner decision B remains authoritative: build and verify an immutable frontend compatibility release from production backend/product source `9a3556b25b257396d15db80af591d1cc3684b8f7` plus only the accepted Overview presentation delta from `b245b48e7ab64a42680fb9d516646926b45d1b41`; do not deploy accumulated current-main backend/runtime/database changes. #1020 is complete, so software preparation may continue through compatibility-source construction, focused/full frontend verification, authenticated browser evidence, ARM64 artifact provenance, rollback preparation and production preflight. Actual `nexolab-dashboard.service` activation remains a separate production cutover boundary and is not authorized by this state transition.
+
+### Issue #1020 — ARM64 frontend release artifact builder completed
+
+Issue #1020 completed at exact verified head `8cfe9ec6f282aa2ba112db32701052f39c1f0de8` in PR #1021. The fix makes cross-platform extraction honor the requested ARM64 platform and preserves the canonical root lockfile across production pruning while still removing dev-only dependencies. Final exact-head Frontend Release Artifact run `34930280105` is GREEN with verified ARM64 artifact upload; Offline Bundle `34930268213` is GREEN with disconnected runtime and persistent-data update/rollback proof; Core CI `34930268286` is GREEN including NEXOLAB Merge Gate. Final Team Lead review found no blocking P1/P2, unresolved review threads were zero, and the branch was 0 commits behind `main` before squash merge. PR #1021 merged as `cbd9197f6c63cafd46a48752076c43a790eb61e3`, and GitHub closed #1020 completed. No production deployment, service restart, database change, Modbus/controller write, hardware write, product-data deletion or named-volume deletion occurred.
+
+### Issue #1022 — frontend release CI routing repair completed
+
+Issue #1022 is software-complete at exact implementation head `4c0cdf7c55f5c92b5e153b21e29d3b41a23f890d` in PR #1023. The classifier now treats only `scripts/build-frontend-release-artifact.sh` and `scripts/tests/test_raspberry_pi_frontend_release.py` as known `deployment_runtime` tooling instead of unknown fail-closed paths. Focused classifier/routing tests passed 52/52, State Model validation and `git diff --check` passed, and the exact-head GitHub matrix is GREEN across Core CI/NEXOLAB Merge Gate, Authenticated Dashboard Acceptance, Refrigeration Browser Acceptance, Offline Bundle and Telegram Gateway. Genuine unknown paths still fail closed. PR #1023 is merged to `main` as `5c8ade60cda6f4a5b8cac9610741e212bff0c3a3`; #1020 has resumed on top of that baseline. No production deployment, service restart, database change, Modbus/controller write or hardware write occurred.
 
 ### Issue #1001 — Overview operator-first dashboard completed
 

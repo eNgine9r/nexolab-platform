@@ -18,6 +18,7 @@ DEPLOY = ROOT / "scripts" / "deploy-current-head-raspberry-pi.sh"
 CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
 RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "frontend-release-artifact.yml"
 ARTIFACT_BUILDER = ROOT / "scripts" / "build-frontend-release-artifact.sh"
+DASHBOARD_DOCKERFILE = ROOT / "infrastructure" / "offline" / "Dockerfile.dashboard"
 
 
 def run_bash(script: str, *, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
@@ -333,6 +334,11 @@ class RaspberryPiFrontendReleaseTests(unittest.TestCase):
         self.assertIn("Setup QEMU", ci)
         self.assertIn("Setup QEMU", release)
         self.assertIn("ARM64", builder)
+        self.assertIn('docker create --platform "$PLATFORM" "$IMAGE"', builder)
+        dashboard_dockerfile = DASHBOARD_DOCKERFILE.read_text(encoding="utf-8")
+        self.assertIn("cp package-lock.json /tmp/nexolab-package-lock.json", dashboard_dockerfile)
+        self.assertIn("npm prune --omit=dev", dashboard_dockerfile)
+        self.assertIn("mv /tmp/nexolab-package-lock.json package-lock.json", dashboard_dockerfile)
 
     def test_unactivated_release_cleanup_is_path_bounded(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

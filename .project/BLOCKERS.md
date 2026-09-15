@@ -1,6 +1,14 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-14
+Updated: 2026-09-15
+
+## Issue #1022 — frontend release CI routing repair
+
+**Cleared for software scope and merged.** PR #1023 exact implementation head `4c0cdf7c55f5c92b5e153b21e29d3b41a23f890d` passed the full routed matrix and zero review threads, then merged to `main` as `5c8ade60cda6f4a5b8cac9610741e212bff0c3a3`. The false browser-workflow requirement for frontend release tooling is removed while unknown paths remain fail-closed. #1020 subsequently completed and merged through PR #1021 as `cbd9197f6c63cafd46a48752076c43a790eb61e3`; therefore the software prerequisite for #1019 is cleared. Production runtime remains unchanged.
+
+## Issue #1019 — frontend-only Overview compatibility release
+
+**Software preparation unblocked; production cutover still gated.** #1020 is completed, so compatibility-source construction, tests, browser evidence, ARM64 artifact generation, provenance, rollback preparation and pre-cutover health capture may proceed. The actual dashboard service activation changes production and must not be executed until the explicit production cutover boundary is authorized. Backend/product runtime must remain at `9a3556b25b257396d15db80af591d1cc3684b8f7`; no central/edge container recreation, migration, Modbus/controller write, hardware write, data deletion or named-volume deletion is permitted.
 
 ## Issue #1001 — Overview operator-first dashboard
 
