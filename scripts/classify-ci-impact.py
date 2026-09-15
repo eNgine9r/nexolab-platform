@@ -173,6 +173,11 @@ FRONTEND_RELEASE_TOOLING_PATHS = {
     "scripts/tests/test_raspberry_pi_frontend_release.py",
 }
 
+DISASTER_RECOVERY_TOOLING_PATHS = {
+    "scripts/run-disaster-recovery-acceptance.sh",
+    "tests/test_disaster_recovery_assets.py",
+}
+
 CI_GOVERNANCE_PATHS = {
     "PROJECT_PROFILE.yaml",
     "AGENTS.md",
@@ -367,6 +372,10 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
             matched = True
 
         if path in FRONTEND_RELEASE_TOOLING_PATHS:
+            classes.add("deployment_runtime")
+            matched = True
+
+        if path in DISASTER_RECOVERY_TOOLING_PATHS:
             classes.add("deployment_runtime")
             matched = True
 

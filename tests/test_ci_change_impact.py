@@ -94,10 +94,39 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertEqual(result["unknown_files"], [])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_disaster_recovery_acceptance_tooling_is_known_deployment_runtime(self) -> None:
+        for path in (
+            "scripts/run-disaster-recovery-acceptance.sh",
+            "tests/test_disaster_recovery_assets.py",
+        ):
+            with self.subTest(path=path):
+                result = classify([path])
+                self.assertEqual(result["classes"], ["deployment_runtime"])
+                self.assertFalse(result["fail_closed"])
+                self.assertEqual(result["unknown_files"], [])
+                self.assertEqual(result["verification"]["required_external_workflows"], [])
+
+    def test_disaster_recovery_combined_fixture_routes_only_offline_external_lane(self) -> None:
+        result = classify(
+            [
+                "infrastructure/compose/compose.disaster-recovery.yaml",
+                "scripts/run-disaster-recovery-acceptance.sh",
+                "tests/test_disaster_recovery_assets.py",
+            ]
+        )
+        verification = result["verification"]
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(verification["dashboard_mode"], "none")
+        self.assertFalse(verification["refrigeration_browser"])
+        self.assertTrue(verification["offline_bundle"])
+        self.assertEqual(verification["required_external_workflows"], ["Offline Bundle"])
+
     def test_unregistered_recovery_tooling_remains_fail_closed(self) -> None:
-        result = classify(["scripts/run-disaster-recovery-acceptance.sh"])
+        path = "scripts/run-disaster-recovery-unregistered.sh"
+        result = classify([path])
         self.assertTrue(result["fail_closed"])
-        self.assertEqual(result["unknown_files"], ["scripts/run-disaster-recovery-acceptance.sh"])
+        self.assertEqual(result["unknown_files"], [path])
         self.assertEqual(
             set(result["verification"]["required_external_workflows"]),
             {
