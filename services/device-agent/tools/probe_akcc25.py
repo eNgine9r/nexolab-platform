@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from dataclasses import asdict
 from datetime import datetime, timezone
@@ -24,6 +25,7 @@ from commission_rs485_bus import (  # noqa: E402
     DEFAULT_DEVICE_AGENT_CONTAINER,
     busy_pids,
     inventory_adapters,
+    parse_runtime_protected_ports,
     runtime_protected_ports,
     select_new_adapter,
 )
@@ -53,6 +55,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--timeout", type=float, default=0.30)
     parser.add_argument("--device-agent-container", default=DEFAULT_DEVICE_AGENT_CONTAINER)
     parser.add_argument("--protected-port", action="append", default=[])
+    parser.add_argument(
+        "--maintenance-ownership-snapshot",
+        type=Path,
+        help=(
+            "Pre-stop Device Agent /health JSON proving that the selected adapter was "
+            "production-owned before a deliberate physical maintenance handoff."
+        ),
+    )
     parser.add_argument("--output", type=Path)
     return parser
 
@@ -88,6 +98,74 @@ def resolve_isolated_adapter(
     return selected, protected
 
 
+def load_maintenance_ownership_snapshot(path: Path) -> tuple[str, ...]:
+    try:
+        payload = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError("Unable to read maintenance Device Agent ownership snapshot") from exc
+    if not isinstance(payload, dict) or payload.get("status") not in {"ok", "degraded"}:
+        raise RuntimeError("Maintenance ownership snapshot must contain Device Agent status ok/degraded")
+    acquisition = payload.get("acquisition")
+    buses = acquisition.get("rs485_buses") if isinstance(acquisition, dict) else None
+    if not isinstance(buses, list) or not buses:
+        raise RuntimeError("Maintenance ownership snapshot has no RS-485 bus diagnostics")
+    for index, bus in enumerate(buses):
+        if not isinstance(bus, dict) or bus.get("device_path_present") is not True:
+            raise RuntimeError(f"Maintenance ownership bus {index} is not physically enumerated")
+        scheduler = bus.get("scheduler")
+        if not isinstance(scheduler, dict) or scheduler.get("worker_state") != "running":
+            raise RuntimeError(f"Maintenance ownership bus {index} worker is not running")
+    try:
+        return parse_runtime_protected_ports(payload)
+    except ValueError as exc:
+        raise RuntimeError("Maintenance ownership snapshot has incomplete RS-485 ownership") from exc
+
+
+def require_device_agent_stopped(container: str) -> None:
+    try:
+        result = subprocess.run(
+            ["docker", "inspect", "-f", "{{.State.Running}}", container],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError("Unable to prove Device Agent container is stopped") from exc
+    if result.returncode != 0:
+        raise RuntimeError("Unable to inspect Device Agent container state")
+    if result.stdout.strip().lower() != "false":
+        raise RuntimeError("Maintenance probe requires the Device Agent container to be stopped")
+
+
+def resolve_maintenance_adapter(
+    *,
+    adapter_path: str,
+    container: str,
+    ownership_snapshot: Path,
+    additional_protected: Sequence[str],
+):
+    former_production_ports = load_maintenance_ownership_snapshot(ownership_snapshot)
+    if adapter_path not in former_production_ports:
+        raise ValueError("Selected maintenance adapter was not production-owned in the supplied snapshot")
+    require_device_agent_stopped(container)
+    still_protected = tuple(
+        sorted((set(former_production_ports) - {adapter_path}) | set(additional_protected))
+    )
+    selected = select_new_adapter(
+        inventory_adapters(),
+        protected_ports=still_protected,
+        requested_port=adapter_path,
+    )
+    pids = busy_pids(selected.stable_path)
+    if pids:
+        raise RuntimeError(
+            "Refusing AK-CC25 maintenance probe because the handed-off adapter is busy: "
+            + ", ".join(pids)
+        )
+    return selected, former_production_ports
+
+
 def probe_port(
     port: Any,
     *,
@@ -101,7 +179,9 @@ def probe_port(
         item: dict[str, Any] = {
             "key": register.key,
             "danfoss_code": register.code,
+            "documented_adu": register.adu_address,
             "address": register.address,
+            "pdu_address": register.address,
             "function_code": 3,
             "documented_access": register.source_access,
             "request_hex": request.hex(),
@@ -148,11 +228,20 @@ def run_probe(args: argparse.Namespace) -> dict[str, Any]:
     except ImportError as exc:
         raise RuntimeError("pyserial is required for the AK-CC25 hardware probe") from exc
 
-    selected, protected = resolve_isolated_adapter(
-        adapter_path=args.adapter,
-        container=args.device_agent_container,
-        additional_protected=args.protected_port,
-    )
+    maintenance_mode = args.maintenance_ownership_snapshot is not None
+    if maintenance_mode:
+        selected, protected = resolve_maintenance_adapter(
+            adapter_path=args.adapter,
+            container=args.device_agent_container,
+            ownership_snapshot=args.maintenance_ownership_snapshot,
+            additional_protected=args.protected_port,
+        )
+    else:
+        selected, protected = resolve_isolated_adapter(
+            adapter_path=args.adapter,
+            container=args.device_agent_container,
+            additional_protected=args.protected_port,
+        )
     parity_map = {
         "N": serial.PARITY_NONE,
         "E": serial.PARITY_EVEN,
@@ -182,6 +271,7 @@ def run_probe(args: argparse.Namespace) -> dict[str, Any]:
         "modbus_writes": "none",
         "hardware_writes": "none",
         "production_activation_performed": False,
+        "maintenance_reuse_of_former_production_adapter": maintenance_mode,
         "candidate_adapter": asdict(selected),
         "protected_production_ports": list(protected),
         "serial": {

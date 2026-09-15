@@ -2,9 +2,9 @@
 
 Updated: 2026-09-15
 
-## Issue #1024 — AK-CC25 Pro real-device read requires an isolated adapter
+## Issue #1024 — AK-CC25 Pro read-only hardware discovery
 
-**Hardware acceptance blocked; software discovery proceeds.** The physical target is Danfoss AK-CC25 Pro `084B4022`, candidate Unit ID `35` from observed `o03=35`. The Raspberry Pi currently has only the two production-owned CP2104 paths: `0133F090` (`rs485-main`) and `0133F246` (`rs485-embraco`). The repository-owned AK-CC25 probe correctly refuses those production adapters before any serial request. A third isolated USB-RS485 adapter, connected only to the AK-CC25 Pro A+/B− pair, is required for the real FC03 acceptance pass unless a separately approved safe physical topology is established. No second Modbus master will be introduced on a live production bus, and no controller communication/output parameter will be written.
+**Hardware discovery blocker cleared 2026-09-15.** A dedicated third adapter is now present as `usb-FTDI_FT232R_USB_UART_A10Q2SI7-if00-port0` and is not owned by either production bus. Real FC03 evidence on physical AK-CC25 Pro `084B4022`, Unit `35`, verifies `9600 8E1`, `o03=35`, `oa1=1` (Auto), `oa2=1` (Even), and the Danfoss one-based ADU to zero-based PDU rule `ADU - 1`. After one initial partial-response pass, three consecutive bounded probes returned the complete fixed integer subset. Existing `rs485-main` and `rs485-embraco` remained healthy with Device Agent `status=ok`, queue depth `0`, and both workers running. Temperature semantics remain intentionally hardware-unverified because the controller currently has no temperature sensors or refrigeration equipment connected. Production polling/activation is still out of scope for #1024 and requires a separate Work Package. No Modbus write, hardware write, controller parameter change or production cutover occurred.
 
 ## Issue #1022 — frontend release CI routing repair
 

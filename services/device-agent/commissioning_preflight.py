@@ -47,10 +47,10 @@ PROFILES: dict[str, PreflightProfile] = {
         profile_id="danfoss-ak-cc25-pro",
         profile_version="danfoss-ak-cc25-pro-sw1.3x-fc03-v1",
         device_family="akcc25",
-        evidence_level="partially_verified",
+        evidence_level="hardware_verified",
         warnings=(
-            "Profile is discovery-only: SW 1.3x integer service registers are documentation-backed but the physical Unit 35 is not yet hardware-verified.",
-            "Temperature/decimal service values remain excluded until their wire representation is confirmed on real hardware.",
+            "Profile is discovery-only: real Unit 35 FC03 evidence verifies the documented integer subset at 9600 8E1 with Danfoss ADU-to-PDU address translation (ADU - 1).",
+            "Production activation remains disabled; temperature inputs were not connected during acceptance, so temperature values are not published until sensor-backed correlation is completed.",
         ),
         activation_supported=False,
     ),

@@ -96,7 +96,7 @@ class CommissioningPreflightContractTests(unittest.TestCase):
         )
 
         self.assertEqual(result["result"], "passed")
-        self.assertEqual(result["evidence_level"], "partially_verified")
+        self.assertEqual(result["evidence_level"], "hardware_verified")
         self.assertEqual(result["function_codes"], [3])
         self.assertEqual(runtime.read_calls, [("danfoss-ak-cc25-pro", "rs485-main", 35)])
         self.assertFalse(PROFILES["danfoss-ak-cc25-pro"].activation_supported)

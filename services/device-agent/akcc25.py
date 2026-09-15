@@ -15,7 +15,7 @@ PROFILE_VERSION = "danfoss-ak-cc25-pro-sw1.3x-fc03-v1"
 class AKCC25ProRegister:
     key: str
     code: str
-    address: int
+    adu_address: int
     metric: str
     unit: str
     minimum: int
@@ -23,6 +23,11 @@ class AKCC25ProRegister:
     binary: bool = False
     signed: bool = False
     source_access: str = "R"
+
+    @property
+    def address(self) -> int:
+        """Zero-based Modbus PDU address derived from Danfoss one-based Modbus ADU."""
+        return self.adu_address - 1
 
 
 REGISTERS: tuple[AKCC25ProRegister, ...] = (
@@ -83,6 +88,7 @@ class AKCC25ProReading:
     key: str
     code: str
     address: int
+    adu_address: int
     metric: str
     raw_value: int
     value: float | None
@@ -118,6 +124,7 @@ def decode_register(
         key=register.key,
         code=register.code,
         address=register.address,
+        adu_address=register.adu_address,
         metric=register.metric,
         raw_value=raw_value,
         value=float(numeric) if valid else None,
@@ -131,8 +138,9 @@ class AKCC25ProReader:
     """FC03-only reader for the documented AK-CC25 Pro SW 1.3x integer probe set.
 
     The discovery profile uses FC03 only. It includes a bounded integer service
-    subset plus read-only observation of o03/oa1/oa2. Floating-point/decimal
-    values remain excluded until their wire representation is confirmed on hardware.
+    subset plus read-only observation of o03/oa1/oa2. Danfoss documents one-based
+    Modbus ADU numbers; FC03 requests use the observed zero-based PDU address ADU-1.
+    Decimal temperature values remain excluded from production semantics until display correlation.
     """
 
     def __init__(self, client: HoldingRegisterReader) -> None:

@@ -29,16 +29,21 @@ class FakeReader:
 class AKCC25ProDecoderTests(unittest.TestCase):
     def test_profile_is_exact_sw13x_fc03_contract(self) -> None:
         self.assertEqual(PROFILE_VERSION, "danfoss-ak-cc25-pro-sw1.3x-fc03-v1")
-        self.assertEqual(REGISTER_BY_KEY["control_state"].address, 2007)
-        self.assertEqual(REGISTER_BY_KEY["compressor_state"].address, 2510)
-        self.assertEqual(REGISTER_BY_KEY["compressor_speed"].address, 2685)
-        self.assertEqual(REGISTER_BY_KEY["fan_state"].address, 2511)
-        self.assertEqual(REGISTER_BY_KEY["defrost_state"].address, 2512)
-        self.assertEqual(REGISTER_BY_KEY["network_status"].address, 2682)
-        self.assertEqual(REGISTER_BY_KEY["alarm_status"].address, 2541)
-        self.assertEqual(REGISTER_BY_KEY["network_address"].address, 2008)
-        self.assertEqual(REGISTER_BY_KEY["baudrate_setting"].address, 2251)
-        self.assertEqual(REGISTER_BY_KEY["parity_setting"].address, 2255)
+        expected = {
+            "control_state": (2007, 2006),
+            "compressor_state": (2510, 2509),
+            "compressor_speed": (2685, 2684),
+            "fan_state": (2511, 2510),
+            "defrost_state": (2512, 2511),
+            "network_status": (2682, 2681),
+            "alarm_status": (2541, 2540),
+            "network_address": (2008, 2007),
+            "baudrate_setting": (2251, 2250),
+            "parity_setting": (2255, 2254),
+        }
+        for key, (adu, pdu) in expected.items():
+            self.assertEqual(REGISTER_BY_KEY[key].adu_address, adu)
+            self.assertEqual(REGISTER_BY_KEY[key].address, pdu)
 
     def test_documented_control_state_is_decoded_without_inference(self) -> None:
         reading = decode_register(35, REGISTER_BY_KEY["control_state"], 14)
@@ -76,13 +81,13 @@ class AKCC25ProDecoderTests(unittest.TestCase):
         self.assertEqual((disabled.value, disabled.quality), (-1.0, "valid"))
 
     def test_reader_uses_only_single_fc03_register_read_contract(self) -> None:
-        client = FakeReader({2007: 0, 2510: 1})
+        client = FakeReader({2006: 0, 2509: 1})
         reader = AKCC25ProReader(client)
         state = reader.read_metric(35, "control_state")
         compressor = reader.read_metric(35, "compressor_state")
         self.assertEqual(state.semantic, "normal_control")
         self.assertEqual(compressor.semantic, "on")
-        self.assertEqual(client.calls, [(35, 2007), (35, 2510)])
+        self.assertEqual(client.calls, [(35, 2006), (35, 2509)])
 
     def test_invalid_unit_and_unknown_metric_are_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "Modbus unit ID"):

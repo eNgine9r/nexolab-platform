@@ -172,7 +172,7 @@ class DualBusAdaptiveRuntimeTests(unittest.TestCase):
         agent.rs485_topology = topology
         client = Mock()
         client.instrumentation_scope.return_value = nullcontext()
-        values = {2007: 0, 2510: 1, 2685: 73, 2511: 1, 2512: 0, 2682: 100, 2541: 0, 2008: 35, 2251: 1, 2255: 1}
+        values = {2006: 0, 2509: 1, 2684: 73, 2510: 1, 2511: 0, 2681: 100, 2540: 0, 2007: 35, 2250: 1, 2254: 1}
         client.read_holding_register.side_effect = lambda unit_id, address: values[address]
         lock = Mock()
         lock.acquire.return_value = True
@@ -199,7 +199,7 @@ class DualBusAdaptiveRuntimeTests(unittest.TestCase):
         )
         self.assertEqual(
             [item.args for item in client.read_holding_register.call_args_list],
-            [(35, 2007), (35, 2510), (35, 2685), (35, 2511), (35, 2512), (35, 2682), (35, 2541), (35, 2008), (35, 2251), (35, 2255)],
+            [(35, 2006), (35, 2509), (35, 2684), (35, 2510), (35, 2511), (35, 2681), (35, 2540), (35, 2007), (35, 2250), (35, 2254)],
         )
         client.write_single_register.assert_not_called()
         lock.release.assert_called_once_with()

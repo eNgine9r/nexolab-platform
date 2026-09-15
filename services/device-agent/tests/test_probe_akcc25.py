@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -54,13 +55,14 @@ class FakePort:
 
 class AKCC25ProbeTests(unittest.TestCase):
     def test_probe_reads_only_fixed_fc03_subset_and_records_raw_frames(self) -> None:
-        port = FakePort({2007: 0, 2510: 1, 2685: 73, 2511: 1, 2512: 0, 2682: 100, 2541: 0, 2008: 35, 2251: 1, 2255: 1})
+        port = FakePort({2006: 0, 2509: 1, 2684: 73, 2510: 1, 2511: 0, 2681: 100, 2540: 0, 2007: 35, 2250: 1, 2254: 1})
         observations = MODULE.probe_port(port, unit_id=35, timeout=0.1)
 
         self.assertEqual(
             [item["address"] for item in observations],
-            [2007, 2510, 2685, 2511, 2512, 2682, 2541, 2008, 2251, 2255],
+            [2006, 2509, 2684, 2510, 2511, 2681, 2540, 2007, 2250, 2254],
         )
+        self.assertEqual([item["documented_adu"] for item in observations], [2007, 2510, 2685, 2511, 2512, 2682, 2541, 2008, 2251, 2255])
         self.assertTrue(all(item["function_code"] == 3 for item in observations))
         self.assertEqual([item["documented_access"] for item in observations][-3:], ["RW", "RW", "RW"])
         self.assertTrue(all(item["status"] == "ok" for item in observations))
@@ -109,6 +111,82 @@ class AKCC25ProbeTests(unittest.TestCase):
             )
         self.assertEqual(selected, candidate)
         self.assertEqual(protected, (production.stable_path,))
+
+    def test_maintenance_probe_accepts_former_production_adapter_only_after_stop(self) -> None:
+        main = COMMISSION.AdapterEvidence(
+            stable_path="/dev/serial/by-id/main",
+            real_path="/dev/ttyUSB0",
+            symlink_target="../../ttyUSB0",
+            udev={},
+        )
+        former = COMMISSION.AdapterEvidence(
+            stable_path="/dev/serial/by-id/embraco",
+            real_path="/dev/ttyUSB1",
+            symlink_target="../../ttyUSB1",
+            udev={},
+        )
+        payload = {
+            "status": "ok",
+            "acquisition": {
+                "rs485_buses": [
+                    {"serial_device": "/host/dev/serial/by-id/main", "device_path_present": True, "scheduler": {"worker_state": "running"}},
+                    {"serial_device": "/host/dev/serial/by-id/embraco", "device_path_present": True, "scheduler": {"worker_state": "running"}},
+                ]
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot = Path(directory) / "health.json"
+            snapshot.write_text(__import__("json").dumps(payload))
+            with patch.object(MODULE, "require_device_agent_stopped") as stopped, patch.object(
+                MODULE, "inventory_adapters", return_value=(main, former)
+            ), patch.object(MODULE, "busy_pids", return_value=()):
+                selected, protected = MODULE.resolve_maintenance_adapter(
+                    adapter_path=former.stable_path,
+                    container="device-agent",
+                    ownership_snapshot=snapshot,
+                    additional_protected=(),
+                )
+        stopped.assert_called_once_with("device-agent")
+        self.assertEqual(selected, former)
+        self.assertEqual(protected, (former.stable_path, main.stable_path))
+
+    def test_maintenance_probe_rejects_adapter_absent_from_pre_stop_snapshot(self) -> None:
+        candidate = COMMISSION.AdapterEvidence(
+            stable_path="/dev/serial/by-id/new",
+            real_path="/dev/ttyUSB2",
+            symlink_target="../../ttyUSB2",
+            udev={},
+        )
+        payload = {
+            "status": "ok",
+            "acquisition": {
+                "rs485_buses": [
+                    {"serial_device": "/host/dev/serial/by-id/main", "device_path_present": True, "scheduler": {"worker_state": "running"}},
+                    {"serial_device": "/host/dev/serial/by-id/embraco", "device_path_present": True, "scheduler": {"worker_state": "running"}},
+                ]
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            snapshot = Path(directory) / "health.json"
+            snapshot.write_text(__import__("json").dumps(payload))
+            with patch.object(MODULE, "require_device_agent_stopped") as stopped:
+                with self.assertRaisesRegex(ValueError, "not production-owned"):
+                    MODULE.resolve_maintenance_adapter(
+                        adapter_path=candidate.stable_path,
+                        container="device-agent",
+                        ownership_snapshot=snapshot,
+                        additional_protected=(),
+                    )
+        stopped.assert_not_called()
+
+    def test_maintenance_probe_requires_device_agent_container_stopped(self) -> None:
+        class Result:
+            returncode = 0
+            stdout = "true\n"
+
+        with patch.object(MODULE.subprocess, "run", return_value=Result()):
+            with self.assertRaisesRegex(RuntimeError, "requires the Device Agent container to be stopped"):
+                MODULE.require_device_agent_stopped("device-agent")
 
     def test_argument_validation_requires_stable_port_and_bounded_timeout(self) -> None:
         base = argparse.Namespace(adapter="/dev/serial/by-id/new", unit_id=35, timeout=0.3)
