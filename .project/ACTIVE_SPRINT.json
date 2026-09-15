@@ -3755,7 +3755,7 @@
       "issue": 1037,
       "title": "Stabilize Raspberry Pi host under development/test load",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "branch": "fix/1037-edge-host-stability",
       "evidence": {
         "incident_classification": "host_wide_resource_starvation_during_heavy_local_verification",

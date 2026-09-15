@@ -4,7 +4,7 @@ Updated: 2026-09-16
 
 ## Issue #1037 — Raspberry Pi host stability
 
-**Operational blocker substantially mitigated; repository completion pending.** The repeated disconnect pattern is now tied to avoidable host-wide resource starvation during heavyweight local verification, not to OOM, overheating, SSD failure or Ethernet hardware errors. Optional browser/inspection services are disabled and on-demand; the legacy duplicate `remote-desktop` tmux/npx Remote Desktop Commander path is removed and guarded; the managed RDC receives higher relative CPU/I/O weight. A 90-second bounded memory/CPU load kept RDC, Tailscale, Device Agent, Telemetry and Dashboard responsive, preserved the boot ID, and left all 12 NEXOLAB containers healthy. Remaining gate: finish repository/state review, commit/push PR #1037 candidate and obtain exact-head CI GREEN. No reboot is required for the current user-level stabilization.
+**Operational blocker substantially mitigated; PR #1038 review/CI pending.** The repeated disconnect pattern is now tied to avoidable host-wide resource starvation during heavyweight local verification, not to OOM, overheating, SSD failure or Ethernet hardware errors. Optional browser/inspection services are disabled and on-demand; the legacy duplicate `remote-desktop` tmux/npx Remote Desktop Commander path is removed and guarded; the managed RDC receives higher relative CPU/I/O weight. A 90-second bounded memory/CPU load kept RDC, Tailscale, Device Agent, Telemetry and Dashboard responsive, preserved the boot ID, and left all 12 NEXOLAB containers healthy. Remaining gate: PR #1038 exact-head CI GREEN and zero blocking review findings before merge. No reboot is required for the current user-level stabilization.
 
 ## Issue #1031 — AK-CC25 Pro onboarding
 
