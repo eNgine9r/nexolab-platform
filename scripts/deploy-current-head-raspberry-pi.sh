@@ -1081,7 +1081,17 @@ if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "1" ]]; then
   exit 0
 fi
 
-for command in docker curl python3 openssl npm node flock ip sudo tar du df find sort stat mv rm ss sha256sum cp cmp install setsid ps awk; do
+EXPECTED_NODE_VERSION="$(tr -d '[:space:]' < "$REPO/.nvmrc")"
+[[ -n "$EXPECTED_NODE_VERSION" ]] || fail "repository .nvmrc is empty"
+if ! command -v node >/dev/null 2>&1; then
+  NVM_NODE_BIN="$HOME/.nvm/versions/node/v${EXPECTED_NODE_VERSION}/bin"
+  [[ -x "$NVM_NODE_BIN/node" ]] \
+    || fail "required Node $EXPECTED_NODE_VERSION is unavailable in PATH and expected NVM location"
+  export PATH="$NVM_NODE_BIN:$PATH"
+  log "Resolved repository Node baseline from deterministic NVM location: $NVM_NODE_BIN"
+fi
+
+for command in docker curl python3 openssl node flock ip sudo tar du df find sort stat mv rm ss sha256sum cp cmp install setsid ps awk; do
   require "$command"
 done
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is unavailable"
@@ -1646,8 +1656,6 @@ preserve_deployed_device_agent_image_for_recovery
 log "Building current Device Agent image"
 docker build --pull -t nexolab-device-agent:local "$REPO/services/device-agent"
 
-EXPECTED_NODE_VERSION="$(tr -d '[:space:]' < "$REPO/.nvmrc")"
-[[ -n "$EXPECTED_NODE_VERSION" ]] || fail "repository .nvmrc is empty"
 ACTUAL_NODE_VERSION="$(node --version | sed 's/^v//')"
 [[ "$ACTUAL_NODE_VERSION" == "$EXPECTED_NODE_VERSION" ]] \
   || fail "host Node version $ACTUAL_NODE_VERSION does not match repository baseline $EXPECTED_NODE_VERSION"
