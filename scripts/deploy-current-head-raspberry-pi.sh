@@ -15,7 +15,7 @@ source "$SCRIPT_DIR/lib/frontend-candidate-liveness.sh"
 usage() {
   cat <<'USAGE'
 Usage: deploy-current-head-raspberry-pi.sh [--runtime-mode lan|standalone] [--frontend-artifact PATH]
-       [--source-ref SHA --expected-deployed-source SHA] [--source-selection-check-only]
+       [--source-ref SHA] [--expected-deployed-source SHA] [--source-selection-check-only]
        [--restore-edge-snapshot DEPLOYMENT_EVIDENCE_DIR
         --expected-deployed-source SHA --expected-target-source SHA]
 
@@ -23,7 +23,9 @@ Options:
   --frontend-artifact PATH  Import a verified off-device frontend artifact instead of building on this host.
   --source-ref SHA          Deploy an explicitly approved historical commit already contained in main history.
   --expected-deployed-source SHA
-                           Exact currently deployed source SHA; required with --source-ref.
+                           Exact currently deployed source SHA. With --source-ref it pins the
+                           historical-main lineage; without --source-ref it pins the current-main
+                           deployment authority, including an explicitly adopted compatibility runtime.
   --source-selection-check-only
                            Validate source lineage and exit before capacity, backup or runtime mutation.
   --restore-edge-snapshot DEPLOYMENT_EVIDENCE_DIR
@@ -111,11 +113,9 @@ while (($# > 0)); do
   esac
 done
 nexolab_validate_runtime_mode "$RUNTIME_MODE" || exit $?
-if [[ -n "$REQUESTED_SOURCE_REF" || -n "$EXPECTED_DEPLOYED_SOURCE" ]]; then
-  [[ -n "$RESTORE_EDGE_SNAPSHOT_DIR" || ( -n "$REQUESTED_SOURCE_REF" && -n "$EXPECTED_DEPLOYED_SOURCE" ) ]] || {
-    echo "ERROR: --source-ref and --expected-deployed-source must be supplied together" >&2
-    exit 64
-  }
+if [[ -n "$REQUESTED_SOURCE_REF" && -z "$EXPECTED_DEPLOYED_SOURCE" ]]; then
+  echo "ERROR: --source-ref requires --expected-deployed-source" >&2
+  exit 64
 fi
 
 REPO="${NEXOLAB_REPO:-$HOME/nexolab-platform}"
@@ -683,7 +683,7 @@ validate_full_sha() {
 
 resolve_latest_deployment_evidence() {
   local deployment_evidence
-  if ! deployment_evidence="$(python3 - "$REPO/runtime/deployments" "$AUDIT_DIR" "$SCRIPT_DIR/forward_deployment_recovery.py" "$REPO" <<'PY_EVIDENCE'
+  if ! deployment_evidence="$(python3 - "$REPO/runtime/deployments" "$AUDIT_DIR" "$SCRIPT_DIR/forward_deployment_recovery.py" "$SCRIPT_DIR/compatibility_runtime_authority.py" "$REPO" <<'PY_EVIDENCE'
 from datetime import datetime
 import importlib.util
 import json
@@ -694,13 +694,20 @@ import sys
 root = Path(sys.argv[1])
 current_audit = Path(sys.argv[2]).resolve()
 helper_path = Path(sys.argv[3])
-repo = Path(sys.argv[4])
+compatibility_helper_path = Path(sys.argv[4])
+repo = Path(sys.argv[5])
 spec = importlib.util.spec_from_file_location("nexolab_forward_deployment_recovery", helper_path)
 if spec is None or spec.loader is None:
     print("ERROR: forward recovery authority helper is unavailable", file=sys.stderr)
     raise SystemExit(3)
 forward_recovery = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(forward_recovery)
+compat_spec = importlib.util.spec_from_file_location("nexolab_compatibility_runtime_authority", compatibility_helper_path)
+if compat_spec is None or compat_spec.loader is None:
+    print("ERROR: compatibility runtime authority helper is unavailable", file=sys.stderr)
+    raise SystemExit(3)
+compatibility_authority = importlib.util.module_from_spec(compat_spec)
+compat_spec.loader.exec_module(compatibility_authority)
 stamp_re = re.compile(r"^\d{8}T\d{6}Z$")
 sha_re = re.compile(r"^[0-9a-f]{40}$")
 image_re = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -720,7 +727,8 @@ def valid_stamp(name: str) -> bool:
         return False
     return True
 
-attempts: list[tuple[str, Path, str, bool, str | None, str | None]] = []
+attempts: list[tuple[str, Path, str, bool, str | None, str | None, str | None, str | None]] = []
+invalid_compatibility_authorities: list[tuple[str, Path, str]] = []
 if root.is_dir():
     for directory in root.iterdir():
         if not directory.is_dir() or directory.is_symlink() or not valid_stamp(directory.name):
@@ -809,26 +817,70 @@ if root.is_dir():
                 raise SystemExit(3)
             forward_commit = forward_result["target_source"]
             forward_image = forward_result["device_agent_image_id"]
-        effective_commit = forward_commit or recovered_commit or passed_commit
-        effective_image = forward_image or recovered_image or passed_image
+        compatibility_commit = None
+        compatibility_image = None
+        compatibility_base = None
+        compatibility_target = None
+        compatibility_result_path = directory / "compatibility-runtime-authority.json"
+        if compatibility_result_path.exists():
+            if restore_result_path.exists() or forward_result_path.exists() or passed_commit is not None:
+                print(f"ERROR: compatibility authority cannot coexist with deployment/recovery authority: {directory}", file=sys.stderr)
+                raise SystemExit(3)
+            try:
+                compatibility_result = compatibility_authority.load_published_authority(repo, directory)
+            except Exception as error:
+                invalid_compatibility_authorities.append((directory.name, directory.resolve(), str(error)))
+            else:
+                compatibility_commit = compatibility_result["compatibility_source"]
+                compatibility_image = compatibility_result["device_agent_image_id"]
+                compatibility_base = compatibility_result["formal_base_source"]
+                compatibility_target = compatibility_result["approved_target_source"]
+            if compatibility_result_path.exists() and compatibility_commit is None:
+                attempts.append((directory.name, directory.resolve(), summary_text, False, None, None, None, None))
+                continue
+        effective_commit = forward_commit or recovered_commit or compatibility_commit or passed_commit
+        effective_image = forward_image or recovered_image or compatibility_image or passed_image
         mutated = (directory / "runtime-mutation-started").is_file() or any(
             marker in summary_text for marker in legacy_mutation_markers
         )
         attempts.append(
-            (directory.name, directory.resolve(), summary_text, mutated, effective_commit, effective_image)
+            (
+                directory.name, directory.resolve(), summary_text, mutated, effective_commit, effective_image,
+                compatibility_base, compatibility_target,
+            )
         )
 
 successful = [
-    (stamp, directory, commit, recovered_image)
-    for stamp, directory, _summary, _mutated, commit, recovered_image in attempts
+    (stamp, directory, commit, recovered_image, compatibility_base, compatibility_target)
+    for (
+        stamp, directory, _summary, _mutated, commit, recovered_image,
+        compatibility_base, compatibility_target,
+    ) in attempts
     if commit
 ]
 if not successful:
     print("ERROR: no successful source-deployment evidence is available", file=sys.stderr)
     raise SystemExit(1)
 
-success_stamp, success_dir, success_commit, success_image = max(successful, key=lambda item: item[0])
-for stamp, directory, _summary, mutated, commit, _recovered_image in attempts:
+(
+    success_stamp, success_dir, success_commit, success_image,
+    success_compatibility_base, success_compatibility_target,
+) = max(successful, key=lambda item: item[0])
+for invalid_stamp, invalid_dir, invalid_error in invalid_compatibility_authorities:
+    if invalid_stamp > success_stamp:
+        print(
+            f"ERROR: newer compatibility runtime authority evidence is invalid: {invalid_dir}: {invalid_error}",
+            file=sys.stderr,
+        )
+        raise SystemExit(3)
+    print(
+        f"WARN: ignoring superseded invalid compatibility authority: {invalid_dir}: {invalid_error}",
+        file=sys.stderr,
+    )
+for (
+    stamp, directory, _summary, mutated, commit, _recovered_image,
+    _compatibility_base, _compatibility_target,
+) in attempts:
     if stamp <= success_stamp or directory == current_audit:
         continue
     if mutated and commit is None:
@@ -838,20 +890,28 @@ for stamp, directory, _summary, mutated, commit, _recovered_image in attempts:
         )
         raise SystemExit(2)
 
-print(f"{success_commit}\t{success_dir}\t{success_stamp}\t{success_image or 'not_applicable'}")
+print(
+    f"{success_commit}\t{success_dir}\t{success_stamp}\t{success_image or 'not_applicable'}\t"
+    f"{success_compatibility_base or 'not_applicable'}\t{success_compatibility_target or 'not_applicable'}"
+)
 PY_EVIDENCE
 )"; then
     fail "deployed source authority is indeterminate; inspect runtime/deployments before continuing"
   fi
 
-  local evidence_commit evidence_tail
-  evidence_commit="${deployment_evidence%%$'\t'*}"
-  evidence_tail="${deployment_evidence#*$'\t'}"
-  EXPECTED_DEPLOYMENT_EVIDENCE="${evidence_tail%%$'\t'*}"
-  evidence_tail="${evidence_tail#*$'\t'}"
-  VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID="${evidence_tail#*$'\t'}"
+  local evidence_commit evidence_dir evidence_stamp evidence_image compatibility_base compatibility_target
+  IFS=$'\t' read -r evidence_commit evidence_dir evidence_stamp evidence_image compatibility_base compatibility_target \
+    <<< "$deployment_evidence"
+  EXPECTED_DEPLOYMENT_EVIDENCE="$evidence_dir"
+  VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID="$evidence_image"
   [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] \
     || VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID=""
+  VERIFIED_DEPLOYED_COMPATIBILITY_BASE="$compatibility_base"
+  [[ "$VERIFIED_DEPLOYED_COMPATIBILITY_BASE" =~ ^[0-9a-f]{40}$ ]] \
+    || VERIFIED_DEPLOYED_COMPATIBILITY_BASE=""
+  VERIFIED_DEPLOYED_COMPATIBILITY_TARGET="$compatibility_target"
+  [[ "$VERIFIED_DEPLOYED_COMPATIBILITY_TARGET" =~ ^[0-9a-f]{40}$ ]] \
+    || VERIFIED_DEPLOYED_COMPATIBILITY_TARGET=""
   VERIFIED_DEPLOYED_SOURCE="$evidence_commit"
 
   local rebaseline_authority="$REPO/runtime/recovery-authority/device-agent/current.json"
@@ -926,9 +986,15 @@ PY_REBASELINE_SOURCE
 
 resolve_deployed_source_authority() {
   if [[ -z "$REQUESTED_SOURCE_REF" ]]; then
-    if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "0" ]] \
-      && docker volume inspect nexolab-edge_edge-data >/dev/null 2>&1; then
+    if [[ -n "$EXPECTED_DEPLOYED_SOURCE" ]] \
+      || { [[ "$SOURCE_SELECTION_CHECK_ONLY" == "0" ]] && docker volume inspect nexolab-edge_edge-data >/dev/null 2>&1; }; then
+      validate_full_sha "$EXPECTED_DEPLOYED_SOURCE" || [[ -z "$EXPECTED_DEPLOYED_SOURCE" ]] \
+        || fail "--expected-deployed-source must be a full lowercase 40-character commit SHA"
       resolve_latest_deployment_evidence
+      if [[ -n "$EXPECTED_DEPLOYED_SOURCE" ]]; then
+        [[ "$VERIFIED_DEPLOYED_SOURCE" == "$EXPECTED_DEPLOYED_SOURCE" ]] \
+          || fail "expected deployed source does not match the latest authoritative runtime evidence"
+      fi
     fi
     return 0
   fi
@@ -977,13 +1043,27 @@ validate_selected_source_against_control() {
     git cat-file -e "${EXPECTED_DEPLOYED_SOURCE}^{commit}" 2>/dev/null || fail "expected deployed source commit is not available locally"
     git merge-base --is-ancestor "$REQUESTED_SOURCE_REF" "$CONTROL_HEAD" \
       || fail "requested source is not contained in current main history"
-    git merge-base --is-ancestor "$EXPECTED_DEPLOYED_SOURCE" "$REQUESTED_SOURCE_REF" \
-      || fail "requested source is not a fast-forward descendant of the expected deployed source"
+    if ! git merge-base --is-ancestor "$EXPECTED_DEPLOYED_SOURCE" "$REQUESTED_SOURCE_REF"; then
+      [[ -n "$VERIFIED_DEPLOYED_COMPATIBILITY_BASE" && -n "$VERIFIED_DEPLOYED_COMPATIBILITY_TARGET" ]] \
+        || fail "requested source is not a fast-forward descendant of the expected deployed source"
+      [[ "$EXPECTED_DEPLOYED_SOURCE" == "$VERIFIED_DEPLOYED_SOURCE" ]] \
+        || fail "compatibility runtime authority does not match the expected deployed source"
+      [[ "$REQUESTED_SOURCE_REF" == "$VERIFIED_DEPLOYED_COMPATIBILITY_TARGET" ]] \
+        || fail "requested source does not match the explicitly approved compatibility cutover target"
+      git merge-base --is-ancestor "$VERIFIED_DEPLOYED_COMPATIBILITY_BASE" "$REQUESTED_SOURCE_REF" \
+        || fail "approved compatibility target is not a descendant of the formal deployed base"
+      log "Approved compatibility-runtime transition: deployed=$EXPECTED_DEPLOYED_SOURCE formal_base=$VERIFIED_DEPLOYED_COMPATIBILITY_BASE target=$REQUESTED_SOURCE_REF"
+    fi
     TARGET_HEAD="$REQUESTED_SOURCE_REF"
     log "Approved historical-main source selection: deployed=$EXPECTED_DEPLOYED_SOURCE target=$TARGET_HEAD origin_main=$CONTROL_HEAD evidence=$EXPECTED_DEPLOYMENT_EVIDENCE"
   else
-    [[ -z "$EXPECTED_DEPLOYED_SOURCE" ]] || fail "--expected-deployed-source requires --source-ref"
-    log "Current-main source selection: target=$TARGET_HEAD"
+    if [[ -n "$EXPECTED_DEPLOYED_SOURCE" ]]; then
+      [[ "$VERIFIED_DEPLOYED_SOURCE" == "$EXPECTED_DEPLOYED_SOURCE" ]] \
+        || fail "expected deployed source does not match the latest authoritative runtime evidence"
+      log "Current-main source selection from pinned deployed authority: deployed=$EXPECTED_DEPLOYED_SOURCE target=$TARGET_HEAD"
+    else
+      log "Current-main source selection: target=$TARGET_HEAD"
+    fi
   fi
 }
 
@@ -1011,11 +1091,22 @@ if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "1" ]]; then
   printf 'target=%s\n' "$TARGET_HEAD"
   printf 'expected_deployed_source=%s\n' "${EXPECTED_DEPLOYED_SOURCE:-not_supplied}"
   printf 'deployed_device_agent_image_id=%s\n' "${VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID:-not_available}"
+  printf 'deployment_evidence=%s\n' "${EXPECTED_DEPLOYMENT_EVIDENCE:-not_available}"
   printf 'origin_main=%s\n' "$CONTROL_HEAD"
   exit 0
 fi
 
-for command in docker curl python3 openssl npm node flock ip sudo tar du df find sort stat mv rm ss sha256sum cp cmp install setsid ps awk; do
+EXPECTED_NODE_VERSION="$(tr -d '[:space:]' < "$REPO/.nvmrc")"
+[[ -n "$EXPECTED_NODE_VERSION" ]] || fail "repository .nvmrc is empty"
+if ! command -v node >/dev/null 2>&1; then
+  NVM_NODE_BIN="$HOME/.nvm/versions/node/v${EXPECTED_NODE_VERSION}/bin"
+  [[ -x "$NVM_NODE_BIN/node" ]] \
+    || fail "required Node $EXPECTED_NODE_VERSION is unavailable in PATH and expected NVM location"
+  export PATH="$NVM_NODE_BIN:$PATH"
+  log "Resolved repository Node baseline from deterministic NVM location: $NVM_NODE_BIN"
+fi
+
+for command in docker curl python3 openssl node flock ip sudo tar du df find sort stat mv rm ss sha256sum cp cmp install setsid ps awk; do
   require "$command"
 done
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is unavailable"
@@ -1105,11 +1196,14 @@ fi
 
 if [[ -d "$REPO/runtime/evidence" ]]; then
   RUNTIME_ARCHIVE_TMP="$AUDIT_DIR/.runtime-evidence.tar.gz.partial"
-  rm -f -- "$RUNTIME_ARCHIVE_TMP"
-  if ! tar -C "$REPO" -czf "$RUNTIME_ARCHIVE_TMP" runtime/evidence; then
+  RUNTIME_ARCHIVE_ERR="$AUDIT_DIR/runtime-evidence-archive.err"
+  rm -f -- "$RUNTIME_ARCHIVE_TMP" "$RUNTIME_ARCHIVE_ERR"
+  if ! sudo -n tar -C "$REPO" -czf - runtime/evidence > "$RUNTIME_ARCHIVE_TMP" 2> "$RUNTIME_ARCHIVE_ERR"; then
     rm -f -- "$RUNTIME_ARCHIVE_TMP"
-    fail "runtime evidence archive failed; partial archive was removed"
+    fail "runtime evidence archive failed; partial archive was removed (see $RUNTIME_ARCHIVE_ERR)"
   fi
+  [[ -s "$RUNTIME_ARCHIVE_TMP" ]] || fail "runtime evidence archive is empty"
+  chmod 0600 "$RUNTIME_ARCHIVE_TMP" "$RUNTIME_ARCHIVE_ERR"
   mv -- "$RUNTIME_ARCHIVE_TMP" "$AUDIT_DIR/runtime-evidence.tar.gz"
 fi
 
@@ -1580,8 +1674,6 @@ preserve_deployed_device_agent_image_for_recovery
 log "Building current Device Agent image"
 docker build --pull -t nexolab-device-agent:local "$REPO/services/device-agent"
 
-EXPECTED_NODE_VERSION="$(tr -d '[:space:]' < "$REPO/.nvmrc")"
-[[ -n "$EXPECTED_NODE_VERSION" ]] || fail "repository .nvmrc is empty"
 ACTUAL_NODE_VERSION="$(node --version | sed 's/^v//')"
 [[ "$ACTUAL_NODE_VERSION" == "$EXPECTED_NODE_VERSION" ]] \
   || fail "host Node version $ACTUAL_NODE_VERSION does not match repository baseline $EXPECTED_NODE_VERSION"

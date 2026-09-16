@@ -304,6 +304,11 @@ class RaspberryPiFrontendReleaseTests(unittest.TestCase):
         self.assertIn("nexolab_frontend_import_artifact", text)
         self.assertIn("status=SKIPPED_OFF_DEVICE_ARTIFACT", text)
         self.assertIn('if [[ -n "$FRONTEND_ARTIFACT_DIR" ]]; then', text)
+        self.assertNotIn("docker curl python3 openssl npm node flock", text)
+        self.assertIn("docker curl python3 openssl node flock", text)
+        self.assertIn('NVM_NODE_BIN="$HOME/.nvm/versions/node/v${EXPECTED_NODE_VERSION}/bin"', text)
+        self.assertIn('export PATH="$NVM_NODE_BIN:$PATH"', text)
+        self.assertIn('ACTUAL_NODE_VERSION="$(node --version', text)
 
     def test_ci_and_release_workflows_publish_integrity_bound_frontend_artifacts(self) -> None:
         ci = CI_WORKFLOW.read_text(encoding="utf-8")

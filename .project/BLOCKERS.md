@@ -2,6 +2,14 @@
 
 Updated: 2026-09-16
 
+## Issue #1053 — FTDI commissioning permission boundary
+
+**Critical blocker for #1050 live acceptance.** Controlled #1050 deployment to `442e0c55...` passed and production acquisition remains healthy at 53 scheduled targets with AK-CC25 scheduled targets `0`. Post-cutover Danfoss Unit 35 preflight fails safely before a successful FC03 transaction because the nonroot Device Agent has `dialout` GID 20 but not host `plugdev` GID 46; FTDI `/dev/ttyUSB2/3` are `0660 root:plugdev` and return `EACCES` inside the container. Issue #1053 must add the minimum supplementary serial-group runtime contract and permission-aware inventory, then pass real `A10Q2SI7` FC03-only acceptance. No host chmod/chown workaround, privileged container, topology mutation, Modbus write or hardware write is permitted. A production Device Agent recreation for the eventual exact fix target is a separate cutover gate requiring Product Owner approval.
+
+## Issue #1050 — RS-485 commissioning selector production cutover
+
+**Cutover completed; acceptance remains open.** Product Owner-authorized `e948089... → 442e0c55...` deployment passed with evidence `runtime/deployments/20260916T191921Z`, rollback preservation and unchanged persistent volumes/topology. Runtime services are healthy and acquisition invariants hold. #1050 cannot close until #1053 clears the FTDI access defect and authenticated live UI/API plus Danfoss Unit 35 bounded FC03-only preflight pass.
+
 ## Issue #1044 — Danfoss onboarding runtime promotion
 
 **Cleared on 2026-09-16.** Compatibility source `e94808974da56461d974704e39bfbcd310a1e6f8` is active for Device Agent, Telemetry Service and Dashboard. Authenticated browser/API acceptance shows `Danfoss AK-CC25 Pro` in the supported profile list; runtime health, scheduler target identity, RS-485 identity and persistent mounts are preserved; AK-CC25 scheduled targets remain `0`; rollback images and the prior dashboard release remain retained. No Modbus/controller write or hardware write occurred.

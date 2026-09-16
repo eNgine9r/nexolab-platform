@@ -4,6 +4,12 @@ Updated: 2026-09-16
 
 ## Current Sprint
 
+### Issue #1050 — RS-485 commissioning selector deployed; live acceptance blocked by #1053
+
+PR #1049 merged the complete RS-485 commissioning selector to `main` as `442e0c55a87cd83fba71be769ac39d170cc0d61f`. Product Owner authorized the exact `e948089... → 442e0c55...` LOCAL_LAN cutover with #1044 rollback preservation. Controlled deployment evidence `runtime/deployments/20260916T191921Z` records `DEPLOYMENT PASSED`; Dashboard, Telemetry Service and Device Agent identify `442e0c55...`, persistent named-volume identities are preserved, acquisition remains 53 scheduled targets, AK-CC25 scheduled targets remain `0`, MQTT/DB/queue health is normal, and no Modbus/controller write or hardware write occurred. PR #1052 exact deployment-authority/tooling head `b7e91e38cca02593df0876fe61e81947071fced1` passed CI / NEXOLAB Merge Gate run `35139430341`.
+
+Real post-cutover acceptance found one critical runtime defect before #1050 can complete: Device Agent correctly lists FTDI `A10Q2SI7` as `available_commissioning`, but bounded Danfoss Unit 35 preflight fails at serial open with `adapter_unavailable`. The container remains nonroot with supplementary groups `[20, 65532]`; production CP2104 adapters are `root:dialout` GID 20 and open successfully, while FTDI `/dev/ttyUSB2/3` are `root:plugdev` GID 46 and return `EACCES`. Registry revision remains 20, production topology is unchanged and AK-CC25 scheduled targets remain `0`. Critical bug Issue #1053 is the next Ready Work Package; #1050 remains in progress until #1053 is fixed, redeployed under a separately approved exact target, and authenticated live UI/API + FC03-only acceptance passes.
+
 ### Issue #1044 — Danfoss AK-CC25 Pro LOCAL_LAN onboarding acceptance completed
 
 Issue #1044 is operationally completed on compatibility source `e94808974da56461d974704e39bfbcd310a1e6f8`, built from deployed base `9a3556b25b257396d15db80af591d1cc3684b8f7` plus only the accepted #1025/#1041 Danfoss runtime deltas. Device Agent, Telemetry Service and Dashboard were promoted through retained rollback points; post-cutover Device Agent is `status=ok`, MQTT connected, queue depth `0`, workers `2/2` healthy, Telemetry is ready, Dashboard and onboarding routes return HTTP 200, and the authenticated live commissioning profile request returns HTTP 200 with exactly one `Danfoss AK-CC25 Pro` option. The live profile is `danfoss-ak-cc25-pro-sw1.3x-fc03-v1`, family `akcc25`, read-only, and `activation_supported=false`.
@@ -296,9 +302,9 @@ Issue #245 is completed with real Raspberry Pi standalone hardware evidence. Iss
 
 ## Durable baselines
 
-Latest accepted repository software baseline is Issue #1024 exact verified head `84a47eb15517af18d5ec5139ea8fa00d8e834542` in PR #1025. The latest accepted Overview/UI product baseline remains Issue #1001 head `b245b48e7ab64a42680fb9d516646926b45d1b41`. The currently deployed production source is still `9a3556b25b257396d15db80af591d1cc3684b8f7`, intentionally older than the accepted repository software baseline. Repository acceptance does not imply production deployment or additional hardware acceptance beyond the explicitly recorded read-only #1024 evidence.
+Latest accepted commissioning product source and currently deployed LOCAL_LAN source are both `442e0c55a87cd83fba71be769ac39d170cc0d61f` after the Product Owner-authorized #1050 cutover. The latest accepted Overview/UI product baseline remains Issue #1001 head `b245b48e7ab64a42680fb9d516646926b45d1b41`; repository acceptance for later work still does not imply additional hardware acceptance unless explicitly recorded.
 
-Controlled-source version authority is recorded for `9a3556b25b257396d15db80af591d1cc3684b8f7`, evidence `runtime/deployments/20260904T032305Z`, schema `20260902_0031`, `linux/arm64`, LOCAL_LAN, health `ready`. Real authorized Embraco Unit 2 read-only hardware evidence remains anchored to the deployed source. Temperature/control engineering scaling remains explicitly unverified where existing production semantics are unknown.
+Controlled deployment evidence for the current source is `runtime/deployments/20260916T191921Z`, with the exact pre-cutover #1044 compatibility runtime retained as rollback authority. Runtime health and 53-target production acquisition are accepted, while the new FTDI commissioning path remains blocked by Issue #1053 until the nonroot Device Agent receives the minimum required serial supplementary-group access and real Unit 35 FC03-only acceptance is repeated. Temperature/control engineering scaling remains explicitly unverified where existing production semantics are unknown.
 
 ## Issue #675 source-to-packaged authority
 
