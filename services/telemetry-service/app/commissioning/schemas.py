@@ -26,6 +26,7 @@ class SupportedDeviceProfileResponse(BaseModel):
     ]
     evidence_note: str
     read_only: Literal[True] = True
+    activation_supported: bool
 
 
 class SupportedDeviceProfileListResponse(BaseModel):

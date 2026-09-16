@@ -3,28 +3,35 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-16T06:46:00+03:00",
+  "timestamp": "2026-09-16T07:44:11+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1042 verified implementation candidate is in review; #1031 remains soft-blocked until the shared MinIO repair merges GREEN",
+  "event": "Issue #1031 current-main integration verified locally and returned to PR review",
   "baselines": {
     "accepted_product_sha": "84a47eb15517af18d5ec5139ea8fa00d8e834542",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "active_work": {
-    "issue": 1042,
-    "title": "Pin central MinIO defaults to Quay for acceptance and runtime compose",
-    "branch": "fix/1042-central-minio-quay"
+    "issue": 1031,
+    "title": "Add Danfoss AK-CC25 Pro to supported equipment onboarding catalog",
+    "branch": "feat/1031-akcc25-onboarding"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "verified_head_sha": "afaf983eeb22fcca01c7e9e83b4d2213ed732021",
+      "local_worktree": "/home/nexolab/nexolab-1031",
+      "implementation_candidate": "preserved_uncommitted_during_issue_1037_host_stability_interrupt",
+      "focused_frontend_tests": "17_passed",
+      "focused_backend_tests": "24_passed",
+      "production_activation": "not_executed_fail_closed",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "verified_head_sha": "757682bba234171e357108b61f15d47d0d12cab6",
+      "pull_request": 1041,
       "checks": {
-        "central_minio_contract": "2_passed",
-        "related_dr_offline_contracts": "28_passed",
-        "compose_config": "pass",
-        "resolved_images": "quay_pinned",
-        "quay_server_manifest": "pass",
-        "quay_client_manifest": "pass",
+        "frontend_targeted": "17_passed",
+        "backend_targeted": "24_passed",
+        "prettier": "pass",
+        "eslint": "pass",
+        "typescript": "pass",
         "python_compile": "pass",
         "state_model": "pass",
         "diff_check": "pass"
@@ -32,7 +39,7 @@
     }
   },
   "observations": [],
-  "next_action": "Publish the #1042 branch and open its focused PR; require exact-head Core and routed acceptance workflows GREEN before merge.",
+  "next_action": "Publish refreshed PR #1041 head and require exact-head GitHub CI, including Core, Telemetry, Authenticated Dashboard and Offline Bundle, to finish GREEN before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -16,6 +16,7 @@ class SupportedDeviceProfile:
     capability_status: str
     evidence_note: str
     read_only: bool = True
+    activation_supported: bool = True
 
 
 # Repository-owned mirror of the already accepted Device Agent FC03-only profile
@@ -56,6 +57,22 @@ SUPPORTED_DEVICE_PROFILES: tuple[SupportedDeviceProfile, ...] = (
         transport_kind="modbus_rtu",
         capability_status="repository_supported_hardware_evidenced",
         evidence_note="Existing strict FC03-only Sync v1.00.04 contract; engineering temperature scale remains unverified.",
+    ),
+    SupportedDeviceProfile(
+        id="danfoss-ak-cc25-pro",
+        version="danfoss-ak-cc25-pro-sw1.3x-fc03-v1",
+        device_family="akcc25",
+        device_class="temperature-controller",
+        manufacturer="Danfoss",
+        models=("AK-CC25 Pro",),
+        display_name="Danfoss AK-CC25 Pro",
+        transport_kind="modbus_rtu",
+        capability_status="repository_supported_hardware_evidenced",
+        evidence_note=(
+            "Real Unit 35 FC03 discovery is hardware-evidenced at 9600 8E1; "
+            "production activation and temperature engineering semantics remain disabled."
+        ),
+        activation_supported=False,
     ),
 )
 

@@ -18,6 +18,7 @@ const profilePayload = {
   capability_status: "repository_supported_hardware_evidenced",
   evidence_note: "Existing strict FC03-only contract.",
   read_only: true,
+  activation_supported: true,
 };
 
 const sessionPayload = {
@@ -156,10 +157,44 @@ describe("HttpCommissioningRepository", () => {
         id: "embraco-sync",
         capabilityStatus: "repository_supported_hardware_evidenced",
         readOnly: true,
+        activationSupported: true,
       },
     ]);
     await expect(repository.listSessions()).resolves.toMatchObject([
       { id: "commissioning-1", lifecycle: "draft", version: 1 },
+    ]);
+  });
+
+  it("preserves discovery-only activation capability from the supported profile API", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValueOnce(
+      json({
+        items: [
+          {
+            ...profilePayload,
+            id: "danfoss-ak-cc25-pro",
+            version: "danfoss-ak-cc25-pro-sw1.3x-fc03-v1",
+            device_family: "akcc25",
+            manufacturer: "Danfoss",
+            models: ["AK-CC25 Pro"],
+            display_name: "Danfoss AK-CC25 Pro",
+            activation_supported: false,
+          },
+        ],
+      }),
+    );
+    const repository = new HttpCommissioningRepository({
+      apiBaseUrl: "http://telemetry.local/",
+      fetchImpl,
+    });
+
+    await expect(repository.listProfiles()).resolves.toMatchObject([
+      {
+        id: "danfoss-ak-cc25-pro",
+        deviceFamily: "akcc25",
+        manufacturer: "Danfoss",
+        models: ["AK-CC25 Pro"],
+        activationSupported: false,
+      },
     ]);
   });
 

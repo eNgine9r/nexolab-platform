@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1042,
-      "title": "Pin central MinIO defaults to Quay for acceptance and runtime compose",
-      "branch": "fix/1042-central-minio-quay"
+      "issue": 1031,
+      "title": "Add Danfoss AK-CC25 Pro to supported equipment onboarding catalog",
+      "branch": "feat/1031-akcc25-onboarding"
     },
     "next_work_package": null
   },
@@ -3732,11 +3732,11 @@
       "issue": 1031,
       "title": "Add Danfoss AK-CC25 Pro to supported equipment onboarding catalog",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "review",
       "depends_on": [
         1024
       ],
-      "branch": "feat/1031-ak-cc25-onboarding",
+      "branch": "feat/1031-akcc25-onboarding",
       "evidence": {
         "local_worktree": "/home/nexolab/nexolab-1031",
         "implementation_candidate": "preserved_uncommitted_during_issue_1037_host_stability_interrupt",
@@ -3744,7 +3744,19 @@
         "focused_backend_tests": "24_passed",
         "production_activation": "not_executed_fail_closed",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "verified_head_sha": "757682bba234171e357108b61f15d47d0d12cab6",
+        "pull_request": 1041,
+        "checks": {
+          "frontend_targeted": "17_passed",
+          "backend_targeted": "24_passed",
+          "prettier": "pass",
+          "eslint": "pass",
+          "typescript": "pass",
+          "python_compile": "pass",
+          "state_model": "pass",
+          "diff_check": "pass"
+        }
       }
     },
     {
@@ -3796,7 +3808,7 @@
       "issue": 1042,
       "title": "Pin central MinIO defaults to Quay for acceptance and runtime compose",
       "priority": "unspecified",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "fix/1042-central-minio-quay",
       "evidence": {
         "verified_head_sha": "afaf983eeb22fcca01c7e9e83b4d2213ed732021",

@@ -75,6 +75,7 @@ def create_commissioning_router(
                     capability_status=item.capability_status,  # type: ignore[arg-type]
                     evidence_note=item.evidence_note,
                     read_only=True,
+                    activation_supported=item.activation_supported,
                 )
                 for item in SUPPORTED_DEVICE_PROFILES
             ]
@@ -104,6 +105,7 @@ def create_commissioning_router(
             capability_status=item.capability_status,  # type: ignore[arg-type]
             evidence_note=item.evidence_note,
             read_only=True,
+            activation_supported=item.activation_supported,
         )
 
     @router.get("/sessions", response_model=CommissioningSessionListResponse)
