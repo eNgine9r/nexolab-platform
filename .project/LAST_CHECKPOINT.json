@@ -3,43 +3,19 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-16T07:44:11+03:00",
+  "timestamp": "2026-09-16T11:15:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1031 current-main integration verified locally and returned to PR review",
+  "event": "Issue #1044 Danfoss onboarding compatibility release accepted on LOCAL_LAN runtime",
   "baselines": {
-    "accepted_product_sha": "84a47eb15517af18d5ec5139ea8fa00d8e834542",
-    "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
+    "accepted_product_sha": "19afc763aa9c46c0a8c9b49a5e1527eac0df9cdd",
+    "deployed_product_sha": "e94808974da56461d974704e39bfbcd310a1e6f8"
   },
-  "active_work": {
-    "issue": 1031,
-    "title": "Add Danfoss AK-CC25 Pro to supported equipment onboarding catalog",
-    "branch": "feat/1031-akcc25-onboarding"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "active_issue_evidence": {
-      "local_worktree": "/home/nexolab/nexolab-1031",
-      "implementation_candidate": "preserved_uncommitted_during_issue_1037_host_stability_interrupt",
-      "focused_frontend_tests": "17_passed",
-      "focused_backend_tests": "24_passed",
-      "production_activation": "not_executed_fail_closed",
-      "modbus_write": "none",
-      "hardware_write": "none",
-      "verified_head_sha": "757682bba234171e357108b61f15d47d0d12cab6",
-      "pull_request": 1041,
-      "checks": {
-        "frontend_targeted": "17_passed",
-        "backend_targeted": "24_passed",
-        "prettier": "pass",
-        "eslint": "pass",
-        "typescript": "pass",
-        "python_compile": "pass",
-        "state_model": "pass",
-        "diff_check": "pass"
-      }
-    }
+    "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Publish refreshed PR #1041 head and require exact-head GitHub CI, including Core, Telemetry, Authenticated Dashboard and Offline Bundle, to finish GREEN before merge.",
+  "next_action": "Start Issue #1045 to align the frontend acquisition-cadence family contract with existing Embraco backend support; AK-CC25 production polling remains disabled.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
