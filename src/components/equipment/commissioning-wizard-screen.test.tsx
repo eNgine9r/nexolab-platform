@@ -261,6 +261,32 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     expect(screen.queryByText("Завантаження чернетки…")).not.toBeInTheDocument();
   });
 
+  it("keeps the profile catalog usable when local RS-485 inventory is unavailable", async () => {
+    const repository = commissioningRepository(async () => persistedSession, {
+      listProfiles: async () => [danfossProfile],
+      async listConnections() {
+        throw new Error("Device Agent inventory unavailable");
+      },
+    });
+    runtimeFactory.create.mockReturnValue(runtime(repository));
+
+    render(<CommissioningWizardScreen commissioningId={null} />);
+    await screen.findByRole("heading", { name: "Нова чернетка підключення" });
+
+    expect(screen.getByRole("option", { name: "Danfoss AK-CC25 Pro" })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("combobox", { name: "Підтримуваний профіль" }), {
+      target: { value: "danfoss-ak-cc25-pro" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Далі" }));
+
+    expect(screen.getByRole("heading", { name: "Підключення RS-485" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "RS-485 підключення" })).toBeDisabled();
+    expect(screen.getByRole("spinbutton", { name: "Modbus Unit ID" })).toHaveValue(35);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /Локальний інвентар RS-485 недоступний.*Device Agent inventory unavailable/,
+    );
+  });
+
   it("hides the previous organization draft while the next repository loads", async () => {
     const firstRepository = commissioningRepository(async () => persistedSession);
     const secondRepository = commissioningRepository(

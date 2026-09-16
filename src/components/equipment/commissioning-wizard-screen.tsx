@@ -68,6 +68,8 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   const [unsupportedChoice, setUnsupportedChoice] = useState(false);
   const [profiles, setProfiles] = useState<SupportedDeviceProfile[]>([]);
   const [connections, setConnections] = useState<CommissioningConnectionInventory | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [connectionRepository, setConnectionRepository] = useState<CommissioningRepository | null>(null);
   const [equipment, setEquipment] = useState<RefrigerationEquipment[]>([]);
   const [session, setSession] = useState<CommissioningSession | null>(null);
   const [loadedRepository, setLoadedRepository] = useState<CommissioningRepository | null>(null);
@@ -104,16 +106,28 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
     if (security.state !== "ready" || !organizationId || !repository || !runtime.equipmentRepository) return;
     const controller = new AbortController();
     const target = normalize(searchParams.get("target"));
+    void repository
+      .listConnections(controller.signal)
+      .then((loadedConnections) => {
+        if (controller.signal.aborted || activeRepository.current !== repository) return;
+        setConnections(loadedConnections);
+        setConnectionError(null);
+        setConnectionRepository(repository);
+      })
+      .catch((cause: unknown) => {
+        if (controller.signal.aborted || activeRepository.current !== repository) return;
+        setConnections(null);
+        setConnectionError(message(cause));
+        setConnectionRepository(repository);
+      });
     void Promise.all([
       repository.listProfiles(controller.signal),
-      repository.listConnections(controller.signal),
       runtime.equipmentRepository.list(),
       commissioningId ? repository.getSession(commissioningId, controller.signal) : Promise.resolve(null),
     ])
-      .then(([loadedProfiles, loadedConnections, loadedEquipment, loadedSession]) => {
+      .then(([loadedProfiles, loadedEquipment, loadedSession]) => {
         if (controller.signal.aborted) return;
         setProfiles(loadedProfiles);
-        setConnections(loadedConnections);
         setEquipment(loadedEquipment.filter((item) => item.lifecycleStatus !== "retired"));
         setSession(loadedSession);
         setUnsupportedChoice(Boolean(loadedSession?.lifecycle === "unsupported" && !loadedSession.profileId));
@@ -132,7 +146,6 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
       .catch((cause: unknown) => {
         if (controller.signal.aborted) return;
         setProfiles([]);
-        setConnections(null);
         setEquipment([]);
         setSession(null);
         setUnsupportedChoice(false);
@@ -239,6 +252,8 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   const loadIsCurrent = loadedRepository === repository;
   const visibleLoadState = loadIsCurrent ? loadState : "loading";
   const visibleSession = loadIsCurrent ? session : null;
+  const visibleConnections = connectionRepository === repository ? connections : null;
+  const visibleConnectionError = connectionRepository === repository ? connectionError : null;
   const cancelled = visibleSession?.lifecycle === "cancelled";
   const currentPreflightLoadKey =
     visibleSession && organizationId ? `${organizationId}:${visibleSession.id}` : null;
@@ -506,7 +521,8 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                     draft={draft}
                     setDraft={setDraft}
                     profiles={profiles}
-                    connections={connections}
+                    connections={visibleConnections}
+                    connectionError={visibleConnectionError}
                     equipment={equipment}
                     selectedProfile={selectedProfile}
                     selectedEquipment={selectedEquipment}
@@ -607,6 +623,7 @@ function WizardStep({
   setDraft,
   profiles,
   connections,
+  connectionError,
   equipment,
   selectedProfile,
   selectedEquipment,
@@ -619,6 +636,7 @@ function WizardStep({
   setDraft: React.Dispatch<React.SetStateAction<CommissioningSessionWrite>>;
   profiles: SupportedDeviceProfile[];
   connections: CommissioningConnectionInventory | null;
+  connectionError: string | null;
   equipment: RefrigerationEquipment[];
   selectedProfile: SupportedDeviceProfile | null;
   selectedEquipment: RefrigerationEquipment | null;
@@ -637,7 +655,15 @@ function WizardStep({
       />
     );
   if (step === 1)
-    return <ConnectionStep draft={draft} setDraft={setDraft} inventory={connections} disabled={disabled} />;
+    return (
+      <ConnectionStep
+        draft={draft}
+        setDraft={setDraft}
+        inventory={connections}
+        inventoryError={connectionError}
+        disabled={disabled}
+      />
+    );
   if (step === 2) return <ProfileStep profile={selectedProfile} unsupported={unsupported} />;
   if (step === 3)
     return <BindingStep draft={draft} setDraft={setDraft} equipment={equipment} disabled={disabled} />;
@@ -727,11 +753,13 @@ function ConnectionStep({
   draft,
   setDraft,
   inventory,
+  inventoryError,
   disabled,
 }: {
   draft: CommissioningSessionWrite;
   setDraft: React.Dispatch<React.SetStateAction<CommissioningSessionWrite>>;
   inventory: CommissioningConnectionInventory | null;
+  inventoryError: string | null;
   disabled: boolean;
 }) {
   const field = (key: keyof CommissioningSessionWrite, value: string | number | null) =>
@@ -800,6 +828,14 @@ function ConnectionStep({
               {selected.stableTransportIdentifier}
             </p>
           </div>
+        ) : inventoryError ? (
+          <p
+            role="alert"
+            className="rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-3 text-xs leading-5 text-amber-100"
+          >
+            Локальний інвентар RS-485 недоступний. Вибір адаптера та bounded read-only preflight заблоковані,
+            але профіль і чернетку можна переглядати або зберігати. {inventoryError}
+          </p>
         ) : (
           <p className="rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-3 text-xs leading-5 text-amber-100">
             Оберіть адаптер. Ручне введення `/dev/ttyUSB*`, Node або Bus ID навмисно вимкнене.
