@@ -12,7 +12,7 @@ Updated: 2026-09-16
 
 ## Issue #1031 — AK-CC25 Pro onboarding
 
-**Active; shared CI blocker cleared.** #1042 / PR #1043 removed the retired MinIO registry failure, so PR #1041 has resumed on current `main`. The remaining gate is to rerun the Danfoss-focused local verification and the full exact-head GitHub matrix after integrating `5cced9e2cc855bcb2899ebe76fd85d04c98f0dd5`. Production activation remains fail-closed; no Modbus/controller write or hardware write is permitted.
+**Product implementation GREEN; exact-head GitHub verification remains.** The #1042 MinIO registry blocker is cleared and current `main` is integrated. Refreshed local verification passed frontend **17/17**, backend **24/24**, Prettier, ESLint, TypeScript, Python compile, State Model v2 and diff checks on `757682bba234171e357108b61f15d47d0d12cab6`. PR #1041 must now finish its refreshed exact-head CI before merge. Production activation remains fail-closed; no Modbus/controller write or hardware write is permitted.
 
 ## Issue #1024 — AK-CC25 Pro read-only hardware discovery
 
@@ -179,9 +179,9 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-08B are completed through GREEN focused PRs, including #953 / PR #954, #957 / PR #958 and #960 / PR #962. RFX state remains completed through #960; current independent maintenance is tracked separately by the active Work Package.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — #1031 active
+## Sprint execution gate — #1031 in review
 
-Issue #1042 is completed and merged GREEN, and Issue #1031 is the active Work Package on `feat/1031-akcc25-onboarding`. The immediate repository gate is current-main integration followed by refreshed targeted checks and exact-head PR #1041 verification. Latest accepted repository software baseline remains #1024 head `84a47eb15517af18d5ec5139ea8fa00d8e834542`; the latest accepted Overview/UI product baseline remains #1001 head `b245b48e7ab64a42680fb9d516646926b45d1b41`. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
+Issue #1031 is the active Work Package and PR #1041 has returned to review after current-main integration and refreshed local GREEN checks. The immediate gate is exact-head GitHub CI; merge is forbidden until all required and additionally registered workflows are GREEN. Latest accepted repository software baseline remains #1024 head `84a47eb15517af18d5ec5139ea8fa00d8e834542`; the latest accepted Overview/UI product baseline remains #1001 head `b245b48e7ab64a42680fb9d516646926b45d1b41`. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
 
 #189/#585 remain blocked, #201 remains `needs_validation`, #202 remains `hardware_validation`, and K96–K100 remain hardware-unverified/excluded from automatic production polling. Issue #1012 completed the previously scheduled 2026-09-15 security review early; the next fail-closed exception boundary is 2026-09-21.
 
