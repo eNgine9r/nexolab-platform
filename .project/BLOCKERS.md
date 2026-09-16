@@ -2,6 +2,10 @@
 
 Updated: 2026-09-16
 
+## Issue #1044 — Danfoss onboarding runtime promotion
+
+**Cleared on 2026-09-16.** Compatibility source `e94808974da56461d974704e39bfbcd310a1e6f8` is active for Device Agent, Telemetry Service and Dashboard. Authenticated browser/API acceptance shows `Danfoss AK-CC25 Pro` in the supported profile list; runtime health, scheduler target identity, RS-485 identity and persistent mounts are preserved; AK-CC25 scheduled targets remain `0`; rollback images and the prior dashboard release remain retained. No Modbus/controller write or hardware write occurred.
+
 ## Issue #1042 — central MinIO registry repair
 
 **Cleared and merged.** PR #1043 exact head `1f491ff2d1e01ba88cd0b2e324f5749756e93234` passed all registered workflows, including Offline Auth Acceptance and Capacity Release Gate that had previously failed on retired Docker Hub MinIO repositories. The pinned release versions are unchanged; central defaults now use the repository-approved Quay registry. PR #1043 squash-merged to `main` as `5cced9e2cc855bcb2899ebe76fd85d04c98f0dd5`, and GitHub Issue #1042 is closed completed. No production deployment or data mutation occurred.
@@ -12,7 +16,7 @@ Updated: 2026-09-16
 
 ## Issue #1031 — AK-CC25 Pro onboarding
 
-**Product implementation GREEN; exact-head GitHub verification remains.** The #1042 MinIO registry blocker is cleared and current `main` is integrated. Refreshed local verification passed frontend **17/17**, backend **24/24**, Prettier, ESLint, TypeScript, Python compile, State Model v2 and diff checks on `757682bba234171e357108b61f15d47d0d12cab6`. PR #1041 must now finish its refreshed exact-head CI before merge. Production activation remains fail-closed; no Modbus/controller write or hardware write is permitted.
+**Cleared and merged.** PR #1041 exact head `19afc763aa9c46c0a8c9b49a5e1527eac0df9cdd` passed required exact-head verification and merged to `main` as `ddf5427483e450f2eaa37e36f9fe290c1f913331`. Danfoss onboarding is repository-complete and production activation remains fail-closed. Runtime visibility was subsequently accepted under #1044.
 
 ## Issue #1024 — AK-CC25 Pro read-only hardware discovery
 
@@ -179,9 +183,9 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-08B are completed through GREEN focused PRs, including #953 / PR #954, #957 / PR #958 and #960 / PR #962. RFX state remains completed through #960; current independent maintenance is tracked separately by the active Work Package.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — #1031 in review
+## Sprint execution gate — #1044 completed; #1045 next Ready
 
-Issue #1031 is the active Work Package and PR #1041 has returned to review after current-main integration and refreshed local GREEN checks. The immediate gate is exact-head GitHub CI; merge is forbidden until all required and additionally registered workflows are GREEN. Latest accepted repository software baseline remains #1024 head `84a47eb15517af18d5ec5139ea8fa00d8e834542`; the latest accepted Overview/UI product baseline remains #1001 head `b245b48e7ab64a42680fb9d516646926b45d1b41`. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
+Issue #1044 has completed the controlled Danfoss onboarding runtime promotion. Accepted repository product baseline is #1031 exact head `19afc763aa9c46c0a8c9b49a5e1527eac0df9cdd`; deployed compatibility source is `e94808974da56461d974704e39bfbcd310a1e6f8`. AK-CC25 remains read-only discovery/preflight with production acquisition disabled. The next independent software Work Package is #1045, which aligns the frontend acquisition-cadence family contract with already production-supported Embraco; it must not add AK-CC25 cadence support.
 
 #189/#585 remain blocked, #201 remains `needs_validation`, #202 remains `hardware_validation`, and K96–K100 remain hardware-unverified/excluded from automatic production polling. Issue #1012 completed the previously scheduled 2026-09-15 security review early; the next fail-closed exception boundary is 2026-09-21.
 

@@ -18,15 +18,11 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "84a47eb15517af18d5ec5139ea8fa00d8e834542",
-    "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
+    "accepted_product_sha": "19afc763aa9c46c0a8c9b49a5e1527eac0df9cdd",
+    "deployed_product_sha": "e94808974da56461d974704e39bfbcd310a1e6f8"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1031,
-      "title": "Add Danfoss AK-CC25 Pro to supported equipment onboarding catalog",
-      "branch": "feat/1031-akcc25-onboarding"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -3732,7 +3728,7 @@
       "issue": 1031,
       "title": "Add Danfoss AK-CC25 Pro to supported equipment onboarding catalog",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1024
       ],
@@ -3822,6 +3818,33 @@
           "python_compile": "pass",
           "state_model": "pass",
           "diff_check": "pass"
+        }
+      }
+    },
+    {
+      "issue": 1044,
+      "title": "Expose Danfoss AK-CC25 Pro onboarding on LOCAL_LAN runtime",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "deploy/1044-danfoss-onboarding-runtime",
+      "evidence": {
+        "verified_head_sha": "e94808974da56461d974704e39bfbcd310a1e6f8",
+        "checks": {
+          "candidate_device_agent_tests": "111_passed",
+          "candidate_telemetry_tests": "24_passed",
+          "candidate_frontend_tests": "17_passed",
+          "production_build": "pass",
+          "isolated_candidate_artifacts": "pass",
+          "controlled_cutover": "pass",
+          "authenticated_live_profile_api": "pass",
+          "authenticated_browser_danfoss_option": "pass",
+          "scheduler_target_identity": "unchanged",
+          "rs485_bus_identity": "unchanged",
+          "persistent_mount_identity": "unchanged",
+          "sqlite_quick_check": "ok",
+          "akcc25_scheduled_targets": "0",
+          "modbus_write": "none",
+          "hardware_write": "none"
         }
       }
     }
