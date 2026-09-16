@@ -3,19 +3,23 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-16T02:41:30+03:00",
+  "timestamp": "2026-09-16T06:41:00+03:00",
   "actor": "ChatGPT",
-  "event": "work_package_completed",
+  "event": "Issue #1042 implementation candidate verified locally; #1031 remains soft-blocked by the shared MinIO registry failure",
   "baselines": {
     "accepted_product_sha": "84a47eb15517af18d5ec5139ea8fa00d8e834542",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1042,
+    "title": "Pin central MinIO defaults to Quay for acceptance and runtime compose",
+    "branch": "fix/1042-central-minio-quay"
+  },
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Begin Issue #1031 Danfoss AK-CC25 Pro supported equipment onboarding catalog after #1039 state-only reconciliation merges.",
+  "next_action": "Commit and open the focused #1042 PR, require exact-head CI GREEN, merge it, then resume PR #1041 on updated main.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

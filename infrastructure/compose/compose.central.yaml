@@ -111,7 +111,7 @@ services:
       - central
 
   minio:
-    image: ${MINIO_IMAGE:-minio/minio:RELEASE.2025-09-07T16-13-09Z}
+    image: ${MINIO_IMAGE:-quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z}
     restart: unless-stopped
     init: true
     command: ["server", "/data", "--console-address", ":9001"]
@@ -134,7 +134,7 @@ services:
       - central
 
   minio-init:
-    image: ${MINIO_CLIENT_IMAGE:-minio/mc:RELEASE.2025-08-13T08-35-41Z}
+    image: ${MINIO_CLIENT_IMAGE:-quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z}
     restart: "no"
     depends_on:
       minio:
