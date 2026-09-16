@@ -25,7 +25,7 @@
     "active_work_package": {
       "issue": 1031,
       "title": "Add Danfoss AK-CC25 Pro to supported equipment onboarding catalog",
-      "branch": "feat/1031-ak-cc25-onboarding"
+      "branch": "feat/1031-akcc25-onboarding"
     },
     "next_work_package": null
   },
@@ -3732,11 +3732,11 @@
       "issue": 1031,
       "title": "Add Danfoss AK-CC25 Pro to supported equipment onboarding catalog",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "in_progress",
       "depends_on": [
         1024
       ],
-      "branch": "feat/1031-ak-cc25-onboarding",
+      "branch": "feat/1031-akcc25-onboarding",
       "evidence": {
         "local_worktree": "/home/nexolab/nexolab-1031",
         "implementation_candidate": "preserved_uncommitted_during_issue_1037_host_stability_interrupt",
@@ -3744,19 +3744,7 @@
         "focused_backend_tests": "24_passed",
         "production_activation": "not_executed_fail_closed",
         "modbus_write": "none",
-        "hardware_write": "none",
-        "verified_head_sha": "bdc09eb43d778c015e66cccbf7696875455489c6",
-        "pull_request": 1041,
-        "checks": {
-          "frontend_targeted": "17_passed",
-          "backend_targeted": "24_passed",
-          "prettier": "pass",
-          "eslint": "pass",
-          "typescript": "pass",
-          "python_compile": "pass",
-          "state_model": "pass",
-          "diff_check": "pass"
-        }
+        "hardware_write": "none"
       }
     },
     {
@@ -3801,6 +3789,27 @@
           "telemetry_service_35035434492": "success",
           "nexolab_merge_gate_104604292366": "success",
           "review_threads": "zero"
+        }
+      }
+    },
+    {
+      "issue": 1042,
+      "title": "Pin central MinIO defaults to Quay for acceptance and runtime compose",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "fix/1042-central-minio-quay",
+      "evidence": {
+        "verified_head_sha": "afaf983eeb22fcca01c7e9e83b4d2213ed732021",
+        "checks": {
+          "central_minio_contract": "2_passed",
+          "related_dr_offline_contracts": "28_passed",
+          "compose_config": "pass",
+          "resolved_images": "quay_pinned",
+          "quay_server_manifest": "pass",
+          "quay_client_manifest": "pass",
+          "python_compile": "pass",
+          "state_model": "pass",
+          "diff_check": "pass"
         }
       }
     }

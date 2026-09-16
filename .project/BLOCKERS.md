@@ -2,13 +2,17 @@
 
 Updated: 2026-09-16
 
+## Issue #1042 — central MinIO registry repair
+
+**Cleared and merged.** PR #1043 exact head `1f491ff2d1e01ba88cd0b2e324f5749756e93234` passed all registered workflows, including Offline Auth Acceptance and Capacity Release Gate that had previously failed on retired Docker Hub MinIO repositories. The pinned release versions are unchanged; central defaults now use the repository-approved Quay registry. PR #1043 squash-merged to `main` as `5cced9e2cc855bcb2899ebe76fd85d04c98f0dd5`, and GitHub Issue #1042 is closed completed. No production deployment or data mutation occurred.
+
 ## Issue #1037 — Raspberry Pi host stability
 
 **Cleared and merged.** The repeated disconnect pattern was tied to avoidable host-wide resource starvation during heavyweight local verification, not to OOM, overheating, SSD failure or Ethernet hardware errors. Optional browser/inspection services are disabled and on-demand; the legacy duplicate `remote-desktop` tmux/npx Remote Desktop Commander path is removed and guarded; the managed RDC receives higher relative CPU/I/O weight. A 90-second bounded memory/CPU load kept RDC, Tailscale, Device Agent, Telemetry and Dashboard responsive, preserved the boot ID, and left all 12 NEXOLAB containers healthy. PR #1038 exact head `6e864c7650a0fe01a24e13e6d5ee1eadade331bd` passed Core CI, Telemetry Service and NEXOLAB Merge Gate and squash-merged to `main` as `25979534c27ba5f131cdae0caf9e29a719fa0711`. GitHub Issue #1037 is closed completed. No reboot was required.
 
 ## Issue #1031 — AK-CC25 Pro onboarding
 
-**No software defect blocker currently identified; PR #1041 exact-head CI pending.** Verified implementation head `bdc09eb43d778c015e66cccbf7696875455489c6` passes frontend **17/17** and backend **24/24** targeted tests plus formatting, ESLint, TypeScript, Python compile and state checks. Danfoss remains discovery/preflight-only with `activation_supported=false`; production activation stays fail-closed. Temperature semantics remain hardware-unverified because no temperature sensors are connected, but that is outside the onboarding acceptance scope. No Modbus/controller write or hardware write is permitted.
+**Active; shared CI blocker cleared.** #1042 / PR #1043 removed the retired MinIO registry failure, so PR #1041 has resumed on current `main`. The remaining gate is to rerun the Danfoss-focused local verification and the full exact-head GitHub matrix after integrating `5cced9e2cc855bcb2899ebe76fd85d04c98f0dd5`. Production activation remains fail-closed; no Modbus/controller write or hardware write is permitted.
 
 ## Issue #1024 — AK-CC25 Pro read-only hardware discovery
 
@@ -175,9 +179,9 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-08B are completed through GREEN focused PRs, including #953 / PR #954, #957 / PR #958 and #960 / PR #962. RFX state remains completed through #960; current independent maintenance is tracked separately by the active Work Package.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — #1031 in review
+## Sprint execution gate — #1031 active
 
-Issue #1037 is completed through merged PR #1038. Issue #1031 is in review through PR #1041 and remains bounded to supported-equipment onboarding with production activation disabled for Danfoss. Latest accepted repository software baseline is #1024 head `84a47eb15517af18d5ec5139ea8fa00d8e834542`; the latest accepted Overview/UI product baseline remains #1001 head `b245b48e7ab64a42680fb9d516646926b45d1b41`. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
+Issue #1042 is completed and merged GREEN, and Issue #1031 is the active Work Package on `feat/1031-akcc25-onboarding`. The immediate repository gate is current-main integration followed by refreshed targeted checks and exact-head PR #1041 verification. Latest accepted repository software baseline remains #1024 head `84a47eb15517af18d5ec5139ea8fa00d8e834542`; the latest accepted Overview/UI product baseline remains #1001 head `b245b48e7ab64a42680fb9d516646926b45d1b41`. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
 
 #189/#585 remain blocked, #201 remains `needs_validation`, #202 remains `hardware_validation`, and K96–K100 remain hardware-unverified/excluded from automatic production polling. Issue #1012 completed the previously scheduled 2026-09-15 security review early; the next fail-closed exception boundary is 2026-09-21.
 
