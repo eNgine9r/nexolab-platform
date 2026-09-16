@@ -2,6 +2,11 @@
 
 Updated: 2026-09-16
 
+## Issue #1050 — RS-485 commissioning selector production cutover
+
+**Cutover authorization cleared on 2026-09-16.** Product Owner explicitly authorized `e948089... → 442e0c55...` with rollback preserved to the current #1044 runtime. Checksum-bound #1044/#1050 evidence still matches the live Device Agent, Telemetry Service and Dashboard; a repository-owned compatibility-runtime authority bridge now validates that exact live state without runtime mutation, and current-main source selection is fail-closed/pinned to `e948089...`. Remaining gates are exact-head CI for the deployment-authority change, controlled cutover, and post-cutover UI/API/runtime acceptance.
+
+
 ## Issue #1044 — Danfoss onboarding runtime promotion
 
 **Cleared on 2026-09-16.** Compatibility source `e94808974da56461d974704e39bfbcd310a1e6f8` is active for Device Agent, Telemetry Service and Dashboard. Authenticated browser/API acceptance shows `Danfoss AK-CC25 Pro` in the supported profile list; runtime health, scheduler target identity, RS-485 identity and persistent mounts are preserved; AK-CC25 scheduled targets remain `0`; rollback images and the prior dashboard release remain retained. No Modbus/controller write or hardware write occurred.

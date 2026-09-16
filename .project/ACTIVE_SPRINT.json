@@ -18,14 +18,14 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "19afc763aa9c46c0a8c9b49a5e1527eac0df9cdd",
+    "accepted_product_sha": "96e4e65b0356656ddbaa4519d5302c19f4b749a5",
     "deployed_product_sha": "e94808974da56461d974704e39bfbcd310a1e6f8"
   },
   "selection": {
     "active_work_package": {
-      "issue": 1048,
-      "title": "Complete RS-485 commissioning connection selection and Danfoss read-only onboarding",
-      "branch": "fix/1048-rs485-commissioning-selector"
+      "issue": 1050,
+      "title": "Roll out merged RS-485 commissioning selector to LOCAL_LAN with verified recovery authority",
+      "branch": "deploy/1050-rs485-selector-runtime"
     },
     "next_work_package": null
   },
@@ -3856,8 +3856,32 @@
       "issue": 1048,
       "title": "Complete RS-485 commissioning connection selection and Danfoss read-only onboarding",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/1048-rs485-commissioning-selector",
+      "evidence": {
+        "verified_head_sha": "96e4e65b0356656ddbaa4519d5302c19f4b749a5",
+        "pull_request": 1049,
+        "hardware_evidence_sha": "bf4122a7b920f9b4ffb3619b126d4d6afd65c00e",
+        "checks": {
+          "core_ci": "success",
+          "nexolab_merge_gate": "success",
+          "authenticated_dashboard": "success",
+          "offline_bundle": "success",
+          "telemetry_service": "success",
+          "device_agent_fleet": "success",
+          "real_ftdi_unit35_fc03_preflight": "success",
+          "production_target_identity_unchanged": "success",
+          "modbus_write": "none",
+          "hardware_write": "none"
+        }
+      }
+    },
+    {
+      "issue": 1050,
+      "title": "Roll out merged RS-485 commissioning selector to LOCAL_LAN with verified recovery authority",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "deploy/1050-rs485-selector-runtime",
       "evidence": {}
     }
   ],

@@ -3,23 +3,23 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-16T14:06:52+03:00",
-  "actor": "chatgpt",
-  "event": "Issue #1048 RS-485 commissioning selector implementation verified locally; real FTDI A10Q2SI7 Unit 35 bounded FC03 preflight passed with runtime invariants unchanged",
+  "timestamp": "2026-09-16T20:52:37+03:00",
+  "actor": "ChatGPT",
+  "event": "Issue #1050 cutover authorization recorded; exact e948089 live rollback authority established read-only and current-main source selection pinned to target 442e0c55",
   "baselines": {
-    "accepted_product_sha": "19afc763aa9c46c0a8c9b49a5e1527eac0df9cdd",
+    "accepted_product_sha": "96e4e65b0356656ddbaa4519d5302c19f4b749a5",
     "deployed_product_sha": "e94808974da56461d974704e39bfbcd310a1e6f8"
   },
   "active_work": {
-    "issue": 1048,
-    "title": "Complete RS-485 commissioning connection selection and Danfoss read-only onboarding",
-    "branch": "fix/1048-rs485-commissioning-selector"
+    "issue": 1050,
+    "title": "Roll out merged RS-485 commissioning selector to LOCAL_LAN with verified recovery authority",
+    "branch": "deploy/1050-rs485-selector-runtime"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Commit and push #1048, open focused PR, run exact-head CI, then perform authenticated LOCAL_LAN UI/API acceptance before any rollout",
+  "next_action": "Commit deployment-authority bridge, open PR and require exact-head GREEN CI; then execute authorized controlled LOCAL_LAN cutover and live onboarding acceptance",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

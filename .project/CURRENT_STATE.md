@@ -4,6 +4,13 @@ Updated: 2026-09-16
 
 ## Current Sprint
 
+### Issue #1050 — RS-485 commissioning selector LOCAL_LAN rollout preparation active
+
+Issue #1048 is repository-complete through PR #1049. Exact PR head `96e4e65b0356656ddbaa4519d5302c19f4b749a5` passed Core CI/NEXOLAB Merge Gate, Authenticated Dashboard, Offline Bundle, Telemetry Service, Device Agent Fleet and the additional registered exact-head workflows, with zero review threads, then merged to `main` as `442e0c55a87cd83fba71be769ac39d170cc0d61f`. Real source-head hardware acceptance on `bf4122a7b920f9b4ffb3619b126d4d6afd65c00e` verified the actual FTDI `A10Q2SI7` as an `available_commissioning` adapter and completed Danfoss Unit 35 bounded FC03 preflight with no Modbus/hardware writes; the later final-head change affected only frontend availability behavior and exact-head browser/CI verification is GREEN.
+
+Issue #1050 is now the active deployment Work Package. The current LOCAL_LAN runtime remains the accepted compatibility source `e94808974da56461d974704e39bfbcd310a1e6f8`; Device Agent image `sha256:ae47c0f8acf296e2573b44527f84f7ba3b733fd1dcccb503c12b4e14c3ab561c`, Telemetry image `sha256:5ecd4512def6c72dc212cf94ab94d00ff55f4ceacbb7e5247679e28d5ed002aa`, and frontend release `e9480897...-20260916T074150Z` are retained as the exact rollback point. The checksum-bound #1044/#1050 evidence package is healthy, Device Agent/Telemetry are healthy, scheduler remains at 53 targets, AK-CC25 scheduled targets remain `0`, and a fail-closed compatibility-runtime authority record now binds the generic deployment source selector to that exact live `e948089...` state. Product Owner explicitly authorized cutover `e948089... → 442e0c55...` with rollback preservation. The remaining gates are exact-head CI for the authority bridge, controlled cutover, and post-cutover authenticated UI/API/runtime acceptance.
+
+
 ### Issue #1044 — Danfoss AK-CC25 Pro LOCAL_LAN onboarding acceptance completed
 
 Issue #1044 is operationally completed on compatibility source `e94808974da56461d974704e39bfbcd310a1e6f8`, built from deployed base `9a3556b25b257396d15db80af591d1cc3684b8f7` plus only the accepted #1025/#1041 Danfoss runtime deltas. Device Agent, Telemetry Service and Dashboard were promoted through retained rollback points; post-cutover Device Agent is `status=ok`, MQTT connected, queue depth `0`, workers `2/2` healthy, Telemetry is ready, Dashboard and onboarding routes return HTTP 200, and the authenticated live commissioning profile request returns HTTP 200 with exactly one `Danfoss AK-CC25 Pro` option. The live profile is `danfoss-ak-cc25-pro-sw1.3x-fc03-v1`, family `akcc25`, read-only, and `activation_supported=false`.

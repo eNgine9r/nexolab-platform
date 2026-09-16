@@ -15,7 +15,7 @@ source "$SCRIPT_DIR/lib/frontend-candidate-liveness.sh"
 usage() {
   cat <<'USAGE'
 Usage: deploy-current-head-raspberry-pi.sh [--runtime-mode lan|standalone] [--frontend-artifact PATH]
-       [--source-ref SHA --expected-deployed-source SHA] [--source-selection-check-only]
+       [--source-ref SHA] [--expected-deployed-source SHA] [--source-selection-check-only]
        [--restore-edge-snapshot DEPLOYMENT_EVIDENCE_DIR
         --expected-deployed-source SHA --expected-target-source SHA]
 
@@ -23,7 +23,9 @@ Options:
   --frontend-artifact PATH  Import a verified off-device frontend artifact instead of building on this host.
   --source-ref SHA          Deploy an explicitly approved historical commit already contained in main history.
   --expected-deployed-source SHA
-                           Exact currently deployed source SHA; required with --source-ref.
+                           Exact currently deployed source SHA. With --source-ref it pins the
+                           historical-main lineage; without --source-ref it pins the current-main
+                           deployment authority, including an explicitly adopted compatibility runtime.
   --source-selection-check-only
                            Validate source lineage and exit before capacity, backup or runtime mutation.
   --restore-edge-snapshot DEPLOYMENT_EVIDENCE_DIR
@@ -111,11 +113,9 @@ while (($# > 0)); do
   esac
 done
 nexolab_validate_runtime_mode "$RUNTIME_MODE" || exit $?
-if [[ -n "$REQUESTED_SOURCE_REF" || -n "$EXPECTED_DEPLOYED_SOURCE" ]]; then
-  [[ -n "$RESTORE_EDGE_SNAPSHOT_DIR" || ( -n "$REQUESTED_SOURCE_REF" && -n "$EXPECTED_DEPLOYED_SOURCE" ) ]] || {
-    echo "ERROR: --source-ref and --expected-deployed-source must be supplied together" >&2
-    exit 64
-  }
+if [[ -n "$REQUESTED_SOURCE_REF" && -z "$EXPECTED_DEPLOYED_SOURCE" ]]; then
+  echo "ERROR: --source-ref requires --expected-deployed-source" >&2
+  exit 64
 fi
 
 REPO="${NEXOLAB_REPO:-$HOME/nexolab-platform}"
@@ -683,7 +683,7 @@ validate_full_sha() {
 
 resolve_latest_deployment_evidence() {
   local deployment_evidence
-  if ! deployment_evidence="$(python3 - "$REPO/runtime/deployments" "$AUDIT_DIR" "$SCRIPT_DIR/forward_deployment_recovery.py" "$REPO" <<'PY_EVIDENCE'
+  if ! deployment_evidence="$(python3 - "$REPO/runtime/deployments" "$AUDIT_DIR" "$SCRIPT_DIR/forward_deployment_recovery.py" "$SCRIPT_DIR/compatibility_runtime_authority.py" "$REPO" <<'PY_EVIDENCE'
 from datetime import datetime
 import importlib.util
 import json
@@ -694,13 +694,20 @@ import sys
 root = Path(sys.argv[1])
 current_audit = Path(sys.argv[2]).resolve()
 helper_path = Path(sys.argv[3])
-repo = Path(sys.argv[4])
+compatibility_helper_path = Path(sys.argv[4])
+repo = Path(sys.argv[5])
 spec = importlib.util.spec_from_file_location("nexolab_forward_deployment_recovery", helper_path)
 if spec is None or spec.loader is None:
     print("ERROR: forward recovery authority helper is unavailable", file=sys.stderr)
     raise SystemExit(3)
 forward_recovery = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(forward_recovery)
+compat_spec = importlib.util.spec_from_file_location("nexolab_compatibility_runtime_authority", compatibility_helper_path)
+if compat_spec is None or compat_spec.loader is None:
+    print("ERROR: compatibility runtime authority helper is unavailable", file=sys.stderr)
+    raise SystemExit(3)
+compatibility_authority = importlib.util.module_from_spec(compat_spec)
+compat_spec.loader.exec_module(compatibility_authority)
 stamp_re = re.compile(r"^\d{8}T\d{6}Z$")
 sha_re = re.compile(r"^[0-9a-f]{40}$")
 image_re = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -809,8 +816,22 @@ if root.is_dir():
                 raise SystemExit(3)
             forward_commit = forward_result["target_source"]
             forward_image = forward_result["device_agent_image_id"]
-        effective_commit = forward_commit or recovered_commit or passed_commit
-        effective_image = forward_image or recovered_image or passed_image
+        compatibility_commit = None
+        compatibility_image = None
+        compatibility_result_path = directory / "compatibility-runtime-authority.json"
+        if compatibility_result_path.exists():
+            if restore_result_path.exists() or forward_result_path.exists() or passed_commit is not None:
+                print(f"ERROR: compatibility authority cannot coexist with deployment/recovery authority: {directory}", file=sys.stderr)
+                raise SystemExit(3)
+            try:
+                compatibility_result = compatibility_authority.load_published_authority(repo, directory)
+            except Exception as error:
+                print(f"ERROR: compatibility runtime authority evidence is invalid: {directory}: {error}", file=sys.stderr)
+                raise SystemExit(3)
+            compatibility_commit = compatibility_result["compatibility_source"]
+            compatibility_image = compatibility_result["device_agent_image_id"]
+        effective_commit = forward_commit or recovered_commit or compatibility_commit or passed_commit
+        effective_image = forward_image or recovered_image or compatibility_image or passed_image
         mutated = (directory / "runtime-mutation-started").is_file() or any(
             marker in summary_text for marker in legacy_mutation_markers
         )
@@ -926,9 +947,15 @@ PY_REBASELINE_SOURCE
 
 resolve_deployed_source_authority() {
   if [[ -z "$REQUESTED_SOURCE_REF" ]]; then
-    if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "0" ]] \
-      && docker volume inspect nexolab-edge_edge-data >/dev/null 2>&1; then
+    if [[ -n "$EXPECTED_DEPLOYED_SOURCE" ]] \
+      || { [[ "$SOURCE_SELECTION_CHECK_ONLY" == "0" ]] && docker volume inspect nexolab-edge_edge-data >/dev/null 2>&1; }; then
+      validate_full_sha "$EXPECTED_DEPLOYED_SOURCE" || [[ -z "$EXPECTED_DEPLOYED_SOURCE" ]] \
+        || fail "--expected-deployed-source must be a full lowercase 40-character commit SHA"
       resolve_latest_deployment_evidence
+      if [[ -n "$EXPECTED_DEPLOYED_SOURCE" ]]; then
+        [[ "$VERIFIED_DEPLOYED_SOURCE" == "$EXPECTED_DEPLOYED_SOURCE" ]] \
+          || fail "expected deployed source does not match the latest authoritative runtime evidence"
+      fi
     fi
     return 0
   fi
@@ -982,8 +1009,13 @@ validate_selected_source_against_control() {
     TARGET_HEAD="$REQUESTED_SOURCE_REF"
     log "Approved historical-main source selection: deployed=$EXPECTED_DEPLOYED_SOURCE target=$TARGET_HEAD origin_main=$CONTROL_HEAD evidence=$EXPECTED_DEPLOYMENT_EVIDENCE"
   else
-    [[ -z "$EXPECTED_DEPLOYED_SOURCE" ]] || fail "--expected-deployed-source requires --source-ref"
-    log "Current-main source selection: target=$TARGET_HEAD"
+    if [[ -n "$EXPECTED_DEPLOYED_SOURCE" ]]; then
+      [[ "$VERIFIED_DEPLOYED_SOURCE" == "$EXPECTED_DEPLOYED_SOURCE" ]] \
+        || fail "expected deployed source does not match the latest authoritative runtime evidence"
+      log "Current-main source selection from pinned deployed authority: deployed=$EXPECTED_DEPLOYED_SOURCE target=$TARGET_HEAD"
+    else
+      log "Current-main source selection: target=$TARGET_HEAD"
+    fi
   fi
 }
 
@@ -1011,6 +1043,7 @@ if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "1" ]]; then
   printf 'target=%s\n' "$TARGET_HEAD"
   printf 'expected_deployed_source=%s\n' "${EXPECTED_DEPLOYED_SOURCE:-not_supplied}"
   printf 'deployed_device_agent_image_id=%s\n' "${VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID:-not_available}"
+  printf 'deployment_evidence=%s\n' "${EXPECTED_DEPLOYMENT_EVIDENCE:-not_available}"
   printf 'origin_main=%s\n' "$CONTROL_HEAD"
   exit 0
 fi
