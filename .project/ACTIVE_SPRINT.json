@@ -3732,7 +3732,7 @@
       "issue": 1031,
       "title": "Add Danfoss AK-CC25 Pro to supported equipment onboarding catalog",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "depends_on": [
         1024
       ],
@@ -3744,7 +3744,19 @@
         "focused_backend_tests": "24_passed",
         "production_activation": "not_executed_fail_closed",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "verified_head_sha": "bdc09eb43d778c015e66cccbf7696875455489c6",
+        "pull_request": 1041,
+        "checks": {
+          "frontend_targeted": "17_passed",
+          "backend_targeted": "24_passed",
+          "prettier": "pass",
+          "eslint": "pass",
+          "typescript": "pass",
+          "python_compile": "pass",
+          "state_model": "pass",
+          "diff_check": "pass"
+        }
       }
     },
     {
