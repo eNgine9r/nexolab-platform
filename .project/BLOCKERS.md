@@ -4,7 +4,7 @@ Updated: 2026-09-16
 
 ## Issue #1042 — central MinIO registry repair
 
-**Active critical CI repair.** PR #1041 exposed two shared acceptance failures unrelated to Danfoss logic: Offline Auth Acceptance could not pull legacy `minio/minio`, and Capacity Release Gate could not pull legacy `minio/mc`. Both inherit defaults from `compose.central.yaml`. The repair keeps the exact already-approved MinIO release tags but changes the default registry to `quay.io/minio/...`, aligns `.env.central.example`, and adds regression coverage. No production deployment or data mutation is in scope.
+**Critical CI repair implemented locally; exact-head PR verification remains.** PR #1041 exposed two shared acceptance failures unrelated to Danfoss logic: Offline Auth Acceptance could not pull legacy `minio/minio`, and Capacity Release Gate could not pull legacy `minio/mc`. Both inherit defaults from `compose.central.yaml`. Verified implementation head `afaf983eeb22fcca01c7e9e83b4d2213ed732021` keeps the exact already-approved MinIO release tags but changes the default registry to `quay.io/minio/...`, aligns `.env.central.example`, and adds regression coverage. Local contracts and Compose resolution are GREEN; GitHub exact-head acceptance is the remaining gate. No production deployment or data mutation is in scope.
 
 ## Issue #1037 — Raspberry Pi host stability
 
@@ -179,7 +179,7 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-08B are completed through GREEN focused PRs, including #953 / PR #954, #957 / PR #958 and #960 / PR #962. RFX state remains completed through #960; current independent maintenance is tracked separately by the active Work Package.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — #1042 active; #1031 soft-blocked
+## Sprint execution gate — #1042 in review; #1031 soft-blocked
 
 Issue #1042 is the active critical CI repair and #1031 is temporarily blocked on that shared acceptance dependency. Once #1042 merges GREEN, #1031 resumes on PR #1041 with a new exact-head CI cycle. Latest accepted repository software baseline is #1024 head `84a47eb15517af18d5ec5139ea8fa00d8e834542`; the latest accepted Overview/UI product baseline remains #1001 head `b245b48e7ab64a42680fb9d516646926b45d1b41`. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
 

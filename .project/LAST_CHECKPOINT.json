@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-16T06:41:00+03:00",
+  "timestamp": "2026-09-16T06:46:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1042 implementation candidate verified locally; #1031 remains soft-blocked by the shared MinIO registry failure",
+  "event": "Issue #1042 verified implementation candidate is in review; #1031 remains soft-blocked until the shared MinIO repair merges GREEN",
   "baselines": {
     "accepted_product_sha": "84a47eb15517af18d5ec5139ea8fa00d8e834542",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
@@ -16,10 +16,23 @@
     "branch": "fix/1042-central-minio-quay"
   },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "verified_head_sha": "afaf983eeb22fcca01c7e9e83b4d2213ed732021",
+      "checks": {
+        "central_minio_contract": "2_passed",
+        "related_dr_offline_contracts": "28_passed",
+        "compose_config": "pass",
+        "resolved_images": "quay_pinned",
+        "quay_server_manifest": "pass",
+        "quay_client_manifest": "pass",
+        "python_compile": "pass",
+        "state_model": "pass",
+        "diff_check": "pass"
+      }
+    }
   },
   "observations": [],
-  "next_action": "Commit and open the focused #1042 PR, require exact-head CI GREEN, merge it, then resume PR #1041 on updated main.",
+  "next_action": "Publish the #1042 branch and open its focused PR; require exact-head Core and routed acceptance workflows GREEN before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
