@@ -22,6 +22,7 @@ export type SupportedDeviceProfile = {
   capabilityStatus: "repository_supported" | "repository_supported_hardware_evidenced";
   evidenceNote: string;
   readOnly: true;
+  activationSupported: boolean;
 };
 
 export type CommissioningSession = {
@@ -436,7 +437,8 @@ function parseProfile(value: unknown): SupportedDeviceProfile {
     (item.capability_status !== "repository_supported" &&
       item.capability_status !== "repository_supported_hardware_evidenced") ||
     typeof item.evidence_note !== "string" ||
-    item.read_only !== true
+    item.read_only !== true ||
+    typeof item.activation_supported !== "boolean"
   ) {
     throw invalidResponse();
   }
@@ -452,6 +454,7 @@ function parseProfile(value: unknown): SupportedDeviceProfile {
     capabilityStatus: item.capability_status,
     evidenceNote: item.evidence_note,
     readOnly: true,
+    activationSupported: item.activation_supported,
   };
 }
 

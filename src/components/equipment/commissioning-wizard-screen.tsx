@@ -172,10 +172,20 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   }, [commissioningId, organizationId, repository, security.state]);
 
   useEffect(() => {
-    if (security.state !== "ready" || !organizationId || !repository || !commissioningId) return;
+    if (
+      security.state !== "ready" ||
+      !organizationId ||
+      !repository ||
+      !commissioningId ||
+      !session ||
+      session.id !== commissioningId
+    )
+      return;
     const controller = new AbortController();
     const operationRepository = repository;
     const loadKey = `${organizationId}:${commissioningId}`;
+    const sessionProfile = profiles.find((item) => item.id === session.profileId) ?? null;
+    if (sessionProfile?.activationSupported !== true) return () => controller.abort();
     void Promise.allSettled([
       repository.getActivationPlan(commissioningId, controller.signal),
       repository.getLatestActivation(commissioningId, controller.signal),
@@ -191,7 +201,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
       setActivationLoadKey(loadKey);
     });
     return () => controller.abort();
-  }, [commissioningId, organizationId, repository, security.state]);
+  }, [commissioningId, organizationId, profiles, repository, security.state, session]);
 
   if (
     security.state === "loading" ||
@@ -312,7 +322,8 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
       const refreshed = await repository.getSession(visibleSession.id);
       let plan: CommissioningActivationPlan | null = null;
       let planError: string | null = null;
-      if (result.result === "passed") {
+      const currentProfile = profiles.find((item) => item.id === visibleSession.profileId) ?? null;
+      if (result.result === "passed" && currentProfile?.activationSupported === true) {
         try {
           plan = await repository.getActivationPlan(visibleSession.id);
         } catch (cause: unknown) {
@@ -337,10 +348,12 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   };
 
   const runActivation = async () => {
+    const currentProfile = profiles.find((item) => item.id === visibleSession?.profileId) ?? null;
     if (
       !visibleSession ||
       !["verified", "activation_failed", "rolled_back"].includes(visibleSession.lifecycle) ||
-      !canManage
+      !canManage ||
+      currentProfile?.activationSupported !== true
     )
       return;
     setActivationBusy(true);
@@ -505,6 +518,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                       />
                       <ActivationPanel
                         session={visibleSession}
+                        profile={selectedProfile}
                         plan={visibleActivationPlan}
                         attempt={visibleActivation}
                         busy={activationBusy}
@@ -789,8 +803,22 @@ function ProfileStep({
             <SummaryRow label="Версія" value={profile.version} />
             <SummaryRow label="Transport" value="Modbus RTU" />
             <SummaryRow label="Capability" value={profile.capabilityStatus} />
+            <SummaryRow
+              label="Activation"
+              value={
+                profile.activationSupported
+                  ? "Read-only monitoring after preflight"
+                  : "Disabled — discovery/preflight only"
+              }
+            />
           </dl>
           <p className="mt-4 text-xs leading-5 text-slate-400">{profile.evidenceNote}</p>
+          {!profile.activationSupported ? (
+            <p className="mt-3 rounded-xl border border-amber-400/20 bg-amber-400/[0.05] p-3 text-xs leading-5 text-amber-100">
+              Цей профіль дозволяє лише read-only discovery/preflight. Production polling та activation не
+              доступні до окремого Work Package.
+            </p>
+          ) : null}
         </div>
       ) : (
         <div className="rounded-2xl border border-rose-400/20 bg-rose-400/[0.05] p-4 text-sm text-rose-100">
@@ -874,7 +902,9 @@ function ReviewStep({
       >
         {unsupported
           ? "Чернетка буде fail-closed як unsupported і не зможе перейти до preflight."
-          : "Збереження створює лише commissioning intent. Воно не активує опитування."}
+          : profile?.activationSupported === false
+            ? "Збереження створює commissioning intent для discovery/preflight. Активація опитування для цього профілю вимкнена."
+            : "Збереження створює лише commissioning intent. Воно не активує опитування."}
       </div>
     </StepFrame>
   );
@@ -993,6 +1023,7 @@ function PreflightPanel({
 
 function ActivationPanel({
   session,
+  profile,
   plan,
   attempt,
   busy,
@@ -1001,6 +1032,7 @@ function ActivationPanel({
   onRun,
 }: {
   session: CommissioningSession;
+  profile: SupportedDeviceProfile | null;
   plan: CommissioningActivationPlan | null;
   attempt: CommissioningActivationAttempt | null;
   busy: boolean;
@@ -1008,6 +1040,7 @@ function ActivationPanel({
   canManage: boolean;
   onRun: () => void;
 }) {
+  if (profile?.activationSupported !== true) return null;
   const canActivate =
     plan !== null &&
     ["verified", "activation_failed", "rolled_back"].includes(session.lifecycle) &&
@@ -1217,7 +1250,8 @@ function CommissioningSummary({
       <div className="mt-5 rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-3 text-[10px] leading-4 text-amber-100/80">
         Hardware verification: {preflight ? evidenceLabel(preflight.evidenceLevel) : "не виконувалась"}
         <br />
-        Acquisition activation: не виконувалась
+        Acquisition activation:{" "}
+        {profile?.activationSupported === false ? "disabled by profile" : "не виконувалась"}
         <br />
         Modbus writes: відсутні
       </div>

@@ -414,6 +414,10 @@ class CommissioningActivationRepository:
             raise CommissioningLifecycleConflictError(
                 "Commissioning profile is unavailable or stale"
             )
+        if not profile.activation_supported:
+            raise CommissioningLifecycleConflictError(
+                "Commissioning profile is discovery-only and cannot be activated"
+            )
         required = (
             row.node_id,
             row.bus_id,

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -9,6 +9,7 @@ import {
   type CommissioningPreflightAttempt,
   type CommissioningRepository,
   type CommissioningSession,
+  type SupportedDeviceProfile,
 } from "@/features/equipment/commissioning-repository";
 import type { EquipmentRegistryRuntime } from "@/features/equipment/runtime";
 import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
@@ -69,6 +70,36 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+const embracoProfile: SupportedDeviceProfile = {
+  id: "embraco-sync",
+  version: "embraco-sync-fc03-v1.00.04",
+  deviceFamily: "embraco",
+  deviceClass: "temperature-controller",
+  manufacturer: "Embraco",
+  models: ["Sync"],
+  displayName: "Embraco Sync",
+  transportKind: "modbus_rtu",
+  capabilityStatus: "repository_supported_hardware_evidenced",
+  evidenceNote: "Existing strict FC03-only Sync v1.00.04 contract.",
+  readOnly: true,
+  activationSupported: true,
+};
+
+const danfossProfile: SupportedDeviceProfile = {
+  id: "danfoss-ak-cc25-pro",
+  version: "danfoss-ak-cc25-pro-sw1.3x-fc03-v1",
+  deviceFamily: "akcc25",
+  deviceClass: "temperature-controller",
+  manufacturer: "Danfoss",
+  models: ["AK-CC25 Pro"],
+  displayName: "Danfoss AK-CC25 Pro",
+  transportKind: "modbus_rtu",
+  capabilityStatus: "repository_supported_hardware_evidenced",
+  evidenceNote: "Real Unit 35 FC03 discovery is hardware-evidenced; activation remains disabled.",
+  readOnly: true,
+  activationSupported: false,
+};
+
 const persistedSession: CommissioningSession = {
   id: "commissioning-a",
   lifecycle: "draft",
@@ -128,7 +159,7 @@ function commissioningRepository(
 ): CommissioningRepository {
   return {
     async listProfiles() {
-      return [];
+      return [embracoProfile];
     },
     async getProfile() {
       throw new Error("not used");
@@ -258,6 +289,80 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
 
     fireEvent.click(connectionStep);
     expect(screen.queryByRole("heading", { name: "Намір підключення" })).not.toBeInTheDocument();
+  });
+
+  it("selects Danfoss AK-CC25 Pro from the supported equipment catalog", async () => {
+    const savedSession: CommissioningSession = {
+      ...persistedSession,
+      manufacturer: "Danfoss",
+      model: "AK-CC25 Pro",
+      profileId: "danfoss-ak-cc25-pro",
+      profileVersion: "danfoss-ak-cc25-pro-sw1.3x-fc03-v1",
+      transportKind: "modbus_rtu",
+      unsupportedReason: null,
+    };
+    const createSession = vi.fn<CommissioningRepository["createSession"]>(async () => savedSession);
+    const repository = commissioningRepository(async () => savedSession, {
+      listProfiles: async () => [danfossProfile],
+      createSession,
+    });
+    runtimeFactory.create.mockReturnValue(runtime(repository));
+
+    render(<CommissioningWizardScreen commissioningId={null} />);
+    expect(await screen.findByRole("heading", { name: "Нова чернетка підключення" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Danfoss AK-CC25 Pro" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Підтримуваний профіль" }), {
+      target: { value: "danfoss-ak-cc25-pro" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Профіль/ }));
+
+    expect(screen.getAllByText("Danfoss AK-CC25 Pro").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("danfoss-ak-cc25-pro-sw1.3x-fc03-v1")).toBeInTheDocument();
+    expect(screen.getByText("Disabled — discovery/preflight only")).toBeInTheDocument();
+    expect(screen.getByText(/Production polling та activation не/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Зберегти чернетку" }));
+    await waitFor(() => expect(createSession).toHaveBeenCalledTimes(1));
+    expect(createSession.mock.calls[0]?.[0]).toMatchObject({
+      deviceClass: "temperature-controller",
+      manufacturer: "Danfoss",
+      model: "AK-CC25 Pro",
+      profileId: "danfoss-ak-cc25-pro",
+    });
+  });
+
+  it("does not expose activation controls for a discovery-only Danfoss session", async () => {
+    const verifiedSession: CommissioningSession = {
+      ...persistedSession,
+      lifecycle: "verified",
+      manufacturer: "Danfoss",
+      model: "AK-CC25 Pro",
+      profileId: "danfoss-ak-cc25-pro",
+      profileVersion: "danfoss-ak-cc25-pro-sw1.3x-fc03-v1",
+      transportKind: "modbus_rtu",
+      nodeId: "edge-01",
+      busId: "rs485-danfoss",
+      stableTransportIdentifier: "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q2SI7-if00-port0",
+      unitId: 35,
+      targetEquipmentKey: "equipment-1",
+      unsupportedReason: null,
+      version: 2,
+    };
+    const getActivationPlan = vi.fn(async () => activationPlan(verifiedSession));
+    const repository = commissioningRepository(async () => verifiedSession, {
+      listProfiles: async () => [danfossProfile],
+      getActivationPlan,
+    });
+    runtimeFactory.create.mockReturnValue(runtime(repository));
+
+    render(<CommissioningWizardScreen commissioningId="commissioning-a" />);
+    expect(await screen.findByRole("heading", { name: "Danfoss AK-CC25 Pro" })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText(/Acquisition activation: disabled by profile/)).toBeInTheDocument(),
+    );
+    expect(screen.queryByRole("button", { name: "Активувати read-only моніторинг" })).not.toBeInTheDocument();
+    expect(getActivationPlan).not.toHaveBeenCalled();
   });
 
   it("preserves forward navigation for supported commissioning sessions", async () => {
@@ -410,7 +515,7 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
 
     render(<CommissioningWizardScreen commissioningId="commissioning-a" />);
     const button = await screen.findByRole("button", { name: "Активувати read-only моніторинг" });
-    expect(button).toBeEnabled();
+    await waitFor(() => expect(button).toBeEnabled());
     expect(screen.getByText((content) => content.includes("Modbus FC05"))).toBeInTheDocument();
     fireEvent.click(button);
 

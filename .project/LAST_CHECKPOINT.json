@@ -3,19 +3,31 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-16T02:41:30+03:00",
+  "timestamp": "2026-09-16T06:20:00+03:00",
   "actor": "ChatGPT",
-  "event": "work_package_completed",
+  "event": "Issue #1031 implementation verified locally on synchronized main; preparing focused PR",
   "baselines": {
     "accepted_product_sha": "84a47eb15517af18d5ec5139ea8fa00d8e834542",
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1031,
+    "title": "Add Danfoss AK-CC25 Pro to supported equipment onboarding catalog",
+    "branch": "feat/1031-ak-cc25-onboarding"
+  },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "local_worktree": "/home/nexolab/nexolab-1031",
+      "implementation_candidate": "preserved_uncommitted_during_issue_1037_host_stability_interrupt",
+      "focused_frontend_tests": "17_passed",
+      "focused_backend_tests": "24_passed",
+      "production_activation": "not_executed_fail_closed",
+      "modbus_write": "none",
+      "hardware_write": "none"
+    }
   },
   "observations": [],
-  "next_action": "Begin Issue #1031 Danfoss AK-CC25 Pro supported equipment onboarding catalog after #1039 state-only reconciliation merges.",
+  "next_action": "Commit and push the #1031 onboarding candidate, open a focused PR, then require exact-head GitHub CI before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

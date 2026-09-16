@@ -22,12 +22,12 @@
     "deployed_product_sha": "9a3556b25b257396d15db80af591d1cc3684b8f7"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 1031,
       "title": "Add Danfoss AK-CC25 Pro to supported equipment onboarding catalog",
       "branch": "feat/1031-ak-cc25-onboarding"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -3732,7 +3732,7 @@
       "issue": 1031,
       "title": "Add Danfoss AK-CC25 Pro to supported equipment onboarding catalog",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [
         1024
       ],

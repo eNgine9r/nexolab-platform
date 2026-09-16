@@ -143,17 +143,48 @@ def test_supported_profile_catalog_is_read_only_and_exact() -> None:
     app.include_router(create_commissioning_router(CommissioningRepository(database, security_repository=security)))
     response = TestClient(app).get("/api/v1/equipment/commissioning/profiles")
     assert response.status_code == 200
-    assert [(item["id"], item["version"], item["read_only"]) for item in response.json()["items"]] == [
-        ("dixell-xjp60d", "dixell-xjp60d-fc03-v1", True),
-        ("f-and-f-le01mp", "f-and-f-le01mp-fc03-v2", True),
-        ("embraco-sync", "embraco-sync-fc03-v1.00.04", True),
+    assert [
+        (item["id"], item["version"], item["read_only"], item["activation_supported"])
+        for item in response.json()["items"]
+    ] == [
+        ("dixell-xjp60d", "dixell-xjp60d-fc03-v1", True, True),
+        ("f-and-f-le01mp", "f-and-f-le01mp-fc03-v2", True, True),
+        ("embraco-sync", "embraco-sync-fc03-v1.00.04", True, True),
+        ("danfoss-ak-cc25-pro", "danfoss-ak-cc25-pro-sw1.3x-fc03-v1", True, False),
     ]
     profile = TestClient(app).get("/api/v1/equipment/commissioning/profiles/embraco-sync")
     missing = TestClient(app).get("/api/v1/equipment/commissioning/profiles/unknown")
     assert profile.status_code == 200
     assert profile.json()["capability_status"] == "repository_supported_hardware_evidenced"
+    akcc25 = TestClient(app).get("/api/v1/equipment/commissioning/profiles/danfoss-ak-cc25-pro")
+    assert akcc25.status_code == 200
+    assert akcc25.json()["device_family"] == "akcc25"
+    assert akcc25.json()["manufacturer"] == "Danfoss"
+    assert akcc25.json()["models"] == ["AK-CC25 Pro"]
+    assert akcc25.json()["activation_supported"] is False
     assert missing.status_code == 404
     assert missing.json()["detail"]["code"] == "commissioning_profile_not_found"
+
+
+def test_danfoss_akcc25_draft_resolves_exact_discovery_profile(tmp_path: Path) -> None:
+    api, _ = _client(tmp_path)
+    created = api.post(
+        "/api/v1/equipment/commissioning/sessions",
+        json=_draft(
+            manufacturer="Danfoss",
+            model="AK-CC25 Pro",
+            profile_id="danfoss-ak-cc25-pro",
+        ),
+        headers={"Idempotency-Key": "akcc25-draft"},
+    )
+
+    assert created.status_code == 201
+    assert created.json()["manufacturer"] == "Danfoss"
+    assert created.json()["model"] == "AK-CC25 Pro"
+    assert created.json()["device_class"] == "temperature-controller"
+    assert created.json()["profile_id"] == "danfoss-ak-cc25-pro"
+    assert created.json()["profile_version"] == "danfoss-ak-cc25-pro-sw1.3x-fc03-v1"
+    assert created.json()["lifecycle"] == "draft"
 
 
 def test_create_is_idempotent_and_rejects_key_reuse(tmp_path: Path) -> None:

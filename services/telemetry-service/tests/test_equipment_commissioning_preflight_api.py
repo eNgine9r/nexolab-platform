@@ -129,21 +129,31 @@ def _app(database: Database, security: SecurityRepository, fake: FakePreflightCl
     return TestClient(app)
 
 
-def _ready_session(api: TestClient) -> tuple[str, str]:
+def _ready_session(
+    api: TestClient,
+    *,
+    manufacturer: str = "Embraco",
+    model: str = "Sync",
+    profile_id: str = "embraco-sync",
+    bus_id: str = "rs485-embraco",
+    stable_transport_identifier: str = "/dev/serial/by-id/usb-embraco",
+    unit_id: int = 2,
+    idempotency_key: str = "draft-ready",
+) -> tuple[str, str]:
     created = api.post(
         "/api/v1/equipment/commissioning/sessions",
         json={
             "device_class": "temperature-controller",
-            "manufacturer": "Embraco",
-            "model": "Sync",
-            "profile_id": "embraco-sync",
+            "manufacturer": manufacturer,
+            "model": model,
+            "profile_id": profile_id,
             "node_id": "edge-01",
-            "bus_id": "rs485-embraco",
-            "stable_transport_identifier": "/dev/serial/by-id/usb-embraco",
-            "unit_id": 2,
+            "bus_id": bus_id,
+            "stable_transport_identifier": stable_transport_identifier,
+            "unit_id": unit_id,
             "target_equipment_key": "equipment-1",
         },
-        headers={"Idempotency-Key": "draft-ready"},
+        headers={"Idempotency-Key": idempotency_key},
     )
     assert created.status_code == 201
     assert created.json()["lifecycle"] == "ready_for_preflight"
@@ -174,6 +184,41 @@ def test_preflight_persists_and_replays_without_second_device_call(tmp_path: Pat
     persisted = restarted.get(f"/api/v1/equipment/commissioning/sessions/{session_id}/preflight")
     assert persisted.status_code == 200
     assert persisted.json()["evidence_level"] == "hardware_verified"
+
+
+def test_danfoss_discovery_profile_reaches_device_agent_preflight_with_exact_identity(tmp_path: Path) -> None:
+    database, security = _database(tmp_path)
+    fake = FakePreflightClient()
+    api = _app(database, security, fake)
+    session_id, etag = _ready_session(
+        api,
+        manufacturer="Danfoss",
+        model="AK-CC25 Pro",
+        profile_id="danfoss-ak-cc25-pro",
+        bus_id="rs485-danfoss",
+        stable_transport_identifier="/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q2SI7-if00-port0",
+        unit_id=35,
+        idempotency_key="akcc25-ready",
+    )
+
+    response = api.post(
+        f"/api/v1/equipment/commissioning/sessions/{session_id}/preflight",
+        headers={"If-Match": etag, "Idempotency-Key": "akcc25-preflight"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["result"] == "passed"
+    assert response.json()["evidence"]["profile_id"] == "danfoss-ak-cc25-pro"
+    assert response.json()["evidence"]["profile_version"] == "danfoss-ak-cc25-pro-sw1.3x-fc03-v1"
+    assert response.json()["evidence"]["unit_id"] == 35
+    assert response.json()["evidence"]["modbus_writes"] == "none"
+    assert response.json()["evidence"]["hardware_writes"] == "none"
+    assert len(fake.calls) == 1
+    command = fake.calls[0]
+    assert command.bus_id == "rs485-danfoss"
+    assert command.unit_id == 35
+    assert command.profile_id == "danfoss-ak-cc25-pro"
+    assert command.profile_version == "danfoss-ak-cc25-pro-sw1.3x-fc03-v1"
 
 
 def test_preflight_transport_failure_is_persisted_as_unverified_and_read_only(tmp_path: Path) -> None:

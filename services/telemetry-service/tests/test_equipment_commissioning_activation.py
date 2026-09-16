@@ -19,6 +19,7 @@ from app.commissioning.activation_repository import (
     CommissioningActivationRepository,
     CommissioningPreflightStaleError,
 )
+from app.commissioning.repository import CommissioningLifecycleConflictError
 from app.commissioning.activation_service import CommissioningActivationService
 from app.commissioning.api import create_commissioning_router
 from app.commissioning.repository import CommissioningRepository
@@ -250,6 +251,30 @@ def test_activation_requires_fresh_matching_preflight(tmp_path: Path) -> None:
     database = _database(tmp_path, preflight_age_seconds=120.0)
     repository = CommissioningActivationRepository(database)
     with pytest.raises(CommissioningPreflightStaleError):
+        repository.plan("session-1", organization_id=ORG, freshness_seconds=60.0)
+
+
+def test_discovery_only_akcc25_profile_cannot_generate_activation_plan(tmp_path: Path) -> None:
+    database = _database(tmp_path)
+    with Session(database.engine) as session, session.begin():
+        commissioning = session.get(EquipmentCommissioningSession, "session-1")
+        assert commissioning is not None
+        commissioning.manufacturer = "Danfoss"
+        commissioning.model = "AK-CC25 Pro"
+        commissioning.profile_id = "danfoss-ak-cc25-pro"
+        commissioning.profile_version = "danfoss-ak-cc25-pro-sw1.3x-fc03-v1"
+        commissioning.unit_id = 35
+        preflight = session.get(EquipmentCommissioningPreflightAttempt, "preflight-1")
+        assert preflight is not None and isinstance(preflight.evidence, dict)
+        preflight.evidence = {
+            **preflight.evidence,
+            "unit_id": 35,
+            "profile_id": "danfoss-ak-cc25-pro",
+            "profile_version": "danfoss-ak-cc25-pro-sw1.3x-fc03-v1",
+        }
+
+    repository = CommissioningActivationRepository(database)
+    with pytest.raises(CommissioningLifecycleConflictError, match="discovery-only"):
         repository.plan("session-1", organization_id=ORG, freshness_seconds=60.0)
 
 
