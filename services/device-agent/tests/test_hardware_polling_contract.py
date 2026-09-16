@@ -51,3 +51,12 @@ class HardwareComposeEmbracoContractTests(unittest.TestCase):
         self.assertIn('EMBRACO_UNIT_IDS: "${EMBRACO_UNIT_IDS:-}"', content)
         self.assertNotIn("EMBRACO_TEMPERATURE_SCALE:", content)
         self.assertNotIn("EMBRACO_CONTROL_SCALE:", content)
+
+
+def test_hardware_compose_keeps_nonroot_serial_group_boundary_minimal() -> None:
+    content = HARDWARE_COMPOSE.read_text(encoding="utf-8")
+
+    assert '"${RS485_GROUP_GID:-20}"' in content
+    assert '"${RS485_COMMISSIONING_GROUP_GID:-46}"' in content
+    assert '"c 188:* rwm"' in content
+    assert "privileged: true" not in content

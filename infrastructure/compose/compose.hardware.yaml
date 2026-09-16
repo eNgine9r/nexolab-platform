@@ -46,4 +46,9 @@ services:
     device_cgroup_rules:
       - "c 188:* rwm"
     group_add:
+      # Production CP2104 adapters are owned by dialout on the controlled Pi.
       - "${RS485_GROUP_GID:-20}"
+      # FTDI commissioning adapters are owned by plugdev on the controlled Pi.
+      # Numeric supplementary membership grants access without privileged mode,
+      # host chmod/chown changes, or broadening the character-device cgroup.
+      - "${RS485_COMMISSIONING_GROUP_GID:-46}"

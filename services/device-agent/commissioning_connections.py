@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from commissioning_preflight import canonical_serial_identifier
 
@@ -18,9 +19,22 @@ class StableSerialAdapter:
     runtime_path: str
     real_path: str
     symlink_target: str
+    read_write_accessible: bool
 
 
-def inventory_stable_adapters(root: Path = RUNTIME_SERIAL_ROOT) -> tuple[StableSerialAdapter, ...]:
+AccessCheck = Callable[[Path], bool]
+
+
+def _has_read_write_access(path: Path) -> bool:
+    """Check process permissions without opening or probing the serial device."""
+    return os.access(path, os.R_OK | os.W_OK)
+
+
+def inventory_stable_adapters(
+    root: Path = RUNTIME_SERIAL_ROOT,
+    *,
+    access_check: AccessCheck = _has_read_write_access,
+) -> tuple[StableSerialAdapter, ...]:
     """Enumerate only present stable serial identities; never probe the serial bus."""
     if not root.is_dir():
         return ()
@@ -39,6 +53,7 @@ def inventory_stable_adapters(root: Path = RUNTIME_SERIAL_ROOT) -> tuple[StableS
                 runtime_path=str(path),
                 real_path=str(real_path),
                 symlink_target=str(target),
+                read_write_accessible=bool(access_check(real_path)),
             )
         )
     return tuple(result)
@@ -55,8 +70,9 @@ def connection_inventory(
     node_id: str,
     topology: Any,
     serial_root: Path = RUNTIME_SERIAL_ROOT,
+    access_check: AccessCheck = _has_read_write_access,
 ) -> dict[str, Any]:
-    adapters = inventory_stable_adapters(serial_root)
+    adapters = inventory_stable_adapters(serial_root, access_check=access_check)
     present_by_path = {item.stable_path: item for item in adapters}
     production_paths = {
         canonical_serial_identifier(binding.serial_device): binding
@@ -80,7 +96,7 @@ def connection_inventory(
                 "stable_transport_identifier": stable_path,
                 "ownership": "production_bus",
                 "present": adapter is not None,
-                "available_for_preflight": adapter is not None,
+                "available_for_preflight": adapter is not None and adapter.read_write_accessible,
                 "serial": {
                     "baudrate": binding.baudrate,
                     "parity": binding.parity,
@@ -99,7 +115,7 @@ def connection_inventory(
                 "stable_transport_identifier": adapter.stable_path,
                 "ownership": "available_commissioning",
                 "present": True,
-                "available_for_preflight": not missing_production_paths,
+                "available_for_preflight": not missing_production_paths and adapter.read_write_accessible,
                 "serial": None,
             }
         )
@@ -111,10 +127,11 @@ def resolve_commissioning_adapter(
     *,
     topology: Any,
     serial_root: Path = RUNTIME_SERIAL_ROOT,
+    access_check: AccessCheck = _has_read_write_access,
 ) -> StableSerialAdapter:
     if not bus_id.startswith(_COMMISSIONING_PREFIX):
         raise ValueError(f"Unknown commissioning RS-485 bus_id: {bus_id}")
-    adapters = inventory_stable_adapters(serial_root)
+    adapters = inventory_stable_adapters(serial_root, access_check=access_check)
     present_by_path = {item.stable_path: item for item in adapters}
     production_paths = {
         canonical_serial_identifier(binding.serial_device)
@@ -143,6 +160,10 @@ def resolve_commissioning_adapter(
     adapter = matches[0]
     if adapter.stable_path in production_paths or adapter.real_path in production_real_paths:
         raise ValueError("Refusing temporary commissioning access to a production-owned RS-485 adapter")
+    if not adapter.read_write_accessible:
+        raise ValueError(
+            f"Commissioning RS-485 adapter {bus_id} is present but not readable/writable by the Device Agent"
+        )
     return adapter
 
 
