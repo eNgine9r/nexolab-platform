@@ -2,13 +2,17 @@
 
 Updated: 2026-09-16
 
+## Issue #1042 — central MinIO registry repair
+
+**Critical CI repair implemented locally; exact-head PR verification remains.** PR #1041 exposed two shared acceptance failures unrelated to Danfoss logic: Offline Auth Acceptance could not pull legacy `minio/minio`, and Capacity Release Gate could not pull legacy `minio/mc`. Both inherit defaults from `compose.central.yaml`. Verified implementation head `afaf983eeb22fcca01c7e9e83b4d2213ed732021` keeps the exact already-approved MinIO release tags but changes the default registry to `quay.io/minio/...`, aligns `.env.central.example`, and adds regression coverage. Local contracts and Compose resolution are GREEN; GitHub exact-head acceptance is the remaining gate. No production deployment or data mutation is in scope.
+
 ## Issue #1037 — Raspberry Pi host stability
 
 **Cleared and merged.** The repeated disconnect pattern was tied to avoidable host-wide resource starvation during heavyweight local verification, not to OOM, overheating, SSD failure or Ethernet hardware errors. Optional browser/inspection services are disabled and on-demand; the legacy duplicate `remote-desktop` tmux/npx Remote Desktop Commander path is removed and guarded; the managed RDC receives higher relative CPU/I/O weight. A 90-second bounded memory/CPU load kept RDC, Tailscale, Device Agent, Telemetry and Dashboard responsive, preserved the boot ID, and left all 12 NEXOLAB containers healthy. PR #1038 exact head `6e864c7650a0fe01a24e13e6d5ee1eadade331bd` passed Core CI, Telemetry Service and NEXOLAB Merge Gate and squash-merged to `main` as `25979534c27ba5f131cdae0caf9e29a719fa0711`. GitHub Issue #1037 is closed completed. No reboot was required.
 
 ## Issue #1031 — AK-CC25 Pro onboarding
 
-**Soft-blocked only by #1037 stabilization completion.** The local onboarding implementation is preserved on `feat/1031-ak-cc25-onboarding` with focused frontend 17/17 and backend 24/24 checks previously GREEN. It remains next Ready work after #1037. Production activation stays fail-closed; no Modbus/controller write or hardware write is permitted.
+**Soft-blocked by independent shared CI infrastructure failure; product implementation remains GREEN.** PR #1041 exact-head Offline Auth Acceptance and Capacity Release Gate both failed while pulling retired Docker Hub MinIO images inherited from the central Compose defaults, before the Danfoss onboarding contract was exercised. Issue #1042 is the focused repair. Local #1031 verification remains frontend **17/17** and backend **24/24** GREEN. Production activation stays fail-closed; no Modbus/controller write or hardware write is permitted.
 
 ## Issue #1024 — AK-CC25 Pro read-only hardware discovery
 
@@ -175,9 +179,9 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-08B are completed through GREEN focused PRs, including #953 / PR #954, #957 / PR #958 and #960 / PR #962. RFX state remains completed through #960; current independent maintenance is tracked separately by the active Work Package.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — no active Work Package; #1031 next Ready
+## Sprint execution gate — #1042 in review; #1031 soft-blocked
 
-Issue #1037 is completed through merged PR #1038 and no Work Package is currently selected as active while this state-only reconciliation is reviewed. Issue #1031 is the next Ready software Work Package. Latest accepted repository software baseline is #1024 head `84a47eb15517af18d5ec5139ea8fa00d8e834542`; the latest accepted Overview/UI product baseline remains #1001 head `b245b48e7ab64a42680fb9d516646926b45d1b41`. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
+Issue #1042 is the active critical CI repair and #1031 is temporarily blocked on that shared acceptance dependency. Once #1042 merges GREEN, #1031 resumes on PR #1041 with a new exact-head CI cycle. Latest accepted repository software baseline is #1024 head `84a47eb15517af18d5ec5139ea8fa00d8e834542`; the latest accepted Overview/UI product baseline remains #1001 head `b245b48e7ab64a42680fb9d516646926b45d1b41`. Production product source remains `9a3556b25b257396d15db80af591d1cc3684b8f7`; repository work does not imply deployment.
 
 #189/#585 remain blocked, #201 remains `needs_validation`, #202 remains `hardware_validation`, and K96–K100 remain hardware-unverified/excluded from automatic production polling. Issue #1012 completed the previously scheduled 2026-09-15 security review early; the next fail-closed exception boundary is 2026-09-21.
 
