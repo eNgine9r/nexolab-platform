@@ -34,6 +34,36 @@ class FakePreflightClient:
         self.code = "preflight_passed"
         self.evidence_level = "hardware_verified"
 
+    def list_connections(self) -> dict[str, object]:
+        return {
+            "schema_version": 1,
+            "node_id": "edge-01",
+            "connections": [
+                {
+                    "bus_id": "rs485-main",
+                    "stable_transport_identifier": "/dev/serial/by-id/usb-prod",
+                    "ownership": "production_bus",
+                    "present": True,
+                    "available_for_preflight": True,
+                    "serial": {
+                        "baudrate": 9600,
+                        "parity": "N",
+                        "stopbits": 1,
+                        "timeout_seconds": 0.3,
+                        "retries": 1,
+                    },
+                },
+                {
+                    "bus_id": "commissioning-1234567890abcdef",
+                    "stable_transport_identifier": "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q2SI7-if00-port0",
+                    "ownership": "available_commissioning",
+                    "present": True,
+                    "available_for_preflight": True,
+                    "serial": None,
+                },
+            ],
+        }
+
     def run(self, command: DeviceAgentPreflightCommand) -> dict[str, object]:
         self.calls.append(command)
         if self.error is not None:
@@ -158,6 +188,24 @@ def _ready_session(
     assert created.status_code == 201
     assert created.json()["lifecycle"] == "ready_for_preflight"
     return created.json()["id"], created.headers["etag"]
+
+
+def test_connection_inventory_exposes_stable_production_and_commissioning_choices(tmp_path: Path) -> None:
+    database, security = _database(tmp_path)
+    api = _app(database, security, FakePreflightClient())
+
+    response = api.get("/api/v1/equipment/commissioning/connections")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["schema_version"] == 1
+    assert payload["node_id"] == "edge-01"
+    assert [item["ownership"] for item in payload["connections"]] == [
+        "production_bus",
+        "available_commissioning",
+    ]
+    assert payload["connections"][1]["stable_transport_identifier"].endswith("A10Q2SI7-if00-port0")
+    assert payload["connections"][1]["serial"] is None
 
 
 def test_preflight_persists_and_replays_without_second_device_call(tmp_path: Path) -> None:

@@ -182,6 +182,7 @@ class ModbusRTUClient:
         retries: int = 1,
         serial_factory: Callable[..., SerialPort] | None = None,
         request_observer: RequestObserver | None = None,
+        exclusive: bool = False,
     ) -> None:
         if baudrate <= 0:
             raise ValueError("baudrate must be positive")
@@ -205,6 +206,7 @@ class ModbusRTUClient:
         self._lock = threading.Lock()
         self._request_observer = request_observer
         self._request_context = threading.local()
+        self._exclusive = bool(exclusive)
 
     def _open(self) -> SerialPort:
         if self._serial is not None:
@@ -214,15 +216,18 @@ class ModbusRTUClient:
             if _serial is None:
                 raise RuntimeError("pyserial is required for Modbus hardware mode")
             factory = _serial.Serial
-        self._serial = factory(
-            port=self.port,
-            baudrate=self.baudrate,
-            bytesize=8,
-            parity=self.parity,
-            stopbits=self.stopbits,
-            timeout=self.timeout,
-            write_timeout=self.timeout,
-        )
+        options = {
+            "port": self.port,
+            "baudrate": self.baudrate,
+            "bytesize": 8,
+            "parity": self.parity,
+            "stopbits": self.stopbits,
+            "timeout": self.timeout,
+            "write_timeout": self.timeout,
+        }
+        if self._exclusive:
+            options["exclusive"] = True
+        self._serial = factory(**options)
         return self._serial
 
     def close(self) -> None:

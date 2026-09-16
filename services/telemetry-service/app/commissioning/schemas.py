@@ -33,6 +33,29 @@ class SupportedDeviceProfileListResponse(BaseModel):
     items: list[SupportedDeviceProfileResponse]
 
 
+class CommissioningConnectionSerialResponse(BaseModel):
+    baudrate: int = Field(gt=0)
+    parity: Literal["N", "E", "O"]
+    stopbits: Literal[1, 2]
+    timeout_seconds: float = Field(gt=0)
+    retries: int = Field(ge=0)
+
+
+class CommissioningConnectionResponse(BaseModel):
+    bus_id: str
+    stable_transport_identifier: str
+    ownership: Literal["production_bus", "available_commissioning"]
+    present: bool
+    available_for_preflight: bool
+    serial: CommissioningConnectionSerialResponse | None
+
+
+class CommissioningConnectionListResponse(BaseModel):
+    schema_version: Literal[1]
+    node_id: str
+    connections: list[CommissioningConnectionResponse]
+
+
 class CommissioningSessionWrite(BaseModel):
     device_class: str = Field(min_length=1, max_length=64)
     manufacturer: str = Field(min_length=1, max_length=128)

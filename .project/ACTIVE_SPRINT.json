@@ -22,7 +22,11 @@
     "deployed_product_sha": "e94808974da56461d974704e39bfbcd310a1e6f8"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1048,
+      "title": "Complete RS-485 commissioning connection selection and Danfoss read-only onboarding",
+      "branch": "fix/1048-rs485-commissioning-selector"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -3847,6 +3851,14 @@
           "hardware_write": "none"
         }
       }
+    },
+    {
+      "issue": 1048,
+      "title": "Complete RS-485 commissioning connection selection and Danfoss read-only onboarding",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "fix/1048-rs485-commissioning-selector",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [

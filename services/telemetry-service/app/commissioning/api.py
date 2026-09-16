@@ -25,6 +25,7 @@ from app.commissioning.repository import (
 from app.commissioning.schemas import (
     CommissioningActivationAttemptResponse,
     CommissioningActivationPlanResponse,
+    CommissioningConnectionListResponse,
     CommissioningPreflightAttemptResponse,
     CommissioningSessionListResponse,
     CommissioningSessionPatch,
@@ -33,6 +34,7 @@ from app.commissioning.schemas import (
     SupportedDeviceProfileListResponse,
     SupportedDeviceProfileResponse,
 )
+from app.commissioning.preflight_client import DeviceAgentPreflightError
 from app.commissioning.preflight_repository import CommissioningPreflightRepository
 from app.commissioning.preflight_service import CommissioningPreflightService
 from app.refrigeration.equipment_repository import DEFAULT_ORGANIZATION_ID
@@ -107,6 +109,20 @@ def create_commissioning_router(
             read_only=True,
             activation_supported=item.activation_supported,
         )
+
+    @router.get("/connections", response_model=CommissioningConnectionListResponse)
+    def connections(_: AuthorizedRequest = Depends(read_access)) -> CommissioningConnectionListResponse:
+        if preflight_service is None:
+            raise _http_error(
+                503,
+                "commissioning_connections_unavailable",
+                "Local Device Agent connection inventory is not configured",
+            )
+        try:
+            payload = preflight_service.list_connections()
+        except DeviceAgentPreflightError as error:
+            raise _http_error(503, error.code, error.message) from error
+        return CommissioningConnectionListResponse.model_validate(payload)
 
     @router.get("/sessions", response_model=CommissioningSessionListResponse)
     def list_sessions(

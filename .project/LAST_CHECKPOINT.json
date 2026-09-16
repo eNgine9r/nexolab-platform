@@ -3,19 +3,23 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-16T11:15:00+03:00",
-  "actor": "ChatGPT",
-  "event": "Issue #1044 Danfoss onboarding compatibility release accepted on LOCAL_LAN runtime",
+  "timestamp": "2026-09-16T14:06:52+03:00",
+  "actor": "chatgpt",
+  "event": "Issue #1048 RS-485 commissioning selector implementation verified locally; real FTDI A10Q2SI7 Unit 35 bounded FC03 preflight passed with runtime invariants unchanged",
   "baselines": {
     "accepted_product_sha": "19afc763aa9c46c0a8c9b49a5e1527eac0df9cdd",
     "deployed_product_sha": "e94808974da56461d974704e39bfbcd310a1e6f8"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1048,
+    "title": "Complete RS-485 commissioning connection selection and Danfoss read-only onboarding",
+    "branch": "fix/1048-rs485-commissioning-selector"
+  },
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Start Issue #1045 to align the frontend acquisition-cadence family contract with existing Embraco backend support; AK-CC25 production polling remains disabled.",
+  "next_action": "Commit and push #1048, open focused PR, run exact-head CI, then perform authenticated LOCAL_LAN UI/API acceptance before any rollout",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
