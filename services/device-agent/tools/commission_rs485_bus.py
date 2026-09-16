@@ -10,6 +10,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
 
+DEVICE_AGENT_ROOT = Path(__file__).resolve().parents[1]
+if str(DEVICE_AGENT_ROOT) not in sys.path:
+    sys.path.insert(0, str(DEVICE_AGENT_ROOT))
+
+from commissioning_connections import inventory_stable_adapters
+
 SERIAL_ROOT = Path("/dev/serial/by-id")
 DEFAULT_DEVICE_AGENT_CONTAINER = "nexolab-edge-device-agent-1"
 SAFE_UDEV_KEYS = (
@@ -49,26 +55,15 @@ def _read_udev(real_path: Path) -> dict[str, str]:
 
 
 def inventory_adapters(root: Path = SERIAL_ROOT) -> tuple[AdapterEvidence, ...]:
-    if not root.is_dir():
-        return ()
-    evidence: list[AdapterEvidence] = []
-    for path in sorted(root.iterdir()):
-        if not path.is_symlink():
-            continue
-        try:
-            target = path.readlink()
-            real_path = path.resolve(strict=True)
-        except OSError:
-            continue
-        evidence.append(
-            AdapterEvidence(
-                stable_path=str(path),
-                real_path=str(real_path),
-                symlink_target=str(target),
-                udev=_read_udev(real_path),
-            )
+    return tuple(
+        AdapterEvidence(
+            stable_path=item.stable_path,
+            real_path=item.real_path,
+            symlink_target=item.symlink_target,
+            udev=_read_udev(Path(item.real_path)),
         )
-    return tuple(evidence)
+        for item in inventory_stable_adapters(root)
+    )
 
 
 def _host_serial_path(value: str) -> str:

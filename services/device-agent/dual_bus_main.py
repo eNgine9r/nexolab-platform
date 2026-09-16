@@ -9,12 +9,14 @@ import uuid
 from dataclasses import replace
 from pathlib import Path
 from datetime import datetime, timezone
+from http import HTTPStatus
 from http.server import ThreadingHTTPServer
 from typing import Any
 
 from acquisition_capacity import BusCapacityProfile
 from akcc25 import AKCC25ProReader
 from acquisition_registry import AcquisitionRegistry, DeviceLifecycleMutation, LifecycleMutation
+from commissioning_connections import connection_inventory, resolve_commissioning_adapter
 from commissioning_activation import (
     CommissioningActivationJournal,
     CommissioningActivationRequest,
@@ -121,6 +123,8 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         self._bus_operation_locks: dict[str, threading.Lock] = {}
         self._topology_enrollment_store = topology_store
         self._commissioning_activation_journal = CommissioningActivationJournal(settings.database_path)
+        self._commissioning_adapter_locks: dict[str, threading.Lock] = {}
+        self._commissioning_adapter_locks_guard = threading.Lock()
 
         if not self.rs485_topology.explicit:
             return
@@ -230,14 +234,29 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
     def node_id(self) -> str:
         return self.settings.node_id
 
+    def commissioning_connections(self) -> dict[str, Any]:
+        return connection_inventory(node_id=self.node_id, topology=self.rs485_topology)
+
     def preflight_bus(self, bus_id: str) -> PreflightBus:
         topology = self.rs485_topology
-        binding = topology.binding(bus_id)
+        try:
+            binding = topology.binding(bus_id)
+        except ValueError:
+            adapter = resolve_commissioning_adapter(bus_id, topology=topology)
+            return PreflightBus(
+                bus_id=bus_id,
+                serial_device=adapter.runtime_path,
+                path_present=True,
+            )
         return PreflightBus(
             bus_id=binding.bus_id,
             serial_device=binding.serial_device,
             path_present=Path(binding.serial_device).exists(),
         )
+
+    def _commissioning_adapter_lock(self, bus_id: str) -> threading.Lock:
+        with self._commissioning_adapter_locks_guard:
+            return self._commissioning_adapter_locks.setdefault(bus_id, threading.Lock())
 
     def preflight_unit_owner(self, unit_id: int) -> str | None:
         try:
@@ -285,12 +304,40 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         deadline_monotonic: float,
     ) -> tuple[PreflightObservation, ...]:
         topology = self.rs485_topology
+        temporary_client: ModbusRTUClient | None = None
         if topology.explicit:
-            client = self._bus_clients.get(bus_id)
-            lock = self._bus_operation_locks.get(bus_id)
-            xjp60d = self._bus_xjp60d_readers.get(bus_id)
-            le01mp = self._bus_le01mp_readers.get(bus_id)
-            embraco = self._bus_embraco_readers.get(bus_id)
+            try:
+                topology.binding(bus_id)
+            except ValueError:
+                try:
+                    adapter = resolve_commissioning_adapter(bus_id, topology=topology)
+                except ValueError as error:
+                    raise PreflightExecutionError("bus_unavailable", str(error)) from error
+                temporary_client = ModbusRTUClient(
+                    adapter.runtime_path,
+                    baudrate=profile.baudrate,
+                    parity=profile.parity,
+                    stopbits=profile.stopbits,
+                    timeout=profile.timeout_seconds,
+                    retries=profile.retries,
+                    request_observer=self._logical_bus_observer(bus_id),
+                    exclusive=True,
+                )
+                client = temporary_client
+                lock = self._commissioning_adapter_lock(bus_id)
+                xjp60d = XJP60DReader(client, scale=self.settings.xjp60d_scale, unit="degC")
+                le01mp = LE01MPReader(client)
+                embraco = EmbracoSyncReader(
+                    client,
+                    temperature_scale=self.settings.embraco_temperature_scale,
+                    control_scale=self.settings.embraco_control_scale,
+                )
+            else:
+                client = self._bus_clients.get(bus_id)
+                lock = self._bus_operation_locks.get(bus_id)
+                xjp60d = self._bus_xjp60d_readers.get(bus_id)
+                le01mp = self._bus_le01mp_readers.get(bus_id)
+                embraco = self._bus_embraco_readers.get(bus_id)
         else:
             if bus_id != topology.bindings[0].bus_id:
                 raise PreflightExecutionError("bus_unavailable", f"Unknown RS-485 bus {bus_id}")
@@ -383,6 +430,8 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             raise PreflightExecutionError("read_failed", "Profile-approved FC03 verification failed") from error
         finally:
             lock.release()
+            if temporary_client is not None:
+                temporary_client.close()
         return tuple(observations)
 
     def commissioning_activation(self, request: CommissioningActivationRequest) -> dict[str, Any]:
@@ -913,6 +962,13 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
 
 class DualBusAdaptiveRegistryHealthHandler(AdaptiveRegistryHealthHandler):
     agent: DualBusAdaptiveRegistryDeviceAgent
+
+    def do_GET(self) -> None:  # noqa: N802
+        path = self.path.split("?", maxsplit=1)[0]
+        if path == "/api/v1/commissioning/connections":
+            self._send_json(HTTPStatus.OK, self.agent.commissioning_connections())
+            return
+        super().do_GET()
 
     def do_POST(self) -> None:  # noqa: N802
         path = self.path.split("?", maxsplit=1)[0]

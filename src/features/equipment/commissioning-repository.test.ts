@@ -21,6 +21,29 @@ const profilePayload = {
   activation_supported: true,
 };
 
+const connectionsPayload = {
+  schema_version: 1,
+  node_id: "nexolab-edge-01",
+  connections: [
+    {
+      bus_id: "rs485-main",
+      stable_transport_identifier: "/dev/serial/by-id/usb-prod",
+      ownership: "production_bus",
+      present: true,
+      available_for_preflight: true,
+      serial: { baudrate: 9600, parity: "N", stopbits: 1, timeout_seconds: 0.3, retries: 1 },
+    },
+    {
+      bus_id: "commissioning-1234567890abcdef",
+      stable_transport_identifier: "/dev/serial/by-id/usb-danfoss",
+      ownership: "available_commissioning",
+      present: true,
+      available_for_preflight: true,
+      serial: null,
+    },
+  ],
+};
+
 const sessionPayload = {
   id: "commissioning-1",
   lifecycle: "draft",
@@ -163,6 +186,28 @@ describe("HttpCommissioningRepository", () => {
     await expect(repository.listSessions()).resolves.toMatchObject([
       { id: "commissioning-1", lifecycle: "draft", version: 1 },
     ]);
+  });
+
+  it("parses live RS-485 connection inventory without exposing tty aliases", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValueOnce(json(connectionsPayload));
+    const repository = new HttpCommissioningRepository({
+      apiBaseUrl: "http://telemetry.local",
+      fetchImpl,
+    });
+
+    await expect(repository.listConnections()).resolves.toMatchObject({
+      schemaVersion: 1,
+      nodeId: "nexolab-edge-01",
+      connections: [
+        { busId: "rs485-main", ownership: "production_bus", serial: { parity: "N", stopbits: 1 } },
+        {
+          busId: "commissioning-1234567890abcdef",
+          ownership: "available_commissioning",
+          stableTransportIdentifier: "/dev/serial/by-id/usb-danfoss",
+          serial: null,
+        },
+      ],
+    });
   });
 
   it("preserves discovery-only activation capability from the supported profile API", async () => {

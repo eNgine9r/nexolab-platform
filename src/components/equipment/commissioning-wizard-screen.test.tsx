@@ -6,6 +6,7 @@ import {
   CommissioningRepositoryError,
   type CommissioningActivationAttempt,
   type CommissioningActivationPlan,
+  type CommissioningConnectionInventory,
   type CommissioningPreflightAttempt,
   type CommissioningRepository,
   type CommissioningSession,
@@ -100,6 +101,30 @@ const danfossProfile: SupportedDeviceProfile = {
   activationSupported: false,
 };
 
+const connectionInventory: CommissioningConnectionInventory = {
+  schemaVersion: 1,
+  nodeId: "nexolab-edge-01",
+  connections: [
+    {
+      busId: "rs485-main",
+      stableTransportIdentifier:
+        "/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
+      ownership: "production_bus",
+      present: true,
+      availableForPreflight: true,
+      serial: { baudrate: 9600, parity: "N", stopbits: 1, timeoutSeconds: 0.3, retries: 1 },
+    },
+    {
+      busId: "commissioning-1234567890abcdef",
+      stableTransportIdentifier: "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q2SI7-if00-port0",
+      ownership: "available_commissioning",
+      present: true,
+      availableForPreflight: true,
+      serial: null,
+    },
+  ],
+};
+
 const persistedSession: CommissioningSession = {
   id: "commissioning-a",
   lifecycle: "draft",
@@ -163,6 +188,9 @@ function commissioningRepository(
     },
     async getProfile() {
       throw new Error("not used");
+    },
+    async listConnections() {
+      return connectionInventory;
     },
     async listSessions() {
       return [];
@@ -265,7 +293,7 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
 
     expect(screen.getByRole("button", { name: "Далі" })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Підключення/ })).toBeDisabled();
-    expect(screen.queryByRole("heading", { name: "Намір підключення" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Підключення RS-485" })).not.toBeInTheDocument();
   });
 
   it("keeps a persisted unsupported session fail-closed on the device step", async () => {
@@ -288,7 +316,7 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     expect(screen.getByRole("button", { name: "Запустити безпечну перевірку" })).toBeDisabled();
 
     fireEvent.click(connectionStep);
-    expect(screen.queryByRole("heading", { name: "Намір підключення" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Підключення RS-485" })).not.toBeInTheDocument();
   });
 
   it("selects Danfoss AK-CC25 Pro from the supported equipment catalog", async () => {
@@ -329,7 +357,36 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
       manufacturer: "Danfoss",
       model: "AK-CC25 Pro",
       profileId: "danfoss-ak-cc25-pro",
+      unitId: 35,
     });
+  });
+
+  it("selects a live RS-485 adapter and auto-fills Danfoss connection identity", async () => {
+    const repository = commissioningRepository(async () => persistedSession, {
+      listProfiles: async () => [danfossProfile],
+    });
+    runtimeFactory.create.mockReturnValue(runtime(repository));
+
+    render(<CommissioningWizardScreen commissioningId={null} />);
+    await screen.findByRole("heading", { name: "Нова чернетка підключення" });
+    fireEvent.change(screen.getByRole("combobox", { name: "Підтримуваний профіль" }), {
+      target: { value: "danfoss-ak-cc25-pro" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Далі" }));
+
+    expect(screen.getByRole("heading", { name: "Підключення RS-485" })).toBeInTheDocument();
+    expect(screen.queryByText("Node intent")).not.toBeInTheDocument();
+    expect(screen.queryByText("Bus intent")).not.toBeInTheDocument();
+    expect(screen.getByRole("spinbutton", { name: "Modbus Unit ID" })).toHaveValue(35);
+
+    fireEvent.change(screen.getByRole("combobox", { name: "RS-485 підключення" }), {
+      target: { value: "commissioning-1234567890abcdef" },
+    });
+
+    expect(screen.getByText("nexolab-edge-01")).toBeInTheDocument();
+    expect(screen.getByText("commissioning-1234567890abcdef")).toBeInTheDocument();
+    expect(screen.getByText(/A10Q2SI7-if00-port0/)).toBeInTheDocument();
+    expect(screen.getByText("Вільний адаптер · commissioning only")).toBeInTheDocument();
   });
 
   it("does not expose activation controls for a discovery-only Danfoss session", async () => {
@@ -387,7 +444,7 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     const next = screen.getByRole("button", { name: "Далі" });
     expect(next).toBeEnabled();
     fireEvent.click(next);
-    expect(screen.getByRole("heading", { name: "Намір підключення" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Підключення RS-485" })).toBeInTheDocument();
   });
 
   it("runs bounded preflight from a ready draft and renders persisted hardware evidence", async () => {

@@ -11,6 +11,11 @@ class PreflightProfile:
     profile_version: str
     device_family: str
     evidence_level: str
+    baudrate: int = 9600
+    parity: str = "N"
+    stopbits: int = 1
+    timeout_seconds: float = 0.3
+    retries: int = 1
     warnings: tuple[str, ...] = ()
     activation_supported: bool = True
 
@@ -39,6 +44,7 @@ PROFILES: dict[str, PreflightProfile] = {
         profile_version="embraco-sync-fc03-v1.00.04",
         device_family="embraco",
         evidence_level="hardware_verified",
+        stopbits=2,
         warnings=(
             "Engineering temperature/control scaling is not inferred by preflight and remains unverified where current production semantics are unknown.",
         ),
@@ -48,6 +54,7 @@ PROFILES: dict[str, PreflightProfile] = {
         profile_version="danfoss-ak-cc25-pro-sw1.3x-fc03-v1",
         device_family="akcc25",
         evidence_level="hardware_verified",
+        parity="E",
         warnings=(
             "Profile is discovery-only: real Unit 35 FC03 evidence verifies the documented integer subset at 9600 8E1 with Danfoss ADU-to-PDU address translation (ADU - 1).",
             "Production activation remains disabled; temperature inputs were not connected during acceptance, so temperature values are not published until sensor-backed correlation is completed.",

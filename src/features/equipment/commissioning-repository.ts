@@ -25,6 +25,31 @@ export type SupportedDeviceProfile = {
   activationSupported: boolean;
 };
 
+export type CommissioningConnectionOwnership = "production_bus" | "available_commissioning";
+
+export type CommissioningConnectionSerial = {
+  baudrate: number;
+  parity: "N" | "E" | "O";
+  stopbits: 1 | 2;
+  timeoutSeconds: number;
+  retries: number;
+};
+
+export type CommissioningConnection = {
+  busId: string;
+  stableTransportIdentifier: string;
+  ownership: CommissioningConnectionOwnership;
+  present: boolean;
+  availableForPreflight: boolean;
+  serial: CommissioningConnectionSerial | null;
+};
+
+export type CommissioningConnectionInventory = {
+  schemaVersion: 1;
+  nodeId: string;
+  connections: CommissioningConnection[];
+};
+
 export type CommissioningSession = {
   id: string;
   lifecycle: CommissioningLifecycle;
@@ -176,6 +201,7 @@ export function createCommissioningIdempotencyKey(source?: {
 
 export interface CommissioningRepository {
   listProfiles(signal?: AbortSignal): Promise<SupportedDeviceProfile[]>;
+  listConnections(signal?: AbortSignal): Promise<CommissioningConnectionInventory>;
   getProfile(profileId: string, signal?: AbortSignal): Promise<SupportedDeviceProfile>;
   listSessions(signal?: AbortSignal): Promise<CommissioningSession[]>;
   getSession(sessionId: string, signal?: AbortSignal): Promise<CommissioningSession>;
@@ -225,6 +251,12 @@ export class HttpCommissioningRepository implements CommissioningRepository {
     const value = record(await this.request("/api/v1/equipment/commissioning/profiles", { signal }));
     if (!value || !Array.isArray(value.items)) throw invalidResponse();
     return value.items.map(parseProfile);
+  }
+
+  async listConnections(signal?: AbortSignal): Promise<CommissioningConnectionInventory> {
+    return parseConnectionInventory(
+      await this.request("/api/v1/equipment/commissioning/connections", { signal }),
+    );
   }
 
   async getProfile(profileId: string, signal?: AbortSignal): Promise<SupportedDeviceProfile> {
@@ -458,6 +490,76 @@ function parseProfile(value: unknown): SupportedDeviceProfile {
   };
 }
 
+function parseConnectionInventory(value: unknown): CommissioningConnectionInventory {
+  const item = record(value);
+  if (
+    !item ||
+    item.schema_version !== 1 ||
+    typeof item.node_id !== "string" ||
+    item.node_id.length === 0 ||
+    !Array.isArray(item.connections)
+  )
+    throw invalidResponse();
+  return {
+    schemaVersion: 1,
+    nodeId: item.node_id,
+    connections: item.connections.map(parseConnection),
+  };
+}
+
+function parseConnection(value: unknown): CommissioningConnection {
+  const item = record(value);
+  const serial = item ? record(item.serial) : null;
+  if (
+    !item ||
+    typeof item.bus_id !== "string" ||
+    item.bus_id.length === 0 ||
+    typeof item.stable_transport_identifier !== "string" ||
+    !item.stable_transport_identifier.startsWith("/dev/serial/by-id/") ||
+    !["production_bus", "available_commissioning"].includes(String(item.ownership)) ||
+    typeof item.present !== "boolean" ||
+    typeof item.available_for_preflight !== "boolean" ||
+    (item.serial !== null &&
+      (!serial ||
+        typeof serial.baudrate !== "number" ||
+        !Number.isInteger(serial.baudrate) ||
+        serial.baudrate <= 0 ||
+        !["N", "E", "O"].includes(String(serial.parity)) ||
+        typeof serial.stopbits !== "number" ||
+        ![1, 2].includes(serial.stopbits) ||
+        typeof serial.timeout_seconds !== "number" ||
+        !Number.isFinite(serial.timeout_seconds) ||
+        serial.timeout_seconds <= 0 ||
+        typeof serial.retries !== "number" ||
+        !Number.isInteger(serial.retries) ||
+        serial.retries < 0))
+  )
+    throw invalidResponse();
+  if (
+    (item.ownership === "available_commissioning" &&
+      (!item.bus_id.startsWith("commissioning-") || item.serial !== null)) ||
+    (item.ownership === "production_bus" && item.bus_id.startsWith("commissioning-"))
+  )
+    throw invalidResponse();
+  return {
+    busId: item.bus_id,
+    stableTransportIdentifier: item.stable_transport_identifier,
+    ownership: item.ownership as CommissioningConnectionOwnership,
+    present: item.present,
+    availableForPreflight: item.available_for_preflight,
+    serial:
+      serial === null
+        ? null
+        : {
+            baudrate: serial.baudrate as number,
+            parity: serial.parity as "N" | "E" | "O",
+            stopbits: serial.stopbits as 1 | 2,
+            timeoutSeconds: serial.timeout_seconds as number,
+            retries: serial.retries as number,
+          },
+  };
+}
+
 function parseSession(value: unknown): CommissioningSession {
   const item = record(value);
   const lifecycle = item?.lifecycle;
@@ -554,7 +656,9 @@ function parsePreflightEvidence(value: unknown): CommissioningPreflightEvidence 
     typeof item.code !== "string" ||
     !evidenceLevel(item.evidence_level) ||
     typeof item.node_id !== "string" ||
+    item.node_id.length === 0 ||
     typeof item.bus_id !== "string" ||
+    item.bus_id.length === 0 ||
     typeof item.stable_transport_identifier !== "string" ||
     typeof item.unit_id !== "number" ||
     typeof item.profile_id !== "string" ||
@@ -640,7 +744,9 @@ function parseActivationPlan(value: unknown): CommissioningActivationPlan {
     typeof item.profile_version !== "string" ||
     typeof item.device_family !== "string" ||
     typeof item.node_id !== "string" ||
+    item.node_id.length === 0 ||
     typeof item.bus_id !== "string" ||
+    item.bus_id.length === 0 ||
     typeof item.stable_transport_identifier !== "string" ||
     typeof item.unit_id !== "number" ||
     typeof item.target_equipment_key !== "string" ||

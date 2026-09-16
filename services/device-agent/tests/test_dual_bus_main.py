@@ -204,6 +204,56 @@ class DualBusAdaptiveRuntimeTests(unittest.TestCase):
         client.write_single_register.assert_not_called()
         lock.release.assert_called_once_with()
 
+    def test_unowned_akcc25_preflight_uses_temporary_exclusive_8e1_transport(self) -> None:
+        agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
+        topology = Mock()
+        topology.explicit = True
+        topology.binding.side_effect = ValueError("not configured")
+        agent.rs485_topology = topology
+        agent.settings = Mock(
+            xjp60d_scale=0.1,
+            embraco_temperature_scale=0.1,
+            embraco_control_scale=0.1,
+        )
+        agent._bus_clients = {}
+        agent._bus_operation_locks = {}
+        agent._bus_xjp60d_readers = {}
+        agent._bus_le01mp_readers = {}
+        agent._bus_embraco_readers = {}
+        agent._commissioning_adapter_locks = {}
+        agent._commissioning_adapter_locks_guard = threading.Lock()
+        agent._logical_bus_observer = Mock(return_value=Mock())
+
+        client = Mock()
+        client.instrumentation_scope.return_value = nullcontext()
+        values = {2006: 0, 2509: 1, 2684: 73, 2510: 1, 2511: 0, 2681: 100, 2540: 0, 2007: 35, 2250: 1, 2254: 1}
+        client.read_holding_register.side_effect = lambda unit_id, address: values[address]
+        adapter = Mock(runtime_path="/host/dev/serial/by-id/usb-danfoss")
+
+        with patch("dual_bus_main.resolve_commissioning_adapter", return_value=adapter), patch(
+            "dual_bus_main.ModbusRTUClient", return_value=client
+        ) as client_factory:
+            observations = agent.preflight_read_profile(
+                PROFILES["danfoss-ak-cc25-pro"],
+                bus_id="commissioning-1234567890abcdef",
+                unit_id=35,
+                deadline_monotonic=time.monotonic() + 1.0,
+            )
+
+        self.assertEqual(len(observations), 10)
+        client_factory.assert_called_once_with(
+            "/host/dev/serial/by-id/usb-danfoss",
+            baudrate=9600,
+            parity="E",
+            stopbits=1,
+            timeout=0.3,
+            retries=1,
+            request_observer=agent._logical_bus_observer.return_value,
+            exclusive=True,
+        )
+        client.close.assert_called_once_with()
+        client.write_single_register.assert_not_called()
+
     def test_composition_uses_distinct_clients_locks_and_registry_bus_ids(self) -> None:
         self.assertIsNone(self.agent.modbus_client)
         self.assertEqual(

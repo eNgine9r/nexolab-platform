@@ -55,6 +55,9 @@ function repository(session: CommissioningSession = persistedSession): Commissio
     async getProfile() {
       throw new Error("not used");
     },
+    async listConnections() {
+      return { schemaVersion: 1, nodeId: "edge-01", connections: [] };
+    },
     async listSessions() {
       return [session];
     },

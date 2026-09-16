@@ -27,6 +27,8 @@ import {
   createCommissioningIdempotencyKey,
   type CommissioningActivationAttempt,
   type CommissioningActivationPlan,
+  type CommissioningConnection,
+  type CommissioningConnectionInventory,
   type CommissioningPreflightAttempt,
   type CommissioningRepository,
   type CommissioningSession,
@@ -65,6 +67,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   const [step, setStep] = useState(0);
   const [unsupportedChoice, setUnsupportedChoice] = useState(false);
   const [profiles, setProfiles] = useState<SupportedDeviceProfile[]>([]);
+  const [connections, setConnections] = useState<CommissioningConnectionInventory | null>(null);
   const [equipment, setEquipment] = useState<RefrigerationEquipment[]>([]);
   const [session, setSession] = useState<CommissioningSession | null>(null);
   const [loadedRepository, setLoadedRepository] = useState<CommissioningRepository | null>(null);
@@ -103,12 +106,14 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
     const target = normalize(searchParams.get("target"));
     void Promise.all([
       repository.listProfiles(controller.signal),
+      repository.listConnections(controller.signal),
       runtime.equipmentRepository.list(),
       commissioningId ? repository.getSession(commissioningId, controller.signal) : Promise.resolve(null),
     ])
-      .then(([loadedProfiles, loadedEquipment, loadedSession]) => {
+      .then(([loadedProfiles, loadedConnections, loadedEquipment, loadedSession]) => {
         if (controller.signal.aborted) return;
         setProfiles(loadedProfiles);
+        setConnections(loadedConnections);
         setEquipment(loadedEquipment.filter((item) => item.lifecycleStatus !== "retired"));
         setSession(loadedSession);
         setUnsupportedChoice(Boolean(loadedSession?.lifecycle === "unsupported" && !loadedSession.profileId));
@@ -127,6 +132,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
       .catch((cause: unknown) => {
         if (controller.signal.aborted) return;
         setProfiles([]);
+        setConnections(null);
         setEquipment([]);
         setSession(null);
         setUnsupportedChoice(false);
@@ -260,6 +266,8 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
       deviceClass: profile.deviceClass,
       manufacturer: profile.manufacturer,
       model: profile.models[0] ?? "",
+      unitId:
+        profile.id === "danfoss-ak-cc25-pro" ? 35 : current.profileId === profile.id ? current.unitId : null,
     }));
   };
 
@@ -498,6 +506,7 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                     draft={draft}
                     setDraft={setDraft}
                     profiles={profiles}
+                    connections={connections}
                     equipment={equipment}
                     selectedProfile={selectedProfile}
                     selectedEquipment={selectedEquipment}
@@ -597,6 +606,7 @@ function WizardStep({
   draft,
   setDraft,
   profiles,
+  connections,
   equipment,
   selectedProfile,
   selectedEquipment,
@@ -608,6 +618,7 @@ function WizardStep({
   draft: CommissioningSessionWrite;
   setDraft: React.Dispatch<React.SetStateAction<CommissioningSessionWrite>>;
   profiles: SupportedDeviceProfile[];
+  connections: CommissioningConnectionInventory | null;
   equipment: RefrigerationEquipment[];
   selectedProfile: SupportedDeviceProfile | null;
   selectedEquipment: RefrigerationEquipment | null;
@@ -625,7 +636,8 @@ function WizardStep({
         onSelectProfile={onSelectProfile}
       />
     );
-  if (step === 1) return <ConnectionStep draft={draft} setDraft={setDraft} disabled={disabled} />;
+  if (step === 1)
+    return <ConnectionStep draft={draft} setDraft={setDraft} inventory={connections} disabled={disabled} />;
   if (step === 2) return <ProfileStep profile={selectedProfile} unsupported={unsupported} />;
   if (step === 3)
     return <BindingStep draft={draft} setDraft={setDraft} equipment={equipment} disabled={disabled} />;
@@ -714,54 +726,89 @@ function DeviceStep({
 function ConnectionStep({
   draft,
   setDraft,
+  inventory,
   disabled,
 }: {
   draft: CommissioningSessionWrite;
   setDraft: React.Dispatch<React.SetStateAction<CommissioningSessionWrite>>;
+  inventory: CommissioningConnectionInventory | null;
   disabled: boolean;
 }) {
   const field = (key: keyof CommissioningSessionWrite, value: string | number | null) =>
     setDraft((current) => ({ ...current, [key]: value }));
+  const selected = inventory?.connections.find((item) => item.busId === draft.busId) ?? null;
+  const chooseConnection = (busId: string) => {
+    const connection = inventory?.connections.find((item) => item.busId === busId) ?? null;
+    setDraft((current) => ({
+      ...current,
+      nodeId: connection ? (inventory?.nodeId ?? null) : null,
+      busId: connection?.busId ?? null,
+      stableTransportIdentifier: connection?.stableTransportIdentifier ?? null,
+    }));
+  };
   return (
     <StepFrame
       eyebrow="Крок 2"
-      title="Намір підключення"
-      description="Ці поля описують майбутнє підключення. До запуску безпечного preflight жодна адреса не опитується."
+      title="Підключення RS-485"
+      description="Оберіть фізичний RS-485 адаптер із фактичного локального інвентарю. Система сама підставить Node, логічний Bus ID і стабільний transport identity."
     >
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3">
         <label className={labelClass}>
-          Node intent
-          <input
-            disabled={disabled}
-            value={draft.nodeId ?? ""}
-            onChange={(event) => field("nodeId", normalize(event.target.value))}
-            placeholder="edge-01"
-            className={inputClass}
-          />
-        </label>
-        <label className={labelClass}>
-          Bus intent
-          <input
-            disabled={disabled}
+          RS-485 підключення
+          <select
+            aria-label="RS-485 підключення"
+            disabled={disabled || !inventory}
             value={draft.busId ?? ""}
-            onChange={(event) => field("busId", normalize(event.target.value))}
-            placeholder="rs485-main"
+            onChange={(event) => chooseConnection(event.target.value)}
             className={inputClass}
-          />
+          >
+            <option value="">Оберіть підключення</option>
+            {inventory?.connections.map((connection) => (
+              <option
+                key={connection.busId}
+                value={connection.busId}
+                disabled={!connection.availableForPreflight}
+              >
+                {connectionLabel(connection)}
+              </option>
+            ))}
+          </select>
         </label>
-        <label className={`${labelClass} sm:col-span-2`}>
-          Стабільний transport identity
-          <input
-            disabled={disabled}
-            value={draft.stableTransportIdentifier ?? ""}
-            onChange={(event) => field("stableTransportIdentifier", normalize(event.target.value))}
-            placeholder="/dev/serial/by-id/..."
-            className={inputClass}
-          />
-        </label>
+        {selected ? (
+          <div className="rounded-2xl border border-cyan-300/10 bg-cyan-400/[0.03] p-4">
+            <dl className="grid gap-3 text-xs sm:grid-cols-2">
+              <SummaryRow label="Node" value={inventory?.nodeId ?? "—"} />
+              <SummaryRow
+                label="Статус"
+                value={
+                  selected.ownership === "production_bus"
+                    ? "Production bus · доступний"
+                    : "Вільний адаптер · commissioning only"
+                }
+              />
+              <SummaryRow label="Bus ID" value={selected.busId} />
+              <SummaryRow
+                label="Serial"
+                value={
+                  selected.serial
+                    ? `${selected.serial.baudrate} 8${selected.serial.parity}${selected.serial.stopbits}`
+                    : "Буде взято з профілю пристрою"
+                }
+              />
+            </dl>
+            <p className="mt-3 rounded-xl border border-white/[0.06] bg-black/10 p-3 font-mono text-[10px] leading-5 break-all text-slate-400">
+              {selected.stableTransportIdentifier}
+            </p>
+          </div>
+        ) : (
+          <p className="rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-3 text-xs leading-5 text-amber-100">
+            Оберіть адаптер. Ручне введення `/dev/ttyUSB*`, Node або Bus ID навмисно вимкнене.
+          </p>
+        )}
         <label className={labelClass}>
           Modbus Unit ID
           <input
+            aria-label="Modbus Unit ID"
             disabled={disabled}
             type="number"
             min={1}
@@ -773,10 +820,23 @@ function ConnectionStep({
         </label>
       </div>
       <p className="mt-4 rounded-xl border border-cyan-300/10 bg-cyan-400/[0.035] p-3 text-xs leading-5 text-slate-400">
-        Редагування наміру не виконує Modbus read/write, не сканує Unit ID і не змінює Device Agent.
+        Перелік підключень читається локально без Modbus-сканування. Вибір адаптера не змінює Device Agent,
+        production topology чи controller parameters. Опитування виконується лише після окремого bounded
+        read-only preflight.
       </p>
     </StepFrame>
   );
+}
+
+function connectionLabel(connection: CommissioningConnection): string {
+  const name = connection.stableTransportIdentifier.split("/").at(-1) ?? connection.stableTransportIdentifier;
+  const compact = name
+    .replace(/^usb-/, "")
+    .replace(/-if\d+-port\d+$/, "")
+    .replaceAll("_", " ");
+  return connection.ownership === "production_bus"
+    ? `${connection.busId} · production · ${compact}`
+    : `${compact} · вільний commissioning адаптер`;
 }
 
 function ProfileStep({

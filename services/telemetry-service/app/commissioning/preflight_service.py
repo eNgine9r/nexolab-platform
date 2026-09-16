@@ -19,6 +19,9 @@ class CommissioningPreflightService:
     client: DeviceAgentPreflightClient
     deadline_seconds: float
 
+    def list_connections(self) -> dict[str, Any]:
+        return self.client.list_connections()
+
     def run(
         self,
         session_id: str,

@@ -775,7 +775,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
           await engineerPage.reload({ waitUntil: "domcontentloaded" });
           await expect(engineerPage.getByRole("heading", { name: "Embraco Sync" })).toBeVisible();
           await engineerPage.getByRole("button", { name: "Підключення" }).click();
-          await engineerPage.getByLabel("Node intent").fill("acceptance-edge-01");
+          await expect(engineerPage.getByLabel("RS-485 підключення")).toBeVisible();
           await engineerPage.getByRole("button", { name: "Зберегти чернетку" }).click();
 
           await engineerPage.getByLabel("Назад до підключень").click();
