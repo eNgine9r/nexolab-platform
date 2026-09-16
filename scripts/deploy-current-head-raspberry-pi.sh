@@ -728,6 +728,7 @@ def valid_stamp(name: str) -> bool:
     return True
 
 attempts: list[tuple[str, Path, str, bool, str | None, str | None, str | None, str | None]] = []
+invalid_compatibility_authorities: list[tuple[str, Path, str]] = []
 if root.is_dir():
     for directory in root.iterdir():
         if not directory.is_dir() or directory.is_symlink() or not valid_stamp(directory.name):
@@ -828,12 +829,15 @@ if root.is_dir():
             try:
                 compatibility_result = compatibility_authority.load_published_authority(repo, directory)
             except Exception as error:
-                print(f"ERROR: compatibility runtime authority evidence is invalid: {directory}: {error}", file=sys.stderr)
-                raise SystemExit(3)
-            compatibility_commit = compatibility_result["compatibility_source"]
-            compatibility_image = compatibility_result["device_agent_image_id"]
-            compatibility_base = compatibility_result["formal_base_source"]
-            compatibility_target = compatibility_result["approved_target_source"]
+                invalid_compatibility_authorities.append((directory.name, directory.resolve(), str(error)))
+            else:
+                compatibility_commit = compatibility_result["compatibility_source"]
+                compatibility_image = compatibility_result["device_agent_image_id"]
+                compatibility_base = compatibility_result["formal_base_source"]
+                compatibility_target = compatibility_result["approved_target_source"]
+            if compatibility_result_path.exists() and compatibility_commit is None:
+                attempts.append((directory.name, directory.resolve(), summary_text, False, None, None, None, None))
+                continue
         effective_commit = forward_commit or recovered_commit or compatibility_commit or passed_commit
         effective_image = forward_image or recovered_image or compatibility_image or passed_image
         mutated = (directory / "runtime-mutation-started").is_file() or any(
@@ -862,6 +866,17 @@ if not successful:
     success_stamp, success_dir, success_commit, success_image,
     success_compatibility_base, success_compatibility_target,
 ) = max(successful, key=lambda item: item[0])
+for invalid_stamp, invalid_dir, invalid_error in invalid_compatibility_authorities:
+    if invalid_stamp > success_stamp:
+        print(
+            f"ERROR: newer compatibility runtime authority evidence is invalid: {invalid_dir}: {invalid_error}",
+            file=sys.stderr,
+        )
+        raise SystemExit(3)
+    print(
+        f"WARN: ignoring superseded invalid compatibility authority: {invalid_dir}: {invalid_error}",
+        file=sys.stderr,
+    )
 for (
     stamp, directory, _summary, mutated, commit, _recovered_image,
     _compatibility_base, _compatibility_target,
@@ -1181,11 +1196,14 @@ fi
 
 if [[ -d "$REPO/runtime/evidence" ]]; then
   RUNTIME_ARCHIVE_TMP="$AUDIT_DIR/.runtime-evidence.tar.gz.partial"
-  rm -f -- "$RUNTIME_ARCHIVE_TMP"
-  if ! tar -C "$REPO" -czf "$RUNTIME_ARCHIVE_TMP" runtime/evidence; then
+  RUNTIME_ARCHIVE_ERR="$AUDIT_DIR/runtime-evidence-archive.err"
+  rm -f -- "$RUNTIME_ARCHIVE_TMP" "$RUNTIME_ARCHIVE_ERR"
+  if ! sudo -n tar -C "$REPO" -czf - runtime/evidence > "$RUNTIME_ARCHIVE_TMP" 2> "$RUNTIME_ARCHIVE_ERR"; then
     rm -f -- "$RUNTIME_ARCHIVE_TMP"
-    fail "runtime evidence archive failed; partial archive was removed"
+    fail "runtime evidence archive failed; partial archive was removed (see $RUNTIME_ARCHIVE_ERR)"
   fi
+  [[ -s "$RUNTIME_ARCHIVE_TMP" ]] || fail "runtime evidence archive is empty"
+  chmod 0600 "$RUNTIME_ARCHIVE_TMP" "$RUNTIME_ARCHIVE_ERR"
   mv -- "$RUNTIME_ARCHIVE_TMP" "$AUDIT_DIR/runtime-evidence.tar.gz"
 fi
 

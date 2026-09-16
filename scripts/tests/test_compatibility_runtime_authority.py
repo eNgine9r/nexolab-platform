@@ -52,8 +52,15 @@ class CompatibilityRuntimeAuthorityTests(unittest.TestCase):
             "schema_version": 1,
             "compatibility_source": self.compatibility,
             "base_deployed_source": self.base,
-            "device_agent": {"candidate_image": self.da_image, "configured_logical_targets": 53},
-            "telemetry_service": {"candidate_image": self.telemetry_image},
+            "device_agent": {
+                "candidate_image": self.da_image,
+                "rollback_image": self.formal_image,
+                "configured_logical_targets": 53,
+            },
+            "telemetry_service": {
+                "candidate_image": self.telemetry_image,
+                "rollback_image": "sha256:" + "d" * 64,
+            },
             "frontend": {"active_release": str(self.release), "build_id": "build-1044"},
             "invariants": {
                 "modbus_writes": "none",
@@ -129,6 +136,8 @@ class CompatibilityRuntimeAuthorityTests(unittest.TestCase):
         self.assertEqual(context["device_agent_image_id"], self.da_image)
         self.assertEqual(context["telemetry_image_id"], self.telemetry_image)
         self.assertEqual(context["formal_base_source"], self.base)
+        self.assertEqual(context["formal_base_device_agent_image_id"], self.formal_image)
+        self.assertEqual(context["formal_base_telemetry_image_id"], "sha256:" + "d" * 64)
         self.assertEqual(context["approved_target_source"], self.compatibility)
         self.assertEqual(context["device_health"]["configured_logical_targets"], 53)
 
@@ -141,6 +150,19 @@ class CompatibilityRuntimeAuthorityTests(unittest.TestCase):
         loaded = AUTH.load_published_authority(self.repo, directory)
         self.assertEqual(loaded["compatibility_source"], self.compatibility)
         self.assertEqual(loaded["device_agent_image_id"], self.da_image)
+
+    def test_self_contained_authority_survives_formal_deployment_retention(self) -> None:
+        context = self._context()
+        directory = self.repo / "runtime" / "deployments" / "20260916T120000Z"
+        directory.mkdir()
+        result = AUTH.make_result(context, directory.name)
+        (directory / AUTH.RESULT_NAME).write_text(json.dumps(result) + "\n")
+        for child in self.formal.iterdir():
+            child.unlink()
+        self.formal.rmdir()
+        loaded = AUTH.load_published_authority(self.repo, directory)
+        self.assertEqual(loaded["schema_version"], 2)
+        self.assertEqual(loaded["compatibility_source"], self.compatibility)
 
     def test_legacy_published_authority_derives_hash_bound_approved_target(self) -> None:
         context = self._context()

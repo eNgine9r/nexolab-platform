@@ -453,6 +453,8 @@ class DeploymentCapacityTests(unittest.TestCase):
         self.assertLess(mutation_marker, central_up)
         self.assertGreaterEqual(text.count("nexolab_capacity_preflight"), 2)
         self.assertIn(".runtime-evidence.tar.gz.partial", text)
+        self.assertIn('sudo -n tar -C "$REPO" -czf - runtime/evidence', text)
+        self.assertIn("runtime-evidence-archive.err", text)
         self.assertIn(".postgresql-pre-upgrade.dump.partial", text)
         self.assertNotIn("docker volume rm", text)
         self.assertNotIn("docker compose down -v", text)

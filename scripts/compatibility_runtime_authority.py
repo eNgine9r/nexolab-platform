@@ -262,9 +262,13 @@ def build_context(
     if invariants.get("production_akcc25_polling") != "disabled":
         raise AuthorityFailure("compatibility acceptance does not prove AK-CC25 polling disabled")
 
-    formal_dir, formal_source, formal_image = latest_formal_success(repo)
-    if formal_source != formal_base_source:
-        raise AuthorityFailure("requested formal base is not the latest formal successful deployment")
+    device_acceptance = acceptance.get("device_agent") if isinstance(acceptance.get("device_agent"), dict) else {}
+    telemetry_acceptance = acceptance.get("telemetry_service") if isinstance(acceptance.get("telemetry_service"), dict) else {}
+    frontend_acceptance = acceptance.get("frontend") if isinstance(acceptance.get("frontend"), dict) else {}
+    formal_image = str(device_acceptance.get("rollback_image", ""))
+    formal_telemetry_image = str(telemetry_acceptance.get("rollback_image", ""))
+    if not IMAGE_RE.fullmatch(formal_image) or not IMAGE_RE.fullmatch(formal_telemetry_image):
+        raise AuthorityFailure("compatibility acceptance has no valid formal-base rollback image identities")
 
     rollback = parse_key_values(rollback_dir / "rollback-authority.txt", "pre-cutover rollback authority")
     if rollback.get("approved_from") != compatibility_source:
@@ -277,9 +281,6 @@ def build_context(
         run("git", "-C", str(repo), "merge-base", "--is-ancestor", formal_base_source, approved_target_source)
     except AuthorityFailure as exc:
         raise AuthorityFailure("approved target is not a descendant of the formal base source") from exc
-    device_acceptance = acceptance.get("device_agent") if isinstance(acceptance.get("device_agent"), dict) else {}
-    telemetry_acceptance = acceptance.get("telemetry_service") if isinstance(acceptance.get("telemetry_service"), dict) else {}
-    frontend_acceptance = acceptance.get("frontend") if isinstance(acceptance.get("frontend"), dict) else {}
     expected_da_image = str(device_acceptance.get("candidate_image", ""))
     expected_telemetry_image = str(telemetry_acceptance.get("candidate_image", ""))
     if rollback.get("device_agent_image") != expected_da_image or rollback.get("telemetry_image") != expected_telemetry_image:
@@ -323,18 +324,15 @@ def build_context(
     if build_id != frontend_acceptance.get("build_id") or rollback.get("frontend_build_id") != build_id:
         raise AuthorityFailure("Dashboard BUILD_ID does not match compatibility acceptance")
 
-    if formal_image is None:
-        raise AuthorityFailure("formal base has no Device Agent recovery image authority")
-
     return {
         "repo": repo,
         "acceptance_dir": acceptance_dir,
         "rollback_dir": rollback_dir,
-        "formal_dir": formal_dir,
         "compatibility_source": compatibility_source,
         "formal_base_source": formal_base_source,
         "approved_target_source": approved_target_source,
         "formal_base_device_agent_image_id": formal_image,
+        "formal_base_telemetry_image_id": formal_telemetry_image,
         "device_agent_container_id": da_container,
         "device_agent_image_id": da_image,
         "telemetry_container_id": telemetry_container,
@@ -344,8 +342,6 @@ def build_context(
         "acceptance_json_sha256": sha256_file(acceptance_dir / "acceptance.json"),
         "acceptance_checksums_sha256": sha256_file(acceptance_dir / "SHA256SUMS"),
         "rollback_authority_sha256": sha256_file(rollback_dir / "rollback-authority.txt"),
-        "formal_summary_sha256": sha256_file(formal_dir / "summary.txt"),
-        "formal_final_state_sha256": sha256_file(formal_dir / "final-state.txt"),
         "device_health": {
             "status": health.get("status"),
             "mqtt_connected": health.get("mqtt_connected"),
@@ -365,7 +361,7 @@ def relative_to_repo(repo: Path, path: Path) -> str:
 
 def make_result(context: dict[str, Any], stamp: str) -> dict[str, Any]:
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "kind": "nexolab-compatibility-runtime-authority",
         "status": "established",
         "authority_id": stamp,
@@ -373,8 +369,8 @@ def make_result(context: dict[str, Any], stamp: str) -> dict[str, Any]:
         "compatibility_source": context["compatibility_source"],
         "formal_base_source": context["formal_base_source"],
         "approved_target_source": context["approved_target_source"],
-        "formal_base_evidence": relative_to_repo(context["repo"], context["formal_dir"]),
         "formal_base_device_agent_image_id": context["formal_base_device_agent_image_id"],
+        "formal_base_telemetry_image_id": context["formal_base_telemetry_image_id"],
         "acceptance_evidence": relative_to_repo(context["repo"], context["acceptance_dir"]),
         "rollback_evidence": relative_to_repo(context["repo"], context["rollback_dir"]),
         "device_agent_container_id": context["device_agent_container_id"],
@@ -389,8 +385,6 @@ def make_result(context: dict[str, Any], stamp: str) -> dict[str, Any]:
             "acceptance_json": context["acceptance_json_sha256"],
             "acceptance_checksums": context["acceptance_checksums_sha256"],
             "rollback_authority": context["rollback_authority_sha256"],
-            "formal_summary": context["formal_summary_sha256"],
-            "formal_final_state": context["formal_final_state_sha256"],
         },
         "safety": {
             "runtime_mutation": "none",
@@ -401,7 +395,6 @@ def make_result(context: dict[str, Any], stamp: str) -> dict[str, Any]:
             "named_volume_deletion": "none",
         },
     }
-
 
 def atomic_json(path: Path, payload: dict[str, Any]) -> None:
     temporary = path.with_name(f".{path.name}.{uuid4().hex}.tmp")
@@ -423,33 +416,39 @@ def atomic_json(path: Path, payload: dict[str, Any]) -> None:
 
 
 def validate_result(repo: Path, directory: Path, document: dict[str, Any]) -> dict[str, Any]:
-    if document.get("schema_version") != 1 or document.get("kind") != "nexolab-compatibility-runtime-authority" or document.get("status") != "established":
+    schema = document.get("schema_version")
+    if schema not in {1, 2} or document.get("kind") != "nexolab-compatibility-runtime-authority" or document.get("status") != "established":
         raise AuthorityFailure("compatibility runtime authority contract is invalid")
     if document.get("authority_id") != directory.name:
         raise AuthorityFailure("compatibility runtime authority id mismatch")
     source = document.get("compatibility_source")
     base = document.get("formal_base_source")
     image = document.get("device_agent_image_id")
+    telemetry_image = document.get("telemetry_image_id")
     approved_target = document.get("approved_target_source")
     if not isinstance(source, str) or not SHA_RE.fullmatch(source) or not isinstance(base, str) or not SHA_RE.fullmatch(base):
         raise AuthorityFailure("compatibility runtime authority source identity is invalid")
     if not isinstance(image, str) or not IMAGE_RE.fullmatch(image):
         raise AuthorityFailure("compatibility runtime authority Device Agent image is invalid")
+    if not isinstance(telemetry_image, str) or not IMAGE_RE.fullmatch(telemetry_image):
+        raise AuthorityFailure("compatibility runtime authority Telemetry image is invalid")
     parents = git(repo, "show", "-s", "--format=%P", source).split()
     if parents != [base]:
         raise AuthorityFailure("published compatibility source lineage is invalid")
 
     acceptance_dir = (repo / str(document.get("acceptance_evidence", ""))).resolve()
     rollback_dir = (repo / str(document.get("rollback_evidence", ""))).resolve()
-    formal_dir = (repo / str(document.get("formal_base_evidence", ""))).resolve()
     if acceptance_dir.parent != (repo / "runtime" / "evidence").resolve() or rollback_dir.parent != (repo / "runtime" / "evidence").resolve():
         raise AuthorityFailure("published compatibility evidence path is outside runtime/evidence")
-    if formal_dir.parent != (repo / "runtime" / "deployments").resolve() or not valid_stamp(formal_dir.name):
-        raise AuthorityFailure("published formal deployment evidence path is invalid")
     acceptance = read_json(acceptance_dir / "acceptance.json", "published compatibility acceptance")
     if acceptance.get("compatibility_source") != source or acceptance.get("base_deployed_source") != base:
         raise AuthorityFailure("published compatibility acceptance lineage mismatch")
     verify_checksum_manifest(acceptance_dir)
+    device_acceptance = acceptance.get("device_agent") if isinstance(acceptance.get("device_agent"), dict) else {}
+    telemetry_acceptance = acceptance.get("telemetry_service") if isinstance(acceptance.get("telemetry_service"), dict) else {}
+    if device_acceptance.get("candidate_image") != image or telemetry_acceptance.get("candidate_image") != telemetry_image:
+        raise AuthorityFailure("published compatibility runtime image identity mismatch")
+
     rollback = parse_key_values(rollback_dir / "rollback-authority.txt", "published rollback authority")
     rollback_target = rollback.get("approved_to", "")
     if not SHA_RE.fullmatch(rollback_target):
@@ -465,20 +464,39 @@ def validate_result(repo: Path, directory: Path, document: dict[str, Any]) -> di
         run("git", "-C", str(repo), "merge-base", "--is-ancestor", base, approved_target)
     except AuthorityFailure as exc:
         raise AuthorityFailure("published approved target is not a descendant of the formal base source") from exc
-    if rollback.get("approved_from") != source or rollback.get("device_agent_image") != image:
+    if (
+        rollback.get("approved_from") != source
+        or rollback.get("device_agent_image") != image
+        or rollback.get("telemetry_image") != telemetry_image
+    ):
         raise AuthorityFailure("published rollback authority mismatch")
 
-    formal_facts = parse_key_values(formal_dir / "final-state.txt", "published formal deployment final state")
-    if formal_facts.get("commit") != base or "DEPLOYMENT PASSED" not in safe_file(formal_dir / "summary.txt", "published formal deployment summary").read_text(encoding="utf-8", errors="replace"):
-        raise AuthorityFailure("published formal deployment authority mismatch")
     hashes = document.get("evidence_hashes")
     expected_hashes = {
         "acceptance_json": sha256_file(acceptance_dir / "acceptance.json"),
         "acceptance_checksums": sha256_file(acceptance_dir / "SHA256SUMS"),
         "rollback_authority": sha256_file(rollback_dir / "rollback-authority.txt"),
-        "formal_summary": sha256_file(formal_dir / "summary.txt"),
-        "formal_final_state": sha256_file(formal_dir / "final-state.txt"),
     }
+    if schema == 1:
+        formal_dir = (repo / str(document.get("formal_base_evidence", ""))).resolve()
+        if formal_dir.parent != (repo / "runtime" / "deployments").resolve() or not valid_stamp(formal_dir.name):
+            raise AuthorityFailure("published formal deployment evidence path is invalid")
+        formal_facts = parse_key_values(formal_dir / "final-state.txt", "published formal deployment final state")
+        if formal_facts.get("commit") != base or "DEPLOYMENT PASSED" not in safe_file(formal_dir / "summary.txt", "published formal deployment summary").read_text(encoding="utf-8", errors="replace"):
+            raise AuthorityFailure("published formal deployment authority mismatch")
+        expected_hashes.update({
+            "formal_summary": sha256_file(formal_dir / "summary.txt"),
+            "formal_final_state": sha256_file(formal_dir / "final-state.txt"),
+        })
+    else:
+        formal_image = document.get("formal_base_device_agent_image_id")
+        formal_telemetry_image = document.get("formal_base_telemetry_image_id")
+        if not isinstance(formal_image, str) or not IMAGE_RE.fullmatch(formal_image):
+            raise AuthorityFailure("self-contained authority formal-base Device Agent image is invalid")
+        if not isinstance(formal_telemetry_image, str) or not IMAGE_RE.fullmatch(formal_telemetry_image):
+            raise AuthorityFailure("self-contained authority formal-base Telemetry image is invalid")
+        if device_acceptance.get("rollback_image") != formal_image or telemetry_acceptance.get("rollback_image") != formal_telemetry_image:
+            raise AuthorityFailure("self-contained authority formal-base recovery identities do not match acceptance")
     if hashes != expected_hashes:
         raise AuthorityFailure("published compatibility runtime authority evidence hash mismatch")
     safety = document.get("safety")
@@ -487,7 +505,6 @@ def validate_result(repo: Path, directory: Path, document: dict[str, Any]) -> di
     validated = dict(document)
     validated["approved_target_source"] = approved_target
     return validated
-
 
 def load_published_authority(repo: Path, directory: Path) -> dict[str, Any]:
     repo = repo.resolve()

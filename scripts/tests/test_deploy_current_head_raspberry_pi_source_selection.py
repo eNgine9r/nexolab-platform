@@ -186,8 +186,8 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
             "schema_version": 1,
             "compatibility_source": compatibility_source,
             "base_deployed_source": self.base,
-            "device_agent": {"candidate_image": da_image},
-            "telemetry_service": {"candidate_image": telemetry_image},
+            "device_agent": {"candidate_image": da_image, "rollback_image": "sha256:" + "6" * 64},
+            "telemetry_service": {"candidate_image": telemetry_image, "rollback_image": "sha256:" + "5" * 64},
             "frontend": {"active_release": str(release), "build_id": "compat-build"},
             "invariants": {"modbus_writes": "none", "hardware_writes": "none", "production_akcc25_polling": "disabled"},
         }
@@ -211,19 +211,17 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
             "acceptance_json": hashlib.sha256((acceptance / "acceptance.json").read_bytes()).hexdigest(),
             "acceptance_checksums": hashlib.sha256((acceptance / "SHA256SUMS").read_bytes()).hexdigest(),
             "rollback_authority": hashlib.sha256((rollback / "rollback-authority.txt").read_bytes()).hexdigest(),
-            "formal_summary": hashlib.sha256((self.base_evidence / "summary.txt").read_bytes()).hexdigest(),
-            "formal_final_state": hashlib.sha256((self.base_evidence / "final-state.txt").read_bytes()).hexdigest(),
         }
         result = {
-            "schema_version": 1,
+            "schema_version": 2,
             "kind": "nexolab-compatibility-runtime-authority",
             "status": "established",
             "authority_id": stamp,
             "compatibility_source": compatibility_source,
             "formal_base_source": self.base,
             "approved_target_source": approved_target,
-            "formal_base_evidence": str(self.base_evidence.relative_to(self.repo)),
             "formal_base_device_agent_image_id": "sha256:" + "6" * 64,
+            "formal_base_telemetry_image_id": "sha256:" + "5" * 64,
             "acceptance_evidence": str(acceptance.relative_to(self.repo)),
             "rollback_evidence": str(rollback.relative_to(self.repo)),
             "device_agent_container_id": "1" * 64,
@@ -329,6 +327,23 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         result = self._validate(self.latest, compatibility)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("explicitly approved compatibility cutover target", result.stdout + result.stderr)
+
+    def test_newer_self_contained_authority_supersedes_retention_broken_legacy_authority(self) -> None:
+        legacy = self._set_compatibility_authority_evidence("20260829T010000Z")
+        legacy_doc = json.loads((legacy / "compatibility-runtime-authority.json").read_text(encoding="utf-8"))
+        legacy_doc["schema_version"] = 1
+        legacy_doc["formal_base_evidence"] = str(self.base_evidence.relative_to(self.repo))
+        legacy_doc["evidence_hashes"]["formal_summary"] = hashlib.sha256((self.base_evidence / "summary.txt").read_bytes()).hexdigest()
+        legacy_doc["evidence_hashes"]["formal_final_state"] = hashlib.sha256((self.base_evidence / "final-state.txt").read_bytes()).hexdigest()
+        (legacy / "compatibility-runtime-authority.json").write_text(json.dumps(legacy_doc) + "\n", encoding="utf-8")
+        for child in self.base_evidence.iterdir():
+            child.unlink()
+        self.base_evidence.rmdir()
+        current = self._set_compatibility_authority_evidence("20260829T020000Z")
+        result = self._validate_current_main(self.target)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("ignoring superseded invalid compatibility authority", result.stderr)
+        self.assertIn(str(current), result.stdout)
 
     def test_current_main_expected_runtime_authority_mismatch_fails_closed(self) -> None:
         self._set_compatibility_authority_evidence("20260829T010000Z")
