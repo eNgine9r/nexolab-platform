@@ -1,14 +1,14 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-16
+Updated: 2026-09-17
 
 ## Issue #1053 — FTDI commissioning permission boundary
 
-**Critical blocker for #1050 live acceptance.** Controlled #1050 deployment to `442e0c55...` passed and production acquisition remains healthy at 53 scheduled targets with AK-CC25 scheduled targets `0`. Post-cutover Danfoss Unit 35 preflight fails safely before a successful FC03 transaction because the nonroot Device Agent has `dialout` GID 20 but not host `plugdev` GID 46; FTDI `/dev/ttyUSB2/3` are `0660 root:plugdev` and return `EACCES` inside the container. Issue #1053 must add the minimum supplementary serial-group runtime contract and permission-aware inventory, then pass real `A10Q2SI7` FC03-only acceptance. No host chmod/chown workaround, privileged container, topology mutation, Modbus write or hardware write is permitted. A production Device Agent recreation for the eventual exact fix target is a separate cutover gate requiring Product Owner approval.
+**Repository fix implemented; production cutover still gated.** Candidate `d7fc903a6abe4dc25fdcfaf97093b04b8463f735` adds only the minimum supplementary commissioning serial group (controlled Pi default GID 46 / plugdev), keeps the Device Agent nonroot, keeps `/host/dev` read-only and retains the `c 188:* rwm` character-device boundary. Inventory/resolver now use effective R/W permission checks without opening the serial port, so inaccessible stable adapters fail closed before preflight transport creation. Focused commissioning/dual-bus tests and the standalone offline runtime contract are GREEN, and a real no-open permission smoke confirms group 20 preserves CP2104 access while group 46 is what makes FTDI `A10Q2SI7` accessible. Remaining repository gate: exact-head CI/PR review. Remaining runtime gate after merge: explicit Product Owner authorization for the exact production Device Agent recreation target, then real Unit 35 bounded FC03-only acceptance.
 
 ## Issue #1050 — RS-485 commissioning selector production cutover
 
-**Cutover completed; acceptance remains open.** Product Owner-authorized `e948089... → 442e0c55...` deployment passed with evidence `runtime/deployments/20260916T191921Z`, rollback preservation and unchanged persistent volumes/topology. Runtime services are healthy and acquisition invariants hold. #1050 cannot close until #1053 clears the FTDI access defect and authenticated live UI/API plus Danfoss Unit 35 bounded FC03-only preflight pass.
+**Cutover completed; acceptance blocked by #1053 only.** Source `442e0c55...` remains healthy in LOCAL_LAN with 53 scheduled targets, AK-CC25 scheduled targets `0`, unchanged production buses and preserved persistent volumes. #1050 resumes after #1053 runtime acceptance and still requires authenticated live UI/API verification.
 
 ## Issue #1044 — Danfoss onboarding runtime promotion
 

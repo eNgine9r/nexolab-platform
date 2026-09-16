@@ -3,38 +3,38 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-16T22:48:00+03:00",
+  "timestamp": "2026-09-17T01:12:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1050 deployed 442e0c55 successfully; live Danfoss acceptance exposed FTDI plugdev permission blocker tracked as Issue #1053",
+  "event": "Issue #1053 software candidate d7fc903a fixes nonroot FTDI commissioning permission boundary; real permission classifier passes without serial open",
   "baselines": {
     "accepted_product_sha": "96e4e65b0356656ddbaa4519d5302c19f4b749a5",
     "deployed_product_sha": "442e0c55a87cd83fba71be769ac39d170cc0d61f"
   },
   "active_work": {
-    "issue": 1050,
-    "title": "Roll out merged RS-485 commissioning selector to LOCAL_LAN with verified recovery authority",
-    "branch": "deploy/1050-rs485-selector-runtime"
+    "issue": 1053,
+    "title": "Make FTDI commissioning adapters accessible to the nonroot Device Agent",
+    "branch": "fix/1053-ftdi-commissioning-permissions"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "verified_head_sha": "b7e91e38cca02593df0876fe61e81947071fced1",
-      "pull_request": 1052,
+      "trigger": "post_cutover_real_danfoss_preflight_adapter_unavailable",
+      "root_cause": "device_agent_groups_missing_host_plugdev_gid_46_for_ftdi_ttyusb2_ttyusb3",
+      "safe_failure": "inventory_visible_profile_read_failed_before_successful_fc03_modbus_write_none_hardware_write_none",
+      "verified_head_sha": "d7fc903a6abe4dc25fdcfaf97093b04b8463f735",
       "checks": {
-        "core_ci": "success:35139430341",
-        "nexolab_merge_gate": "success:35139430341",
-        "controlled_local_lan_deployment": "success:runtime/deployments/20260916T191921Z",
-        "deployed_source": "442e0c55a87cd83fba71be769ac39d170cc0d61f",
-        "post_cutover_53_targets": "success",
-        "akcc25_scheduled_targets": "0",
-        "persistent_volume_identity": "preserved",
-        "post_cutover_danfoss_preflight": "blocked_issue_1053_ftdi_eacces",
+        "commissioning_connections": "success_6_of_6",
+        "commissioning_preflight": "success_8_of_8",
+        "commissioning_activation": "success_6_of_6",
+        "dual_bus_runtime": "success_15_of_15",
+        "standalone_offline_runtime_contract": "success",
+        "real_permission_classifier": "success_group20_denies_ftdi_group20_46_allows_ftdi_without_serial_open",
         "modbus_write": "none",
         "hardware_write": "none"
       }
     }
   },
   "observations": [],
-  "next_action": "Merge verified #1052 deployment-authority tooling/state, then implement Issue #1053 on a fresh branch; do not perform a new production Device Agent recreation until exact fix target authorization is obtained",
+  "next_action": "Push coherent #1053 candidate, open focused PR and require exact-head CI; production Device Agent recreation remains separately gated by exact target approval",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

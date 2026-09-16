@@ -23,15 +23,11 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1050,
-      "title": "Roll out merged RS-485 commissioning selector to LOCAL_LAN with verified recovery authority",
-      "branch": "deploy/1050-rs485-selector-runtime"
-    },
-    "next_work_package": {
       "issue": 1053,
       "title": "Make FTDI commissioning adapters accessible to the nonroot Device Agent",
       "branch": "fix/1053-ftdi-commissioning-permissions"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -3884,7 +3880,7 @@
       "issue": 1050,
       "title": "Roll out merged RS-485 commissioning selector to LOCAL_LAN with verified recovery authority",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "blocked",
       "branch": "deploy/1050-rs485-selector-runtime",
       "evidence": {
         "verified_head_sha": "b7e91e38cca02593df0876fe61e81947071fced1",
@@ -3907,7 +3903,7 @@
       "issue": 1053,
       "title": "Make FTDI commissioning adapters accessible to the nonroot Device Agent",
       "priority": "critical",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [
         1050
       ],
@@ -3915,7 +3911,18 @@
       "evidence": {
         "trigger": "post_cutover_real_danfoss_preflight_adapter_unavailable",
         "root_cause": "device_agent_groups_missing_host_plugdev_gid_46_for_ftdi_ttyusb2_ttyusb3",
-        "safe_failure": "inventory_visible_profile_read_failed_before_successful_fc03_modbus_write_none_hardware_write_none"
+        "safe_failure": "inventory_visible_profile_read_failed_before_successful_fc03_modbus_write_none_hardware_write_none",
+        "verified_head_sha": "d7fc903a6abe4dc25fdcfaf97093b04b8463f735",
+        "checks": {
+          "commissioning_connections": "success_6_of_6",
+          "commissioning_preflight": "success_8_of_8",
+          "commissioning_activation": "success_6_of_6",
+          "dual_bus_runtime": "success_15_of_15",
+          "standalone_offline_runtime_contract": "success",
+          "real_permission_classifier": "success_group20_denies_ftdi_group20_46_allows_ftdi_without_serial_open",
+          "modbus_write": "none",
+          "hardware_write": "none"
+        }
       }
     }
   ],

@@ -1,14 +1,18 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-16
+Updated: 2026-09-17
 
 ## Current Sprint
 
-### Issue #1050 — RS-485 commissioning selector deployed; live acceptance blocked by #1053
+### Issue #1053 — FTDI commissioning permission repair active
 
-PR #1049 merged the complete RS-485 commissioning selector to `main` as `442e0c55a87cd83fba71be769ac39d170cc0d61f`. Product Owner authorized the exact `e948089... → 442e0c55...` LOCAL_LAN cutover with #1044 rollback preservation. Controlled deployment evidence `runtime/deployments/20260916T191921Z` records `DEPLOYMENT PASSED`; Dashboard, Telemetry Service and Device Agent identify `442e0c55...`, persistent named-volume identities are preserved, acquisition remains 53 scheduled targets, AK-CC25 scheduled targets remain `0`, MQTT/DB/queue health is normal, and no Modbus/controller write or hardware write occurred. PR #1052 exact deployment-authority/tooling head `b7e91e38cca02593df0876fe61e81947071fced1` passed CI / NEXOLAB Merge Gate run `35139430341`.
+Issue #1053 is the active critical bug Work Package on branch `fix/1053-ftdi-commissioning-permissions`, based on merged `main` `490bbec4bffea9a17af8badee075b064e74c80b2`. Implementation commit `d7fc903a6abe4dc25fdcfaf97093b04b8463f735` keeps the Device Agent nonroot, preserves the existing `c 188:* rwm` device-cgroup boundary and read-only `/host/dev` bind, adds only the required supplementary commissioning serial group (`RS485_COMMISSIONING_GROUP_GID`, controlled Pi default GID 46 / plugdev), and makes stable-adapter inventory/resolution permission-aware without opening the serial port. Present but inaccessible adapters are no longer advertised as available for preflight, and resolver failure remains fail-closed before transport open.
 
-Real post-cutover acceptance found one critical runtime defect before #1050 can complete: Device Agent correctly lists FTDI `A10Q2SI7` as `available_commissioning`, but bounded Danfoss Unit 35 preflight fails at serial open with `adapter_unavailable`. The container remains nonroot with supplementary groups `[20, 65532]`; production CP2104 adapters are `root:dialout` GID 20 and open successfully, while FTDI `/dev/ttyUSB2/3` are `root:plugdev` GID 46 and return `EACCES`. Registry revision remains 20, production topology is unchanged and AK-CC25 scheduled targets remain `0`. Critical bug Issue #1053 is the next Ready Work Package; #1050 remains in progress until #1053 is fixed, redeployed under a separately approved exact target, and authenticated live UI/API + FC03-only acceptance passes.
+Targeted verification is GREEN: commissioning connections 6/6, commissioning preflight 8/8, commissioning activation 6/6, dual-bus runtime 15/15, standalone offline runtime contract PASS, Python compile/shell syntax/diff checks PASS. A real read-only permission-classifier smoke against the Raspberry Pi device nodes used no serial open or Modbus transaction: with supplementary group 20 plus the existing c188 rule, both production CP2104 adapters are accessible while FTDI adapters are unavailable; adding group 46 makes FTDI `A10Q2QYX` and accepted Danfoss adapter `A10Q2SI7` available while preserving production access. No Modbus/controller write or hardware write occurred. Exact-head GitHub CI and PR review remain before repository merge; production Device Agent recreation remains a separate cutover gate.
+
+### Issue #1050 — RS-485 commissioning selector deployed; blocked by #1053
+
+PR #1049 merged the commissioning selector to `main` as `442e0c55a87cd83fba71be769ac39d170cc0d61f`, and Product Owner-authorized LOCAL_LAN deployment passed with evidence `runtime/deployments/20260916T191921Z`. Runtime remains healthy at 53 scheduled targets, AK-CC25 scheduled targets `0`, preserved production RS-485 topology and persistent volumes. PR #1052 then merged the recovery/deployment tooling as `490bbec4bffea9a17af8badee075b064e74c80b2`. #1050 remains blocked only until #1053 is merged/deployed under a separately approved exact target and authenticated live UI/API plus Unit 35 FC03-only acceptance passes.
 
 ### Issue #1044 — Danfoss AK-CC25 Pro LOCAL_LAN onboarding acceptance completed
 
