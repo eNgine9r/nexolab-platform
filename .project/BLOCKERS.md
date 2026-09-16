@@ -2,9 +2,13 @@
 
 Updated: 2026-09-16
 
+## Issue #1053 — FTDI commissioning permission boundary
+
+**Critical blocker for #1050 live acceptance.** Controlled #1050 deployment to `442e0c55...` passed and production acquisition remains healthy at 53 scheduled targets with AK-CC25 scheduled targets `0`. Post-cutover Danfoss Unit 35 preflight fails safely before a successful FC03 transaction because the nonroot Device Agent has `dialout` GID 20 but not host `plugdev` GID 46; FTDI `/dev/ttyUSB2/3` are `0660 root:plugdev` and return `EACCES` inside the container. Issue #1053 must add the minimum supplementary serial-group runtime contract and permission-aware inventory, then pass real `A10Q2SI7` FC03-only acceptance. No host chmod/chown workaround, privileged container, topology mutation, Modbus write or hardware write is permitted. A production Device Agent recreation for the eventual exact fix target is a separate cutover gate requiring Product Owner approval.
+
 ## Issue #1050 — RS-485 commissioning selector production cutover
 
-**Cutover authorization cleared on 2026-09-16.** Product Owner explicitly authorized `e948089... → 442e0c55...` with rollback preserved to the current #1044 runtime. Checksum-bound #1044/#1050 evidence still matches the live Device Agent, Telemetry Service and Dashboard; a repository-owned compatibility-runtime authority bridge now validates that exact live state without runtime mutation, and current-main source selection is fail-closed/pinned to `e948089...`. Remaining gates are exact-head CI for the deployment-authority change, controlled cutover, and post-cutover UI/API/runtime acceptance.
+**Cutover completed; acceptance remains open.** Product Owner-authorized `e948089... → 442e0c55...` deployment passed with evidence `runtime/deployments/20260916T191921Z`, rollback preservation and unchanged persistent volumes/topology. Runtime services are healthy and acquisition invariants hold. #1050 cannot close until #1053 clears the FTDI access defect and authenticated live UI/API plus Danfoss Unit 35 bounded FC03-only preflight pass.
 
 ## Issue #1044 — Danfoss onboarding runtime promotion
 

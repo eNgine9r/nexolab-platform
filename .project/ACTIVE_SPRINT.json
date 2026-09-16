@@ -19,7 +19,7 @@
   },
   "baselines": {
     "accepted_product_sha": "96e4e65b0356656ddbaa4519d5302c19f4b749a5",
-    "deployed_product_sha": "e94808974da56461d974704e39bfbcd310a1e6f8"
+    "deployed_product_sha": "442e0c55a87cd83fba71be769ac39d170cc0d61f"
   },
   "selection": {
     "active_work_package": {
@@ -27,7 +27,11 @@
       "title": "Roll out merged RS-485 commissioning selector to LOCAL_LAN with verified recovery authority",
       "branch": "deploy/1050-rs485-selector-runtime"
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 1053,
+      "title": "Make FTDI commissioning adapters accessible to the nonroot Device Agent",
+      "branch": "fix/1053-ftdi-commissioning-permissions"
+    }
   },
   "work_packages": [
     {
@@ -3882,7 +3886,37 @@
       "priority": "unspecified",
       "lifecycle": "in_progress",
       "branch": "deploy/1050-rs485-selector-runtime",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "b7e91e38cca02593df0876fe61e81947071fced1",
+        "pull_request": 1052,
+        "checks": {
+          "core_ci": "success:35139430341",
+          "nexolab_merge_gate": "success:35139430341",
+          "controlled_local_lan_deployment": "success:runtime/deployments/20260916T191921Z",
+          "deployed_source": "442e0c55a87cd83fba71be769ac39d170cc0d61f",
+          "post_cutover_53_targets": "success",
+          "akcc25_scheduled_targets": "0",
+          "persistent_volume_identity": "preserved",
+          "post_cutover_danfoss_preflight": "blocked_issue_1053_ftdi_eacces",
+          "modbus_write": "none",
+          "hardware_write": "none"
+        }
+      }
+    },
+    {
+      "issue": 1053,
+      "title": "Make FTDI commissioning adapters accessible to the nonroot Device Agent",
+      "priority": "critical",
+      "lifecycle": "ready",
+      "depends_on": [
+        1050
+      ],
+      "branch": "fix/1053-ftdi-commissioning-permissions",
+      "evidence": {
+        "trigger": "post_cutover_real_danfoss_preflight_adapter_unavailable",
+        "root_cause": "device_agent_groups_missing_host_plugdev_gid_46_for_ftdi_ttyusb2_ttyusb3",
+        "safe_failure": "inventory_visible_profile_read_failed_before_successful_fc03_modbus_write_none_hardware_write_none"
+      }
     }
   ],
   "maintenance_actions": [

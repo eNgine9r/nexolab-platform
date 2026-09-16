@@ -3,12 +3,12 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-16T20:52:37+03:00",
+  "timestamp": "2026-09-16T22:48:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1050 cutover authorization recorded; exact e948089 live rollback authority established read-only and current-main source selection pinned to target 442e0c55",
+  "event": "Issue #1050 deployed 442e0c55 successfully; live Danfoss acceptance exposed FTDI plugdev permission blocker tracked as Issue #1053",
   "baselines": {
     "accepted_product_sha": "96e4e65b0356656ddbaa4519d5302c19f4b749a5",
-    "deployed_product_sha": "e94808974da56461d974704e39bfbcd310a1e6f8"
+    "deployed_product_sha": "442e0c55a87cd83fba71be769ac39d170cc0d61f"
   },
   "active_work": {
     "issue": 1050,
@@ -16,10 +16,25 @@
     "branch": "deploy/1050-rs485-selector-runtime"
   },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "verified_head_sha": "b7e91e38cca02593df0876fe61e81947071fced1",
+      "pull_request": 1052,
+      "checks": {
+        "core_ci": "success:35139430341",
+        "nexolab_merge_gate": "success:35139430341",
+        "controlled_local_lan_deployment": "success:runtime/deployments/20260916T191921Z",
+        "deployed_source": "442e0c55a87cd83fba71be769ac39d170cc0d61f",
+        "post_cutover_53_targets": "success",
+        "akcc25_scheduled_targets": "0",
+        "persistent_volume_identity": "preserved",
+        "post_cutover_danfoss_preflight": "blocked_issue_1053_ftdi_eacces",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    }
   },
   "observations": [],
-  "next_action": "Commit deployment-authority bridge, open PR and require exact-head GREEN CI; then execute authorized controlled LOCAL_LAN cutover and live onboarding acceptance",
+  "next_action": "Merge verified #1052 deployment-authority tooling/state, then implement Issue #1053 on a fresh branch; do not perform a new production Device Agent recreation until exact fix target authorization is obtained",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
