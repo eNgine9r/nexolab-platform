@@ -73,6 +73,7 @@ class CompatibilityRuntimeAuthorityTests(unittest.TestCase):
         self.rollback.mkdir(parents=True)
         (self.rollback / "rollback-authority.txt").write_text(
             f"approved_from={self.compatibility}\n"
+            f"approved_to={self.compatibility}\n"
             f"device_agent_image={self.da_image}\n"
             f"telemetry_image={self.telemetry_image}\n"
             f"frontend_release={self.release}\n"
@@ -128,6 +129,7 @@ class CompatibilityRuntimeAuthorityTests(unittest.TestCase):
         self.assertEqual(context["device_agent_image_id"], self.da_image)
         self.assertEqual(context["telemetry_image_id"], self.telemetry_image)
         self.assertEqual(context["formal_base_source"], self.base)
+        self.assertEqual(context["approved_target_source"], self.compatibility)
         self.assertEqual(context["device_health"]["configured_logical_targets"], 53)
 
     def test_published_authority_revalidates_immutable_evidence_hashes(self) -> None:
@@ -139,6 +141,16 @@ class CompatibilityRuntimeAuthorityTests(unittest.TestCase):
         loaded = AUTH.load_published_authority(self.repo, directory)
         self.assertEqual(loaded["compatibility_source"], self.compatibility)
         self.assertEqual(loaded["device_agent_image_id"], self.da_image)
+
+    def test_legacy_published_authority_derives_hash_bound_approved_target(self) -> None:
+        context = self._context()
+        directory = self.repo / "runtime" / "deployments" / "20260916T120000Z"
+        directory.mkdir()
+        result = AUTH.make_result(context, directory.name)
+        result.pop("approved_target_source")
+        (directory / AUTH.RESULT_NAME).write_text(json.dumps(result) + "\n")
+        loaded = AUTH.load_published_authority(self.repo, directory)
+        self.assertEqual(loaded["approved_target_source"], self.compatibility)
 
     def test_tampered_acceptance_fails_closed_after_publication(self) -> None:
         context = self._context()

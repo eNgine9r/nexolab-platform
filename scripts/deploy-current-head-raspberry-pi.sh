@@ -727,7 +727,7 @@ def valid_stamp(name: str) -> bool:
         return False
     return True
 
-attempts: list[tuple[str, Path, str, bool, str | None, str | None]] = []
+attempts: list[tuple[str, Path, str, bool, str | None, str | None, str | None, str | None]] = []
 if root.is_dir():
     for directory in root.iterdir():
         if not directory.is_dir() or directory.is_symlink() or not valid_stamp(directory.name):
@@ -818,6 +818,8 @@ if root.is_dir():
             forward_image = forward_result["device_agent_image_id"]
         compatibility_commit = None
         compatibility_image = None
+        compatibility_base = None
+        compatibility_target = None
         compatibility_result_path = directory / "compatibility-runtime-authority.json"
         if compatibility_result_path.exists():
             if restore_result_path.exists() or forward_result_path.exists() or passed_commit is not None:
@@ -830,26 +832,40 @@ if root.is_dir():
                 raise SystemExit(3)
             compatibility_commit = compatibility_result["compatibility_source"]
             compatibility_image = compatibility_result["device_agent_image_id"]
+            compatibility_base = compatibility_result["formal_base_source"]
+            compatibility_target = compatibility_result["approved_target_source"]
         effective_commit = forward_commit or recovered_commit or compatibility_commit or passed_commit
         effective_image = forward_image or recovered_image or compatibility_image or passed_image
         mutated = (directory / "runtime-mutation-started").is_file() or any(
             marker in summary_text for marker in legacy_mutation_markers
         )
         attempts.append(
-            (directory.name, directory.resolve(), summary_text, mutated, effective_commit, effective_image)
+            (
+                directory.name, directory.resolve(), summary_text, mutated, effective_commit, effective_image,
+                compatibility_base, compatibility_target,
+            )
         )
 
 successful = [
-    (stamp, directory, commit, recovered_image)
-    for stamp, directory, _summary, _mutated, commit, recovered_image in attempts
+    (stamp, directory, commit, recovered_image, compatibility_base, compatibility_target)
+    for (
+        stamp, directory, _summary, _mutated, commit, recovered_image,
+        compatibility_base, compatibility_target,
+    ) in attempts
     if commit
 ]
 if not successful:
     print("ERROR: no successful source-deployment evidence is available", file=sys.stderr)
     raise SystemExit(1)
 
-success_stamp, success_dir, success_commit, success_image = max(successful, key=lambda item: item[0])
-for stamp, directory, _summary, mutated, commit, _recovered_image in attempts:
+(
+    success_stamp, success_dir, success_commit, success_image,
+    success_compatibility_base, success_compatibility_target,
+) = max(successful, key=lambda item: item[0])
+for (
+    stamp, directory, _summary, mutated, commit, _recovered_image,
+    _compatibility_base, _compatibility_target,
+) in attempts:
     if stamp <= success_stamp or directory == current_audit:
         continue
     if mutated and commit is None:
@@ -859,20 +875,28 @@ for stamp, directory, _summary, mutated, commit, _recovered_image in attempts:
         )
         raise SystemExit(2)
 
-print(f"{success_commit}\t{success_dir}\t{success_stamp}\t{success_image or 'not_applicable'}")
+print(
+    f"{success_commit}\t{success_dir}\t{success_stamp}\t{success_image or 'not_applicable'}\t"
+    f"{success_compatibility_base or 'not_applicable'}\t{success_compatibility_target or 'not_applicable'}"
+)
 PY_EVIDENCE
 )"; then
     fail "deployed source authority is indeterminate; inspect runtime/deployments before continuing"
   fi
 
-  local evidence_commit evidence_tail
-  evidence_commit="${deployment_evidence%%$'\t'*}"
-  evidence_tail="${deployment_evidence#*$'\t'}"
-  EXPECTED_DEPLOYMENT_EVIDENCE="${evidence_tail%%$'\t'*}"
-  evidence_tail="${evidence_tail#*$'\t'}"
-  VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID="${evidence_tail#*$'\t'}"
+  local evidence_commit evidence_dir evidence_stamp evidence_image compatibility_base compatibility_target
+  IFS=$'\t' read -r evidence_commit evidence_dir evidence_stamp evidence_image compatibility_base compatibility_target \
+    <<< "$deployment_evidence"
+  EXPECTED_DEPLOYMENT_EVIDENCE="$evidence_dir"
+  VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID="$evidence_image"
   [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] \
     || VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID=""
+  VERIFIED_DEPLOYED_COMPATIBILITY_BASE="$compatibility_base"
+  [[ "$VERIFIED_DEPLOYED_COMPATIBILITY_BASE" =~ ^[0-9a-f]{40}$ ]] \
+    || VERIFIED_DEPLOYED_COMPATIBILITY_BASE=""
+  VERIFIED_DEPLOYED_COMPATIBILITY_TARGET="$compatibility_target"
+  [[ "$VERIFIED_DEPLOYED_COMPATIBILITY_TARGET" =~ ^[0-9a-f]{40}$ ]] \
+    || VERIFIED_DEPLOYED_COMPATIBILITY_TARGET=""
   VERIFIED_DEPLOYED_SOURCE="$evidence_commit"
 
   local rebaseline_authority="$REPO/runtime/recovery-authority/device-agent/current.json"
@@ -1004,8 +1028,17 @@ validate_selected_source_against_control() {
     git cat-file -e "${EXPECTED_DEPLOYED_SOURCE}^{commit}" 2>/dev/null || fail "expected deployed source commit is not available locally"
     git merge-base --is-ancestor "$REQUESTED_SOURCE_REF" "$CONTROL_HEAD" \
       || fail "requested source is not contained in current main history"
-    git merge-base --is-ancestor "$EXPECTED_DEPLOYED_SOURCE" "$REQUESTED_SOURCE_REF" \
-      || fail "requested source is not a fast-forward descendant of the expected deployed source"
+    if ! git merge-base --is-ancestor "$EXPECTED_DEPLOYED_SOURCE" "$REQUESTED_SOURCE_REF"; then
+      [[ -n "$VERIFIED_DEPLOYED_COMPATIBILITY_BASE" && -n "$VERIFIED_DEPLOYED_COMPATIBILITY_TARGET" ]] \
+        || fail "requested source is not a fast-forward descendant of the expected deployed source"
+      [[ "$EXPECTED_DEPLOYED_SOURCE" == "$VERIFIED_DEPLOYED_SOURCE" ]] \
+        || fail "compatibility runtime authority does not match the expected deployed source"
+      [[ "$REQUESTED_SOURCE_REF" == "$VERIFIED_DEPLOYED_COMPATIBILITY_TARGET" ]] \
+        || fail "requested source does not match the explicitly approved compatibility cutover target"
+      git merge-base --is-ancestor "$VERIFIED_DEPLOYED_COMPATIBILITY_BASE" "$REQUESTED_SOURCE_REF" \
+        || fail "approved compatibility target is not a descendant of the formal deployed base"
+      log "Approved compatibility-runtime transition: deployed=$EXPECTED_DEPLOYED_SOURCE formal_base=$VERIFIED_DEPLOYED_COMPATIBILITY_BASE target=$REQUESTED_SOURCE_REF"
+    fi
     TARGET_HEAD="$REQUESTED_SOURCE_REF"
     log "Approved historical-main source selection: deployed=$EXPECTED_DEPLOYED_SOURCE target=$TARGET_HEAD origin_main=$CONTROL_HEAD evidence=$EXPECTED_DEPLOYMENT_EVIDENCE"
   else

@@ -170,17 +170,21 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         (evidence / "forward-recovery-result.json").write_text(json.dumps(result) + "\n")
         return evidence
 
-    def _set_compatibility_authority_evidence(self, stamp: str) -> Path:
+    def _set_compatibility_authority_evidence(
+        self, stamp: str, *, compatibility_source: str | None = None, approved_target: str | None = None
+    ) -> Path:
+        compatibility_source = compatibility_source or self.target
+        approved_target = approved_target or self.latest
         acceptance = self.repo / "runtime" / "evidence" / f"compat-{stamp}"
         acceptance.mkdir(parents=True, exist_ok=True)
         da_image = "sha256:" + "8" * 64
         telemetry_image = "sha256:" + "7" * 64
-        release = self.repo / "runtime" / "frontend-releases" / f"{self.target}-compat"
+        release = self.repo / "runtime" / "frontend-releases" / f"{compatibility_source}-compat"
         (release / ".next").mkdir(parents=True, exist_ok=True)
         (release / ".next" / "BUILD_ID").write_text("compat-build\n", encoding="utf-8")
         document = {
             "schema_version": 1,
-            "compatibility_source": self.target,
+            "compatibility_source": compatibility_source,
             "base_deployed_source": self.base,
             "device_agent": {"candidate_image": da_image},
             "telemetry_service": {"candidate_image": telemetry_image},
@@ -196,8 +200,9 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         rollback = self.repo / "runtime" / "evidence" / f"rollback-{stamp}"
         rollback.mkdir(parents=True, exist_ok=True)
         (rollback / "rollback-authority.txt").write_text(
-            f"approved_from={self.target}\ndevice_agent_image={da_image}\n"
-            f"telemetry_image={telemetry_image}\nfrontend_release={release}\nfrontend_build_id=compat-build\n",
+            f"approved_from={compatibility_source}\napproved_to={approved_target}\n"
+            f"device_agent_image={da_image}\ntelemetry_image={telemetry_image}\n"
+            f"frontend_release={release}\nfrontend_build_id=compat-build\n",
             encoding="utf-8",
         )
         authority = self.repo / "runtime" / "deployments" / stamp
@@ -214,8 +219,9 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
             "kind": "nexolab-compatibility-runtime-authority",
             "status": "established",
             "authority_id": stamp,
-            "compatibility_source": self.target,
+            "compatibility_source": compatibility_source,
             "formal_base_source": self.base,
+            "approved_target_source": approved_target,
             "formal_base_evidence": str(self.base_evidence.relative_to(self.repo)),
             "formal_base_device_agent_image_id": "sha256:" + "6" * 64,
             "acceptance_evidence": str(acceptance.relative_to(self.repo)),
@@ -294,6 +300,35 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         self.assertIn(f"expected_deployed_source={self.target}", result.stdout)
         self.assertIn("deployed_device_agent_image_id=sha256:" + "8" * 64, result.stdout)
         self.assertIn(str(authority), result.stdout)
+
+    def test_explicit_compatibility_target_allows_non_fast_forward_historical_main(self) -> None:
+        self.assertEqual(run("git", "switch", "--detach", self.base, cwd=self.repo).returncode, 0)
+        (self.repo / "compat-only.txt").write_text("compatibility\n", encoding="utf-8")
+        self.assertEqual(run("git", "add", "compat-only.txt", cwd=self.repo).returncode, 0)
+        self.assertEqual(run("git", "commit", "-m", "compatibility runtime", cwd=self.repo).returncode, 0)
+        compatibility = run("git", "rev-parse", "HEAD", cwd=self.repo).stdout.strip()
+        self.assertEqual(run("git", "switch", "main", cwd=self.repo).returncode, 0)
+        self._set_compatibility_authority_evidence(
+            "20260829T010000Z", compatibility_source=compatibility, approved_target=self.target
+        )
+        result = self._validate(self.target, compatibility)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Approved compatibility-runtime transition", result.stdout)
+        self.assertIn(f"target={self.target}", result.stdout)
+
+    def test_compatibility_runtime_rejects_unapproved_historical_target(self) -> None:
+        self.assertEqual(run("git", "switch", "--detach", self.base, cwd=self.repo).returncode, 0)
+        (self.repo / "compat-only.txt").write_text("compatibility\n", encoding="utf-8")
+        self.assertEqual(run("git", "add", "compat-only.txt", cwd=self.repo).returncode, 0)
+        self.assertEqual(run("git", "commit", "-m", "compatibility runtime", cwd=self.repo).returncode, 0)
+        compatibility = run("git", "rev-parse", "HEAD", cwd=self.repo).stdout.strip()
+        self.assertEqual(run("git", "switch", "main", cwd=self.repo).returncode, 0)
+        self._set_compatibility_authority_evidence(
+            "20260829T010000Z", compatibility_source=compatibility, approved_target=self.target
+        )
+        result = self._validate(self.latest, compatibility)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("explicitly approved compatibility cutover target", result.stdout + result.stderr)
 
     def test_current_main_expected_runtime_authority_mismatch_fails_closed(self) -> None:
         self._set_compatibility_authority_evidence("20260829T010000Z")

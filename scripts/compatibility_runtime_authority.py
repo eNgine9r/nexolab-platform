@@ -269,6 +269,14 @@ def build_context(
     rollback = parse_key_values(rollback_dir / "rollback-authority.txt", "pre-cutover rollback authority")
     if rollback.get("approved_from") != compatibility_source:
         raise AuthorityFailure("rollback evidence does not match compatibility source")
+    approved_target_source = rollback.get("approved_to", "")
+    if not SHA_RE.fullmatch(approved_target_source):
+        raise AuthorityFailure("rollback evidence has no valid approved target source")
+    git(repo, "cat-file", "-e", f"{approved_target_source}^{{commit}}")
+    try:
+        run("git", "-C", str(repo), "merge-base", "--is-ancestor", formal_base_source, approved_target_source)
+    except AuthorityFailure as exc:
+        raise AuthorityFailure("approved target is not a descendant of the formal base source") from exc
     device_acceptance = acceptance.get("device_agent") if isinstance(acceptance.get("device_agent"), dict) else {}
     telemetry_acceptance = acceptance.get("telemetry_service") if isinstance(acceptance.get("telemetry_service"), dict) else {}
     frontend_acceptance = acceptance.get("frontend") if isinstance(acceptance.get("frontend"), dict) else {}
@@ -325,6 +333,7 @@ def build_context(
         "formal_dir": formal_dir,
         "compatibility_source": compatibility_source,
         "formal_base_source": formal_base_source,
+        "approved_target_source": approved_target_source,
         "formal_base_device_agent_image_id": formal_image,
         "device_agent_container_id": da_container,
         "device_agent_image_id": da_image,
@@ -363,6 +372,7 @@ def make_result(context: dict[str, Any], stamp: str) -> dict[str, Any]:
         "created_at": datetime.now(UTC).isoformat(),
         "compatibility_source": context["compatibility_source"],
         "formal_base_source": context["formal_base_source"],
+        "approved_target_source": context["approved_target_source"],
         "formal_base_evidence": relative_to_repo(context["repo"], context["formal_dir"]),
         "formal_base_device_agent_image_id": context["formal_base_device_agent_image_id"],
         "acceptance_evidence": relative_to_repo(context["repo"], context["acceptance_dir"]),
@@ -420,6 +430,7 @@ def validate_result(repo: Path, directory: Path, document: dict[str, Any]) -> di
     source = document.get("compatibility_source")
     base = document.get("formal_base_source")
     image = document.get("device_agent_image_id")
+    approved_target = document.get("approved_target_source")
     if not isinstance(source, str) or not SHA_RE.fullmatch(source) or not isinstance(base, str) or not SHA_RE.fullmatch(base):
         raise AuthorityFailure("compatibility runtime authority source identity is invalid")
     if not isinstance(image, str) or not IMAGE_RE.fullmatch(image):
@@ -440,6 +451,20 @@ def validate_result(repo: Path, directory: Path, document: dict[str, Any]) -> di
         raise AuthorityFailure("published compatibility acceptance lineage mismatch")
     verify_checksum_manifest(acceptance_dir)
     rollback = parse_key_values(rollback_dir / "rollback-authority.txt", "published rollback authority")
+    rollback_target = rollback.get("approved_to", "")
+    if not SHA_RE.fullmatch(rollback_target):
+        raise AuthorityFailure("published rollback authority has no valid approved target")
+    if approved_target is None:
+        approved_target = rollback_target
+    elif not isinstance(approved_target, str) or not SHA_RE.fullmatch(approved_target):
+        raise AuthorityFailure("compatibility runtime authority approved target is invalid")
+    elif approved_target != rollback_target:
+        raise AuthorityFailure("published rollback authority approved target mismatch")
+    git(repo, "cat-file", "-e", f"{approved_target}^{{commit}}")
+    try:
+        run("git", "-C", str(repo), "merge-base", "--is-ancestor", base, approved_target)
+    except AuthorityFailure as exc:
+        raise AuthorityFailure("published approved target is not a descendant of the formal base source") from exc
     if rollback.get("approved_from") != source or rollback.get("device_agent_image") != image:
         raise AuthorityFailure("published rollback authority mismatch")
 
@@ -459,7 +484,9 @@ def validate_result(repo: Path, directory: Path, document: dict[str, Any]) -> di
     safety = document.get("safety")
     if not isinstance(safety, dict) or any(safety.get(key) != "none" for key in ("runtime_mutation", "service_restart", "modbus_write", "hardware_write", "product_data_deletion", "named_volume_deletion")):
         raise AuthorityFailure("published compatibility runtime authority safety contract is invalid")
-    return document
+    validated = dict(document)
+    validated["approved_target_source"] = approved_target
+    return validated
 
 
 def load_published_authority(repo: Path, directory: Path) -> dict[str, Any]:
