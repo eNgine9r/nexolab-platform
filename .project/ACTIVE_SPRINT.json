@@ -27,7 +27,11 @@
       "title": "Make FTDI commissioning adapters accessible to the nonroot Device Agent",
       "branch": "fix/1053-ftdi-commissioning-permissions"
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 1050,
+      "title": "Roll out merged RS-485 commissioning selector to LOCAL_LAN with verified recovery authority",
+      "branch": "deploy/1050-rs485-selector-runtime"
+    }
   },
   "work_packages": [
     {
@@ -3912,17 +3916,39 @@
         "trigger": "post_cutover_real_danfoss_preflight_adapter_unavailable",
         "root_cause": "device_agent_groups_missing_host_plugdev_gid_46_for_ftdi_ttyusb2_ttyusb3",
         "safe_failure": "inventory_visible_profile_read_failed_before_successful_fc03_modbus_write_none_hardware_write_none",
-        "verified_head_sha": "d7fc903a6abe4dc25fdcfaf97093b04b8463f735",
+        "pull_request": 1054,
+        "security_blocker_cleared_by": "issue_1055_pr_1057_merge_640fd5d48ea63dc81eaeec08ba03b31feb294cd8",
+        "repository_integration": "pending_exact_head_ci_after_main_integration",
+        "production_device_agent_recreation": "not_authorized",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1055,
+      "title": "Reconcile fresh libexpat/Python HIGH findings blocking #1054",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "security/1055-container-high-reconciliation",
+      "evidence": {
+        "trigger": "container_supply_chain_run_35156866062_new_high_findings",
+        "reachability": "device_agent_and_telegram_gateway_no_pyexpat_or_tarfile_source_path",
+        "exception_expiry": "2026-09-21",
+        "verified_head_sha": "d76852457ea0c9c8fe75d3443e7c812623bb824a",
+        "pull_request": 1057,
+        "merge_sha": "640fd5d48ea63dc81eaeec08ba03b31feb294cd8",
         "checks": {
-          "commissioning_connections": "success_6_of_6",
-          "commissioning_preflight": "success_8_of_8",
-          "commissioning_activation": "success_6_of_6",
-          "dual_bus_runtime": "success_15_of_15",
-          "standalone_offline_runtime_contract": "success",
-          "real_permission_classifier": "success_group20_denies_ftdi_group20_46_allows_ftdi_without_serial_open",
-          "modbus_write": "none",
-          "hardware_write": "none"
-        }
+          "container_supply_chain": "success:35210100902",
+          "telemetry_service": "success:35210100889",
+          "core_ci": "success:35210100901",
+          "nexolab_merge_gate": "success:35210100901",
+          "repository_formatting": "success",
+          "vulnerability_policy": "success_all_controlled_images"
+        },
+        "production_deployment": "not_executed",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     }
   ],

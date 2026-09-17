@@ -2,13 +2,17 @@
 
 Updated: 2026-09-17
 
+## Issue #1055 — fresh Container Supply Chain HIGH findings
+
+**Cleared and merged.** PR #1057 final exact head `d76852457ea0c9c8fe75d3443e7c812623bb824a` passed Container Supply Chain `35210100902`, Telemetry Service `35210100889`, and Core CI / NEXOLAB Merge Gate `35210100901`, then squash-merged to `main` as `640fd5d48ea63dc81eaeec08ba03b31feb294cd8`. The ten exact short-lived HIGH exceptions remain bounded and expire `2026-09-21`; no CRITICAL exception exists. No production/runtime/hardware mutation occurred.
+
 ## Issue #1053 — FTDI commissioning permission boundary
 
-**Repository fix implemented; production cutover still gated.** Candidate `d7fc903a6abe4dc25fdcfaf97093b04b8463f735` adds only the minimum supplementary commissioning serial group (controlled Pi default GID 46 / plugdev), keeps the Device Agent nonroot, keeps `/host/dev` read-only and retains the `c 188:* rwm` character-device boundary. Inventory/resolver now use effective R/W permission checks without opening the serial port, so inaccessible stable adapters fail closed before preflight transport creation. Focused commissioning/dual-bus tests and the standalone offline runtime contract are GREEN, and a real no-open permission smoke confirms group 20 preserves CP2104 access while group 46 is what makes FTDI `A10Q2SI7` accessible. Remaining repository gate: exact-head CI/PR review. Remaining runtime gate after merge: explicit Product Owner authorization for the exact production Device Agent recreation target, then real Unit 35 bounded FC03-only acceptance.
+**Active repository Work Package and critical blocker for #1050 live acceptance.** Controlled #1050 deployment to `442e0c55...` remains healthy at 53 scheduled targets with AK-CC25 scheduled targets `0`. The root cause is unchanged: the nonroot Device Agent has `dialout` GID 20 but not host `plugdev` GID 46 while FTDI `/dev/ttyUSB2/3` are `0660 root:plugdev`. PR #1054 carries the minimum supplementary commissioning-group contract and permission-aware fail-closed inventory/resolution and is being integrated with security-fixed `main` for fresh exact-head CI. No host chmod/chown workaround, privileged container, topology mutation, Modbus write or hardware write is permitted. Production Device Agent recreation and real `A10Q2SI7` FC03-only acceptance remain a separate Product Owner cutover gate.
 
 ## Issue #1050 — RS-485 commissioning selector production cutover
 
-**Cutover completed; acceptance blocked by #1053 only.** Source `442e0c55...` remains healthy in LOCAL_LAN with 53 scheduled targets, AK-CC25 scheduled targets `0`, unchanged production buses and preserved persistent volumes. #1050 resumes after #1053 runtime acceptance and still requires authenticated live UI/API verification.
+**Cutover completed; acceptance remains open.** Product Owner-authorized `e948089... → 442e0c55...` deployment passed with evidence `runtime/deployments/20260916T191921Z`, rollback preservation and unchanged persistent volumes/topology. Runtime services are healthy and acquisition invariants hold. #1050 cannot close until #1053 clears the FTDI access defect and authenticated live UI/API plus Danfoss Unit 35 bounded FC03-only preflight pass.
 
 ## Issue #1044 — Danfoss onboarding runtime promotion
 
