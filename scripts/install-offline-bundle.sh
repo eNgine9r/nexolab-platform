@@ -177,7 +177,7 @@ PYBIND
 export DASHBOARD_BIND_ADDRESS
 
 CENTRAL=(docker compose --env-file "$CENTRAL_ENV" -f "$CENTRAL_BASE" -f "$CENTRAL_OFFLINE")
-if [[ "$RUNTIME_MODE" == "standalone" ]]; then
+if [[ "$RUNTIME_MODE" == "lan" || "$RUNTIME_MODE" == "standalone" ]]; then
   CENTRAL+=( -f "$CENTRAL_STANDALONE" )
 fi
 if [[ "$LOCAL_AUTH" == true ]]; then
@@ -208,7 +208,7 @@ if mode in {"simulator", "simulation", "demo", "mock", "disabled"}:
     raise SystemExit("hardware package install refuses simulator/demo/mock device mode")
 PYHW
     EDGE+=( -f "$EDGE_HARDWARE" -f "$EDGE_BRIDGE" )
-    if [[ "$RUNTIME_MODE" == "standalone" ]]; then
+    if [[ "$RUNTIME_MODE" == "lan" || "$RUNTIME_MODE" == "standalone" ]]; then
       EDGE+=( -f "$EDGE_STANDALONE" )
     fi
   fi

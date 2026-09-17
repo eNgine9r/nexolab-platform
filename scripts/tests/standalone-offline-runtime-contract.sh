@@ -39,6 +39,7 @@ assert_eq central-mqtt "$NEXOLAB_EDGE_CENTRAL_MQTT_HOST" "standalone central MQT
 assert_eq 1883 "$NEXOLAB_EDGE_CENTRAL_MQTT_PORT" "standalone central MQTT port"
 assert_eq docker.service "$NEXOLAB_SYSTEMD_AFTER" "standalone systemd after"
 assert_eq "" "$NEXOLAB_SYSTEMD_WANTS" "standalone systemd wants"
+assert_eq true "$NEXOLAB_USE_STANDALONE_OVERLAYS" "standalone local service overlays"
 
 nexolab_configure_runtime_contract lan 192.0.2.15
 assert_eq lan "$NEXOLAB_RUNTIME_MODE" "lan mode"
@@ -49,6 +50,7 @@ assert_eq 192.0.2.15 "$NEXOLAB_EDGE_CENTRAL_MQTT_HOST" "lan central MQTT host"
 assert_eq 1884 "$NEXOLAB_EDGE_CENTRAL_MQTT_PORT" "lan central MQTT port"
 assert_eq "network-online.target docker.service" "$NEXOLAB_SYSTEMD_AFTER" "lan systemd after"
 assert_eq network-online.target "$NEXOLAB_SYSTEMD_WANTS" "lan systemd wants"
+assert_eq true "$NEXOLAB_USE_STANDALONE_OVERLAYS" "lan local commissioning overlays"
 
 if nexolab_configure_runtime_contract invalid "" >/dev/null 2>&1; then
   fail "invalid runtime mode was accepted"

@@ -819,6 +819,7 @@ def test_offline_bundle_contract_carries_hardware_and_runtime_overlays() -> None
         assert overlay in installer
     assert "--hardware" in installer
     assert "--runtime-mode" in installer
+    assert '[[ "$RUNTIME_MODE" == "lan" || "$RUNTIME_MODE" == "standalone" ]]' in installer
     assert "RS485_HOST_DEVICE" in installer
     assert "simulator/demo/mock" in installer
     assert "--runtime-source-ref" in builder
@@ -985,6 +986,7 @@ def test_source_runtime_recovery_uses_source_compose_without_build_or_pull(tmp_p
 
     assert str(tmp_path / "infrastructure" / "compose" / "compose.central.yaml") in command
     assert str(tmp_path / "infrastructure" / "compose" / "compose.observability.yaml") in command
+    assert str(tmp_path / "infrastructure" / "compose" / "compose.central-standalone.yaml") in command
     assert str(tmp_path / "infrastructure" / "compose" / "compose.local-auth.yaml") in command
     assert command[-5:] == ["up", "-d", "--no-build", "--pull", "never"]
     assert kwargs["env"] is compose_env
