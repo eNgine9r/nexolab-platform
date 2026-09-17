@@ -197,9 +197,9 @@ PR #754 is merged at `76fa83a80e2eef82ae6f6e7c616a0dbe9352a5c8`; implementation 
 - #715 RFX-00 refrigeration architecture ADR — completed and merged in PR #716; ADR 0010 remains accepted architecture authority. The former #727 presentation hold was lifted; RFX-01 through RFX-08B are completed through GREEN focused PRs, including #953 / PR #954, #957 / PR #958 and #960 / PR #962. RFX state remains completed through #960; current independent maintenance is tracked separately by the active Work Package.
 - #733 canonical project-state formatter boundary — completed locally; `.project/*.json` is excluded from Prettier and remains governed by State Model v2 validation.
 
-## Sprint execution gate — #1044 completed; #1045 next Ready
+## Sprint execution gate — #1045 completed candidate; #1050 auth gate remains
 
-Issue #1044 has completed the controlled Danfoss onboarding runtime promotion. Accepted repository product baseline is #1031 exact head `19afc763aa9c46c0a8c9b49a5e1527eac0df9cdd`; deployed compatibility source is `e94808974da56461d974704e39bfbcd310a1e6f8`. AK-CC25 remains read-only discovery/preflight with production acquisition disabled. The next independent software Work Package is #1045, which aligns the frontend acquisition-cadence family contract with already production-supported Embraco; it must not add AK-CC25 cadence support.
+Issue #1045 is software-complete on product commit `9edf33764cda95da912a6140db8e51cf0cd9d623`. The frontend cadence contract now accepts the already production-supported `embraco` family, renders `Embraco Sync Controller`, and preserves strict rejection of `akcc25`/unknown families. Targeted tests are 11/11 PASS with ESLint, Prettier, TypeScript and `git diff --check` GREEN. No deployment or hardware action belongs to #1045. The only current hard blocker in the active chain remains #1050: a normal authenticated operator session with `equipment.manage` is required for the final Equipment → Connect device live UI/API walkthrough.
 
 #189/#585 remain blocked, #201 remains `needs_validation`, #202 remains `hardware_validation`, and K96–K100 remain hardware-unverified/excluded from automatic production polling. Issue #1012 completed the previously scheduled 2026-09-15 security review early; the next fail-closed exception boundary is 2026-09-21.
 

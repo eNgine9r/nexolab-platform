@@ -18,7 +18,7 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "96e4e65b0356656ddbaa4519d5302c19f4b749a5",
+    "accepted_product_sha": "9edf33764cda95da912a6140db8e51cf0cd9d623",
     "deployed_product_sha": "039e37ac4b91903e5f8ee33de2603e40c308de90"
   },
   "selection": {
@@ -4006,6 +4006,28 @@
         "remaining_blocker": "authenticated_operator_session_with_equipment_manage",
         "state_model_v2": "success_local",
         "git_diff_check": "success_local",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1045,
+      "title": "Align frontend acquisition cadence families with Embraco backend support",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "fix/1045-embraco-cadence-contract",
+      "evidence": {
+        "product_code_head_sha": "9edf33764cda95da912a6140db8e51cf0cd9d623",
+        "scope": "frontend_cadence_contract_only",
+        "supported_frontend_families": "xjp60d_le01mp_embraco",
+        "akcc25_cadence": "excluded_fail_closed",
+        "targeted_vitest": "11_passed",
+        "eslint_touched_files": "success",
+        "prettier_touched_files": "success",
+        "typescript_no_emit": "success",
+        "git_diff_check": "success_local",
+        "production_deployment": "not_executed",
         "modbus_write": "none",
         "hardware_write": "none"
       }

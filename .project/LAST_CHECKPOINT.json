@@ -3,11 +3,11 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-17T18:45:13+03:00",
+  "timestamp": "2026-09-17T20:02:18+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1060 state reconciliation candidate completed after successful #1050 cutover and real Unit 35 FC03-only acceptance; #1050 remains blocked only on authenticated operator UI/API acceptance",
+  "event": "Issue #1045 software candidate completed: frontend cadence contract now includes production-supported Embraco while AK-CC25 remains fail-closed; #1050 remains blocked only on authenticated operator UI/API acceptance",
   "baselines": {
-    "accepted_product_sha": "96e4e65b0356656ddbaa4519d5302c19f4b749a5",
+    "accepted_product_sha": "9edf33764cda95da912a6140db8e51cf0cd9d623",
     "deployed_product_sha": "039e37ac4b91903e5f8ee33de2603e40c308de90"
   },
   "active_work": null,
@@ -57,6 +57,18 @@
       "remaining_blocker": "normal_authenticated_operator_session_with_equipment_manage",
       "state_model_v2": "success_local",
       "git_diff_check": "success_local"
+    },
+    "completed_issue_1045": {
+      "issue": 1045,
+      "product_code_head_sha": "9edf33764cda95da912a6140db8e51cf0cd9d623",
+      "branch": "fix/1045-embraco-cadence-contract",
+      "targeted_vitest": "11_passed",
+      "eslint_touched_files": "success",
+      "prettier_touched_files": "success",
+      "typescript_no_emit": "success",
+      "git_diff_check": "success_local",
+      "production_deployment": "not_executed",
+      "hardware_acceptance": "not_required_no_runtime_or_hardware_change"
     }
   },
   "observations": [
@@ -85,7 +97,7 @@
       }
     }
   ],
-  "next_action": "Obtain a normal authenticated operator session with equipment.manage without exposing or bypassing credentials; then complete the Equipment -> Connect device save/review/preflight walkthrough and close #1050 only if the authenticated UI/API acceptance passes. Keep AK-CC25 production polling disabled.",
+  "next_action": "Run exact-head GitHub verification for Issue #1045 and merge only if required checks are GREEN; then resume #1050 only when a normal authenticated operator session with equipment.manage is available. Keep AK-CC25 production polling disabled.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
