@@ -3937,7 +3937,6 @@
         "exception_expiry": "2026-09-21",
         "verified_head_sha": "d76852457ea0c9c8fe75d3443e7c812623bb824a",
         "pull_request": 1057,
-        "merge_sha": "640fd5d48ea63dc81eaeec08ba03b31feb294cd8",
         "checks": {
           "container_supply_chain": "success:35210100902",
           "telemetry_service": "success:35210100889",
@@ -4410,6 +4409,18 @@
         "issue": 965,
         "pull_request": 992,
         "merge_sha": "f2f96ceefc956a50fdf8645055fd27625487fc29"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-17T15:08:00+03:00",
+      "kind": "issue_1055_merge_reconciliation",
+      "data": {
+        "issue": 1055,
+        "pull_request": 1057,
+        "verified_head_sha": "d76852457ea0c9c8fe75d3443e7c812623bb824a",
+        "merge_sha": "640fd5d48ea63dc81eaeec08ba03b31feb294cd8",
+        "required_checks": "green"
       }
     }
   ],

@@ -8,8 +8,7 @@
   "event": "Issue #1055 merged; Issue #1053 resumed and is being integrated with security-fixed main for fresh exact-head verification",
   "baselines": {
     "accepted_product_sha": "96e4e65b0356656ddbaa4519d5302c19f4b749a5",
-    "deployed_product_sha": "442e0c55a87cd83fba71be769ac39d170cc0d61f",
-    "repository_main_sha": "640fd5d48ea63dc81eaeec08ba03b31feb294cd8"
+    "deployed_product_sha": "442e0c55a87cd83fba71be769ac39d170cc0d61f"
   },
   "active_work": {
     "issue": 1053,
@@ -22,7 +21,6 @@
       "issue": 1055,
       "pull_request": 1057,
       "final_head_sha": "d76852457ea0c9c8fe75d3443e7c812623bb824a",
-      "merge_sha": "640fd5d48ea63dc81eaeec08ba03b31feb294cd8",
       "container_supply_chain": "success:35210100902",
       "telemetry_service": "success:35210100889",
       "core_ci_and_merge_gate": "success:35210100901"
@@ -37,7 +35,19 @@
       "hardware_write": "none"
     }
   },
-  "observations": [],
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-09-17T15:08:00+03:00",
+      "kind": "issue_1055_merge_reconciliation",
+      "data": {
+        "issue": 1055,
+        "pull_request": 1057,
+        "repository_main_sha": "640fd5d48ea63dc81eaeec08ba03b31feb294cd8",
+        "merge_sha": "640fd5d48ea63dc81eaeec08ba03b31feb294cd8"
+      }
+    }
+  ],
   "next_action": "Create a non-force merge integration of PR #1054 with main 640fd5d48ea63dc81eaeec08ba03b31feb294cd8, preserve exact FTDI product/test changes plus canonical post-#1057 project state, run fresh exact-head CI and NEXOLAB Merge Gate, then merge repository scope only if GREEN",
   "safety": {
     "modbus_write": "none",
