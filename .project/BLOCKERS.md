@@ -8,11 +8,11 @@ Updated: 2026-09-17
 
 ## Issue #1053 — FTDI commissioning permission boundary
 
-**Active repository Work Package and critical blocker for #1050 live acceptance.** Controlled #1050 deployment to `442e0c55...` remains healthy at 53 scheduled targets with AK-CC25 scheduled targets `0`. The root cause is unchanged: the nonroot Device Agent has `dialout` GID 20 but not host `plugdev` GID 46 while FTDI `/dev/ttyUSB2/3` are `0660 root:plugdev`. PR #1054 carries the minimum supplementary commissioning-group contract and permission-aware fail-closed inventory/resolution and is being integrated with security-fixed `main` for fresh exact-head CI. No host chmod/chown workaround, privileged container, topology mutation, Modbus write or hardware write is permitted. Production Device Agent recreation and real `A10Q2SI7` FC03-only acceptance remain a separate Product Owner cutover gate.
+**Cleared at repository level on 2026-09-17.** PR #1054 exact head `da5ccf23966d541621eebcc1d8d898ff59baa4e0` passed the full exact-head matrix and NEXOLAB Merge Gate, then merged to `main` as `28e051488ba5cccd1fc739110d61a957b48b2c29`; GitHub closed #1053 completed. The merged fix keeps the Device Agent nonroot, adds only the bounded commissioning supplementary group, and preserves the character-major-188 and read-only `/host/dev` boundaries. This is software/repository evidence only: the fix has not been deployed to the live Device Agent and no hardware acceptance is claimed.
 
-## Issue #1050 — RS-485 commissioning selector production cutover
+## Issue #1050 — RS-485 commissioning selector production acceptance
 
-**Cutover completed; acceptance remains open.** Product Owner-authorized `e948089... → 442e0c55...` deployment passed with evidence `runtime/deployments/20260916T191921Z`, rollback preservation and unchanged persistent volumes/topology. Runtime services are healthy and acquisition invariants hold. #1050 cannot close until #1053 clears the FTDI access defect and authenticated live UI/API plus Danfoss Unit 35 bounded FC03-only preflight pass.
+**Hard-blocked on explicit Product Owner cutover authorization.** The currently deployed source remains `442e0c55a87cd83fba71be769ac39d170cc0d61f`, with healthy 53-target acquisition, AK-CC25 scheduled targets `0`, preserved volumes/topology and rollback evidence `runtime/deployments/20260916T191921Z`. Repository PR #1054 has cleared the FTDI permission defect in code, but production Device Agent recreation is not authorized. #1050 can resume only after explicit authorization for the exact post-#1058 target; acceptance must then prove supplementary GID 46 access, real FTDI `A10Q2SI7` availability, bounded Danfoss Unit 35 FC03-only reads and authenticated live UI/API behavior, with no Modbus/controller write or hardware write.
 
 ## Issue #1044 — Danfoss onboarding runtime promotion
 

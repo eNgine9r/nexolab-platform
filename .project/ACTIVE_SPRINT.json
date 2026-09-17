@@ -22,11 +22,7 @@
     "deployed_product_sha": "442e0c55a87cd83fba71be769ac39d170cc0d61f"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1053,
-      "title": "Make FTDI commissioning adapters accessible to the nonroot Device Agent",
-      "branch": "fix/1053-ftdi-commissioning-permissions"
-    },
+    "active_work_package": null,
     "next_work_package": {
       "issue": 1050,
       "title": "Roll out merged RS-485 commissioning selector to LOCAL_LAN with verified recovery authority",
@@ -3897,9 +3893,10 @@
           "post_cutover_53_targets": "success",
           "akcc25_scheduled_targets": "0",
           "persistent_volume_identity": "preserved",
-          "post_cutover_danfoss_preflight": "blocked_issue_1053_ftdi_eacces",
+          "post_cutover_danfoss_preflight": "blocked_pending_authorized_device_agent_recreation_after_issue_1053_repository_fix",
           "modbus_write": "none",
-          "hardware_write": "none"
+          "hardware_write": "none",
+          "repository_permission_fix": "merged_pr_1054_exact_head_green_not_yet_deployed"
         }
       }
     },
@@ -3907,7 +3904,7 @@
       "issue": 1053,
       "title": "Make FTDI commissioning adapters accessible to the nonroot Device Agent",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1050
       ],
@@ -3918,10 +3915,23 @@
         "safe_failure": "inventory_visible_profile_read_failed_before_successful_fc03_modbus_write_none_hardware_write_none",
         "pull_request": 1054,
         "security_blocker_cleared_by": "issue_1055_pr_1057_merge_640fd5d48ea63dc81eaeec08ba03b31feb294cd8",
-        "repository_integration": "pending_exact_head_ci_after_main_integration",
+        "repository_integration": "completed_exact_head_green_and_merged",
         "production_device_agent_recreation": "not_authorized",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "verified_head_sha": "da5ccf23966d541621eebcc1d8d898ff59baa4e0",
+        "checks": {
+          "core_ci_and_merge_gate": "success:35219827658",
+          "container_supply_chain": "success:35219827660",
+          "telemetry_service": "success:35219827683",
+          "device_agent_fleet": "success:35219827694",
+          "offline_bundle": "success:35219827705",
+          "authenticated_dashboard": "success:35219827739",
+          "mqtt_tls_fleet": "success:35219827789",
+          "disaster_recovery_tls_fleet": "success:35219827741",
+          "edge_image": "success:35219827654"
+        },
+        "hardware_acceptance": "not_executed_requires_separate_cutover_authorization"
       }
     },
     {
@@ -3948,6 +3958,28 @@
         "production_deployment": "not_executed",
         "modbus_write": "none",
         "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1058,
+      "title": "Reconcile merged #1053 and advance LOCAL_LAN runtime acceptance to #1050",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1053
+      ],
+      "branch": "chore/1058-reconcile-1053-state",
+      "evidence": {
+        "trigger": "issue_1053_pr_1054_merged_but_canonical_state_stale",
+        "issue_1053_state": "closed_completed",
+        "deployed_product_sha_preserved": "442e0c55a87cd83fba71be769ac39d170cc0d61f",
+        "production_cutover": "not_authorized",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "pull_request": 1059,
+        "state_model_v2": "success_local",
+        "git_diff_check": "success_local",
+        "result": "canonical_state_reconciled_to_issue_1050_authorization_gate"
       }
     }
   ],
@@ -4420,6 +4452,19 @@
         "pull_request": 1057,
         "verified_head_sha": "d76852457ea0c9c8fe75d3443e7c812623bb824a",
         "merge_sha": "640fd5d48ea63dc81eaeec08ba03b31feb294cd8",
+        "required_checks": "green"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-17T15:32:00+03:00",
+      "kind": "issue_1053_merge_reconciliation",
+      "data": {
+        "issue": 1053,
+        "pull_request": 1054,
+        "verified_head_sha": "da5ccf23966d541621eebcc1d8d898ff59baa4e0",
+        "merge_sha": "28e051488ba5cccd1fc739110d61a957b48b2c29",
+        "issue_state": "closed_completed",
         "required_checks": "green"
       }
     }

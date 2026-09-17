@@ -3,19 +3,14 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-17T13:59:00+03:00",
+  "timestamp": "2026-09-17T15:35:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1055 merged; Issue #1053 resumed and is being integrated with security-fixed main for fresh exact-head verification",
+  "event": "Issue #1058 state reconciliation candidate completed; Issue #1050 is the next blocked Work Package and requires explicit Product Owner cutover authorization",
   "baselines": {
     "accepted_product_sha": "96e4e65b0356656ddbaa4519d5302c19f4b749a5",
     "deployed_product_sha": "442e0c55a87cd83fba71be769ac39d170cc0d61f"
   },
-  "active_work": {
-    "issue": 1053,
-    "title": "Make FTDI commissioning adapters accessible to the nonroot Device Agent",
-    "branch": "fix/1053-ftdi-commissioning-permissions",
-    "pull_request": 1054
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "completed_security_blocker": {
       "issue": 1055,
@@ -25,14 +20,21 @@
       "telemetry_service": "success:35210100889",
       "core_ci_and_merge_gate": "success:35210100901"
     },
-    "active_issue_evidence": {
-      "prior_candidate_sha": "1080e626f8164c9fcb81b37304922c541f1cafc2",
-      "root_cause": "device_agent_missing_host_plugdev_gid_46_for_ftdi_commissioning_adapters",
-      "candidate_scope": "bounded_supplementary_commissioning_group_permission_aware_inventory_and_fail_closed_resolver",
-      "repository_integration": "pending_merge_commit_and_exact_head_ci",
+    "completed_issue_1053": {
+      "issue": 1053,
+      "pull_request": 1054,
+      "final_head_sha": "da5ccf23966d541621eebcc1d8d898ff59baa4e0",
+      "core_ci_and_merge_gate": "success:35219827658",
+      "repository_scope": "merged_and_issue_closed",
       "production_device_agent_recreation": "not_authorized",
-      "modbus_write": "none",
-      "hardware_write": "none"
+      "hardware_acceptance": "not_executed"
+    },
+    "completed_issue_1058": {
+      "issue": 1058,
+      "pull_request": 1059,
+      "scope": "canonical_state_only",
+      "state_model_v2": "success_local",
+      "git_diff_check": "success_local"
     }
   },
   "observations": [
@@ -46,9 +48,22 @@
         "repository_main_sha": "640fd5d48ea63dc81eaeec08ba03b31feb294cd8",
         "merge_sha": "640fd5d48ea63dc81eaeec08ba03b31feb294cd8"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-17T15:32:00+03:00",
+      "kind": "issue_1053_merge_reconciliation",
+      "data": {
+        "issue": 1053,
+        "pull_request": 1054,
+        "verified_head_sha": "da5ccf23966d541621eebcc1d8d898ff59baa4e0",
+        "merge_sha": "28e051488ba5cccd1fc739110d61a957b48b2c29",
+        "issue_state": "closed_completed",
+        "required_checks": "green"
+      }
     }
   ],
-  "next_action": "Create a non-force merge integration of PR #1054 with main 640fd5d48ea63dc81eaeec08ba03b31feb294cd8, preserve exact FTDI product/test changes plus canonical post-#1057 project state, run fresh exact-head CI and NEXOLAB Merge Gate, then merge repository scope only if GREEN",
+  "next_action": "Stop at Issue #1050 until the Product Owner explicitly authorizes the exact post-#1058 main SHA for controlled LOCAL_LAN Device Agent recreation/cutover; after authorization, prove plugdev GID 46 access, preserve 53 scheduled targets and AK-CC25 scheduled targets 0, then repeat bounded Danfoss Unit 35 FC03-only and authenticated UI/API acceptance",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
