@@ -22,11 +22,7 @@
     "deployed_product_sha": "442e0c55a87cd83fba71be769ac39d170cc0d61f"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1058,
-      "title": "Reconcile merged #1053 and advance LOCAL_LAN runtime acceptance to #1050",
-      "branch": "chore/1058-reconcile-1053-state"
-    },
+    "active_work_package": null,
     "next_work_package": {
       "issue": 1050,
       "title": "Roll out merged RS-485 commissioning selector to LOCAL_LAN with verified recovery authority",
@@ -3968,7 +3964,7 @@
       "issue": 1058,
       "title": "Reconcile merged #1053 and advance LOCAL_LAN runtime acceptance to #1050",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1053
       ],
@@ -3979,7 +3975,11 @@
         "deployed_product_sha_preserved": "442e0c55a87cd83fba71be769ac39d170cc0d61f",
         "production_cutover": "not_authorized",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "pull_request": 1059,
+        "state_model_v2": "success_local",
+        "git_diff_check": "success_local",
+        "result": "canonical_state_reconciled_to_issue_1050_authorization_gate"
       }
     }
   ],

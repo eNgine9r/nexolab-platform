@@ -4,11 +4,11 @@ Updated: 2026-09-17
 
 ## Current Sprint
 
-### Issue #1058 — post-#1053 merge state reconciliation active
+### Issue #1058 — post-#1053 merge state reconciliation completed
 
 PR #1054 final exact head `da5ccf23966d541621eebcc1d8d898ff59baa4e0` passed the full routed matrix, including Core CI / NEXOLAB Merge Gate `35219827658`, Container Supply Chain `35219827660`, Telemetry Service `35219827683`, Device Agent Fleet `35219827694`, Offline Bundle `35219827705`, Authenticated Dashboard `35219827739`, MQTT TLS Fleet `35219827789`, Disaster Recovery TLS Fleet `35219827741`, and Edge image `35219827654`. The Dashboard lane's first unchanged E2E timeout passed on a bounded retry of the same exact SHA without code change. PR #1054 then merged to `main` as `28e051488ba5cccd1fc739110d61a957b48b2c29`, and GitHub closed Issue #1053 completed. The repository now contains the bounded nonroot FTDI supplementary-group contract and permission-aware fail-closed inventory/resolution. No production Device Agent recreation, serial transaction, Modbus/controller write or hardware write occurred as part of the repository merge.
 
-Issue #1058 is a state-only reconciliation Work Package. It records #1053 as repository-complete while preserving the actually deployed LOCAL_LAN source `442e0c55a87cd83fba71be769ac39d170cc0d61f`; repository acceptance of `28e05148...` is not hardware acceptance and does not authorize deployment.
+Issue #1058 / PR #1059 is the state-only reconciliation Work Package that records #1053 as repository-complete while preserving the actually deployed LOCAL_LAN source `442e0c55a87cd83fba71be769ac39d170cc0d61f`. Its state candidate is complete and leaves no active autonomous Work Package; #1050 is the next blocked Work Package. Repository acceptance of `28e05148...` is not hardware acceptance and does not authorize deployment.
 
 ### Issue #1050 — repository permission fix merged; live acceptance awaits authorized Device Agent recreation
 
