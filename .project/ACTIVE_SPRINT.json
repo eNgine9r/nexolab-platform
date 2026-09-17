@@ -23,9 +23,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1050,
-      "title": "Roll out merged RS-485 commissioning selector to LOCAL_LAN with verified recovery authority",
-      "branch": "deploy/1050-rs485-selector-runtime"
+      "issue": 1055,
+      "title": "Reconcile fresh libexpat/Python HIGH findings blocking #1054",
+      "branch": "security/1055-container-high-reconciliation"
     },
     "next_work_package": {
       "issue": 1053,
@@ -3884,7 +3884,7 @@
       "issue": 1050,
       "title": "Roll out merged RS-485 commissioning selector to LOCAL_LAN with verified recovery authority",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "blocked",
       "branch": "deploy/1050-rs485-selector-runtime",
       "evidence": {
         "verified_head_sha": "b7e91e38cca02593df0876fe61e81947071fced1",
@@ -3907,7 +3907,7 @@
       "issue": 1053,
       "title": "Make FTDI commissioning adapters accessible to the nonroot Device Agent",
       "priority": "critical",
-      "lifecycle": "ready",
+      "lifecycle": "blocked",
       "depends_on": [
         1050
       ],
@@ -3915,7 +3915,34 @@
       "evidence": {
         "trigger": "post_cutover_real_danfoss_preflight_adapter_unavailable",
         "root_cause": "device_agent_groups_missing_host_plugdev_gid_46_for_ftdi_ttyusb2_ttyusb3",
-        "safe_failure": "inventory_visible_profile_read_failed_before_successful_fc03_modbus_write_none_hardware_write_none"
+        "safe_failure": "inventory_visible_profile_read_failed_before_successful_fc03_modbus_write_none_hardware_write_none",
+        "blocked_by": 1055
+      }
+    },
+    {
+      "issue": 1055,
+      "title": "Reconcile fresh libexpat/Python HIGH findings blocking #1054",
+      "priority": "critical",
+      "lifecycle": "review",
+      "depends_on": [],
+      "branch": "security/1055-container-high-reconciliation",
+      "evidence": {
+        "trigger": "container_supply_chain_run_35156866062_new_high_findings",
+        "reachability": "device_agent_and_telegram_gateway_no_pyexpat_or_tarfile_source_path",
+        "exception_expiry": "2026-09-21",
+        "verified_head_sha": "3f0adc9bd8184a08f199373778d55a8e65ddda67",
+        "pull_request": 1057,
+        "checks": {
+          "container_supply_chain": "success:35207257144",
+          "telemetry_service": "success:35207257105",
+          "core_ci": "success:35207257111",
+          "nexolab_merge_gate": "success:35207257111",
+          "repository_formatting": "success",
+          "vulnerability_policy": "success_all_controlled_images"
+        },
+        "production_deployment": "not_executed",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     }
   ],

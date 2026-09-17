@@ -170,7 +170,7 @@ def test_openssl_quic_exception_is_fully_retired_after_fresh_scan() -> None:
     )
 
 
-def test_expat_exception_is_retired_after_2026_09_05_fresh_scan() -> None:
+def test_2026_09_17_expat_66046_findings_are_current_and_bounded() -> None:
     root = Path(__file__).resolve().parents[1]
     payload = json.loads(
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
@@ -182,10 +182,17 @@ def test_expat_exception_is_retired_after_2026_09_05_fresh_scan() -> None:
         and entry["vulnerability"] == "CVE-2026-66046"
     ]
 
-    assert matches == []
+    assert len(matches) == 2
+    assert {entry["image_id"] for entry in matches} == {"device-agent", "telegram-gateway"}
+    assert all(entry["owner"] == "platform-security" for entry in matches)
+    assert all(entry["expires_on"] == "2026-09-21" for entry in matches)
+    assert all("35156866062" in entry["reason"] for entry in matches)
+    assert all("2.8.4" in entry["reason"] for entry in matches)
+    assert all("no XML/pyexpat parser path" in entry["reason"] for entry in matches)
+    assert all("severity becomes Critical" in entry["reason"] for entry in matches)
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 9, 5),
+        date(2026, 9, 17),
     )
 
 
@@ -243,7 +250,7 @@ def test_2026_09_14_expat_findings_are_current_and_bounded() -> None:
     assert all("no XML/pyexpat/XMLParser/UnknownEncodingHandler path" in entry["reason"] for entry in matches)
 
 
-def test_2026_09_14_fresh_scan_retires_stale_python_and_sqlite_exceptions() -> None:
+def test_2026_09_17_fresh_scan_keeps_stale_python_and_sqlite_retired_and_bounds_new_python_findings() -> None:
     root = Path(__file__).resolve().parents[1]
     payload = json.loads(
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
@@ -265,17 +272,36 @@ def test_2026_09_14_fresh_scan_retires_stale_python_and_sqlite_exceptions() -> N
         (entry["image_id"], entry["package"], entry["vulnerability"])
         for entry in exceptions
     }
+    current_python = [
+        entry for entry in exceptions if entry["vulnerability"] == "CVE-2026-82049"
+    ]
+    prior_review = [
+        entry
+        for entry in exceptions
+        if entry["vulnerability"] not in {"CVE-2026-66046", "CVE-2026-82049"}
+    ]
 
-    assert len(exceptions) == 80
-    assert len(keys) == 80
+    assert len(keys) == len(exceptions)
     assert keys.isdisjoint(stale)
+    assert len(prior_review) == 80
+    assert all("34826380930" in entry["reason"] for entry in prior_review)
+    assert all("02f42ff68c6189bc4c0cf2fcfa4be0503b0667bf" in entry["reason"] for entry in prior_review)
+    assert len(current_python) == 8
+    assert {entry["image_id"] for entry in current_python} == {"device-agent", "telegram-gateway"}
+    assert {entry["package"] for entry in current_python} == {
+        "libpython3.13-minimal",
+        "libpython3.13-stdlib",
+        "python3.13-minimal",
+        "python3.13-venv",
+    }
     assert all(entry["owner"] == "platform-security" for entry in exceptions)
     assert all(entry["expires_on"] == "2026-09-21" for entry in exceptions)
-    assert all("34826380930" in entry["reason"] for entry in exceptions)
-    assert all("02f42ff68c6189bc4c0cf2fcfa4be0503b0667bf" in entry["reason"] for entry in exceptions)
+    assert all("35156866062" in entry["reason"] for entry in current_python)
+    assert all("no tarfile/archive extraction path" in entry["reason"] for entry in current_python)
+    assert all("severity becomes Critical" in entry["reason"] for entry in current_python)
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 9, 14),
+        date(2026, 9, 17),
     )
 
 

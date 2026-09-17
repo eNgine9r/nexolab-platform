@@ -1,6 +1,10 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-16
+Updated: 2026-09-17
+
+## Issue #1055 — fresh Container Supply Chain HIGH findings
+
+**Repository blocker cleared; merge pending.** PR #1057 exact security head `3f0adc9bd8184a08f199373778d55a8e65ddda67` passed Container Supply Chain `35207257144`, Telemetry Service `35207257105`, and Core CI / NEXOLAB Merge Gate `35207257111`. The ten exact HIGH tuples are reconciled by short-lived `platform-security` exceptions expiring `2026-09-21`; policy remains fail-closed for CRITICAL findings and for any tuple outside the exact registry. No production/runtime/hardware mutation occurred. After merge, PR #1054 / Issue #1053 must be updated from repaired `main` and rerun on its exact new head.
 
 ## Issue #1053 — FTDI commissioning permission boundary
 

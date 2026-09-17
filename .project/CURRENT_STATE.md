@@ -1,8 +1,14 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-16
+Updated: 2026-09-17
 
 ## Current Sprint
+
+### Issue #1055 — fresh container HIGH reconciliation verified; merge pending
+
+PR #1057 exact security head `3f0adc9bd8184a08f199373778d55a8e65ddda67` is verified GREEN. Container Supply Chain run `35207257144` passed image-inventory/exception validation, policy regressions, exact-commit builds, SBOM generation, vulnerability-policy enforcement and aggregate release-manifest verification for all controlled images, including `device-agent` and `telegram-gateway`. Telemetry Service run `35207257105` passed, and Core CI / NEXOLAB Merge Gate run `35207257111` passed formatting, lint, typecheck, tests, build and exact-head workflow aggregation.
+
+The accepted reconciliation remains narrow: ten exact fresh HIGH tuples only, owned by `platform-security`, expiring `2026-09-21`; no CRITICAL finding is permitted. Commander reachability review still shows no `pyexpat` or `tarfile` application path in the affected services, and early-removal triggers remain finding disappearance, compatible fixed package availability, vulnerable-path reachability, Critical severity, or expiry. No production deployment, container recreation, Modbus/controller write, hardware write, product-data mutation or named-volume mutation occurred. #1055 is ready to merge; #1053 remains the next Work Package and PR #1054 must be updated from repaired `main` and rerun rather than bypassed.
 
 ### Issue #1050 — RS-485 commissioning selector deployed; live acceptance blocked by #1053
 
