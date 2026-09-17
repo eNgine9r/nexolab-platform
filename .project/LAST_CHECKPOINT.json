@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-17T12:31:00+03:00",
+  "timestamp": "2026-09-17T13:18:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1055 security-only candidate adds exact short-lived exceptions for fresh CVE-2026-66046 and CVE-2026-82049 findings after current reachability and Debian status review",
+  "event": "Issue #1055 exact security head verified GREEN; final state checkpoint prepared for merge",
   "baselines": {
     "accepted_product_sha": "96e4e65b0356656ddbaa4519d5302c19f4b749a5",
     "deployed_product_sha": "442e0c55a87cd83fba71be769ac39d170cc0d61f"
@@ -17,8 +17,8 @@
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "verified_head_sha": null,
-      "pull_request": null,
+      "verified_head_sha": "3f0adc9bd8184a08f199373778d55a8e65ddda67",
+      "pull_request": 1057,
       "checks": {
         "source_reachability_pyexpat": "zero_matches_across_513_service_files",
         "source_reachability_tarfile": "zero_matches_across_513_service_files",
@@ -29,15 +29,17 @@
         "exception_owner": "platform-security",
         "exception_expiry": "2026-09-21",
         "git_diff_check": "success",
-        "container_supply_chain_exact_head": "pending",
-        "nexolab_merge_gate_exact_head": "pending",
+        "container_supply_chain_exact_head": "success:35207257144",
+        "telemetry_service_exact_head": "success:35207257105",
+        "core_ci_exact_head": "success:35207257111",
+        "nexolab_merge_gate_exact_head": "success:35207257111",
         "modbus_write": "none",
         "hardware_write": "none"
       }
     }
   },
   "observations": [],
-  "next_action": "Validate canonical state/diff, commit and push the security-only candidate through Commander, open the #1055 PR, require fresh no-cache Container Supply Chain plus Core/NEXOLAB Merge Gate GREEN, merge, then update/rerun PR #1054 from repaired main",
+  "next_action": "Commit the final state-only evidence update, require exact-head CI and NEXOLAB Merge Gate GREEN on that new head, merge PR #1057, then update PR #1054 from repaired main and resume Issue #1053 without production cutover",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
