@@ -17,6 +17,7 @@ function controller(overrides: Partial<AcquisitionCadenceController> = {}): Acqu
       familyDefaults: [
         { busId: "rs485-kk2", deviceFamily: "xjp60d", intervalSeconds: 10 },
         { busId: "rs485-kk1", deviceFamily: "le01mp", intervalSeconds: 30 },
+        { busId: "rs485-embraco", deviceFamily: "embraco", intervalSeconds: 60 },
       ],
       deviceOverrides: [{ deviceId: "xjp60d-106", intervalSeconds: 60 }],
       effectiveDevices: [
@@ -34,6 +35,14 @@ function controller(overrides: Partial<AcquisitionCadenceController> = {}): Acqu
           deviceFamily: "le01mp",
           lifecycle: "active",
           effectiveIntervalSeconds: 30,
+          cadenceSource: "family_default",
+        },
+        {
+          deviceId: "embraco-2",
+          busId: "rs485-embraco",
+          deviceFamily: "embraco",
+          lifecycle: "active",
+          effectiveIntervalSeconds: 60,
           cadenceSource: "family_default",
         },
       ],
@@ -80,6 +89,19 @@ describe("AcquisitionCadencePanel", () => {
     fireEvent.click(within(xjpCard as HTMLElement).getByRole("button", { name: "Застосувати" }));
 
     expect(value.setFamilyDefault).toHaveBeenCalledWith("rs485-kk2", "xjp60d", 30);
+  });
+
+  it("renders and mutates the production-supported Embraco cadence family", () => {
+    const value = controller();
+    render(<AcquisitionCadencePanel controller={value} canManage />);
+
+    const embracoCard = screen.getByText("Embraco Sync Controller", { exact: true }).closest("article");
+    expect(embracoCard).not.toBeNull();
+    fireEvent.click(within(embracoCard as HTMLElement).getByRole("button", { name: "30 с" }));
+    fireEvent.click(within(embracoCard as HTMLElement).getByRole("button", { name: "Застосувати" }));
+
+    expect(value.setFamilyDefault).toHaveBeenCalledWith("rs485-embraco", "embraco", 30);
+    expect(screen.getByText("embraco-2", { exact: true })).toBeVisible();
   });
 
   it("rejects a custom value below the server product floor before mutation", () => {

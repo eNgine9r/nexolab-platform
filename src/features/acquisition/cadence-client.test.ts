@@ -24,6 +24,7 @@ function payload(revision = 7, xjpInterval = 60) {
       family_defaults: [
         { bus_id: "rs485-main", device_family: "xjp60d", interval_seconds: xjpInterval },
         { bus_id: "rs485-main", device_family: "le01mp", interval_seconds: 30 },
+        { bus_id: "rs485-embraco", device_family: "embraco", interval_seconds: 60 },
       ],
       device_overrides: [],
     },
@@ -34,6 +35,14 @@ function payload(revision = 7, xjpInterval = 60) {
         device_family: "xjp60d",
         lifecycle: "active",
         effective_interval_seconds: xjpInterval,
+        cadence_source: "family_default",
+      },
+      {
+        device_id: "embraco-2",
+        bus_id: "rs485-embraco",
+        device_family: "embraco",
+        lifecycle: "active",
+        effective_interval_seconds: 60,
         cadence_source: "family_default",
       },
     ],
@@ -80,6 +89,32 @@ describe("acquisition cadence client", () => {
       cadenceSource: "family_default",
     });
     expect(normalized.capacity.buses[0].estimatedUtilizationPercent).toBe(18.5);
+    expect(normalized.familyDefaults).toContainEqual({
+      busId: "rs485-embraco",
+      deviceFamily: "embraco",
+      intervalSeconds: 60,
+    });
+    expect(normalized.effectiveDevices).toContainEqual({
+      deviceId: "embraco-2",
+      busId: "rs485-embraco",
+      deviceFamily: "embraco",
+      lifecycle: "active",
+      effectiveIntervalSeconds: 60,
+      cadenceSource: "family_default",
+    });
+  });
+
+  it("keeps unsupported and not-yet-activated families fail-closed", () => {
+    const unsupported = payload();
+    unsupported.policy.family_defaults[0] = {
+      bus_id: "rs485-main",
+      device_family: "akcc25",
+      interval_seconds: 60,
+    };
+
+    expect(() => normalizeCadenceConfiguration(unsupported)).toThrow(
+      "Cadence API повернув невідому device family.",
+    );
   });
 
   it("re-reads canonical state after a successful mutation instead of trusting PUT response", async () => {
