@@ -19,13 +19,13 @@
   },
   "baselines": {
     "accepted_product_sha": "96e4e65b0356656ddbaa4519d5302c19f4b749a5",
-    "deployed_product_sha": "442e0c55a87cd83fba71be769ac39d170cc0d61f"
+    "deployed_product_sha": "039e37ac4b91903e5f8ee33de2603e40c308de90"
   },
   "selection": {
     "active_work_package": null,
     "next_work_package": {
       "issue": 1050,
-      "title": "Roll out merged RS-485 commissioning selector to LOCAL_LAN with verified recovery authority",
+      "title": "Complete authenticated operator acceptance for the RS-485 commissioning selector",
       "branch": "deploy/1050-rs485-selector-runtime"
     }
   },
@@ -3888,15 +3888,20 @@
         "checks": {
           "core_ci": "success:35139430341",
           "nexolab_merge_gate": "success:35139430341",
-          "controlled_local_lan_deployment": "success:runtime/deployments/20260916T191921Z",
-          "deployed_source": "442e0c55a87cd83fba71be769ac39d170cc0d61f",
+          "controlled_local_lan_deployment": "success:runtime/deployments/20260917T131852Z",
+          "deployed_source": "039e37ac4b91903e5f8ee33de2603e40c308de90",
           "post_cutover_53_targets": "success",
           "akcc25_scheduled_targets": "0",
-          "persistent_volume_identity": "preserved",
-          "post_cutover_danfoss_preflight": "blocked_pending_authorized_device_agent_recreation_after_issue_1053_repository_fix",
+          "persistent_volume_identity": "identical_before_after",
+          "post_cutover_danfoss_preflight": "success_hardware_verified_unit35_fc03_only_319ms_10_requests_0_retries",
           "modbus_write": "none",
           "hardware_write": "none",
-          "repository_permission_fix": "merged_pr_1054_exact_head_green_not_yet_deployed"
+          "repository_permission_fix": "merged_and_deployed",
+          "rollback_authority_source": "442e0c55a87cd83fba71be769ac39d170cc0d61f",
+          "product_owner_cutover_authorization": "consumed_exact_442e0c55_to_039e37ac_2026-09-17",
+          "device_agent_nonroot_supplementary_groups": "success_gid20_gid46",
+          "ftdi_a10q2si7_available_for_preflight": "success",
+          "authenticated_ui_api_acceptance": "blocked_missing_normal_operator_session_with_equipment_manage"
         }
       }
     },
@@ -3980,6 +3985,29 @@
         "state_model_v2": "success_local",
         "git_diff_check": "success_local",
         "result": "canonical_state_reconciled_to_issue_1050_authorization_gate"
+      }
+    },
+    {
+      "issue": 1060,
+      "title": "Reconcile successful #1050 cutover and hardware preflight with remaining authenticated UI gate",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1058
+      ],
+      "branch": "chore/1060-reconcile-1050-runtime-state",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "deployed_product_sha": "039e37ac4b91903e5f8ee33de2603e40c308de90",
+        "runtime_evidence_path": "runtime/deployments/20260917T131852Z",
+        "unit35_hardware_preflight": "success_hardware_verified_fc03_only_319ms",
+        "scheduled_targets": "53",
+        "akcc25_scheduled_targets": "0",
+        "remaining_blocker": "authenticated_operator_session_with_equipment_manage",
+        "state_model_v2": "success_local",
+        "git_diff_check": "success_local",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     }
   ],

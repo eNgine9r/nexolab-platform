@@ -3,12 +3,12 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-17T15:35:00+03:00",
+  "timestamp": "2026-09-17T18:45:13+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1058 state reconciliation candidate completed; Issue #1050 is the next blocked Work Package and requires explicit Product Owner cutover authorization",
+  "event": "Issue #1060 state reconciliation candidate completed after successful #1050 cutover and real Unit 35 FC03-only acceptance; #1050 remains blocked only on authenticated operator UI/API acceptance",
   "baselines": {
     "accepted_product_sha": "96e4e65b0356656ddbaa4519d5302c19f4b749a5",
-    "deployed_product_sha": "442e0c55a87cd83fba71be769ac39d170cc0d61f"
+    "deployed_product_sha": "039e37ac4b91903e5f8ee33de2603e40c308de90"
   },
   "active_work": null,
   "evidence_snapshot": {
@@ -33,6 +33,28 @@
       "issue": 1058,
       "pull_request": 1059,
       "scope": "canonical_state_only",
+      "state_model_v2": "success_local",
+      "git_diff_check": "success_local"
+    },
+    "issue_1050_runtime_acceptance": {
+      "issue": 1050,
+      "deployed_source": "039e37ac4b91903e5f8ee33de2603e40c308de90",
+      "rollback_authority_source": "442e0c55a87cd83fba71be769ac39d170cc0d61f",
+      "deployment_evidence": "runtime/deployments/20260917T131852Z",
+      "deployment_status": "passed",
+      "scheduled_targets": 53,
+      "active_bus_workers": "2/2",
+      "akcc25_scheduled_targets": 0,
+      "supplementary_groups": "gid20_gid46",
+      "ftdi_a10q2si7": "available_for_preflight",
+      "unit35_preflight": "passed_hardware_verified_fc03_only_319ms_10_success_0_retries",
+      "modbus_write": "none",
+      "hardware_write": "none"
+    },
+    "issue_1060": {
+      "issue": 1060,
+      "scope": "canonical_state_only",
+      "remaining_blocker": "normal_authenticated_operator_session_with_equipment_manage",
       "state_model_v2": "success_local",
       "git_diff_check": "success_local"
     }
@@ -63,14 +85,14 @@
       }
     }
   ],
-  "next_action": "Stop at Issue #1050 until the Product Owner explicitly authorizes the exact post-#1058 main SHA for controlled LOCAL_LAN Device Agent recreation/cutover; after authorization, prove plugdev GID 46 access, preserve 53 scheduled targets and AK-CC25 scheduled targets 0, then repeat bounded Danfoss Unit 35 FC03-only and authenticated UI/API acceptance",
+  "next_action": "Obtain a normal authenticated operator session with equipment.manage without exposing or bypassing credentials; then complete the Equipment -> Connect device save/review/preflight walkthrough and close #1050 only if the authenticated UI/API acceptance passes. Keep AK-CC25 production polling disabled.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
     "production_cutover_authorized": false,
-    "production_device_agent_recreation": "not_authorized",
+    "production_device_agent_recreation": "completed_under_consumed_2026-09-17_authorization_no_further_recreation_authorized",
     "mandatory_public_runtime_dependency": "none"
   }
 }

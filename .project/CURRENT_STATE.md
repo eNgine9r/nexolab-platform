@@ -4,17 +4,23 @@ Updated: 2026-09-17
 
 ## Current Sprint
 
+### Issue #1060 — post-cutover state reconciliation
+
+The Product Owner explicitly authorized the exact LOCAL_LAN transition `442e0c55a87cd83fba71be769ac39d170cc0d61f → 039e37ac4b91903e5f8ee33de2603e40c308de90` with the existing healthy runtime retained as rollback authority. Repository-owned deployment completed with `DEPLOYMENT PASSED`; authoritative evidence is `runtime/deployments/20260917T131852Z`. The Device Agent remains nonroot and now has supplementary serial groups GID 20 (`dialout`) and GID 46 (`plugdev`). Persistent named-volume identities are byte-identical before/after the deployment.
+
+Post-cutover runtime evidence is GREEN: Device Agent `status=ok`, MQTT connected, queue `0`, scheduler `53` targets with `2/2` healthy workers, and AK-CC25 / Unit 35 scheduled targets remain `0`. Production RS-485 ownership remains unchanged on the two CP2104 adapters. FTDI `A10Q2SI7` is present as commissioning bus `commissioning-0ae914347f704234` and reports `available_for_preflight=true`. A real bounded Unit 35 request using `danfoss-ak-cc25-pro-sw1.3x-fc03-v1` completed in `319 ms` with `preflight_passed`, `hardware_verified`, function code `03` only, ten successful physical reads, zero retries, `modbus_writes=none` and `hardware_writes=none`. Temperature semantics remain unverified because temperature sensors are not connected.
+
+Issue #1050 is **not closed**: the remaining acceptance gate is the normal authenticated operator Equipment → Connect device save/review/preflight flow. The persisted Chromium profile is unauthenticated and correctly receives `AUTHENTICATION_REQUIRED` / HTTP 401, while the repository-approved Opera inspection identity is read-only and lacks `equipment.manage`. Credentials, cookies and tokens will not be extracted or bypassed.
+
 ### Issue #1058 — post-#1053 merge state reconciliation completed
 
-PR #1054 final exact head `da5ccf23966d541621eebcc1d8d898ff59baa4e0` passed the full routed matrix, including Core CI / NEXOLAB Merge Gate `35219827658`, Container Supply Chain `35219827660`, Telemetry Service `35219827683`, Device Agent Fleet `35219827694`, Offline Bundle `35219827705`, Authenticated Dashboard `35219827739`, MQTT TLS Fleet `35219827789`, Disaster Recovery TLS Fleet `35219827741`, and Edge image `35219827654`. The Dashboard lane's first unchanged E2E timeout passed on a bounded retry of the same exact SHA without code change. PR #1054 then merged to `main` as `28e051488ba5cccd1fc739110d61a957b48b2c29`, and GitHub closed Issue #1053 completed. The repository now contains the bounded nonroot FTDI supplementary-group contract and permission-aware fail-closed inventory/resolution. No production Device Agent recreation, serial transaction, Modbus/controller write or hardware write occurred as part of the repository merge.
+Issue #1058 / PR #1059 completed the prior state-only transition and merged to `main` before the approved #1050 cutover. It established #1050 as the next gated runtime Work Package; that authorization gate has now been consumed by the successful deployment recorded above.
 
-Issue #1058 / PR #1059 is the state-only reconciliation Work Package that records #1053 as repository-complete while preserving the actually deployed LOCAL_LAN source `442e0c55a87cd83fba71be769ac39d170cc0d61f`. Its state candidate is complete and leaves no active autonomous Work Package; #1050 is the next blocked Work Package. Repository acceptance of `28e05148...` is not hardware acceptance and does not authorize deployment.
+### Issue #1050 — deployment and hardware preflight passed; authenticated operator UI gate remains
 
-### Issue #1050 — repository permission fix merged; live acceptance awaits authorized Device Agent recreation
+The repository permission fix from PR #1054 is now deployed on exact source `039e37ac4b91903e5f8ee33de2603e40c308de90`. The former FTDI `EACCES` blocker is cleared on the live Device Agent: `A10Q2SI7` is readable/writable by the nonroot service through the bounded supplementary `plugdev` group, and the real Danfoss Unit 35 FC03-only profile is hardware-verified. Production topology, persistent volumes and the 53-target acquisition contract remain unchanged; AK-CC25 production polling remains disabled.
 
-PR #1049 merged the complete RS-485 commissioning selector to `main` as `442e0c55a87cd83fba71be769ac39d170cc0d61f`. Product Owner authorized the exact `e948089... → 442e0c55...` LOCAL_LAN cutover with #1044 rollback preservation. Controlled deployment evidence `runtime/deployments/20260916T191921Z` records `DEPLOYMENT PASSED`; Dashboard, Telemetry Service and Device Agent identify `442e0c55...`, persistent named-volume identities are preserved, acquisition remains 53 scheduled targets, AK-CC25 scheduled targets remain `0`, MQTT/DB/queue health is normal, and no Modbus/controller write or hardware write occurred. PR #1052 exact deployment-authority/tooling head `b7e91e38cca02593df0876fe61e81947071fced1` passed CI / NEXOLAB Merge Gate run `35139430341`.
-
-The live FTDI permission defect discovered during the first Unit 35 preflight is fixed at repository level by merged PR #1054, but that fix is **not deployed**. #1050 remains blocked until the Product Owner separately authorizes the exact post-#1058 LOCAL_LAN cutover target. Only after that authorization may the Device Agent be recreated, supplementary `plugdev` GID 46 access be proven, and real Danfoss Unit 35 acceptance be repeated with repository-owned FC03-only reads plus authenticated UI/API verification. Production topology, 53 scheduled targets, AK-CC25 scheduled targets `0`, persistent data and rollback authority must remain unchanged; Modbus/controller writes and hardware writes remain forbidden.
+#1050 is hard-blocked only on mandatory authenticated operator access with `equipment.manage` for the final production UI/API walkthrough. No additional cutover, Device Agent recreation, controller write, Modbus write or hardware write is authorized by this state transition.
 
 ### Issue #1044 — Danfoss AK-CC25 Pro LOCAL_LAN onboarding acceptance completed
 
@@ -308,9 +314,9 @@ Issue #245 is completed with real Raspberry Pi standalone hardware evidence. Iss
 
 ## Durable baselines
 
-Latest accepted commissioning product source and currently deployed LOCAL_LAN source are both `442e0c55a87cd83fba71be769ac39d170cc0d61f` after the Product Owner-authorized #1050 cutover. The latest accepted Overview/UI product baseline remains Issue #1001 head `b245b48e7ab64a42680fb9d516646926b45d1b41`; repository acceptance for later work still does not imply additional hardware acceptance unless explicitly recorded.
+Latest accepted commissioning feature baseline remains `96e4e65b0356656ddbaa4519d5302c19f4b749a5`; the currently deployed LOCAL_LAN source is `039e37ac4b91903e5f8ee33de2603e40c308de90` after the Product Owner-authorized #1050 cutover. The latest accepted Overview/UI product baseline remains Issue #1001 head `b245b48e7ab64a42680fb9d516646926b45d1b41`.
 
-Controlled deployment evidence for the current source is `runtime/deployments/20260916T191921Z`, with the exact pre-cutover #1044 compatibility runtime retained as rollback authority. Runtime health and 53-target production acquisition are accepted, while the new FTDI commissioning path remains blocked by Issue #1053 until the nonroot Device Agent receives the minimum required serial supplementary-group access and real Unit 35 FC03-only acceptance is repeated. Temperature/control engineering scaling remains explicitly unverified where existing production semantics are unknown.
+Controlled deployment evidence for the current source is `runtime/deployments/20260917T131852Z`, with source `442e0c55a87cd83fba71be769ac39d170cc0d61f` retained as rollback authority. Runtime health, 53-target acquisition, GID 46 FTDI access and the bounded real Unit 35 FC03-only preflight are accepted. AK-CC25 scheduled targets remain `0` and production activation remains intentionally disabled. Temperature/control engineering scaling remains explicitly unverified where existing production semantics are unknown. The only open #1050 acceptance boundary is the normal authenticated operator UI/API walkthrough.
 
 ## Issue #675 source-to-packaged authority
 
