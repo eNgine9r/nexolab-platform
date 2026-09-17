@@ -1,6 +1,10 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-16
+Updated: 2026-09-17
+
+## Issue #1055 — fresh Container Supply Chain HIGH findings
+
+**Active repository blocker for #1054 / #1053.** Fresh no-cache run `35156866062` reports ten unapproved HIGH tuples across `device-agent` and `telegram-gateway`: `libexpat1/CVE-2026-66046` plus four Python 3.13 package tuples for `CVE-2026-82049` in each image. Debian Trixie has no compatible fixed package/source today; Commander reachability sweeps found no `pyexpat` or `tarfile` application path in the affected services. #1055 therefore introduces only exact short-lived exceptions owned by `platform-security`, expiring `2026-09-21`, with explicit early-removal triggers. Container Supply Chain and NEXOLAB Merge Gate must still pass exact-head; #1054 must then be rebased/updated from repaired `main` and rerun rather than bypassed. No production/runtime/hardware mutation belongs to #1055.
 
 ## Issue #1053 — FTDI commissioning permission boundary
 

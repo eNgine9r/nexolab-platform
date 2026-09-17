@@ -1,8 +1,14 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-16
+Updated: 2026-09-17
 
 ## Current Sprint
+
+### Issue #1055 — fresh container HIGH reconciliation active
+
+PR #1054 / Issue #1053 remains functionally GREEN on the FTDI permission scope but is blocked by fresh Container Supply Chain findings unrelated to that product change. Issue #1055 is the active security-only Work Package. Fresh no-cache run `35156866062` reported the same five HIGH tuples in `device-agent` and `telegram-gateway`: `libexpat1/CVE-2026-66046` plus four Python 3.13 package tuples for `CVE-2026-82049`. Debian Security Tracker review on 2026-09-17 confirms Trixie `expat 2.8.3-1~deb13u1` remains vulnerable/no-DSA while fixed `2.8.4-1` is only in forky/sid, and Trixie `python3.13 3.13.5-2+deb13u5` remains vulnerable/no-DSA with no Debian fixed source version for CVE-2026-82049.
+
+Commander source sweeps across 513 service files found zero `pyexpat` and zero `tarfile` matches; `xml` matches are outside the affected images (`telemetry-service` report escaping/XLSX metadata and an unrelated lockfile integrity string). The candidate registry adds only the exact ten fresh tuples, all owned by `platform-security`, expiring `2026-09-21`, with mandatory removal on finding disappearance, compatible fixed package availability, vulnerable-path reachability, Critical severity, or expiry. Review is documented in `docs/operations/container-cve-2026-66046-82049-review.md`; `git diff --check` passed through Commander. Exact-head Container Supply Chain and Core/NEXOLAB Merge Gate remain required before merge. No production runtime, Modbus/controller or hardware write was performed.
 
 ### Issue #1050 — RS-485 commissioning selector deployed; live acceptance blocked by #1053
 

@@ -3,38 +3,41 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-16T22:48:00+03:00",
+  "timestamp": "2026-09-17T12:31:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1050 deployed 442e0c55 successfully; live Danfoss acceptance exposed FTDI plugdev permission blocker tracked as Issue #1053",
+  "event": "Issue #1055 security-only candidate adds exact short-lived exceptions for fresh CVE-2026-66046 and CVE-2026-82049 findings after current reachability and Debian status review",
   "baselines": {
     "accepted_product_sha": "96e4e65b0356656ddbaa4519d5302c19f4b749a5",
     "deployed_product_sha": "442e0c55a87cd83fba71be769ac39d170cc0d61f"
   },
   "active_work": {
-    "issue": 1050,
-    "title": "Roll out merged RS-485 commissioning selector to LOCAL_LAN with verified recovery authority",
-    "branch": "deploy/1050-rs485-selector-runtime"
+    "issue": 1055,
+    "title": "Reconcile fresh libexpat/Python HIGH findings blocking #1054",
+    "branch": "security/1055-container-high-reconciliation"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "verified_head_sha": "b7e91e38cca02593df0876fe61e81947071fced1",
-      "pull_request": 1052,
+      "verified_head_sha": null,
+      "pull_request": null,
       "checks": {
-        "core_ci": "success:35139430341",
-        "nexolab_merge_gate": "success:35139430341",
-        "controlled_local_lan_deployment": "success:runtime/deployments/20260916T191921Z",
-        "deployed_source": "442e0c55a87cd83fba71be769ac39d170cc0d61f",
-        "post_cutover_53_targets": "success",
-        "akcc25_scheduled_targets": "0",
-        "persistent_volume_identity": "preserved",
-        "post_cutover_danfoss_preflight": "blocked_issue_1053_ftdi_eacces",
+        "source_reachability_pyexpat": "zero_matches_across_513_service_files",
+        "source_reachability_tarfile": "zero_matches_across_513_service_files",
+        "xml_matches_in_affected_images": "none",
+        "debian_expat_trixie": "2.8.3-1~deb13u1_vulnerable_no_dsa_fixed_2.8.4_only_forky_sid",
+        "debian_python313_trixie": "3.13.5-2+deb13u5_cve_2026_82049_vulnerable_no_dsa_unfixed",
+        "candidate_exception_tuples": "10_exact_image_package_cve_entries",
+        "exception_owner": "platform-security",
+        "exception_expiry": "2026-09-21",
+        "git_diff_check": "success",
+        "container_supply_chain_exact_head": "pending",
+        "nexolab_merge_gate_exact_head": "pending",
         "modbus_write": "none",
         "hardware_write": "none"
       }
     }
   },
   "observations": [],
-  "next_action": "Merge verified #1052 deployment-authority tooling/state, then implement Issue #1053 on a fresh branch; do not perform a new production Device Agent recreation until exact fix target authorization is obtained",
+  "next_action": "Validate canonical state/diff, commit and push the security-only candidate through Commander, open the #1055 PR, require fresh no-cache Container Supply Chain plus Core/NEXOLAB Merge Gate GREEN, merge, then update/rerun PR #1054 from repaired main",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
