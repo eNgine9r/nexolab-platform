@@ -3,14 +3,19 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-17T20:02:18+03:00",
+  "timestamp": "2026-09-18T02:28:11+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1045 software candidate completed: frontend cadence contract now includes production-supported Embraco while AK-CC25 remains fail-closed; #1050 remains blocked only on authenticated operator UI/API acceptance",
+  "event": "Issue #1065 repository repair candidate prepared for LOCAL_LAN commissioning wiring; production runtime remains unchanged and #1050 cannot resume until exact-head verification/merge plus a separately authorized cutover",
   "baselines": {
     "accepted_product_sha": "9edf33764cda95da912a6140db8e51cf0cd9d623",
     "deployed_product_sha": "039e37ac4b91903e5f8ee33de2603e40c308de90"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1065,
+    "title": "Restore LOCAL_LAN central↔edge commissioning inventory wiring",
+    "branch": "fix/1065-local-lan-commissioning-wiring",
+    "status": "in_progress_exact_head_verification_pending"
+  },
   "evidence_snapshot": {
     "completed_security_blocker": {
       "issue": 1055,
@@ -49,7 +54,9 @@
       "ftdi_a10q2si7": "available_for_preflight",
       "unit35_preflight": "passed_hardware_verified_fc03_only_319ms_10_success_0_retries",
       "modbus_write": "none",
-      "hardware_write": "none"
+      "hardware_write": "none",
+      "commissioning_inventory_runtime_wiring": "blocked_on_issue_1065_then_separate_cutover_authorization",
+      "authenticated_operator_acceptance": "blocked_missing_equipment_manage_session"
     },
     "issue_1060": {
       "issue": 1060,
@@ -68,7 +75,21 @@
       "typescript_no_emit": "success",
       "git_diff_check": "success_local",
       "production_deployment": "not_executed",
-      "hardware_acceptance": "not_required_no_runtime_or_hardware_change"
+      "hardware_acceptance": "not_required_no_runtime_or_hardware_change",
+      "pull_request": 1063,
+      "core_ci_and_merge_gate": "success:35250454713",
+      "authenticated_dashboard": "success:35250454773"
+    },
+    "issue_1065": {
+      "issue": 1065,
+      "product_code_head_sha": "e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a",
+      "root_cause": "LOCAL_LAN runtime selector omitted the existing local cross-stack overlays, leaving Telemetry without COMMISSIONING_DEVICE_AGENT_BASE_URL",
+      "local_contract_verification": "success",
+      "local_pytest": "not_run_pytest_unavailable",
+      "deployed_source": "039e37ac4b91903e5f8ee33de2603e40c308de90",
+      "production_runtime_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "observations": [
@@ -95,9 +116,22 @@
         "issue_state": "closed_completed",
         "required_checks": "green"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-18T02:28:11+03:00",
+      "kind": "issue_1045_merge_reconciliation",
+      "data": {
+        "issue": 1045,
+        "pull_request": 1063,
+        "verified_head_sha": "27e2cb30e0b05eecc791354ce54ed8e4c339985a",
+        "merge_sha": "597913f850131464723d36f24113edee144e6608",
+        "issue_state": "closed_completed",
+        "required_checks": "green"
+      }
     }
   ],
-  "next_action": "Run exact-head GitHub verification for Issue #1045 and merge only if required checks are GREEN; then resume #1050 only when a normal authenticated operator session with equipment.manage is available. Keep AK-CC25 production polling disabled.",
+  "next_action": "Run exact-head GitHub verification for #1065. Merge only if required checks are GREEN. Do not recreate production runtime until the Product Owner separately authorizes the exact deployed-source transition; after that verify live RS-485 inventory and resume #1050 with normal equipment.manage operator access. Keep AK-CC25 scheduled polling disabled.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

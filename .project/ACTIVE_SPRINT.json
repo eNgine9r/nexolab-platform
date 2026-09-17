@@ -22,7 +22,11 @@
     "deployed_product_sha": "039e37ac4b91903e5f8ee33de2603e40c308de90"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1065,
+      "title": "Restore LOCAL_LAN central↔edge commissioning inventory wiring",
+      "branch": "fix/1065-local-lan-commissioning-wiring"
+    },
     "next_work_package": {
       "issue": 1050,
       "title": "Complete authenticated operator acceptance for the RS-485 commissioning selector",
@@ -30,6 +34,32 @@
     }
   },
   "work_packages": [
+    {
+      "issue": 1065,
+      "title": "Restore LOCAL_LAN central↔edge commissioning inventory wiring",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "branch": "fix/1065-local-lan-commissioning-wiring",
+      "evidence": {
+        "product_code_head_sha": "e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a",
+        "root_cause": "lan_runtime_omitted_local_cross_stack_commissioning_overlays",
+        "deployed_runtime_unchanged": "039e37ac4b91903e5f8ee33de2603e40c308de90",
+        "local_checks": {
+          "standalone_offline_runtime_contract": "success",
+          "lan_deploy_overlay_selector": "success",
+          "lan_source_recovery_compose_contract": "success",
+          "offline_installer_lan_overlay_selector": "success",
+          "bash_syntax": "success",
+          "python_compile": "success",
+          "git_diff_check": "success",
+          "pytest_test_nexolab_version_manager": "not_run_local_pytest_unavailable"
+        },
+        "production_cutover": "not_executed_not_authorized",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
     {
       "issue": 665,
       "title": "Start PRODUCTION-READINESS-1 after chart Sprint completion",
@@ -3901,7 +3931,8 @@
           "product_owner_cutover_authorization": "consumed_exact_442e0c55_to_039e37ac_2026-09-17",
           "device_agent_nonroot_supplementary_groups": "success_gid20_gid46",
           "ftdi_a10q2si7_available_for_preflight": "success",
-          "authenticated_ui_api_acceptance": "blocked_missing_normal_operator_session_with_equipment_manage"
+          "authenticated_ui_api_acceptance": "blocked_missing_normal_operator_session_with_equipment_manage",
+          "commissioning_inventory_runtime_wiring": "blocked_on_issue_1065_then_separate_cutover_authorization"
         }
       }
     },
@@ -4029,7 +4060,13 @@
         "git_diff_check": "success_local",
         "production_deployment": "not_executed",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "pull_request": 1063,
+        "checks": {
+          "core_quality_and_build": "success:35250454713",
+          "authenticated_dashboard": "success:35250454773",
+          "nexolab_merge_gate": "success:35250454713"
+        }
       }
     }
   ],
@@ -4514,6 +4551,19 @@
         "pull_request": 1054,
         "verified_head_sha": "da5ccf23966d541621eebcc1d8d898ff59baa4e0",
         "merge_sha": "28e051488ba5cccd1fc739110d61a957b48b2c29",
+        "issue_state": "closed_completed",
+        "required_checks": "green"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-18T02:28:11+03:00",
+      "kind": "issue_1045_merge_reconciliation",
+      "data": {
+        "issue": 1045,
+        "pull_request": 1063,
+        "verified_head_sha": "27e2cb30e0b05eecc791354ce54ed8e4c339985a",
+        "merge_sha": "597913f850131464723d36f24113edee144e6608",
         "issue_state": "closed_completed",
         "required_checks": "green"
       }

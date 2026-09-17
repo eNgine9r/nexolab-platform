@@ -1,6 +1,6 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-17
+Updated: 2026-09-18
 
 ## Issue #1055 — fresh Container Supply Chain HIGH findings
 
@@ -10,11 +10,15 @@ Updated: 2026-09-17
 
 **Cleared in repository and live runtime on 2026-09-17.** PR #1054 merged the bounded nonroot supplementary-group fix, and the Product Owner-authorized deployment `442e0c55a87cd83fba71be769ac39d170cc0d61f → 039e37ac4b91903e5f8ee33de2603e40c308de90` completed with evidence `runtime/deployments/20260917T131852Z`. The live Device Agent now carries GID 20 and GID 46, FTDI `A10Q2SI7` is `available_for_preflight=true`, and a real Unit 35 FC03-only profile passed. No Modbus/controller write or hardware write occurred.
 
+## Issue #1065 — LOCAL_LAN commissioning inventory wiring
+
+**Repository repair in exact-head verification.** Runtime inspection proved the RS-485 list is empty because the LAN deployment omitted the existing same-host cross-stack overlays: Telemetry therefore has no COMMISSIONING_DEVICE_AGENT_BASE_URL even though Device Agent and the FTDI commissioning adapter are healthy. Implementation commit e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a enables that bounded overlay path for LAN deployment, source recovery and offline installation. Local contract/syntax checks are GREEN; local pytest is unavailable and is delegated to CI. Production remains unchanged at 039e37ac4b91903e5f8ee33de2603e40c308de90; a later runtime recreation/cutover requires separate Product Owner authorization.
+
 ## Issue #1050 — RS-485 commissioning selector production acceptance
 
-**Hard-blocked only on mandatory authenticated operator access.** The approved LOCAL_LAN cutover to `039e37ac4b91903e5f8ee33de2603e40c308de90` is complete and `DEPLOYMENT PASSED` evidence is `runtime/deployments/20260917T131852Z`. Live invariants are preserved: 53 scheduled targets, 2/2 workers healthy, AK-CC25 scheduled targets `0`, production CP2104 bus identities unchanged, named-volume identities identical, nonroot Device Agent supplementary GID 46 proven, and FTDI `A10Q2SI7` available. Real Danfoss Unit 35 read-only acceptance passed with `hardware_verified`, FC03 only, 319 ms, ten successful requests and zero retries.
+**Blocked on two explicit gates.** The prior approved LOCAL_LAN cutover to `039e37ac4b91903e5f8ee33de2603e40c308de90` is complete and `DEPLOYMENT PASSED` evidence is `runtime/deployments/20260917T131852Z`, but the UI subsequently exposed Issue #1065: the LAN composition omitted the local Telemetry↔Device Agent commissioning network. #1065 must merge and any production recreation/cutover to that corrected source requires separate Product Owner authorization. A normal authenticated operator session with `equipment.manage` is still required for the final save/review/preflight walkthrough. Live invariants are preserved: 53 scheduled targets, 2/2 workers healthy, AK-CC25 scheduled targets `0`, production CP2104 bus identities unchanged, named-volume identities identical, nonroot Device Agent supplementary GID 46 proven, and FTDI `A10Q2SI7` available. Real Danfoss Unit 35 read-only acceptance passed with `hardware_verified`, FC03 only, 319 ms, ten successful requests and zero retries.
 
-The remaining gate is the final Equipment → Connect device save/review/preflight through a **normal authenticated operator session with `equipment.manage`**. The persisted Chromium profile is unauthenticated (HTTP 401) and the approved Opera inspection account is read-only, so credentials/tokens/cookies will not be extracted or bypassed. No further production recreation or cutover is authorized; AK-CC25 production polling remains disabled; Modbus/controller writes and hardware writes remain forbidden.
+After the #1065 runtime wiring is deployed under explicit authorization, the remaining application-level gate is the final Equipment → Connect device save/review/preflight through a **normal authenticated operator session with `equipment.manage`**. The persisted Chromium profile is unauthenticated (HTTP 401) and the approved Opera inspection account is read-only, so credentials/tokens/cookies will not be extracted or bypassed. No further production recreation or cutover is authorized; AK-CC25 production polling remains disabled; Modbus/controller writes and hardware writes remain forbidden.
 
 ## Issue #1044 — Danfoss onboarding runtime promotion
 
