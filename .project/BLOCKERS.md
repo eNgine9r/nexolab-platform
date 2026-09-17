@@ -1,6 +1,6 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-17
+Updated: 2026-09-18
 
 ## Issue #1055 — fresh Container Supply Chain HIGH findings
 
@@ -9,6 +9,14 @@ Updated: 2026-09-17
 ## Issue #1053 — FTDI commissioning permission boundary
 
 **Cleared in repository and live runtime on 2026-09-17.** PR #1054 merged the bounded nonroot supplementary-group fix, and the Product Owner-authorized deployment `442e0c55a87cd83fba71be769ac39d170cc0d61f → 039e37ac4b91903e5f8ee33de2603e40c308de90` completed with evidence `runtime/deployments/20260917T131852Z`. The live Device Agent now carries GID 20 and GID 46, FTDI `A10Q2SI7` is `available_for_preflight=true`, and a real Unit 35 FC03-only profile passed. No Modbus/controller write or hardware write occurred.
+
+## Issue #1067 — CI routing for version-manager runtime tooling
+
+**Active CI repair.** PR #1066 exact head passed Core Quality/build, Telemetry Service and Offline Bundle, but Merge Gate failed because known version-manager/offline-installer files were treated as unknown and therefore required browser workflows that could not register. #1067 adds only exact known deployment-runtime paths and regression coverage; genuinely unknown paths remain fail-closed. No production mutation is involved.
+
+## Issue #1065 — LOCAL_LAN commissioning inventory wiring
+
+**Soft-blocked on #1067.** The repository runtime wiring repair exists in PR #1066 and its registered product/offline checks are GREEN. After #1067 merges, #1066 must integrate current main and pass a fresh exact-head Merge Gate. Production remains unchanged at `039e37ac4b91903e5f8ee33de2603e40c308de90`; deployment of the corrected composition still requires separate Product Owner authorization.
 
 ## Issue #1050 — RS-485 commissioning selector production acceptance
 
