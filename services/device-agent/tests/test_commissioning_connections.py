@@ -70,6 +70,38 @@ class CommissioningConnectionTests(unittest.TestCase):
                     commissioning_bus_id(prod), topology=topology, serial_root=root
                 )
 
+    def test_inventory_marks_inaccessible_commissioning_adapter_unavailable(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            prod = str(root / "usb-prod")
+            candidate = str(root / "usb-danfoss")
+
+            payload = connection_inventory(
+                node_id="edge-01",
+                topology=self._topology(prod),
+                serial_root=root,
+                access_check=lambda path: path.name != "ttyUSB3",
+            )
+
+            by_path = {item["stable_transport_identifier"]: item for item in payload["connections"]}
+            self.assertTrue(by_path[prod]["available_for_preflight"])
+            self.assertTrue(by_path[candidate]["present"])
+            self.assertFalse(by_path[candidate]["available_for_preflight"])
+
+    def test_resolver_rejects_present_adapter_without_process_rw_permission(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._root(directory)
+            prod = str(root / "usb-prod")
+            candidate = str(root / "usb-danfoss")
+
+            with self.assertRaisesRegex(ValueError, "not readable/writable by the Device Agent"):
+                resolve_commissioning_adapter(
+                    commissioning_bus_id(candidate),
+                    topology=self._topology(prod),
+                    serial_root=root,
+                    access_check=lambda path: path.name != "ttyUSB3",
+                )
+
     def test_unowned_adapter_fails_closed_when_production_identity_is_missing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = self._root(directory)

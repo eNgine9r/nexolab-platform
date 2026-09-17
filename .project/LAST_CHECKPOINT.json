@@ -3,49 +3,59 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-17T13:18:00+03:00",
+  "timestamp": "2026-09-17T13:59:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1055 exact security head verified GREEN; final state checkpoint prepared for merge",
+  "event": "Issue #1055 merged; Issue #1053 resumed and is being integrated with security-fixed main for fresh exact-head verification",
   "baselines": {
     "accepted_product_sha": "96e4e65b0356656ddbaa4519d5302c19f4b749a5",
     "deployed_product_sha": "442e0c55a87cd83fba71be769ac39d170cc0d61f"
   },
   "active_work": {
-    "issue": 1055,
-    "title": "Reconcile fresh libexpat/Python HIGH findings blocking #1054",
-    "branch": "security/1055-container-high-reconciliation"
+    "issue": 1053,
+    "title": "Make FTDI commissioning adapters accessible to the nonroot Device Agent",
+    "branch": "fix/1053-ftdi-commissioning-permissions",
+    "pull_request": 1054
   },
   "evidence_snapshot": {
-    "active_issue_evidence": {
-      "verified_head_sha": "3f0adc9bd8184a08f199373778d55a8e65ddda67",
+    "completed_security_blocker": {
+      "issue": 1055,
       "pull_request": 1057,
-      "checks": {
-        "source_reachability_pyexpat": "zero_matches_across_513_service_files",
-        "source_reachability_tarfile": "zero_matches_across_513_service_files",
-        "xml_matches_in_affected_images": "none",
-        "debian_expat_trixie": "2.8.3-1~deb13u1_vulnerable_no_dsa_fixed_2.8.4_only_forky_sid",
-        "debian_python313_trixie": "3.13.5-2+deb13u5_cve_2026_82049_vulnerable_no_dsa_unfixed",
-        "candidate_exception_tuples": "10_exact_image_package_cve_entries",
-        "exception_owner": "platform-security",
-        "exception_expiry": "2026-09-21",
-        "git_diff_check": "success",
-        "container_supply_chain_exact_head": "success:35207257144",
-        "telemetry_service_exact_head": "success:35207257105",
-        "core_ci_exact_head": "success:35207257111",
-        "nexolab_merge_gate_exact_head": "success:35207257111",
-        "modbus_write": "none",
-        "hardware_write": "none"
-      }
+      "final_head_sha": "d76852457ea0c9c8fe75d3443e7c812623bb824a",
+      "container_supply_chain": "success:35210100902",
+      "telemetry_service": "success:35210100889",
+      "core_ci_and_merge_gate": "success:35210100901"
+    },
+    "active_issue_evidence": {
+      "prior_candidate_sha": "1080e626f8164c9fcb81b37304922c541f1cafc2",
+      "root_cause": "device_agent_missing_host_plugdev_gid_46_for_ftdi_commissioning_adapters",
+      "candidate_scope": "bounded_supplementary_commissioning_group_permission_aware_inventory_and_fail_closed_resolver",
+      "repository_integration": "pending_merge_commit_and_exact_head_ci",
+      "production_device_agent_recreation": "not_authorized",
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
-  "observations": [],
-  "next_action": "Commit the final state-only evidence update, require exact-head CI and NEXOLAB Merge Gate GREEN on that new head, merge PR #1057, then update PR #1054 from repaired main and resume Issue #1053 without production cutover",
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-09-17T15:08:00+03:00",
+      "kind": "issue_1055_merge_reconciliation",
+      "data": {
+        "issue": 1055,
+        "pull_request": 1057,
+        "repository_main_sha": "640fd5d48ea63dc81eaeec08ba03b31feb294cd8",
+        "merge_sha": "640fd5d48ea63dc81eaeec08ba03b31feb294cd8"
+      }
+    }
+  ],
+  "next_action": "Create a non-force merge integration of PR #1054 with main 640fd5d48ea63dc81eaeec08ba03b31feb294cd8, preserve exact FTDI product/test changes plus canonical post-#1057 project state, run fresh exact-head CI and NEXOLAB Merge Gate, then merge repository scope only if GREEN",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
     "production_cutover_authorized": false,
+    "production_device_agent_recreation": "not_authorized",
     "mandatory_public_runtime_dependency": "none"
   }
 }

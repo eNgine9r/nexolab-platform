@@ -4,11 +4,11 @@ Updated: 2026-09-17
 
 ## Current Sprint
 
-### Issue #1055 — fresh container HIGH reconciliation verified; merge pending
+### Issue #1053 — FTDI commissioning permission repair active
 
-PR #1057 exact security head `3f0adc9bd8184a08f199373778d55a8e65ddda67` is verified GREEN. Container Supply Chain run `35207257144` passed image-inventory/exception validation, policy regressions, exact-commit builds, SBOM generation, vulnerability-policy enforcement and aggregate release-manifest verification for all controlled images, including `device-agent` and `telegram-gateway`. Telemetry Service run `35207257105` passed, and Core CI / NEXOLAB Merge Gate run `35207257111` passed formatting, lint, typecheck, tests, build and exact-head workflow aggregation.
+Issue #1055 is complete and no longer blocks the Device Agent permission repair. PR #1057 final exact head `d76852457ea0c9c8fe75d3443e7c812623bb824a` passed Container Supply Chain `35210100902`, Telemetry Service `35210100889`, and Core CI / NEXOLAB Merge Gate `35210100901`, then squash-merged to `main` as `640fd5d48ea63dc81eaeec08ba03b31feb294cd8`. The ten exact HIGH exceptions remain narrow, owned by `platform-security`, and expire `2026-09-21`; no production/runtime/hardware mutation belonged to #1055.
 
-The accepted reconciliation remains narrow: ten exact fresh HIGH tuples only, owned by `platform-security`, expiring `2026-09-21`; no CRITICAL finding is permitted. Commander reachability review still shows no `pyexpat` or `tarfile` application path in the affected services, and early-removal triggers remain finding disappearance, compatible fixed package availability, vulnerable-path reachability, Critical severity, or expiry. No production deployment, container recreation, Modbus/controller write, hardware write, product-data mutation or named-volume mutation occurred. #1055 is ready to merge; #1053 remains the next Work Package and PR #1054 must be updated from repaired `main` and rerun rather than bypassed.
+PR #1054 / Issue #1053 is now the active Work Package. The verified root cause remains the nonroot Device Agent having host `dialout` GID 20 but not `plugdev` GID 46 while FTDI `/dev/ttyUSB2/3` are `0660 root:plugdev`. The candidate adds only the bounded supplementary commissioning group contract, permission-aware inventory/resolution, and fail-closed preflight behavior while preserving the existing nonroot container, `c 188:* rwm` boundary, read-only `/host/dev`, production CP2104 ownership, scheduler identity, and AK-CC25 activation-disabled behavior. The old candidate `1080e626f8164c9fcb81b37304922c541f1cafc2` is being integrated with security-fixed `main` and must pass fresh exact-head CI before repository merge. No production Device Agent recreation has been authorized; real Unit 35 FC03-only acceptance remains behind a separate Product Owner cutover gate.
 
 ### Issue #1050 — RS-485 commissioning selector deployed; live acceptance blocked by #1053
 

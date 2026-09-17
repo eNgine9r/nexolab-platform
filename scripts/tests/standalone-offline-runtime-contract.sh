@@ -99,6 +99,7 @@ NEXOLAB_NODE_ID=edge-01
 DEVICE_AGENT_IMAGE=nexolab-device-agent:local
 RS485_HOST_DEVICE=/dev/serial/by-id/usb-NEXOLAB-test-if00-port0
 RS485_GROUP_GID=20
+RS485_COMMISSIONING_GROUP_GID=46
 STANDALONE_RUNTIME_NETWORK=nexolab-standalone-runtime
 CENTRAL_MQTT_HOST=central-mqtt
 CENTRAL_MQTT_PORT=1883
@@ -168,6 +169,7 @@ assert device_agent["environment"]["SERIAL_DEVICE"] == (
 assert device_agent.get("privileged") in (None, False)
 assert device_agent.get("devices") in (None, [])
 assert device_agent["device_cgroup_rules"] == ["c 188:* rwm"]
+assert set(str(group) for group in device_agent["group_add"]) == {"20", "46"}
 
 host_dev_mounts = [
     volume
