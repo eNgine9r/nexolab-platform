@@ -3,7 +3,7 @@ import { createRuntimeCredentialProvider } from "@/features/security/supabase-au
 
 export const ACQUISITION_CADENCE_URL = "/api/device-agent/acquisition-cadence";
 
-export type CadenceFamily = "xjp60d" | "le01mp";
+export type CadenceFamily = "xjp60d" | "le01mp" | "embraco";
 
 export type CadenceFamilyDefault = {
   busId: string;
@@ -117,7 +117,7 @@ function string(value: unknown, label: string): string {
 }
 
 function family(value: unknown): CadenceFamily {
-  if (value === "xjp60d" || value === "le01mp") return value;
+  if (value === "xjp60d" || value === "le01mp" || value === "embraco") return value;
   throw new CadenceClientError("invalid_response", "Cadence API повернув невідому device family.");
 }
 

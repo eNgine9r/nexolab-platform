@@ -13,6 +13,7 @@ import type { AcquisitionCadenceController } from "@/features/acquisition/use-ac
 const familyLabels: Record<CadenceFamily, string> = {
   xjp60d: "Dixell XJP60D",
   le01mp: "LE-01MP / енергомоніторинг",
+  embraco: "Embraco Sync Controller",
 };
 
 type CadenceChoice = "10" | "30" | "60" | "custom";

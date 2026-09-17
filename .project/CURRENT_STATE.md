@@ -4,6 +4,12 @@ Updated: 2026-09-17
 
 ## Current Sprint
 
+### Issue #1045 — Embraco acquisition-cadence frontend contract completed candidate
+
+Issue #1045 fixes the frontend/backend cadence-family contract mismatch for the already production-supported Embraco family. Product commit `9edf33764cda95da912a6140db8e51cf0cd9d623` extends the strict frontend `CadenceFamily` parser from `xjp60d | le01mp` to `xjp60d | le01mp | embraco`, adds the operator label `Embraco Sync Controller`, and verifies Settings rendering plus family-default mutation for `rs485-embraco`. Unknown/not-yet-activated families remain fail-closed; `akcc25` is explicitly rejected and is **not** added to acquisition cadence or production polling. Existing XJP60D and LE-01MP behavior is unchanged.
+
+Local verification is GREEN: targeted cadence client + Settings suites **11/11 PASS**, touched-file ESLint PASS, touched-file Prettier PASS, `tsc --noEmit` PASS and `git diff --check` PASS. No Device Agent/backend code, cadence policy/defaults, production deployment, Modbus/controller write or hardware write changed. The deployed LOCAL_LAN source remains `039e37ac4b91903e5f8ee33de2603e40c308de90`; #1050 remains separately blocked only on a normal authenticated operator session with `equipment.manage`.
+
 ### Issue #1060 — post-cutover state reconciliation
 
 The Product Owner explicitly authorized the exact LOCAL_LAN transition `442e0c55a87cd83fba71be769ac39d170cc0d61f → 039e37ac4b91903e5f8ee33de2603e40c308de90` with the existing healthy runtime retained as rollback authority. Repository-owned deployment completed with `DEPLOYMENT PASSED`; authoritative evidence is `runtime/deployments/20260917T131852Z`. The Device Agent remains nonroot and now has supplementary serial groups GID 20 (`dialout`) and GID 46 (`plugdev`). Persistent named-volume identities are byte-identical before/after the deployment.
