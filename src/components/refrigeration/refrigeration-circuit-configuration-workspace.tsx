@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, CheckCircle2, Link2, Plus, RefreshCw, Snowflake } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   CANONICAL_PROPERTY_PROVIDER_PROFILE,
@@ -717,7 +717,7 @@ function HistoryRows({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="grid gap-1 text-[10px] text-slate-500">
       <span>{label}</span>
