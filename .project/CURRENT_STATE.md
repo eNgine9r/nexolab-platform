@@ -4,6 +4,14 @@ Updated: 2026-09-18
 
 ## Current Sprint
 
+### Issue #1083 — RFX-10 merge reconciled; RFX-11 Ready
+
+RFX-10 / Issue #1077 is repository-complete. PR #1081 final head `6d3ee33e8da25e0ad074c36d6bc48782c5d7bae0` passed exact-head Core Quality/build and final NEXOLAB Merge Gate `35344704891`, Refrigeration Browser Acceptance `35344704912`, Telemetry Service `35344705014`, Security Browser Acceptance `35344704884`, Offline Bundle `35344704905`, Capacity Release Gate `35344705001`, and the remaining classified exact-head matrix. The first Capacity runtime benchmark exceeded steady p95 once; an exact-SHA failed-job retry passed without changing thresholds. Review submissions and unresolved review threads are both zero. PR #1081 squash-merged to `main` as `f6b1e474537107ba2a0f622309326617c57a1e73`; GitHub closed #1077 completed.
+
+The accepted product baseline is now the last RFX-10 product/runtime code commit `c750bab792ed09171bb29fc97cc0bb5396020c53`. Production LOCAL_LAN remains deployed at `df368cfa27efa945d59de33de8268898b564a19f`; RFX-10 performed no production deployment, polling activation, Modbus/controller write, hardware write, persistent-data deletion or named-volume deletion. RFX-10 hardware acceptance remains explicitly unclaimed.
+
+RFX-11 / Issue #1082 — `[RFX-11][INSTRUMENTATION] Add operator Instrument and Signal registry authoring` — is the next independent Ready Work Package. It adds organization-level Instrument/Signal authoring plus explicit append-only calculation acceptance so a compatible active accepted Signal can flow through the existing RFX-10 backend candidate authority. Acquisition-source authoring, analog-scaling authoring, calibration mutation, live hardware activation, controller writes, production cutover and hardware acceptance remain outside its scope. Planned feature branch: `feat/1082-rfx11-instrumentation-registry-authoring`.
+
 ### Issue #1078 — RFX-09 merge reconciled; RFX-10 Ready
 
 RFX-09 / Issue #1075 is repository-complete. PR #1076 final head `9264a7282c64c53048f6866a01bb8151455a1083` passed final exact-head Core CI / NEXOLAB Merge Gate `35338043097`, Refrigeration Browser Acceptance `35338043081`, Security Browser Acceptance `35338043241`, and Disaster Recovery Browser `35338043086`, with zero review submissions and zero unresolved review threads. The PR squash-merged to `main` as `956db3c7876ea8d2b367e4306fae559dab8acb7c`; GitHub closed #1075 completed.
