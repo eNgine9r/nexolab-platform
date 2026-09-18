@@ -18,15 +18,15 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "49878a03e814d7a89fe6ce698a5b6331de90db31",
+    "accepted_product_sha": "c750bab792ed09171bb29fc97cc0bb5396020c53",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f"
   },
   "selection": {
     "active_work_package": null,
     "next_work_package": {
-      "issue": 1077,
-      "title": "[RFX-10][CONFIG] Add operator refrigeration circuit configuration workspace",
-      "branch": "feat/1077-rfx10-circuit-config-workspace"
+      "issue": 1082,
+      "title": "[RFX-11][INSTRUMENTATION] Add operator Instrument and Signal registry authoring",
+      "branch": "feat/1082-rfx11-instrumentation-registry-authoring"
     }
   },
   "work_packages": [
@@ -4263,15 +4263,72 @@
       "issue": 1077,
       "title": "[RFX-10][CONFIG] Add operator refrigeration circuit configuration workspace",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "completed",
       "depends_on": [
         1075,
         1078
       ],
       "branch": "feat/1077-rfx10-circuit-config-workspace",
       "evidence": {
-        "dependency_gate": "rfx09_merged_state_reconciled_by_1078",
+        "product_code_head_sha": "c750bab792ed09171bb29fc97cc0bb5396020c53",
+        "final_pr_head_sha": "6d3ee33e8da25e0ad074c36d6bc48782c5d7bae0",
+        "pull_request": 1081,
+        "issue_state": "closed_completed",
         "scope": "software_only_operator_configuration",
+        "checks": {
+          "core_quality_build_and_merge_gate": "success:35344704891",
+          "refrigeration_browser": "success:35344704912",
+          "telemetry_service": "success:35344705014",
+          "security_browser": "success:35344704884",
+          "offline_bundle": "success:35344704905",
+          "capacity_release_gate": "success:35344705001",
+          "authenticated_dashboard": "success:35344704926",
+          "container_supply_chain": "success:35344704970"
+        },
+        "capacity_note": "first_runtime_benchmark_steady_p95_exceeded_once_exact_sha_retry_passed_thresholds_unchanged",
+        "review_submissions": 0,
+        "unresolved_review_threads": 0,
+        "production_deployment": "none",
+        "hardware_acceptance": "not_claimed",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1083,
+      "title": "[STATE][RFX-10] Reconcile merge and promote RFX-11",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1077
+      ],
+      "branch": "chore/1083-reconcile-rfx10-state",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "rfx10_product_sha": "c750bab792ed09171bb29fc97cc0bb5396020c53",
+        "rfx10_final_pr_head_sha": "6d3ee33e8da25e0ad074c36d6bc48782c5d7bae0",
+        "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
+        "next_ready_issue": 1082,
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1082,
+      "title": "[RFX-11][INSTRUMENTATION] Add operator Instrument and Signal registry authoring",
+      "priority": "high",
+      "lifecycle": "ready",
+      "depends_on": [
+        1077,
+        1083
+      ],
+      "branch": "feat/1082-rfx11-instrumentation-registry-authoring",
+      "evidence": {
+        "dependency_gate": "rfx10_merged_state_reconciled_by_1083",
+        "scope": "software_only_instrument_signal_registry_and_acceptance_authoring",
+        "backend_authority": "existing_api_v1_instrumentation",
+        "rfx10_candidate_integration": "required",
         "production_deployment": "not_authorized_not_in_scope",
         "hardware_acceptance": "not_claimed",
         "modbus_write": "none",
@@ -4836,6 +4893,18 @@
         "pull_request": 1076,
         "final_pr_head_sha": "9264a7282c64c53048f6866a01bb8151455a1083",
         "merge_sha": "956db3c7876ea8d2b367e4306fae559dab8acb7c",
+        "issue_state": "closed_completed"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-18T12:39:03Z",
+      "kind": "rfx10_pr1081_merge",
+      "data": {
+        "issue": 1077,
+        "pull_request": 1081,
+        "final_pr_head_sha": "6d3ee33e8da25e0ad074c36d6bc48782c5d7bae0",
+        "merge_sha": "f6b1e474537107ba2a0f622309326617c57a1e73",
         "issue_state": "closed_completed"
       }
     }
