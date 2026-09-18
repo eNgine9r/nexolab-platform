@@ -9,6 +9,7 @@ import { AlertTriangle, ArrowLeft, FileText, RadioTower, SlidersHorizontal, X } 
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { EquipmentLifecyclePanel } from "@/components/refrigeration/equipment-lifecycle-panel";
+import { RefrigerationCircuitConfigurationWorkspace } from "@/components/refrigeration/refrigeration-circuit-configuration-workspace";
 import { RefrigerationControllerDetail } from "@/components/refrigeration/refrigeration-controller-detail";
 import { RefrigerationControllerHistory } from "@/components/refrigeration/refrigeration-controller-history";
 import { RefrigerationControllerOverview } from "@/components/refrigeration/refrigeration-controller-overview";
@@ -63,12 +64,13 @@ const sideOptions: ReadonlyArray<{ value: "all" | SensorSide; label: string }> =
 ];
 const shelves = [1, 2, 3, 4] as const;
 
-type RefrigerationDetailTab = "overview" | "scheme" | "graphs" | "controller";
+type RefrigerationDetailTab = "overview" | "scheme" | "graphs" | "controller" | "circuit";
 const DETAIL_TABS: readonly { id: RefrigerationDetailTab; label: string }[] = [
   { id: "overview", label: "Огляд" },
   { id: "scheme", label: "Схема" },
   { id: "graphs", label: "Графіки" },
   { id: "controller", label: "Контролер" },
+  { id: "circuit", label: "Контур" },
 ];
 
 function buildBindingSensors(
@@ -494,6 +496,14 @@ export function RefrigerationDetailScreen({
                 controller={controller}
                 equipmentId={equipment.id}
                 canCommission={canManageEquipment && !retired}
+              />
+            ) : null}
+
+            {activeTab === "circuit" ? (
+              <RefrigerationCircuitConfigurationWorkspace
+                equipmentId={equipment.id}
+                repository={runtime.circuitConfigurationRepository}
+                canManage={canManageEquipment && !retired}
               />
             ) : null}
           </div>
