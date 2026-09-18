@@ -386,6 +386,33 @@ class ChangeImpactClassifierTests(unittest.TestCase):
                 self.assertEqual(result["unknown_files"], [])
                 self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_version_manager_tooling_is_known_deployment_runtime(self) -> None:
+        for path in (
+            "scripts/nexolab-version-manager.py",
+            "scripts/tests/test_nexolab_version_manager.py",
+        ):
+            with self.subTest(path=path):
+                result = classify([path])
+                self.assertEqual(result["classes"], ["deployment_runtime"])
+                self.assertFalse(result["fail_closed"])
+                self.assertEqual(result["unknown_files"], [])
+                self.assertEqual(result["verification"]["required_external_workflows"], [])
+
+    def test_version_manager_with_offline_installer_routes_only_offline_bundle(self) -> None:
+        result = classify(
+            [
+                "scripts/nexolab-version-manager.py",
+                "scripts/tests/test_nexolab_version_manager.py",
+                "scripts/install-offline-bundle.sh",
+            ]
+        )
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(
+            result["verification"]["required_external_workflows"],
+            ["Offline Bundle"],
+        )
+
     def test_frontend_release_tooling_with_dashboard_dockerfile_requires_offline_only(self) -> None:
         result = classify(
             [
