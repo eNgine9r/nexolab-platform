@@ -150,20 +150,17 @@ export function RefrigerationCircuitConfigurationWorkspace({
     [circuits, selectedCircuitId],
   );
 
-  const mutate = useCallback(
-    async (action: () => Promise<void>) => {
-      setMutationBusy(true);
-      setMutationError(null);
-      try {
-        await action();
-      } catch (cause) {
-        setMutationError(readError(cause, "Операцію конфігурації відхилено."));
-      } finally {
-        setMutationBusy(false);
-      }
-    },
-    [],
-  );
+  const mutate = useCallback(async (action: () => Promise<void>) => {
+    setMutationBusy(true);
+    setMutationError(null);
+    try {
+      await action();
+    } catch (cause) {
+      setMutationError(readError(cause, "Операцію конфігурації відхилено."));
+    } finally {
+      setMutationBusy(false);
+    }
+  }, []);
 
   if (!repository) {
     return (
@@ -349,7 +346,9 @@ export function RefrigerationCircuitConfigurationWorkspace({
                     className={inputClass}
                   >
                     {(["active", "inactive", "retired"] as const).map((state) => (
-                      <option key={state} value={state}>{lifecycleLabels[state]}</option>
+                      <option key={state} value={state}>
+                        {lifecycleLabels[state]}
+                      </option>
                     ))}
                   </select>
                 </Field>
@@ -362,7 +361,7 @@ export function RefrigerationCircuitConfigurationWorkspace({
                     required
                   />
                 </Field>
-                <div className="sm:col-span-2 flex items-center justify-between gap-3 pt-1">
+                <div className="flex items-center justify-between gap-3 pt-1 sm:col-span-2">
                   <p className="text-[10px] text-slate-500">
                     Буде створено Circuit + початковий lifecycle record. Без hardware action.
                   </p>
@@ -540,7 +539,9 @@ function CircuitConfigurationSection({
   const selectedPolicy = policies.find((item) => item.version === policyVersion) ?? null;
   return (
     <section className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-4">
-      <p className="text-[10px] tracking-[0.14em] text-slate-500 uppercase">Refrigerant + calculation policy</p>
+      <p className="text-[10px] tracking-[0.14em] text-slate-500 uppercase">
+        Refrigerant + calculation policy
+      </p>
       <HistoryRows
         rows={history.map((item) => ({
           id: item.id,
@@ -552,27 +553,54 @@ function CircuitConfigurationSection({
       {canManage ? (
         <form onSubmit={onSubmit} className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
           <Field label="Холодоагент">
-            <input value={refrigerantCode} onChange={(event) => setRefrigerantCode(event.target.value)} placeholder="R290" className={inputClass} required />
+            <input
+              value={refrigerantCode}
+              onChange={(event) => setRefrigerantCode(event.target.value)}
+              placeholder="R290"
+              className={inputClass}
+              required
+            />
           </Field>
           <Field label="Calculation policy">
-            <select value={policyVersion} onChange={(event) => setPolicyVersion(event.target.value)} className={inputClass} required>
+            <select
+              value={policyVersion}
+              onChange={(event) => setPolicyVersion(event.target.value)}
+              className={inputClass}
+              required
+            >
               <option value="">Оберіть policy</option>
-              {policies.map((policy) => <option key={policy.id} value={policy.version}>{policy.version}</option>)}
+              {policies.map((policy) => (
+                <option key={policy.id} value={policy.version}>
+                  {policy.version}
+                </option>
+              ))}
             </select>
           </Field>
           <Field label="Property provider">
             <input value={CANONICAL_PROPERTY_PROVIDER_PROFILE} readOnly className={inputClass} />
           </Field>
           <Field label="Діє з">
-            <input type="datetime-local" value={effectiveAt} onChange={(event) => setEffectiveAt(event.target.value)} className={inputClass} required />
+            <input
+              type="datetime-local"
+              value={effectiveAt}
+              onChange={(event) => setEffectiveAt(event.target.value)}
+              className={inputClass}
+              required
+            />
           </Field>
-          {selectedPolicy ? <PolicySummary policy={selectedPolicy} /> : (
-            <div className="md:col-span-2 xl:col-span-4 rounded-xl border border-amber-400/15 bg-amber-400/[0.05] p-3 text-xs text-amber-200">
+          {selectedPolicy ? (
+            <PolicySummary policy={selectedPolicy} />
+          ) : (
+            <div className="rounded-xl border border-amber-400/15 bg-amber-400/[0.05] p-3 text-xs text-amber-200 md:col-span-2 xl:col-span-4">
               Canonical calculation policy не вибрано. Frontend не створює прихованих/default thresholds.
             </div>
           )}
-          <div className="md:col-span-2 xl:col-span-4 flex justify-end">
-            <button type="submit" disabled={busy || !policyVersion || !refrigerantCode.trim()} className={primaryButtonClass}>
+          <div className="flex justify-end md:col-span-2 xl:col-span-4">
+            <button
+              type="submit"
+              disabled={busy || !policyVersion || !refrigerantCode.trim()}
+              className={primaryButtonClass}
+            >
               Додати версію конфігурації
             </button>
           </div>
@@ -615,12 +643,19 @@ function CircuitBindingsSection({
     <section className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[10px] tracking-[0.14em] text-slate-500 uppercase">Semantic Signal → role bindings</p>
+          <p className="text-[10px] tracking-[0.14em] text-slate-500 uppercase">
+            Semantic Signal → role bindings
+          </p>
           <h3 className="mt-1 text-base font-semibold text-white">Точки холодильного контуру</h3>
         </div>
         {canManage ? (
           <Field label="Effective time для наступної binding-операції">
-            <input type="datetime-local" value={effectiveAt} onChange={(event) => setEffectiveAt(event.target.value)} className={inputClass} />
+            <input
+              type="datetime-local"
+              value={effectiveAt}
+              onChange={(event) => setEffectiveAt(event.target.value)}
+              className={inputClass}
+            />
           </Field>
         ) : null}
       </div>
@@ -645,7 +680,9 @@ function CircuitBindingsSection({
                     {current.physicalQuantity} · {current.engineeringUnit}
                     {current.pressureReference ? ` · ${current.pressureReference}` : ""}
                   </p>
-                  <p className="mt-1 text-[9px] text-slate-600">{intervalText(current.validFrom, current.validTo)}</p>
+                  <p className="mt-1 text-[9px] text-slate-600">
+                    {intervalText(current.validFrom, current.validTo)}
+                  </p>
                 </div>
               ) : (
                 <p className="mt-3 text-xs text-slate-500">Canonical binding відсутній.</p>
@@ -656,11 +693,21 @@ function CircuitBindingsSection({
               {canManage ? (
                 <div className="mt-3 grid gap-2">
                   <div className="flex flex-wrap gap-2">
-                    <button type="button" disabled={busy || candidateLoading} onClick={() => void onLoadCandidates(role)} className={secondaryButtonClass}>
+                    <button
+                      type="button"
+                      disabled={busy || candidateLoading}
+                      onClick={() => void onLoadCandidates(role)}
+                      className={secondaryButtonClass}
+                    >
                       <Link2 className="h-3.5 w-3.5" /> {current ? "Замінити сигнал" : "Обрати сигнал"}
                     </button>
                     {current ? (
-                      <button type="button" disabled={busy} onClick={() => void onEnd(role)} className={dangerButtonClass}>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void onEnd(role)}
+                        className={dangerButtonClass}
+                      >
                         Завершити binding
                       </button>
                     ) : null}
@@ -670,13 +717,20 @@ function CircuitBindingsSection({
                       {candidateLoading ? (
                         <p className="text-xs text-slate-500">Перевірка canonical candidates…</p>
                       ) : candidates.length === 0 ? (
-                        <p className="text-xs text-amber-200">Немає accepted сумісних Signals для цього role та effective time.</p>
+                        <p className="text-xs text-amber-200">
+                          Немає accepted сумісних Signals для цього role та effective time.
+                        </p>
                       ) : (
                         <>
-                          <select value={candidateSignalId} onChange={(event) => setCandidateSignalId(event.target.value)} className={inputClass}>
+                          <select
+                            value={candidateSignalId}
+                            onChange={(event) => setCandidateSignalId(event.target.value)}
+                            className={inputClass}
+                          >
                             {candidates.map((candidate) => (
                               <option key={candidate.signalId} value={candidate.signalId}>
-                                {candidate.instrumentDisplayName} · {candidate.signalDisplayName} · {candidate.engineeringUnit}
+                                {candidate.instrumentDisplayName} · {candidate.signalDisplayName} ·{" "}
+                                {candidate.engineeringUnit}
                               </option>
                             ))}
                           </select>
@@ -684,7 +738,12 @@ function CircuitBindingsSection({
                             <p className="text-[9px] text-slate-600">
                               Список сформовано backend authority на {effectiveAt || "—"}.
                             </p>
-                            <button type="button" disabled={busy || !candidateSignalId} onClick={() => void onBind(role)} className={primaryButtonClass}>
+                            <button
+                              type="button"
+                              disabled={busy || !candidateSignalId}
+                              onClick={() => void onBind(role)}
+                              className={primaryButtonClass}
+                            >
                               {current ? "Замінити" : "Прив’язати"}
                             </button>
                           </div>
@@ -704,11 +763,14 @@ function CircuitBindingsSection({
 
 function PolicySummary({ policy }: { policy: CalculationPolicyRecord }) {
   return (
-    <div className="md:col-span-2 xl:col-span-4 grid gap-2 rounded-xl border border-cyan-300/12 bg-cyan-400/[0.035] p-3 text-[10px] text-slate-400 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-2 rounded-xl border border-cyan-300/12 bg-cyan-400/[0.035] p-3 text-[10px] text-slate-400 sm:grid-cols-2 md:col-span-2 xl:col-span-4 xl:grid-cols-4">
       <span>Max age: {formatDuration(policy.maximumAgeMs)}</span>
       <span>Future skew: {formatDuration(policy.maximumFutureClockSkewMs)}</span>
       <span>Cross-input skew: {formatDuration(policy.maximumCrossInputSkewMs)}</span>
-      <span>Calibration: {policy.acceptedCalibrationStates.join(", ")}{policy.requireCalibrationAtObservation ? " · observation required" : ""}</span>
+      <span>
+        Calibration: {policy.acceptedCalibrationStates.join(", ")}
+        {policy.requireCalibrationAtObservation ? " · observation required" : ""}
+      </span>
     </div>
   );
 }
@@ -752,7 +814,10 @@ function StatusChip({ text }: { text: string }) {
 
 function ErrorBox({ text }: { text: string }) {
   return (
-    <div role="alert" className="mt-4 flex items-start gap-2 rounded-xl border border-rose-400/20 bg-rose-400/[0.06] p-3 text-xs text-rose-200">
+    <div
+      role="alert"
+      className="mt-4 flex items-start gap-2 rounded-xl border border-rose-400/20 bg-rose-400/[0.06] p-3 text-xs text-rose-200"
+    >
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
       <span>{text}</span>
     </div>
