@@ -1001,11 +1001,9 @@ test("configures a refrigeration circuit through canonical operator authority", 
   await bindingsSection.getByLabel("Effective time для наступної binding-операції").fill("2026-09-18T10:10");
   const suctionCard = bindingsSection.locator("article").filter({ hasText: "Тиск кипіння / всмоктування" });
   await suctionCard.getByRole("button", { name: "Обрати сигнал" }).click();
-  await expect(
-    suctionCard.getByRole("option", {
-      name: /RFX10 pressure transmitter · RFX10 suction pressure · bar/,
-    }),
-  ).toBeVisible();
+  await expect(suctionCard.getByRole("combobox")).toContainText(
+    "RFX10 pressure transmitter · RFX10 suction pressure · bar",
+  );
   await suctionCard.getByRole("button", { name: "Прив’язати" }).click();
   await expect(suctionCard.getByText(signal.id, { exact: true })).toBeVisible();
   await expect(suctionCard).toContainText("pressure · bar · gauge");
