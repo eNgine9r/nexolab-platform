@@ -77,6 +77,12 @@ class ResolvedCircuitBinding:
     instrument: Instrument
 
 
+@dataclass(frozen=True, slots=True)
+class CircuitBindingCandidate:
+    signal: Signal
+    instrument: Instrument
+
+
 class RefrigerationCircuitRepository:
     def __init__(self, database: Database) -> None:
         self._engine = database.engine
@@ -383,6 +389,54 @@ class RefrigerationCircuitRepository:
             row = rows[0]
             session.expunge(row)
             return row
+
+    def list_binding_candidates(
+        self,
+        role: str,
+        at: datetime,
+        *,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+    ) -> list[CircuitBindingCandidate]:
+        if role not in CIRCUIT_PROCESS_ROLES:
+            raise CircuitBindingCompatibilityError(f"unsupported circuit role {role!r}")
+        resolved_at = _require_aware(at, "binding candidate timestamp")
+        with Session(self._engine, expire_on_commit=False) as session:
+            rows = list(
+                session.execute(
+                    select(Signal, Instrument)
+                    .join(
+                        Instrument,
+                        (Instrument.organization_id == Signal.organization_id)
+                        & (Instrument.id == Signal.instrument_id),
+                    )
+                    .where(
+                        Signal.organization_id == organization_id,
+                        Signal.lifecycle_state == "active",
+                        Instrument.lifecycle_state == "active",
+                    )
+                    .order_by(
+                        Instrument.display_name.asc(),
+                        Signal.display_name.asc(),
+                        Signal.id.asc(),
+                    )
+                )
+            )
+            result: list[CircuitBindingCandidate] = []
+            for signal, instrument in rows:
+                try:
+                    self._validate_binding_authority(
+                        session,
+                        organization_id,
+                        signal,
+                        instrument,
+                        role,
+                        resolved_at,
+                    )
+                except CircuitBindingCompatibilityError:
+                    continue
+                result.append(CircuitBindingCandidate(signal=signal, instrument=instrument))
+            session.expunge_all()
+            return result
 
     def list_bindings(
         self,
