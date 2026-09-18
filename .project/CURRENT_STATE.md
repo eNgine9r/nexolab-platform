@@ -4,15 +4,19 @@ Updated: 2026-09-18
 
 ## Current Sprint
 
+### Issue #1069 — post-#1065 state reconciliation completed candidate
+
+Issue #1069 is state-only and records the durable transition after the LOCAL_LAN commissioning wiring repair merged. The accepted product baseline is now implementation commit `e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a`; the deployed LOCAL_LAN source remains `039e37ac4b91903e5f8ee33de2603e40c308de90`. No deployment, recreation, Modbus/controller write, hardware write, data mutation or volume mutation occurred in this state transition.
+
 ### Issue #1067 — CI routing repair completed and merged
 
-Issue #1067 / PR #1068 is completed. Exact head `dd1d9eed5779572a754e20f360336cd16e46a58f` passed Core CI / NEXOLAB Merge Gate `35288280260`, Authenticated Dashboard Acceptance `35288280211`, Refrigeration Browser Acceptance `35288280306`, Offline Bundle `35288280190`, and Telegram Gateway `35288280270`; review submissions and threads were zero. PR #1068 merged to `main`, and GitHub closed #1067 completed. The repair registers only the exact known version-manager/offline-installer runtime paths as deployment tooling; genuinely unknown paths remain fail-closed. No production/runtime/hardware mutation occurred.
+Issue #1067 / PR #1068 is completed. Exact head `dd1d9eed5779572a754e20f360336cd16e46a58f` passed Core CI / NEXOLAB Merge Gate `35288280260`, Authenticated Dashboard Acceptance `35288280211`, Refrigeration Browser Acceptance `35288280306`, Offline Bundle `35288280190`, and Telegram Gateway `35288280270`; review submissions and threads were zero. The repair registers only the exact known version-manager/offline-installer runtime paths as deployment tooling; genuinely unknown paths remain fail-closed. No production/runtime/hardware mutation occurred.
 
-### Issue #1065 — LOCAL_LAN commissioning inventory wiring repair resumed
+### Issue #1065 — LOCAL_LAN commissioning inventory wiring repair completed
 
-The product/runtime repair remains implementation commit `e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a`: LOCAL_LAN now selects the existing bounded same-host overlays so Telemetry receives `COMMISSIONING_DEVICE_AGENT_BASE_URL=http://edge-device-agent:8081` and the Device Agent is reachable through the private `edge-device-agent` alias. The first #1066 exact head had GREEN Core Quality/build, Telemetry Service and Offline Bundle; its Merge Gate failure was solely the CI routing defect now closed by #1067.
+Issue #1065 / PR #1066 is repository-complete. The root cause was the LOCAL_LAN runtime selector omitting the existing bounded same-host overlays, leaving Telemetry without `COMMISSIONING_DEVICE_AGENT_BASE_URL` even though Device Agent and the FTDI commissioning adapter were healthy. Implementation commit `e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a` makes the local cross-stack overlay path apply to LAN deployment, source recovery and offline installation.
 
-Current `main` has been integrated into #1066 without force-push. A new exact-head CI cycle is mandatory before merge. Production remains unchanged at `039e37ac4b91903e5f8ee33de2603e40c308de90`; no corrected runtime cutover is authorized yet, AK-CC25 scheduled polling remains disabled, and no Modbus/controller or hardware write is permitted.
+Final exact PR head `0f8342efd4c828c238912e76eb47abf3f2379f71` passed CI / NEXOLAB Merge Gate `35302450461`, Offline Bundle `35302450463`, and Telemetry Service `35302450466`, with zero review submissions/threads. PR #1066 merged and GitHub closed #1065 completed. Production remains unchanged at `039e37ac4b91903e5f8ee33de2603e40c308de90`; deployment of the corrected runtime composition is a separate #1050 cutover requiring explicit Product Owner authorization. AK-CC25 scheduled polling remains disabled.
 
 ### Issue #1045 — Embraco acquisition-cadence frontend contract completed and merged
 
@@ -26,7 +30,7 @@ The Product Owner explicitly authorized the exact LOCAL_LAN transition `442e0c55
 
 Post-cutover runtime evidence is GREEN: Device Agent `status=ok`, MQTT connected, queue `0`, scheduler `53` targets with `2/2` healthy workers, and AK-CC25 / Unit 35 scheduled targets remain `0`. Production RS-485 ownership remains unchanged on the two CP2104 adapters. FTDI `A10Q2SI7` is present as commissioning bus `commissioning-0ae914347f704234` and reports `available_for_preflight=true`. A real bounded Unit 35 request using `danfoss-ak-cc25-pro-sw1.3x-fc03-v1` completed in `319 ms` with `preflight_passed`, `hardware_verified`, function code `03` only, ten successful physical reads, zero retries, `modbus_writes=none` and `hardware_writes=none`. Temperature semantics remain unverified because temperature sensors are not connected.
 
-Issue #1050 is **not closed**. Issue #1065 must first merge, then the corrected LOCAL_LAN runtime composition requires a separate Product Owner cutover authorization. After that, the final Equipment → Connect device save/review/preflight still requires a normal authenticated operator session with `equipment.manage`. The persisted Chromium profile is unauthenticated and correctly receives `AUTHENTICATION_REQUIRED` / HTTP 401, while the repository-approved Opera inspection identity is read-only. Credentials, cookies and tokens will not be extracted or bypassed.
+Issue #1050 is **not closed**. Repository wiring is now complete through #1065. The next hard gate is a separate Product Owner authorization for the exact corrected LOCAL_LAN runtime transition from deployed `039e37ac4b91903e5f8ee33de2603e40c308de90` to the exact post-#1069 main SHA. After that cutover, the final Equipment → Connect device save/review/preflight still requires a normal authenticated operator session with `equipment.manage`. The persisted Chromium profile is unauthenticated and the repository-approved Opera inspection identity is read-only; credentials, cookies and tokens will not be extracted or bypassed.
 
 ### Issue #1058 — post-#1053 merge state reconciliation completed
 
@@ -36,7 +40,7 @@ Issue #1058 / PR #1059 completed the prior state-only transition and merged to `
 
 The repository permission fix from PR #1054 is now deployed on exact source `039e37ac4b91903e5f8ee33de2603e40c308de90`. The former FTDI `EACCES` blocker is cleared on the live Device Agent: `A10Q2SI7` is readable/writable by the nonroot service through the bounded supplementary `plugdev` group, and the real Danfoss Unit 35 FC03-only profile is hardware-verified. Production topology, persistent volumes and the 53-target acquisition contract remain unchanged; AK-CC25 production polling remains disabled.
 
-#1050 remains blocked on the #1065 merge plus a separately authorized corrected-runtime cutover, and then on mandatory authenticated operator access with `equipment.manage` for the final production UI/API walkthrough. No additional cutover, Device Agent recreation, controller write, Modbus write or hardware write is currently authorized.
+#1050 remains hard-blocked on a separately authorized corrected-runtime cutover and then on mandatory authenticated operator access with `equipment.manage` for the final production UI/API walkthrough. Repository wiring is merged and verified; no additional cutover, Device Agent recreation, controller write, Modbus write or hardware write is currently authorized.
 
 ### Issue #1044 — Danfoss AK-CC25 Pro LOCAL_LAN onboarding acceptance completed
 

@@ -3,19 +3,14 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-18T06:13:05+03:00",
+  "timestamp": "2026-09-18T06:18:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1067 merged GREEN; Issue #1065 resumed after non-force integration of current main and awaits fresh exact-head verification before any separately authorized production cutover",
+  "event": "Issue #1065 repository repair merged GREEN; Issue #1069 state reconciliation completed candidate advances #1050 to the corrected runtime cutover and authenticated operator gates",
   "baselines": {
-    "accepted_product_sha": "9edf33764cda95da912a6140db8e51cf0cd9d623",
+    "accepted_product_sha": "e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a",
     "deployed_product_sha": "039e37ac4b91903e5f8ee33de2603e40c308de90"
   },
-  "active_work": {
-    "issue": 1065,
-    "title": "Restore LOCAL_LAN central↔edge commissioning inventory wiring",
-    "branch": "fix/1065-local-lan-commissioning-wiring",
-    "status": "in_progress_post_1067_integration_verification_pending"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "completed_security_blocker": {
       "issue": 1055,
@@ -75,16 +70,6 @@
       "production_deployment": "not_executed",
       "hardware_acceptance": "not_required_no_runtime_or_hardware_change"
     },
-    "issue_1065_ci_blocker": {
-      "issue": 1065,
-      "pull_request": 1066,
-      "head_sha": "981f8bb8305dc14dd9d35817ee71a7f5f7070ef0",
-      "core_quality_build": "success:35287134443",
-      "offline_bundle": "success:35287134386",
-      "telemetry_service": "success:35287134613",
-      "merge_gate": "failed_missing_authenticated_dashboard_and_refrigeration_registration",
-      "production_runtime_mutation": "none"
-    },
     "issue_1067": {
       "issue": 1067,
       "product_code_head_sha": "fb82c5ad94a691c6569aabe3bf8c47963ff5d6bf",
@@ -106,20 +91,27 @@
       "issue_state": "closed_completed",
       "production_runtime_mutation": "none"
     },
-    "issue_1065": {
+    "completed_issue_1065": {
       "issue": 1065,
-      "product_code_head_sha": "e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a",
-      "root_cause": "LOCAL_LAN omitted bounded local cross-stack overlays so Telemetry lacked COMMISSIONING_DEVICE_AGENT_BASE_URL",
-      "prior_exact_head": "981f8bb8305dc14dd9d35817ee71a7f5f7070ef0",
-      "prior_core_quality_build": "success:35287134443",
-      "prior_offline_bundle": "success:35287134386",
-      "prior_telemetry_service": "success:35287134613",
-      "prior_merge_gate": "failed_ci_routing_gap_fixed_by_issue_1067",
-      "ci_routing_dependency": "cleared",
-      "deployed_source": "039e37ac4b91903e5f8ee33de2603e40c308de90",
+      "pull_request": 1066,
+      "verified_head_sha": "0f8342efd4c828c238912e76eb47abf3f2379f71",
+      "core_ci_and_merge_gate": "success:35302450461",
+      "offline_bundle": "success:35302450463",
+      "telemetry_service": "success:35302450466",
+      "repository_scope": "merged_issue_closed",
       "production_runtime_mutation": "none",
+      "deployed_source": "039e37ac4b91903e5f8ee33de2603e40c308de90",
       "modbus_write": "none",
       "hardware_write": "none"
+    },
+    "issue_1069": {
+      "issue": 1069,
+      "scope": "canonical_state_only",
+      "accepted_product_sha": "e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a",
+      "deployed_product_sha": "039e37ac4b91903e5f8ee33de2603e40c308de90",
+      "state_model_v2": "success_local",
+      "git_diff_check": "success_local",
+      "production_runtime_mutation": "none"
     }
   },
   "observations": [
@@ -172,9 +164,22 @@
         "issue_state": "closed_completed",
         "required_checks": "green"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-18T06:18:00+03:00",
+      "kind": "issue_1065_merge_reconciliation",
+      "data": {
+        "issue": 1065,
+        "pull_request": 1066,
+        "verified_head_sha": "0f8342efd4c828c238912e76eb47abf3f2379f71",
+        "merge_sha": "fc4dacd9de4eaad7c85eccb8a027ac61fc552e75",
+        "issue_state": "closed_completed",
+        "required_checks": "green"
+      }
     }
   ],
-  "next_action": "Complete the non-force main integration commit for #1065, run local state/diff checks, push the new exact head, and require fresh exact-head GitHub CI/Merge Gate GREEN. Do not deploy the corrected runtime composition until the Product Owner separately authorizes the exact deployed-source transition. Keep AK-CC25 scheduled polling disabled.",
+  "next_action": "Stop at Issue #1050 until the Product Owner explicitly authorizes the exact transition from deployed 039e37ac4b91903e5f8ee33de2603e40c308de90 to the exact post-#1069 main SHA. After authorized cutover, prove live RS-485 inventory through Telemetry, preserve 53 scheduled targets and AK-CC25 scheduled targets 0, then complete Equipment → Connect device with a normal equipment.manage operator session. No Modbus/controller or hardware writes.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
