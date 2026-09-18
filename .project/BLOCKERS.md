@@ -167,6 +167,7 @@ The Product Owner lifted the RFX presentation hold on 2026-09-05. RFX-01 through
 There is no repository-backed RFX-12 Issue and no independent Ready Work Package after RFX-11. Do not invent a new product scope merely to keep the queue non-empty.
 
 Current non-Ready boundaries:
+
 - #585 — blocked until the temporary external RS-485 owner releases W2 and the Product Owner approves any required physical handback/reconnection;
 - #189 — actual-host recovery/reboot/power-loss evidence remains gated; hosted evidence does not substitute for real hardware;
 - #201 — normal cumulative-energy semantics are accepted, but controlled power-cycle/rollover/discontinuity hardware evidence remains pending;
