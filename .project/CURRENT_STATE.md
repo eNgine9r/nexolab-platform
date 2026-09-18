@@ -4,9 +4,9 @@ Updated: 2026-09-18
 
 ## Current Sprint
 
-### Issue #1075 — RFX-09 derived thermodynamics Overview candidate
+### Issue #1075 — RFX-09 derived thermodynamics Overview completed candidate
 
-RFX-09 is software-complete locally on product commit `49878a03e814d7a89fe6ce698a5b6331de90db31` and is now in review. The refrigeration equipment `Огляд` consumes the accepted RFX-08B read-only API instead of duplicating thermodynamic formulas in TypeScript. It resolves all circuits owned by the opened equipment and renders the four canonical metrics: evaporation saturation temperature and condensation saturation temperature in `degC`, plus superheat and subcooling in `K`.
+RFX-09 is software-complete on product commit `49878a03e814d7a89fe6ce698a5b6331de90db31`. PR #1076 implementation exact head `036fecf794bbe012e0d83152399855dc0ca5e1b6` passed Core CI / NEXOLAB Merge Gate `35337588494`, Refrigeration Browser Acceptance `35337588515`, Security Browser Acceptance `35337588576`, and Disaster Recovery Browser `35337588489`; review submissions and unresolved review threads are zero. The refrigeration equipment `Огляд` consumes the accepted RFX-08B read-only API instead of duplicating thermodynamic formulas in TypeScript. It resolves all circuits owned by the opened equipment and renders the four canonical metrics: evaporation saturation temperature and condensation saturation temperature in `degC`, plus superheat and subcooling in `K`.
 
 The frontend fails closed: unavailable, missing, malformed or non-finite evidence is shown as `Недоступно`, canonical reason codes stay visible, zero is never invented, and no demo fallback is used in live mode. Multiple circuits are rendered deterministically; the empty state explicitly says that no refrigeration circuit is configured. Refresh is bounded/manual and does not change Device Agent acquisition cadence or controller configuration. Existing controller Overview, tabs and commissioning behavior remain intact.
 
