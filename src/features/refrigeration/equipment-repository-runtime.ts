@@ -11,6 +11,10 @@ import type { TelemetryAdapter } from "@/lib/telemetry/types";
 
 import { HttpClimateCatalogRepository, type ClimateCatalogRepository } from "./climate-catalog-repository";
 import {
+  HttpRefrigerationCircuitConfigurationRepository,
+  type RefrigerationCircuitConfigurationRepository,
+} from "./circuit-configuration-repository";
+import {
   HttpRefrigerationControllerBindingRepository,
   type RefrigerationControllerBindingRepository,
 } from "./controller-binding-repository";
@@ -50,6 +54,7 @@ export type RefrigerationEquipmentRuntime = {
   sensorConfigurationRepository: EquipmentLifecycleRepository | null;
   climateCatalogRepository?: ClimateCatalogRepository | null;
   controllerBindingRepository: RefrigerationControllerBindingRepository | null;
+  circuitConfigurationRepository: RefrigerationCircuitConfigurationRepository | null;
   thermodynamicsRepository: RefrigerationThermodynamicsRepository | null;
   telemetryAdapter: TelemetryAdapter | null;
   sessionClient: HttpSecuritySessionClient | null;
@@ -82,6 +87,7 @@ export function createRefrigerationEquipmentRuntime(
         sensorConfigurationRepository: null,
         climateCatalogRepository: null,
         controllerBindingRepository: null,
+        circuitConfigurationRepository: null,
         thermodynamicsRepository: null,
         telemetryAdapter: null,
         sessionClient: null,
@@ -138,6 +144,10 @@ export function createRefrigerationEquipmentRuntime(
         config.apiBaseUrl,
         authenticatedFetch,
       ),
+      circuitConfigurationRepository: new HttpRefrigerationCircuitConfigurationRepository(
+        config.apiBaseUrl,
+        authenticatedFetch,
+      ),
       thermodynamicsRepository: new HttpRefrigerationThermodynamicsRepository(
         config.apiBaseUrl,
         authenticatedFetch,
@@ -160,6 +170,7 @@ export function createRefrigerationEquipmentRuntime(
       sensorConfigurationRepository: null,
       climateCatalogRepository: null,
       controllerBindingRepository: null,
+      circuitConfigurationRepository: null,
       thermodynamicsRepository: null,
       telemetryAdapter: null,
       sessionClient: null,
