@@ -201,7 +201,7 @@ describe("HttpInstrumentationRegistryRepository", () => {
         },
         3,
       ),
-    ).rejects.toMatchObject<Partial<InstrumentationRegistryRepositoryError>>({
+    ).rejects.toMatchObject({
       code: "instrument_version_conflict",
       status: 409,
       expectedVersion: 3,
@@ -210,9 +210,9 @@ describe("HttpInstrumentationRegistryRepository", () => {
   });
 
   it("fails closed on a malformed canonical response", async () => {
-    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
-      jsonResponse({ items: [{ ...instrumentPayload, version: "3" }] }),
-    );
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(jsonResponse({ items: [{ ...instrumentPayload, version: "3" }] }));
     const repository = new HttpInstrumentationRegistryRepository("http://nexolab.local:8082", fetchImpl);
 
     await expect(repository.listInstruments()).rejects.toMatchObject({
