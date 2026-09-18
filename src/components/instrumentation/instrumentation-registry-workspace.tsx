@@ -289,12 +289,7 @@ export function InstrumentationRegistryWorkspace({
   async function saveSignal(record: SignalRegistryRecord, input: SignalWriteInput) {
     if (!canManage || !selectedInstrument) return;
     await mutate(async () => {
-      const updated = await repository!.updateSignal(
-        selectedInstrument.id,
-        record.id,
-        input,
-        record.version,
-      );
+      const updated = await repository!.updateSignal(selectedInstrument.id, record.id, input, record.version);
       setSelectedSignalId(updated.id);
       setNotice(`Signal ${updated.displayName} оновлено до v${updated.version}.`);
       await loadDetails(selectedInstrument.id);
@@ -335,7 +330,8 @@ export function InstrumentationRegistryWorkspace({
               <h1 className="mt-1 text-2xl font-semibold text-white">Прилади та сигнали</h1>
               <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">
                 Організаційний реєстр Instrument → Signal. Semantic refrigeration role визначається окремо
-                backend authority під час binding; назва каналу або контролера не використовується як семантика.
+                backend authority під час binding; назва каналу або контролера не використовується як
+                семантика.
               </p>
             </div>
           </div>
@@ -590,12 +586,17 @@ function InstrumentEditor({
           className="mt-4"
           onSubmit={(event) => {
             event.preventDefault();
-            if (validInstrumentDraft(draft)) void onSave(instrument, toInstrumentInput(draft, instrument.metadata));
+            if (validInstrumentDraft(draft))
+              void onSave(instrument, toInstrumentInput(draft, instrument.metadata));
           }}
         >
           <InstrumentFields draft={draft} setDraft={setDraft} prefix="edit" />
           <div className="mt-3 flex justify-end">
-            <button type="submit" disabled={busy || !validInstrumentDraft(draft)} className={primaryButtonClass}>
+            <button
+              type="submit"
+              disabled={busy || !validInstrumentDraft(draft)}
+              className={primaryButtonClass}
+            >
               <Save className="h-3.5 w-3.5" /> Зберегти Instrument
             </button>
           </div>
@@ -702,8 +703,8 @@ function InstrumentFields({
         </select>
       </Field>
       <div className="rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-3 text-[10px] leading-5 text-amber-100">
-        Pressure reference вводиться явно. RFX-10 backend candidate authority відхилить pressure binding,
-        якщо reference відсутній або несумісний.
+        Pressure reference вводиться явно. RFX-10 backend candidate authority відхилить pressure binding, якщо
+        reference відсутній або несумісний.
       </div>
     </div>
   );
@@ -842,8 +843,8 @@ function SignalFields({
         </select>
       </Field>
       <div className="rounded-xl border border-cyan-300/10 bg-cyan-400/[0.03] p-3 text-[10px] leading-5 text-slate-400">
-        Вказуйте process-neutral quantity. Наприклад <code>pressure</code>, а не{" "}
-        <code>suction_pressure</code>. Остаточну role compatibility перевіряє backend.
+        Вказуйте process-neutral quantity. Наприклад <code>pressure</code>, а не <code>suction_pressure</code>
+        . Остаточну role compatibility перевіряє backend.
       </div>
     </div>
   );
@@ -877,9 +878,7 @@ function AcceptanceSection({
     <section className="rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] tracking-[0.16em] text-slate-500 uppercase">
-            Calculation acceptance
-          </p>
+          <p className="text-[10px] tracking-[0.16em] text-slate-500 uppercase">Calculation acceptance</p>
           <h2 className="mt-1 text-lg font-semibold text-white">Append-only acceptance history</h2>
         </div>
         <StatusChip
@@ -899,7 +898,9 @@ function AcceptanceSection({
       </div>
       <div className="mt-3 grid gap-2">
         {history.length === 0 ? (
-          <p className="text-xs text-slate-500">Acceptance history відсутня. RFX-10 candidate не з’явиться.</p>
+          <p className="text-xs text-slate-500">
+            Acceptance history відсутня. RFX-10 candidate не з’явиться.
+          </p>
         ) : null}
         {history.map((item) => (
           <div key={item.id} className="rounded-xl border border-white/[0.06] bg-[#06142a]/70 p-3">
@@ -961,7 +962,7 @@ function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
       <p className="text-[10px] text-slate-500">{label}</p>
-      <p className="mt-1 break-words text-xs text-slate-200">{value}</p>
+      <p className="mt-1 text-xs break-words text-slate-200">{value}</p>
     </div>
   );
 }
@@ -1048,10 +1049,7 @@ function toInstrumentInput(
   };
 }
 
-function toSignalInput(
-  draft: SignalDraft,
-  metadata: SignalWriteInput["metadata"] = {},
-): SignalWriteInput {
+function toSignalInput(draft: SignalDraft, metadata: SignalWriteInput["metadata"] = {}): SignalWriteInput {
   return {
     businessKey: draft.businessKey.trim(),
     displayName: draft.displayName.trim(),
@@ -1069,9 +1067,9 @@ function validInstrumentDraft(draft: InstrumentDraft): boolean {
 function validSignalDraft(draft: SignalDraft): boolean {
   return Boolean(
     draft.businessKey.trim() &&
-      draft.displayName.trim() &&
-      draft.physicalQuantity.trim() &&
-      draft.engineeringUnit.trim(),
+    draft.displayName.trim() &&
+    draft.physicalQuantity.trim() &&
+    draft.engineeringUnit.trim(),
   );
 }
 
