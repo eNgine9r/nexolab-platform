@@ -895,3 +895,239 @@ test("places five sensors through the bounded quick-placement interaction budget
     )}\n`,
   );
 });
+
+
+test("configures a refrigeration circuit through canonical operator authority", async ({ page }) => {
+  mkdirSync(evidenceDirectory, { recursive: true });
+  const chamber = await resolveClimateChamber(page.request);
+  const equipment = await createEquipmentViaApi(page.request, chamber, {
+    code: "ACCEPTANCE-RFX10-CIRCUIT-01",
+    name: "Вітрина RFX-10 circuit acceptance",
+    serialNumber: "NX-RFX10-CIRCUIT-0001",
+    totalSensors: 4,
+  });
+
+  const policyResponse = await page.request.post(
+    `${apiBaseUrl}/api/v1/refrigeration/calculation-policies`,
+    {
+      headers: { "X-Audit-Reason": "RFX-10 browser acceptance policy fixture" },
+      data: {
+        schema_version: "refrigeration-calculation-policy/v1",
+        version: "rfx10-browser-v1",
+        maximum_age_ms: 60_000,
+        maximum_future_clock_skew_ms: 5_000,
+        maximum_cross_input_skew_ms: 60_000,
+        calibration_vocabulary_version: "calibration-state/v1",
+        accepted_calibration_states: ["valid"],
+        require_calibration_at_observation: false,
+        calibration_required_roles: [],
+      },
+    },
+  );
+  expect(policyResponse.status()).toBe(201);
+
+  const instrumentResponse = await page.request.post(
+    `${apiBaseUrl}/api/v1/instrumentation/instruments`,
+    {
+      headers: { "X-Audit-Reason": "RFX-10 browser acceptance instrument fixture" },
+      data: {
+        inventory_key: "RFX10-PT-1",
+        display_name: "RFX10 pressure transmitter",
+        instrument_kind: "pressure_transmitter",
+        pressure_reference: "gauge",
+        lifecycle_state: "active",
+        metadata: {},
+      },
+    },
+  );
+  expect(instrumentResponse.status()).toBe(201);
+  const instrument = (await instrumentResponse.json()) as { id: string };
+
+  const acceptanceResponse = await page.request.post(
+    `${apiBaseUrl}/api/v1/instrumentation/instruments/${instrument.id}/acceptance-history`,
+    {
+      headers: { "X-Audit-Reason": "RFX-10 browser acceptance authority fixture" },
+      data: {
+        accepted_for_calculation: true,
+        effective_from: "2026-09-18T08:00:00Z",
+        state_label: "browser-accepted",
+      },
+    },
+  );
+  expect(acceptanceResponse.status()).toBe(201);
+
+  const signalResponse = await page.request.post(
+    `${apiBaseUrl}/api/v1/instrumentation/instruments/${instrument.id}/signals`,
+    {
+      headers: { "X-Audit-Reason": "RFX-10 browser acceptance signal fixture" },
+      data: {
+        business_key: "rfx10.suction-pressure",
+        display_name: "RFX10 suction pressure",
+        physical_quantity: "pressure",
+        engineering_unit: "bar",
+        lifecycle_state: "active",
+        metadata: {},
+      },
+    },
+  );
+  expect(signalResponse.status()).toBe(201);
+  const signal = (await signalResponse.json()) as { id: string };
+
+  await page.goto(absoluteRoute(`/refrigeration/${equipment.id}`), {
+    waitUntil: "networkidle",
+  });
+  await expect(page.getByRole("heading", { name: equipment.name })).toBeVisible();
+  await page.getByRole("button", { name: "Контур", exact: true }).click();
+
+  const workspace = page.getByTestId("refrigeration-circuit-configuration");
+  await expect(workspace).toBeVisible();
+  await expect(workspace.getByText("Для цього обладнання контурів ще немає.")).toBeVisible();
+
+  const createPanel = workspace.getByText("Новий контур", { exact: true }).locator("..");
+  await createPanel.getByLabel("Business key").fill("main");
+  await createPanel.getByLabel("Назва").fill("Основний контур");
+  await createPanel.getByLabel("Початковий стан").selectOption("active");
+  await createPanel.getByLabel("Діє з").fill("2026-09-18T10:00");
+  await createPanel.getByRole("button", { name: "Створити контур" }).click();
+
+  await expect(workspace.getByText("Основний контур", { exact: true }).first()).toBeVisible();
+  await expect(workspace.getByText(/r1 · Активний/)).toBeVisible();
+
+  const configurationSection = workspace
+    .locator("section")
+    .filter({ hasText: "Refrigerant + calculation policy" });
+  await configurationSection.getByLabel("Холодоагент").fill("R290");
+  await configurationSection.getByLabel("Calculation policy").selectOption("rfx10-browser-v1");
+  await configurationSection.getByLabel("Діє з").fill("2026-09-18T10:05");
+  await expect(configurationSection.getByLabel("Property provider")).toHaveValue(
+    "coolprop-heos/8.0.0",
+  );
+  await configurationSection
+    .getByRole("button", { name: "Додати версію конфігурації" })
+    .click();
+  await expect(configurationSection.getByText(/r1 · R290 · rfx10-browser-v1/)).toBeVisible();
+  await expect(configurationSection).toContainText("Max age: 60 s");
+
+  const bindingsSection = workspace
+    .locator("section")
+    .filter({ hasText: "Semantic Signal → role bindings" });
+  await bindingsSection
+    .getByLabel("Effective time для наступної binding-операції")
+    .fill("2026-09-18T10:10");
+  const suctionCard = bindingsSection
+    .locator("article")
+    .filter({ hasText: "Тиск кипіння / всмоктування" });
+  await suctionCard.getByRole("button", { name: "Обрати сигнал" }).click();
+  await expect(
+    suctionCard.getByRole("option", {
+      name: /RFX10 pressure transmitter · RFX10 suction pressure · bar/,
+    }),
+  ).toBeVisible();
+  await suctionCard.getByRole("button", { name: "Прив’язати" }).click();
+  await expect(suctionCard.getByText(signal.id, { exact: true })).toBeVisible();
+  await expect(suctionCard).toContainText("pressure · bar · gauge");
+
+  const lifecycleSection = workspace.locator("section").filter({ hasText: "Lifecycle" });
+  await lifecycleSection.getByLabel("Новий стан").selectOption("inactive");
+  await lifecycleSection.getByLabel("Діє з").fill("2026-09-18T10:15");
+  await lifecycleSection.getByRole("button", { name: "Додати стан" }).click();
+  await expect(lifecycleSection.getByText(/r2 · Неактивний/)).toBeVisible();
+
+  await bindingsSection
+    .getByLabel("Effective time для наступної binding-операції")
+    .fill("2026-09-18T10:20");
+  await suctionCard.getByRole("button", { name: "Завершити binding" }).click();
+  await expect(suctionCard.getByText("Canonical binding відсутній.")).toBeVisible();
+
+  const circuitsResponse = await page.request.get(
+    `${apiBaseUrl}/api/v1/refrigeration/circuits`,
+  );
+  expect(circuitsResponse.status()).toBe(200);
+  const circuitsPayload = (await circuitsResponse.json()) as {
+    items: Array<{ id: string; equipment_id: string; business_key: string }>;
+  };
+  const persistedCircuit = circuitsPayload.items.find(
+    (item) => item.equipment_id === equipment.id && item.business_key === "main",
+  );
+  expect(persistedCircuit).toBeDefined();
+  if (!persistedCircuit) throw new Error("RFX-10 circuit was not persisted");
+
+  const configurationHistoryResponse = await page.request.get(
+    `${apiBaseUrl}/api/v1/refrigeration/circuits/${persistedCircuit.id}/configuration-history`,
+  );
+  expect(configurationHistoryResponse.status()).toBe(200);
+  const configurationHistory = (await configurationHistoryResponse.json()) as {
+    items: Array<{
+      refrigerant_code: string;
+      calculation_policy_version: string;
+      property_provider_profile: string | null;
+      revision: number;
+    }>;
+  };
+  expect(configurationHistory.items).toEqual([
+    expect.objectContaining({
+      refrigerant_code: "R290",
+      calculation_policy_version: "rfx10-browser-v1",
+      property_provider_profile: "coolprop-heos/8.0.0",
+      revision: 1,
+    }),
+  ]);
+
+  const lifecycleHistoryResponse = await page.request.get(
+    `${apiBaseUrl}/api/v1/refrigeration/circuits/${persistedCircuit.id}/lifecycle-history`,
+  );
+  expect(lifecycleHistoryResponse.status()).toBe(200);
+  const lifecycleHistory = (await lifecycleHistoryResponse.json()) as {
+    items: Array<{ state: string; revision: number; valid_to: string | null }>;
+  };
+  expect(lifecycleHistory.items.map((item) => [item.revision, item.state])).toEqual([
+    [1, "active"],
+    [2, "inactive"],
+  ]);
+
+  const bindingHistoryResponse = await page.request.get(
+    `${apiBaseUrl}/api/v1/refrigeration/circuits/${persistedCircuit.id}/bindings?include_history=true`,
+  );
+  expect(bindingHistoryResponse.status()).toBe(200);
+  const bindingHistory = (await bindingHistoryResponse.json()) as {
+    items: Array<{
+      role: string;
+      signal_id: string;
+      valid_to: string | null;
+      ended_by: string | null;
+    }>;
+  };
+  expect(bindingHistory.items).toEqual([
+    expect.objectContaining({
+      role: "suction_pressure",
+      signal_id: signal.id,
+      valid_to: "2026-09-18T10:20:00Z",
+      ended_by: "development-system",
+    }),
+  ]);
+
+  await page.screenshot({
+    path: path.join(evidenceDirectory, "issue-1077-circuit-configuration-workspace.png"),
+    fullPage: true,
+  });
+  writeFileSync(
+    path.join(evidenceDirectory, "issue-1077-circuit-configuration-summary.json"),
+    `${JSON.stringify(
+      {
+        equipmentId: equipment.id,
+        circuitId: persistedCircuit.id,
+        policyVersion: "rfx10-browser-v1",
+        refrigerantCode: "R290",
+        propertyProviderProfile: "coolprop-heos/8.0.0",
+        lifecycleRevisions: lifecycleHistory.items.length,
+        bindingRole: "suction_pressure",
+        bindingSignalId: signal.id,
+        bindingEnded: bindingHistory.items[0]?.valid_to !== null,
+        hardwareWrites: false,
+        modbusWrites: false,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+});
