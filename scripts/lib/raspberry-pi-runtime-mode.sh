@@ -54,7 +54,9 @@ nexolab_configure_runtime_contract() {
   NEXOLAB_EDGE_CENTRAL_MQTT_PORT="1884"
   NEXOLAB_EDGE_CENTRAL_API_BASE_URL="http://${lan_bind_address}:8082"
   NEXOLAB_EDGE_CENTRAL_WEBSOCKET_URL="ws://${lan_bind_address}:8082/api/v1/telemetry/live"
-  NEXOLAB_USE_STANDALONE_OVERLAYS="false"
+  # The legacy-named standalone overlays also provide the bounded same-host
+  # commissioning service network required by LOCAL_LAN Telemetry -> Device Agent.
+  NEXOLAB_USE_STANDALONE_OVERLAYS="true"
   NEXOLAB_SYSTEMD_AFTER="network-online.target docker.service"
   NEXOLAB_SYSTEMD_WANTS="network-online.target"
 }

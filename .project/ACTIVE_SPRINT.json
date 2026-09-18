@@ -23,14 +23,14 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1067,
-      "title": "Classify NEXOLAB version-manager paths as deployment runtime tooling",
-      "branch": "fix/1067-classify-version-manager-runtime"
-    },
-    "next_work_package": {
       "issue": 1065,
       "title": "Restore LOCAL_LAN central↔edge commissioning inventory wiring",
       "branch": "fix/1065-local-lan-commissioning-wiring"
+    },
+    "next_work_package": {
+      "issue": 1050,
+      "title": "Complete authenticated operator acceptance for the RS-485 commissioning selector",
+      "branch": "deploy/1050-rs485-selector-runtime"
     }
   },
   "work_packages": [
@@ -38,7 +38,7 @@
       "issue": 1067,
       "title": "Classify NEXOLAB version-manager paths as deployment runtime tooling",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "fix/1067-classify-version-manager-runtime",
       "evidence": {
@@ -48,26 +48,51 @@
         "version_manager_paths": "deployment_runtime",
         "offline_installer_path": "deployment_runtime_offline_bundle_only",
         "git_diff_check": "success_local",
-        "production_runtime_mutation": "none"
+        "production_runtime_mutation": "none",
+        "verified_head_sha": "dd1d9eed5779572a754e20f360336cd16e46a58f",
+        "pull_request": 1068,
+        "checks": {
+          "core_ci_and_merge_gate": "success:35288280260",
+          "authenticated_dashboard": "success:35288280211",
+          "refrigeration_browser": "success:35288280306",
+          "offline_bundle": "success:35288280190",
+          "telegram_gateway": "success:35288280270"
+        },
+        "issue_state": "closed_completed"
       }
     },
     {
       "issue": 1065,
       "title": "Restore LOCAL_LAN central↔edge commissioning inventory wiring",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "in_progress",
       "depends_on": [],
       "branch": "fix/1065-local-lan-commissioning-wiring",
       "evidence": {
-        "blocker": "depends_on_issue_1067_ci_routing_repair",
-        "failed_head_sha": "981f8bb8305dc14dd9d35817ee71a7f5f7070ef0",
-        "successful_exact_head_workflows": {
+        "product_code_head_sha": "e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a",
+        "root_cause": "lan_runtime_omitted_local_cross_stack_commissioning_overlays",
+        "deployed_runtime_unchanged": "039e37ac4b91903e5f8ee33de2603e40c308de90",
+        "local_checks": {
+          "standalone_offline_runtime_contract": "success",
+          "lan_deploy_overlay_selector": "success",
+          "lan_source_recovery_compose_contract": "success",
+          "offline_installer_lan_overlay_selector": "success",
+          "bash_syntax": "success",
+          "python_compile": "success",
+          "git_diff_check": "success",
+          "pytest_test_nexolab_version_manager": "not_run_local_pytest_unavailable"
+        },
+        "prior_exact_head": {
+          "head_sha": "981f8bb8305dc14dd9d35817ee71a7f5f7070ef0",
+          "core_quality_build": "success:35287134443",
           "offline_bundle": "success:35287134386",
           "telemetry_service": "success:35287134613",
-          "core_quality_build": "success:35287134443"
+          "merge_gate": "failed_ci_routing_gap_fixed_by_issue_1067"
         },
-        "merge_gate": "failed_missing_workflow_registration_due_classifier_gap",
-        "production_runtime_mutation": "none"
+        "ci_routing_dependency": "cleared_by_issue_1067",
+        "production_cutover": "not_executed_not_authorized",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     },
     {
@@ -4573,6 +4598,19 @@
         "pull_request": 1063,
         "verified_head_sha": "27e2cb30e0b05eecc791354ce54ed8e4c339985a",
         "merge_sha": "597913f850131464723d36f24113edee144e6608",
+        "issue_state": "closed_completed",
+        "required_checks": "green"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-18T06:13:05+03:00",
+      "kind": "issue_1067_merge_reconciliation",
+      "data": {
+        "issue": 1067,
+        "pull_request": 1068,
+        "verified_head_sha": "dd1d9eed5779572a754e20f360336cd16e46a58f",
+        "merge_sha": "223f58f071333c50e974aa2126afc0e1aa89451d",
         "issue_state": "closed_completed",
         "required_checks": "green"
       }

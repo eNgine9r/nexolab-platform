@@ -572,7 +572,7 @@ def source_central_compose_args(
         "-f",
         str(compose_dir / "compose.observability.yaml"),
     ]
-    if runtime_mode == "standalone":
+    if runtime_mode in {"lan", "standalone"}:
         command.extend(["-f", str(compose_dir / "compose.central-standalone.yaml")])
     if local_auth:
         command.extend(["-f", str(compose_dir / "compose.local-auth.yaml")])

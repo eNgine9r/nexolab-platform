@@ -3,18 +3,18 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-18T02:45:00+03:00",
+  "timestamp": "2026-09-18T06:13:05+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1067 CI routing repair active after #1066 exact-head Merge Gate exposed missing workflow registration caused by known version-manager/offline-installer paths being classified as unknown",
+  "event": "Issue #1067 merged GREEN; Issue #1065 resumed after non-force integration of current main and awaits fresh exact-head verification before any separately authorized production cutover",
   "baselines": {
     "accepted_product_sha": "9edf33764cda95da912a6140db8e51cf0cd9d623",
     "deployed_product_sha": "039e37ac4b91903e5f8ee33de2603e40c308de90"
   },
   "active_work": {
-    "issue": 1067,
-    "title": "Classify NEXOLAB version-manager paths as deployment runtime tooling",
-    "branch": "fix/1067-classify-version-manager-runtime",
-    "status": "in_progress_exact_head_verification_pending"
+    "issue": 1065,
+    "title": "Restore LOCAL_LAN central↔edge commissioning inventory wiring",
+    "branch": "fix/1065-local-lan-commissioning-wiring",
+    "status": "in_progress_post_1067_integration_verification_pending"
   },
   "evidence_snapshot": {
     "completed_security_blocker": {
@@ -93,6 +93,33 @@
       "unknown_path_fail_closed": "preserved",
       "git_diff_check": "success_local",
       "production_runtime_mutation": "none"
+    },
+    "completed_issue_1067": {
+      "issue": 1067,
+      "pull_request": 1068,
+      "verified_head_sha": "dd1d9eed5779572a754e20f360336cd16e46a58f",
+      "core_ci_and_merge_gate": "success:35288280260",
+      "authenticated_dashboard": "success:35288280211",
+      "refrigeration_browser": "success:35288280306",
+      "offline_bundle": "success:35288280190",
+      "telegram_gateway": "success:35288280270",
+      "issue_state": "closed_completed",
+      "production_runtime_mutation": "none"
+    },
+    "issue_1065": {
+      "issue": 1065,
+      "product_code_head_sha": "e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a",
+      "root_cause": "LOCAL_LAN omitted bounded local cross-stack overlays so Telemetry lacked COMMISSIONING_DEVICE_AGENT_BASE_URL",
+      "prior_exact_head": "981f8bb8305dc14dd9d35817ee71a7f5f7070ef0",
+      "prior_core_quality_build": "success:35287134443",
+      "prior_offline_bundle": "success:35287134386",
+      "prior_telemetry_service": "success:35287134613",
+      "prior_merge_gate": "failed_ci_routing_gap_fixed_by_issue_1067",
+      "ci_routing_dependency": "cleared",
+      "deployed_source": "039e37ac4b91903e5f8ee33de2603e40c308de90",
+      "production_runtime_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "observations": [
@@ -132,9 +159,22 @@
         "issue_state": "closed_completed",
         "required_checks": "green"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-18T06:13:05+03:00",
+      "kind": "issue_1067_merge_reconciliation",
+      "data": {
+        "issue": 1067,
+        "pull_request": 1068,
+        "verified_head_sha": "dd1d9eed5779572a754e20f360336cd16e46a58f",
+        "merge_sha": "223f58f071333c50e974aa2126afc0e1aa89451d",
+        "issue_state": "closed_completed",
+        "required_checks": "green"
+      }
     }
   ],
-  "next_action": "Run exact-head verification and merge #1067 if GREEN; then integrate latest main into #1066 without force, re-run exact-head #1065 verification, and do not deploy corrected runtime until separate Product Owner authorization.",
+  "next_action": "Complete the non-force main integration commit for #1065, run local state/diff checks, push the new exact head, and require fresh exact-head GitHub CI/Merge Gate GREEN. Do not deploy the corrected runtime composition until the Product Owner separately authorizes the exact deployed-source transition. Keep AK-CC25 scheduled polling disabled.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
