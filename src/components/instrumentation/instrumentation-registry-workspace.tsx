@@ -1031,7 +1031,10 @@ function signalDraftFrom(record: SignalRegistryRecord): SignalDraft {
   };
 }
 
-function toInstrumentInput(\n  draft: InstrumentDraft,\n  metadata: InstrumentWriteInput["metadata"] = {},\n): InstrumentWriteInput {
+function toInstrumentInput(
+  draft: InstrumentDraft,
+  metadata: InstrumentWriteInput["metadata"] = {},
+): InstrumentWriteInput {
   return {
     inventoryKey: draft.inventoryKey.trim(),
     displayName: draft.displayName.trim(),
@@ -1041,18 +1044,21 @@ function toInstrumentInput(\n  draft: InstrumentDraft,\n  metadata: InstrumentWr
     serialNumber: optionalText(draft.serialNumber),
     pressureReference: draft.pressureReference || null,
     lifecycleState: draft.lifecycleState,
-    metadata: {},
+    metadata,
   };
 }
 
-function toSignalInput(draft: SignalDraft): SignalWriteInput {
+function toSignalInput(
+  draft: SignalDraft,
+  metadata: SignalWriteInput["metadata"] = {},
+): SignalWriteInput {
   return {
     businessKey: draft.businessKey.trim(),
     displayName: draft.displayName.trim(),
     physicalQuantity: draft.physicalQuantity.trim(),
     engineeringUnit: draft.engineeringUnit.trim(),
     lifecycleState: draft.lifecycleState,
-    metadata: {},
+    metadata,
   };
 }
 
