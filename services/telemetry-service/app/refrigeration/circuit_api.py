@@ -12,6 +12,7 @@ from app.refrigeration.circuit_repository import (
     CircuitBindingCandidate,
     CircuitBindingCompatibilityError,
     CircuitBindingNotFoundError,
+    CircuitConfigurationCompatibilityError,
     CircuitConflictError,
     CircuitDomainError,
     CircuitEquipmentNotFoundError,
@@ -510,6 +511,7 @@ def _http_error(error: Exception) -> HTTPException:
             CircuitHistoryOrderError,
             CircuitResolutionError,
             CircuitBindingCompatibilityError,
+            CircuitConfigurationCompatibilityError,
         ),
     ):
         code = error.code
