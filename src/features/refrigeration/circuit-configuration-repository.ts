@@ -153,28 +153,20 @@ export interface RefrigerationCircuitConfigurationRepository {
   ): Promise<CircuitBindingCandidate[]>;
 }
 
-export class HttpRefrigerationCircuitConfigurationRepository
-  implements RefrigerationCircuitConfigurationRepository
-{
+export class HttpRefrigerationCircuitConfigurationRepository implements RefrigerationCircuitConfigurationRepository {
   constructor(
     private readonly apiBaseUrl: string,
     private readonly fetchImpl: typeof fetch = fetch.bind(globalThis),
   ) {}
 
-  async listCircuits(
-    equipmentId: string,
-    signal?: AbortSignal,
-  ): Promise<RefrigerationCircuitRecord[]> {
+  async listCircuits(equipmentId: string, signal?: AbortSignal): Promise<RefrigerationCircuitRecord[]> {
     const payload = await this.request("/api/v1/refrigeration/circuits", { signal });
     return readItems(payload, parseCircuit)
       .filter((item) => item.equipmentId === equipmentId)
       .sort((left, right) => left.displayName.localeCompare(right.displayName));
   }
 
-  async createCircuit(
-    input: CreateCircuitInput,
-    signal?: AbortSignal,
-  ): Promise<RefrigerationCircuitRecord> {
+  async createCircuit(input: CreateCircuitInput, signal?: AbortSignal): Promise<RefrigerationCircuitRecord> {
     return parseCircuit(
       await this.request("/api/v1/refrigeration/circuits", {
         method: "POST",
@@ -215,10 +207,7 @@ export class HttpRefrigerationCircuitConfigurationRepository
     );
   }
 
-  async listConfigurations(
-    circuitId: string,
-    signal?: AbortSignal,
-  ): Promise<CircuitConfigurationRecord[]> {
+  async listConfigurations(circuitId: string, signal?: AbortSignal): Promise<CircuitConfigurationRecord[]> {
     const payload = await this.request(
       `/api/v1/refrigeration/circuits/${encodeURIComponent(circuitId)}/configuration-history`,
       { signal },
@@ -268,18 +257,15 @@ export class HttpRefrigerationCircuitConfigurationRepository
     signal?: AbortSignal,
   ): Promise<CircuitBindingRecord> {
     return parseBinding(
-      await this.request(
-        `/api/v1/refrigeration/circuits/${encodeURIComponent(circuitId)}/bindings`,
-        {
-          method: "POST",
-          signal,
-          body: {
-            role: input.role,
-            signal_id: input.signalId,
-            valid_from: iso(input.validFrom),
-          },
+      await this.request(`/api/v1/refrigeration/circuits/${encodeURIComponent(circuitId)}/bindings`, {
+        method: "POST",
+        signal,
+        body: {
+          role: input.role,
+          signal_id: input.signalId,
+          valid_from: iso(input.validFrom),
         },
-      ),
+      }),
     );
   }
 
