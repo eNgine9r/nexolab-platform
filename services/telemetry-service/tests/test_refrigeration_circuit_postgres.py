@@ -15,6 +15,10 @@ from sqlalchemy.orm import Session
 from app.db import Database
 from app.instrumentation.repository import InstrumentationRepository
 from app.instrumentation.schemas import AcceptanceAppendRequest, InstrumentCreate, SignalCreate
+from app.refrigeration.calculation_policy import (
+    CalculationPolicyCreateRequest,
+    CalculationPolicyRepository,
+)
 from app.refrigeration.circuit_repository import RefrigerationCircuitRepository
 from app.refrigeration.circuit_schemas import (
     CircuitBindingAppendRequest,
