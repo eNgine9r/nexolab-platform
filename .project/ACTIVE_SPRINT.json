@@ -19,17 +19,47 @@
   },
   "baselines": {
     "accepted_product_sha": "e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a",
-    "deployed_product_sha": "039e37ac4b91903e5f8ee33de2603e40c308de90"
+    "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f"
   },
   "selection": {
     "active_work_package": null,
     "next_work_package": {
       "issue": 1050,
-      "title": "Deploy corrected LOCAL_LAN commissioning wiring and complete authenticated operator acceptance",
+      "title": "Complete authenticated operator acceptance for the RS-485 commissioning selector",
       "branch": "deploy/1050-rs485-selector-runtime"
     }
   },
   "work_packages": [
+    {
+      "issue": 1071,
+      "title": "Record corrected LOCAL_LAN commissioning wiring deployment",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1065,
+        1069
+      ],
+      "branch": "chore/1071-record-commissioning-deployment",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "accepted_product_sha": "e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a",
+        "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
+        "deployment_evidence": "runtime/deployments/20260918T050734Z",
+        "rollback_authority_source": "039e37ac4b91903e5f8ee33de2603e40c308de90",
+        "deployment_status": "passed",
+        "commissioning_private_path": "success",
+        "scheduled_targets": 53,
+        "active_bus_workers": "2/2",
+        "akcc25_scheduled_targets": 0,
+        "persistent_volume_identity": "byte_identical_before_after",
+        "unit35_preflight": "passed_hardware_verified_fc03_only_328_5ms_10_valid_observations",
+        "remaining_blocker": "normal_authenticated_operator_session_with_equipment_manage",
+        "state_model_v2": "success_local",
+        "git_diff_check": "success_local",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
     {
       "issue": 1069,
       "title": "Reconcile merged #1065 and advance #1050 to corrected runtime cutover gate",
@@ -3978,22 +4008,25 @@
         "checks": {
           "core_ci": "success:35139430341",
           "nexolab_merge_gate": "success:35139430341",
-          "controlled_local_lan_deployment": "success:runtime/deployments/20260917T131852Z",
-          "deployed_source": "039e37ac4b91903e5f8ee33de2603e40c308de90",
+          "controlled_local_lan_deployment": "success:runtime/deployments/20260918T050734Z",
+          "deployed_source": "df368cfa27efa945d59de33de8268898b564a19f",
           "post_cutover_53_targets": "success",
           "akcc25_scheduled_targets": "0",
-          "persistent_volume_identity": "identical_before_after",
-          "post_cutover_danfoss_preflight": "success_hardware_verified_unit35_fc03_only_319ms_10_requests_0_retries",
+          "persistent_volume_identity": "byte_identical_before_after",
+          "post_cutover_danfoss_preflight": "success_hardware_verified_unit35_fc03_only_328_5ms_10_valid_observations",
           "modbus_write": "none",
           "hardware_write": "none",
           "repository_permission_fix": "merged_and_deployed",
-          "rollback_authority_source": "442e0c55a87cd83fba71be769ac39d170cc0d61f",
-          "product_owner_cutover_authorization": "consumed_exact_442e0c55_to_039e37ac_2026-09-17",
+          "rollback_authority_source": "039e37ac4b91903e5f8ee33de2603e40c308de90",
+          "product_owner_cutover_authorization": "consumed_exact_039e37ac_to_df368cfa_2026-09-18",
           "device_agent_nonroot_supplementary_groups": "success_gid20_gid46",
-          "ftdi_a10q2si7_available_for_preflight": "success",
+          "ftdi_a10q2si7_available_for_preflight": "success_private_inventory",
           "authenticated_ui_api_acceptance": "blocked_missing_normal_operator_session_with_equipment_manage",
           "commissioning_inventory_repository_wiring": "merged_verified_issue_1065",
-          "corrected_runtime_cutover": "blocked_pending_explicit_product_owner_authorization"
+          "corrected_runtime_cutover": "success",
+          "commissioning_inventory_runtime_wiring": "success_private_telemetry_to_device_agent",
+          "telemetry_commissioning_base_url": "http://edge-device-agent:8081",
+          "active_bus_workers": "2_of_2_healthy"
         }
       }
     },
