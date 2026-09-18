@@ -19,119 +19,141 @@ const circuit: RefrigerationCircuitRecord = {
 
 function repository(overrides: Partial<RefrigerationCircuitConfigurationRepository> = {}) {
   const base: RefrigerationCircuitConfigurationRepository = {
-    listCircuits: vi.fn(async () => [circuit]),
-    createCircuit: vi.fn(async () => circuit),
-    listLifecycle: vi.fn(async () => [
-      {
-        id: "lifecycle-1",
+    async listCircuits() {
+      return [circuit];
+    },
+    async createCircuit() {
+      return circuit;
+    },
+    async listLifecycle() {
+      return [
+        {
+          id: "lifecycle-1",
+          circuitId: circuit.id,
+          state: "active" as const,
+          calculationEnabled: true,
+          validFrom: "2026-09-18T09:00:00Z",
+          validTo: null,
+          revision: 1,
+          recordedBy: "operator",
+          recordedAt: "2026-09-18T09:00:00Z",
+        },
+      ];
+    },
+    async appendLifecycle(_id, input) {
+      return {
+        id: "lifecycle-2",
         circuitId: circuit.id,
-        state: "active",
-        calculationEnabled: true,
-        validFrom: "2026-09-18T09:00:00Z",
+        state: input.state,
+        calculationEnabled: input.state === "active",
+        validFrom: input.validFrom.toISOString(),
         validTo: null,
-        revision: 1,
+        revision: 2,
         recordedBy: "operator",
-        recordedAt: "2026-09-18T09:00:00Z",
-      },
-    ]),
-    appendLifecycle: vi.fn(async (_id, input) => ({
-      id: "lifecycle-2",
-      circuitId: circuit.id,
-      state: input.state,
-      calculationEnabled: input.state === "active",
-      validFrom: input.validFrom.toISOString(),
-      validTo: null,
-      revision: 2,
-      recordedBy: "operator",
-      recordedAt: input.validFrom.toISOString(),
-    })),
-    listConfigurations: vi.fn(async () => [
-      {
-        id: "config-1",
+        recordedAt: input.validFrom.toISOString(),
+      };
+    },
+    async listConfigurations() {
+      return [
+        {
+          id: "config-1",
+          circuitId: circuit.id,
+          refrigerantCode: "R290",
+          calculationPolicyVersion: "lab-v1",
+          propertyProviderProfile: "coolprop-heos/8.0.0",
+          validFrom: "2026-09-18T09:00:00Z",
+          validTo: null,
+          revision: 1,
+          recordedBy: "operator",
+          recordedAt: "2026-09-18T09:00:00Z",
+        },
+      ];
+    },
+    async appendConfiguration(_id, input) {
+      return {
+        id: "config-2",
         circuitId: circuit.id,
-        refrigerantCode: "R290",
-        calculationPolicyVersion: "lab-v1",
-        propertyProviderProfile: "coolprop-heos/8.0.0",
-        validFrom: "2026-09-18T09:00:00Z",
+        refrigerantCode: input.refrigerantCode,
+        calculationPolicyVersion: input.calculationPolicyVersion,
+        propertyProviderProfile: input.propertyProviderProfile,
+        validFrom: input.validFrom.toISOString(),
         validTo: null,
-        revision: 1,
+        revision: 2,
         recordedBy: "operator",
-        recordedAt: "2026-09-18T09:00:00Z",
-      },
-    ]),
-    appendConfiguration: vi.fn(async (_id, input) => ({
-      id: "config-2",
-      circuitId: circuit.id,
-      refrigerantCode: input.refrigerantCode,
-      calculationPolicyVersion: input.calculationPolicyVersion,
-      propertyProviderProfile: input.propertyProviderProfile,
-      validFrom: input.validFrom.toISOString(),
-      validTo: null,
-      revision: 2,
-      recordedBy: "operator",
-      recordedAt: input.validFrom.toISOString(),
-    })),
-    listBindings: vi.fn(async () => []),
-    appendBinding: vi.fn(async (_id, input) => ({
-      id: "binding-1",
-      circuitId: circuit.id,
-      signalId: input.signalId,
-      role: input.role,
-      physicalQuantity: "pressure",
-      engineeringUnit: "bar",
-      instrumentKind: "pressure_transmitter",
-      pressureReference: "gauge",
-      validFrom: input.validFrom.toISOString(),
-      validTo: null,
-      revision: 1,
-      recordedBy: "operator",
-      recordedAt: input.validFrom.toISOString(),
-      endedBy: null,
-      endedAt: null,
-    })),
-    endBinding: vi.fn(async (_id, role, validTo) => ({
-      id: "binding-1",
-      circuitId: circuit.id,
-      signalId: "signal-1",
-      role,
-      physicalQuantity: "pressure",
-      engineeringUnit: "bar",
-      instrumentKind: "pressure_transmitter",
-      pressureReference: "gauge",
-      validFrom: "2026-09-18T09:00:00Z",
-      validTo: validTo.toISOString(),
-      revision: 1,
-      recordedBy: "operator",
-      recordedAt: "2026-09-18T09:00:00Z",
-      endedBy: "operator",
-      endedAt: validTo.toISOString(),
-    })),
-    listPolicies: vi.fn(async () => [
-      {
-        id: "policy-1",
-        version: "lab-v1",
-        maximumAgeMs: 30000,
-        maximumFutureClockSkewMs: 1000,
-        maximumCrossInputSkewMs: 5000,
-        acceptedCalibrationStates: ["valid"],
-        requireCalibrationAtObservation: true,
-        calibrationRequiredRoles: ["suction_pressure"],
-        createdBy: "operator",
-        createdAt: "2026-09-18T09:00:00Z",
-      },
-    ]),
-    listBindingCandidates: vi.fn(async () => [
-      {
-        signalId: "signal-1",
-        instrumentId: "instrument-1",
-        signalDisplayName: "Suction pressure",
-        instrumentDisplayName: "PT-1",
+        recordedAt: input.validFrom.toISOString(),
+      };
+    },
+    async listBindings() {
+      return [];
+    },
+    async appendBinding(_id, input) {
+      return {
+        id: "binding-1",
+        circuitId: circuit.id,
+        signalId: input.signalId,
+        role: input.role,
         physicalQuantity: "pressure",
         engineeringUnit: "bar",
         instrumentKind: "pressure_transmitter",
-        pressureReference: "gauge",
-      },
-    ]),
+        pressureReference: "gauge" as const,
+        validFrom: input.validFrom.toISOString(),
+        validTo: null,
+        revision: 1,
+        recordedBy: "operator",
+        recordedAt: input.validFrom.toISOString(),
+        endedBy: null,
+        endedAt: null,
+      };
+    },
+    async endBinding(_id, role, validTo) {
+      return {
+        id: "binding-1",
+        circuitId: circuit.id,
+        signalId: "signal-1",
+        role,
+        physicalQuantity: "pressure",
+        engineeringUnit: "bar",
+        instrumentKind: "pressure_transmitter",
+        pressureReference: "gauge" as const,
+        validFrom: "2026-09-18T09:00:00Z",
+        validTo: validTo.toISOString(),
+        revision: 1,
+        recordedBy: "operator",
+        recordedAt: "2026-09-18T09:00:00Z",
+        endedBy: "operator",
+        endedAt: validTo.toISOString(),
+      };
+    },
+    async listPolicies() {
+      return [
+        {
+          id: "policy-1",
+          version: "lab-v1",
+          maximumAgeMs: 30000,
+          maximumFutureClockSkewMs: 1000,
+          maximumCrossInputSkewMs: 5000,
+          acceptedCalibrationStates: ["valid"],
+          requireCalibrationAtObservation: true,
+          calibrationRequiredRoles: ["suction_pressure"],
+          createdBy: "operator",
+          createdAt: "2026-09-18T09:00:00Z",
+        },
+      ];
+    },
+    async listBindingCandidates() {
+      return [
+        {
+          signalId: "signal-1",
+          instrumentId: "instrument-1",
+          signalDisplayName: "Suction pressure",
+          instrumentDisplayName: "PT-1",
+          physicalQuantity: "pressure",
+          engineeringUnit: "bar",
+          instrumentKind: "pressure_transmitter",
+          pressureReference: "gauge" as const,
+        },
+      ];
+    },
   };
   return { ...base, ...overrides } as RefrigerationCircuitConfigurationRepository;
 }
@@ -173,7 +195,7 @@ describe("RefrigerationCircuitConfigurationWorkspace", () => {
       .fn<RefrigerationCircuitConfigurationRepository["listCircuits"]>()
       .mockResolvedValueOnce([])
       .mockResolvedValue([circuit]);
-    const createCircuit = vi.fn(async () => circuit);
+    const createCircuit = vi.fn<RefrigerationCircuitConfigurationRepository["createCircuit"]>(async () => circuit);
     const repo = repository({ listCircuits, createCircuit });
 
     render(
@@ -216,7 +238,9 @@ describe("RefrigerationCircuitConfigurationWorkspace", () => {
   });
 
   it("uses backend candidate discovery before binding a semantic role", async () => {
-    const listBindingCandidates = vi.fn(async () => [
+    const listBindingCandidates = vi.fn<
+      RefrigerationCircuitConfigurationRepository["listBindingCandidates"]
+    >(async () => [
       {
         signalId: "signal-1",
         instrumentId: "instrument-1",
@@ -225,10 +249,12 @@ describe("RefrigerationCircuitConfigurationWorkspace", () => {
         physicalQuantity: "pressure",
         engineeringUnit: "bar",
         instrumentKind: "pressure_transmitter",
-        pressureReference: "gauge" as const,
+        pressureReference: "gauge",
       },
     ]);
-    const appendBinding = vi.fn(repository().appendBinding);
+    const appendBinding = vi.fn<
+      RefrigerationCircuitConfigurationRepository["appendBinding"]
+    >(repository().appendBinding);
     const repo = repository({ listBindingCandidates, appendBinding });
 
     render(
