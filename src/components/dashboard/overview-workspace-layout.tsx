@@ -17,11 +17,7 @@ export function OverviewWorkspaceLayout({ primary, attention, supporting }: Over
         <div className="min-w-0" data-testid="overview-primary-workspace">
           {primary}
         </div>
-        <aside
-          className="min-w-0"
-          data-testid="overview-attention-workspace"
-          aria-label="Потребує уваги"
-        >
+        <aside className="min-w-0" data-testid="overview-attention-workspace" aria-label="Потребує уваги">
           {attention}
         </aside>
       </section>
