@@ -19,7 +19,12 @@
   },
   "baselines": {
     "accepted_product_sha": "1a0644497e4cfd10ce7ba0366772955c72f4711a",
-    "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f"
+    "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
+    "frontend_compatibility_source_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
+    "frontend_build_id": "fveOqzLHugE-KZ4RRBogM",
+    "frontend_release": "runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z",
+    "frontend_rollback_release": "runtime/frontend-releases/df368cfa27efa945d59de33de8268898b564a19f-20260918T050734Z",
+    "frontend_runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z"
   },
   "selection": {
     "active_work_package": null,
@@ -4440,6 +4445,59 @@
         "modbus_write": "none",
         "hardware_write": "none"
       }
+    },
+    {
+      "issue": 1094,
+      "title": "[DEPLOY][RFX-12] Frontend-only Overview compatibility release",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1092
+      ],
+      "branch": "deploy/1094-rfx12-overview-frontend-compat",
+      "evidence": {
+        "scope": "frontend_only_production_compatibility_release",
+        "formal_deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
+        "frontend_compatibility_source_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
+        "frontend_build_id": "fveOqzLHugE-KZ4RRBogM",
+        "active_release": "runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z",
+        "rollback_release": "runtime/frontend-releases/df368cfa27efa945d59de33de8268898b564a19f-20260918T050734Z",
+        "runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z",
+        "authenticated_chromium_widths_px": [
+          360,
+          1440,
+          1920
+        ],
+        "layout": "temperature_full_width_attention_below_infrastructure_below",
+        "non_frontend_runtime_identity": "unchanged",
+        "production_deployment": "frontend_only_completed",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "product_data_deletion": "none",
+        "named_volume_deletion": "none"
+      }
+    },
+    {
+      "issue": 1096,
+      "title": "[STATE][RFX-12] Record frontend-only production overlay cutover",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1094
+      ],
+      "branch": "chore/1096-record-rfx12-production-overlay",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
+        "frontend_compatibility_source_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
+        "frontend_build_id": "fveOqzLHugE-KZ4RRBogM",
+        "frontend_runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z",
+        "next_ready_issue": null,
+        "selection_result": "no_independent_ready_work_package",
+        "product_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
     }
   ],
   "maintenance_actions": [
@@ -5056,6 +5114,16 @@
         "final_pr_head_sha": "621d70605856e07bdfc6003c851ca2ddbb593f4f",
         "merge_sha": "860fb5759030a7ae860826c0f3729261f56f1f89",
         "issue_state": "closed_completed"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-18T18:55:30Z",
+      "kind": "rfx12_frontend_cutover_issue1094_completed",
+      "data": {
+        "issue": 1094,
+        "issue_state": "closed_completed",
+        "frontend_compatibility_source_sha": "2296e3070cbebff687418cf1ac161984086bebdb"
       }
     }
   ],
