@@ -1,12 +1,7 @@
 export type RegistryLifecycleState = "active" | "inactive" | "retired";
 export type PressureReference = "absolute" | "gauge";
 export type RegistryJsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | RegistryJsonValue[]
-  | { [key: string]: RegistryJsonValue };
+  null | boolean | number | string | RegistryJsonValue[] | { [key: string]: RegistryJsonValue };
 
 export type InstrumentRegistryRecord = {
   id: string;
@@ -104,10 +99,7 @@ export interface InstrumentationRegistryRepository {
     expectedVersion: number,
     signal?: AbortSignal,
   ): Promise<SignalRegistryRecord>;
-  listAcceptanceHistory(
-    instrumentId: string,
-    signal?: AbortSignal,
-  ): Promise<InstrumentAcceptanceRecord[]>;
+  listAcceptanceHistory(instrumentId: string, signal?: AbortSignal): Promise<InstrumentAcceptanceRecord[]>;
   appendAcceptance(
     instrumentId: string,
     input: AcceptanceAppendInput,
@@ -142,15 +134,11 @@ export class HttpInstrumentationRegistryRepository implements InstrumentationReg
     return readItems(payload, parseInstrument);
   }
 
-  async getInstrument(
-    instrumentId: string,
-    signal?: AbortSignal,
-  ): Promise<InstrumentRegistryRecord> {
+  async getInstrument(instrumentId: string, signal?: AbortSignal): Promise<InstrumentRegistryRecord> {
     return parseInstrument(
-      await this.request(
-        `/api/v1/instrumentation/instruments/${encodeURIComponent(instrumentId)}`,
-        { signal },
-      ),
+      await this.request(`/api/v1/instrumentation/instruments/${encodeURIComponent(instrumentId)}`, {
+        signal,
+      }),
     );
   }
 
@@ -175,16 +163,13 @@ export class HttpInstrumentationRegistryRepository implements InstrumentationReg
     signal?: AbortSignal,
   ): Promise<InstrumentRegistryRecord> {
     return parseInstrument(
-      await this.request(
-        `/api/v1/instrumentation/instruments/${encodeURIComponent(instrumentId)}`,
-        {
-          method: "PUT",
-          signal,
-          body: instrumentPayload(input),
-          headers: { "If-Match": instrumentEtag(expectedVersion) },
-          auditReason: "Updated from Instrumentation Registry",
-        },
-      ),
+      await this.request(`/api/v1/instrumentation/instruments/${encodeURIComponent(instrumentId)}`, {
+        method: "PUT",
+        signal,
+        body: instrumentPayload(input),
+        headers: { "If-Match": instrumentEtag(expectedVersion) },
+        auditReason: "Updated from Instrumentation Registry",
+      }),
     );
   }
 
@@ -202,15 +187,12 @@ export class HttpInstrumentationRegistryRepository implements InstrumentationReg
     signal?: AbortSignal,
   ): Promise<SignalRegistryRecord> {
     return parseSignal(
-      await this.request(
-        `/api/v1/instrumentation/instruments/${encodeURIComponent(instrumentId)}/signals`,
-        {
-          method: "POST",
-          signal,
-          body: signalPayload(input),
-          auditReason: "Created from Instrumentation Registry",
-        },
-      ),
+      await this.request(`/api/v1/instrumentation/instruments/${encodeURIComponent(instrumentId)}/signals`, {
+        method: "POST",
+        signal,
+        body: signalPayload(input),
+        auditReason: "Created from Instrumentation Registry",
+      }),
     );
   }
 
