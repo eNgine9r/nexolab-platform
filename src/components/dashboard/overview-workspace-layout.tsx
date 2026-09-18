@@ -10,18 +10,14 @@ export function OverviewWorkspaceLayout({ primary, attention, supporting }: Over
   return (
     <>
       <section
-        className="mt-3 grid min-w-0 grid-cols-1 items-start gap-3 xl:grid-cols-12"
+        className="mt-3 grid min-w-0 grid-cols-1 items-start gap-3"
         data-testid="overview-command-grid"
         aria-label="Основний стан системи"
       >
-        <div className="min-w-0 xl:col-span-9" data-testid="overview-primary-workspace">
+        <div className="min-w-0" data-testid="overview-primary-workspace">
           {primary}
         </div>
-        <aside
-          className="min-w-0 xl:col-span-3"
-          data-testid="overview-attention-workspace"
-          aria-label="Потребує уваги"
-        >
+        <aside className="min-w-0" data-testid="overview-attention-workspace" aria-label="Потребує уваги">
           {attention}
         </aside>
       </section>

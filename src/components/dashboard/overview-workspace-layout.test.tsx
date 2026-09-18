@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { OverviewWorkspaceLayout } from "./overview-workspace-layout";
 
 describe("OverviewWorkspaceLayout", () => {
-  it("keeps the chart dominant, attention beside it on desktop, and supporting state below", () => {
+  it("keeps temperature full width with attention and infrastructure stacked below", () => {
     render(
       <OverviewWorkspaceLayout
         primary={<div data-testid="graph-slot">Graph</div>}
@@ -18,9 +18,13 @@ describe("OverviewWorkspaceLayout", () => {
     const attention = screen.getByTestId("overview-attention-workspace");
     const secondary = screen.getByTestId("overview-secondary-grid");
 
+    expect(commandGrid).toContainElement(primary);
+    expect(commandGrid).toContainElement(attention);
+    expect(primary.nextElementSibling).toBe(attention);
     expect(commandGrid.nextElementSibling).toBe(secondary);
-    expect(primary).toHaveClass("xl:col-span-9");
-    expect(attention).toHaveClass("xl:col-span-3");
+    expect(commandGrid).toHaveClass("grid-cols-1");
+    expect(primary).not.toHaveClass("xl:col-span-9");
+    expect(attention).not.toHaveClass("xl:col-span-3");
     expect(screen.getByTestId("graph-slot")).toBeInTheDocument();
     expect(screen.getByTestId("attention-slot")).toBeInTheDocument();
     expect(screen.getByTestId("node-slot")).toBeInTheDocument();
