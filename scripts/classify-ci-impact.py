@@ -173,6 +173,12 @@ FRONTEND_RELEASE_TOOLING_PATHS = {
     "scripts/tests/test_raspberry_pi_frontend_release.py",
 }
 
+VERSION_MANAGER_TOOLING_PATHS = {
+    "scripts/nexolab-version-manager.py",
+    "scripts/tests/test_nexolab_version_manager.py",
+    "scripts/install-offline-bundle.sh",
+}
+
 DISASTER_RECOVERY_TOOLING_PATHS = {
     "scripts/run-disaster-recovery-acceptance.sh",
     "tests/test_disaster_recovery_assets.py",
@@ -372,6 +378,10 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
             matched = True
 
         if path in FRONTEND_RELEASE_TOOLING_PATHS:
+            classes.add("deployment_runtime")
+            matched = True
+
+        if path in VERSION_MANAGER_TOOLING_PATHS:
             classes.add("deployment_runtime")
             matched = True
 
