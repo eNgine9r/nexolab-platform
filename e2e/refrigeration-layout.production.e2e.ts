@@ -1108,3 +1108,165 @@ test("configures a refrigeration circuit through canonical operator authority", 
     )}\n`,
   );
 });
+
+
+test("authors an accepted Instrument and Signal before binding it through RFX-10", async ({ page }) => {
+  mkdirSync(evidenceDirectory, { recursive: true });
+  const chamber = await resolveClimateChamber(page.request);
+  const equipment = await createEquipmentViaApi(page.request, chamber, {
+    code: "ACCEPTANCE-RFX11-REGISTRY-01",
+    name: "Вітрина RFX-11 registry acceptance",
+    serialNumber: "NX-RFX11-REGISTRY-0001",
+    totalSensors: 4,
+  });
+
+  await page.goto(absoluteRoute("/settings/instrumentation"), {
+    waitUntil: "domcontentloaded",
+  });
+  const registry = page.getByTestId("instrumentation-registry-workspace");
+  await expect(registry).toBeVisible();
+  await expect(registry.getByRole("heading", { name: "Прилади та сигнали" })).toBeVisible();
+
+  await registry.getByRole("button", { name: "Новий прилад" }).click();
+  await registry.getByLabel("create instrument inventory key").fill("RFX11-PT-1");
+  await registry.getByLabel("create instrument display name").fill("RFX11 pressure transmitter");
+  await registry.getByLabel("create instrument kind").fill("pressure_transmitter");
+  await registry.getByLabel("create instrument pressure reference").selectOption("gauge");
+  await registry.getByRole("button", { name: "Створити", exact: true }).click();
+
+  await expect(registry.getByText(/Calculation acceptance ще не надано/)).toBeVisible();
+  await expect(registry.getByRole("heading", { name: "RFX11 pressure transmitter" })).toBeVisible();
+
+  const signalForm = registry.getByText("Новий Signal", { exact: true }).locator("..");
+  await signalForm.getByLabel("create signal business key").fill("rfx11.suction-pressure");
+  await signalForm.getByLabel("create signal display name").fill("RFX11 suction pressure");
+  await signalForm.getByLabel("create signal physical quantity").fill("pressure");
+  await signalForm.getByLabel("create signal engineering unit").fill("bar");
+  await signalForm.getByRole("button", { name: "Створити Signal" }).click();
+  await expect(registry.getByText("RFX11 suction pressure", { exact: true }).first()).toBeVisible();
+
+  const acceptanceSection = registry
+    .locator("section")
+    .filter({ hasText: /^Calculation acceptance/ });
+  await acceptanceSection.getByLabel("Calculation eligibility").selectOption("accepted");
+  await acceptanceSection.getByLabel("State label").fill("rfx11-browser-accepted");
+  await acceptanceSection.getByLabel("Діє з").fill("2026-09-18T10:00");
+  await acceptanceSection.getByRole("button", { name: "Додати acceptance record" }).click();
+  await expect(registry.getByText(/Instrument accepted for calculation/)).toBeVisible();
+  await expect(acceptanceSection.getByText(/r1 · accepted/)).toBeVisible();
+
+  const instrumentsResponse = await page.request.get(`${apiBaseUrl}/api/v1/instrumentation/instruments`);
+  expect(instrumentsResponse.status()).toBe(200);
+  const instruments = (await instrumentsResponse.json()) as {
+    items: Array<{ id: string; inventory_key: string }>;
+  };
+  const persistedInstrument = instruments.items.find((item) => item.inventory_key === "RFX11-PT-1");
+  expect(persistedInstrument).toBeDefined();
+  if (!persistedInstrument) throw new Error("RFX-11 Instrument was not persisted");
+
+  const signalsResponse = await page.request.get(
+    `${apiBaseUrl}/api/v1/instrumentation/instruments/${persistedInstrument.id}/signals`,
+  );
+  expect(signalsResponse.status()).toBe(200);
+  const signals = (await signalsResponse.json()) as {
+    items: Array<{ id: string; business_key: string }>;
+  };
+  const persistedSignal = signals.items.find((item) => item.business_key === "rfx11.suction-pressure");
+  expect(persistedSignal).toBeDefined();
+  if (!persistedSignal) throw new Error("RFX-11 Signal was not persisted");
+
+  await page.goto(absoluteRoute(`/refrigeration/${equipment.id}`), {
+    waitUntil: "domcontentloaded",
+  });
+  await expect(page.getByRole("heading", { name: equipment.name })).toBeVisible();
+  await page.getByRole("button", { name: "Контур", exact: true }).click();
+
+  const circuitWorkspace = page.getByTestId("refrigeration-circuit-configuration");
+  await expect(circuitWorkspace.getByText("Для цього обладнання контурів ще немає.")).toBeVisible();
+  const createPanel = circuitWorkspace.getByText("Новий контур", { exact: true }).locator("..");
+  await createPanel.getByLabel("Business key").fill("main");
+  await createPanel.getByLabel("Назва").fill("Основний контур");
+  await createPanel.getByLabel("Початковий стан").selectOption("active");
+  await createPanel.getByLabel("Діє з").fill("2026-09-18T10:05");
+  await createPanel.getByRole("button", { name: "Створити контур" }).click();
+
+  const bindingsSection = circuitWorkspace
+    .locator("section")
+    .filter({ hasText: "Semantic Signal → role bindings" });
+  await bindingsSection
+    .getByLabel("Effective time для наступної binding-операції")
+    .fill("2026-09-18T10:10");
+  const suctionCard = bindingsSection
+    .locator("article")
+    .filter({ hasText: "Тиск кипіння / всмоктування" });
+  await suctionCard.getByRole("button", { name: "Обрати сигнал" }).click();
+  await expect(suctionCard.getByRole("combobox")).toContainText(
+    "RFX11 pressure transmitter · RFX11 suction pressure · bar",
+  );
+  await suctionCard.getByRole("button", { name: "Прив’язати" }).click();
+  await expect(suctionCard.getByText(persistedSignal.id, { exact: true })).toBeVisible();
+
+  const acceptanceResponse = await page.request.get(
+    `${apiBaseUrl}/api/v1/instrumentation/instruments/${persistedInstrument.id}/acceptance-history`,
+  );
+  expect(acceptanceResponse.status()).toBe(200);
+  const acceptance = (await acceptanceResponse.json()) as {
+    items: Array<{ accepted_for_calculation: boolean; state_label: string | null; revision: number }>;
+  };
+  expect(acceptance.items).toEqual([
+    expect.objectContaining({
+      accepted_for_calculation: true,
+      state_label: "rfx11-browser-accepted",
+      revision: 1,
+    }),
+  ]);
+
+  const circuitsResponse = await page.request.get(`${apiBaseUrl}/api/v1/refrigeration/circuits`);
+  expect(circuitsResponse.status()).toBe(200);
+  const circuits = (await circuitsResponse.json()) as {
+    items: Array<{ id: string; equipment_id: string; business_key: string }>;
+  };
+  const circuit = circuits.items.find(
+    (item) => item.equipment_id === equipment.id && item.business_key === "main",
+  );
+  expect(circuit).toBeDefined();
+  if (!circuit) throw new Error("RFX-11 circuit fixture was not persisted");
+
+  const bindingsResponse = await page.request.get(
+    `${apiBaseUrl}/api/v1/refrigeration/circuits/${circuit.id}/bindings?include_history=true`,
+  );
+  expect(bindingsResponse.status()).toBe(200);
+  const bindings = (await bindingsResponse.json()) as {
+    items: Array<{ role: string; signal_id: string; valid_to: string | null }>;
+  };
+  expect(bindings.items).toEqual([
+    expect.objectContaining({
+      role: "suction_pressure",
+      signal_id: persistedSignal.id,
+      valid_to: null,
+    }),
+  ]);
+
+  await page.screenshot({
+    path: path.join(evidenceDirectory, "issue-1082-instrumentation-registry-workspace.png"),
+    fullPage: true,
+  });
+  writeFileSync(
+    path.join(evidenceDirectory, "issue-1082-instrumentation-registry-summary.json"),
+    `${JSON.stringify(
+      {
+        equipmentId: equipment.id,
+        instrumentId: persistedInstrument.id,
+        signalId: persistedSignal.id,
+        acceptedForCalculation: acceptance.items[0]?.accepted_for_calculation === true,
+        bindingRole: "suction_pressure",
+        bindingSignalId: bindings.items[0]?.signal_id ?? null,
+        productionDeployment: false,
+        hardwareWrites: false,
+        modbusWrites: false,
+      },
+      null,
+      2,
+    )}\\n`,
+  );
+});
