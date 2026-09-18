@@ -4,13 +4,21 @@ Updated: 2026-09-18
 
 ## Current Sprint
 
+### Issue #1073 — #1050 authenticated Chromium acceptance completed candidate
+
+The final operator gate for #1050 passed through the actual Chromium UI in the Raspberry Pi Wayland session using the normal signed-in `NEXOLAB Administrator` / `administrator` identity. No password, cookie, token or browser profile storage was read, copied or bypassed. Chromium reviewed the Danfoss AK-CC25 Pro intent with `edge-01 / commissioning-0ae914347f704234`, Unit ID `35`, stable FTDI identity `A10Q2SI7`, and target equipment `CoolesSlim`, then saved commissioning session `7f2a5f15-6af6-4911-af32-67ad61bee25a`.
+
+The session transitioned through `ready_for_preflight` to `verified`. Persisted preflight attempt `c290a1dd-1adb-4185-b6e5-5bb1e06386bb` completed `passed / hardware_verified / preflight_passed` in `329 ms` on exact profile `danfoss-ak-cc25-pro-sw1.3x-fc03-v1`, FC03 only, with ten valid observations, `modbus_writes=none` and `hardware_writes=none`. Activation attempts for the session are `0`; production acquisition remains 53 scheduled targets, 2/2 workers healthy, and AK-CC25 scheduled targets remain `0`. Production audit records contain commissioning created, preflight started and preflight completed events for the authenticated operator.
+
+The deployed product remains `df368cfa27efa945d59de33de8268898b564a19f`; no additional deployment/recreation occurred during Chromium acceptance. With #1050 complete, the current Sprint has no independent Ready Work Package: #189/#585 remain blocked, #201 needs real validation, and #202 remains hardware-validation.
+
 ### Issue #1071 — corrected LOCAL_LAN commissioning deployment recorded
 
 The Product Owner explicitly authorized the exact transition `039e37ac4b91903e5f8ee33de2603e40c308de90 → df368cfa27efa945d59de33de8268898b564a19f` with the previous healthy runtime retained as rollback authority. Repository-owned deployment completed with `DEPLOYMENT PASSED`; authoritative evidence is `runtime/deployments/20260918T050734Z`. Persistent named-volume identities are byte-identical before/after, PostgreSQL pre-upgrade and edge SQLite snapshots were captured, and all central/edge readiness gates passed.
 
 The previously missing commissioning path is now live: Telemetry has `COMMISSIONING_DEVICE_AGENT_BASE_URL=http://edge-device-agent:8081`, Telemetry and Device Agent share `nexolab-standalone-runtime`, and the private alias `edge-device-agent` resolves the Device Agent inventory. Live inventory exposes both production buses plus FTDI `A10Q2QYX` and `A10Q2SI7`; `A10Q2SI7` remains `available_for_preflight=true`. Acquisition remains 53 scheduled targets with 2/2 healthy workers and AK-CC25 normal scheduled targets remain `0`. A post-cutover Unit 35 request on `danfoss-ak-cc25-pro-sw1.3x-fc03-v1` passed in about 328.5 ms with `hardware_verified`, FC03 only, ten valid observations, `modbus_writes=none` and `hardware_writes=none`. Danfoss activation remains discovery-only/disabled.
 
-Issue #1050 is still open only because the final Equipment → Connect device save/review/preflight must run through a normal authenticated operator session with `equipment.manage`. The approved read-only inspection identity is insufficient for mutation, and the browser connector is not currently connected. Credentials, cookies and tokens will not be extracted or bypassed.
+The final #1050 Equipment → Connect device save/review/preflight subsequently passed through a normal authenticated Chromium Administrator session as recorded under #1073. Browser credentials, cookies and tokens were not extracted or bypassed.
 
 ### Issue #1069 — post-#1065 state reconciliation completed candidate
 
@@ -38,17 +46,17 @@ The Product Owner explicitly authorized the exact LOCAL_LAN transition `442e0c55
 
 Post-cutover runtime evidence is GREEN: Device Agent `status=ok`, MQTT connected, queue `0`, scheduler `53` targets with `2/2` healthy workers, and AK-CC25 / Unit 35 scheduled targets remain `0`. Production RS-485 ownership remains unchanged on the two CP2104 adapters. FTDI `A10Q2SI7` is present as commissioning bus `commissioning-0ae914347f704234` and reports `available_for_preflight=true`. A real bounded Unit 35 request using `danfoss-ak-cc25-pro-sw1.3x-fc03-v1` completed in `319 ms` with `preflight_passed`, `hardware_verified`, function code `03` only, ten successful physical reads, zero retries, `modbus_writes=none` and `hardware_writes=none`. Temperature semantics remain unverified because temperature sensors are not connected.
 
-Issue #1050 is **not closed**. Repository wiring is now complete through #1065. The next hard gate is a separate Product Owner authorization for the exact corrected LOCAL_LAN runtime transition from deployed `039e37ac4b91903e5f8ee33de2603e40c308de90` to the exact post-#1069 main SHA. After that cutover, the final Equipment → Connect device save/review/preflight still requires a normal authenticated operator session with `equipment.manage`. The persisted Chromium profile is unauthenticated and the repository-approved Opera inspection identity is read-only; credentials, cookies and tokens will not be extracted or bypassed.
+Those #1060-era gates were subsequently cleared: the Product Owner-authorized corrected runtime cutover completed under #1071, and final Equipment → Connect device acceptance passed through the normal authenticated Chromium Administrator session recorded under #1073. No credentials, cookies or tokens were extracted or bypassed.
 
 ### Issue #1058 — post-#1053 merge state reconciliation completed
 
 Issue #1058 / PR #1059 completed the prior state-only transition and merged to `main` before the approved #1050 cutover. It established #1050 as the next gated runtime Work Package; that authorization gate has now been consumed by the successful deployment recorded above.
 
-### Issue #1050 — corrected runtime deployed; authenticated operator UI gate remains
+### Issue #1050 — RS-485 commissioning selector production acceptance completed
 
-The corrected commissioning runtime is now deployed on exact source `df368cfa27efa945d59de33de8268898b564a19f`. The former FTDI permission blocker and the later Telemetry↔Device Agent wiring blocker are both cleared live: `A10Q2SI7` is visible through the bounded private inventory path and a real Unit 35 FC03-only profile is hardware-verified. Production topology, persistent volumes and the 53-target acquisition contract remain unchanged; AK-CC25 production polling remains disabled.
+The corrected commissioning runtime is deployed on exact source `df368cfa27efa945d59de33de8268898b564a19f`. The FTDI permission and Telemetry↔Device Agent wiring blockers are cleared live: `A10Q2SI7` is visible through the bounded private inventory path. The final normal authenticated Chromium Administrator walkthrough created session `7f2a5f15-6af6-4911-af32-67ad61bee25a`, preserved the exact `edge-01 / commissioning-0ae914347f704234 / Unit 35 / A10Q2SI7 / CoolesSlim` intent, and completed bounded preflight attempt `c290a1dd-1adb-4185-b6e5-5bb1e06386bb` as `hardware_verified`, FC03 only, in 329 ms with ten valid observations.
 
-#1050 is hard-blocked only on mandatory normal authenticated operator access with `equipment.manage` for the final Equipment → Connect device save/review/preflight walkthrough. No additional cutover, Device Agent recreation, controller write, Modbus write or hardware write is currently authorized.
+Production acquisition remains 53 scheduled targets with 2/2 healthy workers, AK-CC25 scheduled targets remain `0`, activation attempts are `0`, and both `modbus_writes` and `hardware_writes` are `none`. #1050 acceptance is complete; no additional cutover or controller activation is implied.
 
 ### Issue #1044 — Danfoss AK-CC25 Pro LOCAL_LAN onboarding acceptance completed
 
