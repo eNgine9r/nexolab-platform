@@ -10,6 +10,7 @@ CANONICAL_PROPERTY_PROVIDER_VERSION = "8.0.0"
 CANONICAL_PROPERTY_PROVIDER_PROFILE = (
     f"{CANONICAL_PROPERTY_PROVIDER_ID}/{CANONICAL_PROPERTY_PROVIDER_VERSION}"
 )
+CANONICAL_SUPPORTED_REFRIGERANTS = frozenset({"R134A", "R290", "R404A", "R407C"})
 
 PropertyProviderFailureReason = Literal[
     "invalid_pressure",
@@ -57,6 +58,7 @@ class CoolPropRefrigerantPropertyProvider:
         "R404A": "HEOS::R404A",
         "R407C": "HEOS::R407C",
     }
+    assert frozenset(_provider_names) == CANONICAL_SUPPORTED_REFRIGERANTS
 
     def __init__(self) -> None:
         import CoolProp

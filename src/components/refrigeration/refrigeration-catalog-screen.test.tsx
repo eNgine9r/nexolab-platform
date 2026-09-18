@@ -72,6 +72,7 @@ function runtime(): RefrigerationEquipmentRuntime {
     sensorConfigurationRepository: lifecycleRepository,
     structuralSnapshotRepository: null,
     controllerBindingRepository: null,
+    circuitConfigurationRepository: null,
     thermodynamicsRepository: null,
     telemetryAdapter: null,
     sessionClient: null,

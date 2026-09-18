@@ -42,6 +42,7 @@ describe("RefrigerationDetailScreen", () => {
     expect(screen.getByRole("button", { name: "Схема" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Графіки" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Контролер" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Контур" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Підключити контролер →" })).toHaveAttribute(
       "href",
       `/equipment/onboarding/new?target=${equipment.id}`,

@@ -9,8 +9,10 @@ from app.refrigeration.circuit_models import (
     RefrigerationCircuitLifecycleRecord,
 )
 from app.refrigeration.circuit_repository import (
+    CircuitBindingCandidate,
     CircuitBindingCompatibilityError,
     CircuitBindingNotFoundError,
+    CircuitConfigurationCompatibilityError,
     CircuitConflictError,
     CircuitDomainError,
     CircuitEquipmentNotFoundError,
@@ -23,6 +25,8 @@ from app.refrigeration.circuit_repository import (
 )
 from app.refrigeration.circuit_schemas import (
     CircuitBindingAppendRequest,
+    CircuitBindingCandidateListResponse,
+    CircuitBindingCandidateResponse,
     CircuitBindingEndRequest,
     CircuitBindingListResponse,
     CircuitBindingResponse,
@@ -34,6 +38,7 @@ from app.refrigeration.circuit_schemas import (
     CircuitLifecycleHistoryResponse,
     CircuitLifecycleResponse,
     CircuitListResponse,
+    CircuitProcessRole,
     CircuitResponse,
 )
 from app.refrigeration.equipment_repository import DEFAULT_ORGANIZATION_ID
@@ -71,6 +76,27 @@ def create_refrigeration_circuit_router(
                     organization_id=authorized.principal.organization_id
                 )
             ]
+        )
+
+    @router.get(
+        "/binding-candidates",
+        response_model=CircuitBindingCandidateListResponse,
+    )
+    def list_binding_candidates(
+        role: CircuitProcessRole = Query(),
+        at: str = Query(),
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> CircuitBindingCandidateListResponse:
+        try:
+            rows = repository.list_binding_candidates(
+                role,
+                _parse_datetime(at),
+                organization_id=authorized.principal.organization_id,
+            )
+        except (CircuitDomainError, ValueError) as error:
+            raise _http_error(error) from error
+        return CircuitBindingCandidateListResponse(
+            items=[_binding_candidate_response(row) for row in rows]
         )
 
     @router.post("", response_model=CircuitResponse, status_code=status.HTTP_201_CREATED)
@@ -421,6 +447,21 @@ def _configuration_response(
     )
 
 
+def _binding_candidate_response(
+    row: CircuitBindingCandidate,
+) -> CircuitBindingCandidateResponse:
+    return CircuitBindingCandidateResponse(
+        signal_id=row.signal.id,
+        instrument_id=row.instrument.id,
+        signal_display_name=row.signal.display_name,
+        instrument_display_name=row.instrument.display_name,
+        physical_quantity=row.signal.physical_quantity,
+        engineering_unit=row.signal.engineering_unit,
+        instrument_kind=row.instrument.instrument_kind,
+        pressure_reference=row.instrument.pressure_reference,
+    )
+
+
 def _binding_response(row: ResolvedCircuitBinding) -> CircuitBindingResponse:
     return CircuitBindingResponse(
         id=row.binding.id,
@@ -470,6 +511,7 @@ def _http_error(error: Exception) -> HTTPException:
             CircuitHistoryOrderError,
             CircuitResolutionError,
             CircuitBindingCompatibilityError,
+            CircuitConfigurationCompatibilityError,
         ),
     ):
         code = error.code

@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 from uuid import UUID
 
+import pytest
 from sqlalchemy.orm import Session
 
 from app.db import Database, TelemetrySample
@@ -26,7 +27,10 @@ from app.refrigeration.calculation_policy import (
     CalculationPolicyCreateRequest,
     CalculationPolicyRepository,
 )
-from app.refrigeration.circuit_repository import RefrigerationCircuitRepository
+from app.refrigeration.circuit_repository import (
+    CircuitConfigurationCompatibilityError,
+    RefrigerationCircuitRepository,
+)
 from app.refrigeration.circuit_schemas import (
     CircuitBindingAppendRequest,
     CircuitConfigurationAppendRequest,
@@ -506,30 +510,23 @@ def test_inactive_lifecycle_fails_before_configuration_binding_or_source_resolut
     assert item.kernel_result is None
 
 
-def test_missing_policy_and_cross_org_access_fail_closed(tmp_path: Path) -> None:
+def test_missing_policy_configuration_and_cross_org_access_fail_closed(
+    tmp_path: Path,
+) -> None:
     scope = _scope(tmp_path)
     _, circuits, _, _, _, circuit, service = scope
-    circuits.append_configuration(
-        circuit.id,
-        CircuitConfigurationAppendRequest(
-            refrigerant_code="R134A",
-            calculation_policy_version="missing-policy",
-            property_provider_profile=CANONICAL_PROPERTY_PROVIDER_PROFILE,
-            valid_from=T0 + timedelta(hours=1),
-        ),
-        actor_id="test-suite",
-        organization_id=ORG,
-    )
-
-    missing = service.calculate(
-        circuit.id,
-        T0 + timedelta(hours=1, seconds=1),
-        organization_id=ORG,
-        metrics=["refrigeration.superheat"],
-        computed_at=T0 + timedelta(hours=1, seconds=2),
-    )[0]
-    assert missing.reason_codes == ("calculation_policy_unresolved",)
-    assert missing.kernel_result is None
+    with pytest.raises(CircuitConfigurationCompatibilityError):
+        circuits.append_configuration(
+            circuit.id,
+            CircuitConfigurationAppendRequest(
+                refrigerant_code="R134A",
+                calculation_policy_version="missing-policy",
+                property_provider_profile=CANONICAL_PROPERTY_PROVIDER_PROFILE,
+                valid_from=T0 + timedelta(hours=1),
+            ),
+            actor_id="test-suite",
+            organization_id=ORG,
+        )
 
     isolated = service.calculate(
         circuit.id,

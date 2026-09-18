@@ -13,6 +13,7 @@ from app.db import Database
 from app.instrumentation.models import Instrument, InstrumentAcceptanceRecord, Signal
 from app.refrigeration.circuit_models import (
     CIRCUIT_PROCESS_ROLES,
+    RefrigerationCalculationPolicyRecord,
     RefrigerationCircuit,
     RefrigerationCircuitConfigurationRecord,
     RefrigerationCircuitLifecycleRecord,
@@ -26,6 +27,10 @@ from app.refrigeration.circuit_schemas import (
 )
 from app.refrigeration.equipment_repository import DEFAULT_ORGANIZATION_ID
 from app.refrigeration.models import RefrigerationEquipmentRecord
+from app.refrigeration.property_provider import (
+    CANONICAL_PROPERTY_PROVIDER_PROFILE,
+    CANONICAL_SUPPORTED_REFRIGERANTS,
+)
 from app.security.repository import AuditEventInput, SecurityRepository
 
 
@@ -66,6 +71,10 @@ class CircuitBindingCompatibilityError(CircuitDomainError):
     code = "refrigeration_circuit_binding_incompatible"
 
 
+class CircuitConfigurationCompatibilityError(CircuitDomainError):
+    code = "refrigeration_circuit_configuration_incompatible"
+
+
 class CircuitBindingNotFoundError(CircuitDomainError):
     code = "refrigeration_circuit_binding_not_found"
 
@@ -73,6 +82,12 @@ class CircuitBindingNotFoundError(CircuitDomainError):
 @dataclass(frozen=True, slots=True)
 class ResolvedCircuitBinding:
     binding: RefrigerationCircuitSignalBinding
+    signal: Signal
+    instrument: Instrument
+
+
+@dataclass(frozen=True, slots=True)
+class CircuitBindingCandidate:
     signal: Signal
     instrument: Instrument
 
@@ -317,6 +332,29 @@ class RefrigerationCircuitRepository:
             with Session(self._engine, expire_on_commit=False) as session:
                 with session.begin():
                     self._circuit(session, organization_id, circuit_id, for_update=True)
+                    policy_id = session.scalar(
+                        select(RefrigerationCalculationPolicyRecord.id).where(
+                            RefrigerationCalculationPolicyRecord.organization_id == organization_id,
+                            RefrigerationCalculationPolicyRecord.version
+                            == payload.calculation_policy_version,
+                        )
+                    )
+                    if policy_id is None:
+                        raise CircuitConfigurationCompatibilityError(
+                            "calculation policy version is not defined for this organization"
+                        )
+                    if payload.property_provider_profile is not None:
+                        if (
+                            payload.property_provider_profile
+                            != CANONICAL_PROPERTY_PROVIDER_PROFILE
+                        ):
+                            raise CircuitConfigurationCompatibilityError(
+                                "property provider profile is not accepted by the local runtime"
+                            )
+                        if payload.refrigerant_code not in CANONICAL_SUPPORTED_REFRIGERANTS:
+                            raise CircuitConfigurationCompatibilityError(
+                                "refrigerant is not supported by the selected property provider profile"
+                            )
                     latest = self._latest_configuration(session, organization_id, circuit_id)
                     previous = _configuration_snapshot(latest) if latest else None
                     revision = self._close_interval(latest, valid_from, "configuration")
@@ -383,6 +421,54 @@ class RefrigerationCircuitRepository:
             row = rows[0]
             session.expunge(row)
             return row
+
+    def list_binding_candidates(
+        self,
+        role: str,
+        at: datetime,
+        *,
+        organization_id: str = DEFAULT_ORGANIZATION_ID,
+    ) -> list[CircuitBindingCandidate]:
+        if role not in CIRCUIT_PROCESS_ROLES:
+            raise CircuitBindingCompatibilityError(f"unsupported circuit role {role!r}")
+        resolved_at = _require_aware(at, "binding candidate timestamp")
+        with Session(self._engine, expire_on_commit=False) as session:
+            rows = list(
+                session.execute(
+                    select(Signal, Instrument)
+                    .join(
+                        Instrument,
+                        (Instrument.organization_id == Signal.organization_id)
+                        & (Instrument.id == Signal.instrument_id),
+                    )
+                    .where(
+                        Signal.organization_id == organization_id,
+                        Signal.lifecycle_state == "active",
+                        Instrument.lifecycle_state == "active",
+                    )
+                    .order_by(
+                        Instrument.display_name.asc(),
+                        Signal.display_name.asc(),
+                        Signal.id.asc(),
+                    )
+                )
+            )
+            result: list[CircuitBindingCandidate] = []
+            for signal, instrument in rows:
+                try:
+                    self._validate_binding_authority(
+                        session,
+                        organization_id,
+                        signal,
+                        instrument,
+                        role,
+                        resolved_at,
+                    )
+                except CircuitBindingCompatibilityError:
+                    continue
+                result.append(CircuitBindingCandidate(signal=signal, instrument=instrument))
+            session.expunge_all()
+            return result
 
     def list_bindings(
         self,

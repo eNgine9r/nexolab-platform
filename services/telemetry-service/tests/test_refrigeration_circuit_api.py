@@ -11,9 +11,14 @@ from app.db import Database
 from app.instrumentation.repository import InstrumentationRepository
 from app.instrumentation.schemas import AcceptanceAppendRequest, InstrumentCreate, SignalCreate
 from app.model_registry import register_models
+from app.refrigeration.calculation_policy import (
+    CalculationPolicyCreateRequest,
+    CalculationPolicyRepository,
+)
 from app.refrigeration.circuit_api import create_refrigeration_circuit_router
 from app.refrigeration.circuit_repository import RefrigerationCircuitRepository
 from app.refrigeration.models import RefrigerationEquipmentRecord
+from app.refrigeration.property_provider import CANONICAL_PROPERTY_PROVIDER_PROFILE
 from app.security.repository import SecurityRepository
 
 
@@ -70,6 +75,19 @@ def _client(tmp_path: Path):
             session.add(_equipment())
     circuit_repository = RefrigerationCircuitRepository(database)
     instrumentation = InstrumentationRepository(database)
+    CalculationPolicyRepository(database).create(
+        CalculationPolicyCreateRequest(
+            version="rfx06-policy-v1",
+            maximum_age_ms=60_000,
+            maximum_future_clock_skew_ms=5_000,
+            maximum_cross_input_skew_ms=60_000,
+            accepted_calibration_states=["valid"],
+            require_calibration_at_observation=False,
+            calibration_required_roles=[],
+        ),
+        actor_id="test-suite",
+        organization_id=ORGANIZATION_ID,
+    )
     app = FastAPI()
     app.include_router(
         create_refrigeration_circuit_router(
@@ -294,3 +312,127 @@ def test_circuit_api_explicit_binding_end_makes_future_resolution_unavailable(tm
     )
     assert unavailable.status_code == 409
     assert unavailable.json()["detail"]["code"] == "refrigeration_circuit_resolution_unavailable"
+
+
+def test_circuit_api_binding_candidates_reuse_canonical_authority(tmp_path: Path) -> None:
+    api, _, _, instrumentation = _client(tmp_path)
+    _accepted_pressure_signal(
+        instrumentation,
+        key="CANDIDATE-GAUGE",
+        kind="pressure_transmitter",
+        reference="gauge",
+        unit="bar",
+    )
+    atmospheric = _accepted_pressure_signal(
+        instrumentation,
+        key="CANDIDATE-ATM",
+        kind="barometric_pressure_sensor",
+        reference="absolute",
+        unit="kPa",
+    )
+    unaccepted = instrumentation.create_instrument(
+        InstrumentCreate(
+            inventory_key="INST-CANDIDATE-UNACCEPTED",
+            display_name="Unaccepted atmosphere",
+            instrument_kind="barometric_pressure_sensor",
+            pressure_reference="absolute",
+        ),
+        actor_id="test-suite",
+    )
+    instrumentation.create_signal(
+        unaccepted.id,
+        SignalCreate(
+            business_key="SIG-CANDIDATE-UNACCEPTED",
+            display_name="Unaccepted atmosphere",
+            physical_quantity="pressure",
+            engineering_unit="kPa",
+        ),
+        actor_id="test-suite",
+    )
+
+    response = api.get(
+        "/api/v1/refrigeration/circuits/binding-candidates",
+        params={
+            "role": "atmospheric_pressure",
+            "at": "2026-09-06T01:00:00Z",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["items"] == [
+        {
+            "signal_id": atmospheric.id,
+            "instrument_id": atmospheric.instrument_id,
+            "signal_display_name": "CANDIDATE-ATM",
+            "instrument_display_name": "CANDIDATE-ATM",
+            "physical_quantity": "pressure",
+            "engineering_unit": "kPa",
+            "instrument_kind": "barometric_pressure_sensor",
+            "pressure_reference": "absolute",
+        }
+    ]
+
+
+def test_circuit_api_binding_candidates_require_aware_timestamp(tmp_path: Path) -> None:
+    api, _, _, _ = _client(tmp_path)
+
+    response = api.get(
+        "/api/v1/refrigeration/circuits/binding-candidates",
+        params={"role": "suction_pressure", "at": "2026-09-06T01:00:00"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "refrigeration_circuit_invalid_timestamp"
+
+
+def test_circuit_api_rejects_unresolved_policy_and_unsupported_provider_authority(
+    tmp_path: Path,
+) -> None:
+    api, _, _, _ = _client(tmp_path)
+    circuit_id = _create_circuit(api)
+    path = f"/api/v1/refrigeration/circuits/{circuit_id}/configuration-history"
+
+    missing_policy = api.post(
+        path,
+        json={
+            "refrigerant_code": "R290",
+            "calculation_policy_version": "missing-policy",
+            "property_provider_profile": CANONICAL_PROPERTY_PROVIDER_PROFILE,
+            "valid_from": "2026-09-06T01:00:00Z",
+        },
+    )
+    assert missing_policy.status_code == 409
+    assert (
+        missing_policy.json()["detail"]["code"]
+        == "refrigeration_circuit_configuration_incompatible"
+    )
+
+    unsupported_provider = api.post(
+        path,
+        json={
+            "refrigerant_code": "R290",
+            "calculation_policy_version": "rfx06-policy-v1",
+            "property_provider_profile": "remote-cloud/1",
+            "valid_from": "2026-09-06T01:00:00Z",
+        },
+    )
+    assert unsupported_provider.status_code == 409
+    assert (
+        unsupported_provider.json()["detail"]["code"]
+        == "refrigeration_circuit_configuration_incompatible"
+    )
+
+    unsupported_refrigerant = api.post(
+        path,
+        json={
+            "refrigerant_code": "R448A",
+            "calculation_policy_version": "rfx06-policy-v1",
+            "property_provider_profile": CANONICAL_PROPERTY_PROVIDER_PROFILE,
+            "valid_from": "2026-09-06T01:00:00Z",
+        },
+    )
+    assert unsupported_refrigerant.status_code == 409
+    assert (
+        unsupported_refrigerant.json()["detail"]["code"]
+        == "refrigeration_circuit_configuration_incompatible"
+    )

@@ -151,6 +151,16 @@ def test_dashboard_read_can_list_but_equipment_manage_is_required_to_create(tmp_
         "/api/v1/refrigeration/circuits",
         headers=_headers("viewer", ORG),
     ).status_code == 200
+    candidates = api.get(
+        "/api/v1/refrigeration/circuits/binding-candidates",
+        headers=_headers("viewer", ORG),
+        params={
+            "role": "suction_pressure",
+            "at": "2026-09-06T01:00:00Z",
+        },
+    )
+    assert candidates.status_code == 200
+    assert candidates.json() == {"items": []}
     viewer_binding_read = api.get(
         "/api/v1/refrigeration/circuits/missing/bindings/missing",
         headers=_headers("viewer", ORG),

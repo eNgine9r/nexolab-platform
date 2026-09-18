@@ -204,6 +204,21 @@ class CircuitBindingListResponse(BaseModel):
     items: list[CircuitBindingResponse]
 
 
+class CircuitBindingCandidateResponse(BaseModel):
+    signal_id: str
+    instrument_id: str
+    signal_display_name: str
+    instrument_display_name: str
+    physical_quantity: str
+    engineering_unit: str
+    instrument_kind: str
+    pressure_reference: Literal["absolute", "gauge"] | None
+
+
+class CircuitBindingCandidateListResponse(BaseModel):
+    items: list[CircuitBindingCandidateResponse]
+
+
 assert set(CIRCUIT_PROCESS_ROLES) == {
     "suction_pressure",
     "condensing_pressure",
