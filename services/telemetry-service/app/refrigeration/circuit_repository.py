@@ -13,6 +13,7 @@ from app.db import Database
 from app.instrumentation.models import Instrument, InstrumentAcceptanceRecord, Signal
 from app.refrigeration.circuit_models import (
     CIRCUIT_PROCESS_ROLES,
+    RefrigerationCalculationPolicyRecord,
     RefrigerationCircuit,
     RefrigerationCircuitConfigurationRecord,
     RefrigerationCircuitLifecycleRecord,
@@ -26,6 +27,10 @@ from app.refrigeration.circuit_schemas import (
 )
 from app.refrigeration.equipment_repository import DEFAULT_ORGANIZATION_ID
 from app.refrigeration.models import RefrigerationEquipmentRecord
+from app.refrigeration.property_provider import (
+    CANONICAL_PROPERTY_PROVIDER_PROFILE,
+    CANONICAL_SUPPORTED_REFRIGERANTS,
+)
 from app.security.repository import AuditEventInput, SecurityRepository
 
 
@@ -64,6 +69,10 @@ class CircuitSignalNotFoundError(CircuitDomainError):
 
 class CircuitBindingCompatibilityError(CircuitDomainError):
     code = "refrigeration_circuit_binding_incompatible"
+
+
+class CircuitConfigurationCompatibilityError(CircuitDomainError):
+    code = "refrigeration_circuit_configuration_incompatible"
 
 
 class CircuitBindingNotFoundError(CircuitDomainError):
@@ -323,6 +332,29 @@ class RefrigerationCircuitRepository:
             with Session(self._engine, expire_on_commit=False) as session:
                 with session.begin():
                     self._circuit(session, organization_id, circuit_id, for_update=True)
+                    policy_id = session.scalar(
+                        select(RefrigerationCalculationPolicyRecord.id).where(
+                            RefrigerationCalculationPolicyRecord.organization_id == organization_id,
+                            RefrigerationCalculationPolicyRecord.version
+                            == payload.calculation_policy_version,
+                        )
+                    )
+                    if policy_id is None:
+                        raise CircuitConfigurationCompatibilityError(
+                            "calculation policy version is not defined for this organization"
+                        )
+                    if payload.property_provider_profile is not None:
+                        if (
+                            payload.property_provider_profile
+                            != CANONICAL_PROPERTY_PROVIDER_PROFILE
+                        ):
+                            raise CircuitConfigurationCompatibilityError(
+                                "property provider profile is not accepted by the local runtime"
+                            )
+                        if payload.refrigerant_code not in CANONICAL_SUPPORTED_REFRIGERANTS:
+                            raise CircuitConfigurationCompatibilityError(
+                                "refrigerant is not supported by the selected property provider profile"
+                            )
                     latest = self._latest_configuration(session, organization_id, circuit_id)
                     previous = _configuration_snapshot(latest) if latest else None
                     revision = self._close_interval(latest, valid_from, "configuration")
