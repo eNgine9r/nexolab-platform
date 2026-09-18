@@ -896,7 +896,6 @@ test("places five sensors through the bounded quick-placement interaction budget
   );
 });
 
-
 test("configures a refrigeration circuit through canonical operator authority", async ({ page }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
   const chamber = await resolveClimateChamber(page.request);
@@ -907,39 +906,33 @@ test("configures a refrigeration circuit through canonical operator authority", 
     totalSensors: 4,
   });
 
-  const policyResponse = await page.request.post(
-    `${apiBaseUrl}/api/v1/refrigeration/calculation-policies`,
-    {
-      headers: { "X-Audit-Reason": "RFX-10 browser acceptance policy fixture" },
-      data: {
-        schema_version: "refrigeration-calculation-policy/v1",
-        version: "rfx10-browser-v1",
-        maximum_age_ms: 60_000,
-        maximum_future_clock_skew_ms: 5_000,
-        maximum_cross_input_skew_ms: 60_000,
-        calibration_vocabulary_version: "calibration-state/v1",
-        accepted_calibration_states: ["valid"],
-        require_calibration_at_observation: false,
-        calibration_required_roles: [],
-      },
+  const policyResponse = await page.request.post(`${apiBaseUrl}/api/v1/refrigeration/calculation-policies`, {
+    headers: { "X-Audit-Reason": "RFX-10 browser acceptance policy fixture" },
+    data: {
+      schema_version: "refrigeration-calculation-policy/v1",
+      version: "rfx10-browser-v1",
+      maximum_age_ms: 60_000,
+      maximum_future_clock_skew_ms: 5_000,
+      maximum_cross_input_skew_ms: 60_000,
+      calibration_vocabulary_version: "calibration-state/v1",
+      accepted_calibration_states: ["valid"],
+      require_calibration_at_observation: false,
+      calibration_required_roles: [],
     },
-  );
+  });
   expect(policyResponse.status()).toBe(201);
 
-  const instrumentResponse = await page.request.post(
-    `${apiBaseUrl}/api/v1/instrumentation/instruments`,
-    {
-      headers: { "X-Audit-Reason": "RFX-10 browser acceptance instrument fixture" },
-      data: {
-        inventory_key: "RFX10-PT-1",
-        display_name: "RFX10 pressure transmitter",
-        instrument_kind: "pressure_transmitter",
-        pressure_reference: "gauge",
-        lifecycle_state: "active",
-        metadata: {},
-      },
+  const instrumentResponse = await page.request.post(`${apiBaseUrl}/api/v1/instrumentation/instruments`, {
+    headers: { "X-Audit-Reason": "RFX-10 browser acceptance instrument fixture" },
+    data: {
+      inventory_key: "RFX10-PT-1",
+      display_name: "RFX10 pressure transmitter",
+      instrument_kind: "pressure_transmitter",
+      pressure_reference: "gauge",
+      lifecycle_state: "active",
+      metadata: {},
     },
-  );
+  });
   expect(instrumentResponse.status()).toBe(201);
   const instrument = (await instrumentResponse.json()) as { id: string };
 
@@ -999,24 +992,14 @@ test("configures a refrigeration circuit through canonical operator authority", 
   await configurationSection.getByLabel("Холодоагент").fill("R290");
   await configurationSection.getByLabel("Calculation policy").selectOption("rfx10-browser-v1");
   await configurationSection.getByLabel("Діє з").fill("2026-09-18T10:05");
-  await expect(configurationSection.getByLabel("Property provider")).toHaveValue(
-    "coolprop-heos/8.0.0",
-  );
-  await configurationSection
-    .getByRole("button", { name: "Додати версію конфігурації" })
-    .click();
+  await expect(configurationSection.getByLabel("Property provider")).toHaveValue("coolprop-heos/8.0.0");
+  await configurationSection.getByRole("button", { name: "Додати версію конфігурації" }).click();
   await expect(configurationSection.getByText(/r1 · R290 · rfx10-browser-v1/)).toBeVisible();
   await expect(configurationSection).toContainText("Max age: 60 s");
 
-  const bindingsSection = workspace
-    .locator("section")
-    .filter({ hasText: "Semantic Signal → role bindings" });
-  await bindingsSection
-    .getByLabel("Effective time для наступної binding-операції")
-    .fill("2026-09-18T10:10");
-  const suctionCard = bindingsSection
-    .locator("article")
-    .filter({ hasText: "Тиск кипіння / всмоктування" });
+  const bindingsSection = workspace.locator("section").filter({ hasText: "Semantic Signal → role bindings" });
+  await bindingsSection.getByLabel("Effective time для наступної binding-операції").fill("2026-09-18T10:10");
+  const suctionCard = bindingsSection.locator("article").filter({ hasText: "Тиск кипіння / всмоктування" });
   await suctionCard.getByRole("button", { name: "Обрати сигнал" }).click();
   await expect(
     suctionCard.getByRole("option", {
@@ -1033,15 +1016,11 @@ test("configures a refrigeration circuit through canonical operator authority", 
   await lifecycleSection.getByRole("button", { name: "Додати стан" }).click();
   await expect(lifecycleSection.getByText(/r2 · Неактивний/)).toBeVisible();
 
-  await bindingsSection
-    .getByLabel("Effective time для наступної binding-операції")
-    .fill("2026-09-18T10:20");
+  await bindingsSection.getByLabel("Effective time для наступної binding-операції").fill("2026-09-18T10:20");
   await suctionCard.getByRole("button", { name: "Завершити binding" }).click();
   await expect(suctionCard.getByText("Canonical binding відсутній.")).toBeVisible();
 
-  const circuitsResponse = await page.request.get(
-    `${apiBaseUrl}/api/v1/refrigeration/circuits`,
-  );
+  const circuitsResponse = await page.request.get(`${apiBaseUrl}/api/v1/refrigeration/circuits`);
   expect(circuitsResponse.status()).toBe(200);
   const circuitsPayload = (await circuitsResponse.json()) as {
     items: Array<{ id: string; equipment_id: string; business_key: string }>;
