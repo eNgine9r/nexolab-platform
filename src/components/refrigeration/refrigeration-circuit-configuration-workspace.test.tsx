@@ -179,7 +179,7 @@ describe("RefrigerationCircuitConfigurationWorkspace", () => {
 
     expect(await screen.findByRole("heading", { name: "Основний контур" })).toBeInTheDocument();
     expect(screen.getByText(/Режим перегляду/)).toBeInTheDocument();
-    expect(screen.getByText(/r1 · Активний/)).toBeInTheDocument();
+    expect(await screen.findByText(/r1 · Активний/)).toBeInTheDocument();
     expect(screen.getByText(/r1 · R290 · lab-v1/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Створити контур/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Додати стан/ })).not.toBeInTheDocument();
