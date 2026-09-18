@@ -177,7 +177,7 @@ describe("RefrigerationCircuitConfigurationWorkspace", () => {
       />,
     );
 
-    expect(await screen.findByText("Основний контур")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Основний контур" })).toBeInTheDocument();
     expect(screen.getByText(/Режим перегляду/)).toBeInTheDocument();
     expect(screen.getByText(/r1 · Активний/)).toBeInTheDocument();
     expect(screen.getByText(/r1 · R290 · lab-v1/)).toBeInTheDocument();
@@ -214,7 +214,7 @@ describe("RefrigerationCircuitConfigurationWorkspace", () => {
         initialState: "active",
       }),
     );
-    expect(await screen.findByText("Основний контур")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Основний контур" })).toBeInTheDocument();
   });
 
   it("fails closed when no canonical calculation policy exists", async () => {
@@ -226,7 +226,7 @@ describe("RefrigerationCircuitConfigurationWorkspace", () => {
       />,
     );
 
-    expect(await screen.findByText("Основний контур")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Основний контур" })).toBeInTheDocument();
     expect(screen.getByText(/Frontend не створює прихованих\/default thresholds/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Додати версію конфігурації" })).toBeDisabled();
   });
