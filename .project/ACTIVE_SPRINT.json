@@ -4204,6 +4204,30 @@
           "nexolab_merge_gate": "success:35250454713"
         }
       }
+    },
+    {
+      "issue": 1075,
+      "title": "[RFX-09][UI] Expose authoritative derived thermodynamics in refrigeration Overview",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "feat/1075-rfx09-derived-thermodynamics-overview",
+      "evidence": {
+        "verified_head_sha": "49878a03e814d7a89fe6ce698a5b6331de90db31",
+        "checks": {
+          "local_refrigeration_suite": "187_passed",
+          "local_focused_suite": "25_passed",
+          "eslint": "success",
+          "typescript": "success",
+          "prettier": "success",
+          "production_build": "success",
+          "git_diff_check": "success",
+          "core_ci_and_merge_gate": "success:35337588494",
+          "refrigeration_browser": "success:35337588515",
+          "security_browser": "success:35337588576",
+          "disaster_recovery_browser": "success:35337588489"
+        },
+        "pull_request": 1076
+      }
     }
   ],
   "maintenance_actions": [

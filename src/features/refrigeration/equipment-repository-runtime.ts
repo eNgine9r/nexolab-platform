@@ -31,6 +31,10 @@ import {
   HttpRefrigerationStructuralSnapshotRepository,
   type RefrigerationStructuralSnapshotRepository,
 } from "./structural-snapshot-repository";
+import {
+  HttpRefrigerationThermodynamicsRepository,
+  type RefrigerationThermodynamicsRepository,
+} from "./thermodynamics-repository";
 
 export type RefrigerationEquipmentRuntime = {
   mode: "demo" | "live";
@@ -46,6 +50,7 @@ export type RefrigerationEquipmentRuntime = {
   sensorConfigurationRepository: EquipmentLifecycleRepository | null;
   climateCatalogRepository?: ClimateCatalogRepository | null;
   controllerBindingRepository: RefrigerationControllerBindingRepository | null;
+  thermodynamicsRepository: RefrigerationThermodynamicsRepository | null;
   telemetryAdapter: TelemetryAdapter | null;
   sessionClient: HttpSecuritySessionClient | null;
   organizationId: string | null;
@@ -77,6 +82,7 @@ export function createRefrigerationEquipmentRuntime(
         sensorConfigurationRepository: null,
         climateCatalogRepository: null,
         controllerBindingRepository: null,
+        thermodynamicsRepository: null,
         telemetryAdapter: null,
         sessionClient: null,
         organizationId: null,
@@ -132,6 +138,10 @@ export function createRefrigerationEquipmentRuntime(
         config.apiBaseUrl,
         authenticatedFetch,
       ),
+      thermodynamicsRepository: new HttpRefrigerationThermodynamicsRepository(
+        config.apiBaseUrl,
+        authenticatedFetch,
+      ),
       telemetryAdapter,
       sessionClient: new HttpSecuritySessionClient({
         apiBaseUrl: config.apiBaseUrl,
@@ -150,6 +160,7 @@ export function createRefrigerationEquipmentRuntime(
       sensorConfigurationRepository: null,
       climateCatalogRepository: null,
       controllerBindingRepository: null,
+      thermodynamicsRepository: null,
       telemetryAdapter: null,
       sessionClient: null,
       organizationId: null,

@@ -12,6 +12,7 @@ import { EquipmentLifecyclePanel } from "@/components/refrigeration/equipment-li
 import { RefrigerationControllerDetail } from "@/components/refrigeration/refrigeration-controller-detail";
 import { RefrigerationControllerHistory } from "@/components/refrigeration/refrigeration-controller-history";
 import { RefrigerationControllerOverview } from "@/components/refrigeration/refrigeration-controller-overview";
+import { RefrigerationThermodynamicsOverview } from "@/components/refrigeration/refrigeration-thermodynamics-overview";
 import type { LayoutEditorMode } from "@/components/refrigeration/refrigeration-layout-editor";
 import { SecurityAwareRefrigerationLayoutWorkspace } from "@/components/refrigeration/security-aware-layout-workspace";
 import type {
@@ -454,11 +455,17 @@ export function RefrigerationDetailScreen({
             </nav>
 
             {activeTab === "overview" ? (
-              <RefrigerationControllerOverview
-                controller={controller}
-                equipmentId={equipment.id}
-                canCommission={canManageEquipment && !retired}
-              />
+              <div className="grid gap-3 xl:gap-4">
+                <RefrigerationThermodynamicsOverview
+                  equipmentId={equipment.id}
+                  repository={runtime.thermodynamicsRepository}
+                />
+                <RefrigerationControllerOverview
+                  controller={controller}
+                  equipmentId={equipment.id}
+                  canCommission={canManageEquipment && !retired}
+                />
+              </div>
             ) : null}
 
             {activeTab === "scheme" ? (
