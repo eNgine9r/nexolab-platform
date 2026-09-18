@@ -1,0 +1,75 @@
+name: RFX-12 Compatibility Verification
+
+on:
+  push:
+    branches:
+      - deploy/1094-rfx12-overview-frontend-compat
+  pull_request:
+    branches:
+      - release/1094-df368cfa-base
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify bounded frontend compatibility source
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      HUSKY: "0"
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_NEXOLAB_DATA_MODE: live
+      NEXT_PUBLIC_NEXOLAB_API_BASE_URL: http://127.0.0.1:8082
+      NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL: ws://127.0.0.1:8082/ws/telemetry
+      NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER: local
+      NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID: 00000000-0000-0000-0000-000000000001
+
+    steps:
+      - name: Checkout exact compatibility head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify compatibility lineage and bounded diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=df368cfa27efa945d59de33de8268898b564a19f
+          test "$(git show -s --format=%P HEAD)" = "$BASE"
+          git cat-file -e "${BASE}^{commit}"
+          git diff --name-only "$BASE" HEAD | sort > /tmp/actual.txt
+          cat > /tmp/expected.txt <<'EOF'
+          .github/workflows/rfx12-compatibility-verification.yml
+          src/components/dashboard/overview-workspace-layout.test.tsx
+          src/components/dashboard/overview-workspace-layout.tsx
+          EOF
+          diff -u /tmp/expected.txt /tmp/actual.txt
+          cmp package.json <(git show "$BASE:package.json")
+          cmp package-lock.json <(git show "$BASE:package-lock.json")
+
+      - name: Setup Node from repository baseline
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install exact frontend dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Check focused formatting
+        run: npx prettier --check src/components/dashboard/overview-workspace-layout.tsx src/components/dashboard/overview-workspace-layout.test.tsx .github/workflows/rfx12-compatibility-verification.yml
+
+      - name: Run focused layout test
+        run: npx vitest run src/components/dashboard/overview-workspace-layout.test.tsx
+
+      - name: Run focused ESLint
+        run: npx eslint src/components/dashboard/overview-workspace-layout.tsx src/components/dashboard/overview-workspace-layout.test.tsx --max-warnings=0
+
+      - name: Run TypeScript check
+        run: npm run typecheck
+
+      - name: Build production frontend
+        run: npm run build
