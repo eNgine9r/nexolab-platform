@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { AlertTriangle, CheckCircle2, Link2, Plus, RefreshCw, Snowflake } from "lucide-react";
 import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -783,9 +784,17 @@ function CircuitBindingsSection({
                       {candidateLoading ? (
                         <p className="text-xs text-slate-500">Перевірка canonical candidates…</p>
                       ) : candidates.length === 0 ? (
-                        <p className="text-xs text-amber-200">
-                          Немає accepted сумісних Signals для цього role та effective time.
-                        </p>
+                        <div className="grid gap-2">
+                          <p className="text-xs text-amber-200">
+                            Немає accepted сумісних Signals для цього role та effective time.
+                          </p>
+                          <Link
+                            href="/settings/instrumentation"
+                            className="w-fit text-[10px] font-medium text-cyan-200 underline decoration-cyan-300/30 underline-offset-4"
+                          >
+                            Відкрити canonical Instrumentation Registry
+                          </Link>
+                        </div>
                       ) : (
                         <>
                           <select
