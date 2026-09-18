@@ -160,9 +160,11 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
 
-## RFX presentation hold — cleared; RFX-09 completed candidate
+## RFX programme — RFX-09 merged; RFX-10 Ready
 
-The Product Owner lifted the RFX presentation hold on 2026-09-05. RFX-01 through RFX-08B are completed through their focused GREEN PRs. Issue #1075 / PR #1076 is a software-complete candidate that exposes the already accepted RFX-08B derived thermodynamics in the refrigeration Overview; implementation exact-head CI/browser/merge-gate evidence is GREEN, with only the final state-only merge gate remaining before merge. It introduces no hardware blocker and does not authorize guessed hardware profiles/registers, Modbus/hardware writes, production cutover, production polling activation or unverified hardware acceptance. Real thermodynamic values remain subject to the existing canonical circuit/instrument/calibration evidence gates; unavailable evidence is intentionally shown as unavailable.
+The Product Owner lifted the RFX presentation hold on 2026-09-05. RFX-01 through RFX-09 are repository-complete. RFX-09 / #1075 / PR #1076 merged to `main` as `956db3c7876ea8d2b367e4306fae559dab8acb7c` after final exact-head Core CI / NEXOLAB Merge Gate and required browser lanes passed. No RFX-09 software merge blocker remains.
+
+RFX-10 / #1077 is the next independent software-only Ready Work Package after state reconciliation #1078. It does not authorize production deployment, live hardware activation, Modbus/controller writes or hardware acceptance. Existing hardware/recovery gates #189, #201, #202 and #585 remain unchanged and do not block RFX-10 software implementation.
 
 ## Issue #909 — consolidated HIGH container exception review
 
