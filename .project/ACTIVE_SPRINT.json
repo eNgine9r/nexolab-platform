@@ -22,7 +22,11 @@
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1075,
+      "title": "[RFX-09][UI] Expose authoritative derived thermodynamics in refrigeration Overview",
+      "branch": "feat/1075-rfx09-derived-thermodynamics-overview"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -4202,6 +4206,25 @@
           "core_quality_and_build": "success:35250454713",
           "authenticated_dashboard": "success:35250454773",
           "nexolab_merge_gate": "success:35250454713"
+        }
+      }
+    },
+    {
+      "issue": 1075,
+      "title": "[RFX-09][UI] Expose authoritative derived thermodynamics in refrigeration Overview",
+      "priority": "unspecified",
+      "lifecycle": "review",
+      "branch": "feat/1075-rfx09-derived-thermodynamics-overview",
+      "evidence": {
+        "verified_head_sha": "49878a03e814d7a89fe6ce698a5b6331de90db31",
+        "checks": {
+          "local_refrigeration_suite": "187_passed",
+          "local_focused_suite": "25_passed",
+          "eslint": "success",
+          "typescript": "success",
+          "prettier": "success",
+          "production_build": "success",
+          "git_diff_check": "success"
         }
       }
     }

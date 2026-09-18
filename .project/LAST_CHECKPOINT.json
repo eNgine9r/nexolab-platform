@@ -3,267 +3,40 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-18T09:03:03+03:00",
+  "timestamp": "2026-09-18T14:05:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1050 final authenticated Chromium Equipment → Connect device acceptance passed; session verified with hardware-verified FC03-only preflight and no activation; no independent Ready Work Package remains",
+  "event": "Issue #1075 RFX-09 implementation is software-complete locally: authoritative derived thermodynamics are exposed read-only in Refrigeration Overview with fail-closed unavailable states; production runtime unchanged",
   "baselines": {
     "accepted_product_sha": "e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1075,
+    "title": "[RFX-09][UI] Expose authoritative derived thermodynamics in refrigeration Overview",
+    "branch": "feat/1075-rfx09-derived-thermodynamics-overview"
+  },
   "evidence_snapshot": {
-    "completed_security_blocker": {
-      "issue": 1055,
-      "pull_request": 1057,
-      "final_head_sha": "d76852457ea0c9c8fe75d3443e7c812623bb824a",
-      "container_supply_chain": "success:35210100902",
-      "telemetry_service": "success:35210100889",
-      "core_ci_and_merge_gate": "success:35210100901"
-    },
-    "completed_issue_1053": {
-      "issue": 1053,
-      "pull_request": 1054,
-      "final_head_sha": "da5ccf23966d541621eebcc1d8d898ff59baa4e0",
-      "core_ci_and_merge_gate": "success:35219827658",
-      "repository_scope": "merged_and_issue_closed",
-      "production_device_agent_recreation": "not_authorized",
-      "hardware_acceptance": "not_executed"
-    },
-    "completed_issue_1058": {
-      "issue": 1058,
-      "pull_request": 1059,
-      "scope": "canonical_state_only",
-      "state_model_v2": "success_local",
-      "git_diff_check": "success_local"
-    },
-    "issue_1050_runtime_acceptance": {
-      "issue": 1050,
-      "deployed_source": "df368cfa27efa945d59de33de8268898b564a19f",
-      "rollback_authority_source": "039e37ac4b91903e5f8ee33de2603e40c308de90",
-      "deployment_evidence": "runtime/deployments/20260918T050734Z",
-      "deployment_status": "passed",
-      "telemetry_commissioning_base_url": "http://edge-device-agent:8081",
-      "commissioning_private_path": "success",
-      "scheduled_targets": 53,
-      "active_bus_workers": "2/2",
-      "akcc25_scheduled_targets": 0,
-      "persistent_volume_identity": "byte_identical_before_after",
-      "ftdi_a10q2si7": "available_for_preflight_via_private_inventory",
-      "unit35_preflight": "passed_hardware_verified_fc03_only_328_5ms_10_valid_observations",
-      "authenticated_operator_acceptance": "blocked_missing_equipment_manage_session",
-      "modbus_write": "none",
-      "hardware_write": "none"
-    },
-    "issue_1060": {
-      "issue": 1060,
-      "scope": "canonical_state_only",
-      "remaining_blocker": "normal_authenticated_operator_session_with_equipment_manage",
-      "state_model_v2": "success_local",
-      "git_diff_check": "success_local"
-    },
-    "completed_issue_1045": {
-      "issue": 1045,
-      "product_code_head_sha": "9edf33764cda95da912a6140db8e51cf0cd9d623",
-      "branch": "fix/1045-embraco-cadence-contract",
-      "targeted_vitest": "11_passed",
-      "eslint_touched_files": "success",
-      "prettier_touched_files": "success",
-      "typescript_no_emit": "success",
-      "git_diff_check": "success_local",
-      "production_deployment": "not_executed",
-      "hardware_acceptance": "not_required_no_runtime_or_hardware_change"
-    },
-    "issue_1067": {
-      "issue": 1067,
-      "product_code_head_sha": "fb82c5ad94a691c6569aabe3bf8c47963ff5d6bf",
-      "targeted_classifier_tests": "47_passed",
-      "version_manager_and_offline_installer_paths": "known_deployment_runtime",
-      "unknown_path_fail_closed": "preserved",
-      "git_diff_check": "success_local",
-      "production_runtime_mutation": "none"
-    },
-    "completed_issue_1067": {
-      "issue": 1067,
-      "pull_request": 1068,
-      "verified_head_sha": "dd1d9eed5779572a754e20f360336cd16e46a58f",
-      "core_ci_and_merge_gate": "success:35288280260",
-      "authenticated_dashboard": "success:35288280211",
-      "refrigeration_browser": "success:35288280306",
-      "offline_bundle": "success:35288280190",
-      "telegram_gateway": "success:35288280270",
-      "issue_state": "closed_completed",
-      "production_runtime_mutation": "none"
-    },
-    "completed_issue_1065": {
-      "issue": 1065,
-      "pull_request": 1066,
-      "verified_head_sha": "0f8342efd4c828c238912e76eb47abf3f2379f71",
-      "core_ci_and_merge_gate": "success:35302450461",
-      "offline_bundle": "success:35302450463",
-      "telemetry_service": "success:35302450466",
-      "repository_scope": "merged_issue_closed",
-      "production_runtime_mutation": "none",
-      "deployed_source": "039e37ac4b91903e5f8ee33de2603e40c308de90",
-      "modbus_write": "none",
-      "hardware_write": "none"
-    },
-    "issue_1069": {
-      "issue": 1069,
-      "scope": "canonical_state_only",
-      "accepted_product_sha": "e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a",
-      "deployed_product_sha": "039e37ac4b91903e5f8ee33de2603e40c308de90",
-      "state_model_v2": "success_local",
-      "git_diff_check": "success_local",
-      "production_runtime_mutation": "none"
-    },
-    "issue_1071": {
-      "issue": 1071,
-      "scope": "canonical_state_only",
-      "accepted_product_sha": "e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a",
-      "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
-      "deployment_evidence": "runtime/deployments/20260918T050734Z",
-      "remaining_blocker": "normal_authenticated_operator_session_with_equipment_manage",
-      "state_model_v2": "success_local",
-      "git_diff_check": "success_local"
-    },
-    "completed_issue_1050": {
-      "issue": 1050,
-      "deployed_source": "df368cfa27efa945d59de33de8268898b564a19f",
-      "deployment_evidence": "runtime/deployments/20260918T050734Z",
-      "chromium_operator_identity": "NEXOLAB Administrator / administrator",
-      "commissioning_session_id": "7f2a5f15-6af6-4911-af32-67ad61bee25a",
-      "session_lifecycle": "verified",
-      "session_version": 1,
-      "preflight_attempt_id": "c290a1dd-1adb-4185-b6e5-5bb1e06386bb",
-      "preflight_state": "completed",
-      "preflight_result": "passed",
-      "preflight_code": "preflight_passed",
-      "evidence_level": "hardware_verified",
-      "duration_ms": 329,
-      "function_codes": [
-        3
-      ],
-      "valid_observations": 10,
-      "activation_attempts": 0,
-      "scheduled_targets": 53,
-      "active_bus_workers": "2/2_healthy",
-      "akcc25_scheduled_targets": 0,
-      "audit_events": [
-        "equipment.commissioning.created",
-        "equipment.commissioning.preflight.started",
-        "equipment.commissioning.preflight.completed"
-      ],
-      "browser_secret_access": "none",
-      "modbus_write": "none",
-      "hardware_write": "none"
-    },
-    "issue_1073": {
-      "issue": 1073,
-      "scope": "canonical_state_only",
-      "accepted_product_sha": "e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a",
-      "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
-      "state_model_v2": "success_local",
-      "git_diff_check": "success_local",
-      "next_ready_work_package": "none_independent"
+    "active_issue_evidence": {
+      "verified_head_sha": "49878a03e814d7a89fe6ce698a5b6331de90db31",
+      "checks": {
+        "local_refrigeration_suite": "187_passed",
+        "local_focused_suite": "25_passed",
+        "eslint": "success",
+        "typescript": "success",
+        "prettier": "success",
+        "production_build": "success",
+        "git_diff_check": "success"
+      }
     }
   },
-  "observations": [
-    {
-      "source": "github",
-      "observed_at": "2026-09-17T15:08:00+03:00",
-      "kind": "issue_1055_merge_reconciliation",
-      "data": {
-        "issue": 1055,
-        "pull_request": 1057,
-        "repository_main_sha": "640fd5d48ea63dc81eaeec08ba03b31feb294cd8",
-        "merge_sha": "640fd5d48ea63dc81eaeec08ba03b31feb294cd8"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-17T15:32:00+03:00",
-      "kind": "issue_1053_merge_reconciliation",
-      "data": {
-        "issue": 1053,
-        "pull_request": 1054,
-        "verified_head_sha": "da5ccf23966d541621eebcc1d8d898ff59baa4e0",
-        "merge_sha": "28e051488ba5cccd1fc739110d61a957b48b2c29",
-        "issue_state": "closed_completed",
-        "required_checks": "green"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-18T02:45:00+03:00",
-      "kind": "issue_1045_merge_reconciliation",
-      "data": {
-        "issue": 1045,
-        "pull_request": 1063,
-        "verified_head_sha": "27e2cb30e0b05eecc791354ce54ed8e4c339985a",
-        "merge_sha": "597913f850131464723d36f24113edee144e6608",
-        "issue_state": "closed_completed",
-        "required_checks": "green"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-18T06:13:05+03:00",
-      "kind": "issue_1067_merge_reconciliation",
-      "data": {
-        "issue": 1067,
-        "pull_request": 1068,
-        "verified_head_sha": "dd1d9eed5779572a754e20f360336cd16e46a58f",
-        "merge_sha": "223f58f071333c50e974aa2126afc0e1aa89451d",
-        "issue_state": "closed_completed",
-        "required_checks": "green"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-18T06:18:00+03:00",
-      "kind": "issue_1065_merge_reconciliation",
-      "data": {
-        "issue": 1065,
-        "pull_request": 1066,
-        "verified_head_sha": "0f8342efd4c828c238912e76eb47abf3f2379f71",
-        "merge_sha": "fc4dacd9de4eaad7c85eccb8a027ac61fc552e75",
-        "issue_state": "closed_completed",
-        "required_checks": "green"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-18T09:03:03+03:00",
-      "kind": "issue_1050_authenticated_chromium_acceptance",
-      "data": {
-        "issue": 1050,
-        "deployed_source": "df368cfa27efa945d59de33de8268898b564a19f",
-        "session_id": "7f2a5f15-6af6-4911-af32-67ad61bee25a",
-        "session_lifecycle": "verified",
-        "preflight_attempt_id": "c290a1dd-1adb-4185-b6e5-5bb1e06386bb",
-        "preflight_result": "passed",
-        "evidence_level": "hardware_verified",
-        "duration_ms": 329,
-        "function_codes": [
-          3
-        ],
-        "activation_attempts": 0,
-        "scheduled_targets": 53,
-        "active_bus_workers": "2/2",
-        "akcc25_scheduled_targets": 0,
-        "modbus_writes": "none",
-        "hardware_writes": "none"
-      }
-    }
-  ],
-  "next_action": "No independent Ready Work Package remains in the current Sprint after #1050 acceptance. #189 and #585 remain blocked on physical/ownership actions, #201 needs real LE-01MP validation, and #202 remains hardware-validation. Stop autonomous advancement until one of those gates is supplied or the Product Owner defines the next Sprint priority.",
+  "observations": [],
+  "next_action": "Commit durable state, push feature branch, open focused PR for #1075, then require exact-head GitHub CI and NEXOLAB Merge Gate GREEN before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
     "production_cutover_authorized": false,
-    "production_device_agent_recreation": "completed_under_consumed_2026-09-17_authorization_no_further_recreation_authorized",
     "mandatory_public_runtime_dependency": "none"
   }
 }
