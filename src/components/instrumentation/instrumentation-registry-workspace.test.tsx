@@ -125,7 +125,7 @@ describe("InstrumentationRegistryWorkspace", () => {
     render(<InstrumentationRegistryWorkspace repository={repository()} canManage={false} />);
 
     expect(await screen.findAllByText(instrument.displayName)).not.toHaveLength(0);
-    expect(await screen.findByText("Suction pressure")).toBeInTheDocument();
+    expect(await screen.findAllByText("Suction pressure")).not.toHaveLength(0);
     expect(screen.getByText(/r1 · accepted/)).toBeInTheDocument();
     expect(screen.getByText(/Accepted for calculation ≠ calibrated ≠ hardware verified/)).toBeInTheDocument();
 
