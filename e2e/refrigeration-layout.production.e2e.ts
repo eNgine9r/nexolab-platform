@@ -977,7 +977,7 @@ test("configures a refrigeration circuit through canonical operator authority", 
   await expect(workspace.getByText("Для цього обладнання контурів ще немає.")).toBeVisible();
 
   const createPanel = workspace.getByText("Новий контур", { exact: true }).locator("..");
-  await createPanel.getByLabel("Business key").fill("main");
+  await createPanel.getByLabel("Business key").fill("rfx11-main");
   await createPanel.getByLabel("Назва").fill("Основний контур");
   await createPanel.getByLabel("Початковий стан").selectOption("active");
   await createPanel.getByLabel("Діє з").fill("2026-09-18T10:00");
@@ -1024,7 +1024,7 @@ test("configures a refrigeration circuit through canonical operator authority", 
     items: Array<{ id: string; equipment_id: string; business_key: string }>;
   };
   const persistedCircuit = circuitsPayload.items.find(
-    (item) => item.equipment_id === equipment.id && item.business_key === "main",
+    (item) => item.equipment_id === equipment.id && item.business_key === "rfx11-main",
   );
   expect(persistedCircuit).toBeDefined();
   if (!persistedCircuit) throw new Error("RFX-10 circuit was not persisted");
@@ -1186,6 +1186,7 @@ test("authors an accepted Instrument and Signal before binding it through RFX-10
   await createPanel.getByLabel("Початковий стан").selectOption("active");
   await createPanel.getByLabel("Діє з").fill("2026-09-18T10:05");
   await createPanel.getByRole("button", { name: "Створити контур" }).click();
+  await expect(circuitWorkspace.getByText("Основний контур", { exact: true }).first()).toBeVisible();
 
   const bindingsSection = circuitWorkspace
     .locator("section")
