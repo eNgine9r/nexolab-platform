@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   HttpInstrumentationRegistryRepository,
-  InstrumentationRegistryRepositoryError,
   instrumentEtag,
   signalEtag,
 } from "./instrumentation-repository";
