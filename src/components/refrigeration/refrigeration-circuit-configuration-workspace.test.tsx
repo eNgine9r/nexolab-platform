@@ -161,11 +161,7 @@ function repository(overrides: Partial<RefrigerationCircuitConfigurationReposito
 describe("RefrigerationCircuitConfigurationWorkspace", () => {
   it("never renders demo configuration when the live repository is absent", () => {
     render(
-      <RefrigerationCircuitConfigurationWorkspace
-        equipmentId="equipment-1"
-        repository={null}
-        canManage
-      />,
+      <RefrigerationCircuitConfigurationWorkspace equipmentId="equipment-1" repository={null} canManage />,
     );
 
     expect(screen.getByText("Конфігурація контуру недоступна")).toBeInTheDocument();
@@ -195,15 +191,13 @@ describe("RefrigerationCircuitConfigurationWorkspace", () => {
       .fn<RefrigerationCircuitConfigurationRepository["listCircuits"]>()
       .mockResolvedValueOnce([])
       .mockResolvedValue([circuit]);
-    const createCircuit = vi.fn<RefrigerationCircuitConfigurationRepository["createCircuit"]>(async () => circuit);
+    const createCircuit = vi.fn<RefrigerationCircuitConfigurationRepository["createCircuit"]>(
+      async () => circuit,
+    );
     const repo = repository({ listCircuits, createCircuit });
 
     render(
-      <RefrigerationCircuitConfigurationWorkspace
-        equipmentId="equipment-1"
-        repository={repo}
-        canManage
-      />,
+      <RefrigerationCircuitConfigurationWorkspace equipmentId="equipment-1" repository={repo} canManage />,
     );
 
     expect(await screen.findByText("Для цього обладнання контурів ще немає.")).toBeInTheDocument();
@@ -238,31 +232,27 @@ describe("RefrigerationCircuitConfigurationWorkspace", () => {
   });
 
   it("uses backend candidate discovery before binding a semantic role", async () => {
-    const listBindingCandidates = vi.fn<
-      RefrigerationCircuitConfigurationRepository["listBindingCandidates"]
-    >(async () => [
-      {
-        signalId: "signal-1",
-        instrumentId: "instrument-1",
-        signalDisplayName: "Suction pressure",
-        instrumentDisplayName: "PT-1",
-        physicalQuantity: "pressure",
-        engineeringUnit: "bar",
-        instrumentKind: "pressure_transmitter",
-        pressureReference: "gauge",
-      },
-    ]);
-    const appendBinding = vi.fn<
-      RefrigerationCircuitConfigurationRepository["appendBinding"]
-    >(repository().appendBinding);
+    const listBindingCandidates = vi.fn<RefrigerationCircuitConfigurationRepository["listBindingCandidates"]>(
+      async () => [
+        {
+          signalId: "signal-1",
+          instrumentId: "instrument-1",
+          signalDisplayName: "Suction pressure",
+          instrumentDisplayName: "PT-1",
+          physicalQuantity: "pressure",
+          engineeringUnit: "bar",
+          instrumentKind: "pressure_transmitter",
+          pressureReference: "gauge",
+        },
+      ],
+    );
+    const appendBinding = vi.fn<RefrigerationCircuitConfigurationRepository["appendBinding"]>(
+      repository().appendBinding,
+    );
     const repo = repository({ listBindingCandidates, appendBinding });
 
     render(
-      <RefrigerationCircuitConfigurationWorkspace
-        equipmentId="equipment-1"
-        repository={repo}
-        canManage
-      />,
+      <RefrigerationCircuitConfigurationWorkspace equipmentId="equipment-1" repository={repo} canManage />,
     );
 
     const roleTitle = await screen.findByText("Тиск кипіння / всмоктування");
@@ -271,10 +261,7 @@ describe("RefrigerationCircuitConfigurationWorkspace", () => {
     fireEvent.click(within(card).getByRole("button", { name: "Обрати сигнал" }));
 
     expect(await within(card).findByText(/PT-1 · Suction pressure · bar/)).toBeInTheDocument();
-    expect(listBindingCandidates).toHaveBeenCalledWith(
-      "suction_pressure",
-      expect.any(Date),
-    );
+    expect(listBindingCandidates).toHaveBeenCalledWith("suction_pressure", expect.any(Date));
     fireEvent.click(within(card).getByRole("button", { name: "Прив’язати" }));
 
     await waitFor(() => expect(appendBinding).toHaveBeenCalledOnce());
