@@ -4,6 +4,18 @@ Updated: 2026-09-18
 
 ## Current Sprint
 
+### Issue #1092 — RFX-12 Overview layout completed; Ready queue empty
+
+RFX-12 / Issue #1088 is repository-complete. PR #1089 final head `621d70605856e07bdfc6003c851ca2ddbb593f4f` passed exact-head Core Quality/build + NEXOLAB Merge Gate `35368527778` and Authenticated Dashboard Acceptance `35368527798`, with zero review submissions and zero unresolved review threads. The accepted product baseline is `1a0644497e4cfd10ce7ba0366772955c72f4711a`; the only change after that product source through the final PR head is the already-merged canonical BLOCKERS formatting baseline from #1090.
+
+The Overview temperature/XJP60D workspace now spans the full usable command-area width. The “Потребує уваги” alarm panel is below the temperature workspace, and infrastructure remains below the alarm panel. Authenticated browser acceptance verified this ordering and equal full-width geometry at 360, 1440 and 1920 px while preserving chart range, zoom, cursor, hide/solo interactions, REST/history/WebSocket behavior, no public runtime requests and no acquisition mutations.
+
+Issue #1090 / PR #1091 separately restored canonical Prettier formatting for `.project/BLOCKERS.md` only. It changed no planning semantics and no product/runtime behavior.
+
+Production LOCAL_LAN remains deployed at `df368cfa27efa945d59de33de8268898b564a19f`. RFX-12 performed no deployment, backend/API/data change, Modbus/controller write, hardware write, persistent-data deletion or volume deletion.
+
+There is currently no independent Ready Work Package after RFX-12 and no repository-backed RFX-13 Issue. Existing hardware, recovery and toolchain blockers remain unchanged. The next product Work Package requires Product Owner prioritization or a newly discovered critical defect/security interruption.
+
 ### Issue #1086 — RFX-11 merge reconciled; no independent Ready Work Package
 
 RFX-11 / Issue #1082 is repository-complete. PR #1085 final head `df0efd5daa50639d39c72088382cc50cb0485bbe` passed exact-head Core Quality/build and final NEXOLAB Merge Gate `35353484343`, Refrigeration Browser Acceptance `35353484405`, Authenticated Dashboard Acceptance `35353484332`, and Disaster Recovery Browser `35353484390`. Review submissions and unresolved review threads are both zero. PR #1085 squash-merged to `main` as `8035eaa8ae4a80700d5036453d45bb9f91a15580`; GitHub closed #1082 completed.

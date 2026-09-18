@@ -160,26 +160,15 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
 
-## RFX programme — RFX-11 merged; no RFX-12 Work Package defined
+## RFX programme — RFX-12 merged; no RFX-13 Work Package defined
 
-The Product Owner lifted the RFX presentation hold on 2026-09-05. RFX-01 through RFX-11 are repository-complete. RFX-11 / #1082 / PR #1085 final head `df0efd5daa50639d39c72088382cc50cb0485bbe` passed exact-head Core Quality/build + NEXOLAB Merge Gate `35353484343`, Refrigeration Browser `35353484405`, Authenticated Dashboard `35353484332`, and Disaster Recovery Browser `35353484390`, then squash-merged to `main` as `8035eaa8ae4a80700d5036453d45bb9f91a15580`. The accepted product baseline is `fbeed51b8e2b32afa87c918086b881927a5439a3`; production remains deployed at `df368cfa27efa945d59de33de8268898b564a19f`.
+RFX-01 through RFX-12 are repository-complete. RFX-12 / #1088 / PR #1089 final head `621d70605856e07bdfc6003c851ca2ddbb593f4f` passed Core Quality/build + NEXOLAB Merge Gate `35368527778` and Authenticated Dashboard Acceptance `35368527798`. The accepted product baseline is `1a0644497e4cfd10ce7ba0366772955c72f4711a`; production remains deployed at `df368cfa27efa945d59de33de8268898b564a19f`.
 
-There is no repository-backed RFX-12 Issue and no independent Ready Work Package after RFX-11. Do not invent a new product scope merely to keep the queue non-empty.
+RFX-12 makes the Overview temperature workspace full width and moves “Потребує уваги” below it. No backend, telemetry, alarm logic, dependency, deployment or hardware scope changed.
 
-Current non-Ready boundaries:
+There is no repository-backed RFX-13 Issue and no independent Ready Work Package. Existing non-Ready boundaries remain: #585 external RS-485 handback, #189 actual-host recovery evidence, #201/#202 real hardware validation, #17 dependencies on hardware semantics, #257/#256 toolchain dependencies, and stale #1019 production-release planning.
 
-- #585 — blocked until the temporary external RS-485 owner releases W2 and the Product Owner approves any required physical handback/reconnection;
-- #189 — actual-host recovery/reboot/power-loss evidence remains gated; hosted evidence does not substitute for real hardware;
-- #201 — normal cumulative-energy semantics are accepted, but controlled power-cycle/rollover/discontinuity hardware evidence remains pending;
-- #202 — representative KK1/KK2 XJP60D portability and extended semantics require real hardware evidence;
-- #17 — queued behind #201/#202 and must not invent missing profile fields;
-- #257/#256 — toolchain migrations remain dependency-blocked;
-- #1019 — stale production frontend-release plan with a fixed compatibility baseline older than current deployed/accepted authority; it requires a newly scoped production decision before reuse;
-- #603/#326/#204 — Epics/parent tracks, not focused Ready Work Packages.
-
-This empty Ready queue is a hard scheduling blocker under Autonomous Sprint Mode. The next product Work Package requires Product Owner prioritization, unless a critical defect/security interruption creates a higher-priority scoped Issue.
-
-Existing safety boundaries remain unchanged: no Modbus/controller writes, no hardware writes, no production/site cutover without explicit approval, no persistent-data/volume deletion, and no hardware acceptance without real evidence.
+This empty Ready queue remains a hard scheduling blocker under Autonomous Sprint Mode. The next product Work Package requires Product Owner prioritization unless a critical defect/security interruption creates a higher-priority scoped Issue.
 
 ## Issue #909 — consolidated HIGH container exception review
 

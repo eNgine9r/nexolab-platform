@@ -18,7 +18,7 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "fbeed51b8e2b32afa87c918086b881927a5439a3",
+    "accepted_product_sha": "1a0644497e4cfd10ce7ba0366772955c72f4711a",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f"
   },
   "selection": {
@@ -4362,6 +4362,84 @@
         "modbus_write": "none",
         "hardware_write": "none"
       }
+    },
+    {
+      "issue": 1090,
+      "title": "[MAINTENANCE] Restore Prettier baseline for canonical BLOCKERS state",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1086
+      ],
+      "branch": "chore/1090-format-blockers-prettier",
+      "evidence": {
+        "scope": "canonical_state_format_only",
+        "final_pr_head_sha": "57d6d68f671ef1c3ef0a5b9a2cdefb49f7e14ac4",
+        "pull_request": 1091,
+        "issue_state": "closed_completed",
+        "checks": {
+          "state_integrity_and_merge_gate": "success:35368248403"
+        },
+        "planning_semantics_changed": false,
+        "product_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1088,
+      "title": "[RFX-12][UI] Make Overview temperature workspace full-width and move alarms below",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1086
+      ],
+      "branch": "feat/1088-rfx12-overview-fullwidth-temperature",
+      "evidence": {
+        "product_code_head_sha": "1a0644497e4cfd10ce7ba0366772955c72f4711a",
+        "final_pr_head_sha": "621d70605856e07bdfc6003c851ca2ddbb593f4f",
+        "pull_request": 1089,
+        "issue_state": "closed_completed",
+        "scope": "software_only_overview_layout",
+        "behavior": "temperature_full_width_attention_below_infrastructure_below",
+        "checks": {
+          "core_quality_build_and_merge_gate": "success:35368527778",
+          "authenticated_dashboard": "success:35368527798"
+        },
+        "responsive_widths_px": [
+          360,
+          1440,
+          1920
+        ],
+        "review_submissions": 0,
+        "unresolved_review_threads": 0,
+        "production_deployment": "none",
+        "hardware_acceptance": "not_applicable_not_claimed",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1092,
+      "title": "[STATE][RFX-12] Reconcile Overview UI merge and empty Ready queue",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1088,
+        1090
+      ],
+      "branch": "chore/1092-reconcile-rfx12-state",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "rfx12_product_sha": "1a0644497e4cfd10ce7ba0366772955c72f4711a",
+        "rfx12_final_pr_head_sha": "621d70605856e07bdfc6003c851ca2ddbb593f4f",
+        "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
+        "next_ready_issue": null,
+        "selection_result": "no_independent_ready_work_package",
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
     }
   ],
   "maintenance_actions": [
@@ -4953,6 +5031,30 @@
         "pull_request": 1085,
         "final_pr_head_sha": "df0efd5daa50639d39c72088382cc50cb0485bbe",
         "merge_sha": "8035eaa8ae4a80700d5036453d45bb9f91a15580",
+        "issue_state": "closed_completed"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-18T16:25:28Z",
+      "kind": "maintenance_pr1091_merge",
+      "data": {
+        "issue": 1090,
+        "pull_request": 1091,
+        "final_pr_head_sha": "57d6d68f671ef1c3ef0a5b9a2cdefb49f7e14ac4",
+        "merge_sha": "dd2d87f548fd5b52d21c7b7aff8b38bada14cae3",
+        "issue_state": "closed_completed"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-18T16:33:52Z",
+      "kind": "rfx12_pr1089_merge",
+      "data": {
+        "issue": 1088,
+        "pull_request": 1089,
+        "final_pr_head_sha": "621d70605856e07bdfc6003c851ca2ddbb593f4f",
+        "merge_sha": "860fb5759030a7ae860826c0f3729261f56f1f89",
         "issue_state": "closed_completed"
       }
     }
