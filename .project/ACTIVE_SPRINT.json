@@ -23,13 +23,39 @@
   },
   "selection": {
     "active_work_package": null,
-    "next_work_package": {
-      "issue": 1050,
-      "title": "Complete authenticated operator acceptance for the RS-485 commissioning selector",
-      "branch": "deploy/1050-rs485-selector-runtime"
-    }
+    "next_work_package": null
   },
   "work_packages": [
+    {
+      "issue": 1073,
+      "title": "Close #1050 after authenticated Chromium acceptance",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1050
+      ],
+      "branch": "chore/1073-close-1050-state",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "accepted_product_sha": "e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a",
+        "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
+        "chromium_acceptance": "passed_normal_authenticated_administrator_session",
+        "commissioning_session_id": "7f2a5f15-6af6-4911-af32-67ad61bee25a",
+        "session_lifecycle": "verified",
+        "preflight_attempt_id": "c290a1dd-1adb-4185-b6e5-5bb1e06386bb",
+        "preflight": "completed_passed_hardware_verified_fc03_only_329ms_10_valid_observations",
+        "activation_attempts": 0,
+        "scheduled_targets": 53,
+        "active_bus_workers": "2/2_healthy",
+        "akcc25_scheduled_targets": 0,
+        "browser_secret_access": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "state_model_v2": "success_local",
+        "git_diff_check": "success_local",
+        "next_ready_work_package": "none_independent"
+      }
+    },
     {
       "issue": 1071,
       "title": "Record corrected LOCAL_LAN commissioning wiring deployment",
@@ -4000,7 +4026,7 @@
       "issue": 1050,
       "title": "Roll out merged RS-485 commissioning selector to LOCAL_LAN with verified recovery authority",
       "priority": "unspecified",
-      "lifecycle": "blocked",
+      "lifecycle": "completed",
       "branch": "deploy/1050-rs485-selector-runtime",
       "evidence": {
         "verified_head_sha": "b7e91e38cca02593df0876fe61e81947071fced1",
@@ -4021,13 +4047,29 @@
           "product_owner_cutover_authorization": "consumed_exact_039e37ac_to_df368cfa_2026-09-18",
           "device_agent_nonroot_supplementary_groups": "success_gid20_gid46",
           "ftdi_a10q2si7_available_for_preflight": "success_private_inventory",
-          "authenticated_ui_api_acceptance": "blocked_missing_normal_operator_session_with_equipment_manage",
+          "authenticated_ui_api_acceptance": "success_chromium_administrator_session",
           "commissioning_inventory_repository_wiring": "merged_verified_issue_1065",
           "corrected_runtime_cutover": "success",
           "commissioning_inventory_runtime_wiring": "success_private_telemetry_to_device_agent",
           "telemetry_commissioning_base_url": "http://edge-device-agent:8081",
-          "active_bus_workers": "2_of_2_healthy"
-        }
+          "active_bus_workers": "2_of_2_healthy",
+          "chromium_operator_identity": "NEXOLAB_Administrator_administrator",
+          "commissioning_session_id": "7f2a5f15-6af6-4911-af32-67ad61bee25a",
+          "commissioning_session_lifecycle": "verified",
+          "commissioning_session_version": "1",
+          "commissioning_preflight_attempt_id": "c290a1dd-1adb-4185-b6e5-5bb1e06386bb",
+          "commissioning_preflight_result": "completed_passed_hardware_verified_preflight_passed",
+          "commissioning_preflight_duration_ms": "329",
+          "commissioning_preflight_function_codes": "03_only",
+          "commissioning_preflight_observations": "10_valid",
+          "commissioning_activation_attempts": "0",
+          "security_audit_trail": "created_preflight_started_preflight_completed",
+          "post_ui_53_targets": "success",
+          "post_ui_active_bus_workers": "2_of_2_healthy",
+          "post_ui_akcc25_scheduled_targets": "0",
+          "browser_secret_access": "none"
+        },
+        "acceptance_state": "completed_authenticated_chromium"
       }
     },
     {
@@ -4686,6 +4728,30 @@
         "merge_sha": "fc4dacd9de4eaad7c85eccb8a027ac61fc552e75",
         "issue_state": "closed_completed",
         "required_checks": "green"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-18T09:03:03+03:00",
+      "kind": "issue_1050_authenticated_chromium_acceptance",
+      "data": {
+        "issue": 1050,
+        "deployed_source": "df368cfa27efa945d59de33de8268898b564a19f",
+        "session_id": "7f2a5f15-6af6-4911-af32-67ad61bee25a",
+        "session_lifecycle": "verified",
+        "preflight_attempt_id": "c290a1dd-1adb-4185-b6e5-5bb1e06386bb",
+        "preflight_result": "passed",
+        "evidence_level": "hardware_verified",
+        "duration_ms": 329,
+        "function_codes": [
+          3
+        ],
+        "activation_attempts": 0,
+        "scheduled_targets": 53,
+        "active_bus_workers": "2/2",
+        "akcc25_scheduled_targets": 0,
+        "modbus_writes": "none",
+        "hardware_writes": "none"
       }
     }
   ],

@@ -20,9 +20,7 @@ Updated: 2026-09-18
 
 ## Issue #1050 — RS-485 commissioning selector production acceptance
 
-**Hard-blocked only on mandatory authenticated operator access.** The Product Owner-authorized corrected runtime cutover `039e37ac4b91903e5f8ee33de2603e40c308de90 → df368cfa27efa945d59de33de8268898b564a19f` completed with `DEPLOYMENT PASSED` evidence `runtime/deployments/20260918T050734Z`. Live invariants are preserved: 53 scheduled targets, 2/2 workers healthy, AK-CC25 scheduled targets `0`, persistent volume identities byte-identical, and FTDI `A10Q2SI7` available through the private Telemetry→Device Agent inventory path. Real Danfoss Unit 35 read-only acceptance passed post-cutover with `hardware_verified`, FC03 only, ~328.5 ms, ten valid observations, `modbus_writes=none` and `hardware_writes=none`.
-
-The remaining gate is the final Equipment → Connect device save/review/preflight through a **normal authenticated operator session with `equipment.manage`**. The approved read-only inspection identity cannot perform that mutation and the browser connector is not currently connected, so credentials/tokens/cookies will not be extracted or bypassed. No further production recreation/cutover is authorized; AK-CC25 production polling remains disabled; Modbus/controller writes and hardware writes remain forbidden.
+**Cleared and completed.** The corrected runtime is deployed on `df368cfa27efa945d59de33de8268898b564a19f` with evidence `runtime/deployments/20260918T050734Z`. The final Equipment → Connect device flow then passed in the actual Chromium UI under the normal `NEXOLAB Administrator / administrator` session without reading or bypassing browser secrets. Session `7f2a5f15-6af6-4911-af32-67ad61bee25a` reached `verified`; persisted preflight `c290a1dd-1adb-4185-b6e5-5bb1e06386bb` passed `hardware_verified` in 329 ms, FC03 only, with ten valid observations, `modbus_writes=none` and `hardware_writes=none`. Activation attempts remain `0`, scheduled targets remain 53, workers remain 2/2 healthy, and AK-CC25 scheduled targets remain `0`. No #1050 blocker remains.
 
 ## Issue #1044 — Danfoss onboarding runtime promotion
 
