@@ -4236,7 +4236,6 @@
         },
         "pull_request": 1076,
         "final_pr_head_sha": "9264a7282c64c53048f6866a01bb8151455a1083",
-        "merge_sha": "956db3c7876ea8d2b367e4306fae559dab8acb7c",
         "issue_state": "closed_completed"
       }
     },
@@ -4253,7 +4252,6 @@
         "scope": "canonical_state_only",
         "rfx09_product_sha": "49878a03e814d7a89fe6ce698a5b6331de90db31",
         "rfx09_final_pr_head_sha": "9264a7282c64c53048f6866a01bb8151455a1083",
-        "rfx09_merge_sha": "956db3c7876ea8d2b367e4306fae559dab8acb7c",
         "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
         "next_ready_issue": 1077,
         "production_runtime_mutation": "none",
@@ -4827,6 +4825,18 @@
         "akcc25_scheduled_targets": 0,
         "modbus_writes": "none",
         "hardware_writes": "none"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-18T11:11:20Z",
+      "kind": "rfx09_pr1076_merge",
+      "data": {
+        "issue": 1075,
+        "pull_request": 1076,
+        "final_pr_head_sha": "9264a7282c64c53048f6866a01bb8151455a1083",
+        "merge_sha": "956db3c7876ea8d2b367e4306fae559dab8acb7c",
+        "issue_state": "closed_completed"
       }
     }
   ],
