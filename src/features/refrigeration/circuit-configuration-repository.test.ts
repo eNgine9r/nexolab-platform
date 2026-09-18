@@ -252,9 +252,7 @@ describe("HttpRefrigerationCircuitConfigurationRepository", () => {
       "http://127.0.0.1:8082",
       vi.fn(async () => json({ items: [{ id: "broken" }] })) as unknown as typeof fetch,
     );
-    await expect(malformed.listCircuits("equipment-1")).rejects.toThrow(
-      "некоректний контракт",
-    );
+    await expect(malformed.listCircuits("equipment-1")).rejects.toThrow("некоректний контракт");
 
     const conflict = new HttpRefrigerationCircuitConfigurationRepository(
       "http://127.0.0.1:8082",
@@ -270,8 +268,8 @@ describe("HttpRefrigerationCircuitConfigurationRepository", () => {
         ),
       ) as unknown as typeof fetch,
     );
-    await expect(
-      conflict.appendLifecycle("circuit-1", { state: "retired", validFrom: at }),
-    ).rejects.toThrow("effective timestamp must increase");
+    await expect(conflict.appendLifecycle("circuit-1", { state: "retired", validFrom: at })).rejects.toThrow(
+      "effective timestamp must increase",
+    );
   });
 });
