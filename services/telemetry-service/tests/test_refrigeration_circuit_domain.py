@@ -94,6 +94,21 @@ def _repositories(tmp_path: Path):
                     _equipment("equipment-other", OTHER_ORGANIZATION_ID),
                 ]
             )
+    policies = CalculationPolicyRepository(database)
+    for version in ("rfx06-config-v1", "rfx06-config-v2"):
+        policies.create(
+            CalculationPolicyCreateRequest(
+                version=version,
+                maximum_age_ms=60_000,
+                maximum_future_clock_skew_ms=5_000,
+                maximum_cross_input_skew_ms=60_000,
+                accepted_calibration_states=["valid"],
+                require_calibration_at_observation=False,
+                calibration_required_roles=[],
+            ),
+            actor_id="test-suite",
+            organization_id=ORGANIZATION_ID,
+        )
     return database, RefrigerationCircuitRepository(database), InstrumentationRepository(database)
 
 
