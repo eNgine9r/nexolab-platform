@@ -1182,11 +1182,11 @@ test("authors an accepted Instrument and Signal before binding it through RFX-10
   await expect(circuitWorkspace.getByText("Для цього обладнання контурів ще немає.")).toBeVisible();
   const createPanel = circuitWorkspace.getByText("Новий контур", { exact: true }).locator("..");
   await createPanel.getByLabel("Business key").fill("rfx11-main");
-  await createPanel.getByLabel("Назва").fill("Основний контур");
+  await createPanel.getByLabel("Назва").fill("RFX-11 основний контур");
   await createPanel.getByLabel("Початковий стан").selectOption("active");
   await createPanel.getByLabel("Діє з").fill("2026-09-18T10:05");
   await createPanel.getByRole("button", { name: "Створити контур" }).click();
-  await expect(circuitWorkspace.getByText("Основний контур", { exact: true }).first()).toBeVisible();
+  await expect(circuitWorkspace.getByText("RFX-11 основний контур", { exact: true }).first()).toBeVisible();
 
   const bindingsSection = circuitWorkspace
     .locator("section")
