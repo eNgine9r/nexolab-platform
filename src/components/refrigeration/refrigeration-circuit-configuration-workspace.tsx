@@ -261,7 +261,14 @@ export function RefrigerationCircuitConfigurationWorkspace({
 
   async function handleConfiguration(event: FormEvent) {
     event.preventDefault();
-    if (!canManage || !selectedCircuit || !refrigerantCode.trim() || !policyVersion) return;
+    if (
+      !canManage ||
+      !selectedCircuit ||
+      !refrigerantCode.trim() ||
+      !policyVersion ||
+      !policies.some((policy) => policy.version === policyVersion)
+    )
+      return;
     await mutate(async () => {
       await repository!.appendConfiguration(selectedCircuit.id, {
         refrigerantCode: refrigerantCode.trim().toUpperCase(),
@@ -657,7 +664,7 @@ function CircuitConfigurationSection({
           <div className="flex justify-end md:col-span-2 xl:col-span-4">
             <button
               type="submit"
-              disabled={busy || !policyVersion || !refrigerantCode.trim()}
+              disabled={busy || !selectedPolicy || !refrigerantCode.trim()}
               className={primaryButtonClass}
             >
               Додати версію конфігурації
