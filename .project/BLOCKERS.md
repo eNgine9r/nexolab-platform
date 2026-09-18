@@ -160,11 +160,13 @@ Representative KK1/KK2 physical evidence, Unit 115 resolution and extended seman
 
 Blocked until the Product Owner confirms the temporary external RS-485 owner has released W2 and approves any required physical handback/reconnection.
 
-## RFX programme — RFX-09 merged; RFX-10 Ready
+## RFX programme — RFX-10 merged; RFX-11 Ready
 
-The Product Owner lifted the RFX presentation hold on 2026-09-05. RFX-01 through RFX-09 are repository-complete. RFX-09 / #1075 / PR #1076 merged to `main` as `956db3c7876ea8d2b367e4306fae559dab8acb7c` after final exact-head Core CI / NEXOLAB Merge Gate and required browser lanes passed. No RFX-09 software merge blocker remains.
+The Product Owner lifted the RFX presentation hold on 2026-09-05. RFX-01 through RFX-10 are repository-complete. RFX-10 / #1077 / PR #1081 final head `6d3ee33e8da25e0ad074c36d6bc48782c5d7bae0` passed the exact-head Core Quality/build + NEXOLAB Merge Gate, Refrigeration Browser, Telemetry Service, Security Browser, Offline Bundle, Capacity Release Gate and the remaining classified matrix, then squash-merged to `main` as `f6b1e474537107ba2a0f622309326617c57a1e73`. The accepted product baseline is `c750bab792ed09171bb29fc97cc0bb5396020c53`; production remains deployed at `df368cfa27efa945d59de33de8268898b564a19f`.
 
-RFX-10 / #1077 is the next independent software-only Ready Work Package after state reconciliation #1078. It does not authorize production deployment, live hardware activation, Modbus/controller writes or hardware acceptance. Existing hardware/recovery gates #189, #201, #202 and #585 remain unchanged and do not block RFX-10 software implementation.
+RFX-11 / #1082 is the next independent software-only Ready Work Package after state reconciliation #1083. It adds canonical Instrument/Signal registry authoring plus explicit calculation-acceptance history and proves the resulting compatible accepted Signal can be discovered by the existing RFX-10 backend candidate authority. It does not authorize acquisition-source/scaling/calibration mutation, production deployment, live hardware activation, Modbus/controller writes or hardware acceptance.
+
+Existing hardware/recovery gates #189, #201, #202 and #585 remain unchanged and do not block RFX-11 software implementation.
 
 ## Issue #909 — consolidated HIGH container exception review
 
