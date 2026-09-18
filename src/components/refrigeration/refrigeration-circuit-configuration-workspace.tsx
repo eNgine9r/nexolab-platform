@@ -478,12 +478,28 @@ function CircuitLifecycleSection({
       />
       {canManage ? (
         <form onSubmit={onSubmit} className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-          <select value={state} onChange={(event) => setState(event.target.value as CircuitLifecycleState)} className={inputClass}>
-            {(["active", "inactive", "retired"] as const).map((item) => (
-              <option key={item} value={item}>{lifecycleLabels[item]}</option>
-            ))}
-          </select>
-          <input type="datetime-local" value={effectiveAt} onChange={(event) => setEffectiveAt(event.target.value)} className={inputClass} required />
+          <Field label="Новий стан">
+            <select
+              value={state}
+              onChange={(event) => setState(event.target.value as CircuitLifecycleState)}
+              className={inputClass}
+            >
+              {(["active", "inactive", "retired"] as const).map((item) => (
+                <option key={item} value={item}>
+                  {lifecycleLabels[item]}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Діє з">
+            <input
+              type="datetime-local"
+              value={effectiveAt}
+              onChange={(event) => setEffectiveAt(event.target.value)}
+              className={inputClass}
+              required
+            />
+          </Field>
           <button type="submit" disabled={busy} className={primaryButtonClass}>
             <CheckCircle2 className="h-3.5 w-3.5" /> Додати стан
           </button>
