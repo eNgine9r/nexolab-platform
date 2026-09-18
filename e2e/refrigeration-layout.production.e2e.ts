@@ -1197,6 +1197,7 @@ test("authors an accepted Instrument and Signal before binding it through RFX-10
   await expect(suctionCard.getByRole("combobox")).toContainText(
     "RFX11 pressure transmitter · RFX11 suction pressure · bar",
   );
+  await suctionCard.getByRole("combobox").selectOption(persistedSignal.id);
   await suctionCard.getByRole("button", { name: "Прив’язати" }).click();
   await expect(suctionCard.getByText(persistedSignal.id, { exact: true })).toBeVisible();
 
