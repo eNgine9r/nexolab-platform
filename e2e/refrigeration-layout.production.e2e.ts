@@ -1109,7 +1109,6 @@ test("configures a refrigeration circuit through canonical operator authority", 
   );
 });
 
-
 test("authors an accepted Instrument and Signal before binding it through RFX-10", async ({ page }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
   const chamber = await resolveClimateChamber(page.request);
@@ -1145,9 +1144,7 @@ test("authors an accepted Instrument and Signal before binding it through RFX-10
   await signalForm.getByRole("button", { name: "Створити Signal" }).click();
   await expect(registry.getByText("RFX11 suction pressure", { exact: true }).first()).toBeVisible();
 
-  const acceptanceSection = registry
-    .locator("section")
-    .filter({ hasText: /^Calculation acceptance/ });
+  const acceptanceSection = registry.locator("section").filter({ hasText: /^Calculation acceptance/ });
   await acceptanceSection.getByLabel("Calculation eligibility").selectOption("accepted");
   await acceptanceSection.getByLabel("State label").fill("rfx11-browser-accepted");
   await acceptanceSection.getByLabel("Діє з").fill("2026-09-18T10:00");
@@ -1193,12 +1190,8 @@ test("authors an accepted Instrument and Signal before binding it through RFX-10
   const bindingsSection = circuitWorkspace
     .locator("section")
     .filter({ hasText: "Semantic Signal → role bindings" });
-  await bindingsSection
-    .getByLabel("Effective time для наступної binding-операції")
-    .fill("2026-09-18T10:10");
-  const suctionCard = bindingsSection
-    .locator("article")
-    .filter({ hasText: "Тиск кипіння / всмоктування" });
+  await bindingsSection.getByLabel("Effective time для наступної binding-операції").fill("2026-09-18T10:10");
+  const suctionCard = bindingsSection.locator("article").filter({ hasText: "Тиск кипіння / всмоктування" });
   await suctionCard.getByRole("button", { name: "Обрати сигнал" }).click();
   await expect(suctionCard.getByRole("combobox")).toContainText(
     "RFX11 pressure transmitter · RFX11 suction pressure · bar",
