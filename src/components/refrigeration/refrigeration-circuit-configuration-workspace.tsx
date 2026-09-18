@@ -51,7 +51,7 @@ export function RefrigerationCircuitConfigurationWorkspace({
   const [policies, setPolicies] = useState<CalculationPolicyRecord[]>([]);
   const [selectedCircuitId, setSelectedCircuitId] = useState<string | null>(null);
   const [details, setDetails] = useState<CircuitDetails | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(repository !== null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
@@ -134,16 +134,75 @@ export function RefrigerationCircuitConfigurationWorkspace({
   );
 
   useEffect(() => {
-    void loadBase();
-  }, [loadBase]);
+    if (!repository) return;
+    let active = true;
+    const controller = new AbortController();
+
+    void Promise.all([
+      repository.listCircuits(equipmentId, controller.signal),
+      repository.listPolicies(controller.signal),
+    ])
+      .then(([nextCircuits, nextPolicies]) => {
+        if (!active) return;
+        setCircuits(nextCircuits);
+        setPolicies(nextPolicies);
+        setSelectedCircuitId((current) =>
+          current && nextCircuits.some((item) => item.id === current)
+            ? current
+            : (nextCircuits[0]?.id ?? null),
+        );
+        setPolicyVersion((current) => current || nextPolicies[0]?.version || "");
+        if (nextCircuits.length === 0) setDetails(null);
+      })
+      .catch((cause) => {
+        if (!active || controller.signal.aborted) return;
+        setError(readError(cause, "Не вдалося завантажити конфігурацію холодильного контуру."));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [equipmentId, repository]);
 
   useEffect(() => {
-    if (!selectedCircuitId) {
-      setDetails(null);
-      return;
-    }
-    void loadDetails(selectedCircuitId);
-  }, [loadDetails, selectedCircuitId]);
+    if (!repository || !selectedCircuitId) return;
+    let active = true;
+    const controller = new AbortController();
+
+    void Promise.all([
+      repository.listLifecycle(selectedCircuitId, controller.signal),
+      repository.listConfigurations(selectedCircuitId, controller.signal),
+      repository.listBindings(selectedCircuitId, true, controller.signal),
+    ])
+      .then(([lifecycle, configurations, bindings]) => {
+        if (!active) return;
+        setDetails({ lifecycle, configurations, bindings });
+        const currentLifecycle = latestOpen(lifecycle);
+        if (currentLifecycle) setLifecycleState(currentLifecycle.state);
+        const currentConfiguration = latestOpen(configurations);
+        if (currentConfiguration) {
+          setRefrigerantCode(currentConfiguration.refrigerantCode);
+          setPolicyVersion(currentConfiguration.calculationPolicyVersion);
+        }
+      })
+      .catch((cause) => {
+        if (!active || controller.signal.aborted) return;
+        setDetails(null);
+        setError(readError(cause, "Не вдалося завантажити історію холодильного контуру."));
+      })
+      .finally(() => {
+        if (active) setDetailsLoading(false);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [repository, selectedCircuitId]);
 
   const selectedCircuit = useMemo(
     () => circuits.find((item) => item.id === selectedCircuitId) ?? null,
