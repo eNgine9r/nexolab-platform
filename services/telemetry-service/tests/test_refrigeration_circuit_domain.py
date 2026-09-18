@@ -10,8 +10,13 @@ from app.instrumentation.models import Instrument, Signal
 from app.instrumentation.repository import InstrumentationRepository
 from app.instrumentation.schemas import AcceptanceAppendRequest, InstrumentCreate, SignalCreate
 from app.model_registry import register_models
+from app.refrigeration.calculation_policy import (
+    CalculationPolicyCreateRequest,
+    CalculationPolicyRepository,
+)
 from app.refrigeration.circuit_repository import (
     CircuitBindingCompatibilityError,
+    CircuitConfigurationCompatibilityError,
     CircuitConflictError,
     CircuitEquipmentNotFoundError,
     CircuitHistoryOrderError,
@@ -25,6 +30,7 @@ from app.refrigeration.circuit_schemas import (
     CircuitLifecycleAppendRequest,
 )
 from app.refrigeration.models import RefrigerationEquipmentRecord
+from app.refrigeration.property_provider import CANONICAL_PROPERTY_PROVIDER_PROFILE
 from app.security.repository import SecurityRepository
 
 
@@ -225,6 +231,37 @@ def test_configuration_resolves_as_of_without_current_fallback(tmp_path: Path) -
         circuit.id, T0 + timedelta(days=1, hours=12)
     ).id == first.id
     assert repository.resolve_configuration(circuit.id, second.valid_from).id == second.id
+
+
+def test_configuration_authority_rejects_missing_policy_or_unsupported_provider(
+    tmp_path: Path,
+) -> None:
+    _, repository, _ = _repositories(tmp_path)
+    circuit, _ = _circuit(repository)
+
+    with pytest.raises(CircuitConfigurationCompatibilityError):
+        repository.append_configuration(
+            circuit.id,
+            CircuitConfigurationAppendRequest(
+                refrigerant_code="R290",
+                calculation_policy_version="missing-policy",
+                property_provider_profile=CANONICAL_PROPERTY_PROVIDER_PROFILE,
+                valid_from=T0 + timedelta(hours=1),
+            ),
+            actor_id="operator",
+        )
+
+    with pytest.raises(CircuitConfigurationCompatibilityError):
+        repository.append_configuration(
+            circuit.id,
+            CircuitConfigurationAppendRequest(
+                refrigerant_code="R448A",
+                calculation_policy_version="rfx06-config-v1",
+                property_provider_profile=CANONICAL_PROPERTY_PROVIDER_PROFILE,
+                valid_from=T0 + timedelta(hours=1),
+            ),
+            actor_id="operator",
+        )
 
 
 def test_semantic_binding_preserves_gauge_pressure_and_requires_accepted_authority(
