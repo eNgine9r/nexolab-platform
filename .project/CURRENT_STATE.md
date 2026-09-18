@@ -4,6 +4,16 @@ Updated: 2026-09-18
 
 ## Current Sprint
 
+### Issue #1096 — RFX-12 frontend-only production overlay accepted
+
+Issue #1094 completed the Product Owner-approved dashboard-only production cutover. The formal LOCAL_LAN deployed product/backend source remains `df368cfa27efa945d59de33de8268898b564a19f`; the active Dashboard now runs frontend compatibility source `2296e3070cbebff687418cf1ac161984086bebdb` with build ID `fveOqzLHugE-KZ4RRBogM`. The active release is `runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z`, while `runtime/frontend-releases/df368cfa27efa945d59de33de8268898b564a19f-20260918T050734Z` remains retained as the immediate frontend rollback target.
+
+Runtime evidence is `runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z`. Dashboard HTTP, Telemetry readiness and Device Agent health are GREEN; Device Agent remains `status=ok`, MQTT connected and queue depth 0. Device Agent, Telemetry Service, PostgreSQL and central MQTT container identities were unchanged across the cutover. No backend/database/edge recreation occurred.
+
+Authenticated real Chromium acceptance passed at 360, 1440 and 1920 px: the Overview temperature workspace is full width, “Потребує уваги” is below it, infrastructure is below the attention block, and there is no horizontal overflow. No screenshot was required or created.
+
+No Modbus/controller write, hardware write, persistent-data deletion or named-volume deletion occurred. RFX-10/RFX-11 backend/runtime work is not implied deployed by this frontend overlay. The Ready queue remains empty after #1096; existing hardware/recovery/security boundaries remain unchanged.
+
 ### Issue #1092 — RFX-12 Overview layout completed; Ready queue empty
 
 RFX-12 / Issue #1088 is repository-complete. PR #1089 final head `621d70605856e07bdfc6003c851ca2ddbb593f4f` passed exact-head Core Quality/build + NEXOLAB Merge Gate `35368527778` and Authenticated Dashboard Acceptance `35368527798`, with zero review submissions and zero unresolved review threads. The accepted product baseline is `1a0644497e4cfd10ce7ba0366772955c72f4711a`; the only change after that product source through the final PR head is the already-merged canonical BLOCKERS formatting baseline from #1090.

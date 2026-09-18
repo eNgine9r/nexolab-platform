@@ -3,44 +3,41 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-18T19:35:00+03:00",
+  "timestamp": "2026-09-18T21:57:28+03:00",
   "actor": "ChatGPT",
-  "event": "RFX-12 / #1088 / PR #1089 merged GREEN; Overview temperature is full width with alarms below, and #1092 reconciles the accepted baseline with an empty Ready queue",
+  "event": "RFX-12 / #1094 frontend-only production compatibility cutover accepted; #1096 reconciles the active frontend overlay while preserving formal deployed source df368cfa",
   "baselines": {
     "accepted_product_sha": "1a0644497e4cfd10ce7ba0366772955c72f4711a",
-    "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f"
+    "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
+    "frontend_compatibility_source_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
+    "frontend_build_id": "fveOqzLHugE-KZ4RRBogM",
+    "frontend_release": "runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z",
+    "frontend_rollback_release": "runtime/frontend-releases/df368cfa27efa945d59de33de8268898b564a19f-20260918T050734Z",
+    "frontend_runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z"
   },
   "active_work": null,
   "evidence_snapshot": {
-    "completed_issue_1088": {
-      "issue": 1088,
-      "pull_request": 1089,
-      "product_implementation_sha": "1a0644497e4cfd10ce7ba0366772955c72f4711a",
-      "final_pr_head_sha": "621d70605856e07bdfc6003c851ca2ddbb593f4f",
-      "core_ci_and_merge_gate": "success:35368527778",
-      "authenticated_dashboard": "success:35368527798",
-      "responsive_widths_px": [
-        360,
-        1440,
-        1920
-      ],
+    "completed_issue_1094": {
+      "issue": 1094,
+      "formal_deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
+      "frontend_compatibility_source_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
+      "frontend_build_id": "fveOqzLHugE-KZ4RRBogM",
+      "active_release": "runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z",
+      "rollback_release": "runtime/frontend-releases/df368cfa27efa945d59de33de8268898b564a19f-20260918T050734Z",
+      "runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z",
+      "authenticated_chromium": "pass_360_1440_1920",
       "layout": "temperature_full_width_attention_below_infrastructure_below",
-      "review_submissions": 0,
-      "review_threads": 0,
-      "production_deployment": "none",
+      "non_frontend_runtime_identity": "unchanged",
       "hardware_acceptance": "not_applicable_not_claimed"
     },
-    "completed_issue_1090": {
-      "issue": 1090,
-      "pull_request": 1091,
-      "final_pr_head_sha": "57d6d68f671ef1c3ef0a5b9a2cdefb49f7e14ac4",
-      "state_integrity_and_merge_gate": "success:35368248403",
-      "scope": "blockers_prettier_format_only"
+    "state_issue_1096": {
+      "issue": 1096,
+      "scope": "canonical_state_only"
     },
     "ready_queue": {
       "status": "empty",
       "next_ready_issue": null,
-      "reason": "no_repository_backed_independent_ready_work_package_after_rfx12"
+      "reason": "no_repository_backed_independent_ready_work_package_after_rfx12_runtime_acceptance"
     }
   },
   "observations": [
@@ -67,9 +64,19 @@
         "merge_sha": "860fb5759030a7ae860826c0f3729261f56f1f89",
         "issue_state": "closed_completed"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-18T18:55:30Z",
+      "kind": "rfx12_frontend_cutover_issue1094_completed",
+      "data": {
+        "issue": 1094,
+        "issue_state": "closed_completed",
+        "frontend_compatibility_source_sha": "2296e3070cbebff687418cf1ac161984086bebdb"
+      }
     }
   ],
-  "next_action": "No independent Ready Work Package remains after RFX-12. Await Product Owner prioritization of the next scoped product outcome unless a critical defect/security interruption creates a higher-priority Ready Issue.",
+  "next_action": "No independent Ready Work Package remains after the RFX-12 frontend production overlay acceptance. Await Product Owner prioritization unless a critical defect/security interruption creates a Ready Issue.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

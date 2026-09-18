@@ -2,6 +2,10 @@
 
 Updated: 2026-09-18
 
+## Issue #1094 — RFX-12 frontend-only Overview production release
+
+**Cleared and accepted in live LOCAL_LAN runtime.** Frontend compatibility source `2296e3070cbebff687418cf1ac161984086bebdb` is active with build ID `fveOqzLHugE-KZ4RRBogM`, while formal deployed product/backend authority remains `df368cfa27efa945d59de33de8268898b564a19f`. Authenticated Chromium verified the full-width temperature workspace with “Потребує уваги” and infrastructure stacked below at 360/1440/1920 px. Non-frontend container identities and health remained unchanged; rollback release is retained. No Modbus/controller write, hardware write, backend cutover, product-data deletion or volume deletion occurred.
+
 ## Issue #1055 — fresh Container Supply Chain HIGH findings
 
 **Cleared and merged.** PR #1057 final exact head `d76852457ea0c9c8fe75d3443e7c812623bb824a` passed Container Supply Chain `35210100902`, Telemetry Service `35210100889`, and Core CI / NEXOLAB Merge Gate `35210100901`, then squash-merged to `main` as `640fd5d48ea63dc81eaeec08ba03b31feb294cd8`. The ten exact short-lived HIGH exceptions remain bounded and expire `2026-09-21`; no CRITICAL exception exists. No production/runtime/hardware mutation occurred.
