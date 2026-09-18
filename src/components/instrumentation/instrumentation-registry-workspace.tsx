@@ -172,11 +172,16 @@ export function InstrumentationRegistryWorkspace({
     let active = true;
     const controller = new AbortController();
 
-    setDetailsLoading(true);
-    void Promise.all([
-      repository.listSignals(selectedInstrumentId, controller.signal),
-      repository.listAcceptanceHistory(selectedInstrumentId, controller.signal),
-    ])
+    void Promise.resolve()
+      .then(() => {
+        if (active) setDetailsLoading(true);
+      })
+      .then(() =>
+        Promise.all([
+          repository.listSignals(selectedInstrumentId, controller.signal),
+          repository.listAcceptanceHistory(selectedInstrumentId, controller.signal),
+        ]),
+      )
       .then(([signals, acceptance]) => {
         if (!active) return;
         setDetails({ signals, acceptance });
@@ -585,7 +590,7 @@ function InstrumentEditor({
           className="mt-4"
           onSubmit={(event) => {
             event.preventDefault();
-            if (validInstrumentDraft(draft)) void onSave(instrument, toInstrumentInput(draft));
+            if (validInstrumentDraft(draft)) void onSave(instrument, toInstrumentInput(draft, instrument.metadata));
           }}
         >
           <InstrumentFields draft={draft} setDraft={setDraft} prefix="edit" />
@@ -760,7 +765,7 @@ function SignalEditor({
       className="rounded-xl border border-white/[0.06] p-4"
       onSubmit={(event) => {
         event.preventDefault();
-        if (validSignalDraft(draft)) void onSave(signal, toSignalInput(draft));
+        if (validSignalDraft(draft)) void onSave(signal, toSignalInput(draft, signal.metadata));
       }}
     >
       <p className="text-xs text-cyan-300">Signal v{signal.version}</p>
@@ -1026,7 +1031,7 @@ function signalDraftFrom(record: SignalRegistryRecord): SignalDraft {
   };
 }
 
-function toInstrumentInput(draft: InstrumentDraft): InstrumentWriteInput {
+function toInstrumentInput(\n  draft: InstrumentDraft,\n  metadata: InstrumentWriteInput["metadata"] = {},\n): InstrumentWriteInput {
   return {
     inventoryKey: draft.inventoryKey.trim(),
     displayName: draft.displayName.trim(),
