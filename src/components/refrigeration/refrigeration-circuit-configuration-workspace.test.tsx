@@ -231,6 +231,26 @@ describe("RefrigerationCircuitConfigurationWorkspace", () => {
     expect(screen.getByRole("button", { name: "Додати версію конфігурації" })).toBeDisabled();
   });
 
+  it("routes an authorized operator to the canonical registry when no candidate exists", async () => {
+    render(
+      <RefrigerationCircuitConfigurationWorkspace
+        equipmentId="equipment-1"
+        repository={repository({ listBindingCandidates: vi.fn(async () => []) })}
+        canManage
+      />,
+    );
+
+    const roleTitle = await screen.findByText("Тиск кипіння / всмоктування");
+    const card = roleTitle.closest("article");
+    if (!card) throw new Error("Role card missing");
+    fireEvent.click(within(card).getByRole("button", { name: "Обрати сигнал" }));
+
+    const link = await within(card).findByRole("link", {
+      name: "Відкрити canonical Instrumentation Registry",
+    });
+    expect(link).toHaveAttribute("href", "/settings/instrumentation");
+  });
+
   it("uses backend candidate discovery before binding a semantic role", async () => {
     const listBindingCandidates = vi.fn<RefrigerationCircuitConfigurationRepository["listBindingCandidates"]>(
       async () => [
