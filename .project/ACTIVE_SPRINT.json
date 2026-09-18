@@ -18,22 +18,38 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "9edf33764cda95da912a6140db8e51cf0cd9d623",
+    "accepted_product_sha": "e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a",
     "deployed_product_sha": "039e37ac4b91903e5f8ee33de2603e40c308de90"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1065,
-      "title": "Restore LOCAL_LAN central↔edge commissioning inventory wiring",
-      "branch": "fix/1065-local-lan-commissioning-wiring"
-    },
+    "active_work_package": null,
     "next_work_package": {
       "issue": 1050,
-      "title": "Complete authenticated operator acceptance for the RS-485 commissioning selector",
+      "title": "Deploy corrected LOCAL_LAN commissioning wiring and complete authenticated operator acceptance",
       "branch": "deploy/1050-rs485-selector-runtime"
     }
   },
   "work_packages": [
+    {
+      "issue": 1069,
+      "title": "Reconcile merged #1065 and advance #1050 to corrected runtime cutover gate",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1065
+      ],
+      "branch": "chore/1069-reconcile-1065-state",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "accepted_product_sha": "e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a",
+        "deployed_product_sha": "039e37ac4b91903e5f8ee33de2603e40c308de90",
+        "state_model_v2": "success_local",
+        "git_diff_check": "success_local",
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
     {
       "issue": 1067,
       "title": "Classify NEXOLAB version-manager paths as deployment runtime tooling",
@@ -65,7 +81,7 @@
       "issue": 1065,
       "title": "Restore LOCAL_LAN central↔edge commissioning inventory wiring",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "fix/1065-local-lan-commissioning-wiring",
       "evidence": {
@@ -92,7 +108,16 @@
         "ci_routing_dependency": "cleared_by_issue_1067",
         "production_cutover": "not_executed_not_authorized",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "verified_head_sha": "0f8342efd4c828c238912e76eb47abf3f2379f71",
+        "pull_request": 1066,
+        "checks": {
+          "core_ci_and_merge_gate": "success:35302450461",
+          "offline_bundle": "success:35302450463",
+          "telemetry_service": "success:35302450466"
+        },
+        "issue_state": "closed_completed",
+        "repository_scope": "merged_no_runtime_cutover"
       }
     },
     {
@@ -3966,7 +3991,9 @@
           "product_owner_cutover_authorization": "consumed_exact_442e0c55_to_039e37ac_2026-09-17",
           "device_agent_nonroot_supplementary_groups": "success_gid20_gid46",
           "ftdi_a10q2si7_available_for_preflight": "success",
-          "authenticated_ui_api_acceptance": "blocked_missing_normal_operator_session_with_equipment_manage"
+          "authenticated_ui_api_acceptance": "blocked_missing_normal_operator_session_with_equipment_manage",
+          "commissioning_inventory_repository_wiring": "merged_verified_issue_1065",
+          "corrected_runtime_cutover": "blocked_pending_explicit_product_owner_authorization"
         }
       }
     },
@@ -4611,6 +4638,19 @@
         "pull_request": 1068,
         "verified_head_sha": "dd1d9eed5779572a754e20f360336cd16e46a58f",
         "merge_sha": "223f58f071333c50e974aa2126afc0e1aa89451d",
+        "issue_state": "closed_completed",
+        "required_checks": "green"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-18T06:18:00+03:00",
+      "kind": "issue_1065_merge_reconciliation",
+      "data": {
+        "issue": 1065,
+        "pull_request": 1066,
+        "verified_head_sha": "0f8342efd4c828c238912e76eb47abf3f2379f71",
+        "merge_sha": "fc4dacd9de4eaad7c85eccb8a027ac61fc552e75",
         "issue_state": "closed_completed",
         "required_checks": "green"
       }
