@@ -17,7 +17,6 @@
       "pull_request": 1076,
       "product_implementation_sha": "49878a03e814d7a89fe6ce698a5b6331de90db31",
       "final_pr_head_sha": "9264a7282c64c53048f6866a01bb8151455a1083",
-      "merge_sha": "956db3c7876ea8d2b367e4306fae559dab8acb7c",
       "core_ci_and_merge_gate": "success:35338043097",
       "refrigeration_browser": "success:35338043081",
       "security_browser": "success:35338043241",
@@ -31,7 +30,20 @@
       "lifecycle": "ready"
     }
   },
-  "observations": [],
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-09-18T11:11:20Z",
+      "kind": "rfx09_pr1076_merge",
+      "data": {
+        "issue": 1075,
+        "pull_request": 1076,
+        "final_pr_head_sha": "9264a7282c64c53048f6866a01bb8151455a1083",
+        "merge_sha": "956db3c7876ea8d2b367e4306fae559dab8acb7c",
+        "issue_state": "closed_completed"
+      }
+    }
+  ],
   "next_action": "Require exact-head state-only CI / NEXOLAB Merge Gate GREEN for Issue #1078, merge its focused PR, then start RFX-10 / Issue #1077 on feat/1077-rfx10-circuit-config-workspace.",
   "safety": {
     "modbus_write": "none",
