@@ -37,6 +37,7 @@ from app.refrigeration.circuit_schemas import (
     CircuitLifecycleHistoryResponse,
     CircuitLifecycleResponse,
     CircuitListResponse,
+    CircuitProcessRole,
     CircuitResponse,
 )
 from app.refrigeration.equipment_repository import DEFAULT_ORGANIZATION_ID
