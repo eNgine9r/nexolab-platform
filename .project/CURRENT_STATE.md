@@ -4,6 +4,14 @@ Updated: 2026-09-18
 
 ## Current Sprint
 
+### Issue #1071 — corrected LOCAL_LAN commissioning deployment recorded
+
+The Product Owner explicitly authorized the exact transition `039e37ac4b91903e5f8ee33de2603e40c308de90 → df368cfa27efa945d59de33de8268898b564a19f` with the previous healthy runtime retained as rollback authority. Repository-owned deployment completed with `DEPLOYMENT PASSED`; authoritative evidence is `runtime/deployments/20260918T050734Z`. Persistent named-volume identities are byte-identical before/after, PostgreSQL pre-upgrade and edge SQLite snapshots were captured, and all central/edge readiness gates passed.
+
+The previously missing commissioning path is now live: Telemetry has `COMMISSIONING_DEVICE_AGENT_BASE_URL=http://edge-device-agent:8081`, Telemetry and Device Agent share `nexolab-standalone-runtime`, and the private alias `edge-device-agent` resolves the Device Agent inventory. Live inventory exposes both production buses plus FTDI `A10Q2QYX` and `A10Q2SI7`; `A10Q2SI7` remains `available_for_preflight=true`. Acquisition remains 53 scheduled targets with 2/2 healthy workers and AK-CC25 normal scheduled targets remain `0`. A post-cutover Unit 35 request on `danfoss-ak-cc25-pro-sw1.3x-fc03-v1` passed in about 328.5 ms with `hardware_verified`, FC03 only, ten valid observations, `modbus_writes=none` and `hardware_writes=none`. Danfoss activation remains discovery-only/disabled.
+
+Issue #1050 is still open only because the final Equipment → Connect device save/review/preflight must run through a normal authenticated operator session with `equipment.manage`. The approved read-only inspection identity is insufficient for mutation, and the browser connector is not currently connected. Credentials, cookies and tokens will not be extracted or bypassed.
+
 ### Issue #1069 — post-#1065 state reconciliation completed candidate
 
 Issue #1069 is state-only and records the durable transition after the LOCAL_LAN commissioning wiring repair merged. The accepted product baseline is now implementation commit `e0c74fbdf863d5ed1213e0c0b27bf87a4d53dc1a`; the deployed LOCAL_LAN source remains `039e37ac4b91903e5f8ee33de2603e40c308de90`. No deployment, recreation, Modbus/controller write, hardware write, data mutation or volume mutation occurred in this state transition.
@@ -36,11 +44,11 @@ Issue #1050 is **not closed**. Repository wiring is now complete through #1065. 
 
 Issue #1058 / PR #1059 completed the prior state-only transition and merged to `main` before the approved #1050 cutover. It established #1050 as the next gated runtime Work Package; that authorization gate has now been consumed by the successful deployment recorded above.
 
-### Issue #1050 — deployment and hardware preflight passed; authenticated operator UI gate remains
+### Issue #1050 — corrected runtime deployed; authenticated operator UI gate remains
 
-The repository permission fix from PR #1054 is now deployed on exact source `039e37ac4b91903e5f8ee33de2603e40c308de90`. The former FTDI `EACCES` blocker is cleared on the live Device Agent: `A10Q2SI7` is readable/writable by the nonroot service through the bounded supplementary `plugdev` group, and the real Danfoss Unit 35 FC03-only profile is hardware-verified. Production topology, persistent volumes and the 53-target acquisition contract remain unchanged; AK-CC25 production polling remains disabled.
+The corrected commissioning runtime is now deployed on exact source `df368cfa27efa945d59de33de8268898b564a19f`. The former FTDI permission blocker and the later Telemetry↔Device Agent wiring blocker are both cleared live: `A10Q2SI7` is visible through the bounded private inventory path and a real Unit 35 FC03-only profile is hardware-verified. Production topology, persistent volumes and the 53-target acquisition contract remain unchanged; AK-CC25 production polling remains disabled.
 
-#1050 remains hard-blocked on a separately authorized corrected-runtime cutover and then on mandatory authenticated operator access with `equipment.manage` for the final production UI/API walkthrough. Repository wiring is merged and verified; no additional cutover, Device Agent recreation, controller write, Modbus write or hardware write is currently authorized.
+#1050 is hard-blocked only on mandatory normal authenticated operator access with `equipment.manage` for the final Equipment → Connect device save/review/preflight walkthrough. No additional cutover, Device Agent recreation, controller write, Modbus write or hardware write is currently authorized.
 
 ### Issue #1044 — Danfoss AK-CC25 Pro LOCAL_LAN onboarding acceptance completed
 
