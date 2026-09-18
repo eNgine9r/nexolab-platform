@@ -294,3 +294,74 @@ def test_circuit_api_explicit_binding_end_makes_future_resolution_unavailable(tm
     )
     assert unavailable.status_code == 409
     assert unavailable.json()["detail"]["code"] == "refrigeration_circuit_resolution_unavailable"
+
+
+def test_circuit_api_binding_candidates_reuse_canonical_authority(tmp_path: Path) -> None:
+    api, _, _, instrumentation = _client(tmp_path)
+    _accepted_pressure_signal(
+        instrumentation,
+        key="CANDIDATE-GAUGE",
+        kind="pressure_transmitter",
+        reference="gauge",
+        unit="bar",
+    )
+    atmospheric = _accepted_pressure_signal(
+        instrumentation,
+        key="CANDIDATE-ATM",
+        kind="barometric_pressure_sensor",
+        reference="absolute",
+        unit="kPa",
+    )
+    unaccepted = instrumentation.create_instrument(
+        InstrumentCreate(
+            inventory_key="INST-CANDIDATE-UNACCEPTED",
+            display_name="Unaccepted atmosphere",
+            instrument_kind="barometric_pressure_sensor",
+            pressure_reference="absolute",
+        ),
+        actor_id="test-suite",
+    )
+    instrumentation.create_signal(
+        unaccepted.id,
+        SignalCreate(
+            business_key="SIG-CANDIDATE-UNACCEPTED",
+            display_name="Unaccepted atmosphere",
+            physical_quantity="pressure",
+            engineering_unit="kPa",
+        ),
+        actor_id="test-suite",
+    )
+
+    response = api.get(
+        "/api/v1/refrigeration/circuits/binding-candidates",
+        params={
+            "role": "atmospheric_pressure",
+            "at": "2026-09-06T01:00:00Z",
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["items"] == [
+        {
+            "signal_id": atmospheric.id,
+            "instrument_id": atmospheric.instrument_id,
+            "signal_display_name": "CANDIDATE-ATM",
+            "instrument_display_name": "CANDIDATE-ATM",
+            "physical_quantity": "pressure",
+            "engineering_unit": "kPa",
+            "instrument_kind": "barometric_pressure_sensor",
+            "pressure_reference": "absolute",
+        }
+    ]
+
+
+def test_circuit_api_binding_candidates_require_aware_timestamp(tmp_path: Path) -> None:
+    api, _, _, _ = _client(tmp_path)
+
+    response = api.get(
+        "/api/v1/refrigeration/circuits/binding-candidates",
+        params={"role": "suction_pressure", "at": "2026-09-06T01:00:00"},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "refrigeration_circuit_invalid_timestamp"
