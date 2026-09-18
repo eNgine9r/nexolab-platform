@@ -492,6 +492,10 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
+function readString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
 function requiredString(value: unknown): string {
   if (typeof value !== "string" || !value.trim()) throw invalidContract();
   return value;
