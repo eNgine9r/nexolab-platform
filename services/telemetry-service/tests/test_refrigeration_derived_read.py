@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 from uuid import UUID
 
+import pytest
 from sqlalchemy.orm import Session
 
 from app.db import Database, TelemetrySample
