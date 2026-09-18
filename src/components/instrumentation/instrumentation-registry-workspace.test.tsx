@@ -196,9 +196,7 @@ describe("InstrumentationRegistryWorkspace", () => {
   });
 
   it("creates a process-neutral Signal and appends explicit acceptance separately", async () => {
-    const createSignal = vi
-      .fn<InstrumentationRegistryRepository["createSignal"]>()
-      .mockResolvedValue(signal);
+    const createSignal = vi.fn<InstrumentationRegistryRepository["createSignal"]>().mockResolvedValue(signal);
     const appendAcceptance = vi.fn<InstrumentationRegistryRepository["appendAcceptance"]>(
       repository().appendAcceptance,
     );
@@ -247,9 +245,7 @@ describe("InstrumentationRegistryWorkspace", () => {
     const updateInstrument = vi.fn<InstrumentationRegistryRepository["updateInstrument"]>(
       repository().updateInstrument,
     );
-    const updateSignal = vi.fn<InstrumentationRegistryRepository["updateSignal"]>(
-      repository().updateSignal,
-    );
+    const updateSignal = vi.fn<InstrumentationRegistryRepository["updateSignal"]>(repository().updateSignal);
 
     render(
       <InstrumentationRegistryWorkspace
@@ -281,12 +277,7 @@ describe("InstrumentationRegistryWorkspace", () => {
         ),
       );
 
-    render(
-      <InstrumentationRegistryWorkspace
-        repository={repository({ updateInstrument })}
-        canManage
-      />,
-    );
+    render(<InstrumentationRegistryWorkspace repository={repository({ updateInstrument })} canManage />);
 
     expect(await screen.findAllByText(instrument.displayName)).not.toHaveLength(0);
     fireEvent.click(screen.getByRole("button", { name: "Зберегти Instrument" }));
