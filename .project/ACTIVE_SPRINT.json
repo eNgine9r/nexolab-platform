@@ -18,16 +18,12 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "c750bab792ed09171bb29fc97cc0bb5396020c53",
+    "accepted_product_sha": "fbeed51b8e2b32afa87c918086b881927a5439a3",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f"
   },
   "selection": {
     "active_work_package": null,
-    "next_work_package": {
-      "issue": 1082,
-      "title": "[RFX-11][INSTRUMENTATION] Add operator Instrument and Signal registry authoring",
-      "branch": "feat/1082-rfx11-instrumentation-registry-authoring"
-    }
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -4318,19 +4314,51 @@
       "issue": 1082,
       "title": "[RFX-11][INSTRUMENTATION] Add operator Instrument and Signal registry authoring",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "completed",
       "depends_on": [
         1077,
         1083
       ],
       "branch": "feat/1082-rfx11-instrumentation-registry-authoring",
       "evidence": {
-        "dependency_gate": "rfx10_merged_state_reconciled_by_1083",
+        "product_code_head_sha": "fbeed51b8e2b32afa87c918086b881927a5439a3",
+        "final_pr_head_sha": "df0efd5daa50639d39c72088382cc50cb0485bbe",
+        "pull_request": 1085,
+        "issue_state": "closed_completed",
         "scope": "software_only_instrument_signal_registry_and_acceptance_authoring",
         "backend_authority": "existing_api_v1_instrumentation",
-        "rfx10_candidate_integration": "required",
-        "production_deployment": "not_authorized_not_in_scope",
+        "rfx10_candidate_integration": "verified",
+        "checks": {
+          "core_quality_build_and_merge_gate": "success:35353484343",
+          "refrigeration_browser": "success:35353484405",
+          "authenticated_dashboard": "success:35353484332",
+          "disaster_recovery_browser": "success:35353484390"
+        },
+        "review_submissions": 0,
+        "unresolved_review_threads": 0,
+        "production_deployment": "none",
         "hardware_acceptance": "not_claimed",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1086,
+      "title": "[STATE][RFX-11] Reconcile merge and record no independent Ready WP",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1082
+      ],
+      "branch": "chore/1086-reconcile-rfx11-state",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "rfx11_product_sha": "fbeed51b8e2b32afa87c918086b881927a5439a3",
+        "rfx11_final_pr_head_sha": "df0efd5daa50639d39c72088382cc50cb0485bbe",
+        "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
+        "next_ready_issue": null,
+        "selection_result": "no_independent_ready_work_package",
+        "production_runtime_mutation": "none",
         "modbus_write": "none",
         "hardware_write": "none"
       }
@@ -4388,10 +4416,18 @@
     {
       "source_issue": 994,
       "title": "Review/remove consolidated HIGH container exceptions expiring 2026-09-15",
-      "status": "scheduled",
+      "status": "completed",
       "due_on": "2026-09-15",
       "owner": "platform-security",
-      "rule": "Rebuild all controlled images with fresh pull/no-cache evidence and reconcile every retained exact HIGH tuple before expiry. Remove immediately when a finding disappears, a consumable fixed package/base is available, runtime reachability changes, authoritative affected-version guidance changes materially, or severity becomes Critical. No blanket renewal is permitted."
+      "rule": "Completed under Issue #1012 / PR #1013: fresh no-cache evidence retired 12 stale tuples and left 80 exact HIGH / 0 CRITICAL findings with 1:1 registry reconciliation. Verified implementation head 24d99f6f30b90ca4bb3d4fca00515ddec11981cf passed Container Supply Chain 34828653792, Telemetry Service 34828653794 and Core CI / NEXOLAB Merge Gate 34828653811. Retained exact exceptions expire 2026-09-21."
+    },
+    {
+      "source_issue": 1012,
+      "title": "Review/remove HIGH container exceptions expiring 2026-09-21",
+      "status": "scheduled",
+      "due_on": "2026-09-21",
+      "owner": "platform-security",
+      "rule": "Run a fresh no-cache scan before expiry and reconcile every retained exact HIGH tuple. Remove immediately when a finding disappears, a consumable fixed package/base is available, runtime reachability changes, authoritative affected-version guidance changes materially, or severity becomes Critical. No blanket renewal is permitted."
     }
   ],
   "observations": [
@@ -4905,6 +4941,18 @@
         "pull_request": 1081,
         "final_pr_head_sha": "6d3ee33e8da25e0ad074c36d6bc48782c5d7bae0",
         "merge_sha": "f6b1e474537107ba2a0f622309326617c57a1e73",
+        "issue_state": "closed_completed"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-18T14:05:29Z",
+      "kind": "rfx11_pr1085_merge",
+      "data": {
+        "issue": 1082,
+        "pull_request": 1085,
+        "final_pr_head_sha": "df0efd5daa50639d39c72088382cc50cb0485bbe",
+        "merge_sha": "8035eaa8ae4a80700d5036453d45bb9f91a15580",
         "issue_state": "closed_completed"
       }
     }
