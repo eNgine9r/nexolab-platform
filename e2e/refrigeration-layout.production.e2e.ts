@@ -1008,7 +1008,9 @@ test("configures a refrigeration circuit through canonical operator authority", 
   await expect(suctionCard.getByText(signal.id, { exact: true })).toBeVisible();
   await expect(suctionCard).toContainText("pressure · bar · gauge");
 
-  const lifecycleSection = workspace.locator("section").filter({ hasText: "Lifecycle" });
+  const lifecycleSection = workspace
+    .locator("section")
+    .filter({ has: workspace.getByText("Lifecycle", { exact: true }) });
   await lifecycleSection.getByLabel("Новий стан").selectOption("inactive");
   await lifecycleSection.getByLabel("Діє з").fill("2026-09-18T10:15");
   await lifecycleSection.getByRole("button", { name: "Додати стан" }).click();
