@@ -75,6 +75,10 @@ describe("SettingsWorkspace", () => {
     expect(screen.queryByRole("link", { name: /Холодильне обладнання/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Тривоги/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Звіти/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Прилади та сигнали" })).toHaveAttribute(
+      "href",
+      "/settings/instrumentation",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: /Система/ }));
     expect(screen.getByRole("button", { name: /Система/ })).toHaveAttribute("aria-current", "page");

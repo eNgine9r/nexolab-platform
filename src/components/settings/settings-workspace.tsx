@@ -315,6 +315,13 @@ export function SettingsWorkspace({
               })}
             </nav>
 
+            <div className="mt-3 border-t border-white/[0.07] pt-3">
+              <p className="mb-2 px-2 text-[10px] font-medium tracking-[0.16em] text-slate-600 uppercase">
+                Реєстри
+              </p>
+              <AdminLink href="/settings/instrumentation" icon={Gauge} title="Прилади та сигнали" />
+            </div>
+
             {canManageUsers || canManageVersions ? (
               <div className="mt-3 border-t border-white/[0.07] pt-3">
                 <p className="mb-2 px-2 text-[10px] font-medium tracking-[0.16em] text-slate-600 uppercase">
