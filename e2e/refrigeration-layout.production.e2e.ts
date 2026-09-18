@@ -1134,9 +1134,7 @@ test("authors an accepted Instrument and Signal before binding it through RFX-10
   await registry.getByRole("button", { name: "Створити", exact: true }).click();
 
   await expect(registry.getByText(/Calculation acceptance ще не надано/)).toBeVisible();
-  await expect(
-    registry.getByRole("heading", { name: "RFX11 pressure transmitter" }).first(),
-  ).toBeVisible();
+  await expect(registry.getByRole("heading", { name: "RFX11 pressure transmitter" }).first()).toBeVisible();
 
   const signalForm = registry.getByText("Новий Signal", { exact: true }).locator("..");
   await signalForm.getByLabel("create signal business key").fill("rfx11.suction-pressure");
