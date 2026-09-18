@@ -314,10 +314,17 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
       await expect(page.getByRole("heading", { name: "Потребує уваги" })).toBeVisible();
       expect(
         await page.evaluate(() => {
-          const command = document.querySelector('[data-testid="overview-command-grid"]');
+          const primary = document.querySelector('[data-testid="overview-primary-workspace"]');
+          const attention = document.querySelector('[data-testid="overview-attention-workspace"]');
           const secondary = document.querySelector('[data-testid="overview-secondary-grid"]');
-          if (!command || !secondary) return false;
-          return Boolean(command.compareDocumentPosition(secondary) & Node.DOCUMENT_POSITION_FOLLOWING);
+          if (!primary || !attention || !secondary) return false;
+          const primaryBeforeAttention = Boolean(
+            primary.compareDocumentPosition(attention) & Node.DOCUMENT_POSITION_FOLLOWING,
+          );
+          const attentionBeforeSecondary = Boolean(
+            attention.compareDocumentPosition(secondary) & Node.DOCUMENT_POSITION_FOLLOWING,
+          );
+          return primaryBeforeAttention && attentionBeforeSecondary;
         }),
       ).toBe(true);
 
@@ -335,14 +342,12 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
         if (!commandBox || !primaryBox || !attentionBox || !secondaryBox) {
           throw new Error(`Overview layout missing at ${width}px`);
         }
-        expect(secondaryBox.y).toBeGreaterThan(commandBox.y);
-        if (width >= 1280) {
-          expect(Math.abs(primaryBox.y - attentionBox.y)).toBeLessThanOrEqual(2);
-          expect(primaryBox.x).toBeLessThan(attentionBox.x);
-          expect(primaryBox.width).toBeGreaterThan(attentionBox.width * 2);
-        } else {
-          expect(primaryBox.y).toBeLessThan(attentionBox.y);
-        }
+
+        expect(primaryBox.y).toBeLessThan(attentionBox.y);
+        expect(attentionBox.y).toBeLessThan(secondaryBox.y);
+        expect(Math.abs(primaryBox.x - attentionBox.x)).toBeLessThanOrEqual(2);
+        expect(Math.abs(primaryBox.width - attentionBox.width)).toBeLessThanOrEqual(2);
+        expect(Math.abs(primaryBox.width - commandBox.width)).toBeLessThanOrEqual(2);
       }
 
       expect(acquisitionMutations).toEqual([]);
@@ -367,8 +372,8 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
             canonicalOverviewChart: true,
             overviewHistorySvg: false,
             overviewGraphFirst: true,
-            overviewPrimaryDominant: true,
-            overviewAttentionBesideGraph: true,
+            overviewPrimaryFullWidth: true,
+            overviewAttentionBelowGraph: true,
             overviewSupportingStateBelow: true,
             overviewResponsiveWidths: [360, 1440, 1920],
             cursorLayoutStable: true,
