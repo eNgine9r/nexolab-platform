@@ -93,6 +93,19 @@ def _scope() -> tuple[Database, SecurityRepository, RefrigerationCircuitReposito
     with Session(database.engine) as session:
         with session.begin():
             session.add(_equipment(equipment_id, organization_id))
+    CalculationPolicyRepository(database).create(
+        CalculationPolicyCreateRequest(
+            version="rfx06-test-v1",
+            maximum_age_ms=60_000,
+            maximum_future_clock_skew_ms=5_000,
+            maximum_cross_input_skew_ms=60_000,
+            accepted_calibration_states=["valid"],
+            require_calibration_at_observation=False,
+            calibration_required_roles=[],
+        ),
+        actor_id="test-suite",
+        organization_id=organization_id,
+    )
     return (
         database,
         security,
