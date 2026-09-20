@@ -3,10 +3,7 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import {
-  parseReleaseDirectory,
-  readDashboardRuntimeIdentity,
-} from "@/lib/runtime-identity";
+import { parseReleaseDirectory, readDashboardRuntimeIdentity } from "@/lib/runtime-identity";
 
 describe("runtime identity", () => {
   it("parses the deployed frontend release directory", () => {
@@ -29,10 +26,7 @@ describe("runtime identity", () => {
 
   it("reads only safe runtime identity fields", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "nexolab-runtime-identity-"));
-    const release = path.join(
-      root,
-      "cfc6f99158276e7e307827414c364cccad176653-20260920T101500Z",
-    );
+    const release = path.join(root, "cfc6f99158276e7e307827414c364cccad176653-20260920T101500Z");
     try {
       await mkdir(path.join(release, ".next"), { recursive: true });
       await writeFile(path.join(release, ".next", "BUILD_ID"), "build-abc123\n", "utf8");
