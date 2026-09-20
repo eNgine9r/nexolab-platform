@@ -76,7 +76,12 @@ export async function readDashboardRuntimeIdentity(
     path.join(cwd, ".nexolab-runtime-identity.json");
   const manifest = await readIdentityManifest(identityFile);
   const sourceMatchesRelease = !releaseSource || manifest?.source_commit === releaseSource;
-  const buildMatchesRuntime = !manifest?.build_id || !buildId || manifest.build_id === buildId;
+  const buildMatchesRuntime =
+    typeof manifest?.build_id === "string" &&
+    manifest.build_id.length > 0 &&
+    typeof buildId === "string" &&
+    buildId.length > 0 &&
+    manifest.build_id === buildId;
 
   if (manifest && sourceMatchesRelease && buildMatchesRuntime) {
     return {

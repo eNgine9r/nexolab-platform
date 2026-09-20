@@ -106,4 +106,35 @@ describe("runtime identity", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  it("does not trust a manifest when the runtime build ID is unavailable", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "nexolab-runtime-missing-build-"));
+    const identity = path.join(root, ".nexolab-runtime-identity.json");
+    try {
+      await mkdir(path.join(root, ".next"), { recursive: true });
+      await writeFile(
+        identity,
+        JSON.stringify({
+          schema_version: "nexolab-runtime-identity-v1",
+          service: "dashboard",
+          source_commit: SOURCE,
+          build_id: "container-build",
+          deployed_at: "2026-09-20T18:30:00+03:00",
+          identity_source: "offline_image_manifest",
+        }) + "\n",
+        "utf8",
+      );
+
+      await expect(readDashboardRuntimeIdentity({ cwd: root, identityFile: identity })).resolves.toEqual({
+        schema_version: "nexolab-runtime-identity-v1",
+        service: "dashboard",
+        source_commit: null,
+        build_id: null,
+        deployed_at: null,
+        identity_source: "unknown",
+      });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });
