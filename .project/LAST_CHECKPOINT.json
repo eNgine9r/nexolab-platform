@@ -52,7 +52,7 @@
       "local_node": "22.23.1",
       "runtime_identity_vitest": "pass_4_of_4",
       "raspberry_frontend_contract": "pass_13_of_13",
-      "shell_syntax": "pass",
+      "shell_syntax": "pass_all_runtime_identity_build_paths",
       "diff_check": "pass",
       "exact_head_ci": "pending_new_head",
       "production_deployment": "not_performed",
@@ -60,8 +60,9 @@
       "eslint": "pass",
       "typecheck": "pass",
       "offline_workflow_contract": "pass_14_of_14",
-      "local_full_gate": "pass_after_review_fixes",
-      "build_id_fail_closed_regression": "pass"
+      "local_full_gate": "pass_after_artifact_builder_fix",
+      "build_id_fail_closed_regression": "pass",
+      "frontend_artifact_source_commit_contract": "pass"
     }
   },
   "observations": [

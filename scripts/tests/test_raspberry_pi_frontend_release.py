@@ -348,6 +348,7 @@ class RaspberryPiFrontendReleaseTests(unittest.TestCase):
         self.assertIn("Setup QEMU", release)
         self.assertIn("ARM64", builder)
         self.assertIn('docker create --platform "$PLATFORM" "$IMAGE"', builder)
+        self.assertIn('--build-arg "NEXOLAB_SOURCE_COMMIT=$SOURCE_SHA"', builder)
         dashboard_dockerfile = DASHBOARD_DOCKERFILE.read_text(encoding="utf-8")
         self.assertIn("cp package-lock.json /tmp/nexolab-package-lock.json", dashboard_dockerfile)
         self.assertIn("npm prune --omit=dev", dashboard_dockerfile)
