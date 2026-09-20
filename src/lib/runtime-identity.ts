@@ -3,7 +3,7 @@ import path from "node:path";
 
 export const RUNTIME_IDENTITY_SCHEMA = "nexolab-runtime-identity-v1" as const;
 
-const RELEASE_DIRECTORY = /^([0-9a-f]{40})-(\d{8}T\d{6}Z)$/;
+const SOURCE_COMMIT = /^[0-9a-f]{40}$/;
 
 export type DashboardRuntimeIdentity = {
   schema_version: typeof RUNTIME_IDENTITY_SCHEMA;
@@ -11,42 +11,86 @@ export type DashboardRuntimeIdentity = {
   source_commit: string | null;
   build_id: string | null;
   deployed_at: string | null;
-  identity_source: "release_directory" | "unknown";
+  identity_source:
+    | "raspberry_activation"
+    | "raspberry_rollback"
+    | "offline_image_manifest"
+    | "release_directory"
+    | "unknown";
 };
 
-export function parseReleaseDirectory(cwd: string): {
-  sourceCommit: string | null;
-  deployedAt: string | null;
-} {
-  const match = RELEASE_DIRECTORY.exec(path.basename(path.resolve(cwd)));
-  if (!match) return { sourceCommit: null, deployedAt: null };
-
-  const stamp = match[2];
-  const deployedAt =
-    stamp.length === 16
-      ? `${stamp.slice(0, 4)}-${stamp.slice(4, 6)}-${stamp.slice(6, 8)}T${stamp.slice(9, 11)}:${stamp.slice(11, 13)}:${stamp.slice(13, 15)}Z`
-      : null;
-
-  return { sourceCommit: match[1], deployedAt };
+type RuntimeIdentityOptions = {
+  cwd?: string;
+  identityFile?: string | null;
+};
+function releaseSourceCommit(cwd: string): string | null {
+  const name = path.basename(path.resolve(cwd));
+  const source = name.split("-", 1)[0] ?? "";
+  return SOURCE_COMMIT.test(source) ? source : null;
 }
 
-export async function readDashboardRuntimeIdentity(cwd = process.cwd()): Promise<DashboardRuntimeIdentity> {
-  const release = parseReleaseDirectory(cwd);
-
-  let buildId: string | null = null;
+async function readBuildId(cwd: string): Promise<string | null> {
   try {
     const value = (await readFile(path.join(cwd, ".next", "BUILD_ID"), "utf8")).trim();
-    buildId = value || null;
+    return value || null;
   } catch {
-    buildId = null;
+    return null;
+  }
+}
+
+async function readIdentityManifest(file: string): Promise<DashboardRuntimeIdentity | null> {
+  try {
+    const raw = JSON.parse(await readFile(file, "utf8")) as Partial<DashboardRuntimeIdentity>;
+    if (
+      raw.schema_version !== RUNTIME_IDENTITY_SCHEMA ||
+      raw.service !== "dashboard" ||
+      typeof raw.source_commit !== "string" ||
+      !SOURCE_COMMIT.test(raw.source_commit)
+    ) {
+      return null;
+    }
+    if (raw.build_id !== null && typeof raw.build_id !== "string") return null;
+    if (raw.deployed_at !== null && typeof raw.deployed_at !== "string") return null;
+    if (
+      !["raspberry_activation", "raspberry_rollback", "offline_image_manifest"].includes(
+        String(raw.identity_source),
+      )
+    ) {
+      return null;
+    }
+    return raw as DashboardRuntimeIdentity;
+  } catch {
+    return null;
+  }
+}
+
+export async function readDashboardRuntimeIdentity(
+  options: RuntimeIdentityOptions = {},
+): Promise<DashboardRuntimeIdentity> {
+  const cwd = options.cwd ?? process.cwd();
+  const buildId = await readBuildId(cwd);
+  const releaseSource = releaseSourceCommit(cwd);
+  const identityFile =
+    options.identityFile ??
+    process.env.NEXOLAB_RUNTIME_IDENTITY_FILE ??
+    path.join(cwd, ".nexolab-runtime-identity.json");
+  const manifest = await readIdentityManifest(identityFile);
+  const sourceMatchesRelease = !releaseSource || manifest?.source_commit === releaseSource;
+  const buildMatchesRuntime = !manifest?.build_id || !buildId || manifest.build_id === buildId;
+
+  if (manifest && sourceMatchesRelease && buildMatchesRuntime) {
+    return {
+      ...manifest,
+      build_id: buildId ?? manifest.build_id,
+    };
   }
 
   return {
     schema_version: RUNTIME_IDENTITY_SCHEMA,
     service: "dashboard",
-    source_commit: release.sourceCommit,
+    source_commit: releaseSource,
     build_id: buildId,
-    deployed_at: release.deployedAt,
-    identity_source: release.sourceCommit ? "release_directory" : "unknown",
+    deployed_at: null,
+    identity_source: releaseSource ? "release_directory" : "unknown",
   };
 }

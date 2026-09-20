@@ -11,6 +11,7 @@ ARG NEXT_PUBLIC_NEXOLAB_API_BASE_URL
 ARG NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL
 ARG NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=disabled
 ARG NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID=00000000-0000-0000-0000-000000000001
+ARG NEXOLAB_SOURCE_COMMIT
 ENV NEXT_PUBLIC_NEXOLAB_DATA_MODE=${NEXT_PUBLIC_NEXOLAB_DATA_MODE} \
     NEXT_PUBLIC_NEXOLAB_API_BASE_URL=${NEXT_PUBLIC_NEXOLAB_API_BASE_URL} \
     NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL=${NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL} \
@@ -21,6 +22,8 @@ COPY . .
 RUN test -n "$NEXT_PUBLIC_NEXOLAB_API_BASE_URL" \
     && test -n "$NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL" \
     && npm run build \
+    && test -n "$NEXOLAB_SOURCE_COMMIT" \
+    && NEXOLAB_SOURCE_COMMIT="$NEXOLAB_SOURCE_COMMIT" node -e 'const fs=require("fs");const source=process.env.NEXOLAB_SOURCE_COMMIT||"";if(!/^[0-9a-f]{40}$/.test(source))process.exit(1);const build=fs.readFileSync(".next/BUILD_ID","utf8").trim();fs.writeFileSync(".nexolab-runtime-identity.json",JSON.stringify({schema_version:"nexolab-runtime-identity-v1",service:"dashboard",source_commit:source,build_id:build||null,deployed_at:null,identity_source:"offline_image_manifest"})+"\\n");' \
     && cp package-lock.json /tmp/nexolab-package-lock.json \
     && npm prune --omit=dev \
     && mv /tmp/nexolab-package-lock.json package-lock.json
@@ -34,6 +37,7 @@ WORKDIR /app
 COPY --from=builder --chown=node:node /app/package.json /app/package-lock.json ./
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/.next ./.next
+COPY --from=builder --chown=node:node /app/.nexolab-runtime-identity.json ./.nexolab-runtime-identity.json
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=12 \

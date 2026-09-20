@@ -1,8 +1,16 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-18
+Updated: 2026-09-20
 
 ## Current Sprint
+
+### Issue #1099 — Project Control Center runtime identity contract in review
+
+Issue #1099 / PR #1098 is the active software-only Work Package for a safe read-only Dashboard runtime identity contract. The endpoint exposes only schema/service/source commit/build ID/deployment timestamp/identity source; it adds no write/control path and does not expose credentials, environment values, filesystem paths or telemetry payloads.
+
+Raspberry Pi runtime identity uses an atomic activation manifest outside immutable frontend release directories. The endpoint validates that authority against the actual running release source and `.next/BUILD_ID`; stale or mismatched authority fails safe to release-directory source identity with `deployed_at=null`. Rollback refreshes the authority from the restored Dashboard WorkingDirectory, or clears it if trustworthy rollback identity cannot be established. Offline/container Dashboard images embed the exact package source commit and build ID with `deployed_at=null`, preserving the distinction between image build and site activation.
+
+Focused verification on `nexolab-edge-01` uses Node 22.23.1: Prettier PASS, runtime identity Vitest 3/3 PASS, ESLint PASS, TypeScript PASS, Raspberry frontend deployment contract 13/13 PASS, offline workflow contract 14/14 PASS, shell syntax PASS and `git diff --check` PASS. Exact-head GitHub CI and review reconciliation remain in progress. Production LOCAL_LAN is unchanged: no production/site cutover, Modbus/controller write, hardware write, persistent-data deletion or named-volume deletion is authorized or implied.
 
 ### Issue #1096 — RFX-12 frontend-only production overlay accepted
 
