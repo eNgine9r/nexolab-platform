@@ -27,7 +27,11 @@
     "frontend_runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1099,
+      "title": "Expose safe dashboard runtime identity for Project Control Center",
+      "branch": "feat/runtime-identity-endpoint"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -4498,6 +4502,14 @@
         "modbus_write": "none",
         "hardware_write": "none"
       }
+    },
+    {
+      "issue": 1099,
+      "title": "Expose safe dashboard runtime identity for Project Control Center",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "feat/runtime-identity-endpoint",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [
