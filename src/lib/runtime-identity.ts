@@ -30,9 +30,7 @@ export function parseReleaseDirectory(cwd: string): {
   return { sourceCommit: match[1], deployedAt };
 }
 
-export async function readDashboardRuntimeIdentity(
-  cwd = process.cwd(),
-): Promise<DashboardRuntimeIdentity> {
+export async function readDashboardRuntimeIdentity(cwd = process.cwd()): Promise<DashboardRuntimeIdentity> {
   const release = parseReleaseDirectory(cwd);
 
   let buildId: string | null = null;
