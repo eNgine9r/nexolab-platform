@@ -58,7 +58,14 @@ async function readIdentityManifest(file: string): Promise<DashboardRuntimeIdent
     ) {
       return null;
     }
-    return raw as DashboardRuntimeIdentity;
+    return {
+      schema_version: RUNTIME_IDENTITY_SCHEMA,
+      service: "dashboard",
+      source_commit: raw.source_commit,
+      build_id: raw.build_id ?? null,
+      deployed_at: raw.deployed_at ?? null,
+      identity_source: raw.identity_source as DashboardRuntimeIdentity["identity_source"],
+    };
   } catch {
     return null;
   }

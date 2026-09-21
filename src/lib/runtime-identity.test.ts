@@ -107,6 +107,38 @@ describe("runtime identity", () => {
     }
   });
 
+  it("strips unrecognized manifest fields from the public runtime identity", async () => {
+    const { root, release } = await runtimeFixture();
+    const identity = path.join(root, "dashboard-runtime-identity.json");
+    try {
+      await writeFile(
+        identity,
+        JSON.stringify({
+          schema_version: "nexolab-runtime-identity-v1",
+          service: "dashboard",
+          source_commit: SOURCE,
+          build_id: "build-abc123",
+          deployed_at: "2026-09-20T18:30:00+03:00",
+          identity_source: "raspberry_activation",
+          evidence_path: "/private/runtime/evidence",
+          secret: "must-not-leak",
+        }) + "\n",
+        "utf8",
+      );
+
+      await expect(readDashboardRuntimeIdentity({ cwd: release, identityFile: identity })).resolves.toEqual({
+        schema_version: "nexolab-runtime-identity-v1",
+        service: "dashboard",
+        source_commit: SOURCE,
+        build_id: "build-abc123",
+        deployed_at: "2026-09-20T18:30:00+03:00",
+        identity_source: "raspberry_activation",
+      });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("does not trust a manifest when the runtime build ID is unavailable", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "nexolab-runtime-missing-build-"));
     const identity = path.join(root, ".nexolab-runtime-identity.json");
