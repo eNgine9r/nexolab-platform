@@ -1,8 +1,16 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-18
+Updated: 2026-09-21
 
 ## Current Sprint
+
+### Issue #1099 — Project Control Center runtime identity contract repository-side complete
+
+Issue #1099 / PR #1098 completed the software-only repository Work Package for a safe read-only Dashboard runtime identity contract. The endpoint exposes exactly the six allowlisted fields schema/service/source commit/build ID/deployment timestamp/identity source; unknown manifest properties are stripped before the unauthenticated response. It adds no write/control path and does not expose credentials, environment values, filesystem paths or telemetry payloads.
+
+Raspberry Pi runtime identity uses an atomic activation manifest outside immutable frontend release directories. The endpoint validates that authority against the actual running release source and `.next/BUILD_ID`; stale, mismatched, or missing-build authority fails closed to release-directory source identity with `deployed_at=null`. Rollback refreshes the authority from the restored Dashboard WorkingDirectory, or clears it if trustworthy rollback identity cannot be established. Offline/container Dashboard images and official frontend release artifacts receive the exact source commit and preserve build identity with `deployed_at=null`, keeping image build distinct from site activation.
+
+Verification on `nexolab-edge-01` uses Node 22.23.1: Prettier PASS, runtime identity Vitest 5/5 PASS, ESLint PASS, TypeScript PASS, Raspberry frontend deployment contract 13/13 PASS, offline workflow contract 14/14 PASS, shell syntax PASS and `git diff --check` PASS. Verified substantive head `1588538469e4d384483f34f3a27d5faed2b7a16c` passed CI, Offline Bundle and Telemetry service exact-head workflows; all review threads were resolved before completion. Production LOCAL_LAN remains unchanged: no production/site cutover, Modbus/controller write, hardware write, persistent-data deletion or named-volume deletion is authorized or implied.
 
 ### Issue #1096 — RFX-12 frontend-only production overlay accepted
 

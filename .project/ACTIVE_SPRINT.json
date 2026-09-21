@@ -4498,6 +4498,22 @@
         "modbus_write": "none",
         "hardware_write": "none"
       }
+    },
+    {
+      "issue": 1099,
+      "title": "Expose safe dashboard runtime identity for Project Control Center",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "feat/runtime-identity-endpoint",
+      "evidence": {
+        "verified_head_sha": "1588538469e4d384483f34f3a27d5faed2b7a16c",
+        "pull_request": 1098,
+        "checks": {
+          "CI": "success:35585003234",
+          "Offline Bundle": "success:35585003232",
+          "Telemetry service": "success:35585003233"
+        }
+      }
     }
   ],
   "maintenance_actions": [

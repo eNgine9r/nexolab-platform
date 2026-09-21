@@ -133,6 +133,14 @@ class RaspberryPiFrontendReleaseTests(unittest.TestCase):
         self.assertNotIn('\nnpm ci\n', text)
         self.assertNotIn('NEXT_TELEMETRY_DISABLED=1 npm run build', text)
         self.assertIn('WorkingDirectory=$FRONTEND_RELEASE_DIR', text)
+        self.assertIn(
+            'Environment=NEXOLAB_RUNTIME_IDENTITY_FILE=$DASHBOARD_RUNTIME_IDENTITY_FILE',
+            text,
+        )
+        self.assertIn("write_dashboard_runtime_identity_manifest", text)
+        self.assertIn("raspberry_activation", text)
+        self.assertIn("raspberry_rollback", text)
+        self.assertIn('echo "deployed_at=$DASHBOARD_DEPLOYED_AT"', text)
         self.assertIn('rollback_dashboard_release', text)
         self.assertIn('nexolab_frontend_verify_public_contract', text)
 
@@ -340,10 +348,15 @@ class RaspberryPiFrontendReleaseTests(unittest.TestCase):
         self.assertIn("Setup QEMU", release)
         self.assertIn("ARM64", builder)
         self.assertIn('docker create --platform "$PLATFORM" "$IMAGE"', builder)
+        self.assertIn('--build-arg "NEXOLAB_SOURCE_COMMIT=$SOURCE_SHA"', builder)
         dashboard_dockerfile = DASHBOARD_DOCKERFILE.read_text(encoding="utf-8")
         self.assertIn("cp package-lock.json /tmp/nexolab-package-lock.json", dashboard_dockerfile)
         self.assertIn("npm prune --omit=dev", dashboard_dockerfile)
         self.assertIn("mv /tmp/nexolab-package-lock.json package-lock.json", dashboard_dockerfile)
+        self.assertIn("ARG NEXOLAB_SOURCE_COMMIT", dashboard_dockerfile)
+        self.assertIn(".nexolab-runtime-identity.json", dashboard_dockerfile)
+        offline_builder = (ROOT / "scripts" / "build-offline-bundle.sh").read_text(encoding="utf-8")
+        self.assertIn('--build-arg "NEXOLAB_SOURCE_COMMIT=${SOURCE_COMMIT}"', offline_builder)
 
     def test_unactivated_release_cleanup_is_path_bounded(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

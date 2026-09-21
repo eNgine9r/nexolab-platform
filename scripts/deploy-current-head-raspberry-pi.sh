@@ -1831,6 +1831,7 @@ DASHBOARD_GROUP="$(id -gn)"
 DASHBOARD_UNIT="/etc/systemd/system/nexolab-dashboard.service"
 DASHBOARD_UNIT_BACKUP="$AUDIT_DIR/dashboard-unit-before.service"
 DASHBOARD_UNIT_CANDIDATE="$AUDIT_DIR/dashboard-unit-candidate.service"
+DASHBOARD_RUNTIME_IDENTITY_FILE="$REPO/runtime/dashboard-runtime-identity.json"
 
 if sudo test -f "$DASHBOARD_UNIT"; then
   sudo cp -a "$DASHBOARD_UNIT" "$DASHBOARD_UNIT_BACKUP"
@@ -1855,6 +1856,7 @@ Environment=NEXT_PUBLIC_NEXOLAB_API_BASE_URL=$NEXOLAB_API_BASE_URL
 Environment=NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL=$NEXOLAB_WEBSOCKET_URL
 Environment=NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=$FRONTEND_AUTH_PROVIDER
 Environment=NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID=$FRONTEND_ORGANIZATION_ID
+Environment=NEXOLAB_RUNTIME_IDENTITY_FILE=$DASHBOARD_RUNTIME_IDENTITY_FILE
 Environment=PATH=$NODE_BIN_DIR:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 ExecStart=$FRONTEND_RELEASE_DIR/node_modules/.bin/next start --hostname $NEXOLAB_DASHBOARD_BIND_ADDRESS --port 3000
 Restart=always
@@ -1865,14 +1867,58 @@ TimeoutStopSec=30
 WantedBy=multi-user.target
 EOF_UNIT
 
+write_dashboard_runtime_identity_manifest() {
+  local release_dir=$1 source_commit=${2:-} identity_source=${3:-raspberry_activation} deployed_at=${4:-}
+  local release_name build_id temp_file
+  [[ -d "$release_dir" ]] || return 1
+  [[ -f "$release_dir/.next/BUILD_ID" ]] || return 1
+  if [[ -z "$source_commit" ]]; then
+    release_name="${release_dir##*/}"
+    source_commit="${release_name%%-*}"
+  fi
+  [[ "$source_commit" =~ ^[0-9a-f]{40}$ ]] || return 1
+  build_id="$(tr -d '\r\n' < "$release_dir/.next/BUILD_ID")"
+  [[ -n "$build_id" ]] || return 1
+  [[ -n "$deployed_at" ]] || deployed_at="$(date --iso-8601=seconds)"
+  mkdir -p "$(dirname "$DASHBOARD_RUNTIME_IDENTITY_FILE")"
+  temp_file="${DASHBOARD_RUNTIME_IDENTITY_FILE}.tmp.$$"
+  python3 - "$temp_file" "$source_commit" "$build_id" "$deployed_at" "$identity_source" <<'PY_RUNTIME_IDENTITY'
+import json
+import sys
+from pathlib import Path
+
+output, source_commit, build_id, deployed_at, identity_source = sys.argv[1:]
+payload = {
+    "schema_version": "nexolab-runtime-identity-v1",
+    "service": "dashboard",
+    "source_commit": source_commit,
+    "build_id": build_id,
+    "deployed_at": deployed_at,
+    "identity_source": identity_source,
+}
+Path(output).write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
+PY_RUNTIME_IDENTITY
+  chmod 0644 "$temp_file"
+  mv -f "$temp_file" "$DASHBOARD_RUNTIME_IDENTITY_FILE"
+}
+
 rollback_dashboard_release() {
   log "Rolling back dashboard service to the last-known-good unit"
   sudo systemctl stop nexolab-dashboard.service >/dev/null 2>&1 || true
   if [[ -f "$DASHBOARD_UNIT_BACKUP" ]]; then
     sudo install -m 0644 "$DASHBOARD_UNIT_BACKUP" "$DASHBOARD_UNIT"
     sudo systemctl daemon-reload
-    sudo systemctl start nexolab-dashboard.service >/dev/null 2>&1 || true
+    if sudo systemctl start nexolab-dashboard.service >/dev/null 2>&1; then
+      ROLLBACK_RELEASE="$(sudo systemctl show nexolab-dashboard.service -p WorkingDirectory --value)"
+      if ! write_dashboard_runtime_identity_manifest "$ROLLBACK_RELEASE" "" raspberry_rollback; then
+        rm -f "$DASHBOARD_RUNTIME_IDENTITY_FILE"
+        log "WARNING: rollback dashboard identity could not be refreshed"
+      fi
+    else
+      rm -f "$DASHBOARD_RUNTIME_IDENTITY_FILE"
+    fi
   else
+    rm -f "$DASHBOARD_RUNTIME_IDENTITY_FILE"
     sudo rm -f "$DASHBOARD_UNIT"
     sudo systemctl daemon-reload
   fi
@@ -1904,6 +1950,11 @@ done
 if [[ "$DASHBOARD_ACTIVATED" != true ]]; then
   rollback_dashboard_release
   fail "verified frontend release failed post-activation health check; last-known-good dashboard restored"
+fi
+DASHBOARD_DEPLOYED_AT="$(date --iso-8601=seconds)"
+if ! write_dashboard_runtime_identity_manifest "$FRONTEND_RELEASE_DIR" "$CURRENT_HEAD" raspberry_activation "$DASHBOARD_DEPLOYED_AT"; then
+  rollback_dashboard_release
+  fail "dashboard runtime identity authority could not be recorded; last-known-good dashboard restored"
 fi
 NEXOLAB_FRONTEND_ACTIVATED=1
 log "Activated frontend release: $FRONTEND_RELEASE_DIR"
@@ -2009,7 +2060,7 @@ docker image inspect "$DEPLOYED_DEVICE_AGENT_IMAGE_ID" >/dev/null 2>&1 \
   || fail "successful deployment Device Agent container does not match the activated local image"
 
 {
-  echo "deployed_at=$(date --iso-8601=seconds)"
+  echo "deployed_at=$DASHBOARD_DEPLOYED_AT"
   echo "commit=$CURRENT_HEAD"
   echo "deployed_device_agent_image_id=$DEPLOYED_DEVICE_AGENT_IMAGE_ID"
   echo "requested_source_ref=${REQUESTED_SOURCE_REF:-current_origin_main}"

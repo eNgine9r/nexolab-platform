@@ -95,6 +95,7 @@ docker buildx build \
   --build-arg "NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL=$WEBSOCKET_URL" \
   --build-arg "NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=$AUTH_PROVIDER" \
   --build-arg "NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID=$ORGANIZATION_ID" \
+  --build-arg "NEXOLAB_SOURCE_COMMIT=$SOURCE_SHA" \
   .
 
 IMAGE_OS="$(docker image inspect "$IMAGE" --format '{{.Os}}')"
