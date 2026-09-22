@@ -63,6 +63,23 @@ jobs:
           persist-credentials: false
           ref: ${{ env.SOURCE_SHA }}
 
+      - name: Validate controlled image inventory
+        run: |
+          python - <<'PY_INVENTORY'
+          import importlib.util
+          from pathlib import Path
+
+          module_path = Path("scripts/validate-container-supply-chain.py")
+          spec = importlib.util.spec_from_file_location("container_supply_chain_validator", module_path)
+          if spec is None or spec.loader is None:
+              raise SystemExit("Cannot load container supply-chain validator")
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          root = Path.cwd().resolve()
+          module.validate_inventory(root / "security/container-images.json", root)
+          print("Container image inventory validation passed.")
+          PY_INVENTORY
+
       - name: Build image matrix from inventory
         id: matrix
         run: |
