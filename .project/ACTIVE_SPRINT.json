@@ -4588,8 +4588,16 @@
     {
       "source_issue": 1012,
       "title": "Review/remove HIGH container exceptions expiring 2026-09-21",
-      "status": "scheduled",
+      "status": "completed",
       "due_on": "2026-09-21",
+      "owner": "platform-security",
+      "rule": "Completed under Issue #1108 / PR #1110 after fresh 2026-09-22 no-cache review: 90 exact HIGH / 0 CRITICAL findings reconciled 1:1, retained exact owner-bound decisions renewed only through 2026-09-29, and no blanket renewal permitted."
+    },
+    {
+      "source_issue": 1108,
+      "title": "Review/remove HIGH container exceptions expiring 2026-09-29",
+      "status": "scheduled",
+      "due_on": "2026-09-29",
       "owner": "platform-security",
       "rule": "Run a fresh no-cache scan before expiry and reconcile every retained exact HIGH tuple. Remove immediately when a finding disappears, a consumable fixed package/base is available, runtime reachability changes, authoritative affected-version guidance changes materially, or severity becomes Critical. No blanket renewal is permitted."
     }
