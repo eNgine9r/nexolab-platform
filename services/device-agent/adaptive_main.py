@@ -579,12 +579,20 @@ class AdaptiveRegistryHealthHandler(RegistryManagedHealthHandler):
         super().do_GET()
 
 
+def validate_adaptive_entrypoint(settings: Settings) -> None:
+    if settings.sdm120_unit_ids:
+        raise ValueError(
+            "SDM120 polling requires the topology-aware dual_bus_main.py entrypoint"
+        )
+
+
 def main() -> None:
     logging.basicConfig(
         level=os.getenv("LOG_LEVEL", "INFO").upper(),
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
     settings = Settings.from_env()
+    validate_adaptive_entrypoint(settings)
     agent = AdaptiveRegistryDeviceAgent(settings)
     AdaptiveRegistryHealthHandler.agent = agent
     server = ThreadingHTTPServer(

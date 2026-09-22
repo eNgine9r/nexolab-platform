@@ -60,13 +60,15 @@ Register `7`, observed as a cumulative-energy candidate, is deliberately exclude
 ```dotenv
 DEVICE_MODE=sdm120
 SDM120_UNIT_IDS=1
+SDM120_BUS_ID=rs485-sdm120
+RS485_BUS_CONFIG_JSON=[{"bus_id":"rs485-sdm120","serial_device":"/host/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0","unit_ids":[1]}]
 ```
 
-The real Unit 1 meter was profiled read-only on stable adapter `/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0`. Production polling remains disabled until a separate approved cutover binds that adapter into `RS485_BUS_CONFIG_JSON`.
+SDM120 polling must use the topology-aware `dual_bus_main.py` entrypoint; the default `adaptive_main.py` entrypoint rejects SDM polling rather than falling back to legacy `SERIAL_DEVICE`. The real Unit 1 meter was profiled read-only on stable adapter `/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0`. Production polling remains disabled until a separate approved cutover enables this explicit topology.
 
 ### Combined Modbus acquisition
 
-`DEVICE_MODE=modbus` schedules the configured XJP60D, LE-01MP, SDM120M and Embraco families through the read-only adaptive acquisition runtime. In legacy single-bus mode both families use the configured `SERIAL_DEVICE`. In explicit multi-bus mode each registry device is dispatched to the `ModbusRTUClient` owned by its logical `bus_id`.
+`DEVICE_MODE=modbus` schedules the configured XJP60D, LE-01MP, SDM120M and Embraco families through the read-only adaptive acquisition runtime. Legacy `SERIAL_DEVICE` routing remains available only when SDM120 is not enabled. Any SDM120 polling requires the topology-aware `dual_bus_main.py` entrypoint plus explicit `SDM120_BUS_ID` and `RS485_BUS_CONFIG_JSON`; each registry device is then dispatched to the `ModbusRTUClient` owned by its logical `bus_id`.
 
 ```dotenv
 DEVICE_MODE=modbus

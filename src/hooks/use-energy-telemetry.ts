@@ -30,6 +30,7 @@ import { createRuntimeCredentialProvider } from "@/features/security/supabase-au
 import {
   ENERGY_METRICS,
   isEnergySample,
+  resolveEnergyMeter,
   selectLatestEnergySamples,
   type EnergyMetricId,
 } from "@/features/energy/energy-telemetry";
@@ -821,15 +822,36 @@ export function useEnergyTelemetry({
     if (runtime.config?.mode !== "live" || !enabled || scopeKey === null || activeScopeKey !== scopeKey) {
       return null;
     }
-    return deriveDashboardTelemetry(store, {
+    const baseView = deriveDashboardTelemetry(store, {
       now: clock,
       staleAfterMs: STALE_AFTER_MS,
       hasLoadedSnapshot,
       connectionState,
       error,
     });
+    const authority = cadenceAuthorityState.scopeKey === scopeKey ? cadenceAuthorityState.authority : null;
+    if (authority === null) return baseView;
+
+    const freshSamples = baseView.samples.filter((sample) => {
+      const meter = resolveEnergyMeter(sample);
+      const capturedAt = Date.parse(sample.captured_at);
+      if (meter === null || !Number.isFinite(capturedAt)) return false;
+      const cadenceTolerance =
+        authority.maximumSourceGapMs(meter.unitId, capturedAt, clock) ?? STALE_AFTER_MS;
+      return clock - capturedAt <= cadenceTolerance;
+    });
+
+    let status = baseView.status;
+    if (connectionState === "reconnecting") {
+      status = freshSamples.length > 0 ? "reconnecting" : "stale";
+    } else if (status === "live" || status === "stale") {
+      status = freshSamples.length > 0 ? "live" : baseView.samples.length > 0 ? "stale" : "offline";
+    }
+
+    return { ...baseView, status, freshSamples };
   }, [
     activeScopeKey,
+    cadenceAuthorityState,
     clock,
     connectionState,
     enabled,

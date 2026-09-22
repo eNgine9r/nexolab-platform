@@ -386,6 +386,40 @@ class DualBusAdaptiveRuntimeTests(unittest.TestCase):
         )
         self.assertEqual(result["controller_count"], 2)
 
+    def test_explicit_discovery_passes_responsive_bus_identity_to_enrollment(self) -> None:
+        kk1_reader = Mock()
+        kk2_reader = Mock()
+        reading = Mock(
+            value=4.2,
+            unit="degC",
+            quality="valid",
+            alarm=None,
+            raw_value=42,
+            raw_status=0,
+        )
+        kk1_reader.read_channel.return_value = reading
+        kk2_reader.read_channel.return_value = reading
+        self.agent._bus_xjp60d_readers = {  # noqa: SLF001
+            "rs485-kk1": kk1_reader,
+            "rs485-kk2": kk2_reader,
+        }
+        for client in self.agent._bus_clients.values():  # noqa: SLF001
+            client.instrumentation_scope = Mock(return_value=nullcontext())  # type: ignore[method-assign]
+
+        enrollment_store = Mock()
+        enrollment_store.enroll_xjp60d.side_effect = (
+            lambda current, **_kwargs: current
+        )
+        self.agent._topology_enrollment_store = enrollment_store  # noqa: SLF001
+
+        self.agent.discover_xjp60d()
+
+        kwargs = enrollment_store.enroll_xjp60d.call_args.kwargs
+        resolver = kwargs["bus_for_unit"]
+        self.assertEqual(kwargs["unit_ids"], (106, 126))
+        self.assertEqual(resolver(106), "rs485-kk2")
+        self.assertEqual(resolver(126), "rs485-kk1")
+
     def test_bus_diagnostics_never_claim_hardware_acceptance(self) -> None:
         payload = self.agent.acquisition_snapshot()
         buses = {item["bus_id"]: item for item in payload["rs485_buses"]}

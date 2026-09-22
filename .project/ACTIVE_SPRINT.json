@@ -4598,7 +4598,13 @@
           "merge_gate": "failed_due_to_authenticated_dashboard"
         },
         "dashboard_failure_root_cause": "post_reload_immediate_isVisible_selected_hidden_mobile_control_before_desktop_hydration",
-        "dashboard_helper_correction_checks": "prettier_eslint_typecheck_diff_check_passed"
+        "dashboard_helper_correction_checks": "prettier_eslint_typecheck_diff_check_passed",
+        "exact_head_c39d174b": "11_of_11_required_workflows_green",
+        "post_ci_review_findings": 4,
+        "post_ci_targeted_python": "3_of_3_passed",
+        "post_ci_energy_hook": "13_of_13_passed",
+        "post_ci_cadence_authority": "6_of_6_passed",
+        "post_ci_static_checks": "prettier_eslint_typecheck_python_compile_diff_check_passed"
       }
     }
   ],

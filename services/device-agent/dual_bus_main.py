@@ -994,6 +994,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                         reason=(
                             "Enroll responsive XJP60D units on explicit read-only RS-485 buses"
                         ),
+                        bus_for_unit=lambda unit_id: assignments[unit_id],
                     )
                     changed = enrolled.revision != current.revision
                     if changed:
