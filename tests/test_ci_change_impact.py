@@ -169,18 +169,22 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertIn("'..' not in candidate.parts", workflow)
 
     def test_rs485_acquisition_surfaces_are_known_device_agent_paths(self) -> None:
-        for path in (
-            "config/edge/eastron-sdm120m-v2.4-register-map.yaml",
-            "config/edge/rs485-device-registry.yaml",
-            "scripts/run-acquisition-scale-acceptance.py",
-            "tools/rs485_discovery/scan_rs485.py",
-            "tools/rs485_discovery/test_scan_rs485.py",
+        for path, required_workflow in (
+            ("config/edge/eastron-sdm120m-v2.4-register-map.yaml", "Edge image"),
+            ("config/edge/rs485-device-registry.yaml", "Edge image"),
+            ("scripts/run-acquisition-scale-acceptance.py", "Acquisition Scale Acceptance"),
+            ("tools/rs485_discovery/scan_rs485.py", "RS485 tools"),
+            ("tools/rs485_discovery/test_scan_rs485.py", "RS485 tools"),
         ):
             with self.subTest(path=path):
                 result = classify([path])
                 self.assertIn("device_agent", result["classes"])
                 self.assertFalse(result["fail_closed"])
                 self.assertEqual(result["unknown_files"], [])
+                self.assertEqual(
+                    result["verification"]["required_external_workflows"],
+                    [required_workflow],
+                )
 
     def test_nested_register_map_path_remains_fail_closed(self) -> None:
         path = "config/edge/vendor/foo-register-map.yaml"
@@ -225,7 +229,13 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertFalse(verification["refrigeration_browser"])
         self.assertEqual(
             set(verification["required_external_workflows"]),
-            {"Authenticated Dashboard Acceptance", "Offline Bundle"},
+            {
+                "Authenticated Dashboard Acceptance",
+                "Offline Bundle",
+                "Edge image",
+                "Acquisition Scale Acceptance",
+                "RS485 tools",
+            },
         )
 
     def test_device_agent_and_deployment_are_multi_class(self) -> None:

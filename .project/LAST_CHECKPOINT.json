@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-22T12:51:00+03:00",
+  "timestamp": "2026-09-22T13:25:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1113 completed candidate: RS-485/acquisition CI routing and config validation verified GREEN on PR #1114 substantive head 6eb82f8f",
+  "event": "Issue #1113 final P2 workflow-registration gap fixed with narrow local regression evidence; automatic exact-head CI is the remaining merge condition",
   "baselines": {
     "accepted_product_sha": "1a0644497e4cfd10ce7ba0366772955c72f4711a",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -20,7 +20,7 @@
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Push final state-only head, require exact-head State/Core/Merge Gate GREEN, merge PR #1114, then refresh PR #1105 from current main and rerun required SDM120 gates. Production activation remains separate and unauthorized.",
+  "next_action": "Push the single final #1114 candidate, use its automatically registered exact-head CI without manual reruns, merge when GREEN, then refresh PR #1105 from current main and run the required SDM120 gates. Production activation remains separate and unauthorized.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
