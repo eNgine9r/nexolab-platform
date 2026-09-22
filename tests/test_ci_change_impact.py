@@ -162,8 +162,11 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertIn('Validate RS-485 registry and register maps', workflow)
         self.assertIn('yaml.safe_load', workflow)
         self.assertIn("missing referenced register map", workflow)
-        self.assertIn("bus.port must use a stable /dev/serial/by-id/ path", workflow)
-        self.assertIn("dedicated_adapter must use a stable /dev/serial/by-id/ path", workflow)
+        self.assertIn("bus.port must use a direct stable /dev/serial/by-id/ path", workflow)
+        self.assertIn("dedicated_adapter must use a direct stable /dev/serial/by-id/ path", workflow)
+        self.assertIn("PurePosixPath('/dev/serial/by-id')", workflow)
+        self.assertIn("candidate.parent == stable_parent", workflow)
+        self.assertIn("'..' not in candidate.parts", workflow)
 
     def test_rs485_acquisition_surfaces_are_known_device_agent_paths(self) -> None:
         for path in (
