@@ -10,7 +10,11 @@ Issue #1104 implements the physically connected Eastron SDM120M as the fifth Ene
 
 Product implementation `b7f0f9372412175005564efa847e1ec43a3bb83d` adds strict FC04 support, IEEE-754 Float32 MSW-first decoding, the `sdm120` acquisition family, persisted registry/scheduler/cadence routing, dedicated-bus configuration authority, scanner false-positive repair and heterogeneous Energy UI support. Follow-up fix `5ce49587115d86d1ac80eec64a3531048565b8e0` makes Modbus Unit identity bus-scoped and adds explicit `SDM120_BUS_ID`, so Unit `1` on the dedicated SDM120 bus cannot collide with Unit `1` on another physical segment. W1–W4 remain preserved; SDM120M appears as equipment `SDM120M-1`, source `eastron-sdm120m`, and nonexistent `temperature.internal` is explicitly unsupported rather than fabricated.
 
-Software verification is GREEN: Device Agent targeted `87/87`, RS-485 discovery `10/10`, frontend targeted `32/32`, TypeScript, ESLint, Prettier, Compose model validation, candidate Device Agent image build, bus-scoped duplicate-Unit regression, and acquisition-scale `46/46` assertions with the updated pilot/expanded/stress inventories. Production polling remains fail-closed because `SDM120_UNIT_IDS` and `SDM120_BUS_ID` default empty. Exact-head PR CI/build/browser acceptance is the current gate; any production activation after merge requires a separate cutover plan and explicit Product Owner approval.
+Software verification is GREEN: Device Agent targeted matrix, RS-485 discovery `10/10`, frontend targeted `32/32`, TypeScript, ESLint, production build, dedicated-bus topology regressions, and acquisition-scale `46/46` assertions pass. The first exact-head PR #1105 run was feature-GREEN but blocked by the then-expired global container exception registry; #1108/#1110 and #1111/#1112 have since repaired and reconciled that independent security baseline. Production polling remains fail-closed because `SDM120_UNIT_IDS` and `SDM120_BUS_ID` default empty. Exact-head PR CI is being rerun on the refreshed security baseline; any production activation after merge requires a separate cutover plan and explicit Product Owner approval.
+
+### Issue #1111 — #1108 post-merge security state reconciliation
+
+Issue #1108 / PR #1110 completed the fresh 2026-09-22 container HIGH revalidation and merged to `main` as `ecaf200e0c3b92b7596cd5191276e2c283042edf`. Verified PR head `0f9e3a088e9ac541929d0929ce9dda3c368b0a77` passed Container Supply Chain `35705373349`, Core CI / NEXOLAB Merge Gate `35705373342`, and Telemetry Service `35705373383`. Fresh evidence reconciled 90 exact HIGH / 0 CRITICAL findings; retained exact owner-bound decisions expire 2026-09-29. The prior 2026-09-21 maintenance action is completed and the next mandatory fail-closed review is scheduled for 2026-09-29. No product/runtime deployment, Modbus/controller write, hardware write, persistent-data deletion or named-volume deletion occurred.
 
 ### Issue #1099 — Project Control Center runtime identity contract repository-side complete
 
@@ -52,7 +56,7 @@ RFX-11 delivered the canonical operator Instrumentation Registry workflow: organ
 
 There is currently **no independent Ready Work Package** in the active Sprint queue. No repository-backed RFX-12 Issue exists. #585 is blocked on external RS-485 handback and Product Owner approval; #189 requires actual-host/recovery evidence and gated physical actions; #201 and #202 still require real hardware validation; #17 depends on #201/#202; #257/#256 are dependency-blocked; #1019 is a stale production frontend-release plan whose fixed compatibility baseline predates the current deployed/accepted authority and must not be resumed without a new scoped decision; #603/#326/#204 are Epics/parent maintenance tracks, not focused Ready Work Packages. The next product Work Package therefore requires Product Owner prioritization or a newly discovered critical defect/security interruption.
 
-Security maintenance is also reconciled: #1012 completed the 2026-09-15 HIGH-container review; the next fail-closed exception boundary is 2026-09-21.
+Security maintenance is reconciled through #1108 / PR #1110; the next fail-closed exception boundary is 2026-09-29.
 
 ### Issue #1078 — RFX-09 merge reconciled; RFX-10 Ready
 
