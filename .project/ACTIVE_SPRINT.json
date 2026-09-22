@@ -40,11 +40,7 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1123,
-      "title": "[STATE][SDM120] Record successful production cutover",
-      "branch": "chore/1123-record-sdm120-cutover"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -4717,7 +4713,7 @@
       "issue": 1123,
       "title": "[STATE][SDM120] Record successful production cutover",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "chore/1123-record-sdm120-cutover",
       "evidence": {
         "scope": "canonical_state_supplemental_acceptance_only",
@@ -4739,7 +4735,13 @@
         "evidence_checksums": "PASS_after_final_browser_cadence_persistence_update",
         "runtime_mutation": "none_in_issue_1123",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "verified_head_sha": "025c7d1225e2464e2205126322c68bc2eb931a40",
+        "pull_request": 1124,
+        "checks": {
+          "State integrity": "success:35739907005",
+          "CI/NEXOLAB Merge Gate": "success:35739907005"
+        }
       }
     }
   ],
