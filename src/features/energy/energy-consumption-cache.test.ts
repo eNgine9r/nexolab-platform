@@ -7,7 +7,13 @@ import {
 import { ENERGY_METERS } from "@/features/energy/energy-telemetry";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
-function sample(unitId: number, eventId: string, capturedAt: string, value: number): TelemetrySample {
+function sample(
+  unitId: number,
+  eventId: string,
+  capturedAt: string,
+  value: number,
+  equipmentId = `LE01MP-${unitId}`,
+): TelemetrySample {
   return {
     event_id: eventId,
     node_id: "edge-01",
@@ -17,7 +23,7 @@ function sample(unitId: number, eventId: string, capturedAt: string, value: numb
     unit: "kWh",
     quality: "valid",
     source: "modbus",
-    equipment_id: `LE01MP-${unitId}`,
+    equipment_id: equipmentId,
     channel_id: `${unitId}-energy-active`,
     alarm: null,
     raw_value: Math.round(value * 100),
@@ -28,7 +34,13 @@ function sample(unitId: number, eventId: string, capturedAt: string, value: numb
 describe("energy boundary history cache", () => {
   it("coalesces equivalent meter-card boundary reads into one REST history request", async () => {
     const items = ENERGY_METERS.map((meter, index) =>
-      sample(meter.unitId, `energy-${meter.unitId}`, "2026-08-16T20:15:30.000Z", 100 + index),
+      sample(
+        meter.unitId,
+        `energy-${meter.unitId}`,
+        "2026-08-16T20:15:30.000Z",
+        100 + index,
+        meter.equipmentId,
+      ),
     );
     const history = vi.fn().mockResolvedValue({
       items,

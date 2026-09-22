@@ -96,7 +96,7 @@ export function useEnergyConsumption({
           valueKwh: null,
           startSample: null,
           endSample: null,
-          message: `Невідомий LE-01MP Unit ${unitId}.`,
+          message: `Невідомий лічильник енергії з Unit ${unitId}.`,
         };
       }
 

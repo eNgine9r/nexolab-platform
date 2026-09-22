@@ -1,7 +1,14 @@
 import { CHART_MINIMUM_SOURCE_GAP_MS, CHART_SOURCE_GAP_MULTIPLIER } from "@/features/charts/continuity";
 
-const ENERGY_DEVICE_FAMILY = "le01mp";
-const ENERGY_DEVICE_PREFIX = "le01mp-";
+const ENERGY_DEVICE_PREFIXES: Record<string, string> = {
+  le01mp: "le01mp-",
+  sdm120: "sdm120-",
+};
+
+function energyDevicePrefix(deviceFamily: string): string | null {
+  const prefix = ENERGY_DEVICE_PREFIXES[deviceFamily];
+  return typeof prefix === "string" ? prefix : null;
+}
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -9,6 +16,7 @@ type EnergyRegistryDevice = {
   unitId: number;
   deviceId: string;
   busId: string;
+  deviceFamily: string;
 };
 
 type CadencePolicyState = {
@@ -74,12 +82,15 @@ function parseDevices(root: UnknownRecord): EnergyRegistryDevice[] | null {
 
   for (const value of root.devices) {
     const item = record(value);
-    if (!item || item.device_family !== ENERGY_DEVICE_FAMILY) continue;
+    if (!item) continue;
+    const deviceFamily = typeof item.device_family === "string" ? item.device_family.trim() : "";
+    const expectedPrefix = energyDevicePrefix(deviceFamily);
+    if (expectedPrefix === null) continue;
     const unitId = positiveInteger(item.unit_id);
     const deviceId = typeof item.device_id === "string" ? item.device_id.trim() : "";
     const busId = typeof item.bus_id === "string" ? item.bus_id.trim() : "";
-    if (unitId === null || !deviceId.startsWith(ENERGY_DEVICE_PREFIX) || !busId) return null;
-    devices.push({ unitId, deviceId, busId });
+    if (unitId === null || !deviceId.startsWith(expectedPrefix) || !busId) return null;
+    devices.push({ unitId, deviceId, busId, deviceFamily });
   }
 
   return devices.length > 0 ? devices : null;
@@ -121,9 +132,10 @@ function effectiveIntervals(
 ): Map<number, number> | null {
   const result = new Map<number, number>();
   for (const device of devices) {
+    if (result.has(device.unitId)) return null;
     const intervalMs =
       policy.deviceOverrides.get(device.deviceId) ??
-      policy.familyDefaults.get(familyKey(device.busId, ENERGY_DEVICE_FAMILY));
+      policy.familyDefaults.get(familyKey(device.busId, device.deviceFamily));
     if (intervalMs === undefined || !Number.isFinite(intervalMs) || intervalMs <= 0) return null;
     result.set(device.unitId, intervalMs);
   }
@@ -155,13 +167,17 @@ function reverseRelevantAudit(policy: CadencePolicyState, audit: AuditRecord): b
   for (const change of audit.changes) {
     const entity = change.entity;
     const id = typeof change.id === "string" ? change.id.trim() : "";
-    if (entity === "cadence_family_default" && id.endsWith(`/${ENERGY_DEVICE_FAMILY}`)) {
+    const energyFamily = Object.keys(ENERGY_DEVICE_PREFIXES).find((family) => id.endsWith(`/${family}`));
+    if (entity === "cadence_family_default" && energyFamily !== undefined) {
       const previousSeconds = numericAuditSeconds(change.from);
       if (previousSeconds === null) return false;
       policy.familyDefaults.set(id, previousSeconds * 1_000);
       continue;
     }
-    if (entity === "cadence_device_override" && id.startsWith(ENERGY_DEVICE_PREFIX)) {
+    const energyDeviceOverride =
+      entity === "cadence_device_override" &&
+      Object.values(ENERGY_DEVICE_PREFIXES).some((prefix) => id.startsWith(prefix));
+    if (energyDeviceOverride) {
       const previousSeconds = numericAuditSeconds(change.from);
       if (previousSeconds !== null) {
         policy.deviceOverrides.set(id, previousSeconds * 1_000);

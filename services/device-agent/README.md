@@ -45,9 +45,30 @@ LE01MP_UNIT_IDS=200,201,202,203
 
 Register `7`, observed as a cumulative-energy candidate, is deliberately excluded from production telemetry until its scale and rollover behavior are independently confirmed.
 
+### Eastron SDM120M
+
+`DEVICE_MODE=sdm120` reads the accepted read-only SDM120M measurement subset:
+
+- Modbus RTU `9600 8N1`;
+- FC04 input-register reads only for operator measurements;
+- IEEE-754 Float32 across two adjacent 16-bit registers, MSW first;
+- voltage, current, active/reactive/apparent power, power factor and frequency;
+- native Import Active Energy mapped to `electrical.energy.active`;
+- no `temperature.internal` metric;
+- no Modbus writes.
+
+```dotenv
+DEVICE_MODE=sdm120
+SDM120_UNIT_IDS=1
+SDM120_BUS_ID=rs485-sdm120
+RS485_BUS_CONFIG_JSON=[{"bus_id":"rs485-sdm120","serial_device":"/host/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0","unit_ids":[1]}]
+```
+
+SDM120 polling must use the topology-aware `dual_bus_main.py` entrypoint; the default `adaptive_main.py` entrypoint rejects SDM polling rather than falling back to legacy `SERIAL_DEVICE`. The real Unit 1 meter was profiled read-only on stable adapter `/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0`. Production polling remains disabled until a separate approved cutover enables this explicit topology.
+
 ### Combined Modbus acquisition
 
-`DEVICE_MODE=modbus` schedules both configured driver families through the read-only adaptive acquisition runtime. In legacy single-bus mode both families use the configured `SERIAL_DEVICE`. In explicit multi-bus mode each registry device is dispatched to the `ModbusRTUClient` owned by its logical `bus_id`.
+`DEVICE_MODE=modbus` schedules the configured XJP60D, LE-01MP, SDM120M and Embraco families through the read-only adaptive acquisition runtime. Legacy `SERIAL_DEVICE` routing remains available only when SDM120 is not enabled. Any SDM120 polling requires the topology-aware `dual_bus_main.py` entrypoint plus explicit `SDM120_BUS_ID` and `RS485_BUS_CONFIG_JSON`; each registry device is then dispatched to the `ModbusRTUClient` owned by its logical `bus_id`.
 
 ```dotenv
 DEVICE_MODE=modbus
@@ -74,6 +95,7 @@ Scheduler priority remains separate from cadence:
 - XJP60D temperature/status targets are `high` priority;
 - operational LE-01MP metrics are `medium` priority;
 - slower LE-01MP diagnostics are `low` priority;
+- SDM120M electrical measurements use the persisted family cadence and normal read-only scheduler priority;
 - discovery/configuration operations are `on_demand`.
 
 Priority controls ordering and bounded fairness among due jobs only. It does not determine the recurring polling interval.
@@ -158,7 +180,7 @@ Example shape:
 ]
 ```
 
-The current XJP60D catalog maps KK2 to Unit IDs `96..114` and KK1 to `126..138`. LE-01MP Unit IDs `200..203` have no repository-backed KK1/KK2 ownership yet and must be assigned explicitly before combined dual-bus operation.
+The current XJP60D catalog maps KK2 to Unit IDs `96..114` and KK1 to `126..138`. LE-01MP Unit IDs `200..203` remain on their explicit production bus. The SDM120M Unit `1` is hardware-identified on the dedicated FTDI A10Q34QC adapter and must be assigned to that exact bus before polling is enabled.
 
 Duplicate bus IDs, duplicate stable paths, ambiguous Unit ownership, malformed serial settings and unassigned registry devices fail closed. Discovery is partitioned by bus and newly responsive controllers are persisted as `discovery_only` on the bus where they were read.
 
@@ -226,6 +248,6 @@ docker compose \
   up -d device-agent
 ```
 
-`compose.hardware.yaml` defaults to `HARDWARE_DEVICE_MODE=xjp60d` for backward compatibility. Set `HARDWARE_DEVICE_MODE=modbus` only for an explicit combined validation of XJP60D and LE-01MP.
+`compose.hardware.yaml` defaults to `HARDWARE_DEVICE_MODE=xjp60d` for backward compatibility. Set `HARDWARE_DEVICE_MODE=modbus` only for an explicit combined validation/cutover of the configured read-only device families. SDM120M remains disabled unless `SDM120_UNIT_IDS` and its dedicated explicit bus are both configured.
 
 Before any physical cutover, stop every other Modbus master on the affected RS-485 segment and confirm every configured adapter path is the intended stable `/dev/serial/by-id/...` identity. Issue #589 does not authorize wiring changes, hardware writes or site cutover.

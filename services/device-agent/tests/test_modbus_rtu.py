@@ -10,9 +10,11 @@ from modbus_rtu import (
     append_crc,
     build_read_holding_register_request,
     build_read_holding_registers_request,
+    build_read_input_registers_request,
     crc16,
     parse_read_holding_register_response,
     parse_read_holding_registers_response,
+    parse_read_input_registers_response,
 )
 
 
@@ -90,6 +92,19 @@ class ModbusRTUTests(unittest.TestCase):
             registers,
         )
 
+    def test_builds_and_parses_fc04_input_register_block(self) -> None:
+        registers = (17251, 51411)
+        request = build_read_input_registers_request(1, 0, 2)
+        self.assertEqual(request[:-2], bytes.fromhex("010400000002"))
+        payload = bytes((1, 0x04, 4)) + b"".join(
+            value.to_bytes(2, byteorder="big") for value in registers
+        )
+        frame = append_crc(payload)
+        self.assertEqual(
+            parse_read_input_registers_response(frame, 1, 2),
+            registers,
+        )
+
     def test_rejects_crc_mismatch(self) -> None:
         frame = bytes.fromhex("6a030201049d00")
         with self.assertRaises(ModbusProtocolError):
@@ -138,6 +153,29 @@ class ModbusRTUTests(unittest.TestCase):
             fake.writes,
             [build_read_holding_registers_request(106, 256, 12)],
         )
+
+    def test_client_reads_fc04_block_and_observer_records_function(self) -> None:
+        measurements = []
+        registers = (17251, 51411)
+        payload = bytes((1, 0x04, 4)) + b"".join(
+            value.to_bytes(2, byteorder="big") for value in registers
+        )
+        fake = FakeSerial(append_crc(payload))
+        client = ModbusRTUClient(
+            "/dev/serial/by-id/sdm120",
+            timeout=0.01,
+            retries=0,
+            serial_factory=lambda **kwargs: fake,
+            request_observer=measurements.append,
+        )
+
+        with client.instrumentation_scope(device_family="sdm120", target_id="sdm120:1-voltage"):
+            self.assertEqual(client.read_input_registers(1, 0, 2), registers)
+
+        self.assertEqual(len(measurements), 1)
+        self.assertEqual(measurements[0].function, 4)
+        self.assertEqual(measurements[0].device_family, "sdm120")
+        self.assertEqual(measurements[0].target_id, "sdm120:1-voltage")
 
     def test_observer_records_one_successful_physical_request(self) -> None:
         measurements = []

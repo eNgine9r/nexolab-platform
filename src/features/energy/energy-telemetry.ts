@@ -1,10 +1,41 @@
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 export const ENERGY_METERS = [
-  { label: "W1", unitId: 200, equipmentId: "LE01MP-200" },
-  { label: "W2", unitId: 201, equipmentId: "LE01MP-201" },
-  { label: "W3", unitId: 202, equipmentId: "LE01MP-202" },
-  { label: "W4", unitId: 203, equipmentId: "LE01MP-203" },
+  {
+    label: "W1",
+    unitId: 200,
+    equipmentId: "LE01MP-200",
+    family: "le01mp",
+    modelLabel: "KK1 · F&F LE-01MP",
+  },
+  {
+    label: "W2",
+    unitId: 201,
+    equipmentId: "LE01MP-201",
+    family: "le01mp",
+    modelLabel: "KK1 · F&F LE-01MP",
+  },
+  {
+    label: "W3",
+    unitId: 202,
+    equipmentId: "LE01MP-202",
+    family: "le01mp",
+    modelLabel: "KK1 · F&F LE-01MP",
+  },
+  {
+    label: "W4",
+    unitId: 203,
+    equipmentId: "LE01MP-203",
+    family: "le01mp",
+    modelLabel: "KK1 · F&F LE-01MP",
+  },
+  {
+    label: "SDM120M",
+    unitId: 1,
+    equipmentId: "SDM120M-1",
+    family: "sdm120",
+    modelLabel: "Eastron · SDM120M",
+  },
 ] as const;
 
 export const ENERGY_METRICS = [
@@ -100,16 +131,31 @@ function meterByUnitId(unitId: number): EnergyMeter | null {
 }
 
 export function resolveEnergyMeter(sample: TelemetrySample): EnergyMeter | null {
-  const equipmentMatch = sample.equipment_id.match(/^LE01MP-(\d+)$/i);
-  if (equipmentMatch) return meterByUnitId(Number(equipmentMatch[1]));
+  const normalizedEquipmentId = sample.equipment_id.trim().toUpperCase();
+  const exact = ENERGY_METERS.find((meter) => meter.equipmentId.toUpperCase() === normalizedEquipmentId);
+  if (exact) return exact;
+  if (/^(?:LE01MP|SDM120M)-\d+$/.test(normalizedEquipmentId)) return null;
 
+  // Compatibility fallback for older LE-01MP telemetry that may have lost the
+  // equipment id but retained the canonical Unit-prefixed channel identity.
   const channelMatch = sample.channel_id.match(/^(20[0-3])(?:-|$)/);
   if (!channelMatch) return null;
-  return meterByUnitId(Number(channelMatch[1]));
+  const meter = meterByUnitId(Number(channelMatch[1]));
+  return meter?.family === "le01mp" ? meter : null;
+}
+
+export function energyMeterSupportsMetric(meter: EnergyMeter, metric: string): boolean {
+  return meter.family !== "sdm120" || metric !== "temperature.internal";
+}
+
+export function energyMeterOrder(unitId: number): number {
+  const index = ENERGY_METERS.findIndex((meter) => meter.unitId === unitId);
+  return index === -1 ? Number.MAX_SAFE_INTEGER : index;
 }
 
 export function isEnergySample(sample: TelemetrySample): boolean {
-  return hasExpectedEnergyUnit(sample) && resolveEnergyMeter(sample) !== null;
+  const meter = resolveEnergyMeter(sample);
+  return meter !== null && energyMeterSupportsMetric(meter, sample.metric) && hasExpectedEnergyUnit(sample);
 }
 
 export function selectLatestEnergySamples(samples: readonly TelemetrySample[]): TelemetrySample[] {
@@ -117,8 +163,10 @@ export function selectLatestEnergySamples(samples: readonly TelemetrySample[]): 
 
   for (const sample of samples) {
     const meter = resolveEnergyMeter(sample);
-    if (!meter || !hasExpectedEnergyUnit(sample)) continue;
-    const key = `${meter.unitId}:${sample.metric}`;
+    if (!meter || !energyMeterSupportsMetric(meter, sample.metric) || !hasExpectedEnergyUnit(sample)) {
+      continue;
+    }
+    const key = `${meter.equipmentId}:${sample.metric}`;
     const current = latest.get(key);
     if (!current || Date.parse(current.captured_at) <= Date.parse(sample.captured_at)) {
       latest.set(key, sample);
@@ -129,7 +177,7 @@ export function selectLatestEnergySamples(samples: readonly TelemetrySample[]): 
     const leftMeter = resolveEnergyMeter(left)?.unitId ?? Number.MAX_SAFE_INTEGER;
     const rightMeter = resolveEnergyMeter(right)?.unitId ?? Number.MAX_SAFE_INTEGER;
     return (
-      leftMeter - rightMeter ||
+      energyMeterOrder(leftMeter) - energyMeterOrder(rightMeter) ||
       (METRIC_ORDER.get(left.metric) ?? Number.MAX_SAFE_INTEGER) -
         (METRIC_ORDER.get(right.metric) ?? Number.MAX_SAFE_INTEGER)
     );

@@ -75,7 +75,7 @@ export function EnergyScreen() {
     return (
       <EnergyModeGate
         title="Енергомоніторинг доступний лише в live mode"
-        message="Сторінка навмисно не показує демонстраційні значення як реальні покази W1–W4. Налаштуйте локальний Telemetry Service і NEXT_PUBLIC_NEXOLAB_DATA_MODE=live."
+        message="Сторінка навмисно не показує демонстраційні значення як реальні покази енерголічильників. Налаштуйте локальний Telemetry Service і NEXT_PUBLIC_NEXOLAB_DATA_MODE=live."
       />
     );
   }

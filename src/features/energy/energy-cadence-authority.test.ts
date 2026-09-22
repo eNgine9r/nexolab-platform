@@ -75,6 +75,44 @@ describe("energy cadence authority", () => {
     expect(authority!.intervalMsAt(200, Date.parse("2026-08-03T10:04:00Z"))).toBe(10_000);
   });
 
+  it("includes SDM120 persisted cadence in the Energy authority", () => {
+    const authority = buildEnergyCadenceAuthority({
+      schema_version: 2,
+      revision: 1,
+      updated_at: "2026-09-22T10:00:00.000Z",
+      devices: [
+        {
+          device_id: "le01mp-200",
+          bus_id: "rs485-main",
+          device_family: "le01mp",
+          unit_id: 200,
+        },
+        {
+          device_id: "sdm120-1",
+          bus_id: "rs485-sdm120",
+          device_family: "sdm120",
+          unit_id: 1,
+        },
+      ],
+      cadence: {
+        family_defaults: [
+          { bus_id: "rs485-main", device_family: "le01mp", interval_seconds: 10 },
+          { bus_id: "rs485-sdm120", device_family: "sdm120", interval_seconds: 60 },
+        ],
+        device_overrides: [],
+      },
+      recent_audit: [],
+    });
+
+    expect(authority).not.toBeNull();
+    const capturedAt = Date.parse("2026-09-22T10:00:10.000Z");
+    expect(authority!.intervalMsAt(200, capturedAt)).toBe(10_000);
+    expect(authority!.intervalMsAt(1, capturedAt)).toBe(60_000);
+    expect(authority!.maximumSourceGapMs(1, capturedAt, Date.parse("2026-09-22T10:02:00.000Z"))).toBe(
+      180_000,
+    );
+  });
+
   it("resets cadence tolerance consistently with scheduler reconciliation", () => {
     const authority = buildEnergyCadenceAuthority(basePayload)!;
 

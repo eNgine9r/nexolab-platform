@@ -2,10 +2,16 @@ from __future__ import annotations
 
 import json
 import tempfile
+from dataclasses import replace
 import unittest
 from pathlib import Path
 
-from acquisition_registry import AcquisitionRegistry, build_initial_document
+from acquisition_registry import (
+    AcquisitionRegistry,
+    DeviceLifecycleMutation,
+    LifecycleMutation,
+    build_initial_document,
+)
 from main import Settings
 from rs485_buses import BUS_CONFIG_ENV, LEGACY_BUS_ID, RS485BusTopology
 
@@ -106,6 +112,42 @@ class RS485BusTopologyTests(unittest.TestCase):
             len(rebound.document.targets),
         )
 
+    def test_sdm120_unit_one_binds_to_its_dedicated_stable_bus(self) -> None:
+        configured = replace(self.settings, sdm120_unit_ids=(1,))
+        sdm_registry = AcquisitionRegistry(
+            build_initial_document(
+                configured,
+                discovery_units=(106, 126),
+                legacy_active_points=configured.xjp60d_points,
+            )
+        )
+        payload = explicit_payload() + [
+            {
+                "bus_id": "rs485-sdm120",
+                "serial_device": "/host/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0",
+                "unit_ids": [1],
+                "baudrate": 9600,
+                "parity": "N",
+                "stopbits": 1,
+                "timeout_seconds": 0.3,
+                "retries": 1,
+            }
+        ]
+        topology = RS485BusTopology.from_environment(
+            configured,
+            sdm_registry,
+            environ={BUS_CONFIG_ENV: json.dumps(payload)},
+        )
+        rebound = topology.bind_registry(sdm_registry)
+        devices = {item.device_id: item for item in rebound.document.devices}
+        self.assertEqual(devices["sdm120-1"].bus_id, "rs485-sdm120")
+        self.assertEqual(
+            topology.binding("rs485-sdm120").serial_device,
+            "/host/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0",
+        )
+        self.assertEqual(devices["xjp60d-106"].bus_id, "rs485-kk2")
+        self.assertEqual(devices["le01mp-200"].bus_id, "rs485-kk1")
+
     def test_same_explicit_config_rebinds_an_already_multi_bus_registry_after_restart(self) -> None:
         topology = self.topology(explicit_payload())
         first = topology.bind_registry(self.registry)
@@ -117,6 +159,103 @@ class RS485BusTopologyTests(unittest.TestCase):
 
         self.assertEqual(restarted.document.buses, first.document.buses)
         self.assertEqual(restarted.document.devices, first.document.devices)
+
+    def test_sdm120_unit_one_can_be_enrolled_on_dedicated_bus_when_unit_one_exists_elsewhere(self) -> None:
+        payload = explicit_payload()
+        payload[1]["unit_ids"] = [106, 1]
+        payload.append(
+            {
+                "bus_id": "rs485-sdm120",
+                "serial_device": (
+                    "/host/dev/serial/by-id/"
+                    "usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0"
+                ),
+                "unit_ids": [1],
+                "baudrate": 9600,
+                "parity": "N",
+                "stopbits": 1,
+                "timeout_seconds": 0.3,
+                "retries": 1,
+            }
+        )
+        topology = RS485BusTopology.from_environment(
+            self.settings,
+            self.registry,
+            environ={BUS_CONFIG_ENV: json.dumps(payload)},
+        )
+        rebound = topology.bind_registry(self.registry)
+        enrolled, _changes = rebound.with_sdm120_enrollment(
+            (1,),
+            bus_for_unit=lambda unit_id: topology.bus_for_unit_on(
+                unit_id,
+                "rs485-sdm120",
+            ),
+        )
+        devices = {item.device_id: item for item in enrolled.devices}
+
+        with self.assertRaisesRegex(ValueError, "bus-scoped identity is required"):
+            topology.bus_for_unit(1)
+        self.assertEqual(devices["sdm120-1"].bus_id, "rs485-sdm120")
+        self.assertEqual(devices["le01mp-200"].bus_id, "rs485-kk1")
+        self.assertEqual(devices["xjp60d-106"].bus_id, "rs485-kk2")
+        self.assertEqual(devices["xjp60d-126"].bus_id, "rs485-kk1")
+
+    def test_opted_out_sdm_inventory_does_not_require_removed_runtime_bus(self) -> None:
+        configured = replace(self.settings, sdm120_unit_ids=(1,))
+        sdm_registry = AcquisitionRegistry(
+            build_initial_document(
+                configured,
+                discovery_units=(106, 126),
+                legacy_active_points=configured.xjp60d_points,
+            )
+        )
+        payload = explicit_payload() + [
+            {
+                "bus_id": "rs485-sdm120",
+                "serial_device": "/host/dev/serial/by-id/usb-sdm120",
+                "unit_ids": [1],
+            }
+        ]
+        topology = RS485BusTopology.from_environment(
+            configured,
+            sdm_registry,
+            environ={BUS_CONFIG_ENV: json.dumps(payload)},
+        )
+        bound = topology.bind_registry(sdm_registry)
+        sdm_device = next(
+            device
+            for device in bound.document.devices
+            if device.device_family == "sdm120"
+        )
+        reserve_document, _ = bound.with_mutations(
+            device_mutations=(DeviceLifecycleMutation(sdm_device.device_id, "reserve"),),
+            target_mutations=tuple(
+                LifecycleMutation(target.target_id, "reserve")
+                for target in bound.document.targets
+                if target.device_id == sdm_device.device_id
+            ),
+        )
+        reserved = AcquisitionRegistry(reserve_document)
+        opted_out = replace(self.settings, sdm120_unit_ids=())
+
+        without_sdm_bus = RS485BusTopology.from_environment(
+            opted_out,
+            reserved,
+            environ={BUS_CONFIG_ENV: json.dumps(explicit_payload())},
+        ).bind_registry(reserved)
+
+        self.assertEqual(without_sdm_bus.eligible_sdm120_metrics(), ())
+        persisted = next(
+            device
+            for device in without_sdm_bus.document.devices
+            if device.device_family == "sdm120"
+        )
+        self.assertEqual(persisted.lifecycle, "reserve")
+        self.assertEqual(persisted.bus_id, "rs485-sdm120")
+        self.assertIn(
+            "rs485-sdm120",
+            {bus.bus_id for bus in without_sdm_bus.document.buses},
+        )
 
     def test_legacy_configuration_preserves_single_bus_contract(self) -> None:
         topology = RS485BusTopology.from_environment(
@@ -146,12 +285,21 @@ class RS485BusTopologyTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "same serial path"):
             self.topology(payload)
 
-    def test_duplicate_unit_ownership_fails_closed(self) -> None:
+    def test_same_unit_id_may_exist_on_distinct_buses_but_requires_bus_scope(self) -> None:
         payload = explicit_payload()
         payload[1]["unit_ids"] = [106, 126]
 
-        with self.assertRaisesRegex(ValueError, "assigned to both"):
-            self.topology(payload)
+        topology = RS485BusTopology.from_environment(
+            self.settings,
+            None,
+            environ={BUS_CONFIG_ENV: json.dumps(payload)},
+        )
+
+        self.assertEqual(topology.buses_for_unit(126), ("rs485-kk1", "rs485-kk2"))
+        with self.assertRaisesRegex(ValueError, "bus-scoped identity is required"):
+            topology.bus_for_unit(126)
+        self.assertEqual(topology.bus_for_unit_on(126, "rs485-kk1"), "rs485-kk1")
+        self.assertEqual(topology.bus_for_unit_on(126, "rs485-kk2"), "rs485-kk2")
 
     def test_unstable_ttyusb_path_is_rejected(self) -> None:
         payload = explicit_payload()

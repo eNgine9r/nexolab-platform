@@ -46,11 +46,13 @@ from adaptive_scheduler import (
 from dual_bus_registry import TopologyAwareEnrollmentStore
 from embraco import EmbracoSyncReader
 from le01mp import LE01MPReader
+from sdm120 import SDM120Reader
 from main import (
     Settings,
     TelemetryRecord,
     mode_uses_embraco,
     mode_uses_le01mp,
+    mode_uses_sdm120,
     mode_uses_xjp60d,
     run_agent_with_health_server,
 )
@@ -101,11 +103,18 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
 
     def __init__(self, settings: Settings) -> None:
         configured_topology = RS485BusTopology.explicit_from_environment(settings)
+        sdm120_bus_for_unit = None
+        if configured_topology is not None and settings.sdm120_bus_id is not None:
+            sdm120_bus_for_unit = lambda unit_id: configured_topology.bus_for_unit_on(
+                unit_id,
+                settings.sdm120_bus_id or "",
+            )
         topology_store = (
             TopologyAwareEnrollmentStore(
                 settings.database_path,
                 bus_for_unit=configured_topology.bus_for_unit,
                 bind_registry=configured_topology.bind_registry,
+                sdm120_bus_for_unit=sdm120_bus_for_unit,
             )
             if configured_topology is not None
             else None
@@ -119,6 +128,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         self._bus_clients: dict[str, ModbusRTUClient] = {}
         self._bus_xjp60d_readers: dict[str, XJP60DReader] = {}
         self._bus_le01mp_readers: dict[str, LE01MPReader] = {}
+        self._bus_sdm120_readers: dict[str, SDM120Reader] = {}
         self._bus_embraco_readers: dict[str, EmbracoSyncReader] = {}
         self._bus_operation_locks: dict[str, threading.Lock] = {}
         self._topology_enrollment_store = topology_store
@@ -158,6 +168,8 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                 )
             if mode_uses_le01mp(self.settings.device_mode):
                 self._bus_le01mp_readers[binding.bus_id] = LE01MPReader(client)
+            if mode_uses_sdm120(self.settings.device_mode):
+                self._bus_sdm120_readers[binding.bus_id] = SDM120Reader(client)
             if mode_uses_embraco(self.settings.device_mode):
                 self._bus_embraco_readers[binding.bus_id] = EmbracoSyncReader(
                     client,
@@ -170,6 +182,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         self.modbus_client = None
         self.xjp60d_reader = None
         self.le01mp_reader = None
+        self.sdm120_reader = None
         self.embraco_reader = None
 
         self.scheduler = AdaptiveAcquisitionScheduler(
@@ -258,22 +271,38 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         with self._commissioning_adapter_locks_guard:
             return self._commissioning_adapter_locks.setdefault(bus_id, threading.Lock())
 
-    def preflight_unit_owner(self, unit_id: int) -> str | None:
-        try:
-            return self.rs485_topology.bus_for_unit(unit_id)
-        except ValueError:
-            pass
-        matches = [
+    def preflight_unit_owner(
+        self,
+        unit_id: int,
+        bus_id: str | None = None,
+    ) -> str | None:
+        configured_owners = set(self.rs485_topology.buses_for_unit(unit_id))
+        persisted_owners = {
             device.bus_id
             for device in self._registry_snapshot().document.devices
             if device.unit_id == unit_id
-        ]
-        if len(matches) > 1:
+        }
+        owners = configured_owners | persisted_owners
+        if bus_id is not None:
+            if bus_id in owners:
+                return bus_id
+            if not owners:
+                return None
+            if len(owners) > 1:
+                rendered = ", ".join(sorted(owners))
+                raise PreflightExecutionError(
+                    "unit_id_conflict",
+                    f"Unit ID {unit_id} is assigned to other physical buses ({rendered})",
+                )
+            return next(iter(owners))
+        if len(owners) > 1:
+            rendered = ", ".join(sorted(owners))
             raise PreflightExecutionError(
                 "unit_id_conflict",
-                f"Unit ID {unit_id} has multiple persisted acquisition bus owners",
+                f"Unit ID {unit_id} has multiple physical bus owners ({rendered}); "
+                "bus-scoped identity is required",
             )
-        return matches[0] if matches else None
+        return next(iter(owners)) if owners else None
 
     def preflight_registry_identity(
         self,
@@ -456,7 +485,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             raise ValueError("activation stable adapter identity does not match configured bus")
         if not bus.path_present:
             raise ValueError("activation stable serial adapter is unavailable")
-        owner = self.preflight_unit_owner(request.unit_id)
+        owner = self.preflight_unit_owner(request.unit_id, request.bus_id)
         if owner is not None and owner != request.bus_id:
             raise ValueError("activation Unit ID belongs to another physical bus")
 
@@ -524,12 +553,16 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         return self._activation_response(request, {**completed, "state": "active"})
 
     def _ensure_commissioning_inventory(self, current: AcquisitionRegistry, request: CommissioningActivationRequest, family: str, actor: str) -> AcquisitionRegistry:
-        matches = [device for device in current.document.devices if device.unit_id == request.unit_id]
+        matches = [
+            device
+            for device in current.document.devices
+            if device.unit_id == request.unit_id and device.bus_id == request.bus_id
+        ]
         if matches:
             if len(matches) != 1:
-                raise ValueError("activation Unit ID has ambiguous acquisition inventory")
+                raise ValueError("activation bus/Unit identity has ambiguous acquisition inventory")
             device = matches[0]
-            if device.bus_id != request.bus_id or device.device_family != family or device.profile_version != request.profile_version:
+            if device.device_family != family or device.profile_version != request.profile_version:
                 raise ValueError("activation identity conflicts with acquisition registry")
             return current
         kwargs = dict(
@@ -764,6 +797,26 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                         channel_id=target.telemetry_channel_id,
                         raw_value=reading.raw_value,
                     )
+                elif target.device_family == "sdm120":
+                    reader = self._bus_sdm120_readers.get(target.bus_id)
+                    if reader is None:
+                        raise RuntimeError(
+                            f"SDM120 reader is unavailable for {target.bus_id}"
+                        )
+                    reading = reader.read_metric(target.unit_id, target.key)
+                    record = TelemetryRecord(
+                        event_id=str(uuid.uuid4()),
+                        node_id=self.settings.node_id,
+                        captured_at=captured_at,
+                        metric=reading.metric,
+                        value=reading.value,
+                        unit=reading.unit,
+                        quality=reading.quality,
+                        source=source,
+                        equipment_id=equipment_id,
+                        channel_id=target.telemetry_channel_id,
+                        raw_value=reading.raw_value,
+                    )
                 elif target.device_family == "embraco":
                     reader = self._bus_embraco_readers.get(target.bus_id)
                     if reader is None:
@@ -941,6 +994,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                         reason=(
                             "Enroll responsive XJP60D units on explicit read-only RS-485 buses"
                         ),
+                        bus_for_unit=lambda unit_id: assignments[unit_id],
                     )
                     changed = enrolled.revision != current.revision
                     if changed:

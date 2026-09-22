@@ -15,6 +15,7 @@ import {
 import {
   ENERGY_METERS,
   ENERGY_METRICS,
+  energyMeterOrder,
   isEnergySample,
   resolveEnergyMeter,
   type EnergyMetricId,
@@ -23,6 +24,7 @@ import type { EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 const METER_COLORS: Record<number, string> = {
+  1: "#14b8a6",
   200: "#38bdf8",
   201: "#22c55e",
   202: "#a78bfa",
@@ -156,7 +158,8 @@ export function buildEnergyChartScene({
   const series = [...groups.values()]
     .sort(
       (left, right) =>
-        left.meter.unitId - right.meter.unitId || left.channelId.localeCompare(right.channelId),
+        energyMeterOrder(left.meter.unitId) - energyMeterOrder(right.meter.unitId) ||
+        left.channelId.localeCompare(right.channelId),
     )
     .map((group) => {
       const identity: ChartSeriesIdentity = {

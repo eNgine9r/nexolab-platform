@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-22T13:25:00+03:00",
+  "timestamp": "2026-09-22T15:02:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1113 final P2 workflow-registration gap fixed with narrow local regression evidence; automatic exact-head CI is the remaining merge condition",
+  "event": "PR #1105 head 6f3df1ff passed 11/11 workflows; final SDM rollback lifecycle review gap corrected with 2/2 targeted regressions GREEN",
   "baselines": {
     "accepted_product_sha": "1a0644497e4cfd10ce7ba0366772955c72f4711a",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -15,12 +15,50 @@
     "frontend_rollback_release": "runtime/frontend-releases/df368cfa27efa945d59de33de8268898b564a19f-20260918T050734Z",
     "frontend_runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1104,
+    "title": "[ENERGY][SDM120] Add Eastron SDM120M on dedicated RS-485 bus",
+    "branch": "feat/1104-sdm120-energy-meter"
+  },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "review_findings_addressed": 6,
+      "python_review_matrix": "68_passed_then_5_of_5_direct_regressions_passed_after_single_guard_correction",
+      "frontend_targeted_tests": "24_of_24_passed",
+      "typecheck": "passed",
+      "eslint": "passed",
+      "python_compile": "passed",
+      "diff_check": "passed",
+      "exact_head_933fc5fe": {
+        "green": [
+          "RS485 tools",
+          "Edge image",
+          "Acquisition Scale Acceptance",
+          "Device Agent Fleet Acceptance",
+          "Telemetry service",
+          "MQTT TLS Fleet Acceptance",
+          "Disaster Recovery TLS Fleet",
+          "Container Supply Chain"
+        ],
+        "authenticated_dashboard": "failed_19_of_20_settings_navigation_hydration_race",
+        "merge_gate": "failed_due_to_authenticated_dashboard"
+      },
+      "dashboard_failure_root_cause": "post_reload_immediate_isVisible_selected_hidden_mobile_control_before_desktop_hydration",
+      "dashboard_helper_correction_checks": "prettier_eslint_typecheck_diff_check_passed",
+      "exact_head_c39d174b": "11_of_11_required_workflows_green",
+      "post_ci_review_findings": 4,
+      "post_ci_targeted_python": "3_of_3_passed",
+      "post_ci_energy_hook": "13_of_13_passed",
+      "post_ci_cadence_authority": "6_of_6_passed",
+      "post_ci_static_checks": "prettier_eslint_typecheck_python_compile_diff_check_passed",
+      "exact_head_6f3df1ff": "11_of_11_required_workflows_green",
+      "final_rollback_review": "sdm_device_and_targets_reconciled_on_opt_out",
+      "rollback_targeted_tests": "2_of_2_passed",
+      "rollback_static_checks": "python_compile_diff_check_passed"
+    }
   },
   "observations": [],
-  "next_action": "Push the single final #1114 candidate, use its automatically registered exact-head CI without manual reruns, merge when GREEN, then refresh PR #1105 from current main and run the required SDM120 gates. Production activation remains separate and unauthorized.",
+  "next_action": "Commit and push the final SDM rollback lifecycle correction, resolve the final review thread with evidence, and require the automatically registered exact-head workflow matrix GREEN before merge. Production activation remains a separate explicit Product Owner approval gate.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
