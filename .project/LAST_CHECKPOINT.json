@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-22T17:04:22+03:00",
+  "timestamp": "2026-09-22T17:25:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1121 completed candidate: canonical state records GREEN #1117 SDM120 production activation with rollback retained",
+  "event": "Issue #1123 supplements the completed #1117 SDM120 cutover with authenticated production Energy DOM acceptance, full 60-second cadence proof, and final PostgreSQL latest persistence evidence",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,12 +28,37 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1123,
+    "title": "[STATE][SDM120] Record successful production cutover",
+    "branch": "chore/1123-record-sdm120-cutover"
+  },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "scope": "canonical_state_supplemental_acceptance_only",
+      "deployment_issue": 1117,
+      "deployment_issue_state": "closed_completed",
+      "state_reconciliation_issue": 1121,
+      "state_reconciliation_pr": 1122,
+      "runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+      "authenticated_browser_dom": "PASS_no_screenshots",
+      "energy_headers": "W1|W2|W3|W4|SDM120M",
+      "energy_sdm_voltage": "live_229_5V_observed",
+      "energy_sdm_current": "live_0_0A_observed",
+      "energy_sdm_active_power": "live_0W_observed",
+      "energy_sdm_frequency": "live_50_0Hz_observed",
+      "energy_sdm_temperature": "not_supported",
+      "energy_selected_meters": "5_of_5",
+      "full_cadence_polling": "PASS_8_of_8_targets_advanced_14_to_16_zero_failures",
+      "postgres_latest": "PASS_8_of_8_current_rows_valid",
+      "evidence_checksums": "PASS_after_final_browser_cadence_persistence_update",
+      "runtime_mutation": "none_in_issue_1123",
+      "modbus_write": "none",
+      "hardware_write": "none"
+    }
   },
   "observations": [],
-  "next_action": "No independent Ready product Work Package is selected. Keep normal monitoring active, retain the SDM120 rollback set, and perform the next scheduled security exception review on 2026-09-29.",
+  "next_action": "Complete state-only Issue #1123 after GREEN. Keep normal monitoring active, retain the SDM120 rollback set, and perform the next scheduled security exception review on 2026-09-29.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
