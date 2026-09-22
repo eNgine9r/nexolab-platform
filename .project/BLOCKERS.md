@@ -2,9 +2,13 @@
 
 Updated: 2026-09-22
 
-## Issue #1104 — Eastron SDM120M production activation gate
+## Issue #1117 — Eastron SDM120M bounded production activation gate
 
-**Software/merge gate cleared; production activation remains blocked by explicit approval.** PR #1105 final exact head `7f78ea1a7c51ccf9fefb9fb86509b6a43f861728` passed all 11 required workflows and squash-merged to `main` as `8fe975524fe9449b96fedefa4430cb57829a49da`; GitHub closed #1104 completed. Runtime opt-out is fail-closed and durable: SDM device + targets reconcile to `reserve`, and inactive inventory does not require the removed dedicated runtime bus. Production polling is still disabled by default. Enabling the real SDM120 requires a separate bounded LOCAL_LAN cutover and explicit Product Owner approval. No Modbus write or hardware write is authorized.
+**Pre-cutover preparation is GREEN; production mutation is blocked only by explicit Product Owner approval.** Bounded compatibility source `7db6c8c34c7c94874afe2a3301a2209585795744` is a direct child of active frontend source `2296e307...`; exact ARM64 Device Agent image `sha256:4964c1d4...` and frontend build `Y_SLpdT2dyZiZ5SGk-QZn` are verified. Real candidate-image hardware evidence passed Unit 1 / A10Q34QC using FC04 only (`232.0 V`, `49.99 Hz`, `0.039 kWh`). Isolated Agent/frontend smokes and rollback authority are GREEN. Production still runs the prior Device Agent image and frontend release; Telemetry/PostgreSQL/MQTT are unchanged and SDM120 production polling is OFF. Evidence: `runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300`. No Modbus write or hardware write is authorized.
+
+## Issue #1104 — Eastron SDM120M software integration
+
+**Cleared and merged.** PR #1105 final exact head `7f78ea1a7c51ccf9fefb9fb86509b6a43f861728` passed all 11 required workflows and squash-merged to `main` as `8fe975524fe9449b96fedefa4430cb57829a49da`; GitHub closed #1104 completed. Runtime opt-out is fail-closed and durable. Production activation is now tracked separately by #1117.
 
 ## Issue #1113 — PR #1105 CI routing blocker
 

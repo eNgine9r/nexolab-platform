@@ -24,7 +24,12 @@
     "frontend_build_id": "fveOqzLHugE-KZ4RRBogM",
     "frontend_release": "runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z",
     "frontend_rollback_release": "runtime/frontend-releases/df368cfa27efa945d59de33de8268898b564a19f-20260918T050734Z",
-    "frontend_runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z"
+    "frontend_runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z",
+    "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
+    "sdm120_candidate_device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+    "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
+    "sdm120_candidate_frontend_artifact_sha256": "d73ec2b840b01733a7761b8b555e1b62c4e12b574ea2a0db5a115acd62e32fb6",
+    "sdm120_candidate_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300"
   },
   "selection": {
     "active_work_package": null,
@@ -4612,6 +4617,45 @@
         "production_activation": "not_performed_requires_explicit_product_owner_approval",
         "modbus_write": "none",
         "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1119,
+      "title": "[STATE][SDM120] Record pre-cutover compatibility readiness",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "chore/1119-record-sdm120-readiness",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "deployment_issue": 1117,
+        "deployment_issue_state": "open_waiting_explicit_product_owner_approval",
+        "candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
+        "candidate_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
+        "candidate_diff_files": 44,
+        "accepted_identity_files": 43,
+        "accepted_identity_mismatches": 0,
+        "release_pr": 1118,
+        "release_ci": "push_and_pull_request_green",
+        "candidate_device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+        "candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
+        "candidate_frontend_artifact_sha256": "d73ec2b840b01733a7761b8b555e1b62c4e12b574ea2a0db5a115acd62e32fb6",
+        "pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
+        "candidate_hardware_fc04": "pass_voltage_232.0V_frequency_49.99Hz_import_energy_0.039kWh",
+        "candidate_isolated_agent": "health_ok_mqtt_true_queue_0_cleanup_pass",
+        "candidate_isolated_frontend": "routes_200_cleanup_pass",
+        "candidate_topology": "three_bus_render_pass_not_activated",
+        "production_sdm120_polling": false,
+        "production_cutover_authorized": false,
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "persistent_data_deletion": "none",
+        "named_volume_deletion": "none",
+        "verified_head_sha": "0823c63b8c6d086785d689b73a25e4a0fcb30ce9",
+        "pull_request": 1120,
+        "checks": {
+          "State integrity": "success:35734775637",
+          "CI/NEXOLAB Merge Gate": "success:35734775637"
+        }
       }
     }
   ],

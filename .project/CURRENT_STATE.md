@@ -4,6 +4,16 @@ Updated: 2026-09-22
 
 ## Current Sprint
 
+### Issue #1119 — SDM120 bounded compatibility cutover is prepared; explicit approval required
+
+Issue #1117 has completed pre-cutover preparation without changing the live LOCAL_LAN runtime. Release PR #1118 merged bounded compatibility source `7db6c8c34c7c94874afe2a3301a2209585795744`, whose sole parent is the currently active frontend compatibility source `2296e3070cbebff687418cf1ac161984086bebdb`; that source in turn remains a direct child of formal deployed product/backend authority `df368cfa27efa945d59de33de8268898b564a19f`. The candidate differs from `2296e307...` by exactly 44 files: 43 SDM120 files are byte-identical to accepted #1105 merge `8fe975524fe9449b96fedefa4430cb57829a49da`, plus one compatibility-verification workflow. Package manifests remain unchanged. Dedicated push and pull-request compatibility runs are GREEN.
+
+The exact ARM64 Device Agent candidate is image `sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1`. Compatibility-context Device Agent tests are 122/122 PASS, RS-485 discovery 10/10 PASS, acquisition-scale acceptance PASS, and an isolated full Agent runtime reports `status=ok`, MQTT connected, queue `0`, no error and cleanup PASS without production mounts/networks. The exact candidate image also passed real read-only hardware evidence on FTDI `A10Q34QC`, Unit `1`, `9600 8N1`: `232.0 V`, `49.99 Hz`, `0.039 kWh`, using only FC04 reads at addresses 0, 70 and 72. No Modbus write or hardware write occurred.
+
+The exact ARM64 frontend candidate has build ID `Y_SLpdT2dyZiZ5SGk-QZn` and artifact SHA-256 `d73ec2b840b01733a7761b8b555e1b62c4e12b574ea2a0db5a115acd62e32fb6`. Artifact checksum/public contract, Energy tests 28/28, Prettier, ESLint, TypeScript, production build and isolated `/`, `/login`, `/energy`, `/settings` HTTP 200 are GREEN. A sanitized candidate Compose render adds only `rs485-sdm120 → A10Q34QC → Unit 1 → 9600 8N1` with `SDM120_UNIT_IDS=1` and `SDM120_BUS_ID=rs485-sdm120`; existing buses, groups, mounts, volume and networks remain unchanged. The temporary secret-bearing env copy was deleted after render.
+
+Production remains unchanged: Device Agent container `4024fccd...` still runs image `sha256:25ba94b4...`; active frontend remains `2296e307...` / build `fveOqzLHugE-KZ4RRBogM`; Telemetry, PostgreSQL and central MQTT container identities are unchanged; Dashboard and Telemetry return HTTP 200; Device Agent is healthy with MQTT connected and queue `0`; SDM120 scheduled production polling remains OFF and A10Q34QC is free outside bounded probes. Evidence is `runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300`. The only remaining gate is explicit Product Owner authorization for the bounded #1117 production cutover.
+
 ### Issue #1104 — Eastron SDM120M dedicated-bus integration merged; production activation separate
 
 Issue #1104 implements the physically connected Eastron SDM120M as the fifth Energy source without changing the deployed LOCAL_LAN runtime. Real read-only hardware evidence identifies stable FTDI `A10Q34QC`, Modbus Unit `1`, `9600 8N1`; FC04 evidence confirms voltage `227.784 V`, frequency `50.037 Hz` and Import Active Energy `0.039 kWh`. No Modbus or hardware write occurred.
