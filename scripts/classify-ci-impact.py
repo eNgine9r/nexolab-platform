@@ -50,6 +50,9 @@ OFFLINE_BUNDLE_WORKFLOW = "Offline Bundle"
 REFRIGERATION_BROWSER_WORKFLOW = "Refrigeration Browser Acceptance"
 TELEGRAM_GATEWAY_WORKFLOW = "Telegram Gateway"
 CONTAINER_SUPPLY_CHAIN_WORKFLOW = "Container Supply Chain"
+ACQUISITION_SCALE_WORKFLOW = "Acquisition Scale Acceptance"
+EDGE_IMAGE_WORKFLOW = "Edge image"
+RS485_TOOLS_WORKFLOW = "RS485 tools"
 
 DASHBOARD_EXTERNAL_TOOLCHAIN_PATHS = {
     "package.json",
@@ -184,6 +187,15 @@ DISASTER_RECOVERY_TOOLING_PATHS = {
     "tests/test_disaster_recovery_assets.py",
 }
 
+RS485_ACQUISITION_PATHS = {
+    "config/edge/rs485-device-registry.yaml",
+    "scripts/run-acquisition-scale-acceptance.py",
+}
+
+RS485_ACQUISITION_PATTERNS = (
+    "tools/rs485_discovery/**",
+)
+
 CI_GOVERNANCE_PATHS = {
     "PROJECT_PROFILE.yaml",
     "AGENTS.md",
@@ -205,6 +217,22 @@ def _matches(path: str, patterns: Iterable[str]) -> bool:
 
 def _is_docs(path: str) -> bool:
     return path in ROOT_DOCS or path.startswith("docs/")
+
+def _is_rs485_register_map(path: str) -> bool:
+    parts = PurePosixPath(path).parts
+    return (
+        len(parts) == 3
+        and parts[:2] == ("config", "edge")
+        and parts[2].endswith("-register-map.yaml")
+    )
+
+
+def _is_rs485_acquisition_path(path: str) -> bool:
+    return (
+        path in RS485_ACQUISITION_PATHS
+        or _is_rs485_register_map(path)
+        or _matches(path, RS485_ACQUISITION_PATTERNS)
+    )
 
 
 def _verification_for_paths(
@@ -265,6 +293,12 @@ def _verification_for_paths(
         )
         for path in normalized
     )
+    edge_image = any(
+        path == "config/edge/rs485-device-registry.yaml" or _is_rs485_register_map(path)
+        for path in normalized
+    )
+    acquisition_scale = "scripts/run-acquisition-scale-acceptance.py" in normalized
+    rs485_tools = any(_matches(path, RS485_ACQUISITION_PATTERNS) for path in normalized)
 
     required = []
     if dashboard_mode != "none":
@@ -277,6 +311,12 @@ def _verification_for_paths(
         required.append(TELEGRAM_GATEWAY_WORKFLOW)
     if container_supply_chain:
         required.append(CONTAINER_SUPPLY_CHAIN_WORKFLOW)
+    if edge_image:
+        required.append(EDGE_IMAGE_WORKFLOW)
+    if acquisition_scale:
+        required.append(ACQUISITION_SCALE_WORKFLOW)
+    if rs485_tools:
+        required.append(RS485_TOOLS_WORKFLOW)
 
     return {
         "dashboard_mode": dashboard_mode,
@@ -373,7 +413,11 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
             classes.add("database_migration")
             matched = True
 
-        if path.startswith("services/device-agent/") or path.startswith("config/device-profiles/"):
+        if (
+            path.startswith("services/device-agent/")
+            or path.startswith("config/device-profiles/")
+            or _is_rs485_acquisition_path(path)
+        ):
             classes.add("device_agent")
             matched = True
 

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-22T11:50:00+03:00",
+  "timestamp": "2026-09-22T13:40:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1104 rebased by merge onto security-reconciled main 4554bd14; SDM120 feature code unchanged and production polling still disabled",
+  "event": "Issue #1104 refreshed onto merged CI routing authority #1114 / 08fe019a; six open review findings remain to resolve before merge",
   "baselines": {
     "accepted_product_sha": "1a0644497e4cfd10ce7ba0366772955c72f4711a",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -24,7 +24,7 @@
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Run exact-head PR #1105 verification against refreshed main; merge only after every required check is GREEN. Production SDM120 activation remains a separate explicit Product Owner approval gate.",
+  "next_action": "Resolve #1105 review findings as one focused correction set; run targeted software verification once; push a single review-fix head; require exact-head CI GREEN. Production SDM120 activation remains a separate explicit approval gate.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
