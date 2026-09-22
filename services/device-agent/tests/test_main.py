@@ -37,6 +37,7 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings.xjp60d_points, ())
         self.assertEqual(settings.le01mp_unit_ids, ())
         self.assertEqual(settings.sdm120_unit_ids, ())
+        self.assertIsNone(settings.sdm120_bus_id)
 
     def test_xjp60d_mode_requires_points(self) -> None:
         with patch.dict(os.environ, {"DEVICE_MODE": "xjp60d"}, clear=True):
@@ -59,6 +60,7 @@ class SettingsTests(unittest.TestCase):
             "XJP60D_POINTS": "106:3,106:4",
             "LE01MP_UNIT_IDS": "200,201,202,203",
             "SDM120_UNIT_IDS": "1",
+            "SDM120_BUS_ID": "RS485-SDM120",
         }
         with patch.dict(os.environ, environment, clear=True):
             settings = Settings.from_env()
@@ -67,6 +69,7 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings.xjp60d_points, ((106, 3), (106, 4)))
         self.assertEqual(settings.le01mp_unit_ids, (200, 201, 202, 203))
         self.assertEqual(settings.sdm120_unit_ids, (1,))
+        self.assertEqual(settings.sdm120_bus_id, "rs485-sdm120")
 
     def test_combined_mode_requires_at_least_one_source(self) -> None:
         with patch.dict(os.environ, {"DEVICE_MODE": "modbus"}, clear=True):

@@ -35,6 +35,7 @@ services:
       LE01MP_UNIT_IDS: ${LE01MP_UNIT_IDS:-200,201,202,203}
       # Eastron SDM120M stays opt-in until a separately approved production cutover.
       SDM120_UNIT_IDS: "${SDM120_UNIT_IDS:-}"
+      SDM120_BUS_ID: "${SDM120_BUS_ID:-}"
       EMBRACO_UNIT_IDS: "${EMBRACO_UNIT_IDS:-}"
     volumes:
       - type: bind

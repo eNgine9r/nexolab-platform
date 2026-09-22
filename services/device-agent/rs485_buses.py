@@ -61,15 +61,15 @@ class RS485BusTopology:
         self.bindings = bindings
         self.explicit = explicit
         self._by_bus = {item.bus_id: item for item in bindings}
-        self._unit_to_bus: dict[int, str] = {}
+        self._unit_to_buses: dict[int, tuple[str, ...]] = {}
+        owners: dict[int, list[str]] = {}
         for binding in bindings:
             for unit_id in binding.unit_ids:
-                if unit_id in self._unit_to_bus:
-                    raise ValueError(
-                        "Modbus Unit ID is assigned to multiple physical buses: "
-                        f"{unit_id}"
-                    )
-                self._unit_to_bus[unit_id] = binding.bus_id
+                owners.setdefault(unit_id, []).append(binding.bus_id)
+        self._unit_to_buses = {
+            unit_id: tuple(bus_ids)
+            for unit_id, bus_ids in owners.items()
+        }
 
     @classmethod
     def from_environment(
@@ -123,7 +123,6 @@ class RS485BusTopology:
         bindings: list[RS485BusBinding] = []
         bus_ids: set[str] = set()
         serial_devices: set[str] = set()
-        unit_owners: dict[int, str] = {}
         for index, item in enumerate(payload):
             if not isinstance(item, dict):
                 raise ValueError(f"{BUS_CONFIG_ENV}[{index}] must be an object")
@@ -166,13 +165,7 @@ class RS485BusTopology:
                     raise ValueError(
                         f"Duplicate Unit ID {raw_unit} inside RS-485 bus {bus_id}"
                     )
-                previous = unit_owners.get(raw_unit)
-                if previous is not None:
-                    raise ValueError(
-                        f"Modbus Unit ID {raw_unit} is assigned to both {previous} and {bus_id}"
-                    )
                 units.append(raw_unit)
-                unit_owners[raw_unit] = bus_id
 
             baudrate = _positive_int(
                 item.get("baudrate", settings.serial_baudrate),
@@ -208,16 +201,22 @@ class RS485BusTopology:
                 )
             )
 
+        topology = cls(tuple(bindings), explicit=True)
         if registry is not None:
-            known_units = {item.unit_id for item in registry.document.devices}
-            missing = sorted(known_units - set(unit_owners))
+            missing = sorted(
+                {
+                    item.unit_id
+                    for item in registry.document.devices
+                    if not topology.buses_for_unit(item.unit_id)
+                }
+            )
             if missing:
                 rendered = ", ".join(str(item) for item in missing)
                 raise ValueError(
                     "Every registry device must have one explicit RS-485 bus; "
                     f"missing Unit IDs: {rendered}"
                 )
-        return cls(tuple(bindings), explicit=True)
+        return topology
 
     @classmethod
     def explicit_from_environment(
@@ -237,13 +236,28 @@ class RS485BusTopology:
         except KeyError as error:
             raise ValueError(f"Unknown RS-485 bus_id: {bus_id}") from error
 
+    def buses_for_unit(self, unit_id: int) -> tuple[str, ...]:
+        return self._unit_to_buses.get(unit_id, ())
+
     def bus_for_unit(self, unit_id: int) -> str:
-        try:
-            return self._unit_to_bus[unit_id]
-        except KeyError as error:
+        buses = self.buses_for_unit(unit_id)
+        if not buses:
+            raise ValueError(f"Modbus Unit ID {unit_id} has no configured physical bus")
+        if len(buses) != 1:
+            rendered = ", ".join(buses)
             raise ValueError(
-                f"Modbus Unit ID {unit_id} has no configured physical bus"
-            ) from error
+                f"Modbus Unit ID {unit_id} exists on multiple physical buses ({rendered}); "
+                "bus-scoped identity is required"
+            )
+        return buses[0]
+
+    def bus_for_unit_on(self, unit_id: int, bus_id: str) -> str:
+        binding = self.binding(bus_id)
+        if unit_id not in binding.unit_ids:
+            raise ValueError(
+                f"Modbus Unit ID {unit_id} is not assigned to configured bus {bus_id}"
+            )
+        return bus_id
 
     def units_for_bus(self, bus_id: str) -> tuple[int, ...]:
         return self.binding(bus_id).unit_ids
@@ -254,14 +268,26 @@ class RS485BusTopology:
         configured_bus_ids = set(self._by_bus)
         devices = []
         for device in registry.document.devices:
-            static_owner = self._unit_to_bus.get(device.unit_id)
-            if static_owner is not None:
-                bus_id = static_owner
-            elif device.bus_id in configured_bus_ids:
+            candidate_buses = self.buses_for_unit(device.unit_id)
+            if not candidate_buses:
+                if device.bus_id in configured_bus_ids:
+                    # Explicit commissioning may persist a device on a known
+                    # physical bus without rewriting static unit_ids. Preserve
+                    # that scoped assignment across restart.
+                    bus_id = device.bus_id
+                else:
+                    raise ValueError(
+                        f"Modbus Unit ID {device.unit_id} has no configured physical bus"
+                    )
+            elif device.bus_id in configured_bus_ids and device.bus_id in candidate_buses:
                 bus_id = device.bus_id
+            elif len(candidate_buses) == 1:
+                bus_id = candidate_buses[0]
             else:
+                rendered = ", ".join(candidate_buses)
                 raise ValueError(
-                    f"Persisted registry bus {device.bus_id!r} for Unit ID {device.unit_id} is not configured"
+                    f"Persisted registry device {device.device_id} Unit ID {device.unit_id} "
+                    f"is ambiguous across configured buses ({rendered})"
                 )
             devices.append(replace(device, bus_id=bus_id))
         devices = tuple(devices)

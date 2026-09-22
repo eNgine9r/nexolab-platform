@@ -14,7 +14,7 @@ The installed meter responded on the dedicated FTDI adapter:
 
 `/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0`
 
-The verified serial contract is Unit `1`, `9600`, `8N1`. The adapter was visible to Device Agent commissioning inventory as `commissioning-22bdefc8766cac4f`. Continuous production polling remains a separate cutover gate.
+The verified serial contract is Unit `1`, `9600`, `8N1`. The adapter was visible to Device Agent commissioning inventory as `commissioning-22bdefc8766cac4f`. Continuous production polling remains a separate cutover gate; the cutover must bind `SDM120_BUS_ID=rs485-sdm120` explicitly.
 
 ## Measurement encoding
 

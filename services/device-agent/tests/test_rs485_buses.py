@@ -119,16 +119,9 @@ class RS485BusTopologyTests(unittest.TestCase):
         self.assertEqual(restarted.document.buses, first.document.buses)
         self.assertEqual(restarted.document.devices, first.document.devices)
 
-    def test_sdm120_unit_one_binds_only_to_dedicated_bus(self) -> None:
-        sdm_settings = replace(self.settings, sdm120_unit_ids=(1,))
-        sdm_registry = AcquisitionRegistry(
-            build_initial_document(
-                sdm_settings,
-                discovery_units=(106, 126),
-                legacy_active_points=sdm_settings.xjp60d_points,
-            )
-        )
+    def test_sdm120_unit_one_can_be_enrolled_on_dedicated_bus_when_unit_one_exists_elsewhere(self) -> None:
         payload = explicit_payload()
+        payload[1]["unit_ids"] = [106, 1]
         payload.append(
             {
                 "bus_id": "rs485-sdm120",
@@ -145,14 +138,22 @@ class RS485BusTopologyTests(unittest.TestCase):
             }
         )
         topology = RS485BusTopology.from_environment(
-            sdm_settings,
-            sdm_registry,
+            self.settings,
+            self.registry,
             environ={BUS_CONFIG_ENV: json.dumps(payload)},
         )
-        rebound = topology.bind_registry(sdm_registry)
-        devices = {item.device_id: item for item in rebound.document.devices}
+        rebound = topology.bind_registry(self.registry)
+        enrolled, _changes = rebound.with_sdm120_enrollment(
+            (1,),
+            bus_for_unit=lambda unit_id: topology.bus_for_unit_on(
+                unit_id,
+                "rs485-sdm120",
+            ),
+        )
+        devices = {item.device_id: item for item in enrolled.devices}
 
-        self.assertEqual(topology.bus_for_unit(1), "rs485-sdm120")
+        with self.assertRaisesRegex(ValueError, "bus-scoped identity is required"):
+            topology.bus_for_unit(1)
         self.assertEqual(devices["sdm120-1"].bus_id, "rs485-sdm120")
         self.assertEqual(devices["le01mp-200"].bus_id, "rs485-kk1")
         self.assertEqual(devices["xjp60d-106"].bus_id, "rs485-kk2")
@@ -186,12 +187,21 @@ class RS485BusTopologyTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "same serial path"):
             self.topology(payload)
 
-    def test_duplicate_unit_ownership_fails_closed(self) -> None:
+    def test_same_unit_id_may_exist_on_distinct_buses_but_requires_bus_scope(self) -> None:
         payload = explicit_payload()
         payload[1]["unit_ids"] = [106, 126]
 
-        with self.assertRaisesRegex(ValueError, "assigned to both"):
-            self.topology(payload)
+        topology = RS485BusTopology.from_environment(
+            self.settings,
+            None,
+            environ={BUS_CONFIG_ENV: json.dumps(payload)},
+        )
+
+        self.assertEqual(topology.buses_for_unit(126), ("rs485-kk1", "rs485-kk2"))
+        with self.assertRaisesRegex(ValueError, "bus-scoped identity is required"):
+            topology.bus_for_unit(126)
+        self.assertEqual(topology.bus_for_unit_on(126, "rs485-kk1"), "rs485-kk1")
+        self.assertEqual(topology.bus_for_unit_on(126, "rs485-kk2"), "rs485-kk2")
 
     def test_unstable_ttyusb_path_is_rejected(self) -> None:
         payload = explicit_payload()

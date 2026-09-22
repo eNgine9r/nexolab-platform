@@ -1011,6 +1011,7 @@ class AcquisitionRegistryStore:
         registry_binding: Callable[[AcquisitionRegistry], AcquisitionRegistry]
         | None = None,
         configured_bus_for_unit: Callable[[int], str] | None = None,
+        configured_sdm120_bus_for_unit: Callable[[int], str] | None = None,
     ) -> None:
         if (registry_binding is None) != (configured_bus_for_unit is None):
             raise ValueError(
@@ -1022,6 +1023,7 @@ class AcquisitionRegistryStore:
         self._lock = threading.Lock()
         self._registry_binding = registry_binding
         self._configured_bus_for_unit = configured_bus_for_unit
+        self._configured_sdm120_bus_for_unit = configured_sdm120_bus_for_unit
         with self._connection:
             self._connection.execute(
                 """
@@ -1261,7 +1263,10 @@ class AcquisitionRegistryStore:
                     candidate, sdm120_changes = registry.with_sdm120_enrollment(
                         settings.sdm120_unit_ids,
                         lifecycle="active",
-                        bus_for_unit=self._configured_bus_for_unit,
+                        bus_for_unit=(
+                            self._configured_sdm120_bus_for_unit
+                            or self._configured_bus_for_unit
+                        ),
                     )
                     if sdm120_changes:
                         self._write_state_locked(candidate)
@@ -1423,7 +1428,11 @@ class AcquisitionRegistryStore:
         document, changes = registry.with_sdm120_enrollment(
             unit_ids,
             lifecycle="reserve",
-            bus_for_unit=bus_for_unit or self._configured_bus_for_unit,
+            bus_for_unit=(
+                bus_for_unit
+                or self._configured_sdm120_bus_for_unit
+                or self._configured_bus_for_unit
+            ),
         )
         if not changes:
             return registry

@@ -548,7 +548,7 @@ class EmbracoBusPersistenceTests(unittest.TestCase):
         with patch.dict(os.environ, environment, clear=False):
             with self.assertRaisesRegex(
                 ValueError,
-                "Unit ID 2 is assigned to both",
+                "bus-scoped identity is required",
             ):
                 DualBusAdaptiveRegistryDeviceAgent(self.configured_settings())
 

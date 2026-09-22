@@ -70,6 +70,7 @@ describe("energy telemetry", () => {
       resolveEnergyMeter(
         sample({
           equipment_id: "LE01MP-204",
+          channel_id: "204-active-power",
         }),
       ),
     ).toBeNull();

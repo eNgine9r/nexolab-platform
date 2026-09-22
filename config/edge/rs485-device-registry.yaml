@@ -57,7 +57,6 @@ bus:
     result: passed
     next_gate: production_monitoring
 
-
 additional_buses:
   - id: rs485-sdm120
     role: dedicated-energy-meter

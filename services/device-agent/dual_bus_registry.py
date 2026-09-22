@@ -28,11 +28,13 @@ class TopologyAwareEnrollmentStore(AcquisitionRegistryStore):
         *,
         bus_for_unit: Callable[[int], str],
         bind_registry: Callable[[AcquisitionRegistry], AcquisitionRegistry],
+        sdm120_bus_for_unit: Callable[[int], str] | None = None,
     ) -> None:
         super().__init__(
             database_path,
             registry_binding=bind_registry,
             configured_bus_for_unit=bus_for_unit,
+            configured_sdm120_bus_for_unit=sdm120_bus_for_unit,
         )
         self._bus_for_unit = bus_for_unit
 

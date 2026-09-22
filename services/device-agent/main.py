@@ -153,6 +153,7 @@ class Settings:
     xjp60d_scale: float
     le01mp_unit_ids: tuple[int, ...]
     sdm120_unit_ids: tuple[int, ...] = ()
+    sdm120_bus_id: str | None = None
     embraco_unit_ids: tuple[int, ...] = ()
     embraco_temperature_scale: float | None = None
     embraco_control_scale: float | None = None
@@ -225,6 +226,7 @@ class Settings:
                 os.getenv("SDM120_UNIT_IDS", ""),
                 label="Eastron SDM120",
             ),
+            sdm120_bus_id=os.getenv("SDM120_BUS_ID", "").strip().casefold() or None,
             embraco_unit_ids=parse_unit_ids(
                 os.getenv("EMBRACO_UNIT_IDS", ""),
                 label="Embraco Sync",

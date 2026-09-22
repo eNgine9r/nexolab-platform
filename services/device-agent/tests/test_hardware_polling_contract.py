@@ -49,6 +49,7 @@ class HardwareComposeSDM120ContractTests(unittest.TestCase):
         content = HARDWARE_COMPOSE.read_text(encoding="utf-8")
 
         self.assertIn('SDM120_UNIT_IDS: "${SDM120_UNIT_IDS:-}"', content)
+        self.assertIn('SDM120_BUS_ID: "${SDM120_BUS_ID:-}"', content)
         self.assertNotIn("SDM120_UNIT_IDS: 1", content)
 
 

@@ -103,11 +103,18 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
 
     def __init__(self, settings: Settings) -> None:
         configured_topology = RS485BusTopology.explicit_from_environment(settings)
+        sdm120_bus_for_unit = None
+        if configured_topology is not None and settings.sdm120_bus_id is not None:
+            sdm120_bus_for_unit = lambda unit_id: configured_topology.bus_for_unit_on(
+                unit_id,
+                settings.sdm120_bus_id or "",
+            )
         topology_store = (
             TopologyAwareEnrollmentStore(
                 settings.database_path,
                 bus_for_unit=configured_topology.bus_for_unit,
                 bind_registry=configured_topology.bind_registry,
+                sdm120_bus_for_unit=sdm120_bus_for_unit,
             )
             if configured_topology is not None
             else None

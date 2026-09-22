@@ -25,7 +25,7 @@ The future cutover should add a dedicated logical bus, for example `rs485-sdm120
 - one stop bit
 - existing bounded timeout/retry policy
 
-The same cutover must set `SDM120_UNIT_IDS=1`. Repository defaults intentionally keep `SDM120_UNIT_IDS` empty so merging #1104 cannot start polling hardware.
+The same cutover must set `SDM120_UNIT_IDS=1` and `SDM120_BUS_ID=rs485-sdm120`. Repository defaults intentionally keep both values empty so merging #1104 cannot start polling hardware.
 
 ## Existing production buses
 
@@ -39,3 +39,5 @@ No existing bus is automatically probed, reassigned, recreated, or reconfigured 
 ## Safety
 
 All SDM120 acquisition is read-only FC04 measurement polling. Discovery/service evidence may use bounded FC03 reads. Modbus writes and hardware configuration writes are forbidden. Production activation requires a separate exact cutover plan and explicit Product Owner approval.
+
+Unit IDs are scoped to a physical bus. If another RS-485 segment also uses Unit `1`, the explicit `SDM120_BUS_ID` prevents ambiguous enrollment and leaves the other bus identity unchanged.
