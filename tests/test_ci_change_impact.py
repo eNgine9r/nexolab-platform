@@ -155,6 +155,14 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertEqual(result["unknown_files"], [])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_edge_image_workflow_registers_and_validates_rs485_config_changes(self) -> None:
+        workflow = Path('.github/workflows/edge-image.yml').read_text(encoding='utf-8')
+        self.assertGreaterEqual(workflow.count('config/edge/*-register-map.yaml'), 2)
+        self.assertGreaterEqual(workflow.count('config/edge/rs485-device-registry.yaml'), 2)
+        self.assertIn('Validate RS-485 registry and register maps', workflow)
+        self.assertIn('yaml.safe_load', workflow)
+        self.assertIn("missing referenced register map", workflow)
+
     def test_rs485_acquisition_surfaces_are_known_device_agent_paths(self) -> None:
         for path in (
             "config/edge/eastron-sdm120m-v2.4-register-map.yaml",
