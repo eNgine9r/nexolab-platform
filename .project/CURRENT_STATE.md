@@ -4,11 +4,11 @@ Updated: 2026-09-22
 
 ## Current Sprint
 
-### Issue #1113 — RS-485/acquisition CI routing repair
+### Issue #1113 — RS-485/acquisition CI routing repair completed candidate
 
-Issue #1113 is the focused CI-governance blocker discovered by PR #1105. Five established NEXOLAB acquisition/RS-485 paths were treated as unknown by `scripts/classify-ci-impact.py`, which incorrectly set `fail_closed=true` and required `Refrigeration Browser Acceptance` even though that workflow cannot register for those paths. The repair classifies only the known register-map, RS-485 registry, acquisition-scale runner and `tools/rs485_discovery/**` surfaces as Device Agent impact; neighboring unknown config/script/tool paths remain fail-closed.
+Issue #1113 / PR #1114 repairs the CI-governance blocker discovered by PR #1105. Established register-map, RS-485 registry, acquisition-scale runner and `tools/rs485_discovery/**` paths are no longer treated as unknown, while neighboring unclassified config/script/tool paths remain fail-closed. Review P2 was also closed correctly: standalone register-map/registry changes now trigger Edge image, which validates YAML structure, read-only FC03/FC04 function declarations and every registry register-map reference before running the full Device Agent image lane.
 
-Local verification is GREEN: CI impact/workflow/state regression suite `72/72`, exact #1105 representative path set has `fail_closed=false`, `unknown_files=[]`, Dashboard full + Offline Bundle required, and Refrigeration Browser not required. No product/runtime behavior changes, deployment, Modbus/controller write or hardware write are in #1113. After #1113 merges, PR #1105 will be refreshed from `main` and its exact-head matrix rerun.
+Verified substantive head `6eb82f8f0a5aa16a1fd14f91a83c8664013cacb6` is GREEN: Core CI / NEXOLAB Merge Gate `35711596266`, Authenticated Dashboard `35711596317`, Refrigeration Browser `35711596267`, Offline Bundle `35711596288`, Telegram Gateway `35711596352`, Edge image `35711596329`; focused CI-governance regressions are `72/72` before the review addition and classifier suite `51/51` after it, with real current RS-485 YAML validation PASS. Exact #1105 representative paths now have `fail_closed=false`, `unknown_files=[]`, Dashboard + Offline Bundle required and no impossible Refrigeration requirement. No product/runtime deployment, Modbus/controller write or hardware write occurred. After final state-only head verification and merge, PR #1105 will be refreshed from `main`.
 
 ### Issue #1111 — #1108 post-merge security state reconciliation
 
