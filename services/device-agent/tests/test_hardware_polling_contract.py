@@ -44,6 +44,15 @@ def test_hardware_compose_keeps_full_catalog_for_on_demand_discovery_only() -> N
     assert 126 in units  # KK1 sensor inventory number 200 maps to 126-04.
 
 
+class HardwareComposeSDM120ContractTests(unittest.TestCase):
+    def test_sdm120_polling_is_explicit_and_disabled_by_default(self) -> None:
+        content = HARDWARE_COMPOSE.read_text(encoding="utf-8")
+
+        self.assertIn('SDM120_UNIT_IDS: "${SDM120_UNIT_IDS:-}"', content)
+        self.assertIn('SDM120_BUS_ID: "${SDM120_BUS_ID:-}"', content)
+        self.assertNotIn("SDM120_UNIT_IDS: 1", content)
+
+
 class HardwareComposeEmbracoContractTests(unittest.TestCase):
     def test_passes_only_explicit_embraco_enrollment(self) -> None:
         content = HARDWARE_COMPOSE.read_text(encoding="utf-8")

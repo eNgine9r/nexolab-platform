@@ -10,6 +10,7 @@ from main import (
     Settings,
     TelemetryRecord,
     mode_uses_le01mp,
+    mode_uses_sdm120,
     mode_uses_xjp60d,
     parse_unit_ids,
     parse_xjp60d_points,
@@ -35,6 +36,8 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings.device_mode, "simulator")
         self.assertEqual(settings.xjp60d_points, ())
         self.assertEqual(settings.le01mp_unit_ids, ())
+        self.assertEqual(settings.sdm120_unit_ids, ())
+        self.assertIsNone(settings.sdm120_bus_id)
 
     def test_xjp60d_mode_requires_points(self) -> None:
         with patch.dict(os.environ, {"DEVICE_MODE": "xjp60d"}, clear=True):
@@ -46,11 +49,19 @@ class SettingsTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "LE01MP_UNIT_IDS"):
                 Settings.from_env()
 
+    def test_sdm120_mode_requires_units(self) -> None:
+        with patch.dict(os.environ, {"DEVICE_MODE": "sdm120"}, clear=True):
+            with self.assertRaisesRegex(ValueError, "SDM120_UNIT_IDS"):
+                Settings.from_env()
+
     def test_combined_mode_accepts_both_sources(self) -> None:
         environment = {
             "DEVICE_MODE": "modbus",
             "XJP60D_POINTS": "106:3,106:4",
             "LE01MP_UNIT_IDS": "200,201,202,203",
+            "SDM120_UNIT_IDS": "1",
+            "SDM120_BUS_ID": "RS485-SDM120",
+            "RS485_BUS_CONFIG_JSON": "[{}]",
         }
         with patch.dict(os.environ, environment, clear=True):
             settings = Settings.from_env()
@@ -58,6 +69,34 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings.device_mode, "modbus")
         self.assertEqual(settings.xjp60d_points, ((106, 3), (106, 4)))
         self.assertEqual(settings.le01mp_unit_ids, (200, 201, 202, 203))
+        self.assertEqual(settings.sdm120_unit_ids, (1,))
+        self.assertEqual(settings.sdm120_bus_id, "rs485-sdm120")
+
+    def test_sdm120_polling_requires_dedicated_bus_identity(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "DEVICE_MODE": "modbus",
+                "SDM120_UNIT_IDS": "1",
+                "RS485_BUS_CONFIG_JSON": "[{}]",
+            },
+            clear=True,
+        ):
+            with self.assertRaisesRegex(ValueError, "SDM120_BUS_ID"):
+                Settings.from_env()
+
+    def test_sdm120_polling_requires_explicit_bus_topology(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "DEVICE_MODE": "modbus",
+                "SDM120_UNIT_IDS": "1",
+                "SDM120_BUS_ID": "rs485-sdm120",
+            },
+            clear=True,
+        ):
+            with self.assertRaisesRegex(ValueError, "RS485_BUS_CONFIG_JSON"):
+                Settings.from_env()
 
     def test_combined_mode_requires_at_least_one_source(self) -> None:
         with patch.dict(os.environ, {"DEVICE_MODE": "modbus"}, clear=True):
@@ -96,6 +135,9 @@ class DriverModeGatingTests(unittest.TestCase):
         self.assertTrue(mode_uses_le01mp("le01mp"))
         self.assertTrue(mode_uses_le01mp("modbus"))
         self.assertFalse(mode_uses_le01mp("xjp60d"))
+        self.assertTrue(mode_uses_sdm120("sdm120"))
+        self.assertTrue(mode_uses_sdm120("modbus"))
+        self.assertFalse(mode_uses_sdm120("le01mp"))
 
     def test_health_hides_inactive_driver_inventory(self) -> None:
         meter_settings = self._settings("le01mp")

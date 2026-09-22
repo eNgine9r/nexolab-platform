@@ -97,11 +97,14 @@ def append_crc(payload: bytes) -> bytes:
     return payload + bytes((checksum & 0xFF, checksum >> 8))
 
 
-def build_read_holding_registers_request(
+def build_read_registers_request(
     unit_id: int,
+    function: int,
     address: int,
     count: int,
 ) -> bytes:
+    if function not in {0x03, 0x04}:
+        raise ValueError(f"Only Modbus read functions 03/04 are supported, got 0x{function:02X}")
     if not 1 <= unit_id <= 247:
         raise ValueError(f"Modbus unit_id must be 1..247, got {unit_id}")
     if not 0 <= address <= 0xFFFF:
@@ -114,7 +117,7 @@ def build_read_holding_registers_request(
         bytes(
             (
                 unit_id,
-                0x03,
+                function,
                 address >> 8,
                 address & 0xFF,
                 count >> 8,
@@ -124,14 +127,36 @@ def build_read_holding_registers_request(
     )
 
 
+def build_read_holding_registers_request(
+    unit_id: int,
+    address: int,
+    count: int,
+) -> bytes:
+    return build_read_registers_request(unit_id, 0x03, address, count)
+
+
+def build_read_input_registers_request(
+    unit_id: int,
+    address: int,
+    count: int,
+) -> bytes:
+    return build_read_registers_request(unit_id, 0x04, address, count)
+
+
 def build_read_holding_register_request(unit_id: int, address: int) -> bytes:
     return build_read_holding_registers_request(unit_id, address, 1)
 
 
-def parse_read_holding_registers_response(
+def build_read_input_register_request(unit_id: int, address: int) -> bytes:
+    return build_read_input_registers_request(unit_id, address, 1)
+
+
+def parse_read_registers_response(
     frame: bytes,
     unit_id: int,
     count: int,
+    *,
+    function: int,
 ) -> tuple[int, ...]:
     if not 1 <= count <= 125:
         raise ValueError(f"Modbus register count must be 1..125, got {count}")
@@ -146,13 +171,15 @@ def parse_read_holding_registers_response(
             f"Unexpected Modbus unit: expected {unit_id}, received {frame[0]}"
         )
 
-    function = frame[1]
-    if function == 0x83:
+    response_function = frame[1]
+    if response_function == (function | 0x80):
         if len(frame) != 5:
             raise ModbusProtocolError("Malformed Modbus exception response")
-        raise ModbusExceptionResponse(unit_id, 0x03, frame[2])
-    if function != 0x03:
-        raise ModbusProtocolError(f"Unexpected Modbus function: 0x{function:02X}")
+        raise ModbusExceptionResponse(unit_id, function, frame[2])
+    if response_function != function:
+        raise ModbusProtocolError(
+            f"Unexpected Modbus function: 0x{response_function:02X}"
+        )
     if len(frame) != expected_length or frame[2] != expected_byte_count:
         raise ModbusProtocolError(
             f"Expected {expected_byte_count} register-data bytes, "
@@ -164,12 +191,32 @@ def parse_read_holding_registers_response(
     )
 
 
+def parse_read_holding_registers_response(
+    frame: bytes,
+    unit_id: int,
+    count: int,
+) -> tuple[int, ...]:
+    return parse_read_registers_response(frame, unit_id, count, function=0x03)
+
+
+def parse_read_input_registers_response(
+    frame: bytes,
+    unit_id: int,
+    count: int,
+) -> tuple[int, ...]:
+    return parse_read_registers_response(frame, unit_id, count, function=0x04)
+
+
 def parse_read_holding_register_response(frame: bytes, unit_id: int) -> int:
     return parse_read_holding_registers_response(frame, unit_id, 1)[0]
 
 
+def parse_read_input_register_response(frame: bytes, unit_id: int) -> int:
+    return parse_read_input_registers_response(frame, unit_id, 1)[0]
+
+
 class ModbusRTUClient:
-    """Strict read-only Modbus RTU client for FC03 register reads."""
+    """Strict read-only Modbus RTU client for FC03/FC04 register reads."""
 
     def __init__(
         self,
@@ -284,6 +331,7 @@ class ModbusRTUClient:
         *,
         context: ModbusRequestContext,
         unit_id: int,
+        function: int,
         address: int,
         count: int,
         attempt: int,
@@ -298,7 +346,7 @@ class ModbusRTUClient:
             target_id=context.target_id,
             operation=context.operation,
             unit_id=unit_id,
-            function=3,
+            function=function,
             address=address,
             count=count,
             attempt=attempt,
@@ -341,20 +389,24 @@ class ModbusRTUClient:
             )
         return header + self._read_exact(port, byte_count + 2)
 
-    def read_holding_registers(
+    def _read_registers(
         self,
         unit_id: int,
+        function: int,
         address: int,
         count: int,
     ) -> tuple[int, ...]:
-        request = build_read_holding_registers_request(unit_id, address, count)
+        request = build_read_registers_request(unit_id, function, address, count)
         last_timeout: ModbusTimeoutError | None = None
         context = self._context()
 
         with self._lock:
             port = self._open()
             for attempt_index in range(self.retries + 1):
-                if context.deadline_monotonic is not None and time.monotonic() >= context.deadline_monotonic:
+                if (
+                    context.deadline_monotonic is not None
+                    and time.monotonic() >= context.deadline_monotonic
+                ):
                     last_timeout = ModbusTimeoutError("Modbus operation deadline exceeded")
                     break
                 attempt = attempt_index + 1
@@ -372,16 +424,18 @@ class ModbusRTUClient:
                         )
                     port.flush()
                     frame = self._read_response(port, count)
-                    result = parse_read_holding_registers_response(
+                    result = parse_read_registers_response(
                         frame,
                         unit_id,
                         count,
+                        function=function,
                     )
                 except ModbusTimeoutError as exc:
                     if request_attempted:
                         self._observe_request(
                             context=context,
                             unit_id=unit_id,
+                            function=function,
                             address=address,
                             count=count,
                             attempt=attempt,
@@ -395,6 +449,7 @@ class ModbusRTUClient:
                         self._observe_request(
                             context=context,
                             unit_id=unit_id,
+                            function=function,
                             address=address,
                             count=count,
                             attempt=attempt,
@@ -407,6 +462,7 @@ class ModbusRTUClient:
                         self._observe_request(
                             context=context,
                             unit_id=unit_id,
+                            function=function,
                             address=address,
                             count=count,
                             attempt=attempt,
@@ -419,6 +475,7 @@ class ModbusRTUClient:
                         self._observe_request(
                             context=context,
                             unit_id=unit_id,
+                            function=function,
                             address=address,
                             count=count,
                             attempt=attempt,
@@ -431,6 +488,7 @@ class ModbusRTUClient:
                     self._observe_request(
                         context=context,
                         unit_id=unit_id,
+                        function=function,
                         address=address,
                         count=count,
                         attempt=attempt,
@@ -442,5 +500,24 @@ class ModbusRTUClient:
         assert last_timeout is not None
         raise last_timeout
 
+    def read_holding_registers(
+        self,
+        unit_id: int,
+        address: int,
+        count: int,
+    ) -> tuple[int, ...]:
+        return self._read_registers(unit_id, 0x03, address, count)
+
+    def read_input_registers(
+        self,
+        unit_id: int,
+        address: int,
+        count: int,
+    ) -> tuple[int, ...]:
+        return self._read_registers(unit_id, 0x04, address, count)
+
     def read_holding_register(self, unit_id: int, address: int) -> int:
         return self.read_holding_registers(unit_id, address, 1)[0]
+
+    def read_input_register(self, unit_id: int, address: int) -> int:
+        return self.read_input_registers(unit_id, address, 1)[0]

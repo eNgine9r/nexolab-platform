@@ -71,6 +71,15 @@ function energySample(eventId: string, capturedAt: string): TelemetrySample {
   };
 }
 
+function sdmEnergySample(eventId: string, capturedAt: string): TelemetrySample {
+  return {
+    ...energySample(eventId, capturedAt),
+    source: "eastron-sdm120m",
+    equipment_id: "SDM120M-1",
+    channel_id: "1-power-active",
+  };
+}
+
 function emptyHistoryResponse() {
   return {
     items: [],
@@ -114,6 +123,29 @@ describe("useEnergyTelemetry startup coverage", () => {
     adapterState.subscribe.mockImplementation((_filters: unknown, handlers: TelemetryLiveHandlers) => {
       adapterState.handlers = handlers;
       return { close: vi.fn() };
+    });
+  });
+
+  it("keeps workspace status and fresh samples aligned with persisted SDM cadence", async () => {
+    cadenceState.read.mockResolvedValue(cadenceAuthority(1));
+    const { result } = renderHook(() => useEnergyTelemetry());
+
+    await waitFor(() => expect(adapterState.subscribe).toHaveBeenCalledOnce());
+    act(() => {
+      adapterState.handlers?.onStateChange?.("connected");
+    });
+    await waitFor(() => expect(adapterState.latest).toHaveBeenCalledOnce());
+    await waitFor(() => expect(result.current.cadenceAuthority).not.toBeNull());
+
+    const capturedAt = new Date(Date.now() - 60_000).toISOString();
+    act(() => {
+      adapterState.handlers?.onSample?.(sdmEnergySample("sdm-cadence-live", capturedAt));
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe("live");
+      expect(result.current.freshSamples).toHaveLength(1);
+      expect(result.current.freshSamples[0]?.equipment_id).toBe("SDM120M-1");
     });
   });
 

@@ -1,0 +1,188 @@
+name: SDM120 Compatibility Verification
+
+on:
+  push:
+    branches:
+      - deploy/1117-sdm120-compat
+  pull_request:
+    branches:
+      - release/1117-2296e307-base
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify bounded SDM120 compatibility source
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      HUSKY: "0"
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_NEXOLAB_DATA_MODE: live
+      NEXT_PUBLIC_NEXOLAB_API_BASE_URL: http://127.0.0.1:8082
+      NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL: ws://127.0.0.1:8082/api/v1/telemetry/live
+      NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER: local
+      NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID: 00000000-0000-0000-0000-000000000001
+
+    steps:
+      - name: Checkout exact compatibility head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify lineage and bounded diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=2296e3070cbebff687418cf1ac161984086bebdb
+          FORMAL=df368cfa27efa945d59de33de8268898b564a19f
+          test "$(git merge-base HEAD "$BASE")" = "$BASE"
+          test "$(git show -s --format=%P "$BASE")" = "$FORMAL"
+          git cat-file -e "${BASE}^{commit}"
+          git cat-file -e "${FORMAL}^{commit}"
+          git diff --name-only "$BASE" HEAD | sort > /tmp/actual.txt
+          cat > /tmp/expected.txt <<'EOF'
+          .github/workflows/sdm120-compatibility-verification.yml
+          config/edge/eastron-sdm120m-v2.4-register-map.yaml
+          config/edge/rs485-device-registry.yaml
+          e2e/energy.production.e2e.ts
+          infrastructure/compose/compose.hardware.yaml
+          scripts/run-acquisition-scale-acceptance.py
+          services/device-agent/acquisition_cadence.py
+          services/device-agent/acquisition_capacity.py
+          services/device-agent/acquisition_registry.py
+          services/device-agent/adaptive_main.py
+          services/device-agent/commissioning_preflight.py
+          services/device-agent/dual_bus_main.py
+          services/device-agent/dual_bus_registry.py
+          services/device-agent/main.py
+          services/device-agent/modbus_rtu.py
+          services/device-agent/rs485_buses.py
+          services/device-agent/sdm120.py
+          services/device-agent/tests/test_acquisition_registry.py
+          services/device-agent/tests/test_adaptive_main.py
+          services/device-agent/tests/test_commissioning_preflight.py
+          services/device-agent/tests/test_dual_bus_main.py
+          services/device-agent/tests/test_dual_bus_registry.py
+          services/device-agent/tests/test_hardware_polling_contract.py
+          services/device-agent/tests/test_main.py
+          services/device-agent/tests/test_modbus_rtu.py
+          services/device-agent/tests/test_rs485_buses.py
+          services/device-agent/tests/test_sdm120.py
+          src/components/energy/energy-screen.tsx
+          src/components/energy/energy-workspace.tsx
+          src/components/settings/acquisition-cadence-panel.tsx
+          src/features/acquisition/cadence-client.ts
+          src/features/energy/energy-cadence-authority.test.ts
+          src/features/energy/energy-cadence-authority.ts
+          src/features/energy/energy-chart.ts
+          src/features/energy/energy-consumption-cache.test.ts
+          src/features/energy/energy-consumption-cache.ts
+          src/features/energy/energy-consumption.ts
+          src/features/energy/energy-telemetry.test.ts
+          src/features/energy/energy-telemetry.ts
+          src/features/energy/use-energy-consumption.ts
+          src/hooks/use-energy-telemetry.test.ts
+          src/hooks/use-energy-telemetry.ts
+          tools/rs485_discovery/scan_rs485.py
+          tools/rs485_discovery/test_scan_rs485.py
+          EOF
+          diff -u /tmp/expected.txt /tmp/actual.txt
+          cmp package.json <(git show "$BASE:package.json")
+          cmp package-lock.json <(git show "$BASE:package-lock.json")
+
+      - name: Verify fail-closed SDM defaults
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'SDM120_UNIT_IDS: "${SDM120_UNIT_IDS:-}"' infrastructure/compose/compose.hardware.yaml
+          grep -F 'SDM120_BUS_ID: "${SDM120_BUS_ID:-}"' infrastructure/compose/compose.hardware.yaml
+          ! grep -Eq 'SDM120_UNIT_IDS:[[:space:]]*1' infrastructure/compose/compose.hardware.yaml
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Device Agent test dependencies
+        run: python -m pip install -r services/device-agent/requirements.txt
+
+      - name: Run SDM120 and multi-bus Device Agent tests
+        working-directory: services/device-agent
+        run: |
+          python -m unittest -v \
+            tests.test_modbus_rtu \
+            tests.test_sdm120 \
+            tests.test_main \
+            tests.test_acquisition_registry \
+            tests.test_rs485_buses \
+            tests.test_dual_bus_registry \
+            tests.test_dual_bus_main \
+            tests.test_adaptive_main \
+            tests.test_commissioning_preflight \
+            tests.test_hardware_polling_contract
+
+      - name: Run RS-485 discovery regression
+        run: python -m unittest -v tools.rs485_discovery.test_scan_rs485
+
+      - name: Run acquisition scale acceptance
+        run: python scripts/run-acquisition-scale-acceptance.py --output /tmp/acquisition-scale.json
+
+      - name: Build Device Agent image
+        run: docker build -t nexolab-device-agent:sdm120-compat ./services/device-agent
+
+      - name: Setup Node from compatibility baseline
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install exact frontend dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Check focused formatting
+        run: >-
+          npx prettier --check
+          src/components/energy/energy-screen.tsx
+          src/components/energy/energy-workspace.tsx
+          src/components/settings/acquisition-cadence-panel.tsx
+          src/features/acquisition/cadence-client.ts
+          src/features/energy
+          src/hooks/use-energy-telemetry.ts
+          src/hooks/use-energy-telemetry.test.ts
+          e2e/energy.production.e2e.ts
+          .github/workflows/sdm120-compatibility-verification.yml
+
+      - name: Run focused Energy tests
+        run: >-
+          npx vitest run
+          src/features/energy/energy-cadence-authority.test.ts
+          src/features/energy/energy-consumption-cache.test.ts
+          src/features/energy/energy-telemetry.test.ts
+          src/hooks/use-energy-telemetry.test.ts
+
+      - name: Run focused ESLint
+        run: >-
+          npx eslint
+          src/components/energy/energy-screen.tsx
+          src/components/energy/energy-workspace.tsx
+          src/components/settings/acquisition-cadence-panel.tsx
+          src/features/acquisition/cadence-client.ts
+          src/features/energy/energy-cadence-authority.ts
+          src/features/energy/energy-chart.ts
+          src/features/energy/energy-consumption-cache.ts
+          src/features/energy/energy-consumption.ts
+          src/features/energy/energy-telemetry.ts
+          src/features/energy/use-energy-consumption.ts
+          src/hooks/use-energy-telemetry.ts
+          e2e/energy.production.e2e.ts
+          --max-warnings=0
+
+      - name: Run TypeScript check
+        run: npm run typecheck
+
+      - name: Build production frontend
+        run: npm run build
