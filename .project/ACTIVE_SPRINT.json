@@ -27,11 +27,7 @@
     "frontend_runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1111,
-      "title": "[STATE][SECURITY] Reconcile #1108 post-merge review deadline",
-      "branch": "chore/1111-reconcile-1108-state"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -4539,9 +4535,16 @@
       "issue": 1111,
       "title": "[STATE][SECURITY] Reconcile #1108 post-merge review deadline",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "chore/1111-reconcile-1108-state",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "1b757b9f04ad30f05b00515c2256e209d9d23527",
+        "pull_request": 1112,
+        "checks": {
+          "State integrity": "success:35706581524",
+          "NEXOLAB Merge Gate": "success:35706581524"
+        }
+      }
     }
   ],
   "maintenance_actions": [
