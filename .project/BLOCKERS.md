@@ -1,6 +1,10 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-18
+Updated: 2026-09-22
+
+## Issue #1113 — PR #1105 CI routing blocker
+
+**Active software/CI blocker; product code is not the cause.** PR #1105 has GREEN feature, container, dashboard, telemetry, fleet and Offline Bundle checks on exact head `59f505fe72be7a60833d8ee04205cbcb928befbf`, but NEXOLAB Merge Gate requires an impossible PR-registered `Refrigeration Browser Acceptance` because five established RS-485/acquisition paths are still classified as unknown. #1113 narrows those exact known surfaces into Device Agent impact while preserving fail-closed routing for unknown neighbors. No production activation, Modbus write or hardware write is authorized.
 
 ## Issue #1094 — RFX-12 frontend-only Overview production release
 

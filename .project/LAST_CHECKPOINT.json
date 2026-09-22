@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-22T11:47:00+03:00",
+  "timestamp": "2026-09-22T12:15:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1111 state reconciliation completed candidate after exact-head State integrity and Merge Gate GREEN",
+  "event": "Issue #1113 classifies known RS-485/acquisition paths without impossible refrigeration routing; exact #1105 path-set no longer fail-closed",
   "baselines": {
     "accepted_product_sha": "1a0644497e4cfd10ce7ba0366772955c72f4711a",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -15,12 +15,16 @@
     "frontend_rollback_release": "runtime/frontend-releases/df368cfa27efa945d59de33de8268898b564a19f-20260918T050734Z",
     "frontend_runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1113,
+    "title": "[CI][RS485] Classify acquisition and discovery paths without impossible browser routing",
+    "branch": "fix/1113-rs485-ci-routing"
+  },
   "evidence_snapshot": {
     "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Merge PR #1112 after final exact-head rerun; then update PR #1105 from refreshed main and rerun all SDM120 gates. Production activation remains a separate explicit approval gate.",
+  "next_action": "Commit and open focused PR #1113; require exact-head State/Core CI and Merge Gate GREEN; merge, then refresh PR #1105 and rerun its required workflows.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

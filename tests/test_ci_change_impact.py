@@ -155,6 +155,59 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertEqual(result["unknown_files"], [])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_rs485_acquisition_surfaces_are_known_device_agent_paths(self) -> None:
+        for path in (
+            "config/edge/eastron-sdm120m-v2.4-register-map.yaml",
+            "config/edge/rs485-device-registry.yaml",
+            "scripts/run-acquisition-scale-acceptance.py",
+            "tools/rs485_discovery/scan_rs485.py",
+            "tools/rs485_discovery/test_scan_rs485.py",
+        ):
+            with self.subTest(path=path):
+                result = classify([path])
+                self.assertIn("device_agent", result["classes"])
+                self.assertFalse(result["fail_closed"])
+                self.assertEqual(result["unknown_files"], [])
+
+    def test_unknown_neighboring_acquisition_paths_still_fail_closed(self) -> None:
+        for path in (
+            "config/edge/unclassified-device-profile.json",
+            "scripts/run-unclassified-acquisition-tool.py",
+            "tools/other_discovery/scan.py",
+        ):
+            with self.subTest(path=path):
+                result = classify([path])
+                self.assertTrue(result["fail_closed"])
+                self.assertEqual(result["unknown_files"], [path])
+
+    def test_issue_1105_path_set_avoids_impossible_refrigeration_route(self) -> None:
+        result = classify(
+            [
+                "config/edge/eastron-sdm120m-v2.4-register-map.yaml",
+                "config/edge/rs485-device-registry.yaml",
+                "scripts/run-acquisition-scale-acceptance.py",
+                "tools/rs485_discovery/scan_rs485.py",
+                "tools/rs485_discovery/test_scan_rs485.py",
+                "services/device-agent/sdm120.py",
+                "services/device-agent/modbus_rtu.py",
+                "src/components/energy/energy-workspace.tsx",
+                "src/features/acquisition/cadence-client.ts",
+                "e2e/energy.production.e2e.ts",
+                "infrastructure/compose/compose.hardware.yaml",
+                ".project/CURRENT_STATE.md",
+            ]
+        )
+        verification = result["verification"]
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(verification["dashboard_mode"], "full")
+        self.assertTrue(verification["offline_bundle"])
+        self.assertFalse(verification["refrigeration_browser"])
+        self.assertEqual(
+            set(verification["required_external_workflows"]),
+            {"Authenticated Dashboard Acceptance", "Offline Bundle"},
+        )
+
     def test_device_agent_and_deployment_are_multi_class(self) -> None:
         result = classify(
             [

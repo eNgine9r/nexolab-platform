@@ -4,6 +4,12 @@ Updated: 2026-09-22
 
 ## Current Sprint
 
+### Issue #1113 — RS-485/acquisition CI routing repair
+
+Issue #1113 is the focused CI-governance blocker discovered by PR #1105. Five established NEXOLAB acquisition/RS-485 paths were treated as unknown by `scripts/classify-ci-impact.py`, which incorrectly set `fail_closed=true` and required `Refrigeration Browser Acceptance` even though that workflow cannot register for those paths. The repair classifies only the known register-map, RS-485 registry, acquisition-scale runner and `tools/rs485_discovery/**` surfaces as Device Agent impact; neighboring unknown config/script/tool paths remain fail-closed.
+
+Local verification is GREEN: CI impact/workflow/state regression suite `72/72`, exact #1105 representative path set has `fail_closed=false`, `unknown_files=[]`, Dashboard full + Offline Bundle required, and Refrigeration Browser not required. No product/runtime behavior changes, deployment, Modbus/controller write or hardware write are in #1113. After #1113 merges, PR #1105 will be refreshed from `main` and its exact-head matrix rerun.
+
 ### Issue #1111 — #1108 post-merge security state reconciliation
 
 Issue #1108 / PR #1110 completed the fresh 2026-09-22 container HIGH revalidation and merged to `main` as `ecaf200e0c3b92b7596cd5191276e2c283042edf`. Verified PR head `0f9e3a088e9ac541929d0929ce9dda3c368b0a77` passed Container Supply Chain `35705373349`, Core CI / NEXOLAB Merge Gate `35705373342`, and Telemetry Service `35705373383`. Fresh evidence reconciled 90 exact HIGH / 0 CRITICAL findings; retained exact owner-bound decisions expire 2026-09-29. The prior 2026-09-21 maintenance action is completed and the next mandatory fail-closed review is scheduled for 2026-09-29. No product/runtime deployment, Modbus/controller write, hardware write, persistent-data deletion or named-volume deletion occurred.

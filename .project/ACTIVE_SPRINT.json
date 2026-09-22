@@ -27,7 +27,11 @@
     "frontend_runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1113,
+      "title": "[CI][RS485] Classify acquisition and discovery paths without impossible browser routing",
+      "branch": "fix/1113-rs485-ci-routing"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -4545,6 +4549,14 @@
           "NEXOLAB Merge Gate": "success:35706581524"
         }
       }
+    },
+    {
+      "issue": 1113,
+      "title": "[CI][RS485] Classify acquisition and discovery paths without impossible browser routing",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "fix/1113-rs485-ci-routing",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [

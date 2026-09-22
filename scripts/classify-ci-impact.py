@@ -184,6 +184,13 @@ DISASTER_RECOVERY_TOOLING_PATHS = {
     "tests/test_disaster_recovery_assets.py",
 }
 
+RS485_ACQUISITION_PATTERNS = (
+    "config/edge/*-register-map.yaml",
+    "config/edge/rs485-device-registry.yaml",
+    "scripts/run-acquisition-scale-acceptance.py",
+    "tools/rs485_discovery/**",
+)
+
 CI_GOVERNANCE_PATHS = {
     "PROJECT_PROFILE.yaml",
     "AGENTS.md",
@@ -373,7 +380,11 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
             classes.add("database_migration")
             matched = True
 
-        if path.startswith("services/device-agent/") or path.startswith("config/device-profiles/"):
+        if (
+            path.startswith("services/device-agent/")
+            or path.startswith("config/device-profiles/")
+            or _matches(path, RS485_ACQUISITION_PATTERNS)
+        ):
             classes.add("device_agent")
             matched = True
 
