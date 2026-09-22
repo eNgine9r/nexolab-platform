@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-22T10:43:52+03:00",
+  "timestamp": "2026-09-22T11:10:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1104 implementation ready for PR review: SDM120 FC04 acquisition, dedicated-bus contract and Energy UI are software-verified; production polling remains disabled",
+  "event": "Issue #1104 PR candidate includes bus-scoped duplicate Unit ID support and explicit SDM120_BUS_ID; production polling remains disabled",
   "baselines": {
     "accepted_product_sha": "1a0644497e4cfd10ce7ba0366772955c72f4711a",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -24,7 +24,7 @@
     "active_issue_evidence": {
       "verified_head_sha": "b7f0f9372412175005564efa847e1ec43a3bb83d",
       "checks": {
-        "device_agent_targeted": "pass_86",
+        "device_agent_targeted": "pass_87_after_bus_scoped_fix",
         "rs485_discovery": "pass_10",
         "frontend_targeted": "pass_32",
         "typescript": "pass",
@@ -32,12 +32,14 @@
         "prettier": "pass",
         "compose_models": "pass",
         "acquisition_scale": "pass_46",
-        "candidate_device_agent_image": "pass"
-      }
+        "candidate_device_agent_image": "pass",
+        "bus_scoped_duplicate_unit": "pass"
+      },
+      "review_fix_sha": "5ce49587115d86d1ac80eec64a3531048565b8e0"
     }
   },
   "observations": [],
-  "next_action": "Open PR for #1104, require exact-head CI including build/browser gates; after merge prepare a separate production cutover plan and stop for explicit Product Owner approval.",
+  "next_action": "Push #1104 branch, open focused PR, require exact-head CI/build/browser gates; after merge prepare a separate production cutover plan and stop for explicit Product Owner approval.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -4,7 +4,7 @@ Updated: 2026-09-22
 
 ## Issue #1104 — Eastron SDM120M production activation gate
 
-**Software implementation is in review; production polling is intentionally blocked.** Real read-only evidence confirms Eastron SDM120M Unit `1` on stable FTDI `A10Q34QC` at `9600 8N1`, and #1104 software gates are GREEN locally. Repository defaults keep `SDM120_UNIT_IDS` empty, so merge cannot start hardware polling. After exact-head CI and merge, activation requires a separate bounded production cutover and explicit Product Owner approval. Modbus writes and hardware writes remain forbidden.
+**Software implementation is in review; production polling is intentionally blocked.** Real read-only evidence confirms Eastron SDM120M Unit `1` on stable FTDI `A10Q34QC` at `9600 8N1`, and #1104 software gates are GREEN locally. Repository defaults keep both `SDM120_UNIT_IDS` and `SDM120_BUS_ID` empty, so merge cannot start hardware polling; duplicate Modbus Unit IDs on different physical buses are resolved only through explicit bus-scoped identity. After exact-head CI and merge, activation requires a separate bounded production cutover and explicit Product Owner approval. Modbus writes and hardware writes remain forbidden.
 
 ## Issue #1094 — RFX-12 frontend-only Overview production release
 

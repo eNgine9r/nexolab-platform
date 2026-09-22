@@ -4528,7 +4528,7 @@
       "evidence": {
         "verified_head_sha": "b7f0f9372412175005564efa847e1ec43a3bb83d",
         "checks": {
-          "device_agent_targeted": "pass_86",
+          "device_agent_targeted": "pass_87_after_bus_scoped_fix",
           "rs485_discovery": "pass_10",
           "frontend_targeted": "pass_32",
           "typescript": "pass",
@@ -4536,8 +4536,10 @@
           "prettier": "pass",
           "compose_models": "pass",
           "acquisition_scale": "pass_46",
-          "candidate_device_agent_image": "pass"
-        }
+          "candidate_device_agent_image": "pass",
+          "bus_scoped_duplicate_unit": "pass"
+        },
+        "review_fix_sha": "5ce49587115d86d1ac80eec64a3531048565b8e0"
       }
     }
   ],
