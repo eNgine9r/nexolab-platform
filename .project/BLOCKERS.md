@@ -2,9 +2,9 @@
 
 Updated: 2026-09-22
 
-## Issue #1117 — Eastron SDM120M bounded production activation gate
+## Issue #1117 — Eastron SDM120M bounded production activation
 
-**Pre-cutover preparation is GREEN; production mutation is blocked only by explicit Product Owner approval.** Bounded compatibility source `7db6c8c34c7c94874afe2a3301a2209585795744` is a direct child of active frontend source `2296e307...`; exact ARM64 Device Agent image `sha256:4964c1d4...` and frontend build `Y_SLpdT2dyZiZ5SGk-QZn` are verified. Real candidate-image hardware evidence passed Unit 1 / A10Q34QC using FC04 only (`232.0 V`, `49.99 Hz`, `0.039 kWh`). Isolated Agent/frontend smokes and rollback authority are GREEN. Production still runs the prior Device Agent image and frontend release; Telemetry/PostgreSQL/MQTT are unchanged and SDM120 production polling is OFF. Evidence: `runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300`. No Modbus write or hardware write is authorized.
+**Cleared and accepted in live LOCAL_LAN runtime.** Product Owner-authorized cutover activated compatibility source `7db6c8c34c7c94874afe2a3301a2209585795744` for Device Agent and Dashboard. The live SDM120 path is `rs485-sdm120 / A10Q34QC / Unit 1 / 9600 8N1`, with eight active targets and FC04-only reads. Scheduler is 3/3 workers healthy, capacity safe, and SDM120 has zero timeout / I/O / protocol / retry failures. PostgreSQL has eight valid SDM120 latest series; `/energy` is HTTP 200 and the deployed bundle contains the SDM120 mapping. Telemetry/PostgreSQL/MQTT identities are unchanged and rollback is retained. Authenticated visual browser acceptance is not claimed because the connector was unavailable. Evidence: `runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z`. No Modbus or hardware write occurred.
 
 ## Issue #1104 — Eastron SDM120M software integration
 

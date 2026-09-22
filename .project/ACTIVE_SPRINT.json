@@ -20,16 +20,24 @@
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
-    "frontend_compatibility_source_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
-    "frontend_build_id": "fveOqzLHugE-KZ4RRBogM",
-    "frontend_release": "runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z",
-    "frontend_rollback_release": "runtime/frontend-releases/df368cfa27efa945d59de33de8268898b564a19f-20260918T050734Z",
-    "frontend_runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z",
+    "frontend_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
+    "frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
+    "frontend_release": "runtime/frontend-releases/7db6c8c34c7c94874afe2a3301a2209585795744-20260922T134803Z",
+    "frontend_rollback_release": "runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z",
+    "frontend_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
     "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
     "sdm120_candidate_device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
     "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
     "sdm120_candidate_frontend_artifact_sha256": "d73ec2b840b01733a7761b8b555e1b62c4e12b574ea2a0db5a115acd62e32fb6",
-    "sdm120_candidate_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300"
+    "sdm120_candidate_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
+    "device_agent_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
+    "device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+    "device_agent_rollback_image_id": "sha256:25ba94b454ebe6dd0d22ed7501ea7368141a32507e09e181cc5b33056e1239db",
+    "device_agent_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+    "sdm120_production_bus_id": "rs485-sdm120",
+    "sdm120_production_adapter": "A10Q34QC",
+    "sdm120_production_unit_id": 1,
+    "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
     "active_work_package": null,
@@ -4655,6 +4663,44 @@
         "checks": {
           "State integrity": "success:35734775637",
           "CI/NEXOLAB Merge Gate": "success:35734775637"
+        }
+      }
+    },
+    {
+      "issue": 1121,
+      "title": "[STATE][SDM120] Reconcile completed production activation",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "chore/1121-record-sdm120-production",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "deployment_issue": 1117,
+        "deployment_issue_state": "closed_completed",
+        "compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
+        "device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+        "device_agent_container_id": "e0935d5168f980af31b731847f89d2160c9a49a8eeed3e68665ba51a88a7a434",
+        "frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
+        "frontend_release": "runtime/frontend-releases/7db6c8c34c7c94874afe2a3301a2209585795744-20260922T134803Z",
+        "rollback_device_agent_image_id": "sha256:25ba94b454ebe6dd0d22ed7501ea7368141a32507e09e181cc5b33056e1239db",
+        "rollback_frontend_release": "runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z",
+        "rollback_private_dir": "/home/nexolab/nexolab-runtime-backups/issue-1117-20260922T134803Z",
+        "runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+        "scheduler": "61_targets_3_of_3_workers_healthy_capacity_safe",
+        "sdm120": "8_targets_fc04_only_zero_timeout_io_protocol_retry",
+        "postgres_latest": "8_sdm120_series_36_le01mp_series",
+        "edge_sqlite": "quick_check_ok",
+        "frontend": "energy_http_200_deployed_bundle_contains_sdm120_mapping",
+        "browser_visual_acceptance": "not_claimed_browser_connector_unavailable",
+        "core_container_identities": "unchanged",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "persistent_data_deletion": "none",
+        "named_volume_deletion": "none",
+        "verified_head_sha": "403b7ae012547dd7e189dce6d949559ab258848c",
+        "pull_request": 1122,
+        "checks": {
+          "State integrity": "success:35737562046",
+          "CI/NEXOLAB Merge Gate": "success:35737562046"
         }
       }
     }
