@@ -32,11 +32,7 @@
     "sdm120_candidate_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1119,
-      "title": "[STATE][SDM120] Record pre-cutover compatibility readiness",
-      "branch": "chore/1119-record-sdm120-readiness"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -4627,7 +4623,7 @@
       "issue": 1119,
       "title": "[STATE][SDM120] Record pre-cutover compatibility readiness",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "chore/1119-record-sdm120-readiness",
       "evidence": {
         "scope": "canonical_state_only",
@@ -4653,7 +4649,13 @@
         "modbus_write": "none",
         "hardware_write": "none",
         "persistent_data_deletion": "none",
-        "named_volume_deletion": "none"
+        "named_volume_deletion": "none",
+        "verified_head_sha": "0823c63b8c6d086785d689b73a25e4a0fcb30ce9",
+        "pull_request": 1120,
+        "checks": {
+          "State integrity": "success:35734775637",
+          "CI/NEXOLAB Merge Gate": "success:35734775637"
+        }
       }
     }
   ],

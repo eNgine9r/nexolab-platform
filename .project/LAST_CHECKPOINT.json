@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-22T16:36:06+03:00",
+  "timestamp": "2026-09-22T16:39:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1117 pre-cutover preparation GREEN: bounded SDM120 compatibility source/artifacts/hardware proof/rollback authority ready; production remains unchanged and explicit Product Owner cutover approval is required",
+  "event": "Issue #1119 completed candidate: canonical state records GREEN #1117 SDM120 compatibility readiness while production polling remains OFF",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -20,38 +20,12 @@
     "sdm120_candidate_frontend_artifact_sha256": "d73ec2b840b01733a7761b8b555e1b62c4e12b574ea2a0db5a115acd62e32fb6",
     "sdm120_candidate_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300"
   },
-  "active_work": {
-    "issue": 1119,
-    "title": "[STATE][SDM120] Record pre-cutover compatibility readiness",
-    "branch": "chore/1119-record-sdm120-readiness"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "issue_1117_pre_cutover": {
-      "deployment_issue": 1117,
-      "release_pr": 1118,
-      "candidate_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
-      "candidate_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
-      "candidate_device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
-      "candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
-      "candidate_frontend_artifact_sha256": "d73ec2b840b01733a7761b8b555e1b62c4e12b574ea2a0db5a115acd62e32fb6",
-      "compatibility_ci": "pass_push_and_pr",
-      "device_agent_tests": "122_of_122_passed",
-      "rs485_discovery": "10_of_10_passed",
-      "acquisition_scale": "passed",
-      "energy_frontend_tests": "28_of_28_passed",
-      "frontend_static_checks": "prettier_eslint_typecheck_build_passed",
-      "candidate_hardware": "fc04_only_pass_232.0V_49.99Hz_0.039kWh",
-      "candidate_agent_smoke": "health_ok_mqtt_true_queue_0_cleanup_pass",
-      "candidate_frontend_smoke": "four_routes_http_200_cleanup_pass",
-      "candidate_topology": "three_bus_compose_render_pass_not_activated",
-      "rollback_authority": "ready",
-      "production_runtime": "unchanged",
-      "production_sdm120_polling": false,
-      "evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300"
-    }
+    "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Complete state-only Issue #1119/PR after GREEN. Then keep SDM120 production polling disabled until the Product Owner explicitly authorizes the bounded #1117 Device Agent + frontend cutover.",
+  "next_action": "Hard gate: keep SDM120 production polling disabled until the Product Owner explicitly authorizes cutover #1117 for compatibility source 7db6c8c3, Device Agent image sha256:4964c1d4..., third bus rs485-sdm120/A10Q34QC/Unit 1, and frontend build Y_SLpdT2dyZiZ5SGk-QZn with current runtime retained as rollback.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
