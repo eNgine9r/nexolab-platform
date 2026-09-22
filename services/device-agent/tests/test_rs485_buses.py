@@ -107,6 +107,42 @@ class RS485BusTopologyTests(unittest.TestCase):
             len(rebound.document.targets),
         )
 
+    def test_sdm120_unit_one_binds_to_its_dedicated_stable_bus(self) -> None:
+        configured = replace(self.settings, sdm120_unit_ids=(1,))
+        sdm_registry = AcquisitionRegistry(
+            build_initial_document(
+                configured,
+                discovery_units=(106, 126),
+                legacy_active_points=configured.xjp60d_points,
+            )
+        )
+        payload = explicit_payload() + [
+            {
+                "bus_id": "rs485-sdm120",
+                "serial_device": "/host/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0",
+                "unit_ids": [1],
+                "baudrate": 9600,
+                "parity": "N",
+                "stopbits": 1,
+                "timeout_seconds": 0.3,
+                "retries": 1,
+            }
+        ]
+        topology = RS485BusTopology.from_environment(
+            configured,
+            sdm_registry,
+            environ={BUS_CONFIG_ENV: json.dumps(payload)},
+        )
+        rebound = topology.bind_registry(sdm_registry)
+        devices = {item.device_id: item for item in rebound.document.devices}
+        self.assertEqual(devices["sdm120-1"].bus_id, "rs485-sdm120")
+        self.assertEqual(
+            topology.binding("rs485-sdm120").serial_device,
+            "/host/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0",
+        )
+        self.assertEqual(devices["xjp60d-106"].bus_id, "rs485-kk2")
+        self.assertEqual(devices["le01mp-200"].bus_id, "rs485-kk1")
+
     def test_same_explicit_config_rebinds_an_already_multi_bus_registry_after_restart(self) -> None:
         topology = self.topology(explicit_payload())
         first = topology.bind_registry(self.registry)

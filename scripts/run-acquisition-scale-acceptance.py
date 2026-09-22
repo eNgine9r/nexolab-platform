@@ -423,6 +423,11 @@ def run_healthy_profile(
         for item in snapshot["targets"]
         if item["device_family"] == "le01mp"
     }
+    sdm120_intervals = {
+        item["interval_seconds"]
+        for item in snapshot["targets"]
+        if item["device_family"] == "sdm120"
+    }
     collector.check(
         f"{profile.name}.persisted_xjp_floor",
         not xjp_intervals or min(xjp_intervals) >= 10,
@@ -446,6 +451,7 @@ def run_healthy_profile(
         "effective_intervals": {
             "xjp60d": sorted(xjp_intervals),
             "le01mp": sorted(le_intervals),
+            "sdm120": sorted(sdm120_intervals),
         },
         "bus": bus,
     }
