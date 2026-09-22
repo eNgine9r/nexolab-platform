@@ -27,7 +27,11 @@
     "frontend_runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1106,
+      "title": "[SECURITY][CI] Allow fresh container scan after exception expiry without weakening gate",
+      "branch": "fix/1106-container-expiry-discovery"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -4514,6 +4518,14 @@
           "Telemetry service": "success:35585003233"
         }
       }
+    },
+    {
+      "issue": 1106,
+      "title": "[SECURITY][CI] Allow fresh container scan after exception expiry without weakening gate",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "fix/1106-container-expiry-discovery",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [

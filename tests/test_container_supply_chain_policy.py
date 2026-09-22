@@ -464,7 +464,7 @@ def test_workflow_binds_pull_request_evidence_to_head_sha() -> None:
     ).read_text(encoding="utf-8")
 
     assert "SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}" in workflow
-    assert workflow.count("ref: ${{ env.SOURCE_SHA }}") == 4
+    assert workflow.count("ref: ${{ env.SOURCE_SHA }}") == 5
     assert (
         "LOCAL_IMAGE: local/nexolab-${{ matrix.id }}:${{ github.event.pull_request.head.sha || github.sha }}"
         in workflow
