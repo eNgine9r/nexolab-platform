@@ -155,7 +155,7 @@ function sampleMatchesMeter(sample: TelemetrySample, meter: EnergyMeter): boolea
     sample.value !== null &&
     Number.isFinite(sample.value) &&
     isEnergySample(sample) &&
-    resolveEnergyMeter(sample)?.unitId === meter.unitId
+    resolveEnergyMeter(sample)?.equipmentId === meter.equipmentId
   );
 }
 

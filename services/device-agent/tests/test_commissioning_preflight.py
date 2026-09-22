@@ -33,8 +33,8 @@ class FakeRuntime:
             raise ValueError(f"Unknown RS-485 bus_id: {bus_id}")
         return self.bus
 
-    def preflight_unit_owner(self, unit_id: int) -> str | None:
-        del unit_id
+    def preflight_unit_owner(self, unit_id: int, bus_id: str | None = None) -> str | None:
+        del unit_id, bus_id
         return self.owner
 
     def preflight_registry_identity(self, bus_id: str, unit_id: int) -> tuple[str, str] | None:

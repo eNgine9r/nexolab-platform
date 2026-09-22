@@ -191,6 +191,8 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
             return "dixell-xjp60d"
         if target.device_family == "le01mp":
             return "f-and-f-le-01mp"
+        if target.device_family == "sdm120":
+            return "eastron-sdm120m"
         if target.device_family == "embraco":
             return "embraco-sync"
         raise RuntimeError(
@@ -203,6 +205,8 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
             return f"K{target.unit_id}"
         if target.device_family == "le01mp":
             return f"LE01MP-{target.unit_id}"
+        if target.device_family == "sdm120":
+            return f"SDM120M-{target.unit_id}"
         if target.device_family == "embraco":
             return f"EMBRACO-{target.unit_id}"
         raise RuntimeError(
@@ -258,6 +262,28 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
                             "LE-01MP reader was not initialized"
                         )
                     reading = self.le01mp_reader.read_metric(
+                        target.unit_id,
+                        target.key,
+                    )
+                    record = TelemetryRecord(
+                        event_id=str(uuid.uuid4()),
+                        node_id=self.settings.node_id,
+                        captured_at=captured_at,
+                        metric=reading.metric,
+                        value=reading.value,
+                        unit=reading.unit,
+                        quality=reading.quality,
+                        source=source,
+                        equipment_id=equipment_id,
+                        channel_id=target.telemetry_channel_id,
+                        raw_value=reading.raw_value,
+                    )
+                elif target.device_family == "sdm120":
+                    if self.sdm120_reader is None:
+                        raise RuntimeError(
+                            "SDM120 reader was not initialized"
+                        )
+                    reading = self.sdm120_reader.read_metric(
                         target.unit_id,
                         target.key,
                     )
@@ -553,12 +579,20 @@ class AdaptiveRegistryHealthHandler(RegistryManagedHealthHandler):
         super().do_GET()
 
 
+def validate_adaptive_entrypoint(settings: Settings) -> None:
+    if settings.sdm120_unit_ids:
+        raise ValueError(
+            "SDM120 polling requires the topology-aware dual_bus_main.py entrypoint"
+        )
+
+
 def main() -> None:
     logging.basicConfig(
         level=os.getenv("LOG_LEVEL", "INFO").upper(),
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
     settings = Settings.from_env()
+    validate_adaptive_entrypoint(settings)
     agent = AdaptiveRegistryDeviceAgent(settings)
     AdaptiveRegistryHealthHandler.agent = agent
     server = ThreadingHTTPServer(

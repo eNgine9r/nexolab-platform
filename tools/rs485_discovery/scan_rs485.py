@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import struct
 import sys
 import time
 from dataclasses import asdict, dataclass
@@ -196,6 +197,15 @@ def signed_16(value: int) -> int:
     return value - 0x10000 if value & 0x8000 else value
 
 
+def _float32_words(values: object) -> float | None:
+    if not isinstance(values, list) or len(values) != 2:
+        return None
+    if any(not isinstance(value, int) or not 0 <= value <= 0xFFFF for value in values):
+        return None
+    value = struct.unpack(">f", struct.pack(">HH", values[0], values[1]))[0]
+    return value if value == value and abs(value) != float("inf") else None
+
+
 def identify_device(
     information: dict[str, str],
     fingerprint: dict[str, Any],
@@ -210,8 +220,23 @@ def identify_device(
     ):
         return "dixell-xjp60d", "Dixell XJP60D", 1.0, "modbus-device-identification"
 
+    voltage = _float32_words(fingerprint.get("sdm120_voltage_words"))
+    frequency = _float32_words(fingerprint.get("sdm120_frequency_words"))
+    if (
+        voltage is not None
+        and frequency is not None
+        and 40.0 <= frequency <= 70.0
+        and 50.0 <= voltage <= 300.0
+    ):
+        return (
+            "eastron-sdm120-family",
+            "Eastron SDM120 family (candidate)",
+            0.85,
+            "read-only-fc04-electrical-fingerprint",
+        )
+
     values = fingerprint.get("registers_256")
-    if isinstance(values, list) and values:
+    if isinstance(values, list) and values and any(int(value) != 0 for value in values):
         signed_values = [signed_16(int(value)) for value in values]
         plausible = [value for value in signed_values if -500 <= value <= 1500]
         if len(plausible) >= min(3, len(signed_values)):
@@ -312,6 +337,17 @@ def probe_endpoint(
 
 def collect_fingerprint(port: Any, unit_id: int, timeout: float) -> dict[str, Any]:
     result: dict[str, Any] = {}
+    for key, address in (
+        ("sdm120_voltage_words", 0x0000),
+        ("sdm120_frequency_words", 0x0046),
+    ):
+        request = build_read_request(unit_id, 4, address, 2)
+        response, _ = read_response(port, request, unit_id, 4, timeout)
+        if response is None:
+            continue
+        registers, exception = decode_register_response(response)
+        if exception is None and len(registers) == 2:
+            result[key] = registers
     for function in (3, 4):
         request = build_read_request(unit_id, function, 256, 6)
         response, _ = read_response(port, request, unit_id, function, timeout)

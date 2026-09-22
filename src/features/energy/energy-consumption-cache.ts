@@ -49,7 +49,7 @@ export function selectEnergyBoundarySample(
       sample.quality !== "valid" ||
       sample.value === null ||
       !Number.isFinite(sample.value) ||
-      resolveEnergyMeter(sample)?.unitId !== meter.unitId
+      resolveEnergyMeter(sample)?.equipmentId !== meter.equipmentId
     ) {
       continue;
     }
