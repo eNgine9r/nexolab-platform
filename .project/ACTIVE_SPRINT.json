@@ -4604,7 +4604,11 @@
         "post_ci_targeted_python": "3_of_3_passed",
         "post_ci_energy_hook": "13_of_13_passed",
         "post_ci_cadence_authority": "6_of_6_passed",
-        "post_ci_static_checks": "prettier_eslint_typecheck_python_compile_diff_check_passed"
+        "post_ci_static_checks": "prettier_eslint_typecheck_python_compile_diff_check_passed",
+        "exact_head_6f3df1ff": "11_of_11_required_workflows_green",
+        "final_rollback_review": "sdm_device_and_targets_reconciled_on_opt_out",
+        "rollback_targeted_tests": "2_of_2_passed",
+        "rollback_static_checks": "python_compile_diff_check_passed"
       }
     }
   ],

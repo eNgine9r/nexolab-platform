@@ -202,6 +202,66 @@ class SDM120RegistryConfigurationTests(unittest.TestCase):
             )
             self.assertEqual(restarted.revision, configured.revision)
 
+    def test_restart_without_sdm120_opt_in_reserves_persisted_device_and_reenables_cleanly(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database = Path(temp_dir) / "edge.db"
+            configured = AcquisitionRegistryStore(database).load_or_migrate(
+                settings(database_path=database, sdm120_unit_ids=(1,)),
+                discovery_units=(106,),
+                legacy_active_points=((106, 3), (106, 4)),
+            )
+            self.assertEqual(
+                configured.eligible_sdm120_metrics(),
+                tuple((1, register.key) for register in SDM120_REGISTERS),
+            )
+
+            opted_out_store = AcquisitionRegistryStore(database)
+            opted_out = opted_out_store.load_or_migrate(
+                settings(database_path=database, sdm120_unit_ids=()),
+                discovery_units=(106,),
+                legacy_active_points=((106, 3), (106, 4)),
+            )
+            sdm_device = next(
+                item for item in opted_out.document.devices
+                if item.device_family == "sdm120"
+            )
+            self.assertEqual(sdm_device.lifecycle, "reserve")
+            self.assertEqual(opted_out.eligible_sdm120_metrics(), ())
+            self.assertGreater(opted_out.revision, configured.revision)
+            self.assertTrue(
+                all(
+                    target.lifecycle == "reserve"
+                    for target in opted_out.document.targets
+                    if target.device_id == sdm_device.device_id
+                )
+            )
+            audit = opted_out_store.recent_audit()
+            self.assertEqual(audit[0]["changes"][0]["id"], "sdm120-1")
+            self.assertEqual(audit[0]["changes"][0]["from"], "active")
+            self.assertEqual(audit[0]["changes"][0]["to"], "reserve")
+
+            reenabled = AcquisitionRegistryStore(database).load_or_migrate(
+                settings(database_path=database, sdm120_unit_ids=(1,)),
+                discovery_units=(106,),
+                legacy_active_points=((106, 3), (106, 4)),
+            )
+            reenabled_device = next(
+                item for item in reenabled.document.devices
+                if item.device_family == "sdm120"
+            )
+            self.assertEqual(reenabled_device.lifecycle, "active")
+            self.assertEqual(
+                reenabled.eligible_sdm120_metrics(),
+                tuple((1, register.key) for register in SDM120_REGISTERS),
+            )
+            self.assertTrue(
+                all(
+                    target.lifecycle == "active"
+                    for target in reenabled.document.targets
+                    if target.device_id == reenabled_device.device_id
+                )
+            )
+
 
 class EmbracoRegistryConfigurationTests(unittest.TestCase):
     def test_existing_registry_enrolls_only_explicitly_configured_embraco_units(self) -> None:

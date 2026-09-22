@@ -207,7 +207,8 @@ class RS485BusTopology:
                 {
                     item.unit_id
                     for item in registry.document.devices
-                    if not topology.buses_for_unit(item.unit_id)
+                    if item.lifecycle == "active"
+                    and not topology.buses_for_unit(item.unit_id)
                 }
             )
             if missing:
@@ -266,6 +267,11 @@ class RS485BusTopology:
         if not self.explicit:
             return registry
         configured_bus_ids = set(self._by_bus)
+        previous_buses = {
+            bus.bus_id: bus
+            for bus in registry.document.buses
+        }
+        retained_inactive_bus_ids: set[str] = set()
         devices = []
         for device in registry.document.devices:
             candidate_buses = self.buses_for_unit(device.unit_id)
@@ -275,6 +281,13 @@ class RS485BusTopology:
                     # physical bus without rewriting static unit_ids. Preserve
                     # that scoped assignment across restart.
                     bus_id = device.bus_id
+                elif device.lifecycle != "active":
+                    # Retired/reserve inventory must not force an unplugged bus
+                    # back into runtime transport configuration. Keep its
+                    # persisted logical identity for audit/re-enrollment while
+                    # active unbound devices still fail closed below.
+                    bus_id = device.bus_id
+                    retained_inactive_bus_ids.add(bus_id)
                 else:
                     raise ValueError(
                         f"Modbus Unit ID {device.unit_id} has no configured physical bus"
@@ -296,16 +309,28 @@ class RS485BusTopology:
             old_devices=registry.document.devices,
             new_devices=devices,
         )
-        document = replace(
-            registry.document,
-            buses=tuple(
+        configured_buses = tuple(
+            RegistryBus(
+                bus_id=item.bus_id,
+                protocol="modbus_rtu",
+                read_only=True,
+            )
+            for item in self.bindings
+        )
+        retained_inactive_buses = tuple(
+            previous_buses.get(
+                bus_id,
                 RegistryBus(
-                    bus_id=item.bus_id,
+                    bus_id=bus_id,
                     protocol="modbus_rtu",
                     read_only=True,
-                )
-                for item in self.bindings
-            ),
+                ),
+            )
+            for bus_id in sorted(retained_inactive_bus_ids - configured_bus_ids)
+        )
+        document = replace(
+            registry.document,
+            buses=(*configured_buses, *retained_inactive_buses),
             devices=devices,
             cadence=cadence,
         )

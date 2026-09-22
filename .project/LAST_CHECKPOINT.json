@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-22T14:53:00+03:00",
+  "timestamp": "2026-09-22T15:02:00+03:00",
   "actor": "ChatGPT",
-  "event": "PR #1105 head c39d174b passed 11/11 exact-head workflows; four post-CI review findings corrected and targeted verification GREEN",
+  "event": "PR #1105 head 6f3df1ff passed 11/11 workflows; final SDM rollback lifecycle review gap corrected with 2/2 targeted regressions GREEN",
   "baselines": {
     "accepted_product_sha": "1a0644497e4cfd10ce7ba0366772955c72f4711a",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -50,11 +50,15 @@
       "post_ci_targeted_python": "3_of_3_passed",
       "post_ci_energy_hook": "13_of_13_passed",
       "post_ci_cadence_authority": "6_of_6_passed",
-      "post_ci_static_checks": "prettier_eslint_typecheck_python_compile_diff_check_passed"
+      "post_ci_static_checks": "prettier_eslint_typecheck_python_compile_diff_check_passed",
+      "exact_head_6f3df1ff": "11_of_11_required_workflows_green",
+      "final_rollback_review": "sdm_device_and_targets_reconciled_on_opt_out",
+      "rollback_targeted_tests": "2_of_2_passed",
+      "rollback_static_checks": "python_compile_diff_check_passed"
     }
   },
   "observations": [],
-  "next_action": "Commit and push the four post-CI review corrections, resolve those review threads with evidence, and require the automatically registered new exact-head workflow matrix GREEN before merge. Production SDM120 activation remains a separate explicit Product Owner approval gate.",
+  "next_action": "Commit and push the final SDM rollback lifecycle correction, resolve the final review thread with evidence, and require the automatically registered exact-head workflow matrix GREEN before merge. Production activation remains a separate explicit Product Owner approval gate.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -1237,6 +1237,43 @@ class AcquisitionRegistryStore:
                 raise
         return AcquisitionRegistry(document)
 
+    def _reconcile_sdm120_runtime_opt_in(
+        self,
+        registry: AcquisitionRegistry,
+        configured_unit_ids: Iterable[int],
+    ) -> tuple[AcquisitionRegistry, list[dict[str, str]]]:
+        configured = set(configured_unit_ids)
+        device_mutations: list[DeviceLifecycleMutation] = []
+        target_mutations: list[LifecycleMutation] = []
+        sdm120_device_ids: set[str] = set()
+
+        for device in registry.document.devices:
+            if device.device_family != "sdm120":
+                continue
+            sdm120_device_ids.add(device.device_id)
+            desired = "active" if device.unit_id in configured else "reserve"
+            if device.lifecycle != desired:
+                device_mutations.append(DeviceLifecycleMutation(device.device_id, desired))
+
+        desired_by_device = {
+            device.device_id: ("active" if device.unit_id in configured else "reserve")
+            for device in registry.document.devices
+            if device.device_id in sdm120_device_ids
+        }
+        for target in registry.document.targets:
+            desired = desired_by_device.get(target.device_id)
+            if desired is not None and target.lifecycle != desired:
+                target_mutations.append(LifecycleMutation(target.target_id, desired))
+
+        if not device_mutations and not target_mutations:
+            return registry, []
+
+        document, changes = registry.with_mutations(
+            device_mutations=tuple(device_mutations),
+            target_mutations=tuple(target_mutations),
+        )
+        return AcquisitionRegistry(document), changes
+
     def load_or_migrate(
         self,
         settings: Settings,
@@ -1278,6 +1315,18 @@ class AcquisitionRegistryStore:
                         changes=changes,
                     )
                 registry = AcquisitionRegistry(reconciled)
+                registry, sdm120_lifecycle_changes = self._reconcile_sdm120_runtime_opt_in(
+                    registry,
+                    settings.sdm120_unit_ids,
+                )
+                if sdm120_lifecycle_changes:
+                    self._write_state_locked(registry.document)
+                    self._write_audit_locked(
+                        registry.document,
+                        actor="system:configuration",
+                        reason="Reconcile Eastron SDM120 polling lifecycle with explicit runtime opt-in",
+                        changes=sdm120_lifecycle_changes,
+                    )
                 registry, topology_changes = self._apply_registry_binding(
                     registry,
                     initial=False,

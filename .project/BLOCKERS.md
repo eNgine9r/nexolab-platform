@@ -4,7 +4,7 @@ Updated: 2026-09-22
 
 ## Issue #1104 — Eastron SDM120M production activation gate
 
-**Four post-CI review findings are corrected locally; new exact-head CI is the remaining merge gate.** Head `c39d174b` passed all 11 required workflows, then review identified default-entrypoint SDM misrouting risk, discovery bus-identity loss, workspace-wide fixed freshness, and incomplete SDM documentation. The correction set rejects SDM in `adaptive_main.py`, preserves discovered bus identity during XJP enrollment, applies persisted cadence to page status/fresh samples, and provides the complete dedicated-bus example. Targeted Python 3/3, Energy hook 13/13, cadence authority 6/6 and all static checks pass. Production polling remains disabled by default and requires a separate bounded cutover plus explicit Product Owner approval after merge. No Modbus write or hardware write is authorized.
+**One final post-GREEN rollback lifecycle correction is pending exact-head CI.** The prior post-CI correction set is verified locally, and head `6f3df1ff` passed all 11 required workflows. A final review found that persisted SDM targets were not demoted alongside the device on runtime opt-out. Polling was already stopped by device lifecycle and inactive topology already tolerates removal of the dedicated bus, but persisted target state was misleading. The correction now reconciles device + targets together; targeted rollback tests 2/2 and static checks pass. Production polling remains disabled by default and requires a separate bounded cutover plus explicit Product Owner approval after merge. No Modbus write or hardware write is authorized.
 
 ## Issue #1113 — PR #1105 CI routing blocker
 

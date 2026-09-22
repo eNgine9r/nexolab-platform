@@ -6,7 +6,12 @@ from dataclasses import replace
 import unittest
 from pathlib import Path
 
-from acquisition_registry import AcquisitionRegistry, build_initial_document
+from acquisition_registry import (
+    AcquisitionRegistry,
+    DeviceLifecycleMutation,
+    LifecycleMutation,
+    build_initial_document,
+)
 from main import Settings
 from rs485_buses import BUS_CONFIG_ENV, LEGACY_BUS_ID, RS485BusTopology
 
@@ -194,6 +199,63 @@ class RS485BusTopologyTests(unittest.TestCase):
         self.assertEqual(devices["le01mp-200"].bus_id, "rs485-kk1")
         self.assertEqual(devices["xjp60d-106"].bus_id, "rs485-kk2")
         self.assertEqual(devices["xjp60d-126"].bus_id, "rs485-kk1")
+
+    def test_opted_out_sdm_inventory_does_not_require_removed_runtime_bus(self) -> None:
+        configured = replace(self.settings, sdm120_unit_ids=(1,))
+        sdm_registry = AcquisitionRegistry(
+            build_initial_document(
+                configured,
+                discovery_units=(106, 126),
+                legacy_active_points=configured.xjp60d_points,
+            )
+        )
+        payload = explicit_payload() + [
+            {
+                "bus_id": "rs485-sdm120",
+                "serial_device": "/host/dev/serial/by-id/usb-sdm120",
+                "unit_ids": [1],
+            }
+        ]
+        topology = RS485BusTopology.from_environment(
+            configured,
+            sdm_registry,
+            environ={BUS_CONFIG_ENV: json.dumps(payload)},
+        )
+        bound = topology.bind_registry(sdm_registry)
+        sdm_device = next(
+            device
+            for device in bound.document.devices
+            if device.device_family == "sdm120"
+        )
+        reserve_document, _ = bound.with_mutations(
+            device_mutations=(DeviceLifecycleMutation(sdm_device.device_id, "reserve"),),
+            target_mutations=tuple(
+                LifecycleMutation(target.target_id, "reserve")
+                for target in bound.document.targets
+                if target.device_id == sdm_device.device_id
+            ),
+        )
+        reserved = AcquisitionRegistry(reserve_document)
+        opted_out = replace(self.settings, sdm120_unit_ids=())
+
+        without_sdm_bus = RS485BusTopology.from_environment(
+            opted_out,
+            reserved,
+            environ={BUS_CONFIG_ENV: json.dumps(explicit_payload())},
+        ).bind_registry(reserved)
+
+        self.assertEqual(without_sdm_bus.eligible_sdm120_metrics(), ())
+        persisted = next(
+            device
+            for device in without_sdm_bus.document.devices
+            if device.device_family == "sdm120"
+        )
+        self.assertEqual(persisted.lifecycle, "reserve")
+        self.assertEqual(persisted.bus_id, "rs485-sdm120")
+        self.assertIn(
+            "rs485-sdm120",
+            {bus.bus_id for bus in without_sdm_bus.document.buses},
+        )
 
     def test_legacy_configuration_preserves_single_bus_contract(self) -> None:
         topology = RS485BusTopology.from_environment(
