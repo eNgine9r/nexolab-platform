@@ -27,7 +27,11 @@
     "frontend_runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1104,
+      "title": "[ENERGY][SDM120] Add Eastron SDM120M on dedicated RS-485 bus",
+      "branch": "feat/1104-sdm120-energy-meter"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -4512,6 +4516,27 @@
           "CI": "success:35585003234",
           "Offline Bundle": "success:35585003232",
           "Telemetry service": "success:35585003233"
+        }
+      }
+    },
+    {
+      "issue": 1104,
+      "title": "[ENERGY][SDM120] Add Eastron SDM120M on dedicated RS-485 bus",
+      "priority": "unspecified",
+      "lifecycle": "review",
+      "branch": "feat/1104-sdm120-energy-meter",
+      "evidence": {
+        "verified_head_sha": "b7f0f9372412175005564efa847e1ec43a3bb83d",
+        "checks": {
+          "device_agent_targeted": "pass_86",
+          "rs485_discovery": "pass_10",
+          "frontend_targeted": "pass_32",
+          "typescript": "pass",
+          "eslint": "pass",
+          "prettier": "pass",
+          "compose_models": "pass",
+          "acquisition_scale": "pass_46",
+          "candidate_device_agent_image": "pass"
         }
       }
     }

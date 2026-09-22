@@ -1,8 +1,16 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-21
+Updated: 2026-09-22
 
 ## Current Sprint
+
+### Issue #1104 — Eastron SDM120M dedicated-bus integration in review
+
+Issue #1104 implements the physically connected Eastron SDM120M as the fifth Energy source without changing the deployed LOCAL_LAN runtime. Real read-only hardware evidence identifies stable FTDI `A10Q34QC`, Modbus Unit `1`, `9600 8N1`; FC04 evidence confirms voltage `227.784 V`, frequency `50.037 Hz` and Import Active Energy `0.039 kWh`. No Modbus or hardware write occurred.
+
+Product implementation `b7f0f9372412175005564efa847e1ec43a3bb83d` adds strict FC04 support, IEEE-754 Float32 MSW-first decoding, the `sdm120` acquisition family, persisted registry/scheduler/cadence routing, dedicated-bus configuration authority, scanner false-positive repair and heterogeneous Energy UI support. W1–W4 remain preserved; SDM120M appears as equipment `SDM120M-1`, source `eastron-sdm120m`, and nonexistent `temperature.internal` is explicitly unsupported rather than fabricated.
+
+Software verification is GREEN: Device Agent targeted `86/86`, RS-485 discovery `10/10`, frontend targeted `32/32`, TypeScript, ESLint, Prettier, Compose model validation, candidate Device Agent image build, and acquisition-scale `46/46` assertions with the updated pilot/expanded/stress inventories. Production polling remains fail-closed because `SDM120_UNIT_IDS` defaults empty. Exact-head PR CI/build/browser acceptance is the current gate; any production activation after merge requires a separate cutover plan and explicit Product Owner approval.
 
 ### Issue #1099 — Project Control Center runtime identity contract repository-side complete
 

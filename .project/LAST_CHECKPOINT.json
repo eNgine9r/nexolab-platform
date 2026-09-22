@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-21T12:10:00+03:00",
+  "timestamp": "2026-09-22T10:43:52+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1099 / PR #1098 repository-side runtime identity Work Package completed with exact-head CI green and all review threads resolved",
+  "event": "Issue #1104 implementation ready for PR review: SDM120 FC04 acquisition, dedicated-bus contract and Energy UI are software-verified; production polling remains disabled",
   "baselines": {
     "accepted_product_sha": "1a0644497e4cfd10ce7ba0366772955c72f4711a",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -15,12 +15,29 @@
     "frontend_rollback_release": "runtime/frontend-releases/df368cfa27efa945d59de33de8268898b564a19f-20260918T050734Z",
     "frontend_runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1104,
+    "title": "[ENERGY][SDM120] Add Eastron SDM120M on dedicated RS-485 bus",
+    "branch": "feat/1104-sdm120-energy-meter"
+  },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "verified_head_sha": "b7f0f9372412175005564efa847e1ec43a3bb83d",
+      "checks": {
+        "device_agent_targeted": "pass_86",
+        "rs485_discovery": "pass_10",
+        "frontend_targeted": "pass_32",
+        "typescript": "pass",
+        "eslint": "pass",
+        "prettier": "pass",
+        "compose_models": "pass",
+        "acquisition_scale": "pass_46",
+        "candidate_device_agent_image": "pass"
+      }
+    }
   },
   "observations": [],
-  "next_action": "Keep production LOCAL_LAN unchanged. Any deployment/cutover of /api/runtime-identity requires a separate Product Owner-approved operation.",
+  "next_action": "Open PR for #1104, require exact-head CI including build/browser gates; after merge prepare a separate production cutover plan and stop for explicit Product Owner approval.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
