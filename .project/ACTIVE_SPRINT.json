@@ -28,9 +28,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1108,
-      "title": "[SECURITY] Revalidate 2026-09-22 container HIGH exception registry",
-      "branch": "security/1108-container-high-review"
+      "issue": 1111,
+      "title": "[STATE][SECURITY] Reconcile #1108 post-merge review deadline",
+      "branch": "chore/1111-reconcile-1108-state"
     },
     "next_work_package": null
   },
@@ -4523,8 +4523,24 @@
       "issue": 1108,
       "title": "[SECURITY] Revalidate 2026-09-22 container HIGH exception registry",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "security/1108-container-high-review",
+      "evidence": {
+        "verified_head_sha": "0f9e3a088e9ac541929d0929ce9dda3c368b0a77",
+        "pull_request": 1110,
+        "checks": {
+          "Container Supply Chain": "success:35705373349",
+          "CI/NEXOLAB Merge Gate": "success:35705373342",
+          "Telemetry service": "success:35705373383"
+        }
+      }
+    },
+    {
+      "issue": 1111,
+      "title": "[STATE][SECURITY] Reconcile #1108 post-merge review deadline",
+      "priority": "unspecified",
+      "lifecycle": "in_progress",
+      "branch": "chore/1111-reconcile-1108-state",
       "evidence": {}
     }
   ],
@@ -4588,8 +4604,16 @@
     {
       "source_issue": 1012,
       "title": "Review/remove HIGH container exceptions expiring 2026-09-21",
-      "status": "scheduled",
+      "status": "completed",
       "due_on": "2026-09-21",
+      "owner": "platform-security",
+      "rule": "Completed under Issue #1108 / PR #1110 after fresh 2026-09-22 no-cache review: 90 exact HIGH / 0 CRITICAL findings reconciled 1:1; retained exact owner-bound decisions expire 2026-09-29."
+    },
+    {
+      "source_issue": 1108,
+      "title": "Review/remove HIGH container exceptions expiring 2026-09-29",
+      "status": "scheduled",
+      "due_on": "2026-09-29",
       "owner": "platform-security",
       "rule": "Run a fresh no-cache scan before expiry and reconcile every retained exact HIGH tuple. Remove immediately when a finding disappears, a consumable fixed package/base is available, runtime reachability changes, authoritative affected-version guidance changes materially, or severity becomes Critical. No blanket renewal is permitted."
     }
