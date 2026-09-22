@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-22T17:01:51+03:00",
+  "timestamp": "2026-09-22T17:04:22+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1117 completed: Product Owner-authorized SDM120 bounded production cutover is GREEN with Device Agent + frontend compatibility source 7db6c8c3, live FC04 telemetry and rollback retained",
+  "event": "Issue #1121 completed candidate: canonical state records GREEN #1117 SDM120 production activation with rollback retained",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,40 +28,18 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": {
-    "issue": 1121,
-    "title": "[STATE][SDM120] Reconcile completed production activation",
-    "branch": "chore/1121-record-sdm120-production"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "issue_1117_production_cutover": {
-      "deployment_issue": 1117,
-      "github_issue_state": "closed_completed",
-      "compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
-      "device_agent_container_id": "e0935d5168f980af31b731847f89d2160c9a49a8eeed3e68665ba51a88a7a434",
-      "device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
-      "frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
-      "frontend_release": "runtime/frontend-releases/7db6c8c34c7c94874afe2a3301a2209585795744-20260922T134803Z",
-      "scheduler": "61_targets_3_of_3_workers_healthy_capacity_safe",
-      "sdm120": "8_targets_fc04_only_repeated_success_zero_timeout_io_protocol_retry",
-      "postgres": "8_sdm120_latest_36_le01mp_latest",
-      "edge_sqlite": "quick_check_ok",
-      "frontend": "energy_http_200_bundle_marker_present",
-      "browser_visual_acceptance": "not_claimed_connector_unavailable",
-      "core_container_identities": "unchanged",
-      "rollback_dir": "/home/nexolab/nexolab-runtime-backups/issue-1117-20260922T134803Z",
-      "runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
-    }
+    "active_issue_evidence": {}
   },
   "observations": [],
-  "next_action": "Complete state-only Issue #1121/PR after GREEN. No independent Ready product Work Package is currently selected; keep normal monitoring active and preserve the SDM120 rollback set. Next scheduled security exception review remains 2026-09-29.",
+  "next_action": "No independent Ready product Work Package is selected. Keep normal monitoring active, retain the SDM120 rollback set, and perform the next scheduled security exception review on 2026-09-29.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
     "production_cutover_authorized": false,
-    "mandatory_public_runtime_dependency": "none",
-    "production_cutover_consumed": true
+    "mandatory_public_runtime_dependency": "none"
   }
 }
