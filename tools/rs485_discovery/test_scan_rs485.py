@@ -54,6 +54,25 @@ class ModbusFrameTests(unittest.TestCase):
         self.assertEqual(result[0], "dixell-xjp60d")
         self.assertEqual(result[2], 1.0)
 
+    def test_all_zero_register_256_fingerprint_is_not_xjp(self) -> None:
+        result = scan_rs485.identify_device(
+            {},
+            {"registers_256": [0, 0, 0, 0, 0, 0]},
+        )
+        self.assertEqual(result[0], "unknown-modbus")
+
+    def test_identifies_real_sdm120_fc04_fingerprint(self) -> None:
+        result = scan_rs485.identify_device(
+            {},
+            {
+                "sdm120_voltage_words": [17251, 51411],
+                "sdm120_frequency_words": [16968, 9607],
+                "registers_256": [0, 0, 0, 0, 0, 0],
+            },
+        )
+        self.assertEqual(result[0], "eastron-sdm120-family")
+        self.assertEqual(result[2], 0.85)
+
     def test_strict_verifier_accepts_exact_register_count(self) -> None:
         response = verify_candidates.add_crc(bytes.fromhex("0103021234"))
         extracted = verify_candidates.extract_strict_response(response, 1, 3, 1)

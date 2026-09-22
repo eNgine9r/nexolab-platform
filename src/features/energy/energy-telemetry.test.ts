@@ -4,6 +4,7 @@ import type { TelemetrySample } from "@/lib/telemetry/types";
 
 import {
   ENERGY_METRICS,
+  energyMeterSupportsMetric,
   energySampleState,
   findEnergySample,
   formatEnergyValue,
@@ -43,7 +44,7 @@ function cumulativeEnergySample(overrides: Partial<TelemetrySample> = {}): Telem
 }
 
 describe("energy telemetry", () => {
-  it("maps the four production meters deterministically", () => {
+  it("maps heterogeneous production energy meters deterministically", () => {
     expect(resolveEnergyMeter(sample())?.label).toBe("W1");
     expect(
       resolveEnergyMeter(
@@ -53,6 +54,18 @@ describe("energy telemetry", () => {
         }),
       )?.label,
     ).toBe("W4");
+    expect(
+      resolveEnergyMeter(
+        sample({
+          equipment_id: "SDM120M-1",
+          channel_id: "1-voltage",
+          source: "eastron-sdm120m",
+          metric: "electrical.voltage",
+          value: 227.8,
+          unit: "V",
+        }),
+      )?.label,
+    ).toBe("SDM120M");
     expect(
       resolveEnergyMeter(
         sample({
@@ -107,6 +120,21 @@ describe("energy telemetry", () => {
         }),
       ),
     ).toBe(true);
+    expect(
+      isEnergySample(
+        sample({
+          equipment_id: "SDM120M-1",
+          source: "eastron-sdm120m",
+          metric: "temperature.internal",
+          unit: "degC",
+          channel_id: "1-temperature",
+        }),
+      ),
+    ).toBe(false);
+    const sdm120 = resolveEnergyMeter(sample({ equipment_id: "SDM120M-1", channel_id: "1-voltage" }));
+    expect(sdm120).not.toBeNull();
+    expect(energyMeterSupportsMetric(sdm120!, "temperature.internal")).toBe(false);
+    expect(energyMeterSupportsMetric(sdm120!, "electrical.voltage")).toBe(true);
   });
 
   it("keeps the newest sample for every meter and metric", () => {

@@ -46,11 +46,13 @@ from adaptive_scheduler import (
 from dual_bus_registry import TopologyAwareEnrollmentStore
 from embraco import EmbracoSyncReader
 from le01mp import LE01MPReader
+from sdm120 import SDM120Reader
 from main import (
     Settings,
     TelemetryRecord,
     mode_uses_embraco,
     mode_uses_le01mp,
+    mode_uses_sdm120,
     mode_uses_xjp60d,
     run_agent_with_health_server,
 )
@@ -119,6 +121,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         self._bus_clients: dict[str, ModbusRTUClient] = {}
         self._bus_xjp60d_readers: dict[str, XJP60DReader] = {}
         self._bus_le01mp_readers: dict[str, LE01MPReader] = {}
+        self._bus_sdm120_readers: dict[str, SDM120Reader] = {}
         self._bus_embraco_readers: dict[str, EmbracoSyncReader] = {}
         self._bus_operation_locks: dict[str, threading.Lock] = {}
         self._topology_enrollment_store = topology_store
@@ -158,6 +161,8 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                 )
             if mode_uses_le01mp(self.settings.device_mode):
                 self._bus_le01mp_readers[binding.bus_id] = LE01MPReader(client)
+            if mode_uses_sdm120(self.settings.device_mode):
+                self._bus_sdm120_readers[binding.bus_id] = SDM120Reader(client)
             if mode_uses_embraco(self.settings.device_mode):
                 self._bus_embraco_readers[binding.bus_id] = EmbracoSyncReader(
                     client,
@@ -170,6 +175,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         self.modbus_client = None
         self.xjp60d_reader = None
         self.le01mp_reader = None
+        self.sdm120_reader = None
         self.embraco_reader = None
 
         self.scheduler = AdaptiveAcquisitionScheduler(
@@ -749,6 +755,26 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                     if reader is None:
                         raise RuntimeError(
                             f"LE-01MP reader is unavailable for {target.bus_id}"
+                        )
+                    reading = reader.read_metric(target.unit_id, target.key)
+                    record = TelemetryRecord(
+                        event_id=str(uuid.uuid4()),
+                        node_id=self.settings.node_id,
+                        captured_at=captured_at,
+                        metric=reading.metric,
+                        value=reading.value,
+                        unit=reading.unit,
+                        quality=reading.quality,
+                        source=source,
+                        equipment_id=equipment_id,
+                        channel_id=target.telemetry_channel_id,
+                        raw_value=reading.raw_value,
+                    )
+                elif target.device_family == "sdm120":
+                    reader = self._bus_sdm120_readers.get(target.bus_id)
+                    if reader is None:
+                        raise RuntimeError(
+                            f"SDM120 reader is unavailable for {target.bus_id}"
                         )
                     reading = reader.read_metric(target.unit_id, target.key)
                     record = TelemetryRecord(

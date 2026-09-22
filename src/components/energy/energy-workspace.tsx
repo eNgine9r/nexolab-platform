@@ -20,6 +20,7 @@ import { EnergyHistoryChart } from "@/components/energy/energy-history-chart";
 import {
   ENERGY_METERS,
   ENERGY_METRICS,
+  energyMeterSupportsMetric,
   energySampleState,
   findEnergySample,
   formatCapturedAt,
@@ -148,7 +149,7 @@ function MeterCard({
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] tracking-[0.16em] text-cyan-300 uppercase">KK1 · LE-01MP</p>
+            <p className="text-[10px] tracking-[0.16em] text-cyan-300 uppercase">{meter.modelLabel}</p>
             <h2 className="mt-1 text-lg font-semibold text-white">{meter.label}</h2>
             <p className="text-[10px] text-slate-500">Modbus Unit {meter.unitId}</p>
           </div>
@@ -312,7 +313,8 @@ export function EnergyWorkspace({
       if (current.includes(unitId)) {
         return current.length === 1 ? current : current.filter((item) => item !== unitId);
       }
-      return [...current, unitId].sort((left, right) => left - right);
+      const selected = new Set([...current, unitId]);
+      return ENERGY_METERS.filter((meter) => selected.has(meter.unitId)).map((meter) => meter.unitId);
     });
   };
 
@@ -333,8 +335,8 @@ export function EnergyWorkspace({
             </span>
           </div>
           <p className="mt-2 max-w-3xl text-[12px] leading-5 text-slate-400">
-            Поточні параметри та споживання за вибраний період для чотирьох LE-01MP. Дані надходять через
-            локальні REST, WebSocket і PostgreSQL history без обов’язкової хмари.
+            Поточні параметри та споживання за вибраний період для F&F LE-01MP та Eastron SDM120M. Дані
+            надходять через локальні REST, WebSocket і PostgreSQL history без обов’язкової хмари.
           </p>
         </div>
 
@@ -355,7 +357,7 @@ export function EnergyWorkspace({
         </div>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Лічильники KK1">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5" aria-label="Лічильники електроенергії">
         {ENERGY_METERS.map((meter) => (
           <MeterCard
             key={meter.unitId}
@@ -377,7 +379,7 @@ export function EnergyWorkspace({
           ) : (
             <Gauge className="mx-auto h-7 w-7 text-slate-600" />
           )}
-          <h2 className="mt-3 text-sm font-semibold text-white">Дані LE-01MP ще не отримані</h2>
+          <h2 className="mt-3 text-sm font-semibold text-white">Дані лічильників ще не отримані</h2>
           <p className="mx-auto mt-2 max-w-xl text-[11px] leading-5 text-slate-500">
             Перевірте Device Agent, MQTT і доступ до Telemetry Service. Live mode не підміняється
             демонстраційними значеннями.
@@ -409,7 +411,9 @@ export function EnergyWorkspace({
             <Activity className="h-5 w-5 text-blue-300" />
             <div>
               <p className="text-[10px] text-slate-500">Вибрано для порівняння</p>
-              <p className="mt-1 text-xl font-semibold text-white">{selectedUnitIds.length} / 4</p>
+              <p className="mt-1 text-xl font-semibold text-white">
+                {selectedUnitIds.length} / {ENERGY_METERS.length}
+              </p>
             </div>
           </div>
         </article>
@@ -443,6 +447,14 @@ export function EnergyWorkspace({
                       {metric.label}
                     </th>
                     {ENERGY_METERS.map((meter) => {
+                      if (!energyMeterSupportsMetric(meter, metric.id)) {
+                        return (
+                          <td key={meter.unitId} className="px-4 py-3">
+                            <p className="font-medium text-slate-500">—</p>
+                            <p className="mt-1 text-[8px] text-slate-600">Не підтримується</p>
+                          </td>
+                        );
+                      }
                       const sample = findEnergySample(telemetry.samples, meter.unitId, metric.id);
                       const sampleState = energySampleState(sample);
                       return (

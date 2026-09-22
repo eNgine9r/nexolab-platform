@@ -17,6 +17,7 @@ from acquisition_registry import (
 from embraco import REGISTERS as EMBRACO_REGISTERS
 from le01mp import REGISTERS as LE01MP_REGISTERS
 from main import Settings
+from sdm120 import REGISTERS as SDM120_REGISTERS
 
 
 def settings(
@@ -24,6 +25,7 @@ def settings(
     mode: str = "modbus",
     xjp60d_points: tuple[tuple[int, int], ...] = ((106, 3), (106, 4)),
     le01mp_unit_ids: tuple[int, ...] = (200,),
+    sdm120_unit_ids: tuple[int, ...] = (),
     embraco_unit_ids: tuple[int, ...] = (),
     database_path: Path = Path("edge.db"),
 ) -> Settings:
@@ -49,6 +51,7 @@ def settings(
         xjp60d_points=xjp60d_points,
         xjp60d_scale=0.1,
         le01mp_unit_ids=le01mp_unit_ids,
+        sdm120_unit_ids=sdm120_unit_ids,
         embraco_unit_ids=embraco_unit_ids,
     )
 
@@ -114,6 +117,26 @@ class AcquisitionRegistryMigrationTests(unittest.TestCase):
                 legacy_active_points=((106, 3),),
             )
 
+    def test_sdm120_mode_creates_fc04_float_targets(self) -> None:
+        document = build_initial_document(
+            settings(
+                mode="sdm120",
+                xjp60d_points=(),
+                le01mp_unit_ids=(),
+                sdm120_unit_ids=(1,),
+            ),
+            discovery_units=(),
+            legacy_active_points=(),
+        )
+        registry = AcquisitionRegistry(document)
+        self.assertEqual({device.device_family for device in document.devices}, {"sdm120"})
+        self.assertEqual(
+            registry.eligible_sdm120_metrics(),
+            tuple((1, register.key) for register in SDM120_REGISTERS),
+        )
+        self.assertTrue(all(target.function == 4 for target in document.targets))
+        self.assertTrue(all(len(target.addresses) == 2 for target in document.targets))
+
     def test_embraco_mode_creates_thirteen_read_only_targets(self) -> None:
         document = build_initial_document(
             settings(
@@ -142,6 +165,42 @@ class AcquisitionRegistryMigrationTests(unittest.TestCase):
                 discovery_units=(106,),
                 legacy_active_points=((106, 3),),
             )
+
+
+class SDM120RegistryConfigurationTests(unittest.TestCase):
+    def test_existing_registry_enrolls_configured_sdm120_idempotently(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database = Path(temp_dir) / "edge.db"
+            baseline = AcquisitionRegistryStore(database).load_or_migrate(
+                settings(database_path=database),
+                discovery_units=(106,),
+                legacy_active_points=((106, 3), (106, 4)),
+            )
+            self.assertEqual(baseline.eligible_sdm120_metrics(), ())
+
+            configured = AcquisitionRegistryStore(database).load_or_migrate(
+                settings(database_path=database, sdm120_unit_ids=(1,)),
+                discovery_units=(106,),
+                legacy_active_points=((106, 3), (106, 4)),
+            )
+            self.assertEqual(
+                configured.eligible_sdm120_metrics(),
+                tuple((1, register.key) for register in SDM120_REGISTERS),
+            )
+            self.assertGreater(configured.revision, baseline.revision)
+            device = next(
+                item for item in configured.document.devices
+                if item.device_family == "sdm120"
+            )
+            self.assertEqual(device.device_id, "sdm120-1")
+            self.assertEqual(device.bus_id, "rs485-main")
+
+            restarted = AcquisitionRegistryStore(database).load_or_migrate(
+                settings(database_path=database, sdm120_unit_ids=(1,)),
+                discovery_units=(106,),
+                legacy_active_points=((106, 3), (106, 4)),
+            )
+            self.assertEqual(restarted.revision, configured.revision)
 
 
 class EmbracoRegistryConfigurationTests(unittest.TestCase):

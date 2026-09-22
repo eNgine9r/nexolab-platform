@@ -48,6 +48,7 @@ async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
 }
 
 function publishEnergySample(unitId: number, sample: EnergyMetric): void {
+  const sdm120 = unitId === 1;
   const payload = JSON.stringify({
     event_id: randomUUID(),
     node_id: "edge-01",
@@ -56,8 +57,8 @@ function publishEnergySample(unitId: number, sample: EnergyMetric): void {
     value: sample.value,
     unit: sample.unit,
     quality: "valid",
-    source: "f-and-f-le-01mp",
-    equipment_id: `LE01MP-${unitId}`,
+    source: sdm120 ? "eastron-sdm120m" : "f-and-f-le-01mp",
+    equipment_id: sdm120 ? "SDM120M-1" : `LE01MP-${unitId}`,
     channel_id: `${unitId}-${sample.suffix}`,
     alarm: null,
     raw_value: sample.rawValue,
@@ -178,6 +179,63 @@ function seedEnergyEvidence(): void {
     });
   }
 
+  publishEnergySample(1, {
+    metric: "electrical.power.active",
+    suffix: "active-power",
+    value: 0,
+    unit: "W",
+    rawValue: 0,
+    capturedAt: history(1),
+  });
+  publishEnergySample(1, {
+    metric: "electrical.energy.active",
+    suffix: "import-active-energy",
+    value: 0.03,
+    unit: "kWh",
+    rawValue: 0x3cf5c28f,
+    capturedAt: history(24 * 60),
+  });
+  publishEnergySample(1, {
+    metric: "electrical.energy.active",
+    suffix: "import-active-energy",
+    value: 0.039,
+    unit: "kWh",
+    rawValue: 0x3d1fbe77,
+    capturedAt: history(1),
+  });
+  publishEnergySample(1, {
+    metric: "electrical.voltage",
+    suffix: "voltage",
+    value: 227.8,
+    unit: "V",
+    rawValue: 0x4363c8d3,
+    capturedAt: history(1),
+  });
+  publishEnergySample(1, {
+    metric: "electrical.current",
+    suffix: "current",
+    value: 0,
+    unit: "A",
+    rawValue: 0,
+    capturedAt: history(1),
+  });
+  publishEnergySample(1, {
+    metric: "electrical.frequency",
+    suffix: "frequency",
+    value: 50.04,
+    unit: "Hz",
+    rawValue: 0x42482487,
+    capturedAt: history(1),
+  });
+  publishEnergySample(1, {
+    metric: "electrical.power_factor",
+    suffix: "power-factor",
+    value: 0,
+    unit: "ratio",
+    rawValue: 0,
+    capturedAt: history(1),
+  });
+
   publishEnergySample(200, {
     metric: "electrical.voltage",
     suffix: "voltage",
@@ -224,7 +282,7 @@ function cumulativeHistoryReads(requests: Array<{ url: string; authorized: boole
   }).length;
 }
 
-test("renders selectable LE-01MP period consumption from verified cumulative boundaries", async ({
+test("renders selectable heterogeneous energy meters from verified cumulative boundaries", async ({
   browser,
 }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
@@ -244,12 +302,16 @@ test("renders selectable LE-01MP period consumption from verified cumulative bou
     await expect(page.getByRole("heading", { name: "W2" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "W3" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "W4" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "SDM120M" })).toBeVisible();
+    await expect(page.getByText("Eastron · SDM120M", { exact: true })).toBeVisible();
+    await expect(page.getByText("227,8 V", { exact: true })).toBeVisible();
+    await expect(page.getByText("Не підтримується", { exact: true })).toHaveCount(1);
     await expect(page.getByText("720 W", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("230,1 V", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("0,955", { exact: true }).first()).toBeVisible();
 
-    await expect(page.getByText("Споживання", { exact: true })).toHaveCount(4);
-    await expect(page.locator("summary").filter({ hasText: /^24 год$/ })).toHaveCount(4);
+    await expect(page.getByText("Споживання", { exact: true })).toHaveCount(5);
+    await expect(page.locator("summary").filter({ hasText: /^24 год$/ })).toHaveCount(5);
     await expect(page.getByText("5,00 kWh", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("Період: останні 24 години", { exact: true }).first()).toBeVisible();
     await expect(page.getByText(/Накопичена енергія/i)).toHaveCount(0);

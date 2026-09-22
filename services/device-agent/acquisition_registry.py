@@ -21,13 +21,21 @@ from acquisition_cadence import (
 )
 from embraco import PROFILE_VERSION as EMBRACO_PROFILE_VERSION, REGISTERS as EMBRACO_REGISTERS
 from le01mp import REGISTERS as LE01MP_REGISTERS
-from main import Settings, mode_uses_embraco, mode_uses_le01mp, mode_uses_xjp60d
+from main import (
+    Settings,
+    mode_uses_embraco,
+    mode_uses_le01mp,
+    mode_uses_sdm120,
+    mode_uses_xjp60d,
+)
+from sdm120 import PROFILE_VERSION as SDM120_PROFILE_VERSION, REGISTERS as SDM120_REGISTERS
 from xjp60d import PROBE_REGISTERS
 
 SCHEMA_VERSION = 2
 LEGACY_SCHEMA_VERSION = 1
 BUS_ID = "rs485-main"
 READ_FUNCTION = 3
+READ_FUNCTIONS = frozenset({3, 4})
 XJP60D_PROFILE_VERSION = "dixell-xjp60d-fc03-v1"
 LE01MP_PROFILE_VERSION = "f-and-f-le01mp-fc03-v2"
 _LEGACY_LE01MP_PROFILE_VERSION = "f-and-f-le01mp-fc03-v1"
@@ -148,7 +156,7 @@ def _validate_document(document: RegistryDocument) -> RegistryDocument:
                 f"Duplicate Modbus bus/Unit identity: {device.bus_id}/{device.unit_id}"
             )
         bus_units.add(identity)
-        if device.device_family not in {"xjp60d", "le01mp", "embraco"}:
+        if device.device_family not in {"xjp60d", "le01mp", "sdm120", "embraco"}:
             raise ValueError(f"Unsupported device family: {device.device_family}")
         if not device.profile_version.strip():
             raise ValueError(f"Missing profile version for {device.device_id}")
@@ -174,8 +182,10 @@ def _validate_document(document: RegistryDocument) -> RegistryDocument:
             raise ValueError(f"Profile mismatch for target {target.target_id}")
         if target.kind not in {"channel", "metric"}:
             raise ValueError(f"Unsupported target kind: {target.kind}")
-        if target.function != READ_FUNCTION:
-            raise ValueError(f"Registry target {target.target_id} is not read-only FC03")
+        if target.function not in READ_FUNCTIONS:
+            raise ValueError(
+                f"Registry target {target.target_id} must use read-only FC03 or FC04"
+            )
         if not target.addresses or any(
             not 0 <= address <= 0xFFFF for address in target.addresses
         ):
@@ -321,6 +331,24 @@ def _le_target(unit_id: int, key: str, lifecycle: str) -> RegistryTarget:
 
 
 
+def _sdm120_target(unit_id: int, key: str, lifecycle: str) -> RegistryTarget:
+    register = next(item for item in SDM120_REGISTERS if item.key == key)
+    channel_id = f"{unit_id}-{key.replace('_', '-')}"
+    return RegistryTarget(
+        target_id=f"sdm120:{channel_id}",
+        device_id=f"sdm120-{unit_id}",
+        kind="metric",
+        key=key,
+        telemetry_channel_id=channel_id,
+        metric=register.metric,
+        unit=register.unit,
+        profile_version=SDM120_PROFILE_VERSION,
+        lifecycle=lifecycle,
+        function=4,
+        addresses=register.addresses,
+    )
+
+
 def _embraco_target(unit_id: int, key: str, lifecycle: str) -> RegistryTarget:
     register = next(item for item in EMBRACO_REGISTERS if item.key == key)
     channel_id = f"{unit_id}-{key.replace('_', '-')}"
@@ -434,10 +462,18 @@ def build_initial_document(
         else set()
     )
     le_units = set(settings.le01mp_unit_ids) if mode_uses_le01mp(settings.device_mode) else set()
+    sdm120_units = (
+        set(settings.sdm120_unit_ids) if mode_uses_sdm120(settings.device_mode) else set()
+    )
     embraco_units = (
         set(settings.embraco_unit_ids) if mode_uses_embraco(settings.device_mode) else set()
     )
-    family_units = {"xjp60d": xjp_units, "le01mp": le_units, "embraco": embraco_units}
+    family_units = {
+        "xjp60d": xjp_units,
+        "le01mp": le_units,
+        "sdm120": sdm120_units,
+        "embraco": embraco_units,
+    }
     duplicate_units: set[int] = set()
     families = tuple(family_units)
     for index, left in enumerate(families):
@@ -478,6 +514,20 @@ def build_initial_document(
         )
         for register in LE01MP_REGISTERS:
             targets.append(_le_target(unit_id, register.key, "active"))
+
+    for unit_id in sorted(sdm120_units):
+        devices.append(
+            RegistryDevice(
+                device_id=f"sdm120-{unit_id}",
+                bus_id=BUS_ID,
+                device_family="sdm120",
+                unit_id=unit_id,
+                profile_version=SDM120_PROFILE_VERSION,
+                lifecycle="active",
+            )
+        )
+        for register in SDM120_REGISTERS:
+            targets.append(_sdm120_target(unit_id, register.key, "active"))
 
     for unit_id in sorted(embraco_units):
         devices.append(
@@ -525,7 +575,7 @@ class AcquisitionRegistry:
         return (
             device.lifecycle == POLLING_LIFECYCLE
             and target.lifecycle == POLLING_LIFECYCLE
-            and target.function == READ_FUNCTION
+            and target.function in READ_FUNCTIONS
         )
 
     def eligible_targets(self, family: str | None = None) -> tuple[RegistryTarget, ...]:
@@ -548,6 +598,12 @@ class AcquisitionRegistry:
         return tuple(
             (self._devices[target.device_id].unit_id, target.key)
             for target in self.eligible_targets("le01mp")
+        )
+
+    def eligible_sdm120_metrics(self) -> tuple[tuple[int, str], ...]:
+        return tuple(
+            (self._devices[target.device_id].unit_id, target.key)
+            for target in self.eligible_targets("sdm120")
         )
 
     def eligible_embraco_metrics(self) -> tuple[tuple[int, str], ...]:
@@ -781,6 +837,94 @@ class AcquisitionRegistry:
         document = replace(self.document, revision=self.document.revision + 1, devices=tuple(devices), targets=tuple(targets), cadence=cadence, updated_at=_now())
         return _validate_document(document), changes
 
+    def with_sdm120_enrollment(
+        self,
+        unit_ids: Iterable[int],
+        *,
+        lifecycle: str = "active",
+        bus_for_unit: Callable[[int], str] | None = None,
+    ) -> tuple[RegistryDocument, list[dict[str, str]]]:
+        requested_values = tuple(unit_ids)
+        if any(
+            not isinstance(unit_id, int) or isinstance(unit_id, bool)
+            for unit_id in requested_values
+        ):
+            raise ValueError("SDM120 Modbus Unit IDs must be integers")
+        requested = set(requested_values)
+        if any(not 1 <= unit_id <= 247 for unit_id in requested):
+            raise ValueError("Invalid SDM120 Modbus Unit ID")
+        desired_lifecycle = _validate_lifecycle(lifecycle)
+        configured_buses = {bus.bus_id for bus in self.document.buses}
+        existing_by_identity = {
+            (device.bus_id, device.unit_id): device
+            for device in self.document.devices
+        }
+        additions: list[tuple[int, str]] = []
+        for unit_id in sorted(requested):
+            bus_id = BUS_ID if bus_for_unit is None else bus_for_unit(unit_id)
+            if bus_id not in configured_buses:
+                raise ValueError(
+                    f"Configured bus {bus_id!r} is absent from acquisition registry"
+                )
+            existing = existing_by_identity.get((bus_id, unit_id))
+            if existing is not None:
+                if (
+                    existing.device_family != "sdm120"
+                    or existing.profile_version != SDM120_PROFILE_VERSION
+                ):
+                    raise ValueError(
+                        f"Conflicting Modbus bus/Unit identity: {bus_id}/{unit_id}"
+                    )
+                continue
+            additions.append((unit_id, bus_id))
+        if not additions:
+            return self.document, []
+
+        devices = list(self.document.devices)
+        targets = list(self.document.targets)
+        changes: list[dict[str, str]] = []
+        for unit_id, bus_id in additions:
+            device_id = f"sdm120-{unit_id}"
+            devices.append(
+                RegistryDevice(
+                    device_id,
+                    bus_id,
+                    "sdm120",
+                    unit_id,
+                    SDM120_PROFILE_VERSION,
+                    desired_lifecycle,
+                )
+            )
+            changes.append(
+                {"entity": "device", "id": device_id, "from": "absent", "to": desired_lifecycle}
+            )
+            for register in SDM120_REGISTERS:
+                target = replace(
+                    _sdm120_target(unit_id, register.key, desired_lifecycle),
+                    device_id=device_id,
+                    target_id=f"sdm120:{unit_id}-{register.key.replace('_', '-')}",
+                    telemetry_channel_id=f"{unit_id}-{register.key.replace('_', '-')}",
+                )
+                targets.append(target)
+                changes.append(
+                    {
+                        "entity": "target",
+                        "id": target.target_id,
+                        "from": "absent",
+                        "to": desired_lifecycle,
+                    }
+                )
+        cadence = ensure_defaults_for_devices(self.document.cadence, devices)
+        document = replace(
+            self.document,
+            revision=self.document.revision + 1,
+            devices=tuple(devices),
+            targets=tuple(targets),
+            cadence=cadence,
+            updated_at=_now(),
+        )
+        return _validate_document(document), changes
+
     def with_embraco_enrollment(
         self,
         unit_ids: Iterable[int],
@@ -866,18 +1010,18 @@ class AcquisitionRegistryStore:
         *,
         registry_binding: Callable[[AcquisitionRegistry], AcquisitionRegistry]
         | None = None,
-        embraco_bus_for_unit: Callable[[int], str] | None = None,
+        configured_bus_for_unit: Callable[[int], str] | None = None,
     ) -> None:
-        if (registry_binding is None) != (embraco_bus_for_unit is None):
+        if (registry_binding is None) != (configured_bus_for_unit is None):
             raise ValueError(
-                "Registry binding and Embraco bus ownership must be configured together"
+                "Registry binding and configured bus ownership must be configured together"
             )
         database_path.parent.mkdir(parents=True, exist_ok=True)
         self._connection = sqlite3.connect(database_path, check_same_thread=False)
         self._connection.execute("PRAGMA busy_timeout = 5000")
         self._lock = threading.Lock()
         self._registry_binding = registry_binding
-        self._embraco_bus_for_unit = embraco_bus_for_unit
+        self._configured_bus_for_unit = configured_bus_for_unit
         with self._connection:
             self._connection.execute(
                 """
@@ -1113,11 +1257,26 @@ class AcquisitionRegistryStore:
                         reason="Bind acquisition registry to explicit RS-485 topology",
                         changes=topology_changes,
                     )
+                if settings.sdm120_unit_ids:
+                    candidate, sdm120_changes = registry.with_sdm120_enrollment(
+                        settings.sdm120_unit_ids,
+                        lifecycle="active",
+                        bus_for_unit=self._configured_bus_for_unit,
+                    )
+                    if sdm120_changes:
+                        self._write_state_locked(candidate)
+                        self._write_audit_locked(
+                            candidate,
+                            actor="system:configuration",
+                            reason="Enroll explicitly configured read-only Eastron SDM120 units",
+                            changes=sdm120_changes,
+                        )
+                        registry = AcquisitionRegistry(candidate)
                 if settings.embraco_unit_ids:
                     candidate, embraco_changes = registry.with_embraco_enrollment(
                         settings.embraco_unit_ids,
                         lifecycle="active",
-                        bus_for_unit=self._embraco_bus_for_unit,
+                        bus_for_unit=self._configured_bus_for_unit,
                     )
                     if embraco_changes:
                         self._write_state_locked(candidate)
@@ -1245,18 +1404,44 @@ class AcquisitionRegistryStore:
         bus_for_unit: Callable[[int], str] | None = None,
     ) -> AcquisitionRegistry:
         document, changes = registry.with_le01mp_enrollment(
-            unit_ids, lifecycle="reserve", bus_for_unit=bus_for_unit or self._embraco_bus_for_unit
+            unit_ids, lifecycle="reserve", bus_for_unit=bus_for_unit or self._configured_bus_for_unit
         )
         if not changes:
             return registry
         return self._commit_candidate(registry, document, changes, expected_revision=expected_revision, actor=actor, reason=reason)
+
+    def enroll_sdm120(
+        self,
+        registry: AcquisitionRegistry,
+        *,
+        expected_revision: int,
+        unit_ids: Iterable[int],
+        actor: str,
+        reason: str,
+        bus_for_unit: Callable[[int], str] | None = None,
+    ) -> AcquisitionRegistry:
+        document, changes = registry.with_sdm120_enrollment(
+            unit_ids,
+            lifecycle="reserve",
+            bus_for_unit=bus_for_unit or self._configured_bus_for_unit,
+        )
+        if not changes:
+            return registry
+        return self._commit_candidate(
+            registry,
+            document,
+            changes,
+            expected_revision=expected_revision,
+            actor=actor,
+            reason=reason,
+        )
 
     def enroll_embraco(
         self, registry: AcquisitionRegistry, *, expected_revision: int, unit_ids: Iterable[int], actor: str, reason: str,
         bus_for_unit: Callable[[int], str] | None = None,
     ) -> AcquisitionRegistry:
         document, changes = registry.with_embraco_enrollment(
-            unit_ids, lifecycle="reserve", bus_for_unit=bus_for_unit or self._embraco_bus_for_unit
+            unit_ids, lifecycle="reserve", bus_for_unit=bus_for_unit or self._configured_bus_for_unit
         )
         if not changes:
             return registry

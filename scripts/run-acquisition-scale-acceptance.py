@@ -61,6 +61,7 @@ class InventoryProfile:
     name: str
     xjp_points: tuple[tuple[int, int], ...]
     le_unit_ids: tuple[int, ...]
+    sdm120_unit_ids: tuple[int, ...]
     expected_targets: int
 
 
@@ -208,6 +209,7 @@ def settings(
     *,
     xjp_points: tuple[tuple[int, int], ...],
     le_unit_ids: tuple[int, ...],
+    sdm120_unit_ids: tuple[int, ...],
 ) -> Settings:
     return Settings(
         node_id="edge-scale-acceptance",
@@ -231,6 +233,7 @@ def settings(
         xjp60d_points=xjp_points,
         xjp60d_scale=0.1,
         le01mp_unit_ids=le_unit_ids,
+        sdm120_unit_ids=sdm120_unit_ids,
     )
 
 
@@ -244,6 +247,7 @@ def build_registry(
             database_path,
             xjp_points=profile.xjp_points,
             le_unit_ids=profile.le_unit_ids,
+            sdm120_unit_ids=profile.sdm120_unit_ids,
         ),
         discovery_units=xjp_units,
         legacy_active_points=profile.xjp_points,
@@ -308,19 +312,22 @@ def profiles() -> tuple[InventoryProfile, ...]:
             name="pilot",
             xjp_points=((106, 3), (106, 4)),
             le_unit_ids=(200, 201, 202, 203),
-            expected_targets=38,
+            sdm120_unit_ids=(1,),
+            expected_targets=46,
         ),
         InventoryProfile(
             name="expanded",
             xjp_points=xjp_points(101, 12),
             le_unit_ids=tuple(range(200, 208)),
-            expected_targets=144,
+            sdm120_unit_ids=(1,),
+            expected_targets=152,
         ),
         InventoryProfile(
             name="stress",
             xjp_points=xjp_points(101, 24),
             le_unit_ids=tuple(range(200, 212)),
-            expected_targets=252,
+            sdm120_unit_ids=(1,),
+            expected_targets=260,
         ),
     )
 

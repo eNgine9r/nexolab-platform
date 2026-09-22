@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import tempfile
+from dataclasses import replace
 import unittest
 from pathlib import Path
 
@@ -117,6 +118,45 @@ class RS485BusTopologyTests(unittest.TestCase):
 
         self.assertEqual(restarted.document.buses, first.document.buses)
         self.assertEqual(restarted.document.devices, first.document.devices)
+
+    def test_sdm120_unit_one_binds_only_to_dedicated_bus(self) -> None:
+        sdm_settings = replace(self.settings, sdm120_unit_ids=(1,))
+        sdm_registry = AcquisitionRegistry(
+            build_initial_document(
+                sdm_settings,
+                discovery_units=(106, 126),
+                legacy_active_points=sdm_settings.xjp60d_points,
+            )
+        )
+        payload = explicit_payload()
+        payload.append(
+            {
+                "bus_id": "rs485-sdm120",
+                "serial_device": (
+                    "/host/dev/serial/by-id/"
+                    "usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0"
+                ),
+                "unit_ids": [1],
+                "baudrate": 9600,
+                "parity": "N",
+                "stopbits": 1,
+                "timeout_seconds": 0.3,
+                "retries": 1,
+            }
+        )
+        topology = RS485BusTopology.from_environment(
+            sdm_settings,
+            sdm_registry,
+            environ={BUS_CONFIG_ENV: json.dumps(payload)},
+        )
+        rebound = topology.bind_registry(sdm_registry)
+        devices = {item.device_id: item for item in rebound.document.devices}
+
+        self.assertEqual(topology.bus_for_unit(1), "rs485-sdm120")
+        self.assertEqual(devices["sdm120-1"].bus_id, "rs485-sdm120")
+        self.assertEqual(devices["le01mp-200"].bus_id, "rs485-kk1")
+        self.assertEqual(devices["xjp60d-106"].bus_id, "rs485-kk2")
+        self.assertEqual(devices["xjp60d-126"].bus_id, "rs485-kk1")
 
     def test_legacy_configuration_preserves_single_bus_contract(self) -> None:
         topology = RS485BusTopology.from_environment(

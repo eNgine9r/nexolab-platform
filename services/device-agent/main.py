@@ -21,6 +21,7 @@ import paho.mqtt.client as mqtt
 from embraco import EmbracoSyncReader, REGISTERS as EMBRACO_REGISTERS
 from le01mp import LE01MPReader, REGISTERS as LE01MP_REGISTERS
 from modbus_rtu import ModbusError, ModbusRTUClient
+from sdm120 import SDM120Reader, REGISTERS as SDM120_REGISTERS
 from mqtt_tls import MQTTTLSConfig
 from operational_streams import NodeOperationalPublisher
 from xjp60d import XJP60DReader
@@ -38,6 +39,10 @@ def mode_uses_le01mp(device_mode: str) -> bool:
 
 def mode_uses_embraco(device_mode: str) -> bool:
     return device_mode in {"embraco", "modbus"}
+
+
+def mode_uses_sdm120(device_mode: str) -> bool:
+    return device_mode in {"sdm120", "modbus"}
 
 
 def parse_bool(value: str, *, label: str) -> bool:
@@ -147,6 +152,7 @@ class Settings:
     xjp60d_points: tuple[tuple[int, int], ...]
     xjp60d_scale: float
     le01mp_unit_ids: tuple[int, ...]
+    sdm120_unit_ids: tuple[int, ...] = ()
     embraco_unit_ids: tuple[int, ...] = ()
     embraco_temperature_scale: float | None = None
     embraco_control_scale: float | None = None
@@ -215,6 +221,10 @@ class Settings:
                 os.getenv("LE01MP_UNIT_IDS", ""),
                 label="LE-01MP",
             ),
+            sdm120_unit_ids=parse_unit_ids(
+                os.getenv("SDM120_UNIT_IDS", ""),
+                label="Eastron SDM120",
+            ),
             embraco_unit_ids=parse_unit_ids(
                 os.getenv("EMBRACO_UNIT_IDS", ""),
                 label="Embraco Sync",
@@ -232,25 +242,28 @@ class Settings:
             mqtt_client_id=mqtt_client_id,
             mqtt_password_file=mqtt_password_file,
         )
-        allowed_modes = {"simulator", "xjp60d", "le01mp", "embraco", "modbus"}
+        allowed_modes = {"simulator", "xjp60d", "le01mp", "sdm120", "embraco", "modbus"}
         if settings.device_mode not in allowed_modes:
             raise ValueError(
-                "DEVICE_MODE must be simulator, xjp60d, le01mp, embraco, or modbus"
+                "DEVICE_MODE must be simulator, xjp60d, le01mp, sdm120, embraco, or modbus"
             )
         if settings.device_mode == "xjp60d" and not settings.xjp60d_points:
             raise ValueError("XJP60D_POINTS is required when DEVICE_MODE=xjp60d")
         if settings.device_mode == "le01mp" and not settings.le01mp_unit_ids:
             raise ValueError("LE01MP_UNIT_IDS is required when DEVICE_MODE=le01mp")
+        if settings.device_mode == "sdm120" and not settings.sdm120_unit_ids:
+            raise ValueError("SDM120_UNIT_IDS is required when DEVICE_MODE=sdm120")
         if settings.device_mode == "embraco" and not settings.embraco_unit_ids:
             raise ValueError("EMBRACO_UNIT_IDS is required when DEVICE_MODE=embraco")
         if (
             settings.device_mode == "modbus"
             and not settings.xjp60d_points
             and not settings.le01mp_unit_ids
+            and not settings.sdm120_unit_ids
             and not settings.embraco_unit_ids
         ):
             raise ValueError(
-                "At least one XJP60D point, LE-01MP unit, or Embraco unit is required "
+                "At least one XJP60D point, LE-01MP, SDM120, or Embraco unit is required "
                 "when DEVICE_MODE=modbus"
             )
         if settings.health_interval_seconds <= 0:
@@ -672,6 +685,8 @@ class AgentState:
         configured_devices: list[str] = []
         if mode_uses_le01mp(settings.device_mode):
             configured_devices.extend(f"LE01MP-{unit_id}" for unit_id in settings.le01mp_unit_ids)
+        if mode_uses_sdm120(settings.device_mode):
+            configured_devices.extend(f"SDM120M-{unit_id}" for unit_id in settings.sdm120_unit_ids)
         if mode_uses_embraco(settings.device_mode):
             configured_devices.extend(f"EMBRACO-{unit_id}" for unit_id in settings.embraco_unit_ids)
         with self._lock:
@@ -741,6 +756,7 @@ class DeviceAgent:
         self.modbus_client: ModbusRTUClient | None = None
         self.xjp60d_reader: XJP60DReader | None = None
         self.le01mp_reader: LE01MPReader | None = None
+        self.sdm120_reader: SDM120Reader | None = None
         self.embraco_reader: EmbracoSyncReader | None = None
 
         if settings.device_mode != "simulator":
@@ -766,6 +782,11 @@ class DeviceAgent:
             if self.modbus_client is None:
                 raise RuntimeError("Modbus client was not initialized")
             self.le01mp_reader = LE01MPReader(self.modbus_client)
+
+        if mode_uses_sdm120(settings.device_mode) and settings.sdm120_unit_ids:
+            if self.modbus_client is None:
+                raise RuntimeError("Modbus client was not initialized")
+            self.sdm120_reader = SDM120Reader(self.modbus_client)
 
         if mode_uses_embraco(settings.device_mode) and settings.embraco_unit_ids:
             if self.modbus_client is None:
@@ -955,6 +976,57 @@ class DeviceAgent:
                     )
                 )
 
+    def _sample_sdm120(
+        self,
+        captured_at: str,
+        records: list[TelemetryRecord],
+        errors: list[str],
+    ) -> None:
+        if not self.settings.sdm120_unit_ids:
+            return
+        if self.sdm120_reader is None:
+            raise RuntimeError("SDM120 reader was not initialized")
+
+        for unit_id in self.settings.sdm120_unit_ids:
+            equipment_id = f"SDM120M-{unit_id}"
+            for register in SDM120_REGISTERS:
+                channel_id = f"{unit_id}-{register.key.replace('_', '-')}"
+                try:
+                    reading = self.sdm120_reader.read_metric(unit_id, register.key)
+                except (ModbusError, OSError, RuntimeError) as exc:
+                    LOG.warning("SDM120 read failed for %s: %s", channel_id, exc)
+                    errors.append(f"{channel_id}: {exc}")
+                    records.append(
+                        TelemetryRecord(
+                            event_id=str(uuid.uuid4()),
+                            node_id=self.settings.node_id,
+                            captured_at=captured_at,
+                            metric=register.metric,
+                            value=None,
+                            unit=register.unit,
+                            quality="communication_error",
+                            source="eastron-sdm120m",
+                            equipment_id=equipment_id,
+                            channel_id=channel_id,
+                        )
+                    )
+                    continue
+                records.append(
+                    TelemetryRecord(
+                        event_id=str(uuid.uuid4()),
+                        node_id=self.settings.node_id,
+                        captured_at=captured_at,
+                        metric=reading.metric,
+                        value=reading.value,
+                        unit=reading.unit,
+                        quality=reading.quality,
+                        source="eastron-sdm120m",
+                        equipment_id=equipment_id,
+                        channel_id=channel_id,
+                        raw_value=reading.raw_value,
+                    )
+                )
+
     def _sample_embraco(
         self,
         captured_at: str,
@@ -1034,6 +1106,8 @@ class DeviceAgent:
             self._sample_xjp60d(captured_at, records, errors)
         if mode_uses_le01mp(self.settings.device_mode):
             self._sample_le01mp(captured_at, records, errors)
+        if mode_uses_sdm120(self.settings.device_mode):
+            self._sample_sdm120(captured_at, records, errors)
         if mode_uses_embraco(self.settings.device_mode):
             self._sample_embraco(captured_at, records, errors)
 
