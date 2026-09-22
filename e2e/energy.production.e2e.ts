@@ -304,7 +304,7 @@ test("renders selectable heterogeneous energy meters from verified cumulative bo
     await expect(page.getByRole("heading", { name: "W4" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "SDM120M" })).toBeVisible();
     await expect(page.getByText("Eastron · SDM120M", { exact: true })).toBeVisible();
-    await expect(page.getByText("227,8 V", { exact: true })).toBeVisible();
+    await expect(page.getByText("227,8 V", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("Не підтримується", { exact: true })).toHaveCount(1);
     await expect(page.getByText("720 W", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("230,1 V", { exact: true }).first()).toBeVisible();
