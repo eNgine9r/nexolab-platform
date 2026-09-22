@@ -4582,7 +4582,23 @@
         "typecheck": "passed",
         "eslint": "passed",
         "python_compile": "passed",
-        "diff_check": "passed"
+        "diff_check": "passed",
+        "exact_head_933fc5fe": {
+          "green": [
+            "RS485 tools",
+            "Edge image",
+            "Acquisition Scale Acceptance",
+            "Device Agent Fleet Acceptance",
+            "Telemetry service",
+            "MQTT TLS Fleet Acceptance",
+            "Disaster Recovery TLS Fleet",
+            "Container Supply Chain"
+          ],
+          "authenticated_dashboard": "failed_19_of_20_settings_navigation_hydration_race",
+          "merge_gate": "failed_due_to_authenticated_dashboard"
+        },
+        "dashboard_failure_root_cause": "post_reload_immediate_isVisible_selected_hidden_mobile_control_before_desktop_hydration",
+        "dashboard_helper_correction_checks": "prettier_eslint_typecheck_diff_check_passed"
       }
     }
   ],

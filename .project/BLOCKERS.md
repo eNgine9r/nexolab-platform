@@ -4,7 +4,7 @@ Updated: 2026-09-22
 
 ## Issue #1104 — Eastron SDM120M production activation gate
 
-**Repository review blockers are cleared locally; exact-head PR #1105 CI is the remaining merge gate.** All six review findings are addressed: fresh DB dedicated-bus enrollment, handled non-finite Float32 reads, bus-scoped duplicate Unit commissioning, SDM cadence authority, mandatory explicit SDM topology, and cadence-aware freshness. Targeted Python/Frontend verification is GREEN after the single localized enrollment guard correction. Production polling remains disabled by default and requires a separate bounded cutover plus explicit Product Owner approval after merge. No Modbus write or hardware write is authorized.
+**Repository review blockers are cleared; corrected exact-head PR #1105 CI is the remaining merge gate.** All six SDM120 review findings are addressed and targeted Python/Frontend verification is GREEN. Exact head `933fc5fe` registered every required specialized lane and all completed SDM/backend/fleet/security lanes were GREEN, but Authenticated Dashboard exposed a Playwright navigation race after reload: the acceptance helper checked the desktop control before hydration and then waited on a hidden mobile selector. Trace evidence localizes the failure to the test helper, not runtime cadence behavior. The helper now waits for whichever responsive navigation control actually becomes visible; formatting, ESLint, TypeScript and diff checks pass. Production polling remains disabled by default and requires a separate bounded cutover plus explicit Product Owner approval after merge. No Modbus write or hardware write is authorized.
 
 ## Issue #1113 — PR #1105 CI routing blocker
 
