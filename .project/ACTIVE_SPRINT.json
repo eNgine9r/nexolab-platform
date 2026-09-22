@@ -4545,6 +4545,25 @@
           "NEXOLAB Merge Gate": "success:35706581524"
         }
       }
+    },
+    {
+      "issue": 1113,
+      "title": "[CI][RS485] Classify acquisition and discovery paths without impossible browser routing",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "fix/1113-rs485-ci-routing",
+      "evidence": {
+        "verified_head_sha": "6eb82f8f0a5aa16a1fd14f91a83c8664013cacb6",
+        "pull_request": 1114,
+        "checks": {
+          "CI/NEXOLAB Merge Gate": "success:35711596266",
+          "Authenticated Dashboard Acceptance": "success:35711596317",
+          "Refrigeration Browser Acceptance": "success:35711596267",
+          "Offline Bundle": "success:35711596288",
+          "Telegram Gateway": "success:35711596352",
+          "Edge image": "success:35711596329"
+        }
+      }
     }
   ],
   "maintenance_actions": [

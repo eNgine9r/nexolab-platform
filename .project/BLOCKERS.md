@@ -1,6 +1,10 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-18
+Updated: 2026-09-22
+
+## Issue #1113 — PR #1105 CI routing blocker
+
+**Cleared in PR #1114 candidate; only the automatically registered exact-head merge gate remains.** Substantive head `6eb82f8f0a5aa16a1fd14f91a83c8664013cacb6` passed Core/NEXOLAB Merge Gate, Dashboard, Refrigeration Browser, Offline Bundle, Telegram Gateway and Edge image. The final P2 fix now makes register-map/registry paths require **Edge image**, the acquisition-scale runner require **Acquisition Scale Acceptance**, and discovery tooling require **RS485 tools**; unknown neighbors still fail closed. Three directly affected classifier regressions and `git diff --check` pass locally; the already successful broad fix suite is not rerun manually. After #1114 merges, #1105 must refresh from current `main` and run its required exact-head SDM120 gates. No production activation, Modbus write or hardware write is authorized.
 
 ## Issue #1094 — RFX-12 frontend-only Overview production release
 
