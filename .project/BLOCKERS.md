@@ -4,7 +4,7 @@ Updated: 2026-09-22
 
 ## Issue #1104 — Eastron SDM120M production activation gate
 
-**One final post-GREEN rollback lifecycle correction is pending exact-head CI.** The prior post-CI correction set is verified locally, and head `6f3df1ff` passed all 11 required workflows. A final review found that persisted SDM targets were not demoted alongside the device on runtime opt-out. Polling was already stopped by device lifecycle and inactive topology already tolerates removal of the dedicated bus, but persisted target state was misleading. The correction now reconciles device + targets together; targeted rollback tests 2/2 and static checks pass. Production polling remains disabled by default and requires a separate bounded cutover plus explicit Product Owner approval after merge. No Modbus write or hardware write is authorized.
+**Software/merge gate cleared; production activation remains blocked by explicit approval.** PR #1105 final exact head `7f78ea1a7c51ccf9fefb9fb86509b6a43f861728` passed all 11 required workflows and squash-merged to `main` as `8fe975524fe9449b96fedefa4430cb57829a49da`; GitHub closed #1104 completed. Runtime opt-out is fail-closed and durable: SDM device + targets reconcile to `reserve`, and inactive inventory does not require the removed dedicated runtime bus. Production polling is still disabled by default. Enabling the real SDM120 requires a separate bounded LOCAL_LAN cutover and explicit Product Owner approval. No Modbus write or hardware write is authorized.
 
 ## Issue #1113 — PR #1105 CI routing blocker
 

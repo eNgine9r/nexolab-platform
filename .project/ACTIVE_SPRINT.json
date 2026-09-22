@@ -18,7 +18,7 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "1a0644497e4cfd10ce7ba0366772955c72f4711a",
+    "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
     "frontend_compatibility_source_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
     "frontend_build_id": "fveOqzLHugE-KZ4RRBogM",
@@ -27,11 +27,7 @@
     "frontend_runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1104,
-      "title": "[ENERGY][SDM120] Add Eastron SDM120M on dedicated RS-485 bus",
-      "branch": "feat/1104-sdm120-energy-meter"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -4573,7 +4569,7 @@
       "issue": 1104,
       "title": "[ENERGY][SDM120] Add Eastron SDM120M on dedicated RS-485 bus",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "feat/1104-sdm120-energy-meter",
       "evidence": {
         "review_findings_addressed": 6,
@@ -4608,7 +4604,14 @@
         "exact_head_6f3df1ff": "11_of_11_required_workflows_green",
         "final_rollback_review": "sdm_device_and_targets_reconciled_on_opt_out",
         "rollback_targeted_tests": "2_of_2_passed",
-        "rollback_static_checks": "python_compile_diff_check_passed"
+        "rollback_static_checks": "python_compile_diff_check_passed",
+        "final_exact_head_sha": "7f78ea1a7c51ccf9fefb9fb86509b6a43f861728",
+        "final_exact_head_ci": "11_of_11_required_workflows_green",
+        "pull_request": 1105,
+        "github_issue_state": "closed_completed",
+        "production_activation": "not_performed_requires_explicit_product_owner_approval",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     }
   ],
