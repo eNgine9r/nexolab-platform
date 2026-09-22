@@ -4690,7 +4690,7 @@
         "postgres_latest": "8_sdm120_series_36_le01mp_series",
         "edge_sqlite": "quick_check_ok",
         "frontend": "energy_http_200_deployed_bundle_contains_sdm120_mapping",
-        "browser_visual_acceptance": "not_claimed_browser_connector_unavailable",
+        "browser_visual_acceptance": "pixel_screenshot_acceptance_not_performed",
         "core_container_identities": "unchanged",
         "modbus_write": "none",
         "hardware_write": "none",
@@ -4701,6 +4701,46 @@
         "checks": {
           "State integrity": "success:35737562046",
           "CI/NEXOLAB Merge Gate": "success:35737562046"
+        },
+        "browser_dom_acceptance": "authenticated_production_energy_pass_no_screenshots",
+        "browser_dom_headers": "W1_W2_W3_W4_SDM120M",
+        "browser_dom_sdm": "voltage_live_current_live_active_power_live_frequency_live_temperature_unsupported_5_of_5",
+        "full_cadence_polling": "8_of_8_targets_advanced_at_60s_zero_communication_failures",
+        "postgres_latest_final": "8_of_8_sdm120_rows_valid"
+      }
+    },
+    {
+      "issue": 1123,
+      "title": "[STATE][SDM120] Record successful production cutover",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "chore/1123-record-sdm120-cutover",
+      "evidence": {
+        "scope": "canonical_state_supplemental_acceptance_only",
+        "deployment_issue": 1117,
+        "deployment_issue_state": "closed_completed",
+        "state_reconciliation_issue": 1121,
+        "state_reconciliation_pr": 1122,
+        "runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+        "authenticated_browser_dom": "PASS_no_screenshots",
+        "energy_headers": "W1|W2|W3|W4|SDM120M",
+        "energy_sdm_voltage": "live_229_5V_observed",
+        "energy_sdm_current": "live_0_0A_observed",
+        "energy_sdm_active_power": "live_0W_observed",
+        "energy_sdm_frequency": "live_50_0Hz_observed",
+        "energy_sdm_temperature": "not_supported",
+        "energy_selected_meters": "5_of_5",
+        "full_cadence_polling": "PASS_8_of_8_targets_advanced_14_to_16_zero_failures",
+        "postgres_latest": "PASS_8_of_8_current_rows_valid",
+        "evidence_checksums": "PASS_after_final_browser_cadence_persistence_update",
+        "runtime_mutation": "none_in_issue_1123",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "verified_head_sha": "025c7d1225e2464e2205126322c68bc2eb931a40",
+        "pull_request": 1124,
+        "checks": {
+          "State integrity": "success:35739907005",
+          "CI/NEXOLAB Merge Gate": "success:35739907005"
         }
       }
     }
