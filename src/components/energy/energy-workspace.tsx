@@ -110,16 +110,32 @@ function ageCopy(ageMs: number | null): string {
   return `Оновлено ${Math.round(ageMs / 60_000)} хв тому`;
 }
 
+function cadenceAwareEnergySampleState(
+  sample: TelemetrySample | null,
+  unitId: number,
+  cadenceAuthority: EnergyTelemetryModel["cadenceAuthority"],
+  now = Date.now(),
+): EnergySampleState {
+  const capturedAt = sample === null ? Number.NaN : Date.parse(sample.captured_at);
+  const staleAfterMs =
+    Number.isFinite(capturedAt) && cadenceAuthority !== null
+      ? cadenceAuthority.maximumSourceGapMs(unitId, capturedAt, now)
+      : null;
+  return energySampleState(sample, now, staleAfterMs ?? undefined);
+}
+
 function MeterCard({
   unitId,
   selected,
   samples,
+  cadenceAuthority,
   consumption,
   onToggle,
 }: {
   unitId: number;
   selected: boolean;
   samples: readonly TelemetrySample[];
+  cadenceAuthority: EnergyTelemetryModel["cadenceAuthority"];
   consumption: EnergyConsumptionLoader;
   onToggle: () => void;
 }) {
@@ -129,7 +145,11 @@ function MeterCard({
   const voltage = findEnergySample(samples, unitId, "electrical.voltage");
   const current = findEnergySample(samples, unitId, "electrical.current");
   const powerFactor = findEnergySample(samples, unitId, "electrical.power_factor");
-  const state = energySampleState(power ?? voltage ?? current ?? powerFactor ?? cumulativeEnergy);
+  const state = cadenceAwareEnergySampleState(
+    power ?? voltage ?? current ?? powerFactor ?? cumulativeEnergy,
+    unitId,
+    cadenceAuthority,
+  );
   const stateCopy = STATE_COPY[state];
 
   return (
@@ -364,6 +384,7 @@ export function EnergyWorkspace({
             unitId={meter.unitId}
             selected={selectedUnitIds.includes(meter.unitId)}
             samples={telemetry.samples}
+            cadenceAuthority={telemetry.cadenceAuthority}
             consumption={consumption}
             onToggle={() => toggleMeter(meter.unitId)}
           />
@@ -456,7 +477,11 @@ export function EnergyWorkspace({
                         );
                       }
                       const sample = findEnergySample(telemetry.samples, meter.unitId, metric.id);
-                      const sampleState = energySampleState(sample);
+                      const sampleState = cadenceAwareEnergySampleState(
+                        sample,
+                        meter.unitId,
+                        telemetry.cadenceAuthority,
+                      );
                       return (
                         <td key={meter.unitId} className="px-4 py-3">
                           <p className="font-medium text-slate-100">{formatEnergyValue(sample)}</p>

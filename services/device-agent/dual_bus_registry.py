@@ -73,9 +73,14 @@ class TopologyAwareEnrollmentStore(AcquisitionRegistryStore):
             raise ValueError("Invalid XJP60D Modbus Unit ID")
 
         configured_buses = {bus.bus_id for bus in registry.document.buses}
-        existing_by_unit: dict[int, list[RegistryDevice]] = {}
-        for device in registry.document.devices:
-            existing_by_unit.setdefault(device.unit_id, []).append(device)
+        existing_by_identity = {
+            (device.bus_id, device.unit_id): device
+            for device in registry.document.devices
+        }
+        existing_by_device_id = {
+            device.device_id: device
+            for device in registry.document.devices
+        }
 
         additions: list[tuple[int, str]] = []
         for unit_id in sorted(requested):
@@ -84,16 +89,10 @@ class TopologyAwareEnrollmentStore(AcquisitionRegistryStore):
                 raise ValueError(
                     f"Configured bus {bus_id!r} is absent from acquisition registry"
                 )
-            existing = existing_by_unit.get(unit_id, [])
-            if existing:
-                if len(existing) != 1:
-                    raise ValueError(
-                        f"Ambiguous Modbus Unit ID {unit_id} across registry buses"
-                    )
-                device = existing[0]
+            device = existing_by_identity.get((bus_id, unit_id))
+            if device is not None:
                 if (
-                    device.bus_id != bus_id
-                    or device.device_family != "xjp60d"
+                    device.device_family != "xjp60d"
                     or device.profile_version != XJP60D_PROFILE_VERSION
                 ):
                     raise ValueError(
@@ -101,6 +100,12 @@ class TopologyAwareEnrollmentStore(AcquisitionRegistryStore):
                         f"unit={unit_id}, registry_bus={device.bus_id}, configured_bus={bus_id}"
                     )
                 continue
+            conflicting = existing_by_device_id.get(f"xjp60d-{unit_id}")
+            if conflicting is not None:
+                raise ValueError(
+                    "Conflicting Modbus Unit ownership for discovery enrollment: "
+                    f"unit={unit_id}, registry_bus={conflicting.bus_id}, configured_bus={bus_id}"
+                )
             additions.append((unit_id, bus_id))
 
         if not additions:

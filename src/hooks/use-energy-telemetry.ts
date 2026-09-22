@@ -90,6 +90,7 @@ export interface EnergyTelemetryModel {
   freshSamples: TelemetrySample[];
   lastCapturedAt: string | null;
   ageMs: number | null;
+  cadenceAuthority: EnergyCadenceAuthority | null;
   selectedMetric: EnergyMetricId;
   setSelectedMetric: (metric: EnergyMetricId) => void;
   historyRange: EnergyHistoryRange;
@@ -852,6 +853,7 @@ export function useEnergyTelemetry({
       freshSamples: [],
       lastCapturedAt: null,
       ageMs: null,
+      cadenceAuthority: null,
       selectedMetric,
       setSelectedMetric,
       historyRange,
@@ -874,6 +876,7 @@ export function useEnergyTelemetry({
       freshSamples: [],
       lastCapturedAt: null,
       ageMs: null,
+      cadenceAuthority: null,
       selectedMetric,
       setSelectedMetric,
       historyRange,
@@ -912,6 +915,7 @@ export function useEnergyTelemetry({
     freshSamples: selectLatestEnergySamples(resolvedView.freshSamples),
     lastCapturedAt: resolvedView.lastCapturedAt,
     ageMs: resolvedView.ageMs,
+    cadenceAuthority: cadenceAuthorityState.scopeKey === scopeKey ? cadenceAuthorityState.authority : null,
     selectedMetric,
     setSelectedMetric,
     historyRange,

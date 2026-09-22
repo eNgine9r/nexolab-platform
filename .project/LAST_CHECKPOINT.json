@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-22T13:40:00+03:00",
+  "timestamp": "2026-09-22T14:14:15+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1104 refreshed onto merged CI routing authority #1114 / 08fe019a; six open review findings remain to resolve before merge",
+  "event": "Issue #1104 / PR #1105 six review findings addressed and targeted verification GREEN on refreshed main 08fe019a; exact-head CI is next",
   "baselines": {
     "accepted_product_sha": "1a0644497e4cfd10ce7ba0366772955c72f4711a",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -21,10 +21,18 @@
     "branch": "feat/1104-sdm120-energy-meter"
   },
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "review_findings_addressed": 6,
+      "python_review_matrix": "68_passed_then_5_of_5_direct_regressions_passed_after_single_guard_correction",
+      "frontend_targeted_tests": "24_of_24_passed",
+      "typecheck": "passed",
+      "eslint": "passed",
+      "python_compile": "passed",
+      "diff_check": "passed"
+    }
   },
   "observations": [],
-  "next_action": "Resolve #1105 review findings as one focused correction set; run targeted software verification once; push a single review-fix head; require exact-head CI GREEN. Production SDM120 activation remains a separate explicit approval gate.",
+  "next_action": "Commit and push the single #1105 review-correction head, resolve the six review threads with evidence, then use the automatically registered exact-head workflow matrix once. Merge only after every required check is GREEN. Production SDM120 activation remains a separate explicit Product Owner approval gate.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

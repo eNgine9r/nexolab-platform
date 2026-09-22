@@ -61,6 +61,7 @@ class SettingsTests(unittest.TestCase):
             "LE01MP_UNIT_IDS": "200,201,202,203",
             "SDM120_UNIT_IDS": "1",
             "SDM120_BUS_ID": "RS485-SDM120",
+            "RS485_BUS_CONFIG_JSON": "[{}]",
         }
         with patch.dict(os.environ, environment, clear=True):
             settings = Settings.from_env()
@@ -70,6 +71,32 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings.le01mp_unit_ids, (200, 201, 202, 203))
         self.assertEqual(settings.sdm120_unit_ids, (1,))
         self.assertEqual(settings.sdm120_bus_id, "rs485-sdm120")
+
+    def test_sdm120_polling_requires_dedicated_bus_identity(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "DEVICE_MODE": "modbus",
+                "SDM120_UNIT_IDS": "1",
+                "RS485_BUS_CONFIG_JSON": "[{}]",
+            },
+            clear=True,
+        ):
+            with self.assertRaisesRegex(ValueError, "SDM120_BUS_ID"):
+                Settings.from_env()
+
+    def test_sdm120_polling_requires_explicit_bus_topology(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "DEVICE_MODE": "modbus",
+                "SDM120_UNIT_IDS": "1",
+                "SDM120_BUS_ID": "rs485-sdm120",
+            },
+            clear=True,
+        ):
+            with self.assertRaisesRegex(ValueError, "RS485_BUS_CONFIG_JSON"):
+                Settings.from_env()
 
     def test_combined_mode_requires_at_least_one_source(self) -> None:
         with patch.dict(os.environ, {"DEVICE_MODE": "modbus"}, clear=True):

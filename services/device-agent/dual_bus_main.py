@@ -271,22 +271,38 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         with self._commissioning_adapter_locks_guard:
             return self._commissioning_adapter_locks.setdefault(bus_id, threading.Lock())
 
-    def preflight_unit_owner(self, unit_id: int) -> str | None:
-        try:
-            return self.rs485_topology.bus_for_unit(unit_id)
-        except ValueError:
-            pass
-        matches = [
+    def preflight_unit_owner(
+        self,
+        unit_id: int,
+        bus_id: str | None = None,
+    ) -> str | None:
+        configured_owners = set(self.rs485_topology.buses_for_unit(unit_id))
+        persisted_owners = {
             device.bus_id
             for device in self._registry_snapshot().document.devices
             if device.unit_id == unit_id
-        ]
-        if len(matches) > 1:
+        }
+        owners = configured_owners | persisted_owners
+        if bus_id is not None:
+            if bus_id in owners:
+                return bus_id
+            if not owners:
+                return None
+            if len(owners) > 1:
+                rendered = ", ".join(sorted(owners))
+                raise PreflightExecutionError(
+                    "unit_id_conflict",
+                    f"Unit ID {unit_id} is assigned to other physical buses ({rendered})",
+                )
+            return next(iter(owners))
+        if len(owners) > 1:
+            rendered = ", ".join(sorted(owners))
             raise PreflightExecutionError(
                 "unit_id_conflict",
-                f"Unit ID {unit_id} has multiple persisted acquisition bus owners",
+                f"Unit ID {unit_id} has multiple physical bus owners ({rendered}); "
+                "bus-scoped identity is required",
             )
-        return matches[0] if matches else None
+        return next(iter(owners)) if owners else None
 
     def preflight_registry_identity(
         self,
@@ -469,7 +485,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
             raise ValueError("activation stable adapter identity does not match configured bus")
         if not bus.path_present:
             raise ValueError("activation stable serial adapter is unavailable")
-        owner = self.preflight_unit_owner(request.unit_id)
+        owner = self.preflight_unit_owner(request.unit_id, request.bus_id)
         if owner is not None and owner != request.bus_id:
             raise ValueError("activation Unit ID belongs to another physical bus")
 
@@ -537,12 +553,16 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         return self._activation_response(request, {**completed, "state": "active"})
 
     def _ensure_commissioning_inventory(self, current: AcquisitionRegistry, request: CommissioningActivationRequest, family: str, actor: str) -> AcquisitionRegistry:
-        matches = [device for device in current.document.devices if device.unit_id == request.unit_id]
+        matches = [
+            device
+            for device in current.document.devices
+            if device.unit_id == request.unit_id and device.bus_id == request.bus_id
+        ]
         if matches:
             if len(matches) != 1:
-                raise ValueError("activation Unit ID has ambiguous acquisition inventory")
+                raise ValueError("activation bus/Unit identity has ambiguous acquisition inventory")
             device = matches[0]
-            if device.bus_id != request.bus_id or device.device_family != family or device.profile_version != request.profile_version:
+            if device.device_family != family or device.profile_version != request.profile_version:
                 raise ValueError("activation identity conflicts with acquisition registry")
             return current
         kwargs = dict(

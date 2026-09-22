@@ -755,22 +755,30 @@ class AcquisitionRegistry:
         if any(not 1 <= unit_id <= 247 for unit_id in requested):
             raise ValueError("Invalid XJP60D Modbus Unit ID")
         configured_buses = {bus.bus_id for bus in self.document.buses}
-        existing_by_unit: dict[int, list[RegistryDevice]] = {}
-        for device in self.document.devices:
-            existing_by_unit.setdefault(device.unit_id, []).append(device)
+        existing_by_identity = {
+            (device.bus_id, device.unit_id): device
+            for device in self.document.devices
+        }
+        existing_by_device_id = {
+            device.device_id: device
+            for device in self.document.devices
+        }
         additions: list[tuple[int, str]] = []
         for unit_id in sorted(requested):
             bus_id = BUS_ID if bus_for_unit is None else bus_for_unit(unit_id)
             if bus_id not in configured_buses:
                 raise ValueError(f"Configured bus {bus_id!r} is absent from acquisition registry")
-            existing = existing_by_unit.get(unit_id, [])
-            if existing:
-                if len(existing) != 1:
-                    raise ValueError(f"Ambiguous Modbus Unit ID {unit_id} across registry buses")
-                device = existing[0]
-                if device.bus_id != bus_id or device.device_family != "xjp60d" or device.profile_version != XJP60D_PROFILE_VERSION:
+            existing = existing_by_identity.get((bus_id, unit_id))
+            if existing is not None:
+                if existing.device_family != "xjp60d" or existing.profile_version != XJP60D_PROFILE_VERSION:
                     raise ValueError(f"Conflicting Modbus bus/Unit identity: {bus_id}/{unit_id}")
                 continue
+            conflicting = existing_by_device_id.get(f"xjp60d-{unit_id}")
+            if conflicting is not None:
+                raise ValueError(
+                    "Conflicting Modbus Unit ownership for XJP60D enrollment: "
+                    f"unit={unit_id}, registry_bus={conflicting.bus_id}, configured_bus={bus_id}"
+                )
             additions.append((unit_id, bus_id))
         if not additions:
             return self.document, []
@@ -802,22 +810,30 @@ class AcquisitionRegistry:
             raise ValueError("Invalid LE-01MP Modbus Unit ID")
         desired_lifecycle = _validate_lifecycle(lifecycle)
         configured_buses = {bus.bus_id for bus in self.document.buses}
-        existing_by_unit: dict[int, list[RegistryDevice]] = {}
-        for device in self.document.devices:
-            existing_by_unit.setdefault(device.unit_id, []).append(device)
+        existing_by_identity = {
+            (device.bus_id, device.unit_id): device
+            for device in self.document.devices
+        }
+        existing_by_device_id = {
+            device.device_id: device
+            for device in self.document.devices
+        }
         additions: list[tuple[int, str]] = []
         for unit_id in sorted(requested):
             bus_id = BUS_ID if bus_for_unit is None else bus_for_unit(unit_id)
             if bus_id not in configured_buses:
                 raise ValueError(f"Configured bus {bus_id!r} is absent from acquisition registry")
-            existing = existing_by_unit.get(unit_id, [])
-            if existing:
-                if len(existing) != 1:
-                    raise ValueError(f"Ambiguous Modbus Unit ID {unit_id} across registry buses")
-                device = existing[0]
-                if device.bus_id != bus_id or device.device_family != "le01mp" or device.profile_version != LE01MP_PROFILE_VERSION:
+            existing = existing_by_identity.get((bus_id, unit_id))
+            if existing is not None:
+                if existing.device_family != "le01mp" or existing.profile_version != LE01MP_PROFILE_VERSION:
                     raise ValueError(f"Conflicting Modbus Unit ownership for LE-01MP enrollment: unit={unit_id}")
                 continue
+            conflicting = existing_by_device_id.get(f"le01mp-{unit_id}")
+            if conflicting is not None:
+                raise ValueError(
+                    "Conflicting Modbus Unit ownership for LE-01MP enrollment: "
+                    f"unit={unit_id}, registry_bus={conflicting.bus_id}, configured_bus={bus_id}"
+                )
             additions.append((unit_id, bus_id))
         if not additions:
             return self.document, []
@@ -859,6 +875,10 @@ class AcquisitionRegistry:
             (device.bus_id, device.unit_id): device
             for device in self.document.devices
         }
+        existing_by_device_id = {
+            device.device_id: device
+            for device in self.document.devices
+        }
         additions: list[tuple[int, str]] = []
         for unit_id in sorted(requested):
             bus_id = BUS_ID if bus_for_unit is None else bus_for_unit(unit_id)
@@ -876,6 +896,12 @@ class AcquisitionRegistry:
                         f"Conflicting Modbus bus/Unit identity: {bus_id}/{unit_id}"
                     )
                 continue
+            conflicting = existing_by_device_id.get(f"sdm120-{unit_id}")
+            if conflicting is not None:
+                raise ValueError(
+                    "Conflicting Modbus Unit ownership for SDM120 enrollment: "
+                    f"unit={unit_id}, registry_bus={conflicting.bus_id}, configured_bus={bus_id}"
+                )
             additions.append((unit_id, bus_id))
         if not additions:
             return self.document, []
@@ -940,9 +966,14 @@ class AcquisitionRegistry:
             raise ValueError("Invalid Embraco Modbus Unit ID")
         desired_lifecycle = _validate_lifecycle(lifecycle)
         configured_buses = {bus.bus_id for bus in self.document.buses}
-        existing_by_unit: dict[int, list[RegistryDevice]] = {}
-        for device in self.document.devices:
-            existing_by_unit.setdefault(device.unit_id, []).append(device)
+        existing_by_identity = {
+            (device.bus_id, device.unit_id): device
+            for device in self.document.devices
+        }
+        existing_by_device_id = {
+            device.device_id: device
+            for device in self.document.devices
+        }
         additions: list[tuple[int, str]] = []
         for unit_id in sorted(requested):
             bus_id = BUS_ID if bus_for_unit is None else bus_for_unit(unit_id)
@@ -950,18 +981,18 @@ class AcquisitionRegistry:
                 raise ValueError(
                     f"Configured bus {bus_id!r} is absent from acquisition registry"
                 )
-            existing = existing_by_unit.get(unit_id, [])
-            if not existing:
+            device = existing_by_identity.get((bus_id, unit_id))
+            if device is None:
+                conflicting = existing_by_device_id.get(f"embraco-{unit_id}")
+                if conflicting is not None:
+                    raise ValueError(
+                        "Conflicting Modbus Unit ownership for Embraco enrollment: "
+                        f"unit={unit_id}, registry_bus={conflicting.bus_id}, configured_bus={bus_id}"
+                    )
                 additions.append((unit_id, bus_id))
                 continue
-            if len(existing) != 1:
-                raise ValueError(
-                    f"Ambiguous Modbus Unit ID {unit_id} across registry buses"
-                )
-            device = existing[0]
             if (
-                device.bus_id != bus_id
-                or device.device_family != "embraco"
+                device.device_family != "embraco"
                 or device.profile_version != EMBRACO_PROFILE_VERSION
             ):
                 raise ValueError(
@@ -1294,8 +1325,14 @@ class AcquisitionRegistryStore:
                         registry = AcquisitionRegistry(candidate)
                 return registry
 
+            deferred_sdm120_units: tuple[int, ...] = ()
+            initial_settings = settings
+            if settings.sdm120_unit_ids and self._configured_sdm120_bus_for_unit is not None:
+                deferred_sdm120_units = settings.sdm120_unit_ids
+                initial_settings = replace(settings, sdm120_unit_ids=())
+
             document = build_initial_document(
-                settings,
+                initial_settings,
                 discovery_units=discovery_units,
                 legacy_active_points=legacy_active_points,
             )
@@ -1303,6 +1340,15 @@ class AcquisitionRegistryStore:
                 AcquisitionRegistry(document),
                 initial=True,
             )
+            initial_configuration_changes = list(topology_changes)
+            if deferred_sdm120_units:
+                candidate, sdm120_changes = registry.with_sdm120_enrollment(
+                    deferred_sdm120_units,
+                    lifecycle="active",
+                    bus_for_unit=self._configured_sdm120_bus_for_unit,
+                )
+                registry = AcquisitionRegistry(candidate)
+                initial_configuration_changes.extend(sdm120_changes)
             document = registry.document
             self._connection.execute(
                 """
@@ -1323,7 +1369,7 @@ class AcquisitionRegistryStore:
                 reason="Migrate legacy acquisition topology into registry v2",
                 changes=[
                     {"entity": "registry", "id": "root", "from": "absent", "to": "v2"},
-                    *topology_changes,
+                    *initial_configuration_changes,
                     *[
                         {
                             "entity": "cadence_family_default",

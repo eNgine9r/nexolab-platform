@@ -595,6 +595,58 @@ class CommissioningActivationRuntimeTests(unittest.TestCase):
             path_present=True,
         )
 
+    def test_preflight_owner_uses_requested_bus_for_duplicate_unit_ids(self) -> None:
+        agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
+        topology = Mock()
+        topology.buses_for_unit.return_value = ("rs485-kk1", "rs485-sdm120")
+        agent.rs485_topology = topology
+        agent._registry_snapshot = Mock(  # type: ignore[method-assign]
+            return_value=Mock(document=Mock(devices=()))
+        )
+
+        self.assertEqual(agent.preflight_unit_owner(1, "rs485-kk1"), "rs485-kk1")
+
+    def test_commissioning_inventory_allows_same_unit_on_other_bus_family(self) -> None:
+        request = CommissioningActivationRequest(
+            activation_id="activation-xjp-1",
+            action="activate",
+            node_id="edge-01",
+            bus_id="rs485-kk1",
+            stable_transport_identifier="/dev/serial/by-id/usb-kk1",
+            unit_id=1,
+            profile_id="dixell-xjp60d",
+            profile_version="dixell-xjp60d-fc03-v1",
+        )
+        current = Mock(
+            revision=7,
+            document=Mock(
+                devices=(
+                    Mock(
+                        unit_id=1,
+                        bus_id="rs485-sdm120",
+                        device_family="sdm120",
+                        profile_version="eastron-sdm120m-fc04-v1",
+                    ),
+                )
+            ),
+        )
+        expected = Mock()
+        store = Mock()
+        store.enroll_xjp60d.return_value = expected
+        self.agent._registry_store = store  # noqa: SLF001
+
+        result = self.agent._ensure_commissioning_inventory(  # noqa: SLF001
+            current,
+            request,
+            "xjp60d",
+            "commissioning:test",
+        )
+
+        self.assertIs(result, expected)
+        kwargs = store.enroll_xjp60d.call_args.kwargs
+        self.assertEqual(kwargs["unit_ids"], (1,))
+        self.assertEqual(kwargs["bus_for_unit"](1), "rs485-kk1")
+
     def test_discovery_only_akcc25_profile_cannot_bypass_activation_parser(self) -> None:
         request = CommissioningActivationRequest(
             activation_id="activation-akcc25-35",

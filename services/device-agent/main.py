@@ -255,6 +255,14 @@ class Settings:
             raise ValueError("LE01MP_UNIT_IDS is required when DEVICE_MODE=le01mp")
         if settings.device_mode == "sdm120" and not settings.sdm120_unit_ids:
             raise ValueError("SDM120_UNIT_IDS is required when DEVICE_MODE=sdm120")
+        if settings.sdm120_unit_ids and settings.sdm120_bus_id is None:
+            raise ValueError(
+                "SDM120_BUS_ID is required whenever SDM120_UNIT_IDS enables polling"
+            )
+        if settings.sdm120_unit_ids and not os.getenv("RS485_BUS_CONFIG_JSON", "").strip():
+            raise ValueError(
+                "RS485_BUS_CONFIG_JSON is required whenever SDM120_UNIT_IDS enables polling"
+            )
         if settings.device_mode == "embraco" and not settings.embraco_unit_ids:
             raise ValueError("EMBRACO_UNIT_IDS is required when DEVICE_MODE=embraco")
         if (

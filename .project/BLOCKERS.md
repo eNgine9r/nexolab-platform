@@ -2,9 +2,13 @@
 
 Updated: 2026-09-22
 
+## Issue #1104 — Eastron SDM120M production activation gate
+
+**Repository review blockers are cleared locally; exact-head PR #1105 CI is the remaining merge gate.** All six review findings are addressed: fresh DB dedicated-bus enrollment, handled non-finite Float32 reads, bus-scoped duplicate Unit commissioning, SDM cadence authority, mandatory explicit SDM topology, and cadence-aware freshness. Targeted Python/Frontend verification is GREEN after the single localized enrollment guard correction. Production polling remains disabled by default and requires a separate bounded cutover plus explicit Product Owner approval after merge. No Modbus write or hardware write is authorized.
+
 ## Issue #1113 — PR #1105 CI routing blocker
 
-**Cleared in PR #1114 candidate; only the automatically registered exact-head merge gate remains.** Substantive head `6eb82f8f0a5aa16a1fd14f91a83c8664013cacb6` passed Core/NEXOLAB Merge Gate, Dashboard, Refrigeration Browser, Offline Bundle, Telegram Gateway and Edge image. The final P2 fix now makes register-map/registry paths require **Edge image**, the acquisition-scale runner require **Acquisition Scale Acceptance**, and discovery tooling require **RS485 tools**; unknown neighbors still fail closed. Three directly affected classifier regressions and `git diff --check` pass locally; the already successful broad fix suite is not rerun manually. After #1114 merges, #1105 must refresh from current `main` and run its required exact-head SDM120 gates. No production activation, Modbus write or hardware write is authorized.
+**Cleared and merged.** PR #1114 final exact head `a08c1f23752a23255f740c2b1a3bf3fafa08b33f` passed Core/NEXOLAB Merge Gate, Authenticated Dashboard, Refrigeration Browser, Offline Bundle, Telegram Gateway and Edge image, then squash-merged to `main` as `08fe019af3c062a03d9f1876f059ac832b6b0d73`. Known RS-485/acquisition paths now require their specialized workflows while unknown neighboring paths remain fail-closed. No production activation, Modbus write or hardware write occurred.
 
 ## Issue #1094 — RFX-12 frontend-only Overview production release
 

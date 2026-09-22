@@ -52,6 +52,14 @@ class SDM120RecordedFrameTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "finite"):
             decode_registers(1, REGISTER_BY_KEY["voltage"], (0x7F80, 0x0000))
 
+    def test_reader_converts_nonfinite_payload_to_handled_runtime_error(self) -> None:
+        client = Mock()
+        client.read_input_registers.return_value = (0x7F80, 0x0000)
+        reader = SDM120Reader(client)
+
+        with self.assertRaisesRegex(RuntimeError, "invalid Float32 payload"):
+            reader.read_metric(1, "voltage")
+
 
 if __name__ == "__main__":
     unittest.main()

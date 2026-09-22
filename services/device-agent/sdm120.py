@@ -105,4 +105,9 @@ class SDM120Reader:
             register.address,
             register.count,
         )
-        return decode_registers(unit_id, register, raw_values)
+        try:
+            return decode_registers(unit_id, register, raw_values)
+        except ValueError as error:
+            raise RuntimeError(
+                f"SDM120 {key} returned an invalid Float32 payload"
+            ) from error
