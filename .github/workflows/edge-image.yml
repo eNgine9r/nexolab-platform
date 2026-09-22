@@ -78,12 +78,28 @@ jobs:
           registry = yaml.safe_load(registry_path.read_text(encoding='utf-8'))
           if not isinstance(registry, dict):
               raise SystemExit(f'{registry_path}: expected mapping document')
+          bus = registry.get('bus')
+          if not isinstance(bus, dict):
+              raise SystemExit(f'{registry_path}: bus must be a mapping')
+          bus_port = bus.get('port')
+          if not isinstance(bus_port, str) or not bus_port.startswith('/dev/serial/by-id/'):
+              raise SystemExit(
+                  f'{registry_path}: bus.port must use a stable /dev/serial/by-id/ path'
+              )
           profiles = registry.get('profiles')
           if not isinstance(profiles, list):
               raise SystemExit(f'{registry_path}: profiles must be a list')
           for profile in profiles:
               if not isinstance(profile, dict):
                   raise SystemExit(f'{registry_path}: profile must be a mapping')
+              dedicated_adapter = profile.get('dedicated_adapter')
+              if dedicated_adapter is not None and (
+                  not isinstance(dedicated_adapter, str)
+                  or not dedicated_adapter.startswith('/dev/serial/by-id/')
+              ):
+                  raise SystemExit(
+                      f'{registry_path}: dedicated_adapter must use a stable /dev/serial/by-id/ path'
+                  )
               register_map = profile.get('register_map')
               if register_map is None:
                   continue

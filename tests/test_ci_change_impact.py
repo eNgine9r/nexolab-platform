@@ -162,6 +162,8 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertIn('Validate RS-485 registry and register maps', workflow)
         self.assertIn('yaml.safe_load', workflow)
         self.assertIn("missing referenced register map", workflow)
+        self.assertIn("bus.port must use a stable /dev/serial/by-id/ path", workflow)
+        self.assertIn("dedicated_adapter must use a stable /dev/serial/by-id/ path", workflow)
 
     def test_rs485_acquisition_surfaces_are_known_device_agent_paths(self) -> None:
         for path in (
@@ -176,6 +178,13 @@ class ChangeImpactClassifierTests(unittest.TestCase):
                 self.assertIn("device_agent", result["classes"])
                 self.assertFalse(result["fail_closed"])
                 self.assertEqual(result["unknown_files"], [])
+
+    def test_nested_register_map_path_remains_fail_closed(self) -> None:
+        path = "config/edge/vendor/foo-register-map.yaml"
+        result = classify([path])
+        self.assertTrue(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [path])
+        self.assertNotIn("device_agent", result["classes"])
 
     def test_unknown_neighboring_acquisition_paths_still_fail_closed(self) -> None:
         for path in (

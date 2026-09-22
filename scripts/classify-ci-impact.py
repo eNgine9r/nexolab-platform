@@ -184,10 +184,12 @@ DISASTER_RECOVERY_TOOLING_PATHS = {
     "tests/test_disaster_recovery_assets.py",
 }
 
-RS485_ACQUISITION_PATTERNS = (
-    "config/edge/*-register-map.yaml",
+RS485_ACQUISITION_PATHS = {
     "config/edge/rs485-device-registry.yaml",
     "scripts/run-acquisition-scale-acceptance.py",
+}
+
+RS485_ACQUISITION_PATTERNS = (
     "tools/rs485_discovery/**",
 )
 
@@ -212,6 +214,22 @@ def _matches(path: str, patterns: Iterable[str]) -> bool:
 
 def _is_docs(path: str) -> bool:
     return path in ROOT_DOCS or path.startswith("docs/")
+
+def _is_rs485_register_map(path: str) -> bool:
+    parts = PurePosixPath(path).parts
+    return (
+        len(parts) == 3
+        and parts[:2] == ("config", "edge")
+        and parts[2].endswith("-register-map.yaml")
+    )
+
+
+def _is_rs485_acquisition_path(path: str) -> bool:
+    return (
+        path in RS485_ACQUISITION_PATHS
+        or _is_rs485_register_map(path)
+        or _matches(path, RS485_ACQUISITION_PATTERNS)
+    )
 
 
 def _verification_for_paths(
@@ -383,7 +401,7 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
         if (
             path.startswith("services/device-agent/")
             or path.startswith("config/device-profiles/")
-            or _matches(path, RS485_ACQUISITION_PATTERNS)
+            or _is_rs485_acquisition_path(path)
         ):
             classes.add("device_agent")
             matched = True
