@@ -77,6 +77,16 @@ class AdaptiveEntrypointTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "topology-aware dual_bus_main.py"):
             validate_adaptive_entrypoint(configured)
 
+    def test_default_adaptive_entrypoint_rejects_waveshare_8ai_polling(self) -> None:
+        configured = replace(
+            settings(),
+            waveshare_8ai_unit_ids=(1,),
+            waveshare_8ai_bus_id="rs485-analog",
+        )
+
+        with self.assertRaisesRegex(ValueError, "topology-aware dual_bus_main.py"):
+            validate_adaptive_entrypoint(configured)
+
     def test_default_adaptive_entrypoint_keeps_legacy_families_available(self) -> None:
         validate_adaptive_entrypoint(settings())
 

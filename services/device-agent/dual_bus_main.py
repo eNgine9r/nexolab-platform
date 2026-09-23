@@ -47,12 +47,14 @@ from dual_bus_registry import TopologyAwareEnrollmentStore
 from embraco import EmbracoSyncReader
 from le01mp import LE01MPReader
 from sdm120 import SDM120Reader
+from waveshare_8ai import Waveshare8AIReader
 from main import (
     Settings,
     TelemetryRecord,
     mode_uses_embraco,
     mode_uses_le01mp,
     mode_uses_sdm120,
+    mode_uses_waveshare_8ai,
     mode_uses_xjp60d,
     run_agent_with_health_server,
 )
@@ -106,8 +108,12 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         sdm120_bus_for_unit = None
         if configured_topology is not None and settings.sdm120_bus_id is not None:
             sdm120_bus_for_unit = lambda unit_id: configured_topology.bus_for_unit_on(
-                unit_id,
-                settings.sdm120_bus_id or "",
+                unit_id, settings.sdm120_bus_id or ""
+            )
+        waveshare_8ai_bus_for_unit = None
+        if configured_topology is not None and settings.waveshare_8ai_bus_id is not None:
+            waveshare_8ai_bus_for_unit = lambda unit_id: configured_topology.bus_for_unit_on(
+                unit_id, settings.waveshare_8ai_bus_id or ""
             )
         topology_store = (
             TopologyAwareEnrollmentStore(
@@ -115,6 +121,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                 bus_for_unit=configured_topology.bus_for_unit,
                 bind_registry=configured_topology.bind_registry,
                 sdm120_bus_for_unit=sdm120_bus_for_unit,
+                waveshare_8ai_bus_for_unit=waveshare_8ai_bus_for_unit,
             )
             if configured_topology is not None
             else None
@@ -129,6 +136,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         self._bus_xjp60d_readers: dict[str, XJP60DReader] = {}
         self._bus_le01mp_readers: dict[str, LE01MPReader] = {}
         self._bus_sdm120_readers: dict[str, SDM120Reader] = {}
+        self._bus_waveshare_8ai_readers: dict[str, Waveshare8AIReader] = {}
         self._bus_embraco_readers: dict[str, EmbracoSyncReader] = {}
         self._bus_operation_locks: dict[str, threading.Lock] = {}
         self._topology_enrollment_store = topology_store
@@ -170,6 +178,8 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                 self._bus_le01mp_readers[binding.bus_id] = LE01MPReader(client)
             if mode_uses_sdm120(self.settings.device_mode):
                 self._bus_sdm120_readers[binding.bus_id] = SDM120Reader(client)
+            if mode_uses_waveshare_8ai(self.settings.device_mode):
+                self._bus_waveshare_8ai_readers[binding.bus_id] = Waveshare8AIReader(client)
             if mode_uses_embraco(self.settings.device_mode):
                 self._bus_embraco_readers[binding.bus_id] = EmbracoSyncReader(
                     client,
@@ -183,6 +193,7 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
         self.xjp60d_reader = None
         self.le01mp_reader = None
         self.sdm120_reader = None
+        self.waveshare_8ai_reader = None
         self.embraco_reader = None
 
         self.scheduler = AdaptiveAcquisitionScheduler(
@@ -816,6 +827,28 @@ class DualBusAdaptiveRegistryDeviceAgent(AdaptiveRegistryDeviceAgent):
                         equipment_id=equipment_id,
                         channel_id=target.telemetry_channel_id,
                         raw_value=reading.raw_value,
+                    )
+                elif target.device_family == "waveshare_8ai":
+                    reader = self._bus_waveshare_8ai_readers.get(target.bus_id)
+                    if reader is None:
+                        raise RuntimeError(
+                            f"Waveshare 8AI reader is unavailable for {target.bus_id}"
+                        )
+                    channel = int(target.key.removeprefix("ai-"))
+                    reading = reader.read_channel(target.unit_id, channel)
+                    record = TelemetryRecord(
+                        event_id=str(uuid.uuid4()),
+                        node_id=self.settings.node_id,
+                        captured_at=captured_at,
+                        metric=target.metric,
+                        value=reading.value,
+                        unit=reading.unit,
+                        quality=reading.quality,
+                        source=source,
+                        equipment_id=equipment_id,
+                        channel_id=target.telemetry_channel_id,
+                        raw_value=reading.raw_value,
+                        raw_status=reading.mode,
                     )
                 elif target.device_family == "embraco":
                     reader = self._bus_embraco_readers.get(target.bus_id)

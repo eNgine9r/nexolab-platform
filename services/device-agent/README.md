@@ -66,9 +66,22 @@ RS485_BUS_CONFIG_JSON=[{"bus_id":"rs485-sdm120","serial_device":"/host/dev/seria
 
 SDM120 polling must use the topology-aware `dual_bus_main.py` entrypoint; the default `adaptive_main.py` entrypoint rejects SDM polling rather than falling back to legacy `SERIAL_DEVICE`. The real Unit 1 meter was profiled read-only on stable adapter `/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0`. Production polling remains disabled until a separate approved cutover enables this explicit topology.
 
+### Waveshare Modbus RTU Analog Input 8CH (B) V3
+
+`DEVICE_MODE=waveshare_8ai` exposes eight read-only analog acquisition channels. For each channel the driver reads the FC03 mode register first and the matching FC04 input register second. The mode determines the physical acquisition representation: `0/1` → mV, `2/3` → µA, `4` → ADC count. The canonical telemetry metric remains `analog.input` for the channel so a communication failure updates the same latest-series identity instead of leaving a stale valid value behind; the mode-dependent physical unit and raw mode code remain explicit on successful samples. The driver preserves the raw uint16 word and never converts the signal into humidity, pressure, mass flow or another engineering quantity. Those semantics remain owned by Instrument/Signal configuration and `analog-scaling/v1`.
+
+```dotenv
+DEVICE_MODE=waveshare_8ai
+WAVESHARE_8AI_UNIT_IDS=1
+WAVESHARE_8AI_BUS_ID=rs485-analog
+RS485_BUS_CONFIG_JSON=[{"bus_id":"rs485-analog","serial_device":"/host/dev/serial/by-id/REPLACE_WITH_ANALOG_ADAPTER","unit_ids":[1]}]
+```
+
+Waveshare polling requires the topology-aware `dual_bus_main.py` entrypoint; `adaptive_main.py` rejects the family rather than falling back to `SERIAL_DEVICE`. Runtime opt-in is empty by default, so production polling remains disabled until a separate approved cutover. The driver exposes no mode/range/address/configuration write path.
+
 ### Combined Modbus acquisition
 
-`DEVICE_MODE=modbus` schedules the configured XJP60D, LE-01MP, SDM120M and Embraco families through the read-only adaptive acquisition runtime. Legacy `SERIAL_DEVICE` routing remains available only when SDM120 is not enabled. Any SDM120 polling requires the topology-aware `dual_bus_main.py` entrypoint plus explicit `SDM120_BUS_ID` and `RS485_BUS_CONFIG_JSON`; each registry device is then dispatched to the `ModbusRTUClient` owned by its logical `bus_id`.
+`DEVICE_MODE=modbus` schedules the configured XJP60D, LE-01MP, SDM120M, Waveshare 8AI and Embraco families through the read-only adaptive acquisition runtime. Legacy `SERIAL_DEVICE` routing remains available only when neither SDM120 nor Waveshare 8AI is enabled. SDM120 and Waveshare polling require the topology-aware `dual_bus_main.py` entrypoint, an explicit family bus ID and `RS485_BUS_CONFIG_JSON`; each registry device is then dispatched to the `ModbusRTUClient` owned by its logical `bus_id`.
 
 ```dotenv
 DEVICE_MODE=modbus
@@ -96,6 +109,7 @@ Scheduler priority remains separate from cadence:
 - operational LE-01MP metrics are `medium` priority;
 - slower LE-01MP diagnostics are `low` priority;
 - SDM120M electrical measurements use the persisted family cadence and normal read-only scheduler priority;
+- Waveshare 8AI channels use persisted family cadence and two read-only transactions per sample (FC03 mode + FC04 input);
 - discovery/configuration operations are `on_demand`.
 
 Priority controls ordering and bounded fairness among due jobs only. It does not determine the recurring polling interval.

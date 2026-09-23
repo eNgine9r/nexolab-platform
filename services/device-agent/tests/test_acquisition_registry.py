@@ -18,6 +18,7 @@ from embraco import REGISTERS as EMBRACO_REGISTERS
 from le01mp import REGISTERS as LE01MP_REGISTERS
 from main import Settings
 from sdm120 import REGISTERS as SDM120_REGISTERS
+from waveshare_8ai import CHANNEL_COUNT as WAVESHARE_8AI_CHANNEL_COUNT
 
 
 def settings(
@@ -26,6 +27,7 @@ def settings(
     xjp60d_points: tuple[tuple[int, int], ...] = ((106, 3), (106, 4)),
     le01mp_unit_ids: tuple[int, ...] = (200,),
     sdm120_unit_ids: tuple[int, ...] = (),
+    waveshare_8ai_unit_ids: tuple[int, ...] = (),
     embraco_unit_ids: tuple[int, ...] = (),
     database_path: Path = Path("edge.db"),
 ) -> Settings:
@@ -52,6 +54,7 @@ def settings(
         xjp60d_scale=0.1,
         le01mp_unit_ids=le01mp_unit_ids,
         sdm120_unit_ids=sdm120_unit_ids,
+        waveshare_8ai_unit_ids=waveshare_8ai_unit_ids,
         embraco_unit_ids=embraco_unit_ids,
     )
 
@@ -136,6 +139,32 @@ class AcquisitionRegistryMigrationTests(unittest.TestCase):
         )
         self.assertTrue(all(target.function == 4 for target in document.targets))
         self.assertTrue(all(len(target.addresses) == 2 for target in document.targets))
+
+    def test_waveshare_8ai_mode_creates_eight_fc04_channel_targets(self) -> None:
+        document = build_initial_document(
+            settings(
+                mode="waveshare_8ai",
+                xjp60d_points=(),
+                le01mp_unit_ids=(),
+                waveshare_8ai_unit_ids=(1,),
+            ),
+            discovery_units=(),
+            legacy_active_points=(),
+        )
+        registry = AcquisitionRegistry(document)
+        self.assertEqual(
+            {device.device_family for device in document.devices},
+            {"waveshare_8ai"},
+        )
+        self.assertEqual(
+            registry.eligible_waveshare_8ai_channels(),
+            tuple((1, channel) for channel in range(1, WAVESHARE_8AI_CHANNEL_COUNT + 1)),
+        )
+        self.assertEqual(
+            [target.addresses for target in document.targets],
+            [(address,) for address in range(WAVESHARE_8AI_CHANNEL_COUNT)],
+        )
+        self.assertTrue(all(target.function == 4 for target in document.targets))
 
     def test_embraco_mode_creates_thirteen_read_only_targets(self) -> None:
         document = build_initial_document(
@@ -259,6 +288,55 @@ class SDM120RegistryConfigurationTests(unittest.TestCase):
                     target.lifecycle == "active"
                     for target in reenabled.document.targets
                     if target.device_id == reenabled_device.device_id
+                )
+            )
+
+
+class Waveshare8AIRegistryConfigurationTests(unittest.TestCase):
+    def test_existing_registry_enrolls_and_opt_out_reserves_waveshare(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database = Path(temp_dir) / "edge.db"
+            baseline = AcquisitionRegistryStore(database).load_or_migrate(
+                settings(database_path=database),
+                discovery_units=(106,),
+                legacy_active_points=((106, 3), (106, 4)),
+            )
+            self.assertEqual(baseline.eligible_waveshare_8ai_channels(), ())
+
+            configured = AcquisitionRegistryStore(database).load_or_migrate(
+                settings(database_path=database, waveshare_8ai_unit_ids=(1,)),
+                discovery_units=(106,),
+                legacy_active_points=((106, 3), (106, 4)),
+            )
+            self.assertEqual(
+                configured.eligible_waveshare_8ai_channels(),
+                tuple((1, channel) for channel in range(1, 9)),
+            )
+            device = next(
+                item
+                for item in configured.document.devices
+                if item.device_family == "waveshare_8ai"
+            )
+            self.assertEqual(device.bus_id, "rs485-main")
+            self.assertEqual(device.lifecycle, "active")
+
+            opted_out = AcquisitionRegistryStore(database).load_or_migrate(
+                settings(database_path=database, waveshare_8ai_unit_ids=()),
+                discovery_units=(106,),
+                legacy_active_points=((106, 3), (106, 4)),
+            )
+            opted_out_device = next(
+                item
+                for item in opted_out.document.devices
+                if item.device_family == "waveshare_8ai"
+            )
+            self.assertEqual(opted_out_device.lifecycle, "reserve")
+            self.assertEqual(opted_out.eligible_waveshare_8ai_channels(), ())
+            self.assertTrue(
+                all(
+                    target.lifecycle == "reserve"
+                    for target in opted_out.document.targets
+                    if target.device_id == opted_out_device.device_id
                 )
             )
 

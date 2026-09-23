@@ -193,6 +193,8 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
             return "f-and-f-le-01mp"
         if target.device_family == "sdm120":
             return "eastron-sdm120m"
+        if target.device_family == "waveshare_8ai":
+            return "waveshare-analog-input-8ch-b-v3"
         if target.device_family == "embraco":
             return "embraco-sync"
         raise RuntimeError(
@@ -207,6 +209,8 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
             return f"LE01MP-{target.unit_id}"
         if target.device_family == "sdm120":
             return f"SDM120M-{target.unit_id}"
+        if target.device_family == "waveshare_8ai":
+            return f"WAVESHARE-8AI-{target.unit_id}"
         if target.device_family == "embraco":
             return f"EMBRACO-{target.unit_id}"
         raise RuntimeError(
@@ -299,6 +303,18 @@ class AdaptiveRegistryDeviceAgent(RegistryManagedDeviceAgent):
                         equipment_id=equipment_id,
                         channel_id=target.telemetry_channel_id,
                         raw_value=reading.raw_value,
+                    )
+                elif target.device_family == "waveshare_8ai":
+                    if self.waveshare_8ai_reader is None:
+                        raise RuntimeError("Waveshare 8AI reader was not initialized")
+                    channel = int(target.key.removeprefix("ai-"))
+                    reading = self.waveshare_8ai_reader.read_channel(target.unit_id, channel)
+                    record = TelemetryRecord(
+                        event_id=str(uuid.uuid4()), node_id=self.settings.node_id,
+                        captured_at=captured_at, metric=target.metric, value=reading.value,
+                        unit=reading.unit, quality=reading.quality, source=source,
+                        equipment_id=equipment_id, channel_id=target.telemetry_channel_id,
+                        raw_value=reading.raw_value, raw_status=reading.mode,
                     )
                 elif target.device_family == "embraco":
                     if self.embraco_reader is None:
@@ -583,6 +599,10 @@ def validate_adaptive_entrypoint(settings: Settings) -> None:
     if settings.sdm120_unit_ids:
         raise ValueError(
             "SDM120 polling requires the topology-aware dual_bus_main.py entrypoint"
+        )
+    if settings.waveshare_8ai_unit_ids:
+        raise ValueError(
+            "Waveshare 8AI polling requires the topology-aware dual_bus_main.py entrypoint"
         )
 
 

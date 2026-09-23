@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-23T15:28:23+03:00",
+  "timestamp": "2026-09-23T16:22:02+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1125 read-only Waveshare 8AI discovery checkpointed; protocol path is verified, humidity electrical signal is blocked, and missing production rs485-main adapter is tracked as #1126",
+  "event": "Issue #1127 Waveshare 8AI read-only Device Agent driver implemented and locally verified; exact-head GitHub review/CI is next",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,17 +28,25 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1127,
+    "branch": "feat/1127-waveshare-8ai-driver",
+    "phase": "review"
+  },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "issue": 1125,
-      "status": "blocked",
+      "issue": 1127,
+      "status": "review",
+      "software_driver": "implemented",
+      "profile": "waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1",
+      "full_device_agent_tests": "324_passed",
+      "acquisition_scale": "46_assertions_passed",
+      "real_hardware_driver_probe": "8_channels_read_success_all_mode0_zero_mV",
       "adapter": "A10Q2QYX",
       "unit_id": 1,
       "serial": "9600_8N1",
-      "software_version": "2.10",
-      "channel_modes": "all_mode_0_0_10V",
-      "fc04_samples": "all_zero_3_passes_crc_valid",
+      "production_activation": "none",
+      "humidity_signal": "hardware_unverified_blocked_1125",
       "modbus_writes": "none",
       "hardware_writes": "none"
     }
@@ -55,7 +63,7 @@
       }
     }
   ],
-  "next_action": "Proceed with independent Ready Issue #1127 software-only Waveshare 8AI read-only driver. Do not activate production or change Waveshare channel mode/jumpers. Physical #1126 recovery and humidity electrical commissioning require user/hardware action.",
+  "next_action": "Create the focused #1127 pull request, run exact-head routed CI and manual Team Lead review, then merge only if all required checks are GREEN. Production polling remains disabled; #1125/#1126 remain physical blockers.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

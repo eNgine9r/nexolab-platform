@@ -4,6 +4,14 @@ Updated: 2026-09-23
 
 ## Current Sprint
 
+### Issue #1127 — Waveshare 8AI read-only Device Agent driver in review
+
+The generic software driver for `Waveshare Modbus RTU Analog Input 8CH (B) V3` is implemented on `feat/1127-waveshare-8ai-driver` without production activation. The driver exposes eight acquisition channels, reads the per-channel mode with FC03 and the input value with FC04, preserves the raw uint16 value plus mode code, and decodes vendor mode semantics as mV (`0/1`), µA (`2/3`) or ADC count (`4`). No engineering interpretation such as `%RH`, pressure or mass flow is embedded in the hardware driver; those semantics remain owned by Instrument/Signal configuration and `analog-scaling/v1`.
+
+The registry/scheduler/cadence path now supports the `waveshare_8ai` family with bus-scoped Unit identity and explicit runtime opt-in through `WAVESHARE_8AI_UNIT_IDS` plus `WAVESHARE_8AI_BUS_ID`; the non-topology-aware adaptive entrypoint fails closed. Canonical telemetry keeps one stable `analog.input` metric per channel while the physical raw unit stays mode-dependent, so a communication failure updates the same latest-series identity rather than leaving a stale successful series behind. Production polling remains OFF.
+
+Local verification is GREEN: the complete Device Agent suite passes **324/324**, acquisition-scale acceptance passes **46/46 assertions**, Python compilation and `git diff --check` pass. A bounded read-only execution of the new driver against real FTDI `A10Q2QYX`, Unit `1`, `9600 8N1` successfully read all eight channels using only FC03+FC04; all eight remain mode `0` and `0 mV`. This verifies the software/protocol path only. It does **not** validate the wired humidity transmitter as `%RH`; #1125 remains blocked on electrical mode/jumper/signal evidence. No Modbus write, hardware write, production deployment or cutover occurred.
+
 ### Issue #1125 — Waveshare 8AI read-only hardware discovery in progress
 
 A new physically installed `Waveshare Modbus RTU Analog Input 8CH (B) V3` is now tracked by #1125. Bounded read-only discovery identified FTDI `A10Q2QYX` as the physical RS-485 path; `A10Q2SI7` did not answer the vendor address/version probes. The module responds as Unit `1` at `9600 8N1`, FC03 UART parameter `0x0001`, and software version raw `210` (`V2.10`). Vendor-defined FC03 mode registers `0x1000..0x1007` all return mode `0`, which is 0–10 V on the `(B)` hardware. Three repeated FC04 reads of channels `0x0000..0x0007` returned all zero with valid CRC. No Modbus or hardware write occurred.
