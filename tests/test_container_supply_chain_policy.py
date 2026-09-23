@@ -158,31 +158,56 @@ def test_2026_09_22_fresh_review_is_exact_owner_bound_and_seven_day_bounded() ->
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
     )
     exceptions = payload["exceptions"]
+    reviewed = [
+        entry for entry in exceptions if entry["vulnerability"] != "CVE-2026-93990"
+    ]
     keys = {
         (entry["image_id"], entry["package"], entry["vulnerability"])
-        for entry in exceptions
+        for entry in reviewed
     }
 
-    assert len(exceptions) == 90
+    assert len(reviewed) == 90
     assert len(keys) == 90
-    assert {entry["image_id"] for entry in exceptions} == {
+    assert {entry["image_id"] for entry in reviewed} == {
         "device-agent",
         "telegram-gateway",
         "telemetry-service",
     }
-    assert all(entry["owner"] == "platform-security" for entry in exceptions)
-    assert all(entry["expires_on"] == "2026-09-29" for entry in exceptions)
-    assert all("35704565417" in entry["reason"] for entry in exceptions)
+    assert all(entry["owner"] == "platform-security" for entry in reviewed)
+    assert all(entry["expires_on"] == "2026-09-29" for entry in reviewed)
+    assert all("35704565417" in entry["reason"] for entry in reviewed)
     assert all(
         "2524f9c0c15218cc56a0416ecc76cb46040fab79" in entry["reason"]
-        for entry in exceptions
+        for entry in reviewed
     )
-    assert all("90 HIGH / 0 CRITICAL" in entry["reason"] for entry in exceptions)
-    assert all("supersedes the prior expiry wording" in entry["reason"] for entry in exceptions)
+    assert all("90 HIGH / 0 CRITICAL" in entry["reason"] for entry in reviewed)
+    assert all("supersedes the prior expiry wording" in entry["reason"] for entry in reviewed)
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
         date(2026, 9, 22),
     )
+
+
+def test_2026_09_23_expat_93990_findings_are_exact_and_short_lived() -> None:
+    root = Path(__file__).resolve().parents[1]
+    payload = json.loads(
+        (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
+    )
+    matches = [
+        entry
+        for entry in payload["exceptions"]
+        if entry["package"] == "libexpat1"
+        and entry["vulnerability"] == "CVE-2026-93990"
+    ]
+
+    assert len(matches) == 2
+    assert {entry["image_id"] for entry in matches} == {"device-agent", "telegram-gateway"}
+    assert all(entry["owner"] == "platform-security" for entry in matches)
+    assert all(entry["expires_on"] == "2026-09-29" for entry in matches)
+    assert all("35866744217" in entry["reason"] for entry in matches)
+    assert all("2.8.3-1~deb13u1" in entry["reason"] for entry in matches)
+    assert all("no XML, pyexpat, Expat, ElementTree, SAX, minidom, or lxml" in entry["reason"] for entry in matches)
+    assert all("severity becomes Critical" in entry["reason"] for entry in matches)
 
 
 def test_openssl_quic_exception_is_fully_retired_after_fresh_scan() -> None:
@@ -311,7 +336,7 @@ def test_2026_09_17_fresh_scan_keeps_stale_python_and_sqlite_retired_and_bounds_
     prior_review = [
         entry
         for entry in exceptions
-        if entry["vulnerability"] not in {"CVE-2026-66046", "CVE-2026-82049"}
+        if entry["vulnerability"] not in {"CVE-2026-66046", "CVE-2026-82049", "CVE-2026-93990"}
     ]
 
     assert len(keys) == len(exceptions)

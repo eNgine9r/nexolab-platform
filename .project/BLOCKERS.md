@@ -2,6 +2,10 @@
 
 Updated: 2026-09-23
 
+## Issue #1130 — new Expat CVE-2026-93990 HIGH finding
+
+**Active release-security blocker.** Fresh PR #1129 Container Supply Chain run `35866744217` discovered `libexpat1 / CVE-2026-93990` as a new HIGH in Device Agent and Telegram Gateway. The security policy correctly failed closed. #1130 owns the exact current-evidence review; #1127 cannot merge until the security repair itself passes fresh Container Supply Chain and NEXOLAB Merge Gate. No CRITICAL or wildcard exception is permitted.
+
 ## Issue #1126 — rs485-main CP2104 `0133F090` is physically absent
 
 **Blocked on physical adapter/cable presence.** The live Device Agent still binds `rs485-main` to stable path `/host/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0`, but that device is absent from the host. Scheduled XJP60D and LE-01MP reads fail with `ENOENT`, and Device Agent health is `unhealthy`/HTTP 503. The system must not silently remap another present adapter. Physical reconnection/presence evidence is required before recovery can be accepted. No Modbus or hardware write has been performed.
