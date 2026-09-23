@@ -26,9 +26,11 @@ from main import (
     mode_uses_embraco,
     mode_uses_le01mp,
     mode_uses_sdm120,
+    mode_uses_waveshare_8ai,
     mode_uses_xjp60d,
 )
 from sdm120 import PROFILE_VERSION as SDM120_PROFILE_VERSION, REGISTERS as SDM120_REGISTERS
+from waveshare_8ai import CHANNEL_COUNT as WAVESHARE_8AI_CHANNEL_COUNT, PROFILE_VERSION as WAVESHARE_8AI_PROFILE_VERSION
 from xjp60d import PROBE_REGISTERS
 
 SCHEMA_VERSION = 2
@@ -156,7 +158,7 @@ def _validate_document(document: RegistryDocument) -> RegistryDocument:
                 f"Duplicate Modbus bus/Unit identity: {device.bus_id}/{device.unit_id}"
             )
         bus_units.add(identity)
-        if device.device_family not in {"xjp60d", "le01mp", "sdm120", "embraco"}:
+        if device.device_family not in {"xjp60d", "le01mp", "sdm120", "waveshare_8ai", "embraco"}:
             raise ValueError(f"Unsupported device family: {device.device_family}")
         if not device.profile_version.strip():
             raise ValueError(f"Missing profile version for {device.device_id}")
@@ -349,6 +351,23 @@ def _sdm120_target(unit_id: int, key: str, lifecycle: str) -> RegistryTarget:
     )
 
 
+def _waveshare_8ai_target(unit_id: int, channel: int, lifecycle: str) -> RegistryTarget:
+    channel_id = f"{unit_id}-ai-{channel}"
+    return RegistryTarget(
+        target_id=f"waveshare_8ai:{channel_id}",
+        device_id=f"waveshare-8ai-{unit_id}",
+        kind="channel",
+        key=f"ai-{channel}",
+        telemetry_channel_id=channel_id,
+        metric="analog.input",
+        unit="raw",
+        profile_version=WAVESHARE_8AI_PROFILE_VERSION,
+        lifecycle=lifecycle,
+        function=4,
+        addresses=(channel - 1,),
+    )
+
+
 def _embraco_target(unit_id: int, key: str, lifecycle: str) -> RegistryTarget:
     register = next(item for item in EMBRACO_REGISTERS if item.key == key)
     channel_id = f"{unit_id}-{key.replace('_', '-')}"
@@ -465,6 +484,11 @@ def build_initial_document(
     sdm120_units = (
         set(settings.sdm120_unit_ids) if mode_uses_sdm120(settings.device_mode) else set()
     )
+    waveshare_8ai_units = (
+        set(settings.waveshare_8ai_unit_ids)
+        if mode_uses_waveshare_8ai(settings.device_mode)
+        else set()
+    )
     embraco_units = (
         set(settings.embraco_unit_ids) if mode_uses_embraco(settings.device_mode) else set()
     )
@@ -472,6 +496,7 @@ def build_initial_document(
         "xjp60d": xjp_units,
         "le01mp": le_units,
         "sdm120": sdm120_units,
+        "waveshare_8ai": waveshare_8ai_units,
         "embraco": embraco_units,
     }
     duplicate_units: set[int] = set()
@@ -528,6 +553,20 @@ def build_initial_document(
         )
         for register in SDM120_REGISTERS:
             targets.append(_sdm120_target(unit_id, register.key, "active"))
+
+    for unit_id in sorted(waveshare_8ai_units):
+        devices.append(
+            RegistryDevice(
+                device_id=f"waveshare-8ai-{unit_id}",
+                bus_id=BUS_ID,
+                device_family="waveshare_8ai",
+                unit_id=unit_id,
+                profile_version=WAVESHARE_8AI_PROFILE_VERSION,
+                lifecycle="active",
+            )
+        )
+        for channel in range(1, WAVESHARE_8AI_CHANNEL_COUNT + 1):
+            targets.append(_waveshare_8ai_target(unit_id, channel, "active"))
 
     for unit_id in sorted(embraco_units):
         devices.append(
@@ -605,6 +644,13 @@ class AcquisitionRegistry:
             (self._devices[target.device_id].unit_id, target.key)
             for target in self.eligible_targets("sdm120")
         )
+
+    def eligible_waveshare_8ai_channels(self) -> tuple[tuple[int, int], ...]:
+        result: list[tuple[int, int]] = []
+        for target in self.eligible_targets("waveshare_8ai"):
+            device = self._devices[target.device_id]
+            result.append((device.unit_id, int(target.key.removeprefix("ai-"))))
+        return tuple(result)
 
     def eligible_embraco_metrics(self) -> tuple[tuple[int, str], ...]:
         return tuple(
@@ -951,6 +997,61 @@ class AcquisitionRegistry:
         )
         return _validate_document(document), changes
 
+    def with_waveshare_8ai_enrollment(
+        self,
+        unit_ids: Iterable[int],
+        *,
+        lifecycle: str = "active",
+        bus_for_unit: Callable[[int], str] | None = None,
+    ) -> tuple[RegistryDocument, list[dict[str, str]]]:
+        requested_values = tuple(unit_ids)
+        if any(not isinstance(unit_id, int) or isinstance(unit_id, bool) for unit_id in requested_values):
+            raise ValueError("Waveshare 8AI Modbus Unit IDs must be integers")
+        requested = set(requested_values)
+        if any(not 1 <= unit_id <= 247 for unit_id in requested):
+            raise ValueError("Invalid Waveshare 8AI Modbus Unit ID")
+        desired_lifecycle = _validate_lifecycle(lifecycle)
+        configured_buses = {bus.bus_id for bus in self.document.buses}
+        existing_by_identity = {(device.bus_id, device.unit_id): device for device in self.document.devices}
+        existing_by_device_id = {device.device_id: device for device in self.document.devices}
+        additions: list[tuple[int, str]] = []
+        for unit_id in sorted(requested):
+            bus_id = BUS_ID if bus_for_unit is None else bus_for_unit(unit_id)
+            if bus_id not in configured_buses:
+                raise ValueError(f"Configured bus {bus_id!r} is absent from acquisition registry")
+            existing = existing_by_identity.get((bus_id, unit_id))
+            if existing is not None:
+                if existing.device_family != "waveshare_8ai" or existing.profile_version != WAVESHARE_8AI_PROFILE_VERSION:
+                    raise ValueError(f"Conflicting Modbus bus/Unit identity: {bus_id}/{unit_id}")
+                continue
+            conflicting = existing_by_device_id.get(f"waveshare-8ai-{unit_id}")
+            if conflicting is not None:
+                raise ValueError(
+                    "Conflicting Modbus Unit ownership for Waveshare 8AI enrollment: "
+                    f"unit={unit_id}, registry_bus={conflicting.bus_id}, configured_bus={bus_id}"
+                )
+            additions.append((unit_id, bus_id))
+        if not additions:
+            return self.document, []
+
+        devices = list(self.document.devices)
+        targets = list(self.document.targets)
+        changes: list[dict[str, str]] = []
+        for unit_id, bus_id in additions:
+            device_id = f"waveshare-8ai-{unit_id}"
+            devices.append(RegistryDevice(device_id, bus_id, "waveshare_8ai", unit_id, WAVESHARE_8AI_PROFILE_VERSION, desired_lifecycle))
+            changes.append({"entity": "device", "id": device_id, "from": "absent", "to": desired_lifecycle})
+            for channel in range(1, WAVESHARE_8AI_CHANNEL_COUNT + 1):
+                target = _waveshare_8ai_target(unit_id, channel, desired_lifecycle)
+                targets.append(target)
+                changes.append({"entity": "target", "id": target.target_id, "from": "absent", "to": desired_lifecycle})
+        cadence = ensure_defaults_for_devices(self.document.cadence, devices)
+        document = replace(
+            self.document, revision=self.document.revision + 1, devices=tuple(devices),
+            targets=tuple(targets), cadence=cadence, updated_at=_now()
+        )
+        return _validate_document(document), changes
+
     def with_embraco_enrollment(
         self,
         unit_ids: Iterable[int],
@@ -1043,6 +1144,7 @@ class AcquisitionRegistryStore:
         | None = None,
         configured_bus_for_unit: Callable[[int], str] | None = None,
         configured_sdm120_bus_for_unit: Callable[[int], str] | None = None,
+        configured_waveshare_8ai_bus_for_unit: Callable[[int], str] | None = None,
     ) -> None:
         if (registry_binding is None) != (configured_bus_for_unit is None):
             raise ValueError(
@@ -1055,6 +1157,7 @@ class AcquisitionRegistryStore:
         self._registry_binding = registry_binding
         self._configured_bus_for_unit = configured_bus_for_unit
         self._configured_sdm120_bus_for_unit = configured_sdm120_bus_for_unit
+        self._configured_waveshare_8ai_bus_for_unit = configured_waveshare_8ai_bus_for_unit
         with self._connection:
             self._connection.execute(
                 """
@@ -1274,6 +1377,35 @@ class AcquisitionRegistryStore:
         )
         return AcquisitionRegistry(document), changes
 
+    def _reconcile_waveshare_8ai_runtime_opt_in(
+        self, registry: AcquisitionRegistry, configured_unit_ids: Iterable[int]
+    ) -> tuple[AcquisitionRegistry, list[dict[str, str]]]:
+        configured = set(configured_unit_ids)
+        device_mutations: list[DeviceLifecycleMutation] = []
+        target_mutations: list[LifecycleMutation] = []
+        device_ids: set[str] = set()
+        for device in registry.document.devices:
+            if device.device_family != "waveshare_8ai":
+                continue
+            device_ids.add(device.device_id)
+            desired = "active" if device.unit_id in configured else "reserve"
+            if device.lifecycle != desired:
+                device_mutations.append(DeviceLifecycleMutation(device.device_id, desired))
+        desired_by_device = {
+            device.device_id: ("active" if device.unit_id in configured else "reserve")
+            for device in registry.document.devices if device.device_id in device_ids
+        }
+        for target in registry.document.targets:
+            desired = desired_by_device.get(target.device_id)
+            if desired is not None and target.lifecycle != desired:
+                target_mutations.append(LifecycleMutation(target.target_id, desired))
+        if not device_mutations and not target_mutations:
+            return registry, []
+        document, changes = registry.with_mutations(
+            device_mutations=tuple(device_mutations), target_mutations=tuple(target_mutations)
+        )
+        return AcquisitionRegistry(document), changes
+
     def load_or_migrate(
         self,
         settings: Settings,
@@ -1327,6 +1459,16 @@ class AcquisitionRegistryStore:
                         reason="Reconcile Eastron SDM120 polling lifecycle with explicit runtime opt-in",
                         changes=sdm120_lifecycle_changes,
                     )
+                registry, waveshare_lifecycle_changes = self._reconcile_waveshare_8ai_runtime_opt_in(
+                    registry, settings.waveshare_8ai_unit_ids
+                )
+                if waveshare_lifecycle_changes:
+                    self._write_state_locked(registry.document)
+                    self._write_audit_locked(
+                        registry.document, actor="system:configuration",
+                        reason="Reconcile Waveshare 8AI polling lifecycle with explicit runtime opt-in",
+                        changes=waveshare_lifecycle_changes,
+                    )
                 registry, topology_changes = self._apply_registry_binding(
                     registry,
                     initial=False,
@@ -1357,6 +1499,19 @@ class AcquisitionRegistryStore:
                             changes=sdm120_changes,
                         )
                         registry = AcquisitionRegistry(candidate)
+                if settings.waveshare_8ai_unit_ids:
+                    candidate, waveshare_changes = registry.with_waveshare_8ai_enrollment(
+                        settings.waveshare_8ai_unit_ids, lifecycle="active",
+                        bus_for_unit=(self._configured_waveshare_8ai_bus_for_unit or self._configured_bus_for_unit),
+                    )
+                    if waveshare_changes:
+                        self._write_state_locked(candidate)
+                        self._write_audit_locked(
+                            candidate, actor="system:configuration",
+                            reason="Enroll explicitly configured read-only Waveshare 8AI units",
+                            changes=waveshare_changes,
+                        )
+                        registry = AcquisitionRegistry(candidate)
                 if settings.embraco_unit_ids:
                     candidate, embraco_changes = registry.with_embraco_enrollment(
                         settings.embraco_unit_ids,
@@ -1375,10 +1530,14 @@ class AcquisitionRegistryStore:
                 return registry
 
             deferred_sdm120_units: tuple[int, ...] = ()
+            deferred_waveshare_8ai_units: tuple[int, ...] = ()
             initial_settings = settings
             if settings.sdm120_unit_ids and self._configured_sdm120_bus_for_unit is not None:
                 deferred_sdm120_units = settings.sdm120_unit_ids
                 initial_settings = replace(settings, sdm120_unit_ids=())
+            if settings.waveshare_8ai_unit_ids and self._configured_waveshare_8ai_bus_for_unit is not None:
+                deferred_waveshare_8ai_units = settings.waveshare_8ai_unit_ids
+                initial_settings = replace(initial_settings, waveshare_8ai_unit_ids=())
 
             document = build_initial_document(
                 initial_settings,
@@ -1398,6 +1557,13 @@ class AcquisitionRegistryStore:
                 )
                 registry = AcquisitionRegistry(candidate)
                 initial_configuration_changes.extend(sdm120_changes)
+            if deferred_waveshare_8ai_units:
+                candidate, waveshare_changes = registry.with_waveshare_8ai_enrollment(
+                    deferred_waveshare_8ai_units, lifecycle="active",
+                    bus_for_unit=self._configured_waveshare_8ai_bus_for_unit,
+                )
+                registry = AcquisitionRegistry(candidate)
+                initial_configuration_changes.extend(waveshare_changes)
             document = registry.document
             self._connection.execute(
                 """

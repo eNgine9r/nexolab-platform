@@ -40,10 +40,10 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 1127
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -4787,13 +4787,31 @@
       "issue": 1127,
       "title": "Waveshare 8AI read-only Device Agent acquisition driver",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "review",
       "depends_on": [],
       "evidence": {
-        "dependency_subset": "protocol_transport_discovery_complete",
-        "production_activation": "out_of_scope",
-        "modbus_write": "forbidden",
-        "hardware_write": "forbidden"
+        "implementation_scope": "generic_read_only_8_channel_acquisition_driver",
+        "profile_version": "waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1",
+        "canonical_telemetry_metric": "analog.input",
+        "mode_units": "0_1_mV__2_3_uA__4_count",
+        "runtime_opt_in": "fail_closed_requires_explicit_bus_and_unit_ids",
+        "production_activation": "not_executed_not_authorized",
+        "full_device_agent_tests": "325_passed_0_failed_0_errors",
+        "acquisition_scale_acceptance": "46_assertions_passed",
+        "python_compile": "success",
+        "git_diff_check": "success",
+        "real_hardware_driver_probe": "A10Q2QYX_unit1_9600_8N1_8_of_8_channels_read_only_success_all_mode0_zero_mV",
+        "humidity_engineering_acceptance": "blocked_by_issue_1125",
+        "modbus_reads": "FC03_mode_plus_FC04_input_only",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "recorded_frame_regression": "issue_1125_fc03_fc04_crc_valid_frames_decode_8_of_8",
+        "security_dependency": "issue_1130_merged_green_f242c661",
+        "state_reconciliation_dependency": "issue_1132_merged_green_901e893c",
+        "post_main_merge_device_agent_tests": "325_passed",
+        "post_main_merge_acquisition_scale": "46_assertions_passed",
+        "post_main_merge_security_policy_tests": "36_passed",
+        "integrated_main_sha": "901e893c6c0ce81a61cd02fc06efdba5216b78fd"
       },
       "branch": "feat/1127-waveshare-8ai-driver"
     },
@@ -4847,7 +4865,10 @@
         "core_ci_and_merge_gate": "success:35867967858",
         "production_runtime_mutation": "none",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "pull_request": 1133,
+        "merged_sha": "901e893c6c0ce81a61cd02fc06efdba5216b78fd",
+        "issue_state": "closed_completed"
       }
     }
   ],

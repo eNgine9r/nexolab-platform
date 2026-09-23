@@ -22,6 +22,7 @@ from embraco import EmbracoSyncReader, REGISTERS as EMBRACO_REGISTERS
 from le01mp import LE01MPReader, REGISTERS as LE01MP_REGISTERS
 from modbus_rtu import ModbusError, ModbusRTUClient
 from sdm120 import SDM120Reader, REGISTERS as SDM120_REGISTERS
+from waveshare_8ai import CHANNEL_COUNT as WAVESHARE_8AI_CHANNEL_COUNT, Waveshare8AIReader
 from mqtt_tls import MQTTTLSConfig
 from operational_streams import NodeOperationalPublisher
 from xjp60d import XJP60DReader
@@ -43,6 +44,10 @@ def mode_uses_embraco(device_mode: str) -> bool:
 
 def mode_uses_sdm120(device_mode: str) -> bool:
     return device_mode in {"sdm120", "modbus"}
+
+
+def mode_uses_waveshare_8ai(device_mode: str) -> bool:
+    return device_mode in {"waveshare_8ai", "modbus"}
 
 
 def parse_bool(value: str, *, label: str) -> bool:
@@ -154,6 +159,8 @@ class Settings:
     le01mp_unit_ids: tuple[int, ...]
     sdm120_unit_ids: tuple[int, ...] = ()
     sdm120_bus_id: str | None = None
+    waveshare_8ai_unit_ids: tuple[int, ...] = ()
+    waveshare_8ai_bus_id: str | None = None
     embraco_unit_ids: tuple[int, ...] = ()
     embraco_temperature_scale: float | None = None
     embraco_control_scale: float | None = None
@@ -227,6 +234,11 @@ class Settings:
                 label="Eastron SDM120",
             ),
             sdm120_bus_id=os.getenv("SDM120_BUS_ID", "").strip().casefold() or None,
+            waveshare_8ai_unit_ids=parse_unit_ids(
+                os.getenv("WAVESHARE_8AI_UNIT_IDS", ""),
+                label="Waveshare 8AI",
+            ),
+            waveshare_8ai_bus_id=os.getenv("WAVESHARE_8AI_BUS_ID", "").strip().casefold() or None,
             embraco_unit_ids=parse_unit_ids(
                 os.getenv("EMBRACO_UNIT_IDS", ""),
                 label="Embraco Sync",
@@ -244,10 +256,12 @@ class Settings:
             mqtt_client_id=mqtt_client_id,
             mqtt_password_file=mqtt_password_file,
         )
-        allowed_modes = {"simulator", "xjp60d", "le01mp", "sdm120", "embraco", "modbus"}
+        allowed_modes = {
+            "simulator", "xjp60d", "le01mp", "sdm120", "waveshare_8ai", "embraco", "modbus"
+        }
         if settings.device_mode not in allowed_modes:
             raise ValueError(
-                "DEVICE_MODE must be simulator, xjp60d, le01mp, sdm120, embraco, or modbus"
+                "DEVICE_MODE must be simulator, xjp60d, le01mp, sdm120, waveshare_8ai, embraco, or modbus"
             )
         if settings.device_mode == "xjp60d" and not settings.xjp60d_points:
             raise ValueError("XJP60D_POINTS is required when DEVICE_MODE=xjp60d")
@@ -263,6 +277,16 @@ class Settings:
             raise ValueError(
                 "RS485_BUS_CONFIG_JSON is required whenever SDM120_UNIT_IDS enables polling"
             )
+        if settings.device_mode == "waveshare_8ai" and not settings.waveshare_8ai_unit_ids:
+            raise ValueError("WAVESHARE_8AI_UNIT_IDS is required when DEVICE_MODE=waveshare_8ai")
+        if settings.waveshare_8ai_unit_ids and settings.waveshare_8ai_bus_id is None:
+            raise ValueError(
+                "WAVESHARE_8AI_BUS_ID is required whenever WAVESHARE_8AI_UNIT_IDS enables polling"
+            )
+        if settings.waveshare_8ai_unit_ids and not os.getenv("RS485_BUS_CONFIG_JSON", "").strip():
+            raise ValueError(
+                "RS485_BUS_CONFIG_JSON is required whenever WAVESHARE_8AI_UNIT_IDS enables polling"
+            )
         if settings.device_mode == "embraco" and not settings.embraco_unit_ids:
             raise ValueError("EMBRACO_UNIT_IDS is required when DEVICE_MODE=embraco")
         if (
@@ -270,10 +294,11 @@ class Settings:
             and not settings.xjp60d_points
             and not settings.le01mp_unit_ids
             and not settings.sdm120_unit_ids
+            and not settings.waveshare_8ai_unit_ids
             and not settings.embraco_unit_ids
         ):
             raise ValueError(
-                "At least one XJP60D point, LE-01MP, SDM120, or Embraco unit is required "
+                "At least one XJP60D point, LE-01MP, SDM120, Waveshare 8AI, or Embraco unit is required "
                 "when DEVICE_MODE=modbus"
             )
         if settings.health_interval_seconds <= 0:
@@ -696,7 +721,14 @@ class AgentState:
         if mode_uses_le01mp(settings.device_mode):
             configured_devices.extend(f"LE01MP-{unit_id}" for unit_id in settings.le01mp_unit_ids)
         if mode_uses_sdm120(settings.device_mode):
-            configured_devices.extend(f"SDM120M-{unit_id}" for unit_id in settings.sdm120_unit_ids)
+            configured_devices.extend(
+                f"SDM120M-{unit_id}" for unit_id in settings.sdm120_unit_ids
+            )
+        if mode_uses_waveshare_8ai(settings.device_mode):
+            configured_devices.extend(
+                f"WAVESHARE-8AI-{unit_id}"
+                for unit_id in settings.waveshare_8ai_unit_ids
+            )
         if mode_uses_embraco(settings.device_mode):
             configured_devices.extend(f"EMBRACO-{unit_id}" for unit_id in settings.embraco_unit_ids)
         with self._lock:
@@ -767,6 +799,7 @@ class DeviceAgent:
         self.xjp60d_reader: XJP60DReader | None = None
         self.le01mp_reader: LE01MPReader | None = None
         self.sdm120_reader: SDM120Reader | None = None
+        self.waveshare_8ai_reader: Waveshare8AIReader | None = None
         self.embraco_reader: EmbracoSyncReader | None = None
 
         if settings.device_mode != "simulator":
@@ -797,6 +830,11 @@ class DeviceAgent:
             if self.modbus_client is None:
                 raise RuntimeError("Modbus client was not initialized")
             self.sdm120_reader = SDM120Reader(self.modbus_client)
+
+        if mode_uses_waveshare_8ai(settings.device_mode) and settings.waveshare_8ai_unit_ids:
+            if self.modbus_client is None:
+                raise RuntimeError("Modbus client was not initialized")
+            self.waveshare_8ai_reader = Waveshare8AIReader(self.modbus_client)
 
         if mode_uses_embraco(settings.device_mode) and settings.embraco_unit_ids:
             if self.modbus_client is None:
@@ -1037,6 +1075,47 @@ class DeviceAgent:
                     )
                 )
 
+    def _sample_waveshare_8ai(
+        self,
+        captured_at: str,
+        records: list[TelemetryRecord],
+        errors: list[str],
+    ) -> None:
+        if not self.settings.waveshare_8ai_unit_ids:
+            return
+        if self.waveshare_8ai_reader is None:
+            raise RuntimeError("Waveshare 8AI reader was not initialized")
+
+        for unit_id in self.settings.waveshare_8ai_unit_ids:
+            equipment_id = f"WAVESHARE-8AI-{unit_id}"
+            for channel in range(1, WAVESHARE_8AI_CHANNEL_COUNT + 1):
+                channel_id = f"{unit_id}-ai-{channel}"
+                try:
+                    reading = self.waveshare_8ai_reader.read_channel(unit_id, channel)
+                except (ModbusError, OSError, RuntimeError) as exc:
+                    LOG.warning("Waveshare 8AI read failed for %s: %s", channel_id, exc)
+                    errors.append(f"{channel_id}: {exc}")
+                    records.append(
+                        TelemetryRecord(
+                            event_id=str(uuid.uuid4()), node_id=self.settings.node_id,
+                            captured_at=captured_at, metric="analog.input", value=None,
+                            unit="raw", quality="communication_error",
+                            source="waveshare-analog-input-8ch-b-v3",
+                            equipment_id=equipment_id, channel_id=channel_id,
+                        )
+                    )
+                    continue
+                records.append(
+                    TelemetryRecord(
+                        event_id=str(uuid.uuid4()), node_id=self.settings.node_id,
+                        captured_at=captured_at, metric="analog.input", value=reading.value,
+                        unit=reading.unit, quality=reading.quality,
+                        source="waveshare-analog-input-8ch-b-v3",
+                        equipment_id=equipment_id, channel_id=channel_id,
+                        raw_value=reading.raw_value, raw_status=reading.mode,
+                    )
+                )
+
     def _sample_embraco(
         self,
         captured_at: str,
@@ -1118,6 +1197,8 @@ class DeviceAgent:
             self._sample_le01mp(captured_at, records, errors)
         if mode_uses_sdm120(self.settings.device_mode):
             self._sample_sdm120(captured_at, records, errors)
+        if mode_uses_waveshare_8ai(self.settings.device_mode):
+            self._sample_waveshare_8ai(captured_at, records, errors)
         if mode_uses_embraco(self.settings.device_mode):
             self._sample_embraco(captured_at, records, errors)
 

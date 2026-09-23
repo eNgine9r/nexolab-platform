@@ -350,6 +350,73 @@ class DualBusAdaptiveRuntimeTests(unittest.TestCase):
         kk1_reader.read_channel.assert_called_once_with(126, 3)
         kk2_reader.read_channel.assert_called_once_with(106, 3)
 
+    def test_waveshare_target_dispatches_to_its_bus_reader(self) -> None:
+        reader = Mock()
+        reader.read_channel.return_value = Mock(
+            metric="analog.current",
+            value=12500.0,
+            unit="uA",
+            quality="valid",
+            raw_value=12500,
+            mode=3,
+        )
+        self.agent._bus_waveshare_8ai_readers = {"rs485-kk1": reader}  # noqa: SLF001
+        client = self.agent._bus_clients["rs485-kk1"]  # noqa: SLF001
+        client.instrumentation_scope = Mock(return_value=nullcontext())  # type: ignore[method-assign]
+        target = SchedulerTarget(
+            target_id="waveshare_8ai:1-ai-4",
+            bus_id="rs485-kk1",
+            device_id="waveshare-8ai-1",
+            device_family="waveshare_8ai",
+            unit_id=1,
+            key="ai-4",
+            telemetry_channel_id="1-ai-4",
+            metric="analog.input",
+            unit="raw",
+            priority="low",
+            interval_seconds=30,
+        )
+
+        result = self.agent._read_scheduled_target(target)
+
+        self.assertFalse(result.communication_failed)
+        self.assertEqual(result.record.metric, "analog.input")
+        self.assertEqual(result.record.unit, "uA")
+        self.assertEqual(result.record.raw_status, 3)
+        reader.read_channel.assert_called_once_with(1, 4)
+        client.instrumentation_scope.assert_called_once_with(
+            device_family="waveshare_8ai",
+            target_id="waveshare_8ai:1-ai-4",
+            operation="normal",
+        )
+
+    def test_waveshare_failure_updates_same_canonical_metric_identity(self) -> None:
+        reader = Mock()
+        reader.read_channel.side_effect = RuntimeError("mode read failed")
+        self.agent._bus_waveshare_8ai_readers = {"rs485-kk1": reader}  # noqa: SLF001
+        client = self.agent._bus_clients["rs485-kk1"]  # noqa: SLF001
+        client.instrumentation_scope = Mock(return_value=nullcontext())  # type: ignore[method-assign]
+        target = SchedulerTarget(
+            target_id="waveshare_8ai:1-ai-4",
+            bus_id="rs485-kk1",
+            device_id="waveshare-8ai-1",
+            device_family="waveshare_8ai",
+            unit_id=1,
+            key="ai-4",
+            telemetry_channel_id="1-ai-4",
+            metric="analog.input",
+            unit="raw",
+            priority="low",
+            interval_seconds=30,
+        )
+
+        result = self.agent._read_scheduled_target(target)
+
+        self.assertTrue(result.communication_failed)
+        self.assertEqual(result.record.metric, "analog.input")
+        self.assertEqual(result.record.unit, "raw")
+        self.assertEqual(result.record.quality, "communication_error")
+
     def test_explicit_discovery_scans_only_units_owned_by_each_bus(self) -> None:
         kk1_reader = Mock()
         kk2_reader = Mock()

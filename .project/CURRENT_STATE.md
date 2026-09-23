@@ -4,6 +4,12 @@ Updated: 2026-09-23
 
 ## Current Sprint
 
+### Issue #1127 — Waveshare 8AI read-only Device Agent driver in review
+
+The generic software driver for `Waveshare Modbus RTU Analog Input 8CH (B) V3` is implemented on `feat/1127-waveshare-8ai-driver` without production activation. It exposes eight acquisition channels, reads per-channel mode with FC03 and input data with FC04, preserves raw uint16 values and mode provenance, and keeps engineering meaning (`%RH`, pressure, Rheonik flow) outside the hardware driver under Instrument/Signal plus `analog-scaling/v1`. Canonical telemetry uses stable metric `analog.input`; successful raw units are mode-dependent (`mV`, `uA`, `count`) while communication failures update the same latest-series identity.
+
+Local verification is GREEN at **325/325 Device Agent tests**, including deterministic decoding of the recorded #1125 CRC-valid FC03/FC04 frames; acquisition-scale acceptance is **46/46 assertions**, Python compilation and `git diff --check` pass. A bounded real read-only probe against FTDI `A10Q2QYX`, Unit `1`, `9600 8N1` read all eight channels using FC03+FC04 only; all remain mode `0` and `0 mV`. This validates the acquisition software/protocol path, not the wired humidity transmitter as `%RH`. #1125 remains hardware/electrical blocked and #1126 remains physically blocked. Independent security Issue #1130 and state reconciliation #1132 are merged GREEN (`f242c661` / `901e893c`). After integrating current `main`, the Device Agent suite is again **325/325 PASS**, acquisition-scale is **46/46 PASS**, and focused container-security policy tests are **36/36 PASS**. No Modbus write, hardware write, production deployment or cutover occurred.
+
 ### Issue #1132 — post-#1130 state reconciliation complete
 
 PR #1131 merged the focused CVE-2026-93990 security repair to `main` as `f242c6614393486b00029b3ca3dc5fbe20acffad`; GitHub closed #1130. Issue #1132 reconciles that observed merge into canonical State Model v2 only, clears the stale security-interrupt selection, and restores #1127 as the next Ready Work Package. No product/runtime, dependency, security-policy, deployment or hardware behavior changes belong to #1132.
