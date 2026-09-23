@@ -120,6 +120,7 @@
       },
       "evidence": [
         "docs/register-maps/waveshare-modbus-rtu-analog-input-8ch-b-v3.md",
+        "config/edge/waveshare-8ai-v3-register-map.yaml",
         "config/edge/waveshare-8ai-v3-readonly-profile.yaml",
         "services/device-agent/waveshare_8ai.py"
       ],

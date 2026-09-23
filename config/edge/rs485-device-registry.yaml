@@ -162,7 +162,8 @@ profiles:
     unit_ids: [1]
     status: hardware_identified_read_only_humidity_unverified
     register_map_status: vendor_protocol_plus_real_transport_verified
-    register_map: config/edge/waveshare-8ai-v3-readonly-profile.yaml
+    register_map: config/edge/waveshare-8ai-v3-register-map.yaml
+    acquisition_profile: config/edge/waveshare-8ai-v3-readonly-profile.yaml
     production_driver: implemented_not_activated
     dedicated_adapter: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q2QYX-if00-port0
     serial: { baudrate: 9600, parity: N, stopbits: 1 }

@@ -10,6 +10,7 @@ Issue #1136 prepares the production-safe software path for the already identifie
 - Modbus Unit: `1`;
 - serial: `9600 8N1`;
 - driver profile: `waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1`;
+- register map: `config/edge/waveshare-8ai-v3-register-map.yaml`;
 - read functions only: FC03 mode + FC04 input.
 
 SDM120 also uses Unit `1`, but on `rs485-sdm120`. Unit identity is bus-scoped, so the two devices are intentionally valid together when each family is pinned to its own explicit bus.
