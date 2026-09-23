@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-23T21:40:00+03:00",
+  "timestamp": "2026-09-23T21:50:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1136 exact-head CI routing mismatch localized and corrected; validation/push pending",
+  "event": "Issue #1136 / PR #1137 merged GREEN; Waveshare humidity software path repository-complete, hardware acceptance still pending",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,32 +28,28 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": {
-    "issue": 1136,
-    "branch": "feat/1136-waveshare-humidity-runtime-prep",
-    "status": "ci_routing_correction_local_green"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "active_issue_evidence": {
       "issue": 1136,
-      "status": "local_candidate_green_ci_pending",
+      "status": "software_completed_hardware_unverified",
       "stable_adapter": "A10Q2QYX",
       "runtime_bus": "rs485-waveshare",
       "unit_id": 1,
       "serial": "9600_8N1",
-      "full_device_agent_tests": "327_passed",
-      "acquisition_scale_acceptance": "46_assertions_passed",
-      "candidate_compose_render": "passed",
+      "verified_exact_head_sha": "bc132b99aa37f2eaebc52edce4fedc0d37bedebf",
+      "pull_request": 1137,
+      "merged_sha": "082662657671f9dcd05b493598798708847856a4",
+      "core_ci": "success:35903586184",
+      "offline_bundle": "success:35903586272",
+      "edge_image": "success:35903586214",
+      "container_supply_chain": "success:35903586289",
+      "authenticated_dashboard": "success:35903586434",
+      "refrigeration_browser": "success:35903586179",
       "production_activation": "not_executed",
-      "humidity_hardware": "unverified",
+      "humidity_hardware": "unverified_pending_issue_1125",
       "modbus_writes": "none",
-      "hardware_writes": "none",
-      "implementation_commit": "342e352a9f86cd76acae4777aeccca92450d4b21",
-      "candidate_image_id": "sha256:b0d5d0f4471fd470de34cd4453b1b86891947da0ec26bea4404acd32006f2ea2",
-      "offline_mode3_container_smoke": "pass_network_none_12000_uA_mode3",
-      "first_exact_head_ci": "core_merge_gate_failed_missing_refrigeration_workflow_registration_35895333537",
-      "ci_routing_correction": "readonly_profile_registered_device_agent_edge_image_fail_closed_neighbors_preserved",
-      "ci_routing_tests": "61_passed"
+      "hardware_writes": "none"
     }
   },
   "observations": [
@@ -88,9 +84,21 @@
         "merge_sha": "901e893c6c0ce81a61cd02fc06efdba5216b78fd",
         "status": "merged_closed"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-23T21:46:54+03:00",
+      "kind": "waveshare_humidity_software_merge",
+      "data": {
+        "issue": 1136,
+        "pull_request": 1137,
+        "merge_sha": "082662657671f9dcd05b493598798708847856a4",
+        "status": "merged_closed_green",
+        "production_activation": "none"
+      }
     }
   ],
-  "next_action": "Commit and push the focused #1136 CI registration correction, require all exact-head workflows GREEN, then merge PR #1137. Do not activate production; humidity hardware evidence remains required.",
+  "next_action": "No independent Ready Work Package remains. For #1125, wait for Product Owner physical 4–20 mA jumper/channel setup, then perform read-only mode/current/channel/range hardware acceptance. Production Waveshare activation remains separately gated and unauthorized.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
