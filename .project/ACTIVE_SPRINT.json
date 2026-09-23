@@ -40,9 +40,7 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1127
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -4787,7 +4785,7 @@
       "issue": 1127,
       "title": "Waveshare 8AI read-only Device Agent acquisition driver",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "evidence": {
         "implementation_scope": "generic_read_only_8_channel_acquisition_driver",
@@ -4811,7 +4809,15 @@
         "post_main_merge_device_agent_tests": "325_passed",
         "post_main_merge_acquisition_scale": "46_assertions_passed",
         "post_main_merge_security_policy_tests": "36_passed",
-        "integrated_main_sha": "901e893c6c0ce81a61cd02fc06efdba5216b78fd"
+        "integrated_main_sha": "901e893c6c0ce81a61cd02fc06efdba5216b78fd",
+        "verified_exact_head_sha": "71228281bb75c587583478c52c9e340d1d5d7887",
+        "pull_request": 1129,
+        "merged_sha": "bb34cffa296bf7e6bf8a1f61b7b4fd7e85a9cb83",
+        "github_issue": "closed_completed",
+        "container_supply_chain": "success:35870566784",
+        "core_ci_and_merge_gate": "success:35870566817",
+        "offline_bundle": "success:35870566773",
+        "production_runtime_mutation": "none"
       },
       "branch": "feat/1127-waveshare-8ai-driver"
     },
@@ -4869,6 +4875,25 @@
         "pull_request": 1133,
         "merged_sha": "901e893c6c0ce81a61cd02fc06efdba5216b78fd",
         "issue_state": "closed_completed"
+      }
+    },
+    {
+      "issue": 1134,
+      "title": "Reconcile merged Waveshare #1127 and close software Work Package",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1127
+      ],
+      "branch": "chore/1134-reconcile-1127-state",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "trigger_pull_request": 1129,
+        "merged_waveshare_sha": "bb34cffa296bf7e6bf8a1f61b7b4fd7e85a9cb83",
+        "verified_waveshare_head_sha": "71228281bb75c587583478c52c9e340d1d5d7887",
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     }
   ],
