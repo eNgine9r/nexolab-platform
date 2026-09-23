@@ -4806,7 +4806,12 @@
         "modbus_write": "none",
         "hardware_write": "none",
         "recorded_frame_regression": "issue_1125_fc03_fc04_crc_valid_frames_decode_8_of_8",
-        "security_dependency": "issue_1130_merged_green_f242c661"
+        "security_dependency": "issue_1130_merged_green_f242c661",
+        "state_reconciliation_dependency": "issue_1132_merged_green_901e893c",
+        "post_main_merge_device_agent_tests": "325_passed",
+        "post_main_merge_acquisition_scale": "46_assertions_passed",
+        "post_main_merge_security_policy_tests": "36_passed",
+        "integrated_main_sha": "901e893c6c0ce81a61cd02fc06efdba5216b78fd"
       },
       "branch": "feat/1127-waveshare-8ai-driver"
     },
@@ -4827,12 +4832,43 @@
         "exception_expiry": "2026-09-29",
         "modbus_write": "none",
         "hardware_write": "none",
-        "verified_head_sha": "20bc2337fd60cee715768bb1c19cd6f47b27bcee",
-        "container_supply_chain_run": 35867967794,
-        "telemetry_service_run": 35867967819,
-        "core_ci_run": 35867967858,
-        "merge_gate": "green",
-        "github_issue": "closed"
+        "verified_security_head_sha": "20bc2337fd60cee715768bb1c19cd6f47b27bcee",
+        "focused_policy_tests": "36_passed",
+        "container_supply_chain": "success:35867967794",
+        "telemetry_service": "success:35867967819",
+        "core_ci_and_merge_gate": "success:35867967858",
+        "manual_team_lead_review": "clean_no_p1_p2",
+        "review_threads": "zero",
+        "codex_review": "unavailable_usage_limit_manual_review_used",
+        "production_runtime_mutation": "none",
+        "pull_request": 1131,
+        "merged_sha": "f242c6614393486b00029b3ca3dc5fbe20acffad",
+        "issue_state": "closed_completed"
+      }
+    },
+    {
+      "issue": 1132,
+      "title": "Reconcile merged #1130 and resume #1127",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1130
+      ],
+      "branch": "chore/1132-reconcile-1130-state",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "trigger_pull_request": 1131,
+        "merged_security_sha": "f242c6614393486b00029b3ca3dc5fbe20acffad",
+        "verified_security_head_sha": "20bc2337fd60cee715768bb1c19cd6f47b27bcee",
+        "container_supply_chain": "success:35867967794",
+        "telemetry_service": "success:35867967819",
+        "core_ci_and_merge_gate": "success:35867967858",
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "pull_request": 1133,
+        "merged_sha": "901e893c6c0ce81a61cd02fc06efdba5216b78fd",
+        "issue_state": "closed_completed"
       }
     }
   ],

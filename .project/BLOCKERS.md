@@ -2,9 +2,9 @@
 
 Updated: 2026-09-23
 
-## Issue #1130 — Expat CVE-2026-93990 HIGH finding
+## Issue #1130 — new Expat CVE-2026-93990 HIGH finding
 
-**Cleared and merged.** PR #1131 exact head `20bc2337fd60cee715768bb1c19cd6f47b27bcee` passed fresh Container Supply Chain `35867967794`, Telemetry Service `35867967819`, and Core CI / NEXOLAB Merge Gate `35867967858`, then squash-merged as `f242c6614393486b00029b3ca3dc5fbe20acffad`. The two exact HIGH-only decisions expire 2026-09-29; no CRITICAL/wildcard exception, production mutation, Modbus write or hardware write occurred. #1127 is no longer blocked by this security interrupt.
+**Cleared for repository/security scope.** The fail-closed finding is reconciled by the exact two-tuple #1130 disposition. Substantive head `20bc2337fd60cee715768bb1c19cd6f47b27bcee` passed focused policy tests 36/36, Container Supply Chain `35867967794`, Telemetry Service `35867967819`, and Core CI / NEXOLAB Merge Gate `35867967858`; manual Team Lead review found no blocking P1/P2 and review threads are zero. Exceptions are limited to Device Agent and Telegram Gateway `libexpat1 / CVE-2026-93990`, owner `platform-security`, expiry 2026-09-29, with immediate removal/re-review conditions. No CRITICAL or wildcard exception exists. PR #1131 is now merged as `f242c6614393486b00029b3ca3dc5fbe20acffad`; #1130 is closed and no longer blocks #1127. Current `main` through #1132 merge `901e893c6c0ce81a61cd02fc06efdba5216b78fd` is integrated into #1127; only #1127 own exact-head gates remain before merge.
 
 ## Issue #1126 — rs485-main CP2104 `0133F090` is physically absent
 
