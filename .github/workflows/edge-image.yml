@@ -6,6 +6,7 @@ on:
     tags: ["edge-v*"]
     paths:
       - "config/edge/*-register-map.yaml"
+      - "config/edge/*-readonly-profile.yaml"
       - "config/edge/rs485-device-registry.yaml"
       - "services/device-agent/**"
       - "infrastructure/compose/compose.edge-secure.yaml"
@@ -15,6 +16,7 @@ on:
     branches: [main]
     paths:
       - "config/edge/*-register-map.yaml"
+      - "config/edge/*-readonly-profile.yaml"
       - "config/edge/rs485-device-registry.yaml"
       - "services/device-agent/**"
       - "infrastructure/compose/compose.edge-secure.yaml"
@@ -52,7 +54,7 @@ jobs:
       - name: Compile device-agent
         run: python -m compileall -q services/device-agent
 
-      - name: Validate RS-485 registry and register maps
+      - name: Validate RS-485 registry, register maps and read-only profiles
         run: |
           python -m pip install 'PyYAML==6.0.3'
           python - <<'PY'
@@ -90,6 +92,25 @@ jobs:
                   and candidate.name not in ('', '.', '..')
                   and '..' not in candidate.parts
               )
+
+          for path in sorted(config_dir.glob('*-readonly-profile.yaml')):
+              payload = yaml.safe_load(path.read_text(encoding='utf-8'))
+              if not isinstance(payload, dict):
+                  raise SystemExit(f'{path}: expected mapping document')
+              transport = payload.get('transport')
+              acquisition = payload.get('acquisition')
+              if not isinstance(transport, dict) or not isinstance(acquisition, dict):
+                  raise SystemExit(f'{path}: transport and acquisition must be mappings')
+              if not is_stable_serial_adapter(transport.get('stable_adapter')):
+                  raise SystemExit(
+                      f'{path}: transport.stable_adapter must use a direct stable /dev/serial/by-id/ path'
+                  )
+              allowed = acquisition.get('allowed_functions')
+              prohibited = acquisition.get('prohibited_functions')
+              if allowed != [3, 4]:
+                  raise SystemExit(f'{path}: allowed_functions must be exactly [3, 4]')
+              if not isinstance(prohibited, list) or not {5, 6, 15, 16}.issubset(set(prohibited)):
+                  raise SystemExit(f'{path}: write functions 5, 6, 15 and 16 must be prohibited')
 
           bus = registry.get('bus')
           if not isinstance(bus, dict):

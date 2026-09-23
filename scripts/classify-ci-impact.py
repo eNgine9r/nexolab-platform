@@ -227,10 +227,20 @@ def _is_rs485_register_map(path: str) -> bool:
     )
 
 
+def _is_rs485_readonly_profile(path: str) -> bool:
+    parts = PurePosixPath(path).parts
+    return (
+        len(parts) == 3
+        and parts[:2] == ("config", "edge")
+        and parts[2].endswith("-readonly-profile.yaml")
+    )
+
+
 def _is_rs485_acquisition_path(path: str) -> bool:
     return (
         path in RS485_ACQUISITION_PATHS
         or _is_rs485_register_map(path)
+        or _is_rs485_readonly_profile(path)
         or _matches(path, RS485_ACQUISITION_PATTERNS)
     )
 
@@ -294,7 +304,9 @@ def _verification_for_paths(
         for path in normalized
     )
     edge_image = any(
-        path == "config/edge/rs485-device-registry.yaml" or _is_rs485_register_map(path)
+        path == "config/edge/rs485-device-registry.yaml"
+        or _is_rs485_register_map(path)
+        or _is_rs485_readonly_profile(path)
         for path in normalized
     )
     acquisition_scale = "scripts/run-acquisition-scale-acceptance.py" in normalized

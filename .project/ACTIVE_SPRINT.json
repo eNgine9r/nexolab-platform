@@ -40,7 +40,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1136
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -4894,6 +4896,46 @@
         "production_runtime_mutation": "none",
         "modbus_write": "none",
         "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1136,
+      "title": "Prepare LOCAL_LAN Waveshare humidity acquisition integration",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1127
+      ],
+      "branch": "feat/1136-waveshare-humidity-runtime-prep",
+      "evidence": {
+        "implementation_scope": "dedicated_rs485_waveshare_runtime_contract_plus_humidity_acceptance_boundary",
+        "stable_adapter": "A10Q2QYX",
+        "runtime_bus": "rs485-waveshare",
+        "unit_id": 1,
+        "serial": "9600_8N1",
+        "duplicate_unit_1_with_sdm120": "safe_bus_scoped",
+        "compose_opt_in": "disabled_by_default_requires_explicit_bus_and_unit",
+        "raw_telemetry": "WAVESHARE-8AI-1__1-ai-1_to_1-ai-8__analog.input",
+        "mode_3_raw_domain": "4000_to_20000_uA",
+        "humidity_channel": "unresolved_pending_physical_signal",
+        "humidity_engineering_range": "unresolved_pending_transmitter_evidence",
+        "targeted_tests": "56_passed",
+        "full_device_agent_tests": "327_passed",
+        "acquisition_scale_acceptance": "46_assertions_passed",
+        "candidate_compose_render": "passed_four_buses_separate_sdm120_and_waveshare_unit_1",
+        "python_compile": "success",
+        "config_parse": "success",
+        "git_diff_check": "success",
+        "production_activation": "not_executed_not_authorized",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "implementation_commit": "342e352a9f86cd76acae4777aeccca92450d4b21",
+        "candidate_image_id": "sha256:b0d5d0f4471fd470de34cd4453b1b86891947da0ec26bea4404acd32006f2ea2",
+        "candidate_image_platform": "linux_arm64",
+        "offline_mode3_container_smoke": "pass_network_none_12000_uA_mode3",
+        "first_exact_head_ci": "core_merge_gate_failed_missing_refrigeration_workflow_registration_35895333537",
+        "ci_routing_correction": "readonly_profile_registered_device_agent_edge_image_fail_closed_neighbors_preserved",
+        "ci_routing_tests": "61_passed"
       }
     }
   ],
