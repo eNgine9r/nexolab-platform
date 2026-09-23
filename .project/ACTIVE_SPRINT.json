@@ -40,9 +40,7 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1130
-    },
+    "active_work_package": null,
     "next_work_package": {
       "issue": 1127
     }
@@ -4803,7 +4801,7 @@
       "issue": 1130,
       "title": "Triage new Expat CVE-2026-93990 HIGH findings",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "fix/1130-expat-cve-93990",
       "evidence": {
@@ -4814,6 +4812,40 @@
         "debian_trixie": "2.8.3-1~deb13u1_vulnerable_no_fixed_trixie_version",
         "runtime_xml_reachability": "none_found_device_agent_or_telegram_gateway",
         "exception_expiry": "2026-09-29",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "verified_security_head_sha": "20bc2337fd60cee715768bb1c19cd6f47b27bcee",
+        "focused_policy_tests": "36_passed",
+        "container_supply_chain": "success:35867967794",
+        "telemetry_service": "success:35867967819",
+        "core_ci_and_merge_gate": "success:35867967858",
+        "manual_team_lead_review": "clean_no_p1_p2",
+        "review_threads": "zero",
+        "codex_review": "unavailable_usage_limit_manual_review_used",
+        "production_runtime_mutation": "none",
+        "pull_request": 1131,
+        "merged_sha": "f242c6614393486b00029b3ca3dc5fbe20acffad",
+        "issue_state": "closed_completed"
+      }
+    },
+    {
+      "issue": 1132,
+      "title": "Reconcile merged #1130 and resume #1127",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1130
+      ],
+      "branch": "chore/1132-reconcile-1130-state",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "trigger_pull_request": 1131,
+        "merged_security_sha": "f242c6614393486b00029b3ca3dc5fbe20acffad",
+        "verified_security_head_sha": "20bc2337fd60cee715768bb1c19cd6f47b27bcee",
+        "container_supply_chain": "success:35867967794",
+        "telemetry_service": "success:35867967819",
+        "core_ci_and_merge_gate": "success:35867967858",
+        "production_runtime_mutation": "none",
         "modbus_write": "none",
         "hardware_write": "none"
       }
