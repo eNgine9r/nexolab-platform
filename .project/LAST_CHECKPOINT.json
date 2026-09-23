@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-22T17:29:00+03:00",
+  "timestamp": "2026-09-23T15:28:23+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1123 completed candidate: canonical state now includes authenticated production Energy DOM acceptance, full 60-second SDM cadence proof, and final PostgreSQL latest persistence evidence",
+  "event": "Issue #1125 read-only Waveshare 8AI discovery checkpointed; protocol path is verified, humidity electrical signal is blocked, and missing production rs485-main adapter is tracked as #1126",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -30,10 +30,32 @@
   },
   "active_work": null,
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "active_issue_evidence": {
+      "issue": 1125,
+      "status": "blocked",
+      "adapter": "A10Q2QYX",
+      "unit_id": 1,
+      "serial": "9600_8N1",
+      "software_version": "2.10",
+      "channel_modes": "all_mode_0_0_10V",
+      "fc04_samples": "all_zero_3_passes_crc_valid",
+      "modbus_writes": "none",
+      "hardware_writes": "none"
+    }
   },
-  "observations": [],
-  "next_action": "No independent Ready product Work Package is selected. Keep normal monitoring active, retain the SDM120 rollback set, and perform the next scheduled security exception review on 2026-09-29.",
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-09-23T15:28:23+03:00",
+      "kind": "issue_runtime_blocker",
+      "data": {
+        "issue": 1126,
+        "status": "blocked",
+        "summary": "rs485-main CP2104 0133F090 stable path absent; Device Agent unhealthy HTTP 503/ENOENT"
+      }
+    }
+  ],
+  "next_action": "Proceed with independent Ready Issue #1127 software-only Waveshare 8AI read-only driver. Do not activate production or change Waveshare channel mode/jumpers. Physical #1126 recovery and humidity electrical commissioning require user/hardware action.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

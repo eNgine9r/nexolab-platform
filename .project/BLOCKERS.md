@@ -1,6 +1,14 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-22
+Updated: 2026-09-23
+
+## Issue #1126 — rs485-main CP2104 `0133F090` is physically absent
+
+**Blocked on physical adapter/cable presence.** The live Device Agent still binds `rs485-main` to stable path `/host/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0`, but that device is absent from the host. Scheduled XJP60D and LE-01MP reads fail with `ENOENT`, and Device Agent health is `unhealthy`/HTTP 503. The system must not silently remap another present adapter. Physical reconnection/presence evidence is required before recovery can be accepted. No Modbus or hardware write has been performed.
+
+## Issue #1125 — Waveshare 8AI humidity hardware signal not yet readable
+
+**Protocol discovery succeeded; humidity electrical acceptance is blocked.** Waveshare Modbus RTU Analog Input 8CH (B) V3 is confirmed on FTDI `A10Q2QYX`, Unit 1, 9600 8N1, software V2.10. FC03 mode reads show all eight channels in mode 0 (0–10 V for the `(B)` variant), while three repeated FC04 8-channel reads returned all zeros. The wired humidity transmitter therefore cannot yet be identified from data. If the installed probe is a 4–20 mA variant, the corresponding hardware jumper and mode 3 configuration must be confirmed separately; changing either is outside the read-only Work Package and requires explicit hardware/configuration authorization. No Modbus or hardware write has been performed.
 
 ## Issue #1117 — Eastron SDM120M bounded production activation
 
