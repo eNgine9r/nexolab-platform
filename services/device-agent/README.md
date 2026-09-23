@@ -73,11 +73,11 @@ SDM120 polling must use the topology-aware `dual_bus_main.py` entrypoint; the de
 ```dotenv
 DEVICE_MODE=waveshare_8ai
 WAVESHARE_8AI_UNIT_IDS=1
-WAVESHARE_8AI_BUS_ID=rs485-analog
-RS485_BUS_CONFIG_JSON=[{"bus_id":"rs485-analog","serial_device":"/host/dev/serial/by-id/REPLACE_WITH_ANALOG_ADAPTER","unit_ids":[1]}]
+WAVESHARE_8AI_BUS_ID=rs485-waveshare
+RS485_BUS_CONFIG_JSON=[{"bus_id":"rs485-waveshare","serial_device":"/host/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q2QYX-if00-port0","unit_ids":[1],"baudrate":9600,"parity":"N","stopbits":1}]
 ```
 
-Waveshare polling requires the topology-aware `dual_bus_main.py` entrypoint; `adaptive_main.py` rejects the family rather than falling back to `SERIAL_DEVICE`. Runtime opt-in is empty by default, so production polling remains disabled until a separate approved cutover. The driver exposes no mode/range/address/configuration write path.
+Waveshare polling requires the topology-aware `dual_bus_main.py` entrypoint; `adaptive_main.py` rejects the family rather than falling back to `SERIAL_DEVICE`. The installed module is hardware-identified on FTDI `A10Q2QYX`, Unit `1`, `9600 8N1`, but runtime opt-in is empty by default, so production polling remains disabled until a separate approved cutover. SDM120 may also use Unit `1` because the two identities are scoped to different explicit buses. The driver exposes no mode/range/address/configuration write path. For mode `3`, the module reports microamps, so a later 4–20 mA `analog-scaling/v1` profile must use raw endpoints `4000..20000 uA` unless independent evidence establishes another representation.
 
 ### Combined Modbus acquisition
 

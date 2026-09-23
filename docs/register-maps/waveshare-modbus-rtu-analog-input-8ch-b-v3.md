@@ -2,7 +2,7 @@
 
 - Status: protocol/transport hardware-discovered; humidity engineering signal not yet accepted
 - Issue: #1125
-- Production polling: not activated by this Work Package
+- Production polling: driver implemented; production activation remains separately gated
 - Physical module marking: `Waveshare Modbus RTU Analog Input 8CH (B) V3`
 
 ## Safety boundary
@@ -79,4 +79,6 @@ Changing either condition is a hardware/configuration action and is outside this
 
 ## NEXOLAB integration boundary
 
-A future production driver may expose the eight acquisition channels and their raw voltage/current values, but Instrument/Signal bindings and `analog-scaling/v1` remain authoritative for engineering conversion such as `%RH`, bar or mass-flow units.
+The merged read-only Device Agent driver exposes all eight acquisition channels as canonical `analog.input` telemetry and preserves the read mode plus raw value. Issue #1136 adds the disabled-by-default LOCAL_LAN deployment contract for a dedicated `rs485-waveshare` bus. Instrument/Signal bindings and `analog-scaling/v1` remain authoritative for engineering conversion such as `%RH`, bar or mass-flow units.
+
+Production activation remains separate. Before the humidity channel may be represented as `%RH`, the physical channel, current-input jumper, read-back mode `3`, live current and exact transmitter engineering range must be confirmed.

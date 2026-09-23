@@ -4,6 +4,12 @@ Updated: 2026-09-23
 
 ## Current Sprint
 
+### Issue #1136 — Waveshare dedicated LOCAL_LAN humidity acquisition candidate prepared
+
+A focused software candidate now wires the merged Waveshare 8AI read-only driver into the LOCAL_LAN deployment contract without changing production. The candidate reserves `rs485-waveshare` for stable FTDI `A10Q2QYX`, Unit `1`, `9600 8N1`, exposes explicit disabled-by-default `WAVESHARE_8AI_UNIT_IDS` + `WAVESHARE_8AI_BUS_ID` Compose inputs, and documents all eight raw `analog.input` channels. SDM120 remains independently pinned to `rs485-sdm120`, so the shared Modbus Unit `1` is valid because unit identity is bus-scoped. Mode `3` is represented as the evidence-backed raw current domain `4000..20000 uA`; humidity channel identity and engineering endpoints are intentionally unresolved until physical evidence is available.
+
+Local verification is GREEN: focused Waveshare/topology/deployment tests **56/56**, full Device Agent **327/327**, acquisition-scale acceptance **46/46**, Python compile, JSON/YAML parse and `git diff --check`. A sanitized four-bus Compose render also passed with separate SDM120 and Waveshare Unit `1` paths and `dual_bus_main.py`. Production remains unchanged and Waveshare scheduled polling remains OFF. No Modbus write, hardware write, production restart/cutover, persistent-data deletion or named-volume deletion occurred. Exact-head CI/PR validation remains before merge.
+
 ### Issue #1134 — post-#1127 state reconciliation complete
 
 PR #1129 merged the generic read-only Waveshare 8AI Device Agent acquisition Work Package to `main` as `bb34cffa296bf7e6bf8a1f61b7b4fd7e85a9cb83`; GitHub closed #1127. Issue #1134 reconciles that observed merge into canonical State Model v2 only, clears the stale active selection, and leaves no fabricated Ready Work Package. No product/runtime, dependency, deployment, Modbus, hardware or persistent-data behavior changes belong to #1134.

@@ -36,6 +36,11 @@ services:
       # Eastron SDM120M stays opt-in until a separately approved production cutover.
       SDM120_UNIT_IDS: "${SDM120_UNIT_IDS:-}"
       SDM120_BUS_ID: "${SDM120_BUS_ID:-}"
+      # Waveshare 8AI also stays opt-in. Enabling it requires both an explicit
+      # dedicated bus identity and Unit ID so Unit 1 remains bus-scoped from
+      # the SDM120 Unit 1. The driver itself is FC03/FC04 read-only.
+      WAVESHARE_8AI_UNIT_IDS: "${WAVESHARE_8AI_UNIT_IDS:-}"
+      WAVESHARE_8AI_BUS_ID: "${WAVESHARE_8AI_BUS_ID:-}"
       EMBRACO_UNIT_IDS: "${EMBRACO_UNIT_IDS:-}"
     volumes:
       - type: bind

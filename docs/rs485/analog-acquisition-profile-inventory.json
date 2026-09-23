@@ -1,6 +1,6 @@
 {
   "schema_version": "nexolab-analog-acquisition-inventory/v1",
-  "updated_at": "2026-09-06T02:08:00+03:00",
+  "updated_at": "2026-09-23T17:20:00+03:00",
   "project_profile": "LOCAL_LAN",
   "runtime_requirement": "offline_capable",
   "entries": [
@@ -70,7 +70,9 @@
         "raw_min": null,
         "raw_max": null
       },
-      "evidence": ["docs/adr/0010-refrigeration-monitoring-and-derived-thermodynamics.md"],
+      "evidence": [
+        "docs/adr/0010-refrigeration-monitoring-and-derived-thermodynamics.md"
+      ],
       "notes": "Allowed architecture alternative for an isolated analog-input/converter. Exact model and profile require separate evidence."
     },
     {
@@ -88,8 +90,40 @@
         "register_reference": null,
         "raw_encoding": null
       },
-      "evidence": ["docs/adr/0010-refrigeration-monitoring-and-derived-thermodynamics.md"],
+      "evidence": [
+        "docs/adr/0010-refrigeration-monitoring-and-derived-thermodynamics.md"
+      ],
       "notes": "Reference/candidate only. No production capability or protocol semantics are claimed by RFX-02."
+    },
+    {
+      "id": "waveshare-8ai-v3-readonly-01",
+      "profile_class": "isolated_analog_input",
+      "device_family": "waveshare_8ai",
+      "profile_id": "waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1",
+      "profile_version": "waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1",
+      "electrical_input_class": "current_loop_4_20ma",
+      "analog_scaling_schema": "analog-scaling/v1",
+      "hardware_status": "transport_protocol_verified_humidity_unverified",
+      "production_status": "driver_implemented_polling_not_activated",
+      "known_semantics": {
+        "transport": "modbus_rtu",
+        "stable_adapter": "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q2QYX-if00-port0",
+        "unit_id": 1,
+        "serial": "9600_8N1",
+        "channel_count": 8,
+        "mode_registers": "FC03_0x1000..0x1007",
+        "input_registers": "FC04_0x0000..0x0007",
+        "current_mode_code": 3,
+        "current_raw_unit": "uA",
+        "humidity_channel": null,
+        "humidity_engineering_range": null
+      },
+      "evidence": [
+        "docs/register-maps/waveshare-modbus-rtu-analog-input-8ch-b-v3.md",
+        "config/edge/waveshare-8ai-v3-readonly-profile.yaml",
+        "services/device-agent/waveshare_8ai.py"
+      ],
+      "notes": "Real adapter, Unit ID and read-only protocol are verified. Humidity channel, jumper/mode acceptance and engineering range remain unresolved and fail closed."
     }
   ],
   "safety": {

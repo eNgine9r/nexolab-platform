@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-23T19:25:00+03:00",
+  "timestamp": "2026-09-23T20:15:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1127 Waveshare 8AI read-only software Work Package merged GREEN; canonical state reconciled by #1134",
+  "event": "Issue #1136 Waveshare dedicated LOCAL_LAN runtime candidate prepared; exact-head validation and CI pending",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,20 +28,24 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1136,
+    "branch": "feat/1136-waveshare-humidity-runtime-prep",
+    "status": "needs_validation"
+  },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "issue": 1127,
-      "status": "repository_complete",
-      "verified_exact_head_sha": "71228281bb75c587583478c52c9e340d1d5d7887",
-      "pull_request": 1129,
-      "merged_sha": "bb34cffa296bf7e6bf8a1f61b7b4fd7e85a9cb83",
-      "device_agent_tests": "325_passed",
+      "issue": 1136,
+      "status": "local_candidate_green_ci_pending",
+      "stable_adapter": "A10Q2QYX",
+      "runtime_bus": "rs485-waveshare",
+      "unit_id": 1,
+      "serial": "9600_8N1",
+      "full_device_agent_tests": "327_passed",
       "acquisition_scale_acceptance": "46_assertions_passed",
-      "container_supply_chain": "success:35870566784",
-      "core_ci_and_merge_gate": "success:35870566817",
-      "offline_bundle": "success:35870566773",
+      "candidate_compose_render": "passed",
       "production_activation": "not_executed",
+      "humidity_hardware": "unverified",
       "modbus_writes": "none",
       "hardware_writes": "none"
     }
@@ -80,7 +84,7 @@
       }
     }
   ],
-  "next_action": "No independent Ready Work Package remains in the active Sprint after #1127. Re-check #1125/#1126 physical/runtime blockers read-only; if unchanged, Product Owner physical action or reprioritization is required before further feature work.",
+  "next_action": "Validate exact #1136 candidate, open focused PR and require GREEN CI. Do not activate production. After merge, physical 4-20 mA jumper/channel evidence and exact humidity engineering range remain required before %RH acceptance.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
