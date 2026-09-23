@@ -4928,7 +4928,11 @@
         "git_diff_check": "success",
         "production_activation": "not_executed_not_authorized",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "implementation_commit": "342e352a9f86cd76acae4777aeccca92450d4b21",
+        "candidate_image_id": "sha256:b0d5d0f4471fd470de34cd4453b1b86891947da0ec26bea4404acd32006f2ea2",
+        "candidate_image_platform": "linux_arm64",
+        "offline_mode3_container_smoke": "pass_network_none_12000_uA_mode3"
       }
     }
   ],

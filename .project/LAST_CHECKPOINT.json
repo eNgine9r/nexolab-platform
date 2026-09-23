@@ -47,7 +47,10 @@
       "production_activation": "not_executed",
       "humidity_hardware": "unverified",
       "modbus_writes": "none",
-      "hardware_writes": "none"
+      "hardware_writes": "none",
+      "implementation_commit": "342e352a9f86cd76acae4777aeccca92450d4b21",
+      "candidate_image_id": "sha256:b0d5d0f4471fd470de34cd4453b1b86891947da0ec26bea4404acd32006f2ea2",
+      "offline_mode3_container_smoke": "pass_network_none_12000_uA_mode3"
     }
   },
   "observations": [
