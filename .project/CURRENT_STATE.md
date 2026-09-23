@@ -1,8 +1,18 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-22
+Updated: 2026-09-23
 
 ## Current Sprint
+
+### Issue #1125 — Waveshare 8AI read-only hardware discovery in progress
+
+A new physically installed `Waveshare Modbus RTU Analog Input 8CH (B) V3` is now tracked by #1125. Bounded read-only discovery identified FTDI `A10Q2QYX` as the physical RS-485 path; `A10Q2SI7` did not answer the vendor address/version probes. The module responds as Unit `1` at `9600 8N1`, FC03 UART parameter `0x0001`, and software version raw `210` (`V2.10`). Vendor-defined FC03 mode registers `0x1000..0x1007` all return mode `0`, which is 0–10 V on the `(B)` hardware. Three repeated FC04 reads of channels `0x0000..0x0007` returned all zero with valid CRC. No Modbus or hardware write occurred.
+
+The already-wired humidity transmitter is therefore not yet accepted as a live `%RH` source: the active channel cannot be identified from data and the electrical mode/range is not yet proven. If the installed probe is the planned 4–20 mA variant, the corresponding Waveshare channel requires both current-input jumper position and mode `3`; changing either is intentionally outside the current read-only Work Package and requires explicit hardware/configuration approval. Local raw evidence is retained at `runtime/evidence/waveshare-8ai-discovery-20260923.json`. Follow-up software Issue #1127 owns the generic read-only Waveshare 8AI Device Agent driver without production activation.
+
+### Issue #1126 — production `rs485-main` adapter missing
+
+During the #1125 preflight, the live Device Agent was found `unhealthy` because its stable `rs485-main` path `/host/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0` is physically absent from the host. Scheduled XJP60D and LE-01MP reads repeatedly fail with `ENOENT`; the current runtime must not silently substitute another present adapter. This is tracked separately as critical blocked Issue #1126. Physical reconnect/presence evidence is required before recovery can be accepted. Independent Waveshare discovery used the free FTDI `A10Q2QYX` path and did not open production Embraco or SDM120 buses.
 
 ### Issue #1121 — Eastron SDM120M production activation completed
 
