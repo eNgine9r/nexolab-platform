@@ -4796,7 +4796,7 @@
         "mode_units": "0_1_mV__2_3_uA__4_count",
         "runtime_opt_in": "fail_closed_requires_explicit_bus_and_unit_ids",
         "production_activation": "not_executed_not_authorized",
-        "full_device_agent_tests": "324_passed_0_failed_0_errors",
+        "full_device_agent_tests": "325_passed_0_failed_0_errors",
         "acquisition_scale_acceptance": "46_assertions_passed",
         "python_compile": "success",
         "git_diff_check": "success",
@@ -4804,7 +4804,8 @@
         "humidity_engineering_acceptance": "blocked_by_issue_1125",
         "modbus_reads": "FC03_mode_plus_FC04_input_only",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "recorded_frame_regression": "issue_1125_fc03_fc04_crc_valid_frames_decode_8_of_8"
       },
       "branch": "feat/1127-waveshare-8ai-driver"
     }

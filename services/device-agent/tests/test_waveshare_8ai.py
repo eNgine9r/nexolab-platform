@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import unittest
-from unittest.mock import Mock, call
+from unittest.mock import Mock
 
+from modbus_rtu import (
+    parse_read_holding_registers_response,
+    parse_read_input_registers_response,
+)
 from waveshare_8ai import MODES, Waveshare8AIReader, decode_channel
 
 
@@ -21,6 +25,27 @@ class Waveshare8AITests(unittest.TestCase):
         self.assertEqual((MODES[2].metric, MODES[2].unit), ("analog.current", "uA"))
         self.assertEqual((MODES[3].metric, MODES[3].unit), ("analog.current", "uA"))
         self.assertEqual((MODES[4].metric, MODES[4].unit), ("analog.adc_code", "count"))
+
+    def test_recorded_issue_1125_frames_decode_all_eight_channels(self) -> None:
+        mode_frame = bytes.fromhex(
+            "01 03 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 e4 59"
+        )
+        input_frame = bytes.fromhex(
+            "01 04 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 55 2c"
+        )
+
+        modes = parse_read_holding_registers_response(mode_frame, 1, 8)
+        inputs = parse_read_input_registers_response(input_frame, 1, 8)
+
+        self.assertEqual(modes, (0,) * 8)
+        self.assertEqual(inputs, (0,) * 8)
+        decoded = [
+            decode_channel(1, channel, mode_word=modes[channel - 1], input_word=inputs[channel - 1])
+            for channel in range(1, 9)
+        ]
+        self.assertTrue(all(item.mode == 0 for item in decoded))
+        self.assertTrue(all(item.metric == "analog.voltage" for item in decoded))
+        self.assertTrue(all(item.value == 0.0 and item.unit == "mV" for item in decoded))
 
     def test_reader_uses_fc03_mode_then_fc04_input_for_exact_channel(self) -> None:
         client = Mock()
