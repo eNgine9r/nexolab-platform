@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-23T16:30:05+03:00",
+  "timestamp": "2026-09-23T16:48:53+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1130 security interrupt active after fresh Container Supply Chain discovered CVE-2026-93990 HIGH in Device Agent and Telegram Gateway during PR #1129 verification",
+  "event": "Issue #1132 reconciles merged #1130 security repair f242c661 and restores #1127 as the next Ready Work Package",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,21 +28,18 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": {
-    "issue": 1130,
-    "branch": "fix/1130-expat-cve-93990",
-    "phase": "security_review"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "issue": 1130,
-      "status": "in_progress",
-      "trigger_run": 35866744217,
-      "affected": "device-agent_and_telegram-gateway_libexpat1_CVE-2026-93990",
-      "debian_trixie": "vulnerable_no_fixed_version",
-      "xml_reachability": "none_found",
-      "planned_expiry": "2026-09-29",
-      "critical_exception": "none",
+      "issue": 1132,
+      "status": "completed_state_candidate",
+      "scope": "canonical_state_only",
+      "merged_security_sha": "f242c6614393486b00029b3ca3dc5fbe20acffad",
+      "security_issue": 1130,
+      "security_pull_request": 1131,
+      "security_issue_state": "closed_completed",
+      "next_ready_issue": 1127,
+      "production_runtime_mutation": "none",
       "modbus_writes": "none",
       "hardware_writes": "none"
     }
@@ -57,9 +54,20 @@
         "status": "blocked",
         "summary": "rs485-main CP2104 0133F090 stable path absent; Device Agent unhealthy HTTP 503/ENOENT"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-23T16:48:53+03:00",
+      "kind": "security_merge",
+      "data": {
+        "issue": 1130,
+        "pull_request": 1131,
+        "merge_sha": "f242c6614393486b00029b3ca3dc5fbe20acffad",
+        "status": "merged_closed"
+      }
     }
   ],
-  "next_action": "Verify exact two-tuple security disposition locally, push #1130, require fresh Container Supply Chain and NEXOLAB Merge Gate GREEN, merge, then rebase/resume #1127.",
+  "next_action": "Verify and merge the state-only #1132 reconciliation, then integrate current main into #1127 and rerun its exact-head routed verification. Production polling remains disabled; #1125/#1126 remain physical blockers.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

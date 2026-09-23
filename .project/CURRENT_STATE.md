@@ -4,9 +4,15 @@ Updated: 2026-09-23
 
 ## Current Sprint
 
-### Issue #1130 — new Expat CVE-2026-93990 security interrupt
+### Issue #1132 — post-#1130 state reconciliation complete
 
-Fresh Container Supply Chain run `35866744217` on PR #1129 found a new HIGH `libexpat1 2.8.3-1~deb13u1 / CVE-2026-93990` tuple in Device Agent and Telegram Gateway; Telemetry Service and MQTT Dynamic Security remained policy-GREEN. Debian currently marks the consumed Trixie package vulnerable with no fixed Trixie version. A fresh source audit found no XML/pyexpat/Expat/ElementTree/SAX/minidom/lxml parser or input path in either affected NEXOLAB runtime. Issue #1130 therefore owns a focused exact two-tuple HIGH-only disposition through the existing 2026-09-29 review boundary. No CRITICAL/wildcard exception, production mutation, Modbus write or hardware write is permitted. PR #1129 remains blocked until this independent security interrupt merges and its exact-head Container Supply Chain gate is GREEN.
+PR #1131 merged the focused CVE-2026-93990 security repair to `main` as `f242c6614393486b00029b3ca3dc5fbe20acffad`; GitHub closed #1130. Issue #1132 reconciles that observed merge into canonical State Model v2 only, clears the stale security-interrupt selection, and restores #1127 as the next Ready Work Package. No product/runtime, dependency, security-policy, deployment or hardware behavior changes belong to #1132.
+
+### Issue #1130 — Expat CVE-2026-93990 security interrupt completed and merged
+
+Fresh Container Supply Chain discovery from PR #1129 found the new HIGH `libexpat1 2.8.3-1~deb13u1 / CVE-2026-93990` tuple in exactly Device Agent and Telegram Gateway. The focused #1130 disposition adds only those two owner-bound HIGH entries through the existing 2026-09-29 review boundary after a current-source audit found no XML/pyexpat/Expat/ElementTree/SAX/minidom/lxml parser or input path in either affected runtime. No CRITICAL, wildcard, package-family or severity-wide exception was introduced.
+
+Substantive security head `20bc2337fd60cee715768bb1c19cd6f47b27bcee` is GREEN: focused policy tests **36/36**, Container Supply Chain `35867967794`, Telemetry Service `35867967819`, and Core CI / NEXOLAB Merge Gate `35867967858` all passed; review threads are zero. Codex review was unavailable because the service reported its usage limit, so the Team Lead performed the exact-diff review and found no blocking P1/P2. No production deployment/restart, package upgrade, persistent-data mutation, Modbus/controller write, hardware write or named-volume deletion occurred. PR #1131 merged to `main` as `f242c6614393486b00029b3ca3dc5fbe20acffad` and GitHub closed #1130. #1127 is therefore resumed as the next Ready Work Package and must rerun exact-head verification on this reconciled security baseline before merge.
 
 ### Issue #1125 — Waveshare 8AI read-only hardware discovery in progress
 

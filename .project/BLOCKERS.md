@@ -4,7 +4,7 @@ Updated: 2026-09-23
 
 ## Issue #1130 — new Expat CVE-2026-93990 HIGH finding
 
-**Active release-security blocker.** Fresh PR #1129 Container Supply Chain run `35866744217` discovered `libexpat1 / CVE-2026-93990` as a new HIGH in Device Agent and Telegram Gateway. The security policy correctly failed closed. #1130 owns the exact current-evidence review; #1127 cannot merge until the security repair itself passes fresh Container Supply Chain and NEXOLAB Merge Gate. No CRITICAL or wildcard exception is permitted.
+**Cleared for repository/security scope.** The fail-closed finding is reconciled by the exact two-tuple #1130 disposition. Substantive head `20bc2337fd60cee715768bb1c19cd6f47b27bcee` passed focused policy tests 36/36, Container Supply Chain `35867967794`, Telemetry Service `35867967819`, and Core CI / NEXOLAB Merge Gate `35867967858`; manual Team Lead review found no blocking P1/P2 and review threads are zero. Exceptions are limited to Device Agent and Telegram Gateway `libexpat1 / CVE-2026-93990`, owner `platform-security`, expiry 2026-09-29, with immediate removal/re-review conditions. No CRITICAL or wildcard exception exists. PR #1131 is now merged as `f242c6614393486b00029b3ca3dc5fbe20acffad`; #1130 is closed and no longer blocks #1127. The resumed #1127 branch must still integrate current `main` and pass its own exact-head gates before merge.
 
 ## Issue #1126 — rs485-main CP2104 `0133F090` is physically absent
 
