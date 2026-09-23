@@ -4932,7 +4932,10 @@
         "implementation_commit": "342e352a9f86cd76acae4777aeccca92450d4b21",
         "candidate_image_id": "sha256:b0d5d0f4471fd470de34cd4453b1b86891947da0ec26bea4404acd32006f2ea2",
         "candidate_image_platform": "linux_arm64",
-        "offline_mode3_container_smoke": "pass_network_none_12000_uA_mode3"
+        "offline_mode3_container_smoke": "pass_network_none_12000_uA_mode3",
+        "first_exact_head_ci": "core_merge_gate_failed_missing_refrigeration_workflow_registration_35895333537",
+        "ci_routing_correction": "readonly_profile_registered_device_agent_edge_image_fail_closed_neighbors_preserved",
+        "ci_routing_tests": "61_passed"
       }
     }
   ],

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-23T20:15:00+03:00",
+  "timestamp": "2026-09-23T21:40:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1136 Waveshare dedicated LOCAL_LAN runtime candidate prepared; exact-head validation and CI pending",
+  "event": "Issue #1136 exact-head CI routing mismatch localized and corrected; validation/push pending",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -31,7 +31,7 @@
   "active_work": {
     "issue": 1136,
     "branch": "feat/1136-waveshare-humidity-runtime-prep",
-    "status": "needs_validation"
+    "status": "ci_routing_correction_local_green"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
@@ -50,7 +50,10 @@
       "hardware_writes": "none",
       "implementation_commit": "342e352a9f86cd76acae4777aeccca92450d4b21",
       "candidate_image_id": "sha256:b0d5d0f4471fd470de34cd4453b1b86891947da0ec26bea4404acd32006f2ea2",
-      "offline_mode3_container_smoke": "pass_network_none_12000_uA_mode3"
+      "offline_mode3_container_smoke": "pass_network_none_12000_uA_mode3",
+      "first_exact_head_ci": "core_merge_gate_failed_missing_refrigeration_workflow_registration_35895333537",
+      "ci_routing_correction": "readonly_profile_registered_device_agent_edge_image_fail_closed_neighbors_preserved",
+      "ci_routing_tests": "61_passed"
     }
   },
   "observations": [
@@ -87,7 +90,7 @@
       }
     }
   ],
-  "next_action": "Validate exact #1136 candidate, open focused PR and require GREEN CI. Do not activate production. After merge, physical 4-20 mA jumper/channel evidence and exact humidity engineering range remain required before %RH acceptance.",
+  "next_action": "Commit and push the focused #1136 CI registration correction, require all exact-head workflows GREEN, then merge PR #1137. Do not activate production; humidity hardware evidence remains required.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

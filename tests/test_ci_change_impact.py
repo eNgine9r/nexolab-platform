@@ -158,8 +158,11 @@ class ChangeImpactClassifierTests(unittest.TestCase):
     def test_edge_image_workflow_registers_and_validates_rs485_config_changes(self) -> None:
         workflow = Path('.github/workflows/edge-image.yml').read_text(encoding='utf-8')
         self.assertGreaterEqual(workflow.count('config/edge/*-register-map.yaml'), 2)
+        self.assertGreaterEqual(workflow.count('config/edge/*-readonly-profile.yaml'), 2)
         self.assertGreaterEqual(workflow.count('config/edge/rs485-device-registry.yaml'), 2)
-        self.assertIn('Validate RS-485 registry and register maps', workflow)
+        self.assertIn('Validate RS-485 registry, register maps and read-only profiles', workflow)
+        self.assertIn("allowed_functions must be exactly [3, 4]", workflow)
+        self.assertIn("write functions 5, 6, 15 and 16 must be prohibited", workflow)
         self.assertIn('yaml.safe_load', workflow)
         self.assertIn("missing referenced register map", workflow)
         self.assertIn("bus.port must use a direct stable /dev/serial/by-id/ path", workflow)
@@ -171,6 +174,7 @@ class ChangeImpactClassifierTests(unittest.TestCase):
     def test_rs485_acquisition_surfaces_are_known_device_agent_paths(self) -> None:
         for path, required_workflow in (
             ("config/edge/eastron-sdm120m-v2.4-register-map.yaml", "Edge image"),
+            ("config/edge/waveshare-8ai-v3-readonly-profile.yaml", "Edge image"),
             ("config/edge/rs485-device-registry.yaml", "Edge image"),
             ("scripts/run-acquisition-scale-acceptance.py", "Acquisition Scale Acceptance"),
             ("tools/rs485_discovery/scan_rs485.py", "RS485 tools"),
@@ -196,6 +200,7 @@ class ChangeImpactClassifierTests(unittest.TestCase):
     def test_unknown_neighboring_acquisition_paths_still_fail_closed(self) -> None:
         for path in (
             "config/edge/unclassified-device-profile.json",
+            "config/edge/vendor-unsafe-profile.yaml",
             "scripts/run-unclassified-acquisition-tool.py",
             "tools/other_discovery/scan.py",
         ):
