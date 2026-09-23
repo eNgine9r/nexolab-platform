@@ -4,6 +4,10 @@ Updated: 2026-09-23
 
 ## Current Sprint
 
+### Issue #1130 — new Expat CVE-2026-93990 security interrupt
+
+Fresh Container Supply Chain run `35866744217` on PR #1129 found a new HIGH `libexpat1 2.8.3-1~deb13u1 / CVE-2026-93990` tuple in Device Agent and Telegram Gateway; Telemetry Service and MQTT Dynamic Security remained policy-GREEN. Debian currently marks the consumed Trixie package vulnerable with no fixed Trixie version. A fresh source audit found no XML/pyexpat/Expat/ElementTree/SAX/minidom/lxml parser or input path in either affected NEXOLAB runtime. Issue #1130 therefore owns a focused exact two-tuple HIGH-only disposition through the existing 2026-09-29 review boundary. No CRITICAL/wildcard exception, production mutation, Modbus write or hardware write is permitted. PR #1129 remains blocked until this independent security interrupt merges and its exact-head Container Supply Chain gate is GREEN.
+
 ### Issue #1125 — Waveshare 8AI read-only hardware discovery in progress
 
 A new physically installed `Waveshare Modbus RTU Analog Input 8CH (B) V3` is now tracked by #1125. Bounded read-only discovery identified FTDI `A10Q2QYX` as the physical RS-485 path; `A10Q2SI7` did not answer the vendor address/version probes. The module responds as Unit `1` at `9600 8N1`, FC03 UART parameter `0x0001`, and software version raw `210` (`V2.10`). Vendor-defined FC03 mode registers `0x1000..0x1007` all return mode `0`, which is 0–10 V on the `(B)` hardware. Three repeated FC04 reads of channels `0x0000..0x0007` returned all zero with valid CRC. No Modbus or hardware write occurred.

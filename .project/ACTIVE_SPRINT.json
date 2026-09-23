@@ -40,7 +40,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1130
+    },
     "next_work_package": {
       "issue": 1127
     }
@@ -4796,6 +4798,25 @@
         "hardware_write": "forbidden"
       },
       "branch": "feat/1127-waveshare-8ai-driver"
+    },
+    {
+      "issue": 1130,
+      "title": "Triage new Expat CVE-2026-93990 HIGH findings",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "branch": "fix/1130-expat-cve-93990",
+      "evidence": {
+        "trigger_pr": 1129,
+        "trigger_head_sha": "386b5fa84fa1fad5bed8ff7a23d479132e55bc26",
+        "trigger_container_supply_chain_run": 35866744217,
+        "new_tuples": "device-agent+telegram-gateway/libexpat1/CVE-2026-93990",
+        "debian_trixie": "2.8.3-1~deb13u1_vulnerable_no_fixed_trixie_version",
+        "runtime_xml_reachability": "none_found_device_agent_or_telegram_gateway",
+        "exception_expiry": "2026-09-29",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
     }
   ],
   "maintenance_actions": [
