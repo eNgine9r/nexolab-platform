@@ -4805,9 +4805,35 @@
         "modbus_reads": "FC03_mode_plus_FC04_input_only",
         "modbus_write": "none",
         "hardware_write": "none",
-        "recorded_frame_regression": "issue_1125_fc03_fc04_crc_valid_frames_decode_8_of_8"
+        "recorded_frame_regression": "issue_1125_fc03_fc04_crc_valid_frames_decode_8_of_8",
+        "security_dependency": "issue_1130_merged_green_f242c661"
       },
       "branch": "feat/1127-waveshare-8ai-driver"
+    },
+    {
+      "issue": 1130,
+      "title": "Triage new Expat CVE-2026-93990 HIGH findings",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "fix/1130-expat-cve-93990",
+      "evidence": {
+        "trigger_pr": 1129,
+        "trigger_head_sha": "386b5fa84fa1fad5bed8ff7a23d479132e55bc26",
+        "trigger_container_supply_chain_run": 35866744217,
+        "new_tuples": "device-agent+telegram-gateway/libexpat1/CVE-2026-93990",
+        "debian_trixie": "2.8.3-1~deb13u1_vulnerable_no_fixed_trixie_version",
+        "runtime_xml_reachability": "none_found_device_agent_or_telegram_gateway",
+        "exception_expiry": "2026-09-29",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "verified_head_sha": "20bc2337fd60cee715768bb1c19cd6f47b27bcee",
+        "container_supply_chain_run": 35867967794,
+        "telemetry_service_run": 35867967819,
+        "core_ci_run": 35867967858,
+        "merge_gate": "green",
+        "github_issue": "closed"
+      }
     }
   ],
   "maintenance_actions": [
