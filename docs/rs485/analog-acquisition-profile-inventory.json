@@ -70,9 +70,7 @@
         "raw_min": null,
         "raw_max": null
       },
-      "evidence": [
-        "docs/adr/0010-refrigeration-monitoring-and-derived-thermodynamics.md"
-      ],
+      "evidence": ["docs/adr/0010-refrigeration-monitoring-and-derived-thermodynamics.md"],
       "notes": "Allowed architecture alternative for an isolated analog-input/converter. Exact model and profile require separate evidence."
     },
     {
@@ -90,9 +88,7 @@
         "register_reference": null,
         "raw_encoding": null
       },
-      "evidence": [
-        "docs/adr/0010-refrigeration-monitoring-and-derived-thermodynamics.md"
-      ],
+      "evidence": ["docs/adr/0010-refrigeration-monitoring-and-derived-thermodynamics.md"],
       "notes": "Reference/candidate only. No production capability or protocol semantics are claimed by RFX-02."
     },
     {

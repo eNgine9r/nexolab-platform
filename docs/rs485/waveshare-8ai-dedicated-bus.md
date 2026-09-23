@@ -27,7 +27,16 @@ WAVESHARE_8AI_BUS_ID=rs485-waveshare
 The dedicated bus object is:
 
 ```json
-{"bus_id":"rs485-waveshare","serial_device":"/host/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q2QYX-if00-port0","unit_ids":[1],"baudrate":9600,"parity":"N","stopbits":1,"timeout_seconds":0.3,"retries":1}
+{
+  "bus_id": "rs485-waveshare",
+  "serial_device": "/host/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q2QYX-if00-port0",
+  "unit_ids": [1],
+  "baudrate": 9600,
+  "parity": "N",
+  "stopbits": 1,
+  "timeout_seconds": 0.3,
+  "retries": 1
+}
 ```
 
 This object must be composed with the existing production bus array; it must never replace another bus or reuse its physical serial path.
