@@ -466,7 +466,7 @@ jobs:
               print(image["reference"])
           PY
           )
-          test "${#runtime_images[@]}" -eq 7
+          test "${#runtime_images[@]}" -eq 6
           docker image rm --force "${runtime_images[@]}"
           for image in "${runtime_images[@]}"; do
             if docker image inspect "$image" >/dev/null 2>&1; then

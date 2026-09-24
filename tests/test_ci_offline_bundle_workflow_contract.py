@@ -139,6 +139,7 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertIn("OFFLINE_OBJECT_STORAGE_IMAGE=nexolab/object-storage:versitygw-v1.8.0-amd64", self.workflow)
         self.assertNotIn("OFFLINE_MINIO_IMAGE", self.workflow)
         self.assertNotIn("OFFLINE_MINIO_CLIENT_IMAGE", self.workflow)
+        self.assertIn('test "${#runtime_images[@]}" -eq 6', self.workflow)
 
     def test_installer_fails_closed_on_unmigrated_legacy_object_storage(self) -> None:
         installer = (ROOT / "scripts/install-offline-bundle.sh").read_text(encoding="utf-8")
