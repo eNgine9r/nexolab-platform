@@ -28,6 +28,13 @@
       "context": "services/telegram-gateway",
       "dockerfile": "services/telegram-gateway/Dockerfile",
       "platforms": ["linux/amd64", "linux/arm64"]
+    },
+    {
+      "id": "object-storage",
+      "image": "ghcr.io/engine9r/nexolab-object-storage",
+      "context": "infrastructure/object-storage",
+      "dockerfile": "infrastructure/object-storage/Dockerfile",
+      "platforms": ["linux/amd64", "linux/arm64"]
     }
   ]
 }

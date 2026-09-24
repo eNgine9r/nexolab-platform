@@ -24,6 +24,8 @@ on:
       - "services/telemetry-service/migrations/versions/20260726_0010_add_production_alerts.py"
       - "services/telemetry-service/migrations/versions/20260726_0011_harden_alert_audit.py"
       - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/object-storage/**"
+      - "scripts/object-storage-s3.py"
       - "infrastructure/compose/compose.browser-acceptance.yaml"
   workflow_dispatch:
 

@@ -18,6 +18,7 @@ on:
       - "services/telemetry-service/**"
       - "services/telegram-gateway/**"
       - "infrastructure/mqtt/dynamic-security/**"
+      - "infrastructure/object-storage/**"
       - ".github/workflows/container-supply-chain.yml"
   push:
     branches: [main]
@@ -37,6 +38,7 @@ on:
       - "services/telemetry-service/**"
       - "services/telegram-gateway/**"
       - "infrastructure/mqtt/dynamic-security/**"
+      - "infrastructure/object-storage/**"
       - ".github/workflows/container-supply-chain.yml"
   workflow_dispatch:
 

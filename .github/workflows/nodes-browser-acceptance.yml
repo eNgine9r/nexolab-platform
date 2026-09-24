@@ -23,6 +23,8 @@ on:
       - "services/telemetry-service/app/model_registry.py"
       - "services/telemetry-service/migrations/versions/20260726_0014_add_central_node_registry.py"
       - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/object-storage/**"
+      - "scripts/object-storage-s3.py"
       - "infrastructure/compose/compose.browser-acceptance.yaml"
   workflow_dispatch:
 

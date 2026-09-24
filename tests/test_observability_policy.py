@@ -76,7 +76,7 @@ def test_acceptance_resources_are_namespaced_by_compose_project() -> None:
     } == {
         f"{central_prefix}-mqtt-data",
         f"{central_prefix}-postgres-data",
-        f"{central_prefix}-object-storage-data",
+        f"{central_prefix}-object-storage-versitygw-data",
         f"{central_prefix}-telemetry-ingestion-data",
     }
 

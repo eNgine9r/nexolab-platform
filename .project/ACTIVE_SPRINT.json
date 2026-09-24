@@ -40,7 +40,11 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1146,
+      "title": "Replace MinIO Community with VersityGW for local S3 runtime",
+      "branch": "feat/1146-versitygw-offline-storage"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -4970,7 +4974,7 @@
       "issue": 1142,
       "title": "Restore reproducible object-storage acceptance/offline supply after MinIO registry withdrawal",
       "priority": "critical",
-      "lifecycle": "blocked",
+      "lifecycle": "completed",
       "depends_on": [
         1143
       ],
@@ -4986,14 +4990,18 @@
         "production_data_mutation": "none",
         "modbus_writes": "none",
         "hardware_writes": "none",
-        "blocker": "architecture_decision_issue_1143"
+        "blocker": "architecture_decision_issue_1143",
+        "github_state": "closed_not_planned",
+        "github_label": "status:superseded",
+        "superseded_by_issue": 1146,
+        "superseded_reason": "legacy_MinIO_reconstruction_security_rejected_and_Product_Owner_approved_VersityGW_replacement"
       }
     },
     {
       "issue": 1143,
       "title": "Select maintained offline S3 backend after MinIO Community end-state",
       "priority": "critical",
-      "lifecycle": "blocked",
+      "lifecycle": "completed",
       "depends_on": [],
       "evidence": {
         "decision_type": "product_architecture_hard_blocker",
@@ -5007,7 +5015,10 @@
         "offline_posix_backend": "verified_local_nonproduction",
         "production_cutover": "not_executed_not_authorized",
         "production_data_migration": "not_executed_not_authorized",
-        "blocker": "explicit_Product_Owner_backend_selection_required"
+        "blocker": "cleared_by_Product_Owner_backend_selection",
+        "decision": "VersityGW_v1.8.0_approved",
+        "product_owner_approval": "approved_2026-09-24",
+        "github_state": "closed_completed"
       }
     },
     {
@@ -5031,6 +5042,43 @@
         "modbus_write": "none",
         "hardware_write": "none"
       }
+    },
+    {
+      "issue": 1146,
+      "title": "Replace MinIO Community with VersityGW for local S3 runtime",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "branch": "feat/1146-versitygw-offline-storage",
+      "evidence": {
+        "architecture_decision_issue": 1143,
+        "legacy_supply_issue": 1142,
+        "implementation_checkpoint_sha": "4b40b495",
+        "backend": "VersityGW_v1.8.0",
+        "storage_backend": "local_POSIX",
+        "legacy_minio_volume_mounted": false,
+        "migration_cutover": "not_executed_separate_gate",
+        "targeted_contract_tests": "89_passed",
+        "disaster_recovery_acceptance": "passed_private_bucket_3_objects_metadata_tamper_wrong_key_source_volumes_unchanged",
+        "focused_equipment_layout_browser_acceptance": "2_of_2_passed_with_real_s3_seed_and_presigned_read",
+        "refrigeration_browser_acceptance": "5_of_6_passed_one_unchanged_RFX10_signal_binding_baseline_failure",
+        "production_build": "passed_during_browser_acceptance",
+        "typescript": "passed_during_browser_acceptance",
+        "arm64_runtime_s3": "passed_health_bucket_put_get_metadata_presigned_get_delete",
+        "arm64_trivy": "0_HIGH_0_CRITICAL_2_MEDIUM_1_UNKNOWN",
+        "amd64_build": "passed_image_constructed",
+        "amd64_trivy": "0_HIGH_0_CRITICAL_2_MEDIUM_1_UNKNOWN",
+        "amd64_runtime_local": "not_run_on_arm_host_exec_format_error_ci_required",
+        "git_diff_check": "passed",
+        "exact_head_ci": "pending",
+        "production_runtime_mutation": "none",
+        "production_object_data_mutation": "none",
+        "volume_deletion": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      },
+      "depends_on": [
+        1143
+      ]
     }
   ],
   "maintenance_actions": [

@@ -53,7 +53,7 @@ fi
 "${CENTRAL[@]}" ps --format json > /tmp/nexolab-offline-central-ps.json
 curl --fail --silent --show-error "http://${CENTRAL_BIND}:${CENTRAL_API_PORT}/health/ready" >/tmp/nexolab-offline-ready.json
 curl --fail --silent --show-error "http://${DASHBOARD_BIND}:${DASHBOARD_PORT}/" >/dev/null
-curl --fail --silent --show-error "http://${CENTRAL_BIND}:${OBJECT_PORT}/minio/health/live" >/dev/null
+curl --fail --silent --show-error "http://${CENTRAL_BIND}:${OBJECT_PORT}/health" >/dev/null
 "${CENTRAL[@]}" exec -T postgres sh -ec 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 "${CENTRAL[@]}" exec -T mqtt sh -ec "mosquitto_sub -h 127.0.0.1 -t '\$SYS/broker/version' -C 1 -W 5 >/dev/null"
 
@@ -135,4 +135,4 @@ if payload.get("status") != "ready":
     raise SystemExit(f"Central readiness is not ready: {payload}")
 PY
 
-echo "Offline smoke passed: dashboard, API, WebSocket, MQTT, PostgreSQL, MinIO${SKIP_EDGE:+ and edge simulator}."
+echo "Offline smoke passed: dashboard, API, WebSocket, MQTT, PostgreSQL, object storage${SKIP_EDGE:+ and edge simulator}."

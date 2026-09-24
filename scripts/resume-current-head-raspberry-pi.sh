@@ -155,7 +155,7 @@ log "Ensuring dashboard systemd service"
 sudo systemctl enable nexolab-dashboard.service >/dev/null
 sudo systemctl restart nexolab-dashboard.service
 wait_http dashboard "http://127.0.0.1:3000" 90
-wait_http minio "http://$BIND_IP:9000/minio/health/live" 90
+wait_http minio "http://$BIND_IP:9000/health" 90
 wait_http prometheus "http://127.0.0.1:9090/-/ready" 90
 wait_http alertmanager "http://127.0.0.1:9093/-/ready" 90
 wait_http grafana "http://127.0.0.1:3001/api/health" 120

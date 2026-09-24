@@ -17,6 +17,7 @@ on:
       - "contracts/telemetry-event.v1.schema.json"
       - "infrastructure/compose/compose.backend.yaml"
       - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/object-storage/**"
       - "infrastructure/compose/compose.edge-central-bridge.yaml"
       - "infrastructure/compose/.env.central.example"
       - "infrastructure/compose/.env.edge-central.example"
@@ -45,6 +46,7 @@ on:
       - "contracts/telemetry-event.v1.schema.json"
       - "infrastructure/compose/compose.backend.yaml"
       - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/object-storage/**"
       - "infrastructure/compose/compose.edge-central-bridge.yaml"
       - "infrastructure/compose/.env.central.example"
       - "infrastructure/compose/.env.edge-central.example"
@@ -164,20 +166,30 @@ jobs:
           done
           docker logs nexolab-mqtt-ci
           exit 1
+      - name: Build isolated S3-compatible object storage
+        working-directory: ${{ github.workspace }}
+        run: |
+          docker build \
+            --tag nexolab/object-storage:ci \
+            infrastructure/object-storage
       - name: Start isolated S3-compatible object storage
         working-directory: ${{ github.workspace }}
         run: |
           docker run --detach \
             --name nexolab-minio-ci \
             --publish 9000:9000 \
-            --env MINIO_ROOT_USER="$OBJECT_STORAGE_ACCESS_KEY_ID" \
-            --env MINIO_ROOT_PASSWORD="$OBJECT_STORAGE_SECRET_ACCESS_KEY" \
-            quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z \
-            server /data
+            --tmpfs /data:rw,nosuid,nodev,noexec \
+            --env ROOT_ACCESS_KEY_ID="$OBJECT_STORAGE_ACCESS_KEY_ID" \
+            --env ROOT_SECRET_ACCESS_KEY="$OBJECT_STORAGE_SECRET_ACCESS_KEY" \
+            --env VGW_PORT=:9000 \
+            --env VGW_REGION="$OBJECT_STORAGE_REGION" \
+            --env VGW_HEALTH=/health \
+            nexolab/object-storage:ci \
+            posix /data
           for attempt in $(seq 1 30); do
             if python - <<'PY'
           import urllib.request
-          urllib.request.urlopen("http://127.0.0.1:9000/minio/health/live", timeout=2)
+          urllib.request.urlopen("http://127.0.0.1:9000/health", timeout=2)
           PY
             then
               exit 0
