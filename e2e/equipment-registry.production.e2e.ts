@@ -559,7 +559,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
         await expect(page.getByText(identifier, { exact: true }).first()).toBeVisible();
       }
       await fixtureSearch.fill("");
-      await expect(page.getByText("Частина chamber catalog недоступна", { exact: true })).toBeVisible();
+      await expect(page.getByText("Частина реєстру обладнання недоступна", { exact: true })).toBeVisible();
       await expect(page.getByText("REG-B · Registry Chamber B:", { exact: true })).toBeVisible();
       expect(injectedFailureCount).toBeGreaterThan(0);
 
