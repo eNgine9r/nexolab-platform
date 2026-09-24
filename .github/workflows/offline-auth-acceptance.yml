@@ -10,6 +10,8 @@ on:
       - "e2e/local-auth-persistence.production.e2e.ts"
       - "e2e/settings-version.production.e2e.ts"
       - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/object-storage/**"
+      - "scripts/object-storage-s3.py"
       - "infrastructure/compose/compose.local-auth.yaml"
       - "infrastructure/compose/compose.local-auth-acceptance.yaml"
       - "package-lock.json"

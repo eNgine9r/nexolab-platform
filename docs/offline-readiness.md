@@ -11,11 +11,11 @@ This checklist classifies dependencies and separates static architecture review 
 | Dependency or capability     | Classification                                   | Offline behavior                                                               |
 | ---------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------ |
 | Next.js dashboard            | Local mandatory                                  | Runs from a local process/container and uses local API/WebSocket origins       |
-| FastAPI Telemetry Service    | Local mandatory                                  | Runs against local PostgreSQL, MQTT and optional local MinIO                   |
+| FastAPI Telemetry Service    | Local mandatory                                  | Runs against local PostgreSQL, MQTT and optional local S3 object storage       |
 | PostgreSQL 16                | Local mandatory                                  | Central source of truth; named volume; no standard host port exposure          |
 | Eclipse Mosquitto            | Local mandatory                                  | Local edge and central brokers; persistent data volumes                        |
 | Edge SQLite                  | Local mandatory                                  | Stores outbound telemetry until the configured MQTT broker acknowledges QoS 1  |
-| MinIO                        | Local mandatory when image workflows are enabled | Local private S3-compatible storage; can be disabled at service level          |
+| VersityGW object storage     | Local mandatory when image workflows are enabled | Local private S3-compatible storage; can be disabled at service level          |
 | Serial/Modbus libraries      | Local mandatory on edge hardware                 | Read-only acquisition; no internet dependency                                  |
 | Docker/Compose               | Local packaging/runtime dependency               | Must be preinstalled or included in the site installation procedure            |
 | GitHub/GitHub Actions        | Development and delivery only                    | Not required after artifacts reach the local site                              |
@@ -24,7 +24,7 @@ This checklist classifies dependencies and separates static architecture review 
 | Supabase Auth                | Optional online                                  | No client is created when variables are absent                                 |
 | External OIDC/JWKS           | Optional online                                  | Local public key configuration is supported; external JWKS cannot be mandatory |
 | Tailscale                    | Optional remote access                           | Local LAN runtime continues without it                                         |
-| External S3                  | Optional online                                  | Local MinIO is the standard fallback                                           |
+| External S3                  | Optional online                                  | Local VersityGW is the standard fallback                                       |
 | CDN fonts/assets             | Prohibited for core runtime                      | No mandatory instance was found in the inspected frontend                      |
 | External telemetry/analytics | Prohibited for core runtime                      | No mandatory instance was found in the inspected configuration                 |
 | Paid runtime API/service     | Prohibited                                       | Core operation must not depend on it                                           |
@@ -40,7 +40,7 @@ Status meanings:
 
 | Gate                                                               | Status                           | Evidence and boundary                                                                                                                         |
 | ------------------------------------------------------------------ | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Core data path has no cloud dependency                             | Static pass                      | Edge, MQTT, FastAPI, PostgreSQL, MinIO and dashboard have local configurations                                                                |
+| Core data path has no cloud dependency                             | Static pass                      | Edge, MQTT, FastAPI, PostgreSQL, local S3 storage and dashboard have local configurations                                                     |
 | Browser assets work without remote fonts/CDN                       | Static pass                      | Root layout imports local CSS and system fonts; no mandatory CDN/font endpoint was found                                                      |
 | Edge acquisition survives central/MQTT outage                      | Verified for narrow scope        | 2026-07-23 combined Modbus soak recorded SQLite queue growth, reconnect and drain to the MQTT boundary                                        |
 | End-to-end MQTT-to-PostgreSQL durability                           | Missing — Issue #198             | Edge rows are deleted after broker QoS 1 acknowledgement while central persistence is still in memory; service termination can lose telemetry |
@@ -53,7 +53,7 @@ Status meanings:
 | Local authorization/RBAC                                           | Partial                          | Backend/frontend contracts exist; complete disconnected operator acceptance is not established                                                |
 | PostgreSQL backup procedure                                        | Static pass                      | Logical backup runbook exists                                                                                                                 |
 | Central PostgreSQL fresh-volume restore software proof             | Verified software gate           | Merged PR #144 restores a custom dump into a fresh volume and verifies Alembic head, protected counts and hashes                              |
-| MinIO fresh-volume backup/restore software proof                   | Verified software gate           | PR #144 restores the private bucket and verifies object count, bytes, metadata, SHA-256 and private access                                    |
+| Object-storage fresh-volume backup/restore software proof          | Verified software gate           | PR #144 restores the private bucket and verifies object count, bytes, metadata, SHA-256 and private access                                    |
 | MQTT persistence/recovery                                          | Partial                          | PR #144 verifies Mosquitto persistence/Dynamic Security restore; #198 ingestion durability and actual-host recovery remain open               |
 | Host restart/reboot                                                | Partial                          | Focused restart tooling exists; complete current central/edge evidence is not consolidated                                                    |
 | Power-loss recovery                                                | Missing                          | No accepted controlled power-loss evidence was found                                                                                          |
@@ -82,7 +82,7 @@ The largest installation gap is artifact delivery, not the local service topolog
 
 A complete bundle must include:
 
-- pinned OCI images for dashboard, Telemetry Service, Device Agent, Mosquitto, PostgreSQL, MinIO and MinIO Client;
+- pinned OCI images for dashboard, Telemetry Service, Device Agent, Mosquitto, PostgreSQL and VersityGW object storage;
 - image digests and checksums;
 - architecture manifest for `amd64` and required `arm64` targets;
 - Compose files and validated environment templates;
@@ -112,7 +112,7 @@ The current MQTT-to-PostgreSQL handoff is not end-to-end durable. The Device Age
 
 Issue #198 must implement a local durable central staging/replay boundary before restart and outage acceptance can claim no silent telemetry loss.
 
-Merged PR #144 provides a repeatable encrypted software recovery gate for PostgreSQL, private MinIO objects and Mosquitto persistence/Dynamic Security. The drill restores into fresh volumes and verifies protected database state, MinIO object bytes/metadata/private access, broker policy, REST, WebSocket, MQTT TLS and Chromium flows. It explicitly does not prove the actual central host, scheduler, off-host storage, physical disks or production RPO/RTO.
+Merged PR #144 provides a repeatable encrypted software recovery gate for PostgreSQL, private S3 objects and Mosquitto persistence/Dynamic Security. The drill restores into fresh volumes and verifies protected database state, object-storage bytes/metadata/private access, broker policy, REST, WebSocket, MQTT TLS and Chromium flows. It explicitly does not prove the actual central host, scheduler, off-host storage, physical disks or production RPO/RTO.
 
 Remaining proof includes:
 

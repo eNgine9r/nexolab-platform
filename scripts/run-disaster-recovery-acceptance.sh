@@ -128,6 +128,8 @@ export DR_SOURCE_LOCAL_AUTH_DIR="$SOURCE_LOCAL_AUTH_DIR"
 export DR_RESTORE_LOCAL_AUTH_DIR="$RESTORE_LOCAL_AUTH_DIR"
 export DR_LOCAL_AUTH_ORGANIZATION_ID="00000000-0000-0000-0000-000000000099"
 export DR_WORK_DIR="$WORK_DIR"
+export DR_WORK_UID="$(id -u)"
+export DR_WORK_GID="$(id -g)"
 export DR_NETWORK="${PROJECT_NAME}-network"
 export DR_SOURCE_POSTGRES_VOLUME="${PROJECT_NAME}-source-postgres"
 export DR_RESTORE_POSTGRES_VOLUME="${PROJECT_NAME}-restore-postgres"
@@ -362,10 +364,9 @@ Path(sys.argv[1]).write_bytes(hashlib.sha256(seed).digest() * 64)
 PY
 
 compose run --rm minio-client "
-  mc alias set source http://source-minio:9000 \"\$MINIO_ROOT_USER\" \"\$MINIO_ROOT_PASSWORD\" >/dev/null
-  mc mb --ignore-existing source/$BUCKET >/dev/null
-  mc anonymous set none source/$BUCKET >/dev/null
-  mc mirror --overwrite /work/seed-objects source/$BUCKET >/dev/null
+  python /opt/nexolab/scripts/object-storage-s3.py --endpoint http://source-minio:9000 ensure-bucket --bucket $BUCKET
+  python /opt/nexolab/scripts/object-storage-s3.py --endpoint http://source-minio:9000 assert-private --bucket $BUCKET >/dev/null
+  python /opt/nexolab/scripts/object-storage-s3.py --endpoint http://source-minio:9000 mirror-upload --bucket $BUCKET --source-dir /work/seed-objects
 "
 
 ORGANIZATION_ID="00000000-0000-0000-0000-000000000099"
@@ -466,18 +467,13 @@ test -s "$PAYLOAD_DIR/postgresql/nexolab.dump"
 compose run --rm minio-client "
   rm -rf /work/payload/object-storage/objects
   mkdir -p /work/payload/object-storage/objects
-  mc alias set source http://source-minio:9000 \"\$MINIO_ROOT_USER\" \"\$MINIO_ROOT_PASSWORD\" >/dev/null
-  mc mirror source/$BUCKET /work/payload/object-storage/objects >/dev/null
+  python /opt/nexolab/scripts/object-storage-s3.py --endpoint http://source-minio:9000 mirror-download --bucket $BUCKET --destination /work/payload/object-storage/objects
 "
 find "$PAYLOAD_DIR/object-storage/objects" -type f -printf '%P\n' | LC_ALL=C sort \
   >"$WORK_DIR/object-keys.txt"
 test -s "$WORK_DIR/object-keys.txt"
 compose run --rm minio-client "
-  mc alias set source http://source-minio:9000 \"\$MINIO_ROOT_USER\" \"\$MINIO_ROOT_PASSWORD\" >/dev/null
-  : > /work/source-object-stats.ndjson
-  while IFS= read -r key; do
-    mc stat --json \"source/$BUCKET/\$key\" >> /work/source-object-stats.ndjson
-  done < /work/object-keys.txt
+  python /opt/nexolab/scripts/object-storage-s3.py --endpoint http://source-minio:9000 stat-keys --bucket $BUCKET --keys-file /work/object-keys.txt > /work/source-object-stats.ndjson
 "
 python3 - "$PAYLOAD_DIR/object-storage/objects" "$WORK_DIR/object-keys.txt" \
   "$WORK_DIR/source-object-stats.ndjson" "$PAYLOAD_DIR/object-storage/objects.json" <<'PY'
@@ -489,7 +485,7 @@ root, keys_path, stats_path, output_path = map(Path, sys.argv[1:])
 keys = keys_path.read_text(encoding="utf-8").splitlines()
 stats = [json.loads(line) for line in stats_path.read_text(encoding="utf-8").splitlines() if line]
 if len(keys) != len(stats):
-    raise SystemExit("MinIO stat count does not match exported object count")
+    raise SystemExit("Object-storage stat count does not match exported object count")
 objects = []
 for key, stat in zip(keys, stats, strict=True):
     path = root / key
@@ -497,12 +493,14 @@ for key, stat in zip(keys, stats, strict=True):
     size = stat.get("size")
     etag = stat.get("etag") or stat.get("ETag")
     if size != len(content) or not isinstance(etag, str) or not etag:
-        raise SystemExit(f"MinIO metadata is incomplete for {key}")
+        raise SystemExit(f"Object-storage metadata is incomplete for {key}")
     objects.append({
         "key": key,
         "size": size,
         "etag": etag.strip('"'),
         "sha256": hashlib.sha256(content).hexdigest(),
+        "content_type": stat.get("content_type"),
+        "metadata": stat.get("metadata") or {},
     })
 payload = {"schema_version": 1, "bucket": "nexolab-equipment-images", "objects": objects}
 output_path.write_text(json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
@@ -585,11 +583,9 @@ compose exec -T restore-postgres \
   <"$RESTORED_DIR/postgresql/nexolab.dump"
 
 compose run --rm minio-client "
-  mc alias set restore http://restore-minio:9000 \"\$MINIO_ROOT_USER\" \"\$MINIO_ROOT_PASSWORD\" >/dev/null
-  mc mb --ignore-existing restore/$BUCKET >/dev/null
-  mc mirror --overwrite /work/restored/object-storage/objects restore/$BUCKET >/dev/null
-  mc anonymous set none restore/$BUCKET >/dev/null
-  mc anonymous get restore/$BUCKET > /work/restore-bucket-policy.txt
+  python /opt/nexolab/scripts/object-storage-s3.py --endpoint http://restore-minio:9000 ensure-bucket --bucket $BUCKET
+  python /opt/nexolab/scripts/object-storage-s3.py --endpoint http://restore-minio:9000 mirror-upload --bucket $BUCKET --source-dir /work/restored/object-storage/objects --metadata-file /work/restored/object-storage/objects.json
+  python /opt/nexolab/scripts/object-storage-s3.py --endpoint http://restore-minio:9000 assert-private --bucket $BUCKET > /work/restore-bucket-policy.txt
 "
 
 test ! -e "$WORK_DIR/restore-mqtt-sentinel"
@@ -608,8 +604,7 @@ grep -Fqi 'private' "$WORK_DIR/restore-bucket-policy.txt"
 compose run --rm minio-client "
   rm -rf /work/restore-objects
   mkdir -p /work/restore-objects
-  mc alias set restore http://restore-minio:9000 \"\$MINIO_ROOT_USER\" \"\$MINIO_ROOT_PASSWORD\" >/dev/null
-  mc mirror restore/$BUCKET /work/restore-objects >/dev/null
+  python /opt/nexolab/scripts/object-storage-s3.py --endpoint http://restore-minio:9000 mirror-download --bucket $BUCKET --destination /work/restore-objects
 "
 python3 - "$PAYLOAD_DIR/object-storage/objects" "$WORK_DIR/restore-objects" <<'PY'
 from pathlib import Path
@@ -626,7 +621,7 @@ def tree(root: Path) -> list[tuple[str, int, str]]:
 source = tree(Path(sys.argv[1]))
 restored = tree(Path(sys.argv[2]))
 if source != restored or not source:
-    raise SystemExit("Restored MinIO object tree does not match source")
+    raise SystemExit("Restored object-storage tree does not match source")
 PY
 
 capture_database_state source-postgres "$WORK_DIR/source-database-state-after.json"

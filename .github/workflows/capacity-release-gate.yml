@@ -6,6 +6,8 @@ on:
     paths:
       - ".github/workflows/capacity-release-gate.yml"
       - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/object-storage/**"
+      - "scripts/object-storage-s3.py"
       - "infrastructure/compose/compose.capacity.yaml"
       - "infrastructure/performance/**"
       - "scripts/run-capacity-acceptance.sh"
@@ -19,6 +21,8 @@ on:
     paths:
       - ".github/workflows/capacity-release-gate.yml"
       - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/object-storage/**"
+      - "scripts/object-storage-s3.py"
       - "infrastructure/compose/compose.capacity.yaml"
       - "infrastructure/performance/**"
       - "scripts/run-capacity-acceptance.sh"

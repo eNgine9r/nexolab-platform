@@ -122,7 +122,7 @@ python3 "$VERIFY" "$BUNDLE_ROOT"
 docker load --input "$IMAGE_ARCHIVE"
 eval "$(python3 "$VERIFY" "$BUNDLE_ROOT" --check-loaded-images --emit-shell-env)"
 export OFFLINE_DASHBOARD_IMAGE OFFLINE_TELEMETRY_IMAGE OFFLINE_DEVICE_AGENT_IMAGE
-export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
+export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_OBJECT_STORAGE_IMAGE
 
 python3 - "$MANIFEST" "$CENTRAL_ENV" <<'PY'
 import json
@@ -175,6 +175,29 @@ else:
 PYBIND
 )"
 export DASHBOARD_BIND_ADDRESS
+
+OBJECT_STORAGE_RESOURCE_PREFIX="$(python3 - "$CENTRAL_ENV" <<'PYOBJECTPREFIX'
+import os
+import sys
+from pathlib import Path
+
+values = {}
+for raw in Path(sys.argv[1]).read_text(encoding="utf-8").splitlines():
+    line = raw.strip()
+    if not line or line.startswith("#") or "=" not in line:
+        continue
+    key, value = line.split("=", 1)
+    values[key.strip()] = value.strip()
+print(values.get("CENTRAL_RESOURCE_PREFIX") or os.environ.get("COMPOSE_PROJECT_NAME") or "nexolab-central")
+PYOBJECTPREFIX
+)"
+LEGACY_OBJECT_STORAGE_VOLUME="${OBJECT_STORAGE_RESOURCE_PREFIX}-object-storage-data"
+VERSITY_OBJECT_STORAGE_VOLUME="${OBJECT_STORAGE_RESOURCE_PREFIX}-object-storage-versitygw-data"
+if docker volume inspect "$LEGACY_OBJECT_STORAGE_VOLUME" >/dev/null 2>&1 \
+  && ! docker volume inspect "$VERSITY_OBJECT_STORAGE_VOLUME" >/dev/null 2>&1; then
+  echo "object-storage migration is required before this bundle can replace the legacy MinIO runtime" >&2
+  exit 80
+fi
 
 CENTRAL=(docker compose --env-file "$CENTRAL_ENV" -f "$CENTRAL_BASE" -f "$CENTRAL_OFFLINE")
 if [[ "$RUNTIME_MODE" == "lan" || "$RUNTIME_MODE" == "standalone" ]]; then

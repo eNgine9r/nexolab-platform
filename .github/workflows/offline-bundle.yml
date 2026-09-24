@@ -8,6 +8,8 @@ on:
       - "scripts/classify-ci-impact.py"
       - "infrastructure/compose/**"
       - "infrastructure/offline/**"
+      - "infrastructure/object-storage/**"
+      - "scripts/object-storage-s3.py"
       - "scripts/build-offline-bundle.sh"
       - "scripts/generate-offline-bundle-manifest.py"
       - "scripts/install-offline-bundle.sh"
@@ -363,8 +365,7 @@ jobs:
           export OFFLINE_DEVICE_AGENT_IMAGE=nexolab/device-agent:contract
           export OFFLINE_MQTT_IMAGE=eclipse-mosquitto:2.0.22
           export OFFLINE_POSTGRES_IMAGE=postgres:16-alpine
-          export OFFLINE_MINIO_IMAGE=quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
-          export OFFLINE_MINIO_CLIENT_IMAGE=quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+          export OFFLINE_OBJECT_STORAGE_IMAGE=nexolab/object-storage:versitygw-v1.8.0-amd64
 
           central=(docker compose \
             --env-file "$CENTRAL_ENV" \
@@ -513,7 +514,7 @@ jobs:
           eval "$(python "$bundle_root/scripts/verify-offline-bundle.py" \
             "$bundle_root" --check-loaded-images --emit-shell-env)"
           export OFFLINE_DASHBOARD_IMAGE OFFLINE_TELEMETRY_IMAGE OFFLINE_DEVICE_AGENT_IMAGE
-          export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
+          export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_OBJECT_STORAGE_IMAGE
 
           central=(docker compose --env-file "$PWD/$CENTRAL_ENV" \
             -f "$bundle_root/deploy/compose/compose.central.yaml" \
@@ -540,7 +541,7 @@ jobs:
           eval "$(python "$bundle_root/scripts/verify-offline-bundle.py" \
             "$bundle_root" --check-loaded-images --emit-shell-env)"
           export OFFLINE_DASHBOARD_IMAGE OFFLINE_TELEMETRY_IMAGE OFFLINE_DEVICE_AGENT_IMAGE
-          export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
+          export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_OBJECT_STORAGE_IMAGE
 
           central=(docker compose --env-file "$PWD/$CENTRAL_ENV" \
             -f "$bundle_root/deploy/compose/compose.central.yaml" \
@@ -641,7 +642,7 @@ jobs:
             eval "$(python "$bundle_root/scripts/verify-offline-bundle.py" \
               "$bundle_root" --emit-shell-env 2>/dev/null)"
             export OFFLINE_DASHBOARD_IMAGE OFFLINE_TELEMETRY_IMAGE OFFLINE_DEVICE_AGENT_IMAGE
-            export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
+            export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_OBJECT_STORAGE_IMAGE
             central=(docker compose --env-file "$PWD/$CENTRAL_ENV" \
               -f "$bundle_root/deploy/compose/compose.central.yaml" \
               -f "$bundle_root/deploy/offline/compose.central.offline.yaml")
@@ -680,7 +681,7 @@ jobs:
             eval "$(python "$bundle_root/scripts/verify-offline-bundle.py" \
               "$bundle_root" --emit-shell-env 2>/dev/null)"
             export OFFLINE_DASHBOARD_IMAGE OFFLINE_TELEMETRY_IMAGE OFFLINE_DEVICE_AGENT_IMAGE
-            export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
+            export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_OBJECT_STORAGE_IMAGE
             docker compose --env-file "$PWD/$EDGE_ENV" \
               -f "$bundle_root/deploy/compose/compose.edge.yaml" \
               -f "$bundle_root/deploy/offline/compose.edge.offline.yaml" down --remove-orphans

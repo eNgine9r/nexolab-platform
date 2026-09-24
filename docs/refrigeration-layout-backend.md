@@ -28,22 +28,22 @@ Equipment-photo upload is multipart and requires `X-Actor-Id`. The service reads
 
 ## Central deployment
 
-`compose.central.yaml` adds a private MinIO service and one persistent named volume:
+`compose.central.yaml` provides private S3-compatible storage through VersityGW v1.8.0 and one dedicated persistent named volume:
 
 ```text
-nexolab-central-object-storage-data
+nexolab-central-object-storage-versitygw-data
 ```
 
-The API uses `http://minio:9000` internally. `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` must be a trusted URL reachable by the operator browser because that hostname is embedded into signed image URLs. The default example binds the MinIO API and console to loopback only.
+The logical Compose service key remains `minio` temporarily for installed LOCAL_LAN endpoint and rollback compatibility, but it runs VersityGW rather than MinIO. The API therefore continues to use `http://minio:9000` internally. `OBJECT_STORAGE_PUBLIC_ENDPOINT_URL` must be a trusted URL reachable by the operator browser because that hostname is embedded into signed image URLs. The default example binds the object-storage API to loopback only.
 
-Required secrets:
+Existing site credentials remain accepted through compatibility aliases:
 
 ```dotenv
 MINIO_ROOT_USER=nexolab-storage
 MINIO_ROOT_PASSWORD=<long-random-secret>
 ```
 
-Do not expose the MinIO console or API to an untrusted network. The bucket initializer creates the configured bucket and explicitly keeps anonymous access disabled.
+Do not expose the object-storage API to an untrusted network. The repository-owned S3 bootstrap helper creates the configured bucket and verifies that anonymous access remains disabled. The legacy `nexolab-central-object-storage-data` MinIO volume is not mounted into VersityGW; migration/cutover requires a separately approved S3-level export/import procedure.
 
 ## Failure semantics
 

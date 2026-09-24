@@ -5,9 +5,13 @@ x-postgres-environment: &postgres-environment
   POSTGRES_USER: ${DR_POSTGRES_USER:-nexolab}
   POSTGRES_PASSWORD: ${DR_POSTGRES_PASSWORD:?DR_POSTGRES_PASSWORD is required}
 
-x-minio-environment: &minio-environment
-  MINIO_ROOT_USER: ${DR_MINIO_ROOT_USER:?DR_MINIO_ROOT_USER is required}
-  MINIO_ROOT_PASSWORD: ${DR_MINIO_ROOT_PASSWORD:?DR_MINIO_ROOT_PASSWORD is required}
+x-object-storage-environment: &object-storage-environment
+  ROOT_ACCESS_KEY_ID: ${DR_MINIO_ROOT_USER:?DR_MINIO_ROOT_USER is required}
+  ROOT_SECRET_ACCESS_KEY: ${DR_MINIO_ROOT_PASSWORD:?DR_MINIO_ROOT_PASSWORD is required}
+  VGW_PORT: ":9000"
+  VGW_REGION: us-east-1
+  VGW_HEALTH: "/health"
+  VGW_QUIET: "true"
 
 x-mqtt-environment: &mqtt-environment
   NEXOLAB_MQTT_ADMIN_USERNAME: ${DR_MQTT_ADMIN_USERNAME:?DR_MQTT_ADMIN_USERNAME is required}
@@ -61,33 +65,31 @@ services:
     networks: [dr]
 
   source-minio:
-    image: ${DR_MINIO_IMAGE:-quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z}
+    image: ${DR_OBJECT_STORAGE_IMAGE:-nexolab/object-storage:versitygw-v1.8.0}
+    build:
+      context: ../object-storage
     restart: "no"
     init: true
-    command: ["server", "/data", "--console-address", ":9001"]
-    environment: *minio-environment
+    command: ["posix", "/data"]
+    environment: *object-storage-environment
     volumes:
       - source-object-storage-data:/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null"]
-      interval: 2s
-      timeout: 3s
-      retries: 30
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
     networks: [dr]
 
   restore-minio:
-    image: ${DR_MINIO_IMAGE:-quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z}
+    image: ${DR_OBJECT_STORAGE_IMAGE:-nexolab/object-storage:versitygw-v1.8.0}
+    build:
+      context: ../object-storage
     restart: "no"
     init: true
-    command: ["server", "/data", "--console-address", ":9001"]
-    environment: *minio-environment
+    command: ["posix", "/data"]
+    environment: *object-storage-environment
     volumes:
       - restore-object-storage-data:/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null"]
-      interval: 2s
-      timeout: 3s
-      retries: 30
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
     networks: [dr]
 
   source-mqtt:
@@ -172,7 +174,7 @@ services:
       restore-postgres:
         condition: service_healthy
       restore-minio:
-        condition: service_healthy
+        condition: service_started
       restore-mqtt:
         condition: service_healthy
     healthcheck:
@@ -188,13 +190,20 @@ services:
     networks: [dr]
 
   minio-client:
-    image: ${DR_MINIO_CLIENT_IMAGE:-quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z}
+    image: ${DR_TELEMETRY_IMAGE:-nexolab-telemetry-service:disaster-recovery}
+    user: "${DR_WORK_UID:-1000}:${DR_WORK_GID:-1000}"
+    build:
+      context: ../../services/telemetry-service
     restart: "no"
     entrypoint: ["/bin/sh", "-ec"]
     command: ["exit 0"]
-    environment: *minio-environment
+    environment:
+      OBJECT_STORAGE_ACCESS_KEY_ID: ${DR_MINIO_ROOT_USER:?DR_MINIO_ROOT_USER is required}
+      OBJECT_STORAGE_SECRET_ACCESS_KEY: ${DR_MINIO_ROOT_PASSWORD:?DR_MINIO_ROOT_PASSWORD is required}
+      OBJECT_STORAGE_REGION: us-east-1
     volumes:
       - ${DR_WORK_DIR:?DR_WORK_DIR is required}:/work
+      - ../../scripts:/opt/nexolab/scripts:ro
     networks: [dr]
 
   volume-helper:

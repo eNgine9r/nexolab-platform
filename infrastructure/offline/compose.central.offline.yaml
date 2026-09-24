@@ -8,12 +8,14 @@ services:
     pull_policy: never
 
   minio:
-    image: ${OFFLINE_MINIO_IMAGE:?OFFLINE_MINIO_IMAGE is required}
+    image: ${OFFLINE_OBJECT_STORAGE_IMAGE:?OFFLINE_OBJECT_STORAGE_IMAGE is required}
     pull_policy: never
+    build: !reset null
 
   minio-init:
-    image: ${OFFLINE_MINIO_CLIENT_IMAGE:?OFFLINE_MINIO_CLIENT_IMAGE is required}
+    image: ${OFFLINE_TELEMETRY_IMAGE:?OFFLINE_TELEMETRY_IMAGE is required}
     pull_policy: never
+    build: !reset null
 
   telemetry-migrate:
     image: ${OFFLINE_TELEMETRY_IMAGE:?OFFLINE_TELEMETRY_IMAGE is required}
