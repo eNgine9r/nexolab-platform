@@ -4965,6 +4965,72 @@
         "modbus_write": "none",
         "hardware_write": "none"
       }
+    },
+    {
+      "issue": 1142,
+      "title": "Restore reproducible object-storage acceptance/offline supply after MinIO registry withdrawal",
+      "priority": "critical",
+      "lifecycle": "blocked",
+      "depends_on": [
+        1143
+      ],
+      "branch": "fix/1142-minio-supply",
+      "evidence": {
+        "root_cause": "withdrawn_minio_registry_plus_current_security_policy_rejects_reconstructed_legacy_binaries",
+        "reconstruction": "official_release_binaries_sha256_verified_amd64_arm64",
+        "minio_server_fresh_scan": "89_unapproved_HIGH_CRITICAL",
+        "minio_mc_fresh_scan": "66_unapproved_HIGH_CRITICAL",
+        "critical_exceptions": "forbidden",
+        "unsafe_candidate_committed": "no",
+        "production_runtime_mutation": "none",
+        "production_data_mutation": "none",
+        "modbus_writes": "none",
+        "hardware_writes": "none",
+        "blocker": "architecture_decision_issue_1143"
+      }
+    },
+    {
+      "issue": 1143,
+      "title": "Select maintained offline S3 backend after MinIO Community end-state",
+      "priority": "critical",
+      "lifecycle": "blocked",
+      "depends_on": [],
+      "evidence": {
+        "decision_type": "product_architecture_hard_blocker",
+        "candidate": "VersityGW_v1.8.0",
+        "license": "Apache-2.0",
+        "arm64_sha256_archive_verified": true,
+        "amd64_sha256_archive_verified": true,
+        "trivy_arm64": "0_HIGH_0_CRITICAL_2_MEDIUM_1_UNKNOWN",
+        "trivy_amd64": "0_HIGH_0_CRITICAL_2_MEDIUM_1_UNKNOWN",
+        "arm64_s3_poc": "health_create_bucket_put_get_metadata_presigned_get_delete_passed",
+        "offline_posix_backend": "verified_local_nonproduction",
+        "production_cutover": "not_executed_not_authorized",
+        "production_data_migration": "not_executed_not_authorized",
+        "blocker": "explicit_Product_Owner_backend_selection_required"
+      }
+    },
+    {
+      "issue": 1144,
+      "title": "Record object-storage security/architecture blocker #1143",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1142,
+        1143
+      ],
+      "branch": "chore/1144-object-storage-blocker-state",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "active_work_package": null,
+        "next_work_package": null,
+        "accepted_product_baseline_changed": false,
+        "deployed_product_baseline_changed": false,
+        "production_runtime_mutation": "none",
+        "production_data_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
     }
   ],
   "maintenance_actions": [
@@ -5599,6 +5665,18 @@
         "issue": 1094,
         "issue_state": "closed_completed",
         "frontend_compatibility_source_sha": "2296e3070cbebff687418cf1ac161984086bebdb"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-24T17:35:00+03:00",
+      "kind": "object_storage_architecture_blocker",
+      "data": {
+        "issue": 1143,
+        "blocked_issue": 1142,
+        "minio_reconstruction": "security_rejected",
+        "versitygw_candidate": "v1.8.0_poc_passed_0_high_0_critical_both_architectures",
+        "production_mutation": "none"
       }
     }
   ],
