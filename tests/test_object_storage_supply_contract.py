@@ -5,6 +5,8 @@ DOCKERFILE = (ROOT / "infrastructure/object-storage/Dockerfile").read_text(encod
 COMPOSE = (ROOT / "infrastructure/compose/compose.central.yaml").read_text(encoding="utf-8")
 OFFLINE = (ROOT / "infrastructure/offline/compose.central.offline.yaml").read_text(encoding="utf-8")
 HELPER = (ROOT / "scripts/object-storage-s3.py").read_text(encoding="utf-8")
+TELEMETRY_WORKFLOW = (ROOT / ".github/workflows/telemetry-service.yml").read_text(encoding="utf-8")
+OFFLINE_AUTH_ACCEPTANCE = (ROOT / "scripts/run-offline-auth-acceptance.sh").read_text(encoding="utf-8")
 
 
 def test_versitygw_release_is_exact_and_checksum_pinned_for_both_architectures() -> None:
@@ -40,3 +42,13 @@ def test_offline_runtime_reuses_telemetry_image_for_s3_bootstrap() -> None:
     assert "OFFLINE_OBJECT_STORAGE_IMAGE" in OFFLINE
     assert "OFFLINE_TELEMETRY_IMAGE" in OFFLINE
     assert "OFFLINE_MINIO_CLIENT_IMAGE" not in OFFLINE
+
+
+def test_telemetry_ci_provides_ephemeral_posix_root_to_versitygw() -> None:
+    assert "--tmpfs /data:rw,nosuid,nodev,noexec" in TELEMETRY_WORKFLOW
+    assert "posix /data" in TELEMETRY_WORKFLOW
+
+
+def test_offline_auth_acceptance_builds_local_object_storage_before_no_build_start() -> None:
+    assert "compose build minio telemetry-service telemetry-migrate" in OFFLINE_AUTH_ACCEPTANCE
+    assert "compose up --detach --no-build" in OFFLINE_AUTH_ACCEPTANCE

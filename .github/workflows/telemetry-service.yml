@@ -178,6 +178,7 @@ jobs:
           docker run --detach \
             --name nexolab-minio-ci \
             --publish 9000:9000 \
+            --tmpfs /data:rw,nosuid,nodev,noexec \
             --env ROOT_ACCESS_KEY_ID="$OBJECT_STORAGE_ACCESS_KEY_ID" \
             --env ROOT_SECRET_ACCESS_KEY="$OBJECT_STORAGE_SECRET_ACCESS_KEY" \
             --env VGW_PORT=:9000 \
