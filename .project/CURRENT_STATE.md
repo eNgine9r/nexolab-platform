@@ -1,8 +1,16 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-23
+Updated: 2026-09-24
 
 ## Current Sprint
+
+### Issue #1140 — discovery-only controller onboarding audit/fix in progress
+
+The Equipment onboarding audit confirmed the operator dead end reported for Danfoss AK-CC25 Pro: the wizard could persist a discovery-only commissioning session and complete bounded FC03 preflight, but `activation_supported=false` intentionally removed the activation path and no alternative completion path projected the verified controller into the Equipment Registry or the selected refrigeration showcase. The persisted `targetEquipmentKey` therefore existed without a visible durable association.
+
+The focused candidate separates inventory registration from monitoring activation. On the final review step, a discovery-only supported profile exposes `Перевірити та додати до реєстру`; it saves the commissioning intent, runs only the existing bounded read-only preflight, and on success keeps lifecycle `verified` while monitoring remains disabled. Verified discovery-only sessions are projected into `/equipment` as temperature-controller assets and into the selected showcase controller surface with explicit `Перевірено · моніторинг вимкнено` / `Лише read-only перевірка` semantics. Existing active Embraco binding remains authoritative if both records exist. Draft/failed/unsupported/cancelled sessions are not projected. No acquisition-registry enrollment, service restart, production polling, Modbus write, controller write or hardware write is introduced.
+
+Local verification is GREEN: focused frontend matrix **33/33**, full frontend **153 files / 786 tests**, ESLint, TypeScript, Prettier and `git diff --check`; production build passes under Next.js webpack. The default Turbopack build in this temporary git worktree fails before compilation because `node_modules` is symlinked outside the worktree filesystem root, so webpack was used to verify the production application build without changing source. GitHub exact-head PR verification is still pending.
 
 ### Issue #1136 — Waveshare dedicated LOCAL_LAN humidity acquisition software completed
 

@@ -23,6 +23,7 @@ const busId = "66100000-0000-4000-8000-000000000001";
 const chamberAId = "66200000-0000-4000-8000-000000000001";
 const chamberBId = "66200000-0000-4000-8000-000000000002";
 const activeEquipmentId = "66600000-0000-4000-8000-000000000001";
+const verifiedDanfossSessionId = "66800000-0000-4000-8000-000000000035";
 
 let expectedAssetCount = 0;
 const minimumFocusedFixtureCount = 190;
@@ -320,6 +321,26 @@ VALUES
   )
 ON CONFLICT (organization_id, code) DO NOTHING;
 
+INSERT INTO equipment_commissioning_sessions (
+  id, organization_id, create_idempotency_key, create_fingerprint_sha256, lifecycle,
+  device_class, manufacturer, model, profile_id, profile_version, transport_kind,
+  node_id, bus_id, stable_transport_identifier, unit_id, ip_address, target_equipment_key,
+  blocked_reason, unsupported_reason, version, created_by, updated_by, created_at, updated_at, cancelled_at
+)
+VALUES (
+  '${verifiedDanfossSessionId}', :'organization_id', 'equipment-registry-danfoss-verified', repeat('a', 64),
+  'verified', 'temperature-controller', 'Danfoss', 'AK-CC25 Pro', 'danfoss-ak-cc25-pro',
+  'danfoss-ak-cc25-pro-sw1.3x-fc03-v1', 'modbus_rtu', 'registry-edge-01',
+  'commissioning-a10q2si7', '/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q2SI7-if00-port0',
+  35, NULL, '${activeEquipmentId}', NULL, NULL, 3,
+  'equipment-engineer-acceptance', 'equipment-engineer-acceptance', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL
+)
+ON CONFLICT (organization_id, create_idempotency_key) DO UPDATE SET
+  lifecycle = EXCLUDED.lifecycle,
+  target_equipment_key = EXCLUDED.target_equipment_key,
+  updated_by = EXCLUDED.updated_by,
+  updated_at = CURRENT_TIMESTAMP;
+
 INSERT INTO refrigeration_equipment (
   id, organization_id, code, name, location, laboratory, zone, node_id,
   climate_chamber_id, equipment_type, manufacturer, model, serial_number,
@@ -528,6 +549,7 @@ test("renders and navigates the authenticated Equipment and metrology registry",
         "reg-xjp:11",
         "reg-le01mp:12",
         "reg-xjp:13",
+        "akcc25:35",
         "MET-SENSOR-CUR",
         "MET-SENSOR-DUE",
         "MET-SENSOR-EXP",
@@ -734,6 +756,13 @@ test("renders and navigates the authenticated Equipment and metrology registry",
       await expect(link).toHaveAttribute("href", `/refrigeration/${activeEquipmentId}`);
       await link.click();
       await expect(page).toHaveURL(new RegExp(`/refrigeration/${activeEquipmentId}$`));
+      await expect(page.getByText("Danfoss AK-CC25 Pro", { exact: true })).toBeVisible();
+      await expect(page.getByText("Перевірено · моніторинг вимкнено", { exact: true })).toBeVisible();
+      await expect(page.getByText(/Production polling і live KPI ще не активовані/)).toBeVisible();
+      await expect(page.getByRole("link", { name: "Відкрити картку підключення →" })).toHaveAttribute(
+        "href",
+        `/equipment/onboarding/${verifiedDanfossSessionId}`,
+      );
     });
 
     await test.step("allow engineer safe metadata edits without acquisition mutation", async () => {

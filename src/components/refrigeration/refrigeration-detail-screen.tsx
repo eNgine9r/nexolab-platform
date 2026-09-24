@@ -16,6 +16,11 @@ import { RefrigerationControllerOverview } from "@/components/refrigeration/refr
 import { RefrigerationThermodynamicsOverview } from "@/components/refrigeration/refrigeration-thermodynamics-overview";
 import type { LayoutEditorMode } from "@/components/refrigeration/refrigeration-layout-editor";
 import { SecurityAwareRefrigerationLayoutWorkspace } from "@/components/refrigeration/security-aware-layout-workspace";
+import { createEquipmentRegistryRuntime } from "@/features/equipment/runtime";
+import {
+  loadCommissionedControllerAssociation,
+  type CommissionedControllerAssociation,
+} from "@/features/equipment/commissioned-controller-association";
 import type {
   EquipmentLifecycleStatus,
   EquipmentStatus,
@@ -109,6 +114,7 @@ export function RefrigerationDetailScreen({
   initialSnapshot?: RefrigerationStructuralSnapshot | null;
 }) {
   const runtime = useMemo(() => createRefrigerationEquipmentRuntime(), []);
+  const equipmentRegistryRuntime = useMemo(() => createEquipmentRegistryRuntime(), []);
   const [activeTab, setActiveTab] = useState<RefrigerationDetailTab>("overview");
   const controller = useRefrigerationController({
     equipmentId: initialEquipment.id,
@@ -133,6 +139,10 @@ export function RefrigerationDetailScreen({
   const [layoutMode, setLayoutMode] = useState<LayoutEditorMode>("view");
   const [canManageEquipment, setCanManageEquipment] = useState(runtime.mode === "demo");
   const [bindingEpoch, setBindingEpoch] = useState(0);
+  const [commissionedAssociation, setCommissionedAssociation] =
+    useState<CommissionedControllerAssociation | null>(null);
+  const [commissionedAssociationLoading, setCommissionedAssociationLoading] = useState(false);
+  const [commissionedAssociationError, setCommissionedAssociationError] = useState<string | null>(null);
 
   useEffect(() => {
     setEquipmentRecord(initialSnapshot?.equipment ?? initialEquipment);
@@ -192,6 +202,34 @@ export function RefrigerationDetailScreen({
       active = false;
     };
   }, [equipmentRecord.climateChamberId, runtime]);
+
+  useEffect(() => {
+    const repository = equipmentRegistryRuntime.commissioningRepository;
+    if (!repository) {
+      setCommissionedAssociation(null);
+      setCommissionedAssociationLoading(false);
+      setCommissionedAssociationError(null);
+      return;
+    }
+    const abort = new AbortController();
+    setCommissionedAssociationLoading(true);
+    setCommissionedAssociationError(null);
+    void loadCommissionedControllerAssociation(repository, equipmentRecord.id, abort.signal)
+      .then((association) => {
+        if (!abort.signal.aborted) setCommissionedAssociation(association);
+      })
+      .catch((cause: unknown) => {
+        if (abort.signal.aborted) return;
+        setCommissionedAssociation(null);
+        setCommissionedAssociationError(
+          cause instanceof Error ? cause.message : "Не вдалося завантажити перевірену прив’язку контролера.",
+        );
+      })
+      .finally(() => {
+        if (!abort.signal.aborted) setCommissionedAssociationLoading(false);
+      });
+    return () => abort.abort();
+  }, [equipmentRecord.id, equipmentRegistryRuntime.commissioningRepository]);
 
   useEffect(() => {
     if (runtime.mode === "demo") {
@@ -466,6 +504,9 @@ export function RefrigerationDetailScreen({
                   controller={controller}
                   equipmentId={equipment.id}
                   canCommission={canManageEquipment && !retired}
+                  commissionedAssociation={commissionedAssociation}
+                  commissionedAssociationLoading={commissionedAssociationLoading}
+                  commissionedAssociationError={commissionedAssociationError}
                 />
               </div>
             ) : null}
@@ -496,6 +537,9 @@ export function RefrigerationDetailScreen({
                 controller={controller}
                 equipmentId={equipment.id}
                 canCommission={canManageEquipment && !retired}
+                commissionedAssociation={commissionedAssociation}
+                commissionedAssociationLoading={commissionedAssociationLoading}
+                commissionedAssociationError={commissionedAssociationError}
               />
             ) : null}
 

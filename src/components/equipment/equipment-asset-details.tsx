@@ -17,7 +17,10 @@ import {
 } from "lucide-react";
 
 import { EquipmentMetadataEditor } from "@/components/equipment/equipment-metadata-editor";
-import type { EquipmentRegistryAsset } from "@/features/equipment/asset-registry";
+import {
+  isCommissionedControllerAsset,
+  type EquipmentRegistryAsset,
+} from "@/features/equipment/asset-registry";
 import type { ClimateCatalogRepository } from "@/features/refrigeration/climate-catalog-repository";
 import type { RefrigerationEquipmentRepository } from "@/features/refrigeration/equipment-repository";
 
@@ -287,6 +290,7 @@ function canEditAsset(
   if (asset.category === "refrigeration-equipment") {
     return equipmentRepository !== null && asset.source.lifecycleStatus !== "retired";
   }
+  if (isCommissionedControllerAsset(asset)) return false;
   return climateCatalogRepository !== null;
 }
 
@@ -340,6 +344,36 @@ function detailsSections(asset: EquipmentRegistryAsset): DetailSection[] {
       ["Підключення і стан", Network, connection],
       ["Розміщення", MapPin, placement],
       ["Сервіс", Gauge, service],
+    ]);
+  }
+
+  if (isCommissionedControllerAsset(asset)) {
+    const item = asset.source;
+    passport.push(
+      ...compactDetails([
+        ["Profile", asset.commissioningProfile.displayName],
+        ["Profile version", item.profileVersion],
+        ["Modbus unit id", item.unitId === null ? null : String(item.unitId)],
+      ]),
+    );
+    connection.push(
+      ...compactDetails([
+        ["Node", item.nodeId],
+        ["Bus ID", item.busId],
+        ["Stable transport", item.stableTransportIdentifier],
+        ["Режим", "Лише read-only перевірка; моніторинг вимкнено"],
+      ]),
+    );
+    const related = compactDetails([
+      ["Вітрина", `${asset.targetEquipment.code} · ${asset.targetEquipment.name}`],
+      ["Commissioning session", item.id],
+      ["Остання перевірка", formatDateTime(item.updatedAt)],
+    ]);
+    return sections([
+      ["Паспорт", Cpu, passport],
+      ["Підключення і стан", Network, connection],
+      ["Розміщення", MapPin, placement],
+      ["Пов’язане обладнання", Refrigerator, related],
     ]);
   }
 
@@ -443,6 +477,9 @@ export function statusLabel(value: string): string {
       offline: "Офлайн",
       connected: "Підключено",
       disconnected: "Відключено",
+      verified: "Перевірено",
+      monitoring_disabled: "Моніторинг вимкнено",
+      discovery_only: "Лише read-only перевірка",
       unknown: "Невідомо",
     }[value] ?? value
   );

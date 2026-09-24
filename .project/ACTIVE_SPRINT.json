@@ -40,7 +40,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1140
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -4964,6 +4966,31 @@
         "production_runtime_mutation": "none",
         "modbus_write": "none",
         "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1140,
+      "title": "Complete discovery-only controller onboarding into registry and showcase",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "branch": "feat/1140-discovery-only-onboarding",
+      "evidence": {
+        "audit_root_cause": "verified_discovery_only_commissioning_session_had_no_completion_projection_into_equipment_registry_or_showcase_controller_view",
+        "product_boundary": "inventory_registration_separate_from_monitoring_activation",
+        "danfoss_activation_supported": false,
+        "local_targeted_tests": "33_passed",
+        "full_frontend_tests": "153_files_786_tests_passed",
+        "eslint": "success",
+        "typecheck": "success",
+        "production_build": "success_next_build_webpack",
+        "turbopack_worktree_symlink_build": "environment_failure_only_node_modules_points_outside_worktree_root",
+        "prettier": "success",
+        "git_diff_check": "success",
+        "production_activation": "not_executed_not_authorized",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "github_ci": "pending"
       }
     }
   ],

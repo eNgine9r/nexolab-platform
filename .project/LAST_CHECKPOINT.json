@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-23T21:50:00+03:00",
+  "timestamp": "2026-09-24T15:38:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1136 / PR #1137 merged GREEN; Waveshare humidity software path repository-complete, hardware acceptance still pending",
+  "event": "Issue #1140 discovery-only onboarding audit/fix candidate locally GREEN; PR/CI pending",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,28 +28,30 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1140,
+    "branch": "feat/1140-discovery-only-onboarding",
+    "status": "implementation_locally_verified_pending_pr_ci",
+    "outcome": "Verified discovery-only controller sessions are projected into Equipment Registry and selected showcase without enabling monitoring"
+  },
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "issue": 1136,
-      "status": "software_completed_hardware_unverified",
-      "stable_adapter": "A10Q2QYX",
-      "runtime_bus": "rs485-waveshare",
-      "unit_id": 1,
-      "serial": "9600_8N1",
-      "verified_exact_head_sha": "bc132b99aa37f2eaebc52edce4fedc0d37bedebf",
-      "pull_request": 1137,
-      "merged_sha": "082662657671f9dcd05b493598798708847856a4",
-      "core_ci": "success:35903586184",
-      "offline_bundle": "success:35903586272",
-      "edge_image": "success:35903586214",
-      "container_supply_chain": "success:35903586289",
-      "authenticated_dashboard": "success:35903586434",
-      "refrigeration_browser": "success:35903586179",
-      "production_activation": "not_executed",
-      "humidity_hardware": "unverified_pending_issue_1125",
-      "modbus_writes": "none",
-      "hardware_writes": "none"
+      "audit_root_cause": "verified_discovery_only_commissioning_session_had_no_completion_projection_into_equipment_registry_or_showcase_controller_view",
+      "product_boundary": "inventory_registration_separate_from_monitoring_activation",
+      "danfoss_activation_supported": false,
+      "local_targeted_tests": "33_passed",
+      "full_frontend_tests": "153_files_786_tests_passed",
+      "eslint": "success",
+      "typecheck": "success",
+      "production_build": "success_next_build_webpack",
+      "turbopack_worktree_symlink_build": "environment_failure_only_node_modules_points_outside_worktree_root",
+      "prettier": "success",
+      "git_diff_check": "success",
+      "production_activation": "not_executed_not_authorized",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "github_ci": "pending",
+      "issue": 1140
     }
   },
   "observations": [
@@ -98,7 +100,7 @@
       }
     }
   ],
-  "next_action": "No independent Ready Work Package remains. For #1125, wait for Product Owner physical 4–20 mA jumper/channel setup, then perform read-only mode/current/channel/range hardware acceptance. Production Waveshare activation remains separately gated and unauthorized.",
+  "next_action": "Commit #1140 candidate, open focused PR, require exact-head GREEN CI, then reconcile canonical state. Production Danfoss polling/activation remains disabled and no hardware/Modbus writes are authorized.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
