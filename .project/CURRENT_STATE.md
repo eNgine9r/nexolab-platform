@@ -1,8 +1,23 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-23
+Updated: 2026-09-24
 
 ## Current Sprint
+
+
+### Issue #1143 — object-storage architecture hard blocker
+
+Issue #1142 isolated the new CI/offline failure to withdrawn MinIO Community registry artifacts rather than PR #1141 product code. Exact legacy MinIO server and `mc` releases were successfully reconstructed from official GitHub binaries with published SHA-256 verification for both amd64 and arm64, checksum mismatch was proven fail-closed, both architectures built successfully, and ARM64 local/network-none smoke worked. That path is **not releasable** under current security policy: fresh Trivy 0.69.3 scans found **89 unapproved HIGH/CRITICAL** findings in the reconstructed server and **66 unapproved HIGH/CRITICAL** findings in `mc`, including CRITICAL findings that cannot be excepted under NEXOLAB policy. The unsafe reconstruction was therefore not committed.
+
+Architecture Issue #1143 now gates the repair. A non-production candidate PoC against VersityGW `v1.8.0` (Apache-2.0) verified official amd64 and arm64 checksums, produced minimal scratch images with **0 HIGH / 0 CRITICAL** on both architectures (`2 MEDIUM`, `1 UNKNOWN`), and passed real ARM64 local POSIX-backed S3 operations for health, CreateBucket, PutObject, GetObject, custom metadata, SigV4 presigned GET and DeleteObject. This is evidence for a candidate only, not a production selection or acceptance. Replacing the object-storage engine is a material runtime architecture decision; explicit Product Owner approval is required before implementation. No production service restart/cutover, data migration, volume deletion, Modbus write or hardware write occurred.
+
+### Issue #1142 — MinIO registry/offline acceptance repair blocked
+
+The original #1142 repair remains open but is blocked by #1143. The withdrawn Quay/Docker Hub images are no longer reliable supply inputs; rebuilding the exact old binaries is reproducible but security-rejected. #1142 must not add CRITICAL vulnerability exceptions or silently swap object-storage engines. The dedicated `fix/1142-minio-supply` worktree has been returned to a clean source state, with the abandoned local reconstruction patch retained outside the repository only for forensic reference. No product/runtime source change has been accepted from #1142.
+
+### Issue #1144 — durable state reconciliation
+
+Canonical State Model v2 now records #1142 and #1143 as blocked, preserves `active_work_package=null` and `next_work_package=null`, and leaves accepted/deployed/hardware baselines unchanged. No independent Ready Work Package exists until a hard blocker is resolved or a new Ready package is explicitly introduced.
 
 ### Issue #1136 — Waveshare dedicated LOCAL_LAN humidity acquisition software completed
 

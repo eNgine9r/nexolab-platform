@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-23T21:50:00+03:00",
+  "timestamp": "2026-09-24T17:35:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1136 / PR #1137 merged GREEN; Waveshare humidity software path repository-complete, hardware acceptance still pending",
+  "event": "Issue #1142 security investigation escalated to hard object-storage architecture decision #1143; no independent Ready Work Package remains",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -31,23 +31,19 @@
   "active_work": null,
   "evidence_snapshot": {
     "active_issue_evidence": {
-      "issue": 1136,
-      "status": "software_completed_hardware_unverified",
-      "stable_adapter": "A10Q2QYX",
-      "runtime_bus": "rs485-waveshare",
-      "unit_id": 1,
-      "serial": "9600_8N1",
-      "verified_exact_head_sha": "bc132b99aa37f2eaebc52edce4fedc0d37bedebf",
-      "pull_request": 1137,
-      "merged_sha": "082662657671f9dcd05b493598798708847856a4",
-      "core_ci": "success:35903586184",
-      "offline_bundle": "success:35903586272",
-      "edge_image": "success:35903586214",
-      "container_supply_chain": "success:35903586289",
-      "authenticated_dashboard": "success:35903586434",
-      "refrigeration_browser": "success:35903586179",
-      "production_activation": "not_executed",
-      "humidity_hardware": "unverified_pending_issue_1125",
+      "issue": 1143,
+      "status": "blocked_product_architecture_decision",
+      "blocked_issue": 1142,
+      "legacy_minio_reconstruction": "sha256_verified_amd64_arm64_but_security_rejected",
+      "legacy_minio_server_scan": "89_unapproved_HIGH_CRITICAL",
+      "legacy_minio_mc_scan": "66_unapproved_HIGH_CRITICAL",
+      "candidate": "VersityGW_v1.8.0",
+      "candidate_trivy_arm64": "0_HIGH_0_CRITICAL_2_MEDIUM_1_UNKNOWN",
+      "candidate_trivy_amd64": "0_HIGH_0_CRITICAL_2_MEDIUM_1_UNKNOWN",
+      "candidate_arm64_s3_poc": "passed_health_bucket_put_get_metadata_presigned_delete",
+      "candidate_production_acceptance": "not_performed",
+      "production_runtime_mutation": "none",
+      "production_data_mutation": "none",
       "modbus_writes": "none",
       "hardware_writes": "none"
     }
@@ -96,9 +92,20 @@
         "status": "merged_closed_green",
         "production_activation": "none"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-24T17:35:00+03:00",
+      "kind": "object_storage_architecture_blocker",
+      "data": {
+        "issue": 1143,
+        "blocked_issue": 1142,
+        "decision_required": "approve_VersityGW_or_request_alternative_backend_evaluation",
+        "production_mutation": "none"
+      }
     }
   ],
-  "next_action": "No independent Ready Work Package remains. For #1125, wait for Product Owner physical 4–20 mA jumper/channel setup, then perform read-only mode/current/channel/range hardware acceptance. Production Waveshare activation remains separately gated and unauthorized.",
+  "next_action": "Hard blocker: Product Owner must resolve #1143 by approving VersityGW as the replacement LOCAL_LAN S3 backend or requesting evaluation of another maintained backend. #1142 remains blocked; no independent Ready Work Package is selected.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
