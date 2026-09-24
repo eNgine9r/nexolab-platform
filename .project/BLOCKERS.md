@@ -1,17 +1,18 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-24
+Updated: 2026-09-25
 
+## Issue #1146 — VersityGW replacement implementation
+
+**No architecture blocker; implementation/CI in progress.** Product Owner approval resolved #1143 and #1142 is closed superseded. The current repository candidate uses integrity-pinned VersityGW `v1.8.0`, a separate VersityGW data volume, repository-owned S3 bootstrap/DR tooling, and explicit fail-closed protection against treating the legacy MinIO volume as VersityGW data. Local contract, DR, focused browser, ARM64 runtime and amd64/arm64 vulnerability evidence are GREEN. Exact-head GitHub CI remains the current merge gate. Production migration/cutover and live object-data transfer are deliberately outside #1146 and require a separate explicit approval.
 
 ## Issue #1143 — secure LOCAL_LAN object-storage backend architecture decision
 
-**Hard blocker — explicit Product Owner architecture decision required.** Issue #1142 proved that the withdrawn MinIO Community images can be reconstructed reproducibly from official release binaries with exact SHA-256 verification for amd64 and arm64, but fresh Trivy 0.69.3 scans reject the reconstructed server with **89 unapproved HIGH/CRITICAL** findings and `mc` with **66 unapproved HIGH/CRITICAL** findings. NEXOLAB policy does not permit CRITICAL exceptions, so the old MinIO path cannot be merged by weakening the gate. The final MinIO Community server security release still uses the same dependency generation and does not establish a credible current baseline.
+**Cleared.** GitHub #1143 is closed completed after explicit Product Owner approval of VersityGW `v1.8.0`. The approved decision preserves LOCAL_LAN/offline operation, local POSIX storage and the existing application-facing S3 semantics without CRITICAL vulnerability exceptions.
 
-A non-production VersityGW `v1.8.0` candidate PoC is technically promising: official amd64/arm64 archives passed published SHA-256 verification; minimal scratch images on both architectures scan at **0 HIGH / 0 CRITICAL** (`2 MEDIUM`, `1 UNKNOWN`); real ARM64 local POSIX-backend S3 smoke passed health, bucket creation, PUT/GET, custom metadata, SigV4 presigned GET and DELETE. No production service, volume or product data was changed. #1143 requires the Product Owner to approve VersityGW as the replacement local S3 backend or request evaluation of another maintained backend before implementation proceeds.
+## Issue #1142 — MinIO registry withdrawal / legacy reconstruction
 
-## Issue #1142 — MinIO registry withdrawal / offline acceptance repair
-
-**Blocked by #1143.** The original registry failure is confirmed external to feature PR #1141, and the exact old MinIO/mc releases are reconstructable, but current security evidence makes that reconstruction non-releasable. The unsafe reconstruction diff was not committed and the dedicated branch was returned to a clean state. #1142 must not weaken vulnerability policy, add CRITICAL exceptions, or silently substitute a storage engine. It resumes only after #1143 resolves the backend architecture. No production deployment/restart, persistent-data mutation, Modbus write or hardware write occurred.
+**Closed superseded.** GitHub #1142 is closed `not_planned` with `status:superseded`. The exact MinIO reconstruction remains security-rejected and is not a release path. Replacement implementation continues under #1146; no production data or runtime was changed by #1142.
 
 ## Issue #1130 — new Expat CVE-2026-93990 HIGH finding
 

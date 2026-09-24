@@ -1,23 +1,30 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-24
+Updated: 2026-09-25
 
 ## Current Sprint
 
+### Issue #1146 — VersityGW local object-storage replacement implementation in progress
 
-### Issue #1143 — object-storage architecture hard blocker
+The Product Owner approved VersityGW `v1.8.0` as the replacement LOCAL_LAN S3 backend, clearing architecture decision #1143 and superseding the legacy MinIO reconstruction path #1142. Implementation is active on `feat/1146-versitygw-offline-storage`; current checkpoint `4b40b495` replaces the MinIO server/`mc` supply dependency with an integrity-pinned VersityGW image plus repository-owned S3 tooling while preserving the application-facing S3 contract and offline-first runtime.
 
-Issue #1142 isolated the new CI/offline failure to withdrawn MinIO Community registry artifacts rather than PR #1141 product code. Exact legacy MinIO server and `mc` releases were successfully reconstructed from official GitHub binaries with published SHA-256 verification for both amd64 and arm64, checksum mismatch was proven fail-closed, both architectures built successfully, and ARM64 local/network-none smoke worked. That path is **not releasable** under current security policy: fresh Trivy 0.69.3 scans found **89 unapproved HIGH/CRITICAL** findings in the reconstructed server and **66 unapproved HIGH/CRITICAL** findings in `mc`, including CRITICAL findings that cannot be excepted under NEXOLAB policy. The unsafe reconstruction was therefore not committed.
+The candidate keeps the logical Compose service name `minio` only for installed endpoint/container compatibility, but the service now runs VersityGW with a local POSIX backend. It uses a new `object-storage-versitygw-data` volume and fails closed when a legacy MinIO data volume exists without a migration-proven VersityGW volume, so legacy MinIO internal data is never mounted directly into VersityGW. Production data migration and cutover remain a separate explicit gate.
 
-Architecture Issue #1143 now gates the repair. A non-production candidate PoC against VersityGW `v1.8.0` (Apache-2.0) verified official amd64 and arm64 checksums, produced minimal scratch images with **0 HIGH / 0 CRITICAL** on both architectures (`2 MEDIUM`, `1 UNKNOWN`), and passed real ARM64 local POSIX-backed S3 operations for health, CreateBucket, PutObject, GetObject, custom metadata, SigV4 presigned GET and DeleteObject. This is evidence for a candidate only, not a production selection or acceptance. Replacing the object-storage engine is a material runtime architecture decision; explicit Product Owner approval is required before implementation. No production service restart/cutover, data migration, volume deletion, Modbus write or hardware write occurred.
+Local verification is strong but exact-head GitHub CI is still pending. Focused contract tests are **89/89 PASS**; DR acceptance passed private-bucket backup/restore for three objects including metadata, tamper/wrong-key negatives and `source_volumes_mutated=false`; focused authenticated Equipment Layout browser acceptance is **2/2 PASS** and exercises repository-owned S3 seeding plus presigned object reads. Production Next.js build and TypeScript passed during browser acceptance. ARM64 real S3 smoke passed health, bucket, PUT/GET, metadata, presigned GET and DELETE. Fresh Trivy evidence for both ARM64 and amd64 is **0 HIGH / 0 CRITICAL** (`2 MEDIUM`, `1 UNKNOWN`). The amd64 image builds successfully on the Pi; amd64 runtime execution is intentionally delegated to CI because the ARM host has no qemu-user registration.
 
-### Issue #1142 — MinIO registry/offline acceptance repair blocked
+A full Refrigeration Browser run reached product tests and passed **5/6**; the single failure is the unchanged RFX-10 Signal-binding scenario, where the UI reported no accepted compatible Signal for the role. The #1146 diff does not touch that circuit-binding product path. No production service restart/cutover, live MinIO data mutation, named-volume deletion, Modbus write or hardware write occurred.
 
-The original #1142 repair remains open but is blocked by #1143. The withdrawn Quay/Docker Hub images are no longer reliable supply inputs; rebuilding the exact old binaries is reproducible but security-rejected. #1142 must not add CRITICAL vulnerability exceptions or silently swap object-storage engines. The dedicated `fix/1142-minio-supply` worktree has been returned to a clean source state, with the abandoned local reconstruction patch retained outside the repository only for forensic reference. No product/runtime source change has been accepted from #1142.
+### Issue #1143 — object-storage architecture decision completed
 
-### Issue #1144 — durable state reconciliation
+GitHub #1143 is closed completed. Explicit Product Owner approval selected **VersityGW v1.8.0** after the non-production PoC proved official amd64/arm64 checksums, Apache-2.0 local POSIX operation, 0 HIGH / 0 CRITICAL scans, and real ARM64 S3 compatibility. The former architecture hard blocker is cleared; implementation authority is #1146. Production migration/cutover remains separately gated.
 
-Canonical State Model v2 now records #1142 and #1143 as blocked, preserves `active_work_package=null` and `next_work_package=null`, and leaves accepted/deployed/hardware baselines unchanged. No independent Ready Work Package exists until a hard blocker is resolved or a new Ready package is explicitly introduced.
+### Issue #1142 — legacy MinIO reconstruction path superseded
+
+GitHub #1142 is closed `not_planned` with `status:superseded`. The withdrawn MinIO Community registry problem was real and exact old binaries were reproducibly reconstructable, but current security scans made that path non-releasable. No CRITICAL exception or security-gate weakening was accepted. #1146 is now the focused replacement implementation.
+
+### Issue #1144 — durable blocker-state reconciliation completed
+
+PR #1145 previously recorded the pre-decision hard blocker on main. That state is now superseded by the explicit Product Owner decision and active #1146 implementation; accepted/deployed production baselines remain unchanged.
 
 ### Issue #1136 — Waveshare dedicated LOCAL_LAN humidity acquisition software completed
 
