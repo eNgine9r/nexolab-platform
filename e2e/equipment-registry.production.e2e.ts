@@ -23,6 +23,7 @@ const busId = "66100000-0000-4000-8000-000000000001";
 const chamberAId = "66200000-0000-4000-8000-000000000001";
 const chamberBId = "66200000-0000-4000-8000-000000000002";
 const activeEquipmentId = "66600000-0000-4000-8000-000000000001";
+const maintenanceEquipmentId = "66600000-0000-4000-8000-000000000002";
 const verifiedDanfossSessionId = "66800000-0000-4000-8000-000000000035";
 
 let expectedAssetCount = 0;
@@ -785,21 +786,21 @@ test("renders and navigates the authenticated Equipment and metrology registry",
         await expect(engineerPage.getByText(/Каталоги \d+\/\d+/, { exact: true })).toHaveCount(0);
 
         await test.step("commission a persistent draft without touching acquisition", async () => {
-          await engineerPage.goto(`/refrigeration/${activeEquipmentId}`, {
+          await engineerPage.goto(`/refrigeration/${maintenanceEquipmentId}`, {
             waitUntil: "domcontentloaded",
           });
           const connectController = engineerPage.getByRole("link", { name: /Підключити контролер/ }).first();
           await expect(connectController).toHaveAttribute(
             "href",
-            `/equipment/onboarding/new?target=${activeEquipmentId}`,
+            `/equipment/onboarding/new?target=${maintenanceEquipmentId}`,
           );
           await connectController.click();
           await expect(engineerPage).toHaveURL(
-            new RegExp(`/equipment/onboarding/new\\?target=${activeEquipmentId}$`),
+            new RegExp(`/equipment/onboarding/new\\?target=${maintenanceEquipmentId}$`),
           );
           await engineerPage.getByLabel("Підтримуваний профіль").selectOption("embraco-sync");
           await engineerPage.getByRole("button", { name: "Прив'язка до обладнання" }).click();
-          await expect(engineerPage.getByLabel("Цільове обладнання")).toHaveValue(activeEquipmentId);
+          await expect(engineerPage.getByLabel("Цільове обладнання")).toHaveValue(maintenanceEquipmentId);
           await engineerPage.getByRole("button", { name: "Зберегти чернетку" }).click();
           await expect(engineerPage).toHaveURL(/\/equipment\/onboarding\/[0-9a-f-]+$/);
           const persistedDraftUrl = engineerPage.url();
