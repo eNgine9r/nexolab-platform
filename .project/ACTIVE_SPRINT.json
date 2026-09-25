@@ -5457,7 +5457,10 @@
         "renderer_bundle_delta_vs_prechange_hover_harness": "plus_1068_bytes_raw_plus_169_bytes_gzip",
         "keyboard_inspection": "unchanged_host_path",
         "gap_cadence_semantics": "preserved_same_inspection_function",
-        "github_ci": "pending_exact_head"
+        "github_ci": "pending_rerun_on_frontend_only_head",
+        "first_exact_head_sha": "3d04f8b654d9a68db48531bbefa17167a58e07fa",
+        "first_merge_gate": "failed_routing_policy_benchmark_harness_paths_classified_unknown",
+        "routing_remediation": "benchmark_harness_edits_removed_from_shipping_diff_measured_evidence_retained"
       }
     },
     {

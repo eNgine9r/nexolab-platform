@@ -4,7 +4,7 @@ Updated: 2026-09-25
 
 ## Issue #1166 — shared chart hover-path coalescing
 
-**No implementation blocker.** ARM64 benchmark and local correctness gates are GREEN: pointer bursts are bounded to at most one committed cursor callback per frame, focused adapter tests are 12/12 PASS, broader chart regressions are 74/74 PASS across 16 files, TypeScript/lint/format/diff checks pass, and the full Next.js/Turbopack production build succeeds. Exact-head GitHub CI remains the merge gate. Production runtime, persistent data, acquisition, Modbus/controller and hardware state are unchanged.
+**No implementation blocker.** ARM64 benchmark and local correctness gates are GREEN: pointer bursts are bounded to at most one committed cursor callback per frame, focused adapter tests are 12/12 PASS, broader chart regressions are 74/74 PASS across 16 files, TypeScript/lint/format/diff checks pass, and the full Next.js/Turbopack production build succeeds. The first exact head exposed a fail-closed CI-routing mismatch caused only by temporary benchmark-harness edits classified as unknown; those non-shipping edits are removed from the candidate. Exact-head GitHub CI on the frontend-only head remains the merge gate. Production runtime, persistent data, acquisition, Modbus/controller and hardware state are unchanged.
 
 ## Issue #1165 — Refrigeration shared Exact Inspector cursor
 

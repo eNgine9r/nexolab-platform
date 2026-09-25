@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-25T21:11:10+03:00",
+  "timestamp": "2026-09-25T21:21:19+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1165 merged GREEN; #1166 active with ARM64 hover-path coalescing benchmark improvement",
+  "event": "Issue #1166 routing remediation: retain chart-core fix and measured ARM64 evidence; remove non-shipping benchmark harness edits from PR",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -212,10 +212,13 @@
       "git_diff_check": "success_local",
       "disconnected_benchmark_gate": true,
       "runtime_architecture": "arm64",
-      "github_ci": "pending_exact_head",
+      "github_ci": "pending_rerun_frontend_only_head",
       "production_runtime_mutation": "none",
       "modbus_write": "none",
-      "hardware_write": "none"
+      "hardware_write": "none",
+      "first_exact_head_sha": "3d04f8b654d9a68db48531bbefa17167a58e07fa",
+      "first_merge_gate": "failed_missing_unregistered_offline_and_refrigeration_workflows_from_fail_closed_unknown_paths",
+      "routing_remediation": "shipping_diff_reduced_to_frontend_chart_core_tests_and_state"
     }
   },
   "observations": [
