@@ -1,13 +1,13 @@
 # NEXOLAB Frontend Toolchain Migration Plan
 
-Updated: 2026-08-03
+Updated: 2026-09-25
 Parent Issue: #204
 Superseded grouped Pull Request: #160
-Baseline main: `c3488d383d7633f40f7a723bb0d1ffd97b492973`
+Reconciled baseline main: `fb985bb0125bef42c1cb519c786a65fa51986ffb`
 
 ## Objective
 
-Split the grouped frontend development-tool upgrades into focused, reversible Work Packages while preserving the current NEXOLAB quality gates:
+Split the grouped frontend development-tool upgrades into focused, reversible Work Packages while preserving the NEXOLAB quality gates:
 
 ```text
 format → lint → strict typecheck → unit tests → production build → browser acceptance → offline bundle
@@ -15,150 +15,123 @@ format → lint → strict typecheck → unit tests → production build → bro
 
 No toolchain migration may introduce a mandatory online runtime dependency, alter production behavior silently, weaken diagnostics or combine unrelated major versions.
 
-## Repository baseline
+## Current repository baseline
 
-- Node selector: `.nvmrc` contains `22`.
-- Declared Node engine: `>=22.0.0`.
-- CI currently resolves Node `22.23.1`.
-- TypeScript: resolved `5.9.3`.
-- ESLint: resolved `9.39.5`.
-- eslint-config-next: resolved `16.2.12`.
-- jsdom: resolved `29.1.1`.
-- lint-staged: resolved `16.4.0`.
-- Playwright Test: exact `1.55.0`.
-- Node types: resolved `20.19.43`.
-- Vitest uses a global jsdom environment.
-- Browser acceptance uses separate Playwright configs and evidence directories.
-- ESLint uses flat config and `--max-warnings=0`.
+As of this reconciliation:
+
+- Node exact CI/developer baseline: `22.23.1`;
+- declared Node engine: `>=22.22.1 <23 || >=24 <25`;
+- `@types/node`: Node 22 line (`^22.20.1` in `package.json`);
+- TypeScript: `^6.0.3`;
+- ESLint: major 9;
+- eslint-config-next: `16.2.12`;
+- jsdom: `30.0.0`;
+- lint-staged: `^17.3.0`;
+- Playwright Test: exact `1.62.0`;
+- Vitest uses the global jsdom environment;
+- browser acceptance uses separate Playwright configs and evidence directories;
+- ESLint uses flat config and `--max-warnings=0`;
 - TypeScript uses strict, no-emit, bundler module resolution and the Next plugin.
 
-## Superseded grouped targets
+The old grouped proposal from PR #160 is historical only and must not be revived as one combined migration.
 
-Dependabot PR #160 attempted one lockfile change containing:
-
-- Playwright `1.55.0 → 1.62.0`;
-- Node types `20.19.43 → 26.1.2`;
-- ESLint `9.39.5 → 10.8.0`;
-- eslint-config-next `16.2.10 → 16.2.12`;
-- jsdom `29.1.1 → 30.0.0`;
-- lint-staged `16.4.0 → 17.2.0`;
-- TypeScript `5.9.3 → 7.0.2`.
-
-The eslint-config-next patch was already completed separately with the production framework security work. The remaining majors must not be recombined.
-
-## Compatibility decisions
+## Reconciled migration status
 
 ### 1. Node 22 baseline and Node types — Issue #251
 
-Status: **Ready first**.
+Status: **Completed**.
 
-Decision:
+Accepted outcome:
 
-- keep the supported runtime on Node 22;
-- select an explicit supported Node 22 patch/floor;
-- align package engines and CI/developer selectors;
-- move `@types/node` to the Node 22 type line;
-- reject the proposed Node 26 type line while runtime remains Node 22.
-
-Reason:
-
-- lint-staged 17 requires Node 22.22.1 or newer;
-- the current broad engine declaration allows older unsupported Node 22 patches;
-- Node 26 types would expose APIs unavailable on the supported runtime.
+- explicit Node 22 floor/baseline;
+- developer and CI assumptions aligned;
+- Node types moved to the Node 22 line rather than the unsafe Node 26 proposal;
+- later lint-staged migration prerequisites satisfied.
 
 ### 2. Playwright 1.62 — Issue #254
 
-Status: **Queued after #251**.
+Status: **Completed**.
 
-Decision:
+Accepted outcome:
 
-- treat Playwright as a browser-runtime and evidence migration, not a routine package update;
-- preserve all dedicated NEXOLAB configs, single-worker execution, evidence paths and failure artifacts;
-- run every browser acceptance workflow and Offline Bundle.
-
-Risk:
-
-- versions 1.56–1.62 change browser revisions and remove deprecated APIs/selectors;
-- browser installation and cache behavior affect CI reproducibility.
+- browser/evidence migration performed as a focused Work Package;
+- dedicated NEXOLAB configs/evidence semantics preserved;
+- `@playwright/test` current repository baseline is `1.62.0`.
 
 ### 3. lint-staged 17 — Issue #252
 
-Status: **Blocked by #251**.
+Status: **Completed**.
 
-Decision:
+Accepted outcome:
 
-- migrate only after the Node floor is explicit and compatible;
-- preserve current globs and ESLint/Prettier ordering;
-- test index rollback and unstaged-change preservation.
+- repository moved to lint-staged 17 after Node baseline alignment;
+- current production ESLint → Prettier staged-file command ordering and globs remain explicit;
+- isolated Git integration coverage exists under the repository test harness.
 
 ### 4. jsdom 30 — Issue #253
 
-Status: **Queued after the Node baseline**.
+Status: **Completed**.
 
-Decision:
+Accepted outcome:
 
-- isolate the unit-test DOM environment from Vitest, Testing Library and production dependencies;
-- add focused behavior tests before accepting changed DOM semantics;
-- do not rewrite assertions merely to accommodate regressions.
+- unit-test DOM environment migrated to jsdom 30;
+- test semantics were preserved through focused regression coverage;
+- current repository baseline is `jsdom 30.0.0`.
 
 ### 5. TypeScript 6 transition — Issue #255
 
-Status: **Queued after the independent test-tool migrations**.
+Status: **Completed**.
 
-Decision:
+Accepted outcome:
 
-- migrate from 5.9 to the official TypeScript 6 transition line first;
-- classify every new diagnostic;
-- preserve strictness, noEmit, Next generated types and bundler resolution;
-- reject broad suppressions.
+- the repository completed the TypeScript 6 transition before any TypeScript 7 evaluation;
+- strict/noEmit/Next generated-type behavior remains part of the verification contract;
+- current compiler declaration is `^6.0.3`.
 
 ### 6. TypeScript 7 native compiler — Issue #256
 
-Status: **Blocked by #255 and ecosystem support**.
+Status: **Deferred — not Ready**.
 
-Decision:
+The prerequisite TypeScript 6 migration is now complete, but the remaining ecosystem-support gate is still material. TypeScript 7 itself is available and Next.js exposes an experimental TypeScript CLI integration path, but that alone does not satisfy NEXOLAB acceptance. The current TypeScript-aware ESLint/parser toolchain does not provide TypeScript 7 as a normal supported baseline; upstream `typescript-eslint` currently detects/warns on TypeScript 7 rather than treating it as the established supported compiler line.
 
-- reject the direct `5.9.3 → 7.0.2` jump;
-- require a verified TypeScript 6 baseline;
-- require explicit Next.js, Vitest/Vite and ESLint integration support;
-- compare correctness before performance.
+Do not start #256 until the selected Next.js, Vitest/Vite and ESLint/parser integrations explicitly support the chosen TypeScript 7 line and correctness can be compared against this verified TypeScript 6 baseline.
 
 ### 7. ESLint 10 — Issue #257
 
-Status: **Blocked by the resolved Next plugin graph**.
+Status: **Blocked — not Ready**.
 
-Decision:
+`typescript-eslint` has ESLint 10 support, but the official `eslint-plugin-import` release used by the current Next/plugin graph still lacks an official ESLint 10-compatible release/peer baseline. NEXOLAB will not bypass that constraint by silently replacing the plugin with a fork/preview package as part of #257.
 
-- do not update while any resolved plugin rejects ESLint 10;
-- current `eslint-plugin-import 2.32.0` declares peer support only through ESLint 9;
-- preserve flat config, zero warnings and narrow NEXOLAB-specific overrides;
-- wait for a compatible eslint-config-next/plugin graph.
+Start #257 only after the resolved `eslint-config-next`/import-plugin graph officially supports ESLint 10 and the existing zero-warning rule intent can be preserved.
 
-## Execution order
+## Executed order
 
-Only one implementation Work Package is active at a time.
+The currently executable migration sequence is complete:
 
 ```text
-#251 Node 22 baseline and Node types
+#251 Node 22 baseline and Node types       ✅ completed
   ↓
-#254 Playwright browser/evidence migration
+#254 Playwright browser/evidence migration ✅ completed
   ↓
-#252 lint-staged pre-commit migration
+#252 lint-staged pre-commit migration      ✅ completed
   ↓
-#253 jsdom unit-test DOM migration
+#253 jsdom unit-test DOM migration         ✅ completed
   ↓
-#255 TypeScript 6 transition
-  ↓
-#256 TypeScript 7 evaluation (only when unblocked)
-
-#257 ESLint 10 remains blocked until plugin peers support it
+#255 TypeScript 6 transition               ✅ completed
 ```
 
-The order may skip a soft-blocked task and continue to the next independent Ready child, but it must never merge two migration groups into one PR.
+Future compatibility-gated follow-ups:
 
-## Verification contract per child
+```text
+#256 TypeScript 7 evaluation  ⏸ deferred until ecosystem support is explicit
+#257 ESLint 10 migration      ⏸ blocked until the official plugin graph is compatible
+```
 
-Every child Issue must define and actually run the smallest relevant checks plus:
+There is no immediate Ready migration from this plan as of 2026-09-25.
+
+## Verification contract per future child
+
+Every future migration Work Package must define and actually run the smallest relevant checks plus:
 
 ```text
 npm run format:check
@@ -170,13 +143,10 @@ npm run build
 
 Additional gates are selected by affected surface:
 
-- Node baseline: CI version evidence and install reproducibility;
-- Playwright: every browser acceptance and evidence upload;
-- lint-staged: isolated temporary Git-repository hook tests;
-- jsdom: focused DOM behavior tests plus full Vitest;
 - TypeScript: generated Next types and all TS-based configs;
 - ESLint: nested config lookup and full zero-warning lint;
-- any package/lockfile change: Offline Bundle disconnected startup and update/rollback preservation.
+- any package/lockfile change: Offline Bundle disconnected startup and update/rollback preservation;
+- any browser/runtime change: the routed browser acceptance and evidence workflows.
 
 ## Rollback rules
 
@@ -189,19 +159,21 @@ Additional gates are selected by affected surface:
 
 ## Primary references
 
-- Dependabot grouped proposal: GitHub PR #160.
-- TypeScript 6 transition notes: https://www.typescriptlang.org/docs/handbook/release-notes/typescript-6-0.html
-- TypeScript release notes: https://www.typescriptlang.org/docs/handbook/release-notes/overview
-- ESLint 10 migration guide: https://eslint.org/docs/latest/use/migrate-to-10.0.0
-- Playwright release notes: https://playwright.dev/docs/release-notes
-- lint-staged migration guide: https://github.com/lint-staged/lint-staged/blob/main/MIGRATION.md
-- jsdom releases: https://github.com/jsdom/jsdom/releases
+- superseded grouped proposal: GitHub PR #160;
+- completed Node baseline: #251;
+- completed Playwright migration: #254;
+- completed lint-staged migration: #252;
+- completed jsdom migration: #253;
+- completed TypeScript 6 transition: #255;
+- deferred TypeScript 7 evaluation: #256;
+- blocked ESLint 10 migration: #257.
 
 ## Completion definition for parent Issue #204
 
-Issue #204 remains open as the tracking parent until every applicable child is either:
+The parent completion definition is satisfied as of 2026-09-25:
 
-- merged with GREEN exact-head evidence; or
-- explicitly deferred/blocked with a current compatibility reason and no unsafe partial change.
+- every currently executable migration child through TypeScript 6 is completed;
+- #256 and #257 are explicitly deferred/blocked with current compatibility reasons and have no unsafe partial change;
+- no grouped major migration remains authorized.
 
-The immediate Ready Work Package is Issue #251.
+Issue #204 may therefore close as a completed planning/execution parent. Issues #256 and #257 remain independently open and must be re-evaluated when their compatibility conditions change.

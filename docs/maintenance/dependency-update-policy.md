@@ -1,5 +1,7 @@
 # NEXOLAB Dependency Update Policy
 
+Updated: 2026-09-25
+
 ## Purpose
 
 Dependency updates must remain reviewable, reversible and compatible with the `LOCAL_LAN` offline-runtime profile. Automation may reduce routine maintenance work, but it must not combine unrelated migrations or silently change the supported runtime boundary.
@@ -19,7 +21,7 @@ They are not grouped because each update can affect the browser bundle, server r
 - rollback instructions;
 - confirmation that no mandatory cloud, CDN, remote font, telemetry or paid runtime service was introduced.
 
-PR #272 was the original independent `lucide-react` review. Dependabot closed it and deleted its head branch while applying the ungrouped production lane. GitHub rejected reopening it after branch recreation. PR #341 is the exact current individual replacement and remains open and unselected. Neither Issue #328 nor corrective Issue #343 approves or merges the dependency update.
+Historical `lucide-react` PR #272 and PR #341 established the ungrouped production-dependency lane. Their historical state does not authorize later package updates; every current production dependency candidate must be evaluated from its own exact head and current `main`.
 
 ### Development patch/minor
 
@@ -38,9 +40,9 @@ Development patch and minor updates may be grouped only when they share one veri
 
 A SemVer-minor update can still be a repository migration when the package is pre-2.0, changes browser binaries, modifies test execution semantics or has a dedicated compatibility Work Package.
 
-Playwright >=1.56 is migration-grade for this repository. It is excluded from every automated patch/minor group and held by an explicit Dependabot version guard until Issue #254 intentionally removes that guard and performs the focused 1.62.x migration.
+`Playwright >=1.56` remains classified as migration-grade for this repository. The focused Playwright 1.62 migration was completed under Issue #254; future browser-revision migrations remain subject to the same focused review rather than being mixed into unrelated development groups.
 
-PR #339 demonstrated why this rule is required: it combined Playwright 1.62.1 with an unrelated Vite plugin patch. PR #339 was closed unmerged.
+PR #339 demonstrated why this rule is required: it combined a migration-grade Playwright update with an unrelated Vite plugin patch and was closed unmerged.
 
 ### Major migrations
 
@@ -48,28 +50,31 @@ Major version updates are disabled in Dependabot version-update automation.
 
 Every major migration requires one dedicated Issue, one feature branch, one focused Pull Request, an explicit rollback plan and the full verification surface declared by that Issue. Dependabot must not group, automatically merge or silently introduce major versions.
 
-Current migration mapping:
+Current migration mapping after the 2026-09-25 reconciliation:
 
-| Migration               | Dedicated Issue | Status                                     |
-| ----------------------- | --------------: | ------------------------------------------ |
-| lint-staged 17          |            #252 | queued                                     |
-| jsdom 30                |            #253 | queued                                     |
-| @playwright/test 1.62.x |            #254 | queued                                     |
-| TypeScript 6            |            #255 | queued                                     |
-| TypeScript 7            |            #256 | deferred                                   |
-| ESLint 10               |            #257 | blocked on compatible Next.js/plugin graph |
+| Migration                        | Dedicated Issue | Status                                                          |
+| -------------------------------- | --------------: | --------------------------------------------------------------- |
+| Node 22 baseline / Node 22 types |            #251 | completed                                                       |
+| lint-staged 17                   |            #252 | completed                                                       |
+| jsdom 30                         |            #253 | completed                                                       |
+| @playwright/test 1.62.x          |            #254 | completed                                                       |
+| TypeScript 6                     |            #255 | completed                                                       |
+| TypeScript 7                     |            #256 | deferred pending supported TS7 parser/toolchain integration     |
+| ESLint 10                        |            #257 | blocked pending an official compatible Next/import-plugin graph |
+
+The completed migrations above are independent accepted baselines. The open #256/#257 issues are future compatibility-gated migrations and are not permission to bypass peer/support constraints.
 
 ## Node runtime boundary
 
-The active repository runtime baseline is Node 22 from `.nvmrc`. `@types/node` must remain on major 22 while that runtime boundary is active.
+The active repository developer/CI runtime baseline is Node `22.23.1`, with the declared supported range `>=22.22.1 <23 || >=24 <25`. `@types/node` remains on major 22 while Node 22 is the active exact CI/developer baseline.
 
-Dependabot therefore has:
+Dependabot therefore retains:
 
 - a global SemVer-major ignore rule;
-- an explicit `@types/node >=23` guard;
-- an explicit `@playwright/test >=1.56` migration-grade guard.
+- an explicit `@types/node >=23` guard while the active runtime line remains Node 22;
+- focused treatment for browser/tool migrations that change execution semantics.
 
-Moving to Node 24, Node 26 or another major requires a dedicated runtime migration Issue that updates `.nvmrc`, package engine constraints, CI images, container/runtime evidence and `@types/node` together. A type-only jump is not acceptable.
+Moving to another Node major requires a dedicated runtime migration Issue that updates `.nvmrc`, package engine constraints, CI images, container/runtime evidence and `@types/node` together. A type-only major jump is not acceptable.
 
 ## Pull Request triage
 
@@ -78,11 +83,11 @@ Moving to Node 24, Node 26 or another major requires a dedicated runtime migrati
 Close without merge and explain which focused Issues replace it.
 
 - PR #271 mixed Playwright, Node types, ESLint, jsdom, lint-staged and TypeScript migrations and was superseded by Issues #252–#257.
-- PR #339 mixed migration-grade Playwright with an unrelated Vite plugin patch and was superseded by Issue #254 plus a separate routine patch path.
+- PR #339 mixed migration-grade Playwright with an unrelated Vite plugin patch and was superseded by completed Issue #254 plus a separate routine patch path.
 
 ### Stale PR
 
-Rebase or recreate only after confirming its Issue is still Ready and its scope remains focused. Do not revive a PR whose dependency version or migration plan has been superseded.
+Rebase or recreate only after confirming its Issue is still Ready and its requested version remains current. Do not revive a PR whose dependency version or migration plan has been superseded.
 
 ### Conflicting or non-mergeable PR
 
@@ -120,3 +125,7 @@ No dependency PR may require destructive database or persistent-volume operation
 - Cadence: npm weekly on Monday at 04:00 Europe/Kyiv; GitHub Actions monthly.
 - Automatic major merge: prohibited.
 - Dependency version or lockfile changes in policy-only Work Packages: prohibited.
+
+## Parent governance status
+
+The executable migration sequence tracked by Issue #204 is complete through TypeScript 6. Issue #256 and Issue #257 intentionally remain independent compatibility-gated follow-ups. Their existence does not require the completed migration parent to remain active, and neither may start until its own acceptance prerequisites are current and evidenced.
