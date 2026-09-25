@@ -349,6 +349,9 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   private rangeSelectionLastMs: number | null = null;
   private rangeSelectionStartClientX: number | null = null;
   private rangeSelectionLastClientX: number | null = null;
+  private cursorAnimationFrame: number | null = null;
+  private pendingCursorTimestampMs: number | null | undefined;
+  private lastCommittedCursorTimestampMs: number | null | undefined;
 
   constructor(private readonly runtime: EChartsRuntimePort = defaultRuntime) {}
 
@@ -362,6 +365,41 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     if (!Number.isFinite(timestampMs)) return null;
     const domain = this.scene.interactionDomain ?? this.scene.xDomain;
     return Math.max(domain.fromMs, Math.min(timestampMs, domain.toMs));
+  }
+
+  private cancelPendingCursor(): void {
+    const view = this.container?.ownerDocument.defaultView;
+    if (this.cursorAnimationFrame !== null && view) view.cancelAnimationFrame(this.cursorAnimationFrame);
+    this.cursorAnimationFrame = null;
+    this.pendingCursorTimestampMs = undefined;
+  }
+
+  private commitCursor(timestampMs: number | null): void {
+    if (timestampMs === this.lastCommittedCursorTimestampMs) return;
+    this.lastCommittedCursorTimestampMs = timestampMs;
+    if (timestampMs === null || !this.scene) {
+      this.options?.onCursor(null);
+      return;
+    }
+    this.options?.onCursor(inspectChartAtTimestamp(this.scene, timestampMs));
+  }
+
+  private queueCursor(timestampMs: number | null): void {
+    this.pendingCursorTimestampMs = timestampMs;
+    if (this.cursorAnimationFrame !== null) return;
+    const view = this.container?.ownerDocument.defaultView;
+    if (!view) {
+      const pending = this.pendingCursorTimestampMs;
+      this.pendingCursorTimestampMs = undefined;
+      if (pending !== undefined) this.commitCursor(pending);
+      return;
+    }
+    this.cursorAnimationFrame = view.requestAnimationFrame(() => {
+      this.cursorAnimationFrame = null;
+      const pending = this.pendingCursorTimestampMs;
+      this.pendingCursorTimestampMs = undefined;
+      if (pending !== undefined) this.commitCursor(pending);
+    });
   }
 
   private timestampAtRangePointer(event: MouseEvent): number | null {
@@ -426,7 +464,8 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     this.rangeSelectionLastMs = timestampMs;
     this.rangeSelectionStartClientX = event.clientX;
     this.rangeSelectionLastClientX = event.clientX;
-    this.options?.onCursor(null);
+    this.cancelPendingCursor();
+    this.commitCursor(null);
     event.preventDefault();
     event.stopImmediatePropagation();
   };
@@ -463,7 +502,8 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       this.rangeSelectionLastMs = timestampMs;
       this.rangeSelectionStartClientX = event.clientX;
       this.rangeSelectionLastClientX = event.clientX;
-      this.options?.onCursor(null);
+      this.cancelPendingCursor();
+      this.commitCursor(null);
       event.preventDefault();
       event.stopImmediatePropagation();
       return;
@@ -471,6 +511,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     const bounds = this.container.getBoundingClientRect();
     const pixel: [number, number] = [event.clientX - bounds.left, event.clientY - bounds.top];
     if (!this.instance.containPixel({ gridIndex: 0 }, pixel)) return;
+    this.cancelPendingCursor();
     this.primaryDragActive = true;
     this.primaryDragBaseDomain = { ...(this.scene.interactionDomain ?? this.scene.xDomain) };
     this.pendingPrimaryDragDomain = null;
@@ -514,24 +555,26 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
     const bounds = this.container.getBoundingClientRect();
     const pixel: [number, number] = [event.clientX - bounds.left, event.clientY - bounds.top];
     if (!this.instance.containPixel({ gridIndex: 0 }, pixel)) {
-      this.options?.onCursor(null);
+      this.queueCursor(null);
       return;
     }
     const converted = this.instance.convertFromPixel({ xAxisIndex: 0 }, pixel);
     const timestampMs = Array.isArray(converted) ? Number(converted[0]) : Number(converted);
     if (!Number.isFinite(timestampMs)) return;
-    this.options?.onCursor(inspectChartAtTimestamp(this.scene, timestampMs));
+    this.queueCursor(timestampMs);
   };
 
   private readonly handleContainerLeave = () => {
-    if (!this.primaryDragActive && !this.rangeSelectionDragActive) this.options?.onCursor(null);
+    if (this.primaryDragActive || this.rangeSelectionDragActive) return;
+    this.cancelPendingCursor();
+    this.commitCursor(null);
   };
 
   private readonly handleAxisPointer = (event: unknown) => {
     if (!this.scene || this.primaryDragActive || this.rangeSelectionDragActive) return;
     const timestampMs = axisPointerTimestamp(event);
     if (timestampMs === null) return;
-    this.options?.onCursor(inspectChartAtTimestamp(this.scene, timestampMs));
+    this.queueCursor(timestampMs);
   };
 
   private readonly handleDataZoom = (event: unknown) => {
@@ -578,6 +621,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   setScene(scene: ChartRendererScene): void {
     if (!this.instance) throw new Error("Chart renderer must be initialized before setting a scene");
     this.scene = scene;
+    this.lastCommittedCursorTimestampMs = undefined;
     this.instance.setOption(rendererOption(scene, this.options?.reducedMotion ?? false), {
       notMerge: false,
       lazyUpdate: false,
@@ -675,6 +719,8 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
       true,
     );
     this.container?.ownerDocument.defaultView?.removeEventListener("mouseup", this.handleWindowMouseUp, true);
+    this.cancelPendingCursor();
+    this.lastCommittedCursorTimestampMs = undefined;
     this.primaryDragActive = false;
     this.primaryDragBaseDomain = null;
     this.pendingPrimaryDragDomain = null;

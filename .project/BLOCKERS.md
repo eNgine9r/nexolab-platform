@@ -2,17 +2,17 @@
 
 Updated: 2026-09-25
 
+## Issue #1166 — shared chart hover-path coalescing
+
+**No implementation blocker.** ARM64 benchmark and local correctness gates are GREEN: pointer bursts are bounded to at most one committed cursor callback per frame, focused adapter tests are 12/12 PASS, broader chart regressions are 74/74 PASS across 16 files, TypeScript/lint/format/diff checks pass, and the full Next.js/Turbopack production build succeeds. The first exact head exposed a fail-closed CI-routing mismatch caused only by temporary benchmark-harness edits classified as unknown; those non-shipping edits are removed from the candidate. Exact-head GitHub CI on the frontend-only head remains the merge gate. Production runtime, persistent data, acquisition, Modbus/controller and hardware state are unchanged.
+
 ## Issue #1165 — Refrigeration shared Exact Inspector cursor
 
-**No implementation blocker.** The focused candidate centralizes one range-scoped cursor timestamp in controller history and derives each chart's own Exact Inspector from it. Local evidence is GREEN at 8/8 focused tests plus 216/216 broader Refrigeration/chart-adapter regressions; TypeScript, ESLint and diff checks pass. Exact-head GitHub CI remains the merge gate. Production runtime, persistent data, acquisition, Modbus/controller and hardware state are unchanged.
+**Cleared and merged.** PR #1170 exact head `fc3d34d8e23387dbe93ac3dda4f77b42d176dd32` passed Core CI/Merge Gate, Refrigeration Browser Acceptance and Disaster Recovery Browser and merged as `46c54adbcd2118da57b31ac1bb055616cc4afb6d`. No production/runtime, acquisition, Modbus/controller or hardware mutation occurred.
 
 ## Issue #1164 — Live Follow reset semantics
 
 **Cleared and merged.** PR #1169 exact head `ea12fc99b4fa4bfa2ad7104fe9cdf51f1cf268cc` passed both routed workflows GREEN and merged as `275dafc485372bf34a22842dc3657bcbb3703e25`. No production/runtime, acquisition, Modbus/controller or hardware mutation occurred.
-
-## Issue #1164 — Live Follow reset semantics
-
-**No implementation blocker.** The focused #1164 candidate separates Reset from manual viewport changes. Local evidence is GREEN at 4/4 focused tests plus 442/442 broader chart/domain tests; manual zoom still pauses and Reset restores/keeps Live Follow without requesting history. Exact-head GitHub CI remains the merge gate. Production runtime, persistent data, acquisition, Modbus/controller and hardware state are unchanged.
 
 ## Issue #1163 — Live Data animated redraw / hover flicker
 

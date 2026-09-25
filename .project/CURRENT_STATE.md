@@ -4,21 +4,19 @@ Updated: 2026-09-25
 
 ## Current Sprint
 
-### Issue #1165 — Refrigeration shared Exact Inspector cursor in progress
+### Issue #1166 — shared chart hover-path coalescing in progress
 
-Issue #1165 is active on `fix/1165-refrigeration-shared-cursor`. The controller history parent now owns one range-scoped cursor timestamp and passes it to both the temperature and compressor-speed charts. Each chart derives its own gap-safe/cadence-aware Exact Inspector from that shared timestamp; clear events synchronize both charts, and a history-range change invalidates a stale cursor automatically. The parent setter is idempotent for identical timestamps to avoid unnecessary React work during ECharts axis-pointer synchronization.
+Issue #1166 is active on `perf/1166-chart-hover-coalescing`. The shared ECharts adapter now coalesces DOM mousemove and ECharts axis-pointer inspection into a bounded animation-frame commit, keeps only the latest timestamp for the frame, suppresses duplicate committed timestamps, cancels pending work on drag/dispose, and preserves the existing gap-safe/cadence-aware `inspectChartAtTimestamp()` semantics. Keyboard inspection remains on the existing deterministic host path.
 
-Local evidence is GREEN: **8/8 focused tests** across the controller chart/history components and **216/216 broader Refrigeration/chart-adapter regressions across 34 files**, TypeScript `--noEmit`, changed-file ESLint and `git diff --check`. Existing ECharts range-selection guards remain GREEN, so compressor drag selection continues to suppress hover updates while selecting. Exact-head GitHub CI is pending. No production deployment/restart, telemetry/acquisition mutation, Modbus/controller write or hardware write occurred.
+Raspberry Pi ARM64 before/after evidence is GREEN. Before: **1200 pointer events → 1200 cursor callbacks**, 120-event burst median **248.6 ms**, p95 **351.0 ms**. Candidate: **1200 pointer events → 1 committed callback across the repeated identical burst set, max 1 callback per iteration/frame**, median **196.7 ms** (~20.9% lower), p95 **294.7 ms** (~16.0% lower). The candidate also passes **12/12 focused adapter tests**, **74/74 broader chart regressions across 16 files**, TypeScript, changed-file ESLint/Prettier, `git diff --check`, disconnected benchmark gate, and a full Next.js/Turbopack production build. The first exact head `3d04f8b6…` exposed a CI-routing mismatch: temporary benchmark-harness edits under generic `tests/`/`scripts/` paths were fail-closed as unknown and required Offline Bundle/Refrigeration workflows that those paths do not register. Those non-shipping harness edits were removed; the measured ARM64 evidence remains recorded and the deterministic 120-event adapter regression remains in the shipping test suite. Exact-head GitHub CI is pending on the frontend-only candidate. No production runtime, telemetry/acquisition, Modbus/controller or hardware mutation occurred.
+
+### Issue #1165 — Refrigeration shared Exact Inspector cursor completed and merged
+
+PR #1170 exact head `fc3d34d8e23387dbe93ac3dda4f77b42d176dd32` passed **3/3 routed workflows GREEN**: Core CI / NEXOLAB Merge Gate (`36165029490`), Refrigeration Browser Acceptance (`36165029479`) and Disaster Recovery Browser (`36165029513`). It merged to `main` as `46c54adbcd2118da57b31ac1bb055616cc4afb6d`; GitHub #1165 is closed completed. Temperature and compressor-speed controller charts now share one range-scoped cursor timestamp while deriving their own Exact Inspector values.
 
 ### Issue #1164 — Live Follow reset semantics completed and merged
 
-PR #1169 exact head `ea12fc99b4fa4bfa2ad7104fe9cdf51f1cf268cc` passed Core CI / NEXOLAB Merge Gate and Authenticated Dashboard Acceptance and merged to `main` as `275dafc485372bf34a22842dc3657bcbb3703e25`. Reset Zoom now restores/keeps `Live Follow`, while manual zoom/pan still switches to `Paused view`; reset does not trigger a history request. No production/runtime, acquisition, Modbus/controller or hardware mutation occurred.
-
-### Issue #1164 — Live Follow reset semantics fix in progress
-
-Issue #1164 is the active focused chart Work Package on `fix/1164-live-reset-follow`. Audit #1162 proved that `Reset zoom` was routed through the same callback as manual pan/zoom, so a reset silently changed `Live Follow` to `Paused view`. The candidate separates reset semantics from manual viewport changes: manual wheel/pan still pauses, while Reset clears the local viewport and restores/keeps `Live Follow` for the live range without requesting a new history window.
-
-Local evidence is GREEN: **4/4 focused Live tests** and **442/442 broader chart/domain tests across 84 files**, TypeScript `--noEmit`, changed-file ESLint and `git diff --check`. Production E2E now explicitly requires `Live Follow` after `Reset zoom`. Exact-head GitHub CI is pending. No production deployment/restart, data mutation, acquisition mutation, Modbus/controller write or hardware write occurred.
+PR #1169 exact head `ea12fc99b4fa4bfa2ad7104fe9cdf51f1cf268cc` passed Core CI / NEXOLAB Merge Gate and Authenticated Dashboard Acceptance and merged to `main` as `275dafc485372bf34a22842dc3657bcbb3703e25`. Reset Zoom restores/keeps `Live Follow`, while manual zoom/pan still switches to `Paused view`; reset does not trigger a history request. No production/runtime, acquisition, Modbus/controller or hardware mutation occurred.
 
 ### Issue #1163 — Live Data animated redraw / hover flicker fix completed and merged
 

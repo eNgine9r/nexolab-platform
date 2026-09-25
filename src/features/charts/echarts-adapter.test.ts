@@ -58,6 +58,10 @@ function optionSeries(instance: FakeEChartsInstance): Array<Record<string, unkno
   return option.series;
 }
 
+async function nextAnimationFrame(): Promise<void> {
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+}
+
 describe("ECharts renderer adapter lifecycle", () => {
   it("initializes one persistent instance and maps gaps to independent line series", () => {
     const instance = new FakeEChartsInstance();
@@ -232,7 +236,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     expect(data).toHaveLength(240);
   });
 
-  it("returns one deterministic nearest-point inspection per visible series", () => {
+  it("returns one deterministic nearest-point inspection per visible series", async () => {
     const instance = new FakeEChartsInstance();
     const onCursor = vi.fn();
     const onXDomainChange = vi.fn();
@@ -260,6 +264,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.setScene(scene);
 
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 0, clientY: 120 }));
+    await nextAnimationFrame();
     expect(instance.convertFinders.at(-1)).toEqual({ xAxisIndex: 0 });
     expect(onCursor).toHaveBeenCalledWith({
       timestampMs: BENCHMARK_START_MS,
@@ -293,7 +298,59 @@ describe("ECharts renderer adapter lifecycle", () => {
     expect(adapter.isDisposed()).toBe(true);
   });
 
-  it("freezes Exact Inspector callbacks during primary-button native pan and resumes after release", () => {
+  it("coalesces pointer and axis-pointer bursts to one latest cursor commit per animation frame", async () => {
+    const instance = new FakeEChartsInstance();
+    const onCursor = vi.fn();
+    const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
+    const scene = createBenchmarkScene(8);
+    const container = document.createElement("div");
+    vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 320,
+      bottom: 200,
+      width: 320,
+      height: 200,
+      toJSON: () => ({}),
+    });
+    adapter.initialize({
+      container,
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor,
+      onXDomainChange: vi.fn(),
+    });
+    adapter.setScene(scene);
+
+    for (let index = 0; index < 120; index += 1) {
+      container.dispatchEvent(new MouseEvent("mousemove", { clientX: index, clientY: 120 }));
+    }
+    const latestTimestamp = BENCHMARK_START_MS + 200;
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: latestTimestamp }] });
+    expect(onCursor).not.toHaveBeenCalled();
+
+    await nextAnimationFrame();
+    expect(onCursor).toHaveBeenCalledTimes(1);
+    expect(onCursor).toHaveBeenLastCalledWith(expect.objectContaining({ timestampMs: latestTimestamp }));
+
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: latestTimestamp }] });
+    await nextAnimationFrame();
+    expect(onCursor).toHaveBeenCalledTimes(1);
+
+    adapter.setScene(scene);
+    instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: latestTimestamp }] });
+    await nextAnimationFrame();
+    expect(onCursor).toHaveBeenCalledTimes(2);
+
+    container.dispatchEvent(new MouseEvent("mousemove", { clientX: 210, clientY: 120 }));
+    adapter.dispose();
+    await nextAnimationFrame();
+    expect(onCursor).toHaveBeenCalledTimes(2);
+  });
+
+  it("freezes Exact Inspector callbacks during primary-button native pan and resumes after release", async () => {
     const instance = new FakeEChartsInstance();
     const onCursor = vi.fn();
     const onXDomainChange = vi.fn();
@@ -321,6 +378,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.setScene(scene);
 
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 20, clientY: 120 }));
+    await nextAnimationFrame();
     expect(onCursor).toHaveBeenCalledTimes(1);
 
     container.dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: 20, clientY: 120 }));
@@ -341,11 +399,13 @@ describe("ECharts renderer adapter lifecycle", () => {
       toMs: scene.xDomain.toMs,
     });
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 80, clientY: 120 }));
+    await nextAnimationFrame();
     expect(onCursor).toHaveBeenCalledTimes(callsBeforeDrag + 1);
 
     container.dispatchEvent(new MouseEvent("mousedown", { button: 0, clientX: 80, clientY: 120 }));
     instance.handlers.get("dataZoom")?.({ start: 30, end: 90 });
     container.dispatchEvent(new MouseEvent("mousemove", { buttons: 0, clientX: 90, clientY: 120 }));
+    await nextAnimationFrame();
     expect(onXDomainChange).toHaveBeenCalledTimes(2);
     expect(onXDomainChange).toHaveBeenLastCalledWith({
       fromMs: scene.xDomain.fromMs + duration * 0.3,
@@ -355,6 +415,7 @@ describe("ECharts renderer adapter lifecycle", () => {
 
     container.dispatchEvent(new MouseEvent("mousedown", { button: 2, clientX: 90, clientY: 120 }));
     container.dispatchEvent(new MouseEvent("mousemove", { clientX: 100, clientY: 120 }));
+    await nextAnimationFrame();
     expect(onCursor).toHaveBeenCalledTimes(callsBeforeDrag + 3);
 
     adapter.dispose();
@@ -422,7 +483,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     adapter.dispose();
   });
 
-  it("keeps the shared cursor while marking explicitly out-of-tolerance samples unavailable", () => {
+  it("keeps the shared cursor while marking explicitly out-of-tolerance samples unavailable", async () => {
     const instance = new FakeEChartsInstance();
     const onCursor = vi.fn();
     const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
@@ -438,6 +499,7 @@ describe("ECharts renderer adapter lifecycle", () => {
 
     const cursor = BENCHMARK_START_MS + BENCHMARK_INTERVAL_MS / 2;
     instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: cursor }] });
+    await nextAnimationFrame();
 
     expect(onCursor).toHaveBeenCalledWith({
       timestampMs: cursor,
@@ -449,7 +511,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     });
   });
 
-  it("derives cursor tolerance from a slow valid source cadence so inspection does not flicker between samples", () => {
+  it("derives cursor tolerance from a slow valid source cadence so inspection does not flicker between samples", async () => {
     const instance = new FakeEChartsInstance();
     const onCursor = vi.fn();
     const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
@@ -481,6 +543,7 @@ describe("ECharts renderer adapter lifecycle", () => {
 
     const cursor = BENCHMARK_START_MS + 30_000;
     instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: cursor }] });
+    await nextAnimationFrame();
 
     expect(onCursor).toHaveBeenCalledWith({
       timestampMs: cursor,
@@ -494,7 +557,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     });
   });
 
-  it("never borrows a sample across an explicit continuity gap", () => {
+  it("never borrows a sample across an explicit continuity gap", async () => {
     const instance = new FakeEChartsInstance();
     const onCursor = vi.fn();
     const adapter = new EChartsRendererAdapter({ init: () => instance } satisfies EChartsRuntimePort);
@@ -513,6 +576,7 @@ describe("ECharts renderer adapter lifecycle", () => {
     const cursor =
       firstSegmentLast.timestampMs + (secondSegmentFirst.timestampMs - firstSegmentLast.timestampMs) / 2;
     instance.handlers.get("updateAxisPointer")?.({ axesInfo: [{ value: cursor }] });
+    await nextAnimationFrame();
 
     expect(onCursor).toHaveBeenCalledWith({
       timestampMs: cursor,

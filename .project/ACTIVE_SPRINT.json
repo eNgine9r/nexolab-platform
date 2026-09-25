@@ -41,14 +41,14 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1165,
-      "title": "Synchronize Exact Inspector cursor across controller charts",
-      "branch": "fix/1165-refrigeration-shared-cursor"
-    },
-    "next_work_package": {
       "issue": 1166,
       "title": "Coalesce pointer inspection and benchmark hover-path cost",
       "branch": "perf/1166-chart-hover-coalescing"
+    },
+    "next_work_package": {
+      "issue": 1167,
+      "title": "Centralize benchmark-backed point budgets",
+      "branch": "perf/1167-chart-point-budget-policy"
     }
   },
   "work_packages": [
@@ -5392,7 +5392,7 @@
       "issue": 1165,
       "title": "Synchronize Exact Inspector cursor across controller charts",
       "priority": "medium",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "fix/1165-refrigeration-shared-cursor",
       "evidence": {
@@ -5412,23 +5412,67 @@
         "stale_cursor_on_range_change": "cleared_by_range_key",
         "range_selection_guard": "existing_adapter_guard_regression_green",
         "idempotent_cursor_setter": "enabled",
-        "github_ci": "pending_exact_head",
+        "github_ci": "success_exact_head",
         "state_model_tests": "28_passed_1_expected_skip",
         "changed_file_prettier": "success_local",
-        "state_model_v2": "success_local"
+        "state_model_v2": "success_local",
+        "verified_head_sha": "fc3d34d8e23387dbe93ac3dda4f77b42d176dd32",
+        "pull_request": 1170,
+        "exact_head_ci": "3_routed_workflows_green",
+        "core_ci_run": 36165029490,
+        "refrigeration_browser_run": 36165029479,
+        "disaster_recovery_browser_run": 36165029513,
+        "merged_implementation_sha": "46c54adbcd2118da57b31ac1bb055616cc4afb6d",
+        "issue_state": "closed_completed"
       }
     },
     {
       "issue": 1166,
       "title": "Coalesce pointer inspection and benchmark hover-path cost",
       "priority": "medium",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [],
       "branch": "perf/1166-chart-hover-coalescing",
       "evidence": {
         "audit_issue": 1162,
         "measured_pointer_callbacks": "121_for_121_mousemove_events",
         "inspection_cost_ms": "0.21_to_0.26_per_call_on_raspberry_pi",
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "scope": "raf_coalesced_pointer_inspection",
+        "before_arm64_hover": "1200_events_1200_callbacks_median_248.6ms_p95_351.0ms",
+        "after_arm64_hover": "1200_events_1_callback_max_1_per_iteration_median_196.7ms_p95_294.7ms",
+        "median_burst_improvement_percent": 20.9,
+        "p95_burst_improvement_percent": 16.0,
+        "focused_adapter_tests": "12_passed",
+        "broader_chart_regressions": "74_passed_16_files",
+        "typescript_no_emit": "success_local",
+        "changed_file_eslint": "success_local",
+        "changed_file_prettier": "success_local",
+        "production_build": "success_next_build_turbopack",
+        "git_diff_check": "success_local",
+        "benchmark_disconnected_gate": true,
+        "benchmark_runtime_architecture": "arm64",
+        "renderer_bundle_delta_vs_prechange_hover_harness": "plus_1068_bytes_raw_plus_169_bytes_gzip",
+        "keyboard_inspection": "unchanged_host_path",
+        "gap_cadence_semantics": "preserved_same_inspection_function",
+        "github_ci": "pending_rerun_on_frontend_only_head",
+        "first_exact_head_sha": "3d04f8b654d9a68db48531bbefa17167a58e07fa",
+        "first_merge_gate": "failed_routing_policy_benchmark_harness_paths_classified_unknown",
+        "routing_remediation": "benchmark_harness_edits_removed_from_shipping_diff_measured_evidence_retained"
+      }
+    },
+    {
+      "issue": 1167,
+      "title": "Centralize benchmark-backed point budgets",
+      "priority": "low",
+      "lifecycle": "ready",
+      "depends_on": [],
+      "branch": "perf/1167-chart-point-budget-policy",
+      "evidence": {
+        "audit_issue": 1162,
+        "observed_divergence": "canonical_240_vs_refrigeration_360",
         "production_runtime_mutation": "none",
         "modbus_write": "none",
         "hardware_write": "none"
