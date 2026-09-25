@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-25T13:14:48+03:00",
+  "timestamp": "2026-09-25T13:38:12+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1106 resumed from clean current main; expiry-discovery workflow repair focused checks GREEN and exact-head CI pending",
+  "event": "Issue #1106 / PR #1107 merged GREEN; canonical state reconciled by #1154 before separate fresh HIGH-exception review",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,25 +28,26 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": {
-    "issue": 1106,
-    "title": "Allow fresh container scan after exception expiry without weakening gate",
-    "branch": "fix/1106-container-expiry-discovery"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "active_issue_evidence": {
-      "problem": "expired_exception_registry_previously_blocked_fresh_no_cache_scan_evidence",
-      "design": "inventory_then_evidence_then_policy_then_aggregate_publish",
-      "expired_exceptions_remain_blocking": true,
-      "critical_exception_path": "none",
-      "publish_requires_policy_success": true,
-      "container_supply_chain_validator": "success_local",
-      "focused_security_workflow_tests": "101_passed",
-      "git_diff_check": "success_local",
+    "completed_security_gate": {
+      "issue": 1106,
+      "pull_request": 1107,
+      "verified_head_sha": "a231169f0269a441fac4fc1f05da39097e4adfa3",
+      "exact_head_ci": "3_routed_workflows_green",
+      "workflow_sequence": "inventory_evidence_policy_aggregate_publish",
+      "fresh_image_jobs": "5_of_5_green",
+      "policy_over_fresh_reports": "success",
+      "aggregate_manifest": "success",
+      "ci_classifier_unknown_files": 0,
+      "ci_classifier_fail_closed": false,
+      "required_external_workflows": [
+        "Container Supply Chain"
+      ],
+      "exception_decision_changed": false,
       "production_runtime_mutation": "none",
       "modbus_write": "none",
-      "hardware_write": "none",
-      "github_ci": "pending_exact_head"
+      "hardware_write": "none"
     },
     "completed_onboarding": {
       "issue": 1140,
@@ -70,6 +71,20 @@
       "backend": "VersityGW_v1.8.0",
       "storage_backend": "local_POSIX",
       "production_migration_cutover": "not_executed_separate_gate"
+    },
+    "state_reconciliation": {
+      "issue": 1154,
+      "scope": "canonical_state_only",
+      "active_work_package": null,
+      "next_work_package": null,
+      "accepted_product_baseline_changed": false,
+      "deployed_product_baseline_changed": false,
+      "exception_decision_changed": false,
+      "production_runtime_mutation": "none",
+      "state_model_v2": "success_local",
+      "state_model_tests": "28_passed_1_skipped",
+      "json_parse": "success_local",
+      "git_diff_check": "success_local"
     }
   },
   "observations": [
@@ -130,9 +145,22 @@
         "status": "open_in_progress",
         "branch": "fix/1106-container-expiry-discovery"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-25T13:38:12+03:00",
+      "kind": "container_expiry_discovery_merge",
+      "data": {
+        "issue": 1106,
+        "pull_request": 1107,
+        "head_sha": "a231169f0269a441fac4fc1f05da39097e4adfa3",
+        "merge_sha": "3dae37d6a18eba08fa99960fa07ba8d0f3949f2f",
+        "status": "merged_closed_green",
+        "exact_head_ci": "3_routed_workflows_green"
+      }
     }
   ],
-  "next_action": "Run final state/format checks, push the current #1106 exact head, open/update one focused PR, require Container Supply Chain and Core/NEXOLAB Merge Gate GREEN, and merge only after exact-head acceptance. Do not extend vulnerability exceptions in this Work Package.",
+  "next_action": "Complete #1154 state-only exact-head checks and merge, then formalize a separate fresh current-date HIGH-exception review using the accepted Container Supply Chain evidence. Do not extend or retain exceptions without tuple-by-tuple current evidence.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
