@@ -40,7 +40,11 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1106,
+      "title": "Allow fresh container scan after exception expiry without weakening gate",
+      "branch": "fix/1106-container-expiry-discovery"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -5173,6 +5177,28 @@
         "git_diff_check": "success_local",
         "state_model_tests": "28_passed_1_skipped",
         "json_parse": "success_local"
+      }
+    },
+    {
+      "issue": 1106,
+      "title": "Allow fresh container scan after exception expiry without weakening gate",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [],
+      "branch": "fix/1106-container-expiry-discovery",
+      "evidence": {
+        "problem": "expired_exception_registry_previously_blocked_fresh_no_cache_scan_evidence",
+        "design": "inventory_then_evidence_then_policy_then_aggregate_publish",
+        "expired_exceptions_remain_blocking": true,
+        "critical_exception_path": "none",
+        "publish_requires_policy_success": true,
+        "container_supply_chain_validator": "success_local",
+        "focused_security_workflow_tests": "101_passed",
+        "git_diff_check": "success_local",
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "github_ci": "pending_exact_head"
       }
     }
   ],

@@ -2,6 +2,10 @@
 
 Updated: 2026-09-25
 
+## Issue #1106 — container expiry discovery gate
+
+**No architecture blocker; exact-head CI pending.** The resumed software-only branch now permits fresh no-cache build/Trivy evidence to be generated before vulnerability exception acceptance is evaluated, while expired/stale exceptions, unmatched HIGH findings and all CRITICAL findings remain fail-closed and publishing remains downstream of policy success. Local validator and 101 focused tests are GREEN. No production/runtime, Modbus or hardware mutation is part of #1106.
+
 ## Issue #1140 — discovery-only controller onboarding
 
 **Cleared and merged.** PR #1141 exact head `58d5ccf21f8c5300b16197bf464b3d031d353b4d` passed all five routed workflows and merged to `main` as `2342cf19995c9860328327f44e95baafb81d009d`. Discovery-only Danfoss inventory/showcase visibility is repository-complete while monitoring/production activation remains disabled. No Modbus/controller write, hardware write, production restart or cutover occurred.

@@ -4,6 +4,12 @@ Updated: 2026-09-25
 
 ## Current Sprint
 
+### Issue #1106 — container expiry discovery gate resumed and under review
+
+Issue #1106 is the active independent software Work Package after #1140/#1152 completion. Current `main` still made fresh image evidence depend on the full vulnerability-policy job, so an expired exception registry could fail before no-cache builds/Trivy reports were produced. The resumed focused branch separates the workflow into `inventory → evidence → policy → aggregate/publish`: inventory validation resolves the controlled image matrix, evidence builds/scans exact-commit images and uploads raw artifacts, policy then validates exception expiry/staleness and evaluates every fresh report, while aggregate/publish remain downstream of policy success. Expired exceptions still fail acceptance, unmatched HIGH findings remain blocking, CRITICAL findings remain unexceptable, and publication cannot bypass policy.
+
+After integrating current `main`, the feature diff is limited to the Container Supply Chain workflow, one focused operations note and focused workflow/policy tests. Local validation is GREEN: current supply-chain validator PASS, **101/101 focused security/workflow tests**, and `git diff --check` PASS. No exception expiry is extended, no vulnerability tuple is accepted by this Work Package, and no production/runtime, Modbus or hardware mutation occurs. Fresh exact-head GitHub CI remains the merge gate.
+
 ### Issue #1152 — post-#1140 canonical state reconciliation
 
 Issue #1152 records the completed #1140 lifecycle into State Model v2 only. PR #1141 exact head `58d5ccf21f8c5300b16197bf464b3d031d353b4d` passed all five routed workflows GREEN and merged to `main` as `2342cf19995c9860328327f44e95baafb81d009d`. The active Work Package selection is cleared; no next software Work Package is asserted until the open backlog is re-audited against current `main`. Production baselines, hardware blockers and the separate VersityGW migration/cutover gate remain unchanged.

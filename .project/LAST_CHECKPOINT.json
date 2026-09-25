@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-25T13:06:19+03:00",
+  "timestamp": "2026-09-25T13:14:48+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1140 / PR #1141 merged GREEN; canonical state reconciled by #1152 with no next Work Package asserted before backlog re-audit",
+  "event": "Issue #1106 resumed from clean current main; expiry-discovery workflow repair focused checks GREEN and exact-head CI pending",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,8 +28,26 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1106,
+    "title": "Allow fresh container scan after exception expiry without weakening gate",
+    "branch": "fix/1106-container-expiry-discovery"
+  },
   "evidence_snapshot": {
+    "active_issue_evidence": {
+      "problem": "expired_exception_registry_previously_blocked_fresh_no_cache_scan_evidence",
+      "design": "inventory_then_evidence_then_policy_then_aggregate_publish",
+      "expired_exceptions_remain_blocking": true,
+      "critical_exception_path": "none",
+      "publish_requires_policy_success": true,
+      "container_supply_chain_validator": "success_local",
+      "focused_security_workflow_tests": "101_passed",
+      "git_diff_check": "success_local",
+      "production_runtime_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "github_ci": "pending_exact_head"
+    },
     "completed_onboarding": {
       "issue": 1140,
       "pull_request": 1141,
@@ -52,19 +70,6 @@
       "backend": "VersityGW_v1.8.0",
       "storage_backend": "local_POSIX",
       "production_migration_cutover": "not_executed_separate_gate"
-    },
-    "state_reconciliation": {
-      "issue": 1152,
-      "scope": "canonical_state_only",
-      "active_work_package": null,
-      "next_work_package": null,
-      "accepted_product_baseline_changed": false,
-      "deployed_product_baseline_changed": false,
-      "production_runtime_mutation": "none",
-      "state_model_v2": "success_local",
-      "state_model_tests": "28_passed_1_skipped",
-      "json_parse": "success_local",
-      "git_diff_check": "success_local"
     }
   },
   "observations": [
@@ -115,9 +120,19 @@
         "status": "merged_closed_green",
         "exact_head_ci": "5_of_5_green"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-25T13:14:48+03:00",
+      "kind": "active_issue",
+      "data": {
+        "issue": 1106,
+        "status": "open_in_progress",
+        "branch": "fix/1106-container-expiry-discovery"
+      }
     }
   ],
-  "next_action": "Audit the remaining open software backlog against current main and choose the next independent Ready Work Package. Keep #1125/#1126 hardware blockers and VersityGW production migration/cutover separately gated; Danfoss monitoring remains disabled.",
+  "next_action": "Run final state/format checks, push the current #1106 exact head, open/update one focused PR, require Container Supply Chain and Core/NEXOLAB Merge Gate GREEN, and merge only after exact-head acceptance. Do not extend vulnerability exceptions in this Work Package.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

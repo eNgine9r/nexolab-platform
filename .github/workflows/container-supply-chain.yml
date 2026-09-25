@@ -50,8 +50,8 @@ env:
   SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
-  policy:
-    name: Validate image inventory and exceptions
+  inventory:
+    name: Resolve controlled image inventory
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -65,24 +65,22 @@ jobs:
           persist-credentials: false
           ref: ${{ env.SOURCE_SHA }}
 
-      - name: Setup Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.13"
-
-      - name: Install test dependency
-        run: python -m pip install pytest==8.4.2
-
-      - name: Validate supply-chain policy
-        run: python scripts/validate-container-supply-chain.py
-
-      - name: Run policy and manifest regression tests
+      - name: Validate controlled image inventory
         run: |
-          python -m pytest -q \
-            tests/test_container_supply_chain_policy.py \
-            tests/test_container_vulnerability_policy.py \
-            tests/test_container_release_manifest.py \
-            tests/test_container_release_aggregate.py
+          python - <<'PY_INVENTORY'
+          import importlib.util
+          from pathlib import Path
+
+          module_path = Path("scripts/validate-container-supply-chain.py")
+          spec = importlib.util.spec_from_file_location("container_supply_chain_validator", module_path)
+          if spec is None or spec.loader is None:
+              raise SystemExit("Cannot load container supply-chain validator")
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          root = Path.cwd().resolve()
+          module.validate_inventory(root / "security/container-images.json", root)
+          print("Container image inventory validation passed.")
+          PY_INVENTORY
 
       - name: Build image matrix from inventory
         id: matrix
@@ -95,8 +93,18 @@ jobs:
           inventory = json.loads(
               Path("security/container-images.json").read_text(encoding="utf-8")
           )
+          images = inventory.get("images")
+          if inventory.get("schema_version") != 1 or not isinstance(images, list) or not images:
+              raise SystemExit("Container image inventory must be schema v1 with a non-empty images array")
+
           include = []
-          for image in inventory["images"]:
+          for image in images:
+              required = {"id", "image", "context", "dockerfile", "platforms"}
+              missing = sorted(required - set(image))
+              if missing:
+                  raise SystemExit(
+                      f"Container image inventory entry is missing fields: {', '.join(missing)}"
+                  )
               include.append(
                   {
                       "id": image["id"],
@@ -124,15 +132,15 @@ jobs:
             security scripts tests/test_container_*.py
 
   evidence:
-    name: Build and verify ${{ matrix.id }}
-    needs: policy
+    name: Build and scan ${{ matrix.id }}
+    needs: inventory
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     permissions:
       contents: read
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.policy.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.inventory.outputs.matrix) }}
     env:
       LOCAL_IMAGE: local/nexolab-${{ matrix.id }}:${{ github.event.pull_request.head.sha || github.sha }}
       EVIDENCE_DIR: evidence
@@ -215,13 +223,7 @@ jobs:
           ignore-unfixed: false
           exit-code: "0"
 
-      - name: Enforce vulnerability policy
-        run: |
-          python scripts/evaluate-container-vulnerabilities.py \
-            --image-id "${{ matrix.id }}" \
-            --report "evidence/${{ matrix.id }}.trivy.json"
-
-      - name: Generate digest-bound release manifest
+      - name: Generate digest-bound candidate manifest
         run: |
           python scripts/generate-container-release-manifest.py \
             --repository "$GITHUB_REPOSITORY" \
@@ -242,13 +244,82 @@ jobs:
             'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|MQTT_PASSWORD=|BROKER_CONTROL_ADMIN_PASSWORD=' \
             "$EVIDENCE_DIR"
 
-      - name: Upload image evidence
+      - name: Upload raw image evidence for policy review
         uses: actions/upload-artifact@v7
         with:
           name: container-evidence-${{ matrix.id }}
           path: evidence
           if-no-files-found: error
           retention-days: 14
+
+  policy:
+    name: Enforce vulnerability acceptance policy
+    needs: [inventory, evidence]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          ref: ${{ env.SOURCE_SHA }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Install test dependency
+        run: python -m pip install pytest==8.4.2
+
+      - name: Download fresh image evidence
+        uses: actions/download-artifact@v8
+        with:
+          pattern: container-evidence-*
+          path: evidence
+          merge-multiple: true
+
+      - name: Validate supply-chain policy
+        run: python scripts/validate-container-supply-chain.py
+
+      - name: Run policy and manifest regression tests
+        run: |
+          python -m pytest -q \
+            tests/test_container_supply_chain_policy.py \
+            tests/test_container_vulnerability_policy.py \
+            tests/test_container_release_manifest.py \
+            tests/test_container_release_aggregate.py
+
+      - name: Enforce vulnerability policy against fresh reports
+        run: |
+          python - <<'PY'
+          import json
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          inventory = json.loads(
+              Path("security/container-images.json").read_text(encoding="utf-8")
+          )
+          for image in inventory["images"]:
+              image_id = image["id"]
+              report = Path("evidence") / f"{image_id}.trivy.json"
+              if not report.is_file():
+                  raise SystemExit(f"Missing fresh vulnerability report for {image_id}")
+              subprocess.run(
+                  [
+                      sys.executable,
+                      "scripts/evaluate-container-vulnerabilities.py",
+                      "--image-id",
+                      image_id,
+                      "--report",
+                      str(report),
+                  ],
+                  check=True,
+              )
+          PY
 
   aggregate:
     name: Verify aggregate release manifest
@@ -264,7 +335,7 @@ jobs:
           persist-credentials: false
           ref: ${{ env.SOURCE_SHA }}
 
-      - name: Download image evidence
+      - name: Download accepted image evidence
         uses: actions/download-artifact@v8
         with:
           pattern: container-evidence-*
@@ -295,7 +366,7 @@ jobs:
   publish:
     name: Publish attested ${{ matrix.id }}
     if: github.event_name == 'push'
-    needs: policy
+    needs: [inventory, policy]
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
@@ -305,7 +376,7 @@ jobs:
       attestations: write
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.policy.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.inventory.outputs.matrix) }}
     steps:
       - name: Checkout exact commit
         uses: actions/checkout@v6
