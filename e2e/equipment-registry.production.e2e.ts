@@ -682,7 +682,10 @@ test("renders and navigates the authenticated Equipment and metrology registry",
     await test.step("inspect adjacent assets in a non-blocking desktop drawer with keyboard access", async () => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.getByPlaceholder("Код, inventory, business key, модель або серійний номер").fill("REG-REF-");
-      const activeRow = page.getByRole("row").filter({ hasText: "REG-REF-ACTIVE" }).first();
+      const activeRow = page
+        .getByRole("row")
+        .filter({ has: page.getByText("REG-REF-ACTIVE", { exact: true }) })
+        .first();
       await activeRow.focus();
       await page.keyboard.press("Enter");
       const drawer = page.getByRole("dialog", { name: "Паспорт REG-REF-ACTIVE" });
