@@ -40,11 +40,7 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1167,
-      "title": "Centralize benchmark-backed point budgets",
-      "branch": "perf/1167-chart-point-budget-policy"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -5470,7 +5466,7 @@
       "issue": 1167,
       "title": "Centralize benchmark-backed point budgets",
       "priority": "low",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "perf/1167-chart-point-budget-policy",
       "evidence": {
@@ -5493,7 +5489,16 @@
         "production_build": "success_next_build_turbopack",
         "git_diff_check": "success_local",
         "production_magic_number_audit": "only_explicit_test_override_240_remains",
-        "github_ci": "pending_exact_head"
+        "github_ci": "success_exact_head",
+        "verified_head_sha": "18bc3f87810fe2484a6ca5770956d20aa191ba21",
+        "pull_request": 1172,
+        "exact_head_ci": "4_routed_workflows_green",
+        "core_ci_run": 36181570097,
+        "authenticated_dashboard_run": 36181570092,
+        "refrigeration_browser_run": 36181570102,
+        "disaster_recovery_browser_run": 36181570105,
+        "merged_implementation_sha": "2e8cd7c1a8bd73ae5700aa66a4de767d43fc4a4c",
+        "issue_state": "closed_completed"
       }
     }
   ],

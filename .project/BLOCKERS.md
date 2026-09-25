@@ -2,9 +2,13 @@
 
 Updated: 2026-09-25
 
+## Chart audit #1162 follow-up cycle
+
+**Cleared for repository/software scope.** Issues #1163–#1167 are merged with required exact-head CI GREEN. Final PR #1172 merged as `2e8cd7c1a8bd73ae5700aa66a4de767d43fc4a4c`; the canonical chart point budget is 240 points per logical series with no current surface exception and explicit truth-preserving evidence overflow only. No production/runtime, acquisition, Modbus/controller or hardware mutation occurred.
+
 ## Issue #1167 — canonical chart point-budget policy
 
-**No implementation blocker.** Paired ARM64 rendering benchmarks support the canonical 240-point target: 1 series 34.3 ms vs 38.5 ms median at 360, 4 series 72.8 ms vs 85.0 ms, and 8 series 113.0 ms vs 147.0 ms. Focused chart tests are 78/78 PASS, broader regressions 137/137 PASS, TypeScript/ESLint/diff checks pass and the full Next.js/Turbopack production build succeeds. Exact-head GitHub CI remains the merge gate. Production runtime, acquisition, Modbus/controller and hardware state are unchanged.
+**Cleared and merged.** PR #1172 exact head `18bc3f87810fe2484a6ca5770956d20aa191ba21` passed Core CI/Merge Gate, Authenticated Dashboard, Refrigeration Browser and Disaster Recovery Browser and merged as `2e8cd7c1a8bd73ae5700aa66a4de767d43fc4a4c`. No production/runtime, acquisition, Modbus/controller or hardware mutation occurred.
 
 ## Issue #1166 — shared chart hover-path coalescing
 
