@@ -4,6 +4,12 @@ Updated: 2026-09-25
 
 ## Current Sprint
 
+### Issue #1156 — fresh 92-HIGH container exception revalidation in progress
+
+Issue #1156 is the active security Work Package. Fresh exact-head Container Supply Chain run `36123964257` at source `a231169f0269a441fac4fc1f05da39097e4adfa3` reports **92 HIGH / 0 CRITICAL** exact tuples: Device Agent 22, Telemetry Service 48 and Telegram Gateway 22; MQTT Dynamic Security and VersityGW object-storage have zero HIGH/CRITICAL. The fresh tuple set matches the 92-entry registry 1:1 with SHA-256 `6f38696e08354c9ad505964ec4df82d61bca23b12f4af9e934158bc9be1d394e`, with zero stale registry tuples, zero unmatched fresh tuples and zero HIGH findings carrying a Trivy `FixedVersion`.
+
+Current Debian Trixie/upstream package status and current `main` runtime reachability were rechecked on 2026-09-25. No compatible Trixie fix is currently consumable for the retained families and no affected HTML/XML/tar/terminfo/ACL/cJSON Utils/systemd-homed/nsenter/mount path became reachable. The candidate therefore retains the same 92 exact owner-bound decisions only through **2026-10-02**; it adds no tuple, wildcard, CRITICAL exception or severity relaxation. Local verification is GREEN: State Model v2, 28 state tests (1 expected skip), 49 focused supply-chain policy/release tests, repository evaluator across all five fresh reports, JSON parse and `git diff --check` all pass. Exact-head GitHub CI remains the merge gate. No production/runtime, persistent-data, Modbus or hardware mutation is part of #1156.
+
 ### Issue #1154 — post-#1106 canonical state reconciliation
 
 Issue #1154 records the completed #1106 lifecycle into State Model v2 only. PR #1107 exact head `a231169f0269a441fac4fc1f05da39097e4adfa3` passed all routed workflows GREEN and merged to `main` as `3dae37d6a18eba08fa99960fa07ba8d0f3949f2f`. Active and next Work Package selection are cleared before the separate fresh HIGH-exception review is formalized. Production baselines, hardware blockers and the separate VersityGW production migration/cutover gate remain unchanged.
