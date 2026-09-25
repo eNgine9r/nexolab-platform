@@ -4,11 +4,15 @@ Updated: 2026-09-25
 
 ## Current Sprint
 
-### Issue #1167 — canonical chart point-budget policy in progress
+### Chart audit #1162 follow-up cycle completed
 
-Issue #1167 is active on `perf/1167-chart-point-budget-policy`. Raspberry Pi ARM64 paired/interleaved rendering benchmarks support **240 rendered points per logical series** as the canonical target with no current surface-specific exception: 1 series median **34.3 ms** at 240 vs **38.5 ms** at 360; 4 series **72.8 ms** vs **85.0 ms**; 8 series **113.0 ms** vs **147.0 ms**. The common policy now owns Overview, Live Data/history, Saved Dashboard, Energy history, Refrigeration controller charts and renderer live-tail limits.
+The chart audit follow-up cycle **#1163–#1167 is repository-complete**. The final policy PR #1172 exact head `18bc3f87810fe2484a6ca5770956d20aa191ba21` passed **4/4 routed workflows GREEN**: Core CI / Quality and build / NEXOLAB Merge Gate (`36181570097`), Authenticated Dashboard Acceptance (`36181570092`), Refrigeration Browser Acceptance (`36181570102`) and Disaster Recovery Browser (`36181570105`). It squash-merged to `main` as `2e8cd7c1a8bd73ae5700aa66a4de767d43fc4a4c`; GitHub #1167 is closed completed.
 
-The policy is evidence-first rather than a destructive hard cap: when continuity boundaries or pinned evidence cannot fit inside 240 points, only the minimum required truth-preserving overflow is allowed. Current surface exceptions are empty and any future exception must be explicit in the central policy. Local evidence is GREEN: **78/78 focused tests across 9 files**, **137/137 broader chart regressions across 22 files**, TypeScript, ESLint, `git diff --check`, production magic-number audit and a full Next.js/Turbopack production build. Exact-head GitHub CI is pending. No production runtime, telemetry/acquisition, Modbus/controller or hardware mutation occurred.
+The accepted chart contract now includes: non-animated Live rolling refresh (#1163), reset-zoom preserving Live Follow (#1164), shared Refrigeration Exact Inspector cursor (#1165), animation-frame-coalesced hover inspection (#1166), and one benchmark-backed **240-point per logical series** policy (#1167). Current point-budget surface exceptions are empty; only minimum truth-preserving overflow for required continuity boundaries/pinned evidence is permitted. No production runtime/deployment/cutover, telemetry/acquisition mutation, Modbus/controller write or hardware write occurred across the audit follow-ups. Active and next software Work Package selection are cleared pending fresh backlog re-audit.
+
+### Issue #1167 — canonical chart point-budget policy completed and merged
+
+PR #1172 exact head `18bc3f87810fe2484a6ca5770956d20aa191ba21` passed all four routed workflows GREEN and merged as `2e8cd7c1a8bd73ae5700aa66a4de767d43fc4a4c`. Raspberry Pi ARM64 paired benchmarks supported 240 points per series over 360: 1-series median **34.3 vs 38.5 ms**, 4-series **72.8 vs 85.0 ms**, 8-series **113.0 vs 147.0 ms**. Local evidence remained GREEN at **78/78 focused tests**, **137/137 broader chart regressions**, State Model **28 PASS / 1 expected skip**, TypeScript, ESLint, Prettier, validator, `git diff --check` and full Next.js/Turbopack production build.
 
 ### Issue #1166 — shared chart hover-path coalescing completed and merged
 
