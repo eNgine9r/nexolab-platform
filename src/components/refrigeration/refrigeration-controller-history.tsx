@@ -40,6 +40,10 @@ const PRESETS: readonly { id: RefrigerationHistoryPreset; label: string }[] = [
 ];
 
 export function RefrigerationControllerHistory({ controller }: { controller: RefrigerationControllerModel }) {
+  const [cursorSelection, setCursorSelection] = useState<{
+    rangeKey: string;
+    timestampMs: number | null;
+  }>({ rangeKey: "", timestampMs: null });
   const [analysisSelection, setAnalysisSelection] = useState<{
     rangeKey: string;
     domain: ChartXDomain | null;
@@ -53,6 +57,15 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
     [controller.range],
   );
   const loadedAnalysisRangeKey = `${loadedAnalysisDomain.fromMs}:${loadedAnalysisDomain.toMs}`;
+  const sharedCursorMs =
+    cursorSelection.rangeKey === loadedAnalysisRangeKey ? cursorSelection.timestampMs : null;
+  const setSharedCursorMs = (timestampMs: number | null) => {
+    setCursorSelection((current) =>
+      current.rangeKey === loadedAnalysisRangeKey && current.timestampMs === timestampMs
+        ? current
+        : { rangeKey: loadedAnalysisRangeKey, timestampMs },
+    );
+  };
   const selectedAnalysisDomain =
     analysisSelection.rangeKey === loadedAnalysisRangeKey ? analysisSelection.domain : null;
   const setSelectedAnalysisDomain = (domain: ChartXDomain | null) => {
@@ -284,6 +297,8 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         context="Cabinet · Evaporator · Condenser · Setpoint"
         rangeLabel={rangeLabel}
         scene={temperatureScene}
+        sharedCursorMs={sharedCursorMs}
+        onSharedCursorChange={setSharedCursorMs}
         emptyMessage="Температурний scale ще не підтверджений або в обраному періоді немає valid °C даних. Raw регістри не візуалізуються як температура."
       />
       <RefrigerationControllerChart
@@ -291,6 +306,8 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
         context="Embraco Sync · rpm · drag to select"
         rangeLabel={analysisRangeLabel}
         scene={compressorScene}
+        sharedCursorMs={sharedCursorMs}
+        onSharedCursorChange={setSharedCursorMs}
         emptyMessage="У вибраному періоді немає валідної історії швидкості компресора."
         rangeSelectionEnabled
         rangeSelection={selectedAnalysisDomain}

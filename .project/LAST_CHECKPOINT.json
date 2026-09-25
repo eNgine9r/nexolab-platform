@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-25T18:02:31+03:00",
+  "timestamp": "2026-09-25T20:03:17+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1163 merged GREEN; #1164 active to preserve Live Follow across Reset zoom",
+  "event": "Issue #1164 merged GREEN; #1165 active for synchronized Refrigeration Exact Inspector cursor",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1164,
-    "title": "Preserve Live Follow when resetting zoom",
-    "branch": "fix/1164-live-reset-follow",
+    "issue": 1165,
+    "title": "Synchronize Exact Inspector cursor across controller charts",
+    "branch": "fix/1165-refrigeration-shared-cursor",
     "status": "in_progress"
   },
   "evidence_snapshot": {
@@ -175,6 +175,37 @@
       "production_runtime_mutation": "none",
       "modbus_write": "none",
       "hardware_write": "none"
+    },
+    "completed_live_reset_fix": {
+      "issue": 1164,
+      "pull_request": 1169,
+      "verified_head_sha": "ea12fc99b4fa4bfa2ad7104fe9cdf51f1cf268cc",
+      "exact_head_ci": "2_routed_workflows_green",
+      "core_ci_run": 36152127074,
+      "authenticated_dashboard_run": 36152127084,
+      "merged_implementation_sha": "275dafc485372bf34a22842dc3657bcbb3703e25",
+      "production_runtime_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none"
+    },
+    "active_refrigeration_shared_cursor": {
+      "issue": 1165,
+      "focused_refrigeration_tests": "8_passed_2_files",
+      "broader_refrigeration_regressions": "216_passed_34_files",
+      "typescript_no_emit": "success_local",
+      "changed_file_eslint": "success_local",
+      "git_diff_check": "success_local",
+      "shared_timestamp_owner": "controller_history_parent",
+      "per_chart_inspection": "derived_locally_from_shared_timestamp",
+      "stale_range_cursor": "cleared_by_range_key",
+      "idempotent_cursor_setter": true,
+      "github_ci": "pending_exact_head",
+      "production_runtime_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "state_model_tests": "28_passed_1_expected_skip",
+      "changed_file_prettier": "success_local",
+      "state_model_v2": "success_local"
     }
   },
   "observations": [
@@ -305,9 +336,22 @@
         "status": "merged_closed_green",
         "exact_head_ci": "2_routed_workflows_green"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-25T20:03:17+03:00",
+      "kind": "live_reset_fix_merge",
+      "data": {
+        "issue": 1164,
+        "pull_request": 1169,
+        "head_sha": "ea12fc99b4fa4bfa2ad7104fe9cdf51f1cf268cc",
+        "merge_sha": "275dafc485372bf34a22842dc3657bcbb3703e25",
+        "status": "merged_closed_green",
+        "exact_head_ci": "2_routed_workflows_green"
+      }
     }
   ],
-  "next_action": "Complete #1164 exact-head verification and merge if GREEN; then continue with Ready #1165 shared Refrigeration Exact Inspector cursor.",
+  "next_action": "Commit and push #1165 candidate, require exact-head Core/Refrigeration browser CI GREEN, merge if GREEN, then continue with Ready #1166 hover-path performance work.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

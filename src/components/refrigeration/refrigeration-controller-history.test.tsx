@@ -15,21 +15,39 @@ vi.mock("@/components/refrigeration/refrigeration-controller-chart", () => ({
   RefrigerationControllerChart: (props: {
     title: string;
     scene: { xDomain: { fromMs: number; toMs: number } };
+    sharedCursorMs: number | null;
+    onSharedCursorChange: (timestampMs: number | null) => void;
     onRangeSelectionChange?: (domain: { fromMs: number; toMs: number }) => void;
     rangeSelectionEnabled?: boolean;
   }) => (
-    <button
-      type="button"
-      data-testid={`mock-chart-${props.title}`}
-      onClick={() =>
-        props.onRangeSelectionChange?.({
-          fromMs: props.scene.xDomain.fromMs,
-          toMs: props.scene.xDomain.fromMs + 60_000,
-        })
-      }
-    >
-      {props.title}
-    </button>
+    <div data-testid={`mock-chart-container-${props.title}`} data-shared-cursor={props.sharedCursorMs ?? ""}>
+      <button
+        type="button"
+        data-testid={`mock-chart-${props.title}`}
+        onClick={() =>
+          props.onRangeSelectionChange?.({
+            fromMs: props.scene.xDomain.fromMs,
+            toMs: props.scene.xDomain.fromMs + 60_000,
+          })
+        }
+      >
+        {props.title}
+      </button>
+      <button
+        type="button"
+        data-testid={`mock-cursor-${props.title}`}
+        onClick={() => props.onSharedCursorChange(props.scene.xDomain.fromMs + 60_000)}
+      >
+        cursor
+      </button>
+      <button
+        type="button"
+        data-testid={`mock-clear-cursor-${props.title}`}
+        onClick={() => props.onSharedCursorChange(null)}
+      >
+        clear cursor
+      </button>
+    </div>
   ),
 }));
 
@@ -112,6 +130,45 @@ function startsCard(): HTMLElement {
 }
 
 describe("RefrigerationControllerHistory selected analysis range", () => {
+  it("shares one cursor timestamp across both controller charts and clears stale range cursors", async () => {
+    const { rerender } = render(<RefrigerationControllerHistory controller={controllerModel()} />);
+    const temperature = screen.getByTestId("mock-chart-container-Температури контролера");
+    const compressor = screen.getByTestId("mock-chart-container-Швидкість компресора");
+
+    expect(temperature).toHaveAttribute("data-shared-cursor", "");
+    expect(compressor).toHaveAttribute("data-shared-cursor", "");
+
+    fireEvent.click(screen.getByTestId("mock-cursor-Температури контролера"));
+    const sharedTimestamp = String(range.from.getTime() + 60_000);
+    expect(temperature).toHaveAttribute("data-shared-cursor", sharedTimestamp);
+    expect(compressor).toHaveAttribute("data-shared-cursor", sharedTimestamp);
+
+    fireEvent.click(screen.getByTestId("mock-clear-cursor-Швидкість компресора"));
+    expect(temperature).toHaveAttribute("data-shared-cursor", "");
+    expect(compressor).toHaveAttribute("data-shared-cursor", "");
+
+    fireEvent.click(screen.getByTestId("mock-cursor-Швидкість компресора"));
+    const nextRange = {
+      from: new Date("2026-08-28T01:00:00Z"),
+      to: new Date("2026-08-28T01:02:00Z"),
+    };
+    rerender(
+      <RefrigerationControllerHistory
+        controller={controllerModel({ range: nextRange, customRange: nextRange })}
+      />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("mock-chart-container-Температури контролера")).toHaveAttribute(
+        "data-shared-cursor",
+        "",
+      ),
+    );
+    expect(screen.getByTestId("mock-chart-container-Швидкість компресора")).toHaveAttribute(
+      "data-shared-cursor",
+      "",
+    );
+  });
   it("synchronizes duty, compressor starts and relay traceability with chart selection and reset", async () => {
     render(<RefrigerationControllerHistory controller={controllerModel()} />);
 
