@@ -40,7 +40,7 @@ Development patch and minor updates may be grouped only when they share one veri
 
 A SemVer-minor update can still be a repository migration when the package is pre-2.0, changes browser binaries, modifies test execution semantics or has a dedicated compatibility Work Package.
 
-Playwright 1.62 was intentionally handled as a migration-grade browser/evidence update in completed Issue #254. Future browser-revision migrations remain subject to the same focused review rather than being mixed into unrelated development groups.
+`Playwright >=1.56` remains classified as migration-grade for this repository. The focused Playwright 1.62 migration was completed under Issue #254; future browser-revision migrations remain subject to the same focused review rather than being mixed into unrelated development groups.
 
 PR #339 demonstrated why this rule is required: it combined a migration-grade Playwright update with an unrelated Vite plugin patch and was closed unmerged.
 
