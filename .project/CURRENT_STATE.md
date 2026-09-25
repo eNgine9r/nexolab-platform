@@ -4,6 +4,16 @@ Updated: 2026-09-25
 
 ## Current Sprint
 
+### Issue #1165 — Refrigeration shared Exact Inspector cursor in progress
+
+Issue #1165 is active on `fix/1165-refrigeration-shared-cursor`. The controller history parent now owns one range-scoped cursor timestamp and passes it to both the temperature and compressor-speed charts. Each chart derives its own gap-safe/cadence-aware Exact Inspector from that shared timestamp; clear events synchronize both charts, and a history-range change invalidates a stale cursor automatically. The parent setter is idempotent for identical timestamps to avoid unnecessary React work during ECharts axis-pointer synchronization.
+
+Local evidence is GREEN: **8/8 focused tests** across the controller chart/history components and **216/216 broader Refrigeration/chart-adapter regressions across 34 files**, TypeScript `--noEmit`, changed-file ESLint and `git diff --check`. Existing ECharts range-selection guards remain GREEN, so compressor drag selection continues to suppress hover updates while selecting. Exact-head GitHub CI is pending. No production deployment/restart, telemetry/acquisition mutation, Modbus/controller write or hardware write occurred.
+
+### Issue #1164 — Live Follow reset semantics completed and merged
+
+PR #1169 exact head `ea12fc99b4fa4bfa2ad7104fe9cdf51f1cf268cc` passed Core CI / NEXOLAB Merge Gate and Authenticated Dashboard Acceptance and merged to `main` as `275dafc485372bf34a22842dc3657bcbb3703e25`. Reset Zoom now restores/keeps `Live Follow`, while manual zoom/pan still switches to `Paused view`; reset does not trigger a history request. No production/runtime, acquisition, Modbus/controller or hardware mutation occurred.
+
 ### Issue #1164 — Live Follow reset semantics fix in progress
 
 Issue #1164 is the active focused chart Work Package on `fix/1164-live-reset-follow`. Audit #1162 proved that `Reset zoom` was routed through the same callback as manual pan/zoom, so a reset silently changed `Live Follow` to `Paused view`. The candidate separates reset semantics from manual viewport changes: manual wheel/pan still pauses, while Reset clears the local viewport and restores/keeps `Live Follow` for the live range without requesting a new history window.

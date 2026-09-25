@@ -5,7 +5,8 @@ import { useMemo, useState } from "react";
 import { ChartRendererHost } from "@/components/charts/chart-renderer-host";
 import { ChartShell } from "@/components/charts/chart-shell";
 import type { ChartRendererScene } from "@/features/charts";
-import { chartSeriesKey, type ChartCursorInspection, type ChartXDomain } from "@/features/charts/domain";
+import { chartSeriesKey, type ChartXDomain } from "@/features/charts/domain";
+import { inspectChartAtTimestamp } from "@/features/charts/inspection";
 import { EChartsRendererAdapter } from "@/features/charts/echarts-adapter";
 
 export function RefrigerationControllerChart({
@@ -14,6 +15,8 @@ export function RefrigerationControllerChart({
   rangeLabel,
   scene: baseScene,
   emptyMessage,
+  sharedCursorMs,
+  onSharedCursorChange,
   rangeSelectionEnabled = false,
   rangeSelection = null,
   onRangeSelectionChange,
@@ -23,13 +26,13 @@ export function RefrigerationControllerChart({
   rangeLabel: string;
   scene: ChartRendererScene;
   emptyMessage: string;
+  sharedCursorMs: number | null;
+  onSharedCursorChange: (timestampMs: number | null) => void;
   rangeSelectionEnabled?: boolean;
   rangeSelection?: ChartXDomain | null;
   onRangeSelectionChange?: (domain: ChartXDomain | null) => void;
 }) {
   const adapter = useMemo(() => new EChartsRendererAdapter(), []);
-  const [inspection, setInspection] = useState<ChartCursorInspection | null>(null);
-  const [sharedCursorMs, setSharedCursorMs] = useState<number | null>(null);
   const [viewportSelection, setViewportSelection] = useState<{
     rangeKey: string;
     domain: ChartXDomain | null;
@@ -54,6 +57,10 @@ export function RefrigerationControllerChart({
       }),
     }),
     [baseScene, hidden, rangeSelection, rangeSelectionEnabled, solo, viewportDomain],
+  );
+  const inspection = useMemo(
+    () => (sharedCursorMs === null ? null : inspectChartAtTimestamp(scene, sharedCursorMs)),
+    [scene, sharedCursorMs],
   );
 
   if (baseScene.series.length === 0) {
@@ -101,10 +108,7 @@ export function RefrigerationControllerChart({
           reducedMotion
           sharedCursorMs={sharedCursorMs}
           interactionDomain={baseScene.xDomain}
-          onCursor={(next) => {
-            setInspection(next);
-            setSharedCursorMs(next?.timestampMs ?? null);
-          }}
+          onCursor={(next) => onSharedCursorChange(next?.timestampMs ?? null)}
           onXDomainChange={setViewportDomain}
           onRangeSelectionChange={onRangeSelectionChange}
         />
