@@ -4,11 +4,17 @@ Updated: 2026-09-25
 
 ## Current Sprint
 
-### Issue #1156 — fresh 92-HIGH container exception revalidation in progress
+### Issue #1160 — post-#1156 canonical state reconciliation
 
-Issue #1156 is the active security Work Package. Fresh exact-head Container Supply Chain run `36123964257` at source `a231169f0269a441fac4fc1f05da39097e4adfa3` reports **92 HIGH / 0 CRITICAL** exact tuples: Device Agent 22, Telemetry Service 48 and Telegram Gateway 22; MQTT Dynamic Security and VersityGW object-storage have zero HIGH/CRITICAL. The fresh tuple set matches the 92-entry registry 1:1 with SHA-256 `6f38696e08354c9ad505964ec4df82d61bca23b12f4af9e934158bc9be1d394e`, with zero stale registry tuples, zero unmatched fresh tuples and zero HIGH findings carrying a Trivy `FixedVersion`.
+Issue #1160 records the completed #1156 lifecycle into State Model v2 only. PR #1157 exact head `e9c519ba41d4662e7ff5d3c92e1948c16a8b2631` passed all routed workflows GREEN and merged to `main` as `adbd3391840de8fe1a5b83d59a8d0a26a25d2247`. Active and next Work Package selection are cleared after this reconciliation candidate; production baselines, hardware blockers and the separate VersityGW production migration/cutover gate remain unchanged.
 
-Current Debian Trixie/upstream package status and current `main` runtime reachability were rechecked on 2026-09-25. No compatible Trixie fix is currently consumable for the retained families and no affected HTML/XML/tar/terminfo/ACL/cJSON Utils/systemd-homed/nsenter/mount path became reachable. The candidate therefore retains the same 92 exact owner-bound decisions only through **2026-10-02**; it adds no tuple, wildcard, CRITICAL exception or severity relaxation. Local verification is GREEN: State Model v2, 28 state tests (1 expected skip), 49 focused supply-chain policy/release tests, repository evaluator across all five fresh reports, JSON parse and `git diff --check` all pass. Exact-head GitHub CI remains the merge gate. No production/runtime, persistent-data, Modbus or hardware mutation is part of #1156.
+### Issue #1156 — fresh 92-HIGH container exception revalidation completed and merged
+
+Issue #1156 is repository/security-complete. PR #1157 exact head `e9c519ba41d4662e7ff5d3c92e1948c16a8b2631` passed **all routed workflows GREEN**: Core CI/Quality and build/NEXOLAB Merge Gate `36128045345`, Container Supply Chain `36128045288`, and Telemetry Service `36128045287`. PR #1157 merged to `main` as `adbd3391840de8fe1a5b83d59a8d0a26a25d2247`; GitHub #1156 is closed completed.
+
+Fresh exact-head evidence retained the same **92 HIGH / 0 CRITICAL** exact image/package/CVE tuples: Device Agent 22, Telemetry Service 48, Telegram Gateway 22, with MQTT Dynamic Security and VersityGW object-storage at zero HIGH/CRITICAL. The fresh tuple set and registry match 1:1 with SHA-256 `6f38696e08354c9ad505964ec4df82d61bca23b12f4af9e934158bc9be1d394e`; stale registry tuples, unmatched fresh tuples and HIGH findings with a non-empty Trivy `FixedVersion` are all zero. Current Debian/upstream status and current runtime reachability were revalidated. The `CVE-2026-78409` Debian/Red Hat affected-version disagreement remains explicit rather than being treated as a fix.
+
+All 92 decisions remain exact and owner-bound only through **2026-10-02**. No tuple, wildcard, package-family or CRITICAL exception was added; no severity threshold changed. That date is the next mandatory fail-closed revalidation boundary, not permanent acceptance. No production/runtime deployment, persistent-data or named-volume mutation, Modbus/controller write or hardware write occurred in #1156.
 
 ### Issue #1154 — post-#1106 canonical state reconciliation
 
