@@ -4,11 +4,17 @@ Updated: 2026-09-25
 
 ## Current Sprint
 
-### Issue #1140 — discovery-only controller onboarding resumes in PR #1141
+### Issue #1152 — post-#1140 canonical state reconciliation
 
-Issue #1140 remains the active software Work Package after object-storage state reconciliation. Open PR #1141 on `feat/1140-discovery-only-onboarding` has now integrated latest canonical `main` `bfaa19101f4c66b078aade4caed9ee76503f8396` without product-code conflicts; merge checkpoint is `49fa2bf2df869e3a205e6e5fb21281cade441687`. Fresh post-main focused regression is **28/28 PASS** across the commissioning wizard, Equipment Registry projection and refrigeration controller binding; changed-file Prettier, ESLint, TypeScript, State Model v2 and `git diff --check` are GREEN. Earlier feature evidence remains **33/33 focused**, **153 files / 786 tests**, and production `next build --webpack` GREEN. Fresh exact-head GitHub CI is the remaining software merge gate.
+Issue #1152 records the completed #1140 lifecycle into State Model v2 only. PR #1141 exact head `58d5ccf21f8c5300b16197bf464b3d031d353b4d` passed all five routed workflows GREEN and merged to `main` as `2342cf19995c9860328327f44e95baafb81d009d`. The active Work Package selection is cleared; no next software Work Package is asserted until the open backlog is re-audited against current `main`. Production baselines, hardware blockers and the separate VersityGW migration/cutover gate remain unchanged.
 
-The product boundary remains unchanged: verified discovery-only commissioning sessions may appear in Equipment Registry and the selected showcase, but Danfoss production monitoring/activation stays disabled. No Modbus/controller write, hardware write, service restart or production cutover is authorized by #1140.
+### Issue #1140 — discovery-only controller onboarding completed and merged
+
+Issue #1140 is repository-complete. PR #1141 exact head `58d5ccf21f8c5300b16197bf464b3d031d353b4d` passed **5/5 required workflows GREEN**: Core CI/Quality and build/NEXOLAB Merge Gate, Authenticated Dashboard Acceptance, Refrigeration Browser Acceptance, Security Browser Acceptance and Disaster Recovery Browser. PR #1141 merged to `main` as `2342cf19995c9860328327f44e95baafb81d009d`; GitHub #1140 is closed completed.
+
+The completed operator flow lets an `activation_supported=false` controller such as Danfoss AK-CC25 Pro run the existing bounded read-only preflight, persist as `verified`, appear in Equipment Registry and show its selected showcase association as `Перевірено · моніторинг вимкнено`. Existing Embraco active binding remains authoritative. No Device Agent acquisition activation, scheduled Danfoss polling, fabricated live telemetry, Modbus/controller write, hardware write, service restart or production cutover was introduced.
+
+Local post-main verification remained GREEN at **28/28 focused tests**, changed-file Prettier, ESLint, TypeScript, State Model v2 and `git diff --check`; earlier feature evidence remains **33/33 focused**, **153 files / 786 tests**, and production `next build --webpack` GREEN. The two final CI corrections changed only deterministic E2E fixture assumptions: the `REG-REF-ACTIVE` keyboard row was disambiguated from the new `akcc25:35` asset, and the independent Embraco draft scenario was moved to unassociated `REG-REF-MAINT`.
 
 ### Issue #1146 — VersityGW local object-storage replacement completed and merged
 
