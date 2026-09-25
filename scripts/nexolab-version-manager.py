@@ -40,13 +40,12 @@ OFFLINE_IMAGE_ENV = {
     "device-agent": "OFFLINE_DEVICE_AGENT_IMAGE",
     "mqtt": "OFFLINE_MQTT_IMAGE",
     "postgres": "OFFLINE_POSTGRES_IMAGE",
-    "minio": "OFFLINE_MINIO_IMAGE",
-    "minio-client": "OFFLINE_MINIO_CLIENT_IMAGE",
+    "object-storage": "OFFLINE_OBJECT_STORAGE_IMAGE",
 }
 CENTRAL_PERSISTENT_VOLUMES = (
     "nexolab-central-postgres-data",
     "nexolab-central-mqtt-data",
-    "nexolab-central-object-storage-data",
+    "nexolab-central-object-storage-versitygw-data",
     "nexolab-central-telemetry-ingestion-data",
 )
 EDGE_PERSISTENT_VOLUMES = (

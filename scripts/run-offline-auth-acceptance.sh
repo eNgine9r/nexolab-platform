@@ -168,7 +168,7 @@ chmod 0644 "$PUBLIC_KEY_FILE"
 
 cd "$ROOT_DIR"
 compose config --quiet
-compose build telemetry-service telemetry-migrate
+compose build minio telemetry-service telemetry-migrate
 
 docker run --rm \
   --user 0:0 \

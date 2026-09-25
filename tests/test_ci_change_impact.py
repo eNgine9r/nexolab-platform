@@ -310,6 +310,26 @@ class ChangeImpactClassifierTests(unittest.TestCase):
                     verification["required_external_workflows"],
                 )
 
+    def test_object_storage_runtime_change_routes_browser_offline_and_supply_chain(self) -> None:
+        result = classify(["infrastructure/object-storage/Dockerfile"])
+        verification = result["verification"]
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+        self.assertIn("security_supply_chain", result["classes"])
+        self.assertEqual(verification["dashboard_mode"], "full")
+        self.assertTrue(verification["offline_bundle"])
+        self.assertTrue(verification["refrigeration_browser"])
+        self.assertEqual(
+            set(verification["required_external_workflows"]),
+            {
+                "Authenticated Dashboard Acceptance",
+                "Offline Bundle",
+                "Refrigeration Browser Acceptance",
+                "Container Supply Chain",
+            },
+        )
+
     def test_offline_contract_change_requires_offline_bundle(self) -> None:
         result = classify(["infrastructure/compose/compose.central.yaml"])
         verification = result["verification"]

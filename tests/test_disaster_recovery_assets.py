@@ -160,14 +160,27 @@ def test_disaster_recovery_acceptance_seeds_latest_projection_with_history() -> 
         assert script.count(event_id) >= 2
 
 
-def test_disaster_recovery_minio_defaults_use_pinned_quay_images() -> None:
+def test_disaster_recovery_uses_repository_owned_versitygw_and_s3_helper() -> None:
     compose = (
         ROOT / "infrastructure" / "compose" / "compose.disaster-recovery.yaml"
     ).read_text(encoding="utf-8")
-    server = "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
-    client = "quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z"
+    image = "nexolab/object-storage:versitygw-v1.8.0"
 
-    assert compose.count(f"${{DR_MINIO_IMAGE:-{server}}}") == 2
-    assert compose.count(f"${{DR_MINIO_CLIENT_IMAGE:-{client}}}") == 1
-    assert "DR_MINIO_IMAGE:-minio/minio:" not in compose
-    assert "DR_MINIO_CLIENT_IMAGE:-minio/mc:" not in compose
+    assert compose.count(f"${{DR_OBJECT_STORAGE_IMAGE:-{image}}}") == 2
+    assert "quay.io/minio/" not in compose
+    assert "minio/mc:" not in compose
+    assert "../../scripts:/opt/nexolab/scripts:ro" in compose
+    assert "DR_TELEMETRY_IMAGE" in compose
+    assert 'user: "${DR_WORK_UID:-1000}:${DR_WORK_GID:-1000}"' in compose
+
+
+def test_disaster_recovery_s3_helper_uses_runner_uid_gid_for_bind_mounts() -> None:
+    for name in (
+        "run-disaster-recovery-acceptance.sh",
+        "run-disaster-recovery-browser.sh",
+        "run-disaster-recovery-domain-completeness.sh",
+        "run-disaster-recovery-tls-fleet.sh",
+    ):
+        script = (ROOT / "scripts" / name).read_text(encoding="utf-8")
+        assert 'export DR_WORK_UID="$(id -u)"' in script
+        assert 'export DR_WORK_GID="$(id -g)"' in script

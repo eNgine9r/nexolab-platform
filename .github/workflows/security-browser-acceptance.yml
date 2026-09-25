@@ -9,6 +9,8 @@ on:
       - "e2e/security-rbac.production.e2e.ts"
       - "infrastructure/compose/compose.browser-acceptance.yaml"
       - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/object-storage/**"
+      - "scripts/object-storage-s3.py"
       - "infrastructure/compose/.env.central.example"
       - "package.json"
       - "package-lock.json"

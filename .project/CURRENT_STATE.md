@@ -1,16 +1,34 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-24
+Updated: 2026-09-25
 
 ## Current Sprint
 
-### Issue #1140 — discovery-only controller onboarding audit/fix in progress
+### Issue #1140 — discovery-only controller onboarding resumes in PR #1141
 
-The Equipment onboarding audit confirmed the operator dead end reported for Danfoss AK-CC25 Pro: the wizard could persist a discovery-only commissioning session and complete bounded FC03 preflight, but `activation_supported=false` intentionally removed the activation path and no alternative completion path projected the verified controller into the Equipment Registry or the selected refrigeration showcase. The persisted `targetEquipmentKey` therefore existed without a visible durable association.
+Issue #1140 remains the active software Work Package after object-storage state reconciliation. The implementation branch `feat/1140-discovery-only-onboarding` is at `41445459c0eb9be97b4212adc497c31c4e595792` with open PR #1141. Its existing local evidence is GREEN: focused frontend **33/33**, full frontend **153 files / 786 tests**, ESLint, TypeScript, Prettier, State Model v2, `git diff --check`, and production `next build --webpack`. The branch must now be integrated with the latest `main` and pass fresh exact-head required CI before merge.
 
-The focused candidate separates inventory registration from monitoring activation. On the final review step, a discovery-only supported profile exposes `Перевірити та додати до реєстру`; it saves the commissioning intent, runs only the existing bounded read-only preflight, and on success keeps lifecycle `verified` while monitoring remains disabled. Verified discovery-only sessions are projected into `/equipment` as temperature-controller assets and into the selected showcase controller surface with explicit `Перевірено · моніторинг вимкнено` / `Лише read-only перевірка` semantics. Existing active Embraco binding remains authoritative if both records exist. Draft/failed/unsupported/cancelled sessions are not projected. No acquisition-registry enrollment, service restart, production polling, Modbus write, controller write or hardware write is introduced.
+The product boundary remains unchanged: verified discovery-only commissioning sessions may appear in Equipment Registry and the selected showcase, but Danfoss production monitoring/activation stays disabled. No Modbus/controller write, hardware write, service restart or production cutover is authorized by #1140.
 
-Local verification is GREEN: focused frontend matrix **33/33**, full frontend **153 files / 786 tests**, ESLint, TypeScript, Prettier and `git diff --check`; production build passes under Next.js webpack. The default Turbopack build in this temporary git worktree fails before compilation because `node_modules` is symlinked outside the worktree filesystem root, so webpack was used to verify the production application build without changing source. GitHub exact-head PR verification is still pending.
+### Issue #1146 — VersityGW local object-storage replacement completed and merged
+
+Issue #1146 is repository-complete. PR #1149 exact head `53d8ca842ce043a85cccacd5e435ed996d8c0e0d` passed **21/21 required workflows GREEN**, including Core CI/NEXOLAB Merge Gate, Container Supply Chain, Telemetry Service, Offline Auth Acceptance, Disaster Recovery gates, browser acceptances and Offline Bundle. PR #1149 merged to `main` as `a696a83efe096c82c3f66a4368c0d5a4da12dccd`; GitHub #1146 is completed.
+
+The accepted repository implementation is VersityGW `v1.8.0` with local POSIX storage, the compatibility service name `minio`, a separate `object-storage-versitygw-data` volume, repository-owned S3 tooling, and fail-closed protection against mounting legacy MinIO internal data as VersityGW data. Exact-head Refrigeration Browser acceptance is **6/6 GREEN**; the earlier local RFX-10 signal-binding failure was transient/baseline rather than a #1146 product regression. Fresh amd64/arm64 security evidence remains **0 HIGH / 0 CRITICAL**.
+
+Offline Bundle run `36064735431` passed clean-host transfer, disconnected startup with pull disabled, blocked container egress, update/rollback persistent-data preservation and final disconnected evidence. Post-merge push verification observed 10 workflows with no failure, cancellation or in-progress result. No production object-data migration/cutover, production runtime restart, persistent-volume deletion, Modbus write or hardware write occurred. Production object-storage migration remains a separate explicit Product Owner gate.
+
+### Issue #1143 — object-storage architecture decision completed
+
+GitHub #1143 is closed completed. Explicit Product Owner approval selected **VersityGW v1.8.0** after the non-production PoC proved official amd64/arm64 checksums, Apache-2.0 local POSIX operation, 0 HIGH / 0 CRITICAL scans, and real ARM64 S3 compatibility. The former architecture hard blocker is cleared; implementation authority is #1146. Production migration/cutover remains separately gated.
+
+### Issue #1142 — legacy MinIO reconstruction path superseded
+
+GitHub #1142 is closed `not_planned` with `status:superseded`. The withdrawn MinIO Community registry problem was real and exact old binaries were reproducibly reconstructable, but current security scans made that path non-releasable. No CRITICAL exception or security-gate weakening was accepted. #1146 is now the focused replacement implementation.
+
+### Issue #1144 — durable blocker-state reconciliation completed
+
+PR #1145 previously recorded the pre-decision hard blocker on main. That state is now superseded by the explicit Product Owner decision and active #1146 implementation; accepted/deployed production baselines remain unchanged.
 
 ### Issue #1136 — Waveshare dedicated LOCAL_LAN humidity acquisition software completed
 

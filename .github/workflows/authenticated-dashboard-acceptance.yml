@@ -17,6 +17,8 @@ on:
       - "e2e/telemetry-navigation.production.e2e.ts"
       - "infrastructure/compose/compose.browser-acceptance.yaml"
       - "infrastructure/compose/compose.central.yaml"
+      - "infrastructure/object-storage/**"
+      - "scripts/object-storage-s3.py"
       - "package.json"
       - "package-lock.json"
       - "next.config.ts"

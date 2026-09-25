@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-24T15:38:00+03:00",
+  "timestamp": "2026-09-25T11:45:55+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1140 discovery-only onboarding audit/fix candidate locally GREEN; PR/CI pending",
+  "event": "Issue #1146 merged GREEN via PR #1149 and canonical state reconciled; resume active discovery-only onboarding #1140 / PR #1141",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -30,9 +30,8 @@
   },
   "active_work": {
     "issue": 1140,
-    "branch": "feat/1140-discovery-only-onboarding",
-    "status": "implementation_locally_verified_pending_pr_ci",
-    "outcome": "Verified discovery-only controller sessions are projected into Equipment Registry and selected showcase without enabling monitoring"
+    "title": "Complete discovery-only controller onboarding into registry and showcase",
+    "branch": "feat/1140-discovery-only-onboarding"
   },
   "evidence_snapshot": {
     "active_issue_evidence": {
@@ -50,57 +49,46 @@
       "production_activation": "not_executed_not_authorized",
       "modbus_write": "none",
       "hardware_write": "none",
-      "github_ci": "pending",
-      "issue": 1140
+      "github_ci": "resume_after_state_reconciliation_and_latest_main_integration",
+      "pull_request": 1141,
+      "current_branch_head_sha": "41445459c0eb9be97b4212adc497c31c4e595792"
+    },
+    "completed_object_storage": {
+      "issue": 1146,
+      "pull_request": 1149,
+      "verified_head_sha": "53d8ca842ce043a85cccacd5e435ed996d8c0e0d",
+      "exact_head_ci": "21_of_21_green",
+      "offline_bundle": "success_clean_host_disconnected_update_rollback_preserved",
+      "backend": "VersityGW_v1.8.0",
+      "storage_backend": "local_POSIX",
+      "production_migration_cutover": "not_executed_separate_gate"
     }
   },
   "observations": [
     {
       "source": "github",
-      "observed_at": "2026-09-23T15:28:23+03:00",
-      "kind": "issue_runtime_blocker",
+      "observed_at": "2026-09-25T11:45:55+03:00",
+      "kind": "object_storage_merge",
       "data": {
-        "issue": 1126,
-        "status": "blocked",
-        "summary": "rs485-main CP2104 0133F090 stable path absent; Device Agent unhealthy HTTP 503/ENOENT"
+        "issue": 1146,
+        "pull_request": 1149,
+        "merge_sha": "a696a83efe096c82c3f66a4368c0d5a4da12dccd",
+        "status": "merged_closed_green"
       }
     },
     {
       "source": "github",
-      "observed_at": "2026-09-23T16:48:53+03:00",
-      "kind": "security_merge",
+      "observed_at": "2026-09-25T11:45:55+03:00",
+      "kind": "active_pull_request",
       "data": {
-        "issue": 1130,
-        "pull_request": 1131,
-        "merge_sha": "f242c6614393486b00029b3ca3dc5fbe20acffad",
-        "status": "merged_closed"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-23T16:53:31+03:00",
-      "kind": "state_merge",
-      "data": {
-        "issue": 1132,
-        "pull_request": 1133,
-        "merge_sha": "901e893c6c0ce81a61cd02fc06efdba5216b78fd",
-        "status": "merged_closed"
-      }
-    },
-    {
-      "source": "github",
-      "observed_at": "2026-09-23T21:46:54+03:00",
-      "kind": "waveshare_humidity_software_merge",
-      "data": {
-        "issue": 1136,
-        "pull_request": 1137,
-        "merge_sha": "082662657671f9dcd05b493598798708847856a4",
-        "status": "merged_closed_green",
-        "production_activation": "none"
+        "issue": 1140,
+        "pull_request": 1141,
+        "head_sha": "41445459c0eb9be97b4212adc497c31c4e595792",
+        "status": "open_resume_after_state_reconciliation"
       }
     }
   ],
-  "next_action": "Commit #1140 candidate, open focused PR, require exact-head GREEN CI, then reconcile canonical state. Production Danfoss polling/activation remains disabled and no hardware/Modbus writes are authorized.",
+  "next_action": "Merge #1150 after state-only exact-head checks, then resume PR #1141 on #1140: integrate latest main, rerun targeted frontend verification and required exact-head CI, and merge only when GREEN. Danfoss monitoring/production activation remains disabled.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -107,6 +107,7 @@ DASHBOARD_SHARED_PATTERNS = (
     "e2e/telemetry-navigation.production.e2e.ts",
     "infrastructure/compose/compose.browser-acceptance.yaml",
     "infrastructure/compose/compose.central.yaml",
+    "infrastructure/object-storage/**",
     "playwright.dashboard.config.ts",
     "scripts/run-authenticated-dashboard-acceptance.sh",
     "scripts/run-acquisition-invariant-browser-acceptance.sh",
@@ -124,6 +125,7 @@ REFRIGERATION_PATTERNS = (
     "scripts/run-refrigeration-browser-acceptance.sh",
     "infrastructure/compose/compose.browser-acceptance.yaml",
     "infrastructure/compose/compose.central.yaml",
+    "infrastructure/object-storage/**",
     ".github/workflows/refrigeration-browser-acceptance.yml",
     "scripts/classify-ci-impact.py",
     "docs/refrigeration-browser-central-acceptance.md",
@@ -145,6 +147,7 @@ OFFLINE_BUNDLE_PATTERNS = (
     "services/telegram-gateway/**",
     "infrastructure/compose/**",
     "infrastructure/offline/**",
+    "infrastructure/object-storage/**",
     "services/device-agent/**",
     "services/telemetry-service/**",
     "src/app/api/**",
@@ -164,6 +167,8 @@ CONTAINER_SUPPLY_CHAIN_TEST_PATHS = {
     "tests/test_container_vulnerability_policy.py",
     "tests/test_container_release_manifest.py",
     "tests/test_container_release_aggregate.py",
+    "tests/test_central_object_storage_image_contract.py",
+    "tests/test_object_storage_supply_contract.py",
 }
 
 INSPECTION_SECURITY_PATTERNS = (
@@ -185,6 +190,15 @@ VERSION_MANAGER_TOOLING_PATHS = {
 DISASTER_RECOVERY_TOOLING_PATHS = {
     "scripts/run-disaster-recovery-acceptance.sh",
     "tests/test_disaster_recovery_assets.py",
+}
+
+OBJECT_STORAGE_RUNTIME_PATHS = {
+    "scripts/object-storage-s3.py",
+    "scripts/offline-bundle-smoke.sh",
+    "scripts/run-disaster-recovery-browser.sh",
+    "scripts/run-refrigeration-browser-acceptance.sh",
+    "scripts/verify-offline-bundle.py",
+    "scripts/verify-offline-volume-preservation.sh",
 }
 
 RS485_ACQUISITION_PATHS = {
@@ -298,6 +312,7 @@ def _verification_for_paths(
             (
                 "services/telegram-gateway/**",
                 "security/container-images.json",
+                "infrastructure/object-storage/**",
                 ".github/workflows/container-supply-chain.yml",
             ),
         )
@@ -442,6 +457,10 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
             matched = True
 
         if path in DISASTER_RECOVERY_TOOLING_PATHS:
+            classes.add("deployment_runtime")
+            matched = True
+
+        if path in OBJECT_STORAGE_RUNTIME_PATHS:
             classes.add("deployment_runtime")
             matched = True
 

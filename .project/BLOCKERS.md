@@ -1,6 +1,18 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-23
+Updated: 2026-09-25
+
+## Issue #1146 — VersityGW replacement implementation
+
+**Cleared and merged for repository/software scope.** PR #1149 exact head `53d8ca842ce043a85cccacd5e435ed996d8c0e0d` passed 21/21 required workflows and merged to `main` as `a696a83efe096c82c3f66a4368c0d5a4da12dccd`. VersityGW `v1.8.0` is now the accepted local S3 implementation with a separate VersityGW data volume and fail-closed legacy MinIO protection. Production MinIO → VersityGW object-data migration/cutover was **not executed** and remains a separate explicit approval gate; no production data, named volume, runtime service, Modbus or hardware state was mutated by #1146.
+
+## Issue #1143 — secure LOCAL_LAN object-storage backend architecture decision
+
+**Cleared.** GitHub #1143 is closed completed after explicit Product Owner approval of VersityGW `v1.8.0`. The approved decision preserves LOCAL_LAN/offline operation, local POSIX storage and the existing application-facing S3 semantics without CRITICAL vulnerability exceptions.
+
+## Issue #1142 — MinIO registry withdrawal / legacy reconstruction
+
+**Closed superseded.** GitHub #1142 is closed `not_planned` with `status:superseded`. The exact MinIO reconstruction remains security-rejected and is not a release path. Replacement implementation continues under #1146; no production data or runtime was changed by #1142.
 
 ## Issue #1130 — new Expat CVE-2026-93990 HIGH finding
 

@@ -40,7 +40,7 @@ services:
       restore-postgres:
         condition: service_healthy
       restore-minio:
-        condition: service_healthy
+        condition: service_started
 
   restore-minio:
     ports: !override

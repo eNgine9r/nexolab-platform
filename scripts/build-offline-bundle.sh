@@ -136,8 +136,7 @@ TELEMETRY_IMAGE="nexolab/telemetry-service:${VERSION}-${ARCH}"
 DEVICE_AGENT_IMAGE="nexolab/device-agent:${VERSION}-${ARCH}"
 MQTT_IMAGE="eclipse-mosquitto:2.0.22"
 POSTGRES_IMAGE="postgres:16-alpine"
-MINIO_IMAGE="quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
-MINIO_CLIENT_IMAGE="quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z"
+OBJECT_STORAGE_IMAGE="nexolab/object-storage:versitygw-v1.8.0-${ARCH}"
 
 build_image() {
   local reference="$1" dockerfile="$2" context="$3"
@@ -165,8 +164,9 @@ build_image "$DASHBOARD_IMAGE" "$RUNTIME_SOURCE_ROOT/infrastructure/offline/Dock
   --build-arg "NEXOLAB_SOURCE_COMMIT=${SOURCE_COMMIT}"
 build_image "$TELEMETRY_IMAGE" "$RUNTIME_SOURCE_ROOT/services/telemetry-service/Dockerfile" "$RUNTIME_SOURCE_ROOT/services/telemetry-service"
 build_image "$DEVICE_AGENT_IMAGE" "$RUNTIME_SOURCE_ROOT/services/device-agent/Dockerfile" "$RUNTIME_SOURCE_ROOT/services/device-agent"
+build_image "$OBJECT_STORAGE_IMAGE" "$RUNTIME_SOURCE_ROOT/infrastructure/object-storage/Dockerfile" "$RUNTIME_SOURCE_ROOT/infrastructure/object-storage"
 
-for image in "$MQTT_IMAGE" "$POSTGRES_IMAGE" "$MINIO_IMAGE" "$MINIO_CLIENT_IMAGE"; do
+for image in "$MQTT_IMAGE" "$POSTGRES_IMAGE"; do
   docker pull --platform "$PLATFORM" "$image"
 done
 
@@ -178,8 +178,7 @@ IMAGE_RECORDS=(
   "device-agent=${DEVICE_AGENT_IMAGE}"
   "mqtt=${MQTT_IMAGE}"
   "postgres=${POSTGRES_IMAGE}"
-  "minio=${MINIO_IMAGE}"
-  "minio-client=${MINIO_CLIENT_IMAGE}"
+  "object-storage=${OBJECT_STORAGE_IMAGE}"
 )
 IMAGE_REFS=(
   "$DASHBOARD_IMAGE"
@@ -187,8 +186,7 @@ IMAGE_REFS=(
   "$DEVICE_AGENT_IMAGE"
   "$MQTT_IMAGE"
   "$POSTGRES_IMAGE"
-  "$MINIO_IMAGE"
-  "$MINIO_CLIENT_IMAGE"
+  "$OBJECT_STORAGE_IMAGE"
 )
 
 docker save --output "$STAGING/images/nexolab-images.tar" "${IMAGE_REFS[@]}"
@@ -228,6 +226,7 @@ cp infrastructure/systemd/nexolab-update-check.timer "$STAGING/deploy/systemd/"
 cp infrastructure/systemd/nexolab-update-request.service "$STAGING/deploy/systemd/"
 cp infrastructure/systemd/nexolab-update-request.path "$STAGING/deploy/systemd/"
 cp scripts/verify-offline-bundle.py "$STAGING/scripts/"
+cp scripts/object-storage-s3.py "$STAGING/scripts/"
 cp scripts/install-offline-bundle.sh "$STAGING/scripts/"
 cp scripts/offline-bundle-smoke.sh "$STAGING/scripts/"
 cp scripts/nexolab-version-manager.py "$STAGING/scripts/"

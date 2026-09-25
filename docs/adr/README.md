@@ -12,6 +12,7 @@ This directory is the authoritative registry and canonical storage location for 
 | 0008 | Durable local staging between MQTT and PostgreSQL           | Proposed in Issue #198 / PR #207 | 2026-08-01 | —          | [0008-durable-central-ingestion-spool.md](0008-durable-central-ingestion-spool.md)                                         |
 | 0009 | Local operator authentication for disconnected laboratories | Accepted                         | 2026-08-01 | —          | [0009-local-operator-authentication.md](0009-local-operator-authentication.md)                                             |
 | 0010 | Refrigeration monitoring and derived thermodynamics         | Accepted                         | 2026-08-28 | —          | [0010-refrigeration-monitoring-and-derived-thermodynamics.md](0010-refrigeration-monitoring-and-derived-thermodynamics.md) |
+| 0011 | Local S3 object storage with VersityGW                      | Accepted                         | 2026-09-24 | —          | [0011-local-object-storage-versitygw.md](0011-local-object-storage-versitygw.md)                                           |
 
 Every canonical ADR must appear exactly once in this table. An ADR identifier is permanent after publication, including when the decision is later superseded.
 
