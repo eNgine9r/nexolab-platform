@@ -4,7 +4,7 @@ Updated: 2026-09-25
 
 ## Issue #1146 — VersityGW replacement implementation
 
-**No architecture blocker; implementation/CI in progress.** Product Owner approval resolved #1143 and #1142 is closed superseded. The current repository candidate uses integrity-pinned VersityGW `v1.8.0`, a separate VersityGW data volume, repository-owned S3 bootstrap/DR tooling, and explicit fail-closed protection against treating the legacy MinIO volume as VersityGW data. Local contract, DR, focused browser, ARM64 runtime and amd64/arm64 vulnerability evidence are GREEN. Exact-head GitHub CI remains the current merge gate. Production migration/cutover and live object-data transfer are deliberately outside #1146 and require a separate explicit approval.
+**Cleared and merged for repository/software scope.** PR #1149 exact head `53d8ca842ce043a85cccacd5e435ed996d8c0e0d` passed 21/21 required workflows and merged to `main` as `a696a83efe096c82c3f66a4368c0d5a4da12dccd`. VersityGW `v1.8.0` is now the accepted local S3 implementation with a separate VersityGW data volume and fail-closed legacy MinIO protection. Production MinIO → VersityGW object-data migration/cutover was **not executed** and remains a separate explicit approval gate; no production data, named volume, runtime service, Modbus or hardware state was mutated by #1146.
 
 ## Issue #1143 — secure LOCAL_LAN object-storage backend architecture decision
 

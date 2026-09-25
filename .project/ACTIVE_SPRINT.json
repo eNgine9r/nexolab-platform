@@ -41,9 +41,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1146,
-      "title": "Replace MinIO Community with VersityGW for local S3 runtime",
-      "branch": "feat/1146-versitygw-offline-storage"
+      "issue": 1140,
+      "title": "Complete discovery-only controller onboarding into registry and showcase",
+      "branch": "feat/1140-discovery-only-onboarding"
     },
     "next_work_package": null
   },
@@ -5047,29 +5047,31 @@
       "issue": 1146,
       "title": "Replace MinIO Community with VersityGW for local S3 runtime",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "feat/1146-versitygw-offline-storage",
       "evidence": {
         "architecture_decision_issue": 1143,
         "legacy_supply_issue": 1142,
-        "implementation_checkpoint_sha": "4b40b495",
         "backend": "VersityGW_v1.8.0",
         "storage_backend": "local_POSIX",
+        "verified_head_sha": "53d8ca842ce043a85cccacd5e435ed996d8c0e0d",
+        "pull_request": 1149,
+        "merged_sha": "a696a83efe096c82c3f66a4368c0d5a4da12dccd",
+        "github_issue": "closed_completed",
+        "exact_head_ci": "21_of_21_green",
+        "checks": {
+          "core_ci_and_merge_gate": "success",
+          "container_supply_chain": "success",
+          "telemetry_service": "success",
+          "offline_auth_acceptance": "success",
+          "offline_bundle": "success:36064735431",
+          "disaster_recovery_acceptance": "success",
+          "refrigeration_browser_acceptance": "success_6_of_6",
+          "authenticated_dashboard_acceptance": "success"
+        },
+        "offline_bundle_evidence": "clean_host_disconnected_start_update_rollback_persistent_data_preserved",
         "legacy_minio_volume_mounted": false,
         "migration_cutover": "not_executed_separate_gate",
-        "targeted_contract_tests": "89_passed",
-        "disaster_recovery_acceptance": "passed_private_bucket_3_objects_metadata_tamper_wrong_key_source_volumes_unchanged",
-        "focused_equipment_layout_browser_acceptance": "2_of_2_passed_with_real_s3_seed_and_presigned_read",
-        "refrigeration_browser_acceptance": "5_of_6_passed_one_unchanged_RFX10_signal_binding_baseline_failure",
-        "production_build": "passed_during_browser_acceptance",
-        "typescript": "passed_during_browser_acceptance",
-        "arm64_runtime_s3": "passed_health_bucket_put_get_metadata_presigned_get_delete",
-        "arm64_trivy": "0_HIGH_0_CRITICAL_2_MEDIUM_1_UNKNOWN",
-        "amd64_build": "passed_image_constructed",
-        "amd64_trivy": "0_HIGH_0_CRITICAL_2_MEDIUM_1_UNKNOWN",
-        "amd64_runtime_local": "not_run_on_arm_host_exec_format_error_ci_required",
-        "git_diff_check": "passed",
-        "exact_head_ci": "pending",
         "production_runtime_mutation": "none",
         "production_object_data_mutation": "none",
         "volume_deletion": "none",
@@ -5079,6 +5081,59 @@
       "depends_on": [
         1143
       ]
+    },
+    {
+      "issue": 1140,
+      "title": "Complete discovery-only controller onboarding into registry and showcase",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "branch": "feat/1140-discovery-only-onboarding",
+      "evidence": {
+        "audit_root_cause": "verified_discovery_only_commissioning_session_had_no_completion_projection_into_equipment_registry_or_showcase_controller_view",
+        "product_boundary": "inventory_registration_separate_from_monitoring_activation",
+        "danfoss_activation_supported": false,
+        "local_targeted_tests": "33_passed",
+        "full_frontend_tests": "153_files_786_tests_passed",
+        "eslint": "success",
+        "typecheck": "success",
+        "production_build": "success_next_build_webpack",
+        "turbopack_worktree_symlink_build": "environment_failure_only_node_modules_points_outside_worktree_root",
+        "prettier": "success",
+        "git_diff_check": "success",
+        "production_activation": "not_executed_not_authorized",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "github_ci": "resume_after_state_reconciliation_and_latest_main_integration",
+        "pull_request": 1141,
+        "current_branch_head_sha": "41445459c0eb9be97b4212adc497c31c4e595792"
+      }
+    },
+    {
+      "issue": 1150,
+      "title": "Reconcile merged VersityGW object-storage WP #1146",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1146
+      ],
+      "branch": "chore/1150-reconcile-versitygw-merge",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "trigger_pull_request": 1149,
+        "merged_implementation_sha": "a696a83efe096c82c3f66a4368c0d5a4da12dccd",
+        "verified_implementation_head_sha": "53d8ca842ce043a85cccacd5e435ed996d8c0e0d",
+        "exact_head_ci": "21_of_21_green",
+        "accepted_product_baseline_changed": false,
+        "deployed_product_baseline_changed": false,
+        "production_object_storage_migration": "not_executed",
+        "production_runtime_mutation": "none",
+        "production_data_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "state_model_v2": "success_local",
+        "git_diff_check": "success_local"
+      }
     }
   ],
   "maintenance_actions": [
