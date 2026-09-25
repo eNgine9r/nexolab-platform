@@ -31,4 +31,4 @@ This allows an expired or stale registry to produce evidence for triage while ke
 
 ## Follow-up
 
-After #1106 is merged, use the repaired workflow to obtain fresh 2026-09-22 no-cache evidence and perform a separate tuple-by-tuple HIGH exception review. That review must remove stale findings and may retain an exact HIGH tuple only with current fix/reachability evidence and a new short expiry.
+After #1106 is merged, use the repaired workflow to obtain fresh current-date no-cache evidence and perform a separate tuple-by-tuple HIGH exception review. That review must remove stale findings and may retain an exact HIGH tuple only with current fix/reachability evidence and a new short expiry.
