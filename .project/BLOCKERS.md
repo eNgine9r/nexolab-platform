@@ -2,9 +2,13 @@
 
 Updated: 2026-09-25
 
+## Issue #1164 — Live Follow reset semantics
+
+**No implementation blocker.** The focused #1164 candidate separates Reset from manual viewport changes. Local evidence is GREEN at 4/4 focused tests plus 442/442 broader chart/domain tests; manual zoom still pauses and Reset restores/keeps Live Follow without requesting history. Exact-head GitHub CI remains the merge gate. Production runtime, persistent data, acquisition, Modbus/controller and hardware state are unchanged.
+
 ## Issue #1163 — Live Data animated redraw / hover flicker
 
-**No implementation blocker.** Audit #1162 confirmed that Live Data alone kept ECharts animation enabled for rolling updates. The focused candidate on `fix/1163-live-chart-flicker` is locally GREEN (14/14 targeted chart tests, 79/79 broader chart regressions, TypeScript, Prettier, ESLint, State Model validation, diff check and Raspberry Pi Chromium reduced-motion A/B). Exact-head GitHub CI remains the merge gate. Production runtime, persistent data, acquisition, Modbus/controller and hardware state are unchanged.
+**Cleared and merged.** PR #1168 exact head `24e2e001a8e4f2527d84710c77cc6b4bcfa8a2e7` passed Core CI/Merge Gate and Authenticated Dashboard Acceptance and merged to `main` as `697da8146f32dee72468572436c96297be14138c`. Live Data now uses the canonical non-animated rolling refresh path. No production/runtime, persistent-data, acquisition, Modbus/controller or hardware mutation occurred.
 
 ## Issue #1156 — 92 HIGH exception revalidation
 

@@ -621,6 +621,10 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
                   setViewportDomain(domain);
                   setLiveFollow(false);
                 }}
+                onResetView={() => {
+                  setViewportDomain(null);
+                  if (range === "live") setLiveFollow(true);
+                }}
                 onToggleSeries={(seriesKey) => {
                   setSoloSeriesKey(null);
                   setHiddenSeriesKeys((current) => {

@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { LiveTelemetryModel } from "@/hooks/use-live-telemetry";
@@ -12,7 +12,33 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/components/live/live-chart-panel", () => ({
-  LiveChartPanel: () => <div data-testid="mock-live-chart" />,
+  LiveChartPanel: ({
+    resetDomain,
+    onResetView,
+    onXDomainChange,
+  }: {
+    resetDomain: { fromMs: number; toMs: number };
+    onResetView: () => void;
+    onXDomainChange: (domain: { fromMs: number; toMs: number }) => void;
+  }) => (
+    <div data-testid="mock-live-chart">
+      <button type="button" data-testid="mock-reset-view" onClick={onResetView}>
+        reset
+      </button>
+      <button
+        type="button"
+        data-testid="mock-manual-zoom"
+        onClick={() =>
+          onXDomainChange({
+            fromMs: resetDomain.fromMs + 60_000,
+            toMs: resetDomain.toMs - 60_000,
+          })
+        }
+      >
+        manual zoom
+      </button>
+    </div>
+  ),
 }));
 
 function model(): LiveTelemetryModel {
@@ -55,6 +81,25 @@ function model(): LiveTelemetryModel {
   };
 }
 
+function modelWithChart(): LiveTelemetryModel {
+  const telemetry = model();
+  const sample = telemetry.samples[0];
+  const to = new Date(sample.captured_at);
+  const from = new Date(to.getTime() - 60 * 60_000);
+  const selectedKey = [sample.node_id, sample.equipment_id, sample.channel_id, sample.metric, sample.unit]
+    .map((part) => encodeURIComponent(part))
+    .join("|");
+
+  return {
+    ...telemetry,
+    selectedKeys: [selectedKey],
+    historyWindow: { from, to },
+    historySamples: [sample],
+    historyStatus: "ready",
+    historySnapshotAt: to.toISOString(),
+  };
+}
+
 function appearsBefore(left: Element, right: Element): boolean {
   return Boolean(left.compareDocumentPosition(right) & Node.DOCUMENT_POSITION_FOLLOWING);
 }
@@ -79,5 +124,25 @@ describe("LiveTelemetryExplorer graph-first composition", () => {
     expect(within(chart).getByText("Жодного каналу не обрано")).toBeVisible();
     expect(within(chart).getByText("Оберіть канали нижче у Latest values")).toBeVisible();
     expect(inventory.querySelector(".overflow-x-auto")).not.toBeNull();
+  });
+});
+
+describe("LiveTelemetryExplorer viewport semantics", () => {
+  it("keeps reset in Live Follow while manual zoom still pauses the view", () => {
+    const telemetry = modelWithChart();
+    const setHistoryRange = telemetry.setHistoryRange as ReturnType<typeof vi.fn>;
+    render(<LiveTelemetryExplorer telemetry={telemetry} />);
+
+    expect(screen.getByText("Live Follow", { exact: true })).toBeVisible();
+    fireEvent.click(screen.getByTestId("mock-reset-view"));
+    expect(screen.getByText("Live Follow", { exact: true })).toBeVisible();
+    expect(setHistoryRange).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId("mock-manual-zoom"));
+    expect(screen.getByText("Paused view", { exact: true })).toBeVisible();
+
+    fireEvent.click(screen.getByTestId("mock-reset-view"));
+    expect(screen.getByText("Live Follow", { exact: true })).toBeVisible();
+    expect(setHistoryRange).not.toHaveBeenCalled();
   });
 });
