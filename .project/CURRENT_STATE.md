@@ -4,6 +4,12 @@ Updated: 2026-09-25
 
 ## Current Sprint
 
+### Issue #1163 — Live Data animated redraw / hover flicker fix in progress
+
+Chart audit #1162 completed with Raspberry Pi Chromium evidence and split focused follow-up Work Packages #1163–#1167. The highest-priority defect is now active on `fix/1163-live-chart-flicker`: `LiveChartPanel` was the only canonical chart wrapper leaving ECharts animation enabled during rolling scene updates, while Overview, Saved Dashboard, Energy and Refrigeration already use the non-animated renderer path. Historical commit `1abec1f2` had previously fixed the same animated-blanking class for Saved Dashboard.
+
+The #1163 candidate adds the canonical `reducedMotion` contract to Live Data and a focused regression test. Local evidence is GREEN: **14/14 targeted chart tests** plus **79/79 broader chart regressions**, TypeScript `--noEmit`, changed-file Prettier, changed-file ESLint, State Model v2 validation and `git diff --check`. Raspberry Pi Chromium A/B continues to show animation-ON Canvas changing across all 24 sampled frames, while reduced-motion stabilizes after the first frame with no zero/blank frames. Exact-head GitHub CI is pending. No production deployment/restart, data mutation, acquisition mutation, Modbus/controller write or hardware write occurred.
+
 ### Issue #1160 — post-#1156 canonical state reconciliation
 
 Issue #1160 records the completed #1156 lifecycle into State Model v2 only. PR #1157 exact head `e9c519ba41d4662e7ff5d3c92e1948c16a8b2631` passed all routed workflows GREEN and merged to `main` as `adbd3391840de8fe1a5b83d59a8d0a26a25d2247`. Active and next Work Package selection are cleared after this reconciliation candidate; production baselines, hardware blockers and the separate VersityGW production migration/cutover gate remain unchanged.

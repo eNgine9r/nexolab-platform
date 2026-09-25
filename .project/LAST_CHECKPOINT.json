@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-25T15:35:29+03:00",
+  "timestamp": "2026-09-25T17:20:53+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1156 / PR #1157 merged GREEN; canonical state reconciled by #1160 with next exception boundary 2026-10-02",
+  "event": "Issue #1162 chart audit completed; #1163 Live Data animated redraw fix locally verified and awaiting exact-head GitHub CI",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,7 +28,12 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1163,
+    "title": "Eliminate animated rolling redraw and hover flicker",
+    "branch": "fix/1163-live-chart-flicker",
+    "status": "in_progress"
+  },
   "evidence_snapshot": {
     "completed_security_gate": {
       "issue": 1106,
@@ -122,6 +127,25 @@
       "telemetry_service_run": 36128045287,
       "accepted_expiry": "2026-10-02",
       "merged_implementation_sha": "adbd3391840de8fe1a5b83d59a8d0a26a25d2247"
+    },
+    "chart_live_flicker_1163": {
+      "audit_issue": 1162,
+      "root_cause": "LiveChartPanel_only_canonical_wrapper_without_reducedMotion",
+      "deployed_frontend_core_diff": "no_chart_core_or_live_panel_diff_from_7db6c8c3_to_current_main",
+      "targeted_chart_tests": "14_passed_3_files",
+      "typescript_no_emit": "success_local",
+      "changed_file_prettier": "success_local",
+      "changed_file_eslint": "success_local",
+      "git_diff_check": "success_local",
+      "chromium_animation_on": "canvas_changed_all_24_sampled_frames",
+      "chromium_reduced_motion": "stable_after_first_frame",
+      "canvas_zero_frames": 0,
+      "github_ci": "pending_exact_head",
+      "production_runtime_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "broader_chart_regressions": "79_passed_15_files",
+      "state_model_v2": "success_local"
     }
   },
   "observations": [
@@ -227,9 +251,21 @@
         "exception_count": 92,
         "next_review_boundary": "2026-10-02"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-25T17:20:53+03:00",
+      "kind": "active_issue",
+      "data": {
+        "audit_issue": 1162,
+        "active_issue": 1163,
+        "next_ready_issue": 1164,
+        "branch": "fix/1163-live-chart-flicker",
+        "status": "local_candidate_green_ci_pending"
+      }
     }
   ],
-  "next_action": "Complete #1160 state-only exact-head checks and merge. Then re-audit the open backlog against current main; no HIGH exception may survive 2026-10-02 without fresh fail-closed revalidation.",
+  "next_action": "Commit and push #1163 candidate, open the focused PR, require exact-head routed CI GREEN, then continue with Ready #1164 without production cutover.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
