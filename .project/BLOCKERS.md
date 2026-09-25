@@ -4,7 +4,7 @@ Updated: 2026-09-25
 
 ## Issue #1156 — 92 HIGH exception revalidation
 
-**Active fail-closed security review, not a production-runtime blocker.** Fresh run `36123964257` matches all 92 current exact HIGH exceptions 1:1 with 0 CRITICAL, 0 stale/unmatched tuples and 0 scanner fixed versions. Current Debian/upstream status and runtime reachability remain compatible with temporary retention. Candidate decisions are bounded only through 2026-10-02. Local State Model/policy/evaluator checks are GREEN; exact-head Container Supply Chain and NEXOLAB Merge Gate remain required before merge. No exception may survive that boundary without fresh revalidation.
+**Cleared and merged for the current short review window.** PR #1157 exact head `e9c519ba41d4662e7ff5d3c92e1948c16a8b2631` passed Core CI/Merge Gate, Container Supply Chain and Telemetry Service and merged as `adbd3391840de8fe1a5b83d59a8d0a26a25d2247`. The registry retains exactly 92 owner-bound HIGH exceptions, 0 CRITICAL and 0 wildcard decisions only through **2026-10-02**. No exception may survive that boundary without fresh fail-closed revalidation. This is not a production-runtime blocker and no production/runtime, Modbus or hardware mutation occurred.
 
 ## Issue #1106 — container expiry discovery gate
 

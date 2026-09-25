@@ -40,11 +40,7 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1156,
-      "title": "Revalidate 92 HIGH exceptions from 2026-09-25 fresh evidence",
-      "branch": "security/1156-fresh-high-revalidation"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -5251,7 +5247,7 @@
       "issue": 1156,
       "title": "Revalidate 92 HIGH exceptions from 2026-09-25 fresh evidence",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1106
       ],
@@ -5272,7 +5268,7 @@
         "production_runtime_mutation": "none",
         "modbus_write": "none",
         "hardware_write": "none",
-        "github_ci": "pending_exact_head",
+        "github_ci": "3_routed_workflows_green",
         "container_supply_chain_validator": "success_local",
         "focused_supply_chain_tests": "49_passed",
         "fresh_report_evaluator": "success_all_5_reports_22_48_22_0_0",
@@ -5281,7 +5277,53 @@
         "json_parse": "success_local",
         "git_diff_check": "success_local",
         "changed_file_prettier": "success_local",
-        "fresh_artifacts_exact_source_verified": true
+        "fresh_artifacts_exact_source_verified": true,
+        "verified_head_sha": "e9c519ba41d4662e7ff5d3c92e1948c16a8b2631",
+        "pull_request": 1157,
+        "merged_sha": "adbd3391840de8fe1a5b83d59a8d0a26a25d2247",
+        "github_issue": "closed_completed",
+        "review_threads": 0,
+        "final_expiry": "2026-10-02",
+        "critical_exception_path": "none",
+        "wildcard_exception": "none",
+        "severity_threshold_relaxation": "none",
+        "exact_head_workflows": {
+          "core_ci_quality_build_merge_gate": "success:36128045345",
+          "container_supply_chain": "success:36128045288",
+          "telemetry_service": "success:36128045287"
+        },
+        "container_supply_chain_exact_head": "five_fresh_images_policy_aggregate_green_publish_skipped"
+      }
+    },
+    {
+      "issue": 1158,
+      "title": "Reconcile merged 2026-09-25 HIGH exception revalidation #1156",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1156
+      ],
+      "branch": "chore/1158-reconcile-1156-merge",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "trigger_pull_request": 1157,
+        "merged_implementation_sha": "adbd3391840de8fe1a5b83d59a8d0a26a25d2247",
+        "verified_implementation_head_sha": "e9c519ba41d4662e7ff5d3c92e1948c16a8b2631",
+        "exact_head_ci": "3_routed_workflows_green",
+        "retained_exact_high_exceptions": 92,
+        "critical_exceptions": 0,
+        "wildcard_exceptions": 0,
+        "exception_expiry": "2026-10-02",
+        "accepted_product_baseline_changed": false,
+        "deployed_product_baseline_changed": false,
+        "production_runtime_mutation": "none",
+        "production_data_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "state_model_v2": "success_local",
+        "git_diff_check": "success_local",
+        "state_model_tests": "28_passed_1_skipped",
+        "json_parse": "success_local"
       }
     }
   ],

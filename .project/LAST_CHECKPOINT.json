@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-25T14:01:12+03:00",
+  "timestamp": "2026-09-25T14:23:06+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1156 fresh 2026-09-25 container HIGH revalidation candidate locally GREEN; exact-head GitHub CI pending",
+  "event": "Issue #1156 / PR #1157 merged GREEN; canonical state reconciliation #1158 prepared with 2026-10-02 fail-closed exception boundary preserved",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,11 +28,7 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": {
-    "issue": 1156,
-    "title": "Revalidate 92 HIGH exceptions from 2026-09-25 fresh evidence",
-    "branch": "security/1156-fresh-high-revalidation"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "completed_security_gate": {
       "issue": 1106,
@@ -91,31 +87,18 @@
       "git_diff_check": "success_local"
     },
     "active_issue_evidence": {
-      "fresh_container_run": 36123964257,
-      "fresh_source_head": "a231169f0269a441fac4fc1f05da39097e4adfa3",
-      "fresh_high_exact_tuples": 92,
-      "fresh_critical_findings": 0,
-      "fresh_high_with_fixed_version": 0,
-      "registry_exact_tuples": 92,
-      "tuple_set_sha256": "6f38696e08354c9ad505964ec4df82d61bca23b12f4af9e934158bc9be1d394e",
-      "stale_registry_tuples": 0,
-      "unmatched_fresh_tuples": 0,
-      "debian_upstream_status": "rechecked_2026-09-25_no_compatible_trixie_fix",
-      "runtime_reachability": "rechecked_no_new_affected_path",
-      "candidate_expiry": "2026-10-02",
+      "issue": 1158,
+      "scope": "canonical_state_only",
+      "state_model_v2": "success_local",
+      "git_diff_check": "success_local",
+      "retained_exact_high_exceptions": 92,
+      "critical_exceptions": 0,
+      "exception_expiry": "2026-10-02",
       "production_runtime_mutation": "none",
       "modbus_write": "none",
       "hardware_write": "none",
-      "github_ci": "pending_exact_head",
-      "container_supply_chain_validator": "success_local",
-      "focused_supply_chain_tests": "49_passed",
-      "fresh_report_evaluator": "success_all_5_reports_22_48_22_0_0",
-      "state_model_v2": "success_local",
       "state_model_tests": "28_passed_1_skipped",
-      "json_parse": "success_local",
-      "git_diff_check": "success_local",
-      "changed_file_prettier": "success_local",
-      "fresh_artifacts_exact_source_verified": true
+      "json_parse": "success_local"
     }
   },
   "observations": [
@@ -206,9 +189,26 @@
         "high_with_fixed_version": 0,
         "candidate_expiry": "2026-10-02"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-25T14:23:06+03:00",
+      "kind": "security_revalidation_merge",
+      "data": {
+        "issue": 1156,
+        "pull_request": 1157,
+        "head_sha": "e9c519ba41d4662e7ff5d3c92e1948c16a8b2631",
+        "merge_sha": "adbd3391840de8fe1a5b83d59a8d0a26a25d2247",
+        "status": "merged_closed_green",
+        "exact_head_workflows": [
+          "CI:36128045345",
+          "Container Supply Chain:36128045288",
+          "Telemetry service:36128045287"
+        ]
+      }
     }
   ],
-  "next_action": "Push the locally GREEN #1156 candidate, open one focused PR, require fresh exact-head Container Supply Chain plus Core/NEXOLAB Merge Gate GREEN, fix only scoped failures, then merge and reconcile canonical state.",
+  "next_action": "Complete #1158 state-only validation and exact-head CI, merge the reconciliation PR, then audit the open backlog before selecting the next independent Ready Work Package. The 92 HIGH exception decisions remain fail-closed through 2026-10-02 only.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
