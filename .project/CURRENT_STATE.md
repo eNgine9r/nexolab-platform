@@ -4,11 +4,17 @@ Updated: 2026-09-25
 
 ## Current Sprint
 
-### Issue #1163 — Live Data animated redraw / hover flicker fix in progress
+### Issue #1164 — Live Follow reset semantics fix in progress
 
-Chart audit #1162 completed with Raspberry Pi Chromium evidence and split focused follow-up Work Packages #1163–#1167. The highest-priority defect is now active on `fix/1163-live-chart-flicker`: `LiveChartPanel` was the only canonical chart wrapper leaving ECharts animation enabled during rolling scene updates, while Overview, Saved Dashboard, Energy and Refrigeration already use the non-animated renderer path. Historical commit `1abec1f2` had previously fixed the same animated-blanking class for Saved Dashboard.
+Issue #1164 is the active focused chart Work Package on `fix/1164-live-reset-follow`. Audit #1162 proved that `Reset zoom` was routed through the same callback as manual pan/zoom, so a reset silently changed `Live Follow` to `Paused view`. The candidate separates reset semantics from manual viewport changes: manual wheel/pan still pauses, while Reset clears the local viewport and restores/keeps `Live Follow` for the live range without requesting a new history window.
 
-The #1163 candidate adds the canonical `reducedMotion` contract to Live Data and a focused regression test. Local evidence is GREEN: **14/14 targeted chart tests** plus **79/79 broader chart regressions**, TypeScript `--noEmit`, changed-file Prettier, changed-file ESLint, State Model v2 validation and `git diff --check`. Raspberry Pi Chromium A/B continues to show animation-ON Canvas changing across all 24 sampled frames, while reduced-motion stabilizes after the first frame with no zero/blank frames. Exact-head GitHub CI is pending. No production deployment/restart, data mutation, acquisition mutation, Modbus/controller write or hardware write occurred.
+Local evidence is GREEN: **4/4 focused Live tests** and **442/442 broader chart/domain tests across 84 files**, TypeScript `--noEmit`, changed-file ESLint and `git diff --check`. Production E2E now explicitly requires `Live Follow` after `Reset zoom`. Exact-head GitHub CI is pending. No production deployment/restart, data mutation, acquisition mutation, Modbus/controller write or hardware write occurred.
+
+### Issue #1163 — Live Data animated redraw / hover flicker fix completed and merged
+
+Issue #1163 is repository-complete. PR #1168 exact head `24e2e001a8e4f2527d84710c77cc6b4bcfa8a2e7` passed **2/2 routed workflows GREEN**: Core CI / Quality and build / NEXOLAB Merge Gate (`36147315340`) and Authenticated Dashboard Acceptance (`36147315494`). It merged to `main` as `697da8146f32dee72468572436c96297be14138c`; GitHub #1163 is closed completed.
+
+The accepted fix adds the canonical `reducedMotion` contract to Live Data. Raspberry Pi Chromium A/B showed animation-ON Canvas changing across all 24 sampled frames, while reduced-motion stabilized after the first frame with no zero/blank frames. Local pre-merge evidence included **14/14 targeted chart tests** and **79/79 broader chart regressions**. No production runtime, persistent-data, acquisition, Modbus/controller or hardware mutation occurred.
 
 ### Issue #1160 — post-#1156 canonical state reconciliation
 

@@ -400,6 +400,7 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
 
     await page.getByRole("button", { name: "Reset zoom" }).click();
     await expect.poll(readDomain).toEqual(initialDomain);
+    await expect(page.getByText("Live Follow", { exact: true })).toBeVisible();
     await page.mouse.move(panProbe.x, panProbe.y);
     await expect
       .poll(async () => (await inspectorTimestamp.textContent())?.trim())

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { createBenchmarkScene } from "@/features/charts/fixtures";
@@ -13,7 +13,14 @@ vi.mock("@/components/charts/chart-renderer-host", () => ({
 }));
 
 vi.mock("@/components/charts/chart-shell", () => ({
-  ChartShell: ({ children }: { children: React.ReactNode }) => <section>{children}</section>,
+  ChartShell: ({ children, onResetZoom }: { children: React.ReactNode; onResetZoom: () => void }) => (
+    <section>
+      <button type="button" onClick={onResetZoom}>
+        Reset zoom
+      </button>
+      {children}
+    </section>
+  ),
 }));
 
 vi.mock("@/features/charts/echarts-adapter", () => ({
@@ -42,11 +49,35 @@ describe("LiveChartPanel rolling render stability", () => {
         resetDomain={group().scene.xDomain}
         onSharedCursorChange={vi.fn()}
         onXDomainChange={vi.fn()}
+        onResetView={vi.fn()}
         onToggleSeries={vi.fn()}
         onSoloSeries={vi.fn()}
       />,
     );
 
     expect(screen.getByTestId("mock-chart-renderer")).toHaveAttribute("data-reduced-motion", "true");
+  });
+  it("routes reset through the dedicated reset callback instead of a manual domain change", () => {
+    const onResetView = vi.fn();
+    const onXDomainChange = vi.fn();
+
+    render(
+      <LiveChartPanel
+        group={group()}
+        rangeLabel="Live"
+        sharedCursorMs={null}
+        resetDomain={group().scene.xDomain}
+        onSharedCursorChange={vi.fn()}
+        onXDomainChange={onXDomainChange}
+        onResetView={onResetView}
+        onToggleSeries={vi.fn()}
+        onSoloSeries={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset zoom" }));
+
+    expect(onResetView).toHaveBeenCalledTimes(1);
+    expect(onXDomainChange).not.toHaveBeenCalled();
   });
 });

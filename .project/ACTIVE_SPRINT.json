@@ -41,14 +41,14 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1163,
-      "title": "Eliminate animated rolling redraw and hover flicker",
-      "branch": "fix/1163-live-chart-flicker"
-    },
-    "next_work_package": {
       "issue": 1164,
       "title": "Preserve Live Follow when resetting zoom",
       "branch": "fix/1164-live-reset-follow"
+    },
+    "next_work_package": {
+      "issue": 1165,
+      "title": "Synchronize Exact Inspector cursor across controller charts",
+      "branch": "fix/1165-refrigeration-shared-cursor"
     }
   },
   "work_packages": [
@@ -5328,7 +5328,7 @@
       "issue": 1163,
       "title": "Eliminate animated rolling redraw and hover flicker",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "fix/1163-live-chart-flicker",
       "evidence": {
@@ -5344,21 +5344,53 @@
         "production_runtime_mutation": "none",
         "modbus_write": "none",
         "hardware_write": "none",
-        "github_ci": "pending_exact_head",
+        "github_ci": "success_exact_head",
         "broader_chart_regressions": "79_passed_15_files",
-        "state_model_v2": "success_local"
+        "state_model_v2": "success_local",
+        "verified_head_sha": "24e2e001a8e4f2527d84710c77cc6b4bcfa8a2e7",
+        "pull_request": 1168,
+        "exact_head_ci": "2_routed_workflows_green",
+        "core_ci_run": 36147315340,
+        "authenticated_dashboard_run": 36147315494,
+        "merged_implementation_sha": "697da8146f32dee72468572436c96297be14138c",
+        "issue_state": "closed_completed"
       }
     },
     {
       "issue": 1164,
       "title": "Preserve Live Follow when resetting zoom",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [],
       "branch": "fix/1164-live-reset-follow",
       "evidence": {
         "audit_issue": 1162,
         "confirmed_regression_probe": "live_follow_to_paused_on_reset",
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "scope": "separate_reset_from_manual_viewport_change",
+        "focused_live_tests": "4_passed_2_files",
+        "broader_chart_regressions": "442_passed_84_files",
+        "typescript_no_emit": "success_local",
+        "changed_file_eslint": "success_local",
+        "git_diff_check": "success_local",
+        "history_request_on_reset": "none_in_component_regression",
+        "manual_zoom_pauses": "verified_local",
+        "reset_restores_live_follow": "verified_local",
+        "github_ci": "pending_exact_head"
+      }
+    },
+    {
+      "issue": 1165,
+      "title": "Synchronize Exact Inspector cursor across controller charts",
+      "priority": "medium",
+      "lifecycle": "ready",
+      "depends_on": [],
+      "branch": "fix/1165-refrigeration-shared-cursor",
+      "evidence": {
+        "audit_issue": 1162,
+        "confirmed_divergence": "two_controller_charts_own_independent_cursor_state",
         "production_runtime_mutation": "none",
         "modbus_write": "none",
         "hardware_write": "none"

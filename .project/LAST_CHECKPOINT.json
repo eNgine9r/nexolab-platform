@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-25T17:20:53+03:00",
+  "timestamp": "2026-09-25T18:02:31+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1162 chart audit completed; #1163 Live Data animated redraw fix locally verified and awaiting exact-head GitHub CI",
+  "event": "Issue #1163 merged GREEN; #1164 active to preserve Live Follow across Reset zoom",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1163,
-    "title": "Eliminate animated rolling redraw and hover flicker",
-    "branch": "fix/1163-live-chart-flicker",
+    "issue": 1164,
+    "title": "Preserve Live Follow when resetting zoom",
+    "branch": "fix/1164-live-reset-follow",
     "status": "in_progress"
   },
   "evidence_snapshot": {
@@ -146,6 +146,35 @@
       "hardware_write": "none",
       "broader_chart_regressions": "79_passed_15_files",
       "state_model_v2": "success_local"
+    },
+    "completed_live_redraw_fix": {
+      "issue": 1163,
+      "pull_request": 1168,
+      "verified_head_sha": "24e2e001a8e4f2527d84710c77cc6b4bcfa8a2e7",
+      "exact_head_ci": "2_routed_workflows_green",
+      "core_ci_run": 36147315340,
+      "authenticated_dashboard_run": 36147315494,
+      "chromium_animation_on": "24_of_24_sampled_frames_changed",
+      "chromium_reduced_motion": "stable_after_first_frame",
+      "production_runtime_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "merged_implementation_sha": "697da8146f32dee72468572436c96297be14138c"
+    },
+    "active_live_reset_fix": {
+      "issue": 1164,
+      "focused_live_tests": "4_passed_2_files",
+      "broader_chart_regressions": "442_passed_84_files",
+      "typescript_no_emit": "success_local",
+      "changed_file_eslint": "success_local",
+      "git_diff_check": "success_local",
+      "reset_restores_live_follow": true,
+      "manual_zoom_pauses": true,
+      "history_request_on_reset": "none_in_component_regression",
+      "github_ci": "pending_exact_head",
+      "production_runtime_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "observations": [
@@ -263,9 +292,22 @@
         "branch": "fix/1163-live-chart-flicker",
         "status": "local_candidate_green_ci_pending"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-25T18:02:31+03:00",
+      "kind": "live_redraw_fix_merge",
+      "data": {
+        "issue": 1163,
+        "pull_request": 1168,
+        "head_sha": "24e2e001a8e4f2527d84710c77cc6b4bcfa8a2e7",
+        "merge_sha": "697da8146f32dee72468572436c96297be14138c",
+        "status": "merged_closed_green",
+        "exact_head_ci": "2_routed_workflows_green"
+      }
     }
   ],
-  "next_action": "Commit and push #1163 candidate, open the focused PR, require exact-head routed CI GREEN, then continue with Ready #1164 without production cutover.",
+  "next_action": "Complete #1164 exact-head verification and merge if GREEN; then continue with Ready #1165 shared Refrigeration Exact Inspector cursor.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

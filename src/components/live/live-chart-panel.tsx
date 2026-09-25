@@ -15,6 +15,7 @@ export function LiveChartPanel({
   resetDomain,
   onSharedCursorChange,
   onXDomainChange,
+  onResetView,
   onToggleSeries,
   onSoloSeries,
 }: {
@@ -24,6 +25,7 @@ export function LiveChartPanel({
   resetDomain: ChartXDomain;
   onSharedCursorChange: (timestampMs: number | null) => void;
   onXDomainChange: (domain: ChartXDomain) => void;
+  onResetView: () => void;
   onToggleSeries: (seriesKey: string) => void;
   onSoloSeries: (seriesKey: string) => void;
 }) {
@@ -42,7 +44,7 @@ export function LiveChartPanel({
       onSoloSeries={onSoloSeries}
       onResetZoom={() => {
         adapter.resetZoom();
-        onXDomainChange(resetDomain);
+        onResetView();
       }}
     >
       <ChartRendererHost
