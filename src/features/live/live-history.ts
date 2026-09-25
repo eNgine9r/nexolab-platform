@@ -1,12 +1,13 @@
 import { deriveChartSourceGapMs } from "@/features/charts/continuity";
 import type { ChartPoint, ChartSegment } from "@/features/charts/domain";
+import { chartPointBudget } from "@/features/charts/point-budget";
 import { reduceChartSegments } from "@/features/charts/reduction";
 import { liveChannelKey } from "@/features/live/live-telemetry";
 import { loadCompleteTelemetryHistory, type TelemetryHistoryWindow } from "@/lib/telemetry/history";
 import type { TelemetryAdapter, TelemetrySample } from "@/lib/telemetry/types";
 
 const SEGMENT_PREFIX = "nexolab-live-segment:";
-export const LIVE_HISTORY_MAX_POINTS_PER_CHANNEL = 240;
+export const LIVE_HISTORY_MAX_POINTS_PER_CHANNEL = chartPointBudget("live-history");
 export const LIVE_HISTORY_MIN_SOURCE_GAP_MS = 30_000;
 export const LIVE_HISTORY_MAX_FUTURE_SKEW_MS = 30_000;
 

@@ -40,4 +40,21 @@ describe("buildEmbracoTemperatureScene", () => {
 
     expect(buildEmbracoTemperatureScene(history, range, true).series).toHaveLength(1);
   });
+
+  it("uses the canonical 240-point policy while preserving extrema", () => {
+    const start = range.from.getTime();
+    const samples = Array.from({ length: 300 }, (_, index): TelemetrySample => ({
+      ...sample("valid", index === 140 ? -50 : index === 160 ? 100 : 4 + (index % 5) / 10),
+      event_id: `cabinet-${index}`,
+      captured_at: new Date(start + index * 5_000).toISOString(),
+    }));
+    const history = new Map([[EMBRACO_METRICS.cabinet, samples]]);
+    const points = buildEmbracoTemperatureScene(history, range, true).series[0]?.segments.flatMap(
+      (segment) => segment.points,
+    );
+
+    expect(points).toHaveLength(240);
+    expect(points?.some((point) => point.value === -50)).toBe(true);
+    expect(points?.some((point) => point.value === 100)).toBe(true);
+  });
 });

@@ -16,6 +16,7 @@ import { chartSeriesKey, type ChartEventMarker, type ChartPoint, type ChartSerie
 import type { ChartRendererAdapter, ChartRendererInitOptions, ChartRendererScene } from "./renderer-adapter";
 import { formatChartAxisTimestamp } from "./format";
 import { inspectChartAtTimestamp } from "./inspection";
+import { chartPointBudget } from "./point-budget";
 import { buildChartYAxisModel } from "./units";
 
 registerEChartsModules([
@@ -340,7 +341,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   private container: HTMLElement | null = null;
   private scene: ChartRendererScene | null = null;
   private options: ChartRendererInitOptions | null = null;
-  private maximumLivePoints = 240;
+  private maximumLivePoints = chartPointBudget("renderer-live-tail");
   private primaryDragActive = false;
   private primaryDragBaseDomain: ChartRendererScene["xDomain"] | null = null;
   private pendingPrimaryDragDomain: ChartRendererScene["xDomain"] | null = null;
@@ -595,7 +596,7 @@ export class EChartsRendererAdapter implements ChartRendererAdapter {
   initialize(options: ChartRendererInitOptions): void {
     if (this.instance && !this.instance.isDisposed()) return;
     this.options = options;
-    this.maximumLivePoints = options.maximumLivePoints ?? 240;
+    this.maximumLivePoints = options.maximumLivePoints ?? chartPointBudget("renderer-live-tail");
     this.container = options.container;
     this.container.dataset.rangeSelectionInput = "idle";
     this.instance = this.runtime.init(options.container, options.renderer);

@@ -1,11 +1,10 @@
 import {
   CHART_SERIES_TOKENS,
-  ChartReductionBudgetError,
   buildChartSegments,
   buildChartYAxisModel,
   chartSeriesKey,
   partitionChartSeriesByAxisBudget,
-  reduceChartSegments,
+  reduceChartSegmentsToPointBudget,
   type ChartFreshnessState,
   type ChartPhysicalQuantity,
   type ChartRendererScene,
@@ -22,7 +21,6 @@ import type {
 } from "@/features/live-dashboards/types";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
-const DEFAULT_POINT_BUDGET = 240;
 const SAVED_AREA_FILL_OPACITY = 0.14;
 
 export interface SavedDashboardChartGroup {
@@ -88,14 +86,7 @@ function semanticMode(identity: ChartSeriesIdentity): ChartSeries["semanticMode"
 }
 
 function reduceTruthfully(segments: ChartSeries["segments"]): ChartSeries["segments"] {
-  const sourcePointCount = segments.reduce((sum, segment) => sum + segment.points.length, 0);
-  if (sourcePointCount === 0) return segments;
-  try {
-    return reduceChartSegments(segments, { maximumPoints: DEFAULT_POINT_BUDGET });
-  } catch (error) {
-    if (!(error instanceof ChartReductionBudgetError)) throw error;
-    return reduceChartSegments(segments, { maximumPoints: sourcePointCount });
-  }
+  return reduceChartSegmentsToPointBudget(segments, "saved-dashboard");
 }
 
 function buildSeries(

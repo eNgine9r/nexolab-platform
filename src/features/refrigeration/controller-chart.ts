@@ -1,8 +1,7 @@
 import {
   CHART_SERIES_TOKENS,
-  ChartReductionBudgetError,
   buildChartSegments,
-  reduceChartSegments,
+  reduceChartSegmentsToPointBudget,
   type ChartRendererScene,
   type ChartSeries,
   type ChartSeriesIdentity,
@@ -11,7 +10,6 @@ import type { TelemetrySample } from "@/lib/telemetry/types";
 
 import { EMBRACO_METRICS, type RefrigerationHistoryRange } from "./controller-monitoring";
 
-const MAXIMUM_POINTS = 360;
 const TEMPERATURE_NAMES = new Map<string, string>([
   [EMBRACO_METRICS.cabinet, "Cabinet"],
   [EMBRACO_METRICS.evaporator, "Evaporator"],
@@ -25,14 +23,7 @@ function timestamp(sample: TelemetrySample): number {
 }
 
 function reduced(segments: ChartSeries["segments"]): ChartSeries["segments"] {
-  const count = segments.reduce((sum, segment) => sum + segment.points.length, 0);
-  if (count <= MAXIMUM_POINTS) return segments;
-  try {
-    return reduceChartSegments(segments, { maximumPoints: MAXIMUM_POINTS });
-  } catch (error) {
-    if (!(error instanceof ChartReductionBudgetError)) throw error;
-    return reduceChartSegments(segments, { maximumPoints: count });
-  }
+  return reduceChartSegmentsToPointBudget(segments, "refrigeration-controller");
 }
 
 function seriesFromSamples(

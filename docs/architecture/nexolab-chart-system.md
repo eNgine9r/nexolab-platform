@@ -641,9 +641,11 @@ The following are provisional implementation targets, not claims about current c
 
 ### 14.2 Bounded points
 
-- current accepted baseline is `240` rendered points per channel in Live Data;
-- the first common primitive remains at least as strictly bounded until a benchmark justifies a larger value;
-- any increase requires measured Raspberry Pi browser evidence and the evidence-preserving reducer;
+- canonical interactive target is `240` rendered points per logical series across Overview, Live Data, Saved Dashboard, Energy, Refrigeration controller charts and renderer live-tail state;
+- point-budget ownership is centralized in `src/features/charts/point-budget.ts`; a surface-specific increase must be an explicit centralized exception with a measured rationale rather than a route-local magic number;
+- Raspberry Pi ARM64 paired rendering for #1167 measured `240` vs `360` points at 1/4/8 visible series: median `34.3/72.8/113 ms` at `240` versus `38.5/85.0/147 ms` at `360`; the multi-series penalty was approximately `17%` at four series and `30%` at eight series, so no `360` exception is accepted;
+- the `240` value is a performance target, not permission to discard required evidence: if continuity boundaries or pinned evidence exceed the target, the shared policy preserves that evidence and allows only the minimum truthful overflow;
+- any ordinary increase requires measured Raspberry Pi browser evidence and the evidence-preserving reducer;
 - full raw history is not rendered merely because a client can temporarily handle it.
 
 ### 14.3 Provisional render targets

@@ -3,6 +3,7 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
 
 import type { ChartCursorInspection, ChartXDomain } from "@/features/charts/domain";
+import { chartPointBudget } from "@/features/charts/point-budget";
 import { chartInspectionTimestamps, inspectChartAtTimestamp } from "@/features/charts/inspection";
 import type { ChartRendererAdapter, ChartRendererScene } from "@/features/charts/renderer-adapter";
 
@@ -41,7 +42,7 @@ export function ChartRendererHost({
       container,
       renderer,
       reducedMotion,
-      maximumLivePoints: 240,
+      maximumLivePoints: chartPointBudget("renderer-live-tail"),
       onCursor: (inspection) => callbacksRef.current.onCursor(inspection),
       onXDomainChange: (domain) => callbacksRef.current.onXDomainChange(domain),
       onRangeSelectionChange: (domain) => callbacksRef.current.onRangeSelectionChange?.(domain),
