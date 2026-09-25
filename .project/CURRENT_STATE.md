@@ -4,15 +4,19 @@ Updated: 2026-09-25
 
 ## Current Sprint
 
-### Issue #1146 — VersityGW local object-storage replacement implementation in progress
+### Issue #1140 — discovery-only controller onboarding resumes in PR #1141
 
-The Product Owner approved VersityGW `v1.8.0` as the replacement LOCAL_LAN S3 backend, clearing architecture decision #1143 and superseding the legacy MinIO reconstruction path #1142. Implementation is active on `feat/1146-versitygw-offline-storage`; current checkpoint `4b40b495` replaces the MinIO server/`mc` supply dependency with an integrity-pinned VersityGW image plus repository-owned S3 tooling while preserving the application-facing S3 contract and offline-first runtime.
+Issue #1140 remains the active software Work Package after object-storage state reconciliation. The implementation branch `feat/1140-discovery-only-onboarding` is at `41445459c0eb9be97b4212adc497c31c4e595792` with open PR #1141. Its existing local evidence is GREEN: focused frontend **33/33**, full frontend **153 files / 786 tests**, ESLint, TypeScript, Prettier, State Model v2, `git diff --check`, and production `next build --webpack`. The branch must now be integrated with the latest `main` and pass fresh exact-head required CI before merge.
 
-The candidate keeps the logical Compose service name `minio` only for installed endpoint/container compatibility, but the service now runs VersityGW with a local POSIX backend. It uses a new `object-storage-versitygw-data` volume and fails closed when a legacy MinIO data volume exists without a migration-proven VersityGW volume, so legacy MinIO internal data is never mounted directly into VersityGW. Production data migration and cutover remain a separate explicit gate.
+The product boundary remains unchanged: verified discovery-only commissioning sessions may appear in Equipment Registry and the selected showcase, but Danfoss production monitoring/activation stays disabled. No Modbus/controller write, hardware write, service restart or production cutover is authorized by #1140.
 
-Local verification is strong but exact-head GitHub CI is still pending. Focused contract tests are **89/89 PASS**; DR acceptance passed private-bucket backup/restore for three objects including metadata, tamper/wrong-key negatives and `source_volumes_mutated=false`; focused authenticated Equipment Layout browser acceptance is **2/2 PASS** and exercises repository-owned S3 seeding plus presigned object reads. Production Next.js build and TypeScript passed during browser acceptance. ARM64 real S3 smoke passed health, bucket, PUT/GET, metadata, presigned GET and DELETE. Fresh Trivy evidence for both ARM64 and amd64 is **0 HIGH / 0 CRITICAL** (`2 MEDIUM`, `1 UNKNOWN`). The amd64 image builds successfully on the Pi; amd64 runtime execution is intentionally delegated to CI because the ARM host has no qemu-user registration.
+### Issue #1146 — VersityGW local object-storage replacement completed and merged
 
-A full Refrigeration Browser run reached product tests and passed **5/6**; the single failure is the unchanged RFX-10 Signal-binding scenario, where the UI reported no accepted compatible Signal for the role. The #1146 diff does not touch that circuit-binding product path. No production service restart/cutover, live MinIO data mutation, named-volume deletion, Modbus write or hardware write occurred.
+Issue #1146 is repository-complete. PR #1149 exact head `53d8ca842ce043a85cccacd5e435ed996d8c0e0d` passed **21/21 required workflows GREEN**, including Core CI/NEXOLAB Merge Gate, Container Supply Chain, Telemetry Service, Offline Auth Acceptance, Disaster Recovery gates, browser acceptances and Offline Bundle. PR #1149 merged to `main` as `a696a83efe096c82c3f66a4368c0d5a4da12dccd`; GitHub #1146 is completed.
+
+The accepted repository implementation is VersityGW `v1.8.0` with local POSIX storage, the compatibility service name `minio`, a separate `object-storage-versitygw-data` volume, repository-owned S3 tooling, and fail-closed protection against mounting legacy MinIO internal data as VersityGW data. Exact-head Refrigeration Browser acceptance is **6/6 GREEN**; the earlier local RFX-10 signal-binding failure was transient/baseline rather than a #1146 product regression. Fresh amd64/arm64 security evidence remains **0 HIGH / 0 CRITICAL**.
+
+Offline Bundle run `36064735431` passed clean-host transfer, disconnected startup with pull disabled, blocked container egress, update/rollback persistent-data preservation and final disconnected evidence. Post-merge push verification observed 10 workflows with no failure, cancellation or in-progress result. No production object-data migration/cutover, production runtime restart, persistent-volume deletion, Modbus write or hardware write occurred. Production object-storage migration remains a separate explicit Product Owner gate.
 
 ### Issue #1143 — object-storage architecture decision completed
 
