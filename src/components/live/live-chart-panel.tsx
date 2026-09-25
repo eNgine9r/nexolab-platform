@@ -48,6 +48,7 @@ export function LiveChartPanel({
       <ChartRendererHost
         adapter={adapter}
         scene={group.scene}
+        reducedMotion
         sharedCursorMs={sharedCursorMs}
         interactionDomain={resetDomain}
         onCursor={(nextInspection) => {

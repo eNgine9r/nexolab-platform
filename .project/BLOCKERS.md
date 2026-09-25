@@ -2,6 +2,10 @@
 
 Updated: 2026-09-25
 
+## Issue #1163 — Live Data animated redraw / hover flicker
+
+**No implementation blocker.** Audit #1162 confirmed that Live Data alone kept ECharts animation enabled for rolling updates. The focused candidate on `fix/1163-live-chart-flicker` is locally GREEN (14/14 targeted chart tests, 79/79 broader chart regressions, TypeScript, Prettier, ESLint, State Model validation, diff check and Raspberry Pi Chromium reduced-motion A/B). Exact-head GitHub CI remains the merge gate. Production runtime, persistent data, acquisition, Modbus/controller and hardware state are unchanged.
+
 ## Issue #1156 — 92 HIGH exception revalidation
 
 **Cleared and merged for the current security review window.** PR #1157 exact head `e9c519ba41d4662e7ff5d3c92e1948c16a8b2631` passed Core CI/Merge Gate, Container Supply Chain and Telemetry Service and merged as `adbd3391840de8fe1a5b83d59a8d0a26a25d2247`. Fresh run `36123964257` matches all 92 exact HIGH exceptions 1:1 with 0 CRITICAL, 0 stale/unmatched tuples and 0 scanner fixed versions. Current Debian/upstream status and runtime reachability support temporary retention only through **2026-10-02**. This is the next mandatory fail-closed review boundary; no exception may survive it without fresh evidence. No production/runtime, persistent-data, Modbus or hardware mutation occurred.
