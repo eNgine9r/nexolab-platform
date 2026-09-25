@@ -1,4 +1,5 @@
 import { deriveChartSourceGapMs } from "@/features/charts/continuity";
+import { chartPointBudget } from "@/features/charts/point-budget";
 import type { EnergyCadenceAuthority } from "@/features/energy/energy-cadence-authority";
 import {
   clearEnergyHistoryBreakPending,
@@ -18,7 +19,7 @@ const HISTORY_PAGE_SIZE = 1_000;
 const MAX_HISTORY_PAGES = 100;
 const SOURCE_CADENCE_TAIL_CACHE_LIMIT = 512;
 const SOURCE_CADENCE_RECENT_TIMESTAMP_LIMIT = 4;
-export const MAX_HISTORY_POINTS_PER_METER = 240;
+export const MAX_HISTORY_POINTS_PER_METER = chartPointBudget("energy-history");
 export const ENERGY_HISTORY_MAX_FUTURE_SKEW_MS = 30_000;
 
 interface EnergyHistoryCadenceState {

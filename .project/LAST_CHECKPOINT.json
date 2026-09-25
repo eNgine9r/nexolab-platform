@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-25T21:21:19+03:00",
+  "timestamp": "2026-09-25T22:31:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1166 routing remediation: retain chart-core fix and measured ARM64 evidence; remove non-shipping benchmark harness edits from PR",
+  "event": "Issue #1167 candidate: centralize chart point-budget policy at benchmark-backed 240 points per series",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1166,
-    "title": "Coalesce pointer inspection and benchmark hover-path cost",
-    "branch": "perf/1166-chart-hover-coalescing",
+    "issue": 1167,
+    "title": "Centralize benchmark-backed point budgets",
+    "branch": "perf/1167-chart-point-budget-policy",
     "status": "in_progress"
   },
   "evidence_snapshot": {
@@ -219,6 +219,38 @@
       "first_exact_head_sha": "3d04f8b654d9a68db48531bbefa17167a58e07fa",
       "first_merge_gate": "failed_missing_unregistered_offline_and_refrigeration_workflows_from_fail_closed_unknown_paths",
       "routing_remediation": "shipping_diff_reduced_to_frontend_chart_core_tests_and_state"
+    },
+    "completed_chart_hover_coalescing": {
+      "issue": 1166,
+      "pull_request": 1171,
+      "verified_head_sha": "4c0059a878f3838bcaeb3468cf63e16e78e6f23e",
+      "exact_head_ci": "2_routed_workflows_green",
+      "core_ci_run": 36172897733,
+      "authenticated_dashboard_run": 36172897763,
+      "merged_implementation_sha": "3f5efcfc2ab2fdd09820278187df2d604e5c94af",
+      "arm64_before": "1200_events_1200_callbacks_median_248.6ms_p95_351.0ms",
+      "arm64_after": "1200_events_1_committed_callback_max_1_per_frame_median_196.7ms_p95_294.7ms",
+      "production_runtime_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none"
+    },
+    "chart_point_budget_1167": {
+      "canonical_target_points_per_series": 240,
+      "surface_exceptions": "none_currently",
+      "truth_preserving_overflow": "minimum_required_boundaries_and_pins_only",
+      "paired_arm64_1_series": "240_34.3ms_vs_360_38.5ms_median",
+      "paired_arm64_4_series": "240_72.8ms_vs_360_85.0ms_median",
+      "paired_arm64_8_series": "240_113.0ms_vs_360_147.0ms_median",
+      "focused_chart_tests": "78_passed_9_files",
+      "broader_chart_regressions": "137_passed_22_files",
+      "typescript_no_emit": "success_local",
+      "changed_file_eslint": "success_local",
+      "production_build": "success_next_build_turbopack",
+      "git_diff_check": "success_local",
+      "production_runtime_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "github_ci": "pending_exact_head"
     }
   },
   "observations": [
@@ -377,7 +409,7 @@
       }
     }
   ],
-  "next_action": "Commit/push #1166 candidate, open focused PR, require exact-head routed CI GREEN before merge; then proceed to Ready #1167.",
+  "next_action": "Commit/push #1167 candidate, open focused PR, require exact-head routed CI GREEN before merge; then reconcile canonical state and re-audit Ready queue.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -1,6 +1,7 @@
 export * from "./continuity";
 export * from "./domain";
 export * from "./format";
+export * from "./point-budget";
 export * from "./reduction";
 export * from "./renderer-adapter";
 export * from "./statistics";

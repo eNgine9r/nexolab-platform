@@ -1,9 +1,8 @@
 import {
   CHART_SERIES_TOKENS,
-  ChartReductionBudgetError,
   buildChartSegments,
   chartSeriesKey,
-  reduceChartSegments,
+  reduceChartSegmentsToPointBudget,
   type ChartFreshnessState,
   type ChartRendererScene,
   type ChartSeries,
@@ -14,8 +13,6 @@ import { groupCompatibleChartUnits, type ChartUnitGroup } from "@/features/chart
 import type { DashboardTelemetryStatus } from "@/lib/telemetry/dashboard-state";
 import { isTemperatureProbeSample } from "@/lib/telemetry/temperature-channel";
 import type { TelemetrySample } from "@/lib/telemetry/types";
-
-const DEFAULT_POINT_BUDGET = 240;
 
 const HISTORY_RANGE_MS = {
   "1h": 60 * 60 * 1_000,
@@ -75,14 +72,7 @@ export function overviewChartIdentity(sample: TelemetrySample): ChartSeriesIdent
 }
 
 function reduceTruthfully(segments: ChartSeries["segments"]): ChartSeries["segments"] {
-  const sourcePointCount = segments.reduce((sum, segment) => sum + segment.points.length, 0);
-  if (sourcePointCount === 0) return segments;
-  try {
-    return reduceChartSegments(segments, { maximumPoints: DEFAULT_POINT_BUDGET });
-  } catch (error) {
-    if (!(error instanceof ChartReductionBudgetError)) throw error;
-    return reduceChartSegments(segments, { maximumPoints: sourcePointCount });
-  }
+  return reduceChartSegmentsToPointBudget(segments, "overview");
 }
 
 function buildSeries(

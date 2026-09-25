@@ -2,9 +2,13 @@
 
 Updated: 2026-09-25
 
+## Issue #1167 — canonical chart point-budget policy
+
+**No implementation blocker.** Paired ARM64 rendering benchmarks support the canonical 240-point target: 1 series 34.3 ms vs 38.5 ms median at 360, 4 series 72.8 ms vs 85.0 ms, and 8 series 113.0 ms vs 147.0 ms. Focused chart tests are 78/78 PASS, broader regressions 137/137 PASS, TypeScript/ESLint/diff checks pass and the full Next.js/Turbopack production build succeeds. Exact-head GitHub CI remains the merge gate. Production runtime, acquisition, Modbus/controller and hardware state are unchanged.
+
 ## Issue #1166 — shared chart hover-path coalescing
 
-**No implementation blocker.** ARM64 benchmark and local correctness gates are GREEN: pointer bursts are bounded to at most one committed cursor callback per frame, focused adapter tests are 12/12 PASS, broader chart regressions are 74/74 PASS across 16 files, TypeScript/lint/format/diff checks pass, and the full Next.js/Turbopack production build succeeds. The first exact head exposed a fail-closed CI-routing mismatch caused only by temporary benchmark-harness edits classified as unknown; those non-shipping edits are removed from the candidate. Exact-head GitHub CI on the frontend-only head remains the merge gate. Production runtime, persistent data, acquisition, Modbus/controller and hardware state are unchanged.
+**Cleared and merged.** PR #1171 exact head `4c0059a878f3838bcaeb3468cf63e16e78e6f23e` passed Core CI/Merge Gate and Authenticated Dashboard Acceptance and merged as `3f5efcfc2ab2fdd09820278187df2d604e5c94af`. No production/runtime, acquisition, Modbus/controller or hardware mutation occurred.
 
 ## Issue #1165 — Refrigeration shared Exact Inspector cursor
 
