@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-25T14:01:12+03:00",
+  "timestamp": "2026-09-25T15:35:29+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1156 fresh 2026-09-25 container HIGH revalidation candidate locally GREEN; exact-head GitHub CI pending",
+  "event": "Issue #1156 / PR #1157 merged GREEN; canonical state reconciled by #1160 with next exception boundary 2026-10-02",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,11 +28,7 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": {
-    "issue": 1156,
-    "title": "Revalidate 92 HIGH exceptions from 2026-09-25 fresh evidence",
-    "branch": "security/1156-fresh-high-revalidation"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "completed_security_gate": {
       "issue": 1106,
@@ -77,20 +73,21 @@
       "production_migration_cutover": "not_executed_separate_gate"
     },
     "state_reconciliation": {
-      "issue": 1154,
+      "issue": 1160,
       "scope": "canonical_state_only",
       "active_work_package": null,
       "next_work_package": null,
       "accepted_product_baseline_changed": false,
       "deployed_product_baseline_changed": false,
       "exception_decision_changed": false,
+      "exception_review_boundary": "2026-10-02",
       "production_runtime_mutation": "none",
       "state_model_v2": "success_local",
       "state_model_tests": "28_passed_1_skipped",
       "json_parse": "success_local",
       "git_diff_check": "success_local"
     },
-    "active_issue_evidence": {
+    "completed_high_exception_revalidation": {
       "fresh_container_run": 36123964257,
       "fresh_source_head": "a231169f0269a441fac4fc1f05da39097e4adfa3",
       "fresh_high_exact_tuples": 92,
@@ -106,7 +103,7 @@
       "production_runtime_mutation": "none",
       "modbus_write": "none",
       "hardware_write": "none",
-      "github_ci": "pending_exact_head",
+      "github_ci": "success_exact_head",
       "container_supply_chain_validator": "success_local",
       "focused_supply_chain_tests": "49_passed",
       "fresh_report_evaluator": "success_all_5_reports_22_48_22_0_0",
@@ -115,7 +112,16 @@
       "json_parse": "success_local",
       "git_diff_check": "success_local",
       "changed_file_prettier": "success_local",
-      "fresh_artifacts_exact_source_verified": true
+      "fresh_artifacts_exact_source_verified": true,
+      "issue": 1156,
+      "pull_request": 1157,
+      "verified_head_sha": "e9c519ba41d4662e7ff5d3c92e1948c16a8b2631",
+      "exact_head_ci": "3_routed_workflows_green",
+      "core_ci_run": 36128045345,
+      "container_supply_chain_run_final": 36128045288,
+      "telemetry_service_run": 36128045287,
+      "accepted_expiry": "2026-10-02",
+      "merged_implementation_sha": "adbd3391840de8fe1a5b83d59a8d0a26a25d2247"
     }
   },
   "observations": [
@@ -206,9 +212,24 @@
         "high_with_fixed_version": 0,
         "candidate_expiry": "2026-10-02"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-25T15:35:29+03:00",
+      "kind": "container_high_revalidation_merge",
+      "data": {
+        "issue": 1156,
+        "pull_request": 1157,
+        "head_sha": "e9c519ba41d4662e7ff5d3c92e1948c16a8b2631",
+        "merge_sha": "adbd3391840de8fe1a5b83d59a8d0a26a25d2247",
+        "status": "merged_closed_green",
+        "exact_head_ci": "3_routed_workflows_green",
+        "exception_count": 92,
+        "next_review_boundary": "2026-10-02"
+      }
     }
   ],
-  "next_action": "Push the locally GREEN #1156 candidate, open one focused PR, require fresh exact-head Container Supply Chain plus Core/NEXOLAB Merge Gate GREEN, fix only scoped failures, then merge and reconcile canonical state.",
+  "next_action": "Complete #1160 state-only exact-head checks and merge. Then re-audit the open backlog against current main; no HIGH exception may survive 2026-10-02 without fresh fail-closed revalidation.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
