@@ -21,7 +21,7 @@ They are not grouped because each update can affect the browser bundle, server r
 - rollback instructions;
 - confirmation that no mandatory cloud, CDN, remote font, telemetry or paid runtime service was introduced.
 
-Earlier `lucide-react` PRs #272/#341 established the ungrouped production-dependency lane. Their historical state does not authorize later package updates; every current production dependency candidate must be evaluated from its own exact head and current `main`.
+Historical `lucide-react` PR #272 and PR #341 established the ungrouped production-dependency lane. Their historical state does not authorize later package updates; every current production dependency candidate must be evaluated from its own exact head and current `main`.
 
 ### Development patch/minor
 
