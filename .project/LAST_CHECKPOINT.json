@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-25T20:03:17+03:00",
+  "timestamp": "2026-09-25T21:11:10+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1164 merged GREEN; #1165 active for synchronized Refrigeration Exact Inspector cursor",
+  "event": "Issue #1165 merged GREEN; #1166 active with ARM64 hover-path coalescing benchmark improvement",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1165,
-    "title": "Synchronize Exact Inspector cursor across controller charts",
-    "branch": "fix/1165-refrigeration-shared-cursor",
+    "issue": 1166,
+    "title": "Coalesce pointer inspection and benchmark hover-path cost",
+    "branch": "perf/1166-chart-hover-coalescing",
     "status": "in_progress"
   },
   "evidence_snapshot": {
@@ -161,21 +161,6 @@
       "hardware_write": "none",
       "merged_implementation_sha": "697da8146f32dee72468572436c96297be14138c"
     },
-    "active_live_reset_fix": {
-      "issue": 1164,
-      "focused_live_tests": "4_passed_2_files",
-      "broader_chart_regressions": "442_passed_84_files",
-      "typescript_no_emit": "success_local",
-      "changed_file_eslint": "success_local",
-      "git_diff_check": "success_local",
-      "reset_restores_live_follow": true,
-      "manual_zoom_pauses": true,
-      "history_request_on_reset": "none_in_component_regression",
-      "github_ci": "pending_exact_head",
-      "production_runtime_mutation": "none",
-      "modbus_write": "none",
-      "hardware_write": "none"
-    },
     "completed_live_reset_fix": {
       "issue": 1164,
       "pull_request": 1169,
@@ -188,24 +173,49 @@
       "modbus_write": "none",
       "hardware_write": "none"
     },
-    "active_refrigeration_shared_cursor": {
+    "completed_refrigeration_shared_cursor": {
       "issue": 1165,
-      "focused_refrigeration_tests": "8_passed_2_files",
-      "broader_refrigeration_regressions": "216_passed_34_files",
+      "pull_request": 1170,
+      "verified_head_sha": "fc3d34d8e23387dbe93ac3dda4f77b42d176dd32",
+      "exact_head_ci": "3_routed_workflows_green",
+      "core_ci_run": 36165029490,
+      "refrigeration_browser_run": 36165029479,
+      "disaster_recovery_browser_run": 36165029513,
+      "merged_implementation_sha": "46c54adbcd2118da57b31ac1bb055616cc4afb6d",
+      "production_runtime_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none"
+    },
+    "active_chart_hover_coalescing": {
+      "issue": 1166,
+      "before_arm64_hover": {
+        "pointer_events": 1200,
+        "cursor_callbacks": 1200,
+        "median_ms": 248.6,
+        "p95_ms": 351.0
+      },
+      "candidate_arm64_hover": {
+        "pointer_events": 1200,
+        "cursor_callbacks": 1,
+        "max_callbacks_per_iteration": 1,
+        "median_ms": 196.7,
+        "p95_ms": 294.7
+      },
+      "median_improvement_percent": 20.9,
+      "p95_improvement_percent": 16.0,
+      "focused_adapter_tests": "12_passed",
+      "broader_chart_regressions": "74_passed_16_files",
       "typescript_no_emit": "success_local",
       "changed_file_eslint": "success_local",
+      "changed_file_prettier": "success_local",
+      "production_build": "success_next_build_turbopack",
       "git_diff_check": "success_local",
-      "shared_timestamp_owner": "controller_history_parent",
-      "per_chart_inspection": "derived_locally_from_shared_timestamp",
-      "stale_range_cursor": "cleared_by_range_key",
-      "idempotent_cursor_setter": true,
+      "disconnected_benchmark_gate": true,
+      "runtime_architecture": "arm64",
       "github_ci": "pending_exact_head",
       "production_runtime_mutation": "none",
       "modbus_write": "none",
-      "hardware_write": "none",
-      "state_model_tests": "28_passed_1_expected_skip",
-      "changed_file_prettier": "success_local",
-      "state_model_v2": "success_local"
+      "hardware_write": "none"
     }
   },
   "observations": [
@@ -349,9 +359,22 @@
         "status": "merged_closed_green",
         "exact_head_ci": "2_routed_workflows_green"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-25T21:11:10+03:00",
+      "kind": "refrigeration_shared_cursor_merge",
+      "data": {
+        "issue": 1165,
+        "pull_request": 1170,
+        "head_sha": "fc3d34d8e23387dbe93ac3dda4f77b42d176dd32",
+        "merge_sha": "46c54adbcd2118da57b31ac1bb055616cc4afb6d",
+        "status": "merged_closed_green",
+        "exact_head_ci": "3_routed_workflows_green"
+      }
     }
   ],
-  "next_action": "Commit and push #1165 candidate, require exact-head Core/Refrigeration browser CI GREEN, merge if GREEN, then continue with Ready #1166 hover-path performance work.",
+  "next_action": "Commit/push #1166 candidate, open focused PR, require exact-head routed CI GREEN before merge; then proceed to Ready #1167.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -41,6 +41,7 @@ declare global {
       runResize: () => Promise<ScenarioResult>;
       runRemount: () => Promise<ScenarioResult>;
       runLongLived: (updates?: number) => Promise<ScenarioResult>;
+      runHoverBurst: (pointerEvents?: number, iterations?: number) => Promise<ScenarioResult>;
       dispose: () => void;
     };
   }
@@ -246,6 +247,75 @@ async function runIncremental(updates = 100): Promise<ScenarioResult> {
   };
 }
 
+async function runHoverBurst(pointerEvents = 120, iterations = 10): Promise<ScenarioResult> {
+  const scene = createBenchmarkScene(8);
+  dispose();
+  root.append(createHeader(scene.series.length));
+  const section = document.createElement("section");
+  section.className = "plot-shell";
+  const container = document.createElement("div");
+  container.className = "plot";
+  section.append(container, createLegend(scene), createInspector(scene));
+  root.append(section);
+  let callbackCount = 0;
+  let lastCursorTimestampMs: number | null = null;
+  const adapter = new EChartsRendererAdapter();
+  adapter.initialize({
+    container,
+    renderer: "canvas",
+    reducedMotion: true,
+    maximumLivePoints: 240,
+    onCursor: (inspection) => {
+      callbackCount += 1;
+      lastCursorTimestampMs = inspection?.timestampMs ?? null;
+    },
+    onXDomainChange: () => undefined,
+  });
+  adapter.setScene(scene);
+  mounted = [{ adapter, container, scene }];
+  await nextPaint();
+
+  const pointerTarget = container.querySelector("canvas") ?? container;
+  const bounds = pointerTarget.getBoundingClientRect();
+  const y = bounds.top + bounds.height * 0.5;
+  const samplesMs: number[] = [];
+  let maximumCallbacksPerIteration = 0;
+  let totalCallbacks = 0;
+  for (let iteration = 0; iteration < iterations; iteration += 1) {
+    const beforeCallbacks = callbackCount;
+    const start = performance.now();
+    for (let index = 0; index < pointerEvents; index += 1) {
+      const ratio = 0.1 + (0.8 * index) / Math.max(pointerEvents - 1, 1);
+      pointerTarget.dispatchEvent(
+        new MouseEvent("mousemove", {
+          clientX: bounds.left + bounds.width * ratio,
+          clientY: y,
+          bubbles: true,
+        }),
+      );
+    }
+    samplesMs.push(performance.now() - start);
+    await nextPaint();
+    const callbacks = callbackCount - beforeCallbacks;
+    maximumCallbacksPerIteration = Math.max(maximumCallbacksPerIteration, callbacks);
+    totalCallbacks += callbacks;
+  }
+
+  return {
+    name: "8x240 hover pointer burst",
+    measurement: summarize(samplesMs),
+    details: {
+      pointerEventsPerIteration: pointerEvents,
+      iterations,
+      totalPointerEvents: pointerEvents * iterations,
+      totalCursorCallbacks: totalCallbacks,
+      maximumCallbacksPerIteration,
+      callbacksPerPointerEvent: totalCallbacks / Math.max(pointerEvents * iterations, 1),
+      lastCursorResolved: lastCursorTimestampMs !== null,
+    },
+  };
+}
+
 async function runResize(): Promise<ScenarioResult> {
   const [plot] = mountScenes([createBenchmarkScene(8)]);
   await nextPaint();
@@ -319,6 +389,7 @@ window.nexolabChartBenchmark = {
   runResize,
   runRemount,
   runLongLived,
+  runHoverBurst,
   dispose,
 };
 

@@ -130,6 +130,7 @@ try {
   const synchronizedGroups = await page.evaluate(() => window.nexolabChartBenchmark.runSynchronizedGroups());
   const gapsAndEvidence = await page.evaluate(() => window.nexolabChartBenchmark.runGapAndEvidence());
   const incremental = await page.evaluate(() => window.nexolabChartBenchmark.runIncremental(100));
+  const hoverBurst = await page.evaluate(() => window.nexolabChartBenchmark.runHoverBurst(120, 10));
   const resize = await page.evaluate(() => window.nexolabChartBenchmark.runResize());
   const remount = await page.evaluate(() => window.nexolabChartBenchmark.runRemount());
 
@@ -191,6 +192,7 @@ try {
       synchronizedGroups,
       gapsAndEvidence,
       incremental,
+      hoverBurst,
       resize,
       remount,
       longLived,
