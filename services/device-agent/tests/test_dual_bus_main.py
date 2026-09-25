@@ -350,6 +350,73 @@ class DualBusAdaptiveRuntimeTests(unittest.TestCase):
         kk1_reader.read_channel.assert_called_once_with(126, 3)
         kk2_reader.read_channel.assert_called_once_with(106, 3)
 
+    def test_waveshare_target_dispatches_to_its_bus_reader(self) -> None:
+        reader = Mock()
+        reader.read_channel.return_value = Mock(
+            metric="analog.current",
+            value=12500.0,
+            unit="uA",
+            quality="valid",
+            raw_value=12500,
+            mode=3,
+        )
+        self.agent._bus_waveshare_8ai_readers = {"rs485-kk1": reader}  # noqa: SLF001
+        client = self.agent._bus_clients["rs485-kk1"]  # noqa: SLF001
+        client.instrumentation_scope = Mock(return_value=nullcontext())  # type: ignore[method-assign]
+        target = SchedulerTarget(
+            target_id="waveshare_8ai:1-ai-4",
+            bus_id="rs485-kk1",
+            device_id="waveshare-8ai-1",
+            device_family="waveshare_8ai",
+            unit_id=1,
+            key="ai-4",
+            telemetry_channel_id="1-ai-4",
+            metric="analog.input",
+            unit="raw",
+            priority="low",
+            interval_seconds=30,
+        )
+
+        result = self.agent._read_scheduled_target(target)
+
+        self.assertFalse(result.communication_failed)
+        self.assertEqual(result.record.metric, "analog.input")
+        self.assertEqual(result.record.unit, "uA")
+        self.assertEqual(result.record.raw_status, 3)
+        reader.read_channel.assert_called_once_with(1, 4)
+        client.instrumentation_scope.assert_called_once_with(
+            device_family="waveshare_8ai",
+            target_id="waveshare_8ai:1-ai-4",
+            operation="normal",
+        )
+
+    def test_waveshare_failure_updates_same_canonical_metric_identity(self) -> None:
+        reader = Mock()
+        reader.read_channel.side_effect = RuntimeError("mode read failed")
+        self.agent._bus_waveshare_8ai_readers = {"rs485-kk1": reader}  # noqa: SLF001
+        client = self.agent._bus_clients["rs485-kk1"]  # noqa: SLF001
+        client.instrumentation_scope = Mock(return_value=nullcontext())  # type: ignore[method-assign]
+        target = SchedulerTarget(
+            target_id="waveshare_8ai:1-ai-4",
+            bus_id="rs485-kk1",
+            device_id="waveshare-8ai-1",
+            device_family="waveshare_8ai",
+            unit_id=1,
+            key="ai-4",
+            telemetry_channel_id="1-ai-4",
+            metric="analog.input",
+            unit="raw",
+            priority="low",
+            interval_seconds=30,
+        )
+
+        result = self.agent._read_scheduled_target(target)
+
+        self.assertTrue(result.communication_failed)
+        self.assertEqual(result.record.metric, "analog.input")
+        self.assertEqual(result.record.unit, "raw")
+        self.assertEqual(result.record.quality, "communication_error")
+
     def test_explicit_discovery_scans_only_units_owned_by_each_bus(self) -> None:
         kk1_reader = Mock()
         kk2_reader = Mock()
@@ -385,6 +452,40 @@ class DualBusAdaptiveRuntimeTests(unittest.TestCase):
             {"rs485-kk1", "rs485-kk2"},
         )
         self.assertEqual(result["controller_count"], 2)
+
+    def test_explicit_discovery_passes_responsive_bus_identity_to_enrollment(self) -> None:
+        kk1_reader = Mock()
+        kk2_reader = Mock()
+        reading = Mock(
+            value=4.2,
+            unit="degC",
+            quality="valid",
+            alarm=None,
+            raw_value=42,
+            raw_status=0,
+        )
+        kk1_reader.read_channel.return_value = reading
+        kk2_reader.read_channel.return_value = reading
+        self.agent._bus_xjp60d_readers = {  # noqa: SLF001
+            "rs485-kk1": kk1_reader,
+            "rs485-kk2": kk2_reader,
+        }
+        for client in self.agent._bus_clients.values():  # noqa: SLF001
+            client.instrumentation_scope = Mock(return_value=nullcontext())  # type: ignore[method-assign]
+
+        enrollment_store = Mock()
+        enrollment_store.enroll_xjp60d.side_effect = (
+            lambda current, **_kwargs: current
+        )
+        self.agent._topology_enrollment_store = enrollment_store  # noqa: SLF001
+
+        self.agent.discover_xjp60d()
+
+        kwargs = enrollment_store.enroll_xjp60d.call_args.kwargs
+        resolver = kwargs["bus_for_unit"]
+        self.assertEqual(kwargs["unit_ids"], (106, 126))
+        self.assertEqual(resolver(106), "rs485-kk2")
+        self.assertEqual(resolver(126), "rs485-kk1")
 
     def test_bus_diagnostics_never_claim_hardware_acceptance(self) -> None:
         payload = self.agent.acquisition_snapshot()
@@ -548,7 +649,7 @@ class EmbracoBusPersistenceTests(unittest.TestCase):
         with patch.dict(os.environ, environment, clear=False):
             with self.assertRaisesRegex(
                 ValueError,
-                "Unit ID 2 is assigned to both",
+                "bus-scoped identity is required",
             ):
                 DualBusAdaptiveRegistryDeviceAgent(self.configured_settings())
 
@@ -594,6 +695,58 @@ class CommissioningActivationRuntimeTests(unittest.TestCase):
             serial_device="/host/dev/serial/by-id/usb-kk1",
             path_present=True,
         )
+
+    def test_preflight_owner_uses_requested_bus_for_duplicate_unit_ids(self) -> None:
+        agent = object.__new__(DualBusAdaptiveRegistryDeviceAgent)
+        topology = Mock()
+        topology.buses_for_unit.return_value = ("rs485-kk1", "rs485-sdm120")
+        agent.rs485_topology = topology
+        agent._registry_snapshot = Mock(  # type: ignore[method-assign]
+            return_value=Mock(document=Mock(devices=()))
+        )
+
+        self.assertEqual(agent.preflight_unit_owner(1, "rs485-kk1"), "rs485-kk1")
+
+    def test_commissioning_inventory_allows_same_unit_on_other_bus_family(self) -> None:
+        request = CommissioningActivationRequest(
+            activation_id="activation-xjp-1",
+            action="activate",
+            node_id="edge-01",
+            bus_id="rs485-kk1",
+            stable_transport_identifier="/dev/serial/by-id/usb-kk1",
+            unit_id=1,
+            profile_id="dixell-xjp60d",
+            profile_version="dixell-xjp60d-fc03-v1",
+        )
+        current = Mock(
+            revision=7,
+            document=Mock(
+                devices=(
+                    Mock(
+                        unit_id=1,
+                        bus_id="rs485-sdm120",
+                        device_family="sdm120",
+                        profile_version="eastron-sdm120m-fc04-v1",
+                    ),
+                )
+            ),
+        )
+        expected = Mock()
+        store = Mock()
+        store.enroll_xjp60d.return_value = expected
+        self.agent._registry_store = store  # noqa: SLF001
+
+        result = self.agent._ensure_commissioning_inventory(  # noqa: SLF001
+            current,
+            request,
+            "xjp60d",
+            "commissioning:test",
+        )
+
+        self.assertIs(result, expected)
+        kwargs = store.enroll_xjp60d.call_args.kwargs
+        self.assertEqual(kwargs["unit_ids"], (1,))
+        self.assertEqual(kwargs["bus_for_unit"](1), "rs485-kk1")
 
     def test_discovery_only_akcc25_profile_cannot_bypass_activation_parser(self) -> None:
         request = CommissioningActivationRequest(

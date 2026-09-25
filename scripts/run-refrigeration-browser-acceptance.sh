@@ -381,10 +381,9 @@ ORDER BY created_at;
 SQL
 
   compose run --rm --no-deps --entrypoint /bin/sh minio-init -ec '
-    mc alias set acceptance http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null
-    mc anonymous get "acceptance/$OBJECT_STORAGE_BUCKET"
-    mc ls --recursive "acceptance/$OBJECT_STORAGE_BUCKET"
-  ' >"$EVIDENCE_DIR/minio-state.txt" 2>&1 || true
+    python /opt/nexolab/scripts/object-storage-s3.py assert-private --bucket "$OBJECT_STORAGE_BUCKET"
+    python /opt/nexolab/scripts/object-storage-s3.py list --bucket "$OBJECT_STORAGE_BUCKET"
+  ' >"$EVIDENCE_DIR/object-storage-state.txt" 2>&1 || true
 }
 
 cleanup() {
@@ -434,7 +433,7 @@ for _ in $(seq 1 90); do
   if curl --fail --silent --show-error \
     "http://127.0.0.1:$CENTRAL_API_PORT/health/ready" >/dev/null 2>&1 && \
     curl --fail --silent --show-error \
-      "http://127.0.0.1:$CENTRAL_OBJECT_STORAGE_PORT/minio/health/live" >/dev/null 2>&1; then
+      "http://127.0.0.1:$CENTRAL_OBJECT_STORAGE_PORT/health" >/dev/null 2>&1; then
     ready=1
     break
   fi

@@ -291,7 +291,7 @@ docker compose --env-file .env.backend -f compose.backend.yaml \
   > "../../runtime/backups/nexolab-telemetry-$STAMP.dump"
 ```
 
-Issue #189 owns the final coordinated backup/restore proof for PostgreSQL, Mosquitto, MinIO, the ingestion spool, edge SQLite and controlled power-loss scenarios.
+Issue #189 owns the final coordinated backup/restore proof for PostgreSQL, Mosquitto, local S3 object storage, the ingestion spool, edge SQLite and controlled power-loss scenarios.
 
 ## Safe restart
 

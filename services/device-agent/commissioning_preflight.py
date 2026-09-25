@@ -105,7 +105,7 @@ class PreflightRuntime(Protocol):
 
     def preflight_bus(self, bus_id: str) -> PreflightBus: ...
 
-    def preflight_unit_owner(self, unit_id: int) -> str | None: ...
+    def preflight_unit_owner(self, unit_id: int, bus_id: str | None = None) -> str | None: ...
 
     def preflight_registry_identity(self, bus_id: str, unit_id: int) -> tuple[str, str] | None: ...
 
@@ -211,7 +211,7 @@ def execute_preflight(
         return failed("adapter_unavailable", "adapter_identity", "Configured stable serial adapter is not present")
     passed("adapter_identity", "Exact stable /dev/serial/by-id identity is present")
 
-    owner = runtime.preflight_unit_owner(request.unit_id)
+    owner = runtime.preflight_unit_owner(request.unit_id, request.bus_id)
     if owner is not None and owner != request.bus_id:
         return failed("unit_id_conflict", "unit_identity", f"Unit ID {request.unit_id} is assigned to another physical bus")
     registry_identity = runtime.preflight_registry_identity(request.bus_id, request.unit_id)

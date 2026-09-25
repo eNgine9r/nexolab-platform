@@ -1,0 +1,59 @@
+schema_version: 1
+source:
+  vendor: Waveshare
+  model: Modbus RTU Analog Input 8CH (B) V3
+  protocol_authority: Waveshare Modbus RTU Analog Input 8CH (B) V3 vendor register map
+  validation: vendor-map-plus-real-read-only-hardware-evidence
+  validated_unit_ids: [1]
+
+serial:
+  baudrate: 9600
+  bytesize: 8
+  parity: N
+  stopbits: 1
+
+transport:
+  stable_adapter: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q2QYX-if00-port0
+  dedicated_bus: true
+  bus_id: rs485-waveshare
+  production_polling_status: not_activated
+
+read_policy:
+  function: 4
+  register_type: uint16
+  one_register_per_channel: true
+  read_only: true
+  modbus_writes: forbidden
+
+mode_read_policy:
+  function: 3
+  register_type: uint16
+  first_address: 0x1000
+  last_address: 0x1007
+  read_only: true
+
+registers:
+  - { key: ai_1, address: 0x0000, metric: analog.input, channel_id: 1-ai-1 }
+  - { key: ai_2, address: 0x0001, metric: analog.input, channel_id: 1-ai-2 }
+  - { key: ai_3, address: 0x0002, metric: analog.input, channel_id: 1-ai-3 }
+  - { key: ai_4, address: 0x0003, metric: analog.input, channel_id: 1-ai-4 }
+  - { key: ai_5, address: 0x0004, metric: analog.input, channel_id: 1-ai-5 }
+  - { key: ai_6, address: 0x0005, metric: analog.input, channel_id: 1-ai-6 }
+  - { key: ai_7, address: 0x0006, metric: analog.input, channel_id: 1-ai-7 }
+  - { key: ai_8, address: 0x0007, metric: analog.input, channel_id: 1-ai-8 }
+
+mode_semantics:
+  0: { label: 0-10V, unit: mV }
+  1: { label: 2-10V, unit: mV }
+  2: { label: 0-20mA, unit: uA }
+  3: { label: 4-20mA, unit: uA }
+  4: { label: adc-code, unit: count }
+
+hardware_validation:
+  stable_adapter: A10Q2QYX
+  unit_id: 1
+  software_version: 2.10
+  observed_channel_modes: [0, 0, 0, 0, 0, 0, 0, 0]
+  observed_input_state: all_zero_three_crc_valid_passes
+  humidity_channel: unresolved
+  writes: none

@@ -155,6 +155,94 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertEqual(result["unknown_files"], [])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_edge_image_workflow_registers_and_validates_rs485_config_changes(self) -> None:
+        workflow = Path('.github/workflows/edge-image.yml').read_text(encoding='utf-8')
+        self.assertGreaterEqual(workflow.count('config/edge/*-register-map.yaml'), 2)
+        self.assertGreaterEqual(workflow.count('config/edge/*-readonly-profile.yaml'), 2)
+        self.assertGreaterEqual(workflow.count('config/edge/rs485-device-registry.yaml'), 2)
+        self.assertIn('Validate RS-485 registry, register maps and read-only profiles', workflow)
+        self.assertIn("allowed_functions must be exactly [3, 4]", workflow)
+        self.assertIn("write functions 5, 6, 15 and 16 must be prohibited", workflow)
+        self.assertIn('yaml.safe_load', workflow)
+        self.assertIn("missing referenced register map", workflow)
+        self.assertIn("bus.port must use a direct stable /dev/serial/by-id/ path", workflow)
+        self.assertIn("dedicated_adapter must use a direct stable /dev/serial/by-id/ path", workflow)
+        self.assertIn("PurePosixPath('/dev/serial/by-id')", workflow)
+        self.assertIn("candidate.parent == stable_parent", workflow)
+        self.assertIn("'..' not in candidate.parts", workflow)
+
+    def test_rs485_acquisition_surfaces_are_known_device_agent_paths(self) -> None:
+        for path, required_workflow in (
+            ("config/edge/eastron-sdm120m-v2.4-register-map.yaml", "Edge image"),
+            ("config/edge/waveshare-8ai-v3-readonly-profile.yaml", "Edge image"),
+            ("config/edge/rs485-device-registry.yaml", "Edge image"),
+            ("scripts/run-acquisition-scale-acceptance.py", "Acquisition Scale Acceptance"),
+            ("tools/rs485_discovery/scan_rs485.py", "RS485 tools"),
+            ("tools/rs485_discovery/test_scan_rs485.py", "RS485 tools"),
+        ):
+            with self.subTest(path=path):
+                result = classify([path])
+                self.assertIn("device_agent", result["classes"])
+                self.assertFalse(result["fail_closed"])
+                self.assertEqual(result["unknown_files"], [])
+                self.assertEqual(
+                    result["verification"]["required_external_workflows"],
+                    [required_workflow],
+                )
+
+    def test_nested_register_map_path_remains_fail_closed(self) -> None:
+        path = "config/edge/vendor/foo-register-map.yaml"
+        result = classify([path])
+        self.assertTrue(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [path])
+        self.assertNotIn("device_agent", result["classes"])
+
+    def test_unknown_neighboring_acquisition_paths_still_fail_closed(self) -> None:
+        for path in (
+            "config/edge/unclassified-device-profile.json",
+            "config/edge/vendor-unsafe-profile.yaml",
+            "scripts/run-unclassified-acquisition-tool.py",
+            "tools/other_discovery/scan.py",
+        ):
+            with self.subTest(path=path):
+                result = classify([path])
+                self.assertTrue(result["fail_closed"])
+                self.assertEqual(result["unknown_files"], [path])
+
+    def test_issue_1105_path_set_avoids_impossible_refrigeration_route(self) -> None:
+        result = classify(
+            [
+                "config/edge/eastron-sdm120m-v2.4-register-map.yaml",
+                "config/edge/rs485-device-registry.yaml",
+                "scripts/run-acquisition-scale-acceptance.py",
+                "tools/rs485_discovery/scan_rs485.py",
+                "tools/rs485_discovery/test_scan_rs485.py",
+                "services/device-agent/sdm120.py",
+                "services/device-agent/modbus_rtu.py",
+                "src/components/energy/energy-workspace.tsx",
+                "src/features/acquisition/cadence-client.ts",
+                "e2e/energy.production.e2e.ts",
+                "infrastructure/compose/compose.hardware.yaml",
+                ".project/CURRENT_STATE.md",
+            ]
+        )
+        verification = result["verification"]
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(verification["dashboard_mode"], "full")
+        self.assertTrue(verification["offline_bundle"])
+        self.assertFalse(verification["refrigeration_browser"])
+        self.assertEqual(
+            set(verification["required_external_workflows"]),
+            {
+                "Authenticated Dashboard Acceptance",
+                "Offline Bundle",
+                "Edge image",
+                "Acquisition Scale Acceptance",
+                "RS485 tools",
+            },
+        )
+
     def test_device_agent_and_deployment_are_multi_class(self) -> None:
         result = classify(
             [
@@ -221,6 +309,26 @@ class ChangeImpactClassifierTests(unittest.TestCase):
                     "Authenticated Dashboard Acceptance",
                     verification["required_external_workflows"],
                 )
+
+    def test_object_storage_runtime_change_routes_browser_offline_and_supply_chain(self) -> None:
+        result = classify(["infrastructure/object-storage/Dockerfile"])
+        verification = result["verification"]
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertIn("deployment_runtime", result["classes"])
+        self.assertIn("security_supply_chain", result["classes"])
+        self.assertEqual(verification["dashboard_mode"], "full")
+        self.assertTrue(verification["offline_bundle"])
+        self.assertTrue(verification["refrigeration_browser"])
+        self.assertEqual(
+            set(verification["required_external_workflows"]),
+            {
+                "Authenticated Dashboard Acceptance",
+                "Offline Bundle",
+                "Refrigeration Browser Acceptance",
+                "Container Supply Chain",
+            },
+        )
 
     def test_offline_contract_change_requires_offline_bundle(self) -> None:
         result = classify(["infrastructure/compose/compose.central.yaml"])

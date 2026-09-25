@@ -7,6 +7,7 @@ import threading
 import time
 import unittest
 from contextlib import nullcontext
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -14,7 +15,7 @@ from acquisition_registry import (
     AcquisitionRegistry,
     build_initial_document,
 )
-from adaptive_main import AdaptiveRegistryDeviceAgent
+from adaptive_main import AdaptiveRegistryDeviceAgent, validate_adaptive_entrypoint
 from adaptive_scheduler import ScheduledResult, SchedulerTarget
 from main import AgentState, DeviceAgent, OfflineQueue, Settings, TelemetryRecord
 from modbus_rtu import ModbusError
@@ -63,6 +64,31 @@ def agent() -> AdaptiveRegistryDeviceAgent:
     value._bus_operation_lock = threading.Lock()
     value.settings = settings()
     return value
+
+
+class AdaptiveEntrypointTests(unittest.TestCase):
+    def test_default_adaptive_entrypoint_rejects_sdm120_polling(self) -> None:
+        configured = replace(
+            settings(),
+            sdm120_unit_ids=(1,),
+            sdm120_bus_id="rs485-sdm120",
+        )
+
+        with self.assertRaisesRegex(ValueError, "topology-aware dual_bus_main.py"):
+            validate_adaptive_entrypoint(configured)
+
+    def test_default_adaptive_entrypoint_rejects_waveshare_8ai_polling(self) -> None:
+        configured = replace(
+            settings(),
+            waveshare_8ai_unit_ids=(1,),
+            waveshare_8ai_bus_id="rs485-analog",
+        )
+
+        with self.assertRaisesRegex(ValueError, "topology-aware dual_bus_main.py"):
+            validate_adaptive_entrypoint(configured)
+
+    def test_default_adaptive_entrypoint_keeps_legacy_families_available(self) -> None:
+        validate_adaptive_entrypoint(settings())
 
 
 class AdaptiveRegistryReadTests(unittest.TestCase):

@@ -70,6 +70,7 @@ export function useEquipmentRegistry({
       void loadEquipmentRegistry({
         equipmentRepository,
         climateCatalogRepository,
+        commissioningRepository: runtime.commissioningRepository,
         concurrency: 4,
         signal: controller.signal,
         onProgress: (next) => {
@@ -99,7 +100,7 @@ export function useEquipmentRegistry({
       window.clearTimeout(startId);
       controller.abort();
     };
-  }, [climateCatalogRepository, enabled, epoch, equipmentRepository]);
+  }, [climateCatalogRepository, enabled, epoch, equipmentRepository, runtime.commissioningRepository]);
 
   const effectiveState: EquipmentRegistryState = !enabled ? "idle" : runtimeUnavailable ? "error" : state;
   const effectiveError = runtimeUnavailable

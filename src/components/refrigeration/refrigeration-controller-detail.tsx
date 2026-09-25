@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { LockKeyhole, RadioTower, ServerCog } from "lucide-react";
 
+import { RefrigerationCommissionedControllerCard } from "@/components/refrigeration/refrigeration-commissioned-controller-card";
+import type { CommissionedControllerAssociation } from "@/features/equipment/commissioned-controller-association";
 import { EMBRACO_METRICS } from "@/features/refrigeration/controller-monitoring";
 import type { RefrigerationControllerModel } from "@/features/refrigeration/use-refrigeration-controller";
 
@@ -10,10 +12,16 @@ export function RefrigerationControllerDetail({
   controller,
   equipmentId,
   canCommission,
+  commissionedAssociation = null,
+  commissionedAssociationLoading = false,
+  commissionedAssociationError = null,
 }: {
   controller: RefrigerationControllerModel;
   equipmentId: string;
   canCommission: boolean;
+  commissionedAssociation?: CommissionedControllerAssociation | null;
+  commissionedAssociationLoading?: boolean;
+  commissionedAssociationError?: string | null;
 }) {
   const binding = controller.binding;
   if (controller.bindingLoading)
@@ -21,6 +29,14 @@ export function RefrigerationControllerDetail({
   if (!binding && controller.latestError)
     return <PanelMessage title="Контролер недоступний" text={controller.latestError} error />;
   if (!binding) {
+    if (commissionedAssociationLoading)
+      return <PanelMessage title="Контролер" text="Завантаження перевіреної прив’язки контролера…" />;
+    if (commissionedAssociationError)
+      return (
+        <PanelMessage title="Прив’язка контролера недоступна" text={commissionedAssociationError} error />
+      );
+    if (commissionedAssociation)
+      return <RefrigerationCommissionedControllerCard association={commissionedAssociation} />;
     return (
       <section className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-8 text-center">
         <RadioTower className="mx-auto h-6 w-6 text-slate-600" />

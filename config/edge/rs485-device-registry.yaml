@@ -57,6 +57,36 @@ bus:
     result: passed
     next_gate: production_monitoring
 
+additional_buses:
+  - id: rs485-sdm120
+    role: dedicated-energy-meter
+    activation_status: hardware_identified_not_production_polling
+    stable_adapter: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0
+    commissioning_bus_id: commissioning-22bdefc8766cac4f
+    unit_ids: [1]
+    baudrate: 9600
+    bytesize: 8
+    parity: N
+    stopbits: 1
+    read_only: true
+    normal_polling_function: 4
+    allowed_functions: [3, 4]
+    prohibited_functions: [5, 6, 15, 16]
+
+  - id: rs485-waveshare
+    role: dedicated-analog-input
+    activation_status: hardware_identified_not_production_polling
+    stable_adapter: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q2QYX-if00-port0
+    unit_ids: [1]
+    baudrate: 9600
+    bytesize: 8
+    parity: N
+    stopbits: 1
+    read_only: true
+    normal_polling_functions: [3, 4]
+    allowed_functions: [3, 4]
+    prohibited_functions: [5, 6, 15, 16]
+
 profiles:
   - id: climate-chamber-02-dixell
     name: Кліматична камера №2
@@ -99,13 +129,51 @@ profiles:
         - temperature.internal
       combined_modbus_mode: passed
 
-  - id: unknown-unit-01
-    name: Невідомий Modbus endpoint
-    device_type: unknown
+  - id: eastron-sdm120m-01
+    name: Eastron SDM120M
+    device_type: eastron-sdm120m
     unit_ids: [1]
-    status: quarantined
-    register_map_status: unknown
-    production_driver: disabled
+    status: hardware_identified_read_only
+    register_map_status: vendor_v2_4_plus_hardware_verified_subset
+    register_map: config/edge/eastron-sdm120m-v2.4-register-map.yaml
+    production_driver: implemented_not_activated
+    dedicated_adapter: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0
+    commissioning_bus_id: commissioning-22bdefc8766cac4f
+    serial: { baudrate: 9600, parity: N, stopbits: 1 }
+    validated_metrics:
+      - electrical.voltage
+      - electrical.current
+      - electrical.frequency
+      - electrical.power.active
+      - electrical.power.reactive
+      - electrical.power.apparent
+      - electrical.power_factor
+      - electrical.energy.active
+    unsupported_metrics:
+      - temperature.internal
+    hardware_evidence:
+      - runtime/evidence/sdm120m-discovery-20260922.json
+      - runtime/evidence/sdm120m-fc04-profile-20260922.json
+    modbus_writes: none
+
+  - id: waveshare-8ai-01
+    name: Waveshare Modbus RTU Analog Input 8CH (B) V3
+    device_type: waveshare-modbus-rtu-analog-input-8ch-b-v3
+    unit_ids: [1]
+    status: hardware_identified_read_only_humidity_unverified
+    register_map_status: vendor_protocol_plus_real_transport_verified
+    register_map: config/edge/waveshare-8ai-v3-register-map.yaml
+    acquisition_profile: config/edge/waveshare-8ai-v3-readonly-profile.yaml
+    production_driver: implemented_not_activated
+    dedicated_adapter: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q2QYX-if00-port0
+    serial: { baudrate: 9600, parity: N, stopbits: 1 }
+    canonical_metric: analog.input
+    channel_count: 8
+    current_channel_modes: [0, 0, 0, 0, 0, 0, 0, 0]
+    humidity_channel: unresolved
+    humidity_scaling: unresolved
+    modbus_reads: [FC03, FC04]
+    modbus_writes: none
 
 safety:
   read_only_profiling: true

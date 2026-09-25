@@ -42,6 +42,8 @@ export DR_MINIO_ROOT_PASSWORD="nxl_$(random_secret)"
 export DR_MQTT_ADMIN_USERNAME="nexolab-dr-admin"
 export DR_SECRETS_DIR="$SECRETS_DIR"
 export DR_WORK_DIR="$WORK_DIR"
+export DR_WORK_UID="$(id -u)"
+export DR_WORK_GID="$(id -g)"
 export DR_BROWSER_ORGANIZATION_ID="$ORGANIZATION_ID"
 export DR_BROWSER_API_PORT="$API_PORT"
 export DR_BROWSER_MINIO_PORT="$MINIO_PORT"
@@ -185,13 +187,12 @@ INSERT INTO refrigeration_layout_revisions (
 SQL
 
 compose run --rm minio-client "
-  mc alias set source http://source-minio:9000 \"\$MINIO_ROOT_USER\" \"\$MINIO_ROOT_PASSWORD\" >/dev/null
-  mc mb --ignore-existing source/$BUCKET >/dev/null
-  mc cp --attr 'Content-Type=image/png' /work/dr-restored-showcase.png source/$BUCKET/$OBJECT_KEY >/dev/null
-  mc anonymous set none source/$BUCKET >/dev/null
+  python /opt/nexolab/scripts/object-storage-s3.py --endpoint http://source-minio:9000 ensure-bucket --bucket $BUCKET
+  python /opt/nexolab/scripts/object-storage-s3.py --endpoint http://source-minio:9000 put-file --bucket $BUCKET --key $OBJECT_KEY --path /work/dr-restored-showcase.png --content-type image/png
+  python /opt/nexolab/scripts/object-storage-s3.py --endpoint http://source-minio:9000 assert-private --bucket $BUCKET >/dev/null
   rm -rf /work/object-backup
   mkdir -p /work/object-backup
-  mc mirror source/$BUCKET /work/object-backup >/dev/null
+  python /opt/nexolab/scripts/object-storage-s3.py --endpoint http://source-minio:9000 mirror-download --bucket $BUCKET --destination /work/object-backup
 "
 
 test -s "$OBJECT_BACKUP/$OBJECT_KEY"
@@ -208,10 +209,9 @@ compose exec -T restore-postgres \
 compose run --rm restore-migrate
 
 compose run --rm minio-client "
-  mc alias set restore http://restore-minio:9000 \"\$MINIO_ROOT_USER\" \"\$MINIO_ROOT_PASSWORD\" >/dev/null
-  mc mb --ignore-existing restore/$BUCKET >/dev/null
-  mc mirror --overwrite /work/object-backup restore/$BUCKET >/dev/null
-  mc anonymous set none restore/$BUCKET >/dev/null
+  python /opt/nexolab/scripts/object-storage-s3.py --endpoint http://restore-minio:9000 ensure-bucket --bucket $BUCKET
+  python /opt/nexolab/scripts/object-storage-s3.py --endpoint http://restore-minio:9000 mirror-upload --bucket $BUCKET --source-dir /work/object-backup
+  python /opt/nexolab/scripts/object-storage-s3.py --endpoint http://restore-minio:9000 assert-private --bucket $BUCKET >/dev/null
 "
 
 compose up -d --wait restore-telemetry-service
@@ -283,8 +283,7 @@ PY
 
 RESTORED_IMAGE="$WORK_DIR/restored-image.png"
 compose run --rm minio-client "
-  mc alias set restore http://restore-minio:9000 \"\$MINIO_ROOT_USER\" \"\$MINIO_ROOT_PASSWORD\" >/dev/null
-  mc cp restore/$BUCKET/$OBJECT_KEY /work/restored-image.png >/dev/null
+  python /opt/nexolab/scripts/object-storage-s3.py --endpoint http://restore-minio:9000 get-file --bucket $BUCKET --key $OBJECT_KEY --path /work/restored-image.png
 "
 test "$IMAGE_SHA" = "$(sha256sum "$RESTORED_IMAGE" | awk '{print $1}')"
 

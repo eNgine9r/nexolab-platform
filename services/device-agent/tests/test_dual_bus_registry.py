@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from acquisition_registry import AcquisitionRegistryStore
@@ -110,6 +111,109 @@ class TopologyAwareEnrollmentStoreTests(unittest.TestCase):
             {item.bus_id for item in reloaded.document.buses},
             {"rs485-kk1", "rs485-kk2"},
         )
+
+    def test_fresh_registry_enrolls_sdm120_on_configured_dedicated_bus(self) -> None:
+        fresh_database = Path(self.temporary.name) / "fresh-sdm120.db"
+        configured = replace(
+            self.settings,
+            device_mode="modbus",
+            sdm120_unit_ids=(1,),
+            sdm120_bus_id="rs485-sdm120",
+        )
+        payload = explicit_payload()
+        payload[0]["unit_ids"] = [126, 1]
+        payload.append(
+            {
+                "bus_id": "rs485-sdm120",
+                "serial_device": "/host/dev/serial/by-id/usb-sdm120",
+                "unit_ids": [1],
+            }
+        )
+        topology = RS485BusTopology.from_environment(
+            configured,
+            None,
+            environ={BUS_CONFIG_ENV: json.dumps(payload)},
+        )
+        store = TopologyAwareEnrollmentStore(
+            fresh_database,
+            bus_for_unit=topology.bus_for_unit,
+            bind_registry=topology.bind_registry,
+            sdm120_bus_for_unit=lambda unit_id: topology.bus_for_unit_on(
+                unit_id,
+                "rs485-sdm120",
+            ),
+        )
+
+        registry = store.load_or_migrate(
+            configured,
+            discovery_units=(106, 126),
+            legacy_active_points=configured.xjp60d_points,
+        )
+        devices = {item.device_id: item for item in registry.document.devices}
+
+        self.assertEqual(devices["sdm120-1"].bus_id, "rs485-sdm120")
+        self.assertEqual(devices["sdm120-1"].lifecycle, "active")
+        self.assertEqual(devices["xjp60d-126"].bus_id, "rs485-kk1")
+        with self.assertRaisesRegex(ValueError, "bus-scoped identity is required"):
+            topology.bus_for_unit(1)
+
+    def test_fresh_registry_allows_sdm120_and_waveshare_unit_one_on_distinct_buses(self) -> None:
+        fresh_database = Path(self.temporary.name) / "fresh-analog.db"
+        configured = replace(
+            self.settings,
+            device_mode="modbus",
+            sdm120_unit_ids=(1,),
+            sdm120_bus_id="rs485-sdm120",
+            waveshare_8ai_unit_ids=(1,),
+            waveshare_8ai_bus_id="rs485-analog",
+        )
+        payload = explicit_payload()
+        payload.extend(
+            [
+                {
+                    "bus_id": "rs485-sdm120",
+                    "serial_device": "/host/dev/serial/by-id/usb-sdm120",
+                    "unit_ids": [1],
+                },
+                {
+                    "bus_id": "rs485-analog",
+                    "serial_device": "/host/dev/serial/by-id/usb-waveshare",
+                    "unit_ids": [1],
+                },
+            ]
+        )
+        topology = RS485BusTopology.from_environment(
+            configured,
+            None,
+            environ={BUS_CONFIG_ENV: json.dumps(payload)},
+        )
+        store = TopologyAwareEnrollmentStore(
+            fresh_database,
+            bus_for_unit=topology.bus_for_unit,
+            bind_registry=topology.bind_registry,
+            sdm120_bus_for_unit=lambda unit_id: topology.bus_for_unit_on(
+                unit_id, "rs485-sdm120"
+            ),
+            waveshare_8ai_bus_for_unit=lambda unit_id: topology.bus_for_unit_on(
+                unit_id, "rs485-analog"
+            ),
+        )
+
+        registry = store.load_or_migrate(
+            configured,
+            discovery_units=(106, 126),
+            legacy_active_points=configured.xjp60d_points,
+        )
+        devices = {item.device_id: item for item in registry.document.devices}
+
+        self.assertEqual(devices["sdm120-1"].bus_id, "rs485-sdm120")
+        self.assertEqual(devices["waveshare-8ai-1"].bus_id, "rs485-analog")
+        self.assertEqual(
+            registry.eligible_waveshare_8ai_channels(),
+            tuple((1, channel) for channel in range(1, 9)),
+        )
+        with self.assertRaisesRegex(ValueError, "bus-scoped identity is required"):
+            topology.bus_for_unit(1)
 
     def test_existing_unit_on_wrong_bus_fails_closed(self) -> None:
         wrong_bus_store = TopologyAwareEnrollmentStore(

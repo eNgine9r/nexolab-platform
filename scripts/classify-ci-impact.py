@@ -50,6 +50,9 @@ OFFLINE_BUNDLE_WORKFLOW = "Offline Bundle"
 REFRIGERATION_BROWSER_WORKFLOW = "Refrigeration Browser Acceptance"
 TELEGRAM_GATEWAY_WORKFLOW = "Telegram Gateway"
 CONTAINER_SUPPLY_CHAIN_WORKFLOW = "Container Supply Chain"
+ACQUISITION_SCALE_WORKFLOW = "Acquisition Scale Acceptance"
+EDGE_IMAGE_WORKFLOW = "Edge image"
+RS485_TOOLS_WORKFLOW = "RS485 tools"
 
 DASHBOARD_EXTERNAL_TOOLCHAIN_PATHS = {
     "package.json",
@@ -104,6 +107,7 @@ DASHBOARD_SHARED_PATTERNS = (
     "e2e/telemetry-navigation.production.e2e.ts",
     "infrastructure/compose/compose.browser-acceptance.yaml",
     "infrastructure/compose/compose.central.yaml",
+    "infrastructure/object-storage/**",
     "playwright.dashboard.config.ts",
     "scripts/run-authenticated-dashboard-acceptance.sh",
     "scripts/run-acquisition-invariant-browser-acceptance.sh",
@@ -121,6 +125,7 @@ REFRIGERATION_PATTERNS = (
     "scripts/run-refrigeration-browser-acceptance.sh",
     "infrastructure/compose/compose.browser-acceptance.yaml",
     "infrastructure/compose/compose.central.yaml",
+    "infrastructure/object-storage/**",
     ".github/workflows/refrigeration-browser-acceptance.yml",
     "scripts/classify-ci-impact.py",
     "docs/refrigeration-browser-central-acceptance.md",
@@ -142,6 +147,7 @@ OFFLINE_BUNDLE_PATTERNS = (
     "services/telegram-gateway/**",
     "infrastructure/compose/**",
     "infrastructure/offline/**",
+    "infrastructure/object-storage/**",
     "services/device-agent/**",
     "services/telemetry-service/**",
     "src/app/api/**",
@@ -161,6 +167,8 @@ CONTAINER_SUPPLY_CHAIN_TEST_PATHS = {
     "tests/test_container_vulnerability_policy.py",
     "tests/test_container_release_manifest.py",
     "tests/test_container_release_aggregate.py",
+    "tests/test_central_object_storage_image_contract.py",
+    "tests/test_object_storage_supply_contract.py",
 }
 
 INSPECTION_SECURITY_PATTERNS = (
@@ -184,6 +192,24 @@ DISASTER_RECOVERY_TOOLING_PATHS = {
     "tests/test_disaster_recovery_assets.py",
 }
 
+OBJECT_STORAGE_RUNTIME_PATHS = {
+    "scripts/object-storage-s3.py",
+    "scripts/offline-bundle-smoke.sh",
+    "scripts/run-disaster-recovery-browser.sh",
+    "scripts/run-refrigeration-browser-acceptance.sh",
+    "scripts/verify-offline-bundle.py",
+    "scripts/verify-offline-volume-preservation.sh",
+}
+
+RS485_ACQUISITION_PATHS = {
+    "config/edge/rs485-device-registry.yaml",
+    "scripts/run-acquisition-scale-acceptance.py",
+}
+
+RS485_ACQUISITION_PATTERNS = (
+    "tools/rs485_discovery/**",
+)
+
 CI_GOVERNANCE_PATHS = {
     "PROJECT_PROFILE.yaml",
     "AGENTS.md",
@@ -205,6 +231,32 @@ def _matches(path: str, patterns: Iterable[str]) -> bool:
 
 def _is_docs(path: str) -> bool:
     return path in ROOT_DOCS or path.startswith("docs/")
+
+def _is_rs485_register_map(path: str) -> bool:
+    parts = PurePosixPath(path).parts
+    return (
+        len(parts) == 3
+        and parts[:2] == ("config", "edge")
+        and parts[2].endswith("-register-map.yaml")
+    )
+
+
+def _is_rs485_readonly_profile(path: str) -> bool:
+    parts = PurePosixPath(path).parts
+    return (
+        len(parts) == 3
+        and parts[:2] == ("config", "edge")
+        and parts[2].endswith("-readonly-profile.yaml")
+    )
+
+
+def _is_rs485_acquisition_path(path: str) -> bool:
+    return (
+        path in RS485_ACQUISITION_PATHS
+        or _is_rs485_register_map(path)
+        or _is_rs485_readonly_profile(path)
+        or _matches(path, RS485_ACQUISITION_PATTERNS)
+    )
 
 
 def _verification_for_paths(
@@ -260,11 +312,20 @@ def _verification_for_paths(
             (
                 "services/telegram-gateway/**",
                 "security/container-images.json",
+                "infrastructure/object-storage/**",
                 ".github/workflows/container-supply-chain.yml",
             ),
         )
         for path in normalized
     )
+    edge_image = any(
+        path == "config/edge/rs485-device-registry.yaml"
+        or _is_rs485_register_map(path)
+        or _is_rs485_readonly_profile(path)
+        for path in normalized
+    )
+    acquisition_scale = "scripts/run-acquisition-scale-acceptance.py" in normalized
+    rs485_tools = any(_matches(path, RS485_ACQUISITION_PATTERNS) for path in normalized)
 
     required = []
     if dashboard_mode != "none":
@@ -277,6 +338,12 @@ def _verification_for_paths(
         required.append(TELEGRAM_GATEWAY_WORKFLOW)
     if container_supply_chain:
         required.append(CONTAINER_SUPPLY_CHAIN_WORKFLOW)
+    if edge_image:
+        required.append(EDGE_IMAGE_WORKFLOW)
+    if acquisition_scale:
+        required.append(ACQUISITION_SCALE_WORKFLOW)
+    if rs485_tools:
+        required.append(RS485_TOOLS_WORKFLOW)
 
     return {
         "dashboard_mode": dashboard_mode,
@@ -373,7 +440,11 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
             classes.add("database_migration")
             matched = True
 
-        if path.startswith("services/device-agent/") or path.startswith("config/device-profiles/"):
+        if (
+            path.startswith("services/device-agent/")
+            or path.startswith("config/device-profiles/")
+            or _is_rs485_acquisition_path(path)
+        ):
             classes.add("device_agent")
             matched = True
 
@@ -386,6 +457,10 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
             matched = True
 
         if path in DISASTER_RECOVERY_TOOLING_PATHS:
+            classes.add("deployment_runtime")
+            matched = True
+
+        if path in OBJECT_STORAGE_RUNTIME_PATHS:
             classes.add("deployment_runtime")
             matched = True
 

@@ -1189,6 +1189,13 @@ git diff > "$AUDIT_DIR/tracked-working-tree.patch"
 git diff --cached > "$AUDIT_DIR/tracked-index.patch"
 git ls-files --others --exclude-standard > "$AUDIT_DIR/untracked-files.txt"
 
+LEGACY_OBJECT_STORAGE_VOLUME="nexolab-central-object-storage-data"
+VERSITY_OBJECT_STORAGE_VOLUME="nexolab-central-object-storage-versitygw-data"
+if docker volume inspect "$LEGACY_OBJECT_STORAGE_VOLUME" >/dev/null 2>&1 \
+  && ! docker volume inspect "$VERSITY_OBJECT_STORAGE_VOLUME" >/dev/null 2>&1; then
+  fail "legacy MinIO object-storage volume exists but the VersityGW volume is not migration-proven; use the separately approved object-storage migration/cutover procedure"
+fi
+
 log "Rechecking deployment capacity immediately before large evidence writes"
 if ! nexolab_capacity_preflight "$REPO" "$AUDIT_DIR" "$PG_CONTAINER" "$AUDIT_DIR/capacity-preflight.txt"; then
   fail "deployment capacity recheck failed before large writes; see $AUDIT_DIR/capacity-preflight.txt"
@@ -1210,7 +1217,7 @@ fi
 docker volume inspect \
   nexolab-central-postgres-data \
   nexolab-central-mqtt-data \
-  nexolab-central-object-storage-data \
+  nexolab-central-object-storage-versitygw-data \
   nexolab-central-telemetry-ingestion-data \
   nexolab-edge_edge-data \
   nexolab-edge_mqtt-data \
@@ -1988,7 +1995,7 @@ wait_http_or_rollback dashboard "$NEXOLAB_DASHBOARD_ORIGIN" 90
 wait_http_or_rollback prometheus "http://127.0.0.1:9090/-/ready" 90
 wait_http_or_rollback alertmanager "http://127.0.0.1:9093/-/ready" 90
 wait_http_or_rollback grafana "http://127.0.0.1:3001/api/health" 120
-wait_http_or_rollback minio "$NEXOLAB_OBJECT_STORAGE_PUBLIC_URL/minio/health/live" 90
+wait_http_or_rollback minio "$NEXOLAB_OBJECT_STORAGE_PUBLIC_URL/health" 90
 
 log "Running central smoke gate"
 (
@@ -2101,7 +2108,7 @@ docker image inspect "$DEPLOYED_DEVICE_AGENT_IMAGE_ID" >/dev/null 2>&1 \
 docker volume inspect \
   nexolab-central-postgres-data \
   nexolab-central-mqtt-data \
-  nexolab-central-object-storage-data \
+  nexolab-central-object-storage-versitygw-data \
   nexolab-central-telemetry-ingestion-data \
   nexolab-edge_edge-data \
   nexolab-edge_mqtt-data \

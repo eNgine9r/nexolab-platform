@@ -128,19 +128,25 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
                 result = self._run_url_contract(dashboard, api, websocket)
                 self.assertNotEqual(result.returncode, 0)
 
-    def test_offline_minio_images_use_exact_quay_releases(self) -> None:
-        server = "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"
-        client = "quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z"
+    def test_offline_object_storage_is_built_from_pinned_repository_contract(self) -> None:
+        image = "nexolab/object-storage:versitygw-v1.8.0-${ARCH}"
 
-        self.assertIn(f'MINIO_IMAGE="{server}"', self.offline_builder)
-        self.assertIn(f'MINIO_CLIENT_IMAGE="{client}"', self.offline_builder)
-        self.assertNotIn('MINIO_IMAGE="minio/minio:', self.offline_builder)
-        self.assertNotIn('MINIO_CLIENT_IMAGE="minio/mc:', self.offline_builder)
+        self.assertIn(f'OBJECT_STORAGE_IMAGE="{image}"', self.offline_builder)
+        self.assertIn('infrastructure/object-storage/Dockerfile', self.offline_builder)
+        self.assertNotIn('quay.io/minio/', self.offline_builder)
+        self.assertNotIn('minio/mc:', self.offline_builder)
 
-        self.assertIn(f"OFFLINE_MINIO_IMAGE={server}", self.workflow)
-        self.assertIn(f"OFFLINE_MINIO_CLIENT_IMAGE={client}", self.workflow)
-        self.assertNotIn("OFFLINE_MINIO_IMAGE=minio/minio:", self.workflow)
-        self.assertNotIn("OFFLINE_MINIO_CLIENT_IMAGE=minio/mc:", self.workflow)
+        self.assertIn("OFFLINE_OBJECT_STORAGE_IMAGE=nexolab/object-storage:versitygw-v1.8.0-amd64", self.workflow)
+        self.assertNotIn("OFFLINE_MINIO_IMAGE", self.workflow)
+        self.assertNotIn("OFFLINE_MINIO_CLIENT_IMAGE", self.workflow)
+        self.assertIn('test "${#runtime_images[@]}" -eq 6', self.workflow)
+
+    def test_installer_fails_closed_on_unmigrated_legacy_object_storage(self) -> None:
+        installer = (ROOT / "scripts/install-offline-bundle.sh").read_text(encoding="utf-8")
+        self.assertIn("-object-storage-data", installer)
+        self.assertIn("-object-storage-versitygw-data", installer)
+        self.assertIn("object-storage migration is required before this bundle can replace the legacy MinIO runtime", installer)
+        self.assertIn("exit 80", installer)
 
     def test_pull_request_lane_keeps_existing_safe_defaults(self) -> None:
         self.assertIn('platform="linux/amd64"', self.workflow)

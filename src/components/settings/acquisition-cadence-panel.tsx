@@ -13,6 +13,7 @@ import type { AcquisitionCadenceController } from "@/features/acquisition/use-ac
 const familyLabels: Record<CadenceFamily, string> = {
   xjp60d: "Dixell XJP60D",
   le01mp: "LE-01MP / енергомоніторинг",
+  sdm120: "Eastron SDM120M",
   embraco: "Embraco Sync Controller",
 };
 

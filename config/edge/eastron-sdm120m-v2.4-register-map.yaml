@@ -1,0 +1,51 @@
+schema_version: 1
+source:
+  vendor: Eastron
+  model: SDM120M
+  protocol_authority: Eastron SDM120 Modbus Protocol Implementation V2.4
+  validation: vendor-map-plus-real-read-only-hardware-evidence
+  validated_unit_ids: [1]
+
+serial:
+  baudrate: 9600
+  bytesize: 8
+  parity: N
+  stopbits: 1
+
+transport:
+  stable_adapter: /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0
+  dedicated_bus: true
+  production_polling_status: not_activated
+  commissioning_inventory_bus: commissioning-22bdefc8766cac4f
+
+read_policy:
+  function: 4
+  register_type: float32_ieee754
+  words_per_value: 2
+  word_order: msw_first
+  read_only: true
+  modbus_writes: forbidden
+
+registers:
+  - { key: voltage, address: 0x0000, metric: electrical.voltage, unit: V, decimals: 1 }
+  - { key: current, address: 0x0006, metric: electrical.current, unit: A, decimals: 3 }
+  - { key: active_power, address: 0x000C, metric: electrical.power.active, unit: W, decimals: 1 }
+  - { key: apparent_power, address: 0x0012, metric: electrical.power.apparent, unit: VA, decimals: 1 }
+  - { key: reactive_power, address: 0x0018, metric: electrical.power.reactive, unit: var, decimals: 1 }
+  - { key: power_factor, address: 0x001E, metric: electrical.power_factor, unit: ratio, decimals: 3 }
+  - { key: frequency, address: 0x0046, metric: electrical.frequency, unit: Hz, decimals: 2 }
+  - { key: import_active_energy, address: 0x0048, metric: electrical.energy.active, unit: kWh, decimals: 3 }
+
+hardware_validation:
+  evidence: runtime/evidence/sdm120m-fc04-profile-20260922.json
+  observed:
+    voltage_v: 227.7844696044922
+    current_a: 0.0
+    active_power_w: 0.0
+    frequency_hz: 50.03664779663086
+    import_active_energy_kwh: 0.039000000804662704
+    total_active_energy_kwh: 0.039000000804662704
+  writes: none
+
+unsupported_operator_metrics:
+  - temperature.internal

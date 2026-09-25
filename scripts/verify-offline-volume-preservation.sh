@@ -70,7 +70,7 @@ done
 eval "$(python3 "$BUNDLE_ROOT/scripts/verify-offline-bundle.py" \
   "$BUNDLE_ROOT" --check-loaded-images --emit-shell-env)"
 export OFFLINE_DASHBOARD_IMAGE OFFLINE_TELEMETRY_IMAGE OFFLINE_DEVICE_AGENT_IMAGE
-export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_MINIO_IMAGE OFFLINE_MINIO_CLIENT_IMAGE
+export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_OBJECT_STORAGE_IMAGE
 
 CENTRAL=(docker compose --env-file "$CENTRAL_ENV" \
   -f "$BUNDLE_ROOT/deploy/compose/compose.central.yaml" \
@@ -165,8 +165,7 @@ verify_markers() {
     mosquitto_sub -h 127.0.0.1 -t nexolab/offline-bundle/drill -C 1 -W 5 \
     | tr -d '\r\n')"
   minio_marker="$("${CENTRAL[@]}" run --rm -T --no-deps --entrypoint /bin/sh minio-init -ec '
-    mc alias set central http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null
-    mc cat "central/$OBJECT_STORAGE_BUCKET/offline-bundle/marker.txt"
+    python /opt/nexolab/scripts/object-storage-s3.py cat --bucket "$OBJECT_STORAGE_BUCKET" --key offline-bundle/marker.txt
   ' | tr -d '\r\n')"
   edge_marker="$("${EDGE[@]}" exec -T device-agent /usr/bin/python3 -c \
     'from pathlib import Path; print(Path("/var/lib/nexolab/offline-bundle.marker").read_text(encoding="utf-8"), end="")' \
@@ -174,7 +173,7 @@ verify_markers() {
 
   [[ "$postgres_marker" == "offline-bundle-v1" ]] || { echo "PostgreSQL marker mismatch: $postgres_marker" >&2; return 1; }
   [[ "$mqtt_marker" == "offline-bundle-v1" ]] || { echo "MQTT marker mismatch: $mqtt_marker" >&2; return 1; }
-  [[ "$minio_marker" == "offline-bundle-v1" ]] || { echo "MinIO marker mismatch: $minio_marker" >&2; return 1; }
+  [[ "$minio_marker" == "offline-bundle-v1" ]] || { echo "Object-storage marker mismatch: $minio_marker" >&2; return 1; }
   [[ "$edge_marker" == "offline-bundle-v1" ]] || { echo "Edge marker mismatch: $edge_marker" >&2; return 1; }
 }
 
@@ -317,8 +316,7 @@ SQL
 printf 'offline-bundle-v1' | "${CENTRAL[@]}" run --rm -T --no-deps \
   --entrypoint /bin/sh minio-init -ec '
     cat > /tmp/offline-bundle-marker
-    mc alias set central http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null
-    mc cp /tmp/offline-bundle-marker "central/$OBJECT_STORAGE_BUCKET/offline-bundle/marker.txt" >/dev/null
+    python /opt/nexolab/scripts/object-storage-s3.py put-file --bucket "$OBJECT_STORAGE_BUCKET" --key offline-bundle/marker.txt --path /tmp/offline-bundle-marker --content-type text/plain
   '
 
 "${EDGE[@]}" exec -T device-agent /usr/bin/python3 -c \

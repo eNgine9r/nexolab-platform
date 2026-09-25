@@ -313,6 +313,62 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
     }
   };
 
+  const completeDiscoveryOnlyOnboarding = async () => {
+    if (cancelled || workflowLocked || !canManage) return;
+    const currentProfile = profiles.find((item) => item.id === draft.profileId) ?? null;
+    if (!currentProfile || currentProfile.activationSupported || unsupportedChoice) return;
+    if (!draft.deviceClass.trim() || !draft.manufacturer.trim() || !draft.model.trim()) {
+      setError("Вкажіть клас, виробника і модель пристрою.");
+      setStep(0);
+      return;
+    }
+
+    setBusy(true);
+    setPreflightBusy(true);
+    setError(null);
+    setPreflightError(null);
+    const operationRepository = repository;
+    try {
+      const saved = visibleSession
+        ? await repository.updateSession(visibleSession.id, normalizedDraft(draft), visibleSession.version)
+        : await repository.createSession(normalizedDraft(draft), ensureIdempotencyKey(idempotencyKey));
+      if (activeRepository.current !== operationRepository) return;
+      setSession(saved);
+      setDraft(sessionToWrite(saved));
+      if (!commissioningId) router.replace(`/equipment/onboarding/${encodeURIComponent(saved.id)}`);
+
+      if (saved.lifecycle === "verified") return;
+      if (saved.lifecycle !== "ready_for_preflight") {
+        setError("Заповніть підключення, Modbus Unit ID і вітрину перед read-only перевіркою.");
+        return;
+      }
+
+      const result = await repository.runPreflight(
+        saved.id,
+        saved.version,
+        ensureIdempotencyKey(preflightIdempotencyKey),
+      );
+      const refreshed = await repository.getSession(saved.id);
+      if (activeRepository.current !== operationRepository) return;
+      setSession(refreshed);
+      setDraft(sessionToWrite(refreshed));
+      setPreflight(result);
+      setPreflightLoadKey(`${organizationId}:${saved.id}`);
+      preflightIdempotencyKey.current = null;
+      if (result.result !== "passed" || refreshed.lifecycle !== "verified") {
+        setPreflightError("Read-only перевірка не пройдена. Контролер не додано до реєстру.");
+      }
+    } catch (cause: unknown) {
+      if (activeRepository.current !== operationRepository) return;
+      setPreflightError(message(cause));
+    } finally {
+      if (activeRepository.current === operationRepository) {
+        setBusy(false);
+        setPreflightBusy(false);
+      }
+    }
+  };
+
   const cancel = async () => {
     if (!visibleSession || cancelled || workflowLocked || !canManage) return;
     setBusy(true);
@@ -406,6 +462,8 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
   };
 
   const selectedProfile = profiles.find((profile) => profile.id === draft.profileId) ?? null;
+  const discoveryOnlyVerified =
+    visibleSession?.lifecycle === "verified" && selectedProfile?.activationSupported === false;
   const selectedEquipment = equipment.find((item) => item.id === draft.targetEquipmentKey) ?? null;
   const unsupported =
     unsupportedChoice ||
@@ -452,7 +510,10 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                   ? "Read-only monitoring active"
                   : visibleSession?.lifecycle === "pending_activation"
                     ? "Activation pending"
-                    : "Не активний acquisition target"}
+                    : visibleSession?.lifecycle === "verified" &&
+                        selectedProfile?.activationSupported === false
+                      ? "Перевірено · моніторинг вимкнено"
+                      : "Моніторинг не активовано"}
               </span>
             </header>
 
@@ -527,20 +588,22 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                     selectedProfile={selectedProfile}
                     selectedEquipment={selectedEquipment}
                     unsupported={unsupported}
-                    disabled={cancelled || workflowLocked || busy || !canManage}
+                    disabled={cancelled || workflowLocked || discoveryOnlyVerified || busy || !canManage}
                     onSelectProfile={selectProfile}
                   />
 
                   {visibleSession ? (
                     <>
-                      <PreflightPanel
-                        session={visibleSession}
-                        attempt={visiblePreflight}
-                        busy={preflightBusy}
-                        error={visiblePreflightError}
-                        canManage={canManage}
-                        onRun={() => void runPreflight()}
-                      />
+                      {selectedProfile?.activationSupported === false && !visiblePreflight ? null : (
+                        <PreflightPanel
+                          session={visibleSession}
+                          attempt={visiblePreflight}
+                          busy={preflightBusy}
+                          error={visiblePreflightError}
+                          canManage={canManage}
+                          onRun={() => void runPreflight()}
+                        />
+                      )}
                       <ActivationPanel
                         session={visibleSession}
                         profile={selectedProfile}
@@ -554,6 +617,17 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                     </>
                   ) : null}
 
+                  {step === steps.length - 1 &&
+                  selectedProfile?.activationSupported === false &&
+                  !unsupported ? (
+                    <div className="mt-5 rounded-xl border border-cyan-300/15 bg-cyan-400/[0.04] p-3 text-xs leading-5 text-slate-300">
+                      <span className="font-semibold text-cyan-100">Що станеться:</span> система збереже
+                      чернетку, виконає лише bounded read-only FC03 перевірку і після успіху покаже контролер
+                      у реєстрі та на вибраній вітрині. Моніторинг, polling і запис параметрів залишаться
+                      вимкненими.
+                    </div>
+                  ) : null}
+
                   <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.07] pt-5">
                     <div className="flex gap-2">
                       <button
@@ -564,37 +638,77 @@ export function CommissioningWizardScreen({ commissioningId }: { commissioningId
                       >
                         Назад
                       </button>
-                      <button
-                        type="button"
-                        disabled={step === steps.length - 1 || unsupported}
-                        onClick={() => {
-                          if (!unsupported) setStep((value) => Math.min(steps.length - 1, value + 1));
-                        }}
-                        className={secondaryButton}
-                      >
-                        Далі
-                      </button>
-                    </div>
-                    <div className="flex gap-2">
-                      {visibleSession && !cancelled && !workflowLocked && canManage ? (
+                      {step < steps.length - 1 ? (
                         <button
                           type="button"
-                          disabled={busy}
+                          disabled={unsupported}
+                          onClick={() => {
+                            if (!unsupported) setStep((value) => Math.min(steps.length - 1, value + 1));
+                          }}
+                          className={secondaryButton}
+                        >
+                          Далі
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      {visibleSession &&
+                      !cancelled &&
+                      !workflowLocked &&
+                      !discoveryOnlyVerified &&
+                      canManage ? (
+                        <button
+                          type="button"
+                          disabled={busy || preflightBusy}
                           onClick={() => void cancel()}
                           className="rounded-xl border border-rose-400/20 px-4 py-2 text-xs text-rose-200 hover:bg-rose-400/[0.07] disabled:opacity-50"
                         >
                           Скасувати чернетку
                         </button>
                       ) : null}
-                      {!cancelled && !workflowLocked && canManage ? (
+                      {!cancelled &&
+                      !workflowLocked &&
+                      !discoveryOnlyVerified &&
+                      canManage &&
+                      visibleSession?.lifecycle !== "verified" ? (
                         <button
                           type="button"
-                          disabled={busy}
+                          disabled={busy || preflightBusy}
                           onClick={() => void save()}
-                          className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-400 disabled:opacity-50"
+                          className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-white/[0.05] disabled:opacity-50"
                         >
-                          <Save className="h-4 w-4" /> {busy ? "Збереження…" : "Зберегти чернетку"}
+                          <Save className="h-4 w-4" />{" "}
+                          {busy && !preflightBusy ? "Збереження…" : "Зберегти чернетку"}
                         </button>
+                      ) : null}
+                      {step === steps.length - 1 &&
+                      !unsupported &&
+                      selectedProfile?.activationSupported === false &&
+                      !cancelled &&
+                      !workflowLocked &&
+                      canManage ? (
+                        visibleSession?.lifecycle === "verified" ? (
+                          <Link
+                            href="/equipment"
+                            className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-400"
+                          >
+                            <Check className="h-4 w-4" /> Додано до реєстру · відкрити
+                          </Link>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={busy || preflightBusy}
+                            onClick={() => void completeDiscoveryOnlyOnboarding()}
+                            className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-400 disabled:opacity-50"
+                          >
+                            {preflightBusy ? (
+                              <LoaderCircle className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <ShieldCheck className="h-4 w-4" />
+                            )}
+                            {preflightBusy ? "Read-only перевірка…" : "Перевірити та додати до реєстру"}
+                          </button>
+                        )
                       ) : null}
                     </div>
                   </div>

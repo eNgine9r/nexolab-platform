@@ -6,6 +6,8 @@ on:
     paths:
       - ".github/workflows/disaster-recovery-tls-fleet.yml"
       - "infrastructure/compose/compose.disaster-recovery.yaml"
+      - "infrastructure/object-storage/**"
+      - "scripts/object-storage-s3.py"
       - "infrastructure/compose/compose.disaster-recovery-tls-fleet.yaml"
       - "infrastructure/mqtt/dynamic-security/**"
       - "scripts/generate-mqtt-tls-acceptance-material.sh"
@@ -18,6 +20,8 @@ on:
     paths:
       - ".github/workflows/disaster-recovery-tls-fleet.yml"
       - "infrastructure/compose/compose.disaster-recovery.yaml"
+      - "infrastructure/object-storage/**"
+      - "scripts/object-storage-s3.py"
       - "infrastructure/compose/compose.disaster-recovery-tls-fleet.yaml"
       - "infrastructure/mqtt/dynamic-security/**"
       - "scripts/generate-mqtt-tls-acceptance-material.sh"

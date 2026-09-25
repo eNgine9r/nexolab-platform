@@ -71,10 +71,16 @@ async function openSettingsSection(
   sectionId: "general" | "appearance" | "data-collection" | "monitoring" | "system",
 ): Promise<void> {
   const desktopButton = page.getByRole("button", { name: new RegExp(`^${title}`) }).first();
-  if (await desktopButton.isVisible()) {
+  const mobileSelect = page.getByLabel("Розділ налаштувань");
+  const control = await Promise.race([
+    desktopButton.waitFor({ state: "visible" }).then(() => "desktop" as const),
+    mobileSelect.waitFor({ state: "visible" }).then(() => "mobile" as const),
+  ]);
+
+  if (control === "desktop") {
     await desktopButton.click();
   } else {
-    await page.getByLabel("Розділ налаштувань").selectOption(sectionId);
+    await mobileSelect.selectOption(sectionId);
   }
 }
 

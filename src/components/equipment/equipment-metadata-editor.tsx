@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Save, X } from "lucide-react";
 
-import type { EquipmentRegistryAsset } from "@/features/equipment/asset-registry";
+import {
+  isCommissionedControllerAsset,
+  type EquipmentRegistryAsset,
+} from "@/features/equipment/asset-registry";
 import type {
   ClimateCatalogRepository,
   MeasurementDeviceMetadataUpdate,
@@ -81,6 +84,8 @@ export function EquipmentMetadataEditor({
           input,
           asset.source.version,
         );
+      } else if (isCommissionedControllerAsset(asset)) {
+        throw new Error("Discovery-only commissioning record is read-only in the Equipment Registry.");
       } else {
         if (!climateCatalogRepository) throw new Error("Канонічний climate catalog недоступний.");
         const input: MeasurementDeviceMetadataUpdate = {
@@ -293,6 +298,14 @@ function editorValues(asset: EquipmentRegistryAsset): EditorValues {
       inventoryNumber: asset.source.inventoryNumber,
       serialNumber: asset.source.serialNumber ?? "",
       calibrationStatus: asset.source.calibrationStatus,
+    };
+  }
+  if (isCommissionedControllerAsset(asset)) {
+    return {
+      displayName: asset.commissioningProfile.displayName,
+      designation: "",
+      manufacturer: asset.source.manufacturer,
+      model: asset.source.model,
     };
   }
   return {

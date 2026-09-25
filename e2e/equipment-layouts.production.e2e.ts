@@ -119,10 +119,9 @@ function putFixtureObject(storageKey: string): void {
       "minio-init",
       "-ec",
       [
-        'mc alias set acceptance http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null',
-        'mc mb --ignore-existing "acceptance/$OBJECT_STORAGE_BUCKET" >/dev/null',
+        'python /opt/nexolab/scripts/object-storage-s3.py ensure-bucket --bucket "$OBJECT_STORAGE_BUCKET"',
         "cat >/tmp/layout-fixture.png",
-        'mc cp /tmp/layout-fixture.png "acceptance/$OBJECT_STORAGE_BUCKET/$LAYOUT_OBJECT_KEY" >/dev/null',
+        'python /opt/nexolab/scripts/object-storage-s3.py put-file --bucket "$OBJECT_STORAGE_BUCKET" --key "$LAYOUT_OBJECT_KEY" --path /tmp/layout-fixture.png --content-type image/png',
       ].join("\n"),
     ],
     {

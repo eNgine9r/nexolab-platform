@@ -1,6 +1,46 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-18
+Updated: 2026-09-25
+
+## Issue #1140 — discovery-only controller onboarding
+
+**Cleared and merged.** PR #1141 exact head `58d5ccf21f8c5300b16197bf464b3d031d353b4d` passed all five routed workflows and merged to `main` as `2342cf19995c9860328327f44e95baafb81d009d`. Discovery-only Danfoss inventory/showcase visibility is repository-complete while monitoring/production activation remains disabled. No Modbus/controller write, hardware write, production restart or cutover occurred.
+
+## Issue #1146 — VersityGW replacement implementation
+
+**Cleared and merged for repository/software scope.** PR #1149 exact head `53d8ca842ce043a85cccacd5e435ed996d8c0e0d` passed 21/21 required workflows and merged to `main` as `a696a83efe096c82c3f66a4368c0d5a4da12dccd`. VersityGW `v1.8.0` is now the accepted local S3 implementation with a separate VersityGW data volume and fail-closed legacy MinIO protection. Production MinIO → VersityGW object-data migration/cutover was **not executed** and remains a separate explicit approval gate; no production data, named volume, runtime service, Modbus or hardware state was mutated by #1146.
+
+## Issue #1143 — secure LOCAL_LAN object-storage backend architecture decision
+
+**Cleared.** GitHub #1143 is closed completed after explicit Product Owner approval of VersityGW `v1.8.0`. The approved decision preserves LOCAL_LAN/offline operation, local POSIX storage and the existing application-facing S3 semantics without CRITICAL vulnerability exceptions.
+
+## Issue #1142 — MinIO registry withdrawal / legacy reconstruction
+
+**Closed superseded.** GitHub #1142 is closed `not_planned` with `status:superseded`. The exact MinIO reconstruction remains security-rejected and is not a release path. Replacement implementation continues under #1146; no production data or runtime was changed by #1142.
+
+## Issue #1130 — new Expat CVE-2026-93990 HIGH finding
+
+**Cleared for repository/security scope.** The fail-closed finding is reconciled by the exact two-tuple #1130 disposition. Substantive head `20bc2337fd60cee715768bb1c19cd6f47b27bcee` passed focused policy tests 36/36, Container Supply Chain `35867967794`, Telemetry Service `35867967819`, and Core CI / NEXOLAB Merge Gate `35867967858`; manual Team Lead review found no blocking P1/P2 and review threads are zero. Exceptions are limited to Device Agent and Telegram Gateway `libexpat1 / CVE-2026-93990`, owner `platform-security`, expiry 2026-09-29, with immediate removal/re-review conditions. No CRITICAL or wildcard exception exists. PR #1131 is now merged as `f242c6614393486b00029b3ca3dc5fbe20acffad`; #1130 is closed and no longer blocks #1127. PR #1129 subsequently passed its own exact-head gates and merged as `bb34cffa296bf7e6bf8a1f61b7b4fd7e85a9cb83`; #1127 is closed completed.
+
+## Issue #1126 — rs485-main CP2104 `0133F090` is physically absent
+
+**Blocked on physical adapter/cable presence.** The live Device Agent still binds `rs485-main` to stable path `/host/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0`, but that device is absent from the host. Scheduled XJP60D and LE-01MP reads fail with `ENOENT`, and Device Agent health is `unhealthy`/HTTP 503. The system must not silently remap another present adapter. Physical reconnection/presence evidence is required before recovery can be accepted. No Modbus or hardware write has been performed.
+
+## Issue #1125 — Waveshare 8AI humidity hardware signal not yet readable
+
+**Protocol/driver path and dedicated runtime-preparation contract are merged; humidity electrical acceptance is still blocked on real signal evidence.** Generic read-only Device Agent support merged via PR #1129 as `bb34cffa296bf7e6bf8a1f61b7b4fd7e85a9cb83`. Merged #1136/#1137 pins FTDI `A10Q2QYX` to dedicated `rs485-waveshare`, Unit 1, 9600 8N1, with eight raw `analog.input` channels and disabled-by-default production opt-in; merge SHA `082662657671f9dcd05b493598798708847856a4`. Existing discovery still reports all eight channel modes as mode 0 (0–10 V) and repeated FC04 reads as zero, so the wired humidity transmitter cannot yet be identified from data. For the planned 4–20 mA path, the Product Owner will move the correct physical jumper; acceptance then requires read-only mode `3`, a plausible `4000..20000 uA` signal, exact channel identity, and the transmitter's actual engineering range before `%RH` scaling can be accepted. Production activation is separately gated. No Modbus or hardware write has been performed.
+
+## Issue #1117 — Eastron SDM120M bounded production activation
+
+**Cleared and accepted in live LOCAL_LAN runtime.** Product Owner-authorized cutover activated compatibility source `7db6c8c34c7c94874afe2a3301a2209585795744` for Device Agent and Dashboard. The live SDM120 path is `rs485-sdm120 / A10Q34QC / Unit 1 / 9600 8N1`, with eight active targets and FC04-only reads. Scheduler is 3/3 workers healthy, capacity safe, and SDM120 has zero timeout / I/O / protocol / retry failures. Full 60-second cadence acceptance confirms all eight targets advance without communication or consecutive failures. PostgreSQL `telemetry_latest` has exactly eight current valid SDM120 rows. Authenticated production Chromium DOM acceptance is GREEN without screenshots: `W1 | W2 | W3 | W4 | SDM120M`, live SDM voltage/current/active-power/frequency, `Не підтримується` for internal temperature, and 5/5 meters selected. Telemetry/PostgreSQL/MQTT identities are unchanged and rollback is retained. Evidence: `runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z`. No Modbus or hardware write occurred.
+
+## Issue #1104 — Eastron SDM120M software integration
+
+**Cleared and merged.** PR #1105 final exact head `7f78ea1a7c51ccf9fefb9fb86509b6a43f861728` passed all 11 required workflows and squash-merged to `main` as `8fe975524fe9449b96fedefa4430cb57829a49da`; GitHub closed #1104 completed. Runtime opt-out is fail-closed and durable. Production activation is now tracked separately by #1117.
+
+## Issue #1113 — PR #1105 CI routing blocker
+
+**Cleared and merged.** PR #1114 final exact head `a08c1f23752a23255f740c2b1a3bf3fafa08b33f` passed Core/NEXOLAB Merge Gate, Authenticated Dashboard, Refrigeration Browser, Offline Bundle, Telegram Gateway and Edge image, then squash-merged to `main` as `08fe019af3c062a03d9f1876f059ac832b6b0d73`. Known RS-485/acquisition paths now require their specialized workflows while unknown neighboring paths remain fail-closed. No production activation, Modbus write or hardware write occurred.
 
 ## Issue #1094 — RFX-12 frontend-only Overview production release
 

@@ -8,7 +8,7 @@ This runbook covers a disconnected `LOCAL_LAN` installation of the NEXOLAB core:
 - telemetry API and migrations;
 - PostgreSQL;
 - Mosquitto;
-- MinIO and MinIO Client;
+- VersityGW local S3 object storage; repository S3 administration uses the Telemetry image;
 - Device Agent in simulator mode;
 - optional fail-closed local operator authentication.
 
@@ -29,7 +29,7 @@ The bundle contains images, Compose definitions, environment templates, SBOMs, p
 
 - `.env.central` or `.env.edge`;
 - passwords, JWT private keys, access tokens or site certificates;
-- PostgreSQL, MinIO, MQTT or SQLite data;
+- PostgreSQL, object-storage, MQTT or SQLite data;
 - production telemetry;
 - Modbus device configuration.
 
@@ -157,7 +157,7 @@ The workflow:
 4. validates Compose projects;
 5. starts them with `--no-build --pull never`;
 6. waits for health checks;
-7. verifies dashboard, REST readiness, WebSocket application evidence, MQTT, PostgreSQL, MinIO and edge simulator health;
+7. verifies dashboard, REST readiness, WebSocket application evidence, MQTT, PostgreSQL, object-storage and edge simulator health;
 8. for local auth, verifies login, organization membership, RBAC, refresh rotation and logout revocation.
 
 No npm, PyPI, Docker Hub, GHCR, Supabase, Render, Vercel or paid service is required at runtime.
@@ -232,7 +232,7 @@ The manifest records each image's unpacked Docker size and the image archive siz
 2. the extracted bundle and uncompressed `images.tar`;
 3. loaded Docker layers;
 4. at least one previous bundle for rollback;
-5. PostgreSQL, MinIO, MQTT, telemetry spool and edge SQLite growth;
+5. PostgreSQL, object-storage, MQTT, telemetry spool and edge SQLite growth;
 6. backup staging space.
 
 Do not remove old data volumes to create space. Remove only verified obsolete image layers or old bundle archives after rollback retention requirements are satisfied.

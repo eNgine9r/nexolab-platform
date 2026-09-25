@@ -5,7 +5,7 @@
 This runbook covers the complete central-state recovery boundary:
 
 ```text
-PostgreSQL + private MinIO objects + Mosquitto Dynamic Security + local-auth RSA pair
+PostgreSQL + private S3 object storage + Mosquitto Dynamic Security + local-auth RSA pair
                                   ↓
                     canonical manifest and hashes
                                   ↓
@@ -27,7 +27,7 @@ The authoritative inventory is `security/disaster-recovery-assets.json`.
 | Order | Asset                                      | Consistency boundary       | Backup format                          | Restore verification                                           |
 | ----: | ------------------------------------------ | -------------------------- | -------------------------------------- | -------------------------------------------------------------- |
 |    10 | PostgreSQL                                 | logical snapshot           | `pg_dump --format=custom`              | archive list, Alembic head, row counts, immutable hashes       |
-|    20 | MinIO bucket `nexolab-equipment-images`    | application quiesce        | object tree + sorted metadata manifest | private bucket, count, size and SHA-256                        |
+|    20 | S3 bucket `nexolab-equipment-images`       | application quiesce        | object tree + sorted metadata manifest | private bucket, count, size and SHA-256                        |
 |    30 | Mosquitto persistence and Dynamic Security | controlled service quiesce | deterministic tar                      | clients, roles, ACLs, disabled state and credential rotation   |
 |    40 | Local-auth private signing key             | operator secret snapshot   | PEM inside encrypted bundle            | mode 0600, RSA validity, public-key match, missing-key failure |
 |    50 | Local-auth public verification key         | operator secret snapshot   | PEM inside encrypted bundle            | mode 0644, RSA validity and private-key match                  |
@@ -117,16 +117,16 @@ The extractor validates the encrypted bundle and canonical manifest before writi
 
 ## Restore order
 
-1. Create fresh PostgreSQL, MinIO and Mosquitto destination volumes with unique drill or incident identifiers.
+1. Create fresh PostgreSQL, object-storage and Mosquitto destination volumes with unique drill or incident identifiers.
 2. Verify and extract the encrypted bundle.
 3. Restore the PostgreSQL custom dump.
 4. Run `alembic upgrade head` against the restored database.
-5. Restore MinIO objects and keep the bucket private.
+5. Restore S3 objects and keep the bucket private.
 6. Restore Mosquitto persistence and Dynamic Security state while the restored broker is stopped.
 7. Prove Telemetry Service fails closed without the local-auth key pair, then restore the matching private/public PEM files with modes 0600/0644.
 8. Start the restored broker, migration job and application services with local authentication enabled.
 9. Verify protected-domain hashes and counts, including local accounts, memberships and pre-backup sessions.
-10. Verify MinIO object bytes, metadata and private access.
+10. Verify object-storage bytes, metadata and private access.
 11. Verify Dynamic Security clients, roles, ACLs, disabled state and credential generation.
 12. Verify the pre-backup local access and refresh session, refresh rotation, logout revocation and a new password login.
 13. Verify readiness and authenticated REST and WebSocket reads.
@@ -144,7 +144,7 @@ Every rehearsal or incident record must contain:
 - encrypted bundle byte size and SHA-256;
 - backup and restore durations;
 - PostgreSQL dump size, schema head, protected counts and canonical hashes;
-- MinIO object count, byte sizes and SHA-256 values;
+- object-storage object count, byte sizes and SHA-256 values;
 - Mosquitto policy-state hash and TLS boundary results;
 - local-auth account/membership/session state, restored key-pair validation and fail-closed missing-key result;
 - restored application readiness;
@@ -189,7 +189,7 @@ A production deployment should expose these recovery signals to the monitoring s
 - age of last successful backup;
 - backup duration and encrypted bundle bytes;
 - verification success/failure;
-- protected PostgreSQL, MinIO and Mosquitto component counts;
+- protected PostgreSQL, object-storage and Mosquitto component counts;
 - off-host copy success and age;
 - free space in the backup destination;
 - age and result of the last restore rehearsal;

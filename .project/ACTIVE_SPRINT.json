@@ -18,20 +18,29 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "1a0644497e4cfd10ce7ba0366772955c72f4711a",
+    "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
-    "frontend_compatibility_source_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
-    "frontend_build_id": "fveOqzLHugE-KZ4RRBogM",
-    "frontend_release": "runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z",
-    "frontend_rollback_release": "runtime/frontend-releases/df368cfa27efa945d59de33de8268898b564a19f-20260918T050734Z",
-    "frontend_runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z"
+    "frontend_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
+    "frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
+    "frontend_release": "runtime/frontend-releases/7db6c8c34c7c94874afe2a3301a2209585795744-20260922T134803Z",
+    "frontend_rollback_release": "runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z",
+    "frontend_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+    "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
+    "sdm120_candidate_device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+    "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
+    "sdm120_candidate_frontend_artifact_sha256": "d73ec2b840b01733a7761b8b555e1b62c4e12b574ea2a0db5a115acd62e32fb6",
+    "sdm120_candidate_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
+    "device_agent_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
+    "device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+    "device_agent_rollback_image_id": "sha256:25ba94b454ebe6dd0d22ed7501ea7368141a32507e09e181cc5b33056e1239db",
+    "device_agent_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+    "sdm120_production_bus_id": "rs485-sdm120",
+    "sdm120_production_adapter": "A10Q34QC",
+    "sdm120_production_unit_id": 1,
+    "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1106,
-      "title": "[SECURITY][CI] Allow fresh container scan after exception expiry without weakening gate",
-      "branch": "fix/1106-container-expiry-discovery"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -4520,12 +4529,651 @@
       }
     },
     {
-      "issue": 1106,
-      "title": "[SECURITY][CI] Allow fresh container scan after exception expiry without weakening gate",
+      "issue": 1108,
+      "title": "[SECURITY] Revalidate 2026-09-22 container HIGH exception registry",
       "priority": "unspecified",
-      "lifecycle": "in_progress",
-      "branch": "fix/1106-container-expiry-discovery",
-      "evidence": {}
+      "lifecycle": "completed",
+      "branch": "security/1108-container-high-review",
+      "evidence": {
+        "verified_head_sha": "0f9e3a088e9ac541929d0929ce9dda3c368b0a77",
+        "pull_request": 1110,
+        "checks": {
+          "Container Supply Chain": "success:35705373349",
+          "CI/NEXOLAB Merge Gate": "success:35705373342",
+          "Telemetry service": "success:35705373383"
+        }
+      }
+    },
+    {
+      "issue": 1111,
+      "title": "[STATE][SECURITY] Reconcile #1108 post-merge review deadline",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "chore/1111-reconcile-1108-state",
+      "evidence": {
+        "verified_head_sha": "1b757b9f04ad30f05b00515c2256e209d9d23527",
+        "pull_request": 1112,
+        "checks": {
+          "State integrity": "success:35706581524",
+          "NEXOLAB Merge Gate": "success:35706581524"
+        }
+      }
+    },
+    {
+      "issue": 1113,
+      "title": "[CI][RS485] Classify acquisition and discovery paths without impossible browser routing",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "fix/1113-rs485-ci-routing",
+      "evidence": {
+        "verified_head_sha": "6eb82f8f0a5aa16a1fd14f91a83c8664013cacb6",
+        "pull_request": 1114,
+        "checks": {
+          "CI/NEXOLAB Merge Gate": "success:35711596266",
+          "Authenticated Dashboard Acceptance": "success:35711596317",
+          "Refrigeration Browser Acceptance": "success:35711596267",
+          "Offline Bundle": "success:35711596288",
+          "Telegram Gateway": "success:35711596352",
+          "Edge image": "success:35711596329"
+        }
+      }
+    },
+    {
+      "issue": 1104,
+      "title": "[ENERGY][SDM120] Add Eastron SDM120M on dedicated RS-485 bus",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "feat/1104-sdm120-energy-meter",
+      "evidence": {
+        "review_findings_addressed": 6,
+        "python_review_matrix": "68_passed_then_5_of_5_direct_regressions_passed_after_single_guard_correction",
+        "frontend_targeted_tests": "24_of_24_passed",
+        "typecheck": "passed",
+        "eslint": "passed",
+        "python_compile": "passed",
+        "diff_check": "passed",
+        "exact_head_933fc5fe": {
+          "green": [
+            "RS485 tools",
+            "Edge image",
+            "Acquisition Scale Acceptance",
+            "Device Agent Fleet Acceptance",
+            "Telemetry service",
+            "MQTT TLS Fleet Acceptance",
+            "Disaster Recovery TLS Fleet",
+            "Container Supply Chain"
+          ],
+          "authenticated_dashboard": "failed_19_of_20_settings_navigation_hydration_race",
+          "merge_gate": "failed_due_to_authenticated_dashboard"
+        },
+        "dashboard_failure_root_cause": "post_reload_immediate_isVisible_selected_hidden_mobile_control_before_desktop_hydration",
+        "dashboard_helper_correction_checks": "prettier_eslint_typecheck_diff_check_passed",
+        "exact_head_c39d174b": "11_of_11_required_workflows_green",
+        "post_ci_review_findings": 4,
+        "post_ci_targeted_python": "3_of_3_passed",
+        "post_ci_energy_hook": "13_of_13_passed",
+        "post_ci_cadence_authority": "6_of_6_passed",
+        "post_ci_static_checks": "prettier_eslint_typecheck_python_compile_diff_check_passed",
+        "exact_head_6f3df1ff": "11_of_11_required_workflows_green",
+        "final_rollback_review": "sdm_device_and_targets_reconciled_on_opt_out",
+        "rollback_targeted_tests": "2_of_2_passed",
+        "rollback_static_checks": "python_compile_diff_check_passed",
+        "final_exact_head_sha": "7f78ea1a7c51ccf9fefb9fb86509b6a43f861728",
+        "final_exact_head_ci": "11_of_11_required_workflows_green",
+        "pull_request": 1105,
+        "github_issue_state": "closed_completed",
+        "production_activation": "not_performed_requires_explicit_product_owner_approval",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1119,
+      "title": "[STATE][SDM120] Record pre-cutover compatibility readiness",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "chore/1119-record-sdm120-readiness",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "deployment_issue": 1117,
+        "deployment_issue_state": "open_waiting_explicit_product_owner_approval",
+        "candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
+        "candidate_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
+        "candidate_diff_files": 44,
+        "accepted_identity_files": 43,
+        "accepted_identity_mismatches": 0,
+        "release_pr": 1118,
+        "release_ci": "push_and_pull_request_green",
+        "candidate_device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+        "candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
+        "candidate_frontend_artifact_sha256": "d73ec2b840b01733a7761b8b555e1b62c4e12b574ea2a0db5a115acd62e32fb6",
+        "pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
+        "candidate_hardware_fc04": "pass_voltage_232.0V_frequency_49.99Hz_import_energy_0.039kWh",
+        "candidate_isolated_agent": "health_ok_mqtt_true_queue_0_cleanup_pass",
+        "candidate_isolated_frontend": "routes_200_cleanup_pass",
+        "candidate_topology": "three_bus_render_pass_not_activated",
+        "production_sdm120_polling": false,
+        "production_cutover_authorized": false,
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "persistent_data_deletion": "none",
+        "named_volume_deletion": "none",
+        "verified_head_sha": "0823c63b8c6d086785d689b73a25e4a0fcb30ce9",
+        "pull_request": 1120,
+        "checks": {
+          "State integrity": "success:35734775637",
+          "CI/NEXOLAB Merge Gate": "success:35734775637"
+        }
+      }
+    },
+    {
+      "issue": 1121,
+      "title": "[STATE][SDM120] Reconcile completed production activation",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "chore/1121-record-sdm120-production",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "deployment_issue": 1117,
+        "deployment_issue_state": "closed_completed",
+        "compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
+        "device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+        "device_agent_container_id": "e0935d5168f980af31b731847f89d2160c9a49a8eeed3e68665ba51a88a7a434",
+        "frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
+        "frontend_release": "runtime/frontend-releases/7db6c8c34c7c94874afe2a3301a2209585795744-20260922T134803Z",
+        "rollback_device_agent_image_id": "sha256:25ba94b454ebe6dd0d22ed7501ea7368141a32507e09e181cc5b33056e1239db",
+        "rollback_frontend_release": "runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z",
+        "rollback_private_dir": "/home/nexolab/nexolab-runtime-backups/issue-1117-20260922T134803Z",
+        "runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+        "scheduler": "61_targets_3_of_3_workers_healthy_capacity_safe",
+        "sdm120": "8_targets_fc04_only_zero_timeout_io_protocol_retry",
+        "postgres_latest": "8_sdm120_series_36_le01mp_series",
+        "edge_sqlite": "quick_check_ok",
+        "frontend": "energy_http_200_deployed_bundle_contains_sdm120_mapping",
+        "browser_visual_acceptance": "pixel_screenshot_acceptance_not_performed",
+        "core_container_identities": "unchanged",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "persistent_data_deletion": "none",
+        "named_volume_deletion": "none",
+        "verified_head_sha": "403b7ae012547dd7e189dce6d949559ab258848c",
+        "pull_request": 1122,
+        "checks": {
+          "State integrity": "success:35737562046",
+          "CI/NEXOLAB Merge Gate": "success:35737562046"
+        },
+        "browser_dom_acceptance": "authenticated_production_energy_pass_no_screenshots",
+        "browser_dom_headers": "W1_W2_W3_W4_SDM120M",
+        "browser_dom_sdm": "voltage_live_current_live_active_power_live_frequency_live_temperature_unsupported_5_of_5",
+        "full_cadence_polling": "8_of_8_targets_advanced_at_60s_zero_communication_failures",
+        "postgres_latest_final": "8_of_8_sdm120_rows_valid"
+      }
+    },
+    {
+      "issue": 1123,
+      "title": "[STATE][SDM120] Record successful production cutover",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "chore/1123-record-sdm120-cutover",
+      "evidence": {
+        "scope": "canonical_state_supplemental_acceptance_only",
+        "deployment_issue": 1117,
+        "deployment_issue_state": "closed_completed",
+        "state_reconciliation_issue": 1121,
+        "state_reconciliation_pr": 1122,
+        "runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+        "authenticated_browser_dom": "PASS_no_screenshots",
+        "energy_headers": "W1|W2|W3|W4|SDM120M",
+        "energy_sdm_voltage": "live_229_5V_observed",
+        "energy_sdm_current": "live_0_0A_observed",
+        "energy_sdm_active_power": "live_0W_observed",
+        "energy_sdm_frequency": "live_50_0Hz_observed",
+        "energy_sdm_temperature": "not_supported",
+        "energy_selected_meters": "5_of_5",
+        "full_cadence_polling": "PASS_8_of_8_targets_advanced_14_to_16_zero_failures",
+        "postgres_latest": "PASS_8_of_8_current_rows_valid",
+        "evidence_checksums": "PASS_after_final_browser_cadence_persistence_update",
+        "runtime_mutation": "none_in_issue_1123",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "verified_head_sha": "025c7d1225e2464e2205126322c68bc2eb931a40",
+        "pull_request": 1124,
+        "checks": {
+          "State integrity": "success:35739907005",
+          "CI/NEXOLAB Merge Gate": "success:35739907005"
+        }
+      }
+    },
+    {
+      "issue": 1125,
+      "title": "Waveshare 8AI read-only hardware discovery for humidity/future analog instruments",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "depends_on": [],
+      "branch": "feat/1125-waveshare-8ai-discovery",
+      "evidence": {
+        "hardware_module": "Waveshare Modbus RTU Analog Input 8CH (B) V3",
+        "adapter": "A10Q2QYX",
+        "unit_id": 1,
+        "serial": "9600_8N1",
+        "software_version": "2.10",
+        "channel_modes": "0,0,0,0,0,0,0,0",
+        "fc04_samples": "3_passes_all_zero_crc_valid",
+        "modbus_reads": "FC03_FC04_only",
+        "modbus_writes": "none",
+        "hardware_writes": "none",
+        "blocker": "humidity_channel_not_identifiable_until_signal_mode_wiring_are_confirmed"
+      }
+    },
+    {
+      "issue": 1126,
+      "title": "Restore missing rs485-main CP2104 0133F090 adapter",
+      "priority": "critical",
+      "lifecycle": "blocked",
+      "depends_on": [],
+      "evidence": {
+        "expected_adapter": "0133F090",
+        "runtime_bus": "rs485-main",
+        "device_agent_health": "unhealthy_http_503",
+        "failure": "stable_by_id_path_ENOENT",
+        "physical_action_required": "yes",
+        "modbus_writes": "none",
+        "hardware_writes": "none"
+      }
+    },
+    {
+      "issue": 1127,
+      "title": "Waveshare 8AI read-only Device Agent acquisition driver",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "evidence": {
+        "implementation_scope": "generic_read_only_8_channel_acquisition_driver",
+        "profile_version": "waveshare-modbus-rtu-analog-input-8ch-b-v3-readonly-v1",
+        "canonical_telemetry_metric": "analog.input",
+        "mode_units": "0_1_mV__2_3_uA__4_count",
+        "runtime_opt_in": "fail_closed_requires_explicit_bus_and_unit_ids",
+        "production_activation": "not_executed_not_authorized",
+        "full_device_agent_tests": "325_passed_0_failed_0_errors",
+        "acquisition_scale_acceptance": "46_assertions_passed",
+        "python_compile": "success",
+        "git_diff_check": "success",
+        "real_hardware_driver_probe": "A10Q2QYX_unit1_9600_8N1_8_of_8_channels_read_only_success_all_mode0_zero_mV",
+        "humidity_engineering_acceptance": "blocked_by_issue_1125",
+        "modbus_reads": "FC03_mode_plus_FC04_input_only",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "recorded_frame_regression": "issue_1125_fc03_fc04_crc_valid_frames_decode_8_of_8",
+        "security_dependency": "issue_1130_merged_green_f242c661",
+        "state_reconciliation_dependency": "issue_1132_merged_green_901e893c",
+        "post_main_merge_device_agent_tests": "325_passed",
+        "post_main_merge_acquisition_scale": "46_assertions_passed",
+        "post_main_merge_security_policy_tests": "36_passed",
+        "integrated_main_sha": "901e893c6c0ce81a61cd02fc06efdba5216b78fd",
+        "verified_exact_head_sha": "71228281bb75c587583478c52c9e340d1d5d7887",
+        "pull_request": 1129,
+        "merged_sha": "bb34cffa296bf7e6bf8a1f61b7b4fd7e85a9cb83",
+        "github_issue": "closed_completed",
+        "container_supply_chain": "success:35870566784",
+        "core_ci_and_merge_gate": "success:35870566817",
+        "offline_bundle": "success:35870566773",
+        "production_runtime_mutation": "none"
+      },
+      "branch": "feat/1127-waveshare-8ai-driver"
+    },
+    {
+      "issue": 1130,
+      "title": "Triage new Expat CVE-2026-93990 HIGH findings",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "fix/1130-expat-cve-93990",
+      "evidence": {
+        "trigger_pr": 1129,
+        "trigger_head_sha": "386b5fa84fa1fad5bed8ff7a23d479132e55bc26",
+        "trigger_container_supply_chain_run": 35866744217,
+        "new_tuples": "device-agent+telegram-gateway/libexpat1/CVE-2026-93990",
+        "debian_trixie": "2.8.3-1~deb13u1_vulnerable_no_fixed_trixie_version",
+        "runtime_xml_reachability": "none_found_device_agent_or_telegram_gateway",
+        "exception_expiry": "2026-09-29",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "verified_security_head_sha": "20bc2337fd60cee715768bb1c19cd6f47b27bcee",
+        "focused_policy_tests": "36_passed",
+        "container_supply_chain": "success:35867967794",
+        "telemetry_service": "success:35867967819",
+        "core_ci_and_merge_gate": "success:35867967858",
+        "manual_team_lead_review": "clean_no_p1_p2",
+        "review_threads": "zero",
+        "codex_review": "unavailable_usage_limit_manual_review_used",
+        "production_runtime_mutation": "none",
+        "pull_request": 1131,
+        "merged_sha": "f242c6614393486b00029b3ca3dc5fbe20acffad",
+        "issue_state": "closed_completed"
+      }
+    },
+    {
+      "issue": 1132,
+      "title": "Reconcile merged #1130 and resume #1127",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1130
+      ],
+      "branch": "chore/1132-reconcile-1130-state",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "trigger_pull_request": 1131,
+        "merged_security_sha": "f242c6614393486b00029b3ca3dc5fbe20acffad",
+        "verified_security_head_sha": "20bc2337fd60cee715768bb1c19cd6f47b27bcee",
+        "container_supply_chain": "success:35867967794",
+        "telemetry_service": "success:35867967819",
+        "core_ci_and_merge_gate": "success:35867967858",
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "pull_request": 1133,
+        "merged_sha": "901e893c6c0ce81a61cd02fc06efdba5216b78fd",
+        "issue_state": "closed_completed"
+      }
+    },
+    {
+      "issue": 1134,
+      "title": "Reconcile merged Waveshare #1127 and close software Work Package",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1127
+      ],
+      "branch": "chore/1134-reconcile-1127-state",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "trigger_pull_request": 1129,
+        "merged_waveshare_sha": "bb34cffa296bf7e6bf8a1f61b7b4fd7e85a9cb83",
+        "verified_waveshare_head_sha": "71228281bb75c587583478c52c9e340d1d5d7887",
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1136,
+      "title": "Prepare LOCAL_LAN Waveshare humidity acquisition integration",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1127
+      ],
+      "branch": "feat/1136-waveshare-humidity-runtime-prep",
+      "evidence": {
+        "implementation_scope": "dedicated_rs485_waveshare_runtime_contract_plus_humidity_acceptance_boundary",
+        "stable_adapter": "A10Q2QYX",
+        "runtime_bus": "rs485-waveshare",
+        "unit_id": 1,
+        "serial": "9600_8N1",
+        "duplicate_unit_1_with_sdm120": "safe_bus_scoped",
+        "compose_opt_in": "disabled_by_default_requires_explicit_bus_and_unit",
+        "raw_telemetry": "WAVESHARE-8AI-1__1-ai-1_to_1-ai-8__analog.input",
+        "mode_3_raw_domain": "4000_to_20000_uA",
+        "humidity_channel": "unresolved_pending_physical_signal",
+        "humidity_engineering_range": "unresolved_pending_transmitter_evidence",
+        "targeted_tests": "56_passed",
+        "full_device_agent_tests": "327_passed",
+        "acquisition_scale_acceptance": "46_assertions_passed",
+        "candidate_compose_render": "passed_four_buses_separate_sdm120_and_waveshare_unit_1",
+        "python_compile": "success",
+        "config_parse": "success",
+        "git_diff_check": "success",
+        "production_activation": "not_executed_not_authorized",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "implementation_commit": "342e352a9f86cd76acae4777aeccca92450d4b21",
+        "candidate_image_id": "sha256:b0d5d0f4471fd470de34cd4453b1b86891947da0ec26bea4404acd32006f2ea2",
+        "candidate_image_platform": "linux_arm64",
+        "offline_mode3_container_smoke": "pass_network_none_12000_uA_mode3",
+        "first_exact_head_ci": "core_merge_gate_failed_missing_refrigeration_workflow_registration_35895333537",
+        "ci_routing_correction": "readonly_profile_registered_device_agent_edge_image_fail_closed_neighbors_preserved",
+        "ci_routing_tests": "61_passed",
+        "verified_exact_head_sha": "bc132b99aa37f2eaebc52edce4fedc0d37bedebf",
+        "pull_request": 1137,
+        "merged_sha": "082662657671f9dcd05b493598798708847856a4",
+        "github_issue": "closed_completed",
+        "exact_head_core_ci": "success:35903586184",
+        "exact_head_offline_bundle": "success:35903586272",
+        "exact_head_edge_image": "success:35903586214",
+        "exact_head_container_supply_chain": "success:35903586289",
+        "exact_head_authenticated_dashboard": "success:35903586434",
+        "exact_head_refrigeration_browser": "success:35903586179",
+        "humidity_hardware": "unverified_pending_issue_1125"
+      }
+    },
+    {
+      "issue": 1138,
+      "title": "Reconcile merged Waveshare humidity software prep #1136",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1136
+      ],
+      "branch": "chore/1138-reconcile-1136-state",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "trigger_pull_request": 1137,
+        "merged_waveshare_sha": "082662657671f9dcd05b493598798708847856a4",
+        "verified_waveshare_head_sha": "bc132b99aa37f2eaebc52edce4fedc0d37bedebf",
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1142,
+      "title": "Restore reproducible object-storage acceptance/offline supply after MinIO registry withdrawal",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1143
+      ],
+      "branch": "fix/1142-minio-supply",
+      "evidence": {
+        "root_cause": "withdrawn_minio_registry_plus_current_security_policy_rejects_reconstructed_legacy_binaries",
+        "reconstruction": "official_release_binaries_sha256_verified_amd64_arm64",
+        "minio_server_fresh_scan": "89_unapproved_HIGH_CRITICAL",
+        "minio_mc_fresh_scan": "66_unapproved_HIGH_CRITICAL",
+        "critical_exceptions": "forbidden",
+        "unsafe_candidate_committed": "no",
+        "production_runtime_mutation": "none",
+        "production_data_mutation": "none",
+        "modbus_writes": "none",
+        "hardware_writes": "none",
+        "blocker": "architecture_decision_issue_1143",
+        "github_state": "closed_not_planned",
+        "github_label": "status:superseded",
+        "superseded_by_issue": 1146,
+        "superseded_reason": "legacy_MinIO_reconstruction_security_rejected_and_Product_Owner_approved_VersityGW_replacement"
+      }
+    },
+    {
+      "issue": 1143,
+      "title": "Select maintained offline S3 backend after MinIO Community end-state",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "evidence": {
+        "decision_type": "product_architecture_hard_blocker",
+        "candidate": "VersityGW_v1.8.0",
+        "license": "Apache-2.0",
+        "arm64_sha256_archive_verified": true,
+        "amd64_sha256_archive_verified": true,
+        "trivy_arm64": "0_HIGH_0_CRITICAL_2_MEDIUM_1_UNKNOWN",
+        "trivy_amd64": "0_HIGH_0_CRITICAL_2_MEDIUM_1_UNKNOWN",
+        "arm64_s3_poc": "health_create_bucket_put_get_metadata_presigned_get_delete_passed",
+        "offline_posix_backend": "verified_local_nonproduction",
+        "production_cutover": "not_executed_not_authorized",
+        "production_data_migration": "not_executed_not_authorized",
+        "blocker": "cleared_by_Product_Owner_backend_selection",
+        "decision": "VersityGW_v1.8.0_approved",
+        "product_owner_approval": "approved_2026-09-24",
+        "github_state": "closed_completed"
+      }
+    },
+    {
+      "issue": 1144,
+      "title": "Record object-storage security/architecture blocker #1143",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1142,
+        1143
+      ],
+      "branch": "chore/1144-object-storage-blocker-state",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "active_work_package": null,
+        "next_work_package": null,
+        "accepted_product_baseline_changed": false,
+        "deployed_product_baseline_changed": false,
+        "production_runtime_mutation": "none",
+        "production_data_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1146,
+      "title": "Replace MinIO Community with VersityGW for local S3 runtime",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "branch": "feat/1146-versitygw-offline-storage",
+      "evidence": {
+        "architecture_decision_issue": 1143,
+        "legacy_supply_issue": 1142,
+        "backend": "VersityGW_v1.8.0",
+        "storage_backend": "local_POSIX",
+        "verified_head_sha": "53d8ca842ce043a85cccacd5e435ed996d8c0e0d",
+        "pull_request": 1149,
+        "merged_sha": "a696a83efe096c82c3f66a4368c0d5a4da12dccd",
+        "github_issue": "closed_completed",
+        "exact_head_ci": "21_of_21_green",
+        "checks": {
+          "core_ci_and_merge_gate": "success",
+          "container_supply_chain": "success",
+          "telemetry_service": "success",
+          "offline_auth_acceptance": "success",
+          "offline_bundle": "success:36064735431",
+          "disaster_recovery_acceptance": "success",
+          "refrigeration_browser_acceptance": "success_6_of_6",
+          "authenticated_dashboard_acceptance": "success"
+        },
+        "offline_bundle_evidence": "clean_host_disconnected_start_update_rollback_persistent_data_preserved",
+        "legacy_minio_volume_mounted": false,
+        "migration_cutover": "not_executed_separate_gate",
+        "production_runtime_mutation": "none",
+        "production_object_data_mutation": "none",
+        "volume_deletion": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      },
+      "depends_on": [
+        1143
+      ]
+    },
+    {
+      "issue": 1140,
+      "title": "Complete discovery-only controller onboarding into registry and showcase",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "feat/1140-discovery-only-onboarding",
+      "evidence": {
+        "audit_root_cause": "verified_discovery_only_commissioning_session_had_no_completion_projection_into_equipment_registry_or_showcase_controller_view",
+        "product_boundary": "inventory_registration_separate_from_monitoring_activation",
+        "danfoss_activation_supported": false,
+        "local_targeted_tests": "33_passed",
+        "full_frontend_tests": "153_files_786_tests_passed",
+        "eslint": "success",
+        "typecheck": "success",
+        "production_build": "success_next_build_webpack",
+        "turbopack_worktree_symlink_build": "environment_failure_only_node_modules_points_outside_worktree_root",
+        "prettier": "success",
+        "git_diff_check": "success",
+        "production_activation": "not_executed_not_authorized",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "github_ci": "5_of_5_green",
+        "pull_request": 1141,
+        "integrated_main_sha": "bfaa19101f4c66b078aade4caed9ee76503f8396",
+        "post_main_focused_tests": "28_passed_3_files",
+        "post_main_prettier_changed": "success",
+        "post_main_eslint_changed": "success",
+        "post_main_typecheck": "success",
+        "post_main_state_model_v2": "success",
+        "post_main_git_diff_check": "success",
+        "verified_head_sha": "58d5ccf21f8c5300b16197bf464b3d031d353b4d",
+        "merged_sha": "2342cf19995c9860328327f44e95baafb81d009d",
+        "github_issue": "closed_completed",
+        "exact_head_workflows": {
+          "core_ci_quality_build_merge_gate": "success",
+          "authenticated_dashboard_acceptance": "success",
+          "refrigeration_browser_acceptance": "success",
+          "security_browser_acceptance": "success",
+          "disaster_recovery_browser": "success"
+        },
+        "ci_acceptance_fixture_fixes": "test_only_registry_row_disambiguation_and_unassociated_showcase_draft"
+      }
+    },
+    {
+      "issue": 1150,
+      "title": "Reconcile merged VersityGW object-storage WP #1146",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1146
+      ],
+      "branch": "chore/1150-reconcile-versitygw-merge",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "trigger_pull_request": 1149,
+        "merged_implementation_sha": "a696a83efe096c82c3f66a4368c0d5a4da12dccd",
+        "verified_implementation_head_sha": "53d8ca842ce043a85cccacd5e435ed996d8c0e0d",
+        "exact_head_ci": "21_of_21_green",
+        "accepted_product_baseline_changed": false,
+        "deployed_product_baseline_changed": false,
+        "production_object_storage_migration": "not_executed",
+        "production_runtime_mutation": "none",
+        "production_data_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "state_model_v2": "success_local",
+        "git_diff_check": "success_local"
+      }
+    },
+    {
+      "issue": 1152,
+      "title": "Reconcile merged discovery-only onboarding WP #1140",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1140
+      ],
+      "branch": "chore/1152-reconcile-1140-merge",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "trigger_pull_request": 1141,
+        "merged_implementation_sha": "2342cf19995c9860328327f44e95baafb81d009d",
+        "verified_implementation_head_sha": "58d5ccf21f8c5300b16197bf464b3d031d353b4d",
+        "exact_head_ci": "5_of_5_green",
+        "accepted_product_baseline_changed": false,
+        "deployed_product_baseline_changed": false,
+        "production_activation": "not_executed",
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "state_model_v2": "success_local",
+        "git_diff_check": "success_local",
+        "state_model_tests": "28_passed_1_skipped",
+        "json_parse": "success_local"
+      }
     }
   ],
   "maintenance_actions": [
@@ -4588,8 +5236,16 @@
     {
       "source_issue": 1012,
       "title": "Review/remove HIGH container exceptions expiring 2026-09-21",
-      "status": "scheduled",
+      "status": "completed",
       "due_on": "2026-09-21",
+      "owner": "platform-security",
+      "rule": "Completed under Issue #1108 / PR #1110 after fresh 2026-09-22 no-cache review: 90 exact HIGH / 0 CRITICAL findings reconciled 1:1; retained exact owner-bound decisions expire 2026-09-29."
+    },
+    {
+      "source_issue": 1108,
+      "title": "Review/remove HIGH container exceptions expiring 2026-09-29",
+      "status": "scheduled",
+      "due_on": "2026-09-29",
       "owner": "platform-security",
       "rule": "Run a fresh no-cache scan before expiry and reconcile every retained exact HIGH tuple. Remove immediately when a finding disappears, a consumable fixed package/base is available, runtime reachability changes, authoritative affected-version guidance changes materially, or severity becomes Critical. No blanket renewal is permitted."
     }
@@ -5152,6 +5808,18 @@
         "issue": 1094,
         "issue_state": "closed_completed",
         "frontend_compatibility_source_sha": "2296e3070cbebff687418cf1ac161984086bebdb"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-24T17:35:00+03:00",
+      "kind": "object_storage_architecture_blocker",
+      "data": {
+        "issue": 1143,
+        "blocked_issue": 1142,
+        "minio_reconstruction": "security_rejected",
+        "versitygw_candidate": "v1.8.0_poc_passed_0_high_0_critical_both_architectures",
+        "production_mutation": "none"
       }
     }
   ],

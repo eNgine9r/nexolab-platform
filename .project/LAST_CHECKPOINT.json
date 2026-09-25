@@ -3,24 +3,121 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-21T12:10:00+03:00",
+  "timestamp": "2026-09-25T13:06:19+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1099 / PR #1098 repository-side runtime identity Work Package completed with exact-head CI green and all review threads resolved",
+  "event": "Issue #1140 / PR #1141 merged GREEN; canonical state reconciled by #1152 with no next Work Package asserted before backlog re-audit",
   "baselines": {
-    "accepted_product_sha": "1a0644497e4cfd10ce7ba0366772955c72f4711a",
+    "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
-    "frontend_compatibility_source_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
-    "frontend_build_id": "fveOqzLHugE-KZ4RRBogM",
-    "frontend_release": "runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z",
-    "frontend_rollback_release": "runtime/frontend-releases/df368cfa27efa945d59de33de8268898b564a19f-20260918T050734Z",
-    "frontend_runtime_evidence": "runtime/evidence/issue-1094-rfx12-cutover-20260918T184540Z"
+    "frontend_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
+    "frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
+    "frontend_release": "runtime/frontend-releases/7db6c8c34c7c94874afe2a3301a2209585795744-20260922T134803Z",
+    "frontend_rollback_release": "runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z",
+    "frontend_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+    "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
+    "sdm120_candidate_device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+    "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
+    "sdm120_candidate_frontend_artifact_sha256": "d73ec2b840b01733a7761b8b555e1b62c4e12b574ea2a0db5a115acd62e32fb6",
+    "sdm120_candidate_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
+    "device_agent_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
+    "device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+    "device_agent_rollback_image_id": "sha256:25ba94b454ebe6dd0d22ed7501ea7368141a32507e09e181cc5b33056e1239db",
+    "device_agent_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+    "sdm120_production_bus_id": "rs485-sdm120",
+    "sdm120_production_adapter": "A10Q34QC",
+    "sdm120_production_unit_id": 1,
+    "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": null,
   "evidence_snapshot": {
-    "active_issue_evidence": {}
+    "completed_onboarding": {
+      "issue": 1140,
+      "pull_request": 1141,
+      "verified_head_sha": "58d5ccf21f8c5300b16197bf464b3d031d353b4d",
+      "exact_head_ci": "5_of_5_green",
+      "post_main_focused_tests": "28_passed_3_files",
+      "full_frontend_tests": "153_files_786_tests_passed",
+      "production_build": "success_next_build_webpack",
+      "product_boundary": "discovery_only_inventory_visible_monitoring_disabled",
+      "production_activation": "not_executed_not_authorized",
+      "modbus_write": "none",
+      "hardware_write": "none"
+    },
+    "completed_object_storage": {
+      "issue": 1146,
+      "pull_request": 1149,
+      "verified_head_sha": "53d8ca842ce043a85cccacd5e435ed996d8c0e0d",
+      "exact_head_ci": "21_of_21_green",
+      "offline_bundle": "success_clean_host_disconnected_update_rollback_preserved",
+      "backend": "VersityGW_v1.8.0",
+      "storage_backend": "local_POSIX",
+      "production_migration_cutover": "not_executed_separate_gate"
+    },
+    "state_reconciliation": {
+      "issue": 1152,
+      "scope": "canonical_state_only",
+      "active_work_package": null,
+      "next_work_package": null,
+      "accepted_product_baseline_changed": false,
+      "deployed_product_baseline_changed": false,
+      "production_runtime_mutation": "none",
+      "state_model_v2": "success_local",
+      "state_model_tests": "28_passed_1_skipped",
+      "json_parse": "success_local",
+      "git_diff_check": "success_local"
+    }
   },
-  "observations": [],
-  "next_action": "Keep production LOCAL_LAN unchanged. Any deployment/cutover of /api/runtime-identity requires a separate Product Owner-approved operation.",
+  "observations": [
+    {
+      "source": "github",
+      "observed_at": "2026-09-25T11:45:55+03:00",
+      "kind": "object_storage_merge",
+      "data": {
+        "issue": 1146,
+        "pull_request": 1149,
+        "merge_sha": "a696a83efe096c82c3f66a4368c0d5a4da12dccd",
+        "status": "merged_closed_green"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-25T11:45:55+03:00",
+      "kind": "active_pull_request",
+      "data": {
+        "issue": 1140,
+        "pull_request": 1141,
+        "head_sha": "41445459c0eb9be97b4212adc497c31c4e595792",
+        "status": "open_resume_after_state_reconciliation"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-25T11:55:24+03:00",
+      "kind": "main_integration",
+      "data": {
+        "issue": 1140,
+        "pull_request": 1141,
+        "integrated_main_sha": "bfaa19101f4c66b078aade4caed9ee76503f8396",
+        "integration_checkpoint_sha": "49fa2bf2df869e3a205e6e5fb21281cade441687",
+        "product_conflicts": "none",
+        "state_conflicts": "resolved_to_latest_main"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-25T13:06:19+03:00",
+      "kind": "discovery_only_onboarding_merge",
+      "data": {
+        "issue": 1140,
+        "pull_request": 1141,
+        "head_sha": "58d5ccf21f8c5300b16197bf464b3d031d353b4d",
+        "merge_sha": "2342cf19995c9860328327f44e95baafb81d009d",
+        "status": "merged_closed_green",
+        "exact_head_ci": "5_of_5_green"
+      }
+    }
+  ],
+  "next_action": "Audit the remaining open software backlog against current main and choose the next independent Ready Work Package. Keep #1125/#1126 hardware blockers and VersityGW production migration/cutover separately gated; Danfoss monitoring remains disabled.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

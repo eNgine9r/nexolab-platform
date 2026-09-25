@@ -33,6 +33,14 @@ services:
       XJP60D_DISCOVERY_UNITS: "${XJP60D_DISCOVERY_UNITS:-96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,126,127,128,129,130,131,132,133,134,135,136,137,138}"
       XJP60D_SCALE: ${XJP60D_SCALE:-0.1}
       LE01MP_UNIT_IDS: ${LE01MP_UNIT_IDS:-200,201,202,203}
+      # Eastron SDM120M stays opt-in until a separately approved production cutover.
+      SDM120_UNIT_IDS: "${SDM120_UNIT_IDS:-}"
+      SDM120_BUS_ID: "${SDM120_BUS_ID:-}"
+      # Waveshare 8AI also stays opt-in. Enabling it requires both an explicit
+      # dedicated bus identity and Unit ID so Unit 1 remains bus-scoped from
+      # the SDM120 Unit 1. The driver itself is FC03/FC04 read-only.
+      WAVESHARE_8AI_UNIT_IDS: "${WAVESHARE_8AI_UNIT_IDS:-}"
+      WAVESHARE_8AI_BUS_ID: "${WAVESHARE_8AI_BUS_ID:-}"
       EMBRACO_UNIT_IDS: "${EMBRACO_UNIT_IDS:-}"
     volumes:
       - type: bind
