@@ -4,11 +4,17 @@ Updated: 2026-09-25
 
 ## Current Sprint
 
-### Issue #1106 — container expiry discovery gate resumed and under review
+### Issue #1154 — post-#1106 canonical state reconciliation
 
-Issue #1106 is the active independent software Work Package after #1140/#1152 completion. Current `main` still made fresh image evidence depend on the full vulnerability-policy job, so an expired exception registry could fail before no-cache builds/Trivy reports were produced. The resumed focused branch separates the workflow into `inventory → evidence → policy → aggregate/publish`: inventory validation resolves the controlled image matrix, evidence builds/scans exact-commit images and uploads raw artifacts, policy then validates exception expiry/staleness and evaluates every fresh report, while aggregate/publish remain downstream of policy success. Expired exceptions still fail acceptance, unmatched HIGH findings remain blocking, CRITICAL findings remain unexceptable, and publication cannot bypass policy.
+Issue #1154 records the completed #1106 lifecycle into State Model v2 only. PR #1107 exact head `a231169f0269a441fac4fc1f05da39097e4adfa3` passed all routed workflows GREEN and merged to `main` as `3dae37d6a18eba08fa99960fa07ba8d0f3949f2f`. Active and next Work Package selection are cleared before the separate fresh HIGH-exception review is formalized. Production baselines, hardware blockers and the separate VersityGW production migration/cutover gate remain unchanged.
 
-After integrating current `main`, the feature diff is limited to the Container Supply Chain workflow, one focused operations note and focused workflow/policy tests. Local validation is GREEN: current supply-chain validator PASS, **101/101 focused security/workflow tests**, and `git diff --check` PASS. No exception expiry is extended, no vulnerability tuple is accepted by this Work Package, and no production/runtime, Modbus or hardware mutation occurs. Fresh exact-head GitHub CI remains the merge gate.
+### Issue #1106 — container expiry discovery gate completed and merged
+
+Issue #1106 is repository-complete. PR #1107 exact head `a231169f0269a441fac4fc1f05da39097e4adfa3` passed **all routed workflows GREEN**: Core CI/Quality and build/NEXOLAB Merge Gate, Container Supply Chain and Telemetry Service. PR #1107 merged to `main` as `3dae37d6a18eba08fa99960fa07ba8d0f3949f2f`; GitHub #1106 is closed completed.
+
+The accepted Container Supply Chain sequence is now `inventory → evidence → policy → aggregate/publish`: five exact-commit images can build, emit SBOM/Trivy evidence and upload raw candidate artifacts before the current exception registry is accepted. The policy job then validates expiry/staleness and evaluates every fresh report; aggregate/publish remain downstream of policy success. Exact-head evidence proved all five build/scan jobs, vulnerability policy over fresh reports and aggregate manifest GREEN; PR publishing remained correctly skipped.
+
+The CI routing correction did **not** weaken fail-closed classification. The two workflow-contract assertions were consolidated into the canonical supply-chain policy test, yielding `unknown_files=[]`, `fail_closed=false`, and required external workflows `[Container Supply Chain]`. Local evidence is GREEN: supply-chain validator PASS, **101/101 focused tests**, State Model **28 PASS / 1 expected skip**, changed-file Prettier PASS and `git diff --check` PASS. No vulnerability exception was extended or accepted by #1106, no severity threshold changed, and no production/runtime, Modbus or hardware mutation occurred.
 
 ### Issue #1152 — post-#1140 canonical state reconciliation
 

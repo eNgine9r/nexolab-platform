@@ -40,11 +40,7 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1106,
-      "title": "Allow fresh container scan after exception expiry without weakening gate",
-      "branch": "fix/1106-container-expiry-discovery"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -5183,7 +5179,7 @@
       "issue": 1106,
       "title": "Allow fresh container scan after exception expiry without weakening gate",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "fix/1106-container-expiry-discovery",
       "evidence": {
@@ -5198,7 +5194,53 @@
         "production_runtime_mutation": "none",
         "modbus_write": "none",
         "hardware_write": "none",
-        "github_ci": "pending_exact_head"
+        "github_ci": "3_routed_workflows_green",
+        "verified_head_sha": "a231169f0269a441fac4fc1f05da39097e4adfa3",
+        "pull_request": 1107,
+        "merged_sha": "3dae37d6a18eba08fa99960fa07ba8d0f3949f2f",
+        "github_issue": "closed_completed",
+        "exact_head_workflows": {
+          "core_ci_quality_build_merge_gate": "success",
+          "container_supply_chain": "success",
+          "telemetry_service": "success"
+        },
+        "container_supply_chain_sequence": "inventory_five_fresh_build_scan_evidence_policy_aggregate_green",
+        "ci_classifier_unknown_files": 0,
+        "ci_classifier_fail_closed": false,
+        "ci_classifier_required_external_workflows": [
+          "Container Supply Chain"
+        ],
+        "state_model_tests": "28_passed_1_skipped",
+        "state_model_v2": "success_local",
+        "prettier_changed": "success_local",
+        "exception_extension_or_acceptance": "none"
+      }
+    },
+    {
+      "issue": 1154,
+      "title": "Reconcile merged container expiry discovery gate #1106",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1106
+      ],
+      "branch": "chore/1154-reconcile-1106-merge",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "trigger_pull_request": 1107,
+        "merged_implementation_sha": "3dae37d6a18eba08fa99960fa07ba8d0f3949f2f",
+        "verified_implementation_head_sha": "a231169f0269a441fac4fc1f05da39097e4adfa3",
+        "exact_head_ci": "3_routed_workflows_green",
+        "accepted_product_baseline_changed": false,
+        "deployed_product_baseline_changed": false,
+        "exception_decision_changed": false,
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "state_model_v2": "success_local",
+        "git_diff_check": "success_local",
+        "state_model_tests": "28_passed_1_skipped",
+        "json_parse": "success_local"
       }
     }
   ],

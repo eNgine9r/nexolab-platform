@@ -4,7 +4,7 @@ Updated: 2026-09-25
 
 ## Issue #1106 — container expiry discovery gate
 
-**No architecture blocker; exact-head CI pending.** The resumed software-only branch now permits fresh no-cache build/Trivy evidence to be generated before vulnerability exception acceptance is evaluated, while expired/stale exceptions, unmatched HIGH findings and all CRITICAL findings remain fail-closed and publishing remains downstream of policy success. Local validator and 101 focused tests are GREEN. No production/runtime, Modbus or hardware mutation is part of #1106.
+**Cleared and merged.** PR #1107 exact head `a231169f0269a441fac4fc1f05da39097e4adfa3` passed Core CI/Merge Gate, Container Supply Chain and Telemetry Service and merged as `3dae37d6a18eba08fa99960fa07ba8d0f3949f2f`. Fresh build/SBOM/Trivy evidence can now be generated before exception acceptance, while expired/stale exceptions, unmatched HIGH findings and all CRITICAL findings remain fail-closed and publishing remains downstream of policy. No exception decision, production/runtime, Modbus or hardware mutation occurred in #1106.
 
 ## Issue #1140 — discovery-only controller onboarding
 
