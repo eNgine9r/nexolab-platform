@@ -40,7 +40,11 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1156,
+      "title": "Revalidate 92 HIGH exceptions from 2026-09-25 fresh evidence",
+      "branch": "security/1156-fresh-high-revalidation"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -5241,6 +5245,43 @@
         "git_diff_check": "success_local",
         "state_model_tests": "28_passed_1_skipped",
         "json_parse": "success_local"
+      }
+    },
+    {
+      "issue": 1156,
+      "title": "Revalidate 92 HIGH exceptions from 2026-09-25 fresh evidence",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1106
+      ],
+      "branch": "security/1156-fresh-high-revalidation",
+      "evidence": {
+        "fresh_container_run": 36123964257,
+        "fresh_source_head": "a231169f0269a441fac4fc1f05da39097e4adfa3",
+        "fresh_high_exact_tuples": 92,
+        "fresh_critical_findings": 0,
+        "fresh_high_with_fixed_version": 0,
+        "registry_exact_tuples": 92,
+        "tuple_set_sha256": "6f38696e08354c9ad505964ec4df82d61bca23b12f4af9e934158bc9be1d394e",
+        "stale_registry_tuples": 0,
+        "unmatched_fresh_tuples": 0,
+        "debian_upstream_status": "rechecked_2026-09-25_no_compatible_trixie_fix",
+        "runtime_reachability": "rechecked_no_new_affected_path",
+        "candidate_expiry": "2026-10-02",
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "github_ci": "pending_exact_head",
+        "container_supply_chain_validator": "success_local",
+        "focused_supply_chain_tests": "49_passed",
+        "fresh_report_evaluator": "success_all_5_reports_22_48_22_0_0",
+        "state_model_v2": "success_local",
+        "state_model_tests": "28_passed_1_skipped",
+        "json_parse": "success_local",
+        "git_diff_check": "success_local",
+        "changed_file_prettier": "success_local",
+        "fresh_artifacts_exact_source_verified": true
       }
     }
   ],

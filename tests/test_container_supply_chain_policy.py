@@ -144,12 +144,12 @@ def test_current_cjson_exception_is_exact_and_short_lived() -> None:
     assert len(matches) == 1
     decision = matches[0]
     assert decision["owner"] == "platform-security"
-    assert decision["expires_on"] == "2026-09-29"
+    assert decision["expires_on"] == "2026-10-02"
     assert "mosquitto_ctrl" in decision["reason"]
     assert "Reviewed 2026-08-17" in decision["reason"]
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 8, 17),
+        date(2026, 9, 25),
     )
 
 
@@ -175,7 +175,7 @@ def test_2026_09_22_fresh_review_is_exact_owner_bound_and_seven_day_bounded() ->
         "telemetry-service",
     }
     assert all(entry["owner"] == "platform-security" for entry in reviewed)
-    assert all(entry["expires_on"] == "2026-09-29" for entry in reviewed)
+    assert all(entry["expires_on"] == "2026-10-02" for entry in reviewed)
     assert all("35704565417" in entry["reason"] for entry in reviewed)
     assert all(
         "2524f9c0c15218cc56a0416ecc76cb46040fab79" in entry["reason"]
@@ -204,7 +204,7 @@ def test_2026_09_23_expat_93990_findings_are_exact_and_short_lived() -> None:
     assert len(matches) == 2
     assert {entry["image_id"] for entry in matches} == {"device-agent", "telegram-gateway"}
     assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-09-29" for entry in matches)
+    assert all(entry["expires_on"] == "2026-10-02" for entry in matches)
     assert all("35866744217" in entry["reason"] for entry in matches)
     assert all("2.8.3-1~deb13u1" in entry["reason"] for entry in matches)
     assert all("no XML, pyexpat, Expat, ElementTree, SAX, minidom, or lxml" in entry["reason"] for entry in matches)
@@ -244,7 +244,7 @@ def test_2026_09_17_expat_66046_findings_are_current_and_bounded() -> None:
     assert len(matches) == 2
     assert {entry["image_id"] for entry in matches} == {"device-agent", "telegram-gateway"}
     assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-09-29" for entry in matches)
+    assert all(entry["expires_on"] == "2026-10-02" for entry in matches)
     assert all("35156866062" in entry["reason"] for entry in matches)
     assert all("2.8.4" in entry["reason"] for entry in matches)
     assert all("no XML/pyexpat parser path" in entry["reason"] for entry in matches)
@@ -273,7 +273,7 @@ def test_util_linux_78409_disagreement_is_explicit_and_short_lived() -> None:
         "telemetry-service",
     }
     assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-09-29" for entry in matches)
+    assert all(entry["expires_on"] == "2026-10-02" for entry in matches)
     assert all("34826380930" in entry["reason"] for entry in matches)
     assert all("02f42ff68c6189bc4c0cf2fcfa4be0503b0667bf" in entry["reason"] for entry in matches)
     assert all("2.41.5-0+deb13u1" in entry["reason"] for entry in matches)
@@ -302,7 +302,7 @@ def test_2026_09_14_expat_findings_are_current_and_bounded() -> None:
 
     assert len(matches) == 4
     assert {entry["image_id"] for entry in matches} == {"device-agent", "telegram-gateway"}
-    assert all(entry["expires_on"] == "2026-09-29" for entry in matches)
+    assert all(entry["expires_on"] == "2026-10-02" for entry in matches)
     assert all("34826380930" in entry["reason"] for entry in matches)
     assert all("2.8.3-1~deb13u1" in entry["reason"] for entry in matches)
     assert all("2.8.4" in entry["reason"] for entry in matches)
@@ -354,7 +354,7 @@ def test_2026_09_17_fresh_scan_keeps_stale_python_and_sqlite_retired_and_bounds_
         "python3.13-venv",
     }
     assert all(entry["owner"] == "platform-security" for entry in exceptions)
-    assert all(entry["expires_on"] == "2026-09-29" for entry in exceptions)
+    assert all(entry["expires_on"] == "2026-10-02" for entry in exceptions)
     assert all("35156866062" in entry["reason"] for entry in current_python)
     assert all("no tarfile/archive extraction path" in entry["reason"] for entry in current_python)
     assert all("severity becomes Critical" in entry["reason"] for entry in current_python)
@@ -405,7 +405,7 @@ def test_telemetry_systemd_homed_cve_exceptions_are_exact_and_short_lived() -> N
         ("libudev1", "CVE-2026-16742"),
     }
     assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-09-29" for entry in matches)
+    assert all(entry["expires_on"] == "2026-10-02" for entry in matches)
     assert all("33683425564" in entry["reason"] for entry in matches)
     assert all("0f9327f40e9a2f4b8527be78f94c925246ab1c8d" in entry["reason"] for entry in matches)
     assert all("systemd-homed" in entry["reason"] for entry in matches)
@@ -434,7 +434,7 @@ def test_telemetry_cjson_mergepatch_exception_is_exact_and_unreachable() -> None
     assert len(matches) == 1
     decision = matches[0]
     assert decision["owner"] == "platform-security"
-    assert decision["expires_on"] == "2026-09-29"
+    assert decision["expires_on"] == "2026-10-02"
     assert "34826380930" in decision["reason"]
     assert "34702355254" in decision["reason"]
     assert "1e1576b9edc5eac5f3be017753c382fc39c19278" in decision["reason"]
@@ -570,3 +570,31 @@ def test_container_publish_stays_downstream_of_acceptance_policy() -> None:
     assert "if: github.event_name == 'push'" in publish_section
     assert "needs: [inventory, policy]" in publish_section
     assert "fromJSON(needs.inventory.outputs.matrix)" in publish_section
+
+
+def test_2026_09_25_fresh_review_is_exact_and_seven_day_bounded() -> None:
+    root = Path(__file__).resolve().parents[1]
+    payload = json.loads(
+        (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
+    )
+    exceptions = payload["exceptions"]
+    keys = {
+        (entry["image_id"], entry["package"], entry["vulnerability"])
+        for entry in exceptions
+    }
+
+    assert len(exceptions) == 92
+    assert len(keys) == 92
+    assert all(entry["owner"] == "platform-security" for entry in exceptions)
+    assert all(entry["expires_on"] == "2026-10-02" for entry in exceptions)
+    assert all("36123964257" in entry["reason"] for entry in exceptions)
+    assert all("a231169f0269a441fac4fc1f05da39097e4adfa3" in entry["reason"] for entry in exceptions)
+    assert all("92 HIGH / 0 CRITICAL" in entry["reason"] for entry in exceptions)
+    assert all("6f38696e08354c9ad505964ec4df82d61bca23b12f4af9e934158bc9be1d394e" in entry["reason"] for entry in exceptions)
+    assert all("stale registry tuples=0" in entry["reason"] for entry in exceptions)
+    assert all("unmatched fresh tuples=0" in entry["reason"] for entry in exceptions)
+    assert all("empty Trivy FixedVersion" in entry["reason"] for entry in exceptions)
+    MODULE.validate_exceptions(
+        root / "security/vulnerability-exceptions.json",
+        date(2026, 9, 25),
+    )
