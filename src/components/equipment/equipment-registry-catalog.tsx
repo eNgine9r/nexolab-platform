@@ -1065,7 +1065,7 @@ function PartialFailures({
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-200" />
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-semibold text-amber-100">Частина chamber catalog недоступна</h2>
+          <h2 className="text-sm font-semibold text-amber-100">Частина реєстру обладнання недоступна</h2>
           <p className="mt-1 text-xs leading-5 text-amber-100/70">
             Успішно завантажені активи залишаються доступними. Відсутні дані не підміняються demo fixtures.
           </p>

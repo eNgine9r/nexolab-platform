@@ -6,7 +6,7 @@ Updated: 2026-09-25
 
 ### Issue #1140 — discovery-only controller onboarding resumes in PR #1141
 
-Issue #1140 remains the active software Work Package after object-storage state reconciliation. The implementation branch `feat/1140-discovery-only-onboarding` is at `41445459c0eb9be97b4212adc497c31c4e595792` with open PR #1141. Its existing local evidence is GREEN: focused frontend **33/33**, full frontend **153 files / 786 tests**, ESLint, TypeScript, Prettier, State Model v2, `git diff --check`, and production `next build --webpack`. The branch must now be integrated with the latest `main` and pass fresh exact-head required CI before merge.
+Issue #1140 remains the active software Work Package after object-storage state reconciliation. Open PR #1141 on `feat/1140-discovery-only-onboarding` has now integrated latest canonical `main` `bfaa19101f4c66b078aade4caed9ee76503f8396` without product-code conflicts; merge checkpoint is `49fa2bf2df869e3a205e6e5fb21281cade441687`. Fresh post-main focused regression is **28/28 PASS** across the commissioning wizard, Equipment Registry projection and refrigeration controller binding; changed-file Prettier, ESLint, TypeScript, State Model v2 and `git diff --check` are GREEN. Earlier feature evidence remains **33/33 focused**, **153 files / 786 tests**, and production `next build --webpack` GREEN. Fresh exact-head GitHub CI is the remaining software merge gate.
 
 The product boundary remains unchanged: verified discovery-only commissioning sessions may appear in Equipment Registry and the selected showcase, but Danfoss production monitoring/activation stays disabled. No Modbus/controller write, hardware write, service restart or production cutover is authorized by #1140.
 

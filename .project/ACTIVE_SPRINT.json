@@ -5104,9 +5104,18 @@
         "production_activation": "not_executed_not_authorized",
         "modbus_write": "none",
         "hardware_write": "none",
-        "github_ci": "resume_after_state_reconciliation_and_latest_main_integration",
+        "github_ci": "pending_exact_head_after_main_integration",
         "pull_request": 1141,
-        "current_branch_head_sha": "41445459c0eb9be97b4212adc497c31c4e595792"
+        "current_branch_head_sha": "41445459c0eb9be97b4212adc497c31c4e595792",
+        "integrated_main_sha": "bfaa19101f4c66b078aade4caed9ee76503f8396",
+        "integration_checkpoint_sha": "49fa2bf2df869e3a205e6e5fb21281cade441687",
+        "post_main_focused_tests": "28_passed_3_files",
+        "post_main_prettier_changed": "success",
+        "post_main_eslint_changed": "success",
+        "post_main_typecheck": "success",
+        "post_main_state_model_v2": "success",
+        "post_main_git_diff_check": "success",
+        "production_build_after_main": "delegated_to_exact_head_ci_prior_feature_build_green"
       }
     },
     {

@@ -2,6 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { RefrigerationEquipment } from "@/data/refrigeration";
 import type {
+  CommissioningSession,
+  SupportedDeviceProfile,
+} from "@/features/equipment/commissioning-repository";
+import type {
   ClimateCatalogRepository,
   ClimateChamber,
   ClimateChamberEquipment,
@@ -120,6 +124,61 @@ describe("equipment asset registry", () => {
       connectionStatus: "disconnected",
       manufacturer: "TOMZN",
     });
+  });
+
+  it("projects only verified discovery-only controller sessions into the equipment registry", () => {
+    const profile = discoveryOnlyProfile();
+    const verified = commissioningSession({
+      id: "commissioning-danfoss-35",
+      lifecycle: "verified",
+      targetEquipmentKey: refrigeration.id,
+      profileId: profile.id,
+      profileVersion: profile.version,
+      unitId: 35,
+      nodeId: "nexolab-edge-01",
+      busId: "rs485-commissioning-a10q2si7",
+      stableTransportIdentifier: "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q2SI7-if00-port0",
+    });
+    const draft = commissioningSession({
+      id: "commissioning-draft",
+      lifecycle: "ready_for_preflight",
+      targetEquipmentKey: refrigeration.id,
+      profileId: profile.id,
+    });
+    const activatableProfile = { ...profile, id: "embraco-sync-v1", activationSupported: true };
+    const activatable = commissioningSession({
+      id: "commissioning-embraco",
+      lifecycle: "verified",
+      targetEquipmentKey: refrigeration.id,
+      profileId: activatableProfile.id,
+    });
+
+    const assets = normalizeEquipmentRegistry(
+      [refrigeration],
+      [chamberOne],
+      [chamberOneCatalog],
+      [verified, draft, activatable],
+      [profile, activatableProfile],
+    );
+
+    const commissioned = assets.find((asset) => asset.key === "commissioning:commissioning-danfoss-35");
+    expect(commissioned).toMatchObject({
+      category: "temperature-controller",
+      primaryIdentifier: "akcc25:35",
+      displayName: "Danfoss AK-CC25 Pro",
+      manufacturer: "Danfoss",
+      model: "AK-CC25 Pro",
+      chamberId: chamberOne.id,
+      chamberLabel: "KK1 · Кліматична камера №1",
+      locationLabel: "REF-01 · Холодильна вітрина 1",
+      lifecycleStatus: "verified",
+      connectionStatus: "monitoring_disabled",
+      catalogStatus: "discovery_only",
+      canonicalHref: "/equipment/onboarding/commissioning-danfoss-35",
+    });
+    expect(assets.some((asset) => asset.key === "commissioning:commissioning-draft")).toBe(false);
+    expect(assets.some((asset) => asset.key === "commissioning:commissioning-embraco")).toBe(false);
+    expect(summarizeEquipmentRegistry(assets).measurementDevices).toBe(3);
   });
 
   it("derives summary counters and deterministic filter options from the same assets", () => {
@@ -372,6 +431,52 @@ function refrigerationEquipment(overrides: Partial<RefrigerationEquipment> = {})
     version: 1,
     image: null,
     sensors: [],
+    ...overrides,
+  };
+}
+
+function discoveryOnlyProfile(overrides: Partial<SupportedDeviceProfile> = {}): SupportedDeviceProfile {
+  return {
+    id: "danfoss-ak-cc25-pro",
+    version: "danfoss-ak-cc25-pro-sw1.3x-fc03-v1",
+    deviceFamily: "akcc25",
+    deviceClass: "temperature-controller",
+    manufacturer: "Danfoss",
+    models: ["AK-CC25 Pro"],
+    displayName: "Danfoss AK-CC25 Pro",
+    transportKind: "modbus_rtu",
+    capabilityStatus: "repository_supported_hardware_evidenced",
+    evidenceNote: "Read-only Unit 35 evidence",
+    readOnly: true,
+    activationSupported: false,
+    ...overrides,
+  };
+}
+
+function commissioningSession(overrides: Partial<CommissioningSession> = {}): CommissioningSession {
+  return {
+    id: "commissioning-default",
+    lifecycle: "verified",
+    deviceClass: "temperature-controller",
+    manufacturer: "Danfoss",
+    model: "AK-CC25 Pro",
+    profileId: "danfoss-ak-cc25-pro",
+    profileVersion: "danfoss-ak-cc25-pro-sw1.3x-fc03-v1",
+    transportKind: "modbus_rtu",
+    nodeId: "nexolab-edge-01",
+    busId: "rs485-commissioning",
+    stableTransportIdentifier: "/dev/serial/by-id/usb-FTDI_TEST-if00-port0",
+    unitId: 35,
+    ipAddress: null,
+    targetEquipmentKey: refrigeration.id,
+    blockedReason: null,
+    unsupportedReason: null,
+    version: 2,
+    createdBy: "operator",
+    updatedBy: "operator",
+    createdAt: "2026-09-24T10:00:00Z",
+    updatedAt: "2026-09-24T10:05:00Z",
+    cancelledAt: null,
     ...overrides,
   };
 }

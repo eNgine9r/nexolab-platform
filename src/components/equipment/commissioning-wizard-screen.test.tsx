@@ -448,6 +448,97 @@ describe("CommissioningWizardScreen fail-closed loading boundaries", () => {
     expect(getActivationPlan).not.toHaveBeenCalled();
   });
 
+  it("finishes discovery-only Danfoss onboarding from the review step without activation", async () => {
+    const readySession: CommissioningSession = {
+      ...persistedSession,
+      lifecycle: "ready_for_preflight",
+      manufacturer: "Danfoss",
+      model: "AK-CC25 Pro",
+      profileId: danfossProfile.id,
+      profileVersion: danfossProfile.version,
+      transportKind: "modbus_rtu",
+      nodeId: "nexolab-edge-01",
+      busId: "commissioning-1234567890abcdef",
+      stableTransportIdentifier: "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q2SI7-if00-port0",
+      unitId: 35,
+      targetEquipmentKey: "equipment-1",
+      unsupportedReason: null,
+      version: 2,
+    };
+    const verifiedSession: CommissioningSession = { ...readySession, lifecycle: "verified", version: 3 };
+    const attempt: CommissioningPreflightAttempt = {
+      id: "preflight-danfoss",
+      sessionId: readySession.id,
+      sessionVersion: readySession.version,
+      state: "completed",
+      result: "passed",
+      code: "preflight_passed",
+      evidenceLevel: "partially_verified",
+      evidence: {
+        schemaVersion: 1,
+        result: "passed",
+        code: "preflight_passed",
+        evidenceLevel: "partially_verified",
+        nodeId: readySession.nodeId!,
+        busId: readySession.busId!,
+        stableTransportIdentifier: readySession.stableTransportIdentifier!,
+        unitId: 35,
+        profileId: danfossProfile.id,
+        profileVersion: danfossProfile.version,
+        readMethod: "modbus_rtu_fc03",
+        functionCodes: [3],
+        checks: [{ key: "integer_subset", state: "passed", detail: "Real Unit 35 FC03 evidence" }],
+        observations: [],
+        warnings: ["Temperature inputs are not connected"],
+        durationMs: 12,
+        modbusWrites: "none",
+        hardwareWrites: "none",
+      },
+      actorSubject: "engineer",
+      startedAt: "2026-09-24T10:00:00Z",
+      completedAt: "2026-09-24T10:00:01Z",
+    };
+    let preflightPassed = false;
+    const updateSession = vi.fn(async () => readySession);
+    const runPreflight = vi.fn(async () => {
+      preflightPassed = true;
+      return attempt;
+    });
+    const runActivation = vi.fn<CommissioningRepository["runActivation"]>();
+    const repository = commissioningRepository(
+      async () => (preflightPassed ? verifiedSession : readySession),
+      {
+        listProfiles: async () => [danfossProfile],
+        updateSession,
+        runPreflight,
+        runActivation,
+      },
+    );
+    runtimeFactory.create.mockReturnValue(runtime(repository));
+
+    render(<CommissioningWizardScreen commissioningId="commissioning-a" />);
+    expect(await screen.findByRole("heading", { name: "Danfoss AK-CC25 Pro" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Перевірка чернетки/ }));
+
+    expect(screen.queryByRole("button", { name: "Далі" })).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Моніторинг, polling і запис параметрів залишаться вимкненими/),
+    ).toBeInTheDocument();
+    const finish = screen.getByRole("button", { name: "Перевірити та додати до реєстру" });
+    expect(finish).toBeEnabled();
+    fireEvent.click(finish);
+
+    expect(await screen.findByRole("link", { name: "Додано до реєстру · відкрити" })).toHaveAttribute(
+      "href",
+      "/equipment",
+    );
+    expect(screen.getByText("Перевірено · моніторинг вимкнено")).toBeInTheDocument();
+    expect(updateSession).toHaveBeenCalledTimes(1);
+    expect(runPreflight).toHaveBeenCalledWith("commissioning-a", 2, expect.stringMatching(/^commissioning-/));
+    expect(runActivation).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Зберегти чернетку" })).not.toBeInTheDocument();
+  });
+
   it("preserves forward navigation for supported commissioning sessions", async () => {
     const supportedSession: CommissioningSession = {
       ...persistedSession,

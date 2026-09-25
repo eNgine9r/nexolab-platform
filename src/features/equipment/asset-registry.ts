@@ -1,5 +1,10 @@
 import type { RefrigerationEquipment } from "@/data/refrigeration";
 import type {
+  CommissioningRepository,
+  CommissioningSession,
+  SupportedDeviceProfile,
+} from "@/features/equipment/commissioning-repository";
+import type {
   ClimateCatalogRepository,
   ClimateChamber,
   ClimateChamberEquipment,
@@ -56,6 +61,14 @@ export type MeasurementDeviceRegistryAsset = EquipmentRegistryCommon & {
   chamber: ClimateChamber;
 };
 
+export type CommissionedControllerRegistryAsset = EquipmentRegistryCommon & {
+  category: "temperature-controller";
+  source: CommissioningSession;
+  commissioningProfile: SupportedDeviceProfile;
+  targetEquipment: RefrigerationEquipment;
+  chamber: ClimateChamber | null;
+};
+
 export type PhysicalSensorRegistryAsset = EquipmentRegistryCommon & {
   category: "physical-sensor";
   source: PhysicalSensor;
@@ -65,7 +78,10 @@ export type PhysicalSensorRegistryAsset = EquipmentRegistryCommon & {
 };
 
 export type EquipmentRegistryAsset =
-  RefrigerationRegistryAsset | MeasurementDeviceRegistryAsset | PhysicalSensorRegistryAsset;
+  | RefrigerationRegistryAsset
+  | MeasurementDeviceRegistryAsset
+  | CommissionedControllerRegistryAsset
+  | PhysicalSensorRegistryAsset;
 
 export type EquipmentRegistryFailure = {
   chamberId: string;
@@ -101,6 +117,7 @@ export type EquipmentRegistrySummary = {
 export type LoadEquipmentRegistryOptions = {
   equipmentRepository: RefrigerationEquipmentRepository;
   climateCatalogRepository: ClimateCatalogRepository;
+  commissioningRepository?: CommissioningRepository | null;
   concurrency?: number;
   signal?: AbortSignal;
   onProgress?: (progress: EquipmentRegistryLoadProgress) => void;
@@ -129,20 +146,29 @@ export function defaultEquipmentRegistryFilters(): EquipmentRegistryFilters {
 export async function loadEquipmentRegistry({
   equipmentRepository,
   climateCatalogRepository,
+  commissioningRepository = null,
   concurrency = DEFAULT_CONCURRENCY,
   signal,
   onProgress,
 }: LoadEquipmentRegistryOptions): Promise<EquipmentRegistryLoadResult> {
   throwIfAborted(signal);
-  const [refrigerationEquipment, chambers] = await Promise.all([
+  const [refrigerationEquipment, chambers, commissioning] = await Promise.all([
     equipmentRepository.list(),
     climateCatalogRepository.listChambers(),
+    loadCommissioningInventory(commissioningRepository, signal),
   ]);
   throwIfAborted(signal);
 
   const sortedChambers = [...chambers].sort(compareChambers);
   const catalogs = new Array<ClimateChamberEquipment | null>(sortedChambers.length).fill(null);
   const failures = new Array<EquipmentRegistryFailure | null>(sortedChambers.length).fill(null);
+  const commissioningFailure: EquipmentRegistryFailure | null = commissioning.error
+    ? {
+        chamberId: "commissioning-inventory",
+        chamberLabel: "Комісіоноване обладнання",
+        error: commissioning.error,
+      }
+    : null;
   const workerCount = Math.min(normalizeConcurrency(concurrency), Math.max(1, sortedChambers.length));
   let nextIndex = 0;
   let completedChambers = 0;
@@ -154,8 +180,13 @@ export async function loadEquipmentRegistry({
         refrigerationEquipment,
         sortedChambers,
         catalogs.filter((catalog): catalog is ClimateChamberEquipment => catalog !== null),
+        commissioning.sessions,
+        commissioning.profiles,
       ),
-      failures: failures.filter((failure): failure is EquipmentRegistryFailure => failure !== null),
+      failures: [
+        ...failures.filter((failure): failure is EquipmentRegistryFailure => failure !== null),
+        ...(commissioningFailure ? [commissioningFailure] : []),
+      ],
       completedChambers,
       totalChambers: sortedChambers.length,
     });
@@ -194,8 +225,13 @@ export async function loadEquipmentRegistry({
       refrigerationEquipment,
       sortedChambers,
       catalogs.filter((catalog): catalog is ClimateChamberEquipment => catalog !== null),
+      commissioning.sessions,
+      commissioning.profiles,
     ),
-    failures: failures.filter((failure): failure is EquipmentRegistryFailure => failure !== null),
+    failures: [
+      ...failures.filter((failure): failure is EquipmentRegistryFailure => failure !== null),
+      ...(commissioningFailure ? [commissioningFailure] : []),
+    ],
   };
 }
 
@@ -203,11 +239,16 @@ export function normalizeEquipmentRegistry(
   refrigerationEquipment: readonly RefrigerationEquipment[],
   chambers: readonly ClimateChamber[],
   climateCatalogs: readonly ClimateChamberEquipment[],
+  commissioningSessions: readonly CommissioningSession[] = [],
+  commissioningProfiles: readonly SupportedDeviceProfile[] = [],
 ): EquipmentRegistryAsset[] {
   const chamberById = new Map(chambers.map((chamber) => [chamber.id, chamber] as const));
   const assets: EquipmentRegistryAsset[] = refrigerationEquipment.map((equipment) =>
     normalizeRefrigerationAsset(equipment, chamberById.get(equipment.climateChamberId ?? "") ?? null),
   );
+
+  const equipmentById = new Map(refrigerationEquipment.map((item) => [item.id, item] as const));
+  const profileById = new Map(commissioningProfiles.map((profile) => [profile.id, profile] as const));
 
   for (const catalog of climateCatalogs) {
     const chamber = catalog.climateChamber;
@@ -232,7 +273,36 @@ export function normalizeEquipmentRegistry(
     }
   }
 
+  for (const session of commissioningSessions) {
+    const profile = session.profileId ? (profileById.get(session.profileId) ?? null) : null;
+    const target = session.targetEquipmentKey
+      ? (equipmentById.get(session.targetEquipmentKey) ?? null)
+      : null;
+    if (
+      session.lifecycle !== "verified" ||
+      session.deviceClass !== "temperature-controller" ||
+      !profile ||
+      profile.activationSupported ||
+      !target
+    )
+      continue;
+    assets.push(
+      normalizeCommissionedControllerAsset(
+        session,
+        profile,
+        target,
+        chamberById.get(target.climateChamberId ?? "") ?? null,
+      ),
+    );
+  }
+
   return sortEquipmentRegistry(assets);
+}
+
+export function isCommissionedControllerAsset(
+  asset: EquipmentRegistryAsset,
+): asset is CommissionedControllerRegistryAsset {
+  return "commissioningProfile" in asset;
 }
 
 export function sortEquipmentRegistry(assets: readonly EquipmentRegistryAsset[]): EquipmentRegistryAsset[] {
@@ -302,6 +372,82 @@ export function isEquipmentRegistryAbort(error: unknown): boolean {
 
 export function chamberDisplayLabel(chamber: ClimateChamber): string {
   return `${chamber.code} · ${chamber.name}`;
+}
+
+async function loadCommissioningInventory(
+  repository: CommissioningRepository | null,
+  signal: AbortSignal | undefined,
+): Promise<{
+  sessions: CommissioningSession[];
+  profiles: SupportedDeviceProfile[];
+  error: string | null;
+}> {
+  if (!repository) return { sessions: [], profiles: [], error: null };
+  try {
+    const [sessions, profiles] = await Promise.all([
+      repository.listSessions(signal),
+      repository.listProfiles(signal),
+    ]);
+    return { sessions, profiles, error: null };
+  } catch (error) {
+    if (isEquipmentRegistryAbort(error)) throw error;
+    return { sessions: [], profiles: [], error: registryErrorMessage(error) };
+  }
+}
+
+function normalizeCommissionedControllerAsset(
+  session: CommissioningSession,
+  profile: SupportedDeviceProfile,
+  target: RefrigerationEquipment,
+  chamber: ClimateChamber | null,
+): CommissionedControllerRegistryAsset {
+  const chamberLabel = chamber
+    ? chamberDisplayLabel(chamber)
+    : target.climateChamberId
+      ? target.climateChamberId
+      : null;
+  const unitIdentity = session.unitId === null ? session.id.slice(0, 8) : String(session.unitId);
+  const primaryIdentifier = `${profile.deviceFamily}:${unitIdentity}`;
+  const targetLabel = `${target.code} · ${target.name}`;
+  return {
+    key: `commissioning:${session.id}`,
+    id: session.id,
+    category: "temperature-controller",
+    primaryIdentifier,
+    displayName: profile.displayName,
+    manufacturer: session.manufacturer,
+    model: session.model,
+    serialNumber: null,
+    chamberId: chamber?.id ?? target.climateChamberId,
+    chamberLabel,
+    locationLabel: targetLabel,
+    lifecycleStatus: "verified",
+    healthStatus: null,
+    connectionStatus: "monitoring_disabled",
+    catalogStatus: "discovery_only",
+    calibrationStatus: "not-applicable",
+    statusKeys: ["verified", "monitoring_disabled", "discovery_only"],
+    canonicalHref: `/equipment/onboarding/${encodeURIComponent(session.id)}`,
+    searchText: searchable([
+      primaryIdentifier,
+      profile.displayName,
+      profile.id,
+      profile.version,
+      session.manufacturer,
+      session.model,
+      session.nodeId,
+      session.busId,
+      session.stableTransportIdentifier,
+      session.unitId === null ? null : String(session.unitId),
+      target.code,
+      target.name,
+      chamberLabel,
+    ]),
+    source: session,
+    commissioningProfile: profile,
+    targetEquipment: target,
+    chamber,
+  };
 }
 
 function normalizeRefrigerationAsset(
