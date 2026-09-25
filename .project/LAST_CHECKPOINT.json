@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-25T11:55:24+03:00",
+  "timestamp": "2026-09-25T13:06:19+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1140 integrated latest main after #1150; focused post-main verification GREEN and exact-head GitHub CI pending",
+  "event": "Issue #1140 / PR #1141 merged GREEN; canonical state reconciled by #1152 with no next Work Package asserted before backlog re-audit",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,39 +28,20 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": {
-    "issue": 1140,
-    "title": "Complete discovery-only controller onboarding into registry and showcase",
-    "branch": "feat/1140-discovery-only-onboarding"
-  },
+  "active_work": null,
   "evidence_snapshot": {
-    "active_issue_evidence": {
-      "audit_root_cause": "verified_discovery_only_commissioning_session_had_no_completion_projection_into_equipment_registry_or_showcase_controller_view",
-      "product_boundary": "inventory_registration_separate_from_monitoring_activation",
-      "danfoss_activation_supported": false,
-      "local_targeted_tests": "33_passed",
+    "completed_onboarding": {
+      "issue": 1140,
+      "pull_request": 1141,
+      "verified_head_sha": "58d5ccf21f8c5300b16197bf464b3d031d353b4d",
+      "exact_head_ci": "5_of_5_green",
+      "post_main_focused_tests": "28_passed_3_files",
       "full_frontend_tests": "153_files_786_tests_passed",
-      "eslint": "success",
-      "typecheck": "success",
       "production_build": "success_next_build_webpack",
-      "turbopack_worktree_symlink_build": "environment_failure_only_node_modules_points_outside_worktree_root",
-      "prettier": "success",
-      "git_diff_check": "success",
+      "product_boundary": "discovery_only_inventory_visible_monitoring_disabled",
       "production_activation": "not_executed_not_authorized",
       "modbus_write": "none",
-      "hardware_write": "none",
-      "github_ci": "pending_exact_head_after_main_integration",
-      "pull_request": 1141,
-      "current_branch_head_sha": "41445459c0eb9be97b4212adc497c31c4e595792",
-      "integrated_main_sha": "bfaa19101f4c66b078aade4caed9ee76503f8396",
-      "integration_checkpoint_sha": "49fa2bf2df869e3a205e6e5fb21281cade441687",
-      "post_main_focused_tests": "28_passed_3_files",
-      "post_main_prettier_changed": "success",
-      "post_main_eslint_changed": "success",
-      "post_main_typecheck": "success",
-      "post_main_state_model_v2": "success",
-      "post_main_git_diff_check": "success",
-      "production_build_after_main": "delegated_to_exact_head_ci_prior_feature_build_green"
+      "hardware_write": "none"
     },
     "completed_object_storage": {
       "issue": 1146,
@@ -71,6 +52,19 @@
       "backend": "VersityGW_v1.8.0",
       "storage_backend": "local_POSIX",
       "production_migration_cutover": "not_executed_separate_gate"
+    },
+    "state_reconciliation": {
+      "issue": 1152,
+      "scope": "canonical_state_only",
+      "active_work_package": null,
+      "next_work_package": null,
+      "accepted_product_baseline_changed": false,
+      "deployed_product_baseline_changed": false,
+      "production_runtime_mutation": "none",
+      "state_model_v2": "success_local",
+      "state_model_tests": "28_passed_1_skipped",
+      "json_parse": "success_local",
+      "git_diff_check": "success_local"
     }
   },
   "observations": [
@@ -108,9 +102,22 @@
         "product_conflicts": "none",
         "state_conflicts": "resolved_to_latest_main"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-25T13:06:19+03:00",
+      "kind": "discovery_only_onboarding_merge",
+      "data": {
+        "issue": 1140,
+        "pull_request": 1141,
+        "head_sha": "58d5ccf21f8c5300b16197bf464b3d031d353b4d",
+        "merge_sha": "2342cf19995c9860328327f44e95baafb81d009d",
+        "status": "merged_closed_green",
+        "exact_head_ci": "5_of_5_green"
+      }
     }
   ],
-  "next_action": "Push the #1140 post-main integration candidate, require fresh exact-head GitHub CI GREEN, fix only scoped failures, then merge PR #1141. Danfoss monitoring/production activation remains disabled.",
+  "next_action": "Audit the remaining open software backlog against current main and choose the next independent Ready Work Package. Keep #1125/#1126 hardware blockers and VersityGW production migration/cutover separately gated; Danfoss monitoring remains disabled.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

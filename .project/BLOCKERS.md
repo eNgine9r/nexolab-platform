@@ -2,6 +2,10 @@
 
 Updated: 2026-09-25
 
+## Issue #1140 — discovery-only controller onboarding
+
+**Cleared and merged.** PR #1141 exact head `58d5ccf21f8c5300b16197bf464b3d031d353b4d` passed all five routed workflows and merged to `main` as `2342cf19995c9860328327f44e95baafb81d009d`. Discovery-only Danfoss inventory/showcase visibility is repository-complete while monitoring/production activation remains disabled. No Modbus/controller write, hardware write, production restart or cutover occurred.
+
 ## Issue #1146 — VersityGW replacement implementation
 
 **Cleared and merged for repository/software scope.** PR #1149 exact head `53d8ca842ce043a85cccacd5e435ed996d8c0e0d` passed 21/21 required workflows and merged to `main` as `a696a83efe096c82c3f66a4368c0d5a4da12dccd`. VersityGW `v1.8.0` is now the accepted local S3 implementation with a separate VersityGW data volume and fail-closed legacy MinIO protection. Production MinIO → VersityGW object-data migration/cutover was **not executed** and remains a separate explicit approval gate; no production data, named volume, runtime service, Modbus or hardware state was mutated by #1146.

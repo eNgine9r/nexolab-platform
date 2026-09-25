@@ -40,11 +40,7 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1140,
-      "title": "Complete discovery-only controller onboarding into registry and showcase",
-      "branch": "feat/1140-discovery-only-onboarding"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -5086,7 +5082,7 @@
       "issue": 1140,
       "title": "Complete discovery-only controller onboarding into registry and showcase",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "feat/1140-discovery-only-onboarding",
       "evidence": {
@@ -5104,18 +5100,26 @@
         "production_activation": "not_executed_not_authorized",
         "modbus_write": "none",
         "hardware_write": "none",
-        "github_ci": "pending_exact_head_after_main_integration",
+        "github_ci": "5_of_5_green",
         "pull_request": 1141,
-        "current_branch_head_sha": "41445459c0eb9be97b4212adc497c31c4e595792",
         "integrated_main_sha": "bfaa19101f4c66b078aade4caed9ee76503f8396",
-        "integration_checkpoint_sha": "49fa2bf2df869e3a205e6e5fb21281cade441687",
         "post_main_focused_tests": "28_passed_3_files",
         "post_main_prettier_changed": "success",
         "post_main_eslint_changed": "success",
         "post_main_typecheck": "success",
         "post_main_state_model_v2": "success",
         "post_main_git_diff_check": "success",
-        "production_build_after_main": "delegated_to_exact_head_ci_prior_feature_build_green"
+        "verified_head_sha": "58d5ccf21f8c5300b16197bf464b3d031d353b4d",
+        "merged_sha": "2342cf19995c9860328327f44e95baafb81d009d",
+        "github_issue": "closed_completed",
+        "exact_head_workflows": {
+          "core_ci_quality_build_merge_gate": "success",
+          "authenticated_dashboard_acceptance": "success",
+          "refrigeration_browser_acceptance": "success",
+          "security_browser_acceptance": "success",
+          "disaster_recovery_browser": "success"
+        },
+        "ci_acceptance_fixture_fixes": "test_only_registry_row_disambiguation_and_unassociated_showcase_draft"
       }
     },
     {
@@ -5142,6 +5146,33 @@
         "hardware_write": "none",
         "state_model_v2": "success_local",
         "git_diff_check": "success_local"
+      }
+    },
+    {
+      "issue": 1152,
+      "title": "Reconcile merged discovery-only onboarding WP #1140",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1140
+      ],
+      "branch": "chore/1152-reconcile-1140-merge",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "trigger_pull_request": 1141,
+        "merged_implementation_sha": "2342cf19995c9860328327f44e95baafb81d009d",
+        "verified_implementation_head_sha": "58d5ccf21f8c5300b16197bf464b3d031d353b4d",
+        "exact_head_ci": "5_of_5_green",
+        "accepted_product_baseline_changed": false,
+        "deployed_product_baseline_changed": false,
+        "production_activation": "not_executed",
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "state_model_v2": "success_local",
+        "git_diff_check": "success_local",
+        "state_model_tests": "28_passed_1_skipped",
+        "json_parse": "success_local"
       }
     }
   ],
