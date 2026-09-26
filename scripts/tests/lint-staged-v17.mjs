@@ -93,8 +93,8 @@ function assertRepositoryContract() {
     .split(/\r?\n/u)
     .filter(Boolean);
 
-  assert.equal(packageMetadata.version, "17.3.0");
-  assert.equal(manifest.devDependencies["lint-staged"], "^17.3.0");
+  assert.equal(packageMetadata.version, "17.5.1");
+  assert.equal(manifest.devDependencies["lint-staged"], "^17.5.1");
   assert.equal(manifest.engines.node, ">=22.22.1 <23 || >=24 <25");
   assert.deepEqual(manifest["lint-staged"], {
     "*.{js,jsx,ts,tsx,mjs,cjs}": ["eslint --fix", "prettier --write"],
