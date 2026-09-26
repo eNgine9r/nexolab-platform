@@ -5500,6 +5500,29 @@
         "merged_implementation_sha": "2e8cd7c1a8bd73ae5700aa66a4de767d43fc4a4c",
         "issue_state": "closed_completed"
       }
+    },
+    {
+      "issue": 1181,
+      "title": "Reconcile completed maintenance chain #1178/#1180/#1177",
+      "priority": "medium",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "chore/1181-reconcile-maintenance-chain",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "maintenance_ci": "all_three_completed_with_required_exact_head_green_matrices",
+        "backlog_reaudit": "no_independent_ready_software_work_package",
+        "next_security_review": "2026-10-02",
+        "accepted_product_baseline_changed": false,
+        "deployed_product_baseline_changed": false,
+        "production_runtime_mutation": "none",
+        "persistent_data_mutation": "none",
+        "volume_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "completed_maintenance_issues": "1178_1180_1177",
+        "verified_heads": "35fe7761431aa41ce118e64fd3e2aa9ca4c393ac_02e6e58c255aea65105916ae461ea216b7ead728_c34863e393a80334e92c484d648fe11ced42e1cf"
+      }
     }
   ],
   "maintenance_actions": [

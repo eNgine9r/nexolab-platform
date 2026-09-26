@@ -1,6 +1,12 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-25
+Updated: 2026-09-26
+
+## Maintenance chain #1178 / #1180 / #1177 completed
+
+The software-only maintenance chain is repository-complete. Issue #1178 / PR #1100 upgraded Next.js from `16.3.4` to patched `16.3.6`; exact head `35fe7761431aa41ce118e64fd3e2aa9ca4c393ac` passed the full 11-workflow matrix and GitHub records the PR as merged. Issue #1180 / PR #1102 refreshed the bounded development-quality patch/minor group; exact head `02e6e58c255aea65105916ae461ea216b7ead728` passed the full matrix after a same-head rerun confirmed one Dashboard WebSocket timing failure as flaky, and GitHub records the PR as merged. Issue #1177 / PR #1101 refreshed root `@types/node` from `22.20.1` to `22.20.4`; exact head `c34863e393a80334e92c484d648fe11ced42e1cf` passed all 11 routed workflows, including disconnected Offline Bundle update/rollback persistence proof, and GitHub records the PR as merged.
+
+These maintenance merges did not change accepted/deployed product baselines, production runtime, telemetry/acquisition configuration, persistent data, named volumes, hardware state or Modbus state. Canonical `ACTIVE_SPRINT.json` remains intentionally `active_work_package=null` / `next_work_package=null`. Fresh backlog audit after #1177 found no independent software Work Package in Ready/In-Progress state; remaining open work is hardware-, approval-, recovery-acceptance-, or compatibility-gated. The next mandatory planned software/security boundary remains the fail-closed container exception review on **2026-10-02**.
 
 ## Current Sprint
 
