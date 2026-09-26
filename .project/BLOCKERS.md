@@ -1,6 +1,12 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-25
+Updated: 2026-09-26
+
+## Maintenance chain #1178 / #1180 / #1177
+
+**Cleared for repository/software scope.** Next.js `16.3.6` security maintenance (#1178 / PR #1100), the bounded development-quality refresh (#1180 / PR #1102), and root `@types/node 22.20.4` refresh (#1177 / PR #1101) are all merged after their required exact-head matrices passed GREEN. The final #1177 matrix included deterministic install, format, lint, typecheck, full tests, production build, Authenticated Dashboard, Offline Auth, Offline Bundle disconnected startup/update/rollback persistence proof and NEXOLAB Merge Gate. No production deployment/cutover, persistent-data or volume mutation, hardware action or Modbus write occurred.
+
+No independent Ready software blocker remains after this maintenance cycle. Open work remains intentionally gated by real evidence or compatibility: #1126 requires the exact physical CP2104 `0133F090`; #1125 humidity electrical acceptance requires real non-zero/readable signal evidence; #585 requires external-controller release and approved physical handback; #189/#201/#202 require controlled actual-host or hardware acceptance; #256/#257 remain toolchain compatibility-gated. The next mandatory planned security action is fresh fail-closed exception revalidation on **2026-10-02**.
 
 ## Chart audit #1162 follow-up cycle
 
