@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-27T11:30:00+03:00",
+  "timestamp": "2026-09-27T12:27:48+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1184 review remediation records zero-vulnerability production audit and executable rollback plan; new exact-head CI is required",
+  "event": "Issue #1187 reconciles completed React 19.3 Work Package #1184 and clears durable active selection",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,9 +28,7 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": {
-    "issue": 1184
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -49,7 +47,7 @@
       "production_build": "success_next_16.3.6_turbopack_23_static_pages",
       "commander_direct_pids_limit": "32_environment_constraint",
       "verification_scope": "temporary_user_systemd_unit_tasksmax_256_no_production_runtime_mutation",
-      "exact_head_ci": "rerun_required_after_review_remediation",
+      "exact_head_ci": "11_of_11_green_after_same_head_dashboard_rerun",
       "offline_runtime_dependency_change": "none_mandatory",
       "production_runtime_mutation": "none",
       "modbus_write": "none",
@@ -61,7 +59,17 @@
       "rollback_manifest_lock": "restore_package_json_and_package_lock_json_from_parent_baseline_0db96b61",
       "rollback_dashboard_artifact": "if_deployed_restore_previous_immutable_dashboard_release_or_rebuild_from_restored_19.2.8_lock_never_patch_node_modules_in_place",
       "rollback_verification_command": "npm ci && npm ls react react-dom @types/react @types/react-dom --depth=0 && npm run lint && npm run typecheck && npx vitest run --maxWorkers=2 && NODE_OPTIONS=--max-old-space-size=2048 npm run build",
-      "review_p2_remediation": "supply_chain_audit_and_executable_rollback_plan_recorded"
+      "review_p2_remediation": "supply_chain_audit_and_executable_rollback_plan_recorded",
+      "verified_head_sha": "ab9e84817d9f782e48777238764de16cb50547a2",
+      "pull_request": 1186,
+      "core_ci": "success_run_36306679876_attempt_2_merge_gate_green",
+      "authenticated_dashboard": "success_run_36306680138_attempt_2_same_head_rerun",
+      "offline_bundle_final_head": "success_run_36306679858",
+      "offline_auth_final_head": "success_run_36306679860",
+      "review_threads": "2_resolved_0_unresolved",
+      "first_dashboard_attempt": "19_of_20_passed_one_equipment_multi_axis_checkbox_timeout",
+      "same_head_dashboard_rerun": "success_confirmed_flaky_timing",
+      "issue_state": "closed_completed"
     },
     "completed_security_gate": {
       "issue": 1106,
@@ -353,6 +361,31 @@
       "production_runtime_mutation": "none",
       "modbus_write": "none",
       "hardware_write": "none"
+    },
+    "state_reconciliation_1187": {
+      "issue": 1187,
+      "scope": "canonical_state_only",
+      "active_work_package": null,
+      "next_work_package": null,
+      "backlog_open_issue_snapshot_before_state_issue": 11,
+      "independent_ready_issues": 0,
+      "independent_in_progress_issues": 0,
+      "open_pull_requests": 0,
+      "issue_1064_status": "blocked_no_successful_shadow_acceptance_evidence",
+      "next_security_review": "2026-10-02",
+      "accepted_product_baseline_changed": false,
+      "deployed_product_baseline_changed": false,
+      "production_runtime_mutation": "none",
+      "persistent_data_mutation": "none",
+      "volume_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "state_model_v2": "success_local",
+      "state_integrity_validator": "success_local",
+      "state_model_tests": "28_passed_1_skipped",
+      "json_parse": "success_local",
+      "changed_file_prettier": "success_local_prettier_3_9_9_state_config",
+      "git_diff_check": "success_local"
     }
   },
   "observations": [
@@ -559,9 +592,22 @@
           1009
         ]
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-27T12:27:48+03:00",
+      "kind": "issue_1184_merge_reconciliation",
+      "data": {
+        "issue": 1184,
+        "pull_request": 1186,
+        "verified_head_sha": "ab9e84817d9f782e48777238764de16cb50547a2",
+        "merge_sha": "927057209897d5f8a017bc62a4a84945966b3da5",
+        "issue_state": "closed_completed",
+        "required_checks": "green"
+      }
     }
   ],
-  "next_action": "Commit and push the #1184 review remediation, resolve the two P2 review threads only after the updated evidence is visible, require all workflows GREEN on the new exact head, then merge and reconcile completion.",
+  "next_action": "No independent Ready software Work Package. Re-audit on new evidence; mandatory fail-closed container exception review remains due 2026-10-02.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

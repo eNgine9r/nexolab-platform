@@ -40,9 +40,7 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1184
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -5552,7 +5550,7 @@
       "issue": 1184,
       "title": "Upgrade React and React DOM 19.2.8 → 19.3.0 as one compatibility group",
       "priority": "medium",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "commander/1184-react-19-3",
       "evidence": {
@@ -5572,7 +5570,7 @@
         "git_diff_check": "success_local",
         "production_build": "success_next_16.3.6_turbopack_23_static_pages",
         "lock_graph": "react_reactdom_types_19.3.0_scheduler_0.28.0",
-        "exact_head_ci": "rerun_required_after_review_remediation",
+        "exact_head_ci": "11_of_11_green_after_same_head_dashboard_rerun",
         "offline_runtime_dependency_change": "none_mandatory",
         "production_cutover": "not_in_scope",
         "production_runtime_mutation": "none",
@@ -5587,7 +5585,56 @@
         "rollback_manifest_lock": "restore_package_json_and_package_lock_json_from_parent_baseline_0db96b61",
         "rollback_dashboard_artifact": "if_deployed_restore_previous_immutable_dashboard_release_or_rebuild_from_restored_19.2.8_lock_never_patch_node_modules_in_place",
         "rollback_verification_command": "npm ci && npm ls react react-dom @types/react @types/react-dom --depth=0 && npm run lint && npm run typecheck && npx vitest run --maxWorkers=2 && NODE_OPTIONS=--max-old-space-size=2048 npm run build",
-        "review_p2_remediation": "supply_chain_audit_and_executable_rollback_plan_recorded"
+        "review_p2_remediation": "supply_chain_audit_and_executable_rollback_plan_recorded",
+        "verified_head_sha": "ab9e84817d9f782e48777238764de16cb50547a2",
+        "pull_request": 1186,
+        "first_dashboard_attempt": "19_of_20_passed_one_equipment_multi_axis_checkbox_timeout",
+        "same_head_dashboard_rerun": "success_no_product_or_dependency_diff",
+        "issue_state": "closed_completed",
+        "checks": {
+          "core_ci": "success_run_36306679876_attempt_2_merge_gate_green",
+          "authenticated_dashboard": "success_run_36306680138_attempt_2_same_head_rerun",
+          "offline_auth": "success_run_36306679860",
+          "offline_bundle": "success_run_36306679858",
+          "all_routed_workflows": "11_of_11_green",
+          "review_threads": "2_resolved_0_unresolved"
+        }
+      }
+    },
+    {
+      "issue": 1187,
+      "title": "Reconcile completed React 19.3 Work Package #1184",
+      "priority": "medium",
+      "lifecycle": "completed",
+      "depends_on": [
+        1184
+      ],
+      "branch": "chore/1187-reconcile-react-19-3-state",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "reconciled_issue": 1184,
+        "reconciled_pull_request": 1186,
+        "reconciled_verified_head_sha": "ab9e84817d9f782e48777238764de16cb50547a2",
+        "react_19_3_final_ci": "11_of_11_green_after_same_head_dashboard_rerun",
+        "backlog_open_issue_snapshot_before_state_issue": 11,
+        "independent_ready_issues": 0,
+        "independent_in_progress_issues": 0,
+        "open_pull_requests": 0,
+        "issue_1064_status": "blocked_no_successful_shadow_acceptance_evidence",
+        "next_security_review": "2026-10-02",
+        "accepted_product_baseline_changed": false,
+        "deployed_product_baseline_changed": false,
+        "production_runtime_mutation": "none",
+        "persistent_data_mutation": "none",
+        "volume_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "state_model_v2": "success_local",
+        "state_integrity_validator": "success_local",
+        "state_model_tests": "28_passed_1_skipped",
+        "json_parse": "success_local",
+        "changed_file_prettier": "success_local_prettier_3_9_9_state_config",
+        "git_diff_check": "success_local"
       }
     }
   ],
@@ -6249,6 +6296,32 @@
           1007,
           1009
         ]
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-27T12:27:48+03:00",
+      "kind": "issue_1184_merge_reconciliation",
+      "data": {
+        "issue": 1184,
+        "pull_request": 1186,
+        "verified_head_sha": "ab9e84817d9f782e48777238764de16cb50547a2",
+        "merge_sha": "927057209897d5f8a017bc62a4a84945966b3da5",
+        "issue_state": "closed_completed",
+        "exact_head_workflows": "11_of_11_green_after_same_head_dashboard_rerun"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-27T12:27:48+03:00",
+      "kind": "post_1184_ready_audit",
+      "data": {
+        "open_issue_snapshot_before_state_issue": 11,
+        "ready_issues": 0,
+        "in_progress_issues": 0,
+        "open_pull_requests": 0,
+        "next_independent_ready_issue": null,
+        "next_security_review": "2026-10-02"
       }
     }
   ],

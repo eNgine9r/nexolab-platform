@@ -2,17 +2,13 @@
 
 Updated: 2026-09-27
 
-## Issue #1184 — review remediation complete locally; fresh exact-head CI remains
+## React 19.3 maintenance — cleared
 
-The React/React DOM `19.2.8 → 19.3.0` candidate is locally GREEN: clean install, 14/14 targeted tests, 797/797 full Vitest, ESLint, TypeScript, lint-staged regression, Prettier, diff check and production build all pass. The first exact-head matrix `09692aaf...` passed 11/11 workflows. Production supply-chain audit `npm audit --omit=dev --audit-level=high` additionally exits 0 with zero vulnerabilities. Offline Bundle run `36305620858` passed disconnected startup plus update/rollback persistent-data preservation.
+Issue #1184 / PR #1186 is cleared for repository/software scope. Final head `ab9e84817d9f782e48777238764de16cb50547a2` passed **11/11 routed workflows GREEN** after one same-head Authenticated Dashboard rerun confirmed an isolated Playwright checkbox timing timeout as flaky; both P2 review threads are resolved, production dependency audit reported zero vulnerabilities, and Offline Bundle proved disconnected update/rollback persistence. PR #1186 squash-merged and #1184 is closed completed; the exact merge SHA remains only in the timestamped GitHub observation. No production runtime, persistent-data, named-volume, hardware or Modbus mutation occurred.
 
-Rollback baseline is parent `0db96b61...` with React/React DOM 19.2.8, `@types/react 19.2.17`, `@types/react-dom 19.2.3` and scheduler 0.27.0. Revert the focused #1184 merge (or restore both package manifests from that baseline), run clean install + dependency graph + lint + typecheck + full Vitest + production build, and if a 19.3 Dashboard artifact was deployed restore the previous immutable Dashboard release/image or rebuild from the restored lockfile. No database/volume operation is required. Because this durable review-remediation changes the PR head, **fresh exact-head CI is now the only repository merge gate**; the two P2 review threads may be resolved only after this evidence is visible on GitHub.
+## Ready queue after #1184
 
-The Raspberry Pi Commander shell itself has `pids.max=32`; thread-heavy verification used temporary user-systemd units with isolated task budgets and no persistent production/runtime change. Hardware/ownership/actual-host blockers remain separate (#1125/#1126/#585/#189/#201/#202/#108/#17), #256/#257 remain toolchain compatibility-gated, and the next mandatory fail-closed security review remains **2026-10-02**.
-
-## Issue #1183 — empty Ready queue blocker cleared by #1184
-
-The previous scheduling blocker is cleared: #1184 is the single independent Ready software Work Package; stale split PRs #1007/#1009 are closed unmerged. Remaining gates stay explicit: #1125/#1126/#585/#202 hardware or ownership, #201 approved restart/power-cycle validation, #189/#108 actual-host acceptance, #17 dependent hardware semantics, #256/#257 toolchain compatibility, and #1064 shadow acceptance. No production/site cutover, service restart, persistent-data mutation, hardware action or Modbus write is authorized.
+Fresh audit immediately before opening state-only #1187 found **11 open Issues, 0 independent Ready, 0 independent In-Progress and 0 open Pull Requests**. Remaining work stays evidence-gated: #1125/#1126/#585/#202 require hardware or ownership evidence; #201 requires approved restart/power-cycle validation; #189/#108 require actual-host acceptance; #17 depends on hardware semantics; #256/#257 remain toolchain compatibility-gated; #1064 still lacks a successful one-shot shadow acceptance. No blocked item is promoted without new evidence. The next mandatory planned security action remains the fail-closed container exception review on **2026-10-02**.
 
 ## Maintenance chain #1178 / #1180 / #1177
 
