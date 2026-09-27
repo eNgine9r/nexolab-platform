@@ -2,11 +2,13 @@
 
 Updated: 2026-09-27
 
-## Issue #1184 — local candidate GREEN; exact-head CI is the remaining merge gate
+## Issue #1184 — review remediation complete locally; fresh exact-head CI remains
 
-The coordinated React/React DOM `19.2.8 → 19.3.0` compatibility candidate is locally GREEN on Raspberry Pi with clean install, **14/14 targeted tests**, **797/797 full Vitest**, ESLint, TypeScript, lint-staged regression, Prettier, diff check and production build all passing. It is not blocked by product code or dependency peers. The only current repository completion gate is the required exact-head GitHub workflow matrix, including browser/offline lanes selected by change-impact routing. Merge remains forbidden until those checks are GREEN.
+The React/React DOM `19.2.8 → 19.3.0` candidate is locally GREEN: clean install, 14/14 targeted tests, 797/797 full Vitest, ESLint, TypeScript, lint-staged regression, Prettier, diff check and production build all pass. The first exact-head matrix `09692aaf...` passed 11/11 workflows. Production supply-chain audit `npm audit --omit=dev --audit-level=high` additionally exits 0 with zero vulnerabilities. Offline Bundle run `36305620858` passed disconnected startup plus update/rollback persistent-data preservation.
 
-The Raspberry Pi Commander shell itself has `pids.max=32`; this affected direct Node/Rust worker creation but not product correctness. Verification therefore ran in a temporary user-systemd unit with an isolated task budget and no production/runtime mutation. Hardware/ownership/actual-host blockers remain separate (#1125/#1126/#585/#189/#201/#202/#108/#17), #256/#257 remain toolchain compatibility-gated, and the next mandatory fail-closed security review remains **2026-10-02**.
+Rollback baseline is parent `0db96b61...` with React/React DOM 19.2.8, `@types/react 19.2.17`, `@types/react-dom 19.2.3` and scheduler 0.27.0. Revert the focused #1184 merge (or restore both package manifests from that baseline), run clean install + dependency graph + lint + typecheck + full Vitest + production build, and if a 19.3 Dashboard artifact was deployed restore the previous immutable Dashboard release/image or rebuild from the restored lockfile. No database/volume operation is required. Because this durable review-remediation changes the PR head, **fresh exact-head CI is now the only repository merge gate**; the two P2 review threads may be resolved only after this evidence is visible on GitHub.
+
+The Raspberry Pi Commander shell itself has `pids.max=32`; thread-heavy verification used temporary user-systemd units with isolated task budgets and no persistent production/runtime change. Hardware/ownership/actual-host blockers remain separate (#1125/#1126/#585/#189/#201/#202/#108/#17), #256/#257 remain toolchain compatibility-gated, and the next mandatory fail-closed security review remains **2026-10-02**.
 
 ## Issue #1183 — empty Ready queue blocker cleared by #1184
 
