@@ -2,6 +2,18 @@
 
 Updated: 2026-09-27
 
+## Issue #1184 — React 19.3 compatibility candidate locally GREEN
+
+Issue #1184 is the active software Work Package on branch `commander/1184-react-19-3`. The focused dependency graph upgrades React and React DOM from `19.2.8` to `19.3.0`; the committed lock graph resolves `@types/react 19.3.0`, `@types/react-dom 19.3.0` and transitive `scheduler 0.28.0`. The shipping diff remains limited to `package.json`, `package-lock.json` and canonical project-state files; unrelated npm platform metadata churn was removed.
+
+Raspberry Pi ARM64 verification is locally GREEN: clean `npm ci` installed 543 packages from the candidate lockfile, targeted chart/Overview/Live/Refrigeration compatibility tests passed **14/14 across 5 files**, full Vitest passed **797/797 across 155 files**, ESLint and strict TypeScript passed, lint-staged regression passed, changed-file Prettier and `git diff --check` passed, and Next.js `16.3.6` Turbopack production build compiled successfully and generated **23/23** static pages. Direct Commander executions have a `pids.max=32` environment constraint, so CPU/thread-heavy verification ran in a temporary user-systemd unit with an isolated task budget; no production NEXOLAB service or persistent Commander limit was changed.
+
+The candidate is now in `review`. Exact-head workflow matrix on `09692aaf...` passed 11/11, including Offline Bundle run `36305620858`. Its disconnected job loaded the bundle with pull disabled and egress blocked, then **Prove update and rollback preserve persistent data** passed. A separate exact-candidate production supply-chain check `npm audit --omit=dev --audit-level=high --json` exited 0 with **0 total vulnerabilities** (0 critical/high/moderate/low). Because this review-remediation changes the durable evidence, a fresh exact-head matrix is required before merge.
+
+Rollback is explicit and non-destructive. Repository baseline is parent `0db96b61db6be86a7f7c84c65e1e5ef1b28956c2`: `react/react-dom 19.2.8`, lockfile `@types/react 19.2.17`, `@types/react-dom 19.2.3`, `scheduler 0.27.0`. Roll back by reverting the focused #1184 merge (or restoring `package.json` and `package-lock.json` from that baseline before merge), then run `npm ci && npm ls react react-dom @types/react @types/react-dom --depth=0 && npm run lint && npm run typecheck && npx vitest run --maxWorkers=2 && NODE_OPTIONS=--max-old-space-size=2048 npm run build`. If a React 19.3 Dashboard artifact has ever been deployed, restore the previous immutable Dashboard release/image or rebuild from the restored 19.2.8 lockfile; never patch `node_modules` in place. No database or named-volume operation is part of rollback.
+
+No production deployment/cutover, persistent-data or named-volume mutation, telemetry/acquisition change, hardware action or Modbus write has occurred. Accepted and deployed product baselines remain unchanged.
+
 ## Issue #1183 — backlog re-audit selects #1184 as the next Ready Work Package
 
 A fresh GitHub audit on 2026-09-27 found **13 open Issues and 0 open Pull Requests**. Stale split React 19.3 Dependabot PRs #1007/#1009 were closed unmerged; focused Issue #1184 now owns the coordinated React/React DOM `19.2.8 → 19.3.0` upgrade and is the single independent Ready software Work Package. Remaining open work stays hardware-, ownership-, actual-host-, validation- or compatibility-gated rather than being promoted artificially.

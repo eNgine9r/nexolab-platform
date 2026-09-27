@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-27T10:09:00+03:00",
+  "timestamp": "2026-09-27T11:30:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1183 backlog re-audit reconciled GitHub lifecycle and selected Issue #1184 as the next independent Ready software Work Package",
+  "event": "Issue #1184 review remediation records zero-vulnerability production audit and executable rollback plan; new exact-head CI is required",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,8 +28,41 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1184
+  },
   "evidence_snapshot": {
+    "issue_1184_react_19_3_candidate": {
+      "issue": 1184,
+      "branch": "commander/1184-react-19-3",
+      "runtime_graph": "react_19.3.0_react_dom_19.3.0",
+      "type_graph": "types_react_19.3.0_types_react_dom_19.3.0",
+      "scheduler": "0.28.0",
+      "clean_npm_ci": "success_543_packages",
+      "targeted_react_tests": "14_passed_5_files",
+      "full_vitest": "797_passed_155_files",
+      "eslint": "success_local",
+      "typescript_no_emit": "success_local",
+      "lint_staged_regression": "success_local",
+      "changed_file_prettier": "success_local",
+      "git_diff_check": "success_local",
+      "production_build": "success_next_16.3.6_turbopack_23_static_pages",
+      "commander_direct_pids_limit": "32_environment_constraint",
+      "verification_scope": "temporary_user_systemd_unit_tasksmax_256_no_production_runtime_mutation",
+      "exact_head_ci": "rerun_required_after_review_remediation",
+      "offline_runtime_dependency_change": "none_mandatory",
+      "production_runtime_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "production_dependency_audit": "npm_audit_omit_dev_audit_level_high_exit_0_zero_vulnerabilities",
+      "offline_bundle_exact_head": "success_run_36305620858",
+      "disconnected_update_rollback": "success_preserved_persistent_data",
+      "rollback_baseline_sha": "0db96b61db6be86a7f7c84c65e1e5ef1b28956c2",
+      "rollback_manifest_lock": "restore_package_json_and_package_lock_json_from_parent_baseline_0db96b61",
+      "rollback_dashboard_artifact": "if_deployed_restore_previous_immutable_dashboard_release_or_rebuild_from_restored_19.2.8_lock_never_patch_node_modules_in_place",
+      "rollback_verification_command": "npm ci && npm ls react react-dom @types/react @types/react-dom --depth=0 && npm run lint && npm run typecheck && npx vitest run --maxWorkers=2 && NODE_OPTIONS=--max-old-space-size=2048 npm run build",
+      "review_p2_remediation": "supply_chain_audit_and_executable_rollback_plan_recorded"
+    },
     "completed_security_gate": {
       "issue": 1106,
       "pull_request": 1107,
@@ -528,7 +561,7 @@
       }
     }
   ],
-  "next_action": "After #1183 passes state-only CI and merges, start Issue #1184 as the single next Ready software Work Package. Keep hardware, actual-host and compatibility-gated Issues blocked until their explicit evidence gates are satisfied.",
+  "next_action": "Commit and push the #1184 review remediation, resolve the two P2 review threads only after the updated evidence is visible, require all workflows GREEN on the new exact head, then merge and reconcile completion.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
