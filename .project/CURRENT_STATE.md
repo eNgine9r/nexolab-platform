@@ -1,6 +1,12 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-26
+Updated: 2026-09-27
+
+## Issue #1183 — backlog re-audit selects #1184 as the next Ready Work Package
+
+A fresh GitHub audit on 2026-09-27 found **13 open Issues and 0 open Pull Requests**. Stale split React 19.3 Dependabot PRs #1007/#1009 were closed unmerged; focused Issue #1184 now owns the coordinated React/React DOM `19.2.8 → 19.3.0` upgrade and is the single independent Ready software Work Package. Remaining open work stays hardware-, ownership-, actual-host-, validation- or compatibility-gated rather than being promoted artificially.
+
+This is planning-state only: accepted/deployed baselines, production runtime, telemetry/acquisition, persistent data, named volumes, hardware and Modbus state are unchanged. Canonical selection becomes `active_work_package=null` / `next_work_package=#1184`.
 
 ## Maintenance chain #1178 / #1180 / #1177 completed
 

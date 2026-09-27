@@ -41,7 +41,9 @@
   },
   "selection": {
     "active_work_package": null,
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 1184
+    }
   },
   "work_packages": [
     {
@@ -5523,6 +5525,43 @@
         "completed_maintenance_issues": "1178_1180_1177",
         "verified_heads": "35fe7761431aa41ce118e64fd3e2aa9ca4c393ac_02e6e58c255aea65105916ae461ea216b7ead728_c34863e393a80334e92c484d648fe11ced42e1cf"
       }
+    },
+    {
+      "issue": 1183,
+      "title": "Re-audit open backlog after #1181 and select next Ready software Work Package",
+      "priority": "medium",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "commander/1183-reconcile-backlog-audit",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "github_open_issue_snapshot": 13,
+        "github_open_pr_snapshot": 0,
+        "superseded_split_prs": "1007_1009_closed_unmerged",
+        "selected_next_ready_issue": 1184,
+        "accepted_product_baseline_changed": false,
+        "deployed_product_baseline_changed": false,
+        "production_runtime_mutation": "none",
+        "persistent_data_mutation": "none",
+        "volume_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1184,
+      "title": "Upgrade React and React DOM 19.2.8 → 19.3.0 as one compatibility group",
+      "priority": "medium",
+      "lifecycle": "ready",
+      "depends_on": [],
+      "evidence": {
+        "selected_by_backlog_audit_issue": 1183,
+        "supersedes_dependabot_prs": "1007_1009",
+        "nextjs_16_3_6_peer_range": "react_and_react_dom_^19.0.0",
+        "production_cutover": "not_in_scope",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
     }
   ],
   "maintenance_actions": [
@@ -6169,6 +6208,20 @@
         "minio_reconstruction": "security_rejected",
         "versitygw_candidate": "v1.8.0_poc_passed_0_high_0_critical_both_architectures",
         "production_mutation": "none"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-27T10:09:00+03:00",
+      "kind": "issue_1183_backlog_reaudit",
+      "data": {
+        "open_issues": 13,
+        "open_pull_requests": 0,
+        "ready_issue": 1184,
+        "superseded_pull_requests": [
+          1007,
+          1009
+        ]
       }
     }
   ],

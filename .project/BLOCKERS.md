@@ -1,6 +1,10 @@
 # NEXOLAB Blockers
 
-Updated: 2026-09-26
+Updated: 2026-09-27
+
+## Issue #1183 — empty Ready queue blocker cleared by #1184
+
+The previous scheduling blocker is cleared: #1184 is the single independent Ready software Work Package; stale split PRs #1007/#1009 are closed unmerged. Remaining gates stay explicit: #1125/#1126/#585/#202 hardware or ownership, #201 approved restart/power-cycle validation, #189/#108 actual-host acceptance, #17 dependent hardware semantics, #256/#257 toolchain compatibility, and #1064 shadow acceptance. No production/site cutover, service restart, persistent-data mutation, hardware action or Modbus write is authorized.
 
 ## Maintenance chain #1178 / #1180 / #1177
 
@@ -248,9 +252,7 @@ RFX-01 through RFX-12 are repository-complete. RFX-12 / #1088 / PR #1089 final h
 
 RFX-12 makes the Overview temperature workspace full width and moves “Потребує уваги” below it. No backend, telemetry, alarm logic, dependency, deployment or hardware scope changed.
 
-There is no repository-backed RFX-13 Issue and no independent Ready Work Package. Existing non-Ready boundaries remain: #585 external RS-485 handback, #189 actual-host recovery evidence, #201/#202 real hardware validation, #17 dependencies on hardware semantics, #257/#256 toolchain dependencies, and stale #1019 production-release planning.
-
-This empty Ready queue remains a hard scheduling blocker under Autonomous Sprint Mode. The next product Work Package requires Product Owner prioritization unless a critical defect/security interruption creates a higher-priority scoped Issue.
+The earlier empty-Ready-queue snapshot is superseded by the 2026-09-27 #1183 backlog re-audit. Issue #1184 is now the single independent Ready software Work Package; the hardware, actual-host and compatibility boundaries listed here remain gated separately.
 
 ## Issue #909 — consolidated HIGH container exception review
 
