@@ -16,11 +16,11 @@ The coordinated React/React DOM `19.2.8 → 19.3.0` Work Package is repository-c
 
 The accepted repository graph is React/React DOM `19.3.0`, lockfile `@types/react 19.3.0`, `@types/react-dom 19.3.0`, and scheduler `0.28.0`. Rollback authority remains parent `0db96b61db6be86a7f7c84c65e1e5ef1b28956c2` with React/React DOM `19.2.8`; rollback is manifest/lock + immutable Dashboard artifact restoration only and requires no database or named-volume mutation. No production deployment/cutover occurred.
 
-## Issue #1183 — backlog re-audit selects #1184 as the next Ready Work Package
+## Issue #1183 — historical backlog selection that led to #1184
 
-A fresh GitHub audit on 2026-09-27 found **13 open Issues and 0 open Pull Requests**. Stale split React 19.3 Dependabot PRs #1007/#1009 were closed unmerged; focused Issue #1184 now owns the coordinated React/React DOM `19.2.8 → 19.3.0` upgrade and is the single independent Ready software Work Package. Remaining open work stays hardware-, ownership-, actual-host-, validation- or compatibility-gated rather than being promoted artificially.
+A GitHub audit on 2026-09-27 found **13 open Issues and 0 open Pull Requests**. At that snapshot, stale split React 19.3 Dependabot PRs #1007/#1009 were closed unmerged and focused Issue #1184 became the single independent Ready software Work Package for the coordinated React/React DOM `19.2.8 → 19.3.0` upgrade. This section is historical only: #1184 has since completed through PR #1186, and the current durable execution intent is the #1187 state above with `active_work_package=null` and `next_work_package=null`.
 
-This is planning-state only: accepted/deployed baselines, production runtime, telemetry/acquisition, persistent data, named volumes, hardware and Modbus state are unchanged. Canonical selection becomes `active_work_package=null` / `next_work_package=#1184`.
+The #1183 planning step did not change accepted/deployed baselines, production runtime, telemetry/acquisition, persistent data, named volumes, hardware or Modbus state. Its former `next_work_package=#1184` selection is superseded by the completed #1184 reconciliation recorded above.
 
 ## Maintenance chain #1178 / #1180 / #1177 completed
 

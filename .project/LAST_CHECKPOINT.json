@@ -68,8 +68,7 @@
       "offline_auth_final_head": "success_run_36306679860",
       "review_threads": "2_resolved_0_unresolved",
       "first_dashboard_attempt": "19_of_20_passed_one_equipment_multi_axis_checkbox_timeout",
-      "same_head_dashboard_rerun": "success_confirmed_flaky_timing",
-      "issue_state": "closed_completed"
+      "same_head_dashboard_rerun": "success_confirmed_flaky_timing"
     },
     "completed_security_gate": {
       "issue": 1106,

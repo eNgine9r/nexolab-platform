@@ -5590,7 +5590,6 @@
         "pull_request": 1186,
         "first_dashboard_attempt": "19_of_20_passed_one_equipment_multi_axis_checkbox_timeout",
         "same_head_dashboard_rerun": "success_no_product_or_dependency_diff",
-        "issue_state": "closed_completed",
         "checks": {
           "core_ci": "success_run_36306679876_attempt_2_merge_gate_green",
           "authenticated_dashboard": "success_run_36306680138_attempt_2_same_head_rerun",
