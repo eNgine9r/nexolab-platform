@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-26T20:31:53+03:00",
+  "timestamp": "2026-09-27T10:09:00+03:00",
   "actor": "ChatGPT",
-  "event": "Issue #1181 state-only reconciliation records completed maintenance chain #1178/#1180/#1177 and post-maintenance backlog audit",
+  "event": "Issue #1183 backlog re-audit reconciled GitHub lifecycle and selected Issue #1184 as the next independent Ready software Work Package",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -307,6 +307,19 @@
           "verified_head_sha": "c34863e393a80334e92c484d648fe11ced42e1cf"
         }
       ]
+    },
+    "issue_1183_backlog_reaudit": {
+      "issue": 1183,
+      "scope": "canonical_state_only",
+      "open_issues_snapshot": 13,
+      "open_prs_snapshot": 0,
+      "superseded_split_prs": "1007_1009_closed_unmerged",
+      "selected_next_ready_issue": 1184,
+      "accepted_product_baseline_changed": false,
+      "deployed_product_baseline_changed": false,
+      "production_runtime_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "observations": [
@@ -499,9 +512,23 @@
         "merge_sha": "ce0a7d608df5edab290767cd3a0651d3ee0ca669",
         "status": "merged_closed_green"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-09-27T10:09:00+03:00",
+      "kind": "issue_1183_backlog_reaudit",
+      "data": {
+        "open_issues": 13,
+        "open_pull_requests": 0,
+        "ready_issue": 1184,
+        "superseded_pull_requests": [
+          1007,
+          1009
+        ]
+      }
     }
   ],
-  "next_action": "Keep active/next software Work Package unselected until a fresh independent Ready item exists; hardware/approval-gated #1125/#1126/#585/#189/#201/#202 remain evidence-gated, while #256/#257 remain compatibility-gated. Revalidate current container exceptions fail-closed by 2026-10-02.",
+  "next_action": "After #1183 passes state-only CI and merges, start Issue #1184 as the single next Ready software Work Package. Keep hardware, actual-host and compatibility-gated Issues blocked until their explicit evidence gates are satisfied.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
