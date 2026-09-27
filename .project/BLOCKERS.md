@@ -2,6 +2,12 @@
 
 Updated: 2026-09-27
 
+## Issue #1184 — local candidate GREEN; exact-head CI is the remaining merge gate
+
+The coordinated React/React DOM `19.2.8 → 19.3.0` compatibility candidate is locally GREEN on Raspberry Pi with clean install, **14/14 targeted tests**, **797/797 full Vitest**, ESLint, TypeScript, lint-staged regression, Prettier, diff check and production build all passing. It is not blocked by product code or dependency peers. The only current repository completion gate is the required exact-head GitHub workflow matrix, including browser/offline lanes selected by change-impact routing. Merge remains forbidden until those checks are GREEN.
+
+The Raspberry Pi Commander shell itself has `pids.max=32`; this affected direct Node/Rust worker creation but not product correctness. Verification therefore ran in a temporary user-systemd unit with an isolated task budget and no production/runtime mutation. Hardware/ownership/actual-host blockers remain separate (#1125/#1126/#585/#189/#201/#202/#108/#17), #256/#257 remain toolchain compatibility-gated, and the next mandatory fail-closed security review remains **2026-10-02**.
+
 ## Issue #1183 — empty Ready queue blocker cleared by #1184
 
 The previous scheduling blocker is cleared: #1184 is the single independent Ready software Work Package; stale split PRs #1007/#1009 are closed unmerged. Remaining gates stay explicit: #1125/#1126/#585/#202 hardware or ownership, #201 approved restart/power-cycle validation, #189/#108 actual-host acceptance, #17 dependent hardware semantics, #256/#257 toolchain compatibility, and #1064 shadow acceptance. No production/site cutover, service restart, persistent-data mutation, hardware action or Modbus write is authorized.
