@@ -5657,7 +5657,8 @@
           "chromium_scope": "SSR_component_real_production_CSS",
           "runtime_e2e": "pending_exact_head_CI",
           "production_runtime_mutation": "none",
-          "mandatory_runtime_dependency_change": "none"
+          "mandatory_runtime_dependency_change": "none",
+          "dashboard_regressions": "38_passed_12_files"
         }
       }
     }
