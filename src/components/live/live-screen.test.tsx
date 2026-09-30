@@ -8,6 +8,7 @@ const mock = vi.hoisted(() => ({
   params: new URLSearchParams(),
   replace: vi.fn(),
   security: null as DashboardSecurityModel | null,
+  targetOrganization: "org-b",
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mock.replace }),
@@ -18,7 +19,11 @@ vi.mock("next/link", () => ({
 }));
 vi.mock("@/hooks/use-dashboard-security", () => ({ useDashboardSecurity: () => mock.security }));
 vi.mock("@/components/dashboard/sidebar", () => ({ Sidebar: () => null }));
-vi.mock("@/components/dashboard/topbar", () => ({ Topbar: () => null }));
+vi.mock("@/components/dashboard/topbar", () => ({
+  Topbar: ({ onOrganizationChange }: { onOrganizationChange: (id: string) => void }) => (
+    <button onClick={() => onOrganizationChange(mock.targetOrganization)}>Change test organization</button>
+  ),
+}));
 function Workspace({ organizationId, kind }: { organizationId: string; kind: string }) {
   const [draft, setDraft] = useState("");
   return (
@@ -108,6 +113,30 @@ describe("Live monitoring entry", () => {
     expect(screen.getByTestId(kind)).toHaveAttribute("data-organization", "org-b");
     expect(screen.getByLabelText("Workspace draft")).toHaveValue("");
   });
+  it.each(["explorer", "dashboards"])(
+    "clears URL context before mounting the new organization's %s",
+    (kind) => {
+      mock.params = new URLSearchParams(
+        `workspace=${kind}&compare=old-channel&search=old-probe&node=old-node&range=24h`,
+      );
+      const select = vi.fn(() => {
+        mock.security = ready("org-b");
+      });
+      mock.security!.selectOrganization = select;
+      const { rerender } = render(<LiveScreen />);
+      fireEvent.change(screen.getByLabelText("Workspace draft"), { target: { value: "old draft" } });
+      fireEvent.click(screen.getByRole("button", { name: "Change test organization" }));
+      expect(mock.replace).toHaveBeenCalledWith(`/live?workspace=${kind}`, { scroll: false });
+      expect(select).not.toHaveBeenCalled();
+      expect(screen.queryByTestId(kind)).not.toBeInTheDocument();
+      mock.params = new URLSearchParams(`workspace=${kind}`);
+      rerender(<LiveScreen />);
+      expect(select).toHaveBeenCalledWith("org-b");
+      rerender(<LiveScreen />);
+      expect(screen.getByTestId(kind)).toHaveAttribute("data-organization", "org-b");
+      expect(screen.getByLabelText("Workspace draft")).toHaveValue("");
+    },
+  );
   it("does not mount a workspace before authentication", () => {
     mock.security = { ...ready(), state: "unauthenticated", session: null, membership: null };
     render(<LiveScreen />);
