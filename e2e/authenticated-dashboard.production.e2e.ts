@@ -482,3 +482,47 @@ test("shared header keeps account actions usable on mobile and desktop", async (
     await context.close();
   }
 });
+
+test("refrigeration uses verified account context and blocks anonymous equipment reads", async ({
+  browser,
+}) => {
+  const anonymous = await browser.newContext();
+  try {
+    const page = await anonymous.newPage();
+    const equipmentReads: string[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("/api/v1/equipment")) equipmentReads.push(request.url());
+    });
+    await page.goto("/refrigeration/missing-account-fixture", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: "Потрібен вхід до системи" })).toBeVisible();
+    expect(equipmentReads).toHaveLength(0);
+  } finally {
+    await anonymous.close();
+  }
+
+  const context = await authenticatedContext(browser);
+  try {
+    const page = await context.newPage();
+    await page.setViewportSize({ width: 375, height: 900 });
+    await page.goto("/refrigeration/missing-account-fixture", { waitUntil: "domcontentloaded" });
+    const header = page.getByTestId("platform-topbar");
+    await expect(header.getByText("Viewer Acceptance", { exact: true })).toBeVisible();
+    await expect(header.locator("[data-organization-id]")).toHaveAttribute(
+      "data-organization-id",
+      organizationId,
+    );
+    await expect(page.getByRole("heading", { name: "Обладнання недоступне" })).toBeVisible();
+    await expect(header.getByRole("link", { name: "Нова сесія" })).toHaveCount(0);
+    await expect(header.getByRole("button", { name: "Вийти з NEXOLAB" })).toBeVisible();
+    await page.goto("/refrigeration", { waitUntil: "domcontentloaded" });
+    await expect(
+      page.getByTestId("platform-topbar").getByText("Viewer Acceptance", { exact: true }),
+    ).toBeVisible();
+    const createEquipment = page.getByRole("button", { name: "Додати холодильне обладнання" });
+    if (await createEquipment.count()) await expect(createEquipment).toBeDisabled();
+    await page.getByTestId("platform-topbar").getByRole("button", { name: "Вийти з NEXOLAB" }).click();
+    await expect(page).toHaveURL(/\/login$/);
+  } finally {
+    await context.close();
+  }
+});

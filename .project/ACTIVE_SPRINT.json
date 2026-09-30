@@ -41,9 +41,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1192,
-      "title": "Truthful shared header and mobile account navigation",
-      "branch": "commander/1192-truthful-mobile-shell"
+      "issue": 1194,
+      "title": "Verified shared account context across refrigeration pages",
+      "branch": "commander/1194-refrigeration-account-context"
     },
     "next_work_package": null
   },
@@ -5644,7 +5644,7 @@
       "issue": 1192,
       "title": "Truthful shared header and mobile account navigation",
       "priority": "unspecified",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "commander/1192-truthful-mobile-shell",
       "evidence": {
         "verified_head_sha": "27680236c5561c32a5c665ec3c82026856695172",
@@ -5664,9 +5664,40 @@
           "review_typecheck": "passed",
           "review_chromium_responsive": "8_cases_passed",
           "production_build_source_sha": "27680236c5561c32a5c665ec3c82026856695172",
-          "visual_tab_order": "8_chromium_cases_passed"
+          "visual_tab_order": "8_chromium_cases_passed",
+          "exact_head_ci": "5_of_5_green",
+          "final_review_ci_sha": "3e429dce3c45845765aecb813e90e8c12fa37782",
+          "authenticated_dashboard": "passed_run_36788404966",
+          "core_merge_gate": "passed_run_36788404780",
+          "alerts_browser": "passed_run_36788404812",
+          "reports_browser": "passed_run_36788404660",
+          "nodes_browser": "passed_run_36788404766",
+          "review_threads": "2_resolved_0_unresolved"
         },
         "pull_request": 1193
+      }
+    },
+    {
+      "issue": 1194,
+      "title": "Verified shared account context across refrigeration pages",
+      "priority": "unspecified",
+      "lifecycle": "review",
+      "branch": "commander/1194-refrigeration-account-context",
+      "evidence": {
+        "verified_head_sha": "c9f346e296ef035295125e5965581eac088d254b",
+        "checks": {
+          "focused_tests": "28_pass",
+          "refrigeration_regressions": "87_pass",
+          "security_hook_tests": "5_pass",
+          "typecheck": "pass",
+          "touched_eslint": "pass",
+          "production_build": "pass",
+          "exact_head_browser_ci": "pending",
+          "scheme_fix_refrigeration_regressions": "90_pass",
+          "scheme_scope_review_fix_sha": "f4a060132f9e75ed77ee1816925b7ce2e2a98d72",
+          "selected_membership_scheme_tests": "3_red_then_green"
+        },
+        "pull_request": 1195
       }
     }
   ],

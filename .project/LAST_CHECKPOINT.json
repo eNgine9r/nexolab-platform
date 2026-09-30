@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T01:56:00+03:00",
+  "timestamp": "2026-10-01T02:26:06+03:00",
   "actor": "Codex",
-  "event": "Issue #1192 mobile visual Tab order fixed; final exact-head CI pending",
+  "event": "ux1194_scheme_scope_review_fix_local_green",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1192,
-    "title": "Truthful shared header and mobile account navigation",
-    "branch": "commander/1192-truthful-mobile-shell"
+    "issue": 1194,
+    "title": "Verified shared account context across refrigeration pages",
+    "branch": "commander/1194-refrigeration-account-context"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -424,6 +424,16 @@
         "review_thread": "PRRT_kwDOTe72wM6nq642",
         "exact_head_ci": "pending"
       }
+    },
+    "completed_shared_shell_1192": {
+      "issue": 1192,
+      "pull_request": 1193,
+      "verified_head_sha": "3e429dce3c45845765aecb813e90e8c12fa37782",
+      "exact_head_ci": "5_of_5_green",
+      "core_ci_run": 36788404780,
+      "dashboard_run": 36788404966,
+      "review_threads": "2_resolved_0_unresolved",
+      "production_runtime_mutation": "none"
     }
   },
   "observations": [
@@ -643,9 +653,20 @@
         "issue_state": "closed_completed",
         "required_checks": "green"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T02:02:00+03:00",
+      "kind": "shared_shell_merge",
+      "data": {
+        "issue": 1192,
+        "pull_request": 1193,
+        "merge_sha": "60879c62cb7aa615b48173f19953ec801ab560d3",
+        "status": "merged_closed_green"
+      }
     }
   ],
-  "next_action": "PR #1193 is open. Wait for exact-head CI and review; merge only required GREEN. Audit #1191 remains open; refrigeration shared account integration requires a separate scoped follow-up.",
+  "next_action": "Require final-head PR #1195 routed CI/browser GREEN; resolve review thread with verified Scheme scope fix before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -653,5 +674,16 @@
     "volume_deletion": "none",
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
+  },
+  "snapshot": {
+    "ux1194_local_checks": {
+      "focused_tests": 28,
+      "refrigeration_tests": 90,
+      "security_hook_tests": 5,
+      "typecheck": "pass",
+      "eslint": "pass",
+      "build": "pass",
+      "authenticated_browser_ci": "pending"
+    }
   }
 }
