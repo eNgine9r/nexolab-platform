@@ -5692,8 +5692,12 @@
           "typecheck": "pass",
           "touched_eslint": "pass",
           "production_build": "pass",
-          "exact_head_browser_ci": "pending"
-        }
+          "exact_head_browser_ci": "pending",
+          "scheme_fix_refrigeration_regressions": "90_pass",
+          "scheme_scope_review_fix_sha": "f4a060132f9e75ed77ee1816925b7ce2e2a98d72",
+          "selected_membership_scheme_tests": "3_red_then_green"
+        },
+        "pull_request": 1195
       }
     }
   ],
