@@ -1,6 +1,14 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-27
+Updated: 2026-09-30
+
+## Issue #1192 — truthful shared header and mobile account navigation
+
+User-authorized implementation of audit #1191 is in review on `commander/1192-truthful-mobile-shell`. The shared header removes the inert search/calendar, fixed notification count and fabricated account/organization defaults. Alerts now link to `/alerts`; supplied sign-out and organization actions remain usable on mobile; a single organization is shown as context. Session creation has an accessible name. Sidebar route matching respects path segments, so `/equipment-layouts` does not also activate `/equipment`.
+
+Local ARM64 evidence: 9 focused tests passed, touched-file ESLint and TypeScript passed, and Next.js 16.3.6 production build passed. Chromium component verification passed all eight combinations of 320/375/768/1280 px and one/two memberships with real production CSS, visible 40px actions, keyboard focus, organization selection and no horizontal header overflow. React callbacks passed unit tests; authenticated runtime E2E remains pending exact-head CI. Product source evidence is anchored to `8638063fdbc271330fbd886e889bb0283c8bede0`. Full audit #1191 remains open: refrigeration screens still require a separate coherent authentication/context integration, and the remaining workflow findings are not claimed resolved.
+
+Accepted/deployed product baselines and production runtime remain unchanged. No hardware, acquisition, Modbus, persistent-data or service mutation occurred. Next: browser evidence, focused PR, required exact-head CI and review before merge. Mandatory container exception review remains due **2026-10-02**.
 
 ## Issue #1187 — post-React 19.3 canonical state reconciliation
 
