@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T02:16:31+03:00",
+  "timestamp": "2026-10-01T02:26:06+03:00",
   "actor": "Codex",
-  "event": "ux1194_local_verification_complete_pr_review_pending",
+  "event": "ux1194_scheme_scope_review_fix_local_green",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -666,7 +666,7 @@
       }
     }
   ],
-  "next_action": "Publish focused #1194 PR; require exact-head routed CI/browser checks and resolve review findings before merge.",
+  "next_action": "Require final-head PR #1195 routed CI/browser GREEN; resolve review thread with verified Scheme scope fix before merge.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -678,7 +678,7 @@
   "snapshot": {
     "ux1194_local_checks": {
       "focused_tests": 28,
-      "refrigeration_tests": 87,
+      "refrigeration_tests": 90,
       "security_hook_tests": 5,
       "typecheck": "pass",
       "eslint": "pass",

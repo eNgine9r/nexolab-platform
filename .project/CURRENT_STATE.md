@@ -6,7 +6,7 @@ Updated: 2026-10-01
 
 Audit #1191 follow-up #1194 is active on `commander/1194-refrigeration-account-context`, after merged shared-shell PR #1193. A domain layout uses the existing dashboard security session/gate; catalog, detail and unavailable states expose verified account actions. Repositories receive the active membership organization explicitly, permissions derive from that membership, and organization changes remount retained domain state and return detail users to the catalog. Live equipment routes no longer initialize from static demo records.
 
-Local verification is complete: 28 focused tests, 87 refrigeration component regressions and 5 shared security-hook tests passed; TypeScript, touched ESLint/Prettier and the full production build passed. Added authenticated mobile browser coverage for anonymous read blocking, verified viewer context and sign-out. Required exact-head CI/browser evidence remains pending. No dependency/backend/hardware/production changes are included.
+Local verification is complete: 28 focused tests, 90 refrigeration component regressions and 5 shared security-hook tests passed; TypeScript, touched ESLint/Prettier and the full production build passed. Added authenticated mobile browser coverage for anonymous read blocking, verified viewer context and sign-out. PR #1195 is in review. The Scheme dependency now uses the same organization/session/membership; three focused regressions reproduced the original default-scope defect and pass after the fix. Security browser role assertion is scoped to the equipment access region. Required final-head CI/browser evidence remains pending. No dependency/backend/hardware/production changes are included.
 
 ## Issue #1192 — truthful shared header completed
 
