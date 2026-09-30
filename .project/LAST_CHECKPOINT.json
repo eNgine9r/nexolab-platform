@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-30T19:00:00Z",
+  "timestamp": "2026-10-01T01:56:00+03:00",
   "actor": "Codex",
-  "event": "Issue #1192 review selector fix verified; final exact-head CI pending",
+  "event": "Issue #1192 mobile visual Tab order fixed; final exact-head CI pending",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -413,6 +413,15 @@
         "chromium": "8_cases_passed",
         "eslint": "passed",
         "review_thread": "PRRT_kwDOTe72wM6nqxmy",
+        "exact_head_ci": "pending"
+      },
+      "tab_order_review_fix": {
+        "source_sha": "27680236c5561c32a5c665ec3c82026856695172",
+        "focused_tests": "9_passed",
+        "typecheck": "passed",
+        "production_build": "passed_next_16.3.6",
+        "chromium": "8_cases_visible_keyboard_and_visual_tab_order_passed",
+        "review_thread": "PRRT_kwDOTe72wM6nq642",
         "exact_head_ci": "pending"
       }
     }
