@@ -72,6 +72,16 @@ beforeEach(() => {
 });
 
 describe("RefrigerationEquipmentRoute structural-first loading", () => {
+  it("does not show static demo equipment while the live record is unresolved", () => {
+    setRuntime({
+      structuralGet: vi.fn(() => new Promise(() => undefined)),
+      equipmentGet: vi.fn(() => new Promise(() => undefined)),
+    });
+    render(<RefrigerationEquipmentRoute equipmentId={equipment.id} initialEquipment={equipment} />);
+    expect(screen.queryByTestId("refrigeration-detail")).not.toBeInTheDocument();
+    expect(screen.getByText("Завантаження обладнання")).toBeInTheDocument();
+  });
+
   it("renders a structural snapshot without starting the redundant equipment read", async () => {
     const equipmentGet = vi.fn(() => new Promise(() => undefined));
     const structuralGet = vi.fn(async () => snapshot());

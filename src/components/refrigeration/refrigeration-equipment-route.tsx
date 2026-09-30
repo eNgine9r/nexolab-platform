@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, LoaderCircle, Snowflake } from "lucide-react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
-import { Topbar } from "@/components/dashboard/topbar";
+import { RefrigerationAccountTopbar, useRefrigerationAccount } from "./refrigeration-security-boundary";
 import { RefrigerationDetailScreen } from "@/components/refrigeration/refrigeration-detail-screen";
 import type { RefrigerationEquipment } from "@/data/refrigeration";
 import { createRefrigerationEquipmentRuntime } from "@/features/refrigeration/equipment-repository-runtime";
@@ -18,8 +18,12 @@ export function RefrigerationEquipmentRoute({
   equipmentId: string;
   initialEquipment: RefrigerationEquipment | null;
 }) {
-  const runtime = useMemo(() => createRefrigerationEquipmentRuntime(), []);
-  const [equipment, setEquipment] = useState<RefrigerationEquipment | null>(initialEquipment);
+  const account = useRefrigerationAccount();
+  const organizationId = account?.security.membership?.organizationId;
+  const runtime = useMemo(() => createRefrigerationEquipmentRuntime({ organizationId }), [organizationId]);
+  const [equipment, setEquipment] = useState<RefrigerationEquipment | null>(
+    runtime.mode === "demo" ? initialEquipment : null,
+  );
   const [snapshot, setSnapshot] = useState<RefrigerationStructuralSnapshot | null>(null);
   const [loading, setLoading] = useState(
     runtime.repository !== null && (runtime.mode === "live" || initialEquipment === null),
@@ -105,7 +109,7 @@ function EquipmentRouteState({ loading, error }: { loading: boolean; error: stri
         onSelect={() => undefined}
       />
       <div className="min-h-screen lg:pl-[264px]">
-        <Topbar title="Холодильне обладнання" onMenuOpen={() => setSidebarOpen(true)} />
+        <RefrigerationAccountTopbar title="Холодильне обладнання" onMenuOpen={() => setSidebarOpen(true)} />
         <main className="grid min-h-[calc(100vh-72px)] place-items-center p-4">
           <section className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#091a31]/90 p-8 text-center">
             {loading ? (

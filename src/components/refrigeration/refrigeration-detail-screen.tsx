@@ -7,7 +7,7 @@ import { clsx } from "clsx";
 import { AlertTriangle, ArrowLeft, FileText, RadioTower, SlidersHorizontal, X } from "lucide-react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
-import { Topbar } from "@/components/dashboard/topbar";
+import { RefrigerationAccountTopbar, useRefrigerationAccount } from "./refrigeration-security-boundary";
 import { EquipmentLifecyclePanel } from "@/components/refrigeration/equipment-lifecycle-panel";
 import { RefrigerationCircuitConfigurationWorkspace } from "@/components/refrigeration/refrigeration-circuit-configuration-workspace";
 import { RefrigerationControllerDetail } from "@/components/refrigeration/refrigeration-controller-detail";
@@ -113,8 +113,13 @@ export function RefrigerationDetailScreen({
   equipment: RefrigerationEquipment;
   initialSnapshot?: RefrigerationStructuralSnapshot | null;
 }) {
-  const runtime = useMemo(() => createRefrigerationEquipmentRuntime(), []);
-  const equipmentRegistryRuntime = useMemo(() => createEquipmentRegistryRuntime(), []);
+  const account = useRefrigerationAccount();
+  const organizationId = account?.security.membership?.organizationId;
+  const runtime = useMemo(() => createRefrigerationEquipmentRuntime({ organizationId }), [organizationId]);
+  const equipmentRegistryRuntime = useMemo(
+    () => createEquipmentRegistryRuntime({ organizationId }),
+    [organizationId],
+  );
   const [activeTab, setActiveTab] = useState<RefrigerationDetailTab>("overview");
   const controller = useRefrigerationController({
     equipmentId: initialEquipment.id,
@@ -137,7 +142,20 @@ export function RefrigerationDetailScreen({
   const [shelf, setShelf] = useState<number | "all">("all");
   const [selectedId, setSelectedId] = useState(initialEquipment.sensors[0]?.id ?? null);
   const [layoutMode, setLayoutMode] = useState<LayoutEditorMode>("view");
-  const [canManageEquipment, setCanManageEquipment] = useState(runtime.mode === "demo");
+  const [legacyCanManageEquipment, setCanManageEquipment] = useState(runtime.mode === "demo");
+  const canManageEquipment =
+    runtime.mode === "demo" ||
+    (account
+      ? Boolean(
+          account.security.session &&
+          account.security.membership &&
+          hasPermission(
+            account.security.session,
+            account.security.membership.organizationId,
+            "equipment.manage",
+          ),
+        )
+      : legacyCanManageEquipment);
   const [bindingEpoch, setBindingEpoch] = useState(0);
   const [commissionedAssociation, setCommissionedAssociation] =
     useState<CommissionedControllerAssociation | null>(null);
@@ -232,6 +250,7 @@ export function RefrigerationDetailScreen({
   }, [equipmentRecord.id, equipmentRegistryRuntime.commissioningRepository]);
 
   useEffect(() => {
+    if (account) return;
     if (runtime.mode === "demo") {
       setCanManageEquipment(true);
       return;
@@ -254,7 +273,7 @@ export function RefrigerationDetailScreen({
     return () => {
       active = false;
     };
-  }, [runtime]);
+  }, [account, runtime]);
 
   const refreshChannelSamples = useCallback(async () => {
     const lifecycle = runtime.lifecycleRepository;
@@ -375,7 +394,7 @@ export function RefrigerationDetailScreen({
         onSelect={() => undefined}
       />
       <div className="min-h-screen lg:pl-[264px]">
-        <Topbar title={equipment.name} onMenuOpen={() => setSidebarOpen(true)} />
+        <RefrigerationAccountTopbar title={equipment.name} onMenuOpen={() => setSidebarOpen(true)} />
         <main className="p-3 sm:p-4 xl:p-5">
           <div className="mx-auto max-w-[2100px]">
             <header className="mb-2 flex flex-wrap items-center gap-3 rounded-2xl border border-white/[0.07] bg-[#091a31]/85 p-3">

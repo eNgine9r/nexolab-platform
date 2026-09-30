@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
-import { Topbar } from "@/components/dashboard/topbar";
+import { RefrigerationAccountTopbar, useRefrigerationAccount } from "./refrigeration-security-boundary";
 import {
   CreateEquipmentDialog,
   DeleteEquipmentDialog,
@@ -32,6 +32,7 @@ import {
   type EquipmentStatus,
   type RefrigerationEquipment,
 } from "@/data/refrigeration";
+import { hasPermission } from "@/features/security/security-session";
 import type { ClimateChamber } from "@/features/refrigeration/climate-catalog-repository";
 import type { RefrigerationControllerSummary } from "@/features/refrigeration/controller-binding-repository";
 import { createEquipmentCopyDraft } from "@/features/refrigeration/equipment-copy";
@@ -79,7 +80,12 @@ export function RefrigerationCatalogScreen({
 }: {
   runtime?: RefrigerationEquipmentRuntime;
 } = {}) {
-  const runtime = useMemo(() => providedRuntime ?? createRefrigerationEquipmentRuntime(), [providedRuntime]);
+  const account = useRefrigerationAccount();
+  const organizationId = account?.security.membership?.organizationId;
+  const runtime = useMemo(
+    () => providedRuntime ?? createRefrigerationEquipmentRuntime({ organizationId }),
+    [providedRuntime, organizationId],
+  );
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -110,7 +116,19 @@ export function RefrigerationCatalogScreen({
   const [deleteTarget, setDeleteTarget] = useState<RefrigerationEquipment | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const canManage = runtime.mode === "demo" || liveCanManage;
+  const canManage =
+    runtime.mode === "demo" ||
+    (account
+      ? Boolean(
+          account.security.session &&
+          account.security.membership &&
+          hasPermission(
+            account.security.session,
+            account.security.membership.organizationId,
+            "equipment.manage",
+          ),
+        )
+      : liveCanManage);
 
   useEffect(() => {
     const repository = runtime.repository;
@@ -202,6 +220,7 @@ export function RefrigerationCatalogScreen({
   }, [runtime.climateCatalogRepository, runtime.lifecycleRepository]);
 
   useEffect(() => {
+    if (account) return;
     const sessionClient = runtime.sessionClient;
     if (runtime.mode !== "live" || !sessionClient) return;
     let active = true;
@@ -219,7 +238,7 @@ export function RefrigerationCatalogScreen({
     return () => {
       active = false;
     };
-  }, [runtime.mode, runtime.organizationId, runtime.sessionClient]);
+  }, [account, runtime.mode, runtime.organizationId, runtime.sessionClient]);
 
   const nodeOptions = useMemo<EquipmentNodeOption[]>(
     () =>
@@ -355,7 +374,7 @@ export function RefrigerationCatalogScreen({
         onSelect={() => undefined}
       />
       <div className="min-h-screen lg:pl-[264px]">
-        <Topbar title="Холодильне обладнання" onMenuOpen={() => setSidebarOpen(true)} />
+        <RefrigerationAccountTopbar title="Холодильне обладнання" onMenuOpen={() => setSidebarOpen(true)} />
         <main className="p-4 xl:p-6">
           <div className="mx-auto max-w-[1800px]">
             <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
