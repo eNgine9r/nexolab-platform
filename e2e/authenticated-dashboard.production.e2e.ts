@@ -203,7 +203,7 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
     try {
       await page.goto("/", { waitUntil: "domcontentloaded" });
       await expect(page.getByText("Viewer Acceptance", { exact: true })).toBeVisible();
-      await expect(page.locator("header [data-organization-id]")).toHaveAttribute(
+      await expect(page.getByTestId("platform-topbar").locator("[data-organization-id]")).toHaveAttribute(
         "data-organization-id",
         organizationId,
       );
@@ -446,7 +446,7 @@ test("shared header keeps account actions usable on mobile and desktop", async (
   try {
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("Viewer Acceptance", { exact: true })).toBeVisible();
-    const header = page.locator("header");
+    const header = page.getByTestId("platform-topbar");
     for (const width of [320, 375, 768, 1280]) {
       await page.setViewportSize({ width, height: 900 });
       const logout = header.getByRole("button", { name: "Вийти з NEXOLAB" });
@@ -466,7 +466,7 @@ test("shared header keeps account actions usable on mobile and desktop", async (
     await header.getByRole("link", { name: "Відкрити тривоги" }).click();
     await expect(page).toHaveURL(/\/alerts$/);
     await page.goto("/");
-    await page.locator("header").getByRole("button", { name: "Вийти з NEXOLAB" }).click();
+    await page.getByTestId("platform-topbar").getByRole("button", { name: "Вийти з NEXOLAB" }).click();
     await expect(page).toHaveURL(/\/login$/);
   } finally {
     await context.close();

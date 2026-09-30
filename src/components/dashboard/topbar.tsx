@@ -41,7 +41,10 @@ export function Topbar({
     : null;
 
   return (
-    <header className="sticky top-0 z-30 flex min-h-[78px] flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/[0.055] bg-[#07172e]/90 px-4 py-3 backdrop-blur-xl sm:px-5 xl:px-6">
+    <header
+      data-testid="platform-topbar"
+      className="sticky top-0 z-30 flex min-h-[78px] flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/[0.055] bg-[#07172e]/90 px-4 py-3 backdrop-blur-xl sm:px-5 xl:px-6"
+    >
       <button
         type="button"
         className="icon-button inline-grid shrink-0 lg:hidden"
