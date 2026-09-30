@@ -5720,7 +5720,12 @@
           "production_build": "pass",
           "exact_head_browser_ci": "pending",
           "browser_route_review_fix_sha": "15d8733ac58daf3842c993ef304a32ecea00720c",
-          "browser_route_touched_eslint_prettier": "pass"
+          "browser_route_touched_eslint_prettier": "pass",
+          "organization_transition_fix_sha": "1df5fb32741cff06228ae723bc6c3b3a52711d53",
+          "organization_transition_red_green": "2_cases",
+          "final_live_component_tests": "18_pass",
+          "organization_transition_build": "pass",
+          "organization_transition_typecheck_lint": "pass"
         },
         "pull_request": 1197
       }

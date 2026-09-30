@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T02:46:06+03:00",
+  "timestamp": "2026-10-01T02:58:50+03:00",
   "actor": "Codex",
-  "event": "ux1196_browser_route_review_fix_pending_final_ci",
+  "event": "ux1196_organization_url_transition_verified_locally",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -692,7 +692,7 @@
       }
     }
   ],
-  "next_action": "Require final-head #1197 CI/browser GREEN; deployed all-page audit requires a normal authenticated operator session.",
+  "next_action": "Require final-head PR #1197 CI/browser GREEN and resolve both review threads before merge; full deployed audit requires normal authenticated operator access.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -712,7 +712,7 @@
       "authenticated_browser_ci": "pending"
     },
     "ux1196_local_checks": {
-      "component_tests": 16,
+      "component_tests": 18,
       "domain_tests": 62,
       "typecheck": "pass",
       "lint_format": "pass",
