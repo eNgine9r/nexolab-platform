@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-09-27T12:27:48+03:00",
-  "actor": "ChatGPT",
-  "event": "Issue #1187 reconciles completed React 19.3 Work Package #1184 and clears durable active selection",
+  "timestamp": "2026-10-01T01:56:00+03:00",
+  "actor": "Codex",
+  "event": "Issue #1192 mobile visual Tab order fixed; final exact-head CI pending",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,7 +28,11 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1192,
+    "title": "Truthful shared header and mobile account navigation",
+    "branch": "commander/1192-truthful-mobile-shell"
+  },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -385,6 +389,41 @@
       "json_parse": "success_local",
       "changed_file_prettier": "success_local_prettier_3_9_9_state_config",
       "git_diff_check": "success_local"
+    },
+    "ux_shell_1192": {
+      "active_issue_evidence": {
+        "verified_head_sha": "8638063fdbc271330fbd886e889bb0283c8bede0",
+        "checks": {
+          "focused_tests": "9_passed",
+          "eslint": "passed",
+          "typecheck": "passed",
+          "production_build": "passed_next_16.3.6",
+          "chromium_responsive": "8_cases_passed_320_375_768_1280",
+          "chromium_scope": "SSR_component_real_production_CSS",
+          "runtime_e2e": "pending_exact_head_CI",
+          "production_runtime_mutation": "none",
+          "mandatory_runtime_dependency_change": "none"
+        }
+      },
+      "pull_request": 1193,
+      "review_fix": {
+        "source_sha": "af850cd7c6e3daba1530bd68e657c29a6ccf1f35",
+        "tests": "9_passed",
+        "typecheck": "passed",
+        "chromium": "8_cases_passed",
+        "eslint": "passed",
+        "review_thread": "PRRT_kwDOTe72wM6nqxmy",
+        "exact_head_ci": "pending"
+      },
+      "tab_order_review_fix": {
+        "source_sha": "27680236c5561c32a5c665ec3c82026856695172",
+        "focused_tests": "9_passed",
+        "typecheck": "passed",
+        "production_build": "passed_next_16.3.6",
+        "chromium": "8_cases_visible_keyboard_and_visual_tab_order_passed",
+        "review_thread": "PRRT_kwDOTe72wM6nq642",
+        "exact_head_ci": "pending"
+      }
     }
   },
   "observations": [
@@ -606,7 +645,7 @@
       }
     }
   ],
-  "next_action": "No independent Ready software Work Package. Re-audit on new evidence; mandatory fail-closed container exception review remains due 2026-10-02.",
+  "next_action": "PR #1193 is open. Wait for exact-head CI and review; merge only required GREEN. Audit #1191 remains open; refrigeration shared account integration requires a separate scoped follow-up.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

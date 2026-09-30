@@ -87,7 +87,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </p>
           <div className="space-y-1">
             {platformNavItems.map(({ label, icon: Icon, badge, href }) => {
-              const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+              const active =
+                href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
               const classes = clsx(
                 "group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-[12px] font-medium transition",
                 active
