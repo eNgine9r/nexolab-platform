@@ -122,7 +122,7 @@ describe("LiveTelemetryExplorer graph-first composition", () => {
     expect(appearsBefore(liveRange, search)).toBe(true);
     expect(appearsBefore(search, compare)).toBe(true);
     expect(within(chart).getByText("Жодного каналу не обрано")).toBeVisible();
-    expect(within(chart).getByText("Оберіть канали нижче у Latest values")).toBeVisible();
+    expect(within(chart).getByText("Оберіть датчики для графіка")).toBeVisible();
     expect(inventory.querySelector(".overflow-x-auto")).not.toBeNull();
   });
 });
@@ -144,5 +144,24 @@ describe("LiveTelemetryExplorer viewport semantics", () => {
     fireEvent.click(screen.getByTestId("mock-reset-view"));
     expect(screen.getByText("Live Follow", { exact: true })).toBeVisible();
     expect(setHistoryRange).not.toHaveBeenCalled();
+  });
+});
+
+describe("Live channel selection shortcut", () => {
+  it("moves keyboard focus from the empty chart to channel search without selecting or requesting history", () => {
+    const telemetry = model();
+    render(<LiveTelemetryExplorer telemetry={telemetry} />);
+    const chart = screen.getByTestId("live-primary-chart");
+    fireEvent.click(within(chart).getByRole("button", { name: "Обрати датчики" }));
+    expect(screen.getByPlaceholderText("node, equipment, channel, metric, source...")).toHaveFocus();
+    expect(telemetry.setSelectedKeys).not.toHaveBeenCalled();
+    expect(telemetry.setHistoryRange).not.toHaveBeenCalled();
+  });
+  it("keeps the channel-change action next to an existing chart", () => {
+    render(<LiveTelemetryExplorer telemetry={modelWithChart()} />);
+    fireEvent.click(
+      within(screen.getByTestId("live-primary-chart")).getByRole("button", { name: "Змінити датчики" }),
+    );
+    expect(screen.getByPlaceholderText("node, equipment, channel, metric, source...")).toHaveFocus();
   });
 });

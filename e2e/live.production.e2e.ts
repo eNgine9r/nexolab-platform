@@ -497,7 +497,7 @@ test("editor loads the canonical catalog and selects a channel without telemetry
   });
 
   try {
-    await page.goto("/live", { waitUntil: "domcontentloaded" });
+    await page.goto("/live?workspace=dashboards", { waitUntil: "domcontentloaded" });
     await page.getByRole("button", { name: "Створити Dashboard" }).click();
     await expect(page.getByRole("heading", { name: "Новий Live Dashboard", exact: true })).toBeVisible();
     await expect
@@ -580,7 +580,7 @@ test("opens a persisted selected-series dashboard after service restart without 
   const sockets = observeSockets(page);
 
   try {
-    await page.goto("/live", { waitUntil: "domcontentloaded" });
+    await page.goto("/live?workspace=dashboards", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Live Dashboards", exact: true })).toBeVisible();
     await expect(page.getByText(fixture.dashboardName, { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Створити Dashboard" })).toHaveCount(0);
@@ -662,7 +662,7 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
   const publicRequests = observePublicRuntimeRequests(page);
 
   try {
-    await page.goto("/live", { waitUntil: "domcontentloaded" });
+    await page.goto("/live?workspace=dashboards", { waitUntil: "domcontentloaded" });
     await expect(page.getByText(fixture.dashboardName, { exact: true })).toBeVisible();
     await page
       .locator("article")

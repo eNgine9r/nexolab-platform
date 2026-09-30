@@ -52,7 +52,7 @@ function LiveModeGate({ title, message, retry }: { title: string; message: strin
 }
 
 function requestedWorkspace(value: string | null): LiveWorkspaceMode {
-  return value === "explorer" ? "explorer" : "dashboards";
+  return value === "dashboards" ? "dashboards" : "explorer";
 }
 
 export function LiveScreen() {
@@ -60,9 +60,7 @@ export function LiveScreen() {
   const searchParams = useSearchParams();
   const security = useDashboardSecurity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [workspace, setWorkspace] = useState<LiveWorkspaceMode>(() =>
-    requestedWorkspace(searchParams.get("workspace")),
-  );
+  const workspace = requestedWorkspace(searchParams.get("workspace"));
   const securityReady = security.mode === "live" && security.state === "ready";
   const canReadTelemetry =
     securityReady && Boolean(security.membership?.permissions.includes("telemetry.read"));
@@ -74,7 +72,6 @@ export function LiveScreen() {
     workspace === "dashboards" && !canReadDashboards && canReadTelemetry ? "explorer" : workspace;
 
   const switchWorkspace = (next: LiveWorkspaceMode) => {
-    setWorkspace(next);
     const params = new URLSearchParams(searchParams.toString());
     params.set("workspace", next);
     router.replace(`/live?${params.toString()}`, { scroll: false });
@@ -192,9 +189,13 @@ export function LiveScreen() {
             </nav>
 
             {effectiveWorkspace === "explorer" ? (
-              <LiveDataWorkspace organizationId={security.membership.organizationId} />
+              <LiveDataWorkspace
+                key={security.membership.organizationId}
+                organizationId={security.membership.organizationId}
+              />
             ) : canReadDashboards ? (
               <LiveDashboardWorkspace
+                key={security.membership.organizationId}
                 organizationId={security.membership.organizationId}
                 canManage={canManage}
               />
