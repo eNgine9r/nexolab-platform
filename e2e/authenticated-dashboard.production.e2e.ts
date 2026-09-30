@@ -203,7 +203,10 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
     try {
       await page.goto("/", { waitUntil: "domcontentloaded" });
       await expect(page.getByText("Viewer Acceptance", { exact: true })).toBeVisible();
-      await expect(page.getByLabel(/Організація/)).toHaveValue(organizationId);
+      await expect(page.locator("header [data-organization-id]")).toHaveAttribute(
+        "data-organization-id",
+        organizationId,
+      );
       await expect(page.getByText("edge-live-01", { exact: true })).toBeVisible();
       await expect(page.getByText("edge-live-02", { exact: true })).toBeVisible();
       await expect(page.getByText("K106", { exact: true })).toBeVisible();
@@ -436,3 +439,36 @@ function requiredEnvironment(name: string): string {
   if (!value) throw new Error(`${name} is required for authenticated dashboard acceptance`);
   return value;
 }
+
+test("shared header keeps account actions usable on mobile and desktop", async ({ browser }) => {
+  const context = await authenticatedContext(browser);
+  const page = await context.newPage();
+  try {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await expect(page.getByText("Viewer Acceptance", { exact: true })).toBeVisible();
+    const header = page.locator("header");
+    for (const width of [320, 375, 768, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      const logout = header.getByRole("button", { name: "Вийти з NEXOLAB" });
+      await expect(logout).toBeVisible();
+      await expect(header.locator("[data-organization-id]")).toBeVisible();
+      await expect(header.getByRole("link", { name: "Відкрити тривоги" })).toHaveAttribute("href", "/alerts");
+      await expect(header.getByRole("searchbox")).toHaveCount(0);
+      const selector = header.getByRole("combobox", { name: "Організація" });
+      if (await selector.count()) await expect(selector).toBeVisible();
+      const bounds = await header.evaluate((element) => ({
+        client: element.clientWidth,
+        scroll: element.scrollWidth,
+      }));
+      expect(bounds.scroll).toBeLessThanOrEqual(bounds.client);
+    }
+    await page.setViewportSize({ width: 375, height: 900 });
+    await header.getByRole("link", { name: "Відкрити тривоги" }).click();
+    await expect(page).toHaveURL(/\/alerts$/);
+    await page.goto("/");
+    await page.locator("header").getByRole("button", { name: "Вийти з NEXOLAB" }).click();
+    await expect(page).toHaveURL(/\/login$/);
+  } finally {
+    await context.close();
+  }
+});

@@ -4,8 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import { platformNavItems, Sidebar } from "./sidebar";
 
+const navigation = vi.hoisted(() => ({ pathname: "/refrigeration/showcase-106-01" }));
+
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/refrigeration/showcase-106-01",
+  usePathname: () => navigation.pathname,
 }));
 
 vi.mock("next/link", () => ({
@@ -21,6 +23,18 @@ vi.mock("./brand-logo", () => ({
 }));
 
 describe("Sidebar", () => {
+  it.each(["/equipment-layouts", "/equipment-layouts/layout-1"])(
+    "does not activate equipment for %s",
+    (pathname) => {
+      navigation.pathname = pathname;
+      render(<Sidebar open onClose={() => undefined} />);
+      expect(screen.getByRole("link", { name: "Схеми обладнання" })).toHaveAttribute("aria-current", "page");
+      expect(screen.getByRole("link", { name: "Обладнання" })).not.toHaveAttribute("aria-current");
+      expect(document.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
+      navigation.pathname = "/refrigeration/showcase-106-01";
+    },
+  );
+
   it("renders every platform destination as an internal route", () => {
     render(<Sidebar open onClose={() => undefined} />);
 
