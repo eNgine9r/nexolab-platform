@@ -5718,8 +5718,11 @@
           "typecheck": "pass",
           "touched_eslint_prettier": "pass",
           "production_build": "pass",
-          "exact_head_browser_ci": "pending"
-        }
+          "exact_head_browser_ci": "pending",
+          "browser_route_review_fix_sha": "15d8733ac58daf3842c993ef304a32ecea00720c",
+          "browser_route_touched_eslint_prettier": "pass"
+        },
+        "pull_request": 1197
       }
     }
   ],

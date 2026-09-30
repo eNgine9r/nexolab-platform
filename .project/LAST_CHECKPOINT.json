@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T02:39:22+03:00",
+  "timestamp": "2026-10-01T02:46:06+03:00",
   "actor": "Codex",
-  "event": "ux1196_local_green_review_pending",
+  "event": "ux1196_browser_route_review_fix_pending_final_ci",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -676,9 +676,23 @@
         "merge_sha": "0d75da4e77c113b52a59893ff3f3cd3a6e976519",
         "exact_head_workflows": "5_of_5_green"
       }
+    },
+    {
+      "source": "read_only_runtime",
+      "observed_at": "2026-10-01T02:46:06+03:00",
+      "kind": "deployed_ux_audit_access",
+      "data": {
+        "service": "nexolab-dashboard.service",
+        "service_state": "active",
+        "release_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
+        "build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
+        "anonymous_session_api_status": 401,
+        "authenticated_browser_session": "unavailable",
+        "runtime_mutation": "none"
+      }
     }
   ],
-  "next_action": "Publish focused #1196 PR; require final-head CI and authenticated Live/browser GREEN before merge.",
+  "next_action": "Require final-head #1197 CI/browser GREEN; deployed all-page audit requires a normal authenticated operator session.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
