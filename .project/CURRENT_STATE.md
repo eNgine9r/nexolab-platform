@@ -2,11 +2,15 @@
 
 Updated: 2026-10-01
 
-## Issue #1194 — verified refrigeration account context
+## Issue #1196 — direct Live monitoring entry
 
-Audit #1191 follow-up #1194 is active on `commander/1194-refrigeration-account-context`, after merged shared-shell PR #1193. A domain layout uses the existing dashboard security session/gate; catalog, detail and unavailable states expose verified account actions. Repositories receive the active membership organization explicitly, permissions derive from that membership, and organization changes remount retained domain state and return detail users to the catalog. Live equipment routes no longer initialize from static demo records.
+Active software continuation of audit #1191 on `commander/1196-live-monitoring-entry`, after merged #1194. Scope: default /live monitoring entry, authoritative URL workspace/deep-link handling, organization-keyed workspace reset, and direct chart-to-channel-selection action. No acquisition, channel-budget, dependencies or production deployment changes. Local verification passed: 16 Live component tests, 62 Live/domain regressions, TypeScript, touched lint/format and production build. Tests reproduced the previous library default, stale URL tab and retained organization draft before the fix. Added real keyboard chart-to-selection coverage and made saved-library browser routes explicit. Required exact-head CI/browser evidence remains pending.
 
-Local verification is complete: 28 focused tests, 90 refrigeration component regressions and 5 shared security-hook tests passed; TypeScript, touched ESLint/Prettier and the full production build passed. Added authenticated mobile browser coverage for anonymous read blocking, verified viewer context and sign-out. PR #1195 is in review. The Scheme dependency now uses the same organization/session/membership; three focused regressions reproduced the original default-scope defect and pass after the fix. Security browser role assertion is scoped to the equipment access region. Required final-head CI/browser evidence remains pending. No dependency/backend/hardware/production changes are included.
+## Issue #1194 — verified refrigeration account context completed
+
+PR #1195 is merged after final head `620467ac490505e5307472997b41c3be4acc417e` passed all **5/5 routed workflows GREEN**: Core CI/Merge Gate, Authenticated Dashboard, Refrigeration, Security and Disaster Recovery Browser. The Scheme scope review thread is resolved. Catalog, detail, Scheme and unavailable states share the verified account context; all domain repositories/permissions use the selected membership, organization changes reset retained state, and anonymous users cannot mount the live domain. Static demo bootstrap is removed from live routes.
+
+Local checks: 90 refrigeration tests (three Scheme regressions reproduced before the fix), 5 shared security-hook tests, typecheck/lint/format, production build and state validation. Accepted/deployed baselines and hardware remain unchanged. Full audit #1191 remains open.
 
 ## Issue #1192 — truthful shared header completed
 
