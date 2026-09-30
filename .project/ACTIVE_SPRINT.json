@@ -5647,7 +5647,7 @@
       "lifecycle": "review",
       "branch": "commander/1192-truthful-mobile-shell",
       "evidence": {
-        "verified_head_sha": "8638063fdbc271330fbd886e889bb0283c8bede0",
+        "verified_head_sha": "af850cd7c6e3daba1530bd68e657c29a6ccf1f35",
         "checks": {
           "focused_tests": "9_passed",
           "eslint": "passed",
@@ -5658,7 +5658,12 @@
           "runtime_e2e": "pending_exact_head_CI",
           "production_runtime_mutation": "none",
           "mandatory_runtime_dependency_change": "none",
-          "dashboard_regressions": "38_passed_12_files"
+          "dashboard_regressions": "38_passed_12_files",
+          "review_selector_fix": "platform_topbar_testid_disambiguates_chart_header",
+          "review_targeted_tests": "9_passed",
+          "review_typecheck": "passed",
+          "review_chromium_responsive": "8_cases_passed",
+          "production_build_source_sha": "8638063fdbc271330fbd886e889bb0283c8bede0"
         },
         "pull_request": 1193
       }
