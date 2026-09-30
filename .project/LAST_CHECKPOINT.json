@@ -434,6 +434,20 @@
       "dashboard_run": 36788404966,
       "review_threads": "2_resolved_0_unresolved",
       "production_runtime_mutation": "none"
+    },
+    "deployed_ux_audit_access": {
+      "source": "read_only_runtime",
+      "observed_at": "2026-10-01T02:46:06+03:00",
+      "kind": "deployed_ux_audit_access",
+      "data": {
+        "service": "nexolab-dashboard.service",
+        "service_state": "active",
+        "release_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
+        "build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
+        "anonymous_session_api_status": 401,
+        "authenticated_browser_session": "unavailable",
+        "runtime_mutation": "none"
+      }
     }
   },
   "observations": [
@@ -675,20 +689,6 @@
         "final_head": "620467ac490505e5307472997b41c3be4acc417e",
         "merge_sha": "0d75da4e77c113b52a59893ff3f3cd3a6e976519",
         "exact_head_workflows": "5_of_5_green"
-      }
-    },
-    {
-      "source": "read_only_runtime",
-      "observed_at": "2026-10-01T02:46:06+03:00",
-      "kind": "deployed_ux_audit_access",
-      "data": {
-        "service": "nexolab-dashboard.service",
-        "service_state": "active",
-        "release_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
-        "build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
-        "anonymous_session_api_status": 401,
-        "authenticated_browser_session": "unavailable",
-        "runtime_mutation": "none"
       }
     }
   ],
