@@ -55,10 +55,42 @@ export function Topbar({
       </button>
       <p className="min-w-0 flex-1 truncate text-sm font-semibold text-white">{title}</p>
 
+      <div className="flex shrink-0 items-center gap-2">
+        <Link
+          href="/alerts"
+          className="icon-button inline-grid"
+          aria-label="Відкрити тривоги"
+          title="Тривоги"
+        >
+          <Bell className="h-[18px] w-[18px]" aria-hidden="true" />
+        </Link>
+        {showCreateSession ? (
+          onCreateSession ? (
+            <button type="button" onClick={onCreateSession} className={createClasses} aria-label="Нова сесія">
+              {createContent}
+            </button>
+          ) : (
+            <Link href={createSessionHref} className={createClasses} aria-label="Нова сесія">
+              {createContent}
+            </Link>
+          )
+        ) : null}
+        {onSignOut ? (
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="icon-button inline-grid"
+            aria-label="Вийти з NEXOLAB"
+            title="Вийти з NEXOLAB"
+          >
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+          </button>
+        ) : null}
+      </div>
       {securitySession ? (
         <div
           data-organization-id={selectedMembership?.organizationId}
-          className="order-last flex w-full min-w-0 items-center gap-3 md:order-none md:w-auto"
+          className="flex w-full min-w-0 items-center gap-3 md:w-auto"
         >
           <span className="min-w-0 flex-1 text-left md:max-w-36">
             <span className="block truncate text-[11px] font-medium text-slate-100">{identityLabel}</span>
@@ -92,39 +124,6 @@ export function Topbar({
           ) : null}
         </div>
       ) : null}
-
-      <div className="flex shrink-0 items-center gap-2">
-        <Link
-          href="/alerts"
-          className="icon-button inline-grid"
-          aria-label="Відкрити тривоги"
-          title="Тривоги"
-        >
-          <Bell className="h-[18px] w-[18px]" aria-hidden="true" />
-        </Link>
-        {showCreateSession ? (
-          onCreateSession ? (
-            <button type="button" onClick={onCreateSession} className={createClasses} aria-label="Нова сесія">
-              {createContent}
-            </button>
-          ) : (
-            <Link href={createSessionHref} className={createClasses} aria-label="Нова сесія">
-              {createContent}
-            </Link>
-          )
-        ) : null}
-        {onSignOut ? (
-          <button
-            type="button"
-            onClick={onSignOut}
-            className="icon-button inline-grid"
-            aria-label="Вийти з NEXOLAB"
-            title="Вийти з NEXOLAB"
-          >
-            <LogOut className="h-4 w-4" aria-hidden="true" />
-          </button>
-        ) : null}
-      </div>
     </header>
   );
 }

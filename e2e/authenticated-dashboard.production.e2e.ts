@@ -463,6 +463,16 @@ test("shared header keeps account actions usable on mobile and desktop", async (
       expect(bounds.scroll).toBeLessThanOrEqual(bounds.client);
     }
     await page.setViewportSize({ width: 375, height: 900 });
+    await header.getByRole("button", { name: "Відкрити меню" }).focus();
+    await page.keyboard.press("Tab");
+    await expect(header.getByRole("link", { name: "Відкрити тривоги" })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(header.getByRole("button", { name: "Вийти з NEXOLAB" })).toBeFocused();
+    const organizationSelector = header.getByRole("combobox", { name: "Організація" });
+    if (await organizationSelector.count()) {
+      await page.keyboard.press("Tab");
+      await expect(organizationSelector).toBeFocused();
+    }
     await header.getByRole("link", { name: "Відкрити тривоги" }).click();
     await expect(page).toHaveURL(/\/alerts$/);
     await page.goto("/");
