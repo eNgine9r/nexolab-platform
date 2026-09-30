@@ -1,14 +1,18 @@
 # NEXOLAB Current State
 
-Updated: 2026-09-30
+Updated: 2026-10-01
 
-## Issue #1192 — truthful shared header and mobile account navigation
+## Issue #1194 — verified refrigeration account context
 
-User-authorized implementation of audit #1191 is in review on `commander/1192-truthful-mobile-shell`. The shared header removes the inert search/calendar, fixed notification count and fabricated account/organization defaults. Alerts now link to `/alerts`; supplied sign-out and organization actions remain usable on mobile; a single organization is shown as context. Session creation has an accessible name. Sidebar route matching respects path segments, so `/equipment-layouts` does not also activate `/equipment`.
+Audit #1191 follow-up #1194 is active on `commander/1194-refrigeration-account-context`, after merged shared-shell PR #1193. A domain layout uses the existing dashboard security session/gate; catalog, detail and unavailable states expose verified account actions. Repositories receive the active membership organization explicitly, permissions derive from that membership, and organization changes remount retained domain state and return detail users to the catalog. Live equipment routes no longer initialize from static demo records.
 
-Local ARM64 evidence: 9 focused tests and 38 Dashboard regression tests passed, touched-file ESLint and TypeScript passed, and Next.js 16.3.6 production build passed. Chromium component verification passed all eight combinations of 320/375/768/1280 px and one/two memberships with real production CSS, visible 40px actions, keyboard focus, organization selection and no horizontal header overflow. React callbacks passed unit tests; authenticated runtime E2E remains pending exact-head CI. Initial production build is anchored to `8638063fdbc271330fbd886e889bb0283c8bede0`. Review found an ambiguous E2E header selector; a unique topbar test id fixes it, with 9 focused tests, TypeScript, ESLint and eight Chromium cases rerun successfully. A second accessibility review found mobile CSS order differed from DOM focus order; account context now follows actions in both DOM and visual presentation. Chromium sequential Tab verification passed all eight cases; focused tests, TypeScript, ESLint and production build passed again. Final exact-head CI remains pending. Full audit #1191 remains open: refrigeration screens still require a separate coherent authentication/context integration, and the remaining workflow findings are not claimed resolved.
+Local verification is complete: 28 focused tests, 87 refrigeration component regressions and 5 shared security-hook tests passed; TypeScript, touched ESLint/Prettier and the full production build passed. Added authenticated mobile browser coverage for anonymous read blocking, verified viewer context and sign-out. Required exact-head CI/browser evidence remains pending. No dependency/backend/hardware/production changes are included.
 
-Accepted/deployed product baselines and production runtime remain unchanged. No hardware, acquisition, Modbus, persistent-data or service mutation occurred. Next: browser evidence, focused PR, required exact-head CI and review before merge. Mandatory container exception review remains due **2026-10-02**.
+## Issue #1192 — truthful shared header completed
+
+PR #1193 final head `3e429dce3c45845765aecb813e90e8c12fa37782` passed all **5/5 routed workflows GREEN**, including Core CI/Merge Gate, Authenticated Dashboard, Alerts, Reports and Nodes Browser Acceptance. Both review threads are resolved. The shared header removes inert search/calendar controls, fabricated badge/account defaults, exposes mobile actions and respects visual Tab order. Sidebar matching uses path boundaries. Local evidence includes 9 focused tests, 38 Dashboard regressions, TypeScript/ESLint/Prettier, production build and eight Chromium width/membership cases with sequential Tab checks.
+
+GitHub records #1193 merged and #1192 completed; source/merge observations are timestamped in the checkpoint. Accepted/deployed product baselines and production runtime are unchanged. Full audit #1191 remains open; current follow-up is #1194. Mandatory container exception review remains due **2026-10-02**.
 
 ## Issue #1187 — post-React 19.3 canonical state reconciliation
 
