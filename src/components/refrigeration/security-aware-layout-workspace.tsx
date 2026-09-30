@@ -7,6 +7,7 @@ import { AlertTriangle, History, LoaderCircle, ShieldCheck, X } from "lucide-rea
 import { clsx } from "clsx";
 
 import { CameraScopedLayoutEditor } from "@/components/refrigeration/camera-scoped-layout-editor";
+import { useRefrigerationAccount } from "./refrigeration-security-boundary";
 import type { LayoutEditorMode } from "@/components/refrigeration/refrigeration-layout-editor";
 import { RefrigerationLayoutLifecyclePanel } from "@/components/refrigeration/refrigeration-layout-lifecycle-panel";
 import { RefrigerationLayoutWorkspace } from "@/components/refrigeration/refrigeration-layout-workspace";
@@ -85,14 +86,29 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   onRefreshChannels,
   onCapabilitiesChange,
 }: SecurityAwareLayoutWorkspaceProps) {
-  const runtime = useMemo(() => createRefrigerationLayoutRuntime({ equipment }), [equipment]);
+  const account = useRefrigerationAccount();
+  const organizationId = account?.security.membership?.organizationId;
+  const runtime = useMemo(
+    () => createRefrigerationLayoutRuntime({ equipment, organizationId }),
+    [equipment, organizationId],
+  );
   const layoutRepository = runtime.repository;
-  const [session, setSession] = useState<SecuritySession | null>(null);
-  const [membership, setMembership] = useState<SecurityMembership | null>(null);
-  const [securityState, setSecurityState] = useState<"loading" | "ready" | "error">(
+  const [legacySession, setSession] = useState<SecuritySession | null>(null);
+  const [legacyMembership, setMembership] = useState<SecurityMembership | null>(null);
+  const [legacySecurityState, setSecurityState] = useState<"loading" | "ready" | "error">(
     runtime.mode === "demo" ? "ready" : "loading",
   );
-  const [securityError, setSecurityError] = useState<string | null>(runtime.error);
+  const [legacySecurityError, setSecurityError] = useState<string | null>(runtime.error);
+  const session = account ? account.security.session : legacySession;
+  const membership = account ? account.security.membership : legacyMembership;
+  const securityState = account
+    ? account.security.mode === "demo" || account.security.state === "ready"
+      ? "ready"
+      : account.security.state === "loading"
+        ? "loading"
+        : "error"
+    : legacySecurityState;
+  const securityError = account ? account.security.error : legacySecurityError;
   const [workspaceEpoch, setWorkspaceEpoch] = useState(0);
   const [lifecycleOpen, setLifecycleOpen] = useState(false);
 
@@ -131,7 +147,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   }, [lifecycleOpen]);
 
   useEffect(() => {
-    if (runtime.mode === "demo") return;
+    if (account || runtime.mode === "demo") return;
     const client = runtime.sessionClient;
     if (!client) return;
     let cancelled = false;
@@ -163,7 +179,7 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [runtime]);
+  }, [account, runtime]);
 
   const liveRuntimeUnavailable = runtime.mode === "live" && (!runtime.sessionClient || !layoutRepository);
   if (liveRuntimeUnavailable) {
