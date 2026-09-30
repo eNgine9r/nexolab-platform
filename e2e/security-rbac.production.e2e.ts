@@ -129,7 +129,7 @@ async function openEquipment(page: Page) {
 async function expectAccessRole(page: Page, role: string) {
   const accessDisclosure = page.getByLabel("Інформація про доступ");
   await accessDisclosure.click();
-  await expect(page.getByText(role, { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Дії сторінки обладнання").getByText(role, { exact: true })).toBeVisible();
   await accessDisclosure.click();
 }
 
