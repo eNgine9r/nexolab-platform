@@ -4,7 +4,10 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { LiveTelemetryExplorer } from "@/components/live/live-telemetry-explorer";
-import { readLiveSelectionPreference, writeLiveSelectionPreference } from "@/features/live/selection-preferences";
+import {
+  readLiveSelectionPreference,
+  writeLiveSelectionPreference,
+} from "@/features/live/selection-preferences";
 import { useLiveTelemetry, type LiveHistoryRange } from "@/hooks/use-live-telemetry";
 
 function initialHistoryRange(value: string | null): LiveHistoryRange {

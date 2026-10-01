@@ -2,7 +2,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { readLiveSelectionPreference, writeLiveSelectionPreference } from "@/features/live/selection-preferences";
+import {
+  readLiveSelectionPreference,
+  writeLiveSelectionPreference,
+} from "@/features/live/selection-preferences";
 import type { LiveTelemetryModel } from "@/hooks/use-live-telemetry";
 
 const state = vi.hoisted(() => ({

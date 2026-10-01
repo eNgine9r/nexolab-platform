@@ -87,9 +87,7 @@ describe("complete inventory selection readiness", () => {
     state.latest.mockRejectedValueOnce(new Error("Inventory unavailable"));
     state.latest.mockResolvedValue(page([sample]));
     const key = liveChannelKey(sample);
-    const view = renderHook(() =>
-      useLiveTelemetry({ organizationId: "org-a", initialSelectedKeys: [key] }),
-    );
+    const view = renderHook(() => useLiveTelemetry({ organizationId: "org-a", initialSelectedKeys: [key] }));
     await connect();
     await waitFor(() => expect(view.result.current.error?.message).toBe("Inventory unavailable"));
     expect(view.result.current.selectionReady).toBe(false);
@@ -104,9 +102,7 @@ describe("complete inventory selection readiness", () => {
 
   it("reconciles unavailable channels only after a complete successful inventory", async () => {
     state.latest.mockResolvedValue(page([]));
-    const view = renderHook(() =>
-      useLiveTelemetry({ organizationId: "org-a", initialSelectedKeys: ["missing"] }),
-    );
+    const view = renderHook(() => useLiveTelemetry({ organizationId: "org-a", initialSelectedKeys: ["missing"] }));
     await connect();
     await waitFor(() => expect(view.result.current.selectionReady).toBe(true));
     expect(view.result.current.selectedKeys).toEqual([]);
