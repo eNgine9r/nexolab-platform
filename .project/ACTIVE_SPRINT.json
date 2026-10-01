@@ -40,13 +40,13 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-                 "active_work_package": {
-                   "issue": 1220,
-                   "title": "UX-12 empty Overview cameras and compact Settings access",
-                   "branch": "fix/1220-empty-overview-cameras"
-                 },
-                 "next_work_package": null
-               },
+    "active_work_package": {
+      "issue": 1220,
+      "title": "UX-12 empty Overview cameras and compact Settings access",
+      "branch": "fix/1220-empty-overview-cameras"
+    },
+    "next_work_package": null
+  },
   "work_packages": [
     {
       "issue": 1073,
