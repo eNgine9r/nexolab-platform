@@ -50,9 +50,12 @@ const STATUS = {
 export function TelegramMiniAppReport() {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const started = useRef(false);
+  const mounted = useRef(false);
+  const inFlight = useRef(false);
+  const activeRequest = useRef<AbortController | null>(null);
 
   const load = useCallback(async () => {
-    if (started.current) return;
+    if (!mounted.current || started.current) return;
     const webApp = window.Telegram?.WebApp;
     if (!webApp) return;
     started.current = true;
@@ -71,14 +74,19 @@ export function TelegramMiniAppReport() {
       setState({ kind: "report_required" });
       return;
     }
+    const controller = new AbortController();
+    activeRequest.current = controller;
+    inFlight.current = true;
     try {
       const response = await fetch("/api/telegram-miniapp/report", {
         method: "POST",
         headers: { Accept: "application/json", "Content-Type": "application/json" },
         body: JSON.stringify({ init_data: initData, ...(startHint ? { start_hint: startHint } : {}) }),
         cache: "no-store",
+        signal: controller.signal,
       });
       const payload: unknown = await response.json().catch(() => null);
+      if (controller.signal.aborted || !mounted.current) return;
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) setState({ kind: "denied" });
         else setState({ kind: "unavailable" });
@@ -87,13 +95,40 @@ export function TelegramMiniAppReport() {
       const snapshot = readSnapshotEnvelope(payload);
       setState(snapshot ? { kind: "ready", snapshot } : { kind: "invalid" });
     } catch {
-      setState({ kind: "unavailable" });
+      if (!controller.signal.aborted && mounted.current) setState({ kind: "unavailable" });
+    } finally {
+      if (activeRequest.current === controller) {
+        activeRequest.current = null;
+        inFlight.current = false;
+      }
     }
   }, []);
 
   useEffect(() => {
-    if (!window.Telegram?.WebApp) return;
-    queueMicrotask(() => void load());
+    mounted.current = true;
+    if (window.Telegram?.WebApp) queueMicrotask(() => void load());
+    return () => {
+      mounted.current = false;
+      const controller = activeRequest.current;
+      if (controller) {
+        controller.abort();
+        activeRequest.current = null;
+        inFlight.current = false;
+        started.current = false;
+      }
+    };
+  }, [load]);
+
+  const retry = useCallback(() => {
+    if (!mounted.current || inFlight.current) return;
+    setState({ kind: "loading" });
+    if (!window.Telegram?.WebApp) {
+      inFlight.current = true;
+      window.location.reload();
+      return;
+    }
+    started.current = false;
+    void load();
   }, [load]);
 
   return (
@@ -103,13 +138,18 @@ export function TelegramMiniAppReport() {
         src="https://telegram.org/js/telegram-web-app.js"
         strategy="afterInteractive"
         onReady={() => void load()}
-        onError={() =>
-          setState((current) => (current.kind === "loading" ? { kind: "unavailable" } : current))
-        }
+        onError={() => {
+          if (mounted.current && !inFlight.current)
+            setState((current) => (current.kind === "loading" ? { kind: "unavailable" } : current));
+        }}
       />
       <div className="mx-auto w-full max-w-xl">
         <MiniAppHeader />
-        {state.kind === "ready" ? <ReportView snapshot={state.snapshot} /> : <LoadPanel state={state.kind} />}
+        {state.kind === "ready" ? (
+          <ReportView snapshot={state.snapshot} />
+        ) : (
+          <LoadPanel state={state.kind} onRetry={retry} />
+        )}
       </div>
     </main>
   );
@@ -134,7 +174,7 @@ function MiniAppHeader() {
   );
 }
 
-function LoadPanel({ state }: { state: Exclude<LoadState["kind"], "ready"> }) {
+function LoadPanel({ state, onRetry }: { state: Exclude<LoadState["kind"], "ready">; onRetry: () => void }) {
   const content = {
     loading: ["Перевіряємо доступ", "Telegram підтверджує підпис і прив’язку користувача."],
     outside_telegram: [
@@ -149,17 +189,14 @@ function LoadPanel({ state }: { state: Exclude<LoadState["kind"], "ready"> }) {
       "Доступ не підтверджено",
       "Telegram-користувач не прив’язаний до дозволеного NEXOLAB облікового запису або не має права читати звіти.",
     ],
-    unavailable: [
-      "Mini App тимчасово недоступний",
-      "Перевірте з’єднання та повторіть відкриття звіту з повідомлення Telegram.",
-    ],
+    unavailable: ["Mini App тимчасово недоступний", "Перевірте з’єднання та повторіть завантаження звіту."],
     invalid: [
       "Некоректний формат звіту",
-      "NEXOLAB відхилив відповідь, яка не відповідає persisted morning-report contract.",
+      "NEXOLAB відхилив відповідь із некоректним форматом. Повторіть завантаження збереженого звіту.",
     ],
   }[state];
   return (
-    <section className="panel px-5 py-8 text-center">
+    <section className="panel px-5 py-8 text-center" aria-live="polite">
       <div className="mx-auto mb-4 grid size-12 place-items-center rounded-2xl border border-cyan-300/10 bg-cyan-300/5 text-cyan-100">
         {state === "loading" ? (
           <RefreshCw className="size-5 animate-spin" />
@@ -169,6 +206,16 @@ function LoadPanel({ state }: { state: Exclude<LoadState["kind"], "ready"> }) {
       </div>
       <h2 className="text-base font-semibold text-white">{content[0]}</h2>
       <p className="mx-auto mt-2 max-w-sm text-xs leading-5 text-slate-400">{content[1]}</p>
+      {(state === "unavailable" || state === "invalid") && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-200"
+        >
+          <RefreshCw className="size-4" aria-hidden="true" />
+          Повторити завантаження
+        </button>
+      )}
     </section>
   );
 }

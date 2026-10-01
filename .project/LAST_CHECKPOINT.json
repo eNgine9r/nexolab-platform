@@ -5,7 +5,7 @@
   "sprint": "PRODUCTION-READINESS-1",
   "timestamp": "2026-10-01T11:31:10.578886+00:00",
   "actor": "Codex",
-  "event": "ux1206_merged_ux1208_grouped_navigation_candidate",
+  "event": "ux1208_merged_ux1210_reconstructed_retry_candidate",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1208,
-    "title": "UX-08/09 grouped navigation and planned Lockers",
-    "branch": "fix/1208-grouped-navigation"
+    "issue": 1210,
+    "title": "UX-35 Telegram report retry",
+    "branch": "fix/1210-telegram-report-retry"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -590,6 +590,19 @@
       "correction": "scroll_canonical_links_into_view_observe_automatic_prefetch_before_measurement",
       "budgets": "unchanged",
       "corrected_CI": "pending"
+    },
+    "completed_ux1208": {
+      "verified_head_sha": "ce9faaca9beae9cf778319383298af206756e826",
+      "pull_request": 1209,
+      "workflows": "5_green",
+      "dashboard_browser": "26_passed",
+      "reviews": "none"
+    },
+    "ux1210_candidate": {
+      "component_api_tests": "21_passed",
+      "activity_regression": "failed_before_guard_reset_passed_after",
+      "browser_acceptance": "pending",
+      "workspace_recovery": "reconstructed_after_transient_checkout_loss"
     }
   },
   "observations": [
@@ -928,9 +941,19 @@
         "exact_head_workflows": "2_of_2_green",
         "review_threads": "resolved"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T14:04:52Z",
+      "kind": "ux1208_pr1209_merge",
+      "data": {
+        "merge_sha": "e237f9f38bb73b60f606ecbf2afa7ba1b3c99354",
+        "issue": 1208,
+        "pull_request": 1209
+      }
     }
   ],
-  "next_action": "Verify #1208 local and responsive keyboard CI; merge only GREEN. Qualify the next independent source UX package; deployed #1191 remains access-gated.",
+  "next_action": "Publish #1210 coherent candidate, require exact-head browser CI/review GREEN before merge; continue independent UX source packages. Installed #1191 remains access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -41,15 +41,11 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1208,
-      "title": "UX-08/09 grouped navigation and planned Lockers",
-      "branch": "fix/1208-grouped-navigation"
-    },
-    "next_work_package": {
       "issue": 1210,
       "title": "UX-35 Telegram report retry",
       "branch": "fix/1210-telegram-report-retry"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -5887,15 +5883,25 @@
       "issue": 1208,
       "title": "UX-08/09 grouped navigation and planned Lockers",
       "priority": "medium",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/1208-grouped-navigation",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "ce9faaca9beae9cf778319383298af206756e826",
+        "pull_request": 1209,
+        "checks": {
+          "ci": "success:36856828929",
+          "dashboard": "success:36856829011",
+          "nodes": "success:36856828961",
+          "reports": "success:36856829016",
+          "alerts": "success:36856829043"
+        }
+      }
     },
     {
       "issue": 1210,
       "title": "UX-35 Telegram report retry",
       "priority": "medium",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "branch": "fix/1210-telegram-report-retry",
       "evidence": {}
     }
