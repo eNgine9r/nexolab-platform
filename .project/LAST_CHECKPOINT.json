@@ -735,14 +735,14 @@
       "branch": "fix/1224-scheme-entry",
       "phase": "source_candidate",
       "local_checks": {
-        "focused_tests": "32_passed",
+        "focused_tests": "34_passed",
         "typecheck": "passed",
         "lint": "passed"
       },
       "exact_head_ci": "pending",
       "browser_acceptance": "pending",
       "review": "pending",
-      "review_follow_up": "layout.draft.edit_only_operator_without_equipment.manage_verified"
+      "review_follow_up": "legacy_layout.draft.edit_only_and_camera_sensor_configuration_equipment.manage_boundaries_verified"
     }
   },
   "observations": [

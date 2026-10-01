@@ -185,7 +185,7 @@ VALUES
   (
     '${changedEquipmentId}', :'organization_id', 'LAY-CHANGED-02',
     'Вітрина з неопублікованими змінами', 'Layout Lab A · Zone Beta', 'Layout Lab A', 'Zone Beta',
-    NULL, NULL, 'Холодильна вітрина', 'NEXOLAB', 'Catalog Changed', 'CAT-CHANGED-02',
+    'layout-camera-1224', NULL, 'Холодильна вітрина', 'NEXOLAB', 'Catalog Changed', 'CAT-CHANGED-02',
     '3M1', DATE '2026-01-11', DATE '2026-07-21', 'maintenance', 'warning', 4.1, 3.5, 4.8,
     1, 2, 0, CURRENT_TIMESTAMP, 1, 'equipment-layouts-acceptance', CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP, NULL, NULL
@@ -649,6 +649,19 @@ test("catalog edit intent opens the authorized draft without writing it", async 
         "/equipment-layouts?q=LAY-CURRENT-01",
       );
     }
+    await page.goto("/equipment-layouts?q=LAY-CHANGED-02");
+    await expect(
+      cardFor(page, "LAY-CHANGED-02").getByRole("link", { name: "Відкрити схему LAY-CHANGED-02" }),
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "Редагувати схему LAY-CHANGED-02" })).toHaveCount(0);
+    await page.goto(
+      `/refrigeration/${changedEquipmentId}?tab=scheme&mode=edit&returnTo=%2Fequipment-layouts`,
+    );
+    await expect(page.getByRole("button", { name: "Схема", exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await expect(page.getByRole("button", { name: /Зберегти (чернетку|всі зміни)/ })).toHaveCount(0);
     expect(requests.length).toBeGreaterThan(0);
     expect(requests.every((request) => request.method === "GET")).toBe(true);
   } finally {

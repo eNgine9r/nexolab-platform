@@ -133,6 +133,10 @@ export function EquipmentLayoutsScreen() {
               items={catalog.items}
               error={catalog.error}
               onRetry={catalog.retry}
+              canManageEquipment={Boolean(
+                security.session &&
+                hasPermission(security.session, security.membership.organizationId, "equipment.manage"),
+              )}
               canEditDraft={Boolean(
                 security.session &&
                 hasPermission(security.session, security.membership.organizationId, "layout.draft.edit"),

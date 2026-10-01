@@ -141,6 +141,17 @@ describe("Scheme shares the verified selected membership", () => {
     expect(layout).toHaveAttribute("data-restore", "false");
     expect(membership.permissions).not.toContain("equipment.manage");
   });
+  it("keeps a forged operator camera edit read-only until equipment management is granted", () => {
+    mock.security = security(true);
+    const membership = mock.security.membership!;
+    membership.roles = ["operator"];
+    membership.permissions = ["layout.draft.edit"];
+    const { rerender } = render(workspace({ lifecycleRepository: {} }));
+    expect(screen.getByTestId("camera-layout")).toHaveAttribute("data-mode", "view");
+    membership.permissions = ["layout.draft.edit", "equipment.manage"];
+    rerender(workspace({ lifecycleRepository: {} }));
+    expect(screen.getByTestId("camera-layout")).toHaveAttribute("data-mode", "edit");
+  });
   it("passes the same selected scope to the camera sensor selector", () => {
     render(workspace({ lifecycleRepository: {} }));
     expect(screen.getByTestId("camera-layout")).toHaveAttribute("data-organization", "org-selected");

@@ -51,12 +51,14 @@ export function EquipmentLayoutsCatalog({
   error,
   onRetry,
   canEditDraft = false,
+  canManageEquipment = false,
 }: {
   state: EquipmentLayoutsCatalogState;
   items: LayoutCatalogItem[];
   error: string | null;
   onRetry: () => void;
   canEditDraft?: boolean;
+  canManageEquipment?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -223,6 +225,7 @@ export function EquipmentLayoutsCatalog({
               onRetry={onRetry}
               returnHref={searchParams.size > 0 ? `${pathname}?${searchParams.toString()}` : pathname}
               canEditDraft={canEditDraft}
+              canManageEquipment={canManageEquipment}
             />
           ))}
         </section>
@@ -241,17 +244,19 @@ function LayoutCatalogCard({
   onRetry,
   returnHref,
   canEditDraft,
+  canManageEquipment,
 }: {
   item: LayoutCatalogItem;
   onPreview: () => void;
   onRetry: () => void;
   returnHref: string;
   canEditDraft: boolean;
+  canManageEquipment: boolean;
 }) {
   const displayTimeZone = useDisplayTimeZone();
   const equipment = item.equipment;
   const stateMeta = layoutStateMeta[item.layoutState];
-  const editRequested = canEditCatalogScheme(item, canEditDraft);
+  const editRequested = canEditCatalogScheme(item, canEditDraft, canManageEquipment);
 
   return (
     <article className="rounded-2xl border border-white/[0.07] bg-[#091a31]/90 p-4 shadow-lg shadow-black/10">

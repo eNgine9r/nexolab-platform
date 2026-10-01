@@ -114,7 +114,14 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
 
   const effectiveLifecycleRepository = sensorConfigurationRepository ?? lifecycleRepository;
   const effectiveChannels = availableSensors ?? channels;
-  const externallyReadOnly = forceReadOnly || canManageEquipment === false;
+  const cameraScoped = Boolean(
+    effectiveLifecycleRepository && (equipment.climateChamberId || equipment.nodeId),
+  );
+  const canManageSensorConfiguration =
+    runtime.mode === "demo" ||
+    Boolean(session && membership && hasPermission(session, membership.organizationId, "equipment.manage"));
+  const externallyReadOnly =
+    forceReadOnly || canManageEquipment === false || (cameraScoped && !canManageSensorConfiguration);
 
   const capabilities = useMemo<LayoutCapabilities>(() => {
     if (externallyReadOnly) return readOnlyCapabilities;
@@ -213,9 +220,6 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
     );
   }
 
-  const cameraScoped = Boolean(
-    effectiveLifecycleRepository && (equipment.climateChamberId || equipment.nodeId),
-  );
   const selectorOrganizationId =
     runtime.mode === "demo"
       ? "demo:equipment-map"

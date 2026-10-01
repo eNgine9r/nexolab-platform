@@ -36,9 +36,14 @@ export function readSchemeNavigation(query: Record<string, string | string[] | u
   };
 }
 
-export function canEditCatalogScheme(item: LayoutCatalogItem, canEditDraft: boolean): boolean {
+export function canEditCatalogScheme(
+  item: LayoutCatalogItem,
+  canEditDraft: boolean,
+  canManageEquipment = false,
+): boolean {
   return (
     canEditDraft &&
+    (!(item.equipment.climateChamberId || item.equipment.nodeId) || canManageEquipment) &&
     item.equipment.lifecycleStatus !== "retired" &&
     item.kind === "ready" &&
     item.draft.image !== null

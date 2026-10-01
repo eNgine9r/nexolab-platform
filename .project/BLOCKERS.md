@@ -4,7 +4,7 @@ Updated: 2026-10-01
 
 ## UX source acceptance — #1224 pending
 
-#1222 / PR #1223 is cleared at e22798f691c8b425e1a0be3b494606acb8c90785: four registered workflows GREEN, 958 tests, eight browser cases and zero unresolved threads. #1224 direct Scheme entry passed 32 focused local tests, typecheck and lint; final CI/browser/review are pending. Installed operator acceptance is the separate #1191 blocker below.
+#1222 / PR #1223 is cleared at e22798f691c8b425e1a0be3b494606acb8c90785: four registered workflows GREEN, 958 tests, eight browser cases and zero unresolved threads. #1224 direct Scheme entry passed 34 focused local tests, typecheck and lint; final CI/browser/review are pending. Installed operator acceptance is the separate #1191 blocker below.
 
 ## Audit #1191 — authenticated deployed all-page evidence pending
 

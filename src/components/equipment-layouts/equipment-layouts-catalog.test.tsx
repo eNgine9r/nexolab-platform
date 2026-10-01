@@ -25,7 +25,14 @@ function item(): LayoutCatalogReadyItem {
   if (!reference) throw new Error("Missing equipment fixture");
   return {
     kind: "ready",
-    equipment: { ...reference, code: "SHOW-106", zone: "A", lifecycleStatus: "active" },
+    equipment: {
+      ...reference,
+      code: "SHOW-106",
+      zone: "A",
+      lifecycleStatus: "active",
+      nodeId: null,
+      climateChamberId: null,
+    },
     draft: {
       id: "draft-1",
       equipmentId: reference.id,
@@ -95,5 +102,31 @@ describe("direct scheme navigation from the catalog", () => {
       expect(screen.queryByRole("link", { name: /Редагувати схему/ })).not.toBeInTheDocument();
       expect(screen.getByRole("link", { name: "Відкрити схему SHOW-106" })).toBeVisible();
     }
+  });
+  it("requires the sensor-configuration save permission only on camera-scoped cards", () => {
+    const camera = item();
+    camera.equipment.nodeId = "camera-node";
+    const { rerender } = render(
+      <EquipmentLayoutsCatalog
+        state="ready"
+        items={[camera]}
+        error={null}
+        onRetry={() => undefined}
+        canEditDraft
+      />,
+    );
+    expect(screen.queryByRole("link", { name: /Редагувати схему/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Відкрити схему SHOW-106" })).toBeVisible();
+    rerender(
+      <EquipmentLayoutsCatalog
+        state="ready"
+        items={[camera]}
+        error={null}
+        onRetry={() => undefined}
+        canEditDraft
+        canManageEquipment
+      />,
+    );
+    expect(screen.getByRole("link", { name: "Редагувати схему SHOW-106" })).toBeVisible();
   });
 });
