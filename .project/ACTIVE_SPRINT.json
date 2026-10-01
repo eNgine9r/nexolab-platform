@@ -41,9 +41,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1222,
-      "title": "UX-18 equipment-scoped refrigeration tabs and safe storage fallback",
-      "branch": "fix/1222-equipment-scoped-tabs"
+      "issue": 1224,
+      "title": "UX-19 direct catalog Scheme entry with safe return context",
+      "branch": "fix/1224-scheme-entry"
     },
     "next_work_package": null
   },
@@ -6019,6 +6019,23 @@
       "title": "UX-18 equipment-scoped refrigeration tabs and safe storage fallback",
       "branch": "fix/1222-equipment-scoped-tabs",
       "priority": "medium",
+      "lifecycle": "completed",
+      "evidence": {
+        "verified_head_sha": "e22798f691c8b425e1a0be3b494606acb8c90785",
+        "pull_request": 1223,
+        "checks": {
+          "CI": "success:36900104926",
+          "Refrigeration Browser Acceptance": "success:36900104968",
+          "Disaster Recovery Browser Acceptance": "success:36900104733",
+          "Security Browser Acceptance": "success:36900104845"
+        }
+      }
+    },
+    {
+      "issue": 1224,
+      "title": "UX-19 direct catalog Scheme entry with safe return context",
+      "branch": "fix/1224-scheme-entry",
+      "priority": "medium",
       "lifecycle": "in_progress",
       "evidence": {}
     }
@@ -6707,6 +6724,21 @@
         "open_pull_requests": 0,
         "next_independent_ready_issue": null,
         "next_security_review": "2026-10-02"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T17:55:33.060Z",
+      "kind": "issue_1222_pr_1223_merged",
+      "data": {
+        "issue": 1222,
+        "pull_request": 1223,
+        "verified_head_sha": "e22798f691c8b425e1a0be3b494606acb8c90785",
+        "merge_sha": "86399b3a6b2ab36992aed0780d6b4ddcaf0130b0",
+        "exact_head_workflows": "4_of_4_green",
+        "frontend_tests": 958,
+        "browser_scenarios": 8,
+        "unresolved_review_threads": 0
       }
     }
   ],

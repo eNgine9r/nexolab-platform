@@ -32,6 +32,7 @@ import {
   type LayoutCatalogState,
 } from "@/features/equipment-layouts/layout-catalog";
 import type { EquipmentLayoutsCatalogState } from "@/hooks/use-equipment-layouts-catalog";
+import { canEditCatalogScheme, schemeEntryHref } from "@/features/equipment-layouts/scheme-navigation";
 
 const lifecycleValues = new Set(["all", "active", "maintenance", "retired"]);
 const layoutValues = new Set([
@@ -49,11 +50,15 @@ export function EquipmentLayoutsCatalog({
   items,
   error,
   onRetry,
+  canEditDraft = false,
+  canManageEquipment = false,
 }: {
   state: EquipmentLayoutsCatalogState;
   items: LayoutCatalogItem[];
   error: string | null;
   onRetry: () => void;
+  canEditDraft?: boolean;
+  canManageEquipment?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -218,6 +223,9 @@ export function EquipmentLayoutsCatalog({
               item={item}
               onPreview={() => setPreviewEquipmentId(item.equipment.id)}
               onRetry={onRetry}
+              returnHref={searchParams.size > 0 ? `${pathname}?${searchParams.toString()}` : pathname}
+              canEditDraft={canEditDraft}
+              canManageEquipment={canManageEquipment}
             />
           ))}
         </section>
@@ -234,14 +242,21 @@ function LayoutCatalogCard({
   item,
   onPreview,
   onRetry,
+  returnHref,
+  canEditDraft,
+  canManageEquipment,
 }: {
   item: LayoutCatalogItem;
   onPreview: () => void;
   onRetry: () => void;
+  returnHref: string;
+  canEditDraft: boolean;
+  canManageEquipment: boolean;
 }) {
   const displayTimeZone = useDisplayTimeZone();
   const equipment = item.equipment;
   const stateMeta = layoutStateMeta[item.layoutState];
+  const editRequested = canEditCatalogScheme(item, canEditDraft, canManageEquipment);
 
   return (
     <article className="rounded-2xl border border-white/[0.07] bg-[#091a31]/90 p-4 shadow-lg shadow-black/10">
@@ -320,12 +335,12 @@ function LayoutCatalogCard({
           )}
         </button>
         <Link
-          href={`/refrigeration/${encodeURIComponent(equipment.id)}`}
-          aria-label={`Відкрити картку обладнання ${equipment.code}`}
-          title="Відкрити канонічну картку"
+          href={schemeEntryHref(equipment.id, returnHref, editRequested)}
+          aria-label={`${editRequested ? "Редагувати схему" : "Відкрити схему"} ${equipment.code}`}
+          title={editRequested ? "Редагувати схему" : "Відкрити схему"}
           className="inline-flex h-9 items-center gap-2 rounded-xl border border-blue-300/15 bg-blue-400/10 px-3 text-xs font-semibold text-blue-100 hover:bg-blue-400/15 focus:ring-2 focus:ring-blue-300 focus:outline-none"
         >
-          Картка
+          {editRequested ? "Редагувати схему" : "Відкрити схему"}
           <ExternalLink className="h-3.5 w-3.5" />
         </Link>
       </div>

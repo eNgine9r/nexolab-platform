@@ -114,6 +114,12 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
 
   const effectiveLifecycleRepository = sensorConfigurationRepository ?? lifecycleRepository;
   const effectiveChannels = availableSensors ?? channels;
+  const cameraScoped = Boolean(
+    effectiveLifecycleRepository && (equipment.climateChamberId || equipment.nodeId),
+  );
+  const canManageSensorConfiguration =
+    runtime.mode === "demo" ||
+    Boolean(session && membership && hasPermission(session, membership.organizationId, "equipment.manage"));
   const externallyReadOnly = forceReadOnly || canManageEquipment === false;
 
   const capabilities = useMemo<LayoutCapabilities>(() => {
@@ -121,11 +127,13 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
     if (runtime.mode === "demo") return demoCapabilities;
     if (!session || !membership) return readOnlyCapabilities;
     return {
-      canEdit: hasPermission(session, membership.organizationId, "layout.draft.edit"),
+      canEdit:
+        (!cameraScoped || canManageSensorConfiguration) &&
+        hasPermission(session, membership.organizationId, "layout.draft.edit"),
       canPublish: hasPermission(session, membership.organizationId, "layout.publish"),
       canRestore: hasPermission(session, membership.organizationId, "layout.restore"),
     };
-  }, [externallyReadOnly, membership, runtime.mode, session]);
+  }, [cameraScoped, canManageSensorConfiguration, externallyReadOnly, membership, runtime.mode, session]);
 
   useEffect(() => {
     onCapabilitiesChange?.(capabilities);
@@ -213,9 +221,6 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
     );
   }
 
-  const cameraScoped = Boolean(
-    effectiveLifecycleRepository && (equipment.climateChamberId || equipment.nodeId),
-  );
   const selectorOrganizationId =
     runtime.mode === "demo"
       ? "demo:equipment-map"

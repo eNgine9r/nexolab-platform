@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentProps } from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -7,7 +7,11 @@ import { getRefrigerationEquipment } from "@/data/refrigeration";
 import { RefrigerationDetailScreen } from "./refrigeration-detail-screen";
 
 vi.mock("next/link", () => ({
-  default: ({ children, href }: { children: ReactNode; href: string }) => <a href={href}>{children}</a>,
+  default: ({ children, href, ...props }: ComponentProps<"a">) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
 }));
 
 vi.mock("@/components/dashboard/sidebar", () => ({
@@ -56,6 +60,22 @@ describe("RefrigerationDetailScreen", () => {
 
     expect(screen.getByRole("button", { name: "Огляд" })).toHaveAttribute("aria-current", "page");
     expect(window.localStorage.getItem("nexolab:refrigeration-detail-tab")).toBe("graphs");
+  });
+
+  it("opens the Scheme directly and returns to its catalog context", async () => {
+    render(
+      <RefrigerationDetailScreen
+        equipment={referenceEquipment()}
+        navigation={{ schemeEntry: true, editRequested: true, returnHref: "/equipment-layouts?q=106" }}
+      />,
+    );
+    await screen.findByRole("button", { name: "Вибрати датчик 01F на схемі" });
+    expect(screen.getByRole("button", { name: "Схема" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Назад до каталогу схем" })).toHaveAttribute(
+      "href",
+      "/equipment-layouts?q=106",
+    );
+    expect(screen.getByRole("button", { name: "Зберегти чернетку" })).toBeVisible();
   });
 
   it("defaults a different object to Overview and restores the first object's chosen tab", () => {

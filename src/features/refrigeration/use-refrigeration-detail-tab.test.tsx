@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { refrigerationTabStorageKey, useRefrigerationDetailTab } from "./use-refrigeration-detail-tab";
 
-function Harness({ scope }: { scope: string | null }) {
-  const { activeTab, setActiveTab } = useRefrigerationDetailTab(scope);
+function Harness({ scope, schemeEntry = false }: { scope: string | null; schemeEntry?: boolean }) {
+  const { activeTab, setActiveTab } = useRefrigerationDetailTab(scope, schemeEntry ? "scheme" : undefined);
   return (
     <div>
       <output aria-label="Selected tab">{activeTab}</output>
@@ -17,6 +17,18 @@ function Harness({ scope }: { scope: string | null }) {
 describe("equipment-scoped refrigeration tab preferences", () => {
   beforeEach(() => window.localStorage.clear());
   afterEach(() => vi.restoreAllMocks());
+
+  it("gives explicit Scheme entry precedence over storage while ordinary tab changes still persist", () => {
+    const scope = refrigerationTabStorageKey("organization-a", "equipment-a");
+    window.localStorage.setItem(scope, "graphs");
+    const write = vi.spyOn(Storage.prototype, "setItem");
+    render(<Harness scope={scope} schemeEntry />);
+    expect(screen.getByLabelText("Selected tab")).toHaveTextContent("scheme");
+    expect(write).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Controller" }));
+    expect(screen.getByLabelText("Selected tab")).toHaveTextContent("controller");
+    expect(window.localStorage.getItem(scope)).toBe("controller");
+  });
 
   it("restores a valid tab without writing the initial Overview back to storage", () => {
     const scope = refrigerationTabStorageKey("organization-a", "equipment-a");

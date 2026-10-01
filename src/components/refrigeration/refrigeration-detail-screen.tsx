@@ -35,6 +35,7 @@ import { attachPhysicalSensorInventory } from "@/features/refrigeration/sensor-c
 import { useRefrigerationController } from "@/features/refrigeration/use-refrigeration-controller";
 import type { RefrigerationStructuralSnapshot } from "@/features/refrigeration/structural-snapshot-repository";
 import { hasPermission } from "@/features/security/security-session";
+import type { SchemeNavigation } from "@/features/equipment-layouts/scheme-navigation";
 import {
   refrigerationTabStorageKey,
   useRefrigerationDetailTab,
@@ -113,9 +114,11 @@ function buildBindingSensors(
 export function RefrigerationDetailScreen({
   equipment: initialEquipment,
   initialSnapshot,
+  navigation,
 }: {
   equipment: RefrigerationEquipment;
   initialSnapshot?: RefrigerationStructuralSnapshot | null;
+  navigation?: SchemeNavigation;
 }) {
   const account = useRefrigerationAccount();
   const organizationId = account?.security.membership?.organizationId;
@@ -129,7 +132,10 @@ export function RefrigerationDetailScreen({
   const tabScope = tabOrganizationId
     ? refrigerationTabStorageKey(tabOrganizationId, initialEquipment.id)
     : null;
-  const { activeTab, setActiveTab } = useRefrigerationDetailTab(tabScope);
+  const { activeTab, setActiveTab } = useRefrigerationDetailTab(
+    tabScope,
+    navigation?.schemeEntry ? "scheme" : undefined,
+  );
   const controller = useRefrigerationController({
     equipmentId: initialEquipment.id,
     repository: runtime.controllerBindingRepository,
@@ -150,7 +156,7 @@ export function RefrigerationDetailScreen({
   const [side, setSide] = useState<"all" | SensorSide>("all");
   const [shelf, setShelf] = useState<number | "all">("all");
   const [selectedId, setSelectedId] = useState(initialEquipment.sensors[0]?.id ?? null);
-  const [layoutMode, setLayoutMode] = useState<LayoutEditorMode>("view");
+  const [layoutMode, setLayoutMode] = useState<LayoutEditorMode>(navigation?.editRequested ? "edit" : "view");
   const [legacyCanManageEquipment, setCanManageEquipment] = useState(runtime.mode === "demo");
   const canManageEquipment =
     runtime.mode === "demo" ||
@@ -396,8 +402,8 @@ export function RefrigerationDetailScreen({
           <div className="mx-auto max-w-[2100px]">
             <header className="mb-2 flex flex-wrap items-center gap-3 rounded-2xl border border-white/[0.07] bg-[#091a31]/85 p-3">
               <Link
-                href="/refrigeration"
-                aria-label="Назад до обладнання"
+                href={navigation?.returnHref ?? "/refrigeration"}
+                aria-label={navigation?.returnHref ? "Назад до каталогу схем" : "Назад до обладнання"}
                 title="Назад"
                 className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.035] text-slate-400 hover:text-white"
               >

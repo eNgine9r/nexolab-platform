@@ -11,6 +11,7 @@ import { Topbar } from "@/components/dashboard/topbar";
 import { EquipmentLayoutsCatalog } from "@/components/equipment-layouts/equipment-layouts-catalog";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { useEquipmentLayoutsCatalog } from "@/hooks/use-equipment-layouts-catalog";
+import { hasPermission } from "@/features/security/security-session";
 
 function EquipmentLayoutsModeGate({
   title,
@@ -132,6 +133,14 @@ export function EquipmentLayoutsScreen() {
               items={catalog.items}
               error={catalog.error}
               onRetry={catalog.retry}
+              canManageEquipment={Boolean(
+                security.session &&
+                hasPermission(security.session, security.membership.organizationId, "equipment.manage"),
+              )}
+              canEditDraft={Boolean(
+                security.session &&
+                hasPermission(security.session, security.membership.organizationId, "layout.draft.edit"),
+              )}
             />
           </div>
         </main>

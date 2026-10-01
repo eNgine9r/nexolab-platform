@@ -31,13 +31,13 @@ function serverTab(): RefrigerationDetailTab {
   return "overview";
 }
 
-export function useRefrigerationDetailTab(scope: string | null) {
+export function useRefrigerationDetailTab(scope: string | null, initialTab?: RefrigerationDetailTab) {
   const snapshot = useCallback(() => readTab(scope), [scope]);
   const storedTab = useSyncExternalStore(subscribe, snapshot, serverTab);
   const [selection, setSelection] = useState<{ scope: string | null; tab: RefrigerationDetailTab } | null>(
     null,
   );
-  const activeTab = selection?.scope === scope ? selection.tab : storedTab;
+  const activeTab = selection?.scope === scope ? selection.tab : (initialTab ?? storedTab);
 
   function setActiveTab(tab: RefrigerationDetailTab) {
     setSelection({ scope, tab });
