@@ -8,15 +8,18 @@ import { Sidebar } from "@/components/dashboard/sidebar";
 import { RefrigerationAccountTopbar, useRefrigerationAccount } from "./refrigeration-security-boundary";
 import { RefrigerationDetailScreen } from "@/components/refrigeration/refrigeration-detail-screen";
 import type { RefrigerationEquipment } from "@/data/refrigeration";
+import type { SchemeNavigation } from "@/features/equipment-layouts/scheme-navigation";
 import { createRefrigerationEquipmentRuntime } from "@/features/refrigeration/equipment-repository-runtime";
 import type { RefrigerationStructuralSnapshot } from "@/features/refrigeration/structural-snapshot-repository";
 
 export function RefrigerationEquipmentRoute({
   equipmentId,
   initialEquipment,
+  navigation,
 }: {
   equipmentId: string;
   initialEquipment: RefrigerationEquipment | null;
+  navigation?: SchemeNavigation;
 }) {
   const account = useRefrigerationAccount();
   const organizationId = account?.security.membership?.organizationId;
@@ -86,10 +89,12 @@ export function RefrigerationEquipmentRoute({
   }, [equipmentId, runtime.repository, runtime.structuralSnapshotRepository]);
 
   if (equipment) {
-    return <RefrigerationDetailScreen equipment={equipment} initialSnapshot={snapshot} />;
+    return (
+      <RefrigerationDetailScreen equipment={equipment} initialSnapshot={snapshot} navigation={navigation} />
+    );
   }
 
-  return <EquipmentRouteState loading={loading} error={error} />;
+  return <EquipmentRouteState loading={loading} error={error} returnHref={navigation?.returnHref ?? null} />;
 }
 
 function errorMessage(reason?: unknown, fallback?: unknown): string {
@@ -98,7 +103,15 @@ function errorMessage(reason?: unknown, fallback?: unknown): string {
   return "Обладнання не знайдено.";
 }
 
-function EquipmentRouteState({ loading, error }: { loading: boolean; error: string | null }) {
+function EquipmentRouteState({
+  loading,
+  error,
+  returnHref,
+}: {
+  loading: boolean;
+  error: string | null;
+  returnHref: string | null;
+}) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   return (
     <div className="min-h-screen bg-[#06142a] text-slate-100">
@@ -126,7 +139,7 @@ function EquipmentRouteState({ loading, error }: { loading: boolean; error: stri
                   {error ?? "Запис видалено або він не належить поточній організації."}
                 </p>
                 <Link
-                  href="/refrigeration"
+                  href={returnHref ?? "/refrigeration"}
                   className="mx-auto mt-5 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs text-slate-300 transition hover:bg-white/[0.07] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
                 >
                   <ArrowLeft className="h-4 w-4" />

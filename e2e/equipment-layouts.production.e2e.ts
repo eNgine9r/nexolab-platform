@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -47,7 +47,7 @@ type SignedImageResponse = {
   status: number;
 };
 
-async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
+async function authenticatedContext(browser: Browser, token = viewerToken): Promise<BrowserContext> {
   const context = await browser.newContext();
   await context.addInitScript(
     ({ accessToken, organization }) => {
@@ -55,7 +55,7 @@ async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
       window.sessionStorage.setItem("nexolab.acceptance.access-token", accessToken);
       window.sessionStorage.setItem("nexolab.acceptance.organization-id", organization);
     },
-    { accessToken: viewerToken, organization: organizationId },
+    { accessToken: token, organization: organizationId },
   );
   return context;
 }
@@ -502,13 +502,46 @@ test("renders and navigates the authenticated Equipment Layouts catalog", async 
       await expect(dialog).toBeHidden();
     });
 
-    await test.step("navigate to the canonical refrigeration detail workflow", async () => {
-      const link = cardFor(page, "LAY-CURRENT-01").getByRole("link", {
-        name: "Відкрити картку обладнання LAY-CURRENT-01",
-      });
-      await expect(link).toHaveAttribute("href", `/refrigeration/${currentEquipmentId}`);
-      await link.click();
-      await expect(page).toHaveURL(new RegExp(`/refrigeration/${currentEquipmentId}$`));
+    await test.step("enter Scheme by keyboard and return to catalog filters on mobile and desktop", async () => {
+      for (const width of [390, 1280]) {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto("/equipment-layouts?q=LAY-CURRENT-01&lab=Layout+Lab+A&layout=published-current");
+        const returnUrl = new URL(page.url());
+        const returnHref = `${returnUrl.pathname}${returnUrl.search}`;
+        const link = cardFor(page, "LAY-CURRENT-01").getByRole("link", {
+          name: "Відкрити схему LAY-CURRENT-01",
+        });
+        await expect(link).toBeVisible();
+        await link.focus();
+        await page.keyboard.press("Enter");
+        await expect(page.getByRole("button", { name: "Схема", exact: true })).toHaveAttribute(
+          "aria-pressed",
+          "true",
+        );
+        await expect(page.getByRole("button", { name: "Зберегти чернетку", exact: true })).toHaveCount(0);
+        const back = page.getByRole("link", { name: "Назад до каталогу схем" });
+        await expect(back).toHaveAttribute("href", returnHref);
+        await back.focus();
+        await page.keyboard.press("Enter");
+        await expect(page.getByPlaceholder("Код, назва, модель або розташування")).toHaveValue(
+          "LAY-CURRENT-01",
+        );
+        await expect(page.getByLabel("Лабораторія")).toHaveValue("Layout Lab A");
+        await expect(page.getByLabel("Стан схеми")).toHaveValue("published-current");
+      }
+    });
+
+    await test.step("a forged edit intent cannot grant a viewer write controls", async () => {
+      await page.goto(
+        `/refrigeration/${currentEquipmentId}?tab=scheme&mode=edit&returnTo=%2Fequipment-layouts`,
+      );
+      await expect(page.getByRole("button", { name: "Схема", exact: true })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      await expect(page.getByRole("link", { name: "Назад до каталогу схем" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Зберегти чернетку", exact: true })).toHaveCount(0);
+      expect(requests.every((request) => request.method === "GET")).toBe(true);
     });
 
     writeDatabaseEvidence();
@@ -536,6 +569,89 @@ test("renders and navigates the authenticated Equipment Layouts catalog", async 
         2,
       )}\n`,
     );
+  } finally {
+    await context.close();
+  }
+});
+
+function seedSchemeEditor(): string {
+  const sql = `
+INSERT INTO security_identities (id, provider, subject, email, display_name, is_active)
+VALUES ('cccccccc-cccc-cccc-cccc-cccccccc1224', 'acceptance-oidc', 'scheme-editor-1224', 'scheme-editor@example.test', 'Scheme Editor', true)
+ON CONFLICT (provider, subject) DO UPDATE SET is_active = true;
+INSERT INTO security_organization_memberships (id, organization_id, identity_id, is_active)
+VALUES ('dddddddd-dddd-dddd-dddd-dddddddd1224', :'organization_id', 'cccccccc-cccc-cccc-cccc-cccccccc1224', true)
+ON CONFLICT (organization_id, identity_id) DO UPDATE SET is_active = true;
+INSERT INTO security_membership_roles (membership_id, role, assigned_by)
+VALUES ('dddddddd-dddd-dddd-dddd-dddddddd1224', 'engineer', 'scheme-entry-acceptance')
+ON CONFLICT (membership_id, role) DO NOTHING;
+INSERT INTO security_membership_permissions (membership_id, permission, assigned_by)
+VALUES
+ ('dddddddd-dddd-dddd-dddd-dddddddd1224', 'dashboard.read', 'scheme-entry-acceptance'),
+ ('dddddddd-dddd-dddd-dddd-dddddddd1224', 'equipment.manage', 'scheme-entry-acceptance'),
+ ('dddddddd-dddd-dddd-dddd-dddddddd1224', 'layout.draft.edit', 'scheme-entry-acceptance')
+ON CONFLICT (membership_id, permission) DO NOTHING;
+`;
+  composeExec(
+    "postgres",
+    [
+      "psql",
+      "-U",
+      postgresUser,
+      "-d",
+      postgresDatabase,
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-v",
+      `organization_id=${organizationId}`,
+    ],
+    sql,
+  );
+  const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  const now = Math.floor(Date.now() / 1000);
+  const header = encode({ alg: "HS256", typ: "JWT" });
+  const payload = encode({
+    sub: "scheme-editor-1224",
+    email: "scheme-editor@example.test",
+    name: "Scheme Editor",
+    iss: requiredEnvironment("AUTH_JWT_ISSUER"),
+    aud: requiredEnvironment("AUTH_JWT_AUDIENCE"),
+    iat: now,
+    exp: now + 1800,
+  });
+  const signature = createHmac("sha256", requiredEnvironment("AUTH_JWT_PUBLIC_KEY"))
+    .update(`${header}.${payload}`)
+    .digest("base64url");
+  return `${header}.${payload}.${signature}`;
+}
+
+test("catalog edit intent opens the authorized draft without writing it", async ({ browser }) => {
+  seedEquipmentLayoutFixtures();
+  const context = await authenticatedContext(browser, seedSchemeEditor());
+  const page = await context.newPage();
+  const requests = observeEquipmentRequests(page);
+  try {
+    for (const width of [390, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/equipment-layouts?q=LAY-CURRENT-01");
+      const link = cardFor(page, "LAY-CURRENT-01").getByRole("link", {
+        name: "Редагувати схему LAY-CURRENT-01",
+      });
+      await expect(link).toBeVisible();
+      await link.focus();
+      await page.keyboard.press("Enter");
+      await expect(page.getByRole("button", { name: "Схема", exact: true })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      await expect(page.getByRole("button", { name: "Зберегти чернетку", exact: true })).toBeVisible();
+      await expect(page.getByRole("link", { name: "Назад до каталогу схем" })).toHaveAttribute(
+        "href",
+        "/equipment-layouts?q=LAY-CURRENT-01",
+      );
+    }
+    expect(requests.length).toBeGreaterThan(0);
+    expect(requests.every((request) => request.method === "GET")).toBe(true);
   } finally {
     await context.close();
   }

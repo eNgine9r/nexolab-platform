@@ -2,9 +2,13 @@
 
 Updated: 2026-10-01
 
-## Issue #1222 — UX-18 scoped refrigeration tabs source candidate
+## Issue #1224 — UX-19 direct Scheme entry source candidate
 
-Regression baseline `ac561802bc61fa5dcce9cbcbd0afcc0cf4bae85c` / Core CI 36898795544 reproduced exactly two failures (unscoped legacy preference and cross-object leakage); 951 other tests passed. Source now stores valid tabs by organization/equipment, ignores ambiguous legacy global preference and restores without initial writes. Scope changes default immediately to Overview until that object's preference is read, preventing another object's Graphs tab from enabling its history. Browser storage failures retain usable in-memory navigation. Five focused hook cases cover organization/object boundaries, restore/no-write, invalid/legacy values, blocked reads/writes and unknown organization; two screen regressions prove integration. The existing Embraco browser journey gains two-object return, 390/1280 px keyboard and blocked-storage coverage without navigation mutations. Local execution is restored in an isolated worktree. All 12 focused hook/screen tests, typecheck, lint, changed-source formatting, canonical state and diff integrity passed. Browser and final exact-head CI/review are pending. No API, permissions, acquisition, dependency or deployment change.
+Catalog actions now reach Scheme directly. Verified draft images with existing layout.draft.edit and equipment.manage permissions offer Edit; viewer, retired, unavailable and image-free cards offer View. Query intent grants no permissions: the existing workspace enforces capabilities and retired read-only behavior. Explicit Scheme intent overrides a saved tab without writing preferences during initial load. The back link preserves catalog filters through a bounded catalog-only return parser. Published preview remains available. All 28 focused navigation/catalog/hook/screen tests, typecheck and touched lint passed. Existing catalog browser coverage gains 390/1280 px keyboard/filter return, forged viewer edit intent and an isolated authorized draft entry with zero navigation writes. Final CI/browser/review pending. No API, permissions, dependency, acquisition or deployment change.
+
+## Issue #1222 — UX-18 completed
+
+PR #1223 final head `e22798f691c8b425e1a0be3b494606acb8c90785` passed all four workflows: Core CI 36900104926, Refrigeration 36900104968, Disaster Recovery 36900104733 and Security 36900104845. All 958 tests in 170 files and eight routed browser scenarios passed; zero review threads/change requests. Squash merge `86399b3a6b2ab36992aed0780d6b4ddcaf0130b0`. Valid tabs restore by organization/equipment without initial writes; storage failures retain usable in-memory navigation. Baseline `ac561802bc61fa5dcce9cbcbd0afcc0cf4bae85c` reproduced two expected failures with 951 other tests passing. Audit: 24 closed in code, 1 partial, 14 open. Installed #1191 remains access-gated.
 
 ## Issue #1220 — completed
 
