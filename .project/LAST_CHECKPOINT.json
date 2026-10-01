@@ -863,7 +863,8 @@
       "rendered_browser": "success:36921474367_1_passed",
       "telemetry_service": "success:36921474051",
       "core_quality_build": "success:36921474084",
-      "review": "0_threads"
+      "review": "0_threads",
+      "restored_browser": "36921474403_legacy_UUID_heading_assertion_requires_update"
     },
     "issue_1236_python_tls_review": {
       "baseline_run": 36921474135,
