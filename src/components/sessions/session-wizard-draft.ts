@@ -90,15 +90,14 @@ export function readWizardDraft(key: string | null): WizardDraft | null {
 export function saveWizardDraft(key: string | null, draft: WizardDraft): boolean {
   if (!key) return true;
   try {
-    window.localStorage.setItem(
-      key,
-      JSON.stringify({
-        version: 1,
-        form: draft.form,
-        step: draft.step,
-        operation: { ...draft.operation, bindingKeys: [...draft.operation.bindingKeys] },
-      }),
-    );
+    const encoded = JSON.stringify({
+      version: 1,
+      form: draft.form,
+      step: draft.step,
+      operation: { ...draft.operation, bindingKeys: [...draft.operation.bindingKeys] },
+    });
+    if (encoded.length > 100000) return false;
+    window.localStorage.setItem(key, encoded);
     return true;
   } catch {
     return false;

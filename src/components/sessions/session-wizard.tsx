@@ -33,6 +33,8 @@ import {
 import {
   createInitialWizardForm,
   isWizardStepValid,
+  getWizardInvalidStep,
+  isWizardBindingValid,
   WIZARD_STEPS,
   type SessionWizardForm,
 } from "./wizard-model";
@@ -190,6 +192,14 @@ export function SessionWizard() {
 
   const submit = async () => {
     if (submission.current) return;
+    const invalidStep = getWizardInvalidStep(operation.current.formSnapshot ?? form);
+    if (invalidStep !== null) {
+      if (!operation.current.formSnapshot) setStep(invalidStep);
+      setError(
+        new Error(`Перевірте дані кроку «${WIZARD_STEPS[invalidStep]}» перед створенням випробування.`),
+      );
+      return;
+    }
     const uncertainCreateBeforeThisAttempt = Boolean(operation.current.formSnapshot);
     const controller = new AbortController();
     submission.current = controller;
@@ -228,6 +238,13 @@ export function SessionWizard() {
         );
       }
 
+      if (!frozenBindings.every(isWizardBindingValid)) {
+        if (!operation.current.formSnapshot) {
+          operation.current.selectionKeys = null;
+          setStep(3);
+        }
+        throw new Error("Параметри вибраних датчиків не відповідають контракту випробування. Оновіть вибір.");
+      }
       operation.current.bindingSnapshot ??= structuredClone(frozenBindings);
       operation.current.formSnapshot ??= structuredClone(form);
       const submittedForm = operation.current.formSnapshot;
@@ -275,11 +292,11 @@ export function SessionWizard() {
         if (controller.signal.aborted) return;
         sessionId = created.session.id;
         operation.current.sessionId = sessionId;
+        setCreatedSessionId(sessionId);
         if (!persist(submittedForm, 7))
           throw new Error(
             "Не вдалося зберегти стан створення. Перевірте доступ до сховища браузера й повторіть спробу.",
           );
-        setCreatedSessionId(sessionId);
         invalidateSessionListReadModels(configuredOrganizationId);
       }
 

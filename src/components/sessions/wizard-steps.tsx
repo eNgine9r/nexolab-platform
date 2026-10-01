@@ -13,7 +13,7 @@ import { TelemetryPointSelector } from "@/components/telemetry-selection/telemet
 import type { TelemetryPointHierarchy } from "@/features/telemetry-selection/hierarchy";
 import type { SessionStageType } from "@/lib/sessions/types";
 
-import { STAGE_TYPES, type SessionWizardForm } from "./wizard-model";
+import { isWizardStepValid, STAGE_TYPES, type SessionWizardForm } from "./wizard-model";
 
 export interface WizardStepProps {
   form: SessionWizardForm;
@@ -239,17 +239,26 @@ export function LimitsStep({ form, update }: WizardStepProps) {
           />
           <NumberField
             label="Hysteresis"
+            min={0}
             value={form.temperatureHysteresis}
             step={0.1}
             onChange={(value) => update("temperatureHysteresis", value)}
           />
           <NumberField
             label="Duration, s"
+            min={0}
+            step={1}
             value={form.temperatureDurationSeconds}
             onChange={(value) => update("temperatureDurationSeconds", value)}
           />
         </div>
       </div>
+      {!isWizardStepValid(5, form) && (
+        <p role="alert" className="text-sm text-red-200">
+          Перевірте межі допусків і потужності. Гістерезис та тривалість не можуть бути від’ємними; тривалість
+          має бути цілою кількістю секунд.
+        </p>
+      )}
       <div className="border-t border-white/[0.055] pt-5">
         <h3 className="text-sm font-semibold text-white">Активна потужність LE-01MP</h3>
         <div className="mt-3 max-w-xs">

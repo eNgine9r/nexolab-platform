@@ -12,6 +12,7 @@ const mock = vi.hoisted(() => ({
   release: vi.fn(),
   persistent: false,
   inventoryAvailable: true,
+  formOverrides: {} as Record<string, unknown>,
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push }) }));
 vi.mock("@/components/dashboard/platform-account-boundary", () => ({
@@ -71,6 +72,10 @@ vi.mock("./wizard-model", async (original) => {
     createInitialWizardForm: () => ({
       ...actual.createInitialWizardForm(),
       selectedTelemetryKeys: ["probe"],
+      customer: "Customer",
+      model: "Model",
+      serialNumber: "Serial",
+      ...mock.formOverrides,
     }),
   };
 });
@@ -88,6 +93,7 @@ beforeEach(() => {
   localStorage.clear();
   mock.persistent = false;
   mock.inventoryAvailable = true;
+  mock.formOverrides = {};
   mock.push.mockClear();
   mock.begin.mockReset().mockReturnValue(mock.release);
   mock.release.mockReset();
@@ -227,8 +233,8 @@ it("keeps the original operation frozen after an uncertain creation failure", as
   expect(mock.create.mock.calls[2]!.at(-2)).toBe(oldKey);
 });
 
-it.each(["create", "binding", "limits"] as const)(
-  "does not POST %s until its recovery state is saved",
+it.each(["create", "created-id", "binding", "limits"] as const)(
+  "stops the next POST when recovery persistence fails at %s",
   async (stage) => {
     mock.persistent = true;
     let readyForLimits = false;
@@ -247,6 +253,7 @@ it.each(["create", "binding", "limits"] as const)(
       if (
         data &&
         (stage === "create" ||
+          (stage === "created-id" && data.operation.sessionId && data.operation.bindingKeys.length === 0) ||
           (stage === "binding" && data.operation.bindingKeys.length > 0) ||
           (stage === "limits" && readyForLimits))
       ) {
@@ -263,7 +270,9 @@ it.each(["create", "binding", "limits"] as const)(
       }
       fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
       await screen.findByText(/Не вдалося зберегти стан створення/);
-      expect(mock[stage]).not.toHaveBeenCalled();
+      expect(mock[stage === "created-id" ? "binding" : stage]).not.toHaveBeenCalled();
+      if (stage === "created-id")
+        expect(screen.getByRole("button", { name: "Повторити без дублювання" })).toBeVisible();
       expect(mock.release).toHaveBeenCalledOnce();
       storage.mockRestore();
       fireEvent.click(
@@ -277,3 +286,25 @@ it.each(["create", "binding", "limits"] as const)(
     }
   },
 );
+
+it.each([
+  { temperatureHysteresis: -1 },
+  { temperatureDurationSeconds: -1 },
+  { temperatureDurationSeconds: 1.5 },
+  { sessionNumber: "x".repeat(65) },
+])("validates the entire form before any creation POST: %j", async (values) => {
+  mock.persistent = true;
+  mock.formOverrides = values;
+  render(<SessionWizard />);
+  for (let step = 0; step < 7; step++) {
+    const next = screen.getByRole("button", { name: "Далі" });
+    await waitFor(() => expect(next).toBeEnabled());
+    fireEvent.click(next);
+  }
+  fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
+  await screen.findByText(/Перевірте дані кроку/);
+  expect(mock.create).not.toHaveBeenCalled();
+  expect(mock.binding).not.toHaveBeenCalled();
+  expect(mock.limits).not.toHaveBeenCalled();
+  expect(mock.begin).not.toHaveBeenCalled();
+});

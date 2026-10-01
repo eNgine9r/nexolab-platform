@@ -59,3 +59,12 @@ it("clears successful creation without touching another operator draft", () => {
   expect(readWizardDraft(key)).toBeNull();
   expect(readWizardDraft(other)).not.toBeNull();
 });
+
+it("rejects an oversized draft without overwriting the last recoverable form", () => {
+  const previous = draft();
+  saveWizardDraft(key, previous);
+  const oversized = draft();
+  oversized.form.customer = "x".repeat(100001);
+  expect(saveWizardDraft(key, oversized)).toBe(false);
+  expect(readWizardDraft(key)).toEqual(previous);
+});
