@@ -864,6 +864,7 @@ function requiredEnvironment(name: string): string {
 test("Live inventory remains readable and keyboard-operable at mobile widths", async ({ browser }) => {
   const context = await authenticatedContext(browser);
   const page = await context.newPage();
+  const requests = observeRequests(page);
   try {
     await page.goto("/live", { waitUntil: "domcontentloaded" });
     const inventory = page.getByTestId("live-inventory-panel");
@@ -873,6 +874,9 @@ test("Live inventory remains readable and keyboard-operable at mobile widths", a
     for (const width of [320, 360, 390, 430]) {
       await page.setViewportSize({ width, height: 900 });
       await expect(compare).toBeVisible();
+      await expect(page.getByTestId("live-workspace-guidance")).toContainText("до 8 точок");
+      await expect(page.getByTestId("live-workspace-guidance")).toContainText("до 64 точок");
+      await expect(page.getByRole("button", { name: "Відкрити збережені панелі" })).toBeVisible();
       await expect(row.locator("time")).toBeVisible();
       await expect
         .poll(() => inventory.evaluate((element) => element.scrollWidth <= element.clientWidth))
@@ -895,7 +899,18 @@ test("Live inventory remains readable and keyboard-operable at mobile widths", a
     await expect(compare).toBeChecked();
     await expect(row.locator("summary")).toBeHidden();
     await expect(inventory.getByRole("columnheader", { name: "Час вимірювання" })).toBeVisible();
+    await expect.poll(() => new URL(page.url()).searchParams.getAll("compare").length).toBe(1);
+    const selected = new URL(page.url()).searchParams.getAll("compare");
+    await page.getByRole("button", { name: "Відкрити збережені панелі" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("heading", { name: "Live Dashboards", exact: true })).toBeVisible();
+    expect(new URL(page.url()).searchParams.getAll("compare")).toEqual(selected);
+    await expect(page.getByTestId("live-workspace-guidance")).toContainText("до 64 точок");
+    await page.getByRole("button", { name: "Live Data", exact: true }).click();
+    await expect(compare).toBeChecked();
+    expect(new URL(page.url()).searchParams.getAll("compare")).toEqual(selected);
     await compare.uncheck();
+    expect(requests.acquisitionMutations).toEqual([]);
   } finally {
     await context.close();
   }

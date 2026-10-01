@@ -41,9 +41,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1214,
-      "title": "UX-17 remove incomplete Gauge choice",
-      "branch": "fix/1214-legacy-gauge-choice"
+      "issue": 1218,
+      "title": "UX-16 quick comparison and saved monitoring guidance",
+      "branch": "fix/1218-monitoring-limit-guidance"
     },
     "next_work_package": null
   },
@@ -5971,8 +5971,24 @@
       "issue": 1214,
       "title": "UX-17 remove incomplete Gauge choice",
       "priority": "medium",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/1214-legacy-gauge-choice",
+      "evidence": {
+        "verified_head_sha": "24752fffcf13ba8eacac761feba2beee74c295b2",
+        "pull_request": 1217,
+        "checks": {
+          "CI": "success:36891938627",
+          "Acquisition Scale Acceptance": "success:36891938487",
+          "Authenticated Dashboard Acceptance": "success:36891938428"
+        }
+      }
+    },
+    {
+      "issue": 1218,
+      "title": "UX-16 quick comparison and saved monitoring guidance",
+      "priority": "medium",
+      "lifecycle": "in_progress",
+      "branch": "fix/1218-monitoring-limit-guidance",
       "evidence": {}
     }
   ],

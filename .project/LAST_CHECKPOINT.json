@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T16:11:24.232Z",
+  "timestamp": "2026-10-01T16:45:22.261Z",
   "actor": "Codex",
-  "event": "ux1214_gauge_candidate_state_review_reconciled",
+  "event": "ux1214_merged_ux1218_monitoring_guidance_candidate",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1214,
-    "title": "UX-17 remove incomplete Gauge choice",
-    "branch": "fix/1214-legacy-gauge-choice"
+    "issue": 1218,
+    "title": "UX-16 quick comparison and saved monitoring guidance",
+    "branch": "fix/1218-monitoring-limit-guidance"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -660,15 +660,31 @@
     "issue_1214_ux17": {
       "issue": 1214,
       "branch": "fix/1214-legacy-gauge-choice",
-      "phase": "bounded_gauge_choice_candidate",
+      "phase": "completed",
       "local_execution": "unavailable_environment_offline",
-      "exact_head_ci": "pending",
+      "exact_head_ci": "3_of_3_green",
       "regression_baseline": {
         "head_sha": "7ead1099490269d74494329e6ca7c5301b3a3a7f",
         "run": 36888544786,
         "tests": "2_expected_failures_944_passed"
       },
-      "browser_acceptance": "pending"
+      "browser_acceptance": "10_passed",
+      "verified_head_sha": "24752fffcf13ba8eacac761feba2beee74c295b2",
+      "pull_request": 1217,
+      "frontend_tests": "946_passed",
+      "review": "3_threads_resolved"
+    },
+    "issue_1218_ux16": {
+      "issue": 1218,
+      "branch": "fix/1218-monitoring-limit-guidance",
+      "limits": {
+        "quick_comparison": 8,
+        "saved_dashboard": 64
+      },
+      "local_execution": "unavailable_environment_offline",
+      "exact_head_ci": "pending",
+      "browser_acceptance": "pending",
+      "review": "pending"
     }
   },
   "observations": [
@@ -1065,9 +1081,27 @@
         "browser_scenarios": 33,
         "review_threads": 0
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T16:45:22.261Z",
+      "kind": "ux1214_pr1217_merge",
+      "data": {
+        "issue": 1214,
+        "pull_request": 1217,
+        "merge_sha": "1f5b95dd1317f2418c7deb80ad42cb1500c2e4a1",
+        "verified_head_sha": "24752fffcf13ba8eacac761feba2beee74c295b2",
+        "workflows": {
+          "CI": 36891938627,
+          "Acquisition Scale Acceptance": 36891938487,
+          "Authenticated Dashboard Acceptance": 36891938428
+        },
+        "browser_scenarios": 10,
+        "review_threads": "3_resolved"
+      }
     }
   ],
-  "next_action": "Verify #1214 supported choices and legacy compatibility on final exact-head CI/browser/review, merge only GREEN, then qualify the next audit finding. Installed #1191 remains access-gated.",
+  "next_action": "Verify #1218 monitoring guidance and permission/context-preserving transition in exact-head CI/browser/review, merge only GREEN, then qualify the next independent audit finding. Installed #1191 remains access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

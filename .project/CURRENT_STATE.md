@@ -2,9 +2,13 @@
 
 Updated: 2026-10-01
 
-## Issue #1214 — UX-17 bounded Gauge choice candidate
+## Issue #1218 — UX-16 monitoring guidance candidate
 
-The candidate removes Gauge from new choices. Legacy gauge items keep their stored value with a disabled, selected legacy option; unrelated edits preserve it, and an explicit line/area/value choice converts it. Saved Gauge cards truthfully show a current value without a scale. The persisted union/parser, unit/identity, API and stored bounds remain compatible; no ranges are inferred. Regression baseline head `7ead1099490269d74494329e6ca7c5301b3a3a7f` / CI 36888544786 passed type/lint/format and reproduced exactly two Gauge failures with 944 other tests passed. Browser candidate checks new choices, legacy card, explicit editor conversion, no writes and 390/1280 px. The editor permission fixture is reused only for frontend controls, with real authenticated API reads and no claim of server write authorization. Local execution remains unavailable; latest validation uses exact-head CI. Unit/browser/build acceptance and review are pending; no completion claim.
+Live now explains quick comparison (the existing 8-point limit) and saved monitoring (the actual existing 64-point limit), using domain constants. The direct guided action calls the existing workspace transition, preserving comparison/range/search URL context and read permissions. Saved Library states its purpose and existing capacity; no limit or rendering budget is increased. Two component regressions cover context-preserving guided transition and telemetry-only permission gates. Browser coverage extends existing mobile/keyboard inventory acceptance with readable guidance, guided entry/return and preserved selected URL. Type/lint/format/build/unit/browser acceptance and review await exact-head CI; local execution is unavailable. No API/data flow, acquisition, dependency or deployment change.
+
+## Issue #1214 — UX-17 legacy Gauge choice completed
+
+PR #1217 final head `24752fffcf13ba8eacac761feba2beee74c295b2` passed Core CI 36891938627, Dashboard 36891938428 and Acquisition Scale 36891938487, with 946 frontend tests and all 10 routed browser scenarios. Three review threads are resolved. Squash merge `1f5b95dd1317f2418c7deb80ad42cb1500c2e4a1`. New choices exclude incomplete Gauge; old items remain readable, retain their type through unrelated edits and convert only explicitly. Legacy cards show a current value without an invented scale. Regression baseline 7ead1099 reproduced two failures before the fix. The isolated legacy editor seed avoids duplicate telemetry_latest rows; native option disabled state, 390/1280 px and no API/acquisition writes passed. Source-only; no migration, hardware or deployment change. UX-17 is closed in code; audit now has 21 closed, 1 partial, 17 open. Installed #1191 acceptance remains separately access-gated.
 
 ## Issue #1213 — UX-32 UTC/local operational presentation completed
 

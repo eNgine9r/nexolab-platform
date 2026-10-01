@@ -1,3 +1,5 @@
+import { LIVE_SELECTION_LIMIT } from "@/features/live/live-telemetry";
+import { LIVE_DASHBOARD_MAX_ITEMS } from "@/features/live-dashboards/types";
 import { useState, type ReactNode } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -95,6 +97,32 @@ describe("Live monitoring entry", () => {
     expect(url.searchParams.get("range")).toBe("24h");
     expect(url.searchParams.get("search")).toBe("probe");
     expect(url.searchParams.get("workspace")).toBe("dashboards");
+  });
+  it("explains both existing limits and preserves context through the guided transition", () => {
+    mock.params = new URLSearchParams("compare=channel-a&compare=channel-b&range=24h&search=probe");
+    render(<LiveScreen />);
+    const guidance = screen.getByTestId("live-workspace-guidance");
+    expect(guidance).toHaveTextContent(`до ${LIVE_SELECTION_LIMIT} точок`);
+    expect(guidance).toHaveTextContent(`до ${LIVE_DASHBOARD_MAX_ITEMS} точок`);
+    fireEvent.click(screen.getByRole("button", { name: "Відкрити збережені панелі" }));
+    const url = new URL(mock.replace.mock.calls[0][0], "http://localhost");
+    expect(url.searchParams.getAll("compare")).toEqual(["channel-a", "channel-b"]);
+    expect(url.searchParams.get("range")).toBe("24h");
+    expect(url.searchParams.get("search")).toBe("probe");
+    expect(url.searchParams.get("workspace")).toBe("dashboards");
+  });
+  it("keeps saved-panel guidance and action behind the existing read permission", () => {
+    const security = ready();
+    mock.security = {
+      ...security,
+      membership: { ...security.membership!, permissions: ["telemetry.read"] },
+    };
+    render(<LiveScreen />);
+    const guidance = screen.getByTestId("live-workspace-guidance");
+    expect(guidance).toHaveTextContent(`до ${LIVE_SELECTION_LIMIT} точок`);
+    expect(guidance).not.toHaveTextContent("Збережені панелі");
+    expect(screen.queryByRole("button", { name: "Відкрити збережені панелі" })).not.toBeInTheDocument();
+    expect(screen.getByTestId("explorer")).toBeInTheDocument();
   });
   it("follows URL changes and history without keeping a stale selected tab", () => {
     mock.params = new URLSearchParams("workspace=dashboards");

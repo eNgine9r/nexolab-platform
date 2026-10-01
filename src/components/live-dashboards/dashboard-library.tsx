@@ -5,7 +5,11 @@ import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 
 import { Archive, Copy, Edit3, FolderOpen, LayoutDashboard, Plus, RefreshCw, Search } from "lucide-react";
 
-import type { LiveDashboard, LiveDashboardStatus } from "@/features/live-dashboards/types";
+import {
+  LIVE_DASHBOARD_MAX_ITEMS,
+  type LiveDashboard,
+  type LiveDashboardStatus,
+} from "@/features/live-dashboards/types";
 import type { LiveDashboardLibraryStatus } from "@/hooks/use-live-dashboard-library";
 
 function formatTimestamp(value: string, displayTimeZone: string): string {
@@ -72,6 +76,9 @@ export function DashboardLibrary({
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
             Збережені робочі екрани відкривають тільки вибрані канали. Налаштування відображення не змінюють
             фізичне опитування обладнання.
+          </p>
+          <p className="mt-2 text-sm text-slate-400">
+            {`До ${LIVE_DASHBOARD_MAX_ITEMS} точок вимірювання на одній панелі для повторного моніторингу.`}
           </p>
         </div>
         {canManage ? (
