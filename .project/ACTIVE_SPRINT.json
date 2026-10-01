@@ -41,15 +41,11 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1206,
-      "title": "UX-29 energy meter comparison controls",
-      "branch": "fix/1206-energy-meter-selection"
-    },
-    "next_work_package": {
       "issue": 1208,
       "title": "UX-08/09 grouped navigation and planned Lockers",
       "branch": "fix/1208-grouped-navigation"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -5869,15 +5865,25 @@
       "issue": 1206,
       "title": "UX-29 energy meter comparison controls",
       "priority": "medium",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/1206-energy-meter-selection",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "284be19685ef7338c5a4e6b817d26f25e2f912ff",
+        "pull_request": 1207,
+        "checks": {
+          "dashboard_browser": "success_36855012016",
+          "core_ci": "success_36855012011",
+          "energy_tests": "91_pass",
+          "type_lint_build": "pass",
+          "review_threads": "resolved"
+        }
+      }
     },
     {
       "issue": 1208,
       "title": "UX-08/09 grouped navigation and planned Lockers",
       "priority": "medium",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "branch": "fix/1208-grouped-navigation",
       "evidence": {}
     }

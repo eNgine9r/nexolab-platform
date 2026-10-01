@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -28,23 +29,31 @@ type NavItem = {
   icon: LucideIcon;
   href: string;
   badge?: number;
+  group: "monitoring" | "tests" | "administration";
+  planned?: boolean;
 };
 
 export const platformNavItems: readonly NavItem[] = [
-  { label: "Огляд", icon: Home, href: "/" },
-  { label: "Вузли", icon: Network, href: "/nodes" },
-  { label: "Сесії випробувань", icon: ClipboardCheck, href: "/sessions" },
-  { label: "Live дані", icon: ChartNoAxesCombined, href: "/live" },
-  { label: "Схеми обладнання", icon: Boxes, href: "/equipment-layouts" },
-  { label: "Поштомати", icon: LockKeyhole, href: "/lockers" },
-  { label: "Холодильне обладнання", icon: Snowflake, href: "/refrigeration" },
-  { label: "Тривоги", icon: AlertTriangle, href: "/alerts" },
-  { label: "Камери", icon: Camera, href: "/cameras" },
-  { label: "Енергомоніторинг", icon: Zap, href: "/energy" },
-  { label: "Звіти", icon: FileText, href: "/reports" },
-  { label: "Обладнання", icon: Cpu, href: "/equipment" },
-  { label: "Налаштування", icon: Settings, href: "/settings" },
+  { label: "Огляд", icon: Home, href: "/", group: "monitoring" },
+  { label: "Вузли", icon: Network, href: "/nodes", group: "administration" },
+  { label: "Сесії випробувань", icon: ClipboardCheck, href: "/sessions", group: "tests" },
+  { label: "Live дані", icon: ChartNoAxesCombined, href: "/live", group: "monitoring" },
+  { label: "Схеми обладнання", icon: Boxes, href: "/equipment-layouts", group: "monitoring" },
+  { label: "Поштомати", icon: LockKeyhole, href: "/lockers", group: "administration", planned: true },
+  { label: "Холодильне обладнання", icon: Snowflake, href: "/refrigeration", group: "monitoring" },
+  { label: "Тривоги", icon: AlertTriangle, href: "/alerts", group: "monitoring" },
+  { label: "Камери", icon: Camera, href: "/cameras", group: "monitoring" },
+  { label: "Енергомоніторинг", icon: Zap, href: "/energy", group: "monitoring" },
+  { label: "Звіти", icon: FileText, href: "/reports", group: "tests" },
+  { label: "Обладнання", icon: Cpu, href: "/equipment", group: "administration" },
+  { label: "Налаштування", icon: Settings, href: "/settings", group: "administration" },
 ];
+
+export const platformNavGroups = [
+  { id: "monitoring", label: "Моніторинг" },
+  { id: "tests", label: "Випробування" },
+  { id: "administration", label: "Адміністрування" },
+].map((group) => ({ ...group, items: platformNavItems.filter((item) => item.group === group.id) }));
 
 interface SidebarProps {
   open: boolean;
@@ -57,6 +66,7 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const navigationId = useId();
 
   return (
     <>
@@ -82,52 +92,72 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         <nav className="flex-1 scrollbar-thin overflow-y-auto px-3 py-4" aria-label="Головна навігація">
-          <p className="mb-2 px-3 text-[9px] font-semibold tracking-[0.18em] text-slate-600 uppercase">
-            Платформа
-          </p>
-          <div className="space-y-1">
-            {platformNavItems.map(({ label, icon: Icon, badge, href }) => {
-              const active =
-                href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
-              const classes = clsx(
-                "group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-[12px] font-medium transition",
-                active
-                  ? "border-blue-400/45 bg-blue-500/12 text-white shadow-[inset_0_0_22px_rgba(0,119,255,.07)]"
-                  : "border-transparent text-slate-400 hover:border-white/[0.055] hover:bg-white/[0.035] hover:text-slate-100",
-              );
+          {platformNavGroups.map((group) => (
+            <section
+              key={group.id}
+              aria-labelledby={`${navigationId}-${group.id}`}
+              className="mb-4 last:mb-0"
+            >
+              <h2
+                id={`${navigationId}-${group.id}`}
+                className="mb-2 px-3 text-[9px] font-semibold tracking-[0.18em] text-slate-500 uppercase"
+              >
+                {group.label}
+              </h2>
+              <div className="space-y-1">
+                {group.items.map(({ label, icon: Icon, badge, href, planned }) => {
+                  const active =
+                    href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+                  const classes = clsx(
+                    "group flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left text-[12px] font-medium transition",
+                    active
+                      ? "border-blue-400/45 bg-blue-500/12 text-white shadow-[inset_0_0_22px_rgba(0,119,255,.07)]"
+                      : "border-transparent text-slate-400 hover:border-white/[0.055] hover:bg-white/[0.035] hover:text-slate-100",
+                  );
 
-              return (
-                <Link
-                  key={label}
-                  href={href}
-                  className={classes}
-                  onClick={onClose}
-                  aria-current={active ? "page" : undefined}
-                >
-                  <Icon
-                    className={clsx(
-                      "h-[17px] w-[17px]",
-                      active ? "text-cyan-300" : "text-slate-500 group-hover:text-slate-300",
-                    )}
-                    strokeWidth={1.8}
-                  />
-                  <span className="min-w-0 flex-1 truncate">{label}</span>
-                  {badge ? (
-                    <span className="grid min-w-5 place-items-center rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-semibold text-white">
-                      {badge}
-                    </span>
-                  ) : (
-                    <ChevronRight
-                      className={clsx(
-                        "h-3.5 w-3.5 transition",
-                        active ? "text-blue-400" : "text-slate-700 opacity-0 group-hover:opacity-100",
+                  return (
+                    <Link
+                      key={label}
+                      href={href}
+                      className={classes}
+                      onClick={onClose}
+                      aria-current={active ? "page" : undefined}
+                      aria-label={label}
+                      aria-describedby={planned ? `${navigationId}-planned` : undefined}
+                    >
+                      <Icon
+                        className={clsx(
+                          "h-[17px] w-[17px]",
+                          active ? "text-cyan-300" : "text-slate-500 group-hover:text-slate-300",
+                        )}
+                        strokeWidth={1.8}
+                      />
+                      <span className="min-w-0 flex-1 truncate">{label}</span>
+                      {planned ? (
+                        <span
+                          id={`${navigationId}-planned`}
+                          className="shrink-0 rounded-full border border-slate-400/20 px-1.5 py-0.5 text-[8px] text-slate-400"
+                        >
+                          Заплановано
+                        </span>
+                      ) : badge ? (
+                        <span className="grid min-w-5 place-items-center rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                          {badge}
+                        </span>
+                      ) : (
+                        <ChevronRight
+                          className={clsx(
+                            "h-3.5 w-3.5 transition",
+                            active ? "text-blue-400" : "text-slate-700 opacity-0 group-hover:opacity-100",
+                          )}
+                        />
                       )}
-                    />
-                  )}
-                </Link>
-              );
-            })}
-          </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </nav>
 
         <div className="px-4 pb-4">

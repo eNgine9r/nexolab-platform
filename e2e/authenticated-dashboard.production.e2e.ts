@@ -573,3 +573,62 @@ test("Overview visibility dialog contains keyboard focus and restores its opener
     await context.close();
   }
 });
+
+test("grouped navigation preserves every destination and labels planned Lockers", async ({ browser }) => {
+  const context = await authenticatedContext(browser);
+  const page = await context.newPage();
+  const mutations = observeAcquisitionMutations(page);
+  const destinations = [
+    "/",
+    "/live",
+    "/equipment-layouts",
+    "/refrigeration",
+    "/alerts",
+    "/cameras",
+    "/energy",
+    "/sessions",
+    "/reports",
+    "/nodes",
+    "/lockers",
+    "/equipment",
+    "/settings",
+  ];
+  try {
+    for (const width of [320, 390, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/", { waitUntil: "domcontentloaded" });
+      await expect(page.getByText("Viewer Acceptance", { exact: true })).toBeVisible();
+      if (width < 1024)
+        await page.getByTestId("platform-topbar").getByRole("button", { name: "Відкрити меню" }).click();
+      const navigation = page.getByRole("navigation", { name: "Головна навігація" });
+      for (const group of ["Моніторинг", "Випробування", "Адміністрування"])
+        await expect(navigation.getByRole("region", { name: group })).toBeVisible();
+      const links = navigation.getByRole("link");
+      await expect(links).toHaveCount(destinations.length);
+      await links.first().focus();
+      for (let index = 0; index < destinations.length; index++) {
+        await expect(links.nth(index)).toHaveAttribute("href", destinations[index]);
+        await expect(links.nth(index)).toBeFocused();
+        await expect(links.nth(index)).toBeInViewport();
+        if (index < destinations.length - 1) await page.keyboard.press("Tab");
+      }
+      await expect(navigation.locator('[aria-current="page"]')).toHaveCount(1);
+      const lockers = navigation.getByRole("link", { name: "Поштомати", exact: true });
+      await expect(lockers).toHaveAccessibleDescription("Заплановано");
+      await expect(lockers.getByText("Заплановано", { exact: true })).toBeVisible();
+      await lockers.focus();
+      await page.keyboard.press("Enter");
+      await expect(page).toHaveURL(/\/lockers$/);
+      await expect(
+        page.getByTestId("platform-topbar").getByText("Viewer Acceptance", { exact: true }),
+      ).toBeVisible();
+      if (width < 1024)
+        await expect
+          .poll(() => navigation.evaluate((element) => element.getBoundingClientRect().right))
+          .toBeLessThanOrEqual(0);
+    }
+    expect(mutations).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});

@@ -2,9 +2,13 @@
 
 Updated: 2026-10-01
 
-## Issue #1206 — UX-29 energy meter selection candidate
+## Issue #1208 — UX-08/09 grouped navigation candidate
 
-The final selected meter now has a disabled removal action with a visible, associated explanation of the existing nonempty comparison policy. Each card offers a keyboard-operable Only this meter action, including previously unselected meters. The display-only selection preserves readings, consumption panels, selected metric/range and acquisition semantics. Local 90-test energy regressions passed. Initial isolated browser evidence verified 320/390 px but found overflow in five narrow cards at 1280 px. The grid now uses three columns at xl and five at 2xl, with all-card checks expanded through 1536/1920 px. The corrected layout candidate passed both CI workflows and three browser scenarios. P2 review then found stale legend Hide/Solo overrides; an integration regression reproduced a blank chart after Only this. Explicit visibility intent clears overrides even for repeat selection and preserves viewport. Final review correction browser CI is pending; UX-29 remains open until GREEN CI.
+The Sidebar now groups existing destinations into Monitoring, Tests and Administration. Lockers has a visible Planned marker and equivalent assistive description. All thirteen canonical links remain, and the existing slash-boundary active-route rule is preserved. Local Dashboard tests and responsive authenticated browser scenarios cover semantic groups, unique routes, keyboard order, scroll reachability and mobile close-on-navigation; exact-head CI is pending. UX-08/09 remain open pending acceptance.
+
+## Issue #1206 — UX-29 energy meter selection completed
+
+PR #1207 merged after final head `284be19685ef7338c5a4e6b817d26f25e2f912ff` passed both routed workflows: Authenticated Dashboard `36855012016` and Core CI / Merge Gate `36855012011`. All three routed browser scenarios passed, covering only-this intent, last-removal guard with accessible explanation, adding another meter, all-card overflow at 320/390/1280/1536/1920 px, unchanged metric/range, acquisition service counters and no mutation requests. The P2 legend review is resolved: Only-this clears stale Hide/Solo even for repeating the same hidden meter, preserving viewport. Its integration regression failed before the fix and passes afterward. The initial 1280 px overflow was traced to five narrow columns; xl now uses three, 2xl five. Local checks: 91 energy tests, typecheck, touched lint/format, production build and 27 state tests with one expected skip. UX-29 is closed in code. Current audit: 15 closed in code, 1 partial, 23 open. Installed acceptance #1191 remains unverified; no production/acquisition/hardware write. Next active package is #1208 grouped navigation.
 
 ## Issue #1204 — UX-11 Overview visibility dialog completed
 
