@@ -45,7 +45,11 @@
       "title": "UX-27 frozen test context for report headings",
       "branch": "fix/1233-frozen-report-context"
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 1235,
+      "title": "UX-14 remember scoped Live comparison selection on ordinary return",
+      "branch": "fix/1235-live-selection-memory"
+    }
   },
   "work_packages": [
     {
@@ -6140,16 +6144,72 @@
       "priority": "medium",
       "lifecycle": "in_progress",
       "depends_on": [
-        1230
+        1230,
+        1236
       ],
       "evidence": {
         "qualification": "existing_immutable_source_snapshot_metadata_session_is_available_no_hash_change_required",
-        "local_frontend_tests": "6_passed",
+        "local_frontend_tests": "31_passed_4_files",
         "local_stdlib_backend_contract_cases": "3_passed",
         "typecheck": "passed",
         "backend_api_tests": "added_CI_pending",
-        "exact_head_ci": "pending",
-        "browser_acceptance": "pending"
+        "exact_head_ci": "pending_reconciled_candidate",
+        "browser_acceptance": "pending",
+        "verified_candidate_head_sha": "0a74b67753ccb48d4af7734879ad00da96e059f4",
+        "pull_request": 1234,
+        "reports_browser": "success:36921474125_2_passed",
+        "rendered_browser": "success:36921474367_1_passed",
+        "telemetry_service": "success:36921474051",
+        "core_quality_build": "success:36921474084",
+        "review": "pending_reconciled_candidate",
+        "restored_browser": "legacy_generic_heading_and_exact_diagnostics_assertion_updated_pending_final_CI",
+        "security_prerequisite": "1236_merged"
+      }
+    },
+    {
+      "issue": 1236,
+      "title": "Triage new Python TLS HIGH findings blocking UX report acceptance",
+      "branch": "fix/1236-python-tls-high-review",
+      "priority": "high",
+      "lifecycle": "completed",
+      "evidence": {
+        "baseline_run": 36921474135,
+        "baseline_source_sha": "0a74b67753ccb48d4af7734879ad00da96e059f4",
+        "new_exact_tuples": 8,
+        "fresh_high_tuples": 100,
+        "fresh_critical": 0,
+        "stale_registry_tuples": 0,
+        "expiry": "2026-10-02_existing_boundary",
+        "tls_tests": "7_passed",
+        "fresh_exact_head_ci": {
+          "CI": "success:36924005969",
+          "Container Supply Chain": "success:36924005964",
+          "Telemetry service": "success:36924006182"
+        },
+        "review": "0_threads_0_reviews",
+        "historical_cohort_ci_baseline": "36923177734_3_failed_46_passed_old_cohorts_included_new_CVE",
+        "local_corrected_cohort_cases": "4_passed_direct_stdlib_execution",
+        "verified_head_sha": "bc55d62979094ba1680a1033468461944d895113",
+        "pull_request": 1237,
+        "policy_manifest_tests": "50_passed",
+        "local_no_fixture_policy_cases": "19_passed_direct_stdlib_execution",
+        "fresh_tuple_digest": "a6a26eaf112c502e76da852ea0508364cb76d0659bd66fe41c369785b8bde403",
+        "full_tests": "1029_passed_175_files",
+        "backend_database_tests": "795_passed_plus_2_outage_cases",
+        "fresh_fixed_version_findings": 0
+      }
+    },
+    {
+      "issue": 1235,
+      "title": "UX-14 remember scoped Live comparison selection on ordinary return",
+      "branch": "fix/1235-live-selection-memory",
+      "priority": "medium",
+      "lifecycle": "queued",
+      "depends_on": [
+        1233
+      ],
+      "evidence": {
+        "qualification": "URL_only_selection_loses_bare_navigation_ready_scoped_issue"
       }
     }
   ],
@@ -6976,6 +7036,44 @@
         "full_tests": "1029_passed_175_files",
         "browser_cases": "8_passed",
         "next_issue": 1233
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T20:35:00.000Z",
+      "kind": "issue_1233_fresh_supply_chain_blocker",
+      "data": {
+        "issue": 1233,
+        "pull_request": 1234,
+        "head_sha": "0a74b67753ccb48d4af7734879ad00da96e059f4",
+        "failed_run": 36921474135,
+        "new_cve": "CVE-2026-19553",
+        "new_exact_high_tuples": 8,
+        "stale_tuples": 0,
+        "fresh_high": 100,
+        "fresh_critical": 0,
+        "prerequisite_issue": 1236,
+        "next_ux_issue": 1235
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T20:52:46.894Z",
+      "kind": "issue_1236_merge_observed",
+      "data": {
+        "issue": 1236,
+        "pull_request": 1237,
+        "head_sha": "bc55d62979094ba1680a1033468461944d895113",
+        "merge_sha": "4160e6d5cec8d27ef079999bbf25bb0a2eb31eb8",
+        "all_routed_workflows": "3_green",
+        "policy_tests": "50_passed",
+        "fresh_high_tuples": 100,
+        "critical": 0,
+        "fixed_version_findings": 0,
+        "stale_unapproved_tuples": 0,
+        "expiry": "2026-10-02_unchanged",
+        "resumed_issue": 1233,
+        "next_issue": 1235
       }
     }
   ],

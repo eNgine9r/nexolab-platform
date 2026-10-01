@@ -160,7 +160,7 @@ def test_2026_09_22_fresh_review_is_exact_owner_bound_and_seven_day_bounded() ->
     )
     exceptions = payload["exceptions"]
     reviewed = [
-        entry for entry in exceptions if entry["vulnerability"] != "CVE-2026-93990"
+        entry for entry in exceptions if entry["vulnerability"] not in {"CVE-2026-93990", "CVE-2026-19553"}
     ]
     keys = {
         (entry["image_id"], entry["package"], entry["vulnerability"])
@@ -337,7 +337,7 @@ def test_2026_09_17_fresh_scan_keeps_stale_python_and_sqlite_retired_and_bounds_
     prior_review = [
         entry
         for entry in exceptions
-        if entry["vulnerability"] not in {"CVE-2026-66046", "CVE-2026-82049", "CVE-2026-93990"}
+        if entry["vulnerability"] not in {"CVE-2026-66046", "CVE-2026-82049", "CVE-2026-93990", "CVE-2026-19553"}
     ]
 
     assert len(keys) == len(exceptions)
@@ -577,7 +577,7 @@ def test_2026_09_25_fresh_review_is_exact_and_seven_day_bounded() -> None:
     payload = json.loads(
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
     )
-    exceptions = payload["exceptions"]
+    exceptions = [entry for entry in payload["exceptions"] if entry["vulnerability"] != "CVE-2026-19553"]
     keys = {
         (entry["image_id"], entry["package"], entry["vulnerability"])
         for entry in exceptions
@@ -598,3 +598,19 @@ def test_2026_09_25_fresh_review_is_exact_and_seven_day_bounded() -> None:
         root / "security/vulnerability-exceptions.json",
         date(2026, 9, 25),
     )
+
+
+def test_2026_10_01_python_tls_decision_is_exact_and_does_not_extend_review() -> None:
+    root = Path(__file__).resolve().parents[1]
+    payload = json.loads((root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8"))
+    new = [entry for entry in payload["exceptions"] if entry["vulnerability"] == "CVE-2026-19553"]
+    expected = {(image, package, "CVE-2026-19553") for image in {"device-agent", "telegram-gateway"} for package in {"libpython3.13-minimal", "libpython3.13-stdlib", "python3.13-minimal", "python3.13-venv"}}
+    keys = {(entry["image_id"], entry["package"], entry["vulnerability"]) for entry in new}
+    assert keys == expected
+    assert len(new) == 8
+    assert len(payload["exceptions"]) == 100
+    assert all(entry["owner"] == "platform-security" for entry in new)
+    assert all(entry["expires_on"] == "2026-10-02" for entry in payload["exceptions"])
+    assert all("36921474135" in entry["reason"] and "#1236" in entry["reason"] for entry in new)
+    assert all("server_hostname" in entry["reason"] and "wrap_socket" in entry["reason"] for entry in new)
+    MODULE.validate_exceptions(root / "security/vulnerability-exceptions.json", date(2026, 10, 1))

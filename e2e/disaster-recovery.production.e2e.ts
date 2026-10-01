@@ -97,9 +97,15 @@ test("restored nodes, reports and refrigeration state remain operator-visible", 
     await expect(page.getByTestId("reports-workspace")).toBeVisible();
     await expect(
       reportDetail.getByRole("heading", {
-        name: "Session 40000000-0000-0000-0000-000000000099",
+        name: "Звіт випробування",
       }),
     ).toBeVisible();
+    await expect(reportDetail).toContainText("Назву випробування не збережено в цій версії звіту.");
+    const diagnostics = reportDetail.getByTestId("report-technical-details");
+    await expect(diagnostics).not.toHaveAttribute("open");
+    await diagnostics.locator("summary").click();
+    await expect(diagnostics).toContainText("40000000-0000-0000-0000-000000000099");
+    await expect(diagnostics).toContainText("60000000-0000-0000-0000-000000000099");
     await expect(reportDetail).toContainText("protocol-proof.bin");
     await page.screenshot({ path: `${evidenceDirectory}/02-restored-reports.png`, fullPage: true });
 
