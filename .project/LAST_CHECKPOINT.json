@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T19:03:50.793Z",
+  "timestamp": "2026-10-01T19:20:55.815Z",
   "actor": "Codex",
-  "event": "ux1226_cancel_regression_refined_follow_up_1228_qualified",
+  "event": "ux1226_merged_1228_snapshot_invalidation_source_candidate",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1226,
-    "title": "UX-20 local sensor marker removal with guarded accessible undo",
-    "branch": "fix/1226-marker-removal-undo"
+    "issue": 1228,
+    "title": "Investigate empty sensor editor after photo publication",
+    "branch": "fix/1228-post-publication-bindings"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -751,7 +751,7 @@
       "issue": 1226,
       "title": "UX-20 local sensor marker removal with guarded accessible undo",
       "branch": "fix/1226-marker-removal-undo",
-      "phase": "source_candidate",
+      "phase": "completed",
       "local_checks": {
         "focused_tests": "42_passed",
         "typecheck": "passed",
@@ -760,17 +760,39 @@
       },
       "exact_head_ci": "pending",
       "browser_acceptance": "pending",
-      "review": "pending"
+      "review": "1_resolved_0_unresolved",
+      "verified_head_sha": "1ab0c3b7ed0e201de5999e7fe5cb74a994d4874b",
+      "pull_request": 1227,
+      "core_ci": "success:36912326714",
+      "refrigeration_browser": "success:36912326813",
+      "disaster_recovery_browser": "success:36912326623",
+      "full_tests": "989_passed_172_files",
+      "browser_cases": "7_passed",
+      "source_acceptance": "completed",
+      "installed_acceptance": "access_gated_1191"
     },
     "issue_1228_post_publication": {
       "issue": 1228,
       "title": "Investigate empty sensor editor after photo publication",
       "branch": "fix/1228-post-publication-bindings",
-      "phase": "queued_after_1226",
+      "phase": "source_candidate",
       "source_run": 36910009276,
       "artifact_id": 11186024974,
       "observation": "edit_screen_0_of_4_after_v4_publication_two_persisted_draft_placements",
-      "binding_data_loss": "not_established"
+      "binding_data_loss": "disproved_by_database_evidence",
+      "root_cause": "structural_snapshot_not_invalidated_by_successful_mutations",
+      "local_cache_regression": "5_expected_failures_before_fix",
+      "exact_head_ci": "pending",
+      "browser_acceptance": "pending",
+      "review": "pending",
+      "local_checks": {
+        "focused_tests": "15_passed_2_files",
+        "typecheck": "passed",
+        "lint": "passed",
+        "format": "passed",
+        "state_integrity": "passed",
+        "diff_check": "passed"
+      }
     }
   },
   "observations": [
@@ -1289,9 +1311,31 @@
         "follow_up_issue": 1228,
         "fix_scope": "cancel_regression_on_fresh_version_2_bindings_post_publication_in_separate_package"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T19:20:55.815Z",
+      "kind": "issue_1226_pr_1227_merged_1228_activated",
+      "data": {
+        "issue": 1226,
+        "pull_request": 1227,
+        "merge_sha": "09c2f0aab8c335c69849224eadc194ad2657a863",
+        "verified_head_sha": "1ab0c3b7ed0e201de5999e7fe5cb74a994d4874b",
+        "core_ci": "success:36912326714",
+        "refrigeration_browser": "success:36912326813",
+        "disaster_recovery_browser": "success:36912326623",
+        "full_tests": "989_passed_172_files",
+        "browser_cases": "7_passed",
+        "review": "1_resolved_0_unresolved",
+        "source_acceptance": "completed",
+        "installed_acceptance": "access_gated_1191",
+        "next_issue": 1228,
+        "root_cause": "successful_mutations_leave_separate_structural_snapshot_cache_stale",
+        "database_evidence": "two_active_bindings_two_v4_placements_two_r1_placements_preserved"
+      }
     }
   ],
-  "next_action": "Verify corrected #1226 cancellation on freshly reloaded authoritative version-2 bindings and all final workflows/review; merge only GREEN. Then investigate #1228 post-publication empty editor using binding API/database evidence before changing the actual cause. Continue remaining UX source findings; installed #1191 remains access-gated.",
+  "next_action": "Verify #1228 scoped snapshot invalidation and original post-publication markers/cancel/re-entry on 390/1280 px, all routed exact-head CI and review; merge only GREEN. Continue remaining UX findings. Installed #1191 remains access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

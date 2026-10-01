@@ -72,7 +72,7 @@ export class HttpRefrigerationStructuralSnapshotRepository implements Refrigerat
   }
 
   invalidate(equipmentId: string): void {
-    getScope(this.scope).values.delete(equipmentId);
+    invalidateStructuralSnapshot(this.scope, equipmentId);
   }
 
   clear(): void {
@@ -87,13 +87,15 @@ export class HttpRefrigerationStructuralSnapshotRepository implements Refrigerat
     cache.requests.set(equipmentId, (cache.requests.get(equipmentId) ?? 0) + 1);
     const request = this.load(equipmentId)
       .then((value) => {
-        const now = Date.now();
-        cache.values.set(equipmentId, { value, storedAt: now, touchedAt: now });
-        trim(cache);
+        if (cache.inflight.get(equipmentId) === request) {
+          const now = Date.now();
+          cache.values.set(equipmentId, { value, storedAt: now, touchedAt: now });
+          trim(cache);
+        }
         return value;
       })
       .finally(() => {
-        cache.inflight.delete(equipmentId);
+        if (cache.inflight.get(equipmentId) === request) cache.inflight.delete(equipmentId);
       });
     cache.inflight.set(equipmentId, request);
     return request;
@@ -128,6 +130,18 @@ export function inspectStructuralSnapshotRequests(scope: string, equipmentId: st
 
 export function clearStructuralSnapshotScope(scope: string): void {
   caches.delete(scope);
+}
+
+export function invalidateStructuralSnapshot(scope: string, equipmentId: string): void {
+  const cache = caches.get(scope);
+  cache?.values.delete(equipmentId);
+  // Detach pre-mutation reads: their callers may finish, but subsequent readers
+  // must load the new state and the old response must not repopulate this cache.
+  cache?.inflight.delete(equipmentId);
+}
+
+export function clearAllStructuralSnapshotScopes(): void {
+  caches.clear();
 }
 
 function getScope(scope: string): ScopeCache {

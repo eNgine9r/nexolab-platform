@@ -41,15 +41,11 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1226,
-      "title": "UX-20 local sensor marker removal with guarded accessible undo",
-      "branch": "fix/1226-marker-removal-undo"
-    },
-    "next_work_package": {
       "issue": 1228,
       "title": "Investigate empty sensor editor after photo publication",
       "branch": "fix/1228-post-publication-bindings"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -6058,24 +6054,38 @@
       "title": "UX-20 local sensor marker removal with guarded accessible undo",
       "branch": "fix/1226-marker-removal-undo",
       "priority": "medium",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1224
       ],
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "1ab0c3b7ed0e201de5999e7fe5cb74a994d4874b",
+        "pull_request": 1227,
+        "core_ci": "success:36912326714",
+        "refrigeration_browser": "success:36912326813",
+        "disaster_recovery_browser": "success:36912326623",
+        "full_tests": "989_passed_172_files",
+        "browser_cases": "7_passed",
+        "review": "1_resolved_0_unresolved",
+        "source_acceptance": "completed",
+        "installed_acceptance": "access_gated_1191"
+      }
     },
     {
       "issue": 1228,
       "title": "Investigate empty sensor editor after photo publication",
       "branch": "fix/1228-post-publication-bindings",
       "priority": "high",
-      "lifecycle": "queued",
+      "lifecycle": "in_progress",
       "depends_on": [
         1226
       ],
       "evidence": {
         "source_run": 36910009276,
-        "artifact_id": 11186024974
+        "artifact_id": 11186024974,
+        "root_cause": "structural_snapshot_not_invalidated_by_mutations",
+        "binding_data_loss": "disproved_by_database_evidence",
+        "local_cache_regression": "5_expected_failures_before_fix"
       }
     }
   ],
@@ -6811,6 +6821,28 @@
         "local_undo_journey": "passed_390_1280_before_explicit_save",
         "follow_up_issue": 1228,
         "fix_scope": "cancel_regression_on_fresh_version_2_bindings_post_publication_in_separate_package"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T19:20:55.815Z",
+      "kind": "issue_1226_pr_1227_merged_1228_activated",
+      "data": {
+        "issue": 1226,
+        "pull_request": 1227,
+        "merge_sha": "09c2f0aab8c335c69849224eadc194ad2657a863",
+        "verified_head_sha": "1ab0c3b7ed0e201de5999e7fe5cb74a994d4874b",
+        "core_ci": "success:36912326714",
+        "refrigeration_browser": "success:36912326813",
+        "disaster_recovery_browser": "success:36912326623",
+        "full_tests": "989_passed_172_files",
+        "browser_cases": "7_passed",
+        "review": "1_resolved_0_unresolved",
+        "source_acceptance": "completed",
+        "installed_acceptance": "access_gated_1191",
+        "next_issue": 1228,
+        "root_cause": "successful_mutations_leave_separate_structural_snapshot_cache_stale",
+        "database_evidence": "two_active_bindings_two_v4_placements_two_r1_placements_preserved"
       }
     }
   ],
