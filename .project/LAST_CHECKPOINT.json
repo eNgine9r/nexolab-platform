@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T03:21:02+03:00",
+  "timestamp": "2026-10-01T04:01:59+03:00",
   "actor": "Codex",
-  "event": "ux1198_report_verified_final_state_merge_pending",
+  "event": "ux1200_account_shell_actions_review",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,7 +28,11 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1200,
+    "title": "Verified account actions in Sessions and Lockers shells",
+    "branch": "commander/1200-account-shell-actions"
+  },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -457,8 +461,19 @@
       "verified_candidate_head": "fc9d190ab0e9611855e9f9ee3c1eab6aaf643d0a",
       "candidate_ci_run": 36795257404,
       "candidate_ci": "green",
-      "final_state_ci": "pending_after_review_correction",
-      "account_action_rollout": "partial_sessions_shell_and_lockers_remain"
+      "final_state_ci": "green",
+      "account_action_rollout": "partial_sessions_shell_and_lockers_remain",
+      "final_ci_head": "c204926c60006abf50baee9d482e3ddaccc6674a",
+      "final_ci_run": 36796364371,
+      "review_threads": "2_resolved"
+    },
+    "ux_account_shell_1200": {
+      "product_head": "856218a357a36d9ada990dba272ff702feb1ea31",
+      "tests": 85,
+      "typecheck": "pass",
+      "lint_format": "pass",
+      "build": "pass",
+      "routed_ci": "pending"
     }
   },
   "observations": [
@@ -727,9 +742,22 @@
         "conclusion": "success",
         "review_threads": 0
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T04:01:59+03:00",
+      "kind": "ux1198_merge",
+      "data": {
+        "issue": 1198,
+        "pull_request": 1199,
+        "final_head": "c204926c60006abf50baee9d482e3ddaccc6674a",
+        "merge_sha": "1f5a4be40a4198f54cbcccad1f4da821966da829",
+        "ci_run": 36796364371,
+        "review_threads": "2_resolved"
+      }
     }
   ],
-  "next_action": "Verify final state/docs head CI and merge PR #1199; parent #1191 requires normal authenticated operator browser access before deployed all-page acceptance. No independent Ready software Work Package is selected.",
+  "next_action": "Require all exact-head routed workflows GREEN and resolve review for #1200; then reconcile audit UX-02/UX-03 and complete package. Deployed #1191 audit still requires normal authenticated operator browser access.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

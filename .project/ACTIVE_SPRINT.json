@@ -40,7 +40,11 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1200,
+      "title": "Verified account actions in Sessions and Lockers shells",
+      "branch": "commander/1200-account-shell-actions"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -5753,6 +5757,25 @@
           "account_action_rollout_review": "partial_sessions_shell_and_lockers"
         },
         "pull_request": 1199
+      }
+    },
+    {
+      "issue": 1200,
+      "title": "Verified account actions in Sessions and Lockers shells",
+      "priority": "unspecified",
+      "lifecycle": "review",
+      "branch": "commander/1200-account-shell-actions",
+      "evidence": {
+        "verified_head_sha": "856218a357a36d9ada990dba272ff702feb1ea31",
+        "checks": {
+          "focused_and_domain_tests": "85_pass",
+          "red_green_account_scope": "21_fail_before_23_pass_after",
+          "local_token_refresh_red_green": "pass",
+          "typecheck": "pass",
+          "lint_format": "pass",
+          "production_build": "pass",
+          "deployment_hardware_changes": "none"
+        }
       }
     }
   ],
