@@ -420,7 +420,25 @@ test("keeps telemetry usable and read-model work bounded across repeated route t
     const initialHistoryRequests = countRequests(requests.telemetry, "/history");
     const initialActiveAlertReads = overviewAlertReadCount(requests.apiReads, "active");
     const initialAcknowledgedAlertReads = overviewAlertReadCount(requests.apiReads, "acknowledged");
-    await page.waitForTimeout(500);
+    // Grouped navigation may place Administration below the scroll fold.
+    // Expose each link so Next's automatic viewport prefetch runs before measurement.
+    for (const route of canonicalRoutes.slice(1)) {
+      const link = page
+        .getByLabel("Головна навігація")
+        .getByRole("link", { name: route.linkName, exact: true });
+      await link.scrollIntoViewIfNeeded();
+      await expect(link).toBeInViewport();
+      await expect
+        .poll(
+          async () =>
+            (await routeResourceTimings(page)).some((resource) => {
+              const url = new URL(resource.url);
+              return url.pathname === route.href && url.searchParams.has("_rsc");
+            }),
+          { message: `automatic viewport prefetch for ${route.href}` },
+        )
+        .toBe(true);
+    }
     const preNavigationApiReadCounts = apiReadCounts(requests.apiReads);
     const preNavigationRouteResources = await routeResourceTimings(page);
     for (const route of canonicalRoutes.slice(1)) {

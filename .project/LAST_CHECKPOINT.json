@@ -581,6 +581,15 @@
       "local_energy_tests": 91,
       "review_threads": "resolved",
       "installed_acceptance": "unverified"
+    },
+    "issue_1208_initial_browser": {
+      "head": "ee6c29cb6c7943f7bced4a255147c6923cfe1133",
+      "run": 36855965136,
+      "result": "25_pass_1_initial_all_links_visible_prefetch_assumption",
+      "new_navigation_flow": "pass_320_390_1280",
+      "correction": "scroll_canonical_links_into_view_observe_automatic_prefetch_before_measurement",
+      "budgets": "unchanged",
+      "corrected_CI": "pending"
     }
   },
   "observations": [

@@ -4,7 +4,7 @@ Updated: 2026-10-01
 
 ## Issue #1208 — UX-08/09 grouped navigation candidate
 
-The Sidebar now groups existing destinations into Monitoring, Tests and Administration. Lockers has a visible Planned marker and equivalent assistive description. All thirteen canonical links remain, and the existing slash-boundary active-route rule is preserved. Local Dashboard tests and responsive authenticated browser scenarios cover semantic groups, unique routes, keyboard order, scroll reachability and mobile close-on-navigation; exact-head CI is pending. UX-08/09 remain open pending acceptance.
+The Sidebar now groups existing destinations into Monitoring, Tests and Administration. Lockers has a visible Planned marker and equivalent assistive description. All thirteen canonical links remain, and the existing slash-boundary active-route rule is preserved. Local Dashboard tests and responsive authenticated browser scenarios cover semantic groups, unique routes, keyboard order, scroll reachability and mobile close-on-navigation; initial browser CI passed 25/26 scenarios including the new menu flow, while the navigation-budget setup assumed all route links were initially visible. It now scrolls each canonical link into view and observes automatic prefetch before measurement, retaining all request/socket/latency budgets. Corrected exact-head CI is pending. UX-08/09 remain open pending acceptance.
 
 ## Issue #1206 — UX-29 energy meter selection completed
 
