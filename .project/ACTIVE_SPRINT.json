@@ -5748,7 +5748,9 @@
           "candidate_ci_head_sha": "fc9d190ab0e9611855e9f9ee3c1eab6aaf643d0a",
           "candidate_ci_run": "36795257404",
           "candidate_ci_matrix": "1_of_1_green",
-          "candidate_review_threads": "none"
+          "candidate_review_threads": "none",
+          "reviewed_audit_id_status_mapping": "38_unique_8_closed_3_partial_27_open",
+          "account_action_rollout_review": "partial_sessions_shell_and_lockers"
         },
         "pull_request": 1199
       }

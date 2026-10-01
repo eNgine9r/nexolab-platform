@@ -449,15 +449,16 @@
       "path": "docs/audits/nexolab-ux-audit-2026-10-01.md",
       "original_findings": 36,
       "review_findings": 2,
-      "closed_in_code": 10,
-      "partial": 1,
+      "closed_in_code": 8,
+      "partial": 3,
       "open": 27,
       "deployed_authenticated_acceptance": "pending_normal_operator_session",
       "pull_request": 1199,
       "verified_candidate_head": "fc9d190ab0e9611855e9f9ee3c1eab6aaf643d0a",
       "candidate_ci_run": 36795257404,
       "candidate_ci": "green",
-      "final_state_ci": "pending"
+      "final_state_ci": "pending_after_review_correction",
+      "account_action_rollout": "partial_sessions_shell_and_lockers_remain"
     }
   },
   "observations": [
