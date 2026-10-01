@@ -343,6 +343,18 @@ describe("undo a staged marker removal", () => {
       "канал уже є",
     );
   });
+  it("preserves an existing non-derived slot identity without making the editor dirty", () => {
+    const original = { ...removed, slotKey: "front-1-1" };
+    const restored = restoreRemovedConfiguredSensor([], original, 48, [], "showcase-kk2");
+    expect(restored).toEqual([original]);
+    expect(restored[0]).toBe(original);
+  });
+  it("rejects the same physical position even when its slot identity differs", () => {
+    const original = { ...removed, slotKey: "front-1-1" };
+    expect(() =>
+      restoreRemovedConfiguredSensor([{ ...removed, id: "106-04" }], original, 48, [], "showcase-kk2"),
+    ).toThrow("позиція вже зайнята");
+  });
   it("rejects an occupied slot", () => {
     expect(() =>
       restoreRemovedConfiguredSensor([{ ...removed, id: "106-04" }], removed, 48, [], "showcase-kk2"),

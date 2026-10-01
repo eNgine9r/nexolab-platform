@@ -186,7 +186,15 @@ export function restoreRemovedConfiguredSensor(
   if (channel && channelPlacementConflict(channel, equipmentId)) {
     throw new Error("Канал уже прив’язаний до іншого обладнання. Маркер не відновлено.");
   }
-  return updateConfiguredSensor([...current, removed], removed.id, {});
+  const conflict = current.some(
+    (sensor) =>
+      sensor.slotKey === removed.slotKey ||
+      (sensor.side === removed.side &&
+        sensor.shelf === removed.shelf &&
+        sensor.position === removed.position),
+  );
+  if (conflict) throw new Error("Вибрана позиція вже зайнята іншим датчиком.");
+  return [...current, removed].sort(compareStagedSensors);
 }
 
 export function moveConfiguredSensor(
