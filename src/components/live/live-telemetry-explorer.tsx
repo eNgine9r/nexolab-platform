@@ -764,7 +764,10 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
           ) : null}
         </div>
         {telemetry.status === "connecting" && telemetry.samples.length === 0 ? (
-          <div className="grid min-h-48 place-items-center p-8 text-center text-sm text-slate-400">
+          <div
+            data-testid="live-inventory-loading"
+            className="grid min-h-48 place-items-center p-8 text-center text-sm text-slate-400"
+          >
             Завантаження каналів…
           </div>
         ) : filtered.length === 0 ? (

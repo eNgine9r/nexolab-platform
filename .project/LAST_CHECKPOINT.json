@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T13:29:00+03:00",
+  "timestamp": "2026-10-01T13:35:00+03:00",
   "actor": "Codex",
-  "event": "ux1202_mobile_candidate",
+  "event": "ux1202_browser_verified_readiness_review_corrected",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -518,13 +518,17 @@
       "final_type_lint_format_build": "pass"
     },
     "ux1202_mobile_inventory": {
-      "local_live_tests": "84_pass",
+      "local_live_tests": "85_pass",
       "typecheck": "pass",
       "touched_eslint": "pass",
       "production_build": "pass",
-      "browser": "pending_exact_head_CI_local_chromium_invalid_archive",
+      "browser": "first_candidate_success_36849506731_final_readiness_CI_pending",
       "dependency_change": "none",
-      "deployment_hardware_write": "none"
+      "deployment_hardware_write": "none",
+      "product_candidate_sha": "64ce829b0da84512353f22a7b4e3f15fa4036e35",
+      "acquisition_scale": "success_36849506693",
+      "review_thread": "PRRT_kwDOTe72wM6n53-Z",
+      "pull_request": 1203
     }
   },
   "observations": [
@@ -820,7 +824,7 @@
       }
     }
   ],
-  "next_action": "Publish #1202 focused PR and require exact-head browser/Core CI; retain deployed audit #1191 blocker. Qualify UX-11 independently next.",
+  "next_action": "Require final exact-head CI/review for PR #1203; merge only GREEN, then begin Ready #1204 dialog focus. Audit #1191 installed acceptance remains access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

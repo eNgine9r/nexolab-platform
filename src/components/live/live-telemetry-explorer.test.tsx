@@ -202,3 +202,14 @@ describe("responsive Live inventory", () => {
     expect(within(row).getByText("Вище межі")).toBeVisible();
   });
 });
+
+it("exposes stable inventory loading readiness until an empty snapshot settles", () => {
+  const telemetry = model();
+  telemetry.status = "connecting";
+  telemetry.samples = [];
+  const { rerender } = render(<LiveTelemetryExplorer telemetry={telemetry} />);
+  expect(screen.getByTestId("live-inventory-loading")).toBeVisible();
+  rerender(<LiveTelemetryExplorer telemetry={{ ...telemetry, status: "live" }} />);
+  expect(screen.queryByTestId("live-inventory-loading")).not.toBeInTheDocument();
+  expect(screen.getByText("Каналів не знайдено")).toBeVisible();
+});

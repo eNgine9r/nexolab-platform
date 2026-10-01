@@ -4,7 +4,7 @@ Updated: 2026-10-01
 
 ## Issue #1202 — local browser unavailable, isolated CI evidence pending
 
-The local Playwright Chromium download returned an invalid/truncated archive. Source/module/type/lint/build evidence is available; responsive keyboard and overflow behavior remains pending the exact-head Authenticated Dashboard CI scenario. Do not close UX-15 or represent this as deployed acceptance before browser evidence. This soft blocker does not gate other independently qualified source work. No installed service, credential, acquisition or hardware change was made.
+The local Playwright Chromium download returned an invalid/truncated archive. Source/module/type/lint/build evidence is available; first candidate responsive keyboard/overflow/browser evidence passed run 36849506731, while the final loading-readiness review correction awaits exact-head CI. Do not close UX-15 or represent this as deployed acceptance before browser evidence. This soft blocker does not gate other independently qualified source work. No installed service, credential, acquisition or hardware change was made.
 
 ## Audit #1191 — authenticated deployed all-page evidence pending
 
