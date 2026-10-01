@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T05:34:45+03:00",
+  "timestamp": "2026-10-01T07:03:20+03:00",
   "actor": "Codex",
-  "event": "ux1200_durable_progress_and_refresh_scope_ci_pending",
+  "event": "ux1200_verified_audit_reconciled_merge_pending",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,11 +28,7 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": {
-    "issue": 1200,
-    "title": "Verified account actions in Sessions and Lockers shells",
-    "branch": "commander/1200-account-shell-actions"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -452,20 +448,21 @@
     "ux_audit_report": {
       "path": "docs/audits/nexolab-ux-audit-2026-10-01.md",
       "original_findings": 36,
-      "review_findings": 2,
-      "closed_in_code": 8,
-      "partial": 3,
-      "open": 27,
+      "review_findings": 3,
+      "closed_in_code": 12,
+      "partial": 1,
+      "open": 26,
       "deployed_authenticated_acceptance": "pending_normal_operator_session",
       "pull_request": 1199,
       "verified_candidate_head": "fc9d190ab0e9611855e9f9ee3c1eab6aaf643d0a",
       "candidate_ci_run": 36795257404,
       "candidate_ci": "green",
       "final_state_ci": "green",
-      "account_action_rollout": "partial_sessions_shell_and_lockers_remain",
+      "account_action_rollout": "closed_in_code_pr1201",
       "final_ci_head": "c204926c60006abf50baee9d482e3ddaccc6674a",
       "final_ci_run": 36796364371,
-      "review_threads": "2_resolved"
+      "review_threads": "2_resolved",
+      "latest_account_pr": 1201
     },
     "ux_account_shell_1200": {
       "product_head": "856218a357a36d9ada990dba272ff702feb1ea31",
@@ -507,7 +504,14 @@
       "final_payload_local_tests": "148_pass",
       "final_payload_type_lint_format_build": "pass",
       "previous_durable_ci": "7_of_9_green_dashboard_ws_budget_failed",
-      "final_payload_ci": "pending"
+      "final_payload_ci": "pending",
+      "verified_product_candidate_head": "018544890957ab7437d19911c8286e63cfbb7e1a",
+      "cross_route_ci_matrix": "9_of_9_green",
+      "review_threads": "12_addressed_publication_pending",
+      "final_docs_ci": "pending",
+      "final_source_head": "19ce05713a6f57136120206e28868ec6afbf557a",
+      "final_local_tests": "150_pass",
+      "final_type_lint_format_build": "pass"
     }
   },
   "observations": [
@@ -789,9 +793,21 @@
         "ci_run": 36796364371,
         "review_threads": "2_resolved"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T07:03:20+03:00",
+      "kind": "ux1200_product_ci",
+      "data": {
+        "issue": 1200,
+        "pull_request": 1201,
+        "head_sha": "018544890957ab7437d19911c8286e63cfbb7e1a",
+        "matrix": "9_of_9_green",
+        "review_threads": "12_addressed_publication_pending"
+      }
     }
   ],
-  "next_action": "Require all exact-head routed workflows GREEN and resolve review for #1200; then reconcile audit UX-02/UX-03 and complete package. Deployed #1191 audit still requires normal authenticated operator browser access.",
+  "next_action": "Verify final docs/state head CI and expected-head merge PR #1201; deployed #1191 acceptance still requires normal authenticated operator browser access. No independent Ready software package is selected.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

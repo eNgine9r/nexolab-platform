@@ -40,11 +40,7 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1200,
-      "title": "Verified account actions in Sessions and Lockers shells",
-      "branch": "commander/1200-account-shell-actions"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -5763,7 +5759,7 @@
       "issue": 1200,
       "title": "Verified account actions in Sessions and Lockers shells",
       "priority": "unspecified",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "commander/1200-account-shell-actions",
       "evidence": {
         "verified_head_sha": "856218a357a36d9ada990dba272ff702feb1ea31",
@@ -5812,7 +5808,11 @@
           "final_payload_source": "e2735e1ab91569c1030149a08a277e4e948f15d9",
           "final_payload_tests": "148_pass",
           "final_payload_type_lint_format_build": "pass",
-          "previous_c7_dashboard": "failed_websocket_max_active_2_budget_1"
+          "previous_c7_dashboard": "failed_websocket_max_active_2_budget_1",
+          "verified_018_ci": "9_of_9_green",
+          "verified_018_ci_head": "018544890957ab7437d19911c8286e63cfbb7e1a",
+          "authorization_rejection_tests": "150_pass",
+          "authorization_rejection_type_lint_format_build": "pass"
         },
         "pull_request": 1201
       }
