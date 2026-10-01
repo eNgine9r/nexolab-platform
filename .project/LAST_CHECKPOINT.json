@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T14:27:51.405950+00:00",
+  "timestamp": "2026-10-01T14:44:14.836721+00:00",
   "actor": "Codex",
-  "event": "ux1208_merged_ux1210_reconstructed_retry_candidate",
+  "event": "ux1210_merged_ux1212_inactive_window_candidate",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1210,
-    "title": "UX-35 Telegram report retry",
-    "branch": "fix/1210-telegram-report-retry"
+    "issue": 1212,
+    "title": "UX-33 remove inactive telemetry-window setting",
+    "branch": "fix/1212-remove-inactive-window"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -607,6 +607,31 @@
       "ci_routing": "Telegram_MiniApp_paths_added_to_dashboard_trigger_and_focused_domain",
       "verified_head_sha": "00b385a7e6ef84393074f4e8f7d27ac7c8a0c6b2",
       "review_corrections": "timestamp_advanced_and_current_state_browser_status_anchored"
+    },
+    "completed_ux1210": {
+      "final_head_sha": "454409190085d44af4eb6fcd6aed5cd58ec69add",
+      "pull_request": 1211,
+      "checks": {
+        "ci": 36876649193,
+        "dashboard": 36876649014,
+        "refrigeration": 36876649046,
+        "offline": 36876649017,
+        "telegram": 36876649189,
+        "acquisition": 36876649229
+      },
+      "all_checks": "success",
+      "frontend_tests": "930_passed_166_files",
+      "browser": "30_passed",
+      "review": "2_resolved_0_unresolved"
+    },
+    "ux1212_candidate": {
+      "tests": "13_passed",
+      "browser": "pending",
+      "storage_schema": "v1_legacy_telemetryWindow_preserved",
+      "production_mutation": "none",
+      "typecheck": "passed",
+      "touched_lint_format": "passed",
+      "production_build": "passed_23_static_pages"
     }
   },
   "observations": [
@@ -955,9 +980,19 @@
         "issue": 1208,
         "pull_request": 1209
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T14:44:14.836741+00:00",
+      "kind": "ux1210_pr1211_merge",
+      "data": {
+        "issue": 1210,
+        "pull_request": 1211,
+        "merge_sha": "47dfa8b934c73a0b0eab1dabd50a40f5f3b5d000"
+      }
     }
   ],
-  "next_action": "Require the final exact-head #1210 matrix GREEN after state-only status/timestamp corrections, then merge and begin Ready #1212; next #1213 UTC/local. Product head 00b385a7 has 30 Dashboard scenarios verified. Installed #1191 remains access-gated.",
+  "next_action": "Verify #1212 Settings browser and exact-head CI/review, merge only GREEN, then begin #1213 UTC/local operational presentation. Installed #1191 stays access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

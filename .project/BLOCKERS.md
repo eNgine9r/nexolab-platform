@@ -2,9 +2,9 @@
 
 Updated: 2026-10-01
 
-## UX source acceptance — #1210 pending
+## UX source acceptance — #1212 pending
 
-#1208 / PR #1209 is cleared: all five exact-head workflows GREEN, 26 Dashboard browser scenarios passed and no review threads. #1210 has 21 local component/API tests passed, including retained-page request recovery. Browser retry/SDK recovery is verified: product/routing head `00b385a7e6ef84393074f4e8f7d27ac7c8a0c6b2` passed 30 Dashboard scenarios in run 36874965457 plus Refrigeration, Telegram Gateway and Acquisition Scale. The remaining gate is the final exact-head matrix after state-only review corrections, including Core and Offline Bundle; completed product-head browser evidence is retained, not treated as missing. Workspace access recovered after environment_offline, but the temporary checkout was missing; candidate was reconstructed and must receive fresh exact-head evidence. Installed acceptance remains the separate #1191 access blocker below.
+#1210 / PR #1211 is cleared: final head 454409190085d44af4eb6fcd6aed5cd58ec69add passed all six routed workflows, 930 frontend tests and 30 Dashboard browser scenarios; both review threads are resolved. Disconnected update/rollback/data preservation passed in isolated CI. #1212 has 13 Settings/component/preferences tests passed; its exact-head browser acceptance and review remain pending. This source-only cleanup removes an inactive control and preserves stored v1 compatibility. Next Ready #1213 applies UTC/local to operational presentation. Installed operator acceptance remains the separate #1191 blocker below.
 
 ## Audit #1191 — authenticated deployed all-page evidence pending
 

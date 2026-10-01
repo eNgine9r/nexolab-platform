@@ -41,14 +41,14 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1210,
-      "title": "UX-35 Telegram report retry",
-      "branch": "fix/1210-telegram-report-retry"
-    },
-    "next_work_package": {
       "issue": 1212,
       "title": "UX-33 remove inactive telemetry-window setting",
       "branch": "fix/1212-remove-inactive-window"
+    },
+    "next_work_package": {
+      "issue": 1213,
+      "title": "UX-32 UTC/local operational timestamps and charts",
+      "branch": "fix/1213-operational-timezone"
     }
   },
   "work_packages": [
@@ -5905,7 +5905,7 @@
       "issue": 1210,
       "title": "UX-35 Telegram report retry",
       "priority": "medium",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/1210-telegram-report-retry",
       "evidence": {
         "verified_head_sha": "00b385a7e6ef84393074f4e8f7d27ac7c8a0c6b2",
@@ -5915,14 +5915,26 @@
           "refrigeration": "success:36874965442",
           "telegram": "success:36874965472",
           "acquisition": "success:36874965446"
-        }
+        },
+        "final_head_sha": "454409190085d44af4eb6fcd6aed5cd58ec69add",
+        "final_checks": {
+          "ci": "success:36876649193",
+          "dashboard": "success:36876649014",
+          "refrigeration": "success:36876649046",
+          "offline_bundle": "success:36876649017",
+          "telegram_gateway": "success:36876649189",
+          "acquisition": "success:36876649229"
+        },
+        "browser_scenarios": "30_passed",
+        "full_frontend_tests": "930_passed_166_files",
+        "review_threads": "2_resolved_0_unresolved"
       }
     },
     {
       "issue": 1212,
       "title": "UX-33 remove inactive telemetry-window setting",
       "priority": "medium",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "branch": "fix/1212-remove-inactive-window",
       "evidence": {}
     },
@@ -5932,6 +5944,14 @@
       "priority": "high",
       "lifecycle": "ready",
       "branch": "fix/1213-operational-timezone",
+      "evidence": {}
+    },
+    {
+      "issue": 1214,
+      "title": "UX-17 remove incomplete Gauge choice",
+      "priority": "medium",
+      "lifecycle": "ready",
+      "branch": "fix/1214-legacy-gauge-choice",
       "evidence": {}
     }
   ],
