@@ -18,6 +18,7 @@ export interface ChartRendererInitOptions {
 }
 
 export interface ChartRendererScene {
+  displayTimeZone?: string;
   series: readonly ChartSeries[];
   xDomain: ChartXDomain;
   interactionDomain?: ChartXDomain;

@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import { AlertTriangle, CheckCircle2, Gauge, Plus, RefreshCw, Save } from "lucide-react";
 import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -873,6 +876,7 @@ function AcceptanceSection({
   setEffectiveAt: (value: string) => void;
   onSubmit: (event: FormEvent) => void;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const current = [...history].reverse().find((item) => item.effectiveTo === null) ?? null;
   return (
     <section className="rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-4 sm:p-5">
@@ -911,8 +915,8 @@ function AcceptanceSection({
               <span className="text-[10px] text-slate-600">{item.stateLabel ?? "no label"}</span>
             </div>
             <p className="mt-1 text-[10px] text-slate-500">
-              {formatTimestamp(item.effectiveFrom)} →{" "}
-              {item.effectiveTo ? formatTimestamp(item.effectiveTo) : "поточний"}
+              {formatTimestamp(item.effectiveFrom, displayTimeZone)} →{" "}
+              {item.effectiveTo ? formatTimestamp(item.effectiveTo, displayTimeZone) : "поточний"}
             </p>
           </div>
         ))}
@@ -1097,9 +1101,18 @@ function parseLocalDateTime(value: string): Date {
   return date;
 }
 
-function formatTimestamp(value: string): string {
+function formatTimestamp(value: string, displayTimeZone: string): string {
   const date = new Date(value);
-  return Number.isFinite(date.getTime()) ? date.toLocaleString("uk-UA") : value;
+  return Number.isFinite(date.getTime())
+    ? formatOperationalTimestamp(date, displayTimeZone, {
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      })
+    : value;
 }
 
 function readError(cause: unknown, fallback: string): string {

@@ -1,6 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  notifySettingsPreferencesChanged,
+  SETTINGS_PREFERENCES_CHANGED_EVENT,
+} from "@/features/display-time/store";
 
 import {
   createDefaultSettingsPreferences,
@@ -25,11 +29,12 @@ export type SettingsPreferencesModel = {
   reset: () => void;
 };
 
-function persist(preferences: SettingsPreferences): void {
+function persist(preferences: SettingsPreferences): boolean {
   try {
     window.localStorage.setItem(SETTINGS_PREFERENCES_STORAGE_KEY, serializeSettingsPreferences(preferences));
+    return true;
   } catch {
-    // Local preferences are optional and never affect laboratory runtime behavior.
+    return false;
   }
 }
 
@@ -40,7 +45,7 @@ export function useSettingsPreferences(): SettingsPreferencesModel {
   const [recoveryReason, setRecoveryReason] = useState<string | null>(null);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
+    const load = () => {
       let raw: string | null = null;
       try {
         raw = window.localStorage.getItem(SETTINGS_PREFERENCES_STORAGE_KEY);
@@ -58,30 +63,64 @@ export function useSettingsPreferences(): SettingsPreferencesModel {
       setRecoveryReason(parsed.reason);
       if (parsed.recovered) persist(parsed.preferences);
       setLoaded(true);
-    }, 0);
+    };
+    const timeoutId = window.setTimeout(load, 0);
+    const storage = (event: StorageEvent) => {
+      if (event.key === null || event.key === SETTINGS_PREFERENCES_STORAGE_KEY) load();
+    };
+    window.addEventListener("storage", storage);
+    window.addEventListener(SETTINGS_PREFERENCES_CHANGED_EVENT, load);
 
-    return () => window.clearTimeout(timeoutId);
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.removeEventListener("storage", storage);
+      window.removeEventListener(SETTINGS_PREFERENCES_CHANGED_EVENT, load);
+    };
   }, []);
 
   const updatePreference = useCallback(
     (key: EditableSettingsPreference, value: SettingsPreferences[EditableSettingsPreference]) => {
-      setPreferences((current) => {
-        const next = withSettingsPreference(current, key, value);
-        persist(next);
-        return next;
-      });
+      let current = preferences;
+      try {
+        current = parseSettingsPreferences(
+          window.localStorage.getItem(SETTINGS_PREFERENCES_STORAGE_KEY),
+        ).preferences;
+      } catch {
+        setRecovered(true);
+        setRecoveryReason(
+          "Не вдалося зберегти налаштування: сховище браузера недоступне. Повторіть дію після відновлення доступу.",
+        );
+        return;
+      }
+      const next = withSettingsPreference(current, key, value);
+      if (!persist(next)) {
+        setRecovered(true);
+        setRecoveryReason(
+          "Не вдалося зберегти налаштування браузера. Попередні значення залишено; перевірте доступ до сховища та повторіть дію.",
+        );
+        return;
+      }
+      setPreferences(next);
       setRecovered(false);
       setRecoveryReason(null);
+      notifySettingsPreferencesChanged();
     },
-    [],
+    [preferences],
   );
 
   const reset = useCallback(() => {
     const defaults = createDefaultSettingsPreferences();
-    persist(defaults);
+    if (!persist(defaults)) {
+      setRecovered(true);
+      setRecoveryReason(
+        "Не вдалося зберегти скидання налаштувань браузера. Попередні значення залишено; повторіть дію.",
+      );
+      return;
+    }
     setPreferences(defaults);
     setRecovered(false);
     setRecoveryReason(null);
+    notifySettingsPreferencesChanged();
   }, []);
 
   return useMemo(

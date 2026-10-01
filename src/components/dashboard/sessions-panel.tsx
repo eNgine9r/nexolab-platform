@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import { AlertTriangle, Clock3, LoaderCircle } from "lucide-react";
@@ -8,6 +11,7 @@ import { useSessionListReadModel } from "@/features/test-sessions/use-session-li
 import { SESSION_STATE_LABELS } from "@/lib/sessions/view-model";
 
 export function SessionsPanel({ organizationId }: { organizationId: string | null }) {
+  const displayTimeZone = useDisplayTimeZone();
   const sessionsModel = useSessionListReadModel({
     organizationId,
     query: { nodeId: "edge-01", limit: 50 },
@@ -85,7 +89,7 @@ export function SessionsPanel({ organizationId }: { organizationId: string | nul
             </span>
             <span className="flex items-center gap-1">
               <Clock3 className="h-2.5 w-2.5" />
-              {new Date(session.updated_at).toLocaleTimeString("uk-UA", {
+              {formatOperationalTimestamp(new Date(session.updated_at), displayTimeZone, {
                 hour: "2-digit",
                 minute: "2-digit",
               })}

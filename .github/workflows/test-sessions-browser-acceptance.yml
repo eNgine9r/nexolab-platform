@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - "src/features/display-time/**"
+      - "src/hooks/use-display-time-zone*"
+      - "src/hooks/use-settings-preferences*"
       - ".github/workflows/test-sessions-browser-acceptance.yml"
       - "docs/organization-scoped-test-sessions.md"
       - "e2e/test-sessions.production.e2e.ts"

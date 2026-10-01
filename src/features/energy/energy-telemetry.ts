@@ -1,3 +1,4 @@
+import { formatOperationalTimestamp } from "@/features/display-time/format";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
 export const ENERGY_METERS = [
@@ -224,12 +225,9 @@ export function formatEnergyValue(sample: TelemetrySample | null): string {
   return canonicalUnit(unit) === "ratio" ? value : `${value} ${unit}`;
 }
 
-export function formatCapturedAt(sample: TelemetrySample | null): string {
+export function formatCapturedAt(sample: TelemetrySample | null, displayTimeZone = "UTC"): string {
   if (!sample) return "Даних ще немає";
   const capturedAt = Date.parse(sample.captured_at);
   if (!Number.isFinite(capturedAt)) return "Некоректний час";
-  return new Intl.DateTimeFormat("uk-UA", {
-    dateStyle: "short",
-    timeStyle: "medium",
-  }).format(capturedAt);
+  return formatOperationalTimestamp(capturedAt, displayTimeZone);
 }

@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, FileCheck2, Fingerprint, LoaderCircle, RefreshCw } from "lucide-react";
@@ -16,14 +19,15 @@ import type { ReportOutputState, TestReport } from "@/lib/reports/types";
 
 import { ReportOutputPanel } from "./report-output-panel";
 
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("uk-UA", {
+function formatDate(value: string, displayTimeZone: string): string {
+  return formatOperationalTimestamp(new Date(value), displayTimeZone, {
     dateStyle: "medium",
     timeStyle: "medium",
-  }).format(new Date(value));
+  });
 }
 
 export function ReportOutputWorkspace({ reportId }: { reportId: string }) {
+  const displayTimeZone = useDisplayTimeZone();
   const [report, setReport] = useState<TestReport | null>(null);
   const [versions, setVersions] = useState<TestReport[]>([]);
   const [output, setOutput] = useState<ReportOutputState | null>(null);
@@ -149,7 +153,7 @@ export function ReportOutputWorkspace({ reportId }: { reportId: string }) {
               Session {report.session_id}
             </h1>
             <p className="mt-2 text-[11px] text-slate-500">
-              Згенеровано {formatDate(report.generated_at)} · {report.generated_by}
+              Згенеровано {formatDate(report.generated_at, displayTimeZone)} · {report.generated_by}
             </p>
           </div>
           <button

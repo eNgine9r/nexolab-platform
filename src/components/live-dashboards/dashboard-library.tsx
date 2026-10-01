@@ -1,20 +1,23 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import { Archive, Copy, Edit3, FolderOpen, LayoutDashboard, Plus, RefreshCw, Search } from "lucide-react";
 
 import type { LiveDashboard, LiveDashboardStatus } from "@/features/live-dashboards/types";
 import type { LiveDashboardLibraryStatus } from "@/hooks/use-live-dashboard-library";
 
-function formatTimestamp(value: string): string {
+function formatTimestamp(value: string, displayTimeZone: string): string {
   const timestamp = Date.parse(value);
   if (!Number.isFinite(timestamp)) return "Невідомий час";
-  return new Intl.DateTimeFormat("uk-UA", {
+  return formatOperationalTimestamp(timestamp, displayTimeZone, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(timestamp);
+  });
 }
 
 function statusLabel(status: LiveDashboardStatus): string {
@@ -52,6 +55,7 @@ export function DashboardLibrary({
   onArchive: (dashboard: LiveDashboard) => void;
   onRetry: () => void;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   return (
     <section className="space-y-5" aria-labelledby="live-dashboard-library-title">
       <div className="flex flex-col gap-4 rounded-3xl border border-white/[0.08] bg-[#091a31]/90 p-5 shadow-2xl shadow-black/20 lg:flex-row lg:items-center lg:justify-between">
@@ -216,7 +220,7 @@ export function DashboardLibrary({
 
               <div className="mt-4 text-xs leading-5 text-slate-500">
                 <p>Власник: {dashboard.owner_subject}</p>
-                <p>Оновлено: {formatTimestamp(dashboard.updated_at)}</p>
+                <p>Оновлено: {formatTimestamp(dashboard.updated_at, displayTimeZone)}</p>
               </div>
 
               <div className="mt-auto flex flex-wrap gap-2 pt-5">

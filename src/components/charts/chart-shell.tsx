@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 
 import { chartSeriesKey, type ChartCursorInspection, type ChartSeries } from "@/features/charts/domain";
 import { formatChartExactTimestamp, formatChartValue } from "@/features/charts/format";
@@ -36,7 +37,7 @@ export function ChartShell({
   onToggleSeries,
   onSoloSeries,
   onResetZoom,
-  formatTimestamp = formatChartExactTimestamp,
+  formatTimestamp,
   locale = "en",
 }: {
   title: string;
@@ -51,6 +52,10 @@ export function ChartShell({
   formatTimestamp?: (timestampMs: number) => string;
   locale?: "en" | "uk";
 }) {
+  const displayTimeZone = useDisplayTimeZone();
+  const timestampFormatter =
+    formatTimestamp ??
+    ((timestampMs: number) => formatChartExactTimestamp(timestampMs, { timeZone: displayTimeZone }));
   const visibleSeries = series.filter((item) => item.visible);
   const freshnessSeries = visibleSeries.length > 0 ? visibleSeries : series;
   const freshness = freshnessSeries.some((item) => item.freshness === "offline")
@@ -117,6 +122,9 @@ export function ChartShell({
         <div className="min-w-0">
           <p className="text-[10px] tracking-[0.16em] text-cyan-300 uppercase">{context}</p>
           <h2 className="mt-1 truncate text-lg font-semibold text-white">{title}</h2>
+          <p className="mt-1 text-xs text-slate-400" data-testid="chart-display-timezone">
+            Часова зона: {displayTimeZone}
+          </p>
           <p className="mt-1 text-xs text-slate-400">
             {selectedRange} · <span className="font-medium">{freshnessLabel(freshness, locale)}</span>
           </p>
@@ -190,7 +198,16 @@ export function ChartShell({
           <div className="flex min-w-0 items-baseline justify-between gap-3">
             <p className="font-medium text-white">{copy.inspectorTitle}</p>
             <p className="min-w-0 truncate text-right text-[10px] text-slate-500 tabular-nums">
-              {inspection ? formatTimestamp(inspection.timestampMs) : "—"}
+              {inspection ? (
+                <time
+                  dateTime={new Date(inspection.timestampMs).toISOString()}
+                  data-testid="chart-inspector-timestamp"
+                >
+                  {timestampFormatter(inspection.timestampMs)}
+                </time>
+              ) : (
+                "—"
+              )}
             </p>
           </div>
           <p className="mt-2 min-h-4 text-slate-500">
@@ -212,7 +229,7 @@ export function ChartShell({
                   const key = chartSeriesKey(item.identity);
                   const inspected = inspectionBySeries.get(key);
                   const point = inspected?.point ?? null;
-                  const sampleTimestamp = point ? formatTimestamp(point.timestampMs) : "—";
+                  const sampleTimestamp = point ? timestampFormatter(point.timestampMs) : "—";
                   const value = point
                     ? `${formatChartValue(point.value, item.displayPrecision)} ${item.identity.nativeUnit}`
                     : "—";

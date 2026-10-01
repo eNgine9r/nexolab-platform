@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -45,14 +48,15 @@ function stateClass(state: SessionState): string {
   return "border-slate-400/15 bg-slate-400/[0.05] text-slate-300";
 }
 
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("uk-UA", {
+function formatDate(value: string, displayTimeZone: string): string {
+  return formatOperationalTimestamp(new Date(value), displayTimeZone, {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
+  });
 }
 
 export function SessionsListScreen() {
+  const displayTimeZone = useDisplayTimeZone();
   const account = usePlatformAccount();
   const organizationId = account?.security.membership?.organizationId;
   const [sessions, setSessions] = useState<LaboratorySession[]>([]);
@@ -256,7 +260,7 @@ export function SessionsListScreen() {
                 </div>
                 <div className="flex items-center gap-2 text-[9px] text-slate-500 sm:justify-end">
                   <Clock3 className="h-3.5 w-3.5" />
-                  <span>{formatDate(session.updated_at)}</span>
+                  <span>{formatDate(session.updated_at, displayTimeZone)}</span>
                 </div>
               </Link>
             ))}

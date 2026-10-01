@@ -20,8 +20,8 @@ const webUrl = process.env.NEXOLAB_DASHBOARD_WEB_URL ?? "http://127.0.0.1:13020"
 type ObservedRequest = { url: string; method: string };
 type SocketEvidence = { opened: number; closed: number; active: number; maximum: number };
 
-async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
-  const context = await browser.newContext();
+async function authenticatedContext(browser: Browser, timeZone = "UTC"): Promise<BrowserContext> {
+  const context = await browser.newContext({ timezoneId: timeZone });
   await context.addInitScript(
     ({ accessToken, organization }) => {
       if (window.location.protocol === "about:") return;
@@ -553,4 +553,77 @@ function requiredEnvironment(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) throw new Error(`${name} is required for Live Chart System acceptance`);
   return value;
+}
+
+for (const width of [390, 1280]) {
+  test(`UTC/local updates the same measured sample, chart and retained route at ${width}px`, async ({
+    browser,
+  }) => {
+    const fixture = seedExplorerTelemetry();
+    const context = await authenticatedContext(browser, "Europe/Kyiv");
+    const page = await context.newPage();
+    await page.setViewportSize({ width, height: 1000 });
+    const runtime = observeRuntime(page);
+    try {
+      await page.goto("/live", { waitUntil: "domcontentloaded" });
+      await page.getByPlaceholder("node, equipment, channel, metric, source...").fill(fixture.equipmentId);
+      await page
+        .getByRole("checkbox", { name: /Порівнювати/ })
+        .first()
+        .check();
+      const chart = page.getByTestId("live-primary-chart");
+      const host = chart.getByTestId("chart-renderer-host");
+      await expect(host).toBeVisible();
+      await page.getByRole("button", { name: "Pause View", exact: true }).click();
+      await host.focus();
+      await page.keyboard.press("Home");
+      const timestamp = chart.getByTestId("chart-inspector-timestamp");
+      await expect(timestamp).toHaveAttribute("datetime", /T/);
+      const instant = await timestamp.getAttribute("datetime");
+      if (!instant) throw new Error("Inspector has no measured instant");
+      const expected = (timeZone: string) =>
+        new Intl.DateTimeFormat("uk-UA", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          timeZoneName: "short",
+          timeZone,
+        }).format(new Date(instant));
+      await expect(timestamp).toHaveText(expected("Europe/Kyiv"));
+      const beforeDomain = {
+        from: await host.getAttribute("data-chart-x-domain-from-ms"),
+        to: await host.getAttribute("data-chart-x-domain-to-ms"),
+      };
+      const beforeRows = await chart.getByTestId("chart-inspector").getByRole("row").count();
+      const settings = await context.newPage();
+      await settings.goto("/settings", { waitUntil: "domcontentloaded" });
+      await settings.getByLabel("Часові позначки").selectOption("utc");
+      await expect(timestamp).toHaveText(expected("UTC"));
+      await expect(chart.getByTestId("chart-display-timezone")).toContainText("UTC");
+      await expect(timestamp).toHaveAttribute("datetime", instant);
+      await expect(host).toHaveAttribute("data-chart-x-domain-from-ms", beforeDomain.from!);
+      await expect(host).toHaveAttribute("data-chart-x-domain-to-ms", beforeDomain.to!);
+      await expect(chart.getByTestId("chart-inspector").getByRole("row")).toHaveCount(beforeRows);
+      await settings.reload({ waitUntil: "domcontentloaded" });
+      await expect(settings.getByLabel("Часові позначки")).toHaveValue("utc");
+      await settings.getByLabel("Часові позначки").selectOption("local");
+      await expect(timestamp).toHaveText(expected("Europe/Kyiv"));
+      // Return to the same URL comparison context after its retained page suspends.
+      const selectedUrl = page.url();
+      await page.setViewportSize({ width: 1280, height: 1000 });
+      await page.getByRole("link", { name: "Налаштування", exact: true }).click();
+      await page.getByLabel("Часові позначки").selectOption("utc");
+      await page.goBack({ waitUntil: "domcontentloaded" });
+      await expect(page).toHaveURL(selectedUrl);
+      await expect(chart.getByTestId("chart-display-timezone")).toContainText("UTC");
+      await expect(page.getByRole("checkbox", { name: /Порівнювати/ }).first()).toBeChecked();
+      await assertNoPageOverflow(page);
+      expect(runtime.acquisitionMutations).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
 }

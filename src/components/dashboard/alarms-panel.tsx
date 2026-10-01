@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import Link from "next/link";
 import { useEffect } from "react";
 import { AlertTriangle, BellRing, CheckCircle2, Info, LoaderCircle, RefreshCw, Timer } from "lucide-react";
@@ -55,12 +58,12 @@ function alertValue(alert: AlertInstance): string {
   }).format(alert.trigger_value)}${unit ? ` ${unit}` : ""}`;
 }
 
-function alertTime(alert: AlertInstance): string {
-  return new Intl.DateTimeFormat("uk-UA", {
+function alertTime(alert: AlertInstance, displayTimeZone: string): string {
+  return formatOperationalTimestamp(new Date(alert.triggered_at), displayTimeZone, {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-  }).format(new Date(alert.triggered_at));
+  });
 }
 
 export function AlarmsPanel({
@@ -71,6 +74,7 @@ export function AlarmsPanel({
   organizationId?: string | null;
   samples?: TelemetrySample[];
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const alertsModel = useOverviewAlertsReadModel({ enabled: mode === "live", organizationId });
   const liveAlerts = alertsModel.value ?? [];
 
@@ -162,7 +166,7 @@ export function AlarmsPanel({
                 </p>
                 <p className="mt-1.5 flex items-center gap-1 text-[8px] text-slate-600">
                   <Timer className="h-2.5 w-2.5" />
-                  {alertTime(alert)} · {alert.state}
+                  {alertTime(alert, displayTimeZone)} · {alert.state}
                 </p>
               </div>
             </Link>

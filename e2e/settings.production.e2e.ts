@@ -460,3 +460,29 @@ function requiredEnvironment(name: string): string {
   if (!value) throw new Error(`${name} is required for Settings acceptance`);
   return value;
 }
+
+test("failed browser preference write retains the applied timezone and explains recovery", async ({
+  browser,
+}) => {
+  const context = await authenticatedContext(browser, viewerToken, { corruptPreferences: false });
+  const page = await context.newPage();
+  const requests = observeApiRequests(page);
+  try {
+    await page.goto("/settings", { waitUntil: "domcontentloaded" });
+    await expect(page.getByLabel("Часові позначки")).toHaveValue("local");
+    await page.evaluate((key) => {
+      const original = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (storageKey, value) {
+        if (storageKey === key) throw new DOMException("blocked", "QuotaExceededError");
+        return original.call(this, storageKey, value);
+      };
+    }, preferenceStorageKey);
+    await page.getByLabel("Часові позначки").selectOption("utc");
+    await expect(page.getByLabel("Часові позначки")).toHaveValue("local");
+    await expect(page.getByText("Не вдалося зберегти налаштування", { exact: true })).toBeVisible();
+    await expect(page.getByText(/Попередні значення залишено/)).toBeVisible();
+    expect(requests.filter((request) => !["GET", "HEAD", "OPTIONS"].includes(request.method))).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});

@@ -1,3 +1,7 @@
+"use client";
+
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 import {
   AlertCircle,
   Ban,
@@ -106,15 +110,15 @@ function ageLabel(ageMs: number | null): string {
   return `${Math.floor(ageMs / 60_000)} хв тому`;
 }
 
-function timestampLabel(value: string | null): string {
+function timestampLabel(value: string | null, displayTimeZone: string): string {
   if (value === null) {
     return "—";
   }
-  return new Intl.DateTimeFormat("uk-UA", {
+  return formatOperationalTimestamp(new Date(value), displayTimeZone, {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-  }).format(new Date(value));
+  });
 }
 
 export function TelemetryStatusBar({
@@ -126,6 +130,7 @@ export function TelemetryStatusBar({
   error,
   onRetry,
 }: TelemetryStatusBarProps) {
+  const displayTimeZone = useDisplayTimeZone();
   const copy = statusCopy[status];
   const Icon = copy.icon;
   const canRetry =
@@ -175,7 +180,11 @@ export function TelemetryStatusBar({
       >
         <span>
           Останній пакет:{" "}
-          <strong className="font-medium text-slate-200">{timestampLabel(lastCapturedAt)}</strong>
+          <strong className="font-medium text-slate-200">
+            <time dateTime={lastCapturedAt ?? undefined} data-testid="telemetry-last-captured-at">
+              {timestampLabel(lastCapturedAt, displayTimeZone)}
+            </time>
+          </strong>
         </span>
         <span>
           Freshness: <strong className="font-medium text-slate-200">{ageLabel(ageMs)}</strong>

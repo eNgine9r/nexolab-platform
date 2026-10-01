@@ -6,7 +6,6 @@ import { ChartRendererHost } from "@/components/charts/chart-renderer-host";
 import { ChartShell } from "@/components/charts/chart-shell";
 import { chartSeriesKey, type ChartCursorInspection, type ChartXDomain } from "@/features/charts/domain";
 import { EChartsRendererAdapter } from "@/features/charts/echarts-adapter";
-import { formatChartExactTimestamp } from "@/features/charts/format";
 import { buildEnergyChartScene } from "@/features/energy/energy-chart";
 import { ENERGY_METRICS } from "@/features/energy/energy-telemetry";
 import type { EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
@@ -109,7 +108,6 @@ export function EnergyHistoryChart({
         selectedRange={telemetry.historyRange}
         series={scene.series}
         inspection={inspection}
-        formatTimestamp={(timestampMs) => formatChartExactTimestamp(timestampMs)}
         onToggleSeries={toggleSeries}
         onSoloSeries={soloSeries}
         onResetZoom={() => {

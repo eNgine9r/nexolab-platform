@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -30,11 +33,11 @@ import type { ReportArtifact, TestReport } from "@/lib/reports/types";
 import { createSessionApiClient } from "@/lib/sessions/api-client";
 import type { LaboratorySession } from "@/lib/sessions/types";
 
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("uk-UA", {
+function formatDate(value: string, displayTimeZone: string): string {
+  return formatOperationalTimestamp(new Date(value), displayTimeZone, {
     dateStyle: "medium",
     timeStyle: "medium",
-  }).format(new Date(value));
+  });
 }
 
 function formatBytes(value: number): string {
@@ -54,6 +57,7 @@ function compactHash(value: string): string {
 }
 
 export function ReportsWorkspace() {
+  const displayTimeZone = useDisplayTimeZone();
   const [reports, setReports] = useState<TestReport[]>([]);
   const [sessions, setSessions] = useState<LaboratorySession[]>([]);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
@@ -302,8 +306,9 @@ export function ReportsWorkspace() {
 
           {selectedSession ? (
             <p className="mt-3 text-[10px] text-slate-500">
-              Source boundary: {selectedSession.started_at ? formatDate(selectedSession.started_at) : "—"} —{" "}
-              {selectedSession.completed_at ? formatDate(selectedSession.completed_at) : "—"}
+              Source boundary:{" "}
+              {selectedSession.started_at ? formatDate(selectedSession.started_at, displayTimeZone) : "—"} —{" "}
+              {selectedSession.completed_at ? formatDate(selectedSession.completed_at, displayTimeZone) : "—"}
             </p>
           ) : null}
         </section>
@@ -373,7 +378,7 @@ export function ReportsWorkspace() {
                         Session {report.session_id}
                       </p>
                       <p className="mt-1 text-[10px] text-slate-500">
-                        Версія {report.version} · {formatDate(report.generated_at)}
+                        Версія {report.version} · {formatDate(report.generated_at, displayTimeZone)}
                       </p>
                     </div>
                     <span className="rounded-lg border border-emerald-300/20 bg-emerald-400/[0.06] px-2 py-1 text-[9px] font-semibold text-emerald-200">
@@ -418,6 +423,7 @@ function ReportDetail({
   downloading: string | null;
   onDownload: (report: TestReport, artifact: ReportArtifact) => Promise<void>;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -427,7 +433,7 @@ function ReportDetail({
           </p>
           <h3 className="mt-2 text-xl font-semibold text-white">Session {report.session_id}</h3>
           <p className="mt-2 text-[11px] text-slate-500">
-            Згенеровано {formatDate(report.generated_at)} · {report.generated_by}
+            Згенеровано {formatDate(report.generated_at, displayTimeZone)} · {report.generated_by}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -456,7 +462,7 @@ function ReportDetail({
         <Meta label="Generator" value={report.generator_version} />
         <Meta
           label="Source window"
-          value={`${formatDate(report.source_started_at)} — ${formatDate(report.source_ended_at)}`}
+          value={`${formatDate(report.source_started_at, displayTimeZone)} — ${formatDate(report.source_ended_at, displayTimeZone)}`}
         />
       </div>
 

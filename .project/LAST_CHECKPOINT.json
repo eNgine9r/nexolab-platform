@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T14:44:14.836721+00:00",
+  "timestamp": "2026-10-01T15:17:54.866031+00:00",
   "actor": "Codex",
-  "event": "ux1210_merged_ux1212_inactive_window_candidate",
+  "event": "ux1212_merged_ux1213_timezone_candidate",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1212,
-    "title": "UX-33 remove inactive telemetry-window setting",
-    "branch": "fix/1212-remove-inactive-window"
+    "issue": 1213,
+    "title": "UX-32 UTC/local operational timestamps and charts",
+    "branch": "fix/1213-operational-timezone"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -632,6 +632,28 @@
       "typecheck": "passed",
       "touched_lint_format": "passed",
       "production_build": "passed_23_static_pages"
+    },
+    "issue_1212_ux33": {
+      "issue": 1212,
+      "pull_request": 1215,
+      "verified_head_sha": "31555c09a6ce172ef831e1c27fca061f1b4d45e9",
+      "workflows": {
+        "ci": "success:36878901149",
+        "dashboard": "success:36878901249"
+      },
+      "browser_scenarios": "3_passed"
+    },
+    "issue_1213_ux32": {
+      "issue": 1213,
+      "branch": "fix/1213-operational-timezone",
+      "local_frontend_tests": "944_passed_168_files",
+      "new_tests": 14,
+      "exact_head_ci": "pending",
+      "browser_acceptance": "pending",
+      "review": "pending",
+      "typecheck": "pass",
+      "lint_format": "pass",
+      "production_build": "pass_23_pages"
     }
   },
   "observations": [
@@ -990,9 +1012,19 @@
         "pull_request": 1211,
         "merge_sha": "47dfa8b934c73a0b0eab1dabd50a40f5f3b5d000"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T15:17:54.866031+00:00",
+      "kind": "ux1212_pr1215_merge",
+      "data": {
+        "issue": 1212,
+        "pull_request": 1215,
+        "merge_sha": "1998cdfffa1c750a57b40abe9cf7ebebcbc95d68"
+      }
     }
   ],
-  "next_action": "Verify #1212 Settings browser and exact-head CI/review, merge only GREEN, then begin #1213 UTC/local operational presentation. Installed #1191 stays access-gated.",
+  "next_action": "Verify #1213 exact-head UTC/local browser and workflows/review, merge only GREEN, then implement #1214 legacy Gauge choices. Installed #1191 remains access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

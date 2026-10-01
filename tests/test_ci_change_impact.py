@@ -273,6 +273,13 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertNotIn("state_only", result["classes"])
         self.assertTrue(result["needs_full_quality"])
 
+    def test_shared_time_presentation_requires_full_browser_verification(self) -> None:
+        for relative in ("src/features/display-time/format.ts", "src/features/display-time/store.ts", "src/hooks/use-display-time-zone.ts", "src/hooks/use-settings-preferences.ts"):
+            with self.subTest(path=relative):
+                verification = classify([relative])["verification"]
+                self.assertEqual(verification["dashboard_mode"], "full")
+                self.assertTrue(verification["refrigeration_browser"])
+
     def test_settings_only_routes_focused_dashboard_without_expensive_unrelated_lanes(self) -> None:
         result = classify(["src/components/settings/settings-workspace.tsx"])
         verification = result["verification"]

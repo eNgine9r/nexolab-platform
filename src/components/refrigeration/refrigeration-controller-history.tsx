@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import { CalendarRange, Download, LoaderCircle } from "lucide-react";
 import { clsx } from "clsx";
 import { useMemo, useState } from "react";
@@ -40,6 +43,7 @@ const PRESETS: readonly { id: RefrigerationHistoryPreset; label: string }[] = [
 ];
 
 export function RefrigerationControllerHistory({ controller }: { controller: RefrigerationControllerModel }) {
+  const displayTimeZone = useDisplayTimeZone();
   const [cursorSelection, setCursorSelection] = useState<{
     rangeKey: string;
     timestampMs: number | null;
@@ -50,7 +54,7 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
   }>({ rangeKey: "", domain: null });
   const rangeLabel =
     controller.preset === "custom"
-      ? formatCustomRange(controller.range)
+      ? formatCustomRange(controller.range, displayTimeZone)
       : (PRESETS.find((item) => item.id === controller.preset)?.label ?? controller.preset);
   const loadedAnalysisDomain = useMemo<ChartXDomain>(
     () => ({ fromMs: controller.range.from.getTime(), toMs: controller.range.to.getTime() }),
@@ -79,7 +83,7 @@ export function RefrigerationControllerHistory({ controller }: { controller: Ref
     () => ({ from: new Date(analysisDomain.fromMs), to: new Date(analysisDomain.toMs) }),
     [analysisDomain],
   );
-  const analysisRangeLabel = formatAnalysisRange(analysisDomain);
+  const analysisRangeLabel = formatAnalysisRange(analysisDomain, displayTimeZone);
   const analysisUnavailableLabel = controller.historyLoading
     ? "Завантаження історії…"
     : controller.historyError
@@ -351,6 +355,7 @@ function TimelineRow({
   range: { from: Date; to: Date };
   binary?: boolean;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const span = Math.max(1, range.to.getTime() - range.from.getTime());
   return (
     <div className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3">
@@ -362,7 +367,7 @@ function TimelineRow({
           return (
             <span
               key={`${item.fromMs}-${index}`}
-              title={`${item.label} · ${formatObservedTime(item.fromMs)} → ${formatObservedTime(item.toMs)}`}
+              title={`${item.label} · ${formatObservedTime(item.fromMs, displayTimeZone)} → ${formatObservedTime(item.toMs, displayTimeZone)}`}
               aria-label={binary ? `${label} ${item.active ? "ON" : "OFF"}` : undefined}
               tabIndex={binary ? 0 : undefined}
               className={clsx(
@@ -396,6 +401,7 @@ function TimelineRow({
 }
 
 function RelayTransitionJournal({ transitions }: { transitions: readonly RelayTransition[] }) {
+  const displayTimeZone = useDisplayTimeZone();
   return (
     <div className="mt-5 border-t border-white/[0.07] pt-4" data-testid="relay-transition-journal">
       <div className="flex flex-wrap items-end justify-between gap-2">
@@ -434,10 +440,12 @@ function RelayTransitionJournal({ transitions }: { transitions: readonly RelayTr
               <div className="min-w-0 text-[10px] text-slate-500 tabular-nums">
                 <p>
                   Зафіксовано:{" "}
-                  <time className="text-slate-300">{formatObservedTime(transition.observedAtMs)}</time>
+                  <time className="text-slate-300">
+                    {formatObservedTime(transition.observedAtMs, displayTimeZone)}
+                  </time>
                 </p>
                 <p className="truncate" title={transition.previousEventId}>
-                  Попередній sample: {formatObservedTime(transition.previousObservedAtMs)} ·{" "}
+                  Попередній sample: {formatObservedTime(transition.previousObservedAtMs, displayTimeZone)} ·{" "}
                   {transition.previousEventId}
                 </p>
               </div>
@@ -456,6 +464,7 @@ function AlarmHistory({
   controller: RefrigerationControllerModel;
   range: { from: Date; to: Date };
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const samples = controller.history.get(EMBRACO_METRICS.alarms) ?? [];
   const fromMs = range.from.getTime();
   const toMs = range.to.getTime();
@@ -489,7 +498,14 @@ function AlarmHistory({
             >
               <span className="text-rose-200">Alarm bitfield {Math.trunc(sample.value ?? 0)}</span>
               <time className="text-[10px] text-slate-500">
-                {new Date(sample.captured_at).toLocaleString("uk-UA")}
+                {formatOperationalTimestamp(new Date(sample.captured_at), displayTimeZone, {
+                  year: "numeric",
+                  month: "numeric",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                })}
               </time>
             </div>
           ))}
@@ -499,8 +515,15 @@ function AlarmHistory({
   );
 }
 
-function formatObservedTime(timestampMs: number): string {
-  return new Date(timestampMs).toLocaleString("uk-UA");
+function formatObservedTime(timestampMs: number, displayTimeZone: string): string {
+  return formatOperationalTimestamp(new Date(timestampMs), displayTimeZone, {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
 
 function DutyCard({ label, value, meta }: { label: string; value: string; meta?: string }) {
@@ -550,8 +573,8 @@ function clampAnalysisDomain(domain: ChartXDomain | null, loaded: ChartXDomain):
   return toMs > fromMs ? { fromMs, toMs } : loaded;
 }
 
-function formatAnalysisRange(domain: ChartXDomain): string {
-  return `${new Date(domain.fromMs).toLocaleString("uk-UA")} → ${new Date(domain.toMs).toLocaleString("uk-UA")}`;
+function formatAnalysisRange(domain: ChartXDomain, displayTimeZone: string): string {
+  return `${formatOperationalTimestamp(new Date(domain.fromMs), displayTimeZone, { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })} → ${formatOperationalTimestamp(new Date(domain.toMs), displayTimeZone, { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
 }
 
 function formatDuration(milliseconds: number): string {
@@ -562,8 +585,8 @@ function formatDuration(milliseconds: number): string {
   return hours > 0 ? `${hours} год ${minutes} хв` : `${minutes} хв`;
 }
 
-function formatCustomRange(range: { from: Date; to: Date }): string {
-  return `${range.from.toLocaleString("uk-UA")} → ${range.to.toLocaleString("uk-UA")}`;
+function formatCustomRange(range: { from: Date; to: Date }, displayTimeZone: string): string {
+  return `${formatOperationalTimestamp(range.from, displayTimeZone, { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })} → ${formatOperationalTimestamp(range.to, displayTimeZone, { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
 }
 
 function EmptyHistory({ text }: { text: string }) {

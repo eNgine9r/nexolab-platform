@@ -470,7 +470,9 @@ function GeneralSection({
               <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
               <div>
                 <p className="text-sm font-medium text-amber-100">
-                  Пошкоджені локальні налаштування відновлено
+                  {preferenceRecoveryReason?.includes("Не вдалося зберегти")
+                    ? "Не вдалося зберегти налаштування"
+                    : "Пошкоджені локальні налаштування відновлено"}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-amber-100/60">
                   {preferenceRecoveryReason ?? "Використано детерміновані defaults версії 1."}

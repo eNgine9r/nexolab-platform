@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import { useMemo, useState } from "react";
 import {
   BadgeCheck,
@@ -16,12 +19,12 @@ import {
 import { createReportActionIdempotencyKey, createReportApiClient } from "@/lib/reports/api-client";
 import type { ReportOutputState, ReportRender, ReportRenderFormat, TestReport } from "@/lib/reports/types";
 
-function formatDate(value: string | null): string {
+function formatDate(value: string | null, displayTimeZone: string): string {
   if (!value) return "—";
-  return new Intl.DateTimeFormat("uk-UA", {
+  return formatOperationalTimestamp(new Date(value), displayTimeZone, {
     dateStyle: "medium",
     timeStyle: "medium",
-  }).format(new Date(value));
+  });
 }
 
 function formatBytes(value: number): string {
@@ -57,6 +60,7 @@ export function ReportOutputPanel({
   loading: boolean;
   onReload: () => Promise<void>;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const [action, setAction] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [reason, setReason] = useState("Reviewed immutable evidence and protocol output");
@@ -201,7 +205,7 @@ export function ReportOutputPanel({
       {approval.approved_by ? (
         <div className="grid gap-3 sm:grid-cols-2">
           <OutputMeta label="Затвердив" value={approval.approved_by} />
-          <OutputMeta label="Час затвердження" value={formatDate(approval.approved_at)} />
+          <OutputMeta label="Час затвердження" value={formatDate(approval.approved_at, displayTimeZone)} />
           <OutputMeta label="Причина" value={approval.approval_reason ?? "—"} />
           <OutputMeta
             label="Superseded by"

@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -236,6 +239,7 @@ function LayoutCatalogCard({
   onPreview: () => void;
   onRetry: () => void;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const equipment = item.equipment;
   const stateMeta = layoutStateMeta[item.layoutState];
 
@@ -296,7 +300,7 @@ function LayoutCatalogCard({
 
       {item.kind === "ready" && item.published ? (
         <p className="mt-3 text-[10px] text-slate-500">
-          {formatDateTime(item.published.publishedAt)} · {item.published.publishedBy}
+          {formatDateTime(item.published.publishedAt, displayTimeZone)} · {item.published.publishedBy}
         </p>
       ) : null}
 
@@ -459,11 +463,11 @@ function lifecycleLabel(value: string): string {
   );
 }
 
-function formatDateTime(value: string): string {
+function formatDateTime(value: string, displayTimeZone: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
-    : new Intl.DateTimeFormat("uk-UA", { dateStyle: "medium", timeStyle: "short" }).format(date);
+    : formatOperationalTimestamp(date, displayTimeZone, { dateStyle: "medium", timeStyle: "short" });
 }
 
 const layoutStateLabels: Record<Exclude<LayoutCatalogState, "failed"> | "failed", string> = {

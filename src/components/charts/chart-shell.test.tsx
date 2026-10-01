@@ -1,4 +1,9 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { notifySettingsPreferencesChanged } from "@/features/display-time/store";
+import {
+  createDefaultSettingsPreferences,
+  SETTINGS_PREFERENCES_STORAGE_KEY,
+} from "@/features/settings/preferences";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { chartSeriesKey } from "@/features/charts/domain";
@@ -8,6 +13,57 @@ import { formatChartExactTimestamp } from "@/features/charts/format";
 import { ChartShell } from "./chart-shell";
 
 describe("ChartShell accessibility contract", () => {
+  it("reformats the same inspector sample and keeps values, period and series intact", () => {
+    localStorage.setItem(
+      SETTINGS_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({ ...createDefaultSettingsPreferences(), timeDisplay: "utc" }),
+    );
+    const scene = createBenchmarkScene(1);
+    const point = {
+      ...scene.series[0].segments[0].points[0],
+      timestampMs: Date.parse("2026-07-01T10:20:30Z"),
+      value: 25.7,
+    };
+    render(
+      <ChartShell
+        title="Timezone test"
+        context="fixture"
+        selectedRange="15 min"
+        series={scene.series}
+        inspection={{
+          timestampMs: point.timestampMs,
+          series: [{ seriesKey: chartSeriesKey(scene.series[0].identity), point, freshness: "live" }],
+        }}
+        onToggleSeries={vi.fn()}
+        onSoloSeries={vi.fn()}
+        onResetZoom={vi.fn()}
+      >
+        <div>plot</div>
+      </ChartShell>,
+    );
+    const inspector = screen.getByTestId("chart-inspector");
+    expect(inspector).toHaveTextContent("10:20:30");
+    expect(screen.getByTestId("chart-display-timezone")).toHaveTextContent("UTC");
+    const actual = new Intl.DateTimeFormat().resolvedOptions();
+    vi.spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions").mockReturnValue({
+      ...actual,
+      timeZone: "Europe/Kyiv",
+    });
+    localStorage.setItem(
+      SETTINGS_PREFERENCES_STORAGE_KEY,
+      JSON.stringify(createDefaultSettingsPreferences()),
+    );
+    act(() => notifySettingsPreferencesChanged());
+    expect(screen.getByTestId("chart-inspector")).toBe(inspector);
+    expect(inspector).toHaveTextContent("13:20:30");
+    expect(inspector).toHaveTextContent("25.70 °C");
+    expect(screen.getByTestId("chart-display-timezone")).toHaveTextContent("Europe/Kyiv");
+    expect(screen.getByTestId("chart-accessible-summary")).toHaveTextContent(
+      "Range 15 min. 1 series visible.",
+    );
+    vi.restoreAllMocks();
+    localStorage.clear();
+  });
   it("provides non-color state text and keyboard-operable legend controls", () => {
     const scene = createBenchmarkScene(1);
     const toggle = vi.fn();

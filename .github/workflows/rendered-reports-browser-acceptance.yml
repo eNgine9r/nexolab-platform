@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - "src/features/display-time/**"
+      - "src/hooks/use-display-time-zone*"
+      - "src/hooks/use-settings-preferences*"
       - ".github/workflows/rendered-reports-browser-acceptance.yml"
       - "e2e/rendered-reports.production.e2e.ts"
       - "playwright.rendered-reports.config.ts"

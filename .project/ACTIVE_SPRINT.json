@@ -41,15 +41,11 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1212,
-      "title": "UX-33 remove inactive telemetry-window setting",
-      "branch": "fix/1212-remove-inactive-window"
-    },
-    "next_work_package": {
       "issue": 1213,
       "title": "UX-32 UTC/local operational timestamps and charts",
       "branch": "fix/1213-operational-timezone"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -5934,15 +5930,22 @@
       "issue": 1212,
       "title": "UX-33 remove inactive telemetry-window setting",
       "priority": "medium",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/1212-remove-inactive-window",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "31555c09a6ce172ef831e1c27fca061f1b4d45e9",
+        "pull_request": 1215,
+        "checks": {
+          "ci": "success:36878901149",
+          "dashboard": "success:36878901249"
+        }
+      }
     },
     {
       "issue": 1213,
       "title": "UX-32 UTC/local operational timestamps and charts",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "branch": "fix/1213-operational-timezone",
       "evidence": {}
     },

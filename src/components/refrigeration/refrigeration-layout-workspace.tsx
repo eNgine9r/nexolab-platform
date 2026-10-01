@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import type { ChangeEvent } from "react";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -576,6 +579,7 @@ function PublicationCard({
   onPublish: () => void;
   canPublish: boolean;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-4">
       <div className="flex items-start justify-between gap-3">
@@ -593,7 +597,7 @@ function PublicationCard({
           <>
             <p className="text-sm font-semibold text-emerald-200">Ревізія r{published.revision}</p>
             <p className="mt-1 text-[10px] text-slate-500">
-              {formatDateTime(published.publishedAt)} · {published.publishedBy}
+              {formatDateTime(published.publishedAt, displayTimeZone)} · {published.publishedBy}
             </p>
             <p className="mt-1 truncate text-[9px] text-slate-600">{published.image.fileName}</p>
           </>
@@ -630,6 +634,7 @@ function HistoryCard({
   onRestore: (revision: PublishedLayoutRevision) => void;
   canRestore: boolean;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-[#08182e]/90 p-4">
       <div className="flex items-start justify-between gap-3">
@@ -658,7 +663,7 @@ function HistoryCard({
                 <p className="truncate text-[10px] text-slate-300">{revision.image.fileName}</p>
                 <p className="mt-1 inline-flex items-center gap-1 text-[9px] text-slate-600">
                   <Clock3 className="h-3 w-3" />
-                  {formatDateTime(revision.publishedAt)}
+                  {formatDateTime(revision.publishedAt, displayTimeZone)}
                 </p>
               </div>
               <button
@@ -823,14 +828,14 @@ function operationLabel(operation: ConflictOperation): string {
   return "збереження";
 }
 
-function formatDateTime(value: string): string {
+function formatDateTime(value: string, displayTimeZone: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
-    : new Intl.DateTimeFormat("uk-UA", {
+    : formatOperationalTimestamp(date, displayTimeZone, {
         dateStyle: "medium",
         timeStyle: "short",
-      }).format(date);
+      });
 }
 
 function formatFileSize(sizeBytes: number): string {

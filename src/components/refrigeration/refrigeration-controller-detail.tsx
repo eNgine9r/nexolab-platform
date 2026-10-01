@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import Link from "next/link";
 import { LockKeyhole, RadioTower, ServerCog } from "lucide-react";
 
@@ -23,6 +26,7 @@ export function RefrigerationControllerDetail({
   commissionedAssociationLoading?: boolean;
   commissionedAssociationError?: string | null;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const binding = controller.binding;
   if (controller.bindingLoading)
     return <PanelMessage title="Контролер" text="Завантаження прив’язки контролера…" />;
@@ -82,7 +86,18 @@ export function RefrigerationControllerDetail({
           <Info label="Protocol" value="Modbus RTU · FC03 read-only" />
           <Info
             label="Last telemetry"
-            value={snapshot?.lastSeenAt ? new Date(snapshot.lastSeenAt).toLocaleString("uk-UA") : "—"}
+            value={
+              snapshot?.lastSeenAt
+                ? formatOperationalTimestamp(new Date(snapshot.lastSeenAt), displayTimeZone, {
+                    year: "numeric",
+                    month: "numeric",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                  })
+                : "—"
+            }
           />
         </dl>
 
