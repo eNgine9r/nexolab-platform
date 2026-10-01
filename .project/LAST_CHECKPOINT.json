@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T22:02:56.122Z",
+  "timestamp": "2026-10-01T23:01:03.941Z",
   "actor": "Codex",
-  "event": "ux1235_merged_ux1239_login_return_candidate",
+  "event": "ux1239_merged_ux1241_nodes_status_first_candidate",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1239,
-    "title": "UX-36 safe local login return and password visibility",
-    "branch": "fix/1239-safe-login-return"
+    "issue": 1241,
+    "title": "UX-31 node operational status before separate provisioning form",
+    "branch": "fix/1241-nodes-status-first"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -912,9 +912,23 @@
       "installed_acceptance": "access_gated_1191"
     },
     "issue_1239_safe_login_return": {
-      "qualification": "actual_SecurityGate_login_href_and_LoginPage_replace_root_chain_verified",
-      "next_docs": "official_exact_v16_3_6_page_and_usePathname_docs_read_via_GitHub_local_executor_unavailable",
-      "implementation": "safe_local_target_server_parse_client_recheck_all_six_gates_shared_link_and_non_submit_visibility_toggle",
+      "verified_head_sha": "ee343eff16a18e7543aea4cf9a1e847295cbbfa7",
+      "pull_request": 1240,
+      "exact_head_ci": "10_of_10_green",
+      "core_ci": "success:36937327770",
+      "frontend_tests": "1111_passed_182_files",
+      "production_build": "Next_16_3_6_passed",
+      "offline_auth": "success:36937327710_9_auth_plus_2_persistence_version_cases",
+      "dashboard_browser": "success:36937327666_38_passed",
+      "browser_cases": "60_passed_all_routed_lanes",
+      "review": "3_fixed_resolved_0_unresolved",
+      "source_acceptance": "completed",
+      "local_execution": "not_run_environment_offline",
+      "installed_acceptance": "access_gated_1191"
+    },
+    "issue_1241_nodes_status_first": {
+      "qualification": "actual_node_provision_form_preceded_real_operational_inventory_nodes_manage_verified",
+      "implementation": "native_collapsed_details_after_inventory_preserves_mounted_form_and_secret_errors",
       "local_execution": "not_run_environment_offline",
       "exact_head_ci": "pending",
       "browser_acceptance": "pending"
@@ -1600,9 +1614,32 @@
         "installed_acceptance": "access_gated_1191",
         "local_execution": "environment_offline_remote_GitData_CI_route"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T23:01:03.941Z",
+      "kind": "issue_1239_pr_1240_merged_1241_activated",
+      "data": {
+        "verified_head_sha": "ee343eff16a18e7543aea4cf9a1e847295cbbfa7",
+        "pull_request": 1240,
+        "exact_head_ci": "10_of_10_green",
+        "core_ci": "success:36937327770",
+        "frontend_tests": "1111_passed_182_files",
+        "production_build": "Next_16_3_6_passed",
+        "offline_auth": "success:36937327710_9_auth_plus_2_persistence_version_cases",
+        "dashboard_browser": "success:36937327666_38_passed",
+        "browser_cases": "60_passed_all_routed_lanes",
+        "review": "3_fixed_resolved_0_unresolved",
+        "source_acceptance": "completed",
+        "local_execution": "not_run_environment_offline",
+        "installed_acceptance": "access_gated_1191",
+        "issue": 1239,
+        "merge_sha": "92c1f42d9a6c80f270ca541c1caecb2671126e6e",
+        "next_issue": 1241
+      }
     }
   ],
-  "next_action": "Verify #1239 safe local login return/password visibility with all routed exact-head CI, offline local-auth browser journeys and review GREEN; then merge and qualify the next independent UX package. Approved laboratory template evidence for UX-22/24 and installed #1191 remain separate boundaries; no deployment or hardware action.",
+  "next_action": "Verify #1241 native Nodes disclosure and operational-first inventory with exact-head CI, real 390/1280 px keyboard/draft/no-extra-write/credential/RBAC browser evidence and review GREEN; then merge and continue the next independent Ready UX package. Approved laboratory template evidence and installed #1191 acceptance remain separate dependencies.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

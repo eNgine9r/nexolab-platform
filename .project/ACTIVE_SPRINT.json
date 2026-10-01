@@ -41,9 +41,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1239,
-      "title": "UX-36 safe local login return and password visibility",
-      "branch": "fix/1239-safe-login-return"
+      "issue": 1241,
+      "title": "UX-31 node operational status before separate provisioning form",
+      "branch": "fix/1241-nodes-status-first"
     },
     "next_work_package": null
   },
@@ -6228,14 +6228,38 @@
       "title": "UX-36 safe local login return and password visibility",
       "branch": "fix/1239-safe-login-return",
       "priority": "low",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1235
       ],
       "evidence": {
-        "qualification": "actual_SecurityGate_login_href_and_LoginPage_replace_root_chain_verified",
-        "next_docs": "official_exact_v16_3_6_page_and_usePathname_docs_read_via_GitHub_local_executor_unavailable",
-        "implementation": "safe_local_target_server_parse_client_recheck_all_six_gates_shared_link_and_non_submit_visibility_toggle",
+        "verified_head_sha": "ee343eff16a18e7543aea4cf9a1e847295cbbfa7",
+        "pull_request": 1240,
+        "exact_head_ci": "10_of_10_green",
+        "core_ci": "success:36937327770",
+        "frontend_tests": "1111_passed_182_files",
+        "production_build": "Next_16_3_6_passed",
+        "offline_auth": "success:36937327710_9_auth_plus_2_persistence_version_cases",
+        "dashboard_browser": "success:36937327666_38_passed",
+        "browser_cases": "60_passed_all_routed_lanes",
+        "review": "3_fixed_resolved_0_unresolved",
+        "source_acceptance": "completed",
+        "local_execution": "not_run_environment_offline",
+        "installed_acceptance": "access_gated_1191"
+      }
+    },
+    {
+      "issue": 1241,
+      "title": "UX-31 node operational status before separate provisioning form",
+      "branch": "fix/1241-nodes-status-first",
+      "priority": "medium",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1239
+      ],
+      "evidence": {
+        "qualification": "actual_node_provision_form_preceded_real_operational_inventory_nodes_manage_verified",
+        "implementation": "native_collapsed_details_after_inventory_preserves_mounted_form_and_secret_errors",
         "local_execution": "not_run_environment_offline",
         "exact_head_ci": "pending",
         "browser_acceptance": "pending"
@@ -7138,6 +7162,29 @@
         "source_acceptance": "completed",
         "installed_acceptance": "access_gated_1191",
         "local_execution": "environment_offline_remote_GitData_CI_route"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T23:01:03.941Z",
+      "kind": "issue_1239_pr_1240_merged_1241_activated",
+      "data": {
+        "verified_head_sha": "ee343eff16a18e7543aea4cf9a1e847295cbbfa7",
+        "pull_request": 1240,
+        "exact_head_ci": "10_of_10_green",
+        "core_ci": "success:36937327770",
+        "frontend_tests": "1111_passed_182_files",
+        "production_build": "Next_16_3_6_passed",
+        "offline_auth": "success:36937327710_9_auth_plus_2_persistence_version_cases",
+        "dashboard_browser": "success:36937327666_38_passed",
+        "browser_cases": "60_passed_all_routed_lanes",
+        "review": "3_fixed_resolved_0_unresolved",
+        "source_acceptance": "completed",
+        "local_execution": "not_run_environment_offline",
+        "installed_acceptance": "access_gated_1191",
+        "issue": 1239,
+        "merge_sha": "92c1f42d9a6c80f270ca541c1caecb2671126e6e",
+        "next_issue": 1241
       }
     }
   ],

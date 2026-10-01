@@ -270,67 +270,6 @@ export function NodesWorkspace({ canManage }: { canManage: boolean }) {
         </div>
       </section>
 
-      {canManage ? (
-        <section className="panel p-4 sm:p-5" data-testid="node-provision-panel">
-          <div className="grid gap-3 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_160px_160px_auto] xl:items-end">
-            <Field label="Node ID">
-              <input
-                value={nodeId}
-                onChange={(event) => setNodeId(event.target.value)}
-                placeholder="edge-02"
-                className="form-input"
-                data-testid="node-id-input"
-              />
-            </Field>
-            <Field label="Назва">
-              <input
-                value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
-                placeholder="Холодильна камера B"
-                className="form-input"
-                data-testid="node-name-input"
-              />
-            </Field>
-            <Field label="Clock warning, мс">
-              <input
-                value={clockWarningMs}
-                onChange={(event) => setClockWarningMs(event.target.value)}
-                inputMode="numeric"
-                className="form-input"
-              />
-            </Field>
-            <Field label="Clock critical, мс">
-              <input
-                value={clockCriticalMs}
-                onChange={(event) => setClockCriticalMs(event.target.value)}
-                inputMode="numeric"
-                className="form-input"
-              />
-            </Field>
-            <button
-              type="button"
-              onClick={() => void provision()}
-              disabled={action !== null || !nodeId.trim() || !displayName.trim()}
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-400/10 px-4 text-[11px] font-semibold text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-45"
-              data-testid="provision-node"
-            >
-              {action === "provision" ? (
-                <LoaderCircle className="h-4 w-4 animate-spin" />
-              ) : (
-                <Plus className="h-4 w-4" />
-              )}
-              Provision
-            </button>
-          </div>
-        </section>
-      ) : (
-        <section className="panel flex items-center gap-3 p-4 text-[11px] text-slate-400">
-          <ShieldCheck className="h-5 w-5 text-cyan-300" />
-          Поточна роль має read-only доступ. Provisioning і lifecycle потребують permission
-          <code className="rounded bg-white/[0.04] px-1.5 py-0.5 text-cyan-200">nodes.manage</code>.
-        </section>
-      )}
-
       {oneTimeSecret ? (
         <section
           className="rounded-2xl border border-amber-300/20 bg-amber-400/[0.06] p-4 sm:p-5"
@@ -368,7 +307,7 @@ export function NodesWorkspace({ canManage }: { canManage: boolean }) {
         </section>
       ) : null}
 
-      <section className="panel overflow-hidden">
+      <section className="panel overflow-hidden" data-testid="node-inventory">
         <div className="flex items-center justify-between border-b border-white/[0.055] p-4 sm:p-5">
           <div>
             <h2 className="text-sm font-semibold text-white">Central node inventory</h2>
@@ -462,6 +401,75 @@ export function NodesWorkspace({ canManage }: { canManage: boolean }) {
           </div>
         )}
       </section>
+
+      {canManage ? (
+        <details className="panel" data-testid="node-provision-disclosure">
+          <summary
+            className="min-h-11 cursor-pointer rounded-2xl px-4 py-3 text-sm font-semibold text-cyan-100 focus-visible:outline-2 focus-visible:outline-cyan-300 sm:px-5"
+            data-testid="node-provision-toggle"
+          >
+            Додати вузол
+          </summary>
+          <section className="border-t border-white/[0.055] p-4 sm:p-5" data-testid="node-provision-panel">
+            <div className="grid gap-3 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_160px_160px_auto] xl:items-end">
+              <Field label="Node ID">
+                <input
+                  value={nodeId}
+                  onChange={(event) => setNodeId(event.target.value)}
+                  placeholder="edge-02"
+                  className="form-input"
+                  data-testid="node-id-input"
+                />
+              </Field>
+              <Field label="Назва">
+                <input
+                  value={displayName}
+                  onChange={(event) => setDisplayName(event.target.value)}
+                  placeholder="Холодильна камера B"
+                  className="form-input"
+                  data-testid="node-name-input"
+                />
+              </Field>
+              <Field label="Clock warning, мс">
+                <input
+                  value={clockWarningMs}
+                  onChange={(event) => setClockWarningMs(event.target.value)}
+                  inputMode="numeric"
+                  className="form-input"
+                />
+              </Field>
+              <Field label="Clock critical, мс">
+                <input
+                  value={clockCriticalMs}
+                  onChange={(event) => setClockCriticalMs(event.target.value)}
+                  inputMode="numeric"
+                  className="form-input"
+                />
+              </Field>
+              <button
+                type="button"
+                onClick={() => void provision()}
+                disabled={action !== null || !nodeId.trim() || !displayName.trim()}
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-400/10 px-4 text-[11px] font-semibold text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-45"
+                data-testid="provision-node"
+              >
+                {action === "provision" ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                Provision
+              </button>
+            </div>
+          </section>
+        </details>
+      ) : (
+        <section className="panel flex items-center gap-3 p-4 text-[11px] text-slate-400">
+          <ShieldCheck className="h-5 w-5 text-cyan-300" />
+          Поточна роль має read-only доступ. Provisioning і lifecycle потребують permission
+          <code className="rounded bg-white/[0.04] px-1.5 py-0.5 text-cyan-200">nodes.manage</code>.
+        </section>
+      )}
     </div>
   );
 }
