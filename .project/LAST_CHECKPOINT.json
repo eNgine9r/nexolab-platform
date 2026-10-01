@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T07:03:20+03:00",
+  "timestamp": "2026-10-01T13:35:00+03:00",
   "actor": "Codex",
-  "event": "ux1200_verified_audit_reconciled_merge_pending",
+  "event": "ux1202_browser_verified_readiness_review_corrected",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,7 +28,11 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1202,
+    "title": "UX-15 mobile Live inventory",
+    "branch": "fix/1202-live-mobile-inventory"
+  },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -512,6 +516,19 @@
       "final_source_head": "19ce05713a6f57136120206e28868ec6afbf557a",
       "final_local_tests": "150_pass",
       "final_type_lint_format_build": "pass"
+    },
+    "ux1202_mobile_inventory": {
+      "local_live_tests": "85_pass",
+      "typecheck": "pass",
+      "touched_eslint": "pass",
+      "production_build": "pass",
+      "browser": "first_candidate_success_36849506731_final_readiness_CI_pending",
+      "dependency_change": "none",
+      "deployment_hardware_write": "none",
+      "product_candidate_sha": "64ce829b0da84512353f22a7b4e3f15fa4036e35",
+      "acquisition_scale": "success_36849506693",
+      "review_thread": "PRRT_kwDOTe72wM6n53-Z",
+      "pull_request": 1203
     }
   },
   "observations": [
@@ -807,7 +824,7 @@
       }
     }
   ],
-  "next_action": "Verify final docs/state head CI and expected-head merge PR #1201; deployed #1191 acceptance still requires normal authenticated operator browser access. No independent Ready software package is selected.",
+  "next_action": "Require final exact-head CI/review for PR #1203; merge only GREEN, then begin Ready #1204 dialog focus. Audit #1191 installed acceptance remains access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

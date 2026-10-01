@@ -123,7 +123,7 @@ describe("LiveTelemetryExplorer graph-first composition", () => {
     expect(appearsBefore(search, compare)).toBe(true);
     expect(within(chart).getByText("Жодного каналу не обрано")).toBeVisible();
     expect(within(chart).getByText("Оберіть датчики для графіка")).toBeVisible();
-    expect(inventory.querySelector(".overflow-x-auto")).not.toBeNull();
+    expect(inventory.querySelector("table")).not.toBeNull();
   });
 });
 
@@ -164,4 +164,52 @@ describe("Live channel selection shortcut", () => {
     );
     expect(screen.getByPlaceholderText("node, equipment, channel, metric, source...")).toHaveFocus();
   });
+});
+
+describe("responsive Live inventory", () => {
+  it("keeps one comparison control and collapsed technical details per channel", () => {
+    const telemetry = model();
+    render(<LiveTelemetryExplorer telemetry={telemetry} />);
+    const row = screen.getByTestId("live-channel-row");
+    const checkbox = within(row).getByRole("checkbox", { name: /Порівнювати K106 106-03/ });
+    expect(within(row).getAllByRole("checkbox")).toHaveLength(1);
+    expect(row.querySelector("details")).not.toHaveAttribute("open");
+    expect(within(row).getByText("Деталі каналу")).toBeVisible();
+    expect(row.querySelector("time")).toHaveAttribute("datetime", telemetry.samples[0].captured_at);
+    fireEvent.click(checkbox);
+    expect(telemetry.setSelectedKeys).toHaveBeenCalledWith(["edge-01|K106|106-03|temperature.probe|degC"]);
+  });
+  it.each([
+    ["valid", "Застарілі дані"],
+    ["sensor_error", "Помилка датчика"],
+    ["communication_error", "Помилка зв’язку"],
+    ["unknown", "Невідомий стан"],
+  ] as const)("retains truthful %s state and null values", (quality, state) => {
+    const telemetry = model();
+    telemetry.samples = [
+      {
+        ...telemetry.samples[0],
+        captured_at: new Date(0).toISOString(),
+        value: null,
+        quality,
+        alarm: "high",
+      },
+    ];
+    render(<LiveTelemetryExplorer telemetry={telemetry} />);
+    const row = screen.getByTestId("live-channel-row");
+    expect(within(row).getByText(state)).toBeVisible();
+    expect(within(row).getByText("—")).toBeVisible();
+    expect(within(row).getByText("Вище межі")).toBeVisible();
+  });
+});
+
+it("exposes stable inventory loading readiness until an empty snapshot settles", () => {
+  const telemetry = model();
+  telemetry.status = "connecting";
+  telemetry.samples = [];
+  const { rerender } = render(<LiveTelemetryExplorer telemetry={telemetry} />);
+  expect(screen.getByTestId("live-inventory-loading")).toBeVisible();
+  rerender(<LiveTelemetryExplorer telemetry={{ ...telemetry, status: "live" }} />);
+  expect(screen.queryByTestId("live-inventory-loading")).not.toBeInTheDocument();
+  expect(screen.getByText("Каналів не знайдено")).toBeVisible();
 });

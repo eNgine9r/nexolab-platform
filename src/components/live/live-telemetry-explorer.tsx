@@ -751,7 +751,7 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[0.07] px-4 py-4 sm:px-5">
           <div>
             <h2 id="live-inventory-panel-title" className="text-base font-semibold text-white">
-              Latest values
+              Останні показники
             </h2>
             <p className="mt-1 text-xs text-slate-500">
               {filtered.length} каналів відповідають поточному запиту
@@ -764,8 +764,11 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
           ) : null}
         </div>
         {telemetry.status === "connecting" && telemetry.samples.length === 0 ? (
-          <div className="grid min-h-48 place-items-center p-8 text-center text-sm text-slate-400">
-            Завантаження реального channel inventory…
+          <div
+            data-testid="live-inventory-loading"
+            className="grid min-h-48 place-items-center p-8 text-center text-sm text-slate-400"
+          >
+            Завантаження каналів…
           </div>
         ) : filtered.length === 0 ? (
           <div className="grid min-h-48 place-items-center p-8 text-center">
@@ -778,75 +781,159 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
             </div>
           </div>
         ) : (
-          <div className="max-w-full overflow-x-auto">
-            <table className="w-full min-w-[1080px] text-left text-sm">
-              <thead className="bg-white/[0.025] text-xs tracking-wide text-slate-500 uppercase">
+          <div className="max-w-full lg:overflow-x-auto">
+            <table
+              role="table"
+              aria-label="Останні показники каналів"
+              className="block w-full text-left text-sm lg:table lg:min-w-[1080px]"
+            >
+              <thead
+                role="rowgroup"
+                className="sr-only bg-white/[0.025] text-xs tracking-wide text-slate-500 uppercase lg:not-sr-only lg:table-header-group"
+              >
                 <tr>
-                  <th className="w-16 px-4 py-3">Compare</th>
-                  <th className="px-3 py-3">Node</th>
-                  <th className="px-3 py-3">Equipment</th>
-                  <th className="px-3 py-3">Channel</th>
-                  <th className="px-3 py-3">Metric</th>
-                  <th className="px-3 py-3">Value</th>
-                  <th className="px-3 py-3">State</th>
-                  <th className="px-3 py-3">Alarm</th>
-                  <th className="px-3 py-3">Captured</th>
+                  <th scope="col" className="w-16 px-4 py-3">
+                    Порівняти
+                  </th>
+                  <th scope="col" className="hidden px-3 py-3 lg:table-cell">
+                    Вузол
+                  </th>
+                  <th scope="col" className="hidden px-3 py-3 lg:table-cell">
+                    Обладнання
+                  </th>
+                  <th scope="col" className="hidden px-3 py-3 lg:table-cell">
+                    Канал
+                  </th>
+                  <th scope="col" className="hidden px-3 py-3 lg:table-cell">
+                    Показник
+                  </th>
+                  <th scope="col" className="px-3 py-3">
+                    Значення
+                  </th>
+                  <th scope="col" className="px-3 py-3">
+                    Стан
+                  </th>
+                  <th scope="col" className="px-3 py-3">
+                    Тривога
+                  </th>
+                  <th scope="col" className="px-3 py-3">
+                    Час вимірювання
+                  </th>
+                  <th scope="col" className="lg:hidden">
+                    Деталі каналу
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.055]">
+              <tbody role="rowgroup" className="block divide-y divide-white/[0.055] lg:table-row-group">
                 {filtered.map((sample) => {
                   const key = liveChannelKey(sample);
                   const selectedNow = telemetry.selectedKeys.includes(key);
                   const state = liveTelemetryState(sample);
                   return (
-                    <tr key={key} className="text-slate-300 hover:bg-white/[0.02]">
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedNow}
-                          aria-label={`Порівнювати ${sample.equipment_id} ${sample.channel_id} ${sample.metric}`}
-                          onChange={() => {
-                            const result = toggleLiveSelection(telemetry.selectedKeys, key, availableKeys);
-                            if (!result.changed) {
-                              setSelectionMessage(
-                                result.reason === "limit"
-                                  ? "Можна порівнювати не більше 8 каналів."
-                                  : "Канал більше недоступний.",
-                              );
-                              return;
-                            }
-                            setSelectionMessage(null);
-                            telemetry.setSelectedKeys(result.selected);
-                            syncUrl(filters, result.selected, range);
-                          }}
-                          className="h-4 w-4 accent-cyan-400"
-                        />
+                    <tr
+                      role="row"
+                      key={key}
+                      data-testid="live-channel-row"
+                      className="grid grid-cols-[2.75rem_minmax(0,1fr)] gap-y-2 px-3 py-4 text-slate-300 hover:bg-white/[0.02] lg:table-row lg:p-0"
+                    >
+                      <td
+                        role="cell"
+                        className="row-span-5 flex items-start justify-center pt-1 lg:table-cell lg:px-4 lg:py-3"
+                      >
+                        <label className="flex min-h-11 w-11 cursor-pointer justify-center lg:min-h-0 lg:w-auto">
+                          <input
+                            type="checkbox"
+                            checked={selectedNow}
+                            aria-label={`Порівнювати ${sample.equipment_id} ${sample.channel_id} ${sample.metric}`}
+                            onChange={() => {
+                              const result = toggleLiveSelection(telemetry.selectedKeys, key, availableKeys);
+                              if (!result.changed) {
+                                setSelectionMessage(
+                                  result.reason === "limit"
+                                    ? "Можна порівнювати не більше 8 каналів."
+                                    : "Канал більше недоступний.",
+                                );
+                                return;
+                              }
+                              setSelectionMessage(null);
+                              telemetry.setSelectedKeys(result.selected);
+                              syncUrl(filters, result.selected, range);
+                            }}
+                            className="h-5 w-5 accent-cyan-400 lg:h-4 lg:w-4"
+                          />
+                        </label>
                       </td>
-                      <td className="px-3 py-3 text-xs">{sample.node_id}</td>
-                      <td className="px-3 py-3 text-xs">{sample.equipment_id}</td>
-                      <td className="px-3 py-3 text-xs">{sample.channel_id}</td>
-                      <td className="px-3 py-3 text-xs">{sample.metric}</td>
-                      <td className="px-3 py-3 font-medium text-white">{formatValue(sample)}</td>
-                      <td className="px-3 py-3">
+                      <td role="cell" className="hidden px-3 py-3 text-xs lg:table-cell">
+                        {sample.node_id}
+                      </td>
+                      <td role="cell" className="hidden px-3 py-3 text-xs lg:table-cell">
+                        {sample.equipment_id}
+                      </td>
+                      <td role="cell" className="hidden px-3 py-3 text-xs lg:table-cell">
+                        {sample.channel_id}
+                      </td>
+                      <td role="cell" className="hidden px-3 py-3 text-xs lg:table-cell">
+                        {sample.metric}
+                      </td>
+                      <td
+                        role="cell"
+                        className="col-start-2 row-start-1 min-w-0 font-medium text-white lg:px-3 lg:py-3"
+                      >
+                        <span className="mb-1 block text-xs [overflow-wrap:anywhere] text-slate-300 lg:hidden">
+                          {sample.equipment_id} · {sample.channel_id} · {sample.metric}
+                        </span>
+                        <span className="[overflow-wrap:anywhere]">{formatValue(sample)}</span>
+                      </td>
+                      <td role="cell" className="col-start-2 row-start-2 min-w-0 lg:px-3 lg:py-3">
                         <span
                           className={`inline-flex rounded-lg border px-2 py-1 text-xs ${stateClasses(state)}`}
                         >
                           {stateCopy(state)}
                         </span>
                       </td>
-                      <td className="px-3 py-3">
+                      <td role="cell" className="col-start-2 row-start-3 min-w-0 lg:px-3 lg:py-3">
                         {sample.alarm ? (
                           <span className="inline-flex items-center gap-1 rounded-lg border border-red-300/20 bg-red-400/10 px-2 py-1 text-xs text-red-200">
-                            <AlertTriangle className="h-3 w-3" aria-hidden="true" /> {sample.alarm}
+                            <AlertTriangle className="h-3 w-3" aria-hidden="true" />{" "}
+                            {sample.alarm === "high" ? "Вище межі" : "Нижче межі"}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-xs text-slate-500">
-                            <CheckCircle2 className="h-3 w-3" aria-hidden="true" /> none
+                            <CheckCircle2 className="h-3 w-3" aria-hidden="true" /> Без тривог
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-xs text-slate-400">
-                        {formatTimestamp(sample.captured_at)}
+                      <td
+                        role="cell"
+                        className="col-start-2 row-start-4 min-w-0 text-xs text-slate-400 lg:px-3 lg:py-3"
+                      >
+                        <span className="lg:hidden">Виміряно: </span>
+                        <time dateTime={sample.captured_at}>{formatTimestamp(sample.captured_at)}</time>
+                      </td>
+                      <td role="cell" className="col-start-2 row-start-5 min-w-0 text-xs lg:hidden">
+                        <details className="[overflow-wrap:anywhere]">
+                          <summary className="min-h-11 w-fit cursor-pointer rounded py-3 text-cyan-200 focus-visible:outline-2 focus-visible:outline-cyan-300">
+                            Деталі каналу
+                          </summary>
+                          <dl className="grid gap-1 py-2 text-slate-400">
+                            <div>
+                              <dt className="inline">Вузол: </dt>
+                              <dd className="inline">{sample.node_id}</dd>
+                            </div>
+                            <div>
+                              <dt className="inline">Обладнання: </dt>
+                              <dd className="inline">{sample.equipment_id}</dd>
+                            </div>
+                            <div>
+                              <dt className="inline">Канал: </dt>
+                              <dd className="inline">{sample.channel_id}</dd>
+                            </div>
+                            <div>
+                              <dt className="inline">Показник: </dt>
+                              <dd className="inline">{sample.metric}</dd>
+                            </div>
+                          </dl>
+                        </details>
                       </td>
                     </tr>
                   );

@@ -40,8 +40,16 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": null
+    "active_work_package": {
+      "issue": 1202,
+      "title": "UX-15 mobile Live inventory",
+      "branch": "fix/1202-live-mobile-inventory"
+    },
+    "next_work_package": {
+      "issue": 1204,
+      "title": "UX-11 Overview visibility dialog keyboard focus",
+      "branch": "fix/1204-overview-dialog-focus"
+    }
   },
   "work_packages": [
     {
@@ -5816,6 +5824,32 @@
         },
         "pull_request": 1201
       }
+    },
+    {
+      "issue": 1202,
+      "title": "UX-15 mobile Live inventory",
+      "priority": "unspecified",
+      "lifecycle": "review",
+      "branch": "fix/1202-live-mobile-inventory",
+      "evidence": {
+        "verified_head_sha": "64ce829b0da84512353f22a7b4e3f15fa4036e35",
+        "pull_request": 1203,
+        "checks": {
+          "first_candidate_dashboard_browser": "success_36849506731_mobile_and_keyboard",
+          "first_candidate_acquisition_scale": "success_36849506693",
+          "review_readiness_selector": "corrected_final_CI_pending",
+          "local_live_tests": "85_pass",
+          "typecheck_lint_build": "pass"
+        }
+      }
+    },
+    {
+      "issue": 1204,
+      "title": "UX-11 Overview visibility dialog keyboard focus",
+      "priority": "high",
+      "lifecycle": "ready",
+      "branch": "fix/1204-overview-dialog-focus",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [

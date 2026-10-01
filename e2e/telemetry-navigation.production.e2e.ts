@@ -184,9 +184,7 @@ async function waitForRouteUsable(page: Page, route: RouteKey): Promise<void> {
     await expect(page.getByTestId("live-primary-chart")).toBeVisible();
     const inventory = page.getByTestId("live-inventory-panel");
     await expect(inventory).toBeVisible();
-    await expect(
-      inventory.getByText("Завантаження реального channel inventory…", { exact: true }),
-    ).toHaveCount(0);
+    await expect(inventory.getByTestId("live-inventory-loading")).toHaveCount(0);
     return;
   }
   if (route === "nodes") {
