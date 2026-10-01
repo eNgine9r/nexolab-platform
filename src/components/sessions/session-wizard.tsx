@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, LoaderCircle, ShieldCheck } from "lucide-react";
 
+import { usePlatformAccount } from "@/components/dashboard/platform-account-boundary";
 import {
   buildSessionTelemetrySelectionModel,
   resolveSelectedSessionBindings,
@@ -50,7 +51,11 @@ function sameSelection(left: readonly string[], right: readonly string[]): boole
 
 export function SessionWizard() {
   const router = useRouter();
-  const configuredOrganizationId = process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() || null;
+  const account = usePlatformAccount();
+  const configuredOrganizationId =
+    account?.security.membership?.organizationId ??
+    process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() ??
+    null;
   const hierarchyOrganizationId = configuredOrganizationId ?? "__current_organization__";
   const [step, setStep] = useState(0);
   const selectionEnabled = step >= 3;
@@ -77,7 +82,7 @@ export function SessionWizard() {
   useEffect(() => {
     if (!selectionEnabled) return;
     const controller = new AbortController();
-    const sessionClient = createSessionApiClient();
+    const sessionClient = createSessionApiClient({ organizationId: configuredOrganizationId });
     void sessionClient
       .listProductionBindingOptions(controller.signal)
       .then((options) => {
@@ -94,7 +99,7 @@ export function SessionWizard() {
         setBindingOptionsStatus("error");
       });
     return () => controller.abort();
-  }, [bindingOptionsRevision, selectionEnabled]);
+  }, [bindingOptionsRevision, configuredOrganizationId, selectionEnabled]);
 
   const selectionModel = useMemo(
     () => buildSessionTelemetrySelectionModel(hierarchyOrganizationId, inventory.items, bindingOptions),
@@ -136,7 +141,7 @@ export function SessionWizard() {
     setSubmitting(true);
     setError(null);
     try {
-      const sessionClient = createSessionApiClient();
+      const sessionClient = createSessionApiClient({ organizationId: configuredOrganizationId });
       if (
         selectionStatus !== "ready" ||
         selectedBindings.length === 0 ||

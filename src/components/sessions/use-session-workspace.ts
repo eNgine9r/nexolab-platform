@@ -56,7 +56,7 @@ export interface SessionWorkspaceModel {
   addNote: (body: string) => Promise<void>;
 }
 
-export function useSessionWorkspace(sessionId: string): SessionWorkspaceModel {
+export function useSessionWorkspace(sessionId: string, organizationId?: string): SessionWorkspaceModel {
   const [data, setData] = useState<SessionWorkspaceData | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,7 +73,7 @@ export function useSessionWorkspace(sessionId: string): SessionWorkspaceModel {
   const load = useCallback(
     async (signal: AbortSignal) => {
       try {
-        const client = createSessionApiClient();
+        const client = createSessionApiClient({ organizationId });
         const session = await client.getSession(sessionId, signal);
         const historyFrom = session.started_at
           ? new Date(Math.max(new Date(session.started_at).getTime(), Date.now() - 24 * 60 * 60 * 1000))
@@ -123,7 +123,7 @@ export function useSessionWorkspace(sessionId: string): SessionWorkspaceModel {
         if (!signal.aborted) setLoading(false);
       }
     },
-    [sessionId],
+    [organizationId, sessionId],
   );
 
   useEffect(() => {
@@ -163,7 +163,7 @@ export function useSessionWorkspace(sessionId: string): SessionWorkspaceModel {
   const transition = useCallback(
     async (action: SessionAction) => {
       await runMutation(`lifecycle-${action}`, async (key) => {
-        const client = createSessionApiClient();
+        const client = createSessionApiClient({ organizationId });
         await client.transition(
           sessionId,
           action,
@@ -172,14 +172,14 @@ export function useSessionWorkspace(sessionId: string): SessionWorkspaceModel {
         );
       });
     },
-    [runMutation, sessionId],
+    [organizationId, runMutation, sessionId],
   );
 
   const advanceStage = useCallback(
     async (input: { stageType: SessionStageType; name: string; plannedDurationMinutes: number }) => {
       const nextIndex = data?.stages.length ?? 0;
       await runMutation(`stage-${nextIndex}`, async (key) => {
-        const client = createSessionApiClient();
+        const client = createSessionApiClient({ organizationId });
         await client.advanceStage(
           sessionId,
           {
@@ -193,7 +193,7 @@ export function useSessionWorkspace(sessionId: string): SessionWorkspaceModel {
         );
       });
     },
-    [data?.stages.length, runMutation, sessionId],
+    [data?.stages.length, organizationId, runMutation, sessionId],
   );
 
   const addNote = useCallback(
@@ -201,7 +201,7 @@ export function useSessionWorkspace(sessionId: string): SessionWorkspaceModel {
       const normalized = body.trim();
       if (!normalized) return;
       await runMutation(`note-${Date.now()}`, async (key) => {
-        const client = createSessionApiClient();
+        const client = createSessionApiClient({ organizationId });
         await client.addNote(
           sessionId,
           {
@@ -213,7 +213,7 @@ export function useSessionWorkspace(sessionId: string): SessionWorkspaceModel {
         );
       });
     },
-    [data?.session.current_stage_id, runMutation, sessionId],
+    [data?.session.current_stage_id, organizationId, runMutation, sessionId],
   );
 
   const connectionState = useMemo(

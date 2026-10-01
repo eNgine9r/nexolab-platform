@@ -4,9 +4,19 @@ import { useState, type ReactNode } from "react";
 import { Construction, Layers3 } from "lucide-react";
 
 import { Sidebar } from "@/components/dashboard/sidebar";
-import { Topbar } from "@/components/dashboard/topbar";
+import { PlatformAccountBoundary, PlatformAccountTopbar } from "./platform-account-boundary";
 
-export function PlatformPlaceholderScreen({
+type PlaceholderProps = { title: string; eyebrow: string; description: string; icon?: ReactNode };
+
+export function PlatformPlaceholderScreen(props: PlaceholderProps) {
+  return (
+    <PlatformAccountBoundary>
+      <PlatformPlaceholderContent {...props} />
+    </PlatformAccountBoundary>
+  );
+}
+
+function PlatformPlaceholderContent({
   title,
   eyebrow,
   description,
@@ -28,7 +38,7 @@ export function PlatformPlaceholderScreen({
         onSelect={() => undefined}
       />
       <div className="min-h-screen lg:pl-[264px]">
-        <Topbar title={title} onMenuOpen={() => setSidebarOpen(true)} />
+        <PlatformAccountTopbar title={title} onMenuOpen={() => setSidebarOpen(true)} />
         <main className="relative overflow-hidden p-4 xl:p-6">
           <div className="pointer-events-none absolute -top-40 -right-24 h-[420px] w-[420px] rounded-full bg-blue-500/[0.07] blur-3xl" />
           <div className="relative mx-auto max-w-[1800px]">

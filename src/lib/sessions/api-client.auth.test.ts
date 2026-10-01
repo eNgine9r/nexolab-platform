@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { setSecurityCredentials } from "@/features/security/security-session";
+import { getSecurityCredentials, setSecurityCredentials } from "@/features/security/security-session";
 
 import { createSessionApiClient, type SessionFetch } from "./api-client";
 
@@ -73,4 +73,72 @@ describe("authenticated Session API client", () => {
     expect(secondHeaders.get("Authorization")).toBe("Bearer refreshed-access-token");
     expect(secondHeaders.get("X-Organization-ID")).toBe("second-org");
   });
+});
+
+describe("explicit verified organization scope", () => {
+  it("does not overwrite a selected organization with acceptance defaults", async () => {
+    vi.stubEnv("NEXT_PUBLIC_NEXOLAB_DATA_MODE", "live");
+    vi.stubEnv("NEXT_PUBLIC_NEXOLAB_API_BASE_URL", "https://api.example.test");
+    vi.stubEnv("NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER", "acceptance");
+    window.sessionStorage.setItem("nexolab.acceptance.access-token", "old-token");
+    window.sessionStorage.setItem("nexolab.acceptance.organization-id", "old-org");
+    setSecurityCredentials({ accessToken: "verified-token", organizationId: "org-b" });
+    const fetchImpl = createFetchMock();
+    const client = createSessionApiClient({ fetch: fetchImpl, organizationId: "org-b" });
+    try {
+      await client.listSessions();
+      const requestHeaders = new Headers(fetchImpl.mock.calls[0]![1]?.headers);
+      expect(requestHeaders.get("X-Organization-ID")).toBe("org-b");
+      expect(requestHeaders.get("Authorization")).toBe("Bearer verified-token");
+      expect(getSecurityCredentials().organizationId).toBe("org-b");
+      setSecurityCredentials({ accessToken: "refreshed-token", organizationId: "org-b" });
+      await client.listSessions();
+      expect(new Headers(fetchImpl.mock.calls[1]![1]?.headers).get("Authorization")).toBe(
+        "Bearer refreshed-token",
+      );
+    } finally {
+      window.sessionStorage.clear();
+      vi.unstubAllEnvs();
+      setSecurityCredentials({ accessToken: null, organizationId: null });
+    }
+  });
+});
+
+it("refreshes an expired local token while retaining the explicit organization", async () => {
+  vi.stubEnv("NEXT_PUBLIC_NEXOLAB_DATA_MODE", "live");
+  vi.stubEnv("NEXT_PUBLIC_NEXOLAB_API_BASE_URL", "https://api.example.test");
+  vi.stubEnv("NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER", "local");
+  window.sessionStorage.setItem("nexolab.local-auth.access-token", "expired-token");
+  window.sessionStorage.setItem("nexolab.local-auth.refresh-token", "refresh-token");
+  window.sessionStorage.setItem("nexolab.local-auth.access-expires-at", "0");
+  setSecurityCredentials({ accessToken: "expired-token", organizationId: "org-b" });
+  const refresh = vi.fn(
+    async () =>
+      new Response(
+        JSON.stringify({
+          access_token: "fresh-token",
+          refresh_token: "new-refresh-token",
+          expires_in: 600,
+          refresh_expires_in: 3600,
+        }),
+        { status: 200 },
+      ),
+  );
+  vi.stubGlobal("fetch", refresh);
+  try {
+    const fetchImpl = createFetchMock();
+    await createSessionApiClient({ fetch: fetchImpl, organizationId: "org-b" }).listSessions();
+    expect(refresh).toHaveBeenCalledWith(
+      "https://api.example.test/api/v1/auth/local/refresh",
+      expect.objectContaining({ method: "POST" }),
+    );
+    const headers = new Headers(fetchImpl.mock.calls[0]![1]?.headers);
+    expect(headers.get("Authorization")).toBe("Bearer fresh-token");
+    expect(headers.get("X-Organization-ID")).toBe("org-b");
+  } finally {
+    window.sessionStorage.clear();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    setSecurityCredentials({ accessToken: null, organizationId: null });
+  }
 });

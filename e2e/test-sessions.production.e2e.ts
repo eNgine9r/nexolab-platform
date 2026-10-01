@@ -357,6 +357,13 @@ test("enforces organization-scoped authenticated production session workflow", a
     await expect(page.getByText("NXL-SESSION-GATE-001", { exact: true })).toBeVisible();
     await page.getByText("NXL-SESSION-GATE-001", { exact: true }).click();
     await expect(page.getByText("Immutable view", { exact: true })).toBeVisible();
+    await expect(
+      page.getByTestId("platform-topbar").getByText("Engineer A Acceptance", { exact: true }),
+    ).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 900 });
+    await expect(
+      page.getByTestId("platform-topbar").getByRole("button", { name: "Вийти з NEXOLAB" }),
+    ).toBeVisible();
     await expect(page.getByText("Organization-scoped browser acceptance", { exact: true })).toBeVisible();
     await page.screenshot({
       path: path.join(evidenceDirectory, "completed-session-immutable.png"),
@@ -409,3 +416,57 @@ function requiredEnvironment(name: string): string {
   if (!value) throw new Error(`${name} is required for test sessions acceptance`);
   return value;
 }
+
+test("Sessions and Lockers share verified account actions at operator screen widths", async ({ browser }) => {
+  for (const [token, organization, identity] of [
+    [engineerAToken, organizationA, "Engineer A Acceptance"],
+    [engineerBToken, organizationB, "Engineer B Acceptance"],
+  ]) {
+    const context = await authenticatedContext(browser, token!, organization!);
+    const page = await context.newPage();
+    try {
+      for (const route of ["/sessions", "/sessions/new", "/lockers"]) {
+        await page.goto(route, { waitUntil: "domcontentloaded" });
+        const header = page.getByTestId("platform-topbar");
+        await expect(header.getByText(identity!, { exact: true })).toBeVisible();
+        await expect(header.locator("[data-organization-id]")).toHaveAttribute(
+          "data-organization-id",
+          organization!,
+        );
+        for (const width of [360, 390, 430, 1280]) {
+          await page.setViewportSize({ width, height: 900 });
+          await expect(header.getByRole("button", { name: "Вийти з NEXOLAB" })).toBeVisible();
+          await expect(header.getByRole("link", { name: "Нова сесія" })).toBeVisible();
+          const bounds = await header.evaluate((element) => ({
+            client: element.clientWidth,
+            scroll: element.scrollWidth,
+          }));
+          expect(bounds.scroll).toBeLessThanOrEqual(bounds.client);
+        }
+      }
+      await page.getByTestId("platform-topbar").getByRole("button", { name: "Вийти з NEXOLAB" }).click();
+      await expect(page).toHaveURL(/\/login$/);
+    } finally {
+      await context.close();
+    }
+  }
+});
+
+test("anonymous users cannot mount Sessions or Lockers domain content", async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const domainRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/api/v1/sessions")) domainRequests.push(request.url());
+  });
+  try {
+    for (const route of ["/sessions", "/sessions/new", "/sessions/account-gate-fixture", "/lockers"]) {
+      await page.goto(route, { waitUntil: "domcontentloaded" });
+      await expect(page.getByRole("heading", { name: "Потрібен вхід до системи" })).toBeVisible();
+      await expect(page.getByTestId("platform-topbar")).toHaveCount(0);
+    }
+    expect(domainRequests).toHaveLength(0);
+  } finally {
+    await context.close();
+  }
+});
