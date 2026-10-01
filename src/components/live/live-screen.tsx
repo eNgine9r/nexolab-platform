@@ -11,8 +11,13 @@ import { Topbar } from "@/components/dashboard/topbar";
 import { LiveDashboardWorkspace } from "@/components/live-dashboards/live-dashboard-workspace";
 import { LiveDataWorkspace } from "@/components/live/live-data-workspace";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
+import { LIVE_SELECTION_LIMIT } from "@/features/live/live-telemetry";
+import { LIVE_DASHBOARD_MAX_ITEMS } from "@/features/live-dashboards/types";
 
 type LiveWorkspaceMode = "dashboards" | "explorer";
+
+const comparisonLimitLabel = `Швидке порівняння — до ${LIVE_SELECTION_LIMIT} точок вимірювання.`;
+const savedLimitLabel = `Збережені панелі — до ${LIVE_DASHBOARD_MAX_ITEMS} точок вимірювання.`;
 
 function LiveModeGate({ title, message, retry }: { title: string; message: string; retry?: () => void }) {
   return (
@@ -225,6 +230,30 @@ export function LiveScreen() {
                 </button>
               ) : null}
             </nav>
+
+            <aside
+              className="mb-4 space-y-2 rounded-2xl border border-white/[0.08] bg-[#091a31]/90 p-3 text-sm text-slate-400"
+              aria-label="Формати моніторингу"
+              data-testid="live-workspace-guidance"
+            >
+              {effectiveWorkspace === "explorer" ? (
+                <p>{comparisonLimitLabel} Для разової перевірки поточних вимірювань.</p>
+              ) : (
+                <p>{savedLimitLabel} Збережений набір зручно відкривати для повторних перевірок.</p>
+              )}
+              {effectiveWorkspace === "explorer" && canReadDashboards ? (
+                <div className="space-y-2">
+                  <p>{savedLimitLabel} Для регулярного моніторингу того самого набору.</p>
+                  <button
+                    type="button"
+                    onClick={() => switchWorkspace("dashboards")}
+                    className="inline-flex min-h-11 items-center rounded-xl border border-white/10 px-3 text-sm text-cyan-200 outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                  >
+                    Відкрити збережені панелі
+                  </button>
+                </div>
+              ) : null}
+            </aside>
 
             {effectiveWorkspace === "explorer" ? (
               <LiveDataWorkspace

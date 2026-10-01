@@ -2,9 +2,9 @@
 
 Updated: 2026-10-01
 
-## UX source acceptance — #1214 pending
+## UX source acceptance — #1218 pending
 
-#1213 / PR #1216 is cleared: head 3fc52a2f7f0026c8fc2cd951394a5b606b120c09, all thirteen registered workflows GREEN, 944 frontend tests and 33 Dashboard browser cases, no review threads. #1214 reproduced both incomplete Gauge choice regressions (2 expected failures, 944 baseline passes) after successful type/lint/format. Its bounded editor/card fix and browser scenarios now await final exact-head CI/review. Local execution environment is offline; exact-head CI remains available and is required before completion. Installed operator acceptance is the separate #1191 blocker below.
+#1214 / PR #1217 is cleared: head 24752fffcf13ba8eacac761feba2beee74c295b2, all three registered workflows GREEN, 946 tests, 10 browser cases and three resolved review threads. #1218 explains the current 8/64 monitoring limits and reuses the existing permission/context-preserving workspace transition. Its exact-head CI/browser/review is pending. Local execution remains offline; GitHub verification is available. Installed operator acceptance is the separate #1191 blocker below.
 
 ## Audit #1191 — authenticated deployed all-page evidence pending
 
