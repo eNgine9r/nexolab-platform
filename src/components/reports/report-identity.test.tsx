@@ -47,7 +47,7 @@ describe("frozen report display identity", () => {
     const legacy = { ...report, session_summary } as TestReport;
     expect(reportTitle(legacy)).toBe("Звіт випробування");
     render(<ReportObject report={legacy} />);
-    expect(screen.getByText("Назву випробування не збережено в цій версії звіту.")).toBeInTheDocument();
+    expect(screen.getByText("Контекст випробування недоступний у цій версії звіту.")).toBeInTheDocument();
     expect(screen.queryByText(report.session_id)).not.toBeInTheDocument();
   });
 });

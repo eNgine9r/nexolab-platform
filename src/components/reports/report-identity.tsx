@@ -5,7 +5,7 @@ export function ReportObject({ report }: { report: TestReport }) {
   const summary = reportSessionSummary(report);
   return (
     <p className="mt-2 text-[11px] break-words text-slate-400">
-      {summary ? `Об’єкт: ${summary.test_object}` : "Назву випробування не збережено в цій версії звіту."}
+      {summary ? `Об’єкт: ${summary.test_object}` : "Контекст випробування недоступний у цій версії звіту."}
     </p>
   );
 }

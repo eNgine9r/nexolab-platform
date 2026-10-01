@@ -100,7 +100,7 @@ test("restored nodes, reports and refrigeration state remain operator-visible", 
         name: "Звіт випробування",
       }),
     ).toBeVisible();
-    await expect(reportDetail).toContainText("Назву випробування не збережено в цій версії звіту.");
+    await expect(reportDetail).toContainText("Контекст випробування недоступний у цій версії звіту.");
     const diagnostics = reportDetail.getByTestId("report-technical-details");
     await expect(diagnostics).not.toHaveAttribute("open");
     await diagnostics.locator("summary").click();
