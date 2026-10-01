@@ -5787,7 +5787,12 @@
           "locked_account_product_head": "e3aa377d76c5c45259d7d40e4bc9efea70586cc0",
           "locked_account_tests": "93_pass",
           "account_operation_lock_red_green": "4_pass",
-          "locked_account_type_lint_format_build": "pass"
+          "locked_account_type_lint_format_build": "pass",
+          "recovered_wizard_tests": "108_pass",
+          "workspace_mutation_leases": "4_pass",
+          "draft_replay_after_navigation": "3_pass",
+          "recovery_type_lint_format_build": "pass",
+          "recovered_product_head": "d2858c3e1e64b88df41df0768dd7ee7b94df9179"
         },
         "pull_request": 1201
       }

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T04:23:19+03:00",
+  "timestamp": "2026-10-01T04:54:57+03:00",
   "actor": "Codex",
-  "event": "ux1200_account_operation_lock_ci_pending",
+  "event": "ux1200_recoverable_session_operations_ci_pending",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -486,7 +486,11 @@
       "locked_account_product_head": "e3aa377d76c5c45259d7d40e4bc9efea70586cc0",
       "locked_account_tests": 93,
       "account_operation_lock_red_green": "4_pass",
-      "locked_account_type_lint_format_build": "pass"
+      "locked_account_type_lint_format_build": "pass",
+      "recovered_product_head": "d2858c3e1e64b88df41df0768dd7ee7b94df9179",
+      "recovered_local_tests": "108_pass",
+      "recovery_type_lint_format_build": "pass",
+      "recovered_ci": "pending"
     }
   },
   "observations": [
