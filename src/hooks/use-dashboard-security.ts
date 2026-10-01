@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { isAccountOperationPending } from "@/features/security/account-operations";
 import { clearAllRefrigerationStructuralCaches } from "@/features/refrigeration/refrigeration-structural-cache";
 import { createRuntimeCredentialProvider, signOut as signOutRuntime } from "@/features/security/auth-runtime";
 import {
@@ -261,7 +262,7 @@ export function useDashboardSecurity(): DashboardSecurityModel {
 
   const selectOrganization = useCallback(
     (organizationId: string) => {
-      if (!session) return;
+      if (isAccountOperationPending() || !session) return;
       const selected = session.memberships.find((item) => item.organizationId === organizationId);
       if (!selected) {
         setError("Вибрана організація відсутня у перевіреній сесії користувача.");
@@ -285,6 +286,7 @@ export function useDashboardSecurity(): DashboardSecurityModel {
   );
 
   const signOut = useCallback(async () => {
+    if (isAccountOperationPending()) throw new Error("Дочекайтеся завершення операції з випробуванням.");
     clearRetainedReadModels();
     await signOutRuntime(runtime.apiBaseUrl);
     clearPersistedOrganizationId();

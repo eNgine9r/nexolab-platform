@@ -100,15 +100,22 @@ export function createSupabaseCredentialProvider(organizationId: string | null):
     }
 
     const { data, error } = await supabase.auth.getSession();
+    const latest = getSecurityCredentials();
+    const responseToken = data.session?.access_token ?? null;
+    if (latest.accessToken !== current.accessToken && latest.accessToken !== responseToken) return latest;
+    const selectedOrganizationId =
+      latest.organizationId === current.organizationId
+        ? (current.organizationId ?? organizationId)
+        : latest.organizationId;
     if (error) {
       return {
         accessToken: null,
-        organizationId: current.organizationId ?? organizationId,
+        organizationId: selectedOrganizationId,
       };
     }
     const snapshot = {
       accessToken: data.session?.access_token ?? null,
-      organizationId: current.organizationId ?? organizationId,
+      organizationId: selectedOrganizationId,
     };
     setSecurityCredentials(snapshot);
     return snapshot;

@@ -1,5 +1,6 @@
 "use client";
 
+import type { SecurityCredentialProvider } from "@/features/security/security-session";
 import { useCallback } from "react";
 
 import { loadLiveDashboardInventory } from "@/features/live-dashboards/inventory";
@@ -23,15 +24,17 @@ const INVENTORY_CACHE = { freshTtlMs: 10_000, staleTtlMs: 60_000, maxEntriesPerS
 export function useLiveDashboardInventory({
   enabled,
   organizationId,
+  credentialProvider,
 }: {
   enabled: boolean;
   organizationId: string | null;
+  credentialProvider?: SecurityCredentialProvider;
 }): LiveDashboardInventoryModel {
   const scopeKey = organizationId ?? DEFAULT_SCOPE;
   const load = useCallback(async () => {
-    const client = createLiveDashboardInventoryClient(organizationId);
+    const client = createLiveDashboardInventoryClient(organizationId, { credentialProvider });
     return loadLiveDashboardInventory(client);
-  }, [organizationId]);
+  }, [credentialProvider, organizationId]);
   const inventory = useMonitoringReadModel({
     enabled,
     scope: `live-dashboard-inventory:${scopeKey}`,

@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Archive, CheckCircle2, Pause, Play, RefreshCw, Square } from "lucide-react";
 
+import { usePlatformAccount } from "@/components/dashboard/platform-account-boundary";
 import type { SessionAction } from "@/lib/sessions/types";
 import { ACTIONS_BY_STATE, SESSION_ACTION_LABELS } from "@/lib/sessions/view-model";
 
@@ -18,7 +19,12 @@ import {
 } from "./workspace-panels";
 
 export function SessionWorkspace({ sessionId }: { sessionId: string }) {
-  const workspace = useSessionWorkspace(sessionId);
+  const account = usePlatformAccount();
+  const workspace = useSessionWorkspace(
+    sessionId,
+    account?.security.membership?.organizationId,
+    account?.beginOperation,
+  );
 
   if (!workspace.data && workspace.loading) return <WorkspaceLoading />;
   if (!workspace.data && workspace.error) {

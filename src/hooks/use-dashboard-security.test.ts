@@ -1,3 +1,4 @@
+import { beginAccountOperation } from "@/features/security/account-operations";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -205,5 +206,20 @@ describe("useDashboardSecurity", () => {
       accessToken: null,
       organizationId: null,
     });
+  });
+  it("guards account actions against a mutation owned by an unmounted route", async () => {
+    const { result } = renderHook(() => useDashboardSecurity());
+    await waitFor(() => expect(result.current.state).toBe("ready"));
+    const release = beginAccountOperation();
+    try {
+      act(() => result.current.selectOrganization("org-2"));
+      expect(result.current.membership?.organizationId).toBe("org-1");
+      await expect(result.current.signOut()).rejects.toThrow("Дочекайтеся завершення");
+      expect(authState.signOut).not.toHaveBeenCalled();
+    } finally {
+      release();
+    }
+    act(() => result.current.selectOrganization("org-2"));
+    expect(result.current.membership?.organizationId).toBe("org-2");
   });
 });

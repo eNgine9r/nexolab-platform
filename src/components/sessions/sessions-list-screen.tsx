@@ -15,6 +15,7 @@ import {
   Search,
 } from "lucide-react";
 
+import { usePlatformAccount } from "@/components/dashboard/platform-account-boundary";
 import { createSessionApiClient } from "@/lib/sessions/api-client";
 import type { LaboratorySession, SessionState } from "@/lib/sessions/types";
 import { SESSION_STATE_LABELS } from "@/lib/sessions/view-model";
@@ -52,6 +53,8 @@ function formatDate(value: string): string {
 }
 
 export function SessionsListScreen() {
+  const account = usePlatformAccount();
+  const organizationId = account?.security.membership?.organizationId;
   const [sessions, setSessions] = useState<LaboratorySession[]>([]);
   const [filter, setFilter] = useState<"all" | SessionState>("all");
   const [query, setQuery] = useState("");
@@ -62,7 +65,7 @@ export function SessionsListScreen() {
   const load = useCallback(
     async (signal: AbortSignal) => {
       try {
-        const client = createSessionApiClient();
+        const client = createSessionApiClient({ organizationId });
         const page = await client.listSessions(
           {
             state: filter === "all" ? undefined : filter,
@@ -81,7 +84,7 @@ export function SessionsListScreen() {
         if (!signal.aborted) setLoading(false);
       }
     },
-    [filter],
+    [filter, organizationId],
   );
 
   useEffect(() => {

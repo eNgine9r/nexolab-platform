@@ -62,3 +62,58 @@ describe("optional Supabase authentication", () => {
     );
   });
 });
+
+it.each([false, true])(
+  "preserves a newly selected organization during an async Supabase read (error=%s)",
+  async (error) => {
+    vi.stubEnv("NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER", "supabase");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "test-key");
+    let resolve!: (value: unknown) => void;
+    const getSession = vi.fn(
+      () =>
+        new Promise((finish) => {
+          resolve = finish;
+        }),
+    );
+    vi.doMock("@supabase/supabase-js", () => ({
+      createClient: () => ({ auth: { onAuthStateChange: vi.fn(), getSession } }),
+    }));
+    const { getSecurityCredentials, setSecurityCredentials } = await import("./security-session");
+    const { createSupabaseCredentialProvider } = await import("./supabase-auth");
+    setSecurityCredentials({ accessToken: "old-token", organizationId: "org-a" });
+    const pending = createSupabaseCredentialProvider("org-a")();
+    setSecurityCredentials({ accessToken: "old-token", organizationId: "org-b" });
+    resolve({
+      data: { session: error ? null : { access_token: "fresh-token" } },
+      error: error ? new Error("read failed") : null,
+    });
+    expect((await pending).organizationId).toBe("org-b");
+    expect(getSecurityCredentials().organizationId).toBe("org-b");
+  },
+);
+it("does not restore credentials returned by a Supabase read after logout", async () => {
+  vi.stubEnv("NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER", "supabase");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "test-key");
+  let resolve!: (value: unknown) => void;
+  vi.doMock("@supabase/supabase-js", () => ({
+    createClient: () => ({
+      auth: {
+        onAuthStateChange: vi.fn(),
+        getSession: () =>
+          new Promise((finish) => {
+            resolve = finish;
+          }),
+      },
+    }),
+  }));
+  const { getSecurityCredentials, setSecurityCredentials } = await import("./security-session");
+  const { createSupabaseCredentialProvider } = await import("./supabase-auth");
+  setSecurityCredentials({ accessToken: "old-token", organizationId: "org-a" });
+  const pending = createSupabaseCredentialProvider("org-a")();
+  setSecurityCredentials({ accessToken: null, organizationId: null });
+  resolve({ data: { session: { access_token: "stale-token" } }, error: null });
+  expect(await pending).toEqual({ accessToken: null, organizationId: null });
+  expect(getSecurityCredentials()).toEqual({ accessToken: null, organizationId: null });
+});

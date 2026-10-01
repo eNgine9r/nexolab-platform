@@ -1,4 +1,4 @@
-import type { SessionStageType } from "@/lib/sessions/types";
+import type { SessionBindingOption, SessionStageType } from "@/lib/sessions/types";
 import type { SessionWizardStagePlan } from "@/lib/sessions/inputs";
 
 export const WIZARD_STEPS = [
@@ -101,21 +101,67 @@ export function createInitialWizardForm(): SessionWizardForm {
 }
 
 export function isWizardStepValid(step: number, form: SessionWizardForm): boolean {
-  const required = (value: string) => value.trim().length > 0;
-  if (step === 0) {
-    return required(form.sessionNumber) && required(form.title) && required(form.customer);
-  }
-  if (step === 1) {
-    return required(form.testObject) && required(form.model) && required(form.serialNumber);
-  }
-  if (step === 2) return required(form.standard) && required(form.method);
+  const bounded = (value: string, max: number, required = false) =>
+    typeof value === "string" && [...value.trim()].length <= max && (!required || value.trim().length > 0);
+  if (step === 0)
+    return (
+      bounded(form.sessionNumber, 64, true) &&
+      bounded(form.title, 256, true) &&
+      bounded(form.customer, 256, true) &&
+      bounded(form.operatorId, 128) &&
+      bounded(form.engineerId, 128)
+    );
+  if (step === 1)
+    return (
+      bounded(form.testObject, 256, true) &&
+      bounded(form.model, 128, true) &&
+      bounded(form.serialNumber, 128, true)
+    );
+  if (step === 2) return bounded(form.standard, 256, true) && bounded(form.method, 256, true);
   if (step === 3) return form.selectedTelemetryKeys.length > 0;
-  if (step === 4) return form.samplingSeconds >= 1 && form.samplingSeconds <= 3600;
-  if (step === 5) {
-    return form.temperatureLower <= form.temperatureUpper && form.powerUpper > 0;
-  }
-  if (step === 6) {
-    return form.stages.length > 0 && form.stages.every((stage) => required(stage.name));
-  }
+  if (step === 4)
+    return Number.isFinite(form.samplingSeconds) && form.samplingSeconds >= 1 && form.samplingSeconds <= 3600;
+  if (step === 5)
+    return (
+      [
+        form.temperatureLower,
+        form.temperatureUpper,
+        form.temperatureHysteresis,
+        form.temperatureDurationSeconds,
+        form.powerUpper,
+      ].every(Number.isFinite) &&
+      form.temperatureLower <= form.temperatureUpper &&
+      form.powerUpper > 0 &&
+      form.temperatureHysteresis >= 0 &&
+      form.temperatureDurationSeconds >= 0 &&
+      Number.isInteger(form.temperatureDurationSeconds)
+    );
+  if (step === 6)
+    return (
+      form.stages.length > 0 &&
+      new Set(form.stages.map((stage) => stage.sequence_index)).size === form.stages.length &&
+      form.stages.every(
+        (stage) =>
+          bounded(stage.name, 128, true) &&
+          STAGE_TYPES.includes(stage.stage_type) &&
+          Number.isInteger(stage.sequence_index) &&
+          stage.sequence_index >= 0 &&
+          Number.isFinite(stage.planned_duration_minutes) &&
+          stage.planned_duration_minutes >= 0,
+      )
+    );
   return true;
+}
+export function getWizardInvalidStep(form: SessionWizardForm): number | null {
+  for (let step = 0; step < 7; step++) if (!isWizardStepValid(step, form)) return step;
+  return null;
+}
+export function isWizardBindingValid(binding: SessionBindingOption): boolean {
+  return (
+    [binding.node_id, binding.equipment_id, binding.channel_id, binding.metric].every(
+      (value) => typeof value === "string" && value.trim().length > 0 && [...value].length <= 128,
+    ) &&
+    typeof binding.unit === "string" &&
+    [...binding.unit].length <= 32
+  );
 }

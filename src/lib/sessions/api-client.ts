@@ -1,4 +1,9 @@
-import { createAuthenticatedFetch } from "@/features/security/security-session";
+import { createRuntimeCredentialProvider as createAccountCredentialProvider } from "@/features/security/auth-runtime";
+import {
+  createAuthenticatedFetch,
+  getSecurityCredentials,
+  type SecurityCredentialProvider,
+} from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 
 import { getSessionsApiBaseUrl, SessionClientError } from "./runtime-config";
@@ -37,6 +42,7 @@ export type SessionFetch = (input: RequestInfo | URL, init?: RequestInit) => Pro
 export interface SessionApiClientOptions {
   fetch?: SessionFetch;
   timeoutMs?: number;
+  organizationId?: string | null;
 }
 
 export interface SessionListQuery {
@@ -409,9 +415,24 @@ export class SessionApiClient {
   }
 }
 
-export function createSessionApiClient(options: SessionApiClientOptions = {}): SessionApiClient {
+export function createSessionCredentialProvider(
+  selectedOrganizationId?: string | null,
+): SecurityCredentialProvider {
   const configuredOrganizationId = process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() || null;
-  const credentialProvider = createRuntimeCredentialProvider(configuredOrganizationId);
+  const organizationId = selectedOrganizationId?.trim();
+  const runtimeProvider = organizationId
+    ? process.env.NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER === "acceptance"
+      ? async () => getSecurityCredentials()
+      : createAccountCredentialProvider(getSessionsApiBaseUrl(), organizationId)
+    : createRuntimeCredentialProvider(configuredOrganizationId);
+  const credentialProvider = organizationId
+    ? async () => ({ ...(await runtimeProvider()), organizationId })
+    : runtimeProvider;
+  return credentialProvider;
+}
+
+export function createSessionApiClient(options: SessionApiClientOptions = {}): SessionApiClient {
+  const credentialProvider = createSessionCredentialProvider(options.organizationId);
   const baseFetch = options.fetch ?? fetch.bind(globalThis);
   return new SessionApiClient(getSessionsApiBaseUrl(), {
     ...options,

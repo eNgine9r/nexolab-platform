@@ -70,13 +70,16 @@ export function createLocalCredentialProvider(
     }
 
     if (window.sessionStorage.getItem(REFRESH_TOKEN_KEY) !== refreshToken) {
-      return currentCredentialSnapshot(resolvedOrganizationId);
+      return currentCredentialSnapshot(getSecurityCredentials().organizationId);
     }
+    const latestOrganizationId = getSecurityCredentials().organizationId;
+    const refreshedOrganizationId =
+      latestOrganizationId === current.organizationId ? resolvedOrganizationId : latestOrganizationId;
     if (!refreshed.ok) {
       clearLocalAuthStorage();
       const snapshot = {
         accessToken: null,
-        organizationId: resolvedOrganizationId,
+        organizationId: refreshedOrganizationId,
       };
       setSecurityCredentials(snapshot);
       return snapshot;
@@ -84,7 +87,7 @@ export function createLocalCredentialProvider(
     storeTokenPair(refreshed.value);
     const snapshot = {
       accessToken: refreshed.value.access_token,
-      organizationId: resolvedOrganizationId,
+      organizationId: refreshedOrganizationId,
     };
     setSecurityCredentials(snapshot);
     return snapshot;

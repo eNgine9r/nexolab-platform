@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, LoaderCircle, ShieldCheck } from "lucide-react";
 
+import { usePlatformAccount } from "@/components/dashboard/platform-account-boundary";
 import {
   buildSessionTelemetrySelectionModel,
   resolveSelectedSessionBindings,
@@ -14,7 +15,9 @@ import {
   createIdempotencyKey,
   createOperatorCommand,
   createSessionApiClient,
+  createSessionCredentialProvider,
 } from "@/lib/sessions/api-client";
+import { SessionClientError } from "@/lib/sessions/runtime-config";
 import type { SessionBindingOption } from "@/lib/sessions/types";
 
 import {
@@ -30,9 +33,19 @@ import {
 import {
   createInitialWizardForm,
   isWizardStepValid,
+  getWizardInvalidStep,
+  isWizardBindingValid,
   WIZARD_STEPS,
   type SessionWizardForm,
 } from "./wizard-model";
+
+import {
+  readWizardDraft,
+  saveWizardDraft,
+  clearWizardDraft,
+  wizardDraftKey,
+  type WizardOperation,
+} from "./session-wizard-draft";
 
 type SelectionLoadStatus = "loading" | "ready" | "error";
 
@@ -50,34 +63,79 @@ function sameSelection(left: readonly string[], right: readonly string[]): boole
 
 export function SessionWizard() {
   const router = useRouter();
-  const configuredOrganizationId = process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() || null;
+  const account = usePlatformAccount();
+  const beginAccountOperation = account?.beginOperation;
+  const verifiedOrganizationId = account?.security.membership?.organizationId;
+  const configuredOrganizationId =
+    verifiedOrganizationId ?? process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() ?? null;
   const hierarchyOrganizationId = configuredOrganizationId ?? "__current_organization__";
-  const [step, setStep] = useState(0);
+  const identityId = account?.security.session?.identity.id;
+  const draftKey =
+    identityId && verifiedOrganizationId ? wizardDraftKey(identityId, verifiedOrganizationId) : null;
+  const [restored] = useState(() => readWizardDraft(draftKey));
+  const [formFrozen, setFormFrozen] = useState(Boolean(restored?.operation.formSnapshot));
+  const [storageFailed, setStorageFailed] = useState(false);
+  const completed = useRef(false);
+  const [step, setStep] = useState(restored?.step ?? 0);
   const selectionEnabled = step >= 3;
-  const [form, setForm] = useState<SessionWizardForm>(createInitialWizardForm);
+  const [form, setForm] = useState<SessionWizardForm>(() => restored?.form ?? createInitialWizardForm());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [createdSessionId, setCreatedSessionId] = useState<string | null>(null);
+  const [createdSessionId, setCreatedSessionId] = useState<string | null>(
+    restored?.operation.sessionId ?? null,
+  );
   const [bindingOptions, setBindingOptions] = useState<SessionBindingOption[]>([]);
   const [bindingOptionsStatus, setBindingOptionsStatus] = useState<SelectionLoadStatus>("loading");
   const [bindingOptionsError, setBindingOptionsError] = useState<Error | null>(null);
   const [bindingOptionsRevision, setBindingOptionsRevision] = useState(0);
+  const inventoryCredentials = useMemo(
+    () => (verifiedOrganizationId ? createSessionCredentialProvider(verifiedOrganizationId) : undefined),
+    [verifiedOrganizationId],
+  );
   const inventory = useLiveDashboardInventory({
     enabled: selectionEnabled,
     organizationId: configuredOrganizationId,
+    credentialProvider: inventoryCredentials,
   });
-  const operation = useRef({
-    sessionId: null as string | null,
-    selectionKeys: null as string[] | null,
-    createKey: createIdempotencyKey("session-create"),
-    bindingKeys: new Map<string, string>(),
-    limitsKey: createIdempotencyKey("limit-version"),
-  });
+  const submission = useRef<AbortController | null>(null);
+  const releaseSubmission = useRef<(() => void) | null>(null);
+  useEffect(
+    () => () => {
+      submission.current?.abort();
+      releaseSubmission.current?.();
+      releaseSubmission.current = null;
+    },
+    [beginAccountOperation],
+  );
+  const operation = useRef<WizardOperation>(
+    restored?.operation ?? {
+      bindingSnapshot: null,
+      sessionId: null as string | null,
+      selectionKeys: null as string[] | null,
+      createKey: createIdempotencyKey("session-create"),
+      bindingKeys: new Map<string, string>(),
+      limitsKey: createIdempotencyKey("limit-version"),
+      formSnapshot: null,
+    },
+  );
+  const persist = (currentForm = form, currentStep = step) => {
+    const saved = saveWizardDraft(draftKey, {
+      form: currentForm,
+      step: currentStep,
+      operation: operation.current,
+    });
+    setStorageFailed(!saved);
+    return saved;
+  };
+  useEffect(() => {
+    if (!completed.current)
+      setStorageFailed(!saveWizardDraft(draftKey, { form, step, operation: operation.current }));
+  }, [draftKey, form, step]);
 
   useEffect(() => {
     if (!selectionEnabled) return;
     const controller = new AbortController();
-    const sessionClient = createSessionApiClient();
+    const sessionClient = createSessionApiClient({ organizationId: configuredOrganizationId });
     void sessionClient
       .listProductionBindingOptions(controller.signal)
       .then((options) => {
@@ -94,7 +152,7 @@ export function SessionWizard() {
         setBindingOptionsStatus("error");
       });
     return () => controller.abort();
-  }, [bindingOptionsRevision, selectionEnabled]);
+  }, [bindingOptionsRevision, configuredOrganizationId, selectionEnabled]);
 
   const selectionModel = useMemo(
     () => buildSessionTelemetrySelectionModel(hierarchyOrganizationId, inventory.items, bindingOptions),
@@ -133,14 +191,28 @@ export function SessionWizard() {
   };
 
   const submit = async () => {
+    if (submission.current) return;
+    const invalidStep = getWizardInvalidStep(operation.current.formSnapshot ?? form);
+    if (invalidStep !== null) {
+      if (!operation.current.formSnapshot) setStep(invalidStep);
+      setError(
+        new Error(`Перевірте дані кроку «${WIZARD_STEPS[invalidStep]}» перед створенням випробування.`),
+      );
+      return;
+    }
+    const uncertainCreateBeforeThisAttempt = Boolean(operation.current.formSnapshot);
+    const controller = new AbortController();
+    submission.current = controller;
+    releaseSubmission.current = beginAccountOperation?.() ?? null;
     setSubmitting(true);
     setError(null);
     try {
-      const sessionClient = createSessionApiClient();
+      const sessionClient = createSessionApiClient({ organizationId: configuredOrganizationId });
       if (
-        selectionStatus !== "ready" ||
-        selectedBindings.length === 0 ||
-        selectedBindings.length !== selectedKeyCount
+        !operation.current.bindingSnapshot &&
+        (selectionStatus !== "ready" ||
+          selectedBindings.length === 0 ||
+          selectedBindings.length !== selectedKeyCount)
       ) {
         throw new Error(
           "Telemetry selection застарів або не відповідає валідованому session contract. Оновіть вибір.",
@@ -157,46 +229,75 @@ export function SessionWizard() {
         operation.current.selectionKeys = [...form.selectedTelemetryKeys];
       }
 
-      const frozenBindings = resolveSelectedSessionBindings(selectionModel, operation.current.selectionKeys);
+      const frozenBindings =
+        operation.current.bindingSnapshot ??
+        resolveSelectedSessionBindings(selectionModel, operation.current.selectionKeys);
       if (frozenBindings.length !== operation.current.selectionKeys.length) {
         throw new Error(
           "Збережений telemetry selection більше не доступний у поточному локальному inventory.",
         );
       }
 
+      if (!frozenBindings.every(isWizardBindingValid)) {
+        if (!operation.current.formSnapshot) {
+          operation.current.selectionKeys = null;
+          setStep(3);
+        }
+        throw new Error("Параметри вибраних датчиків не відповідають контракту випробування. Оновіть вибір.");
+      }
+      operation.current.bindingSnapshot ??= structuredClone(frozenBindings);
+      operation.current.formSnapshot ??= structuredClone(form);
+      const submittedForm = operation.current.formSnapshot;
+      if (!persist(submittedForm, 7)) {
+        if (!uncertainCreateBeforeThisAttempt && !operation.current.sessionId) {
+          operation.current.formSnapshot = null;
+          operation.current.bindingSnapshot = null;
+          operation.current.selectionKeys = null;
+        }
+        throw new Error(
+          "Не вдалося зберегти стан створення. Перевірте доступ до сховища браузера й повторіть спробу.",
+        );
+      }
+      setFormFrozen(true);
       let sessionId = operation.current.sessionId;
 
       if (!sessionId) {
         const created = await sessionClient.createSession(
           {
-            session_number: form.sessionNumber.trim(),
-            title: form.title.trim(),
-            test_object: form.testObject.trim(),
+            session_number: submittedForm.sessionNumber.trim(),
+            title: submittedForm.title.trim(),
+            test_object: submittedForm.testObject.trim(),
             node_id: "edge-01",
-            customer: form.customer.trim(),
-            model: form.model.trim(),
-            serial_number: form.serialNumber.trim(),
-            standard: form.standard.trim(),
-            method: form.method.trim(),
-            operator_id: form.operatorId.trim() || null,
-            responsible_engineer_id: form.engineerId.trim() || null,
+            customer: submittedForm.customer.trim(),
+            model: submittedForm.model.trim(),
+            serial_number: submittedForm.serialNumber.trim(),
+            standard: submittedForm.standard.trim(),
+            method: submittedForm.method.trim(),
+            operator_id: submittedForm.operatorId.trim() || null,
+            responsible_engineer_id: submittedForm.engineerId.trim() || null,
             metadata_payload: {
               sampling_policy: {
-                interval_seconds: form.samplingSeconds,
+                interval_seconds: submittedForm.samplingSeconds,
                 mode: "fixed_interval",
               },
-              stage_plan: form.stages,
+              stage_plan: submittedForm.stages,
               telemetry_selection_count: frozenBindings.length,
               created_by: "nexolab-dashboard-wizard-v2",
             },
             ...createOperatorCommand("Created from the NEXOLAB 8-step laboratory wizard"),
           },
           operation.current.createKey,
+          controller.signal,
         );
+        if (controller.signal.aborted) return;
         sessionId = created.session.id;
         operation.current.sessionId = sessionId;
         setCreatedSessionId(sessionId);
-        invalidateSessionListReadModels();
+        if (!persist(submittedForm, 7))
+          throw new Error(
+            "Не вдалося зберегти стан створення. Перевірте доступ до сховища браузера й повторіть спробу.",
+          );
+        invalidateSessionListReadModels(configuredOrganizationId);
       }
 
       for (const binding of frozenBindings) {
@@ -206,6 +307,10 @@ export function SessionWizard() {
           idempotencyKey = createIdempotencyKey("session-binding");
           operation.current.bindingKeys.set(identity, idempotencyKey);
         }
+        if (!persist(submittedForm, 7))
+          throw new Error(
+            "Не вдалося зберегти стан створення. Перевірте доступ до сховища браузера й повторіть спробу.",
+          );
         await sessionClient.addBinding(
           sessionId,
           {
@@ -221,9 +326,15 @@ export function SessionWizard() {
             },
           },
           idempotencyKey,
+          controller.signal,
         );
+        if (controller.signal.aborted) return;
       }
 
+      if (!persist(submittedForm, 7))
+        throw new Error(
+          "Не вдалося зберегти стан створення. Перевірте доступ до сховища браузера й повторіть спробу.",
+        );
       await sessionClient.addLimitSet(
         sessionId,
         {
@@ -232,16 +343,16 @@ export function SessionWizard() {
             {
               metric: "temperature.probe",
               unit: "degC",
-              lower_limit: form.temperatureLower,
-              upper_limit: form.temperatureUpper,
-              hysteresis: form.temperatureHysteresis,
-              duration_seconds: form.temperatureDurationSeconds,
+              lower_limit: submittedForm.temperatureLower,
+              upper_limit: submittedForm.temperatureUpper,
+              hysteresis: submittedForm.temperatureHysteresis,
+              duration_seconds: submittedForm.temperatureDurationSeconds,
               payload: { applies_to: ["106-03", "106-04"] },
             },
             {
               metric: "electrical.power.active",
               unit: "W",
-              upper_limit: form.powerUpper,
+              upper_limit: submittedForm.powerUpper,
               hysteresis: 50,
               duration_seconds: 30,
               payload: {
@@ -251,10 +362,45 @@ export function SessionWizard() {
           ],
         },
         operation.current.limitsKey,
+        controller.signal,
       );
+      if (controller.signal.aborted) return;
 
+      completed.current = true;
+      setStorageFailed(!clearWizardDraft(draftKey));
       router.push(`/sessions/${sessionId}`);
     } catch (nextError) {
+      if (controller.signal.aborted) return;
+      if (
+        !operation.current.sessionId &&
+        nextError instanceof SessionClientError &&
+        ((nextError.status === 409 &&
+          ["session_number_conflict", "session_create_conflict"].includes(nextError.code ?? "")) ||
+          (!uncertainCreateBeforeThisAttempt && [401, 403, 422].includes(nextError.status ?? 0)))
+      ) {
+        operation.current = {
+          sessionId: null,
+          selectionKeys: null,
+          bindingSnapshot: null,
+          formSnapshot: null,
+          createKey: createIdempotencyKey("session-create"),
+          bindingKeys: new Map(),
+          limitsKey: createIdempotencyKey("limit-version"),
+        };
+        setFormFrozen(false);
+        setStep(0);
+        persist(form, 0);
+        setError(
+          new Error(
+            nextError.code === "session_number_conflict"
+              ? "Такий номер випробування вже існує. Змініть номер у формі та повторіть створення."
+              : nextError.status === 401 || nextError.status === 403
+                ? "Сервер відхилив створення: потрібен чинний вхід і право створення випробувань. Дані форми збережено для редагування."
+                : "Сервер відхилив створення. Перевірте дані форми та повторіть спробу.",
+          ),
+        );
+        return;
+      }
       if (operation.current.selectionKeys) {
         setForm((current) => ({
           ...current,
@@ -263,7 +409,12 @@ export function SessionWizard() {
       }
       setError(nextError instanceof Error ? nextError : new Error("Не вдалося створити сесію."));
     } finally {
-      setSubmitting(false);
+      if (submission.current === controller) {
+        submission.current = null;
+        releaseSubmission.current?.();
+        releaseSubmission.current = null;
+      }
+      if (!controller.signal.aborted) setSubmitting(false);
     }
   };
 
@@ -281,7 +432,7 @@ export function SessionWizard() {
               <button
                 key={label}
                 onClick={() => index <= step && setStep(index)}
-                disabled={index > step || submitting}
+                disabled={index > step || submitting || formFrozen}
                 className={`flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition ${
                   active
                     ? "border-blue-400/35 bg-blue-500/10 text-white"
@@ -322,6 +473,16 @@ export function SessionWizard() {
         </div>
 
         <div className="p-5 sm:p-6">
+          {restored && (
+            <p role="status" className="mb-4 text-sm text-cyan-300">
+              Відновлено незавершену форму. Продовжіть створення випробування.
+            </p>
+          )}
+          {storageFailed && (
+            <p role="alert" className="mb-4 text-sm text-amber-300">
+              Чернетку не збережено. Перевірте доступ до сховища браузера й повторіть спробу.
+            </p>
+          )}
           {step === 0 && <GeneralStep form={form} update={update} />}
           {step === 1 && <ObjectStep form={form} update={update} />}
           {step === 2 && <MethodStep form={form} update={update} />}
@@ -358,7 +519,7 @@ export function SessionWizard() {
         <div className="flex items-center justify-between gap-3 border-t border-white/[0.055] p-5 sm:p-6">
           <button
             className="secondary-button gap-2"
-            disabled={step === 0 || submitting}
+            disabled={step === 0 || submitting || formFrozen}
             onClick={() => setStep((value) => Math.max(0, value - 1))}
           >
             <ArrowLeft className="h-4 w-4" />
