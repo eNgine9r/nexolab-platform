@@ -138,6 +138,26 @@ function seedEquipmentLayoutFixtures(): void {
   putFixtureObject(changedStorageKey);
   putFixtureObject(draftOnlyStorageKey);
 
+  const chamberCount = composeExec(
+    "postgres",
+    [
+      "psql",
+      "-U",
+      postgresUser,
+      "-d",
+      postgresDatabase,
+      "-At",
+      "-v",
+      "ON_ERROR_STOP=1",
+      "-v",
+      `organization_id=${organizationId}`,
+    ],
+    "SELECT COUNT(*) FROM climate_chambers WHERE organization_id = :'organization_id' AND status = 'active';",
+  );
+  if (Number(chamberCount.trim()) < 1)
+    throw new Error(
+      "An active acceptance climate chamber is required for the camera Scheme permission journey.",
+    );
   const checksum = createHash("sha256").update(fixturePng).digest("hex");
   const sql = `
 INSERT INTO refrigeration_equipment (
@@ -185,7 +205,7 @@ VALUES
   (
     '${changedEquipmentId}', :'organization_id', 'LAY-CHANGED-02',
     'Вітрина з неопублікованими змінами', 'Layout Lab A · Zone Beta', 'Layout Lab A', 'Zone Beta',
-    'layout-camera-1224', NULL, 'Холодильна вітрина', 'NEXOLAB', 'Catalog Changed', 'CAT-CHANGED-02',
+    NULL, (SELECT id FROM climate_chambers WHERE organization_id = :'organization_id' AND status = 'active' ORDER BY code, id LIMIT 1), 'Холодильна вітрина', 'NEXOLAB', 'Catalog Changed', 'CAT-CHANGED-02',
     '3M1', DATE '2026-01-11', DATE '2026-07-21', 'maintenance', 'warning', 4.1, 3.5, 4.8,
     1, 2, 0, CURRENT_TIMESTAMP, 1, 'equipment-layouts-acceptance', CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP, NULL, NULL

@@ -1215,6 +1215,19 @@
         "browser_scenarios": 8,
         "unresolved_review_threads": 0
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T18:31:59.086Z",
+      "kind": "issue_1224_camera_fixture_correction",
+      "data": {
+        "head_sha": "c3b8df233687cfe4dc1bd12c758da9f7ff8c7331",
+        "run": 36906665663,
+        "browser_passed": 5,
+        "browser_failed": 1,
+        "failure": "transport_node_fixture_did_not_select_camera_scoped_editor",
+        "follow_up": "use_existing_active_climate_chamber_fk_and_fail_setup_when_absent"
+      }
     }
   ],
   "next_action": "Verify #1224 direct Scheme entry, authorized editor/viewer boundaries and filtered return journeys in all exact-head workflows; resolve reviews and merge only GREEN. Continue remaining bounded UX source findings. Installed #1191 remains separately access-gated.",
