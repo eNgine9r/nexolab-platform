@@ -627,3 +627,52 @@ test("specialized protected-page gates retain their own local destination throug
     }
   }
 });
+
+test("changing a denied account uses the newly verified session after login", async ({ browser }) => {
+  for (const destination of [
+    { path: "/live?workspace=explorer&range=24h", denied: "Немає доступу до Live Data" },
+    { path: "/energy?period=24h#chart", denied: "Немає доступу до телеметрії" },
+  ]) {
+    const { page, accessToken } = await loginWithCredentials(browser, "issue385.manager", password);
+    try {
+      const previousSession = await page.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
+        headers: apiHeaders(accessToken),
+      });
+      expect(previousSession.status()).toBe(200);
+      const previousIdentity = (await previousSession.json()).identity.subject;
+      await page.goto(destination.path, { waitUntil: "domcontentloaded" });
+      await expect(page.getByRole("heading", { name: destination.denied, exact: true })).toBeVisible();
+      const changeUser = page.getByRole("link", { name: "Змінити користувача", exact: true });
+      await expect(changeUser).toHaveAttribute(
+        "href",
+        `/login?returnTo=${encodeURIComponent(destination.path)}`,
+      );
+      await changeUser.click();
+      await page.getByLabel("Логін або email", { exact: true }).fill(accounts.viewer);
+      await page.getByLabel("Пароль", { exact: true }).fill(password);
+      await page.getByRole("button", { name: "Увійти", exact: true }).click();
+      await expect
+        .poll(() => {
+          const url = new URL(page.url());
+          return `${url.pathname}${url.search}${url.hash}`;
+        })
+        .toBe(destination.path);
+      await expect(page.getByLabel("Вийти з NEXOLAB")).toBeVisible();
+      await expect(page.getByRole("heading", { name: destination.denied, exact: true })).toHaveCount(0);
+      const currentAccessToken = await page.evaluate(() =>
+        window.sessionStorage.getItem("nexolab.local-auth.access-token"),
+      );
+      expect(currentAccessToken).toBeTruthy();
+      const currentSession = await page.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
+        headers: apiHeaders(currentAccessToken as string),
+      });
+      expect(currentSession.status()).toBe(200);
+      const session = await currentSession.json();
+      expect(session.identity.subject).not.toBe(previousIdentity);
+      expect(session.memberships[0]?.roles).toContain("viewer");
+      expect(session.memberships[0]?.permissions).toContain("telemetry.read");
+    } finally {
+      await page.context().close();
+    }
+  }
+});
