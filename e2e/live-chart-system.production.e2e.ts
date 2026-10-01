@@ -611,11 +611,13 @@ for (const width of [390, 1280]) {
       await expect(settings.getByLabel("Часові позначки")).toHaveValue("utc");
       await settings.getByLabel("Часові позначки").selectOption("local");
       await expect(timestamp).toHaveText(expected("Europe/Kyiv"));
-      // Client navigation retains the selected workspace while its Effects suspend.
+      // Return to the same URL comparison context after its retained page suspends.
+      const selectedUrl = page.url();
       await page.setViewportSize({ width: 1280, height: 1000 });
       await page.getByRole("link", { name: "Налаштування", exact: true }).click();
       await page.getByLabel("Часові позначки").selectOption("utc");
-      await page.getByRole("link", { name: "Live дані", exact: true }).click();
+      await page.goBack({ waitUntil: "domcontentloaded" });
+      await expect(page).toHaveURL(selectedUrl);
       await expect(chart.getByTestId("chart-display-timezone")).toContainText("UTC");
       await expect(page.getByRole("checkbox", { name: /Порівнювати/ }).first()).toBeChecked();
       await assertNoPageOverflow(page);
