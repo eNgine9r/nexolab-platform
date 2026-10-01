@@ -2,9 +2,15 @@
 
 Updated: 2026-10-01
 
-## Issue #1196 — direct Live monitoring entry
+## Issue #1198 — consolidated UX audit report completed
 
-Active software continuation of audit #1191 on `commander/1196-live-monitoring-entry`, after merged #1194. Scope: default /live monitoring entry, authoritative URL workspace/deep-link handling, organization-keyed workspace reset, and direct chart-to-channel-selection action. No acquisition, channel-budget, dependencies or production deployment changes. Local verification passed: 18 Live component tests, 62 Live/domain regressions, TypeScript, touched lint/format and production build. Tests reproduced the previous library default, stale URL tab and retained organization draft before the fix. Added real keyboard chart-to-selection coverage and made saved-library browser routes explicit. PR #1197 is in review. Additional acquisition/navigation browser routes now explicitly test either the saved library or the new explorer terminal state. Organization-switch review fixed: clear the query first, hold children while navigation is pending, then apply the verified membership. Two new red/green tests and a fresh build passed. Required final-head CI/browser evidence remains pending.
+Focused documentation continuation of #1191 on `commander/1198-ux-audit-report`. The repository report `docs/audits/nexolab-ux-audit-2026-10-01.md` maps all 36 original findings plus two review-discovered organization-context defects: 8 closed in code, 3 partial, 27 open. It separates source risks/proposals, component/isolated CI evidence and pending deployed operator acceptance. ID/status/link consistency and markdown format passed. PR #1199 candidate head fc9d190ab0e9611855e9f9ee3c1eab6aaf643d0a passed Core CI / Quality and build / Merge Gate (run 36795257404), at that initial check. A later P2 review identified remaining account actions in SessionsShell and the /lockers placeholder; UX-02/UX-03 are now partial, not closed. Documentation work is complete and durable active/next selection is cleared; final state commit CI and PR merge are the remaining publication gates. Parent #1191 remains open for normal authenticated deployed operator acceptance. No production/runtime/hardware changes.
+
+## Issue #1196 — direct Live monitoring completed
+
+PR #1197 is merged. Final head `9b3732deddd46d17598b134d393b9c73384c7dbb` passed **3/3 routed workflows GREEN** (Core CI/Merge Gate, Authenticated Dashboard and Acquisition Scale); all three review threads are resolved. All 22 Dashboard browser scenarios passed. Local checks: 18 Live component tests, 62 Live/domain regressions, typecheck, lint/format and fresh production build. /live opens monitoring; chart-to-channel-selection uses keyboard focus; the visible workspace follows URL; organization changes clear URL input before applying new membership and remounting children.
+
+Browser navigation evidence from the isolated CI artifact: one document load, one latest HTTP request, one WebSocket/maxConcurrent=1, zero acquisition mutations, warm medians 116–247 ms. Existing strict request budgets remain intact because the complete snapshot is reused from the route-persistent cache. These metrics are not deployed operator timings. Production runtime and accepted/deployed baselines are unchanged; full #1191 audit remains access-gated.
 
 ## Issue #1194 — verified refrigeration account context completed
 

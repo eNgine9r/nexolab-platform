@@ -40,11 +40,7 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1196,
-      "title": "Direct Live monitoring and channel selection",
-      "branch": "commander/1196-live-monitoring-entry"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -5708,7 +5704,7 @@
       "issue": 1196,
       "title": "Direct Live monitoring and channel selection",
       "priority": "unspecified",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "commander/1196-live-monitoring-entry",
       "evidence": {
         "verified_head_sha": "85edf5129886066e9b1bea03de1c92717d7b333b",
@@ -5725,9 +5721,38 @@
           "organization_transition_red_green": "2_cases",
           "final_live_component_tests": "18_pass",
           "organization_transition_build": "pass",
-          "organization_transition_typecheck_lint": "pass"
+          "organization_transition_typecheck_lint": "pass",
+          "final_ci_sha": "9b3732deddd46d17598b134d393b9c73384c7dbb",
+          "final_workflow_matrix": "3_of_3_green",
+          "final_review_threads": "3_resolved",
+          "final_dashboard_tests": "22_pass",
+          "final_runs": "36793835503_36793835476_36793835426",
+          "warm_navigation_snapshot": "1_latest_1_document_1_websocket_0_acquisition_mutations"
         },
         "pull_request": 1197
+      }
+    },
+    {
+      "issue": 1198,
+      "title": "Consolidate UX findings and verified implementation status",
+      "priority": "unspecified",
+      "lifecycle": "completed",
+      "branch": "commander/1198-ux-audit-report",
+      "evidence": {
+        "verified_head_sha": "78d8b5a9479fc46584c74b793f5443aed293c593",
+        "checks": {
+          "audit_id_status_mapping": "38_unique_10_closed_1_partial_27_open",
+          "all_completed_product_ci_heads": "recorded",
+          "markdown_format": "pass",
+          "production_hardware_changes": "none",
+          "candidate_ci_head_sha": "fc9d190ab0e9611855e9f9ee3c1eab6aaf643d0a",
+          "candidate_ci_run": "36795257404",
+          "candidate_ci_matrix": "1_of_1_green",
+          "candidate_review_threads": "none",
+          "reviewed_audit_id_status_mapping": "38_unique_8_closed_3_partial_27_open",
+          "account_action_rollout_review": "partial_sessions_shell_and_lockers"
+        },
+        "pull_request": 1199
       }
     }
   ],
