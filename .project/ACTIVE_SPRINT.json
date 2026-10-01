@@ -45,7 +45,11 @@
       "title": "UX-35 Telegram report retry",
       "branch": "fix/1210-telegram-report-retry"
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 1212,
+      "title": "UX-33 remove inactive telemetry-window setting",
+      "branch": "fix/1212-remove-inactive-window"
+    }
   },
   "work_packages": [
     {
@@ -5903,6 +5907,23 @@
       "priority": "medium",
       "lifecycle": "in_progress",
       "branch": "fix/1210-telegram-report-retry",
+      "evidence": {
+        "verified_head_sha": "00b385a7e6ef84393074f4e8f7d27ac7c8a0c6b2",
+        "pull_request": 1211,
+        "checks": {
+          "dashboard": "success:36874965457",
+          "refrigeration": "success:36874965442",
+          "telegram": "success:36874965472",
+          "acquisition": "success:36874965446"
+        }
+      }
+    },
+    {
+      "issue": 1212,
+      "title": "UX-33 remove inactive telemetry-window setting",
+      "priority": "medium",
+      "lifecycle": "ready",
+      "branch": "fix/1212-remove-inactive-window",
       "evidence": {}
     }
   ],

@@ -3,7 +3,7 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T11:31:10.578886+00:00",
+  "timestamp": "2026-10-01T14:22:57.230033+00:00",
   "actor": "Codex",
   "event": "ux1208_merged_ux1210_reconstructed_retry_candidate",
   "baselines": {
@@ -601,8 +601,11 @@
     "ux1210_candidate": {
       "component_api_tests": "21_passed",
       "activity_regression": "failed_before_guard_reset_passed_after",
-      "browser_acceptance": "pending",
-      "workspace_recovery": "reconstructed_after_transient_checkout_loss"
+      "browser_acceptance": "30_passed_run_36874965457_including_4_new_retry_scenarios",
+      "workspace_recovery": "reconstructed_after_transient_checkout_loss",
+      "routing_regressions": "67_passed_classifier_trigger_risk",
+      "ci_routing": "Telegram_MiniApp_paths_added_to_dashboard_trigger_and_focused_domain",
+      "verified_head_sha": "00b385a7e6ef84393074f4e8f7d27ac7c8a0c6b2"
     }
   },
   "observations": [
@@ -953,7 +956,7 @@
       }
     }
   ],
-  "next_action": "Publish #1210 coherent candidate, require exact-head browser CI/review GREEN before merge; continue independent UX source packages. Installed #1191 remains access-gated.",
+  "next_action": "Complete exact-head #1210 CI and resolve checkpoint timestamp review; merge only GREEN, then begin Ready #1212 UX-33 inactive telemetry-window removal. Installed #1191 stays access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
