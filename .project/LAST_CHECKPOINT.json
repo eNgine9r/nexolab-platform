@@ -535,6 +535,13 @@
       "workflows": "3_of_3_green",
       "browser": "isolated_authenticated_320_360_390_430_1280",
       "installed_acceptance": "unverified"
+    },
+    "issue_1204_initial_browser": {
+      "head": "411dcba627fb11d2a655b66ceb5af9758e994563",
+      "run": 36851493269,
+      "result": "23_pass_1_boundary_Tab_escape",
+      "correction": "explicit_first_last_boundary_wrapping",
+      "corrected_CI": "pending"
     }
   },
   "observations": [

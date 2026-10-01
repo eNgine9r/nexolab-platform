@@ -142,3 +142,27 @@ it("reopens with the current applied visibility after discarding an uncommitted 
   expect(screen.getByRole("checkbox")).toBeChecked();
   expect(showModal).toHaveBeenCalledTimes(2);
 });
+
+it.each([
+  { monitoredChannelIds: [], monitoringError: null },
+  { monitoredChannelIds: [], monitoringError: "Device Agent unavailable" },
+  { monitoredChannelIds: ["106-01"], monitoringError: null },
+])("wraps Tab at the dialog boundaries in populated, empty and error states: %j", (fixture) => {
+  render(
+    <TemperatureVisibilityDialog
+      {...fixture}
+      open
+      visibleChannelIds={fixture.monitoredChannelIds}
+      targetDiagnostics={[]}
+      onApply={vi.fn()}
+      onClose={vi.fn()}
+    />,
+  );
+  const first = screen.getByRole("button", { name: "Закрити вибір датчиків Огляду" });
+  const last = screen.getByRole("button", { name: "Застосувати відображення" });
+  last.focus();
+  fireEvent.keyDown(last, { key: "Tab" });
+  expect(first).toHaveFocus();
+  fireEvent.keyDown(first, { key: "Tab", shiftKey: true });
+  expect(last).toHaveFocus();
+});

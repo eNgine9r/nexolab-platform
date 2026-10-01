@@ -4,7 +4,7 @@ Updated: 2026-10-01
 
 ## UX source browser evidence
 
-Issue #1202 / PR #1203 is cleared for repository scope: final head passed Authenticated Dashboard, Acquisition Scale and Core CI. Local Chromium installation is unavailable after an invalid CDN archive; isolated authenticated CI provides actual browser evidence. Issue #1204 native dialog keyboard acceptance is pending its own CI. Installed operator acceptance remains the separate #1191 access blocker below.
+Issue #1202 / PR #1203 is cleared for repository scope: final head passed Authenticated Dashboard, Acquisition Scale and Core CI. Local Chromium installation is unavailable after an invalid CDN archive; isolated authenticated CI provides actual browser evidence. Issue #1204 initial browser CI found a boundary Tab escape (23/24 passed); explicit first/last wrapping is added and corrected CI acceptance remains pending. Installed operator acceptance remains the separate #1191 access blocker below.
 
 ## Audit #1191 — authenticated deployed all-page evidence pending
 

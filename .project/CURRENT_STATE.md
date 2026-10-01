@@ -4,7 +4,7 @@ Updated: 2026-10-01
 
 ## Issue #1204 — UX-11 Overview visibility dialog candidate
 
-The Overview visibility picker now uses a native modal dialog. Initial focus, background inertness and Tab/Shift+Tab containment belong to the browser; Escape discards pending selection and closing restores the opener while the element is still connected. Reopening reconstructs the current applied selection. Existing display-only callbacks remain unchanged. Local Dashboard regression checks and isolated authenticated browser scenarios at 320/390/1280 px cover cancellation, application and keyboard focus; final CI acceptance is pending. No dependency, production deployment or hardware/acquisition write.
+The Overview visibility picker now uses a native modal dialog. Initial focus and background inertness belong to the browser; explicit boundary wrapping keeps Tab/Shift+Tab inside rather than entering browser chrome; Escape discards pending selection and closing restores the opener while the element is still connected. Reopening reconstructs the current applied selection. Existing display-only callbacks remain unchanged. The initial CI run passed 23/24 browser tests but exposed the boundary Tab escape; new populated/empty/error boundary regressions reproduce it before the fix. Local Dashboard regression checks and isolated authenticated browser scenarios at 320/390/1280 px cover cancellation, application and keyboard focus; final CI acceptance is pending. No dependency, production deployment or hardware/acquisition write.
 
 ## Issue #1202 — UX-15 mobile Live inventory completed
 

@@ -77,6 +77,22 @@ function TemperatureVisibilityDialogContent({
     <dialog
       ref={dialogRef}
       className="fixed inset-0 z-[80] m-0 h-full max-h-none w-full max-w-none place-items-center border-0 bg-[#020817]/80 p-3 backdrop-blur-sm open:grid"
+      onKeyDown={(event) => {
+        if (event.key !== "Tab") return;
+        const controls = event.currentTarget.querySelectorAll<HTMLElement>(
+          "button:not([disabled]), input:not([disabled])",
+        );
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        // Native modal inertness blocks page focus, but Chrome can Tab into browser chrome.
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
