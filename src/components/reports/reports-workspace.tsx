@@ -13,12 +13,14 @@ import {
   FileCheck2,
   FileJson2,
   FileSpreadsheet,
-  Fingerprint,
   LoaderCircle,
   RefreshCw,
   ShieldCheck,
   WifiOff,
 } from "lucide-react";
+
+import { ReportObject, ReportTechnicalDetails } from "./report-identity";
+import { reportTitle } from "@/lib/reports/presentation";
 
 import { ReportTelemetrySelector } from "@/components/reports/report-telemetry-selector";
 import {
@@ -423,8 +425,8 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-[12px] font-semibold text-slate-100">
-                        Session {report.session_id}
+                      <p className="text-[12px] font-semibold break-words text-slate-100">
+                        {reportTitle(report)}
                       </p>
                       <p className="mt-1 text-[10px] text-slate-500">
                         Версія {report.version} · {formatDate(report.generated_at, displayTimeZone)}
@@ -434,9 +436,7 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
                       {report.session_state}
                     </span>
                   </div>
-                  <p className="mt-3 font-mono text-[9px] text-cyan-300/80">
-                    {compactHash(report.source_sha256)}
-                  </p>
+                  <ReportObject report={report} />
                 </button>
               ))}
             </div>
@@ -480,7 +480,8 @@ function ReportDetail({
           <p className="text-[9px] font-semibold tracking-[0.14em] text-cyan-300 uppercase">
             Report version {report.version}
           </p>
-          <h3 className="mt-2 text-xl font-semibold text-white">Session {report.session_id}</h3>
+          <h3 className="mt-2 text-xl font-semibold break-words text-white">{reportTitle(report)}</h3>
+          <ReportObject report={report} />
           <p className="mt-2 text-[11px] text-slate-500">
             Згенеровано {formatDate(report.generated_at, displayTimeZone)} · {report.generated_by}
           </p>
@@ -501,14 +502,8 @@ function ReportDetail({
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <HashCard label="Source SHA-256" value={report.source_sha256} />
-        <HashCard label="Manifest SHA-256" value={report.manifest_sha256} />
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Meta label="Config snapshot" value={report.config_snapshot_id} />
-        <Meta label="Generator" value={report.generator_version} />
+      <ReportTechnicalDetails report={report} />
+      <div>
         <Meta
           label="Source window"
           value={`${formatDate(report.source_started_at, displayTimeZone)} — ${formatDate(report.source_ended_at, displayTimeZone)}`}
@@ -567,18 +562,6 @@ function Summary({ label, value }: { label: string; value: number }) {
     <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-3 py-3 text-center">
       <p className="text-lg font-semibold text-white">{value}</p>
       <p className="mt-1 text-[9px] text-slate-500">{label}</p>
-    </div>
-  );
-}
-
-function HashCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-cyan-300/[0.09] bg-cyan-400/[0.025] p-4">
-      <p className="flex items-center gap-2 text-[9px] font-semibold tracking-[0.12em] text-slate-500 uppercase">
-        <Fingerprint className="h-3.5 w-3.5 text-cyan-300" />
-        {label}
-      </p>
-      <p className="mt-2 font-mono text-[10px] leading-5 break-all text-cyan-100/85">{value}</p>
     </div>
   );
 }

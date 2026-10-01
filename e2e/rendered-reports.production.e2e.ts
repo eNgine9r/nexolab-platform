@@ -19,10 +19,17 @@ interface ReportArtifact {
   size_bytes: number;
 }
 
+interface FrozenSessionSummary {
+  session_number: string;
+  title: string;
+  test_object: string;
+}
+
 interface ReportResponse {
   id: string;
   organization_id: string;
   session_id: string;
+  session_summary: FrozenSessionSummary;
   version: number;
   source_sha256: string;
   manifest_sha256: string;
@@ -120,6 +127,7 @@ test("rendered reports remain reproducible, approved and organization isolated",
     expect(second.version).toBe(first.version + 1);
     expect(third.version).toBe(second.version + 1);
 
+    let frozen: FrozenSessionSummary | undefined;
     for (const artifact of first.artifacts) {
       const response = await engineerA.get(
         `/api/v1/reports/${first.id}/artifacts/${encodeURIComponent(artifact.name)}`,
@@ -128,8 +136,16 @@ test("rendered reports remain reproducible, approved and organization isolated",
       const content = await response.body();
       expect(sha256(content)).toBe(artifact.sha256);
       expect(content.byteLength).toBe(artifact.size_bytes);
+      if (artifact.name === "source-snapshot.json")
+        frozen = JSON.parse(content.toString("utf8")).metadata.session as FrozenSessionSummary;
     }
 
+    expect(frozen).toBeDefined();
+    expect(first.session_summary).toEqual({
+      session_number: frozen!.session_number,
+      title: frozen!.title,
+      test_object: frozen!.test_object,
+    });
     const engineerApprove = await engineerA.post(`/api/v1/reports/${first.id}/approve`, {
       headers: { "Idempotency-Key": `engineer-approve-${randomUUID()}` },
       data: {
@@ -145,6 +161,18 @@ test("rendered reports remain reproducible, approved and organization isolated",
     await installBrowserCredentials(managerPage, managerAToken, organizationA);
     await managerPage.goto(`/reports/${first.id}`);
     await expect(managerPage.getByTestId("rendered-report-detail")).toBeVisible();
+    for (const width of [390, 1280]) {
+      await managerPage.setViewportSize({ width, height: 900 });
+      await expect(managerPage.getByRole("heading", { level: 1 })).toHaveText(
+        `${frozen!.session_number} · ${frozen!.title}`,
+      );
+      expect(await managerPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    }
+    const diagnostics = managerPage.getByTestId("report-technical-details");
+    await expect(diagnostics).not.toHaveAttribute("open");
+    await diagnostics.locator("summary").click();
+    await expect(diagnostics).toContainText(first.session_id);
+    await expect(diagnostics).toContainText(first.manifest_sha256);
     await expect(managerPage.getByTestId("report-output-panel")).toBeVisible();
     await expect(managerPage.getByTestId("report-approval-state")).toContainText("generated");
 

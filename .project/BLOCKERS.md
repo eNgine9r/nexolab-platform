@@ -2,9 +2,9 @@
 
 Updated: 2026-10-01
 
-## UX source acceptance — #1233 security prerequisite
+## UX source acceptance — #1233 final verification pending
 
-#1230 / PR #1232 merged with five GREEN workflows, 1029 tests and eight browser cases; UX-26/41 are closed in code. #1233 / PR #1234 report/API/Quality checks pass. Restored-browser 36921474403 still asserts the removed UUID heading for a legacy fixture and requires the scoped fallback/technical-ID assertion update. Container Supply Chain 36921474135 detects eight new CVE-2026-19553 HIGH exact tuples with no fixed Trixie package. Independent #1236 is active for current TLS-path review and bounded decisions under the existing policy; no severity/evaluator or existing expiry relaxation is permitted. Reconcile and repeat all #1234 gates after that prerequisite merges. #1235 scoped Live selection memory is next; installed #1191 remains the separate blocker below.
+#1230 / PR #1232 merged with five GREEN workflows, 1029 tests and eight browser cases; UX-26/41 are closed in code. Independent security prerequisite #1236 / PR #1237 is now merged after all three workflows GREEN, fresh exact tuple reconciliation and 50 policy/manifest tests, preserving the 2026-10-02 boundary. #1233 / PR #1234 reconciles current main and updates the restored-browser legacy heading assertion with preserved exact diagnostic IDs/artifact; its final routed gates and review must pass before merge. #1235 scoped Live selection memory is next; installed #1191 remains the separate blocker below.
 
 ## Audit #1191 — authenticated deployed all-page evidence pending
 

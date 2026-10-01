@@ -33,10 +33,17 @@ class ReportArtifactRead(BaseModel):
     created_at: datetime
 
 
+class ReportSessionSummary(BaseModel):
+    session_number: str
+    title: str
+    test_object: str
+
+
 class ReportRead(BaseModel):
     id: str
     organization_id: str
     session_id: str
+    session_summary: ReportSessionSummary | None = None
     config_snapshot_id: str
     version: int
     session_state: str
