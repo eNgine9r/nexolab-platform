@@ -8,7 +8,6 @@ interface CamerasPanelProps {
 }
 
 export function CamerasPanel({ inventory = readCameraInventory() }: CamerasPanelProps) {
-
   return (
     <div className="p-3 sm:p-4">
       {inventory.items.length === 0 ? (
