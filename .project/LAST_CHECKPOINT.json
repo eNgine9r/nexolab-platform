@@ -552,6 +552,14 @@
       "focused_tests": 68,
       "review_threads": 0,
       "installed_acceptance": "unverified"
+    },
+    "issue_1206_initial_browser": {
+      "head": "43d19d1ecec7416b10c3f19cacaea33318c699d4",
+      "run": 36853333675,
+      "result": "2_pass_1_1280_card_overflow",
+      "root_cause": "five_columns_at_xl_leave_insufficient_width_for_meter_and_consumption_headers",
+      "correction": "xl_three_columns_2xl_five_columns",
+      "corrected_CI": "pending"
     }
   },
   "observations": [

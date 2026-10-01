@@ -4,7 +4,7 @@ Updated: 2026-10-01
 
 ## Issue #1206 — UX-29 energy meter selection candidate
 
-The final selected meter now has a disabled removal action with a visible, associated explanation of the existing nonempty comparison policy. Each card offers a keyboard-operable Only this meter action, including previously unselected meters. The display-only selection preserves readings, consumption panels, selected metric/range and acquisition semantics. Local interaction/domain regressions and isolated responsive browser acceptance are being verified; UX-29 remains open until GREEN CI.
+The final selected meter now has a disabled removal action with a visible, associated explanation of the existing nonempty comparison policy. Each card offers a keyboard-operable Only this meter action, including previously unselected meters. The display-only selection preserves readings, consumption panels, selected metric/range and acquisition semantics. Local 90-test energy regressions passed. Initial isolated browser evidence verified 320/390 px but found overflow in five narrow cards at 1280 px. The grid now uses three columns at xl and five at 2xl, with all-card checks expanded through 1536/1920 px. Corrected browser acceptance is pending; UX-29 remains open until GREEN CI.
 
 ## Issue #1204 — UX-11 Overview visibility dialog completed
 

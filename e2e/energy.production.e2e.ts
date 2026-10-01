@@ -426,7 +426,7 @@ test("energy comparison explains the final meter and supports keyboard-only sele
     await page.getByRole("combobox", { name: "Показник" }).selectOption("electrical.voltage");
     await page.getByRole("button", { name: "7 діб" }).click();
     const before = await readAcquisitionMetrics();
-    for (const width of [320, 390, 1280]) {
+    for (const width of [320, 390, 1280, 1536, 1920]) {
       await page.setViewportSize({ width, height: 900 });
       const only = page.getByRole("button", { name: "Показати лише лічильник SDM120M" });
       await only.focus();
@@ -439,10 +439,12 @@ test("energy comparison explains the final meter and supports keyboard-only sele
       await expect(finalToggle).toBeEnabled();
       await finalToggle.click();
       await expect(page.getByRole("button", { name: "Виключити лічильник W1 з порівняння" })).toBeDisabled();
-      const card = page
-        .locator("article")
-        .filter({ has: page.getByRole("heading", { name: "SDM120M", exact: true }) });
-      expect(await card.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+      const cards = page.getByRole("region", { name: "Лічильники електроенергії" }).locator("article");
+      expect(
+        await cards.evaluateAll((elements) =>
+          elements.every((element) => element.scrollWidth <= element.clientWidth),
+        ),
+      ).toBe(true);
       await expect(page.getByRole("combobox", { name: "Показник" })).toHaveValue("electrical.voltage");
       await expect(page.getByRole("button", { name: "7 діб" })).toHaveAttribute("aria-pressed", "true");
     }

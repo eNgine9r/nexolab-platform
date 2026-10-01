@@ -45,7 +45,11 @@
       "title": "UX-29 energy meter comparison controls",
       "branch": "fix/1206-energy-meter-selection"
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 1208,
+      "title": "UX-08/09 grouped navigation and planned Lockers",
+      "branch": "fix/1208-grouped-navigation"
+    }
   },
   "work_packages": [
     {
@@ -5867,6 +5871,14 @@
       "priority": "medium",
       "lifecycle": "in_progress",
       "branch": "fix/1206-energy-meter-selection",
+      "evidence": {}
+    },
+    {
+      "issue": 1208,
+      "title": "UX-08/09 grouped navigation and planned Lockers",
+      "priority": "medium",
+      "lifecycle": "ready",
+      "branch": "fix/1208-grouped-navigation",
       "evidence": {}
     }
   ],
