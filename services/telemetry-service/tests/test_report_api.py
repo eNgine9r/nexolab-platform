@@ -288,3 +288,31 @@ def test_running_session_generation_is_a_typed_conflict(tmp_path: Path) -> None:
 
     assert response.status_code == 409
     assert response.json()["detail"]["code"] == "report_session_not_reportable"
+
+
+def test_report_display_identity_is_frozen_with_unchanged_artifacts(tmp_path: Path) -> None:
+    client, database = build_client(tmp_path)
+    seed_session(database)
+    generated = client.post(
+        "/api/v1/reports/sessions/session-1",
+        headers={**headers(), "Idempotency-Key": "frozen-display"}, json={},
+    )
+    assert generated.status_code == 201
+    report = generated.json()
+    expected = {"session_number": "NX-session-1", "title": "Refrigeration showcase verification", "test_object": "K106"}
+    assert report["session_summary"] == expected
+    artifacts = {item["name"]: client.get(f"/api/v1/reports/{report['id']}/artifacts/{item['name']}", headers=headers()).content for item in report["artifacts"]}
+    with Session(database.engine) as session:
+        current = session.get(TestSession, "session-1")
+        assert current is not None
+        current.title = "New mutable name"
+        current.test_object = "Other equipment"
+        session.commit()
+    detail = client.get(f"/api/v1/reports/{report['id']}", headers=headers()).json()
+    listing = client.get("/api/v1/reports", headers=headers()).json()
+    assert detail["session_summary"] == expected
+    assert listing["items"][0]["session_summary"] == expected
+    assert detail["source_sha256"] == report["source_sha256"]
+    assert detail["manifest_sha256"] == report["manifest_sha256"]
+    for name, content in artifacts.items():
+        assert client.get(f"/api/v1/reports/{report['id']}/artifacts/{name}", headers=headers()).content == content

@@ -9,10 +9,17 @@ export interface ReportArtifact {
   created_at: string;
 }
 
+export interface ReportSessionSummary {
+  session_number: string;
+  title: string;
+  test_object: string;
+}
+
 export interface TestReport {
   id: string;
   organization_id: string;
   session_id: string;
+  session_summary?: ReportSessionSummary | null;
   config_snapshot_id: string;
   version: number;
   session_state: "completed" | "archived";

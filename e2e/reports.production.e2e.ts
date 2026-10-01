@@ -29,10 +29,17 @@ interface ReportArtifact {
   row_count: number | null;
 }
 
+interface FrozenSessionSummary {
+  session_number: string;
+  title: string;
+  test_object: string;
+}
+
 interface ReportResponse {
   id: string;
   organization_id: string;
   session_id: string;
+  session_summary: FrozenSessionSummary;
   version: number;
   source_sha256: string;
   manifest_sha256: string;
@@ -48,6 +55,7 @@ interface ReportPageResponse {
 
 interface ReportSourceSnapshot {
   metadata: {
+    session: FrozenSessionSummary;
     telemetry_selection: {
       mode: string;
       binding_ids: string[];
@@ -218,6 +226,27 @@ test("production reports preserve immutable selected evidence across API, UI and
     const browserSource = JSON.parse(
       (await downloadArtifact(engineerA, browserReport.id, "source-snapshot.json")).content.toString("utf8"),
     ) as ReportSourceSnapshot;
+    const frozen = browserSource.metadata.session;
+    expect(browserReport.session_summary).toEqual({
+      session_number: frozen.session_number,
+      title: frozen.title,
+      test_object: frozen.test_object,
+    });
+    for (const width of [390, 1280]) {
+      await engineerPage.setViewportSize({ width, height: 900 });
+      await expect(engineerPage.getByTestId("report-detail").getByRole("heading", { level: 3 })).toHaveText(
+        `${frozen.session_number} · ${frozen.title}`,
+      );
+      await expect(engineerPage.getByTestId("report-detail")).toContainText(`Об’єкт: ${frozen.test_object}`);
+      expect(await engineerPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+    }
+    const diagnostics = engineerPage.getByTestId("report-detail").getByTestId("report-technical-details");
+    await expect(diagnostics).not.toHaveAttribute("open");
+    await diagnostics.locator("summary").click();
+    await expect(diagnostics).toContainText(browserReport.session_id);
+    await expect(diagnostics).toContainText(browserReport.source_sha256);
     expect(browserSource.metadata.telemetry_selection).toEqual({
       mode: "explicit",
       binding_ids: [bindingId],

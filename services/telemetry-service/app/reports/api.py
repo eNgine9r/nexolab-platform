@@ -16,6 +16,7 @@ from app.reports.repository import (
     ReportSessionStateError,
     ReportSourceChangedError,
 )
+from app.reports.session_summary import frozen_session_summary
 from app.reports.schemas import (
     ReportArtifactRead,
     ReportGenerateRequest,
@@ -166,6 +167,11 @@ def _report_read(record: ReportRecord) -> ReportRead:
         id=report.id,
         organization_id=report.organization_id,
         session_id=report.session_id,
+        session_summary=frozen_session_summary(
+            report.source_snapshot,
+            organization_id=report.organization_id,
+            session_id=report.session_id,
+        ),
         config_snapshot_id=report.config_snapshot_id,
         version=report.version,
         session_state=report.session_state,
