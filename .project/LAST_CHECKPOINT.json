@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T20:10:04.900Z",
+  "timestamp": "2026-10-01T20:35:00.000Z",
   "actor": "Codex",
-  "event": "ux1230_audit_permission_dependency_corrected",
+  "event": "ux1233_supply_chain_blocker_security1236_candidate",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1230,
-    "title": "UX-26 direct completed-test report workflow",
-    "branch": "fix/1230-session-report-entry"
+    "issue": 1236,
+    "title": "Triage new Python TLS HIGH findings blocking UX report acceptance",
+    "branch": "fix/1236-python-tls-high-review"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -825,6 +825,60 @@
       "issue": 1233,
       "phase": "queued_after_1230",
       "source": "existing_frozen_source_snapshot_metadata_session"
+    },
+    "issue_1230_exact_session_report_entry": {
+      "qualification": "ready_scoped_issue",
+      "environment_blocker": "resolved_clean_local_tree_reconciled_with_merged_checkpoint",
+      "local_tests": "39_passed_5_files",
+      "typecheck": "passed",
+      "lint": "passed",
+      "exact_head_ci": {
+        "CI": "success:36919649840",
+        "Test Sessions Browser Acceptance": "success:36919649883",
+        "Reports Browser Acceptance": "success:36919649858",
+        "Rendered Reports Browser Acceptance": "success:36919650123",
+        "Disaster Recovery Browser": "success:36919649864"
+      },
+      "browser_acceptance": "8_passed",
+      "review": "0_threads_0_changes_requested",
+      "audit_dependency": "UX-41_permission_gate",
+      "failed_browser_baseline": "36918470350_2_failed_audit_read_required",
+      "verified_head_sha": "b93e5704d739744c0b8a1b2b1a54e15ba593a5f6",
+      "pull_request": 1232,
+      "full_tests": "1029_passed_175_files",
+      "source_acceptance": "completed",
+      "installed_acceptance": "access_gated_1191"
+    },
+    "issue_1233_frozen_report_context": {
+      "qualification": "existing_immutable_source_snapshot_metadata_session_is_available_no_hash_change_required",
+      "local_frontend_tests": "31_passed_4_files",
+      "local_stdlib_backend_contract_cases": "3_passed",
+      "typecheck": "passed",
+      "backend_api_tests": "added_CI_pending",
+      "exact_head_ci": "blocked_CVE_2026_19553_supply_run_36921474135",
+      "browser_acceptance": "pending",
+      "verified_candidate_head_sha": "0a74b67753ccb48d4af7734879ad00da96e059f4",
+      "pull_request": 1234,
+      "reports_browser": "success:36921474125_2_passed",
+      "rendered_browser": "success:36921474367_1_passed",
+      "telemetry_service": "success:36921474051",
+      "core_quality_build": "success:36921474084",
+      "review": "0_threads",
+      "restored_browser": "36921474403_legacy_UUID_heading_assertion_requires_update"
+    },
+    "issue_1236_python_tls_review": {
+      "baseline_run": 36921474135,
+      "baseline_source_sha": "0a74b67753ccb48d4af7734879ad00da96e059f4",
+      "new_exact_tuples": 8,
+      "fresh_high_tuples": 100,
+      "fresh_critical": 0,
+      "stale_registry_tuples": 0,
+      "expiry": "2026-10-02_existing_boundary",
+      "tls_tests": "7_passed",
+      "fresh_exact_head_ci": "pending_corrected_cohorts",
+      "review": "pending",
+      "historical_cohort_ci_baseline": "36923177734_3_failed_46_passed_old_cohorts_included_new_CVE",
+      "local_corrected_cohort_cases": "4_passed_direct_stdlib_execution"
     }
   },
   "observations": [
@@ -1419,9 +1473,42 @@
         "local_tests": "39_passed_5_files",
         "next_issue": 1233
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T20:23:21.130Z",
+      "kind": "issue_1230_merge_observed",
+      "data": {
+        "issue": 1230,
+        "pull_request": 1232,
+        "verified_head_sha": "b93e5704d739744c0b8a1b2b1a54e15ba593a5f6",
+        "merge_sha": "9650230551601c548920fd644362c45836dd91b2",
+        "all_routed_workflows": "5_green",
+        "full_tests": "1029_passed_175_files",
+        "browser_cases": "8_passed",
+        "next_issue": 1233
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T20:35:00.000Z",
+      "kind": "issue_1233_fresh_supply_chain_blocker",
+      "data": {
+        "issue": 1233,
+        "pull_request": 1234,
+        "head_sha": "0a74b67753ccb48d4af7734879ad00da96e059f4",
+        "failed_run": 36921474135,
+        "new_cve": "CVE-2026-19553",
+        "new_exact_high_tuples": 8,
+        "stale_tuples": 0,
+        "fresh_high": 100,
+        "fresh_critical": 0,
+        "prerequisite_issue": 1236,
+        "next_ux_issue": 1235
+      }
     }
   ],
-  "next_action": "Verify #1230 exact-session engineer/viewer navigation and explicit report generation, unavailable/non-terminal/foreign/malformed contexts with zero navigation writes at 390/1280 px; merge only after all routed exact-head CI/review GREEN. Continue remaining UX findings; installed #1191 remains access-gated.",
+  "next_action": "Complete #1236 exact eight-tuple Python TLS HIGH review with fresh scans and routed exact-head CI/review GREEN; merge prerequisite, reconcile #1233 / PR #1234 and repeat product gates. Continue UX-14 #1235 after #1233. Installed #1191 remains access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
