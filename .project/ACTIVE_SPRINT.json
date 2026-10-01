@@ -40,11 +40,7 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1198,
-      "title": "Consolidate UX findings and verified implementation status",
-      "branch": "commander/1198-ux-audit-report"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -5740,7 +5736,7 @@
       "issue": 1198,
       "title": "Consolidate UX findings and verified implementation status",
       "priority": "unspecified",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "commander/1198-ux-audit-report",
       "evidence": {
         "verified_head_sha": "78d8b5a9479fc46584c74b793f5443aed293c593",
@@ -5748,8 +5744,13 @@
           "audit_id_status_mapping": "38_unique_10_closed_1_partial_27_open",
           "all_completed_product_ci_heads": "recorded",
           "markdown_format": "pass",
-          "production_hardware_changes": "none"
-        }
+          "production_hardware_changes": "none",
+          "candidate_ci_head_sha": "fc9d190ab0e9611855e9f9ee3c1eab6aaf643d0a",
+          "candidate_ci_run": "36795257404",
+          "candidate_ci_matrix": "1_of_1_green",
+          "candidate_review_threads": "none"
+        },
+        "pull_request": 1199
       }
     }
   ],
