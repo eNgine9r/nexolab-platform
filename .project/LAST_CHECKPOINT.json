@@ -875,8 +875,10 @@
       "stale_registry_tuples": 0,
       "expiry": "2026-10-02_existing_boundary",
       "tls_tests": "7_passed",
-      "fresh_exact_head_ci": "pending",
-      "review": "pending"
+      "fresh_exact_head_ci": "pending_corrected_cohorts",
+      "review": "pending",
+      "historical_cohort_ci_baseline": "36923177734_3_failed_46_passed_old_cohorts_included_new_CVE",
+      "local_corrected_cohort_cases": "4_passed_direct_stdlib_execution"
     }
   },
   "observations": [
