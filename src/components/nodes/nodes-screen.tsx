@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AlertTriangle, LoaderCircle, LogIn, Network, RotateCcw } from "lucide-react";
 
+import { LoginReturnLink } from "@/components/security/login-return-link";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
@@ -57,13 +57,10 @@ function NodesSecurityGate({
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           {unauthenticated ? (
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-400"
-            >
+            <LoginReturnLink className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-400">
               <LogIn className="h-4 w-4" />
               Увійти
-            </Link>
+            </LoginReturnLink>
           ) : null}
           {!loading && !configuration ? (
             <button

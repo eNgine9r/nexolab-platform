@@ -506,3 +506,173 @@ function requiredEnvironment(name: string): string {
   if (!value) throw new Error(`${name} is required`);
   return value;
 }
+
+for (const width of [390, 1280]) {
+  test(`protected local destination survives browser login at ${width}px`, async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width, height: 900 } });
+    const page = await context.newPage();
+    const destination = "/settings?tab=general#display";
+    try {
+      await page.goto(destination, { waitUntil: "domcontentloaded" });
+      await expect(page.getByRole("heading", { name: "Потрібен вхід до системи" })).toBeVisible();
+      const login = page.getByRole("link", { name: "Увійти", exact: true });
+      await expect(login).toHaveAttribute("href", `/login?returnTo=${encodeURIComponent(destination)}`);
+      await login.click();
+      await expect(page.getByRole("heading", { name: "Вхід оператора" })).toBeVisible();
+
+      await page.getByLabel("Логін або email", { exact: true }).fill(accounts.viewer);
+      const passwordInput = page.getByLabel("Пароль", { exact: true });
+      await passwordInput.fill(password);
+      await expect(passwordInput).toHaveAttribute("type", "password");
+      const toggle = page.getByRole("button", { name: "Показати пароль", exact: true });
+      await expect(toggle).toHaveAttribute("aria-pressed", "false");
+      await toggle.focus();
+      await page.keyboard.press("Space");
+      await expect(passwordInput).toHaveAttribute("type", "text");
+      const hidePassword = page.getByRole("button", { name: "Приховати пароль", exact: true });
+      await expect(hidePassword).toHaveAttribute("aria-pressed", "true");
+      await hidePassword.click();
+      await expect(passwordInput).toHaveAttribute("type", "password");
+
+      if (width === 1280) {
+        await passwordInput.fill("invalid-password-for-return-test");
+        await page.getByRole("button", { name: "Увійти", exact: true }).click();
+        await expect(page.getByRole("alert")).toBeVisible();
+        await expect.poll(() => new URL(page.url()).searchParams.get("returnTo")).toBe(destination);
+        await passwordInput.fill(password);
+      }
+      await page.getByRole("button", { name: "Увійти", exact: true }).click();
+      await expect
+        .poll(() => {
+          const url = new URL(page.url());
+          return `${url.pathname}${url.search}${url.hash}`;
+        })
+        .toBe(destination);
+      await expect(page.getByLabel("Вийти з NEXOLAB")).toBeVisible();
+      await expect(page.getByLabel("Часові позначки")).toBeVisible();
+      await expect
+        .poll(() =>
+          page.evaluate(() => ({
+            viewport: document.documentElement.clientWidth,
+            content: document.documentElement.scrollWidth,
+          })),
+        )
+        .toEqual({ viewport: width, content: width });
+    } finally {
+      await context.close();
+    }
+  });
+}
+
+test("browser login rejects unsafe and repeated return targets", async ({ browser }) => {
+  const targets = [
+    "/login",
+    `/login?returnTo=${encodeURIComponent("https://example.com/settings")}`,
+    `/login?returnTo=${encodeURIComponent("//example.com/settings")}`,
+    `/login?returnTo=${encodeURIComponent("/%2Fexample.com/settings")}`,
+    "/login?returnTo=/settings&returnTo=/reports",
+    `/login?returnTo=${encodeURIComponent("/login?returnTo=/settings")}`,
+  ];
+  for (const target of targets) {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    try {
+      await page.goto(target, { waitUntil: "domcontentloaded" });
+      await page.getByLabel("Логін або email", { exact: true }).fill(accounts.viewer);
+      await page.getByLabel("Пароль", { exact: true }).fill(password);
+      await page.getByRole("button", { name: "Увійти", exact: true }).click();
+      await expect
+        .poll(() => {
+          const url = new URL(page.url());
+          return `${url.pathname}${url.search}${url.hash}`;
+        })
+        .toBe("/");
+      await expect(page.getByLabel("Вийти з NEXOLAB")).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  }
+});
+
+test("specialized protected-page gates retain their own local destination through real login", async ({
+  browser,
+}) => {
+  const destinations = [
+    { path: "/nodes?filter=attention#inventory", label: "Увійти" },
+    { path: "/live?workspace=explorer&range=24h", label: "Увійти" },
+    { path: "/energy?period=24h#chart", label: "Увійти" },
+    { path: "/reports?filter=completed#versions", label: "Увійти" },
+    { path: "/reports/00000000-0000-0000-0000-000000000001#protocol", label: "Увійти" },
+  ];
+  for (const destination of destinations) {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    try {
+      await page.goto(destination.path, { waitUntil: "domcontentloaded" });
+      const login = page.getByRole("link", { name: destination.label, exact: true });
+      await expect(login).toHaveAttribute("href", `/login?returnTo=${encodeURIComponent(destination.path)}`);
+      await login.click();
+      await page.getByLabel("Логін або email", { exact: true }).fill(accounts.viewer);
+      await page.getByLabel("Пароль", { exact: true }).fill(password);
+      await page.getByRole("button", { name: "Увійти", exact: true }).click();
+      await expect
+        .poll(() => {
+          const url = new URL(page.url());
+          return `${url.pathname}${url.search}${url.hash}`;
+        })
+        .toBe(destination.path);
+      await expect(page.getByLabel("Вийти з NEXOLAB")).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  }
+});
+
+test("changing a denied account uses the newly verified session after login", async ({ browser }) => {
+  for (const destination of [
+    { path: "/live?workspace=explorer&range=24h", denied: "Немає доступу до Live Data" },
+    { path: "/energy?period=24h#chart", denied: "Немає доступу до телеметрії" },
+  ]) {
+    const { page, accessToken } = await loginWithCredentials(browser, "issue385.manager", password);
+    try {
+      const previousSession = await page.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
+        headers: apiHeaders(accessToken),
+      });
+      expect(previousSession.status()).toBe(200);
+      const previousIdentity = (await previousSession.json()).identity.subject;
+      await page.goto(destination.path, { waitUntil: "domcontentloaded" });
+      await expect(page.getByRole("heading", { name: destination.denied, exact: true })).toBeVisible();
+      const changeUser = page.getByRole("link", { name: "Змінити користувача", exact: true });
+      await expect(changeUser).toHaveAttribute(
+        "href",
+        `/login?returnTo=${encodeURIComponent(destination.path)}`,
+      );
+      await changeUser.click();
+      await page.getByLabel("Логін або email", { exact: true }).fill(accounts.viewer);
+      await page.getByLabel("Пароль", { exact: true }).fill(password);
+      await page.getByRole("button", { name: "Увійти", exact: true }).click();
+      await expect
+        .poll(() => {
+          const url = new URL(page.url());
+          return `${url.pathname}${url.search}${url.hash}`;
+        })
+        .toBe(destination.path);
+      await expect(page.getByLabel("Вийти з NEXOLAB")).toBeVisible();
+      await expect(page.getByRole("heading", { name: destination.denied, exact: true })).toHaveCount(0);
+      const currentAccessToken = await page.evaluate(() =>
+        window.sessionStorage.getItem("nexolab.local-auth.access-token"),
+      );
+      expect(currentAccessToken).toBeTruthy();
+      const currentSession = await page.request.get(`${apiBaseUrl}/api/v1/auth/session`, {
+        headers: apiHeaders(currentAccessToken as string),
+      });
+      expect(currentSession.status()).toBe(200);
+      const session = await currentSession.json();
+      expect(session.identity.subject).not.toBe(previousIdentity);
+      expect(session.memberships[0]?.roles).toContain("viewer");
+      expect(session.memberships[0]?.permissions).toContain("telemetry.read");
+    } finally {
+      await page.context().close();
+    }
+  }
+});

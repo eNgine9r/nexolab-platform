@@ -15,6 +15,7 @@ const mock = vi.hoisted(() => ({
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: mock.replace }),
   useSearchParams: () => mock.params,
+  usePathname: () => "/live",
 }));
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>,

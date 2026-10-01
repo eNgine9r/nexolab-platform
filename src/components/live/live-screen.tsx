@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Activity, AlertTriangle, BarChart3, LayoutDashboard, LogIn, RotateCcw } from "lucide-react";
 
+import { LoginReturnLink } from "@/components/security/login-return-link";
 import { SecurityGate } from "@/components/dashboard/security-gate";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
@@ -168,13 +169,10 @@ export function LiveScreen() {
             >
               До огляду
             </Link>
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-400"
-            >
+            <LoginReturnLink className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-400">
               <LogIn className="h-4 w-4" aria-hidden="true" />
               Змінити користувача
-            </Link>
+            </LoginReturnLink>
           </div>
         </section>
       </main>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AlertTriangle, Gauge, LogIn, RotateCcw } from "lucide-react";
 
+import { LoginReturnLink } from "@/components/security/login-return-link";
 import { SecurityGate } from "@/components/dashboard/security-gate";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
@@ -119,13 +120,10 @@ export function EnergyScreen() {
             >
               До огляду
             </Link>
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-400"
-            >
+            <LoginReturnLink className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-400">
               <LogIn className="h-4 w-4" />
               Змінити користувача
-            </Link>
+            </LoginReturnLink>
           </div>
         </section>
       </main>
