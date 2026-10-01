@@ -598,7 +598,7 @@ test("specialized protected-page gates retain their own local destination throug
 }) => {
   const destinations = [
     { path: "/nodes?filter=attention#inventory", label: "Увійти" },
-    { path: "/live?range=24h#chart", label: "Змінити користувача" },
+    { path: "/live?workspace=explorer&range=24h", label: "Змінити користувача" },
     { path: "/energy?period=24h#chart", label: "Змінити користувача" },
     { path: "/reports?filter=completed#versions", label: "Увійти" },
     { path: "/reports/00000000-0000-0000-0000-000000000001#protocol", label: "Увійти" },
