@@ -848,3 +848,43 @@ function requiredEnvironment(name: string): string {
   if (!value) throw new Error(`${name} is required for Live Dashboard acceptance`);
   return value;
 }
+
+test("Live inventory remains readable and keyboard-operable at mobile widths", async ({ browser }) => {
+  const context = await authenticatedContext(browser);
+  const page = await context.newPage();
+  try {
+    await page.goto("/live", { waitUntil: "domcontentloaded" });
+    const inventory = page.getByTestId("live-inventory-panel");
+    const row = inventory.getByTestId("live-channel-row").first();
+    await expect(row).toBeVisible();
+    const compare = row.getByRole("checkbox", { name: /Порівнювати/ });
+    for (const width of [320, 360, 390, 430]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(compare).toBeVisible();
+      await expect(row.locator("time")).toBeVisible();
+      await expect
+        .poll(() => inventory.evaluate((element) => element.scrollWidth <= element.clientWidth))
+        .toBe(true);
+      const summary = row.locator("summary");
+      await summary.focus();
+      await page.keyboard.press("Enter");
+      await expect(row.locator("details")).toHaveAttribute("open", "");
+      await expect(row.locator("details dd").first()).toBeVisible();
+      await expect
+        .poll(() => inventory.evaluate((element) => element.scrollWidth <= element.clientWidth))
+        .toBe(true);
+      await page.keyboard.press("Enter");
+      await expect(row.locator("details")).not.toHaveAttribute("open", "");
+    }
+    await compare.focus();
+    await page.keyboard.press("Space");
+    await expect(compare).toBeChecked();
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(compare).toBeChecked();
+    await expect(row.locator("summary")).toBeHidden();
+    await expect(inventory.getByRole("columnheader", { name: "Час вимірювання" })).toBeVisible();
+    await compare.uncheck();
+  } finally {
+    await context.close();
+  }
+});

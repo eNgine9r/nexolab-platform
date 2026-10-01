@@ -2,6 +2,10 @@
 
 Updated: 2026-10-01
 
+## Issue #1202 — UX-15 mobile Live inventory candidate
+
+The Product Owner authorized closing all UX audit findings on 2026-10-01. Work Package #1202 follows #1191 UX-15: one responsive inventory DOM retains a single comparison control per channel; narrow rows show channel identity, value/unit, truthful state, alarm and captured time, with keyboard-operable native technical details. Desktop retains table columns. Existing filtering, URL selection, eight-channel limit, source/state semantics and acquisition are unchanged. Local verification: 84 Live tests, typecheck, touched ESLint/Prettier and production build. Browser test covers 320/360/390/430/1280 px, keyboard details and selection preservation. Local Chromium installation failed because the CDN download was not a valid zip; isolated browser acceptance is pending exact-head CI. UX-15 remains open until browser evidence is GREEN. No production deployment, authenticated installed acceptance, hardware/Modbus writes or dependencies changed. Next proposed source package is UX-11 selector focus management, to be qualified separately.
+
 ## Issue #1200 — verified Sessions and Lockers account actions completed
 
 PR #1201 product candidate `018544890957ab7437d19911c8286e63cfbb7e1a` passed all 9 routed workflows: Core CI/Merge Gate, Authenticated Dashboard, Test Sessions, Reports, Rendered Reports, Alerts, Nodes, Security Browser and Offline Auth. All twelve P2 review findings are addressed; the final authorization-rejection thread will be resolved after publication. Latest source 19ce05713a6f57136120206e28868ec6afbf557a passes 150 relevant tests, TypeScript, touched lint/format and production build. Verified account header/actions are wired to SessionsShell and /lockers; live children are gated, membership changes wait for catalog navigation and reset domain state. Session clients and wizard inventory share explicit scope while preserving local token refresh and default callers.

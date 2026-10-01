@@ -2,6 +2,10 @@
 
 Updated: 2026-10-01
 
+## Issue #1202 — local browser unavailable, isolated CI evidence pending
+
+The local Playwright Chromium download returned an invalid/truncated archive. Source/module/type/lint/build evidence is available; responsive keyboard and overflow behavior remains pending the exact-head Authenticated Dashboard CI scenario. Do not close UX-15 or represent this as deployed acceptance before browser evidence. This soft blocker does not gate other independently qualified source work. No installed service, credential, acquisition or hardware change was made.
+
 ## Audit #1191 — authenticated deployed all-page evidence pending
 
 Read-only inspection confirmed the installed dashboard service is active, with release `7db6c8c34c7c94874afe2a3301a2209585795744-20260922T134803Z` and build ID `Y_SLpdT2dyZiZ5SGk-QZn`. The configured Session API is reachable and returns HTTP 401 to an anonymous request; this is an authentication requirement, not evidence of a runtime outage. No authenticated operator browser session is available in the current execution surface. Full deployed all-page/mobile/role journeys remain unverified until normal operator access is available. Source/component/isolated CI evidence for #1192/#1194/#1196 must not be represented as deployed acceptance. No service restart, cutover, credential change or hardware action was performed.

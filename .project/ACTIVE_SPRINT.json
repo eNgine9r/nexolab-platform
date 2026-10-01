@@ -40,7 +40,11 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1202,
+      "title": "UX-15 mobile Live inventory",
+      "branch": "fix/1202-live-mobile-inventory"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -5816,6 +5820,14 @@
         },
         "pull_request": 1201
       }
+    },
+    {
+      "issue": 1202,
+      "title": "UX-15 mobile Live inventory",
+      "priority": "unspecified",
+      "lifecycle": "review",
+      "branch": "fix/1202-live-mobile-inventory",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [
