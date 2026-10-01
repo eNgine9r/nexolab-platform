@@ -691,18 +691,21 @@ for (const width of [390, 1280]) {
   });
 }
 
-test("Live explicit comparison survives failed inventory and outage reload before memory fallback", async ({
-  browser,
-}) => {
+test("Live preserves explicit comparison during inventory outage and reload", async ({ browser }) => {
   const fixture = seedExplorerTelemetry();
   const context = await authenticatedContext(browser);
   const page = await context.newPage();
   const runtime = observeRuntime(page);
   const preferenceKey = `nexolab.live-comparison.v1:${encodeURIComponent(organizationId)}`;
   const remembered = ["previous-channel"];
-  const explicit = ["edge-live-issue-400", fixture.equipmentId, fixture.channels[0]!, "temperature.probe", "degC"]
-    .map((part) => encodeURIComponent(part))
-    .join("|");
+  const identity = [
+    "edge-live-issue-400",
+    fixture.equipmentId,
+    fixture.channels[0]!,
+    "temperature.probe",
+    "degC",
+  ];
+  const explicit = identity.map((part) => encodeURIComponent(part)).join("|");
   const readPreference = () =>
     page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "null"), preferenceKey);
   let inventoryFailures = 0;
