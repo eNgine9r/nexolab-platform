@@ -673,6 +673,7 @@ for (const width of [390, 1280]) {
       await expect(selectedContext).toContainText(fixture.equipmentId);
       await expect.poll(() => new URL(page.url()).searchParams.getAll("compare")).toEqual(selected);
 
+      await page.getByPlaceholder("node, equipment, channel, metric, source...").fill(fixture.equipmentId);
       await page.getByRole("checkbox", { name: /Порівнювати/, checked: true }).uncheck();
       await expect.poll(readPreference).toEqual({ version: 1, keys: [] });
       await page.goto("/live", { waitUntil: "domcontentloaded" });

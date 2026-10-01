@@ -100,6 +100,31 @@ describe("complete inventory selection readiness", () => {
     view.unmount();
   });
 
+  it("pauses persistence before clearing a previously ready inventory on retry", async () => {
+    state.latest.mockResolvedValueOnce(page([sample]));
+    let resolveInventory: (value: ReturnType<typeof page>) => void = () => undefined;
+    state.latest.mockImplementationOnce(
+      () =>
+        new Promise<ReturnType<typeof page>>((resolve) => {
+          resolveInventory = resolve;
+        }),
+    );
+    const key = liveChannelKey(sample);
+    const view = renderHook(() => useLiveTelemetry({ organizationId: "org-a", initialSelectedKeys: [key] }));
+    await connect();
+    await waitFor(() => expect(view.result.current.selectionReady).toBe(true));
+    expect(view.result.current.selectedKeys).toEqual([key]);
+    act(() => view.result.current.retry());
+    await waitFor(() => expect(state.subscribe).toHaveBeenCalledTimes(2));
+    await connect();
+    await waitFor(() => expect(state.latest).toHaveBeenCalledTimes(2));
+    expect(view.result.current.selectionReady).toBe(false);
+    act(() => resolveInventory(page([sample])));
+    await waitFor(() => expect(view.result.current.selectionReady).toBe(true));
+    expect(view.result.current.selectedKeys).toEqual([key]);
+    view.unmount();
+  });
+
   it("reconciles unavailable channels only after a complete successful inventory", async () => {
     state.latest.mockResolvedValue(page([]));
     const view = renderHook(() => useLiveTelemetry({ organizationId: "org-a", initialSelectedKeys: ["missing"] }));
