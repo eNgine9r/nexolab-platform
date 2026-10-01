@@ -3,7 +3,11 @@ import Link from "next/link";
 
 import { readCameraInventory, type CameraInventoryResult } from "@/features/cameras/domain";
 
-export function CamerasPanel({ inventory = readCameraInventory() }: { inventory?: CameraInventoryResult }) {
+interface CamerasPanelProps {
+  inventory?: CameraInventoryResult;
+}
+
+export function CamerasPanel({ inventory = readCameraInventory() }: CamerasPanelProps) {
 
   return (
     <div className="p-3 sm:p-4">
