@@ -41,9 +41,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1213,
-      "title": "UX-32 UTC/local operational timestamps and charts",
-      "branch": "fix/1213-operational-timezone"
+      "issue": 1214,
+      "title": "UX-17 remove incomplete Gauge choice",
+      "branch": "fix/1214-legacy-gauge-choice"
     },
     "next_work_package": null
   },
@@ -5945,15 +5945,33 @@
       "issue": 1213,
       "title": "UX-32 UTC/local operational timestamps and charts",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/1213-operational-timezone",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "3fc52a2f7f0026c8fc2cd951394a5b606b120c09",
+        "pull_request": 1216,
+        "checks": {
+          "Telegram Gateway": "success:36885636894",
+          "Nodes Browser Acceptance": "success:36885636897",
+          "Reports Browser Acceptance": "success:36885636950",
+          "Acquisition Scale Acceptance": "success:36885636866",
+          "Broker Control Acceptance": "success:36885636794",
+          "Authenticated Dashboard Acceptance": "success:36885636899",
+          "Rendered Reports Browser Acceptance": "success:36885636835",
+          "Offline Bundle": "success:36885636831",
+          "Test Sessions Browser Acceptance": "success:36885636760",
+          "Refrigeration Browser Acceptance": "success:36885636797",
+          "Alerts Browser Acceptance": "success:36885636773",
+          "Disaster Recovery Browser": "success:36885636917",
+          "CI": "success:36885636764"
+        }
+      }
     },
     {
       "issue": 1214,
       "title": "UX-17 remove incomplete Gauge choice",
       "priority": "medium",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "branch": "fix/1214-legacy-gauge-choice",
       "evidence": {}
     }

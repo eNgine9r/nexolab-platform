@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T15:17:54.866031+00:00",
+  "timestamp": "2026-10-01T16:11:24.232Z",
   "actor": "Codex",
-  "event": "ux1212_merged_ux1213_timezone_candidate",
+  "event": "ux1214_gauge_candidate_state_review_reconciled",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1213,
-    "title": "UX-32 UTC/local operational timestamps and charts",
-    "branch": "fix/1213-operational-timezone"
+    "issue": 1214,
+    "title": "UX-17 remove incomplete Gauge choice",
+    "branch": "fix/1214-legacy-gauge-choice"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -648,12 +648,27 @@
       "branch": "fix/1213-operational-timezone",
       "local_frontend_tests": "944_passed_168_files",
       "new_tests": 14,
-      "exact_head_ci": "pending",
-      "browser_acceptance": "pending",
-      "review": "pending",
+      "exact_head_ci": "13_of_13_green",
+      "browser_acceptance": "33_passed",
+      "review": "no_threads",
       "typecheck": "pass",
       "lint_format": "pass",
-      "production_build": "pass_23_pages"
+      "production_build": "pass_23_pages",
+      "verified_head_sha": "3fc52a2f7f0026c8fc2cd951394a5b606b120c09",
+      "pull_request": 1216
+    },
+    "issue_1214_ux17": {
+      "issue": 1214,
+      "branch": "fix/1214-legacy-gauge-choice",
+      "phase": "bounded_gauge_choice_candidate",
+      "local_execution": "unavailable_environment_offline",
+      "exact_head_ci": "pending",
+      "regression_baseline": {
+        "head_sha": "7ead1099490269d74494329e6ca7c5301b3a3a7f",
+        "run": 36888544786,
+        "tests": "2_expected_failures_944_passed"
+      },
+      "browser_acceptance": "pending"
     }
   },
   "observations": [
@@ -1022,9 +1037,37 @@
         "pull_request": 1215,
         "merge_sha": "1998cdfffa1c750a57b40abe9cf7ebebcbc95d68"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T15:55:02.142Z",
+      "kind": "ux1213_pr1216_merge",
+      "data": {
+        "issue": 1213,
+        "pull_request": 1216,
+        "merge_sha": "a9956255070cd05ebd531f54879766991fa77bdd",
+        "verified_head_sha": "3fc52a2f7f0026c8fc2cd951394a5b606b120c09",
+        "workflows": {
+          "Telegram Gateway": 36885636894,
+          "Nodes Browser Acceptance": 36885636897,
+          "Reports Browser Acceptance": 36885636950,
+          "Acquisition Scale Acceptance": 36885636866,
+          "Broker Control Acceptance": 36885636794,
+          "Authenticated Dashboard Acceptance": 36885636899,
+          "Rendered Reports Browser Acceptance": 36885636835,
+          "Offline Bundle": 36885636831,
+          "Test Sessions Browser Acceptance": 36885636760,
+          "Refrigeration Browser Acceptance": 36885636797,
+          "Alerts Browser Acceptance": 36885636773,
+          "Disaster Recovery Browser": 36885636917,
+          "CI": 36885636764
+        },
+        "browser_scenarios": 33,
+        "review_threads": 0
+      }
     }
   ],
-  "next_action": "Verify #1213 exact-head UTC/local browser and workflows/review, merge only GREEN, then implement #1214 legacy Gauge choices. Installed #1191 remains access-gated.",
+  "next_action": "Verify #1214 supported choices and legacy compatibility on final exact-head CI/browser/review, merge only GREEN, then qualify the next audit finding. Installed #1191 remains access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -2,7 +2,12 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { createEmptyLiveDashboardDraft, validateLiveDashboardDraft } from "@/features/live-dashboards/model";
+import {
+  addDashboardDraftItem,
+  createEmptyLiveDashboardDraft,
+  draftToWrite,
+  validateLiveDashboardDraft,
+} from "@/features/live-dashboards/model";
 import type { LiveDashboardDraft, LiveDashboardInventoryItem } from "@/features/live-dashboards/types";
 
 import { DashboardEditor } from "./dashboard-editor";
@@ -43,13 +48,16 @@ function createInventoryItem(index: number): LiveDashboardInventoryItem {
 function EditorHarness({
   inventory,
   onSave,
+  initialDraft,
 }: {
   inventory: LiveDashboardInventoryItem[];
-  onSave: () => void;
+  onSave: (draft: LiveDashboardDraft) => void;
+  initialDraft?: LiveDashboardDraft;
 }) {
   const [draft, setDraft] = useState<LiveDashboardDraft>(() => ({
     ...createEmptyLiveDashboardDraft(),
     name: "Raspberry Pi 162-channel acceptance",
+    ...initialDraft,
   }));
 
   return (
@@ -67,7 +75,7 @@ function EditorHarness({
       conflict={null}
       saving={false}
       saveError={null}
-      onSave={onSave}
+      onSave={() => onSave(draft)}
       onCancel={vi.fn()}
       onUseServerVersion={vi.fn()}
       onSaveAsCopy={vi.fn()}
@@ -100,5 +108,48 @@ describe("DashboardEditor Raspberry Pi-sized inventory", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Зберегти" }));
     expect(onSave).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("DashboardEditor supported visualizations", () => {
+  it("offers supported types for a new item without offering an incomplete Gauge", () => {
+    const inventory = [createInventoryItem(0)];
+    const draft = addDashboardDraftItem(
+      { ...createEmptyLiveDashboardDraft(), name: "New monitoring" },
+      inventory[0],
+    ).draft;
+    render(<EditorHarness inventory={inventory} initialDraft={draft} onSave={vi.fn()} />);
+    const visualization = screen.getByLabelText("Візуалізація");
+    expect(screen.queryByRole("option", { name: "Індикатор" })).not.toBeInTheDocument();
+    for (const value of ["line", "area", "value"]) {
+      fireEvent.change(visualization, { target: { value } });
+      expect(visualization).toHaveValue(value);
+      expect(screen.getByLabelText("Конфігурація валідна")).toBeVisible();
+    }
+  });
+
+  it("preserves a legacy Gauge through unrelated edits and converts only on explicit choice", () => {
+    const inventory = [createInventoryItem(0)];
+    const draft = addDashboardDraftItem(
+      { ...createEmptyLiveDashboardDraft(), id: "legacy-dashboard", name: "Legacy indicator" },
+      inventory[0],
+    ).draft;
+    draft.items[0].visualization = "gauge";
+    const onSave = vi.fn();
+    render(<EditorHarness inventory={inventory} initialDraft={draft} onSave={onSave} />);
+    const visualization = screen.getByLabelText("Візуалізація");
+    expect(visualization).toHaveValue("gauge");
+    expect(screen.getByRole("option", { name: "Значення (старий індикатор)" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Назва"), { target: { value: "Renamed legacy" } });
+    fireEvent.click(screen.getByRole("button", { name: "Зберегти" }));
+    const retained = onSave.mock.calls.at(-1)![0] as LiveDashboardDraft;
+    expect(draftToWrite(retained).items[0].visualization).toBe("gauge");
+    expect(retained.items[0]).toEqual(draft.items[0]);
+    fireEvent.change(visualization, { target: { value: "value" } });
+    expect(screen.queryByRole("option", { name: "Значення (старий індикатор)" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Зберегти" }));
+    const converted = onSave.mock.calls.at(-1)![0] as LiveDashboardDraft;
+    expect(converted.items[0]).toEqual({ ...draft.items[0], visualization: "value" });
+    expect(draftToWrite(converted).items[0].visualization).toBe("value");
   });
 });

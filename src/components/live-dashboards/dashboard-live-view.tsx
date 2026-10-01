@@ -302,7 +302,7 @@ export function DashboardLiveView({
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="text-xs font-semibold tracking-[0.12em] text-slate-500 uppercase">
-                  {item.item.visualization === "gauge" ? "Gauge value" : "Current value"}
+                  Поточне значення
                 </span>
                 <span
                   className="h-3 w-3 rounded-full border border-white/20"
@@ -325,7 +325,8 @@ export function DashboardLiveView({
               </p>
               {item.item.visualization === "gauge" ? (
                 <p className="mt-3 rounded-xl border border-white/[0.06] bg-[#06142a]/70 p-2 text-[11px] leading-4 text-slate-500">
-                  Межі gauge не зберігаються доменом; значення показано без вигаданого діапазону.
+                  Збережений індикатор показує поточне значення без шкали. У редакторі можна обрати інший тип
+                  відображення.
                 </p>
               ) : null}
             </article>

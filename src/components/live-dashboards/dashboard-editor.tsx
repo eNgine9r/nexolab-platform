@@ -35,10 +35,11 @@ import type { LiveDashboardInventoryModel } from "@/hooks/use-live-dashboard-inv
 
 import { TelemetryPointSelector } from "@/components/telemetry-selection/telemetry-point-selector";
 
+const SUPPORTED_VISUALIZATIONS = LIVE_DASHBOARD_VISUALIZATIONS.filter((value) => value !== "gauge");
+
 const VISUALIZATION_LABELS = {
   line: "Лінія",
   area: "Область",
-  gauge: "Індикатор",
   value: "Значення",
 } as const;
 
@@ -300,7 +301,12 @@ export function DashboardEditor({
                           }
                           className="h-9 rounded-xl border border-white/10 bg-[#081a32] px-2 text-xs text-slate-200"
                         >
-                          {LIVE_DASHBOARD_VISUALIZATIONS.map((value) => (
+                          {item.visualization === "gauge" ? (
+                            <option value="gauge" disabled>
+                              Значення (старий індикатор)
+                            </option>
+                          ) : null}
+                          {SUPPORTED_VISUALIZATIONS.map((value) => (
                             <option key={value} value={value}>
                               {VISUALIZATION_LABELS[value]}
                             </option>
