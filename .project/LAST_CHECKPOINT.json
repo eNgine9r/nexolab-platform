@@ -28,11 +28,7 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": {
-    "issue": 1230,
-    "title": "UX-26 direct completed-test report workflow",
-    "branch": "fix/1230-session-report-entry"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -1353,7 +1349,7 @@
       }
     },
     {
-      "source": "github_and_execution_environment",
+      "source": "github",
       "observed_at": "2026-10-01T19:35:15.232Z",
       "kind": "issue_1228_pr_1229_merged_1230_environment_blocked",
       "data": {

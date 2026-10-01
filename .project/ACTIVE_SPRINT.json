@@ -40,12 +40,12 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": {
+    "active_work_package": null,
+    "next_work_package": {
       "issue": 1230,
       "title": "UX-26 direct completed-test report workflow",
       "branch": "fix/1230-session-report-entry"
-    },
-    "next_work_package": null
+    }
   },
   "work_packages": [
     {
@@ -6874,7 +6874,7 @@
       }
     },
     {
-      "source": "github_and_execution_environment",
+      "source": "github",
       "observed_at": "2026-10-01T19:35:15.232Z",
       "kind": "issue_1228_pr_1229_merged_1230_environment_blocked",
       "data": {
