@@ -178,7 +178,7 @@ it.each(["create", "binding", "limits"] as const)(
   },
 );
 
-it.each([409, 422])(
+it.each([401, 403, 409, 422])(
   "returns a definitively rejected creation (%s) to an editable form, including after reopening",
   async (status) => {
     mock.persistent = true;

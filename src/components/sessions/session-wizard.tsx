@@ -376,7 +376,7 @@ export function SessionWizard() {
         nextError instanceof SessionClientError &&
         ((nextError.status === 409 &&
           ["session_number_conflict", "session_create_conflict"].includes(nextError.code ?? "")) ||
-          (!uncertainCreateBeforeThisAttempt && nextError.status === 422))
+          (!uncertainCreateBeforeThisAttempt && [401, 403, 422].includes(nextError.status ?? 0)))
       ) {
         operation.current = {
           sessionId: null,
@@ -394,7 +394,9 @@ export function SessionWizard() {
           new Error(
             nextError.code === "session_number_conflict"
               ? "Такий номер випробування вже існує. Змініть номер у формі та повторіть створення."
-              : "Сервер відхилив створення. Перевірте дані форми та повторіть спробу.",
+              : nextError.status === 401 || nextError.status === 403
+                ? "Сервер відхилив створення: потрібен чинний вхід і право створення випробувань. Дані форми збережено для редагування."
+                : "Сервер відхилив створення. Перевірте дані форми та повторіть спробу.",
           ),
         );
         return;
