@@ -1267,6 +1267,38 @@ test("authors an accepted Instrument and Signal before binding it through RFX-10
     totalSensors: 4,
   });
 
+  const otherInstrumentResponse = await page.request.post(
+    `${apiBaseUrl}/api/v1/instrumentation/instruments`,
+    {
+      headers: { "X-Audit-Reason": "UX-30 organization-wide collision fixture" },
+      data: {
+        inventory_key: "UX30-OTHER-PT",
+        display_name: "UX30 other pressure transmitter",
+        instrument_kind: "pressure_transmitter",
+        pressure_reference: "gauge",
+        lifecycle_state: "active",
+        metadata: {},
+      },
+    },
+  );
+  expect(otherInstrumentResponse.status()).toBe(201);
+  const otherInstrument = (await otherInstrumentResponse.json()) as { id: string };
+  const otherSignalResponse = await page.request.post(
+    `${apiBaseUrl}/api/v1/instrumentation/instruments/${otherInstrument.id}/signals`,
+    {
+      headers: { "X-Audit-Reason": "UX-30 organization-wide collision fixture" },
+      data: {
+        business_key: "pressure",
+        display_name: "UX30 existing pressure",
+        physical_quantity: "pressure",
+        engineering_unit: "bar",
+        lifecycle_state: "active",
+        metadata: {},
+      },
+    },
+  );
+  expect(otherSignalResponse.status()).toBe(201);
+
   await page.goto(absoluteRoute("/settings/instrumentation"), {
     waitUntil: "domcontentloaded",
   });
@@ -1306,7 +1338,7 @@ test("authors an accepted Instrument and Signal before binding it through RFX-10
     await expect(signalForm.getByLabel("create signal business key")).toHaveValue("temperature");
     await page.keyboard.press("ArrowDown");
     await expect(quantity).toHaveValue("pressure");
-    await expect(signalForm.getByLabel("create signal business key")).toHaveValue("pressure");
+    await expect(signalForm.getByLabel("create signal business key")).toHaveValue("pressure.2");
     await expect(signalForm.getByLabel("Новий сигнал: одиниця вимірювання")).toHaveValue("");
     await expect(signalForm.getByRole("button", { name: "Створити Signal" })).toBeDisabled();
     await signalForm.getByLabel("Новий сигнал: одиниця вимірювання").selectOption("bar");
@@ -1346,7 +1378,7 @@ test("authors an accepted Instrument and Signal before binding it through RFX-10
   const signals = (await signalsResponse.json()) as {
     items: Array<{ id: string; business_key: string; physical_quantity: string; engineering_unit: string }>;
   };
-  const persistedSignal = signals.items.find((item) => item.business_key === "pressure");
+  const persistedSignal = signals.items.find((item) => item.business_key === "pressure.2");
   expect(persistedSignal).toBeDefined();
   if (!persistedSignal) throw new Error("RFX-11 Signal was not persisted");
   expect(persistedSignal.physical_quantity).toBe("pressure");

@@ -300,7 +300,9 @@ describe("InstrumentationRegistryWorkspace", () => {
     fireEvent.change(within(form).getByLabelText("Новий сигнал: фізична величина"), {
       target: { value: "pressure" },
     });
-    expect(within(form).getByLabelText("create signal business key")).toHaveValue("pressure.2");
+    await waitFor(() =>
+      expect(within(form).getByLabelText("create signal business key")).toHaveValue("pressure.2"),
+    );
     expect(within(form).getByLabelText("Новий сигнал: одиниця вимірювання")).toHaveValue("");
     expect(within(form).getByRole("button", { name: "Створити Signal" })).toBeDisabled();
     expect(createSignal).not.toHaveBeenCalled();
@@ -378,7 +380,7 @@ describe("InstrumentationRegistryWorkspace", () => {
     ]);
   });
 
-  it("waits for the selected instrument inventory before proposing or creating a key", async () => {
+  it("waits for complete organization signal inventory before proposing or creating a key", async () => {
     let resolveSignals: (signals: SignalRegistryRecord[]) => void = () => undefined;
     const pendingSignals = new Promise<SignalRegistryRecord[]>((resolve) => {
       resolveSignals = resolve;
@@ -407,5 +409,44 @@ describe("InstrumentationRegistryWorkspace", () => {
     await act(async () => resolveSignals([signal]));
     expect(within(form).getByLabelText("create signal business key")).toHaveValue("pressure.2");
     expect(within(form).getByRole("button", { name: "Створити Signal" })).toBeEnabled();
+  });
+  it("checks keys owned by another instrument and waits for that inventory", async () => {
+    const other = { ...instrument, id: "instrument-2", displayName: "Другий прилад" };
+    let resolveOther: (signals: SignalRegistryRecord[]) => void = () => undefined;
+    const pendingOther = new Promise<SignalRegistryRecord[]>((resolve) => {
+      resolveOther = resolve;
+    });
+    const createSignal = vi.fn<InstrumentationRegistryRepository["createSignal"]>().mockResolvedValue(signal);
+    const listSignals = vi.fn<InstrumentationRegistryRepository["listSignals"]>((id) =>
+      id === other.id ? pendingOther : Promise.resolve([]),
+    );
+    render(
+      <InstrumentationRegistryWorkspace
+        repository={repository({ listInstruments: async () => [instrument, other], listSignals, createSignal })}
+        canManage
+      />,
+    );
+    await screen.findAllByText(instrument.displayName);
+    const form = screen.getByText("Новий Signal").closest("form")!;
+    fireEvent.change(within(form).getByLabelText("create signal display name"), {
+      target: { value: "Новий тиск" },
+    });
+    fireEvent.change(within(form).getByLabelText("Новий сигнал: фізична величина"), {
+      target: { value: "pressure" },
+    });
+    fireEvent.change(within(form).getByLabelText("Новий сигнал: одиниця вимірювання"), {
+      target: { value: "bar" },
+    });
+    await waitFor(() => expect(listSignals).toHaveBeenCalledWith(other.id, expect.any(AbortSignal)));
+    expect(within(form).getByLabelText("create signal business key")).toHaveValue("");
+    expect(within(form).getByRole("button", { name: "Створити Signal" })).toBeDisabled();
+    expect(createSignal).not.toHaveBeenCalled();
+    await act(async () => resolveOther([{ ...signal, instrumentId: other.id }]));
+    await waitFor(() =>
+      expect(within(form).getByLabelText("create signal business key")).toHaveValue("pressure.2"),
+    );
+    fireEvent.click(within(form).getByRole("button", { name: "Створити Signal" }));
+    await waitFor(() => expect(createSignal).toHaveBeenCalledOnce());
+    expect(createSignal.mock.calls[0]?.[1].businessKey).toBe("pressure.2");
   });
 });

@@ -78,6 +78,11 @@ export function InstrumentationRegistryWorkspace({
   const [instruments, setInstruments] = useState<InstrumentRegistryRecord[]>([]);
   const [selectedInstrumentId, setSelectedInstrumentId] = useState<string | null>(null);
   const [details, setDetails] = useState<InstrumentDetails | null>(null);
+  const [organizationSignals, setOrganizationSignals] = useState<{
+    repository: InstrumentationRegistryRepository;
+    instruments: InstrumentRegistryRecord[];
+    keys: string[];
+  } | null>(null);
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null);
   const [loading, setLoading] = useState(repository !== null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -215,17 +220,45 @@ export function InstrumentationRegistryWorkspace({
     };
   }, [repository, selectedInstrumentId]);
 
+  useEffect(() => {
+    if (!repository || !canManage) return;
+    let active = true;
+    const controller = new AbortController();
+
+    async function loadOrganizationSignals() {
+      const keys: string[] = [];
+      for (const instrument of instruments) {
+        const signals = await repository!.listSignals(instrument.id, controller.signal);
+        if (!active) return;
+        keys.push(...signals.map((item) => item.businessKey));
+      }
+      if (active) setOrganizationSignals({ repository: repository!, instruments, keys });
+    }
+
+    void loadOrganizationSignals().catch((cause) => {
+      if (!active || controller.signal.aborted) return;
+      setError(readError(cause, "Не вдалося перевірити ключі сигналів організації. Натисніть «Оновити»."));
+    });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [repository, instruments, canManage]);
+
   const selectedInstrument = useMemo(
     () => instruments.find((item) => item.id === selectedInstrumentId) ?? null,
     [instruments, selectedInstrumentId],
   );
   const currentDetails = details?.instrumentId === selectedInstrumentId ? details : null;
-  const suggestedBusinessKey = currentDetails
-    ? suggestSignalBusinessKey(
-        signalDraft.physicalQuantity,
-        currentDetails.signals.map((item) => item.businessKey),
-      )
-    : "";
+  const organizationKeys =
+    organizationSignals?.repository === repository && organizationSignals.instruments === instruments
+      ? organizationSignals.keys
+      : null;
+  const suggestedBusinessKey =
+    currentDetails && organizationKeys
+      ? suggestSignalBusinessKey(signalDraft.physicalQuantity, organizationKeys)
+      : "";
   const selectedSignal = useMemo(
     () => currentDetails?.signals.find((item) => item.id === selectedSignalId) ?? null,
     [currentDetails?.signals, selectedSignalId],
@@ -294,11 +327,21 @@ export function InstrumentationRegistryWorkspace({
   async function createSignal(event: FormEvent) {
     event.preventDefault();
     const draft = { ...signalDraft, businessKey: signalDraft.businessKey.trim() || suggestedBusinessKey };
-    if (!canManage || !selectedInstrument || detailsLoading || !currentDetails || !validSignalDraft(draft)) {
+    if (
+      !canManage ||
+      !selectedInstrument ||
+      detailsLoading ||
+      !currentDetails ||
+      !organizationKeys ||
+      !validSignalDraft(draft)
+    ) {
       return;
     }
     await mutate(async () => {
       const created = await repository!.createSignal(selectedInstrument.id, toSignalInput(draft));
+      setOrganizationSignals((current) =>
+        current ? { ...current, keys: [...current.keys, created.businessKey] } : null,
+      );
       setSignalDraft(emptySignalDraft);
       setSelectedSignalId(created.id);
       setNotice(`Signal ${created.displayName} створено.`);
@@ -312,6 +355,7 @@ export function InstrumentationRegistryWorkspace({
       const updated = await repository!.updateSignal(selectedInstrument.id, record.id, input, record.version);
       setSelectedSignalId(updated.id);
       setNotice(`Signal ${updated.displayName} оновлено до v${updated.version}.`);
+      await loadBase(selectedInstrument.id);
       await loadDetails(selectedInstrument.id);
     });
   }
@@ -481,7 +525,7 @@ export function InstrumentationRegistryWorkspace({
                   <SignalCreateForm
                     draft={signalDraft}
                     setDraft={setSignalDraft}
-                    busy={busy || detailsLoading || !currentDetails}
+                    busy={busy || detailsLoading || !currentDetails || !organizationKeys}
                     suggestedBusinessKey={suggestedBusinessKey}
                     onSubmit={createSignal}
                   />
