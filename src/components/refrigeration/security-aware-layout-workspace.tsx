@@ -120,19 +120,20 @@ export function SecurityAwareRefrigerationLayoutWorkspace({
   const canManageSensorConfiguration =
     runtime.mode === "demo" ||
     Boolean(session && membership && hasPermission(session, membership.organizationId, "equipment.manage"));
-  const externallyReadOnly =
-    forceReadOnly || canManageEquipment === false || (cameraScoped && !canManageSensorConfiguration);
+  const externallyReadOnly = forceReadOnly || canManageEquipment === false;
 
   const capabilities = useMemo<LayoutCapabilities>(() => {
     if (externallyReadOnly) return readOnlyCapabilities;
     if (runtime.mode === "demo") return demoCapabilities;
     if (!session || !membership) return readOnlyCapabilities;
     return {
-      canEdit: hasPermission(session, membership.organizationId, "layout.draft.edit"),
+      canEdit:
+        (!cameraScoped || canManageSensorConfiguration) &&
+        hasPermission(session, membership.organizationId, "layout.draft.edit"),
       canPublish: hasPermission(session, membership.organizationId, "layout.publish"),
       canRestore: hasPermission(session, membership.organizationId, "layout.restore"),
     };
-  }, [externallyReadOnly, membership, runtime.mode, session]);
+  }, [cameraScoped, canManageSensorConfiguration, externallyReadOnly, membership, runtime.mode, session]);
 
   useEffect(() => {
     onCapabilitiesChange?.(capabilities);

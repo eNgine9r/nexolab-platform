@@ -152,6 +152,17 @@ describe("Scheme shares the verified selected membership", () => {
     rerender(workspace({ lifecycleRepository: {} }));
     expect(screen.getByTestId("camera-layout")).toHaveAttribute("data-mode", "edit");
   });
+  it("keeps independent camera publication and restore grants while edit is denied", () => {
+    mock.security = security(true);
+    const onCapabilitiesChange = vi.fn();
+    render(workspace({ lifecycleRepository: {}, onCapabilitiesChange }));
+    expect(onCapabilitiesChange).toHaveBeenLastCalledWith({
+      canEdit: false,
+      canPublish: true,
+      canRestore: true,
+    });
+    expect(screen.getByTestId("camera-layout")).toHaveAttribute("data-mode", "view");
+  });
   it("passes the same selected scope to the camera sensor selector", () => {
     render(workspace({ lifecycleRepository: {} }));
     expect(screen.getByTestId("camera-layout")).toHaveAttribute("data-organization", "org-selected");
