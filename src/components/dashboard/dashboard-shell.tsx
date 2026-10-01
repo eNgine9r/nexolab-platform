@@ -5,17 +5,18 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ChevronRight, Settings2 } from "lucide-react";
 
+import { readCameraInventory } from "@/features/cameras/domain";
 import { hasPermission } from "@/features/security/security-session";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { useDashboardTelemetry } from "@/hooks/use-dashboard-telemetry";
 import { useXjp60dSensorManagement } from "@/hooks/use-xjp60d-sensor-management";
 
 import { AlarmsPanel } from "./alarms-panel";
-import { CamerasPanel } from "./cameras-panel";
 import { KpiCard } from "./kpi-card";
 import { LabMap } from "./lab-map";
 import { LiveInventoryPanel } from "./live-inventory-panel";
 import { NodesPanel } from "./nodes-panel";
+import { OverviewSecondaryWorkspace } from "./overview-secondary-workspace";
 import { OverviewWorkspaceLayout } from "./overview-workspace-layout";
 import { Panel } from "./panel";
 import { SecurityGate } from "./security-gate";
@@ -82,6 +83,7 @@ export function DashboardShell() {
     );
   }
 
+  const cameraInventory = readCameraInventory();
   const liveSamples = telemetry.view?.samples ?? [];
   const mobileStatusTone =
     telemetry.status === "live"
@@ -213,29 +215,26 @@ export function DashboardShell() {
               }
             />
 
-            <section className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-12">
-              <Panel
-                title="Активні лабораторні сесії"
-                action={<PanelAction label="Всі сесії" href="/sessions" />}
-                className="xl:col-span-4"
-              >
-                <SessionsPanel organizationId={organizationId} />
-              </Panel>
-              <Panel
-                title={security.mode === "demo" ? "Схема лабораторії · demo layout" : "Схеми обладнання"}
-                action={<PanelAction label="Всі схеми" href="/equipment-layouts" />}
-                className="xl:col-span-5"
-              >
-                <LabMap mode={security.mode} enabled={securityReady} organizationId={organizationId} />
-              </Panel>
-              <Panel
-                title="Камери"
-                action={<PanelAction label="Всі камери" href="/cameras" />}
-                className="xl:col-span-3"
-              >
-                <CamerasPanel />
-              </Panel>
-            </section>
+            <OverviewSecondaryWorkspace
+              cameraInventory={cameraInventory}
+              cameraAction={<PanelAction label="Всі камери" href="/cameras" />}
+              sessions={
+                <Panel
+                  title="Активні лабораторні сесії"
+                  action={<PanelAction label="Всі сесії" href="/sessions" />}
+                >
+                  <SessionsPanel organizationId={organizationId} />
+                </Panel>
+              }
+              layouts={
+                <Panel
+                  title={security.mode === "demo" ? "Схема лабораторії · demo layout" : "Схеми обладнання"}
+                  action={<PanelAction label="Всі схеми" href="/equipment-layouts" />}
+                >
+                  <LabMap mode={security.mode} enabled={securityReady} organizationId={organizationId} />
+                </Panel>
+              }
+            />
           </div>
         </main>
       </div>

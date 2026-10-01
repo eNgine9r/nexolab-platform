@@ -2,9 +2,9 @@
 
 Updated: 2026-10-01
 
-## UX source acceptance — #1218 pending
+## UX source acceptance — #1220 pending
 
-#1214 / PR #1217 is cleared: head 24752fffcf13ba8eacac761feba2beee74c295b2, all three registered workflows GREEN, 946 tests, 10 browser cases and three resolved review threads. #1218 explains the current 8/64 monitoring limits and reuses the existing permission/context-preserving workspace transition. Its exact-head CI/browser/review is pending. Local execution remains offline; GitHub verification is available. Installed operator acceptance is the separate #1191 blocker below.
+#1218 / PR #1219 is cleared: head f520b3de0b86c853b38b505d988f337f50485d52, all three registered workflows GREEN, 948 tests, 10 browser cases and no review threads. #1220 removes the empty camera block from Overview, preserves configured cameras and provides a compact Settings status destination. Exact-head CI/browser/review is pending. Local execution remains offline; GitHub verification is available. Installed operator acceptance remains the separate #1191 blocker below.
 
 ## Audit #1191 — authenticated deployed all-page evidence pending
 

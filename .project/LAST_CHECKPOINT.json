@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T16:45:22.261Z",
+  "timestamp": "2026-10-01T16:55:52.173Z",
   "actor": "Codex",
-  "event": "ux1214_merged_ux1218_monitoring_guidance_candidate",
+  "event": "ux1218_merged_ux1220_empty_cameras_candidate",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1218,
-    "title": "UX-16 quick comparison and saved monitoring guidance",
-    "branch": "fix/1218-monitoring-limit-guidance"
+    "issue": 1220,
+    "title": "UX-12 empty Overview cameras and compact Settings access",
+    "branch": "fix/1220-empty-overview-cameras"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -682,6 +682,20 @@
         "saved_dashboard": 64
       },
       "local_execution": "unavailable_environment_offline",
+      "exact_head_ci": "3_of_3_green",
+      "browser_acceptance": "10_passed",
+      "review": "0_threads",
+      "phase": "completed",
+      "verified_head_sha": "f520b3de0b86c853b38b505d988f337f50485d52",
+      "pull_request": 1219,
+      "frontend_tests": "948_passed"
+    },
+    "issue_1220_ux12": {
+      "issue": 1220,
+      "title": "UX-12 empty Overview cameras and compact Settings access",
+      "branch": "fix/1220-empty-overview-cameras",
+      "phase": "candidate",
+      "local_execution": "unavailable_environment_offline",
       "exact_head_ci": "pending",
       "browser_acceptance": "pending",
       "review": "pending"
@@ -1099,9 +1113,24 @@
         "browser_scenarios": 10,
         "review_threads": "3_resolved"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T16:55:52.176Z",
+      "kind": "issue_1218_pr_1219_merged",
+      "data": {
+        "issue": 1218,
+        "pull_request": 1219,
+        "verified_head_sha": "f520b3de0b86c853b38b505d988f337f50485d52",
+        "merge_sha": "9de6eb655ce47f2635ccfab0df36d1a446cf18cf",
+        "exact_head_workflows": "3_of_3_green",
+        "frontend_tests": 948,
+        "browser_scenarios": 10,
+        "unresolved_review_threads": 0
+      }
     }
   ],
-  "next_action": "Verify #1218 monitoring guidance and permission/context-preserving transition in exact-head CI/browser/review, merge only GREEN, then qualify the next independent audit finding. Installed #1191 remains access-gated.",
+  "next_action": "Verify #1220 empty/nonempty Overview camera layout and compact Settings access in exact-head CI/browser/review; merge only GREEN, then qualify the next independent audit finding. Installed #1191 remains access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
