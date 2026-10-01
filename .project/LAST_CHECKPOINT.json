@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T20:52:46.894Z",
+  "timestamp": "2026-10-01T21:32:42.188Z",
   "actor": "Codex",
-  "event": "security1236_merged_ux1233_reconciled_candidate",
+  "event": "ux1233_merged_ux1235_selection_memory_candidate",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1233,
-    "title": "UX-27 frozen test context for report headings",
-    "branch": "fix/1233-frozen-report-context"
+    "issue": 1235,
+    "title": "UX-14 remember scoped Live comparison selection on ordinary return",
+    "branch": "fix/1235-live-selection-memory"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -854,18 +854,23 @@
       "local_frontend_tests": "31_passed_4_files",
       "local_stdlib_backend_contract_cases": "3_passed",
       "typecheck": "passed",
-      "backend_api_tests": "added_CI_pending",
-      "exact_head_ci": "pending_reconciled_candidate",
-      "browser_acceptance": "pending",
+      "backend_api_tests": "passed_CI",
+      "exact_head_ci": "15_of_15_green",
+      "browser_acceptance": "39_passed",
       "verified_candidate_head_sha": "0a74b67753ccb48d4af7734879ad00da96e059f4",
       "pull_request": 1234,
-      "reports_browser": "success:36921474125_2_passed",
-      "rendered_browser": "success:36921474367_1_passed",
-      "telemetry_service": "success:36921474051",
-      "core_quality_build": "success:36921474084",
-      "review": "pending_reconciled_candidate",
-      "restored_browser": "legacy_generic_heading_and_exact_diagnostics_assertion_updated_pending_final_CI",
-      "security_prerequisite": "1236_merged"
+      "reports_browser": "success:36925895402_2_passed",
+      "rendered_browser": "success:36925895518_1_passed",
+      "telemetry_service": "success:36925895343",
+      "core_quality_build": "success:36925895422",
+      "review": "0_threads_0_reviews",
+      "restored_browser": "success:36925895416_1_passed",
+      "security_prerequisite": "1236_merged",
+      "verified_head_sha": "bcd29c2f2b0780757eb0d314ac9ce51466c4d6da",
+      "full_frontend_tests": "1035_passed_176_files",
+      "backend_tests": "799_passed_plus_2_outage",
+      "dashboard_browser": "success:36925895424_35_passed",
+      "offline_bundle": "success:36925895507_disconnected_startup_update_rollback_preserves_data"
     },
     "issue_1236_python_tls_review": {
       "baseline_run": 36921474135,
@@ -892,6 +897,12 @@
       "full_tests": "1029_passed_175_files",
       "backend_database_tests": "795_passed_plus_2_outage_cases",
       "fresh_fixed_version_findings": 0
+    },
+    "issue_1235_live_selection_memory": {
+      "qualification": "ordinary_bare_sidebar_entry_has_no_compare_URL_and_needs_scoped_memory",
+      "implementation": "versioned_bounded_org_local_preference_explicit_URL_priority_complete_inventory_gate",
+      "local_checks": "not_run_exec_server_environment_offline",
+      "verification_route": "GitData_remote_source_and_full_routed_CI_browser_pending"
     }
   },
   "observations": [
@@ -1539,9 +1550,25 @@
         "resumed_issue": 1233,
         "next_issue": 1235
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T21:32:42.188Z",
+      "kind": "issue_1233_merge_1235_activated",
+      "data": {
+        "issue": 1233,
+        "pull_request": 1234,
+        "verified_head_sha": "bcd29c2f2b0780757eb0d314ac9ce51466c4d6da",
+        "merge_sha": "6ff4aaa8cc38e32171352f6e3aa608558f681db3",
+        "all_routed_workflows": "15_green",
+        "frontend_tests": 1035,
+        "browser_cases": 39,
+        "next_issue": 1235,
+        "local_runtime": "environment_offline_remote_GitData_CI_available"
+      }
     }
   ],
-  "next_action": "Verify reconciled #1233 / PR #1234 frozen report headings and restored legacy fallback with all routed exact-head CI/review GREEN; then merge and continue #1235 scoped Live comparison memory. Installed #1191 remains access-gated; security consolidated review boundary is unchanged 2026-10-02.",
+  "next_action": "Verify #1235 organization-scoped Live comparison memory with all routed exact-head CI and review GREEN, then merge. Qualify next independent UX source package. Installed #1191 remains access-gated; local executor is unavailable and remote GitData/CI is the working route.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

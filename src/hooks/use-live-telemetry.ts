@@ -74,6 +74,8 @@ export interface LiveTelemetryModel {
   freshSamples: TelemetrySample[];
   lastCapturedAt: string | null;
   selectedKeys: string[];
+  /** A complete authenticated inventory is available for selection persistence. */
+  selectionReady?: boolean;
   setSelectedKeys: (keys: string[]) => void;
   historyRange: LiveHistoryRange;
   setHistoryRange: (range: LiveHistoryRange) => void;
@@ -236,6 +238,7 @@ export function useLiveTelemetry({
     runtime.config?.mode === "live" ? "connecting" : "idle",
   );
   const [hasLoadedSnapshot, setHasLoadedSnapshot] = useState(false);
+  const [hasCompleteInventory, setHasCompleteInventory] = useState(false);
   const [liveCoverageScopeKey, setLiveCoverageScopeKey] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(runtime.error);
   const [clock, setClock] = useState(Date.now);
@@ -266,6 +269,7 @@ export function useLiveTelemetry({
     setStore(nextStore);
     setConnectionState("connecting");
     setHasLoadedSnapshot(false);
+    setHasCompleteInventory(false);
     setLiveCoverageScopeKey(null);
     setError(null);
     setHistoryStatus(selectedKeysRef.current.length > 0 ? "loading" : "idle");
@@ -344,6 +348,7 @@ export function useLiveTelemetry({
       setConnectionState("connecting");
       setLiveCoverageScopeKey(null);
       setHasLoadedSnapshot(false);
+      setHasCompleteInventory(false);
       setError(null);
       setClock(Date.now());
     });
@@ -419,6 +424,7 @@ export function useLiveTelemetry({
         snapshotPending = false;
         commit([...snapshot, ...buffered]);
         setHasLoadedSnapshot(true);
+        setHasCompleteInventory(true);
       })
       .catch((nextError: unknown) => {
         if (controller.signal.aborted || disposed) return;
@@ -427,6 +433,7 @@ export function useLiveTelemetry({
         snapshotPending = false;
         commit(buffered);
         setHasLoadedSnapshot(true);
+        setHasCompleteInventory(false);
         setError(nextError instanceof Error ? nextError : new Error("Failed to load telemetry inventory"));
       });
 
@@ -459,10 +466,10 @@ export function useLiveTelemetry({
   }, [selectedIdentities]);
 
   useEffect(() => {
-    if (!hasLoadedSnapshot) return;
+    if (!hasCompleteInventory) return;
     if (reconciledSelectedKeys.length === selectedKeys.length) return;
     void Promise.resolve().then(() => setSelectedKeysState(reconciledSelectedKeys));
-  }, [hasLoadedSnapshot, reconciledSelectedKeys, selectedKeys.length]);
+  }, [hasCompleteInventory, reconciledSelectedKeys, selectedKeys.length]);
 
   useEffect(() => {
     const config = runtime.config;
@@ -575,6 +582,7 @@ export function useLiveTelemetry({
       freshSamples: [],
       lastCapturedAt: null,
       selectedKeys,
+      selectionReady: false,
       setSelectedKeys,
       historyRange,
       setHistoryRange,
@@ -599,6 +607,7 @@ export function useLiveTelemetry({
       freshSamples: [],
       lastCapturedAt: null,
       selectedKeys,
+      selectionReady: false,
       setSelectedKeys,
       historyRange,
       setHistoryRange,
@@ -622,6 +631,7 @@ export function useLiveTelemetry({
     freshSamples: view.freshSamples,
     lastCapturedAt: view.lastCapturedAt,
     selectedKeys: reconciledSelectedKeys,
+    selectionReady: enabled && hasCompleteInventory && liveCoverageScopeKey === scopeKey,
     setSelectedKeys,
     historyRange,
     setHistoryRange,

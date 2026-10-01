@@ -2,9 +2,9 @@
 
 Updated: 2026-10-01
 
-## UX source acceptance — #1233 final verification pending
+## UX source acceptance — #1235 verification pending
 
-#1230 / PR #1232 merged with five GREEN workflows, 1029 tests and eight browser cases; UX-26/41 are closed in code. Independent security prerequisite #1236 / PR #1237 is now merged after all three workflows GREEN, fresh exact tuple reconciliation and 50 policy/manifest tests, preserving the 2026-10-02 boundary. #1233 / PR #1234 reconciles current main and updates the restored-browser legacy heading assertion with preserved exact diagnostic IDs/artifact; its final routed gates and review must pass before merge. #1235 scoped Live selection memory is next; installed #1191 remains the separate blocker below.
+#1233 / PR #1234 merged after all 15 exact-head workflows GREEN, 1035 frontend tests, 799 backend tests plus two outage cases and 39 browser cases. UX-27 is closed in code. #1235 implements scoped Live comparison memory; all routed exact-head CI and review must pass before merge. Local exec-server returned environment_offline; local execution is unavailable, while remote GitData and actual CI/browser verification remain available. This is a local-execution soft blocker with a working source/verification route. Installed #1191 remains separately access-gated below. No deployment or hardware action occurred.
 
 ## Audit #1191 — authenticated deployed all-page evidence pending
 

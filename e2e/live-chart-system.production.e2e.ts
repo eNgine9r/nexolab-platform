@@ -627,3 +627,65 @@ for (const width of [390, 1280]) {
     }
   });
 }
+
+for (const width of [390, 1280]) {
+  test(`Live comparison survives ordinary navigation and bare reload at ${width}px`, async ({ browser }) => {
+    const fixture = seedExplorerTelemetry();
+    const context = await authenticatedContext(browser);
+    const page = await context.newPage();
+    await page.setViewportSize({ width, height: 1000 });
+    const runtime = observeRuntime(page);
+    const preferenceKey = `nexolab.live-comparison.v1:${encodeURIComponent(organizationId)}`;
+    const readPreference = () =>
+      page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "null"), preferenceKey);
+
+    const navigate = async (name: string) => {
+      if (width < 1024) await page.getByRole("button", { name: "Відкрити меню", exact: true }).click();
+      const link = page.getByRole("navigation", { name: "Головна навігація" }).getByRole("link", {
+        name,
+        exact: true,
+      });
+      if (name === "Live дані") await expect(link).toHaveAttribute("href", "/live");
+      await link.click();
+    };
+
+    try {
+      await page.goto("/live", { waitUntil: "domcontentloaded" });
+      await page.getByPlaceholder("node, equipment, channel, metric, source...").fill(fixture.equipmentId);
+      await page
+        .getByRole("checkbox", { name: /Порівнювати/ })
+        .first()
+        .check();
+      await expect.poll(() => new URL(page.url()).searchParams.getAll("compare").length).toBe(1);
+      const selected = new URL(page.url()).searchParams.getAll("compare");
+      await expect.poll(readPreference).toEqual({ version: 1, keys: selected });
+
+      await navigate("Налаштування");
+      await expect(page.getByLabel("Часові позначки")).toBeVisible();
+      await navigate("Live дані");
+      const selectedContext = page.getByTestId("live-selected-context");
+      await expect(selectedContext).toContainText(fixture.equipmentId);
+      await expect.poll(() => new URL(page.url()).searchParams.getAll("compare")).toEqual(selected);
+      await assertNoPageOverflow(page);
+
+      await page.evaluate(() => window.history.replaceState(null, "", "/live"));
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(selectedContext).toContainText(fixture.equipmentId);
+      await expect.poll(() => new URL(page.url()).searchParams.getAll("compare")).toEqual(selected);
+
+      await page.getByRole("checkbox", { name: /Порівнювати/, checked: true }).uncheck();
+      await expect.poll(readPreference).toEqual({ version: 1, keys: [] });
+      await page.goto("/live", { waitUntil: "domcontentloaded" });
+      await expect(page.getByText("Жодного каналу не обрано", { exact: true })).toBeVisible();
+      await expect.poll(readPreference).toEqual({ version: 1, keys: [] });
+
+      await page.goto(`/live?compare=${encodeURIComponent(selected[0]!)}&range=1h`);
+      await expect(selectedContext).toContainText(fixture.equipmentId);
+      await expect.poll(() => new URL(page.url()).searchParams.getAll("compare")).toEqual(selected);
+      await assertNoPageOverflow(page);
+      expect(runtime.acquisitionMutations).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
+}
