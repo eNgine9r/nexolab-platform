@@ -5781,7 +5781,13 @@
           "review_focused_domain_tests": "92_pass",
           "inventory_scope_red_green": "pass",
           "stale_wizard_mutation_red_green": "3_pass",
-          "review_type_lint_format_build": "pass"
+          "review_type_lint_format_build": "pass",
+          "inventory_guard_ci_head": "95bad9a20587131537799e9ff034ccd13db04773",
+          "inventory_guard_ci_matrix": "4_of_4_green",
+          "locked_account_product_head": "e3aa377d76c5c45259d7d40e4bc9efea70586cc0",
+          "locked_account_tests": "93_pass",
+          "account_operation_lock_red_green": "4_pass",
+          "locked_account_type_lint_format_build": "pass"
         },
         "pull_request": 1201
       }

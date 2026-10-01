@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T04:12:30+03:00",
+  "timestamp": "2026-10-01T04:23:19+03:00",
   "actor": "Codex",
-  "event": "ux1200_review_fixes_ci_pending",
+  "event": "ux1200_account_operation_lock_ci_pending",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -473,14 +473,20 @@
       "typecheck": "pass",
       "lint_format": "pass",
       "build": "pass",
-      "routed_ci": "pending_review_head",
+      "routed_ci": "pending_locked_account_head",
       "review_product_head": "8010edc9c97a3c44091b967de202572483801f91",
       "review_tests": 92,
       "review_type_lint_format_build": "pass",
       "initial_ci_head": "9909420aa1fab267a5c78cdfab1803ea2d9dc606",
       "initial_ci_matrix": "4_of_4_green",
       "inventory_scope_red_green": "pass",
-      "stale_submit_red_green": "3_pass"
+      "stale_submit_red_green": "3_pass",
+      "inventory_guard_ci_head": "95bad9a20587131537799e9ff034ccd13db04773",
+      "inventory_guard_ci_matrix": "4_of_4_green",
+      "locked_account_product_head": "e3aa377d76c5c45259d7d40e4bc9efea70586cc0",
+      "locked_account_tests": 93,
+      "account_operation_lock_red_green": "4_pass",
+      "locked_account_type_lint_format_build": "pass"
     }
   },
   "observations": [
