@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T19:35:15.232Z",
+  "timestamp": "2026-10-01T19:59:47.374Z",
   "actor": "Codex",
-  "event": "ux1228_merged_1230_execution_environment_blocked",
+  "event": "ux1230_environment_recovered_exact_report_context_candidate",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -28,7 +28,11 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1230,
+    "title": "UX-26 direct completed-test report workflow",
+    "branch": "fix/1230-session-report-entry"
+  },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -804,9 +808,16 @@
       "issue": 1230,
       "title": "UX-26 direct completed-test report workflow",
       "branch": "fix/1230-session-report-entry",
-      "phase": "blocked_before_verified_implementation",
-      "blocker": "exec_server_transport_closed_and_minimal_pwd_probe_unresponsive",
-      "next_action": "Recover runtime, inspect branch and partial apply_patch, implement exact-session report navigation, verify all routed CI/review before merge."
+      "phase": "source_candidate",
+      "environment_blocker": "resolved",
+      "local_checks": {
+        "focused_tests": "32_passed_3_files",
+        "typecheck": "passed",
+        "lint": "passed"
+      },
+      "exact_head_ci": "pending",
+      "browser_acceptance": "pending",
+      "review": "pending"
     }
   },
   "observations": [
@@ -1372,9 +1383,22 @@
         "unverified_local_patch": "inspect_after_runtime_recovery_do_not_assume_applied",
         "production_deployment": "none"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T19:59:47.374Z",
+      "kind": "issue_1230_resumed_source_candidate",
+      "data": {
+        "issue": 1230,
+        "checkpoint_pull_request": 1231,
+        "checkpoint_merge_sha": "977b27def4cf574317cc41398a916a16c0465320",
+        "runtime_recovery": "clean_tree_no_partial_patch",
+        "implementation": "exact_terminal_session_report_navigation_with_scoped_resolution_no_automatic_write",
+        "local_tests": "32_passed_3_files"
+      }
     }
   ],
-  "next_action": "Recover execution environment first; inspect unverified partial apply_patch on local fix/1230-session-report-entry. #1228 is merged GREEN, #1230 is qualified but no implementation verified. Continue all remaining UX findings after runtime recovery; do not mark them closed. Installed #1191 remains access-gated.",
+  "next_action": "Verify #1230 exact-session engineer/viewer navigation and explicit report generation, unavailable/non-terminal/foreign/malformed contexts with zero navigation writes at 390/1280 px; merge only after all routed exact-head CI/review GREEN. Continue remaining UX findings; installed #1191 remains access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

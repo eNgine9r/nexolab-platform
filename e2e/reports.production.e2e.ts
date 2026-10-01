@@ -163,15 +163,31 @@ test("production reports preserve immutable selected evidence across API, UI and
     const engineerContext = await browser.newContext({ baseURL: frontendBaseUrl });
     const engineerPage = await engineerContext.newPage();
     await installBrowserCredentials(engineerPage, engineerAToken, organizationA);
-    await engineerPage.goto("/reports");
+    let browserReportWrites = 0;
+    engineerPage.on("request", (request) => {
+      if (request.method() === "POST" && new URL(request.url()).pathname.startsWith("/api/v1/reports"))
+        browserReportWrites += 1;
+    });
+    await engineerPage.setViewportSize({ width: 390, height: 900 });
+    await engineerPage.goto(`/sessions/${completedSessionId}`);
+    const reportAction = engineerPage.getByRole("link", { name: "Сформувати звіт", exact: true });
+    await expect(reportAction).toHaveAttribute("href", `/reports?session=${completedSessionId}`);
+    await reportAction.focus();
+    await reportAction.press("Enter");
+    await expect(engineerPage).toHaveURL(new RegExp(`/reports\\?session=${completedSessionId}$`));
     await expect(engineerPage.getByTestId("reports-workspace")).toBeVisible();
+    await expect(engineerPage.getByRole("link", { name: "Назад до випробування" })).toHaveAttribute(
+      "href",
+      `/sessions/${completedSessionId}`,
+    );
     await expect(engineerPage.getByTestId("report-generation-panel")).toBeVisible();
     await expect(engineerPage.getByTestId("report-session-select")).toHaveValue(completedSessionId);
     await expect(engineerPage.getByTestId("report-telemetry-selector")).toBeVisible();
     await expect(engineerPage.getByTestId("report-telemetry-selection-count")).toContainText("1 з 1");
     await expect(engineerPage.getByTestId("generate-report")).toBeEnabled();
+    expect(browserReportWrites).toBe(0);
 
-    for (const width of [360, 1440, 1920]) {
+    for (const width of [390, 1280, 1440, 1920]) {
       await expectNoDocumentOverflow(engineerPage, width);
     }
 
@@ -180,6 +196,7 @@ test("production reports preserve immutable selected evidence across API, UI and
       .fill("Production browser evidence");
     await engineerPage.getByTestId("generate-report").click();
     await expect(engineerPage.getByTestId("report-detail")).toContainText("Report version 1");
+    expect(browserReportWrites).toBe(1);
     await expect(engineerPage).not.toHaveURL(/token|access_token|bearer/i);
 
     const generatedPageResponse = await engineerA.get("/api/v1/reports");
@@ -304,7 +321,9 @@ test("production reports preserve immutable selected evidence across API, UI and
     const viewerContext = await browser.newContext({ baseURL: frontendBaseUrl });
     const viewerPage = await viewerContext.newPage();
     await installBrowserCredentials(viewerPage, viewerAToken, organizationA);
-    await viewerPage.goto("/reports");
+    await viewerPage.goto(`/sessions/${completedSessionId}`);
+    await viewerPage.getByRole("link", { name: "Переглянути звіти", exact: true }).click();
+    await expect(viewerPage).toHaveURL(new RegExp(`/reports\\?session=${completedSessionId}$`));
     await expect(viewerPage.getByTestId("reports-workspace")).toBeVisible();
     await expect(viewerPage.getByTestId("report-generation-panel")).toHaveCount(0);
     await expect(viewerPage.getByText("Поточна роль має read-only доступ.")).toBeVisible();
@@ -316,5 +335,53 @@ test("production reports preserve immutable selected evidence across API, UI and
     await managerA.dispose();
     await managerB.dispose();
     await viewerA.dispose();
+  }
+});
+
+test("report navigation rejects unavailable contexts without substituting a test or writing", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ baseURL: frontendBaseUrl });
+  const page = await context.newPage();
+  await installBrowserCredentials(page, engineerAToken, organizationA);
+  let writes = 0;
+  page.on("request", (request) => {
+    if (request.method() !== "GET" && request.method() !== "OPTIONS") writes += 1;
+  });
+  try {
+    await page.goto(`/sessions/${runningSessionId}`);
+    await expect(page.getByRole("button", { name: "Оновити", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Сформувати звіт", exact: true })).toHaveCount(0);
+    for (const query of [
+      `session=${runningSessionId}`,
+      `session=${randomUUID()}`,
+      "session=invalid",
+      `session=${completedSessionId}&session=${completedSessionId}`,
+    ]) {
+      await page.goto(`/reports?${query}`);
+      await expect(
+        page.getByRole("alert").filter({ hasText: "Вибране випробування недоступне" }),
+      ).toBeVisible();
+      await expect(page.getByTestId("report-session-select")).toHaveValue("");
+      await expect(page.getByTestId("generate-report")).toBeDisabled();
+      await expect(page.getByRole("link", { name: "Назад до випробування" })).toHaveCount(0);
+    }
+    await page.getByRole("link", { name: "Усі звіти", exact: true }).click();
+    await expect(page.getByTestId("report-session-select")).toHaveValue(completedSessionId);
+    expect(writes).toBe(0);
+  } finally {
+    await context.close();
+  }
+  const foreignContext = await browser.newContext({ baseURL: frontendBaseUrl });
+  const foreignPage = await foreignContext.newPage();
+  await installBrowserCredentials(foreignPage, managerBToken, organizationB);
+  try {
+    await foreignPage.goto(`/reports?session=${completedSessionId}`);
+    await expect(
+      foreignPage.getByRole("alert").filter({ hasText: "Вибране випробування недоступне" }),
+    ).toBeVisible();
+    await expect(foreignPage.getByRole("link", { name: "Назад до випробування" })).toHaveCount(0);
+  } finally {
+    await foreignContext.close();
   }
 });
