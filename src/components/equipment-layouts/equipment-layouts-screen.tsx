@@ -135,8 +135,7 @@ export function EquipmentLayoutsScreen() {
               onRetry={catalog.retry}
               canEditDraft={Boolean(
                 security.session &&
-                hasPermission(security.session, security.membership.organizationId, "layout.draft.edit") &&
-                hasPermission(security.session, security.membership.organizationId, "equipment.manage"),
+                hasPermission(security.session, security.membership.organizationId, "layout.draft.edit"),
               )}
             />
           </div>

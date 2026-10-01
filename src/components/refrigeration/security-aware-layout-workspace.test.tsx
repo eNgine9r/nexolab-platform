@@ -128,6 +128,19 @@ describe("Scheme shares the verified selected membership", () => {
       expect(layout).toHaveAttribute(attribute, "true");
     expect(mock.getSession).not.toHaveBeenCalled();
   });
+  it("allows an operator draft edit without granting equipment management or publication", () => {
+    mock.security = security(true);
+    const membership = mock.security.membership!;
+    membership.roles = ["operator"];
+    membership.permissions = ["layout.draft.edit"];
+    render(workspace());
+    const layout = screen.getByTestId("layout");
+    expect(layout).toHaveAttribute("data-mode", "edit");
+    expect(layout).toHaveAttribute("data-edit", "true");
+    expect(layout).toHaveAttribute("data-publish", "false");
+    expect(layout).toHaveAttribute("data-restore", "false");
+    expect(membership.permissions).not.toContain("equipment.manage");
+  });
   it("passes the same selected scope to the camera sensor selector", () => {
     render(workspace({ lifecycleRepository: {} }));
     expect(screen.getByTestId("camera-layout")).toHaveAttribute("data-organization", "org-selected");

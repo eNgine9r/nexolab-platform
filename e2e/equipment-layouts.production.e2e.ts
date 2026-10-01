@@ -515,8 +515,8 @@ test("renders and navigates the authenticated Equipment Layouts catalog", async 
         await link.focus();
         await page.keyboard.press("Enter");
         await expect(page.getByRole("button", { name: "Схема", exact: true })).toHaveAttribute(
-          "aria-pressed",
-          "true",
+          "aria-current",
+          "page",
         );
         await expect(page.getByRole("button", { name: /Зберегти (чернетку|всі зміни)/ })).toHaveCount(0);
         const back = page.getByRole("link", { name: "Назад до каталогу схем" });
@@ -536,8 +536,8 @@ test("renders and navigates the authenticated Equipment Layouts catalog", async 
         `/refrigeration/${currentEquipmentId}?tab=scheme&mode=edit&returnTo=%2Fequipment-layouts`,
       );
       await expect(page.getByRole("button", { name: "Схема", exact: true })).toHaveAttribute(
-        "aria-pressed",
-        "true",
+        "aria-current",
+        "page",
       );
       await expect(page.getByRole("link", { name: "Назад до каталогу схем" })).toBeVisible();
       await expect(page.getByRole("button", { name: /Зберегти (чернетку|всі зміни)/ })).toHaveCount(0);
@@ -583,12 +583,11 @@ INSERT INTO security_organization_memberships (id, organization_id, identity_id,
 VALUES ('dddddddd-dddd-dddd-dddd-dddddddd1224', :'organization_id', 'cccccccc-cccc-cccc-cccc-cccccccc1224', true)
 ON CONFLICT (organization_id, identity_id) DO UPDATE SET is_active = true;
 INSERT INTO security_membership_roles (membership_id, role, assigned_by)
-VALUES ('dddddddd-dddd-dddd-dddd-dddddddd1224', 'engineer', 'scheme-entry-acceptance')
+VALUES ('dddddddd-dddd-dddd-dddd-dddddddd1224', 'operator', 'scheme-entry-acceptance')
 ON CONFLICT (membership_id, role) DO NOTHING;
 INSERT INTO security_membership_permissions (membership_id, permission, assigned_by)
 VALUES
  ('dddddddd-dddd-dddd-dddd-dddddddd1224', 'dashboard.read', 'scheme-entry-acceptance'),
- ('dddddddd-dddd-dddd-dddd-dddddddd1224', 'equipment.manage', 'scheme-entry-acceptance'),
  ('dddddddd-dddd-dddd-dddd-dddddddd1224', 'layout.draft.edit', 'scheme-entry-acceptance')
 ON CONFLICT (membership_id, permission) DO NOTHING;
 `;
@@ -641,8 +640,8 @@ test("catalog edit intent opens the authorized draft without writing it", async 
       await link.focus();
       await page.keyboard.press("Enter");
       await expect(page.getByRole("button", { name: "Схема", exact: true })).toHaveAttribute(
-        "aria-pressed",
-        "true",
+        "aria-current",
+        "page",
       );
       await expect(page.getByRole("button", { name: /Зберегти (чернетку|всі зміни)/ })).toBeVisible();
       await expect(page.getByRole("link", { name: "Назад до каталогу схем" })).toHaveAttribute(
