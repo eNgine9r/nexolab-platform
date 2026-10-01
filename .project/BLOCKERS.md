@@ -4,7 +4,7 @@ Updated: 2026-10-01
 
 ## UX source acceptance — #1226 pending
 
-#1224 / PR #1225 is cleared at 9102f289fe45a0b74af318ef3962efd97812f74a: five workflows GREEN, 978 tests, 14 browser cases and four resolved review threads. #1226 local marker removal/undo passed 42 focused tests, typecheck and lint/format; final CI/browser/review are pending. Installed operator acceptance is the separate #1191 blocker below.
+#1224 / PR #1225 is cleared at 9102f289fe45a0b74af318ef3962efd97812f74a: five workflows GREEN, 978 tests, 14 browser cases and four resolved review threads. #1226 local marker removal/undo passed 42 focused tests, typecheck and lint/format; final CI/browser/review are pending. Baseline local undo passed, but a late cancellation probe revealed an empty post-publication editor; #1228 is queued separately, and #1226 now checks cancellation on proven reloaded bindings. Installed operator acceptance is the separate #1191 blocker below.
 
 ## Audit #1191 — authenticated deployed all-page evidence pending
 

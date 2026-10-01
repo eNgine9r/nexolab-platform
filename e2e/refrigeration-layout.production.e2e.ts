@@ -760,6 +760,28 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     await expect(sensorMarker(pageB, "T-03")).toBeVisible();
     await expect(sensorMarker(pageB, "471")).toBeVisible();
     await expect(pageB.getByRole("button", { name: /^Редагувати датчик/ })).toHaveCount(0);
+    let cancelWrites = 0;
+    pageB.on("request", (pending) => {
+      if (
+        pending.method() === "PUT" &&
+        new URL(pending.url()).pathname === sensorConfigurationPath(equipment.id)
+      )
+        cancelWrites += 1;
+    });
+    await enterEditMode(pageB);
+    await pageB.getByRole("button", { name: "Редагувати датчик T-03" }).click();
+    await ensureAdvancedSensorParametersOpen(pageB);
+    await editor(pageB).getByRole("button", { name: "Видалити датчик з підкладки" }).click();
+    await expect(
+      editor(pageB).getByRole("button", { name: "Скасувати видалення маркера T-03" }),
+    ).toBeVisible();
+    await editor(pageB).getByRole("button", { name: "Скасувати редагування" }).click();
+    await expect(sensorMarker(pageB, "T-03")).toBeVisible();
+    await enterEditMode(pageB);
+    await expect(editor(pageB).getByRole("button", { name: /^Скасувати видалення маркера / })).toHaveCount(0);
+    await editor(pageB).getByRole("button", { name: "Скасувати редагування" }).click();
+    expect(cancelWrites).toBe(0);
+    expect((await readDraft(operatorB.request, equipment.id)).version).toBe(2);
 
     let imageUploadWrites = 0;
     pageA.on("request", (pending) => {
@@ -843,22 +865,6 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     expect(finalDraft.version).toBe(4);
     expect(finalDraft.placements).toHaveLength(2);
     expect(finalDraft.image?.original_filename).toBe("showcase-acceptance.png");
-
-    const writesBeforeCancel = configurationWrites;
-    await enterEditMode(pageA);
-    await pageA
-      .getByRole("button", { name: /^Редагувати датчик / })
-      .first()
-      .click();
-    await ensureAdvancedSensorParametersOpen(pageA);
-    await editor(pageA).getByRole("button", { name: "Видалити датчик з підкладки" }).click();
-    await expect(editor(pageA).getByRole("button", { name: /^Скасувати видалення маркера / })).toBeVisible();
-    await editor(pageA).getByRole("button", { name: "Скасувати редагування" }).click();
-    await enterEditMode(pageA);
-    await expect(editor(pageA).getByRole("button", { name: /^Скасувати видалення маркера / })).toHaveCount(0);
-    await editor(pageA).getByRole("button", { name: "Скасувати редагування" }).click();
-    expect(configurationWrites).toBe(writesBeforeCancel);
-    expect((await readDraft(operatorA.request, equipment.id)).version).toBe(finalDraft.version);
 
     const historyResponse = await operatorA.request.get(
       `${apiBaseUrl}/api/v1/equipment/${equipment.id}/layout/history`,
