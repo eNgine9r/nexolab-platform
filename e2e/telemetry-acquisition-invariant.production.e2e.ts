@@ -300,7 +300,7 @@ function observePage(
 }
 
 async function openPersistedDashboard(page: Page, dashboardName: string): Promise<void> {
-  await page.goto("/live", { waitUntil: "domcontentloaded" });
+  await page.goto("/live?workspace=dashboards", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Live Dashboards", exact: true })).toBeVisible();
   const card = page.locator("article").filter({ hasText: dashboardName });
   await expect(card).toBeVisible();

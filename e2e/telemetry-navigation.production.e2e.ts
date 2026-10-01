@@ -177,22 +177,16 @@ async function waitForRouteUsable(page: Page, route: RouteKey): Promise<void> {
     return;
   }
   if (route === "live") {
-    await expect(page.getByRole("button", { name: "Saved Dashboards", exact: true })).toBeVisible();
-    await expect(page.getByText("Завантаження з локальної бази…", { exact: true })).toHaveCount(0);
-    await expect
-      .poll(async () => {
-        const terminalStates = [
-          page.locator('section[aria-labelledby="live-dashboard-library-title"] article').first(),
-          page.getByRole("heading", { name: "Збережених Dashboard ще немає", exact: true }),
-          page.getByRole("heading", { name: "Доступ до Live Dashboards заборонено", exact: true }),
-          page.getByRole("heading", { name: "Library недоступна", exact: true }),
-        ];
-        for (const terminalState of terminalStates) {
-          if ((await terminalState.count()) > 0 && (await terminalState.isVisible())) return true;
-        }
-        return false;
-      })
-      .toBe(true);
+    await expect(page.getByRole("button", { name: "Live Data", exact: true })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await expect(page.getByTestId("live-primary-chart")).toBeVisible();
+    const inventory = page.getByTestId("live-inventory-panel");
+    await expect(inventory).toBeVisible();
+    await expect(
+      inventory.getByText("Завантаження реального channel inventory…", { exact: true }),
+    ).toHaveCount(0);
     return;
   }
   if (route === "nodes") {

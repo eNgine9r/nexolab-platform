@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Activity, AlertTriangle, BarChart3, LayoutDashboard, LogIn, RotateCcw } from "lucide-react";
 
 import { SecurityGate } from "@/components/dashboard/security-gate";
@@ -52,17 +52,31 @@ function LiveModeGate({ title, message, retry }: { title: string; message: strin
 }
 
 function requestedWorkspace(value: string | null): LiveWorkspaceMode {
-  return value === "explorer" ? "explorer" : "dashboards";
+  return value === "dashboards" ? "dashboards" : "explorer";
 }
 
 export function LiveScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const security = useDashboardSecurity();
+  const applyOrganization = security.selectOrganization;
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [workspace, setWorkspace] = useState<LiveWorkspaceMode>(() =>
-    requestedWorkspace(searchParams.get("workspace")),
+  const workspace = requestedWorkspace(searchParams.get("workspace"));
+  const [pendingOrganization, setPendingOrganization] = useState<{
+    organizationId: string;
+    workspace: LiveWorkspaceMode;
+  } | null>(null);
+  const switchingOrganization = Boolean(
+    security.state === "ready" &&
+    pendingOrganization &&
+    pendingOrganization.organizationId !== security.membership?.organizationId,
   );
+  useEffect(() => {
+    if (!switchingOrganization || !pendingOrganization) return;
+    const params = new URLSearchParams(searchParams.toString());
+    if (params.get("workspace") !== pendingOrganization.workspace || [...params.keys()].length !== 1) return;
+    applyOrganization(pendingOrganization.organizationId);
+  }, [applyOrganization, pendingOrganization, searchParams, switchingOrganization]);
   const securityReady = security.mode === "live" && security.state === "ready";
   const canReadTelemetry =
     securityReady && Boolean(security.membership?.permissions.includes("telemetry.read"));
@@ -73,12 +87,33 @@ export function LiveScreen() {
   const effectiveWorkspace: LiveWorkspaceMode =
     workspace === "dashboards" && !canReadDashboards && canReadTelemetry ? "explorer" : workspace;
 
+  const selectOrganization = (organizationId: string) => {
+    if (
+      organizationId === security.membership?.organizationId ||
+      !security.session?.memberships.some((item) => item.organizationId === organizationId)
+    )
+      return;
+    setPendingOrganization({ organizationId, workspace: effectiveWorkspace });
+    router.replace(`/live?workspace=${effectiveWorkspace}`, { scroll: false });
+  };
+
   const switchWorkspace = (next: LiveWorkspaceMode) => {
-    setWorkspace(next);
     const params = new URLSearchParams(searchParams.toString());
     params.set("workspace", next);
     router.replace(`/live?${params.toString()}`, { scroll: false });
   };
+
+  if (switchingOrganization) {
+    return (
+      <SecurityGate
+        state="loading"
+        error={null}
+        errorCode={null}
+        diagnostics={null}
+        onRetry={security.retry}
+      />
+    );
+  }
 
   if (security.mode === "demo") {
     return (
@@ -156,7 +191,7 @@ export function LiveScreen() {
           showCreateSession={false}
           securitySession={security.session}
           selectedMembership={security.membership}
-          onOrganizationChange={security.selectOrganization}
+          onOrganizationChange={selectOrganization}
           onSignOut={() => {
             void security.signOut().then(() => router.replace("/login"));
           }}
@@ -192,9 +227,13 @@ export function LiveScreen() {
             </nav>
 
             {effectiveWorkspace === "explorer" ? (
-              <LiveDataWorkspace organizationId={security.membership.organizationId} />
+              <LiveDataWorkspace
+                key={security.membership.organizationId}
+                organizationId={security.membership.organizationId}
+              />
             ) : canReadDashboards ? (
               <LiveDashboardWorkspace
+                key={security.membership.organizationId}
                 organizationId={security.membership.organizationId}
                 canManage={canManage}
               />

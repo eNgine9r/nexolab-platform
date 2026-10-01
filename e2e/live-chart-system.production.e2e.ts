@@ -242,7 +242,7 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
   const runtime = observeRuntime(page);
 
   try {
-    await page.goto("/live?workspace=explorer", { waitUntil: "domcontentloaded" });
+    await page.goto("/live", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Live дані", exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Saved Dashboards" })).toBeVisible();
 
@@ -253,9 +253,10 @@ test("Live Data uses the canonical synchronized Chart System without acquisition
     await expect(filterPanel).toBeVisible();
     await expect(inventoryPanel).toBeVisible();
     await expect(primaryChart.getByText("Жодного каналу не обрано", { exact: true })).toBeVisible();
-    await expect(
-      primaryChart.getByText("Оберіть канали нижче у Latest values", { exact: true }),
-    ).toBeVisible();
+    await primaryChart.getByRole("button", { name: "Обрати датчики" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByPlaceholder("node, equipment, channel, metric, source...")).toBeFocused();
+    await expect(primaryChart.getByText("Оберіть датчики для графіка", { exact: true })).toBeVisible();
     expect(
       await page.evaluate(() => {
         const chart = document.querySelector('[data-testid="live-primary-chart"]');

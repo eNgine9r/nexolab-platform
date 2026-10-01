@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T02:26:06+03:00",
+  "timestamp": "2026-10-01T02:58:50+03:00",
   "actor": "Codex",
-  "event": "ux1194_scheme_scope_review_fix_local_green",
+  "event": "ux1196_organization_url_transition_verified_locally",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1194,
-    "title": "Verified shared account context across refrigeration pages",
-    "branch": "commander/1194-refrigeration-account-context"
+    "issue": 1196,
+    "title": "Direct Live monitoring and channel selection",
+    "branch": "commander/1196-live-monitoring-entry"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -434,6 +434,20 @@
       "dashboard_run": 36788404966,
       "review_threads": "2_resolved_0_unresolved",
       "production_runtime_mutation": "none"
+    },
+    "deployed_ux_audit_access": {
+      "source": "read_only_runtime",
+      "observed_at": "2026-10-01T02:46:06+03:00",
+      "kind": "deployed_ux_audit_access",
+      "data": {
+        "service": "nexolab-dashboard.service",
+        "service_state": "active",
+        "release_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
+        "build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
+        "anonymous_session_api_status": 401,
+        "authenticated_browser_session": "unavailable",
+        "runtime_mutation": "none"
+      }
     }
   },
   "observations": [
@@ -664,9 +678,21 @@
         "merge_sha": "60879c62cb7aa615b48173f19953ec801ab560d3",
         "status": "merged_closed_green"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T02:34:07+03:00",
+      "kind": "ux1194_merge",
+      "data": {
+        "issue": 1194,
+        "pull_request": 1195,
+        "final_head": "620467ac490505e5307472997b41c3be4acc417e",
+        "merge_sha": "0d75da4e77c113b52a59893ff3f3cd3a6e976519",
+        "exact_head_workflows": "5_of_5_green"
+      }
     }
   ],
-  "next_action": "Require final-head PR #1195 routed CI/browser GREEN; resolve review thread with verified Scheme scope fix before merge.",
+  "next_action": "Require final-head PR #1197 CI/browser GREEN and resolve both review threads before merge; full deployed audit requires normal authenticated operator access.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -684,6 +710,14 @@
       "eslint": "pass",
       "build": "pass",
       "authenticated_browser_ci": "pending"
+    },
+    "ux1196_local_checks": {
+      "component_tests": 18,
+      "domain_tests": 62,
+      "typecheck": "pass",
+      "lint_format": "pass",
+      "build": "pass",
+      "browser_ci": "pending"
     }
   }
 }

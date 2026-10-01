@@ -245,6 +245,7 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
   const [viewportDomain, setViewportDomain] = useState<ChartXDomain | null>(null);
   const [liveFollow, setLiveFollow] = useState(range === "live");
   const lastUrlRef = useRef("");
+  const channelSearchRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(
     () => filterLiveTelemetry(telemetry.samples, filters),
@@ -493,6 +494,14 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
               ) : null}
             </>
           )}
+          <button
+            type="button"
+            onClick={() => channelSearchRef.current?.focus()}
+            className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-400/10 px-3 text-xs font-medium text-cyan-100 focus-visible:ring-2 focus-visible:ring-cyan-300"
+          >
+            <Search className="h-4 w-4" aria-hidden="true" />
+            {selected.length === 0 ? "Обрати датчики" : "Змінити датчики"}
+          </button>
         </div>
 
         {range === "custom" ? (
@@ -581,10 +590,10 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
           <div className="mt-5 grid min-h-44 place-items-center rounded-2xl border border-dashed border-white/10 bg-[#081a32]/50 p-8 text-center">
             <div>
               <Activity className="mx-auto h-8 w-8 text-slate-600" aria-hidden="true" />
-              <p className="mt-3 text-sm font-medium text-slate-200">Оберіть канали нижче у Latest values</p>
+              <p className="mt-3 text-sm font-medium text-slate-200">Оберіть датчики для графіка</p>
               <p className="mt-1 text-xs text-slate-500">
-                Primary graph готовий до роботи; history requests не виконуються, доки comparison selection
-                порожній.
+                Натисніть «Обрати датчики», знайдіть потрібні канали та позначте їх для порівняння. Історію
+                завантажимо після вибору.
               </p>
             </div>
           </div>
@@ -687,6 +696,7 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
                 aria-hidden="true"
               />
               <input
+                ref={channelSearchRef}
                 value={filters.search}
                 onChange={(event) => updateFilters({ search: event.target.value })}
                 placeholder="node, equipment, channel, metric, source..."

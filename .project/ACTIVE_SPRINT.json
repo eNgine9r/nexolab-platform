@@ -41,9 +41,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1194,
-      "title": "Verified shared account context across refrigeration pages",
-      "branch": "commander/1194-refrigeration-account-context"
+      "issue": 1196,
+      "title": "Direct Live monitoring and channel selection",
+      "branch": "commander/1196-live-monitoring-entry"
     },
     "next_work_package": null
   },
@@ -5681,7 +5681,7 @@
       "issue": 1194,
       "title": "Verified shared account context across refrigeration pages",
       "priority": "unspecified",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "commander/1194-refrigeration-account-context",
       "evidence": {
         "verified_head_sha": "c9f346e296ef035295125e5965581eac088d254b",
@@ -5695,9 +5695,39 @@
           "exact_head_browser_ci": "pending",
           "scheme_fix_refrigeration_regressions": "90_pass",
           "scheme_scope_review_fix_sha": "f4a060132f9e75ed77ee1816925b7ce2e2a98d72",
-          "selected_membership_scheme_tests": "3_red_then_green"
+          "selected_membership_scheme_tests": "3_red_then_green",
+          "final_ci_sha": "620467ac490505e5307472997b41c3be4acc417e",
+          "final_workflow_matrix": "5_of_5_green",
+          "final_review_threads": "0_unresolved",
+          "final_runs": "36791102838_36791102803_36791102870_36791102836_36791102855"
         },
         "pull_request": 1195
+      }
+    },
+    {
+      "issue": 1196,
+      "title": "Direct Live monitoring and channel selection",
+      "priority": "unspecified",
+      "lifecycle": "review",
+      "branch": "commander/1196-live-monitoring-entry",
+      "evidence": {
+        "verified_head_sha": "85edf5129886066e9b1bea03de1c92717d7b333b",
+        "checks": {
+          "live_component_tests": "16_pass",
+          "live_domain_regressions": "62_pass",
+          "typecheck": "pass",
+          "touched_eslint_prettier": "pass",
+          "production_build": "pass",
+          "exact_head_browser_ci": "pending",
+          "browser_route_review_fix_sha": "15d8733ac58daf3842c993ef304a32ecea00720c",
+          "browser_route_touched_eslint_prettier": "pass",
+          "organization_transition_fix_sha": "1df5fb32741cff06228ae723bc6c3b3a52711d53",
+          "organization_transition_red_green": "2_cases",
+          "final_live_component_tests": "18_pass",
+          "organization_transition_build": "pass",
+          "organization_transition_typecheck_lint": "pass"
+        },
+        "pull_request": 1197
       }
     }
   ],
