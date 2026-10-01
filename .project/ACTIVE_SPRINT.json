@@ -40,12 +40,12 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1228,
-      "title": "Investigate empty sensor editor after photo publication",
-      "branch": "fix/1228-post-publication-bindings"
-    },
-    "next_work_package": null
+    "active_work_package": null,
+    "next_work_package": {
+      "issue": 1230,
+      "title": "UX-26 direct completed-test report workflow",
+      "branch": "fix/1230-session-report-entry"
+    }
   },
   "work_packages": [
     {
@@ -6076,7 +6076,7 @@
       "title": "Investigate empty sensor editor after photo publication",
       "branch": "fix/1228-post-publication-bindings",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1226
       ],
@@ -6085,7 +6085,35 @@
         "artifact_id": 11186024974,
         "root_cause": "structural_snapshot_not_invalidated_by_mutations",
         "binding_data_loss": "disproved_by_database_evidence",
-        "local_cache_regression": "5_expected_failures_before_fix"
+        "local_cache_regression": "5_expected_failures_before_fix",
+        "verified_head_sha": "5eca5e0b51b37d19ba96fd4d7c3528b3b53c5e59",
+        "pull_request": 1229,
+        "full_tests": "997_passed_172_files",
+        "browser_cases": "7_passed",
+        "exact_head_ci": {
+          "Core CI": "success:36913844824",
+          "Refrigeration Browser Acceptance": "success:36913844731",
+          "Disaster Recovery Browser": "success:36913844645"
+        },
+        "review": "0_threads_0_changes_requested",
+        "source_acceptance": "completed",
+        "installed_acceptance": "access_gated_1191"
+      }
+    },
+    {
+      "issue": 1230,
+      "title": "UX-26 direct completed-test report workflow",
+      "branch": "fix/1230-session-report-entry",
+      "priority": "medium",
+      "lifecycle": "blocked",
+      "depends_on": [
+        1228
+      ],
+      "evidence": {
+        "qualification": "ready_scoped_issue",
+        "implementation": "not_verified",
+        "blocker": "execution_server_transport_closed_and_no_response_to_minimal_pwd_probe",
+        "resume": "recover_execution_environment_then_inspect_partial_local_patch_before_implementing_and_verifying"
       }
     }
   ],
@@ -6843,6 +6871,31 @@
         "next_issue": 1228,
         "root_cause": "successful_mutations_leave_separate_structural_snapshot_cache_stale",
         "database_evidence": "two_active_bindings_two_v4_placements_two_r1_placements_preserved"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T19:35:15.232Z",
+      "kind": "issue_1228_pr_1229_merged_1230_environment_blocked",
+      "data": {
+        "issue": 1228,
+        "pull_request": 1229,
+        "merge_sha": "c43bd380e3b0294a92a9396fed251f0f003c3ac8",
+        "verified_head_sha": "5eca5e0b51b37d19ba96fd4d7c3528b3b53c5e59",
+        "full_tests": "997_passed_172_files",
+        "browser_cases": "7_passed",
+        "exact_head_ci": {
+          "Core CI": "success:36913844824",
+          "Refrigeration Browser Acceptance": "success:36913844731",
+          "Disaster Recovery Browser": "success:36913844645"
+        },
+        "review": "0_threads_0_changes_requested",
+        "source_acceptance": "completed",
+        "installed_acceptance": "access_gated_1191",
+        "next_issue": 1230,
+        "blocker": "exec_server_transport_closed_during_local_patch_minimal_pwd_probe_unresponsive",
+        "unverified_local_patch": "inspect_after_runtime_recovery_do_not_assume_applied",
+        "production_deployment": "none"
       }
     }
   ],

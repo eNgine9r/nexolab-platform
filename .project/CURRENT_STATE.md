@@ -2,9 +2,13 @@
 
 Updated: 2026-10-01
 
-## Issue #1228 — post-publication marker visibility source candidate
+## Issue #1230 — UX-26 qualified, execution environment blocked
 
-Database evidence in Refrigeration run 36910009276 / artifact 11186024974 confirms two active bindings, two draft-v4 placements and two published-r1 placements remained intact. Trace shows the original structural snapshot had zero bindings and no new structural snapshot request followed successful camera save/photo/publication mutations. Existing mutation wrappers invalidated a separate cache, so the parent reused the old empty snapshot and the remounted camera editor hid the markers. Five new cache regressions failed before the fix; all 15 focused tests in two files, typecheck, touched lint/format, canonical state and diff checks passed after the fix. The existing successful mutation invalidation now also invalidates the equipment snapshot within its organization; detached pre-mutation requests cannot overwrite a fresh cache or remove its in-flight request. Failed mutations, other equipment/organizations and normal read deduplication retain their behavior. The browser journey now immediately re-enters/cancels edit after publication at 390/1280 px, checking both markers, unchanged persisted bindings/draft and zero configuration writes. Final exact-head CI/browser/review pending.
+The next scoped Issue is #1230, direct navigation from a completed/archived SessionWorkspace to that exact test's report workflow. Eligibility, organization-scoped resolution, older sessions outside list pages, unavailable-context handling, read-only roles, explicit generation and zero-write navigation are specified in the Issue. During the first local patch, the execution server reported transport closed; two subsequent minimal read-only probes did not return. Partial local patch state is unverified. Recover the runtime and inspect local branch fix/1230-session-report-entry before continuing. No verified #1230 implementation or tests are claimed. This is an execution-environment blocker, not a request for deployment or hardware approval.
+
+## Issue #1228 — UX-40 completed
+
+PR #1229 exact head 5eca5e0b51b37d19ba96fd4d7c3528b3b53c5e59 passed Core CI 36913844824, Refrigeration 36913844731 and Disaster Recovery 36913844645. Quality: 997 tests in 172 files and Next 16.3.6 production build; browser: six Refrigeration cases and one restored operator-route case. Zero review threads/changes requested. The original post-publication regression now preserves both configured markers at 390/1280 px through edit/cancel/re-entry, with unchanged persisted bindings/draft and zero additional configuration writes. Successful mutation boundaries invalidate the equipment snapshot in its organization; stale in-flight responses cannot overwrite it. Source acceptance completed and merged; installed acceptance remains access-gated. Audit: 40 entries, 27 closed in code, 1 partial, 12 open.
 
 ## Issue #1226 — UX-20 completed
 
