@@ -916,7 +916,9 @@ test("legacy Gauge remains unchanged until an explicit supported editor choice",
     await page.getByRole("button", { name: `Редагувати ${fixture.dashboardName}` }).click();
     const legacy = page.getByLabel("Візуалізація").filter({ has: page.locator('option[value="gauge"]') });
     await expect(legacy).toHaveValue("gauge");
-    await expect(legacy.locator('option[value="gauge"]')).toBeDisabled();
+    expect(
+      await legacy.locator('option[value="gauge"]').evaluate((option) => (option as HTMLOptionElement).disabled),
+    ).toBe(true);
     await page.getByLabel("Назва").fill("Renamed legacy dashboard");
     await expect(legacy).toHaveValue("gauge");
     await legacy.selectOption("value");
