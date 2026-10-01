@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T02:58:50+03:00",
+  "timestamp": "2026-10-01T03:12:41+03:00",
   "actor": "Codex",
-  "event": "ux1196_organization_url_transition_verified_locally",
+  "event": "ux1196_merged_ux1198_report_review",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1196,
-    "title": "Direct Live monitoring and channel selection",
-    "branch": "commander/1196-live-monitoring-entry"
+    "issue": 1198,
+    "title": "Consolidate UX findings and verified implementation status",
+    "branch": "commander/1198-ux-audit-report"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -448,6 +448,15 @@
         "authenticated_browser_session": "unavailable",
         "runtime_mutation": "none"
       }
+    },
+    "ux_audit_report": {
+      "path": "docs/audits/nexolab-ux-audit-2026-10-01.md",
+      "original_findings": 36,
+      "review_findings": 2,
+      "closed_in_code": 10,
+      "partial": 1,
+      "open": 27,
+      "deployed_authenticated_acceptance": "pending_normal_operator_session"
     }
   },
   "observations": [
@@ -690,9 +699,22 @@
         "merge_sha": "0d75da4e77c113b52a59893ff3f3cd3a6e976519",
         "exact_head_workflows": "5_of_5_green"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T03:12:41+03:00",
+      "kind": "ux1196_merge",
+      "data": {
+        "issue": 1196,
+        "pull_request": 1197,
+        "final_head": "9b3732deddd46d17598b134d393b9c73384c7dbb",
+        "merge_sha": "21fd79b3e72b10ae0b19fd902964e3ec96c06260",
+        "workflows": "3_of_3_green",
+        "review_threads": "3_resolved"
+      }
     }
   ],
-  "next_action": "Require final-head PR #1197 CI/browser GREEN and resolve both review threads before merge; full deployed audit requires normal authenticated operator access.",
+  "next_action": "Require focused audit report/state CI GREEN; full deployed #1191 audit needs normal authenticated operator browser access.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
