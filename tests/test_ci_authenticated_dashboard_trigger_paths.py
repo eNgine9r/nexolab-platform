@@ -19,6 +19,18 @@ def _pull_request_paths() -> set[str]:
 
 
 class AuthenticatedDashboardTriggerPathTests(unittest.TestCase):
+    def test_telegram_miniapp_paths_trigger_the_registered_browser_test(self) -> None:
+        paths = _pull_request_paths()
+        for relative in (
+            "src/app/telegram-miniapp/page.tsx",
+            "src/app/api/telegram-miniapp/report/route.ts",
+            "src/components/telegram/telegram-miniapp-report.tsx",
+            "e2e/telegram-miniapp.production.e2e.ts",
+        ):
+            with self.subTest(path=relative):
+                self.assertTrue(any(fnmatch.fnmatchcase(relative, pattern) for pattern in paths))
+        self.assertIn('"telegram-miniapp.production.e2e.ts"', PLAYWRIGHT_CONFIG.read_text(encoding="utf-8"))
+
     def test_canonical_chart_sources_trigger_dashboard_acceptance(self) -> None:
         paths = _pull_request_paths()
         self.assertIn("src/features/charts/**", paths)

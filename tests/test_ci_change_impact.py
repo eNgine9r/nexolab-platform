@@ -285,6 +285,19 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             ["Authenticated Dashboard Acceptance"],
         )
 
+    def test_telegram_miniapp_paths_require_the_focused_browser_test(self) -> None:
+        for path in (
+            "src/app/telegram-miniapp/page.tsx",
+            "src/app/api/telegram-miniapp/report/route.ts",
+            "src/components/telegram/telegram-miniapp-report.tsx",
+            "e2e/telegram-miniapp.production.e2e.ts",
+        ):
+            with self.subTest(path=path):
+                verification = classify([path])["verification"]
+                self.assertEqual(verification["dashboard_mode"], "focused")
+                self.assertEqual(verification["dashboard_test_match"], "telegram-miniapp.production.e2e.ts")
+                self.assertIn("Authenticated Dashboard Acceptance", verification["required_external_workflows"])
+
     def test_refrigeration_change_requires_refrigeration_browser_without_offline_bundle(self) -> None:
         result = classify(["src/features/refrigeration/layout.ts"])
         verification = result["verification"]
@@ -595,12 +608,12 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         verification = result["verification"]
         self.assertFalse(result["fail_closed"])
         self.assertEqual(result["unknown_files"], [])
-        self.assertEqual(verification["dashboard_mode"], "none")
+        self.assertEqual(verification["dashboard_mode"], "focused")
         self.assertFalse(verification["refrigeration_browser"])
         self.assertTrue(verification["offline_bundle"])
         self.assertEqual(
             set(verification["required_external_workflows"]),
-            {"Offline Bundle", "Telegram Gateway", "Container Supply Chain"},
+            {"Authenticated Dashboard Acceptance", "Offline Bundle", "Telegram Gateway", "Container Supply Chain"},
         )
 
     def test_unregistered_telegram_root_test_still_fails_closed(self) -> None:
