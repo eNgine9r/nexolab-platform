@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { SecurityGate } from "./security-gate";
 import { Topbar } from "./topbar";
@@ -11,6 +11,8 @@ type PlatformAccount = {
   security: DashboardSecurityModel;
   selectOrganization: (organizationId: string) => void;
   signOut: () => void;
+  operationPending: boolean;
+  setOperationPending: (pending: boolean) => void;
 };
 const PlatformAccountContext = createContext<PlatformAccount | null>(null);
 export function usePlatformAccount() {
@@ -29,6 +31,12 @@ export function PlatformAccountBoundary({
   const pathname = usePathname();
   const applyOrganization = security.selectOrganization;
   const [pendingOrganization, setPendingOrganization] = useState<string | null>(null);
+  const operationPendingRef = useRef(false);
+  const [operationPending, setOperationPendingState] = useState(false);
+  const setOperationPending = useCallback((pending: boolean) => {
+    operationPendingRef.current = pending;
+    setOperationPendingState(pending);
+  }, []);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const switchingOrganization = Boolean(
@@ -43,6 +51,7 @@ export function PlatformAccountBoundary({
   }, [applyOrganization, organizationHome, pathname, pendingOrganization, switchingOrganization]);
 
   const selectOrganization = (organizationId: string) => {
+    if (operationPendingRef.current) return;
     if (
       organizationId === security.membership?.organizationId ||
       !security.session?.memberships.some((item) => item.organizationId === organizationId)
@@ -56,6 +65,7 @@ export function PlatformAccountBoundary({
     }
   };
   const signOut = () => {
+    if (operationPendingRef.current) return;
     setSigningOut(true);
     setSignOutError(null);
     void security
@@ -105,7 +115,10 @@ export function PlatformAccountBoundary({
   }
   const scope = security.mode + ":" + (security.membership?.organizationId ?? "demo");
   return (
-    <PlatformAccountContext.Provider key={scope} value={{ security, selectOrganization, signOut }}>
+    <PlatformAccountContext.Provider
+      key={scope}
+      value={{ security, selectOrganization, signOut, operationPending, setOperationPending }}
+    >
       {children}
     </PlatformAccountContext.Provider>
   );
@@ -130,6 +143,12 @@ export function PlatformAccountTopbar({ title, onMenuOpen }: { title: string; on
       selectedMembership={security?.membership}
       onOrganizationChange={account?.selectOrganization}
       onSignOut={account?.signOut}
+      accountActionsDisabled={account?.operationPending}
+      accountActionNotice={
+        account?.operationPending
+          ? "Створення випробування триває. Зміна організації та вихід будуть доступні після завершення."
+          : undefined
+      }
     />
   );
 }

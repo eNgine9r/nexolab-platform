@@ -13,6 +13,8 @@ interface TopbarProps {
   selectedMembership?: SecurityMembership | null;
   onOrganizationChange?: (organizationId: string) => void;
   onSignOut?: () => void;
+  accountActionsDisabled?: boolean;
+  accountActionNotice?: string;
 }
 
 export function Topbar({
@@ -25,6 +27,8 @@ export function Topbar({
   selectedMembership = null,
   onOrganizationChange,
   onSignOut,
+  accountActionsDisabled = false,
+  accountActionNotice,
 }: TopbarProps) {
   const createClasses =
     "inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-3.5 text-[11px] font-semibold text-white transition hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300";
@@ -79,7 +83,8 @@ export function Topbar({
           <button
             type="button"
             onClick={onSignOut}
-            className="icon-button inline-grid"
+            disabled={accountActionsDisabled}
+            className="icon-button inline-grid disabled:cursor-wait disabled:opacity-50"
             aria-label="Вийти з NEXOLAB"
             title="Вийти з NEXOLAB"
           >
@@ -106,8 +111,9 @@ export function Topbar({
                 <span className="sr-only">Організація</span>
                 <select
                   value={selectedMembership.organizationId}
+                  disabled={accountActionsDisabled}
                   onChange={(event) => onOrganizationChange(event.target.value)}
-                  className="h-10 max-w-48 rounded-xl border border-white/10 bg-[#07172e] px-2 text-xs text-slate-200 focus-visible:outline-2 focus-visible:outline-cyan-300"
+                  className="h-10 max-w-48 rounded-xl border border-white/10 bg-[#07172e] px-2 text-xs text-slate-200 focus-visible:outline-2 focus-visible:outline-cyan-300 disabled:cursor-wait disabled:opacity-50"
                 >
                   {securitySession.memberships.map((membership) => (
                     <option key={membership.organizationId} value={membership.organizationId}>
@@ -123,6 +129,11 @@ export function Topbar({
             )
           ) : null}
         </div>
+      ) : null}
+      {accountActionNotice ? (
+        <p role="status" className="w-full text-xs text-amber-200">
+          {accountActionNotice}
+        </p>
       ) : null}
     </header>
   );

@@ -53,6 +53,7 @@ function sameSelection(left: readonly string[], right: readonly string[]): boole
 export function SessionWizard() {
   const router = useRouter();
   const account = usePlatformAccount();
+  const setAccountOperationPending = account?.setOperationPending;
   const verifiedOrganizationId = account?.security.membership?.organizationId;
   const configuredOrganizationId =
     verifiedOrganizationId ?? process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() ?? null;
@@ -77,7 +78,13 @@ export function SessionWizard() {
     credentialProvider: inventoryCredentials,
   });
   const submission = useRef<AbortController | null>(null);
-  useEffect(() => () => submission.current?.abort(), []);
+  useEffect(
+    () => () => {
+      submission.current?.abort();
+      setAccountOperationPending?.(false);
+    },
+    [setAccountOperationPending],
+  );
   const operation = useRef({
     sessionId: null as string | null,
     selectionKeys: null as string[] | null,
@@ -147,6 +154,7 @@ export function SessionWizard() {
   const submit = async () => {
     const controller = new AbortController();
     submission.current = controller;
+    setAccountOperationPending?.(true);
     setSubmitting(true);
     setError(null);
     try {
@@ -284,7 +292,10 @@ export function SessionWizard() {
       }
       setError(nextError instanceof Error ? nextError : new Error("Не вдалося створити сесію."));
     } finally {
-      if (submission.current === controller) submission.current = null;
+      if (submission.current === controller) {
+        submission.current = null;
+        setAccountOperationPending?.(false);
+      }
       if (!controller.signal.aborted) setSubmitting(false);
     }
   };

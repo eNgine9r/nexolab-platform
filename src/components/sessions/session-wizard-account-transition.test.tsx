@@ -7,9 +7,12 @@ const mock = vi.hoisted(() => ({
   create: vi.fn(),
   binding: vi.fn(),
   limits: vi.fn(),
+  lock: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push }) }));
-vi.mock("@/components/dashboard/platform-account-boundary", () => ({ usePlatformAccount: () => null }));
+vi.mock("@/components/dashboard/platform-account-boundary", () => ({
+  usePlatformAccount: () => ({ security: { membership: null }, setOperationPending: mock.lock }),
+}));
 vi.mock("@/hooks/use-live-dashboard-inventory", () => ({
   useLiveDashboardInventory: () => ({ items: [], status: "ready", error: null, retry: vi.fn() }),
 }));
@@ -57,6 +60,7 @@ vi.mock("@/lib/sessions/api-client", async (original) => ({
 }));
 beforeEach(() => {
   mock.push.mockClear();
+  mock.lock.mockClear();
   mock.create.mockReset().mockResolvedValue({ session: { id: "old-org-draft" } });
   mock.binding.mockReset().mockResolvedValue({});
   mock.limits.mockReset().mockResolvedValue({});
@@ -81,6 +85,7 @@ it.each(["create", "binding", "limits"] as const)(
     }
     fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
     await waitFor(() => expect(mock[stage]).toHaveBeenCalledOnce());
+    expect(mock.lock).toHaveBeenCalledWith(true);
     const signal = mock[stage].mock.calls[0]!.at(-1) as AbortSignal;
     unmount();
     await act(async () => {
@@ -89,6 +94,7 @@ it.each(["create", "binding", "limits"] as const)(
     expect(signal).toBeInstanceOf(AbortSignal);
     expect(signal.aborted).toBe(true);
     expect(mock.push).not.toHaveBeenCalled();
+    expect(mock.lock).toHaveBeenLastCalledWith(false);
     if (stage === "create") expect(mock.binding).not.toHaveBeenCalled();
     if (stage !== "limits") expect(mock.limits).not.toHaveBeenCalled();
   },

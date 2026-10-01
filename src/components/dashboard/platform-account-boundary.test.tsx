@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DashboardSecurityModel } from "@/hooks/use-dashboard-security";
+import { usePlatformAccount } from "./platform-account-boundary";
 import { SessionsShell } from "@/components/sessions/sessions-shell";
 import { PlatformPlaceholderScreen } from "./platform-placeholder-screen";
 
@@ -170,4 +171,38 @@ it("allows a failed sign-out to be retried without redirecting", async () => {
   expect(mock.replace).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole("button", { name: /Повторити/ }));
   await waitFor(() => expect(mock.replace).toHaveBeenCalledWith("/login"));
+});
+
+function PendingOperation() {
+  const account = usePlatformAccount();
+  return (
+    <>
+      <button onClick={() => account?.setOperationPending?.(true)}>Почати операцію</button>
+      <button onClick={() => account?.setOperationPending?.(false)}>Завершити операцію</button>
+      <Draft />
+    </>
+  );
+}
+it("keeps session content mounted and blocks account transitions during an active submission", () => {
+  render(
+    <SessionsShell>
+      <PendingOperation />
+    </SessionsShell>,
+  );
+  fireEvent.change(screen.getByLabelText("Локальна чернетка"), { target: { value: "current draft" } });
+  fireEvent.click(screen.getByRole("button", { name: "Почати операцію" }));
+  const logout = screen.getByRole("button", { name: "Вийти з NEXOLAB" });
+  const organizations = screen.getByRole("combobox", { name: "Організація" });
+  expect(logout).toBeDisabled();
+  expect(organizations).toBeDisabled();
+  fireEvent.click(logout);
+  fireEvent.change(organizations, { target: { value: "org-b" } });
+  expect(mock.security!.signOut).not.toHaveBeenCalled();
+  expect(mock.security!.selectOrganization).not.toHaveBeenCalled();
+  expect(mock.replace).not.toHaveBeenCalled();
+  expect(screen.getByLabelText("Локальна чернетка")).toHaveValue("current draft");
+  expect(screen.getByRole("status")).toHaveTextContent("Створення випробування триває");
+  fireEvent.click(screen.getByRole("button", { name: "Завершити операцію" }));
+  expect(logout).toBeEnabled();
+  expect(organizations).toBeEnabled();
 });
