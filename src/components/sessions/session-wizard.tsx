@@ -17,6 +17,7 @@ import {
   createSessionApiClient,
   createSessionCredentialProvider,
 } from "@/lib/sessions/api-client";
+import { SessionClientError } from "@/lib/sessions/runtime-config";
 import type { SessionBindingOption } from "@/lib/sessions/types";
 
 import {
@@ -189,6 +190,7 @@ export function SessionWizard() {
 
   const submit = async () => {
     if (submission.current) return;
+    const uncertainCreateBeforeThisAttempt = Boolean(operation.current.formSnapshot);
     const controller = new AbortController();
     submission.current = controller;
     releaseSubmission.current = beginAccountOperation?.() ?? null;
@@ -333,6 +335,34 @@ export function SessionWizard() {
       router.push(`/sessions/${sessionId}`);
     } catch (nextError) {
       if (controller.signal.aborted) return;
+      if (
+        !operation.current.sessionId &&
+        nextError instanceof SessionClientError &&
+        ((nextError.status === 409 &&
+          ["session_number_conflict", "session_create_conflict"].includes(nextError.code ?? "")) ||
+          (!uncertainCreateBeforeThisAttempt && nextError.status === 422))
+      ) {
+        operation.current = {
+          sessionId: null,
+          selectionKeys: null,
+          bindingSnapshot: null,
+          formSnapshot: null,
+          createKey: createIdempotencyKey("session-create"),
+          bindingKeys: new Map(),
+          limitsKey: createIdempotencyKey("limit-version"),
+        };
+        setFormFrozen(false);
+        setStep(0);
+        persist(form, 0);
+        setError(
+          new Error(
+            nextError.code === "session_number_conflict"
+              ? "Такий номер випробування вже існує. Змініть номер у формі та повторіть створення."
+              : "Сервер відхилив створення. Перевірте дані форми та повторіть спробу.",
+          ),
+        );
+        return;
+      }
       if (operation.current.selectionKeys) {
         setForm((current) => ({
           ...current,

@@ -1,3 +1,4 @@
+import { SessionClientError } from "@/lib/sessions/runtime-config";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { SessionWizard } from "./session-wizard";
@@ -41,7 +42,19 @@ vi.mock("@/features/test-sessions/telemetry-selection", () => ({
       : [],
 }));
 vi.mock("./wizard-steps", () => ({
-  GeneralStep: () => null,
+  GeneralStep: ({
+    form,
+    update,
+  }: {
+    form: { sessionNumber: string };
+    update: (key: "sessionNumber", value: string) => void;
+  }) => (
+    <input
+      aria-label="Номер випробування"
+      value={form.sessionNumber}
+      onChange={(event) => update("sessionNumber", event.target.value)}
+    />
+  ),
   ObjectStep: () => null,
   MethodStep: () => null,
   EquipmentStep: () => null,
@@ -158,3 +171,58 @@ it.each(["create", "binding", "limits"] as const)(
     second.unmount();
   },
 );
+
+it.each([409, 422])(
+  "returns a definitively rejected creation (%s) to an editable form, including after reopening",
+  async (status) => {
+    mock.persistent = true;
+    mock.create.mockRejectedValueOnce(
+      new SessionClientError("duplicate", status, status === 409 ? "session_number_conflict" : "http"),
+    );
+    const first = render(<SessionWizard />);
+    for (let step = 0; step < 7; step++) {
+      const next = screen.getByRole("button", { name: "Далі" });
+      await waitFor(() => expect(next).toBeEnabled());
+      fireEvent.click(next);
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
+    await screen.findByText(/Такий номер випробування вже існує|Сервер відхилив створення/);
+    const oldKey = mock.create.mock.calls[0]!.at(-2);
+    expect(screen.getByLabelText("Номер випробування")).toBeEnabled();
+    first.unmount();
+    render(<SessionWizard />);
+    fireEvent.change(screen.getByLabelText("Номер випробування"), { target: { value: "CORRECTED-UNIQUE" } });
+    for (let step = 0; step < 7; step++) {
+      const next = screen.getByRole("button", { name: "Далі" });
+      await waitFor(() => expect(next).toBeEnabled());
+      fireEvent.click(next);
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
+    await waitFor(() => expect(mock.push).toHaveBeenCalledWith("/sessions/old-org-draft"));
+    expect(mock.create.mock.calls[1]![0].session_number).toBe("CORRECTED-UNIQUE");
+    expect(mock.create.mock.calls[1]!.at(-2)).not.toBe(oldKey);
+  },
+);
+it("keeps the original operation frozen after an uncertain creation failure", async () => {
+  mock.persistent = true;
+  mock.create
+    .mockRejectedValueOnce(new SessionClientError("network", undefined, "network"))
+    .mockRejectedValueOnce(new SessionClientError("validation-rejected", 422, "http"));
+  render(<SessionWizard />);
+  for (let step = 0; step < 7; step++) {
+    const next = screen.getByRole("button", { name: "Далі" });
+    await waitFor(() => expect(next).toBeEnabled());
+    fireEvent.click(next);
+  }
+  fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
+  await screen.findByText("network");
+  expect(screen.getByRole("button", { name: "Назад" })).toBeDisabled();
+  const oldKey = mock.create.mock.calls[0]!.at(-2);
+  fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
+  await screen.findByText("validation-rejected");
+  expect(screen.getByRole("button", { name: "Назад" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
+  await waitFor(() => expect(mock.push).toHaveBeenCalledWith("/sessions/old-org-draft"));
+  expect(mock.create.mock.calls[1]!.at(-2)).toBe(oldKey);
+  expect(mock.create.mock.calls[2]!.at(-2)).toBe(oldKey);
+});
