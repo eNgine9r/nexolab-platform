@@ -3,11 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const state = vi.hoisted(() => ({
   replace: vi.fn(),
-  refresh: vi.fn(),
   signIn: vi.fn(),
 }));
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: state.replace, refresh: state.refresh }),
+vi.mock("@/features/security/login-navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/security/login-navigation")>()),
+  replaceAfterLogin: state.replace,
 }));
 vi.mock("@/features/security/auth-runtime", () => ({ signInWithPassword: state.signIn }));
 vi.mock("@/lib/telemetry/runtime-config", () => ({
@@ -18,7 +18,6 @@ import { LoginForm } from "./login-form";
 
 beforeEach(() => {
   state.replace.mockReset();
-  state.refresh.mockReset();
   state.signIn.mockReset();
   state.signIn.mockResolvedValue({ ok: true });
   localStorage.clear();
@@ -60,7 +59,6 @@ describe("operator login form", () => {
     fireEvent.click(screen.getByRole("button", { name: "Показати пароль" }));
     fireEvent.click(screen.getByRole("button", { name: "Увійти" }));
     await waitFor(() => expect(state.replace).toHaveBeenCalledWith(destination));
-    expect(state.refresh).not.toHaveBeenCalled();
     expect(state.signIn).toHaveBeenCalledWith("http://localhost:8082", "operator", "unit-test-password");
     expect(screen.getByLabelText("Пароль", { exact: true })).toHaveAttribute("type", "password");
   });
@@ -72,7 +70,6 @@ describe("operator login form", () => {
       fillCredentials();
       fireEvent.click(screen.getByRole("button", { name: "Увійти" }));
       await waitFor(() => expect(state.replace).toHaveBeenCalledWith("/"));
-      expect(state.refresh).not.toHaveBeenCalled();
     },
   );
 
@@ -84,7 +81,6 @@ describe("operator login form", () => {
     fireEvent.click(screen.getByRole("button", { name: "Увійти" }));
     await expect(screen.findByRole("alert")).resolves.toHaveTextContent("Невірні облікові дані.");
     expect(state.replace).not.toHaveBeenCalled();
-    expect(state.refresh).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Увійти" }));
     await waitFor(() => expect(state.replace).toHaveBeenCalledWith(destination));
   });

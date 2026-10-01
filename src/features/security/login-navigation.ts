@@ -40,3 +40,10 @@ export function localLoginHref(returnTo: unknown): string {
   const destination = safeLocalReturnTo(returnTo);
   return destination === "/" ? "/login" : `/login?returnTo=${encodeURIComponent(destination)}`;
 }
+
+export function replaceAfterLogin(
+  returnTo: unknown,
+  location: Pick<Location, "replace"> = window.location,
+): void {
+  location.replace(safeLocalReturnTo(returnTo));
+}

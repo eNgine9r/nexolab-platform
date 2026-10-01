@@ -1,15 +1,13 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 import { LoaderCircle, LockKeyhole, ShieldCheck } from "lucide-react";
 
 import { signInWithPassword } from "@/features/security/auth-runtime";
-import { safeLocalReturnTo } from "@/features/security/login-navigation";
+import { replaceAfterLogin, safeLocalReturnTo } from "@/features/security/login-navigation";
 import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 
 export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
-  const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -35,7 +33,7 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
       setSubmitting(false);
       return;
     }
-    router.replace(safeLocalReturnTo(returnTo));
+    replaceAfterLogin(safeLocalReturnTo(returnTo));
   }
 
   return (

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { localLoginHref, safeLocalReturnTo } from "./login-navigation";
+import { localLoginHref, replaceAfterLogin, safeLocalReturnTo } from "./login-navigation";
 
 describe("safe local login destination", () => {
   it.each([
@@ -52,5 +52,22 @@ describe("safe local login destination", () => {
   it("normalizes local dot segments without changing the local origin", () => {
     const path = "/settings/../reports?session=example#detail";
     expect(safeLocalReturnTo(path)).toBe("/reports?session=example#detail");
+  });
+});
+
+describe("authentication document boundary", () => {
+  it.each([
+    ["/reports?filter=completed#versions", "/reports?filter=completed#versions"],
+    [
+      "/reports/00000000-0000-0000-0000-000000000001#protocol",
+      "/reports/00000000-0000-0000-0000-000000000001#protocol",
+    ],
+    ["https://example.com/settings", "/"],
+    ["//example.com/settings", "/"],
+    ["/login?returnTo=/reports", "/"],
+  ])("replaces the document with a rechecked local target: %s", (returnTo, expected) => {
+    const destinations: string[] = [];
+    replaceAfterLogin(returnTo, { replace: (destination) => destinations.push(String(destination)) });
+    expect(destinations).toEqual([expected]);
   });
 });
