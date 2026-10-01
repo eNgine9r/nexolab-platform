@@ -2,9 +2,9 @@
 
 Updated: 2026-10-01
 
-## UX source acceptance — #1239 verification pending
+## UX source acceptance — #1241 verification pending
 
-#1235 / PR #1238 merged after both exact-head workflows GREEN, 1061 frontend tests and 38 browser cases; one review is fixed/resolved. UX-14 is closed in code. #1239 safe local login return/password visibility requires all routed CI/offline-auth browser acceptance and review GREEN before merge. Local exec-server is environment_offline, while remote GitData and actual CI/browser verification remain the working route. No local execution is claimed. Installed #1191 remains independently access-gated below.
+#1239 / PR #1240 merged after all ten exact-head workflows GREEN, 1111 frontend tests and 60 browser cases; all three review findings are fixed/resolved. UX-36 is closed in code. #1241 operational-first Nodes inventory and separate native provisioning form requires all routed CI/browser/review GREEN before merge. Local exec-server remains unavailable; remote GitData and actual CI/browser verification remain the working route. No local execution is claimed. Installed #1191 remains independently access-gated below.
 
 ## UX-22/24 — approved laboratory template evidence unavailable
 

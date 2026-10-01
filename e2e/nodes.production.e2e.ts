@@ -284,16 +284,84 @@ test("multi-node registry persists MQTT health, retained LWT status, RBAC and is
     const managerContext = await browser.newContext({ baseURL: frontendBaseUrl });
     const managerPage = await managerContext.newPage();
     await installBrowserCredentials(managerPage, managerAToken, organizationA);
+    let browserNodeMutations = 0;
+    managerPage.on("request", (request) => {
+      if (
+        ["POST", "PATCH", "DELETE"].includes(request.method()) &&
+        /\/api\/v1\/nodes(?:\/|$)/.test(new URL(request.url()).pathname)
+      ) {
+        browserNodeMutations += 1;
+      }
+    });
     await managerPage.goto("/nodes");
     await expect(managerPage.getByTestId("nodes-workspace")).toBeVisible();
+    const provisionToggle = managerPage.getByTestId("node-provision-toggle");
+    for (const width of [390, 1280]) {
+      await managerPage.setViewportSize({ width, height: 900 });
+      await expect(managerPage.getByTestId("node-inventory")).toBeVisible();
+      await expect(managerPage.getByTestId(`node-row-${catalogNodeId}`)).toBeVisible();
+      await expect(managerPage.getByTestId("node-provision-panel")).not.toBeVisible();
+      expect(
+        await managerPage.getByTestId("node-inventory").evaluate((inventory) => {
+          const disclosure = document.querySelector('[data-testid="node-provision-disclosure"]');
+          if (!disclosure) return false;
+          return inventory.compareDocumentPosition(disclosure) === Node.DOCUMENT_POSITION_FOLLOWING;
+        }),
+      ).toBe(true);
+
+      await provisionToggle.focus();
+      await managerPage.keyboard.press("Space");
+      await expect(managerPage.getByTestId("node-provision-panel")).toBeVisible();
+      await managerPage.getByTestId("node-id-input").fill(`draft-${width}`);
+      await managerPage.getByTestId("node-name-input").fill(`Чернетка ${width}`);
+      await provisionToggle.focus();
+      await managerPage.keyboard.press("Enter");
+      await expect(managerPage.getByTestId("node-provision-panel")).not.toBeVisible();
+      await managerPage.keyboard.press("Space");
+      await expect(managerPage.getByTestId("node-id-input")).toHaveValue(`draft-${width}`);
+      await expect(managerPage.getByTestId("node-name-input")).toHaveValue(`Чернетка ${width}`);
+      await expect
+        .poll(() =>
+          managerPage.evaluate(
+            () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+          ),
+        )
+        .toBe(true);
+      await provisionToggle.focus();
+      await managerPage.keyboard.press("Enter");
+      await expect(managerPage.getByTestId("node-provision-panel")).not.toBeVisible();
+      expect(browserNodeMutations).toBe(0);
+    }
+    await provisionToggle.click();
     await expect(managerPage.getByTestId("node-provision-panel")).toBeVisible();
+
+    await managerPage.getByTestId("node-id-input").fill(catalogNodeId);
+    await managerPage.getByTestId("node-name-input").fill("Existing node duplicate attempt");
+    const duplicateResponse = managerPage.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/api/v1/nodes" && response.request().method() === "POST",
+    );
+    await managerPage.getByTestId("provision-node").click();
+    expect((await duplicateResponse).status()).toBe(409);
+    await expect(managerPage.getByTestId("node-operation-feedback")).toBeVisible();
+    await expect(managerPage.getByTestId("node-operation-feedback")).toBeInViewport({ ratio: 1 });
+    await expect(managerPage.getByTestId("node-id-input")).toHaveValue(catalogNodeId);
+    expect(browserNodeMutations).toBe(1);
 
     await managerPage.getByTestId("node-id-input").fill(primaryNodeId);
     await managerPage.getByTestId("node-name-input").fill("Primary simulated edge");
     await managerPage.getByTestId("provision-node").click();
     await expect(managerPage.getByTestId("one-time-node-secret")).toBeVisible();
-    const firstSecret = await managerPage.getByTestId("one-time-node-secret").locator("code").innerText();
+    const secretCode = managerPage.getByTestId("one-time-node-secret").locator("code");
+    const firstSecret = await secretCode.innerText();
     expect(firstSecret).toMatch(/^nxl_node_/);
+    await expect(secretCode).toBeInViewport({ ratio: 1 });
+    expect(browserNodeMutations).toBe(2);
+    await provisionToggle.click();
+    await expect(managerPage.getByTestId("node-provision-panel")).not.toBeVisible();
+    await expect(managerPage.getByTestId("one-time-node-secret").locator("code")).toHaveText(firstSecret);
+    await provisionToggle.click();
+    expect(browserNodeMutations).toBe(2);
     await expect(managerPage.getByTestId(`node-row-${primaryNodeId}`)).toBeVisible();
     await expect(managerPage.getByTestId("node-detail")).toContainText("generation 1");
 
@@ -430,6 +498,7 @@ test("multi-node registry persists MQTT health, retained LWT status, RBAC and is
     await viewerPage.goto("/nodes");
     await expect(viewerPage.getByTestId("nodes-workspace")).toBeVisible();
     await expect(viewerPage.getByTestId("node-provision-panel")).toHaveCount(0);
+    await expect(viewerPage.getByTestId("node-provision-toggle")).toHaveCount(0);
     await expect(viewerPage.getByText("Поточна роль має read-only доступ.")).toBeVisible();
     await viewerPage.getByTestId(`node-row-${secondaryNodeId}`).click();
     await expect(viewerPage.getByTestId(`node-row-availability-${secondaryNodeId}`)).toHaveText("offline");
