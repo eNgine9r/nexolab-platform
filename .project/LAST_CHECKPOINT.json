@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T19:20:55.815Z",
+  "timestamp": "2026-10-01T19:35:15.232Z",
   "actor": "Codex",
-  "event": "ux1226_merged_1228_snapshot_invalidation_source_candidate",
+  "event": "ux1228_merged_1230_execution_environment_blocked",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1228,
-    "title": "Investigate empty sensor editor after photo publication",
-    "branch": "fix/1228-post-publication-bindings"
+    "issue": 1230,
+    "title": "UX-26 direct completed-test report workflow",
+    "branch": "fix/1230-session-report-entry"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -775,16 +775,20 @@
       "issue": 1228,
       "title": "Investigate empty sensor editor after photo publication",
       "branch": "fix/1228-post-publication-bindings",
-      "phase": "source_candidate",
+      "phase": "completed",
       "source_run": 36910009276,
       "artifact_id": 11186024974,
       "observation": "edit_screen_0_of_4_after_v4_publication_two_persisted_draft_placements",
       "binding_data_loss": "disproved_by_database_evidence",
       "root_cause": "structural_snapshot_not_invalidated_by_successful_mutations",
       "local_cache_regression": "5_expected_failures_before_fix",
-      "exact_head_ci": "pending",
+      "exact_head_ci": {
+        "Core CI": "success:36913844824",
+        "Refrigeration Browser Acceptance": "success:36913844731",
+        "Disaster Recovery Browser": "success:36913844645"
+      },
       "browser_acceptance": "pending",
-      "review": "pending",
+      "review": "0_threads_0_changes_requested",
       "local_checks": {
         "focused_tests": "15_passed_2_files",
         "typecheck": "passed",
@@ -792,7 +796,21 @@
         "format": "passed",
         "state_integrity": "passed",
         "diff_check": "passed"
-      }
+      },
+      "verified_head_sha": "5eca5e0b51b37d19ba96fd4d7c3528b3b53c5e59",
+      "pull_request": 1229,
+      "full_tests": "997_passed_172_files",
+      "browser_cases": "7_passed",
+      "source_acceptance": "completed",
+      "installed_acceptance": "access_gated_1191"
+    },
+    "issue_1230_ux26": {
+      "issue": 1230,
+      "title": "UX-26 direct completed-test report workflow",
+      "branch": "fix/1230-session-report-entry",
+      "phase": "blocked_before_verified_implementation",
+      "blocker": "exec_server_transport_closed_and_minimal_pwd_probe_unresponsive",
+      "next_action": "Recover runtime, inspect branch and partial apply_patch, implement exact-session report navigation, verify all routed CI/review before merge."
     }
   },
   "observations": [
@@ -1333,9 +1351,34 @@
         "root_cause": "successful_mutations_leave_separate_structural_snapshot_cache_stale",
         "database_evidence": "two_active_bindings_two_v4_placements_two_r1_placements_preserved"
       }
+    },
+    {
+      "source": "github_and_execution_environment",
+      "observed_at": "2026-10-01T19:35:15.232Z",
+      "kind": "issue_1228_pr_1229_merged_1230_environment_blocked",
+      "data": {
+        "issue": 1228,
+        "pull_request": 1229,
+        "merge_sha": "c43bd380e3b0294a92a9396fed251f0f003c3ac8",
+        "verified_head_sha": "5eca5e0b51b37d19ba96fd4d7c3528b3b53c5e59",
+        "full_tests": "997_passed_172_files",
+        "browser_cases": "7_passed",
+        "exact_head_ci": {
+          "Core CI": "success:36913844824",
+          "Refrigeration Browser Acceptance": "success:36913844731",
+          "Disaster Recovery Browser": "success:36913844645"
+        },
+        "review": "0_threads_0_changes_requested",
+        "source_acceptance": "completed",
+        "installed_acceptance": "access_gated_1191",
+        "next_issue": 1230,
+        "blocker": "exec_server_transport_closed_during_local_patch_minimal_pwd_probe_unresponsive",
+        "unverified_local_patch": "inspect_after_runtime_recovery_do_not_assume_applied",
+        "production_deployment": "none"
+      }
     }
   ],
-  "next_action": "Verify #1228 scoped snapshot invalidation and original post-publication markers/cancel/re-entry on 390/1280 px, all routed exact-head CI and review; merge only GREEN. Continue remaining UX findings. Installed #1191 remains access-gated.",
+  "next_action": "Recover execution environment first; inspect unverified partial apply_patch on local fix/1230-session-report-entry. #1228 is merged GREEN, #1230 is qualified but no implementation verified. Continue all remaining UX findings after runtime recovery; do not mark them closed. Installed #1191 remains access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
