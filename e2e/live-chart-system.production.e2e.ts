@@ -690,3 +690,56 @@ for (const width of [390, 1280]) {
     }
   });
 }
+
+test("Live explicit comparison survives failed inventory and outage reload before memory fallback", async ({
+  browser,
+}) => {
+  const fixture = seedExplorerTelemetry();
+  const context = await authenticatedContext(browser);
+  const page = await context.newPage();
+  const runtime = observeRuntime(page);
+  const preferenceKey = `nexolab.live-comparison.v1:${encodeURIComponent(organizationId)}`;
+  const remembered = ["previous-channel"];
+  const explicit = ["edge-live-issue-400", fixture.equipmentId, fixture.channels[0]!, "temperature.probe", "degC"]
+    .map((part) => encodeURIComponent(part))
+    .join("|");
+  const readPreference = () =>
+    page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "null"), preferenceKey);
+  let inventoryFailures = 0;
+  await page.route("**/api/v1/telemetry/latest**", async (route) => {
+    inventoryFailures += 1;
+    await route.abort("failed");
+  });
+  await context.addInitScript(
+    ({ key, keys }) => {
+      if (window.location.protocol !== "about:") {
+        localStorage.setItem(key, JSON.stringify({ version: 1, keys }));
+      }
+    },
+    { key: preferenceKey, keys: remembered },
+  );
+
+  try {
+    await page.goto(`/live?compare=${encodeURIComponent(explicit)}&range=1h`);
+    await expect.poll(() => inventoryFailures).toBeGreaterThan(0);
+    await expect(page.getByRole("button", { name: "Повторити", exact: true })).toBeVisible();
+    await expect.poll(() => new URL(page.url()).searchParams.getAll("compare")).toEqual([explicit]);
+    await expect.poll(readPreference).toEqual({ version: 1, keys: remembered });
+
+    const beforeReload = inventoryFailures;
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect.poll(() => inventoryFailures).toBeGreaterThan(beforeReload);
+    await expect(page.getByRole("button", { name: "Повторити", exact: true })).toBeVisible();
+    await expect.poll(() => new URL(page.url()).searchParams.getAll("compare")).toEqual([explicit]);
+    await expect.poll(readPreference).toEqual({ version: 1, keys: remembered });
+
+    await page.unroute("**/api/v1/telemetry/latest**");
+    await page.getByRole("button", { name: "Повторити", exact: true }).click();
+    await expect(page.getByTestId("live-selected-context")).toContainText(fixture.equipmentId);
+    await expect.poll(readPreference).toEqual({ version: 1, keys: [explicit] });
+    await expect.poll(() => new URL(page.url()).searchParams.getAll("compare")).toEqual([explicit]);
+    expect(runtime.acquisitionMutations).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});

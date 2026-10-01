@@ -630,7 +630,7 @@ export function useLiveTelemetry({
     samples: view.samples,
     freshSamples: view.freshSamples,
     lastCapturedAt: view.lastCapturedAt,
-    selectedKeys: reconciledSelectedKeys,
+    selectedKeys: hasCompleteInventory ? reconciledSelectedKeys : selectedKeys,
     selectionReady: enabled && hasCompleteInventory && liveCoverageScopeKey === scopeKey,
     setSelectedKeys,
     historyRange,

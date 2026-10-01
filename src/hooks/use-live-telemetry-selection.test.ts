@@ -80,6 +80,7 @@ describe("complete inventory selection readiness", () => {
     await connect();
     await waitFor(() => expect(state.latest).toHaveBeenCalled());
     expect(view.result.current.selectionReady).toBe(false);
+    expect(view.result.current.selectedKeys).toEqual([liveChannelKey(sample)]);
     view.unmount();
   });
 
@@ -91,7 +92,7 @@ describe("complete inventory selection readiness", () => {
     await connect();
     await waitFor(() => expect(view.result.current.error?.message).toBe("Inventory unavailable"));
     expect(view.result.current.selectionReady).toBe(false);
-    expect(view.result.current.selectedKeys).toEqual([]);
+    expect(view.result.current.selectedKeys).toEqual([key]);
     act(() => view.result.current.retry());
     await waitFor(() => expect(state.subscribe).toHaveBeenCalledTimes(2));
     await connect();
@@ -119,6 +120,7 @@ describe("complete inventory selection readiness", () => {
     await connect();
     await waitFor(() => expect(state.latest).toHaveBeenCalledTimes(2));
     expect(view.result.current.selectionReady).toBe(false);
+    expect(view.result.current.selectedKeys).toEqual([key]);
     act(() => resolveInventory(page([sample])));
     await waitFor(() => expect(view.result.current.selectionReady).toBe(true));
     expect(view.result.current.selectedKeys).toEqual([key]);
