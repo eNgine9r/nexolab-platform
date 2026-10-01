@@ -2,9 +2,13 @@
 
 Updated: 2026-10-01
 
-## Issue #1220 — UX-12 empty cameras candidate
+## Issue #1222 — UX-18 equipment-scoped refrigeration tabs and safe storage fallback regression candidate
 
-Overview omits the camera panel for empty or rejected-only inventory, leaving sessions and equipment schemes with equal available desktop width. Configured cameras retain their existing cards, truthful states and all-cameras action. General Settings provides a compact camera status link to the existing authenticated workspace. Component coverage exercises empty/rejected-only, configured offline/invalid records and the Settings destination. Existing browser journeys check the empty Overview and narrow keyboard-accessible Settings link. Exact-head format/lint/type/test/build/browser and review are pending; local execution remains offline. No camera parser/media, authorization, acquisition, dependencies or installed deployment change.
+Two new screen regressions exercise ignored global legacy preference and independent equipment choices with return restoration. This commit intentionally contains only regressions against the unchanged tab implementation; exact-head CI must reproduce the failure before a scoped preference fix is applied. Product candidate acceptance is pending. Local execution remains offline; no deployment, API, acquisition or hardware change.
+
+## Issue #1220 — completed
+
+PR #1221 final head `e61c4c3c6d4cac940e8e90f5d3ccb9dd4fce9c35` passed Core CI 36897735828 and Dashboard 36897735849, canonical state/format/lint/typecheck, 951 tests in 169 files, production build and all 34 browser scenarios. Zero review threads/change requests. Squash merge `914c0187fe807bc658ec8aab5731ebacd84a1003`. Empty and rejected-only cameras no longer occupy Overview; sessions and schemes share that space. Configured camera cards/states/all-cameras action remain. General Settings keyboard link reaches truthful Cameras at 390/1440 px. Initial legacy empty-panel browser assertion was updated; final exact-head run passed. Audit: 23 closed, 1 partial, 15 open. Installed #1191 remains access-gated.
 
 ## Issue #1218 — UX-16 monitoring guidance completed
 

@@ -31,6 +31,7 @@ async function waitForLayout() {
 
 describe("RefrigerationDetailScreen", () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     window.localStorage.clear();
   });
 
@@ -49,6 +50,27 @@ describe("RefrigerationDetailScreen", () => {
     );
     expect(screen.queryByTestId("equipment-image-workspace")).not.toBeInTheDocument();
   });
+  it("ignores an unscoped legacy tab instead of applying it to every object", () => {
+    window.localStorage.setItem("nexolab:refrigeration-detail-tab", "graphs");
+    render(<RefrigerationDetailScreen equipment={referenceEquipment()} />);
+
+    expect(screen.getByRole("button", { name: "Огляд" })).toHaveAttribute("aria-current", "page");
+    expect(window.localStorage.getItem("nexolab:refrigeration-detail-tab")).toBe("graphs");
+  });
+
+  it("defaults a different object to Overview and restores the first object's chosen tab", () => {
+    const equipment = referenceEquipment();
+    const { rerender } = render(<RefrigerationDetailScreen equipment={equipment} />);
+    fireEvent.click(screen.getByRole("button", { name: "Контролер" }));
+
+    rerender(<RefrigerationDetailScreen equipment={{ ...equipment, id: "other-equipment" }} />);
+    expect(screen.getByRole("button", { name: "Огляд" })).toHaveAttribute("aria-current", "page");
+    fireEvent.click(screen.getByRole("button", { name: "Контур" }));
+
+    rerender(<RefrigerationDetailScreen equipment={equipment} />);
+    expect(screen.getByRole("button", { name: "Контролер" })).toHaveAttribute("aria-current", "page");
+  });
+
   it("keeps passport and lifecycle controls out of the primary canvas flow", async () => {
     const equipment = referenceEquipment();
     render(<RefrigerationDetailScreen equipment={equipment} />);
