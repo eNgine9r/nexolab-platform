@@ -41,9 +41,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1224,
-      "title": "UX-19 direct catalog Scheme entry with safe return context",
-      "branch": "fix/1224-scheme-entry"
+      "issue": 1226,
+      "title": "UX-20 local sensor marker removal with guarded accessible undo",
+      "branch": "fix/1226-marker-removal-undo"
     },
     "next_work_package": null
   },
@@ -6036,7 +6036,28 @@
       "title": "UX-19 direct catalog Scheme entry with safe return context",
       "branch": "fix/1224-scheme-entry",
       "priority": "medium",
+      "lifecycle": "completed",
+      "evidence": {
+        "verified_head_sha": "9102f289fe45a0b74af318ef3962efd97812f74a",
+        "pull_request": 1225,
+        "checks": {
+          "CI": "success:36907555931",
+          "Authenticated Dashboard Acceptance": "success:36907556078",
+          "Refrigeration Browser Acceptance": "success:36907555987",
+          "Security Browser Acceptance": "success:36907556015",
+          "Disaster Recovery Browser": "success:36907555974"
+        }
+      }
+    },
+    {
+      "issue": 1226,
+      "title": "UX-20 local sensor marker removal with guarded accessible undo",
+      "branch": "fix/1226-marker-removal-undo",
+      "priority": "medium",
       "lifecycle": "in_progress",
+      "depends_on": [
+        1224
+      ],
       "evidence": {}
     }
   ],
@@ -6739,6 +6760,23 @@
         "frontend_tests": 958,
         "browser_scenarios": 8,
         "unresolved_review_threads": 0
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T18:50:19.282Z",
+      "kind": "issue_1224_pr_1225_merged",
+      "data": {
+        "issue": 1224,
+        "pull_request": 1225,
+        "verified_head_sha": "9102f289fe45a0b74af318ef3962efd97812f74a",
+        "merge_sha": "8e396f1cb1201c61ef0aced349678e06b219c584",
+        "exact_head_workflows": "5_of_5_green",
+        "frontend_tests": 978,
+        "browser_scenarios": 14,
+        "unresolved_review_threads": 0,
+        "review_threads_resolved": 4,
+        "fixture_order_evidence": "explicit_equipment_registry_project_dependency_and_fresh_dashboard_success"
       }
     }
   ],

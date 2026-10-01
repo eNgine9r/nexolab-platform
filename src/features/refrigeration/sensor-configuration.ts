@@ -169,6 +169,26 @@ export function removeConfiguredSensor(
   return current.filter((sensor) => sensor.id !== sensorId);
 }
 
+export function restoreRemovedConfiguredSensor(
+  current: readonly StagedSensorConfiguration[],
+  removed: StagedSensorConfiguration,
+  totalSlots: number,
+  channels: readonly AvailableSensor[],
+  equipmentId: string,
+): StagedSensorConfiguration[] {
+  if (current.some((sensor) => sensor.id === removed.id)) {
+    throw new Error("Цей канал уже є на схемі. Перевірте поточні маркери.");
+  }
+  if (current.length >= sensorSlotCapacity(totalSlots)) {
+    throw new Error("На схемі немає вільного місця для відновлення маркера.");
+  }
+  const channel = channels.find((candidate) => candidate.channelId === removed.id);
+  if (channel && channelPlacementConflict(channel, equipmentId)) {
+    throw new Error("Канал уже прив’язаний до іншого обладнання. Маркер не відновлено.");
+  }
+  return updateConfiguredSensor([...current, removed], removed.id, {});
+}
+
 export function moveConfiguredSensor(
   current: readonly StagedSensorConfiguration[],
   sensorId: string,

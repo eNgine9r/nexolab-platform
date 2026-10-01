@@ -12,6 +12,7 @@ import {
   defaultMarkerLabel,
   refreshStagedSensorChannelMetadata,
   replaceConfiguredChannel,
+  restoreRemovedConfiguredSensor,
   sensorSlotCapacity,
 } from "./sensor-configuration";
 
@@ -318,5 +319,55 @@ describe("sensor configuration marker identity", () => {
       label: "Мій маркер",
       slotKey: "front-01",
     });
+  });
+});
+
+describe("undo a staged marker removal", () => {
+  const removed = addChannelToConfiguration([], available("106-03", "441"), 48, "showcase-kk2")[0]!;
+  it("restores identity, label and coordinates while preserving a later unrelated edit", () => {
+    const other = {
+      ...removed,
+      id: "106-04",
+      label: "Changed later",
+      slotKey: "front-02",
+      position: 2,
+      x: 0.87,
+    };
+    const restored = restoreRemovedConfiguredSensor([other], removed, 48, [], "showcase-kk2");
+    expect(restored).toContainEqual(removed);
+    expect(restored).toContainEqual(other);
+    expect(other.x).toBe(0.87);
+  });
+  it("rejects a reused channel", () => {
+    expect(() => restoreRemovedConfiguredSensor([removed], removed, 48, [], "showcase-kk2")).toThrow(
+      "канал уже є",
+    );
+  });
+  it("rejects an occupied slot", () => {
+    expect(() =>
+      restoreRemovedConfiguredSensor([{ ...removed, id: "106-04" }], removed, 48, [], "showcase-kk2"),
+    ).toThrow("позиція вже зайнята");
+  });
+  it("rejects a full schema", () => {
+    expect(() =>
+      restoreRemovedConfiguredSensor(
+        [{ ...removed, id: "106-04", slotKey: "front-02", position: 2 }],
+        removed,
+        1,
+        [],
+        "showcase-kk2",
+      ),
+    ).toThrow("немає вільного місця");
+  });
+  it("rejects a channel now known to belong to another equipment", () => {
+    const channel = {
+      ...available(removed.id),
+      isBound: true,
+      boundEquipmentId: "other-equipment",
+      boundSlotKey: "front-01",
+    };
+    expect(() => restoreRemovedConfiguredSensor([], removed, 48, [channel], "showcase-kk2")).toThrow(
+      "іншого обладнання",
+    );
   });
 });
