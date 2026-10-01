@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T16:06:20.414Z",
+  "timestamp": "2026-10-01T16:11:24.232Z",
   "actor": "Codex",
-  "event": "ux1214_gauge_candidate_after_regression_reproduction",
+  "event": "ux1214_gauge_candidate_state_review_reconciled",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
