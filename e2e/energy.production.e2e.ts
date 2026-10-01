@@ -406,3 +406,62 @@ function requiredEnvironment(name: string): string {
   if (!value) throw new Error(`${name} is required for energy acceptance`);
   return value;
 }
+
+test("energy comparison explains the final meter and supports keyboard-only selection", async ({
+  browser,
+}) => {
+  const context = await authenticatedContext(browser);
+  const page = await context.newPage();
+  const mutations: string[] = [];
+  page.on("request", (request) => {
+    if (
+      !["GET", "HEAD", "OPTIONS"].includes(request.method()) &&
+      /device-agent|discovery|configuration/.test(request.url())
+    )
+      mutations.push(request.url());
+  });
+  try {
+    await page.goto("/energy", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: "Енергомоніторинг" })).toBeVisible();
+    await page.getByRole("combobox", { name: "Показник" }).selectOption("electrical.voltage");
+    await page.getByRole("button", { name: "7 діб" }).click();
+    const legend = page.getByTestId("energy-history-chart").getByLabel("Chart legend");
+    await expect(legend.getByRole("button", { name: "Solo" }).first()).toBeVisible();
+    await legend.getByRole("button", { name: "Solo" }).first().click();
+    const before = await readAcquisitionMetrics();
+    for (const width of [320, 390, 1280, 1536, 1920]) {
+      await page.setViewportSize({ width, height: 900 });
+      const only = page.getByRole("button", { name: "Показати лише лічильник SDM120M" });
+      await only.focus();
+      await page.keyboard.press("Enter");
+      await expect(legend.getByRole("button", { name: "Hide", exact: true })).toHaveCount(1);
+      await expect(legend.getByRole("button", { name: "Show", exact: true })).toHaveCount(0);
+      await legend.getByRole("button", { name: "Hide", exact: true }).click();
+      await expect(legend.getByRole("button", { name: "Show", exact: true })).toHaveCount(1);
+      await only.click();
+      await expect(legend.getByRole("button", { name: "Hide", exact: true })).toHaveCount(1);
+      const finalToggle = page.getByRole("button", { name: "Виключити лічильник SDM120M з порівняння" });
+      await expect(finalToggle).toBeDisabled();
+      await expect(finalToggle).toHaveAccessibleDescription(/Для порівняння потрібен хоча б один лічильник/);
+      await expect(page.getByRole("button", { name: /^Виключити лічильник/ })).toHaveCount(1);
+      await page.getByRole("button", { name: "Додати лічильник W1 з порівняння" }).click();
+      await expect(finalToggle).toBeEnabled();
+      await finalToggle.click();
+      await expect(page.getByRole("button", { name: "Виключити лічильник W1 з порівняння" })).toBeDisabled();
+      const cards = page.getByRole("region", { name: "Лічильники електроенергії" }).locator("article");
+      expect(
+        await cards.evaluateAll((elements) =>
+          elements.every((element) => element.scrollWidth <= element.clientWidth),
+        ),
+      ).toBe(true);
+      await expect(page.getByRole("combobox", { name: "Показник" })).toHaveValue("electrical.voltage");
+      await expect(page.getByRole("button", { name: "7 діб" })).toHaveAttribute("aria-pressed", "true");
+    }
+    expect(acquisitionServiceCounters(await readAcquisitionMetrics())).toEqual(
+      acquisitionServiceCounters(before),
+    );
+    expect(mutations).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});

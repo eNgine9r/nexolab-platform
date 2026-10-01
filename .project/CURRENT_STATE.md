@@ -2,9 +2,13 @@
 
 Updated: 2026-10-01
 
-## Issue #1204 — UX-11 Overview visibility dialog candidate
+## Issue #1206 — UX-29 energy meter selection candidate
 
-The Overview visibility picker now uses a native modal dialog. Initial focus and background inertness belong to the browser; explicit boundary wrapping keeps Tab/Shift+Tab inside rather than entering browser chrome; Escape discards pending selection and closing restores the opener while the element is still connected. Reopening reconstructs the current applied selection. Existing display-only callbacks remain unchanged. The initial CI run passed 23/24 browser tests but exposed the boundary Tab escape; new populated/empty/error boundary regressions reproduce it before the fix. Local Dashboard regression checks and isolated authenticated browser scenarios at 320/390/1280 px cover cancellation, application and keyboard focus; final CI acceptance is pending. No dependency, production deployment or hardware/acquisition write.
+The final selected meter now has a disabled removal action with a visible, associated explanation of the existing nonempty comparison policy. Each card offers a keyboard-operable Only this meter action, including previously unselected meters. The display-only selection preserves readings, consumption panels, selected metric/range and acquisition semantics. Local 90-test energy regressions passed. Initial isolated browser evidence verified 320/390 px but found overflow in five narrow cards at 1280 px. The grid now uses three columns at xl and five at 2xl, with all-card checks expanded through 1536/1920 px. The corrected layout candidate passed both CI workflows and three browser scenarios. P2 review then found stale legend Hide/Solo overrides; an integration regression reproduced a blank chart after Only this. Explicit visibility intent clears overrides even for repeat selection and preserves viewport. Final review correction browser CI is pending; UX-29 remains open until GREEN CI.
+
+## Issue #1204 — UX-11 Overview visibility dialog completed
+
+PR #1205 merged after final head `f7049a2d3cea526324ce00329996673d6358f2c8` passed both routed workflows: Authenticated Dashboard `36852391774` and Core CI / Merge Gate `36852391661`. All 24 isolated browser scenarios passed, including initial focus, forward/reverse Tab, background focus rejection, Escape cancellation, Apply, opener restoration and responsive 320/390/1280 px. No review threads. Local checks: 68 Dashboard tests, typecheck, lint/format, production build and state tests. The initial 23/24 browser run exposed a native boundary Tab escape; three populated/empty/error regressions reproduced it before explicit first/last wrapping fixed it. Native modal inertness and focus restoration remain in place. UX-11 is closed in code; installed #1191 acceptance remains unverified. Current audit register: 14 closed in code, 1 partial, 24 open. Next active package is #1206 UX-29. No dependency, production or hardware/acquisition write.
 
 ## Issue #1202 — UX-15 mobile Live inventory completed
 

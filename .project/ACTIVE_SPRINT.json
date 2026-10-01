@@ -41,14 +41,14 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1204,
-      "title": "UX-11 Overview visibility dialog keyboard focus",
-      "branch": "fix/1204-overview-dialog-focus"
-    },
-    "next_work_package": {
       "issue": 1206,
       "title": "UX-29 energy meter comparison controls",
       "branch": "fix/1206-energy-meter-selection"
+    },
+    "next_work_package": {
+      "issue": 1208,
+      "title": "UX-08/09 grouped navigation and planned Lockers",
+      "branch": "fix/1208-grouped-navigation"
     }
   },
   "work_packages": [
@@ -5852,16 +5852,33 @@
       "issue": 1204,
       "title": "UX-11 Overview visibility dialog keyboard focus",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/1204-overview-dialog-focus",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "f7049a2d3cea526324ce00329996673d6358f2c8",
+        "pull_request": 1205,
+        "checks": {
+          "dashboard_browser": "success_36852391774",
+          "core_ci": "success_36852391661",
+          "dashboard_tests": "68_pass",
+          "type_lint_build": "pass"
+        }
+      }
     },
     {
       "issue": 1206,
       "title": "UX-29 energy meter comparison controls",
       "priority": "medium",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "branch": "fix/1206-energy-meter-selection",
+      "evidence": {}
+    },
+    {
+      "issue": 1208,
+      "title": "UX-08/09 grouped navigation and planned Lockers",
+      "priority": "medium",
+      "lifecycle": "ready",
+      "branch": "fix/1208-grouped-navigation",
       "evidence": {}
     }
   ],
