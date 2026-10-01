@@ -487,6 +487,54 @@ test("renders the read-only Embraco digital twin without fabricating temperature
   );
   await expect(page.getByTestId("refrigeration-controller-detail")).toBeVisible();
 
+  const otherEquipment = await createEquipmentViaApi(page.request, chamber, {
+    code: "ACCEPTANCE-TAB-1222",
+    name: "Independent tab acceptance",
+    serialNumber: "NX-TAB-1222",
+    totalSensors: 4,
+  });
+  const navigationMutations: string[] = [];
+  const pageErrors: string[] = [];
+  page.on("request", (request) => {
+    if (
+      new URL(request.url()).pathname.startsWith("/api/") &&
+      !["GET", "HEAD", "OPTIONS"].includes(request.method())
+    ) {
+      navigationMutations.push(`${request.method()} ${new URL(request.url()).pathname}`);
+    }
+  });
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+
+  await page.goto(absoluteRoute(`/refrigeration/${otherEquipment.id}`), { waitUntil: "networkidle" });
+  await expect(page.getByRole("button", { name: "Огляд", exact: true })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await page.getByRole("button", { name: "Контур", exact: true }).click();
+  await page.goto(absoluteRoute(`/refrigeration/${equipment.id}`), { waitUntil: "networkidle" });
+  await expect(page.getByRole("button", { name: "Контролер", exact: true })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    const overviewTab = page.getByRole("button", { name: "Огляд", exact: true });
+    await overviewTab.focus();
+    await page.keyboard.press("Enter");
+    await expect(overviewTab).toHaveAttribute("aria-current", "page");
+    await page.getByRole("button", { name: "Контролер", exact: true }).click();
+  }
+  await page.goto(absoluteRoute(`/refrigeration/${otherEquipment.id}`), { waitUntil: "networkidle" });
+  await expect(page.getByRole("button", { name: "Контур", exact: true })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await page.goto(absoluteRoute(`/refrigeration/${equipment.id}`), { waitUntil: "networkidle" });
+  await expect(page.getByRole("button", { name: "Контролер", exact: true })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+
   await page.getByRole("button", { name: "Схема", exact: true }).click();
   await expect(editor(page).getByText("Чернетка v1", { exact: true })).toBeVisible();
 
@@ -494,6 +542,36 @@ test("renders the read-only Embraco digital twin without fabricating temperature
     path: path.join(evidenceDirectory, "issue-729-embraco-digital-twin.png"),
     fullPage: true,
   });
+
+  await page.addInitScript(() => {
+    const originalRead = Storage.prototype.getItem;
+    const originalWrite = Storage.prototype.setItem;
+    Storage.prototype.getItem = function (key) {
+      if (key.startsWith("nexolab:refrigeration-detail-tab")) {
+        throw new DOMException("blocked", "SecurityError");
+      }
+      return originalRead.call(this, key);
+    };
+    Storage.prototype.setItem = function (key, value) {
+      if (key.startsWith("nexolab:refrigeration-detail-tab")) {
+        throw new DOMException("blocked", "QuotaExceededError");
+      }
+      return originalWrite.call(this, key, value);
+    };
+  });
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(page.getByRole("button", { name: "Огляд", exact: true })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await page.getByRole("button", { name: "Графіки", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Графіки", exact: true })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await expect(page.getByTestId("refrigeration-controller-history")).toBeVisible();
+  expect(navigationMutations).toEqual([]);
+  expect(pageErrors).toEqual([]);
 });
 
 test("stages multiple chamber sensors and persists them in one atomic transaction", async ({

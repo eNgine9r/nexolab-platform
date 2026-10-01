@@ -41,9 +41,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1220,
-      "title": "UX-12 empty Overview cameras and compact Settings access",
-      "branch": "fix/1220-empty-overview-cameras"
+      "issue": 1222,
+      "title": "UX-18 equipment-scoped refrigeration tabs and safe storage fallback",
+      "branch": "fix/1222-equipment-scoped-tabs"
     },
     "next_work_package": null
   },
@@ -6003,6 +6003,21 @@
       "issue": 1220,
       "title": "UX-12 empty Overview cameras and compact Settings access",
       "branch": "fix/1220-empty-overview-cameras",
+      "priority": "medium",
+      "lifecycle": "completed",
+      "evidence": {
+        "verified_head_sha": "e61c4c3c6d4cac940e8e90f5d3ccb9dd4fce9c35",
+        "pull_request": 1221,
+        "checks": {
+          "Authenticated Dashboard Acceptance": "success:36897735849",
+          "CI": "success:36897735828"
+        }
+      }
+    },
+    {
+      "issue": 1222,
+      "title": "UX-18 equipment-scoped refrigeration tabs and safe storage fallback",
+      "branch": "fix/1222-equipment-scoped-tabs",
       "priority": "medium",
       "lifecycle": "in_progress",
       "evidence": {}

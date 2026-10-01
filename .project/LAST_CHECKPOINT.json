@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T16:55:52.173Z",
+  "timestamp": "2026-10-01T17:26:40.726Z",
   "actor": "Codex",
-  "event": "ux1218_merged_ux1220_empty_cameras_candidate",
+  "event": "ux1222_scoped_tab_source_candidate",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1220,
-    "title": "UX-12 empty Overview cameras and compact Settings access",
-    "branch": "fix/1220-empty-overview-cameras"
+    "issue": 1222,
+    "title": "UX-18 equipment-scoped refrigeration tabs and safe storage fallback",
+    "branch": "fix/1222-equipment-scoped-tabs"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -694,11 +694,37 @@
       "issue": 1220,
       "title": "UX-12 empty Overview cameras and compact Settings access",
       "branch": "fix/1220-empty-overview-cameras",
-      "phase": "candidate",
+      "phase": "completed",
       "local_execution": "unavailable_environment_offline",
+      "exact_head_ci": "2_of_2_green",
+      "browser_acceptance": "34_passed",
+      "review": "0_unresolved_threads",
+      "verified_head_sha": "e61c4c3c6d4cac940e8e90f5d3ccb9dd4fce9c35",
+      "pull_request": 1221,
+      "frontend_tests": "951_passed"
+    },
+    "issue_1222_ux18": {
+      "issue": 1222,
+      "title": "UX-18 equipment-scoped refrigeration tabs and safe storage fallback",
+      "branch": "fix/1222-equipment-scoped-tabs",
+      "phase": "source_candidate",
+      "local_execution": "restored",
       "exact_head_ci": "pending",
       "browser_acceptance": "pending",
-      "review": "pending"
+      "review": "pending",
+      "regression_baseline": {
+        "head_sha": "ac561802bc61fa5dcce9cbcbd0afcc0cf4bae85c",
+        "run": 36898795544,
+        "tests": "2_expected_failures_951_passed"
+      },
+      "local_checks": {
+        "focused_tests": "12_passed",
+        "typecheck": "passed",
+        "lint": "passed",
+        "format": "passed",
+        "canonical_state": "passed",
+        "diff_integrity": "passed"
+      }
     }
   },
   "observations": [
@@ -1141,9 +1167,24 @@
         "failure": "old_camera_test_expected_removed_overview_empty_panel",
         "follow_up": "verify_empty_overview_and_compact_settings_keyboard_navigation_390_1440"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T17:21:29.778Z",
+      "kind": "issue_1220_pr_1221_merged",
+      "data": {
+        "issue": 1220,
+        "pull_request": 1221,
+        "verified_head_sha": "e61c4c3c6d4cac940e8e90f5d3ccb9dd4fce9c35",
+        "merge_sha": "914c0187fe807bc658ec8aab5731ebacd84a1003",
+        "exact_head_workflows": "2_of_2_green",
+        "frontend_tests": 951,
+        "browser_scenarios": 34,
+        "unresolved_review_threads": 0
+      }
     }
   ],
-  "next_action": "Verify #1220 empty/nonempty Overview camera layout and compact Settings access in exact-head CI/browser/review; merge only GREEN, then qualify the next independent audit finding. Installed #1191 remains access-gated.",
+  "next_action": "Verify #1222 scoped preferences, fallback, screen and browser journeys locally and in all exact-head workflows, resolve review and merge only GREEN. Then qualify the direct schema-editing UX-19 package; installed #1191 remains separately access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -2,9 +2,13 @@
 
 Updated: 2026-10-01
 
-## Issue #1220 — UX-12 empty cameras candidate
+## Issue #1222 — UX-18 scoped refrigeration tabs source candidate
 
-Overview omits the camera panel for empty or rejected-only inventory, leaving sessions and equipment schemes with equal available desktop width. Configured cameras retain their existing cards, truthful states and all-cameras action. General Settings provides a compact camera status link to the existing authenticated workspace. Component coverage exercises empty/rejected-only, configured offline/invalid records and the Settings destination. Existing browser journeys check the empty Overview and narrow keyboard-accessible Settings link. Exact-head format/lint/type/test/build/browser and review are pending; local execution remains offline. No camera parser/media, authorization, acquisition, dependencies or installed deployment change.
+Regression baseline `ac561802bc61fa5dcce9cbcbd0afcc0cf4bae85c` / Core CI 36898795544 reproduced exactly two failures (unscoped legacy preference and cross-object leakage); 951 other tests passed. Source now stores valid tabs by organization/equipment, ignores ambiguous legacy global preference and restores without initial writes. Scope changes default immediately to Overview until that object's preference is read, preventing another object's Graphs tab from enabling its history. Browser storage failures retain usable in-memory navigation. Five focused hook cases cover organization/object boundaries, restore/no-write, invalid/legacy values, blocked reads/writes and unknown organization; two screen regressions prove integration. The existing Embraco browser journey gains two-object return, 390/1280 px keyboard and blocked-storage coverage without navigation mutations. Local execution is restored in an isolated worktree. All 12 focused hook/screen tests, typecheck, lint, changed-source formatting, canonical state and diff integrity passed. Browser and final exact-head CI/review are pending. No API, permissions, acquisition, dependency or deployment change.
+
+## Issue #1220 — completed
+
+PR #1221 final head `e61c4c3c6d4cac940e8e90f5d3ccb9dd4fce9c35` passed Core CI 36897735828 and Dashboard 36897735849, canonical state/format/lint/typecheck, 951 tests in 169 files, production build and all 34 browser scenarios. Zero review threads/change requests. Squash merge `914c0187fe807bc658ec8aab5731ebacd84a1003`. Empty and rejected-only cameras no longer occupy Overview; sessions and schemes share that space. Configured camera cards/states/all-cameras action remain. General Settings keyboard link reaches truthful Cameras at 390/1440 px. Initial legacy empty-panel browser assertion was updated; final exact-head run passed. Audit: 23 closed, 1 partial, 15 open. Installed #1191 remains access-gated.
 
 ## Issue #1218 — UX-16 monitoring guidance completed
 
