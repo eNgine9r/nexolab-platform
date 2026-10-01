@@ -5802,7 +5802,13 @@
           "cross_route_ci_matrix": "9_of_9_green",
           "rejected_creation_tests": "114_pass",
           "rejected_creation_type_lint_format_build": "pass",
-          "uncertain_creation_replay": "pass"
+          "uncertain_creation_replay": "pass",
+          "rejected_creation_ci_head": "8d88be2f2db2d399ca22dc0f705fb1b8018b5f12",
+          "rejected_creation_ci_matrix": "9_of_9_green",
+          "durable_refresh_tests": "127_pass",
+          "durable_refresh_type_lint_format_build": "pass",
+          "persistence_failure_guards": "3_pass",
+          "delayed_refresh_scope": "3_pass"
         },
         "pull_request": 1201
       }
