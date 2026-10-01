@@ -106,6 +106,7 @@ export function SessionWizard() {
   );
   const operation = useRef<WizardOperation>(
     restored?.operation ?? {
+      bindingSnapshot: null,
       sessionId: null as string | null,
       selectionKeys: null as string[] | null,
       createKey: createIdempotencyKey("session-create"),
@@ -196,9 +197,10 @@ export function SessionWizard() {
     try {
       const sessionClient = createSessionApiClient({ organizationId: configuredOrganizationId });
       if (
-        selectionStatus !== "ready" ||
-        selectedBindings.length === 0 ||
-        selectedBindings.length !== selectedKeyCount
+        !operation.current.bindingSnapshot &&
+        (selectionStatus !== "ready" ||
+          selectedBindings.length === 0 ||
+          selectedBindings.length !== selectedKeyCount)
       ) {
         throw new Error(
           "Telemetry selection застарів або не відповідає валідованому session contract. Оновіть вибір.",
@@ -215,13 +217,16 @@ export function SessionWizard() {
         operation.current.selectionKeys = [...form.selectedTelemetryKeys];
       }
 
-      const frozenBindings = resolveSelectedSessionBindings(selectionModel, operation.current.selectionKeys);
+      const frozenBindings =
+        operation.current.bindingSnapshot ??
+        resolveSelectedSessionBindings(selectionModel, operation.current.selectionKeys);
       if (frozenBindings.length !== operation.current.selectionKeys.length) {
         throw new Error(
           "Збережений telemetry selection більше не доступний у поточному локальному inventory.",
         );
       }
 
+      operation.current.bindingSnapshot ??= structuredClone(frozenBindings);
       operation.current.formSnapshot ??= structuredClone(form);
       const submittedForm = operation.current.formSnapshot;
       setFormFrozen(true);

@@ -1,3 +1,5 @@
+"use client";
+import { useAccountOperationPending } from "@/features/security/account-operations";
 import Link from "next/link";
 import { Bell, LogOut, Menu, Plus } from "lucide-react";
 
@@ -27,9 +29,16 @@ export function Topbar({
   selectedMembership = null,
   onOrganizationChange,
   onSignOut,
-  accountActionsDisabled = false,
-  accountActionNotice,
+  accountActionsDisabled: suppliedAccountActionsDisabled = false,
+  accountActionNotice: suppliedAccountActionNotice,
 }: TopbarProps) {
+  const pendingOperation = useAccountOperationPending();
+  const accountActionsDisabled = suppliedAccountActionsDisabled || pendingOperation;
+  const accountActionNotice =
+    suppliedAccountActionNotice ??
+    (pendingOperation
+      ? "Операція з випробуванням триває. Зміна організації та вихід будуть доступні після завершення."
+      : undefined);
   const createClasses =
     "inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-3.5 text-[11px] font-semibold text-white transition hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300";
   const createContent = (

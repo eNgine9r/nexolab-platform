@@ -10,6 +10,7 @@ const mock = vi.hoisted(() => ({
   begin: vi.fn(),
   release: vi.fn(),
   persistent: false,
+  inventoryAvailable: true,
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push }) }));
 vi.mock("@/components/dashboard/platform-account-boundary", () => ({
@@ -26,15 +27,18 @@ vi.mock("@/hooks/use-live-dashboard-inventory", () => ({
 }));
 vi.mock("@/features/test-sessions/telemetry-selection", () => ({
   buildSessionTelemetrySelectionModel: () => ({}),
-  resolveSelectedSessionBindings: () => [
-    {
-      node_id: "edge-01",
-      equipment_id: "K106",
-      channel_id: "106-03",
-      metric: "temperature.probe",
-      unit: "degC",
-    },
-  ],
+  resolveSelectedSessionBindings: () =>
+    mock.inventoryAvailable
+      ? [
+          {
+            node_id: "edge-01",
+            equipment_id: "K106",
+            channel_id: "106-03",
+            metric: "temperature.probe",
+            unit: "degC",
+          },
+        ]
+      : [],
 }));
 vi.mock("./wizard-steps", () => ({
   GeneralStep: () => null,
@@ -70,6 +74,7 @@ vi.mock("@/lib/sessions/api-client", async (original) => ({
 beforeEach(() => {
   localStorage.clear();
   mock.persistent = false;
+  mock.inventoryAvailable = true;
   mock.push.mockClear();
   mock.begin.mockReset().mockReturnValue(mock.release);
   mock.release.mockReset();
@@ -135,6 +140,7 @@ it.each(["create", "binding", "limits"] as const)(
     const originalCreatePayload = mock.create.mock.calls[0]![0];
     first.unmount();
     await act(async () => finish({ session: { id: "old-org-draft" } }));
+    mock.inventoryAvailable = false;
     const second = render(<SessionWizard />);
     expect(screen.getByText(/Відновлено незавершену форму/)).toBeVisible();
     await waitFor(() =>

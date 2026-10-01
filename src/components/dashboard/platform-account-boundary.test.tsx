@@ -1,5 +1,6 @@
+import { beginAccountOperation } from "@/features/security/account-operations";
 import { useRef, useState, type ReactNode } from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DashboardSecurityModel } from "@/hooks/use-dashboard-security";
 import { usePlatformAccount } from "./platform-account-boundary";
@@ -230,4 +231,22 @@ it("keeps account controls locked until every independent operation has finished
   expect(logout).toBeDisabled();
   fireEvent.click(finish);
   expect(logout).toBeEnabled();
+});
+
+it("keeps a pending mutation locked after Sessions is replaced by the Lockers route", () => {
+  const view = render(<Shell kind="sessions" />);
+  let release!: () => void;
+  act(() => {
+    release = beginAccountOperation();
+  });
+  try {
+    view.rerender(<Shell kind="lockers" />);
+    expect(screen.getByRole("combobox", { name: "Організація" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Вийти з NEXOLAB" })).toBeDisabled();
+    fireEvent.change(screen.getByRole("combobox", { name: "Організація" }), { target: { value: "org-b" } });
+    expect(mock.security!.selectOrganization).not.toHaveBeenCalled();
+  } finally {
+    act(() => release());
+  }
+  expect(screen.getByRole("combobox", { name: "Організація" })).toBeEnabled();
 });

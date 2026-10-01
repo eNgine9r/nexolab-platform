@@ -1,7 +1,12 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import {
+  beginAccountOperation,
+  isAccountOperationPending,
+  useAccountOperationPending,
+} from "@/features/security/account-operations";
 import { SecurityGate } from "./security-gate";
 import { Topbar } from "./topbar";
 import { hasPermission } from "@/features/security/security-session";
@@ -31,19 +36,7 @@ export function PlatformAccountBoundary({
   const pathname = usePathname();
   const applyOrganization = security.selectOrganization;
   const [pendingOrganization, setPendingOrganization] = useState<string | null>(null);
-  const operationPendingRef = useRef(0);
-  const [operationPending, setOperationPendingState] = useState(false);
-  const beginOperation = useCallback(() => {
-    operationPendingRef.current += 1;
-    setOperationPendingState(true);
-    let released = false;
-    return () => {
-      if (released) return;
-      released = true;
-      operationPendingRef.current -= 1;
-      setOperationPendingState(operationPendingRef.current > 0);
-    };
-  }, []);
+  const operationPending = useAccountOperationPending();
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const switchingOrganization = Boolean(
@@ -58,7 +51,7 @@ export function PlatformAccountBoundary({
   }, [applyOrganization, organizationHome, pathname, pendingOrganization, switchingOrganization]);
 
   const selectOrganization = (organizationId: string) => {
-    if (operationPendingRef.current) return;
+    if (isAccountOperationPending()) return;
     if (
       organizationId === security.membership?.organizationId ||
       !security.session?.memberships.some((item) => item.organizationId === organizationId)
@@ -72,7 +65,7 @@ export function PlatformAccountBoundary({
     }
   };
   const signOut = () => {
-    if (operationPendingRef.current) return;
+    if (isAccountOperationPending()) return;
     setSigningOut(true);
     setSignOutError(null);
     void security
@@ -129,7 +122,13 @@ export function PlatformAccountBoundary({
   return (
     <PlatformAccountContext.Provider
       key={scope}
-      value={{ security, selectOrganization, signOut, operationPending, beginOperation }}
+      value={{
+        security,
+        selectOrganization,
+        signOut,
+        operationPending,
+        beginOperation: beginAccountOperation,
+      }}
     >
       {children}
     </PlatformAccountContext.Provider>

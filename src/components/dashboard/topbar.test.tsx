@@ -1,5 +1,6 @@
+import { beginAccountOperation } from "@/features/security/account-operations";
 import type { ReactNode } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { SecuritySession } from "@/features/security/security-session";
 import { Topbar } from "./topbar";
@@ -84,4 +85,28 @@ describe("Topbar operator actions", () => {
     expect(screen.queryByRole("button", { name: "Нова сесія" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Нова сесія" })).not.toBeInTheDocument();
   });
+});
+
+it("observes a pending operation from another route without a local account boundary", () => {
+  let release!: () => void;
+  act(() => {
+    release = beginAccountOperation();
+  });
+  try {
+    render(
+      <Topbar
+        title="Огляд"
+        onMenuOpen={vi.fn()}
+        securitySession={session}
+        selectedMembership={session.memberships[0]}
+        onOrganizationChange={vi.fn()}
+        onSignOut={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("combobox", { name: "Організація" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Вийти з NEXOLAB" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("Операція з випробуванням триває");
+  } finally {
+    act(() => release());
+  }
 });

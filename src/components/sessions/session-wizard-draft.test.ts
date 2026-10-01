@@ -14,6 +14,7 @@ function draft(): WizardDraft {
     form,
     step: 3,
     operation: {
+      bindingSnapshot: null,
       sessionId: null,
       selectionKeys: null,
       createKey: "create-1",

@@ -1,6 +1,8 @@
+import type { SessionBindingOption } from "@/lib/sessions/types";
 import { createInitialWizardForm, STAGE_TYPES, type SessionWizardForm } from "./wizard-model";
 
 export type WizardOperation = {
+  bindingSnapshot: SessionBindingOption[] | null;
   sessionId: string | null;
   selectionKeys: string[] | null;
   createKey: string;
@@ -58,6 +60,18 @@ export function readWizardDraft(key: string | null): WizardDraft | null {
         (Array.isArray(op.selectionKeys) && op.selectionKeys.every((x: unknown) => typeof x === "string"))
       ) ||
       !(op.formSnapshot === null || validForm(op.formSnapshot)) ||
+      !(
+        op.bindingSnapshot == null ||
+        (Array.isArray(op.bindingSnapshot) &&
+          op.bindingSnapshot.length > 0 &&
+          op.bindingSnapshot.every(
+            (binding: Record<string, unknown>) =>
+              binding &&
+              ["node_id", "equipment_id", "channel_id", "metric", "unit"].every(
+                (key) => typeof binding[key] === "string",
+              ),
+          ))
+      ) ||
       !Array.isArray(op.bindingKeys) ||
       !op.bindingKeys.every(
         (x: unknown) => Array.isArray(x) && x.length === 2 && x.every((v) => typeof v === "string"),
@@ -67,7 +81,7 @@ export function readWizardDraft(key: string | null): WizardDraft | null {
     return {
       form: op.formSnapshot ?? data.form,
       step: op.formSnapshot ? 7 : data.step,
-      operation: { ...op, bindingKeys: new Map(op.bindingKeys) },
+      operation: { ...op, bindingSnapshot: op.bindingSnapshot ?? null, bindingKeys: new Map(op.bindingKeys) },
     };
   } catch {
     return null;
