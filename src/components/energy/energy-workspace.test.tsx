@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { EnergyWorkspace } from "./energy-workspace";
@@ -6,7 +6,18 @@ import { ENERGY_METERS } from "@/features/energy/energy-telemetry";
 import type { EnergyConsumptionLoader } from "@/features/energy/use-energy-consumption";
 import type { EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
 
-function setup() {
+vi.mock("@/components/charts/chart-renderer-host", () => ({
+  ChartRendererHost: ({ scene }: { scene: { series: import("@/features/charts/domain").ChartSeries[] } }) => (
+    <div data-testid="visible-energy-series">
+      {scene.series
+        .filter((series) => series.visible)
+        .map((series) => series.identity.equipmentId)
+        .join(",")}
+    </div>
+  ),
+}));
+
+function setup(overrides: Partial<EnergyTelemetryModel> = {}) {
   const telemetry: EnergyTelemetryModel = {
     mode: "live",
     status: "live",
@@ -26,6 +37,7 @@ function setup() {
     retryHistory: vi.fn(),
     error: null,
     retry: vi.fn(),
+    ...overrides,
   };
   const consumption: EnergyConsumptionLoader = { enabled: false, load: vi.fn() };
   render(<EnergyWorkspace telemetry={telemetry} consumption={consumption} />);
@@ -75,4 +87,32 @@ describe("EnergyWorkspace comparison selection", () => {
     expect(telemetry.retry).not.toHaveBeenCalled();
     expect(consumption.load).not.toHaveBeenCalled();
   });
+});
+
+it("Only this clears stale Solo and Hide overrides, including a repeat selection", async () => {
+  const samples = [ENERGY_METERS[0], ENERGY_METERS.at(-1)!].map((meter) => ({
+    event_id: `voltage-${meter.unitId}`,
+    node_id: "edge-01",
+    equipment_id: meter.equipmentId,
+    channel_id: `${meter.unitId}-voltage`,
+    captured_at: new Date().toISOString(),
+    metric: "electrical.voltage",
+    value: 230,
+    unit: "V",
+    quality: "valid" as const,
+    source: "modbus",
+    alarm: null,
+    raw_value: 230,
+    raw_status: null,
+  }));
+  setup({ historySamples: samples });
+  await waitFor(() => expect(screen.getAllByRole("button", { name: "Hide" })).toHaveLength(2));
+  fireEvent.click(screen.getAllByRole("button", { name: "Solo" })[0]);
+  fireEvent.click(screen.getByRole("button", { name: "Показати лише лічильник SDM120M" }));
+  await waitFor(() => expect(screen.getByTestId("visible-energy-series")).toHaveTextContent("SDM120M-1"));
+  expect(screen.getByRole("button", { name: "Hide" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(screen.getByRole("button", { name: "Hide" }));
+  expect(screen.getByTestId("visible-energy-series")).toBeEmptyDOMElement();
+  fireEvent.click(screen.getByRole("button", { name: "Показати лише лічильник SDM120M" }));
+  await waitFor(() => expect(screen.getByTestId("visible-energy-series")).toHaveTextContent("SDM120M-1"));
 });

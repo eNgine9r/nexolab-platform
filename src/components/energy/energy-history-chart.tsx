@@ -14,9 +14,11 @@ import type { EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
 export function EnergyHistoryChart({
   telemetry,
   selectedUnitIds,
+  visibilityRevision = 0,
 }: {
   telemetry: EnergyTelemetryModel;
   selectedUnitIds: readonly number[];
+  visibilityRevision?: number;
 }) {
   const adapter = useMemo(() => new EChartsRendererAdapter(), []);
   const [inspection, setInspection] = useState<ChartCursorInspection | null>(null);
@@ -72,6 +74,18 @@ export function EnergyHistoryChart({
       disposed = true;
     };
   }, [viewKey]);
+
+  useEffect(() => {
+    let disposed = false;
+    void Promise.resolve().then(() => {
+      if (disposed) return;
+      setHiddenSeriesKeys(new Set());
+      setSoloSeriesKey(null);
+    });
+    return () => {
+      disposed = true;
+    };
+  }, [visibilityRevision]);
 
   const toggleSeries = (seriesKey: string) => {
     setSoloSeriesKey(null);

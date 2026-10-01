@@ -232,9 +232,11 @@ function MeterCard({
 function HistoryPanel({
   telemetry,
   selectedUnitIds,
+  visibilityRevision,
 }: {
   telemetry: EnergyTelemetryModel;
   selectedUnitIds: readonly number[];
+  visibilityRevision: number;
 }) {
   const definition = ENERGY_METRICS.find((metric) => metric.id === telemetry.selectedMetric)!;
   const hasSelectedHistory = telemetry.historySamples.some((sample) => {
@@ -330,7 +332,11 @@ function HistoryPanel({
         </div>
       ) : (
         <div className="mt-5">
-          <EnergyHistoryChart telemetry={telemetry} selectedUnitIds={selectedUnitIds} />
+          <EnergyHistoryChart
+            telemetry={telemetry}
+            selectedUnitIds={selectedUnitIds}
+            visibilityRevision={visibilityRevision}
+          />
         </div>
       )}
     </section>
@@ -347,6 +353,8 @@ export function EnergyWorkspace({
   const [selectedUnitIds, setSelectedUnitIds] = useState<number[]>(
     ENERGY_METERS.map((meter) => meter.unitId),
   );
+
+  const [visibilityRevision, setVisibilityRevision] = useState(0);
 
   const toggleMeter = (unitId: number) => {
     setSelectedUnitIds((current) => {
@@ -411,7 +419,10 @@ export function EnergyWorkspace({
             cadenceAuthority={telemetry.cadenceAuthority}
             consumption={consumption}
             onToggle={() => toggleMeter(meter.unitId)}
-            onSelectOnly={() => setSelectedUnitIds([meter.unitId])}
+            onSelectOnly={() => {
+              setSelectedUnitIds([meter.unitId]);
+              setVisibilityRevision((current) => current + 1);
+            }}
           />
         ))}
       </section>
@@ -465,7 +476,11 @@ export function EnergyWorkspace({
         </article>
       </section>
 
-      <HistoryPanel telemetry={telemetry} selectedUnitIds={selectedUnitIds} />
+      <HistoryPanel
+        telemetry={telemetry}
+        selectedUnitIds={selectedUnitIds}
+        visibilityRevision={visibilityRevision}
+      />
 
       <section className="grid gap-3 xl:grid-cols-[1fr_360px]">
         <div className="overflow-hidden rounded-2xl border border-white/[0.065] bg-[#091d39]/80">

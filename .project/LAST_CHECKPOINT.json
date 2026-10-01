@@ -560,6 +560,17 @@
       "root_cause": "five_columns_at_xl_leave_insufficient_width_for_meter_and_consumption_headers",
       "correction": "xl_three_columns_2xl_five_columns",
       "corrected_CI": "pending"
+    },
+    "issue_1206_review": {
+      "head": "19f151e92090ae1b0d1a9335936a592361e6d064",
+      "workflows": "2_of_2_green",
+      "browser_run": 36854037286,
+      "core_ci_run": 36854037283,
+      "review_thread": "PRRT_kwDOTe72wM6n6vPO",
+      "review_problem": "stale_Hide_Solo_overrides_after_Only_this",
+      "regression": "failed_before_fix_visible_SDM_series_empty",
+      "correction": "explicit_visibility_revision_clears_overrides_without_resetting_viewport",
+      "corrected_CI": "pending"
     }
   },
   "observations": [

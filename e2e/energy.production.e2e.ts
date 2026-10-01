@@ -425,12 +425,21 @@ test("energy comparison explains the final meter and supports keyboard-only sele
     await expect(page.getByRole("heading", { name: "Енергомоніторинг" })).toBeVisible();
     await page.getByRole("combobox", { name: "Показник" }).selectOption("electrical.voltage");
     await page.getByRole("button", { name: "7 діб" }).click();
+    const legend = page.getByTestId("energy-history-chart").getByLabel("Chart legend");
+    await expect(legend.getByRole("button", { name: "Solo" }).first()).toBeVisible();
+    await legend.getByRole("button", { name: "Solo" }).first().click();
     const before = await readAcquisitionMetrics();
     for (const width of [320, 390, 1280, 1536, 1920]) {
       await page.setViewportSize({ width, height: 900 });
       const only = page.getByRole("button", { name: "Показати лише лічильник SDM120M" });
       await only.focus();
       await page.keyboard.press("Enter");
+      await expect(legend.getByRole("button", { name: "Hide", exact: true })).toHaveCount(1);
+      await expect(legend.getByRole("button", { name: "Show", exact: true })).toHaveCount(0);
+      await legend.getByRole("button", { name: "Hide", exact: true }).click();
+      await expect(legend.getByRole("button", { name: "Show", exact: true })).toHaveCount(1);
+      await only.click();
+      await expect(legend.getByRole("button", { name: "Hide", exact: true })).toHaveCount(1);
       const finalToggle = page.getByRole("button", { name: "Виключити лічильник SDM120M з порівняння" });
       await expect(finalToggle).toBeDisabled();
       await expect(finalToggle).toHaveAccessibleDescription(/Для порівняння потрібен хоча б один лічильник/);
