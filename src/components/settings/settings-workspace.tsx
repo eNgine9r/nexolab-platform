@@ -479,7 +479,7 @@ function GeneralSection({
             </div>
           </div>
         ) : null}
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="mt-4 max-w-xl">
           <PreferenceSelect
             id="settings-time-display"
             label="Часові позначки"
@@ -494,21 +494,9 @@ function GeneralSection({
               { value: "utc", label: "UTC" },
             ]}
           />
-          <PreferenceSelect
-            id="settings-telemetry-window"
-            label="Стандартне вікно телеметрії"
-            description="Лише початковий presentation window."
-            value={preferences.telemetryWindow}
-            disabled={!preferencesLoaded}
-            onChange={(value) =>
-              onPreferenceChange("telemetryWindow", value as SettingsPreferences["telemetryWindow"])
-            }
-            options={[
-              { value: "1h", label: "1 година" },
-              { value: "6h", label: "6 годин" },
-              { value: "24h", label: "24 години" },
-            ]}
-          />
+          <p className="mt-3 text-xs leading-5 text-slate-500">
+            Період перегляду обирається безпосередньо біля графіка на робочій сторінці.
+          </p>
         </div>
       </div>
     </section>

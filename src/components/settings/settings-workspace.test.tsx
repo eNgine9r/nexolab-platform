@@ -125,6 +125,7 @@ describe("SettingsWorkspace", () => {
     const onPreferenceChange = vi.fn();
     const onPreferencesReset = vi.fn();
     renderWorkspace({
+      preferences: { ...createDefaultSettingsPreferences(), telemetryWindow: "24h" },
       preferencesRecovered: true,
       preferenceRecoveryReason: "Recovered fixture",
       onPreferenceChange,
@@ -133,9 +134,8 @@ describe("SettingsWorkspace", () => {
 
     expect(screen.getByText("Пошкоджені локальні налаштування відновлено")).toBeVisible();
     fireEvent.change(screen.getByLabelText("Часові позначки"), { target: { value: "utc" } });
-    fireEvent.change(screen.getByLabelText("Стандартне вікно телеметрії"), {
-      target: { value: "24h" },
-    });
+    expect(screen.queryByLabelText("Стандартне вікно телеметрії")).not.toBeInTheDocument();
+    expect(screen.getByText(/Період перегляду обирається безпосередньо біля графіка/)).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: /Вигляд/ }));
     fireEvent.change(screen.getByLabelText("Щільність таблиць"), { target: { value: "compact" } });
@@ -145,7 +145,7 @@ describe("SettingsWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Скинути локальні налаштування" }));
 
     expect(onPreferenceChange).toHaveBeenCalledWith("timeDisplay", "utc");
-    expect(onPreferenceChange).toHaveBeenCalledWith("telemetryWindow", "24h");
+    expect(onPreferenceChange.mock.calls.some(([key]) => key === "telemetryWindow")).toBe(false);
     expect(onPreferenceChange).toHaveBeenCalledWith("tableDensity", "compact");
     expect(onPreferenceChange).toHaveBeenCalledWith("motion", "reduced");
     expect(onPreferencesReset).toHaveBeenCalledOnce();

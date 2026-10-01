@@ -217,7 +217,17 @@ test("renders operator-safe Settings without backend mutations or secret exposur
         page.getByText("Пошкоджені локальні налаштування відновлено", { exact: true }),
       ).toBeVisible();
       await page.getByLabel("Часові позначки").selectOption("utc");
-      await page.getByLabel("Стандартне вікно телеметрії").selectOption("24h");
+      await expect(page.getByLabel("Стандартне вікно телеметрії")).toHaveCount(0);
+      await expect
+        .poll(() => page.evaluate((key) => localStorage.getItem(key), preferenceStorageKey))
+        .toContain('"timeDisplay":"utc"');
+      // Retain v1 settings written by older releases, without advertising an inactive control.
+      await page.evaluate((key) => {
+        const stored = JSON.parse(localStorage.getItem(key)!);
+        localStorage.setItem(key, JSON.stringify({ ...stored, telemetryWindow: "24h" }));
+      }, preferenceStorageKey);
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(page.getByLabel("Часові позначки")).toHaveValue("utc");
 
       await openSettingsSection(page, "Вигляд", "appearance");
       await page.getByLabel("Щільність таблиць").selectOption("compact");
@@ -231,7 +241,7 @@ test("renders operator-safe Settings without backend mutations or secret exposur
 
       await page.reload({ waitUntil: "domcontentloaded" });
       await expect(page.getByLabel("Часові позначки")).toHaveValue("utc");
-      await expect(page.getByLabel("Стандартне вікно телеметрії")).toHaveValue("24h");
+      await expect(page.getByLabel("Стандартне вікно телеметрії")).toHaveCount(0);
       await openSettingsSection(page, "Вигляд", "appearance");
       await expect(page.getByLabel("Щільність таблиць")).toHaveValue("compact");
       await expect(page.getByLabel("Анімація")).toHaveValue("reduced");
@@ -241,7 +251,10 @@ test("renders operator-safe Settings without backend mutations or secret exposur
       await openSettingsSection(page, "Загальні", "general");
       await page.getByRole("button", { name: "Скинути локальні налаштування" }).click();
       await expect(page.getByLabel("Часові позначки")).toHaveValue("local");
-      await expect(page.getByLabel("Стандартне вікно телеметрії")).toHaveValue("6h");
+      await expect(page.getByLabel("Стандартне вікно телеметрії")).toHaveCount(0);
+      await expect
+        .poll(() => page.evaluate((key) => localStorage.getItem(key), preferenceStorageKey))
+        .toContain('"telemetryWindow":"6h"');
       await openSettingsSection(page, "Вигляд", "appearance");
       await expect(page.getByLabel("Щільність таблиць")).toHaveValue("comfortable");
       await expect(page.getByLabel("Анімація")).toHaveValue("system");
@@ -258,6 +271,8 @@ test("renders operator-safe Settings without backend mutations or secret exposur
       await page.setViewportSize({ width: 390, height: 844 });
       const compactNavigation = page.getByLabel("Розділ налаштувань");
       await expect(compactNavigation).toBeVisible();
+      await compactNavigation.selectOption("general");
+      await expect(page.getByLabel("Стандартне вікно телеметрії")).toHaveCount(0);
       await compactNavigation.selectOption("data-collection");
       await expect(page.getByRole("region", { name: "Фізичний інтервал опитування" })).toBeVisible();
       await page.setViewportSize({ width: 1440, height: 900 });
