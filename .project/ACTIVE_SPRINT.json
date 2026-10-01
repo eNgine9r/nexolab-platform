@@ -41,14 +41,14 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1208,
-      "title": "UX-08/09 grouped navigation and planned Lockers",
-      "branch": "fix/1208-grouped-navigation"
-    },
-    "next_work_package": {
       "issue": 1210,
       "title": "UX-35 Telegram report retry",
       "branch": "fix/1210-telegram-report-retry"
+    },
+    "next_work_package": {
+      "issue": 1212,
+      "title": "UX-33 remove inactive telemetry-window setting",
+      "branch": "fix/1212-remove-inactive-window"
     }
   },
   "work_packages": [
@@ -5887,16 +5887,51 @@
       "issue": 1208,
       "title": "UX-08/09 grouped navigation and planned Lockers",
       "priority": "medium",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/1208-grouped-navigation",
-      "evidence": {}
+      "evidence": {
+        "verified_head_sha": "ce9faaca9beae9cf778319383298af206756e826",
+        "pull_request": 1209,
+        "checks": {
+          "ci": "success:36856828929",
+          "dashboard": "success:36856829011",
+          "nodes": "success:36856828961",
+          "reports": "success:36856829016",
+          "alerts": "success:36856829043"
+        }
+      }
     },
     {
       "issue": 1210,
       "title": "UX-35 Telegram report retry",
       "priority": "medium",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "branch": "fix/1210-telegram-report-retry",
+      "evidence": {
+        "verified_head_sha": "00b385a7e6ef84393074f4e8f7d27ac7c8a0c6b2",
+        "pull_request": 1211,
+        "checks": {
+          "dashboard": "success:36874965457",
+          "refrigeration": "success:36874965442",
+          "telegram": "success:36874965472",
+          "acquisition": "success:36874965446"
+        }
+      }
+    },
+    {
+      "issue": 1212,
+      "title": "UX-33 remove inactive telemetry-window setting",
+      "priority": "medium",
+      "lifecycle": "ready",
+      "branch": "fix/1212-remove-inactive-window",
+      "evidence": {}
+    },
+    {
+      "issue": 1213,
+      "title": "UX-32 UTC/local operational timestamps and charts",
+      "priority": "high",
+      "lifecycle": "ready",
+      "branch": "fix/1213-operational-timezone",
       "evidence": {}
     }
   ],

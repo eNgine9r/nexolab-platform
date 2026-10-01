@@ -1,7 +1,15 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { Activity, StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("next/script", () => ({ default: () => null }));
+const sdk = vi.hoisted(() => ({ onReady: () => {}, onError: () => {} }));
+vi.mock("next/script", () => ({
+  default: (props: typeof sdk) => {
+    sdk.onReady = props.onReady;
+    sdk.onError = props.onError;
+    return null;
+  },
+}));
 
 import { TelegramMiniAppReport } from "./telegram-miniapp-report";
 
@@ -177,6 +185,7 @@ describe("TelegramMiniAppReport", () => {
 
     expect(await screen.findByText("Доступ не підтверджено")).toBeInTheDocument();
     expect(screen.queryByText("Cool jet")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Повторити завантаження" })).not.toBeInTheDocument();
   });
 
   it("does not contact NEXOLAB when Telegram Main Mini App has no report start parameter", async () => {
@@ -198,5 +207,125 @@ describe("TelegramMiniAppReport", () => {
 
     expect(await screen.findByText("Відкрийте звіт через Telegram")).toBeInTheDocument();
     await waitFor(() => expect(fetchMock).not.toHaveBeenCalled());
+  });
+});
+
+describe("Telegram report recovery", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    installTelegram();
+  });
+  afterEach(() => {
+    delete window.Telegram;
+  });
+
+  it.each(["network", "503", "invalid"])("retries %s with the same signed request", async (failure) => {
+    const request = vi.spyOn(globalThis, "fetch");
+    if (failure === "network") request.mockRejectedValueOnce(new Error("offline"));
+    else
+      request.mockResolvedValueOnce(Response.json({ report: {} }, { status: failure === "503" ? 503 : 200 }));
+    request.mockResolvedValueOnce(Response.json({ report: snapshot }));
+    render(<TelegramMiniAppReport />);
+    fireEvent.click(await screen.findByRole("button", { name: "Повторити завантаження" }));
+    expect(await screen.findByText("Cool jet")).toBeVisible();
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(request.mock.calls[1][1]?.body).toBe(request.mock.calls[0][1]?.body);
+  });
+
+  it("keeps one pending retry despite repeated clicks and SDK callbacks", async () => {
+    let finish!: (response: Response) => void;
+    const pending = new Promise<Response>((resolve) => {
+      finish = resolve;
+    });
+    const request = vi
+      .spyOn(globalThis, "fetch")
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockReturnValueOnce(pending);
+    render(<TelegramMiniAppReport />);
+    const retry = await screen.findByRole("button", { name: "Повторити завантаження" });
+    act(() => {
+      retry.click();
+      retry.click();
+      sdk.onReady();
+      sdk.onError();
+    });
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(screen.getByText("Перевіряємо доступ")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Повторити завантаження" })).not.toBeInTheDocument();
+    await act(async () => {
+      finish(Response.json({ report: snapshot }));
+    });
+    expect(await screen.findByText("Cool jet")).toBeVisible();
+  });
+
+  it("aborts on unmount and ignores late SDK callbacks and response", async () => {
+    let finish!: (response: Response) => void;
+    const request = vi.spyOn(globalThis, "fetch").mockReturnValueOnce(
+      new Promise<Response>((resolve) => {
+        finish = resolve;
+      }),
+    );
+    const { unmount } = render(<TelegramMiniAppReport />);
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    const signal = request.mock.calls[0][1]?.signal;
+    unmount();
+    expect(signal?.aborted).toBe(true);
+    await act(async () => {
+      sdk.onReady();
+      sdk.onError();
+      finish(Response.json({ report: snapshot }));
+    });
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it("initializes once when StrictMode replays effects", async () => {
+    const request = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(Response.json({ report: snapshot }));
+    render(
+      <StrictMode>
+        <TelegramMiniAppReport />
+      </StrictMode>,
+    );
+    expect(await screen.findByText("Cool jet")).toBeVisible();
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it("resumes an aborted pending load when Activity reveals the retained page", async () => {
+    let finish!: (response: Response) => void;
+    const request = vi
+      .spyOn(globalThis, "fetch")
+      .mockReturnValueOnce(
+        new Promise<Response>((resolve) => {
+          finish = resolve;
+        }),
+      )
+      .mockResolvedValueOnce(Response.json({ report: snapshot }));
+    const { rerender } = render(
+      <Activity mode="visible">
+        <TelegramMiniAppReport />
+      </Activity>,
+    );
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    const signal = request.mock.calls[0][1]?.signal;
+    await act(async () => {
+      rerender(
+        <Activity mode="hidden">
+          <TelegramMiniAppReport />
+        </Activity>,
+      );
+    });
+    expect(signal?.aborted).toBe(true);
+    await act(async () => {
+      rerender(
+        <Activity mode="visible">
+          <TelegramMiniAppReport />
+        </Activity>,
+      );
+    });
+    expect(await screen.findByText("Cool jet")).toBeVisible();
+    expect(request).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      finish(Response.json({ report: {} }));
+    });
+    expect(screen.getByText("Cool jet")).toBeVisible();
   });
 });

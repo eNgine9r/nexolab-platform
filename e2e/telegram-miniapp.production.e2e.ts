@@ -93,3 +93,87 @@ test("Telegram Mini App renders the persisted report without starting the deskto
   expect(observedRequests.some((url) => url.includes("/api/auth/"))).toBe(false);
   expect(observedRequests.some((url) => url.includes("/api/v1/telemetry"))).toBe(false);
 });
+
+for (const width of [320, 390, 1280]) {
+  test(`Telegram report retries the same signed request at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    const bodies: unknown[] = [];
+    const observedRequests: string[] = [];
+    page.on("request", (request) => observedRequests.push(request.url()));
+    await page.addInitScript((initData) => {
+      window.Telegram = { WebApp: { initData } };
+    }, INIT_DATA);
+    await page.route("https://telegram.org/js/**", (route) =>
+      route.fulfill({ status: 200, contentType: "application/javascript", body: "" }),
+    );
+    await page.route("**/api/telegram-miniapp/report", async (route) => {
+      bodies.push(route.request().postDataJSON());
+      await route.fulfill({
+        status: bodies.length === 1 ? 503 : 200,
+        contentType: "application/json",
+        body: JSON.stringify({ report: snapshot }),
+      });
+    });
+    await page.goto("/telegram-miniapp");
+    const initialUrl = page.url();
+    const retry = page.getByRole("button", { name: "Повторити завантаження" });
+    await expect(retry).toBeVisible();
+    expect((await retry.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+    await retry.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("heading", { name: "Cool jet" })).toBeVisible();
+    await expect(retry).toHaveCount(0);
+    expect(bodies).toHaveLength(2);
+    expect(bodies[1]).toEqual(bodies[0]);
+    expect(bodies[0]).toEqual({
+      init_data: INIT_DATA,
+      start_hint: "report_22222222-2222-2222-2222-222222222222",
+    });
+    expect(page.url()).toBe(initialUrl);
+    expect(
+      observedRequests.some((url) => url.includes("/api/auth/") || url.includes("/api/v1/telemetry")),
+    ).toBe(false);
+  });
+}
+
+test("Telegram SDK failure can retry by reloading the same Mini App URL", async ({ page }) => {
+  let sdkRequests = 0;
+  let reportRequests = 0;
+  const observedRequests: string[] = [];
+  page.on("request", (request) => observedRequests.push(request.url()));
+  await page.route("https://telegram.org/js/**", async (route) => {
+    sdkRequests += 1;
+    await route.fulfill({
+      status: sdkRequests === 1 ? 503 : 200,
+      contentType: "application/javascript",
+      body:
+        sdkRequests === 1 ? "" : `window.Telegram = { WebApp: { initData: ${JSON.stringify(INIT_DATA)} } };`,
+    });
+  });
+  await page.route("**/api/telegram-miniapp/report", async (route) => {
+    reportRequests += 1;
+    expect(route.request().postDataJSON()).toEqual({
+      init_data: INIT_DATA,
+      start_hint: "report_22222222-2222-2222-2222-222222222222",
+    });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ report: snapshot }),
+    });
+  });
+  await page.goto("/telegram-miniapp?tgWebAppStartParam=report_22222222-2222-2222-2222-222222222222");
+  const initialUrl = page.url();
+  const retry = page.getByRole("button", { name: "Повторити завантаження" });
+  await expect(retry).toBeVisible();
+  expect(reportRequests).toBe(0);
+  await retry.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { name: "Cool jet" })).toBeVisible();
+  expect(page.url()).toBe(initialUrl);
+  expect(sdkRequests).toBe(2);
+  expect(reportRequests).toBe(1);
+  expect(
+    observedRequests.some((url) => url.includes("/api/auth/") || url.includes("/api/v1/telemetry")),
+  ).toBe(false);
+});

@@ -2,9 +2,13 @@
 
 Updated: 2026-10-01
 
-## Issue #1208 — UX-08/09 grouped navigation candidate
+## Issue #1210 — UX-35 Telegram report retry candidate
 
-The Sidebar now groups existing destinations into Monitoring, Tests and Administration. Lockers has a visible Planned marker and equivalent assistive description. All thirteen canonical links remain, and the existing slash-boundary active-route rule is preserved. Local Dashboard tests and responsive authenticated browser scenarios cover semantic groups, unique routes, keyboard order, scroll reachability and mobile close-on-navigation; initial browser CI passed 25/26 scenarios including the new menu flow, while the navigation-budget setup assumed all route links were initially visible. It now scrolls each canonical link into view and observes automatic prefetch before measurement, retaining all request/socket/latency budgets. Corrected exact-head CI is pending. UX-08/09 remain open pending acceptance.
+Unavailable/invalid report states now offer a keyboard-operable Retry. Existing signed initData and start hint are reused; absent SDK reloads the same Mini App URL. Loading removes Retry, concurrent click/SDK callbacks are guarded, unmount aborts and suppresses late responses. React Activity reproduction proved an aborted pending load remained stuck behind the one-shot guard; cleanup now clears only aborted pending request state, so reactivation resumes loading. The regression failed before the fix and passes afterward. Local component/API tests: 21 passed. Product/routing head `00b385a7e6ef84393074f4e8f7d27ac7c8a0c6b2` passed all 30 Dashboard browser scenarios, including retry at 320/390/1280 px and SDK-error reload (run 36874965457), plus Refrigeration 36874965442, Telegram Gateway 36874965472 and Acquisition Scale 36874965446. These completed checks are anchored in ACTIVE_SPRINT and LAST_CHECKPOINT. Later state-only review corrections retain that product evidence; the final exact-head matrix and merge gate remain pending. Temporary workspace loss required reconstruction from main and Issue #1210; the recovered candidate is verified afresh. The timestamp review is fixed and resolved; the CI-status consistency review is addressed by distinguishing completed product-head evidence from the pending final-head gate. Next Ready packages: #1212 inactive telemetry-window removal, then #1213 UTC/local presentation. No production/hardware write or mandatory offline dependency change.
+
+## Issue #1208 — UX-08/09 grouped navigation completed
+
+PR #1209 final head `ce9faaca9beae9cf778319383298af206756e826` passed all five workflows: Core CI 36856828929, Dashboard 36856829011, Nodes 36856828961, Reports 36856829016 and Alerts 36856829043. All 26 Dashboard browser scenarios passed and no review threads remained. Semantic navigation groups retain all thirteen routes, keyboard order, scroll reachability and mobile close-on-navigation. Lockers is explicitly Planned. UX-08/09 are closed in code. Audit now has 17 closed, 1 partial and 21 open entries. Installed operator acceptance #1191 is still unverified. Next active package is #1210.
 
 ## Issue #1206 — UX-29 energy meter selection completed
 

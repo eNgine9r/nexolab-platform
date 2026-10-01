@@ -68,6 +68,10 @@ OFFLINE_EXTERNAL_DEPENDENCY_PATHS = {
 }
 
 DASHBOARD_FOCUSED_DOMAINS = {
+    "telegram_miniapp": (
+        ("src/app/telegram-miniapp/**", "src/app/api/telegram-miniapp/**", "src/components/telegram/**", "e2e/telegram-miniapp.production.e2e.ts"),
+        "telegram-miniapp.production.e2e.ts",
+    ),
     "settings": (
         ("src/app/settings/**", "src/components/settings/**", "src/features/settings/**", "e2e/settings.production.e2e.ts"),
         "settings.production.e2e.ts",
