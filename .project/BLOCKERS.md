@@ -2,9 +2,9 @@
 
 Updated: 2026-10-01
 
-## Issue #1202 — local browser unavailable, isolated CI evidence pending
+## UX source browser evidence
 
-The local Playwright Chromium download returned an invalid/truncated archive. Source/module/type/lint/build evidence is available; first candidate responsive keyboard/overflow/browser evidence passed run 36849506731, while the final loading-readiness review correction awaits exact-head CI. Do not close UX-15 or represent this as deployed acceptance before browser evidence. This soft blocker does not gate other independently qualified source work. No installed service, credential, acquisition or hardware change was made.
+Issue #1202 / PR #1203 is cleared for repository scope: final head passed Authenticated Dashboard, Acquisition Scale and Core CI. Local Chromium installation is unavailable after an invalid CDN archive; isolated authenticated CI provides actual browser evidence. Issue #1204 initial browser CI found a boundary Tab escape (23/24 passed); explicit first/last wrapping is added and corrected CI acceptance remains pending. Installed operator acceptance remains the separate #1191 access blocker below.
 
 ## Audit #1191 — authenticated deployed all-page evidence pending
 

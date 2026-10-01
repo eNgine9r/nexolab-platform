@@ -526,3 +526,50 @@ test("refrigeration uses verified account context and blocks anonymous equipment
     await context.close();
   }
 });
+
+test("Overview visibility dialog contains keyboard focus and restores its opener", async ({ browser }) => {
+  const context = await authenticatedContext(browser);
+  const page = await context.newPage();
+  const mutations = observeAcquisitionMutations(page);
+  try {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const opener = page.getByRole("button", { name: "Налаштувати датчики на графіку Огляду" });
+    await expect(opener).toBeEnabled();
+    for (const width of [320, 390, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await opener.focus();
+      await page.keyboard.press("Enter");
+      const dialog = page.getByRole("dialog", { name: "Датчики на графіку Огляду" });
+      await expect(dialog).toBeVisible();
+      await expect
+        .poll(() => dialog.evaluate((element) => element.contains(document.activeElement)))
+        .toBe(true);
+      const controls = await dialog
+        .locator(
+          "button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]",
+        )
+        .count();
+      for (const key of ["Tab", "Shift+Tab"]) {
+        for (let index = 0; index < controls + 2; index++) {
+          await page.keyboard.press(key);
+          expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
+        }
+      }
+      // Native modal inertness also prevents programmatic background focus.
+      await opener.evaluate((element) => element.focus());
+      expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
+      expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+      await page.keyboard.press("Escape");
+      await expect(dialog).toHaveCount(0);
+      await expect(opener).toBeFocused();
+      await page.keyboard.press("Enter");
+      await expect(dialog).toBeVisible();
+      await dialog.getByRole("button", { name: "Застосувати відображення" }).click();
+      await expect(dialog).toHaveCount(0);
+      await expect(opener).toBeFocused();
+    }
+    expect(mutations).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});

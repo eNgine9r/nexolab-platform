@@ -41,14 +41,14 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1202,
-      "title": "UX-15 mobile Live inventory",
-      "branch": "fix/1202-live-mobile-inventory"
-    },
-    "next_work_package": {
       "issue": 1204,
       "title": "UX-11 Overview visibility dialog keyboard focus",
       "branch": "fix/1204-overview-dialog-focus"
+    },
+    "next_work_package": {
+      "issue": 1206,
+      "title": "UX-29 energy meter comparison controls",
+      "branch": "fix/1206-energy-meter-selection"
     }
   },
   "work_packages": [
@@ -5829,7 +5829,7 @@
       "issue": 1202,
       "title": "UX-15 mobile Live inventory",
       "priority": "unspecified",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "fix/1202-live-mobile-inventory",
       "evidence": {
         "verified_head_sha": "64ce829b0da84512353f22a7b4e3f15fa4036e35",
@@ -5837,18 +5837,31 @@
         "checks": {
           "first_candidate_dashboard_browser": "success_36849506731_mobile_and_keyboard",
           "first_candidate_acquisition_scale": "success_36849506693",
-          "review_readiness_selector": "corrected_final_CI_pending",
+          "review_readiness_selector": "verified_final_head",
           "local_live_tests": "85_pass",
-          "typecheck_lint_build": "pass"
-        }
+          "typecheck_lint_build": "pass",
+          "final_dashboard_browser": "success_36850134805",
+          "final_acquisition_scale": "success_36850134793",
+          "final_core_ci": "success_36850134867",
+          "review_threads": "resolved"
+        },
+        "final_head_sha": "09d320967ad1c22a7971834a01044281ca0b9a34"
       }
     },
     {
       "issue": 1204,
       "title": "UX-11 Overview visibility dialog keyboard focus",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "branch": "fix/1204-overview-dialog-focus",
+      "evidence": {}
+    },
+    {
+      "issue": 1206,
+      "title": "UX-29 energy meter comparison controls",
+      "priority": "medium",
+      "lifecycle": "ready",
+      "branch": "fix/1206-energy-meter-selection",
       "evidence": {}
     }
   ],

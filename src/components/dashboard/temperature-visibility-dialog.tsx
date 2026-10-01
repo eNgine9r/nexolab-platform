@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Eye, EyeOff, RotateCcw, X } from "lucide-react";
 
 import type { Xjp60dTargetDiagnostic } from "@/hooks/use-xjp60d-sensor-management";
@@ -44,6 +44,15 @@ function TemperatureVisibilityDialogContent({
   onApply,
   onClose,
 }: Props) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    dialog.showModal();
+    // Close while connected so the browser restores the element that opened it.
+    return () => dialog.close();
+  }, []);
+
   const monitored = useMemo(
     () => [...new Set(monitoredChannelIds)].sort(compareChannels),
     [monitoredChannelIds],
@@ -65,9 +74,29 @@ function TemperatureVisibilityDialogContent({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[80] grid place-items-center bg-[#020817]/80 p-3 backdrop-blur-sm"
-      role="dialog"
+    <dialog
+      ref={dialogRef}
+      className="fixed inset-0 z-[80] m-0 h-full max-h-none w-full max-w-none place-items-center border-0 bg-[#020817]/80 p-3 backdrop-blur-sm open:grid"
+      onKeyDown={(event) => {
+        if (event.key !== "Tab") return;
+        const controls = event.currentTarget.querySelectorAll<HTMLElement>(
+          "button:not([disabled]), input:not([disabled])",
+        );
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        // Native modal inertness blocks page focus, but Chrome can Tab into browser chrome.
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
       aria-modal="true"
       aria-labelledby="temperature-visibility-title"
     >
@@ -184,6 +213,6 @@ function TemperatureVisibilityDialogContent({
           </button>
         </footer>
       </section>
-    </div>
+    </dialog>
   );
 }

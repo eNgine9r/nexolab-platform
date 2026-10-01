@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T13:35:00+03:00",
+  "timestamp": "2026-10-01T10:48:03.372096+00:00",
   "actor": "Codex",
-  "event": "ux1202_browser_verified_readiness_review_corrected",
+  "event": "ux1202_merged_ux1204_native_dialog_candidate",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1202,
-    "title": "UX-15 mobile Live inventory",
-    "branch": "fix/1202-live-mobile-inventory"
+    "issue": 1204,
+    "title": "UX-11 Overview visibility dialog keyboard focus",
+    "branch": "fix/1204-overview-dialog-focus"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -529,6 +529,19 @@
       "acquisition_scale": "success_36849506693",
       "review_thread": "PRRT_kwDOTe72wM6n53-Z",
       "pull_request": 1203
+    },
+    "issue_1202_final": {
+      "head": "09d320967ad1c22a7971834a01044281ca0b9a34",
+      "workflows": "3_of_3_green",
+      "browser": "isolated_authenticated_320_360_390_430_1280",
+      "installed_acceptance": "unverified"
+    },
+    "issue_1204_initial_browser": {
+      "head": "411dcba627fb11d2a655b66ceb5af9758e994563",
+      "run": 36851493269,
+      "result": "23_pass_1_boundary_Tab_escape",
+      "correction": "explicit_first_last_boundary_wrapping",
+      "corrected_CI": "pending"
     }
   },
   "observations": [
@@ -822,9 +835,27 @@
         "matrix": "9_of_9_green",
         "review_threads": "12_addressed_publication_pending"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T10:48:03.372096+00:00",
+      "kind": "ux1202_merge",
+      "data": {
+        "issue": 1202,
+        "pull_request": 1203,
+        "final_head": "09d320967ad1c22a7971834a01044281ca0b9a34",
+        "merge_sha": "58530ce1aa54a5f4fa2a60f8c90a60214015e4ed",
+        "workflow_runs": [
+          36850134805,
+          36850134793,
+          36850134867
+        ],
+        "conclusion": "3_of_3_success",
+        "review_threads": "resolved"
+      }
     }
   ],
-  "next_action": "Require final exact-head CI/review for PR #1203; merge only GREEN, then begin Ready #1204 dialog focus. Audit #1191 installed acceptance remains access-gated.",
+  "next_action": "Verify #1204 local and exact-head CI, resolve reviews, merge only GREEN; qualify the next UX audit source package. #1191 deployed acceptance remains access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
