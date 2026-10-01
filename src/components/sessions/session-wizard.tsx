@@ -15,6 +15,7 @@ import {
   createIdempotencyKey,
   createOperatorCommand,
   createSessionApiClient,
+  createSessionCredentialProvider,
 } from "@/lib/sessions/api-client";
 import type { SessionBindingOption } from "@/lib/sessions/types";
 
@@ -52,10 +53,9 @@ function sameSelection(left: readonly string[], right: readonly string[]): boole
 export function SessionWizard() {
   const router = useRouter();
   const account = usePlatformAccount();
+  const verifiedOrganizationId = account?.security.membership?.organizationId;
   const configuredOrganizationId =
-    account?.security.membership?.organizationId ??
-    process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() ??
-    null;
+    verifiedOrganizationId ?? process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() ?? null;
   const hierarchyOrganizationId = configuredOrganizationId ?? "__current_organization__";
   const [step, setStep] = useState(0);
   const selectionEnabled = step >= 3;
@@ -67,10 +67,17 @@ export function SessionWizard() {
   const [bindingOptionsStatus, setBindingOptionsStatus] = useState<SelectionLoadStatus>("loading");
   const [bindingOptionsError, setBindingOptionsError] = useState<Error | null>(null);
   const [bindingOptionsRevision, setBindingOptionsRevision] = useState(0);
+  const inventoryCredentials = useMemo(
+    () => (verifiedOrganizationId ? createSessionCredentialProvider(verifiedOrganizationId) : undefined),
+    [verifiedOrganizationId],
+  );
   const inventory = useLiveDashboardInventory({
     enabled: selectionEnabled,
     organizationId: configuredOrganizationId,
+    credentialProvider: inventoryCredentials,
   });
+  const submission = useRef<AbortController | null>(null);
+  useEffect(() => () => submission.current?.abort(), []);
   const operation = useRef({
     sessionId: null as string | null,
     selectionKeys: null as string[] | null,
@@ -138,6 +145,8 @@ export function SessionWizard() {
   };
 
   const submit = async () => {
+    const controller = new AbortController();
+    submission.current = controller;
     setSubmitting(true);
     setError(null);
     try {
@@ -197,11 +206,13 @@ export function SessionWizard() {
             ...createOperatorCommand("Created from the NEXOLAB 8-step laboratory wizard"),
           },
           operation.current.createKey,
+          controller.signal,
         );
+        if (controller.signal.aborted) return;
         sessionId = created.session.id;
         operation.current.sessionId = sessionId;
         setCreatedSessionId(sessionId);
-        invalidateSessionListReadModels();
+        invalidateSessionListReadModels(configuredOrganizationId);
       }
 
       for (const binding of frozenBindings) {
@@ -226,7 +237,9 @@ export function SessionWizard() {
             },
           },
           idempotencyKey,
+          controller.signal,
         );
+        if (controller.signal.aborted) return;
       }
 
       await sessionClient.addLimitSet(
@@ -256,10 +269,13 @@ export function SessionWizard() {
           ],
         },
         operation.current.limitsKey,
+        controller.signal,
       );
+      if (controller.signal.aborted) return;
 
       router.push(`/sessions/${sessionId}`);
     } catch (nextError) {
+      if (controller.signal.aborted) return;
       if (operation.current.selectionKeys) {
         setForm((current) => ({
           ...current,
@@ -268,7 +284,8 @@ export function SessionWizard() {
       }
       setError(nextError instanceof Error ? nextError : new Error("Не вдалося створити сесію."));
     } finally {
-      setSubmitting(false);
+      if (submission.current === controller) submission.current = null;
+      if (!controller.signal.aborted) setSubmitting(false);
     }
   };
 

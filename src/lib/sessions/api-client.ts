@@ -1,5 +1,9 @@
 import { createRuntimeCredentialProvider as createAccountCredentialProvider } from "@/features/security/auth-runtime";
-import { createAuthenticatedFetch, getSecurityCredentials } from "@/features/security/security-session";
+import {
+  createAuthenticatedFetch,
+  getSecurityCredentials,
+  type SecurityCredentialProvider,
+} from "@/features/security/security-session";
 import { createRuntimeCredentialProvider } from "@/features/security/supabase-auth";
 
 import { getSessionsApiBaseUrl, SessionClientError } from "./runtime-config";
@@ -411,9 +415,11 @@ export class SessionApiClient {
   }
 }
 
-export function createSessionApiClient(options: SessionApiClientOptions = {}): SessionApiClient {
+export function createSessionCredentialProvider(
+  selectedOrganizationId?: string | null,
+): SecurityCredentialProvider {
   const configuredOrganizationId = process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() || null;
-  const organizationId = options.organizationId?.trim();
+  const organizationId = selectedOrganizationId?.trim();
   const runtimeProvider = organizationId
     ? process.env.NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER === "acceptance"
       ? async () => getSecurityCredentials()
@@ -422,6 +428,11 @@ export function createSessionApiClient(options: SessionApiClientOptions = {}): S
   const credentialProvider = organizationId
     ? async () => ({ ...(await runtimeProvider()), organizationId })
     : runtimeProvider;
+  return credentialProvider;
+}
+
+export function createSessionApiClient(options: SessionApiClientOptions = {}): SessionApiClient {
+  const credentialProvider = createSessionCredentialProvider(options.organizationId);
   const baseFetch = options.fetch ?? fetch.bind(globalThis);
   return new SessionApiClient(getSessionsApiBaseUrl(), {
     ...options,

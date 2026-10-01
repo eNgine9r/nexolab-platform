@@ -1,5 +1,8 @@
 import { createRuntimeCredentialProvider } from "@/features/security/auth-runtime";
-import { createAuthenticatedFetch } from "@/features/security/security-session";
+import {
+  createAuthenticatedFetch,
+  type SecurityCredentialProvider,
+} from "@/features/security/security-session";
 import type {
   LiveDashboardInventoryCollection,
   LiveDashboardInventoryItem,
@@ -12,6 +15,7 @@ export type LiveDashboardInventoryFetch = (input: RequestInfo | URL, init?: Requ
 export interface LiveDashboardInventoryClientOptions {
   fetch?: LiveDashboardInventoryFetch;
   timeoutMs?: number;
+  credentialProvider?: SecurityCredentialProvider;
 }
 
 export interface LiveDashboardInventoryQuery {
@@ -259,7 +263,7 @@ export function createLiveDashboardInventoryClient(
     ...options,
     fetch: createAuthenticatedFetch(
       fetchImpl as typeof fetch,
-      createRuntimeCredentialProvider(config.apiBaseUrl, organizationId),
+      options.credentialProvider ?? createRuntimeCredentialProvider(config.apiBaseUrl, organizationId),
     ),
   });
 }

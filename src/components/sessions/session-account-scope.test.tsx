@@ -1,5 +1,5 @@
 import { render, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SessionsListScreen } from "./sessions-list-screen";
 import { SessionWizard } from "./session-wizard";
 import { SessionWorkspace } from "./session-workspace";
@@ -40,7 +40,12 @@ beforeEach(() => {
   mock.inventory.mockClear();
   mock.workspace.mockClear();
   vi.stubEnv("NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID", "configured-org");
+  vi.stubEnv("NEXT_PUBLIC_NEXOLAB_DATA_MODE", "live");
+  vi.stubEnv("NEXT_PUBLIC_NEXOLAB_API_BASE_URL", "https://api.example.test");
+  vi.stubEnv("NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER", "acceptance");
 });
+afterEach(() => vi.unstubAllEnvs());
+
 describe("session domain uses the verified shell organization", () => {
   it("passes it to catalog requests", async () => {
     render(<SessionsListScreen />);
@@ -48,7 +53,11 @@ describe("session domain uses the verified shell organization", () => {
   });
   it("passes it to wizard inventory instead of the configured default", () => {
     render(<SessionWizard />);
-    expect(mock.inventory).toHaveBeenCalledWith({ enabled: false, organizationId: "org-b" });
+    expect(mock.inventory).toHaveBeenCalledWith({
+      enabled: false,
+      organizationId: "org-b",
+      credentialProvider: expect.any(Function),
+    });
   });
   it("passes it to detail reads and mutations", () => {
     render(<SessionWorkspace sessionId="session-a" />);

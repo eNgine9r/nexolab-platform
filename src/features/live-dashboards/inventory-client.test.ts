@@ -1,6 +1,7 @@
+import { getSecurityCredentials, setSecurityCredentials } from "@/features/security/security-session";
 import { describe, expect, it, vi } from "vitest";
 
-import { LiveDashboardInventoryClient } from "./inventory-client";
+import { LiveDashboardInventoryClient, createLiveDashboardInventoryClient } from "./inventory-client";
 
 const noSampleItem = {
   channel_ref_id: "channel-ref-1",
@@ -123,4 +124,35 @@ describe("LiveDashboardInventoryClient", () => {
       message: "Forbidden",
     });
   });
+});
+
+it("uses a verified credential provider instead of reloading an old bootstrap organization", async () => {
+  vi.stubEnv("NEXT_PUBLIC_NEXOLAB_DATA_MODE", "live");
+  vi.stubEnv("NEXT_PUBLIC_NEXOLAB_API_BASE_URL", "https://api.example.test");
+  vi.stubEnv("NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL", "wss://api.example.test/ws");
+  vi.stubEnv("NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER", "acceptance");
+  window.sessionStorage.setItem("nexolab.acceptance.access-token", "old-token");
+  window.sessionStorage.setItem("nexolab.acceptance.organization-id", "old-org");
+  setSecurityCredentials({ accessToken: "verified-token", organizationId: "org-b" });
+  const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    void input;
+    void init;
+    return new Response(JSON.stringify({ items: [], total: 0, limit: 500, offset: 0, has_more: false }), {
+      status: 200,
+    });
+  });
+  try {
+    await createLiveDashboardInventoryClient("org-b", {
+      fetch: fetchImpl,
+      credentialProvider: async () => getSecurityCredentials(),
+    }).list();
+    const headers = new Headers(fetchImpl.mock.calls[0]![1]?.headers);
+    expect(headers.get("X-Organization-ID")).toBe("org-b");
+    expect(headers.get("Authorization")).toBe("Bearer verified-token");
+    expect(getSecurityCredentials().organizationId).toBe("org-b");
+  } finally {
+    window.sessionStorage.clear();
+    vi.unstubAllEnvs();
+    setSecurityCredentials({ accessToken: null, organizationId: null });
+  }
 });
