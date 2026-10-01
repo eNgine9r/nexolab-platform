@@ -902,7 +902,10 @@ test("Live inventory remains readable and keyboard-operable at mobile widths", a
 });
 
 test("legacy Gauge remains unchanged until an explicit supported editor choice", async ({ browser }) => {
-  const fixture = seedChartSystemDashboard();
+  const fixture = seedPersistedDashboard();
+  postgres(
+    `UPDATE live_dashboard_items SET visualization = 'gauge' WHERE dashboard_id = ${sqlString(fixture.dashboardId)};`,
+  );
   const context = await authenticatedContext(browser);
   const page = await context.newPage();
   const requests = observeRequests(page);
@@ -932,7 +935,7 @@ test("legacy Gauge remains unchanged until an explicit supported editor choice",
     expect(requests.acquisitionMutations).toEqual([]);
     expect(
       postgres(
-        `SELECT visualization FROM live_dashboard_items WHERE dashboard_id = ${sqlString(fixture.dashboardId)} AND position = 4;`,
+        `SELECT visualization FROM live_dashboard_items WHERE dashboard_id = ${sqlString(fixture.dashboardId)};`,
       ).trim(),
     ).toBe("gauge");
   } finally {
