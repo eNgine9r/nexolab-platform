@@ -169,9 +169,7 @@ export function LiveScreen() {
             >
               До огляду
             </Link>
-            <LoginReturnLink
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-400"
-            >
+            <LoginReturnLink className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-400">
               <LogIn className="h-4 w-4" aria-hidden="true" />
               Змінити користувача
             </LoginReturnLink>
