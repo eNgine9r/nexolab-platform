@@ -422,7 +422,11 @@ describe("InstrumentationRegistryWorkspace", () => {
     );
     render(
       <InstrumentationRegistryWorkspace
-        repository={repository({ listInstruments: async () => [instrument, other], listSignals, createSignal })}
+        repository={repository({
+          listInstruments: async () => [instrument, other],
+          listSignals,
+          createSignal,
+        })}
         canManage
       />,
     );
