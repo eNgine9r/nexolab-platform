@@ -120,7 +120,7 @@ describe("DashboardEditor supported visualizations", () => {
     ).draft;
     render(<EditorHarness inventory={inventory} initialDraft={draft} onSave={vi.fn()} />);
     const visualization = screen.getByLabelText("Візуалізація");
-    expect(screen.queryByRole("option", { name: "Індикатор", exact: true })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Індикатор" })).not.toBeInTheDocument();
     for (const value of ["line", "area", "value"]) {
       fireEvent.change(visualization, { target: { value } });
       expect(visualization).toHaveValue(value);
@@ -141,13 +141,13 @@ describe("DashboardEditor supported visualizations", () => {
     expect(visualization).toHaveValue("gauge");
     expect(screen.getByRole("option", { name: "Значення (старий індикатор)" })).toBeDisabled();
     fireEvent.change(screen.getByLabelText("Назва"), { target: { value: "Renamed legacy" } });
-    fireEvent.click(screen.getByRole("button", { name: "Зберегти", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Зберегти" }));
     const retained = onSave.mock.calls.at(-1)![0] as LiveDashboardDraft;
     expect(draftToWrite(retained).items[0].visualization).toBe("gauge");
     expect(retained.items[0]).toEqual(draft.items[0]);
     fireEvent.change(visualization, { target: { value: "value" } });
     expect(screen.queryByRole("option", { name: "Значення (старий індикатор)" })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Зберегти", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Зберегти" }));
     const converted = onSave.mock.calls.at(-1)![0] as LiveDashboardDraft;
     expect(converted.items[0]).toEqual({ ...draft.items[0], visualization: "value" });
     expect(draftToWrite(converted).items[0].visualization).toBe("value");
