@@ -331,6 +331,12 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
         }),
       ).toBe(true);
 
+      const contextGrid = page.getByTestId("overview-context-grid");
+      await expect(page.getByRole("heading", { name: "Камери", exact: true })).toHaveCount(0);
+      await expect(page.getByText("Камери не налаштовані", { exact: true })).toHaveCount(0);
+      await expect(contextGrid.getByRole("heading", { name: "Активні лабораторні сесії" })).toBeVisible();
+      await expect(contextGrid.getByRole("heading", { name: "Схеми обладнання" })).toBeVisible();
+
       for (const width of [360, 1440, 1920]) {
         await page.setViewportSize({ width, height: 900 });
         await expect(host).toBeVisible();

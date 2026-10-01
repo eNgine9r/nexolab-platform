@@ -2,9 +2,13 @@
 
 Updated: 2026-10-01
 
-## Issue #1218 — UX-16 monitoring guidance candidate
+## Issue #1220 — UX-12 empty cameras candidate
 
-Live now explains quick comparison (the existing 8-point limit) and saved monitoring (the actual existing 64-point limit), using domain constants. The direct guided action calls the existing workspace transition, preserving comparison/range/search URL context and read permissions. Saved Library states its purpose and existing capacity; no limit or rendering budget is increased. Two component regressions cover context-preserving guided transition and telemetry-only permission gates. Browser coverage extends existing mobile/keyboard inventory acceptance with readable guidance, guided entry/return and preserved selected URL. Type/lint/format/build/unit/browser acceptance and review await exact-head CI; local execution is unavailable. No API/data flow, acquisition, dependency or deployment change.
+Overview omits the camera panel for empty or rejected-only inventory, leaving sessions and equipment schemes with equal available desktop width. Configured cameras retain their existing cards, truthful states and all-cameras action. General Settings provides a compact camera status link to the existing authenticated workspace. Component coverage exercises empty/rejected-only, configured offline/invalid records and the Settings destination. Existing browser journeys check the empty Overview and narrow keyboard-accessible Settings link. Exact-head format/lint/type/test/build/browser and review are pending; local execution remains offline. No camera parser/media, authorization, acquisition, dependencies or installed deployment change.
+
+## Issue #1218 — UX-16 monitoring guidance completed
+
+PR #1219 head `f520b3de0b86c853b38b505d988f337f50485d52` passed all three registered workflows: CI 36894922361, Dashboard 36894922391 and Acquisition Scale 36894922535. Formatting, lint, typecheck, canonical state, 948 frontend tests in 168 files, production build and 10 browser cases passed. No review threads or change requests. Squash merge `9de6eb655ce47f2635ccfab0df36d1a446cf18cf`. Guidance explains actual existing 8/64 capacities, uses domain constants and preserves comparison/range/search through keyboard-accessible navigation and return. Telemetry-only membership does not receive a dashboard action. No limit increase or deployment change. Audit: 22 closed, 1 partial, 16 open. Installed #1191 remains separately access-gated.
 
 ## Issue #1214 — UX-17 legacy Gauge choice completed
 

@@ -1,11 +1,13 @@
 import { ArrowUpRight, Camera, VideoOff } from "lucide-react";
 import Link from "next/link";
 
-import { readCameraInventory } from "@/features/cameras/domain";
+import { readCameraInventory, type CameraInventoryResult } from "@/features/cameras/domain";
 
-export function CamerasPanel() {
-  const inventory = readCameraInventory();
+interface CamerasPanelProps {
+  inventory?: CameraInventoryResult;
+}
 
+export function CamerasPanel({ inventory = readCameraInventory() }: CamerasPanelProps) {
   return (
     <div className="p-3 sm:p-4">
       {inventory.items.length === 0 ? (

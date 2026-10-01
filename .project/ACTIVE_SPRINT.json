@@ -41,9 +41,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1218,
-      "title": "UX-16 quick comparison and saved monitoring guidance",
-      "branch": "fix/1218-monitoring-limit-guidance"
+      "issue": 1220,
+      "title": "UX-12 empty Overview cameras and compact Settings access",
+      "branch": "fix/1220-empty-overview-cameras"
     },
     "next_work_package": null
   },
@@ -5987,8 +5987,24 @@
       "issue": 1218,
       "title": "UX-16 quick comparison and saved monitoring guidance",
       "priority": "medium",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/1218-monitoring-limit-guidance",
+      "evidence": {
+        "verified_head_sha": "f520b3de0b86c853b38b505d988f337f50485d52",
+        "pull_request": 1219,
+        "checks": {
+          "Acquisition Scale Acceptance": "success:36894922535",
+          "Authenticated Dashboard Acceptance": "success:36894922391",
+          "CI": "success:36894922361"
+        }
+      }
+    },
+    {
+      "issue": 1220,
+      "title": "UX-12 empty Overview cameras and compact Settings access",
+      "branch": "fix/1220-empty-overview-cameras",
+      "priority": "medium",
+      "lifecycle": "in_progress",
       "evidence": {}
     }
   ],
