@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T23:06:53.473Z",
+  "timestamp": "2026-10-01T23:25:02.974Z",
   "actor": "Codex",
-  "event": "ux1239_merged_ux1241_nodes_status_first_candidate",
+  "event": "ux1241_merged_ux1243_signal_quantity_candidate",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1241,
-    "title": "UX-31 node operational status before separate provisioning form",
-    "branch": "fix/1241-nodes-status-first"
+    "issue": 1243,
+    "title": "UX-30 physical quantity and compatible unit selector",
+    "branch": "fix/1243-signal-quantity-selector"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -927,12 +927,27 @@
       "installed_acceptance": "access_gated_1191"
     },
     "issue_1241_nodes_status_first": {
-      "qualification": "actual_node_provision_form_preceded_real_operational_inventory_nodes_manage_verified",
-      "implementation": "native_collapsed_details_after_inventory_with_adjacent_feedback_preserves_mounted_form",
+      "verified_head_sha": "15435ded023d8641228c6615f8fce9a8108efe7d",
+      "pull_request": 1242,
+      "exact_head_ci": "3_of_3_green",
+      "core_ci": "success:36939015118",
+      "frontend_tests": "1111_passed_182_files",
+      "production_build": "Next_16_3_6_passed",
+      "nodes_browser": "success:36939015085_390_1280_keyboard_draft_zero_toggle_writes_409_secret_viewport",
+      "restored_browser": "success:36939015087_1_passed",
+      "browser_cases": "2_passed",
+      "review": "1_fixed_resolved_0_unresolved",
+      "source_acceptance": "completed",
+      "local_execution": "not_run_environment_offline",
+      "installed_acceptance": "access_gated_1191"
+    },
+    "issue_1243_signal_quantity": {
+      "qualification": "actual_free_text_SignalFields_and_canonical_metadata_contracts_verified",
+      "known_pairs": "temperature_degC_pressure_bar_kPa_relative_humidity_percent_RH",
+      "implementation": "quantity_unit_choices_unique_untouched_create_key_organization_wide_complete_inventory_custom_value_and_metadata_preservation",
       "local_execution": "not_run_environment_offline",
       "exact_head_ci": "pending",
-      "browser_acceptance": "pending",
-      "review_dependency": "P2_feedback_visibility_adjacent_to_disclosure_with_real_409_and_viewport_assertions"
+      "browser_acceptance": "pending"
     }
   },
   "observations": [
@@ -1638,9 +1653,32 @@
         "merge_sha": "92c1f42d9a6c80f270ca541c1caecb2671126e6e",
         "next_issue": 1241
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T23:25:02.974Z",
+      "kind": "issue_1241_pr_1242_merged_1243_activated",
+      "data": {
+        "verified_head_sha": "15435ded023d8641228c6615f8fce9a8108efe7d",
+        "pull_request": 1242,
+        "exact_head_ci": "3_of_3_green",
+        "core_ci": "success:36939015118",
+        "frontend_tests": "1111_passed_182_files",
+        "production_build": "Next_16_3_6_passed",
+        "nodes_browser": "success:36939015085_390_1280_keyboard_draft_zero_toggle_writes_409_secret_viewport",
+        "restored_browser": "success:36939015087_1_passed",
+        "browser_cases": "2_passed",
+        "review": "1_fixed_resolved_0_unresolved",
+        "source_acceptance": "completed",
+        "local_execution": "not_run_environment_offline",
+        "installed_acceptance": "access_gated_1191",
+        "issue": 1241,
+        "merge_sha": "35734c2e76489087337ea99965aaf59d6914c885",
+        "next_issue": 1243
+      }
     }
   ],
-  "next_action": "Verify #1241 native Nodes disclosure and operational-first inventory with exact-head CI, real 390/1280 px keyboard/draft/no-extra-write/credential/RBAC browser evidence and review GREEN; then merge and continue the next independent Ready UX package. Approved laboratory template evidence and installed #1191 acceptance remain separate dependencies.",
+  "next_action": "Verify #1243 quantity/unit/key selection and exact metadata preservation with all routed exact-head CI, real 390/1280 px registry-to-RFX10 browser evidence and review GREEN; then merge and continue the next independent Ready UX package. Approved laboratory templates, real-phone and installed operator acceptance remain separate evidence boundaries; no hardware/deployment action.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

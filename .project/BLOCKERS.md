@@ -2,9 +2,9 @@
 
 Updated: 2026-10-01
 
-## UX source acceptance — #1241 verification pending
+## UX source acceptance — #1243 verification pending
 
-#1239 / PR #1240 merged after all ten exact-head workflows GREEN, 1111 frontend tests and 60 browser cases; all three review findings are fixed/resolved. UX-36 is closed in code. #1241 operational-first Nodes inventory and separate native provisioning form requires all routed CI/browser/review GREEN before merge. Local exec-server remains unavailable; remote GitData and actual CI/browser verification remain the working route. No local execution is claimed. Installed #1191 remains independently access-gated below.
+#1241 / PR #1242 merged after all three exact-head workflows GREEN, 1111 frontend tests and actual Nodes/restored-browser flows; the viewport-feedback review is fixed/resolved. UX-31 is closed in code. #1243 physical quantity/unit selection and unique key suggestion require all routed exact-head quality/browser/review GREEN before merge. Local exec-server remains unavailable; GitData and actual CI/browser verification remain the working route. No local checks are claimed. Installed #1191, approved laboratory templates and real-phone photo QA remain separate evidence boundaries.
 
 ## UX-22/24 — approved laboratory template evidence unavailable
 

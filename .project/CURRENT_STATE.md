@@ -2,9 +2,13 @@
 
 Updated: 2026-10-01
 
-## Issue #1241 — UX-31 node status first candidate
+## Issue #1243 — UX-30 quantity/unit selector candidate
 
-The real node inventory and operational attention state precede a separate, initially collapsed native disclosure for adding a node. Only verified nodes.manage users receive the control. The existing form stays mounted across close/reopen, preserving its draft/pending state; one-time credentials and errors remain outside the disclosure immediately beside it. Existing API, idempotency, lifecycle, clock truth, polling and permission behavior are unchanged. The actual Nodes browser journey now exercises keyboard entry and draft preservation at 390/1280 px, zero additional node mutations from toggling, retained one-time secret, viewport-visible feedback after a real duplicate-node 409 and successful registration, and existing MQTT/LWT/role/isolation checks. No local execution is claimed; exact-head CI/browser/review are pending. No acquisition, deployment, hardware or Modbus change.
+Signal authoring offers Ukrainian physical-quantity/unit choices for existing verified registry pairs: temperature/degC, pressure/bar or kPa, relative_humidity/%RH. Pressure requires an explicit unit; no physical conversion or scaling is inferred. New untouched keys are suggested uniquely from the complete organization-wide signal inventory; deliberate overrides and existing keys are retained. Missing/loading/mismatched inventory blocks creation rather than guessing across instruments. Existing custom quantity/unit values remain editable through explicit technical input, with exact metadata and versioned updates preserved. Helper/component tests and the real 390/1280 px keyboard registry-to-RFX10 browser flow verify canonical saved fields, zero selection writes and existing downstream binding/approval boundaries. Local executor remains unavailable; actual exact-head checks/review are pending. No backend/RBAC, acquisition, scaling/calibration/acceptance authority, dependency, deployment or hardware change.
+
+## Issue #1241 — UX-31 node status first completed
+
+PR #1242 final head 15435ded023d8641228c6615f8fce9a8108efe7d passed all three exact-head workflows: CI 36939015118 (1111 tests / 182 files, format/lint/typecheck and production build), Nodes 36939015085 and restored Disaster Recovery 36939015087. The real Nodes flow passed 390/1280 px keyboard disclosure, draft retention, no overflow or toggle writes, actual duplicate-node 409 feedback and returned secret fully inside the viewport, plus existing MQTT/LWT, credentials, role and organization isolation. One P2 review fixed/resolved; zero unresolved/change requests. Squash merge 35734c2e76489087337ea99965aaf59d6914c885. Operational inventory precedes the separate mounted form; feedback remains outside and directly beside it. Source acceptance completed; installed #1191 and hardware evidence remain separate. Audit: 41 entries, 33 closed in code, zero partial, eight open. #1243 is active next.
 
 ## Issue #1239 — UX-36 safe login return completed
 

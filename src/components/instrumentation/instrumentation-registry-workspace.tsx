@@ -17,8 +17,15 @@ import {
   type SignalRegistryRecord,
   type SignalWriteInput,
 } from "@/features/instrumentation/instrumentation-repository";
+import {
+  findSignalQuantity,
+  SIGNAL_QUANTITIES,
+  suggestSignalBusinessKey,
+  unitForSignalQuantity,
+} from "@/features/instrumentation/signal-quantity-options";
 
 type InstrumentDetails = {
+  instrumentId: string;
   signals: SignalRegistryRecord[];
   acceptance: InstrumentAcceptanceRecord[];
 };
@@ -71,6 +78,11 @@ export function InstrumentationRegistryWorkspace({
   const [instruments, setInstruments] = useState<InstrumentRegistryRecord[]>([]);
   const [selectedInstrumentId, setSelectedInstrumentId] = useState<string | null>(null);
   const [details, setDetails] = useState<InstrumentDetails | null>(null);
+  const [organizationSignals, setOrganizationSignals] = useState<{
+    repository: InstrumentationRegistryRepository;
+    instruments: InstrumentRegistryRecord[];
+    keys: string[];
+  } | null>(null);
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null);
   const [loading, setLoading] = useState(repository !== null);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -123,7 +135,7 @@ export function InstrumentationRegistryWorkspace({
           repository.listSignals(instrumentId),
           repository.listAcceptanceHistory(instrumentId),
         ]);
-        setDetails({ signals, acceptance });
+        setDetails({ instrumentId, signals, acceptance });
         setSelectedSignalId((current) =>
           current && signals.some((item) => item.id === current) ? current : (signals[0]?.id ?? null),
         );
@@ -187,7 +199,7 @@ export function InstrumentationRegistryWorkspace({
       )
       .then(([signals, acceptance]) => {
         if (!active) return;
-        setDetails({ signals, acceptance });
+        setDetails({ instrumentId: selectedInstrumentId, signals, acceptance });
         setSelectedSignalId((current) =>
           current && signals.some((item) => item.id === current) ? current : (signals[0]?.id ?? null),
         );
@@ -208,13 +220,48 @@ export function InstrumentationRegistryWorkspace({
     };
   }, [repository, selectedInstrumentId]);
 
+  useEffect(() => {
+    if (!repository || !canManage) return;
+    let active = true;
+    const controller = new AbortController();
+
+    async function loadOrganizationSignals() {
+      const keys: string[] = [];
+      for (const instrument of instruments) {
+        const signals = await repository!.listSignals(instrument.id, controller.signal);
+        if (!active) return;
+        keys.push(...signals.map((item) => item.businessKey));
+      }
+      if (active) setOrganizationSignals({ repository: repository!, instruments, keys });
+    }
+
+    void loadOrganizationSignals().catch((cause) => {
+      if (!active || controller.signal.aborted) return;
+      setError(readError(cause, "Не вдалося перевірити ключі сигналів організації. Натисніть «Оновити»."));
+    });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [repository, instruments, canManage]);
+
   const selectedInstrument = useMemo(
     () => instruments.find((item) => item.id === selectedInstrumentId) ?? null,
     [instruments, selectedInstrumentId],
   );
+  const currentDetails = details?.instrumentId === selectedInstrumentId ? details : null;
+  const organizationKeys =
+    organizationSignals?.repository === repository && organizationSignals.instruments === instruments
+      ? organizationSignals.keys
+      : null;
+  const suggestedBusinessKey =
+    currentDetails && organizationKeys
+      ? suggestSignalBusinessKey(signalDraft.physicalQuantity, organizationKeys)
+      : "";
   const selectedSignal = useMemo(
-    () => details?.signals.find((item) => item.id === selectedSignalId) ?? null,
-    [details?.signals, selectedSignalId],
+    () => currentDetails?.signals.find((item) => item.id === selectedSignalId) ?? null,
+    [currentDetails?.signals, selectedSignalId],
   );
   const filteredInstruments = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase("uk-UA");
@@ -279,9 +326,22 @@ export function InstrumentationRegistryWorkspace({
 
   async function createSignal(event: FormEvent) {
     event.preventDefault();
-    if (!canManage || !selectedInstrument || !validSignalDraft(signalDraft)) return;
+    const draft = { ...signalDraft, businessKey: signalDraft.businessKey.trim() || suggestedBusinessKey };
+    if (
+      !canManage ||
+      !selectedInstrument ||
+      detailsLoading ||
+      !currentDetails ||
+      !organizationKeys ||
+      !validSignalDraft(draft)
+    ) {
+      return;
+    }
     await mutate(async () => {
-      const created = await repository!.createSignal(selectedInstrument.id, toSignalInput(signalDraft));
+      const created = await repository!.createSignal(selectedInstrument.id, toSignalInput(draft));
+      setOrganizationSignals((current) =>
+        current ? { ...current, keys: [...current.keys, created.businessKey] } : null,
+      );
       setSignalDraft(emptySignalDraft);
       setSelectedSignalId(created.id);
       setNotice(`Signal ${created.displayName} створено.`);
@@ -295,6 +355,7 @@ export function InstrumentationRegistryWorkspace({
       const updated = await repository!.updateSignal(selectedInstrument.id, record.id, input, record.version);
       setSelectedSignalId(updated.id);
       setNotice(`Signal ${updated.displayName} оновлено до v${updated.version}.`);
+      await loadBase(selectedInstrument.id);
       await loadDetails(selectedInstrument.id);
     });
   }
@@ -464,19 +525,20 @@ export function InstrumentationRegistryWorkspace({
                   <SignalCreateForm
                     draft={signalDraft}
                     setDraft={setSignalDraft}
-                    busy={busy}
+                    busy={busy || detailsLoading || !currentDetails || !organizationKeys}
+                    suggestedBusinessKey={suggestedBusinessKey}
                     onSubmit={createSignal}
                   />
                 ) : null}
 
                 <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(220px,0.65fr)_minmax(0,1.35fr)]">
                   <div className="grid content-start gap-2">
-                    {(details?.signals ?? []).length === 0 ? (
+                    {(currentDetails?.signals ?? []).length === 0 ? (
                       <p className="rounded-xl border border-white/[0.06] p-3 text-xs text-slate-500">
                         Signals для цього Instrument відсутні.
                       </p>
                     ) : null}
-                    {(details?.signals ?? []).map((item) => (
+                    {(currentDetails?.signals ?? []).map((item) => (
                       <button
                         key={item.id}
                         type="button"
@@ -512,7 +574,7 @@ export function InstrumentationRegistryWorkspace({
               </section>
 
               <AcceptanceSection
-                history={details?.acceptance ?? []}
+                history={currentDetails?.acceptance ?? []}
                 canManage={canManage}
                 busy={busy}
                 value={acceptanceValue}
@@ -717,19 +779,31 @@ function SignalCreateForm({
   draft,
   setDraft,
   busy,
+  suggestedBusinessKey,
   onSubmit,
 }: {
   draft: SignalDraft;
   setDraft: (value: SignalDraft) => void;
   busy: boolean;
+  suggestedBusinessKey: string;
   onSubmit: (event: FormEvent) => void;
 }) {
+  const completeDraft = { ...draft, businessKey: draft.businessKey.trim() || suggestedBusinessKey };
   return (
     <form onSubmit={onSubmit} className="mt-4 rounded-2xl border border-white/[0.07] bg-[#06142a]/70 p-3">
       <p className="text-xs font-medium text-white">Новий Signal</p>
-      <SignalFields draft={draft} setDraft={setDraft} prefix="create" />
+      <SignalFields
+        draft={draft}
+        setDraft={setDraft}
+        prefix="create"
+        suggestedBusinessKey={suggestedBusinessKey}
+      />
       <div className="mt-3 flex justify-end">
-        <button type="submit" disabled={busy || !validSignalDraft(draft)} className={primaryButtonClass}>
+        <button
+          type="submit"
+          disabled={busy || !validSignalDraft(completeDraft)}
+          className={primaryButtonClass}
+        >
           <Plus className="h-3.5 w-3.5" /> Створити Signal
         </button>
       </div>
@@ -787,17 +861,27 @@ function SignalFields({
   draft,
   setDraft,
   prefix,
+  suggestedBusinessKey = "",
 }: {
   draft: SignalDraft;
   setDraft: (value: SignalDraft) => void;
   prefix: "create" | "edit";
+  suggestedBusinessKey?: string;
 }) {
+  const labelPrefix = prefix === "create" ? "Новий сигнал" : "Редагування сигналу";
+  const quantity = findSignalQuantity(draft.physicalQuantity);
+  const [custom, setCustom] = useState(
+    () =>
+      Boolean(draft.physicalQuantity && !quantity) ||
+      Boolean(draft.engineeringUnit && !quantity?.units.some((unit) => unit.value === draft.engineeringUnit)),
+  );
+
   return (
     <div className="mt-3 grid gap-3 md:grid-cols-2">
       <Field label="Business key">
         <input
           aria-label={`${prefix} signal business key`}
-          value={draft.businessKey}
+          value={draft.businessKey.trim() ? draft.businessKey : suggestedBusinessKey}
           onChange={(event) => setDraft({ ...draft, businessKey: event.target.value })}
           className={inputClass}
           required
@@ -812,26 +896,74 @@ function SignalFields({
           required
         />
       </Field>
-      <Field label="Physical quantity">
-        <input
-          aria-label={`${prefix} signal physical quantity`}
-          value={draft.physicalQuantity}
-          onChange={(event) => setDraft({ ...draft, physicalQuantity: event.target.value })}
-          placeholder="pressure | temperature | relative_humidity"
+      <Field label="Фізична величина">
+        <select
+          aria-label={`${labelPrefix}: фізична величина`}
+          value={custom ? "__custom__" : (quantity?.value ?? "")}
+          onChange={(event) => {
+            const value = event.target.value;
+            if (value === "__custom__") {
+              setCustom(true);
+              return;
+            }
+            setCustom(false);
+            setDraft({
+              ...draft,
+              physicalQuantity: value,
+              engineeringUnit: unitForSignalQuantity(value, draft.engineeringUnit),
+            });
+          }}
           className={inputClass}
-          required
-        />
+        >
+          <option value="">Оберіть величину</option>
+          {SIGNAL_QUANTITIES.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+          <option value="__custom__">Інша величина / технічне введення</option>
+        </select>
       </Field>
-      <Field label="Engineering unit">
-        <input
-          aria-label={`${prefix} signal engineering unit`}
-          value={draft.engineeringUnit}
-          onChange={(event) => setDraft({ ...draft, engineeringUnit: event.target.value })}
-          placeholder="bar | degC | %RH"
-          className={inputClass}
-          required
-        />
-      </Field>
+      {custom ? (
+        <>
+          <Field label="Ключ фізичної величини">
+            <input
+              aria-label={`${labelPrefix}: ключ величини`}
+              value={draft.physicalQuantity}
+              onChange={(event) => setDraft({ ...draft, physicalQuantity: event.target.value })}
+              className={inputClass}
+              required
+            />
+          </Field>
+          <Field label="Ключ одиниці">
+            <input
+              aria-label={`${labelPrefix}: одиниця вимірювання`}
+              value={draft.engineeringUnit}
+              onChange={(event) => setDraft({ ...draft, engineeringUnit: event.target.value })}
+              className={inputClass}
+              required
+            />
+          </Field>
+        </>
+      ) : (
+        <Field label="Одиниця вимірювання">
+          <select
+            aria-label={`${labelPrefix}: одиниця вимірювання`}
+            value={draft.engineeringUnit}
+            onChange={(event) => setDraft({ ...draft, engineeringUnit: event.target.value })}
+            className={inputClass}
+            disabled={!quantity}
+            required
+          >
+            <option value="">Оберіть одиницю за даними приладу</option>
+            {quantity?.units.map((unit) => (
+              <option key={unit.value} value={unit.value}>
+                {unit.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
       <Field label="Lifecycle">
         <select
           value={draft.lifecycleState}
@@ -846,8 +978,9 @@ function SignalFields({
         </select>
       </Field>
       <div className="rounded-xl border border-cyan-300/10 bg-cyan-400/[0.03] p-3 text-[10px] leading-5 text-slate-400">
-        Вказуйте process-neutral quantity. Наприклад <code>pressure</code>, а не <code>suction_pressure</code>
-        . Остаточну role compatibility перевіряє backend.
+        Обирайте величину й одиницю за підтвердженими даними приладу. Вибір не перетворює покази й не змінює
+        масштабування. Призначення сигналу в контурі перевіряється окремо; технічне введення зберігає
+        нестандартні значення.
       </div>
     </div>
   );
