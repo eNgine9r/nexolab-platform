@@ -127,17 +127,21 @@ function cadenceAwareEnergySampleState(
 function MeterCard({
   unitId,
   selected,
+  lastSelected,
   samples,
   cadenceAuthority,
   consumption,
   onToggle,
+  onSelectOnly,
 }: {
   unitId: number;
   selected: boolean;
+  lastSelected: boolean;
   samples: readonly TelemetrySample[];
   cadenceAuthority: EnergyTelemetryModel["cadenceAuthority"];
   consumption: EnergyConsumptionLoader;
   onToggle: () => void;
+  onSelectOnly: () => void;
 }) {
   const meter = ENERGY_METERS.find((item) => item.unitId === unitId)!;
   const power = findEnergySample(samples, unitId, "electrical.power.active");
@@ -163,9 +167,11 @@ function MeterCard({
       <button
         type="button"
         onClick={onToggle}
+        disabled={lastSelected}
+        aria-describedby={lastSelected ? `energy-meter-${unitId}-selection-note` : undefined}
         aria-pressed={selected}
         aria-label={`${selected ? "Виключити" : "Додати"} лічильник ${meter.label} з порівняння`}
-        className="block w-full rounded-xl text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
+        className="block w-full rounded-xl text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 disabled:cursor-not-allowed"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -182,6 +188,20 @@ function MeterCard({
           <p className="text-[10px] text-slate-500">Активна потужність</p>
           <p className="mt-1 text-3xl font-semibold tracking-tight text-white">{formatEnergyValue(power)}</p>
         </div>
+      </button>
+
+      {lastSelected ? (
+        <p id={`energy-meter-${unitId}-selection-note`} className="mt-3 text-[10px] leading-4 text-slate-300">
+          Для порівняння потрібен хоча б один лічильник. Додайте інший, щоб виключити цей.
+        </p>
+      ) : null}
+      <button
+        type="button"
+        onClick={onSelectOnly}
+        aria-label={`Показати лише лічильник ${meter.label}`}
+        className="mt-3 min-h-11 rounded-xl border border-cyan-300/20 px-3 py-2 text-[11px] text-cyan-200 hover:border-cyan-300/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
+      >
+        Лише цей лічильник
       </button>
 
       <EnergyConsumptionPanel unitId={unitId} currentCumulative={cumulativeEnergy} loader={consumption} />
@@ -383,10 +403,12 @@ export function EnergyWorkspace({
             key={meter.unitId}
             unitId={meter.unitId}
             selected={selectedUnitIds.includes(meter.unitId)}
+            lastSelected={selectedUnitIds.length === 1 && selectedUnitIds[0] === meter.unitId}
             samples={telemetry.samples}
             cadenceAuthority={telemetry.cadenceAuthority}
             consumption={consumption}
             onToggle={() => toggleMeter(meter.unitId)}
+            onSelectOnly={() => setSelectedUnitIds([meter.unitId])}
           />
         ))}
       </section>

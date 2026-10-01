@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T10:48:03.372096+00:00",
+  "timestamp": "2026-10-01T11:05:44.589328+00:00",
   "actor": "Codex",
-  "event": "ux1202_merged_ux1204_native_dialog_candidate",
+  "event": "ux1204_merged_ux1206_candidate",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1204,
-    "title": "UX-11 Overview visibility dialog keyboard focus",
-    "branch": "fix/1204-overview-dialog-focus"
+    "issue": 1206,
+    "title": "UX-29 energy meter comparison controls",
+    "branch": "fix/1206-energy-meter-selection"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -542,6 +542,16 @@
       "result": "23_pass_1_boundary_Tab_escape",
       "correction": "explicit_first_last_boundary_wrapping",
       "corrected_CI": "pending"
+    },
+    "issue_1204_final": {
+      "head": "f7049a2d3cea526324ce00329996673d6358f2c8",
+      "dashboard_browser_run": 36852391774,
+      "browser_scenarios": 24,
+      "core_ci_run": 36852391661,
+      "result": "2_of_2_green",
+      "focused_tests": 68,
+      "review_threads": 0,
+      "installed_acceptance": "unverified"
     }
   },
   "observations": [
@@ -853,9 +863,23 @@
         "conclusion": "3_of_3_success",
         "review_threads": "resolved"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T11:05:44.589328+00:00",
+      "kind": "ux1204_merge",
+      "data": {
+        "issue": 1204,
+        "pull_request": 1205,
+        "final_head": "f7049a2d3cea526324ce00329996673d6358f2c8",
+        "merge_sha": "00b9d13ad4de8cdea212d4701afea08ceabd5157",
+        "exact_head_workflows": "2_of_2_green",
+        "browser_scenarios": 24,
+        "review_threads": 0
+      }
     }
   ],
-  "next_action": "Verify #1204 local and exact-head CI, resolve reviews, merge only GREEN; qualify the next UX audit source package. #1191 deployed acceptance remains access-gated.",
+  "next_action": "Verify #1206 and its isolated browser scenario; merge only exact-head CI GREEN. Qualify further UX source work. Installed #1191 acceptance remains access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
