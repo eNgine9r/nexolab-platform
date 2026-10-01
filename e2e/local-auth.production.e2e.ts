@@ -592,3 +592,37 @@ test("browser login rejects unsafe and repeated return targets", async ({ browse
     }
   }
 });
+
+test("specialized protected-page gates retain their own local destination through real login", async ({
+  browser,
+}) => {
+  const destinations = [
+    { path: "/nodes?filter=attention#inventory", label: "Увійти" },
+    { path: "/live?range=24h#chart", label: "Змінити користувача" },
+    { path: "/energy?period=24h#chart", label: "Змінити користувача" },
+    { path: "/reports?filter=completed#versions", label: "Увійти" },
+    { path: "/reports/00000000-0000-0000-0000-000000000001#protocol", label: "Увійти" },
+  ];
+  for (const destination of destinations) {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    try {
+      await page.goto(destination.path, { waitUntil: "domcontentloaded" });
+      const login = page.getByRole("link", { name: destination.label, exact: true });
+      await expect(login).toHaveAttribute("href", `/login?returnTo=${encodeURIComponent(destination.path)}`);
+      await login.click();
+      await page.getByLabel("Логін або email", { exact: true }).fill(accounts.viewer);
+      await page.getByLabel("Пароль", { exact: true }).fill(password);
+      await page.getByRole("button", { name: "Увійти", exact: true }).click();
+      await expect
+        .poll(() => {
+          const url = new URL(page.url());
+          return `${url.pathname}${url.search}${url.hash}`;
+        })
+        .toBe(destination.path);
+      await expect(page.getByLabel("Вийти з NEXOLAB")).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  }
+});

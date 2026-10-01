@@ -1,11 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 import { AlertTriangle, LoaderCircle, LogIn, RotateCcw } from "lucide-react";
 
-import { localLoginHref } from "@/features/security/login-navigation";
+import { LoginReturnLink } from "@/components/security/login-return-link";
 import type { SecuritySessionDiagnostics } from "@/features/security/security-session";
 import type { DashboardSecurityErrorCode } from "@/hooks/use-dashboard-security";
 
@@ -65,20 +62,6 @@ function Diagnostics({ diagnostics, errorCode }: Pick<SecurityGateProps, "diagno
 }
 
 export function SecurityGate({ state, error, errorCode, diagnostics, onRetry }: SecurityGateProps) {
-  const pathname = usePathname();
-  const [loginHref, setLoginHref] = useState("/login");
-  useEffect(() => {
-    let active = true;
-    void Promise.resolve().then(() => {
-      if (!active) return;
-      const location = window.location;
-      setLoginHref(localLoginHref(`${location.pathname}${location.search}${location.hash}`));
-    });
-    return () => {
-      active = false;
-    };
-  }, [pathname]);
-
   const loading = state === "loading";
   const unauthenticated = state === "unauthenticated";
 
@@ -109,13 +92,12 @@ export function SecurityGate({ state, error, errorCode, diagnostics, onRetry }: 
         <Diagnostics diagnostics={diagnostics} errorCode={errorCode} />
         <div className="mt-6 flex flex-wrap gap-3">
           {unauthenticated ? (
-            <Link
-              href={loginHref}
+            <LoginReturnLink
               className="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-400"
             >
               <LogIn className="h-4 w-4" />
               Увійти
-            </Link>
+            </LoginReturnLink>
           ) : null}
           {!loading ? (
             <button

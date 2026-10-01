@@ -6235,7 +6235,7 @@
       "evidence": {
         "qualification": "actual_SecurityGate_login_href_and_LoginPage_replace_root_chain_verified",
         "next_docs": "official_exact_v16_3_6_page_and_usePathname_docs_read_via_GitHub_local_executor_unavailable",
-        "implementation": "safe_local_target_server_parse_client_recheck_gate_context_and_non_submit_visibility_toggle",
+        "implementation": "safe_local_target_server_parse_client_recheck_all_six_gates_shared_link_and_non_submit_visibility_toggle",
         "local_execution": "not_run_environment_offline",
         "exact_head_ci": "pending",
         "browser_acceptance": "pending"
