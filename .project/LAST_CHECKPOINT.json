@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T11:05:44.589328+00:00",
+  "timestamp": "2026-10-01T11:31:10.578886+00:00",
   "actor": "Codex",
-  "event": "ux1204_merged_ux1206_candidate",
+  "event": "ux1206_merged_ux1208_grouped_navigation_candidate",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1206,
-    "title": "UX-29 energy meter comparison controls",
-    "branch": "fix/1206-energy-meter-selection"
+    "issue": 1208,
+    "title": "UX-08/09 grouped navigation and planned Lockers",
+    "branch": "fix/1208-grouped-navigation"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -571,6 +571,25 @@
       "regression": "failed_before_fix_visible_SDM_series_empty",
       "correction": "explicit_visibility_revision_clears_overrides_without_resetting_viewport",
       "corrected_CI": "pending"
+    },
+    "issue_1206_final": {
+      "head": "284be19685ef7338c5a4e6b817d26f25e2f912ff",
+      "browser_run": 36855012016,
+      "browser_scenarios": 3,
+      "core_ci_run": 36855012011,
+      "result": "2_of_2_success",
+      "local_energy_tests": 91,
+      "review_threads": "resolved",
+      "installed_acceptance": "unverified"
+    },
+    "issue_1208_initial_browser": {
+      "head": "ee6c29cb6c7943f7bced4a255147c6923cfe1133",
+      "run": 36855965136,
+      "result": "25_pass_1_initial_all_links_visible_prefetch_assumption",
+      "new_navigation_flow": "pass_320_390_1280",
+      "correction": "scroll_canonical_links_into_view_observe_automatic_prefetch_before_measurement",
+      "budgets": "unchanged",
+      "corrected_CI": "pending"
     }
   },
   "observations": [
@@ -896,9 +915,22 @@
         "browser_scenarios": 24,
         "review_threads": 0
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T11:31:10.578886+00:00",
+      "kind": "ux1206_merge",
+      "data": {
+        "issue": 1206,
+        "pull_request": 1207,
+        "final_head": "284be19685ef7338c5a4e6b817d26f25e2f912ff",
+        "merge_sha": "1f0b40bdf715a9b971c567b3b592a38c58c7921b",
+        "exact_head_workflows": "2_of_2_green",
+        "review_threads": "resolved"
+      }
     }
   ],
-  "next_action": "Verify #1206 and its isolated browser scenario; merge only exact-head CI GREEN. Qualify further UX source work. Installed #1191 acceptance remains access-gated.",
+  "next_action": "Verify #1208 local and responsive keyboard CI; merge only GREEN. Qualify the next independent source UX package; deployed #1191 remains access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

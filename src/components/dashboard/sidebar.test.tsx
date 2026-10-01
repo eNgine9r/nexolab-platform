@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { platformNavItems, Sidebar } from "./sidebar";
+import { platformNavGroups, platformNavItems, Sidebar } from "./sidebar";
 
 const navigation = vi.hoisted(() => ({ pathname: "/refrigeration/showcase-106-01" }));
 
@@ -63,4 +63,26 @@ describe("Sidebar", () => {
     expect(screen.queryByText("Synced")).not.toBeInTheDocument();
     expect(screen.queryByText("Хмарна синхронізація")).not.toBeInTheDocument();
   });
+});
+
+it("groups each canonical destination once and describes planned Lockers", () => {
+  render(<Sidebar open onClose={vi.fn()} />);
+  expect(screen.getAllByRole("link")).toHaveLength(13);
+  expect(new Set(screen.getAllByRole("link").map((link) => link.getAttribute("href"))).size).toBe(13);
+  for (const group of platformNavGroups) {
+    const region = screen.getByRole("region", { name: group.label });
+    expect(within(region).getAllByRole("link")).toHaveLength(group.items.length);
+    for (const item of group.items)
+      expect(within(region).getByRole("link", { name: item.label })).toHaveAttribute("href", item.href);
+  }
+  const lockers = screen.getByRole("link", { name: "Поштомати" });
+  expect(lockers).toHaveAccessibleDescription("Заплановано");
+  expect(within(lockers).getByText("Заплановано")).toBeVisible();
+});
+
+it("keeps canonical link clicks closing the mobile menu", () => {
+  const onClose = vi.fn();
+  render(<Sidebar open onClose={onClose} />);
+  fireEvent.click(screen.getByRole("link", { name: "Поштомати" }));
+  expect(onClose).toHaveBeenCalledOnce();
 });
