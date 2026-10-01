@@ -3,7 +3,7 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T14:22:57.230033+00:00",
+  "timestamp": "2026-10-01T14:27:51.405950+00:00",
   "actor": "Codex",
   "event": "ux1208_merged_ux1210_reconstructed_retry_candidate",
   "baselines": {
@@ -605,7 +605,8 @@
       "workspace_recovery": "reconstructed_after_transient_checkout_loss",
       "routing_regressions": "67_passed_classifier_trigger_risk",
       "ci_routing": "Telegram_MiniApp_paths_added_to_dashboard_trigger_and_focused_domain",
-      "verified_head_sha": "00b385a7e6ef84393074f4e8f7d27ac7c8a0c6b2"
+      "verified_head_sha": "00b385a7e6ef84393074f4e8f7d27ac7c8a0c6b2",
+      "review_corrections": "timestamp_advanced_and_current_state_browser_status_anchored"
     }
   },
   "observations": [
@@ -956,7 +957,7 @@
       }
     }
   ],
-  "next_action": "Complete exact-head #1210 CI and resolve checkpoint timestamp review; merge only GREEN, then begin Ready #1212 UX-33 inactive telemetry-window removal. Installed #1191 stays access-gated.",
+  "next_action": "Require the final exact-head #1210 matrix GREEN after state-only status/timestamp corrections, then merge and begin Ready #1212; next #1213 UTC/local. Product head 00b385a7 has 30 Dashboard scenarios verified. Installed #1191 remains access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

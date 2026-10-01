@@ -5925,6 +5925,14 @@
       "lifecycle": "ready",
       "branch": "fix/1212-remove-inactive-window",
       "evidence": {}
+    },
+    {
+      "issue": 1213,
+      "title": "UX-32 UTC/local operational timestamps and charts",
+      "priority": "high",
+      "lifecycle": "ready",
+      "branch": "fix/1213-operational-timezone",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [
