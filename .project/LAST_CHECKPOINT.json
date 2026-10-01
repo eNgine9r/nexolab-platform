@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T19:59:47.374Z",
+  "timestamp": "2026-10-01T20:10:04.900Z",
   "actor": "Codex",
-  "event": "ux1230_environment_recovered_exact_report_context_candidate",
+  "event": "ux1230_audit_permission_dependency_corrected",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -811,13 +811,20 @@
       "phase": "source_candidate",
       "environment_blocker": "resolved",
       "local_checks": {
-        "focused_tests": "32_passed_3_files",
+        "focused_tests": "39_passed_5_files",
         "typecheck": "passed",
         "lint": "passed"
       },
       "exact_head_ci": "pending",
       "browser_acceptance": "pending",
-      "review": "pending"
+      "review": "pending",
+      "audit_dependency": "UX-41_verified_permission_gate",
+      "failed_browser_baseline": "36918470350_2_failed_audit_read_required"
+    },
+    "issue_1233_ux27": {
+      "issue": 1233,
+      "phase": "queued_after_1230",
+      "source": "existing_frozen_source_snapshot_metadata_session"
     }
   },
   "observations": [
@@ -1395,6 +1402,22 @@
         "runtime_recovery": "clean_tree_no_partial_patch",
         "implementation": "exact_terminal_session_report_navigation_with_scoped_resolution_no_automatic_write",
         "local_tests": "32_passed_3_files"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T20:10:04.900Z",
+      "kind": "issue_1230_audit_permission_dependency",
+      "data": {
+        "issue": 1230,
+        "audit_finding": "UX-41",
+        "baseline_head": "e49df4502cf25fc228ca6c006e749fdc0c36ab9a",
+        "failed_reports_run": 36918470350,
+        "artifact_id": 11190887337,
+        "root_cause": "optional_audit_read_403_blocked_core_session_workspace",
+        "fix": "verified_audit_permission_gate_no_backend_role_change",
+        "local_tests": "39_passed_5_files",
+        "next_issue": 1233
       }
     }
   ],

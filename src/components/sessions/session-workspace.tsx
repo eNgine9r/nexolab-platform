@@ -3,6 +3,7 @@
 import { AlertTriangle, Archive, CheckCircle2, Pause, Play, RefreshCw, Square } from "lucide-react";
 
 import { usePlatformAccount } from "@/components/dashboard/platform-account-boundary";
+import { hasPermission } from "@/features/security/security-session";
 import type { SessionAction } from "@/lib/sessions/types";
 import { ACTIONS_BY_STATE, SESSION_ACTION_LABELS } from "@/lib/sessions/view-model";
 
@@ -21,10 +22,16 @@ import {
 
 export function SessionWorkspace({ sessionId }: { sessionId: string }) {
   const account = usePlatformAccount();
+  const canReadAudit = Boolean(
+    account?.security.session &&
+    account.security.membership &&
+    hasPermission(account.security.session, account.security.membership.organizationId, "audit.read"),
+  );
   const workspace = useSessionWorkspace(
     sessionId,
     account?.security.membership?.organizationId,
     account?.beginOperation,
+    canReadAudit,
   );
 
   if (!workspace.data && workspace.loading) return <WorkspaceLoading />;
@@ -109,6 +116,7 @@ export function SessionWorkspace({ sessionId }: { sessionId: string }) {
       <NotesAndAudit
         notes={data.notes}
         audit={data.audit}
+        auditReadable={canReadAudit}
         readOnly={workspace.readOnly}
         mutating={workspace.mutating}
         onAddNote={workspace.addNote}

@@ -164,7 +164,10 @@ test("production reports preserve immutable selected evidence across API, UI and
     const engineerPage = await engineerContext.newPage();
     await installBrowserCredentials(engineerPage, engineerAToken, organizationA);
     let browserReportWrites = 0;
+    let browserAuditReads = 0;
     engineerPage.on("request", (request) => {
+      if (request.method() === "GET" && new URL(request.url()).pathname.endsWith("/audit"))
+        browserAuditReads += 1;
       if (request.method() === "POST" && new URL(request.url()).pathname.startsWith("/api/v1/reports"))
         browserReportWrites += 1;
     });
@@ -172,6 +175,10 @@ test("production reports preserve immutable selected evidence across API, UI and
     await engineerPage.goto(`/sessions/${completedSessionId}`);
     const reportAction = engineerPage.getByRole("link", { name: "Сформувати звіт", exact: true });
     await expect(reportAction).toHaveAttribute("href", `/reports?session=${completedSessionId}`);
+    await expect(
+      engineerPage.getByText("Журнал аудиту доступний користувачам із відповідним правом."),
+    ).toBeVisible();
+    expect(browserAuditReads).toBe(0);
     await reportAction.focus();
     await reportAction.press("Enter");
     await expect(engineerPage).toHaveURL(new RegExp(`/reports\\?session=${completedSessionId}$`));

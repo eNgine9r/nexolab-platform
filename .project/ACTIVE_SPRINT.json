@@ -45,7 +45,11 @@
       "title": "UX-26 direct completed-test report workflow",
       "branch": "fix/1230-session-report-entry"
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 1233,
+      "title": "UX-27 frozen test context for report headings",
+      "branch": "fix/1233-frozen-report-context"
+    }
   },
   "work_packages": [
     {
@@ -6112,12 +6116,27 @@
       "evidence": {
         "qualification": "ready_scoped_issue",
         "environment_blocker": "resolved_clean_local_tree_reconciled_with_merged_checkpoint",
-        "local_tests": "32_passed_3_files",
+        "local_tests": "39_passed_5_files",
         "typecheck": "passed",
         "lint": "passed",
         "exact_head_ci": "pending",
         "browser_acceptance": "pending",
-        "review": "pending"
+        "review": "pending",
+        "audit_dependency": "UX-41_permission_gate",
+        "failed_browser_baseline": "36918470350_2_failed_audit_read_required"
+      }
+    },
+    {
+      "issue": 1233,
+      "title": "UX-27 frozen test context for report headings",
+      "branch": "fix/1233-frozen-report-context",
+      "priority": "medium",
+      "lifecycle": "queued",
+      "depends_on": [
+        1230
+      ],
+      "evidence": {
+        "qualification": "existing_immutable_source_snapshot_metadata_session_is_available_no_hash_change_required"
       }
     }
   ],
@@ -6913,6 +6932,22 @@
         "runtime_recovery": "clean_tree_no_partial_patch",
         "implementation": "exact_terminal_session_report_navigation_with_scoped_resolution_no_automatic_write",
         "local_tests": "32_passed_3_files"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T20:10:04.900Z",
+      "kind": "issue_1230_audit_permission_dependency",
+      "data": {
+        "issue": 1230,
+        "audit_finding": "UX-41",
+        "baseline_head": "e49df4502cf25fc228ca6c006e749fdc0c36ab9a",
+        "failed_reports_run": 36918470350,
+        "artifact_id": 11190887337,
+        "root_cause": "optional_audit_read_403_blocked_core_session_workspace",
+        "fix": "verified_audit_permission_gate_no_backend_role_change",
+        "local_tests": "39_passed_5_files",
+        "next_issue": 1233
       }
     }
   ],
