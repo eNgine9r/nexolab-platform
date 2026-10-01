@@ -30,6 +30,11 @@ import { createRuntimeCredentialProvider } from "@/features/security/supabase-au
 import { createReportApiClient, createReportIdempotencyKey } from "@/lib/reports/api-client";
 import { getReportsApiBaseUrl } from "@/lib/reports/runtime-config";
 import type { ReportArtifact, TestReport } from "@/lib/reports/types";
+import {
+  loadReportSessionContext,
+  NO_REPORT_SESSION_TARGET,
+  type ReportSessionTarget,
+} from "@/lib/reports/session-navigation";
 import { createSessionApiClient } from "@/lib/sessions/api-client";
 import type { LaboratorySession } from "@/lib/sessions/types";
 
@@ -56,10 +61,12 @@ function compactHash(value: string): string {
   return `${value.slice(0, 12)}…${value.slice(-8)}`;
 }
 
-export function ReportsWorkspace() {
+export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target?: ReportSessionTarget }) {
   const displayTimeZone = useDisplayTimeZone();
   const [reports, setReports] = useState<TestReport[]>([]);
   const [sessions, setSessions] = useState<LaboratorySession[]>([]);
+  const [requestedSession, setRequestedSession] = useState<LaboratorySession | null>(null);
+  const [contextError, setContextError] = useState<string | null>(null);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [selectedSessionId, setSelectedSessionId] = useState("");
   const [organizationId, setOrganizationId] = useState<string | null>(null);
@@ -86,54 +93,68 @@ export function ReportsWorkspace() {
     [selectedSessionId, sessions],
   );
 
-  const load = useCallback(async (signal: AbortSignal) => {
-    setLoading(true);
-    try {
-      const credentials = createRuntimeCredentialProvider(null);
-      const authenticatedFetch = createAuthenticatedFetch(fetch.bind(globalThis), credentials);
-      const securityClient = new HttpSecuritySessionClient({
-        apiBaseUrl: getReportsApiBaseUrl(),
-        fetchImpl: authenticatedFetch,
-      });
-      const [reportPage, completedPage, archivedPage, securityResult, snapshot] = await Promise.all([
-        createReportApiClient().listReports({ limit: 200 }, signal),
-        createSessionApiClient().listSessions({ state: "completed", limit: 100 }, signal),
-        createSessionApiClient().listSessions({ state: "archived", limit: 100 }, signal),
-        securityClient.getSession(),
-        credentials(),
-      ]);
-      const terminalSessions = [...completedPage.items, ...archivedPage.items].sort((left, right) =>
-        right.updated_at.localeCompare(left.updated_at),
-      );
-      setReports(reportPage.items);
-      setSessions(terminalSessions);
-      setSelectedReportId((current) => {
-        if (current && reportPage.items.some((item) => item.id === current)) return current;
-        return reportPage.items[0]?.id ?? null;
-      });
-      setSelectedSessionId((current) => {
-        if (current && terminalSessions.some((item) => item.id === current)) return current;
-        return terminalSessions[0]?.id ?? "";
-      });
-      const nextOrganizationId = snapshot.organizationId;
-      setOrganizationId(nextOrganizationId);
-      setCanGenerate(
-        Boolean(
-          securityResult.ok &&
-          nextOrganizationId &&
-          hasPermission(securityResult.value, nextOrganizationId, "reports.generate"),
-        ),
-      );
-      setError(null);
-      setLastSuccessfulAt(Date.now());
-    } catch (nextError) {
-      if (!signal.aborted) {
-        setError(nextError instanceof Error ? nextError : new Error("Не вдалося завантажити звіти."));
+  const load = useCallback(
+    async (signal: AbortSignal) => {
+      setLoading(true);
+      try {
+        const credentials = createRuntimeCredentialProvider(null);
+        const authenticatedFetch = createAuthenticatedFetch(fetch.bind(globalThis), credentials);
+        const securityClient = new HttpSecuritySessionClient({
+          apiBaseUrl: getReportsApiBaseUrl(),
+          fetchImpl: authenticatedFetch,
+        });
+        const snapshot = await credentials();
+        const [context, securityResult] = await Promise.all([
+          loadReportSessionContext(
+            target,
+            snapshot.organizationId,
+            createSessionApiClient({ organizationId: snapshot.organizationId }),
+            signal,
+          ),
+          securityClient.getSession(),
+        ]);
+        const reportPage = context.error
+          ? { items: [] }
+          : await createReportApiClient().listReports(
+              { limit: 200, sessionId: context.requested?.id },
+              signal,
+            );
+        if (signal.aborted) return;
+        const terminalSessions = context.sessions;
+        setRequestedSession(context.requested);
+        setContextError(context.error);
+        setReports(reportPage.items);
+        setSessions(terminalSessions);
+        setSelectedReportId((current) => {
+          if (current && reportPage.items.some((item) => item.id === current)) return current;
+          return reportPage.items[0]?.id ?? null;
+        });
+        setSelectedSessionId((current) => {
+          if (target.kind !== "none") return context.requested?.id ?? "";
+          if (current && terminalSessions.some((item) => item.id === current)) return current;
+          return terminalSessions[0]?.id ?? "";
+        });
+        const nextOrganizationId = snapshot.organizationId;
+        setOrganizationId(nextOrganizationId);
+        setCanGenerate(
+          Boolean(
+            securityResult.ok &&
+            nextOrganizationId &&
+            hasPermission(securityResult.value, nextOrganizationId, "reports.generate"),
+          ),
+        );
+        setError(null);
+        setLastSuccessfulAt(Date.now());
+      } catch (nextError) {
+        if (!signal.aborted) {
+          setError(nextError instanceof Error ? nextError : new Error("Не вдалося завантажити звіти."));
+        }
+      } finally {
+        if (!signal.aborted) setLoading(false);
       }
-    } finally {
-      if (!signal.aborted) setLoading(false);
-    }
-  }, []);
+    },
+    [target],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -223,6 +244,34 @@ export function ReportsWorkspace() {
 
   return (
     <div className="space-y-4" data-testid="reports-workspace">
+      {target.kind !== "none" && (
+        <section className="panel space-y-3 p-4" aria-label="Вибране випробування">
+          {contextError ? (
+            <p role="alert" className="text-sm text-amber-200">
+              {contextError}
+            </p>
+          ) : requestedSession ? (
+            <p className="text-sm text-slate-200">
+              Звіт для {requestedSession.session_number} · {requestedSession.title}
+            </p>
+          ) : (
+            <p role="status">Перевіряємо вибране випробування…</p>
+          )}
+          <div className="flex flex-wrap gap-4">
+            {requestedSession && (
+              <Link
+                href={`/sessions/${encodeURIComponent(requestedSession.id)}`}
+                className="text-sm text-cyan-300"
+              >
+                Назад до випробування
+              </Link>
+            )}
+            <Link href="/reports" className="text-sm text-cyan-300">
+              Усі звіти
+            </Link>
+          </div>
+        </section>
+      )}
       <section className="panel p-5 sm:p-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>

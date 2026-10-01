@@ -60,6 +60,7 @@ export function useSessionWorkspace(
   sessionId: string,
   organizationId?: string,
   beginAccountOperation?: () => () => void,
+  canReadAudit = false,
 ): SessionWorkspaceModel {
   const [data, setData] = useState<SessionWorkspaceData | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -89,7 +90,7 @@ export function useSessionWorkspace(
           client.listEvents(sessionId, signal),
           client.listStages(sessionId, signal),
           client.listNotes(sessionId, signal),
-          client.listAudit(sessionId, signal),
+          canReadAudit ? client.listAudit(sessionId, signal) : Promise.resolve({ items: [] }),
           client.latestTelemetry(sessionId, { limit: 500 }, signal),
           historyFrom
             ? client.historyTelemetry(
@@ -127,7 +128,7 @@ export function useSessionWorkspace(
         if (!signal.aborted) setLoading(false);
       }
     },
-    [organizationId, sessionId],
+    [canReadAudit, organizationId, sessionId],
   );
 
   useEffect(() => {

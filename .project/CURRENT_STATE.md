@@ -2,9 +2,13 @@
 
 Updated: 2026-10-01
 
-## Issue #1230 — UX-26 qualified, execution environment blocked
+## Issue #1230 — UX-26 exact-session report context source candidate
 
-The next scoped Issue is #1230, direct navigation from a completed/archived SessionWorkspace to that exact test's report workflow. Eligibility, organization-scoped resolution, older sessions outside list pages, unavailable-context handling, read-only roles, explicit generation and zero-write navigation are specified in the Issue. During the first local patch, the execution server reported transport closed; two subsequent minimal read-only probes did not return. Partial local patch state is unverified. Recover the runtime and inspect local branch fix/1230-session-report-entry before continuing. No verified #1230 implementation or tests are claimed. This is an execution-environment blocker, not a request for deployment or hardware approval.
+Execution environment recovered; the local tree was clean with no partial patch and was reconciled with the merged #1231 checkpoint. Completed/archived SessionWorkspace now links report-capable roles to exact session context; report readers receive a viewing action, other states/organizations/access and pending operations are guarded. Reports resolve that exact session through its scoped API, including older records outside list pages; invalid, foreign, missing or non-terminal targets show an unavailable context without selecting another test. Only the verified target supplies generation options/report versions and a direct session back link; plain /reports retains its normal defaults. Organization/context keys discard prior telemetry selection. Navigation does not generate a report; the existing explicit generation and binding selection remain. All 39 focused tests in five files, typecheck and touched lint pass. Real Chromium acceptance adds engineer keyboard entry, viewer entry, exact explicit generation, 390/1280 px and unavailable-context zero-write checks. Final CI/browser/review pending. No backend/source/hash contract, dependency, acquisition or deployment changes.
+
+## Issue #1230 dependency — UX-41 optional audit permission
+
+Reports baseline run 36918470350 / artifact 11190887337 failed both newly added navigation journeys because SessionWorkspace requested audit unconditionally and blocked core data on audit.read denial for valid engineer/viewer roles. The verified account now gates that optional diagnostic read; users without the grant see an unavailable-audit notice, not an empty-history claim. Authorized audit reads/errors remain; revocation removes previous audit data. Three hook regressions pass; browser acceptance additionally proves no forbidden audit request. No backend permission grants or RBAC contract change. Audit now contains 41 entries: 27 closed in code, 1 partial, 13 open including UX-41 pending final acceptance. Next scoped #1233 is qualified from existing frozen report snapshot metadata, after #1230 merges.
 
 ## Issue #1228 — UX-40 completed
 

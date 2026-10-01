@@ -8,6 +8,7 @@ import { AlertTriangle, FileCheck2, LoaderCircle, LogIn, RotateCcw } from "lucid
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
+import { NO_REPORT_SESSION_TARGET, type ReportSessionTarget } from "@/lib/reports/session-navigation";
 
 import { ReportsWorkspace } from "./reports-workspace";
 
@@ -81,7 +82,7 @@ function ReportsSecurityGate({
   );
 }
 
-export function ReportsScreen() {
+export function ReportsScreen({ target = NO_REPORT_SESSION_TARGET }: { target?: ReportSessionTarget }) {
   const router = useRouter();
   const security = useDashboardSecurity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -129,7 +130,10 @@ export function ReportsScreen() {
           <div className="pointer-events-none absolute -top-40 -right-24 h-[420px] w-[420px] rounded-full bg-blue-500/[0.07] blur-3xl" />
           <div className="pointer-events-none absolute bottom-0 left-1/4 h-[300px] w-[300px] rounded-full bg-cyan-400/[0.035] blur-3xl" />
           <div className="relative mx-auto max-w-[1800px]">
-            <ReportsWorkspace key={security.membership?.organizationId ?? "reports"} />
+            <ReportsWorkspace
+              key={`${security.membership?.organizationId ?? "reports"}:${JSON.stringify(target)}`}
+              target={target}
+            />
           </div>
         </main>
       </div>

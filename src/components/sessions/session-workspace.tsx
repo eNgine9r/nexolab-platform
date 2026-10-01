@@ -3,10 +3,12 @@
 import { AlertTriangle, Archive, CheckCircle2, Pause, Play, RefreshCw, Square } from "lucide-react";
 
 import { usePlatformAccount } from "@/components/dashboard/platform-account-boundary";
+import { hasPermission } from "@/features/security/security-session";
 import type { SessionAction } from "@/lib/sessions/types";
 import { ACTIONS_BY_STATE, SESSION_ACTION_LABELS } from "@/lib/sessions/view-model";
 
 import { useSessionWorkspace } from "./use-session-workspace";
+import { SessionReportAction } from "./session-report-action";
 import {
   ConfigurationEvidence,
   EnergyGrid,
@@ -20,10 +22,16 @@ import {
 
 export function SessionWorkspace({ sessionId }: { sessionId: string }) {
   const account = usePlatformAccount();
+  const canReadAudit = Boolean(
+    account?.security.session &&
+    account.security.membership &&
+    hasPermission(account.security.session, account.security.membership.organizationId, "audit.read"),
+  );
   const workspace = useSessionWorkspace(
     sessionId,
     account?.security.membership?.organizationId,
     account?.beginOperation,
+    canReadAudit,
   );
 
   if (!workspace.data && workspace.loading) return <WorkspaceLoading />;
@@ -55,6 +63,7 @@ export function SessionWorkspace({ sessionId }: { sessionId: string }) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <SessionReportAction session={data.session} pending={workspace.loading || workspace.mutating} />
           <button
             className="secondary-button gap-2"
             onClick={workspace.refresh}
@@ -107,6 +116,7 @@ export function SessionWorkspace({ sessionId }: { sessionId: string }) {
       <NotesAndAudit
         notes={data.notes}
         audit={data.audit}
+        auditReadable={canReadAudit}
         readOnly={workspace.readOnly}
         mutating={workspace.mutating}
         onAddNote={workspace.addNote}

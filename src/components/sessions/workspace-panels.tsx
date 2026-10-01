@@ -281,12 +281,14 @@ export function StageTimeline({
 export function NotesAndAudit({
   notes,
   audit,
+  auditReadable = true,
   readOnly,
   mutating,
   onAddNote,
 }: {
   notes: SessionNote[];
   audit: AuditLogEntry[];
+  auditReadable?: boolean;
   readOnly: boolean;
   mutating: boolean;
   onAddNote: (body: string) => Promise<void>;
@@ -342,7 +344,9 @@ export function NotesAndAudit({
           <h2 className="text-sm font-semibold text-white">Immutable audit</h2>
         </div>
         <div className="mt-4 max-h-[390px] scrollbar-thin space-y-2 overflow-y-auto">
-          {audit.length === 0 ? (
+          {!auditReadable ? (
+            <Empty label="Журнал аудиту доступний користувачам із відповідним правом." />
+          ) : audit.length === 0 ? (
             <Empty label="Audit events не знайдені" />
           ) : (
             audit.map((entry) => (
