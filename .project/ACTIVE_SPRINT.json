@@ -41,9 +41,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1213,
-      "title": "UX-32 UTC/local operational timestamps and charts",
-      "branch": "fix/1213-operational-timezone"
+      "issue": 1214,
+      "title": "UX-17 remove incomplete Gauge choice",
+      "branch": "fix/1214-legacy-gauge-choice"
     },
     "next_work_package": null
   },
@@ -5953,7 +5953,7 @@
       "issue": 1214,
       "title": "UX-17 remove incomplete Gauge choice",
       "priority": "medium",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "branch": "fix/1214-legacy-gauge-choice",
       "evidence": {}
     }

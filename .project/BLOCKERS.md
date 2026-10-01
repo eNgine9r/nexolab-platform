@@ -2,9 +2,9 @@
 
 Updated: 2026-10-01
 
-## UX source acceptance — #1213 pending
+## UX source acceptance — #1214 pending
 
-#1212 / PR #1215 is cleared: head 31555c09a6ce172ef831e1c27fca061f1b4d45e9, Core CI 36878901149 and Dashboard 36878901249 GREEN, three Settings browser cases, no review threads. #1213 has 944 frontend tests passed, including UTC/local persistence/lifecycle and chart presentation cases. Exact-head browser/workflow acceptance and review remain pending; do not claim installed acceptance. Next Ready #1214 removes the incomplete Gauge creation choice while retaining old persisted views. Installed operator acceptance is the separate #1191 blocker below.
+#1213 / PR #1216 is cleared: head 3fc52a2f7f0026c8fc2cd951394a5b606b120c09, all thirteen registered workflows GREEN, 944 frontend tests and 33 Dashboard browser cases, no review threads. #1214 first reproduces incomplete Gauge choices and legacy compatibility, then will remove only the incomplete editor choice. Local execution environment is offline; exact-head CI remains available and is required before completion. Installed operator acceptance is the separate #1191 blocker below.
 
 ## Audit #1191 — authenticated deployed all-page evidence pending
 
