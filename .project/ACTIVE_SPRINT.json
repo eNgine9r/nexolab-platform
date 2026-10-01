@@ -6259,7 +6259,7 @@
       ],
       "evidence": {
         "qualification": "actual_node_provision_form_preceded_real_operational_inventory_nodes_manage_verified",
-        "implementation": "native_collapsed_details_after_inventory_preserves_mounted_form_and_secret_errors",
+        "implementation": "native_collapsed_details_after_inventory_with_adjacent_feedback_preserves_mounted_form",
         "local_execution": "not_run_environment_offline",
         "exact_head_ci": "pending",
         "browser_acceptance": "pending"

@@ -3,7 +3,7 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T23:01:03.941Z",
+  "timestamp": "2026-10-01T23:06:53.473Z",
   "actor": "Codex",
   "event": "ux1239_merged_ux1241_nodes_status_first_candidate",
   "baselines": {
@@ -928,10 +928,11 @@
     },
     "issue_1241_nodes_status_first": {
       "qualification": "actual_node_provision_form_preceded_real_operational_inventory_nodes_manage_verified",
-      "implementation": "native_collapsed_details_after_inventory_preserves_mounted_form_and_secret_errors",
+      "implementation": "native_collapsed_details_after_inventory_with_adjacent_feedback_preserves_mounted_form",
       "local_execution": "not_run_environment_offline",
       "exact_head_ci": "pending",
-      "browser_acceptance": "pending"
+      "browser_acceptance": "pending",
+      "review_dependency": "P2_feedback_visibility_adjacent_to_disclosure_with_real_409_and_viewport_assertions"
     }
   },
   "observations": [

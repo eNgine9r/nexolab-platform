@@ -270,43 +270,6 @@ export function NodesWorkspace({ canManage }: { canManage: boolean }) {
         </div>
       </section>
 
-      {oneTimeSecret ? (
-        <section
-          className="rounded-2xl border border-amber-300/20 bg-amber-400/[0.06] p-4 sm:p-5"
-          data-testid="one-time-node-secret"
-        >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="flex items-center gap-2 text-[10px] font-semibold text-amber-200">
-                <KeyRound className="h-4 w-4" />
-                One-time credential · {oneTimeSecret.nodeId} · generation {oneTimeSecret.generation}
-              </p>
-              <p className="mt-2 text-[10px] leading-5 text-amber-100/65">
-                Секрет не зберігається у відкритому вигляді й більше не буде повернутий API. Передайте його
-                лише до контрольованого broker credential store.
-              </p>
-              <code className="mt-3 block max-w-4xl overflow-x-auto rounded-xl border border-amber-200/10 bg-slate-950/40 p-3 text-[11px] text-amber-100">
-                {oneTimeSecret.secret}
-              </code>
-            </div>
-            <button
-              type="button"
-              onClick={() => void copySecret()}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-200/20 px-3 py-2 text-[10px] font-semibold text-amber-100"
-            >
-              <Copy className="h-3.5 w-3.5" />
-              {copied ? "Скопійовано" : "Копіювати"}
-            </button>
-          </div>
-        </section>
-      ) : null}
-
-      {error ? (
-        <section className="rounded-2xl border border-red-300/20 bg-red-400/[0.06] p-4 text-[11px] text-red-200">
-          {error.message}
-        </section>
-      ) : null}
-
       <section className="panel overflow-hidden" data-testid="node-inventory">
         <div className="flex items-center justify-between border-b border-white/[0.055] p-4 sm:p-5">
           <div>
@@ -401,6 +364,47 @@ export function NodesWorkspace({ canManage }: { canManage: boolean }) {
           </div>
         )}
       </section>
+
+      {oneTimeSecret ? (
+        <section
+          className="rounded-2xl border border-amber-300/20 bg-amber-400/[0.06] p-4 sm:p-5"
+          data-testid="one-time-node-secret"
+        >
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="flex items-center gap-2 text-[10px] font-semibold text-amber-200">
+                <KeyRound className="h-4 w-4" />
+                One-time credential · {oneTimeSecret.nodeId} · generation {oneTimeSecret.generation}
+              </p>
+              <p className="mt-2 text-[10px] leading-5 text-amber-100/65">
+                Секрет не зберігається у відкритому вигляді й більше не буде повернутий API. Передайте його
+                лише до контрольованого broker credential store.
+              </p>
+              <code className="mt-3 block max-w-4xl overflow-x-auto rounded-xl border border-amber-200/10 bg-slate-950/40 p-3 text-[11px] text-amber-100">
+                {oneTimeSecret.secret}
+              </code>
+            </div>
+            <button
+              type="button"
+              onClick={() => void copySecret()}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-200/20 px-3 py-2 text-[10px] font-semibold text-amber-100"
+            >
+              <Copy className="h-3.5 w-3.5" />
+              {copied ? "Скопійовано" : "Копіювати"}
+            </button>
+          </div>
+        </section>
+      ) : null}
+
+      {error ? (
+        <section
+          className="rounded-2xl border border-red-300/20 bg-red-400/[0.06] p-4 text-[11px] text-red-200"
+          role="alert"
+          data-testid="node-operation-feedback"
+        >
+          {error.message}
+        </section>
+      ) : null}
 
       {canManage ? (
         <details className="panel" data-testid="node-provision-disclosure">
