@@ -529,8 +529,9 @@ for (const width of [390, 1280]) {
       await toggle.focus();
       await page.keyboard.press("Space");
       await expect(passwordInput).toHaveAttribute("type", "text");
-      await expect(toggle).toHaveAttribute("aria-pressed", "true");
-      await page.getByRole("button", { name: "Приховати пароль", exact: true }).click();
+      const hidePassword = page.getByRole("button", { name: "Приховати пароль", exact: true });
+      await expect(hidePassword).toHaveAttribute("aria-pressed", "true");
+      await hidePassword.click();
       await expect(passwordInput).toHaveAttribute("type", "password");
 
       if (width === 1280) {
@@ -598,8 +599,8 @@ test("specialized protected-page gates retain their own local destination throug
 }) => {
   const destinations = [
     { path: "/nodes?filter=attention#inventory", label: "Увійти" },
-    { path: "/live?workspace=explorer&range=24h", label: "Змінити користувача" },
-    { path: "/energy?period=24h#chart", label: "Змінити користувача" },
+    { path: "/live?workspace=explorer&range=24h", label: "Увійти" },
+    { path: "/energy?period=24h#chart", label: "Увійти" },
     { path: "/reports?filter=completed#versions", label: "Увійти" },
     { path: "/reports/00000000-0000-0000-0000-000000000001#protocol", label: "Увійти" },
   ];
