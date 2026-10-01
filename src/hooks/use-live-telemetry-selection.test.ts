@@ -127,7 +127,9 @@ describe("complete inventory selection readiness", () => {
 
   it("reconciles unavailable channels only after a complete successful inventory", async () => {
     state.latest.mockResolvedValue(page([]));
-    const view = renderHook(() => useLiveTelemetry({ organizationId: "org-a", initialSelectedKeys: ["missing"] }));
+    const view = renderHook(() =>
+      useLiveTelemetry({ organizationId: "org-a", initialSelectedKeys: ["missing"] }),
+    );
     await connect();
     await waitFor(() => expect(view.result.current.selectionReady).toBe(true));
     expect(view.result.current.selectedKeys).toEqual([]);
