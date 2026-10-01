@@ -36,7 +36,6 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
       return;
     }
     router.replace(safeLocalReturnTo(returnTo));
-    router.refresh();
   }
 
   return (

@@ -60,7 +60,7 @@ describe("operator login form", () => {
     fireEvent.click(screen.getByRole("button", { name: "Показати пароль" }));
     fireEvent.click(screen.getByRole("button", { name: "Увійти" }));
     await waitFor(() => expect(state.replace).toHaveBeenCalledWith(destination));
-    expect(state.refresh).toHaveBeenCalledOnce();
+    expect(state.refresh).not.toHaveBeenCalled();
     expect(state.signIn).toHaveBeenCalledWith("http://localhost:8082", "operator", "unit-test-password");
     expect(screen.getByLabelText("Пароль", { exact: true })).toHaveAttribute("type", "password");
   });
@@ -72,7 +72,7 @@ describe("operator login form", () => {
       fillCredentials();
       fireEvent.click(screen.getByRole("button", { name: "Увійти" }));
       await waitFor(() => expect(state.replace).toHaveBeenCalledWith("/"));
-      expect(state.refresh).toHaveBeenCalledOnce();
+      expect(state.refresh).not.toHaveBeenCalled();
     },
   );
 
