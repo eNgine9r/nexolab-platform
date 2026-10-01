@@ -2,9 +2,9 @@
 
 Updated: 2026-10-01
 
-## Issue #1214 — UX-17 Gauge choice regression package
+## Issue #1214 — UX-17 bounded Gauge choice candidate
 
-The editor offers Gauge although the saved view renders only a current value. This package removes Gauge from new choices, retains the persisted gauge union/parser and existing values, and permits explicit conversion to line/area/value. No inferred ranges or migration. Regression tests first cover new-item choices and a legacy Gauge surviving unrelated edits/serialization before explicit conversion. Local execution is unavailable because the environment is offline; baseline #1213 checks were completed locally before the disconnect. This package uses exact-head CI for type/lint/format/build/unit/browser acceptance. No completion claim before those checks and review pass. No production, API, acquisition or hardware change.
+The candidate removes Gauge from new choices. Legacy gauge items keep their stored value with a disabled, selected legacy option; unrelated edits preserve it, and an explicit line/area/value choice converts it. Saved Gauge cards truthfully show a current value without a scale. The persisted union/parser, unit/identity, API and stored bounds remain compatible; no ranges are inferred. Regression baseline head `7ead1099490269d74494329e6ca7c5301b3a3a7f` / CI 36888544786 passed type/lint/format and reproduced exactly two Gauge failures with 944 other tests passed. Browser candidate checks new choices, legacy card, explicit editor conversion, no writes and 390/1280 px. The editor permission fixture is reused only for frontend controls, with real authenticated API reads and no claim of server write authorization. Local execution remains unavailable; latest validation uses exact-head CI. Unit/browser/build acceptance and review are pending; no completion claim.
 
 ## Issue #1213 — UX-32 UTC/local operational presentation completed
 

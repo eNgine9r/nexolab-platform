@@ -32,6 +32,41 @@ async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
   return context;
 }
 
+async function enableEditorFixture(page: Page): Promise<void> {
+  await page.route("**/api/v1/auth/session", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        authenticated: true,
+        identity: {
+          id: "acceptance-editor-identity",
+          provider: "acceptance-oidc",
+          subject: "viewer-acceptance",
+          email: "viewer@example.test",
+          display_name: "Editor Acceptance",
+        },
+        memberships: [
+          {
+            organization_id: organizationId,
+            organization_slug: "dashboard-acceptance",
+            organization_name: "NEXOLAB Dashboard Acceptance",
+            roles: ["operator"],
+            permissions: [
+              "dashboard.read",
+              "live_dashboards.manage",
+              "telemetry.read",
+              "alerts.read",
+              "reports.read",
+              "nodes.read",
+            ],
+          },
+        ],
+      }),
+    });
+  });
+}
+
 function compose(args: string[]): string {
   return execFileSync(
     "docker",
@@ -463,38 +498,7 @@ test("editor loads the canonical catalog and selects a channel without telemetry
   const page = await context.newPage();
   const requests = observeRequests(page);
 
-  await page.route("**/api/v1/auth/session", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        authenticated: true,
-        identity: {
-          id: "acceptance-editor-identity",
-          provider: "acceptance-oidc",
-          subject: "viewer-acceptance",
-          email: "viewer@example.test",
-          display_name: "Editor Acceptance",
-        },
-        memberships: [
-          {
-            organization_id: organizationId,
-            organization_slug: "dashboard-acceptance",
-            organization_name: "NEXOLAB Dashboard Acceptance",
-            roles: ["operator"],
-            permissions: [
-              "dashboard.read",
-              "live_dashboards.manage",
-              "telemetry.read",
-              "alerts.read",
-              "reports.read",
-              "nodes.read",
-            ],
-          },
-        ],
-      }),
-    });
-  });
+  await enableEditorFixture(page);
 
   try {
     await page.goto("/live?workspace=dashboards", { waitUntil: "domcontentloaded" });
@@ -525,6 +529,12 @@ test("editor loads the canonical catalog and selects a channel without telemetry
     ).toBeVisible();
     await expect(page.getByTestId("telemetry-selection-count")).toContainText("1 / 64");
     await expect(page.getByText("1 / 64 вибрано", { exact: true })).toBeVisible();
+    const visualization = page.getByLabel("Візуалізація");
+    await expect(visualization.locator('option[value="gauge"]')).toHaveCount(0);
+    for (const value of ["line", "area", "value"]) {
+      await visualization.selectOption(value);
+      await expect(visualization).toHaveValue(value);
+    }
 
     for (const width of [360, 1440, 1920]) {
       await page.setViewportSize({ width, height: 900 });
@@ -680,6 +690,8 @@ test("persisted Saved Dashboard uses canonical charts without renderer leaks or 
     for (const channelId of fixture.plottedChannels) await expect(panel).toContainText(channelId);
     await expect(page.getByTestId("saved-dashboard-value-card")).toHaveCount(1);
     await expect(page.getByTestId("saved-dashboard-gauge-card")).toHaveCount(1);
+    await expect(page.getByTestId("saved-dashboard-gauge-card")).toContainText("Поточне значення");
+    await expect(page.getByTestId("saved-dashboard-gauge-card")).toContainText("без шкали");
     await expect(page.getByTestId("saved-dashboard-value-card")).not.toContainText("—");
     await expect(page.getByTestId("saved-dashboard-gauge-card")).not.toContainText("—");
     await expect
@@ -884,6 +896,45 @@ test("Live inventory remains readable and keyboard-operable at mobile widths", a
     await expect(row.locator("summary")).toBeHidden();
     await expect(inventory.getByRole("columnheader", { name: "Час вимірювання" })).toBeVisible();
     await compare.uncheck();
+  } finally {
+    await context.close();
+  }
+});
+
+test("legacy Gauge remains unchanged until an explicit supported editor choice", async ({ browser }) => {
+  const fixture = seedChartSystemDashboard();
+  const context = await authenticatedContext(browser);
+  const page = await context.newPage();
+  const requests = observeRequests(page);
+  // Reuse the existing frontend editor permission fixture; this scenario performs no API writes.
+  await enableEditorFixture(page);
+  try {
+    await page.goto("/live?workspace=dashboards", { waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: `Редагувати ${fixture.dashboardName}` }).click();
+    const legacy = page.getByLabel("Візуалізація").filter({ has: page.locator('option[value="gauge"]') });
+    await expect(legacy).toHaveValue("gauge");
+    await expect(legacy.locator('option[value="gauge"]')).toBeDisabled();
+    await page.getByLabel("Назва").fill("Renamed legacy dashboard");
+    await expect(legacy).toHaveValue("gauge");
+    await legacy.selectOption("value");
+    await expect(page.locator('option[value="gauge"]')).toHaveCount(0);
+    for (const width of [390, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect
+        .poll(() =>
+          page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+        )
+        .toBe(true);
+    }
+    expect(
+      requests.dashboard.filter((request) => !["GET", "HEAD", "OPTIONS"].includes(request.method)),
+    ).toEqual([]);
+    expect(requests.acquisitionMutations).toEqual([]);
+    expect(
+      postgres(
+        `SELECT visualization FROM live_dashboard_items WHERE dashboard_id = ${sqlString(fixture.dashboardId)} AND position = 4;`,
+      ).trim(),
+    ).toBe("gauge");
   } finally {
     await context.close();
   }
