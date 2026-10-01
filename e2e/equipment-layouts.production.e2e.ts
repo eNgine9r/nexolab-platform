@@ -518,7 +518,7 @@ test("renders and navigates the authenticated Equipment Layouts catalog", async 
           "aria-pressed",
           "true",
         );
-        await expect(page.getByRole("button", { name: "Зберегти чернетку", exact: true })).toHaveCount(0);
+        await expect(page.getByRole("button", { name: /Зберегти (чернетку|всі зміни)/ })).toHaveCount(0);
         const back = page.getByRole("link", { name: "Назад до каталогу схем" });
         await expect(back).toHaveAttribute("href", returnHref);
         await back.focus();
@@ -540,7 +540,7 @@ test("renders and navigates the authenticated Equipment Layouts catalog", async 
         "true",
       );
       await expect(page.getByRole("link", { name: "Назад до каталогу схем" })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Зберегти чернетку", exact: true })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: /Зберегти (чернетку|всі зміни)/ })).toHaveCount(0);
       expect(requests.every((request) => request.method === "GET")).toBe(true);
     });
 
@@ -644,7 +644,7 @@ test("catalog edit intent opens the authorized draft without writing it", async 
         "aria-pressed",
         "true",
       );
-      await expect(page.getByRole("button", { name: "Зберегти чернетку", exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: /Зберегти (чернетку|всі зміни)/ })).toBeVisible();
       await expect(page.getByRole("link", { name: "Назад до каталогу схем" })).toHaveAttribute(
         "href",
         "/equipment-layouts?q=LAY-CURRENT-01",
