@@ -1,5 +1,10 @@
 import type { EquipmentLifecycleRepository } from "./equipment-lifecycle-repository";
 import type { RefrigerationEquipmentRepository } from "./equipment-repository";
+import {
+  clearAllStructuralSnapshotScopes,
+  clearStructuralSnapshotScope,
+  invalidateStructuralSnapshot,
+} from "./structural-snapshot-repository";
 import type {
   PublishLayoutDraftInput,
   RefrigerationLayoutRepository,
@@ -106,9 +111,11 @@ function invalidateKey(scope: string, key: string): void {
 
 export function invalidateRefrigerationStructuralCache(scope: string, equipmentId?: string): void {
   if (!equipmentId) {
+    clearStructuralSnapshotScope(scope);
     buckets.delete(scope);
     return;
   }
+  invalidateStructuralSnapshot(scope, equipmentId);
   const current = buckets.get(scope);
   if (!current) return;
   const encoded = encodeURIComponent(equipmentId);
@@ -118,6 +125,7 @@ export function invalidateRefrigerationStructuralCache(scope: string, equipmentI
 }
 
 export function clearAllRefrigerationStructuralCaches(): void {
+  clearAllStructuralSnapshotScopes();
   buckets.clear();
 }
 

@@ -866,6 +866,32 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
     expect(finalDraft.placements).toHaveLength(2);
     expect(finalDraft.image?.original_filename).toBe("showcase-acceptance.png");
 
+    // Re-enter immediately: a pre-save structural cache previously hid both
+    // persisted markers after photo publication until a full page reload.
+    const writesBeforePublicationCheck = configurationWrites;
+    for (const width of [390, 1280]) {
+      await pageA.setViewportSize({ width, height: 900 });
+      await enterEditMode(pageA);
+      await expect(
+        editor(pageA).getByRole("button", { name: "Редагувати датчик T-03", exact: true }),
+      ).toBeVisible();
+      await expect(
+        editor(pageA).getByRole("button", { name: "Редагувати датчик 471", exact: true }),
+      ).toBeVisible();
+      await expect(sensorMarker(pageA, "T-03")).toBeVisible();
+      await expect(sensorMarker(pageA, "471")).toBeVisible();
+      await editor(pageA).getByRole("button", { name: "Скасувати редагування" }).click();
+      await expect(sensorMarker(pageA, "T-03")).toBeVisible();
+      await expect(sensorMarker(pageA, "471")).toBeVisible();
+    }
+    expect(configurationWrites).toBe(writesBeforePublicationCheck);
+    expect(await readBindings(operatorA.request, equipment.id)).toEqual(bindingsAfterSave);
+    expect(await readDraft(operatorA.request, equipment.id)).toMatchObject({
+      version: finalDraft.version,
+      placements: finalDraft.placements,
+      image: { id: finalDraft.image!.id },
+    });
+
     const historyResponse = await operatorA.request.get(
       `${apiBaseUrl}/api/v1/equipment/${equipment.id}/layout/history`,
     );
@@ -903,6 +929,9 @@ test("stages multiple chamber sensors and persists them in one atomic transactio
           publishedRevision: history.items[0]?.revision,
           publishedSourceDraftVersion: history.items[0]?.source_draft_version,
           imageUploadWrites,
+          postPublicationMarkersPreserved: true,
+          postPublicationReentryViewports: [390, 1280],
+          postPublicationConfigurationWrites: configurationWrites - writesBeforePublicationCheck,
           oversizedImageRejectedBeforeUpload: true,
         },
         null,

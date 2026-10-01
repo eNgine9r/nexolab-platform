@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { EquipmentLifecycleRepository } from "./equipment-lifecycle-repository";
+import type { RefrigerationLayoutRepository } from "./layout-repository";
+import {
+  clearAllRefrigerationStructuralCaches,
+  createCachedEquipmentLifecycleRepository,
+  createCachedLayoutRepository,
+} from "./refrigeration-structural-cache";
+
 import {
   clearStructuralSnapshotScope,
   HttpRefrigerationStructuralSnapshotRepository,
@@ -89,6 +97,7 @@ function payload() {
 }
 
 afterEach(() => {
+  clearAllRefrigerationStructuralCaches();
   clearStructuralSnapshotScope("scope-a");
   clearStructuralSnapshotScope("scope-b");
 });
@@ -129,6 +138,154 @@ describe("HttpRefrigerationStructuralSnapshotRepository", () => {
     await first.get(equipmentId);
     await second.get(equipmentId);
 
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("refreshes an empty snapshot immediately after a successful configuration save", async () => {
+    const empty = { ...payload(), bindings: [], placements_count: 0 };
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(empty)))
+      .mockResolvedValueOnce(new Response(JSON.stringify(payload())));
+    const snapshot = new HttpRefrigerationStructuralSnapshotRepository({
+      apiBaseUrl: "http://127.0.0.1:8082",
+      scope: "scope-a",
+      fetchImpl,
+    });
+    expect((await snapshot.get(equipmentId)).bindings).toHaveLength(0);
+    const lifecycle = createCachedEquipmentLifecycleRepository(
+      {
+        replaceSensorConfiguration: vi.fn().mockResolvedValue({}),
+      } as unknown as EquipmentLifecycleRepository,
+      "scope-a",
+    );
+    await lifecycle.replaceSensorConfiguration(equipmentId, 1, 1, []);
+    expect((await snapshot.get(equipmentId)).bindings).toHaveLength(1);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it.each(["saveDraft", "publishDraft", "restoreRevision", "uploadImage"] as const)(
+    "refreshes only the affected snapshot after successful %s",
+    async (method) => {
+      const fetchImpl = vi.fn(async () => new Response(JSON.stringify(payload())));
+      const snapshot = new HttpRefrigerationStructuralSnapshotRepository({
+        apiBaseUrl: "http://127.0.0.1:8082",
+        scope: "scope-a",
+        fetchImpl,
+      });
+      const otherOrganization = new HttpRefrigerationStructuralSnapshotRepository({
+        apiBaseUrl: "http://127.0.0.1:8082",
+        scope: "scope-b",
+        fetchImpl,
+      });
+      await snapshot.get(equipmentId);
+      await otherOrganization.get(equipmentId);
+      const layouts = createCachedLayoutRepository(
+        {
+          [method]: vi.fn().mockResolvedValue({ ok: true, value: null }),
+        } as unknown as RefrigerationLayoutRepository,
+        "scope-a",
+      );
+      const input = {
+        equipmentId,
+        expectedVersion: 1,
+        imageId: null,
+        placements: [],
+        revisionId: "r1",
+        actorId: "operator",
+        file: new File([], "photo.png"),
+      };
+      if (method === "uploadImage") await layouts.uploadImage(input);
+      else if (method === "restoreRevision") await layouts.restoreRevision(input);
+      else if (method === "saveDraft") await layouts.saveDraft(input);
+      else await layouts.publishDraft(input);
+      await snapshot.get(equipmentId);
+      await otherOrganization.get(equipmentId);
+      expect(fetchImpl).toHaveBeenCalledTimes(3);
+    },
+  );
+
+  it("keeps a usable snapshot when a mutation is rejected", async () => {
+    const fetchImpl = vi.fn(async () => new Response(JSON.stringify(payload())));
+    const snapshot = new HttpRefrigerationStructuralSnapshotRepository({
+      apiBaseUrl: "http://127.0.0.1:8082",
+      scope: "scope-a",
+      fetchImpl,
+    });
+    const before = await snapshot.get(equipmentId);
+    const layouts = createCachedLayoutRepository(
+      {
+        publishDraft: vi.fn().mockResolvedValue({ ok: false, error: {} }),
+      } as unknown as RefrigerationLayoutRepository,
+      "scope-a",
+    );
+    await layouts.publishDraft({ equipmentId, expectedVersion: 1 });
+    expect(await snapshot.get(equipmentId)).toBe(before);
+    expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+
+  it("keeps another equipment snapshot cached in the same organization", async () => {
+    const otherId = "other-equipment";
+    const other = payload();
+    other.equipment.id = otherId;
+    other.layout.equipment_id = otherId;
+    other.bindings[0]!.equipment_id = otherId;
+    other.channels[0]!.bound_equipment_id = otherId;
+    const fetchImpl = vi.fn(
+      async (url: string | URL | Request) =>
+        new Response(JSON.stringify(String(url).includes(otherId) ? other : payload())),
+    );
+    const snapshot = new HttpRefrigerationStructuralSnapshotRepository({
+      apiBaseUrl: "http://127.0.0.1:8082",
+      scope: "scope-a",
+      fetchImpl,
+    });
+    await snapshot.get(equipmentId);
+    const otherSnapshot = await snapshot.get(otherId);
+    const lifecycle = createCachedEquipmentLifecycleRepository(
+      {
+        replaceSensorConfiguration: vi.fn().mockResolvedValue({}),
+      } as unknown as EquipmentLifecycleRepository,
+      "scope-a",
+    );
+    await lifecycle.replaceSensorConfiguration(equipmentId, 1, 1, []);
+    await snapshot.get(equipmentId);
+    expect(await snapshot.get(otherId)).toBe(otherSnapshot);
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not reuse or cache a pre-mutation in-flight response after invalidation", async () => {
+    let resolveOld!: (response: Response) => void;
+    let resolveFresh!: (response: Response) => void;
+    const fetchImpl = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveOld = resolve;
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveFresh = resolve;
+          }),
+      );
+    const snapshot = new HttpRefrigerationStructuralSnapshotRepository({
+      apiBaseUrl: "http://127.0.0.1:8082",
+      scope: "scope-a",
+      fetchImpl,
+    });
+    const oldRead = snapshot.get(equipmentId);
+    snapshot.invalidate(equipmentId);
+    const freshRead = snapshot.get(equipmentId);
+    resolveOld(new Response(JSON.stringify({ ...payload(), bindings: [] })));
+    expect((await oldRead).bindings).toHaveLength(0);
+    expect(snapshot.get(equipmentId)).toBe(freshRead);
+    resolveFresh(new Response(JSON.stringify(payload())));
+    const fresh = await freshRead;
+    expect(await snapshot.get(equipmentId)).toBe(fresh);
+    expect(fresh.bindings).toHaveLength(1);
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 });
