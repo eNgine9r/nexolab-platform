@@ -5774,8 +5774,16 @@
           "typecheck": "pass",
           "lint_format": "pass",
           "production_build": "pass",
-          "deployment_hardware_changes": "none"
-        }
+          "deployment_hardware_changes": "none",
+          "initial_ci_head": "9909420aa1fab267a5c78cdfab1803ea2d9dc606",
+          "initial_ci_matrix": "4_of_4_green",
+          "review_product_head": "8010edc9c97a3c44091b967de202572483801f91",
+          "review_focused_domain_tests": "92_pass",
+          "inventory_scope_red_green": "pass",
+          "stale_wizard_mutation_red_green": "3_pass",
+          "review_type_lint_format_build": "pass"
+        },
+        "pull_request": 1201
       }
     }
   ],
