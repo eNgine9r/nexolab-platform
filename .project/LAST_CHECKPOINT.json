@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T05:06:54+03:00",
+  "timestamp": "2026-10-01T05:18:00+03:00",
   "actor": "Codex",
-  "event": "ux1200_cross_route_and_binding_recovery_ci_pending",
+  "event": "ux1200_rejected_creation_ci_pending",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -494,7 +494,11 @@
       "cross_route_product_head": "5796aacf129c61f2a4eda84bc203d7c7d370373b",
       "cross_route_local_tests": "111_pass",
       "cross_route_type_lint_format_build": "pass",
-      "cross_route_ci": "pending"
+      "cross_route_ci": "pending",
+      "rejection_product_head": "f1aa0f2e1551d92c923cd714b7618ee04472be5b",
+      "rejection_local_tests": "114_pass",
+      "rejection_type_lint_format_build": "pass",
+      "rejection_ci": "pending"
     }
   },
   "observations": [

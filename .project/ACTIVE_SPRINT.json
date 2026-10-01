@@ -5797,7 +5797,12 @@
           "recovered_ci_matrix": "4_of_4_green",
           "cross_route_tests": "111_pass",
           "cross_route_type_lint_format_build": "pass",
-          "frozen_binding_recovery": "3_pass"
+          "frozen_binding_recovery": "3_pass",
+          "cross_route_ci_head": "71aee12ea225b815802fdd6e01603441b35d2e6a",
+          "cross_route_ci_matrix": "9_of_9_green",
+          "rejected_creation_tests": "114_pass",
+          "rejected_creation_type_lint_format_build": "pass",
+          "uncertain_creation_replay": "pass"
         },
         "pull_request": 1201
       }
