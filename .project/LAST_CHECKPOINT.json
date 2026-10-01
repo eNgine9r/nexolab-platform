@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T17:21:29.776Z",
+  "timestamp": "2026-10-01T17:26:40.726Z",
   "actor": "Codex",
-  "event": "ux1220_merged_ux1222_regression_candidate",
+  "event": "ux1222_scoped_tab_source_candidate",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -707,11 +707,24 @@
       "issue": 1222,
       "title": "UX-18 equipment-scoped refrigeration tabs and safe storage fallback",
       "branch": "fix/1222-equipment-scoped-tabs",
-      "phase": "regression_baseline",
-      "local_execution": "unavailable_environment_offline",
-      "exact_head_ci": "pending_expected_regression",
+      "phase": "source_candidate",
+      "local_execution": "restored",
+      "exact_head_ci": "pending",
       "browser_acceptance": "pending",
-      "review": "pending"
+      "review": "pending",
+      "regression_baseline": {
+        "head_sha": "ac561802bc61fa5dcce9cbcbd0afcc0cf4bae85c",
+        "run": 36898795544,
+        "tests": "2_expected_failures_951_passed"
+      },
+      "local_checks": {
+        "focused_tests": "12_passed",
+        "typecheck": "passed",
+        "lint": "passed",
+        "format": "passed",
+        "canonical_state": "passed",
+        "diff_integrity": "passed"
+      }
     }
   },
   "observations": [
@@ -1171,7 +1184,7 @@
       }
     }
   ],
-  "next_action": "Reproduce #1222 regression in exact-head CI, then apply the scoped source fix and verify all registered CI/browser/review before GREEN-only merge. Installed #1191 remains access-gated.",
+  "next_action": "Verify #1222 scoped preferences, fallback, screen and browser journeys locally and in all exact-head workflows, resolve review and merge only GREEN. Then qualify the direct schema-editing UX-19 package; installed #1191 remains separately access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

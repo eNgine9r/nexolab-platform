@@ -2,9 +2,9 @@
 
 Updated: 2026-10-01
 
-## Issue #1222 — UX-18 equipment-scoped refrigeration tabs and safe storage fallback regression candidate
+## Issue #1222 — UX-18 scoped refrigeration tabs source candidate
 
-Two new screen regressions exercise ignored global legacy preference and independent equipment choices with return restoration. This commit intentionally contains only regressions against the unchanged tab implementation; exact-head CI must reproduce the failure before a scoped preference fix is applied. Product candidate acceptance is pending. Local execution remains offline; no deployment, API, acquisition or hardware change.
+Regression baseline `ac561802bc61fa5dcce9cbcbd0afcc0cf4bae85c` / Core CI 36898795544 reproduced exactly two failures (unscoped legacy preference and cross-object leakage); 951 other tests passed. Source now stores valid tabs by organization/equipment, ignores ambiguous legacy global preference and restores without initial writes. Scope changes default immediately to Overview until that object's preference is read, preventing another object's Graphs tab from enabling its history. Browser storage failures retain usable in-memory navigation. Five focused hook cases cover organization/object boundaries, restore/no-write, invalid/legacy values, blocked reads/writes and unknown organization; two screen regressions prove integration. The existing Embraco browser journey gains two-object return, 390/1280 px keyboard and blocked-storage coverage without navigation mutations. Local execution is restored in an isolated worktree. All 12 focused hook/screen tests, typecheck, lint, changed-source formatting, canonical state and diff integrity passed. Browser and final exact-head CI/review are pending. No API, permissions, acquisition, dependency or deployment change.
 
 ## Issue #1220 — completed
 

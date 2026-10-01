@@ -4,7 +4,7 @@ Updated: 2026-10-01
 
 ## UX source acceptance — #1222 pending
 
-#1220 / PR #1221 is cleared at e61c4c3c6d4cac940e8e90f5d3ccb9dd4fce9c35: 2 registered workflows GREEN, 951 tests, 34 browser cases, zero unresolved threads. #1222 regression baseline and source fix await CI/browser/review. Local execution remains offline; GitHub verification is available. Installed operator acceptance is the separate #1191 blocker below.
+#1220 / PR #1221 is cleared at e61c4c3c6d4cac940e8e90f5d3ccb9dd4fce9c35: 2 registered workflows GREEN, 951 tests, 34 browser cases, zero unresolved threads. #1222 regression baseline reproduced the two expected failures with 951 other tests passing. The scoped source candidate awaits focused checks and final CI/browser/review. Local execution is restored in an isolated worktree. Installed operator acceptance is the separate #1191 blocker below.
 
 ## Audit #1191 — authenticated deployed all-page evidence pending
 

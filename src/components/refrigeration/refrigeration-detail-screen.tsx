@@ -35,6 +35,11 @@ import { attachPhysicalSensorInventory } from "@/features/refrigeration/sensor-c
 import { useRefrigerationController } from "@/features/refrigeration/use-refrigeration-controller";
 import type { RefrigerationStructuralSnapshot } from "@/features/refrigeration/structural-snapshot-repository";
 import { hasPermission } from "@/features/security/security-session";
+import {
+  refrigerationTabStorageKey,
+  useRefrigerationDetailTab,
+  type RefrigerationDetailTab,
+} from "@/features/refrigeration/use-refrigeration-detail-tab";
 
 const equipmentStatusTone: Record<EquipmentStatus, string> = {
   normal: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
@@ -69,7 +74,6 @@ const sideOptions: ReadonlyArray<{ value: "all" | SensorSide; label: string }> =
 ];
 const shelves = [1, 2, 3, 4] as const;
 
-type RefrigerationDetailTab = "overview" | "scheme" | "graphs" | "controller" | "circuit";
 const DETAIL_TABS: readonly { id: RefrigerationDetailTab; label: string }[] = [
   { id: "overview", label: "Огляд" },
   { id: "scheme", label: "Схема" },
@@ -120,7 +124,12 @@ export function RefrigerationDetailScreen({
     () => createEquipmentRegistryRuntime({ organizationId }),
     [organizationId],
   );
-  const [activeTab, setActiveTab] = useState<RefrigerationDetailTab>("overview");
+  const tabOrganizationId =
+    organizationId ?? runtime.organizationId ?? (runtime.mode === "demo" ? "demo" : null);
+  const tabScope = tabOrganizationId
+    ? refrigerationTabStorageKey(tabOrganizationId, initialEquipment.id)
+    : null;
+  const { activeTab, setActiveTab } = useRefrigerationDetailTab(tabScope);
   const controller = useRefrigerationController({
     equipmentId: initialEquipment.id,
     repository: runtime.controllerBindingRepository,
@@ -170,18 +179,6 @@ export function RefrigerationDetailScreen({
       setBindingSensors(buildBindingSensors(initialSnapshot.bindings, initialSnapshot.channels));
     }
   }, [initialEquipment, initialSnapshot]);
-
-  useEffect(() => {
-    const key = "nexolab:refrigeration-detail-tab";
-    const stored = window.localStorage.getItem(key);
-    if (stored && DETAIL_TABS.some((item) => item.id === stored)) {
-      setActiveTab(stored as RefrigerationDetailTab);
-    }
-  }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem("nexolab:refrigeration-detail-tab", activeTab);
-  }, [activeTab]);
 
   useEffect(() => {
     if (!passportOpen) return;
