@@ -92,23 +92,28 @@ function renderManager({
   const onEditingSensorIdChange = vi.fn();
   const onPendingChannelChange = vi.fn();
   const onSelect = vi.fn();
-  render(
-    <SensorPlacementManager
-      equipment={equipment}
-      organizationId={organizationId}
-      totalSlots={totalSlots}
-      channels={availableChannels}
-      configuration={configuration}
-      editingSensorId={editingSensorId}
-      pendingChannelId={pendingChannelId}
-      onEditingSensorIdChange={onEditingSensorIdChange}
-      onPendingChannelChange={onPendingChannelChange}
-      onConfigurationChange={onConfigurationChange}
-      onSelect={onSelect}
-      onRefreshChannels={onRefreshChannels}
-    />,
-  );
-  return { onConfigurationChange, onEditingSensorIdChange, onPendingChannelChange, onSelect };
+  const props = {
+    equipment,
+    organizationId,
+    totalSlots,
+    channels: availableChannels,
+    configuration,
+    editingSensorId,
+    pendingChannelId,
+    onEditingSensorIdChange,
+    onPendingChannelChange,
+    onConfigurationChange,
+    onSelect,
+    onRefreshChannels,
+  };
+  const view = render(<SensorPlacementManager {...props} />);
+  return {
+    onConfigurationChange,
+    onEditingSensorIdChange,
+    onPendingChannelChange,
+    onSelect,
+    rerender: (next: Partial<typeof props>) => view.rerender(<SensorPlacementManager {...props} {...next} />),
+  };
 }
 
 function openAddSelector() {
@@ -293,7 +298,7 @@ describe("SensorPlacementManager", () => {
   });
 
   it("keeps remove in advanced settings", () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const confirm = vi.spyOn(window, "confirm");
     const { onConfigurationChange, onEditingSensorIdChange } = renderManager({
       configuration: [configured],
       editingSensorId: configured.id,
@@ -303,5 +308,56 @@ describe("SensorPlacementManager", () => {
     fireEvent.click(screen.getByRole("button", { name: "Видалити датчик з підкладки" }));
     expect(onConfigurationChange).toHaveBeenLastCalledWith([]);
     expect(onEditingSensorIdChange).toHaveBeenCalledWith(null);
+    expect(confirm).not.toHaveBeenCalled();
   });
+  it("restores the complete local marker by its focused Undo action and allows another removal", () => {
+    const confirm = vi.spyOn(window, "confirm");
+    const view = renderManager({ configuration: [configured], editingSensorId: configured.id });
+    fireEvent.click(screen.getByText("Додаткові параметри"));
+    fireEvent.click(screen.getByRole("button", { name: "Видалити датчик з підкладки" }));
+    view.rerender({ configuration: [], editingSensorId: null });
+    const undo = screen.getByRole("button", { name: "Скасувати видалення маркера 01F" });
+    expect(undo).toHaveFocus();
+    expect(screen.getByRole("status")).toHaveTextContent("локальної чернетки");
+    fireEvent.click(undo);
+    expect(view.onConfigurationChange).toHaveBeenLastCalledWith([configured]);
+    expect(view.onEditingSensorIdChange).toHaveBeenLastCalledWith(configured.id);
+    expect(view.onSelect).toHaveBeenLastCalledWith(configured.id);
+    expect(screen.queryByRole("button", { name: /Скасувати видалення/ })).not.toBeInTheDocument();
+    view.rerender({ configuration: [configured], editingSensorId: configured.id });
+    fireEvent.click(screen.getByText("Додаткові параметри"));
+    fireEvent.click(screen.getByRole("button", { name: "Видалити датчик з підкладки" }));
+    expect(view.onConfigurationChange).toHaveBeenLastCalledWith([]);
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it("explains an occupied restore position without overwriting the current staged configuration", () => {
+    const view = renderManager({ configuration: [configured], editingSensorId: configured.id });
+    fireEvent.click(screen.getByText("Додаткові параметри"));
+    fireEvent.click(screen.getByRole("button", { name: "Видалити датчик з підкладки" }));
+    view.rerender({ configuration: [{ ...configured, id: "106-04", label: "02F" }], editingSensorId: null });
+    fireEvent.click(screen.getByRole("button", { name: "Скасувати видалення маркера 01F" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("позиція вже зайнята");
+    expect(view.onConfigurationChange).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["equipment", "organization"])(
+    "discards undo when the %s scope changes and does not revive it on return",
+    (scope) => {
+      const view = renderManager({ configuration: [configured], editingSensorId: configured.id });
+      fireEvent.click(screen.getByText("Додаткові параметри"));
+      fireEvent.click(screen.getByRole("button", { name: "Видалити датчик з підкладки" }));
+      view.rerender({
+        configuration: [],
+        editingSensorId: null,
+        ...(scope === "equipment"
+          ? { equipment: { ...equipment, id: "other-equipment" } }
+          : { organizationId: "other-organization" }),
+      });
+      expect(screen.queryByRole("button", { name: /Скасувати видалення/ })).not.toBeInTheDocument();
+      view.rerender({ configuration: [], editingSensorId: null });
+      expect(screen.queryByRole("button", { name: /Скасувати видалення/ })).not.toBeInTheDocument();
+      expect(view.onConfigurationChange).toHaveBeenCalledTimes(1);
+    },
+  );
 });

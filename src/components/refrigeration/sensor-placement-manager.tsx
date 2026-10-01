@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Pencil, Plus, Replace, Trash2, X } from "lucide-react";
+import { AlertTriangle, Pencil, Plus, Replace, Trash2, Undo2, X } from "lucide-react";
 
 import { RefrigerationIconButton } from "@/components/refrigeration/refrigeration-icon-button";
 import { TelemetryPointSelector } from "@/components/telemetry-selection/telemetry-point-selector";
@@ -11,6 +11,7 @@ import {
   channelPlacementConflict,
   channelTelemetryLabel,
   removeConfiguredSensor,
+  restoreRemovedConfiguredSensor,
   replaceConfiguredChannel,
   selectableReplacementChannels,
   sensorSlotCapacity,
@@ -30,7 +31,16 @@ type SelectionModelResult = {
   error: string | null;
 };
 
-export function SensorPlacementManager({
+export function SensorPlacementManager(props: Parameters<typeof SensorPlacementManagerSession>[0]) {
+  return (
+    <SensorPlacementManagerSession
+      key={JSON.stringify([props.organizationId, props.equipment.id])}
+      {...props}
+    />
+  );
+}
+
+function SensorPlacementManagerSession({
   equipment,
   organizationId,
   totalSlots,
@@ -71,6 +81,11 @@ export function SensorPlacementManager({
     () => unused.filter((channel) => channelPlacementConflict(channel, equipment.id) !== null),
     [equipment.id, unused],
   );
+  const [removedSensor, setRemovedSensor] = useState<StagedSensorConfiguration | null>(null);
+  const undoRemovalRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (removedSensor) undoRemovalRef.current?.focus();
+  }, [removedSensor]);
   const [picker, setPicker] = useState<PickerState>(null);
   const [search, setSearch] = useState("");
   const [freshnessNow, setFreshnessNow] = useState(() => Date.now());
@@ -194,11 +209,31 @@ export function SensorPlacementManager({
 
   const remove = () => {
     if (!selectedSensor) return;
-    if (!window.confirm(`Видалити датчик ${selectedSensor.label} з підкладки?`)) return;
+    setRemovedSensor({ ...selectedSensor, trend: [...selectedSensor.trend] });
     onConfigurationChange(removeConfiguredSensor(configuration, selectedSensor.id));
     onEditingSensorIdChange(null);
     setPicker(null);
     setError(null);
+  };
+
+  const undoRemoval = () => {
+    if (!removedSensor) return;
+    try {
+      const next = restoreRemovedConfiguredSensor(
+        configuration,
+        removedSensor,
+        totalSlots,
+        channels,
+        equipment.id,
+      );
+      onConfigurationChange(next);
+      onSelect(removedSensor.id);
+      onEditingSensorIdChange(removedSensor.id);
+      setRemovedSensor(null);
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Не вдалося відновити маркер.");
+    }
   };
 
   const closeRename = () => {
@@ -279,6 +314,23 @@ export function SensorPlacementManager({
           <span className="rounded-full bg-white/[0.07] px-2 py-0.5 text-[9px]">{assignable.length}</span>
         </button>
       </div>
+      {removedSensor ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-amber-300/20 bg-amber-400/[0.06] p-3">
+          <p role="status" className="min-w-0 flex-1 text-[11px] text-amber-100">
+            Маркер {removedSensor.label} видалено з локальної чернетки.
+          </p>
+          <button
+            ref={undoRemovalRef}
+            type="button"
+            aria-label={`Скасувати видалення маркера ${removedSensor.label}`}
+            onClick={undoRemoval}
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-amber-300/25 px-3 text-xs text-amber-100 hover:bg-amber-400/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300"
+          >
+            <Undo2 className="h-3.5 w-3.5" />
+            Скасувати видалення
+          </button>
+        </div>
+      ) : null}
       {picker?.kind === "add" ? (
         <div
           className="mt-3 rounded-xl border border-cyan-300/15 bg-[#07182f]/95 p-3"

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T17:55:33.060Z",
+  "timestamp": "2026-10-01T19:03:50.793Z",
   "actor": "Codex",
-  "event": "ux1224_direct_scheme_source_candidate",
+  "event": "ux1226_cancel_regression_refined_follow_up_1228_qualified",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1224,
-    "title": "UX-19 direct catalog Scheme entry with safe return context",
-    "branch": "fix/1224-scheme-entry"
+    "issue": 1226,
+    "title": "UX-20 local sensor marker removal with guarded accessible undo",
+    "branch": "fix/1226-marker-removal-undo"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -733,16 +733,44 @@
       "issue": 1224,
       "title": "UX-19 direct catalog Scheme entry with safe return context",
       "branch": "fix/1224-scheme-entry",
-      "phase": "source_candidate",
+      "phase": "completed",
       "local_checks": {
         "focused_tests": "35_passed",
         "typecheck": "passed",
         "lint": "passed"
       },
+      "exact_head_ci": "5_of_5_green",
+      "browser_acceptance": "14_passed",
+      "review": "4_resolved_0_unresolved_threads",
+      "review_follow_up": "legacy_draft_and_camera_configuration_save_grants_verified_independent_publish_restore_preserved",
+      "verified_head_sha": "9102f289fe45a0b74af318ef3962efd97812f74a",
+      "pull_request": 1225,
+      "frontend_tests": "978_passed"
+    },
+    "issue_1226_ux20": {
+      "issue": 1226,
+      "title": "UX-20 local sensor marker removal with guarded accessible undo",
+      "branch": "fix/1226-marker-removal-undo",
+      "phase": "source_candidate",
+      "local_checks": {
+        "focused_tests": "42_passed",
+        "typecheck": "passed",
+        "lint": "passed",
+        "format": "passed"
+      },
       "exact_head_ci": "pending",
       "browser_acceptance": "pending",
-      "review": "pending",
-      "review_follow_up": "legacy_draft_and_camera_configuration_save_grants_verified_independent_publish_restore_preserved"
+      "review": "pending"
+    },
+    "issue_1228_post_publication": {
+      "issue": 1228,
+      "title": "Investigate empty sensor editor after photo publication",
+      "branch": "fix/1228-post-publication-bindings",
+      "phase": "queued_after_1226",
+      "source_run": 36910009276,
+      "artifact_id": 11186024974,
+      "observation": "edit_screen_0_of_4_after_v4_publication_two_persisted_draft_placements",
+      "binding_data_loss": "not_established"
     }
   },
   "observations": [
@@ -1228,9 +1256,42 @@
         "failure": "transport_node_fixture_did_not_select_camera_scoped_editor",
         "follow_up": "use_existing_active_climate_chamber_fk_and_fail_setup_when_absent"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T18:50:19.282Z",
+      "kind": "issue_1224_pr_1225_merged",
+      "data": {
+        "issue": 1224,
+        "pull_request": 1225,
+        "verified_head_sha": "9102f289fe45a0b74af318ef3962efd97812f74a",
+        "merge_sha": "8e396f1cb1201c61ef0aced349678e06b219c584",
+        "exact_head_workflows": "5_of_5_green",
+        "frontend_tests": 978,
+        "browser_scenarios": 14,
+        "unresolved_review_threads": 0,
+        "review_threads_resolved": 4,
+        "fixture_order_evidence": "explicit_equipment_registry_project_dependency_and_fresh_dashboard_success"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T19:03:50.793Z",
+      "kind": "issue_1226_browser_cancel_scope_and_1228_follow_up",
+      "data": {
+        "head_sha": "efdc59592c3750350e0c167ee912e34ff9fdbd9d",
+        "run": 36910009276,
+        "artifact_id": 11186024974,
+        "browser_passed": 5,
+        "browser_failed": 1,
+        "failure": "late_cancel_probe_found_no_marker_after_photo_publication_editor_0_of_4",
+        "local_undo_journey": "passed_390_1280_before_explicit_save",
+        "follow_up_issue": 1228,
+        "fix_scope": "cancel_regression_on_fresh_version_2_bindings_post_publication_in_separate_package"
+      }
     }
   ],
-  "next_action": "Verify #1224 direct Scheme entry, authorized editor/viewer boundaries and filtered return journeys in all exact-head workflows; resolve reviews and merge only GREEN. Continue remaining bounded UX source findings. Installed #1191 remains separately access-gated.",
+  "next_action": "Verify corrected #1226 cancellation on freshly reloaded authoritative version-2 bindings and all final workflows/review; merge only GREEN. Then investigate #1228 post-publication empty editor using binding API/database evidence before changing the actual cause. Continue remaining UX source findings; installed #1191 remains access-gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
