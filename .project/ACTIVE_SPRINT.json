@@ -5792,7 +5792,12 @@
           "workspace_mutation_leases": "4_pass",
           "draft_replay_after_navigation": "3_pass",
           "recovery_type_lint_format_build": "pass",
-          "recovered_product_head": "d2858c3e1e64b88df41df0768dd7ee7b94df9179"
+          "recovered_product_head": "d2858c3e1e64b88df41df0768dd7ee7b94df9179",
+          "recovered_ci_head": "b25d32f7668808dce6b7278a562a1c07fca81039",
+          "recovered_ci_matrix": "4_of_4_green",
+          "cross_route_tests": "111_pass",
+          "cross_route_type_lint_format_build": "pass",
+          "frozen_binding_recovery": "3_pass"
         },
         "pull_request": 1201
       }
