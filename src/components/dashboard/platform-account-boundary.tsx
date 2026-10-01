@@ -12,7 +12,7 @@ type PlatformAccount = {
   selectOrganization: (organizationId: string) => void;
   signOut: () => void;
   operationPending: boolean;
-  setOperationPending: (pending: boolean) => void;
+  beginOperation: () => () => void;
 };
 const PlatformAccountContext = createContext<PlatformAccount | null>(null);
 export function usePlatformAccount() {
@@ -31,11 +31,18 @@ export function PlatformAccountBoundary({
   const pathname = usePathname();
   const applyOrganization = security.selectOrganization;
   const [pendingOrganization, setPendingOrganization] = useState<string | null>(null);
-  const operationPendingRef = useRef(false);
+  const operationPendingRef = useRef(0);
   const [operationPending, setOperationPendingState] = useState(false);
-  const setOperationPending = useCallback((pending: boolean) => {
-    operationPendingRef.current = pending;
-    setOperationPendingState(pending);
+  const beginOperation = useCallback(() => {
+    operationPendingRef.current += 1;
+    setOperationPendingState(true);
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      operationPendingRef.current -= 1;
+      setOperationPendingState(operationPendingRef.current > 0);
+    };
   }, []);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
@@ -113,11 +120,16 @@ export function PlatformAccountBoundary({
       />
     );
   }
-  const scope = security.mode + ":" + (security.membership?.organizationId ?? "demo");
+  const scope =
+    security.mode +
+    ":" +
+    (security.session?.identity.id ?? "anonymous") +
+    ":" +
+    (security.membership?.organizationId ?? "demo");
   return (
     <PlatformAccountContext.Provider
       key={scope}
-      value={{ security, selectOrganization, signOut, operationPending, setOperationPending }}
+      value={{ security, selectOrganization, signOut, operationPending, beginOperation }}
     >
       {children}
     </PlatformAccountContext.Provider>
@@ -146,7 +158,7 @@ export function PlatformAccountTopbar({ title, onMenuOpen }: { title: string; on
       accountActionsDisabled={account?.operationPending}
       accountActionNotice={
         account?.operationPending
-          ? "Створення випробування триває. Зміна організації та вихід будуть доступні після завершення."
+          ? "Операція з випробуванням триває. Зміна організації та вихід будуть доступні після завершення."
           : undefined
       }
     />

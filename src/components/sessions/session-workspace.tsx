@@ -20,7 +20,11 @@ import {
 
 export function SessionWorkspace({ sessionId }: { sessionId: string }) {
   const account = usePlatformAccount();
-  const workspace = useSessionWorkspace(sessionId, account?.security.membership?.organizationId);
+  const workspace = useSessionWorkspace(
+    sessionId,
+    account?.security.membership?.organizationId,
+    account?.beginOperation,
+  );
 
   if (!workspace.data && workspace.loading) return <WorkspaceLoading />;
   if (!workspace.data && workspace.error) {

@@ -56,7 +56,11 @@ export interface SessionWorkspaceModel {
   addNote: (body: string) => Promise<void>;
 }
 
-export function useSessionWorkspace(sessionId: string, organizationId?: string): SessionWorkspaceModel {
+export function useSessionWorkspace(
+  sessionId: string,
+  organizationId?: string,
+  beginAccountOperation?: () => () => void,
+): SessionWorkspaceModel {
   const [data, setData] = useState<SessionWorkspaceData | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [loading, setLoading] = useState(true);
@@ -141,6 +145,7 @@ export function useSessionWorkspace(sessionId: string, organizationId?: string):
 
   const runMutation = useCallback(
     async (scope: string, execute: (key: string) => Promise<void>) => {
+      const release = beginAccountOperation?.();
       setMutating(true);
       setError(null);
       const key = mutationKeys.current.get(scope) ?? createIdempotencyKey(scope);
@@ -148,16 +153,17 @@ export function useSessionWorkspace(sessionId: string, organizationId?: string):
       try {
         await execute(key);
         mutationKeys.current.delete(scope);
-        invalidateSessionListReadModels();
+        invalidateSessionListReadModels(organizationId);
         refresh();
       } catch (nextError) {
         setError(nextError instanceof Error ? nextError : new Error("Session operation failed."));
         throw nextError;
       } finally {
+        release?.();
         setMutating(false);
       }
     },
-    [refresh],
+    [beginAccountOperation, organizationId, refresh],
   );
 
   const transition = useCallback(

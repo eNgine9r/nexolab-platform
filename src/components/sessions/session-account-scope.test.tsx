@@ -61,6 +61,6 @@ describe("session domain uses the verified shell organization", () => {
   });
   it("passes it to detail reads and mutations", () => {
     render(<SessionWorkspace sessionId="session-a" />);
-    expect(mock.workspace).toHaveBeenCalledWith("session-a", "org-b");
+    expect(mock.workspace).toHaveBeenCalledWith("session-a", "org-b", undefined);
   });
 });

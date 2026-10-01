@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DashboardSecurityModel } from "@/hooks/use-dashboard-security";
@@ -175,10 +175,18 @@ it("allows a failed sign-out to be retried without redirecting", async () => {
 
 function PendingOperation() {
   const account = usePlatformAccount();
+  const releases = useRef<Array<() => void>>([]);
   return (
     <>
-      <button onClick={() => account?.setOperationPending?.(true)}>Почати операцію</button>
-      <button onClick={() => account?.setOperationPending?.(false)}>Завершити операцію</button>
+      <button
+        onClick={() => {
+          const release = account?.beginOperation();
+          if (release) releases.current.push(release);
+        }}
+      >
+        Почати операцію
+      </button>
+      <button onClick={() => releases.current.pop()?.()}>Завершити операцію</button>
       <Draft />
     </>
   );
@@ -201,8 +209,25 @@ it("keeps session content mounted and blocks account transitions during an activ
   expect(mock.security!.selectOrganization).not.toHaveBeenCalled();
   expect(mock.replace).not.toHaveBeenCalled();
   expect(screen.getByLabelText("Локальна чернетка")).toHaveValue("current draft");
-  expect(screen.getByRole("status")).toHaveTextContent("Створення випробування триває");
+  expect(screen.getByRole("status")).toHaveTextContent("Операція з випробуванням триває");
   fireEvent.click(screen.getByRole("button", { name: "Завершити операцію" }));
   expect(logout).toBeEnabled();
   expect(organizations).toBeEnabled();
+});
+
+it("keeps account controls locked until every independent operation has finished", () => {
+  render(
+    <SessionsShell>
+      <PendingOperation />
+    </SessionsShell>,
+  );
+  const start = screen.getByRole("button", { name: "Почати операцію" });
+  const finish = screen.getByRole("button", { name: "Завершити операцію" });
+  const logout = screen.getByRole("button", { name: "Вийти з NEXOLAB" });
+  fireEvent.click(start);
+  fireEvent.click(start);
+  fireEvent.click(finish);
+  expect(logout).toBeDisabled();
+  fireEvent.click(finish);
+  expect(logout).toBeEnabled();
 });

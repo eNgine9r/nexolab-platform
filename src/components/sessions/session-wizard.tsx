@@ -36,6 +36,14 @@ import {
   type SessionWizardForm,
 } from "./wizard-model";
 
+import {
+  readWizardDraft,
+  saveWizardDraft,
+  clearWizardDraft,
+  wizardDraftKey,
+  type WizardOperation,
+} from "./session-wizard-draft";
+
 type SelectionLoadStatus = "loading" | "ready" | "error";
 
 function bindingIdentity(binding: SessionBindingOption): string {
@@ -53,17 +61,26 @@ function sameSelection(left: readonly string[], right: readonly string[]): boole
 export function SessionWizard() {
   const router = useRouter();
   const account = usePlatformAccount();
-  const setAccountOperationPending = account?.setOperationPending;
+  const beginAccountOperation = account?.beginOperation;
   const verifiedOrganizationId = account?.security.membership?.organizationId;
   const configuredOrganizationId =
     verifiedOrganizationId ?? process.env.NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID?.trim() ?? null;
   const hierarchyOrganizationId = configuredOrganizationId ?? "__current_organization__";
-  const [step, setStep] = useState(0);
+  const identityId = account?.security.session?.identity.id;
+  const draftKey =
+    identityId && verifiedOrganizationId ? wizardDraftKey(identityId, verifiedOrganizationId) : null;
+  const [restored] = useState(() => readWizardDraft(draftKey));
+  const [formFrozen, setFormFrozen] = useState(Boolean(restored?.operation.formSnapshot));
+  const [storageFailed, setStorageFailed] = useState(false);
+  const completed = useRef(false);
+  const [step, setStep] = useState(restored?.step ?? 0);
   const selectionEnabled = step >= 3;
-  const [form, setForm] = useState<SessionWizardForm>(createInitialWizardForm);
+  const [form, setForm] = useState<SessionWizardForm>(() => restored?.form ?? createInitialWizardForm());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [createdSessionId, setCreatedSessionId] = useState<string | null>(null);
+  const [createdSessionId, setCreatedSessionId] = useState<string | null>(
+    restored?.operation.sessionId ?? null,
+  );
   const [bindingOptions, setBindingOptions] = useState<SessionBindingOption[]>([]);
   const [bindingOptionsStatus, setBindingOptionsStatus] = useState<SelectionLoadStatus>("loading");
   const [bindingOptionsError, setBindingOptionsError] = useState<Error | null>(null);
@@ -78,20 +95,38 @@ export function SessionWizard() {
     credentialProvider: inventoryCredentials,
   });
   const submission = useRef<AbortController | null>(null);
+  const releaseSubmission = useRef<(() => void) | null>(null);
   useEffect(
     () => () => {
       submission.current?.abort();
-      setAccountOperationPending?.(false);
+      releaseSubmission.current?.();
+      releaseSubmission.current = null;
     },
-    [setAccountOperationPending],
+    [beginAccountOperation],
   );
-  const operation = useRef({
-    sessionId: null as string | null,
-    selectionKeys: null as string[] | null,
-    createKey: createIdempotencyKey("session-create"),
-    bindingKeys: new Map<string, string>(),
-    limitsKey: createIdempotencyKey("limit-version"),
-  });
+  const operation = useRef<WizardOperation>(
+    restored?.operation ?? {
+      sessionId: null as string | null,
+      selectionKeys: null as string[] | null,
+      createKey: createIdempotencyKey("session-create"),
+      bindingKeys: new Map<string, string>(),
+      limitsKey: createIdempotencyKey("limit-version"),
+      formSnapshot: null,
+    },
+  );
+  const persist = (currentForm = form, currentStep = step) => {
+    const saved = saveWizardDraft(draftKey, {
+      form: currentForm,
+      step: currentStep,
+      operation: operation.current,
+    });
+    setStorageFailed(!saved);
+    return saved;
+  };
+  useEffect(() => {
+    if (!completed.current)
+      setStorageFailed(!saveWizardDraft(draftKey, { form, step, operation: operation.current }));
+  }, [draftKey, form, step]);
 
   useEffect(() => {
     if (!selectionEnabled) return;
@@ -152,9 +187,10 @@ export function SessionWizard() {
   };
 
   const submit = async () => {
+    if (submission.current) return;
     const controller = new AbortController();
     submission.current = controller;
-    setAccountOperationPending?.(true);
+    releaseSubmission.current = beginAccountOperation?.() ?? null;
     setSubmitting(true);
     setError(null);
     try {
@@ -186,28 +222,32 @@ export function SessionWizard() {
         );
       }
 
+      operation.current.formSnapshot ??= structuredClone(form);
+      const submittedForm = operation.current.formSnapshot;
+      setFormFrozen(true);
+      persist(submittedForm, 7);
       let sessionId = operation.current.sessionId;
 
       if (!sessionId) {
         const created = await sessionClient.createSession(
           {
-            session_number: form.sessionNumber.trim(),
-            title: form.title.trim(),
-            test_object: form.testObject.trim(),
+            session_number: submittedForm.sessionNumber.trim(),
+            title: submittedForm.title.trim(),
+            test_object: submittedForm.testObject.trim(),
             node_id: "edge-01",
-            customer: form.customer.trim(),
-            model: form.model.trim(),
-            serial_number: form.serialNumber.trim(),
-            standard: form.standard.trim(),
-            method: form.method.trim(),
-            operator_id: form.operatorId.trim() || null,
-            responsible_engineer_id: form.engineerId.trim() || null,
+            customer: submittedForm.customer.trim(),
+            model: submittedForm.model.trim(),
+            serial_number: submittedForm.serialNumber.trim(),
+            standard: submittedForm.standard.trim(),
+            method: submittedForm.method.trim(),
+            operator_id: submittedForm.operatorId.trim() || null,
+            responsible_engineer_id: submittedForm.engineerId.trim() || null,
             metadata_payload: {
               sampling_policy: {
-                interval_seconds: form.samplingSeconds,
+                interval_seconds: submittedForm.samplingSeconds,
                 mode: "fixed_interval",
               },
-              stage_plan: form.stages,
+              stage_plan: submittedForm.stages,
               telemetry_selection_count: frozenBindings.length,
               created_by: "nexolab-dashboard-wizard-v2",
             },
@@ -219,6 +259,7 @@ export function SessionWizard() {
         if (controller.signal.aborted) return;
         sessionId = created.session.id;
         operation.current.sessionId = sessionId;
+        persist(submittedForm, 7);
         setCreatedSessionId(sessionId);
         invalidateSessionListReadModels(configuredOrganizationId);
       }
@@ -230,6 +271,7 @@ export function SessionWizard() {
           idempotencyKey = createIdempotencyKey("session-binding");
           operation.current.bindingKeys.set(identity, idempotencyKey);
         }
+        persist(submittedForm, 7);
         await sessionClient.addBinding(
           sessionId,
           {
@@ -258,16 +300,16 @@ export function SessionWizard() {
             {
               metric: "temperature.probe",
               unit: "degC",
-              lower_limit: form.temperatureLower,
-              upper_limit: form.temperatureUpper,
-              hysteresis: form.temperatureHysteresis,
-              duration_seconds: form.temperatureDurationSeconds,
+              lower_limit: submittedForm.temperatureLower,
+              upper_limit: submittedForm.temperatureUpper,
+              hysteresis: submittedForm.temperatureHysteresis,
+              duration_seconds: submittedForm.temperatureDurationSeconds,
               payload: { applies_to: ["106-03", "106-04"] },
             },
             {
               metric: "electrical.power.active",
               unit: "W",
-              upper_limit: form.powerUpper,
+              upper_limit: submittedForm.powerUpper,
               hysteresis: 50,
               duration_seconds: 30,
               payload: {
@@ -281,6 +323,8 @@ export function SessionWizard() {
       );
       if (controller.signal.aborted) return;
 
+      completed.current = true;
+      setStorageFailed(!clearWizardDraft(draftKey));
       router.push(`/sessions/${sessionId}`);
     } catch (nextError) {
       if (controller.signal.aborted) return;
@@ -294,7 +338,8 @@ export function SessionWizard() {
     } finally {
       if (submission.current === controller) {
         submission.current = null;
-        setAccountOperationPending?.(false);
+        releaseSubmission.current?.();
+        releaseSubmission.current = null;
       }
       if (!controller.signal.aborted) setSubmitting(false);
     }
@@ -314,7 +359,7 @@ export function SessionWizard() {
               <button
                 key={label}
                 onClick={() => index <= step && setStep(index)}
-                disabled={index > step || submitting}
+                disabled={index > step || submitting || formFrozen}
                 className={`flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition ${
                   active
                     ? "border-blue-400/35 bg-blue-500/10 text-white"
@@ -355,6 +400,16 @@ export function SessionWizard() {
         </div>
 
         <div className="p-5 sm:p-6">
+          {restored && (
+            <p role="status" className="mb-4 text-sm text-cyan-300">
+              Відновлено незавершену форму. Продовжіть створення випробування.
+            </p>
+          )}
+          {storageFailed && (
+            <p role="alert" className="mb-4 text-sm text-amber-300">
+              Не вдалося зберегти чернетку в цьому браузері. Залишайте форму відкритою до завершення.
+            </p>
+          )}
           {step === 0 && <GeneralStep form={form} update={update} />}
           {step === 1 && <ObjectStep form={form} update={update} />}
           {step === 2 && <MethodStep form={form} update={update} />}
@@ -391,7 +446,7 @@ export function SessionWizard() {
         <div className="flex items-center justify-between gap-3 border-t border-white/[0.055] p-5 sm:p-6">
           <button
             className="secondary-button gap-2"
-            disabled={step === 0 || submitting}
+            disabled={step === 0 || submitting || formFrozen}
             onClick={() => setStep((value) => Math.max(0, value - 1))}
           >
             <ArrowLeft className="h-4 w-4" />

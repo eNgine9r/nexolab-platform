@@ -7,11 +7,19 @@ const mock = vi.hoisted(() => ({
   create: vi.fn(),
   binding: vi.fn(),
   limits: vi.fn(),
-  lock: vi.fn(),
+  begin: vi.fn(),
+  release: vi.fn(),
+  persistent: false,
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mock.push }) }));
 vi.mock("@/components/dashboard/platform-account-boundary", () => ({
-  usePlatformAccount: () => ({ security: { membership: null }, setOperationPending: mock.lock }),
+  usePlatformAccount: () => ({
+    security: {
+      membership: mock.persistent ? { organizationId: "org-a" } : null,
+      session: mock.persistent ? { identity: { id: "operator-a" } } : null,
+    },
+    beginOperation: mock.begin,
+  }),
 }));
 vi.mock("@/hooks/use-live-dashboard-inventory", () => ({
   useLiveDashboardInventory: () => ({ items: [], status: "ready", error: null, retry: vi.fn() }),
@@ -51,6 +59,7 @@ vi.mock("./wizard-model", async (original) => {
 });
 vi.mock("@/lib/sessions/api-client", async (original) => ({
   ...(await original<object>()),
+  createSessionCredentialProvider: () => () => ({ accessToken: "verified", organizationId: "org-a" }),
   createSessionApiClient: () => ({
     listProductionBindingOptions: async () => [],
     createSession: mock.create,
@@ -59,8 +68,11 @@ vi.mock("@/lib/sessions/api-client", async (original) => ({
   }),
 }));
 beforeEach(() => {
+  localStorage.clear();
+  mock.persistent = false;
   mock.push.mockClear();
-  mock.lock.mockClear();
+  mock.begin.mockReset().mockReturnValue(mock.release);
+  mock.release.mockReset();
   mock.create.mockReset().mockResolvedValue({ session: { id: "old-org-draft" } });
   mock.binding.mockReset().mockResolvedValue({});
   mock.limits.mockReset().mockResolvedValue({});
@@ -85,7 +97,7 @@ it.each(["create", "binding", "limits"] as const)(
     }
     fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
     await waitFor(() => expect(mock[stage]).toHaveBeenCalledOnce());
-    expect(mock.lock).toHaveBeenCalledWith(true);
+    expect(mock.begin).toHaveBeenCalledOnce();
     const signal = mock[stage].mock.calls[0]!.at(-1) as AbortSignal;
     unmount();
     await act(async () => {
@@ -94,8 +106,49 @@ it.each(["create", "binding", "limits"] as const)(
     expect(signal).toBeInstanceOf(AbortSignal);
     expect(signal.aborted).toBe(true);
     expect(mock.push).not.toHaveBeenCalled();
-    expect(mock.lock).toHaveBeenLastCalledWith(false);
+    expect(mock.release).toHaveBeenCalledOnce();
     if (stage === "create") expect(mock.binding).not.toHaveBeenCalled();
     if (stage !== "limits") expect(mock.limits).not.toHaveBeenCalled();
+  },
+);
+
+it.each(["create", "binding", "limits"] as const)(
+  "resumes %s after ordinary page navigation with the original operation keys",
+  async (stage) => {
+    mock.persistent = true;
+    let finish!: (value: unknown) => void;
+    mock[stage].mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const first = render(<SessionWizard />);
+    for (let step = 0; step < 7; step++) {
+      const next = screen.getByRole("button", { name: "Далі" });
+      await waitFor(() => expect(next).toBeEnabled());
+      fireEvent.click(next);
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
+    await waitFor(() => expect(mock[stage]).toHaveBeenCalledOnce());
+    const firstKey = mock[stage].mock.calls[0]!.at(-2);
+    const originalCreatePayload = mock.create.mock.calls[0]![0];
+    first.unmount();
+    await act(async () => finish({ session: { id: "old-org-draft" } }));
+    const second = render(<SessionWizard />);
+    expect(screen.getByText(/Відновлено незавершену форму/)).toBeVisible();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /Створити реальний draft|Повторити без дублювання/ }),
+      ).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Створити реальний draft|Повторити без дублювання/ }));
+    await waitFor(() => expect(mock.push).toHaveBeenCalledWith("/sessions/old-org-draft"));
+    expect(mock[stage].mock.calls[1]!.at(-2)).toBe(firstKey);
+    if (stage === "create") {
+      expect(mock.create.mock.calls[1]![0].session_number).toBe(originalCreatePayload.session_number);
+    } else expect(mock.create).toHaveBeenCalledOnce();
+    expect(localStorage.getItem("nexolab.sessionWizardDraft.v1:operator-a:org-a")).toBeNull();
+    second.unmount();
   },
 );
