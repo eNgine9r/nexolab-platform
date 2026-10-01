@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T21:32:42.188Z",
+  "timestamp": "2026-10-01T22:02:56.122Z",
   "actor": "Codex",
-  "event": "ux1233_merged_ux1235_selection_memory_candidate",
+  "event": "ux1235_merged_ux1239_login_return_candidate",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1235,
-    "title": "UX-14 remember scoped Live comparison selection on ordinary return",
-    "branch": "fix/1235-live-selection-memory"
+    "issue": 1239,
+    "title": "UX-36 safe local login return and password visibility",
+    "branch": "fix/1239-safe-login-return"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -899,10 +899,25 @@
       "fresh_fixed_version_findings": 0
     },
     "issue_1235_live_selection_memory": {
-      "qualification": "ordinary_bare_sidebar_entry_has_no_compare_URL_and_needs_scoped_memory",
-      "implementation": "versioned_bounded_org_local_preference_explicit_URL_priority_complete_inventory_gate",
-      "local_checks": "not_run_exec_server_environment_offline",
-      "verification_route": "GitData_remote_source_and_full_routed_CI_browser_pending"
+      "verified_head_sha": "823c930a411dd205123dddbf0a93236a0903a8e6",
+      "pull_request": 1238,
+      "exact_head_ci": "2_of_2_green",
+      "core_ci": "success:36930969677",
+      "dashboard_browser": "success:36930969753_38_passed",
+      "frontend_tests": "1061_passed_179_files",
+      "production_build": "Next_16_3_6_passed",
+      "review": "1_fixed_resolved_0_unresolved",
+      "source_acceptance": "completed",
+      "local_execution": "not_run_environment_offline",
+      "installed_acceptance": "access_gated_1191"
+    },
+    "issue_1239_safe_login_return": {
+      "qualification": "actual_SecurityGate_login_href_and_LoginPage_replace_root_chain_verified",
+      "next_docs": "official_exact_v16_3_6_page_and_usePathname_docs_read_via_GitHub_local_executor_unavailable",
+      "implementation": "safe_local_target_server_parse_client_recheck_gate_context_and_non_submit_visibility_toggle",
+      "local_execution": "not_run_environment_offline",
+      "exact_head_ci": "pending",
+      "browser_acceptance": "pending"
     }
   },
   "observations": [
@@ -1566,9 +1581,28 @@
         "next_issue": 1235,
         "local_runtime": "environment_offline_remote_GitData_CI_available"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T22:02:56.122Z",
+      "kind": "issue_1235_pr_1238_merged_1239_activated",
+      "data": {
+        "issue": 1235,
+        "pull_request": 1238,
+        "verified_head_sha": "823c930a411dd205123dddbf0a93236a0903a8e6",
+        "merge_sha": "506dfc7c05bce2f846432b7c13b89ce3718bfecb",
+        "exact_head_ci": "2_of_2_green",
+        "frontend_tests": 1061,
+        "browser_cases": 38,
+        "review_threads": "1_resolved_0_unresolved",
+        "next_issue": 1239,
+        "source_acceptance": "completed",
+        "installed_acceptance": "access_gated_1191",
+        "local_execution": "environment_offline_remote_GitData_CI_route"
+      }
     }
   ],
-  "next_action": "Verify #1235 organization-scoped Live comparison memory with all routed exact-head CI and review GREEN, then merge. Qualify next independent UX source package. Installed #1191 remains access-gated; local executor is unavailable and remote GitData/CI is the working route.",
+  "next_action": "Verify #1239 safe local login return/password visibility with all routed exact-head CI, offline local-auth browser journeys and review GREEN; then merge and qualify the next independent UX package. Approved laboratory template evidence for UX-22/24 and installed #1191 remain separate boundaries; no deployment or hardware action.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

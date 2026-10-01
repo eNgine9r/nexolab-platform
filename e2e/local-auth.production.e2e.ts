@@ -506,3 +506,89 @@ function requiredEnvironment(name: string): string {
   if (!value) throw new Error(`${name} is required`);
   return value;
 }
+
+for (const width of [390, 1280]) {
+  test(`protected local destination survives browser login at ${width}px`, async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width, height: 900 } });
+    const page = await context.newPage();
+    const destination = "/settings?tab=general#display";
+    try {
+      await page.goto(destination, { waitUntil: "domcontentloaded" });
+      await expect(page.getByRole("heading", { name: "Потрібен вхід до системи" })).toBeVisible();
+      const login = page.getByRole("link", { name: "Увійти", exact: true });
+      await expect(login).toHaveAttribute("href", `/login?returnTo=${encodeURIComponent(destination)}`);
+      await login.click();
+      await expect(page.getByRole("heading", { name: "Вхід оператора" })).toBeVisible();
+
+      await page.getByLabel("Логін або email", { exact: true }).fill(accounts.viewer);
+      const passwordInput = page.getByLabel("Пароль", { exact: true });
+      await passwordInput.fill(password);
+      await expect(passwordInput).toHaveAttribute("type", "password");
+      const toggle = page.getByRole("button", { name: "Показати пароль", exact: true });
+      await expect(toggle).toHaveAttribute("aria-pressed", "false");
+      await toggle.focus();
+      await page.keyboard.press("Space");
+      await expect(passwordInput).toHaveAttribute("type", "text");
+      await expect(toggle).toHaveAttribute("aria-pressed", "true");
+      await page.getByRole("button", { name: "Приховати пароль", exact: true }).click();
+      await expect(passwordInput).toHaveAttribute("type", "password");
+
+      if (width === 1280) {
+        await passwordInput.fill("invalid-password-for-return-test");
+        await page.getByRole("button", { name: "Увійти", exact: true }).click();
+        await expect(page.getByRole("alert")).toBeVisible();
+        await expect.poll(() => new URL(page.url()).searchParams.get("returnTo")).toBe(destination);
+        await passwordInput.fill(password);
+      }
+      await page.getByRole("button", { name: "Увійти", exact: true }).click();
+      await expect
+        .poll(() => {
+          const url = new URL(page.url());
+          return `${url.pathname}${url.search}${url.hash}`;
+        })
+        .toBe(destination);
+      await expect(page.getByLabel("Вийти з NEXOLAB")).toBeVisible();
+      await expect(page.getByLabel("Часові позначки")).toBeVisible();
+      await expect
+        .poll(() =>
+          page.evaluate(() => ({
+            viewport: document.documentElement.clientWidth,
+            content: document.documentElement.scrollWidth,
+          })),
+        )
+        .toEqual({ viewport: width, content: width });
+    } finally {
+      await context.close();
+    }
+  });
+}
+
+test("browser login rejects unsafe and repeated return targets", async ({ browser }) => {
+  const targets = [
+    "/login",
+    `/login?returnTo=${encodeURIComponent("https://example.com/settings")}`,
+    `/login?returnTo=${encodeURIComponent("//example.com/settings")}`,
+    `/login?returnTo=${encodeURIComponent("/%2Fexample.com/settings")}`,
+    "/login?returnTo=/settings&returnTo=/reports",
+    `/login?returnTo=${encodeURIComponent("/login?returnTo=/settings")}`,
+  ];
+  for (const target of targets) {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    try {
+      await page.goto(target, { waitUntil: "domcontentloaded" });
+      await page.getByLabel("Логін або email", { exact: true }).fill(accounts.viewer);
+      await page.getByLabel("Пароль", { exact: true }).fill(password);
+      await page.getByRole("button", { name: "Увійти", exact: true }).click();
+      await expect
+        .poll(() => {
+          const url = new URL(page.url());
+          return `${url.pathname}${url.search}${url.hash}`;
+        })
+        .toBe("/");
+      await expect(page.getByLabel("Вийти з NEXOLAB")).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  }
+});

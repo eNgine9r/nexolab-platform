@@ -2,9 +2,13 @@
 
 Updated: 2026-10-01
 
-## UX source acceptance — #1235 verification pending
+## UX source acceptance — #1239 verification pending
 
-#1233 / PR #1234 merged after all 15 exact-head workflows GREEN, 1035 frontend tests, 799 backend tests plus two outage cases and 39 browser cases. UX-27 is closed in code. #1235 implements scoped Live comparison memory; all routed exact-head CI and review must pass before merge. Local exec-server returned environment_offline; local execution is unavailable, while remote GitData and actual CI/browser verification remain available. This is a local-execution soft blocker with a working source/verification route. Installed #1191 remains separately access-gated below. No deployment or hardware action occurred.
+#1235 / PR #1238 merged after both exact-head workflows GREEN, 1061 frontend tests and 38 browser cases; one review is fixed/resolved. UX-14 is closed in code. #1239 safe local login return/password visibility requires all routed CI/offline-auth browser acceptance and review GREEN before merge. Local exec-server is environment_offline, while remote GitData and actual CI/browser verification remain the working route. No local execution is claimed. Installed #1191 remains independently access-gated below.
+
+## UX-22/24 — approved laboratory template evidence unavailable
+
+Read-only source qualification finds illustrative hard-coded initial wizard values and no approved session-template catalog or versioned laboratory approval contract in the repository. Existing form/draft validation does not establish laboratory approval. The simplified approved-template creation journey and approved-method acceptance cannot be truthfully closed from these defaults. Approved laboratory templates and their ownership/version/approval criteria remain an evidence dependency. Independent software UX packages continue; no standards-compliance conclusion or laboratory parameters are invented.
 
 ## Audit #1191 — authenticated deployed all-page evidence pending
 
