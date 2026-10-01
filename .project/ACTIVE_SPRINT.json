@@ -5808,7 +5808,11 @@
           "durable_refresh_tests": "127_pass",
           "durable_refresh_type_lint_format_build": "pass",
           "persistence_failure_guards": "3_pass",
-          "delayed_refresh_scope": "3_pass"
+          "delayed_refresh_scope": "3_pass",
+          "final_payload_source": "e2735e1ab91569c1030149a08a277e4e948f15d9",
+          "final_payload_tests": "148_pass",
+          "final_payload_type_lint_format_build": "pass",
+          "previous_c7_dashboard": "failed_websocket_max_active_2_budget_1"
         },
         "pull_request": 1201
       }

@@ -502,7 +502,12 @@
       "durable_product_head": "e9cfd5eae09f44795d376bde3c2123476425cda8",
       "durable_local_tests": "127_pass",
       "durable_type_lint_format_build": "pass",
-      "durable_ci": "pending"
+      "durable_ci": "pending",
+      "final_payload_product_head": "e2735e1ab91569c1030149a08a277e4e948f15d9",
+      "final_payload_local_tests": "148_pass",
+      "final_payload_type_lint_format_build": "pass",
+      "previous_durable_ci": "7_of_9_green_dashboard_ws_budget_failed",
+      "final_payload_ci": "pending"
     }
   },
   "observations": [
