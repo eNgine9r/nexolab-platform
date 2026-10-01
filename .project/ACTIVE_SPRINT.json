@@ -41,9 +41,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1241,
-      "title": "UX-31 node operational status before separate provisioning form",
-      "branch": "fix/1241-nodes-status-first"
+      "issue": 1243,
+      "title": "UX-30 physical quantity and compatible unit selector",
+      "branch": "fix/1243-signal-quantity-selector"
     },
     "next_work_package": null
   },
@@ -6253,13 +6253,39 @@
       "title": "UX-31 node operational status before separate provisioning form",
       "branch": "fix/1241-nodes-status-first",
       "priority": "medium",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1239
       ],
       "evidence": {
-        "qualification": "actual_node_provision_form_preceded_real_operational_inventory_nodes_manage_verified",
-        "implementation": "native_collapsed_details_after_inventory_with_adjacent_feedback_preserves_mounted_form",
+        "verified_head_sha": "15435ded023d8641228c6615f8fce9a8108efe7d",
+        "pull_request": 1242,
+        "exact_head_ci": "3_of_3_green",
+        "core_ci": "success:36939015118",
+        "frontend_tests": "1111_passed_182_files",
+        "production_build": "Next_16_3_6_passed",
+        "nodes_browser": "success:36939015085_390_1280_keyboard_draft_zero_toggle_writes_409_secret_viewport",
+        "restored_browser": "success:36939015087_1_passed",
+        "browser_cases": "2_passed",
+        "review": "1_fixed_resolved_0_unresolved",
+        "source_acceptance": "completed",
+        "local_execution": "not_run_environment_offline",
+        "installed_acceptance": "access_gated_1191"
+      }
+    },
+    {
+      "issue": 1243,
+      "title": "UX-30 physical quantity and compatible unit selector",
+      "branch": "fix/1243-signal-quantity-selector",
+      "priority": "medium",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1241
+      ],
+      "evidence": {
+        "qualification": "actual_free_text_SignalFields_and_canonical_metadata_contracts_verified",
+        "known_pairs": "temperature_degC_pressure_bar_kPa_relative_humidity_percent_RH",
+        "implementation": "quantity_unit_choices_unique_untouched_create_key_scoped_complete_inventory_custom_value_and_metadata_preservation",
         "local_execution": "not_run_environment_offline",
         "exact_head_ci": "pending",
         "browser_acceptance": "pending"
@@ -7185,6 +7211,29 @@
         "issue": 1239,
         "merge_sha": "92c1f42d9a6c80f270ca541c1caecb2671126e6e",
         "next_issue": 1241
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-01T23:25:02.974Z",
+      "kind": "issue_1241_pr_1242_merged_1243_activated",
+      "data": {
+        "verified_head_sha": "15435ded023d8641228c6615f8fce9a8108efe7d",
+        "pull_request": 1242,
+        "exact_head_ci": "3_of_3_green",
+        "core_ci": "success:36939015118",
+        "frontend_tests": "1111_passed_182_files",
+        "production_build": "Next_16_3_6_passed",
+        "nodes_browser": "success:36939015085_390_1280_keyboard_draft_zero_toggle_writes_409_secret_viewport",
+        "restored_browser": "success:36939015087_1_passed",
+        "browser_cases": "2_passed",
+        "review": "1_fixed_resolved_0_unresolved",
+        "source_acceptance": "completed",
+        "local_execution": "not_run_environment_offline",
+        "installed_acceptance": "access_gated_1191",
+        "issue": 1241,
+        "merge_sha": "35734c2e76489087337ea99965aaf59d6914c885",
+        "next_issue": 1243
       }
     }
   ],

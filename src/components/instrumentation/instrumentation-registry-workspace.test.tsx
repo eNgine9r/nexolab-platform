@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -215,12 +215,15 @@ describe("InstrumentationRegistryWorkspace", () => {
     fireEvent.change(within(signalForm).getByLabelText("create signal display name"), {
       target: { value: "Suction pressure" },
     });
-    fireEvent.change(within(signalForm).getByLabelText("create signal physical quantity"), {
+    fireEvent.change(within(signalForm).getByLabelText("Новий сигнал: фізична величина"), {
       target: { value: "pressure" },
     });
-    fireEvent.change(within(signalForm).getByLabelText("create signal engineering unit"), {
+    fireEvent.change(within(signalForm).getByLabelText("Новий сигнал: одиниця вимірювання"), {
       target: { value: "bar" },
     });
+    await waitFor(() =>
+      expect(within(signalForm).getByRole("button", { name: "Створити Signal" })).toBeEnabled(),
+    );
     fireEvent.click(within(signalForm).getByRole("button", { name: "Створити Signal" }));
 
     await waitFor(() => expect(createSignal).toHaveBeenCalledOnce());
@@ -284,5 +287,125 @@ describe("InstrumentationRegistryWorkspace", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("instrument_version_conflict");
     expect(screen.getByRole("alert")).toHaveTextContent("Canonical version: 2");
+  });
+
+  it("suggests a collision-free key and requires the operator to choose the pressure unit", async () => {
+    const createSignal = vi.fn<InstrumentationRegistryRepository["createSignal"]>().mockResolvedValue(signal);
+    render(<InstrumentationRegistryWorkspace repository={repository({ createSignal })} canManage />);
+    await screen.findAllByText("Suction pressure");
+    const form = screen.getByText("Новий Signal").closest("form")!;
+    fireEvent.change(within(form).getByLabelText("create signal display name"), {
+      target: { value: "Новий датчик тиску" },
+    });
+    fireEvent.change(within(form).getByLabelText("Новий сигнал: фізична величина"), {
+      target: { value: "pressure" },
+    });
+    expect(within(form).getByLabelText("create signal business key")).toHaveValue("pressure.2");
+    expect(within(form).getByLabelText("Новий сигнал: одиниця вимірювання")).toHaveValue("");
+    expect(within(form).getByRole("button", { name: "Створити Signal" })).toBeDisabled();
+    expect(createSignal).not.toHaveBeenCalled();
+    fireEvent.change(within(form).getByLabelText("Новий сигнал: одиниця вимірювання"), {
+      target: { value: "kPa" },
+    });
+    fireEvent.click(within(form).getByRole("button", { name: "Створити Signal" }));
+    await waitFor(() => expect(createSignal).toHaveBeenCalledOnce());
+    expect(createSignal.mock.calls[0]?.[1]).toEqual({
+      businessKey: "pressure.2",
+      displayName: "Новий датчик тиску",
+      physicalQuantity: "pressure",
+      engineeringUnit: "kPa",
+      lifecycleState: "active",
+      metadata: {},
+    });
+  });
+
+  it("keeps an intentional business key when the operator changes the quantity", async () => {
+    const createSignal = vi.fn<InstrumentationRegistryRepository["createSignal"]>().mockResolvedValue(signal);
+    render(<InstrumentationRegistryWorkspace repository={repository({ createSignal })} canManage />);
+    await screen.findAllByText("Suction pressure");
+    const form = screen.getByText("Новий Signal").closest("form")!;
+    fireEvent.change(within(form).getByLabelText("create signal business key"), {
+      target: { value: "lab.explicit-key" },
+    });
+    fireEvent.change(within(form).getByLabelText("Новий сигнал: фізична величина"), {
+      target: { value: "pressure" },
+    });
+    fireEvent.change(within(form).getByLabelText("Новий сигнал: одиниця вимірювання"), {
+      target: { value: "bar" },
+    });
+    fireEvent.change(within(form).getByLabelText("Новий сигнал: фізична величина"), {
+      target: { value: "temperature" },
+    });
+    expect(within(form).getByLabelText("Новий сигнал: одиниця вимірювання")).toHaveValue("degC");
+    expect(within(form).getByLabelText("create signal business key")).toHaveValue("lab.explicit-key");
+    expect(createSignal).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { physicalQuantity: "custom_quantity", engineeringUnit: "custom_unit" },
+    { physicalQuantity: "pressure", engineeringUnit: "psi" },
+  ])("preserves existing values outside the catalog: %s", async (values) => {
+    const existing = { ...signal, ...values };
+    const updateSignal = vi
+      .fn<InstrumentationRegistryRepository["updateSignal"]>()
+      .mockResolvedValue(existing);
+    render(
+      <InstrumentationRegistryWorkspace
+        repository={repository({ listSignals: async () => [existing], updateSignal })}
+        canManage
+      />,
+    );
+    await screen.findByLabelText("Редагування сигналу: ключ величини");
+    expect(screen.getByLabelText("Редагування сигналу: фізична величина")).toHaveValue("__custom__");
+    expect(screen.getByLabelText("Редагування сигналу: ключ величини")).toHaveValue(values.physicalQuantity);
+    expect(screen.getByLabelText("Редагування сигналу: одиниця вимірювання")).toHaveValue(
+      values.engineeringUnit,
+    );
+    expect(updateSignal).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Зберегти Signal" }));
+    await waitFor(() => expect(updateSignal).toHaveBeenCalledOnce());
+    expect(updateSignal.mock.calls[0]).toEqual([
+      instrument.id,
+      signal.id,
+      {
+        businessKey: signal.businessKey,
+        displayName: signal.displayName,
+        ...values,
+        lifecycleState: signal.lifecycleState,
+        metadata: signal.metadata,
+      },
+      signal.version,
+    ]);
+  });
+
+  it("waits for the selected instrument inventory before proposing or creating a key", async () => {
+    let resolveSignals: (signals: SignalRegistryRecord[]) => void = () => undefined;
+    const pendingSignals = new Promise<SignalRegistryRecord[]>((resolve) => {
+      resolveSignals = resolve;
+    });
+    const createSignal = vi.fn<InstrumentationRegistryRepository["createSignal"]>().mockResolvedValue(signal);
+    render(
+      <InstrumentationRegistryWorkspace
+        repository={repository({ listSignals: () => pendingSignals, createSignal })}
+        canManage
+      />,
+    );
+    await screen.findAllByText(instrument.displayName);
+    const form = screen.getByText("Новий Signal").closest("form")!;
+    fireEvent.change(within(form).getByLabelText("create signal display name"), {
+      target: { value: "Новий тиск" },
+    });
+    fireEvent.change(within(form).getByLabelText("Новий сигнал: фізична величина"), {
+      target: { value: "pressure" },
+    });
+    fireEvent.change(within(form).getByLabelText("Новий сигнал: одиниця вимірювання"), {
+      target: { value: "bar" },
+    });
+    expect(within(form).getByLabelText("create signal business key")).toHaveValue("");
+    expect(within(form).getByRole("button", { name: "Створити Signal" })).toBeDisabled();
+    expect(createSignal).not.toHaveBeenCalled();
+    await act(async () => resolveSignals([signal]));
+    expect(within(form).getByLabelText("create signal business key")).toHaveValue("pressure.2");
+    expect(within(form).getByRole("button", { name: "Створити Signal" })).toBeEnabled();
   });
 });

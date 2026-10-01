@@ -1285,12 +1285,42 @@ test("authors an accepted Instrument and Signal before binding it through RFX-10
   await expect(registry.getByRole("heading", { name: "RFX11 pressure transmitter" }).first()).toBeVisible();
 
   const signalForm = registry.getByText("Новий Signal", { exact: true }).locator("..");
-  await signalForm.getByLabel("create signal business key").fill("rfx11.suction-pressure");
-  await signalForm.getByLabel("create signal display name").fill("RFX11 suction pressure");
-  await signalForm.getByLabel("create signal physical quantity").fill("pressure");
-  await signalForm.getByLabel("create signal engineering unit").fill("bar");
+  let signalWrites = 0;
+  page.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      /\/api\/v1\/instrumentation\/instruments\/[^/]+\/signals$/.test(new URL(request.url()).pathname)
+    ) {
+      signalWrites += 1;
+    }
+  });
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    await signalForm.getByLabel("create signal display name").fill("RFX11 suction pressure");
+    const quantity = signalForm.getByLabel("Новий сигнал: фізична величина");
+    await quantity.selectOption("");
+    await quantity.focus();
+    await page.keyboard.press("ArrowDown");
+    await expect(quantity).toHaveValue("temperature");
+    await expect(signalForm.getByLabel("Новий сигнал: одиниця вимірювання")).toHaveValue("degC");
+    await expect(signalForm.getByLabel("create signal business key")).toHaveValue("temperature");
+    await page.keyboard.press("ArrowDown");
+    await expect(quantity).toHaveValue("pressure");
+    await expect(signalForm.getByLabel("create signal business key")).toHaveValue("pressure");
+    await expect(signalForm.getByLabel("Новий сигнал: одиниця вимірювання")).toHaveValue("");
+    await expect(signalForm.getByRole("button", { name: "Створити Signal" })).toBeDisabled();
+    await signalForm.getByLabel("Новий сигнал: одиниця вимірювання").selectOption("bar");
+    await expect(signalForm.getByRole("button", { name: "Створити Signal" })).toBeEnabled();
+    await expect
+      .poll(() =>
+        page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+      )
+      .toBe(true);
+    expect(signalWrites).toBe(0);
+  }
   await signalForm.getByRole("button", { name: "Створити Signal" }).click();
   await expect(registry.getByText("RFX11 suction pressure", { exact: true }).first()).toBeVisible();
+  expect(signalWrites).toBe(1);
 
   const acceptanceSection = registry.locator("section").filter({ hasText: /^Calculation acceptance/ });
   await acceptanceSection.getByLabel("Calculation eligibility").selectOption("accepted");
@@ -1314,11 +1344,13 @@ test("authors an accepted Instrument and Signal before binding it through RFX-10
   );
   expect(signalsResponse.status()).toBe(200);
   const signals = (await signalsResponse.json()) as {
-    items: Array<{ id: string; business_key: string }>;
+    items: Array<{ id: string; business_key: string; physical_quantity: string; engineering_unit: string }>;
   };
-  const persistedSignal = signals.items.find((item) => item.business_key === "rfx11.suction-pressure");
+  const persistedSignal = signals.items.find((item) => item.business_key === "pressure");
   expect(persistedSignal).toBeDefined();
   if (!persistedSignal) throw new Error("RFX-11 Signal was not persisted");
+  expect(persistedSignal.physical_quantity).toBe("pressure");
+  expect(persistedSignal.engineering_unit).toBe("bar");
 
   await page.goto(absoluteRoute(`/refrigeration/${equipment.id}`), {
     waitUntil: "domcontentloaded",
