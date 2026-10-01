@@ -1,3 +1,7 @@
+"use client";
+
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 import { useMemo, useState } from "react";
 import {
   Activity,
@@ -102,6 +106,7 @@ export function SessionHero({
 }
 
 export function TemperatureAndChart({ data }: { data: SessionWorkspaceData }) {
+  const displayTimeZone = useDisplayTimeZone();
   const temperatures = selectTemperatureSamples(data.latest);
   const history = data.history.filter((sample) => sample.metric === "temperature.probe");
 
@@ -123,7 +128,7 @@ export function TemperatureAndChart({ data }: { data: SessionWorkspaceData }) {
             </p>
             <p className="mt-3 text-[9px] text-slate-500">
               {sample
-                ? `${sample.quality} · ${formatTime(sample.captured_at)}`
+                ? `${sample.quality} · ${formatTime(sample.captured_at, displayTimeZone)}`
                 : "Немає attributed telemetry"}
             </p>
           </div>
@@ -193,6 +198,7 @@ export function StageTimeline({
     plannedDurationMinutes: number;
   }) => Promise<void>;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const [stageType, setStageType] = useState<SessionStageType>("main_test");
   const [name, setName] = useState("Основне випробування");
   const [minutes, setMinutes] = useState(60);
@@ -261,8 +267,8 @@ export function StageTimeline({
               <h3 className="mt-2 text-[11px] font-semibold text-white">{stage.name}</h3>
               <p className="mt-1 text-[9px] text-slate-500">{stage.stage_type}</p>
               <p className="mt-3 text-[8px] text-slate-600">
-                {stage.entered_at ? formatTime(stage.entered_at) : "not entered"}
-                {stage.exited_at ? ` → ${formatTime(stage.exited_at)}` : ""}
+                {stage.entered_at ? formatTime(stage.entered_at, displayTimeZone) : "not entered"}
+                {stage.exited_at ? ` → ${formatTime(stage.exited_at, displayTimeZone)}` : ""}
               </p>
             </article>
           ))
@@ -285,6 +291,7 @@ export function NotesAndAudit({
   mutating: boolean;
   onAddNote: (body: string) => Promise<void>;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const [body, setBody] = useState("");
   return (
     <section className="grid gap-4 xl:grid-cols-2">
@@ -322,7 +329,7 @@ export function NotesAndAudit({
               <article key={note.id} className="rounded-xl border border-white/[0.055] bg-white/[0.02] p-3">
                 <p className="text-[10px] leading-5 text-slate-300">{note.body}</p>
                 <p className="mt-2 text-[8px] text-slate-600">
-                  {note.author_id} · {formatDateTime(note.created_at)}
+                  {note.author_id} · {formatDateTime(note.created_at, displayTimeZone)}
                 </p>
               </article>
             ))
@@ -342,7 +349,9 @@ export function NotesAndAudit({
               <article key={entry.id} className="rounded-xl border border-white/[0.055] bg-white/[0.02] p-3">
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-[10px] font-semibold text-slate-200">{entry.action}</p>
-                  <span className="text-[8px] text-slate-600">{formatDateTime(entry.occurred_at)}</span>
+                  <span className="text-[8px] text-slate-600">
+                    {formatDateTime(entry.occurred_at, displayTimeZone)}
+                  </span>
                 </div>
                 <p className="mt-1 text-[9px] text-slate-500">
                   {entry.actor_id} · {entry.actor_source} · {entry.entity_type}
@@ -535,14 +544,17 @@ function number(value: number | null): string {
   return value === null ? "—" : new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 2 }).format(value);
 }
 
-function formatTime(value: string): string {
-  return new Intl.DateTimeFormat("uk-UA", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(
-    new Date(value),
-  );
+function formatTime(value: string, displayTimeZone: string): string {
+  return formatOperationalTimestamp(new Date(value), displayTimeZone, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
 
-function formatDateTime(value: string): string {
-  return new Intl.DateTimeFormat("uk-UA", { dateStyle: "short", timeStyle: "medium" }).format(
-    new Date(value),
-  );
+function formatDateTime(value: string, displayTimeZone: string): string {
+  return formatOperationalTimestamp(new Date(value), displayTimeZone, {
+    dateStyle: "short",
+    timeStyle: "medium",
+  });
 }

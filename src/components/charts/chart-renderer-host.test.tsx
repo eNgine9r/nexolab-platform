@@ -1,4 +1,9 @@
-import { fireEvent, render } from "@testing-library/react";
+import { act, fireEvent, render } from "@testing-library/react";
+import { notifySettingsPreferencesChanged } from "@/features/display-time/store";
+import {
+  createDefaultSettingsPreferences,
+  SETTINGS_PREFERENCES_STORAGE_KEY,
+} from "@/features/settings/preferences";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createBenchmarkScene } from "@/features/charts/fixtures";
@@ -22,6 +27,7 @@ class ResizeObserverMock {
 function fakeAdapter(): ChartRendererAdapter & {
   initialize: ReturnType<typeof vi.fn<ChartRendererAdapter["initialize"]>>;
   setScene: ReturnType<typeof vi.fn<ChartRendererAdapter["setScene"]>>;
+  setSharedCursor: ReturnType<typeof vi.fn<ChartRendererAdapter["setSharedCursor"]>>;
   resize: ReturnType<typeof vi.fn<ChartRendererAdapter["resize"]>>;
   dispose: ReturnType<typeof vi.fn<ChartRendererAdapter["dispose"]>>;
 } {
@@ -45,6 +51,11 @@ function fakeAdapter(): ChartRendererAdapter & {
 
 describe("ChartRendererHost", () => {
   beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem(
+      SETTINGS_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({ ...createDefaultSettingsPreferences(), timeDisplay: "utc" }),
+    );
     observerState.callbacks = [];
     observerState.disconnects = 0;
     vi.stubGlobal("ResizeObserver", ResizeObserverMock);
@@ -71,6 +82,7 @@ describe("ChartRendererHost", () => {
     expect(adapter.setScene).toHaveBeenLastCalledWith({
       ...secondScene,
       interactionDomain: firstScene.xDomain,
+      displayTimeZone: "UTC",
     });
     const host = view.getByRole("application", { name: "Interactive telemetry plot" });
     expect(host).toHaveAttribute("data-chart-x-domain-from-ms", String(secondScene.xDomain.fromMs));
@@ -82,6 +94,44 @@ describe("ChartRendererHost", () => {
     view.unmount();
     expect(observerState.disconnects).toBe(1);
     expect(adapter.dispose).toHaveBeenCalledTimes(1);
+  });
+  it("updates timezone without replacing the renderer, data, domain or selected cursor", () => {
+    const adapter = fakeAdapter();
+    const scene = createBenchmarkScene(1);
+    const onCursor = vi.fn();
+    const selectedCursor = scene.series[0].segments[0].points[0].timestampMs;
+    const view = render(
+      <ChartRendererHost
+        adapter={adapter}
+        scene={scene}
+        sharedCursorMs={selectedCursor}
+        onCursor={onCursor}
+        onXDomainChange={vi.fn()}
+      />,
+    );
+    fireEvent.keyDown(view.getByRole("application"), { key: "Home" });
+    const cursor = adapter.setSharedCursor.mock.calls.at(-1)?.[0];
+    const actual = new Intl.DateTimeFormat().resolvedOptions();
+    vi.spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions").mockReturnValue({
+      ...actual,
+      timeZone: "Europe/Kyiv",
+    });
+    localStorage.setItem(
+      SETTINGS_PREFERENCES_STORAGE_KEY,
+      JSON.stringify(createDefaultSettingsPreferences()),
+    );
+    act(() => notifySettingsPreferencesChanged());
+    expect(adapter.setScene).toHaveBeenLastCalledWith({
+      ...scene,
+      interactionDomain: scene.xDomain,
+      displayTimeZone: "Europe/Kyiv",
+    });
+    expect(adapter.initialize).toHaveBeenCalledTimes(1);
+    expect(adapter.setSharedCursor.mock.calls.at(-1)?.[0]).toBe(cursor);
+    expect(onCursor).toHaveBeenCalledTimes(1);
+    vi.restoreAllMocks();
+    view.unmount();
+    localStorage.clear();
   });
   it("supports deterministic keyboard inspection over real visible chart points", () => {
     const adapter = fakeAdapter();

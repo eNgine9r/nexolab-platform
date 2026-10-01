@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   AlertCircle,
@@ -69,11 +72,11 @@ function stateClass(state: AlertState): string {
   return "border-slate-300/15 bg-slate-400/[0.05] text-slate-300";
 }
 
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("uk-UA", {
+function formatDate(value: string, displayTimeZone: string): string {
+  return formatOperationalTimestamp(new Date(value), displayTimeZone, {
     dateStyle: "medium",
     timeStyle: "medium",
-  }).format(new Date(value));
+  });
 }
 
 function formatNumber(value: number | null, unit?: unknown): string {
@@ -105,6 +108,7 @@ export function AlertsWorkspace({
   telemetryPoints?: readonly string[];
   telemetrySelector?: ReactNode;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const [alerts, setAlerts] = useState<AlertInstance[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -417,7 +421,7 @@ export function AlertsWorkspace({
                   </div>
                   <p className="mt-3 flex items-center gap-1.5 text-[9px] text-slate-600">
                     <Clock3 className="h-3 w-3" />
-                    {formatDate(alert.triggered_at)} · {durationLabel(alert, now)}
+                    {formatDate(alert.triggered_at, displayTimeZone)} · {durationLabel(alert, now)}
                   </p>
                 </button>
               ))}
@@ -555,7 +559,9 @@ export function AlertsWorkspace({
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="text-[10px] font-semibold text-slate-200">{transition.event_type}</p>
-                          <p className="text-[8px] text-slate-600">{formatDate(transition.occurred_at)}</p>
+                          <p className="text-[8px] text-slate-600">
+                            {formatDate(transition.occurred_at, displayTimeZone)}
+                          </p>
                         </div>
                         <p className="mt-1 text-[9px] text-slate-500">
                           {transition.previous_state ?? "—"} → {transition.next_state} · {transition.actor_id}{" "}

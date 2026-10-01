@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import { AlertTriangle, RefreshCw, Snowflake } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -36,6 +39,7 @@ export function RefrigerationThermodynamicsOverview({
   equipmentId: string;
   repository: RefrigerationThermodynamicsRepository | null;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const requestVersion = useRef(0);
   const [snapshots, setSnapshots] = useState<CircuitThermodynamicsSnapshot[]>([]);
   const [loading, setLoading] = useState(false);
@@ -141,7 +145,7 @@ export function RefrigerationThermodynamicsOverview({
 
       {lastObservationAt ? (
         <p className="mt-3 text-[10px] text-slate-600">
-          Час запиту: {formatTimestamp(lastObservationAt)}
+          Час запиту: {formatTimestamp(lastObservationAt, displayTimeZone)}
           {error ? " · показані останні успішно отримані значення" : ""}
         </p>
       ) : null}
@@ -150,6 +154,7 @@ export function RefrigerationThermodynamicsOverview({
 }
 
 function CircuitPanel({ snapshot }: { snapshot: CircuitThermodynamicsSnapshot }) {
+  const displayTimeZone = useDisplayTimeZone();
   return (
     <div className="rounded-xl border border-white/[0.07] bg-[#06142a]/70 p-3 sm:p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -158,7 +163,7 @@ function CircuitPanel({ snapshot }: { snapshot: CircuitThermodynamicsSnapshot })
           <p className="mt-0.5 text-[10px] text-slate-500">{snapshot.circuit.businessKey}</p>
         </div>
         <span className="text-[10px] text-slate-500">
-          Станом на {formatTimestamp(snapshot.observationAt)}
+          Станом на {formatTimestamp(snapshot.observationAt, displayTimeZone)}
         </span>
       </div>
       <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
@@ -171,6 +176,7 @@ function CircuitPanel({ snapshot }: { snapshot: CircuitThermodynamicsSnapshot })
 }
 
 function MetricCard({ metric }: { metric: DerivedThermodynamicValue }) {
+  const displayTimeZone = useDisplayTimeZone();
   const available =
     metric.availability === "available" && metric.value !== null && Number.isFinite(metric.value);
   const reasonCode = metric.reasonCodes[0] ?? "unavailable";
@@ -189,7 +195,7 @@ function MetricCard({ metric }: { metric: DerivedThermodynamicValue }) {
       </p>
       {available ? (
         <p className="mt-1 text-[10px] text-slate-500">
-          Ефективно: {metric.effectiveAt ? formatTimestamp(metric.effectiveAt) : "—"}
+          Ефективно: {metric.effectiveAt ? formatTimestamp(metric.effectiveAt, displayTimeZone) : "—"}
         </p>
       ) : (
         <>
@@ -204,10 +210,10 @@ function MetricCard({ metric }: { metric: DerivedThermodynamicValue }) {
     </article>
   );
 }
-function formatTimestamp(value: string): string {
+function formatTimestamp(value: string, displayTimeZone: string): string {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "—";
-  return date.toLocaleString("uk-UA", {
+  return formatOperationalTimestamp(date, displayTimeZone, {
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",

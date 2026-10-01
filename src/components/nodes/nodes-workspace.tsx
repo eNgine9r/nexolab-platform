@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
@@ -29,12 +32,12 @@ import type {
 
 import { NodeOperationalPanel } from "./node-operational-panel";
 
-function formatDate(value: string | null): string {
+function formatDate(value: string | null, displayTimeZone: string): string {
   if (!value) return "Ще не підключався";
-  return new Intl.DateTimeFormat("uk-UA", {
+  return formatOperationalTimestamp(new Date(value), displayTimeZone, {
     dateStyle: "medium",
     timeStyle: "medium",
-  }).format(new Date(value));
+  });
 }
 
 function formatOffset(value: number | null): string {
@@ -76,6 +79,7 @@ function clockClass(value: NodeClockStatus): string {
 }
 
 export function NodesWorkspace({ canManage }: { canManage: boolean }) {
+  const displayTimeZone = useDisplayTimeZone();
   const [nodes, setNodes] = useState<CentralNode[]>([]);
   const [operationalStates, setOperationalStates] = useState<Record<string, NodeOperationalState | null>>({});
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -419,7 +423,7 @@ export function NodesWorkspace({ canManage }: { canManage: boolean }) {
                     </span>
                   </div>
                   <div className="mt-3 flex items-center justify-between gap-2 text-[9px] text-slate-500">
-                    <span>Last seen: {formatDate(node.last_seen_at)}</span>
+                    <span>Last seen: {formatDate(node.last_seen_at, displayTimeZone)}</span>
                     <span
                       className={
                         operationalStates[node.node_id]?.availability === "online"
@@ -481,6 +485,7 @@ function NodeDetail({
   onChangeState: (action: "activate" | "suspend" | "revoke") => Promise<void>;
   onRotate: () => Promise<void>;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -497,7 +502,7 @@ function NodeDetail({
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <Meta icon={Activity} label="Last seen" value={formatDate(node.last_seen_at)} />
+        <Meta icon={Activity} label="Last seen" value={formatDate(node.last_seen_at, displayTimeZone)} />
         <Meta
           icon={Clock3}
           label="Clock offset"

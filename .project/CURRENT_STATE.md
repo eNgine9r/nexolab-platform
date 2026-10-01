@@ -2,9 +2,13 @@
 
 Updated: 2026-10-01
 
-## Issue #1212 — UX-33 inactive telemetry-window candidate
+## Issue #1213 — UX-32 UTC/local operational presentation candidate
 
-Settings no longer offers the inert default telemetry-window selector; operator guidance points to the actual graph period control. Legacy v1 telemetryWindow remains parsed/serialized, so prior browser preferences are compatible. Other preferences and reset retain their behavior; chart defaults, URL choices and acquisition are unchanged. Local targeted checks: 13 Settings/component/preferences tests passed. Browser acceptance extends the existing Settings flow with absence on desktop/mobile, legacy 24h persistence through unrelated edits/reload and reset to v1 defaults, with no local-preference acquisition mutations. Typecheck, touched lint/format and production build passed; exact-head browser CI/review remain pending. Next Ready is #1213 UTC/local operational timestamps, then #1214 legacy Gauge choices.
+The browser preference now drives operational timestamps, chart axes and Exact Inspector with explicit timezone context. One reactive store handles same-tab edits/reset, cross-tab storage, reload and retained Activity reactivation; SSR starts from deterministic UTC. Failed storage writes retain the previous preference and show recovery; unreadable storage rejects edits. ISO instants, request windows, series values/selection, date-only asset fields, CSV exports and the Telegram report's explicit document timezone are preserved. Local baseline: 944 frontend tests / 168 files passed, including 14 new formatter/lifecycle/chart cases; CI routing regressions reproduced missing standalone coverage and now pass. Typecheck, touched lint/format, production build (23 pages) and state validation passed. Browser candidate adds UTC/local scenarios at 390/1280 px, same measured inspector instant/domain, cross-tab change, reload, retained navigation and visible storage-write recovery. Exact-head browser/workflow/review acceptance is pending. Next Ready is #1214 incomplete Gauge choice. Installed acceptance #1191 stays separately access-gated.
+
+## Issue #1212 — UX-33 inactive telemetry-window cleanup completed
+
+PR #1215 final head `31555c09a6ce172ef831e1c27fca061f1b4d45e9` passed Core CI 36878901149 and Dashboard 36878901249, with all three Settings browser scenarios and no review threads. Squash merge: `1998cdfffa1c750a57b40abe9cf7ebebcbc95d68`. Settings removes the inert selector and points to each graph's real period control. Legacy v1 24h survives unrelated edits/reload; reset remains compatible. Local verification: 13 Settings/component/preferences tests, typecheck, lint/format, production build and 27 state tests with one expected skip. UX-33 is closed in code; audit now has 19 closed, 1 partial, 19 open. No deployment, acquisition or hardware write.
 
 ## Issue #1210 — UX-35 Telegram report recovery completed
 

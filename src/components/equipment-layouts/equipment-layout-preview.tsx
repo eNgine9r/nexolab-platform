@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { AlertTriangle, ImageOff, X } from "lucide-react";
@@ -13,6 +16,7 @@ export function EquipmentLayoutPreview({
   item: LayoutCatalogReadyItem;
   onClose: () => void;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const published = item.published;
   const [imageFailed, setImageFailed] = useState(false);
 
@@ -57,8 +61,8 @@ export function EquipmentLayoutPreview({
               {item.equipment.code} · {item.equipment.name}
             </h2>
             <p className="mt-1 text-xs text-slate-400">
-              {published.placements.length} позицій · {formatDateTime(published.publishedAt)} ·{" "}
-              {published.publishedBy}
+              {published.placements.length} позицій · {formatDateTime(published.publishedAt, displayTimeZone)}{" "}
+              · {published.publishedBy}
             </p>
           </div>
           <button
@@ -128,12 +132,12 @@ export function EquipmentLayoutPreview({
   );
 }
 
-function formatDateTime(value: string): string {
+function formatDateTime(value: string, displayTimeZone: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
-    : new Intl.DateTimeFormat("uk-UA", {
+    : formatOperationalTimestamp(date, displayTimeZone, {
         dateStyle: "medium",
         timeStyle: "short",
-      }).format(date);
+      });
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import { useState } from "react";
 import {
   Activity,
@@ -143,6 +145,7 @@ function MeterCard({
   onToggle: () => void;
   onSelectOnly: () => void;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const meter = ENERGY_METERS.find((item) => item.unitId === unitId)!;
   const power = findEnergySample(samples, unitId, "electrical.power.active");
   const cumulativeEnergy = findEnergySample(samples, unitId, "electrical.energy.active");
@@ -223,7 +226,7 @@ function MeterCard({
 
       <p className="mt-4 flex items-center gap-1.5 text-[9px] text-slate-600">
         <Clock3 className="h-3 w-3" />
-        {formatCapturedAt(power ?? cumulativeEnergy ?? voltage ?? current ?? powerFactor)}
+        {formatCapturedAt(power ?? cumulativeEnergy ?? voltage ?? current ?? powerFactor, displayTimeZone)}
       </p>
     </article>
   );

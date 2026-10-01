@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -84,6 +87,7 @@ const emptyCreateDraft: CreateDraft = {
 };
 
 export function UsersScreen() {
+  const displayTimeZone = useDisplayTimeZone();
   const router = useRouter();
   const security = useDashboardSecurity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -696,9 +700,13 @@ export function UsersScreen() {
                     </div>
 
                     <div className="grid gap-2 text-xs text-slate-500 sm:grid-cols-3">
-                      <span>Створено: {formatDate(selectedUser.createdAt)}</span>
-                      <span>Пароль змінено: {formatDate(selectedUser.passwordChangedAt)}</span>
-                      <span>Останній вхід: {formatDate(selectedUser.lastAuthenticatedAt)}</span>
+                      <span>Створено: {formatDate(selectedUser.createdAt, displayTimeZone)}</span>
+                      <span>
+                        Пароль змінено: {formatDate(selectedUser.passwordChangedAt, displayTimeZone)}
+                      </span>
+                      <span>
+                        Останній вхід: {formatDate(selectedUser.lastAuthenticatedAt, displayTimeZone)}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -808,9 +816,18 @@ function errorMessage(cause: unknown): string {
   return cause instanceof Error ? cause.message : "Невідома помилка керування користувачами.";
 }
 
-function formatDate(value: string): string {
+function formatDate(value: string, displayTimeZone: string): string {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString("uk-UA");
+  return Number.isNaN(date.getTime())
+    ? value
+    : formatOperationalTimestamp(date, displayTimeZone, {
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
 }
 
 const inputClass =

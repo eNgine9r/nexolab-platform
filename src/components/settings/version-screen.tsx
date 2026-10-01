@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -35,6 +38,7 @@ import { getTelemetryRuntimeConfig } from "@/lib/telemetry/runtime-config";
 const POLL_INTERVAL_MS = 3000;
 
 export function VersionScreen() {
+  const displayTimeZone = useDisplayTimeZone();
   const router = useRouter();
   const security = useDashboardSecurity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -285,7 +289,7 @@ export function VersionScreen() {
                         <Fact label="Schema" value={current.schemaHead} mono />
                         <Fact label="Platform" value={current.platform} />
                         <Fact label="Runtime / health" value={`${current.runtimeMode} / ${current.health}`} />
-                        <Fact label="Deployed" value={formatTime(current.deployedAt)} />
+                        <Fact label="Deployed" value={formatTime(current.deployedAt, displayTimeZone)} />
                         <Fact label="Packaged evidence" value={current.knownPackagedRelease ? "Так" : "Ні"} />
                         <Fact label="Runtime state" value={current.runtimeStateKnown ? "known" : "unknown"} />
                       </div>
@@ -366,7 +370,9 @@ export function VersionScreen() {
                     <Fact
                       label="Last policy change"
                       value={
-                        snapshot.updatePolicy.updatedAt ? formatTime(snapshot.updatePolicy.updatedAt) : "—"
+                        snapshot.updatePolicy.updatedAt
+                          ? formatTime(snapshot.updatePolicy.updatedAt, displayTimeZone)
+                          : "—"
                       }
                     />
                   </div>
@@ -536,7 +542,9 @@ export function VersionScreen() {
                         {snapshot.history.length ? (
                           snapshot.history.map((operation) => (
                             <tr key={operation.id} className="text-slate-300">
-                              <td className="px-3 py-3 text-slate-400">{formatTime(operation.startedAt)}</td>
+                              <td className="px-3 py-3 text-slate-400">
+                                {formatTime(operation.startedAt, displayTimeZone)}
+                              </td>
                               <td className="px-3 py-3">{operation.action}</td>
                               <td className="px-3 py-3">
                                 {operation.sourceRelease} → {operation.targetRelease}
@@ -658,6 +666,7 @@ function UpdateCheckSummary({
   current: VersionSnapshot["current"];
   candidate: VersionCatalogItem | null;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   return (
     <div className="grid gap-2 text-sm">
       <div className="flex flex-wrap items-center gap-2">
@@ -673,7 +682,7 @@ function UpdateCheckSummary({
       </div>
       {check.message ? <p className="text-slate-400">{check.message}</p> : null}
       <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500">
-        {check.completedAt ? <span>{formatTime(check.completedAt)}</span> : null}
+        {check.completedAt ? <span>{formatTime(check.completedAt, displayTimeZone)}</span> : null}
         {check.currentCommit ? <span>current {shortCommit(check.currentCommit)}</span> : null}
         {check.targetCommit ? <span>target {shortCommit(check.targetCommit)}</span> : null}
         {check.candidateBundleId ? <span>package {check.candidateBundleId}</span> : null}
@@ -853,14 +862,14 @@ function shortCommit(value: string): string {
   return value.slice(0, 12);
 }
 
-function formatTime(value: string): string {
+function formatTime(value: string, displayTimeZone: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
-    : new Intl.DateTimeFormat("uk-UA", {
+    : formatOperationalTimestamp(date, displayTimeZone, {
         dateStyle: "short",
         timeStyle: "medium",
-      }).format(date);
+      });
 }
 
 function describeError(error: unknown): string {

@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -47,8 +50,9 @@ export function EquipmentAssetDetails({
   hasPrevious?: boolean;
   hasNext?: boolean;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const sections = useMemo(() => detailsSections(asset), [asset]);
+  const sections = useMemo(() => detailsSections(asset, displayTimeZone), [asset, displayTimeZone]);
   const [editing, setEditing] = useState(false);
   const [editorDirty, setEditorDirty] = useState(false);
   const [pendingExit, setPendingExit] = useState<"close" | "edit" | null>(null);
@@ -300,7 +304,7 @@ type DetailSection = {
   items: Array<{ label: string; value: string }>;
 };
 
-function detailsSections(asset: EquipmentRegistryAsset): DetailSection[] {
+function detailsSections(asset: EquipmentRegistryAsset, displayTimeZone: string): DetailSection[] {
   const passport = compactDetails([
     ["Категорія", categoryLabel(asset.category)],
     ["Ідентифікатор", asset.primaryIdentifier],
@@ -332,7 +336,7 @@ function detailsSections(asset: EquipmentRegistryAsset): DetailSection[] {
       ...compactDetails([
         ["Датчики", `${item.onlineSensors} онлайн із ${item.totalSensors}`],
         ["Активні тривоги", String(item.activeAlarms)],
-        ["Останній зв’язок", item.lastSeenAt ? formatDateTime(item.lastSeenAt) : null],
+        ["Останній зв’язок", item.lastSeenAt ? formatDateTime(item.lastSeenAt, displayTimeZone) : null],
       ]),
     );
     const service = compactDetails([
@@ -367,7 +371,7 @@ function detailsSections(asset: EquipmentRegistryAsset): DetailSection[] {
     const related = compactDetails([
       ["Вітрина", `${asset.targetEquipment.code} · ${asset.targetEquipment.name}`],
       ["Commissioning session", item.id],
-      ["Остання перевірка", formatDateTime(item.updatedAt)],
+      ["Остання перевірка", formatDateTime(item.updatedAt, displayTimeZone)],
     ]);
     return sections([
       ["Паспорт", Cpu, passport],
@@ -505,9 +509,9 @@ function formatDate(value: string): string {
     : new Intl.DateTimeFormat("uk-UA", { dateStyle: "medium" }).format(date);
 }
 
-function formatDateTime(value: string): string {
+function formatDateTime(value: string, displayTimeZone: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? value
-    : new Intl.DateTimeFormat("uk-UA", { dateStyle: "medium", timeStyle: "short" }).format(date);
+    : formatOperationalTimestamp(date, displayTimeZone, { dateStyle: "medium", timeStyle: "short" });
 }

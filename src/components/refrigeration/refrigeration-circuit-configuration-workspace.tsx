@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2, Link2, Plus, RefreshCw, Snowflake } from "lucide-react";
 import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
@@ -524,6 +527,7 @@ function CircuitLifecycleSection({
   setEffectiveAt: (value: string) => void;
   onSubmit: (event: FormEvent) => void;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const current = latestOpen(history);
   return (
     <section className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-4">
@@ -538,7 +542,7 @@ function CircuitLifecycleSection({
         rows={history.map((item) => ({
           id: item.id,
           title: `r${item.revision} · ${lifecycleLabels[item.state]}`,
-          meta: intervalText(item.validFrom, item.validTo),
+          meta: intervalText(item.validFrom, item.validTo, displayTimeZone),
         }))}
         empty="Lifecycle history відсутня."
       />
@@ -603,6 +607,7 @@ function CircuitConfigurationSection({
   setEffectiveAt: (value: string) => void;
   onSubmit: (event: FormEvent) => void;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const selectedPolicy = policies.find((item) => item.version === policyVersion) ?? null;
   return (
     <section className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-4">
@@ -613,7 +618,7 @@ function CircuitConfigurationSection({
         rows={history.map((item) => ({
           id: item.id,
           title: `r${item.revision} · ${item.refrigerantCode} · ${item.calculationPolicyVersion}`,
-          meta: `${intervalText(item.validFrom, item.validTo)} · ${item.propertyProviderProfile ?? "provider unresolved"}`,
+          meta: `${intervalText(item.validFrom, item.validTo, displayTimeZone)} · ${item.propertyProviderProfile ?? "provider unresolved"}`,
         }))}
         empty="Configuration history відсутня — derived values мають залишатися unavailable."
       />
@@ -706,6 +711,7 @@ function CircuitBindingsSection({
   onBind: (role: CircuitProcessRole) => Promise<void>;
   onEnd: (role: CircuitProcessRole) => Promise<void>;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   return (
     <section className="rounded-2xl border border-white/[0.08] bg-[#081a32] p-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -748,7 +754,7 @@ function CircuitBindingsSection({
                     {current.pressureReference ? ` · ${current.pressureReference}` : ""}
                   </p>
                   <p className="mt-1 text-[9px] text-slate-600">
-                    {intervalText(current.validFrom, current.validTo)}
+                    {intervalText(current.validFrom, current.validTo, displayTimeZone)}
                   </p>
                 </div>
               ) : (
@@ -913,14 +919,14 @@ function latestOpen<T extends { validTo: string | null }>(rows: T[]): T | null {
   return [...rows].reverse().find((row) => row.validTo === null) ?? null;
 }
 
-function intervalText(validFrom: string, validTo: string | null): string {
-  return `${formatTimestamp(validFrom)} → ${validTo ? formatTimestamp(validTo) : "поточний"}`;
+function intervalText(validFrom: string, validTo: string | null, displayTimeZone: string): string {
+  return `${formatTimestamp(validFrom, displayTimeZone)} → ${validTo ? formatTimestamp(validTo, displayTimeZone) : "поточний"}`;
 }
 
-function formatTimestamp(value: string): string {
+function formatTimestamp(value: string, displayTimeZone: string): string {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "—";
-  return date.toLocaleString("uk-UA", {
+  return formatOperationalTimestamp(date, displayTimeZone, {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

@@ -63,6 +63,34 @@ async function nextAnimationFrame(): Promise<void> {
 }
 
 describe("ECharts renderer adapter lifecycle", () => {
+  it("changes axis labels only when the display timezone changes", () => {
+    const instance = new FakeEChartsInstance();
+    const init = vi.fn(() => instance);
+    const adapter = new EChartsRendererAdapter({ init });
+    const scene = createBenchmarkScene(1);
+    adapter.initialize({
+      container: document.createElement("div"),
+      renderer: "canvas",
+      reducedMotion: true,
+      onCursor: vi.fn(),
+      onXDomainChange: vi.fn(),
+    });
+    adapter.setScene({ ...scene, displayTimeZone: "UTC" });
+    const utc = instance.options.at(-1) as {
+      xAxis: { axisLabel: { formatter: (value: number) => string } };
+      series: unknown;
+      dataZoom: unknown;
+    };
+    const timestamp = Date.parse("2026-07-01T10:20:30Z");
+    expect(utc.xAxis.axisLabel.formatter(timestamp)).toContain("10:20");
+    adapter.setScene({ ...scene, displayTimeZone: "Europe/Kyiv" });
+    const local = instance.options.at(-1) as typeof utc;
+    expect(local.xAxis.axisLabel.formatter(timestamp)).toContain("13:20");
+    expect(local.series).toEqual(utc.series);
+    expect(local.dataZoom).toEqual(utc.dataZoom);
+    expect(init).toHaveBeenCalledTimes(1);
+    adapter.dispose();
+  });
   it("initializes one persistent instance and maps gaps to independent line series", () => {
     const instance = new FakeEChartsInstance();
     const init = vi.fn(() => instance);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 
 import type { ChartCursorInspection, ChartXDomain } from "@/features/charts/domain";
 import { chartPointBudget } from "@/features/charts/point-budget";
@@ -28,6 +29,7 @@ export function ChartRendererHost({
   onXDomainChange: (domain: ChartXDomain) => void;
   onRangeSelectionChange?: (domain: ChartXDomain | null) => void;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const containerRef = useRef<HTMLDivElement>(null);
   const callbacksRef = useRef({ onCursor, onXDomainChange, onRangeSelectionChange });
 
@@ -56,12 +58,17 @@ export function ChartRendererHost({
   }, [adapter, reducedMotion, renderer]);
 
   useEffect(() => {
-    if (!adapter.isDisposed()) adapter.setScene({ ...scene, interactionDomain });
-  }, [adapter, interactionDomain, scene]);
+    if (!adapter.isDisposed())
+      adapter.setScene({
+        ...scene,
+        interactionDomain,
+        displayTimeZone: scene.displayTimeZone ?? displayTimeZone,
+      });
+  }, [adapter, displayTimeZone, interactionDomain, scene]);
 
   useEffect(() => {
     if (!adapter.isDisposed()) adapter.setSharedCursor(sharedCursorMs);
-  }, [adapter, sharedCursorMs]);
+  }, [adapter, displayTimeZone, sharedCursorMs]);
 
   const inspectWithKeyboard = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End", "Escape"].includes(event.key)) return;

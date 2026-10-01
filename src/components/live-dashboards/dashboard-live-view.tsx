@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -32,17 +35,17 @@ function formatValue(sample: TelemetrySample | null): string {
   return `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: digits }).format(sample.value)} ${sample.unit}`;
 }
 
-function formatTimestamp(value: string | null): string {
+function formatTimestamp(value: string | null, displayTimeZone: string): string {
   if (!value) return "Даних ще немає";
   const parsed = Date.parse(value);
   if (!Number.isFinite(parsed)) return "Невідомий час";
-  return new Intl.DateTimeFormat("uk-UA", {
+  return formatOperationalTimestamp(parsed, displayTimeZone, {
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-  }).format(parsed);
+  });
 }
 
 function statusPresentation(status: LiveDashboardTelemetryStatus): {
@@ -122,6 +125,7 @@ export function DashboardLiveView({
   onBack: () => void;
   onEdit: () => void;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   const status = statusPresentation(telemetry.status);
   const StatusIcon = status.icon;
   const [hiddenSeriesKeys, setHiddenSeriesKeys] = useState<Set<string>>(() => new Set());
@@ -239,7 +243,8 @@ export function DashboardLiveView({
             </p>
             <p className="mt-2 text-xs text-slate-500">
               {dashboard.items.length} series · {dashboard.time_window} · display refresh{" "}
-              {dashboard.refresh_seconds} с · latest {formatTimestamp(telemetry.lastCapturedAt)}
+              {dashboard.refresh_seconds} с · latest{" "}
+              {formatTimestamp(telemetry.lastCapturedAt, displayTimeZone)}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -316,7 +321,7 @@ export function DashboardLiveView({
               </p>
               <p className="mt-3 text-xs text-slate-500">{seriesState(item)}</p>
               <p className="mt-1 text-xs text-slate-600">
-                {formatTimestamp(item.latest?.captured_at ?? null)}
+                {formatTimestamp(item.latest?.captured_at ?? null, displayTimeZone)}
               </p>
               {item.item.visualization === "gauge" ? (
                 <p className="mt-3 rounded-xl border border-white/[0.06] bg-[#06142a]/70 p-2 text-[11px] leading-4 text-slate-500">
@@ -482,7 +487,7 @@ export function DashboardLiveView({
                   <td className="px-5 py-3 font-semibold text-white">{formatValue(item.latest)}</td>
                   <td className="px-5 py-3">{seriesState(item)}</td>
                   <td className="px-5 py-3 text-slate-500">
-                    {formatTimestamp(item.latest?.captured_at ?? null)}
+                    {formatTimestamp(item.latest?.captured_at ?? null, displayTimeZone)}
                   </td>
                 </tr>
               ))}

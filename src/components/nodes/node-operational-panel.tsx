@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import { useEffect, useState } from "react";
 import { Activity, Clock3, Database, RadioTower, ServerCog, ShieldCheck, TriangleAlert } from "lucide-react";
 
@@ -69,12 +72,12 @@ function formatAge(value: number | null): string {
   return `${Math.floor(value / 3600)} год ${Math.floor((value % 3600) / 60)} хв`;
 }
 
-function formatDate(value: string | null): string {
+function formatDate(value: string | null, displayTimeZone: string): string {
   if (!value) return "—";
-  return new Intl.DateTimeFormat("uk-UA", {
+  return formatOperationalTimestamp(new Date(value), displayTimeZone, {
     dateStyle: "short",
     timeStyle: "medium",
-  }).format(new Date(value));
+  });
 }
 
 export function NodeOperationalPanel({ state }: { state: NodeOperationalState | null }) {
@@ -186,6 +189,7 @@ function OperationalStatePanel({ state }: { state: NodeOperationalState | null }
 }
 
 function NodeBrokerControlPanel({ nodeId }: { nodeId: string }) {
+  const displayTimeZone = useDisplayTimeZone();
   const [control, setControl] = useState<NodeBrokerControl | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -258,7 +262,11 @@ function NodeBrokerControlPanel({ nodeId }: { nodeId: string }) {
           label="Attempts"
           value={latest ? new Intl.NumberFormat("uk-UA").format(latest.attempts) : "—"}
         />
-        <OperationalMetric icon={Clock3} label="Last update" value={formatDate(latest?.updated_at ?? null)} />
+        <OperationalMetric
+          icon={Clock3}
+          label="Last update"
+          value={formatDate(latest?.updated_at ?? null, displayTimeZone)}
+        />
       </div>
 
       {latest?.error_detail ? (
@@ -284,7 +292,9 @@ function NodeBrokerControlPanel({ nodeId }: { nodeId: string }) {
               <span className="font-mono text-cyan-200">{command.operation}</span>
               <span className={brokerClass(command.state)}>{command.state}</span>
               <span className="text-slate-500">try {command.attempts}</span>
-              <span className="text-right text-slate-500">{formatDate(command.updated_at)}</span>
+              <span className="text-right text-slate-500">
+                {formatDate(command.updated_at, displayTimeZone)}
+              </span>
             </div>
           ))}
         </div>

@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -102,16 +105,16 @@ function formatValue(sample: TelemetrySample): string {
   return `${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: digits }).format(sample.value)} ${sample.unit}`;
 }
 
-function formatTimestamp(value: string): string {
+function formatTimestamp(value: string, displayTimeZone: string): string {
   const parsed = Date.parse(value);
   if (!Number.isFinite(parsed)) return "Невідомий час";
-  return new Intl.DateTimeFormat("uk-UA", {
+  return formatOperationalTimestamp(parsed, displayTimeZone, {
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-  }).format(parsed);
+  });
 }
 
 function toLocalInput(timestampMs: number): string {
@@ -223,6 +226,7 @@ function deriveResetDomain(
 }
 
 export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryModel }) {
+  const displayTimeZone = useDisplayTimeZone();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -908,7 +912,9 @@ export function LiveTelemetryExplorer({ telemetry }: { telemetry: LiveTelemetryM
                         className="col-start-2 row-start-4 min-w-0 text-xs text-slate-400 lg:px-3 lg:py-3"
                       >
                         <span className="lg:hidden">Виміряно: </span>
-                        <time dateTime={sample.captured_at}>{formatTimestamp(sample.captured_at)}</time>
+                        <time dateTime={sample.captured_at}>
+                          {formatTimestamp(sample.captured_at, displayTimeZone)}
+                        </time>
                       </td>
                       <td role="cell" className="col-start-2 row-start-5 min-w-0 text-xs lg:hidden">
                         <details className="[overflow-wrap:anywhere]">

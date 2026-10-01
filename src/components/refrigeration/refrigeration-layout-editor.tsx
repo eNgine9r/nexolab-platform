@@ -1,5 +1,8 @@
 "use client";
 
+import { formatOperationalTimestamp } from "@/features/display-time/format";
+import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+
 import type {
   ChangeEvent,
   KeyboardEvent as ReactKeyboardEvent,
@@ -650,6 +653,7 @@ function RecoveryBanner({
   onRestore: () => void;
   onDiscard: () => void;
 }) {
+  const displayTimeZone = useDisplayTimeZone();
   return (
     <div
       className="mb-3 rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-3 py-3 text-xs text-cyan-100"
@@ -662,7 +666,8 @@ function RecoveryBanner({
           <div>
             <p className="font-semibold">Знайдено незбережену чернетку позицій</p>
             <p className="mt-1 leading-5 text-cyan-100/75">
-              Збережено локально {formatRecoveryTimestamp(savedAt)}. Фото та серверна версія не змінювалися.
+              Збережено локально {formatRecoveryTimestamp(savedAt, displayTimeZone)}. Фото та серверна версія
+              не змінювалися.
             </p>
           </div>
         </div>
@@ -912,12 +917,12 @@ function isEditableTarget(target: EventTarget | null): boolean {
   );
 }
 
-function formatRecoveryTimestamp(value: string): string {
+function formatRecoveryTimestamp(value: string, displayTimeZone: string): string {
   try {
-    return new Intl.DateTimeFormat("uk-UA", {
+    return formatOperationalTimestamp(new Date(value), displayTimeZone, {
       dateStyle: "short",
       timeStyle: "short",
-    }).format(new Date(value));
+    });
   } catch {
     return value;
   }

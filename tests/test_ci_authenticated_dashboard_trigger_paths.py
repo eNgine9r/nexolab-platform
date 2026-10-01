@@ -31,6 +31,16 @@ class AuthenticatedDashboardTriggerPathTests(unittest.TestCase):
                 self.assertTrue(any(fnmatch.fnmatchcase(relative, pattern) for pattern in paths))
         self.assertIn('"telegram-miniapp.production.e2e.ts"', PLAYWRIGHT_CONFIG.read_text(encoding="utf-8"))
 
+    def test_shared_time_presentation_triggers_every_consumer_browser_lane(self) -> None:
+        for workflow in ("authenticated-dashboard-acceptance.yml", "refrigeration-browser-acceptance.yml", "nodes-browser-acceptance.yml", "alerts-browser-acceptance.yml", "reports-browser-acceptance.yml", "rendered-reports-browser-acceptance.yml", "test-sessions-browser-acceptance.yml"):
+            text = (ROOT / ".github" / "workflows" / workflow).read_text(encoding="utf-8")
+            match = re.search(r"(?ms)^  pull_request:\n.*?^    paths:\n(?P<paths>(?:^      - .+\n)+)", text)
+            self.assertIsNotNone(match)
+            paths = {line.strip()[2:].strip().strip('"') for line in match.group("paths").splitlines()}
+            for relative in ("src/features/display-time/format.ts", "src/features/display-time/store.ts", "src/hooks/use-display-time-zone.ts", "src/hooks/use-settings-preferences.ts"):
+                with self.subTest(workflow=workflow, path=relative):
+                    self.assertTrue(any(fnmatch.fnmatchcase(relative, pattern) for pattern in paths))
+
     def test_canonical_chart_sources_trigger_dashboard_acceptance(self) -> None:
         paths = _pull_request_paths()
         self.assertIn("src/features/charts/**", paths)

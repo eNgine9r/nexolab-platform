@@ -95,6 +95,9 @@ DASHBOARD_FOCUSED_DOMAINS = {
 }
 
 DASHBOARD_SHARED_PATTERNS = (
+    "src/features/display-time/**",
+    "src/hooks/use-display-time-zone*",
+    "src/hooks/use-settings-preferences*",
     "src/features/security/**",
     "src/features/acquisition/**",
     "src/components/dashboard/**",
@@ -121,6 +124,9 @@ DASHBOARD_SHARED_PATTERNS = (
 )
 
 REFRIGERATION_PATTERNS = (
+    "src/features/display-time/**",
+    "src/hooks/use-display-time-zone*",
+    "src/hooks/use-settings-preferences*",
     "src/components/refrigeration/**",
     "src/features/refrigeration/**",
     "services/telemetry-service/app/refrigeration/**",

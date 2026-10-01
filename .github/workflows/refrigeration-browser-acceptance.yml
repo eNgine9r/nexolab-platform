@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [main]
     paths:
+      - "src/features/display-time/**"
+      - "src/hooks/use-display-time-zone*"
+      - "src/hooks/use-settings-preferences*"
       - ".github/workflows/refrigeration-browser-acceptance.yml"
       - "scripts/classify-ci-impact.py"
       - "docs/refrigeration-browser-central-acceptance.md"

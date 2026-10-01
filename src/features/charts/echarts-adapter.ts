@@ -285,7 +285,8 @@ function rendererOption(scene: ChartRendererScene, reducedMotion: boolean): ECha
       axisLabel: {
         color: "#94A3B8",
         hideOverlap: true,
-        formatter: (value: number | string) => formatChartAxisTimestamp(Number(value), scene.xDomain),
+        formatter: (value: number | string) =>
+          formatChartAxisTimestamp(Number(value), scene.xDomain, { timeZone: scene.displayTimeZone }),
       },
       splitLine: { show: true, lineStyle: { color: "rgba(148,163,184,.10)" } },
     },
