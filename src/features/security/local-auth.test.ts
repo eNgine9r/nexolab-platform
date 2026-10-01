@@ -128,3 +128,27 @@ describe("local browser authentication", () => {
     expect(fetchMock.mock.calls[1]?.[0]).toBe(`${API_BASE_URL}/api/v1/auth/local/logout`);
   });
 });
+
+it.each([200, 401])(
+  "retains the newly selected organization when delayed refresh returns %s",
+  async (status) => {
+    window.sessionStorage.setItem("nexolab.local-auth.access-token", "expired");
+    window.sessionStorage.setItem("nexolab.local-auth.refresh-token", "refresh-old");
+    window.sessionStorage.setItem("nexolab.local-auth.access-expires-at", "0");
+    let resolve!: (response: Response) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise<Response>((finish) => {
+            resolve = finish;
+          }),
+      ),
+    );
+    const pending = createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID)();
+    setSecurityCredentials({ accessToken: "expired", organizationId: "organization-b" });
+    resolve(status === 200 ? tokenResponse("fresh", "refresh-new") : new Response("{}", { status }));
+    expect((await pending).organizationId).toBe("organization-b");
+    expect(getSecurityCredentials().organizationId).toBe("organization-b");
+  },
+);

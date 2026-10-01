@@ -142,3 +142,51 @@ it("refreshes an expired local token while retaining the explicit organization",
     setSecurityCredentials({ accessToken: null, organizationId: null });
   }
 });
+
+it("pins an old scoped request without reverting the UI organization during delayed local refresh", async () => {
+  vi.stubEnv("NEXT_PUBLIC_NEXOLAB_DATA_MODE", "live");
+  vi.stubEnv("NEXT_PUBLIC_NEXOLAB_API_BASE_URL", "https://api.example.test");
+  vi.stubEnv("NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER", "local");
+  window.sessionStorage.setItem("nexolab.local-auth.access-token", "expired");
+  window.sessionStorage.setItem("nexolab.local-auth.refresh-token", "refresh-old");
+  window.sessionStorage.setItem("nexolab.local-auth.access-expires-at", "0");
+  setSecurityCredentials({ accessToken: "expired", organizationId: "org-a" });
+  let resolve!: (response: Response) => void;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      () =>
+        new Promise<Response>((finish) => {
+          resolve = finish;
+        }),
+    ),
+  );
+  try {
+    const oldFetch = createFetchMock();
+    const pending = createSessionApiClient({ fetch: oldFetch, organizationId: "org-a" }).listSessions();
+    await vi.waitFor(() => expect(resolve).toBeDefined());
+    setSecurityCredentials({ accessToken: "expired", organizationId: "org-b" });
+    resolve(
+      new Response(
+        JSON.stringify({
+          access_token: "fresh",
+          refresh_token: "refresh-new",
+          expires_in: 600,
+          refresh_expires_in: 3600,
+        }),
+        { status: 200 },
+      ),
+    );
+    await pending;
+    expect(new Headers(oldFetch.mock.calls[0]![1]?.headers).get("X-Organization-ID")).toBe("org-a");
+    expect(getSecurityCredentials().organizationId).toBe("org-b");
+    const nextFetch = createFetchMock();
+    await createSessionApiClient({ fetch: nextFetch }).listSessions();
+    expect(new Headers(nextFetch.mock.calls[0]![1]?.headers).get("X-Organization-ID")).toBe("org-b");
+  } finally {
+    window.sessionStorage.clear();
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    setSecurityCredentials({ accessToken: null, organizationId: null });
+  }
+});

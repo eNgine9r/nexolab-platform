@@ -226,3 +226,54 @@ it("keeps the original operation frozen after an uncertain creation failure", as
   expect(mock.create.mock.calls[1]!.at(-2)).toBe(oldKey);
   expect(mock.create.mock.calls[2]!.at(-2)).toBe(oldKey);
 });
+
+it.each(["create", "binding", "limits"] as const)(
+  "does not POST %s until its recovery state is saved",
+  async (stage) => {
+    mock.persistent = true;
+    let readyForLimits = false;
+    if (stage === "limits")
+      mock.binding.mockImplementationOnce(async () => {
+        readyForLimits = true;
+        return {};
+      });
+    const original = Storage.prototype.setItem;
+    const storage = vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (
+      this: Storage,
+      key,
+      value,
+    ) {
+      const data = key.startsWith("nexolab.sessionWizardDraft") ? JSON.parse(value) : null;
+      if (
+        data &&
+        (stage === "create" ||
+          (stage === "binding" && data.operation.bindingKeys.length > 0) ||
+          (stage === "limits" && readyForLimits))
+      ) {
+        throw new DOMException("Quota exceeded", "QuotaExceededError");
+      }
+      original.call(this, key, value);
+    });
+    try {
+      render(<SessionWizard />);
+      for (let step = 0; step < 7; step++) {
+        const next = screen.getByRole("button", { name: "Далі" });
+        await waitFor(() => expect(next).toBeEnabled());
+        fireEvent.click(next);
+      }
+      fireEvent.click(screen.getByRole("button", { name: "Створити реальний draft" }));
+      await screen.findByText(/Не вдалося зберегти стан створення/);
+      expect(mock[stage]).not.toHaveBeenCalled();
+      expect(mock.release).toHaveBeenCalledOnce();
+      storage.mockRestore();
+      fireEvent.click(
+        screen.getByRole("button", { name: /Створити реальний draft|Повторити без дублювання/ }),
+      );
+      await waitFor(() => expect(mock.push).toHaveBeenCalledWith("/sessions/old-org-draft"));
+      expect(mock.create).toHaveBeenCalledOnce();
+      expect(mock.limits).toHaveBeenCalledOnce();
+    } finally {
+      storage.mockRestore();
+    }
+  },
+);

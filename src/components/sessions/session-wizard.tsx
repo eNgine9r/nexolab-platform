@@ -231,8 +231,17 @@ export function SessionWizard() {
       operation.current.bindingSnapshot ??= structuredClone(frozenBindings);
       operation.current.formSnapshot ??= structuredClone(form);
       const submittedForm = operation.current.formSnapshot;
+      if (!persist(submittedForm, 7)) {
+        if (!uncertainCreateBeforeThisAttempt && !operation.current.sessionId) {
+          operation.current.formSnapshot = null;
+          operation.current.bindingSnapshot = null;
+          operation.current.selectionKeys = null;
+        }
+        throw new Error(
+          "Не вдалося зберегти стан створення. Перевірте доступ до сховища браузера й повторіть спробу.",
+        );
+      }
       setFormFrozen(true);
-      persist(submittedForm, 7);
       let sessionId = operation.current.sessionId;
 
       if (!sessionId) {
@@ -266,7 +275,10 @@ export function SessionWizard() {
         if (controller.signal.aborted) return;
         sessionId = created.session.id;
         operation.current.sessionId = sessionId;
-        persist(submittedForm, 7);
+        if (!persist(submittedForm, 7))
+          throw new Error(
+            "Не вдалося зберегти стан створення. Перевірте доступ до сховища браузера й повторіть спробу.",
+          );
         setCreatedSessionId(sessionId);
         invalidateSessionListReadModels(configuredOrganizationId);
       }
@@ -278,7 +290,10 @@ export function SessionWizard() {
           idempotencyKey = createIdempotencyKey("session-binding");
           operation.current.bindingKeys.set(identity, idempotencyKey);
         }
-        persist(submittedForm, 7);
+        if (!persist(submittedForm, 7))
+          throw new Error(
+            "Не вдалося зберегти стан створення. Перевірте доступ до сховища браузера й повторіть спробу.",
+          );
         await sessionClient.addBinding(
           sessionId,
           {
@@ -299,6 +314,10 @@ export function SessionWizard() {
         if (controller.signal.aborted) return;
       }
 
+      if (!persist(submittedForm, 7))
+        throw new Error(
+          "Не вдалося зберегти стан створення. Перевірте доступ до сховища браузера й повторіть спробу.",
+        );
       await sessionClient.addLimitSet(
         sessionId,
         {
@@ -442,7 +461,7 @@ export function SessionWizard() {
           )}
           {storageFailed && (
             <p role="alert" className="mb-4 text-sm text-amber-300">
-              Не вдалося зберегти чернетку в цьому браузері. Залишайте форму відкритою до завершення.
+              Чернетку не збережено. Перевірте доступ до сховища браузера й повторіть спробу.
             </p>
           )}
           {step === 0 && <GeneralStep form={form} update={update} />}
