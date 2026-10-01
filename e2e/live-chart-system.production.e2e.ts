@@ -627,3 +627,122 @@ for (const width of [390, 1280]) {
     }
   });
 }
+
+for (const width of [390, 1280]) {
+  test(`Live comparison survives ordinary navigation and bare reload at ${width}px`, async ({ browser }) => {
+    const fixture = seedExplorerTelemetry();
+    const context = await authenticatedContext(browser);
+    const page = await context.newPage();
+    await page.setViewportSize({ width, height: 1000 });
+    const runtime = observeRuntime(page);
+    const preferenceKey = `nexolab.live-comparison.v1:${encodeURIComponent(organizationId)}`;
+    const readPreference = () =>
+      page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "null"), preferenceKey);
+
+    const navigate = async (name: string) => {
+      if (width < 1024) await page.getByRole("button", { name: "Відкрити меню", exact: true }).click();
+      const link = page.getByRole("navigation", { name: "Головна навігація" }).getByRole("link", {
+        name,
+        exact: true,
+      });
+      if (name === "Live дані") await expect(link).toHaveAttribute("href", "/live");
+      await link.click();
+    };
+
+    try {
+      await page.goto("/live", { waitUntil: "domcontentloaded" });
+      await page.getByPlaceholder("node, equipment, channel, metric, source...").fill(fixture.equipmentId);
+      await page
+        .getByRole("checkbox", { name: /Порівнювати/ })
+        .first()
+        .check();
+      await expect.poll(() => new URL(page.url()).searchParams.getAll("compare").length).toBe(1);
+      const selected = new URL(page.url()).searchParams.getAll("compare");
+      await expect.poll(readPreference).toEqual({ version: 1, keys: selected });
+
+      await navigate("Налаштування");
+      await expect(page.getByLabel("Часові позначки")).toBeVisible();
+      await navigate("Live дані");
+      const selectedContext = page.getByTestId("live-selected-context");
+      await expect(selectedContext).toContainText(fixture.equipmentId);
+      await expect.poll(() => new URL(page.url()).searchParams.getAll("compare")).toEqual(selected);
+      await assertNoPageOverflow(page);
+
+      await page.evaluate(() => window.history.replaceState(null, "", "/live"));
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(selectedContext).toContainText(fixture.equipmentId);
+      await expect.poll(() => new URL(page.url()).searchParams.getAll("compare")).toEqual(selected);
+
+      await page.getByPlaceholder("node, equipment, channel, metric, source...").fill(fixture.equipmentId);
+      await page.getByRole("checkbox", { name: /Порівнювати/, checked: true }).uncheck();
+      await expect.poll(readPreference).toEqual({ version: 1, keys: [] });
+      await page.goto("/live", { waitUntil: "domcontentloaded" });
+      await expect(page.getByText("Жодного каналу не обрано", { exact: true })).toBeVisible();
+      await expect.poll(readPreference).toEqual({ version: 1, keys: [] });
+
+      await page.goto(`/live?compare=${encodeURIComponent(selected[0]!)}&range=1h`);
+      await expect(selectedContext).toContainText(fixture.equipmentId);
+      await expect.poll(() => new URL(page.url()).searchParams.getAll("compare")).toEqual(selected);
+      await assertNoPageOverflow(page);
+      expect(runtime.acquisitionMutations).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
+}
+
+test("Live preserves explicit comparison during inventory outage and reload", async ({ browser }) => {
+  const fixture = seedExplorerTelemetry();
+  const context = await authenticatedContext(browser);
+  const page = await context.newPage();
+  const runtime = observeRuntime(page);
+  const preferenceKey = `nexolab.live-comparison.v1:${encodeURIComponent(organizationId)}`;
+  const remembered = ["previous-channel"];
+  const identity = [
+    "edge-live-issue-400",
+    fixture.equipmentId,
+    fixture.channels[0]!,
+    "temperature.probe",
+    "degC",
+  ];
+  const explicit = identity.map((part) => encodeURIComponent(part)).join("|");
+  const readPreference = () =>
+    page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "null"), preferenceKey);
+  let inventoryFailures = 0;
+  await page.route("**/api/v1/telemetry/latest**", async (route) => {
+    inventoryFailures += 1;
+    await route.abort("failed");
+  });
+  await context.addInitScript(
+    ({ key, keys }) => {
+      if (window.location.protocol !== "about:") {
+        localStorage.setItem(key, JSON.stringify({ version: 1, keys }));
+      }
+    },
+    { key: preferenceKey, keys: remembered },
+  );
+
+  try {
+    await page.goto(`/live?compare=${encodeURIComponent(explicit)}&range=1h`);
+    await expect.poll(() => inventoryFailures).toBeGreaterThan(0);
+    await expect(page.getByRole("button", { name: "Повторити", exact: true })).toBeVisible();
+    await expect.poll(() => new URL(page.url()).searchParams.getAll("compare")).toEqual([explicit]);
+    await expect.poll(readPreference).toEqual({ version: 1, keys: remembered });
+
+    const beforeReload = inventoryFailures;
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect.poll(() => inventoryFailures).toBeGreaterThan(beforeReload);
+    await expect(page.getByRole("button", { name: "Повторити", exact: true })).toBeVisible();
+    await expect.poll(() => new URL(page.url()).searchParams.getAll("compare")).toEqual([explicit]);
+    await expect.poll(readPreference).toEqual({ version: 1, keys: remembered });
+
+    await page.unroute("**/api/v1/telemetry/latest**");
+    await page.getByRole("button", { name: "Повторити", exact: true }).click();
+    await expect(page.getByTestId("live-selected-context")).toContainText(fixture.equipmentId);
+    await expect.poll(readPreference).toEqual({ version: 1, keys: [explicit] });
+    await expect.poll(() => new URL(page.url()).searchParams.getAll("compare")).toEqual([explicit]);
+    expect(runtime.acquisitionMutations).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
