@@ -241,6 +241,17 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         (authority / "compatibility-runtime-authority.json").write_text(json.dumps(result) + "\n", encoding="utf-8")
         return authority
 
+    def _create_layered_compatibility_fork(self) -> str:
+        self.assertEqual(run("git", "switch", "-c", "layered-compat", self.base, cwd=self.repo).returncode, 0)
+        self._commit("layered compatibility base")
+        compatibility = self._commit("layered compatibility source")
+        self.assertEqual(run("git", "switch", "main", cwd=self.repo).returncode, 0)
+        self.assertNotEqual(
+            run("git", "merge-base", "--is-ancestor", compatibility, self.latest, cwd=self.repo).returncode,
+            0,
+        )
+        return compatibility
+
     def _set_layered_device_agent_baseline(
         self,
         *,
@@ -345,25 +356,24 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         self.assertEqual(run("git", "branch", "--show-current", cwd=self.repo).stdout.strip(), "main")
         self.assertEqual(run("git", "rev-parse", "HEAD", cwd=self.repo).stdout.strip(), self.latest)
 
-    def test_source_selection_uses_checksum_bound_layered_device_agent_baseline(self) -> None:
-        evidence = self._set_layered_device_agent_baseline()
+    def test_source_selection_uses_checksum_bound_layered_device_agent_fork(self) -> None:
+        compatibility = self._create_layered_compatibility_fork()
+        evidence = self._set_layered_device_agent_baseline(compatibility_source=compatibility)
         result = self._validate(self.latest, self.base)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("deployed_device_agent_image_id=sha256:" + "8" * 64, result.stdout)
-        self.assertIn(f"device_agent_layered_source={self.target}", result.stdout)
+        self.assertIn(f"device_agent_layered_source={compatibility}", result.stdout)
         self.assertIn(
             f"device_agent_runtime_evidence={evidence.relative_to(self.repo)}",
             result.stdout,
         )
 
-    def test_layered_device_agent_baseline_rejects_target_before_compatibility_source(self) -> None:
-        self._set_layered_device_agent_baseline(compatibility_source=self.latest)
-        result = self._validate(self.target, self.base)
+    def test_layered_device_agent_fork_does_not_replace_main_target_lineage_guard(self) -> None:
+        compatibility = self._create_layered_compatibility_fork()
+        self._set_layered_device_agent_baseline(compatibility_source=compatibility)
+        result = self._validate(self.feature, self.base)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn(
-            "deployment target does not contain the accepted layered Device Agent compatibility source",
-            result.stdout + result.stderr,
-        )
+        self.assertIn("requested source is not contained in current main history", result.stdout + result.stderr)
 
     def test_current_main_can_pin_exact_compatibility_runtime_authority(self) -> None:
         authority = self._set_compatibility_authority_evidence("20260829T010000Z")
