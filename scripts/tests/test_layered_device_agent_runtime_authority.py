@@ -64,6 +64,7 @@ class LayeredDeviceAgentRuntimeAuthorityTests(unittest.TestCase):
         baselines = {
             "deployed_product_sha": self.formal,
             "device_agent_compatibility_source_sha": self.compatibility,
+            "device_agent_compatibility_parent_sha": "1" * 40,
             "device_agent_image_id": CURRENT_IMAGE,
             "device_agent_rollback_image_id": FORMAL_IMAGE,
             "device_agent_runtime_evidence": str(self.runtime_evidence.relative_to(self.repo)),
@@ -225,6 +226,11 @@ class LayeredDeviceAgentRuntimeAuthorityTests(unittest.TestCase):
     def test_rejects_pre_cutover_release_ci_failure(self) -> None:
         self.write_pre_cutover_evidence(release_ci="FAIL")
         with self.assertRaisesRegex(ValueError, "release_ci"):
+            self.resolve()
+
+    def test_rejects_pre_cutover_candidate_parent_mismatch(self) -> None:
+        self.write_state(device_agent_compatibility_parent_sha="2" * 40)
+        with self.assertRaisesRegex(ValueError, "candidate_parent_sha"):
             self.resolve()
 
     def test_absent_layered_baseline_allows_formal_runtime_only(self) -> None:
