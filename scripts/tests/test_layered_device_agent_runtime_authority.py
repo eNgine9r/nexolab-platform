@@ -32,6 +32,7 @@ class LayeredDeviceAgentRuntimeAuthorityTests(unittest.TestCase):
         run("git", "config", "user.email", "test@nexolab.local", cwd=self.repo)
         run("git", "config", "user.name", "NEXOLAB Test", cwd=self.repo)
         self.formal = self.commit("formal")
+        self.compatibility_base = self.commit("compatibility base")
         self.compatibility = self.commit("compatibility")
         self.target = self.commit("target")
         self.evidence = self.repo / "runtime" / "evidence" / "issue-test-layered"
@@ -54,6 +55,9 @@ class LayeredDeviceAgentRuntimeAuthorityTests(unittest.TestCase):
         baselines = {
             "deployed_product_sha": self.formal,
             "device_agent_compatibility_source_sha": self.compatibility,
+            "device_agent_compatibility_source_parent_sha": self.compatibility_base,
+            "device_agent_compatibility_base_sha": self.compatibility_base,
+            "device_agent_compatibility_base_parent_sha": self.formal,
             "device_agent_image_id": CURRENT_IMAGE,
             "device_agent_rollback_image_id": FORMAL_IMAGE,
             "device_agent_runtime_evidence": "runtime/evidence/issue-test-layered",
@@ -115,16 +119,16 @@ class LayeredDeviceAgentRuntimeAuthorityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "checksum mismatch"):
             self.resolve()
 
-    def test_rejects_compatibility_source_outside_formal_lineage(self) -> None:
-        run("git", "switch", "--orphan", "unrelated", cwd=self.repo)
-        (self.repo / "unrelated.txt").write_text("unrelated\n", encoding="utf-8")
-        run("git", "add", "unrelated.txt", cwd=self.repo)
-        run("git", "commit", "-m", "unrelated", cwd=self.repo)
-        unrelated = run("git", "rev-parse", "HEAD", cwd=self.repo)
-        self.write_state(device_agent_compatibility_source_sha=unrelated)
-        self.write_runtime_evidence(compatibility_source=unrelated)
-        with self.assertRaisesRegex(ValueError, "not a descendant"):
+    def test_rejects_recorded_compatibility_source_parent_mismatch(self) -> None:
+        self.write_state(device_agent_compatibility_source_parent_sha=self.formal)
+        with self.assertRaisesRegex(ValueError, "source parent"):
             self.resolve()
+
+    def test_rejects_recorded_compatibility_base_parent_mismatch(self) -> None:
+        self.write_state(device_agent_compatibility_base_parent_sha=self.compatibility_base)
+        with self.assertRaisesRegex(ValueError, "base parent"):
+            self.resolve()
+
 
     def test_absent_layered_baseline_allows_formal_runtime_only(self) -> None:
         project = self.repo / ".project"
