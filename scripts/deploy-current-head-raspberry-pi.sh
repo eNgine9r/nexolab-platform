@@ -354,6 +354,7 @@ VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_RECOVERY_TAG=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE=""
+VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE=""
 DEPLOYED_DEVICE_AGENT_IMAGE_ID=""
 
 CENTRAL_COMPOSE_ARGS=(
@@ -1008,6 +1009,7 @@ PY_REBASELINE_SOURCE
 resolve_layered_device_agent_authority() {
   VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE=""
   VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE=""
+  VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE=""
   [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_FORMAL_IMAGE_ID"     && -f "$REPO/.project/ACTIVE_SPRINT.json" ]] || return 0
 
   local layered_device_agent_authority
@@ -1027,19 +1029,20 @@ resolve_layered_device_agent_authority() {
         [[ "$layered_value" == "$VERIFIED_DEPLOYED_DEVICE_AGENT_FORMAL_IMAGE_ID" ]]           || fail "layered Device Agent previous image changed after authority resolution"
         ;;
       runtime_evidence) VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE="$layered_value" ;;
+      pre_cutover_evidence) VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE="$layered_value" ;;
       "") ;;
       *) fail "layered Device Agent authority resolver returned an unknown field" ;;
     esac
   done <<< "$layered_device_agent_authority"
 
   if [[ "$layered_configured" == "true" ]]; then
-    [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE" =~ ^[0-9a-f]{40}$       && "$layered_image" =~ ^sha256:[0-9a-f]{64}$       && -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE" ]]       || fail "layered Device Agent authority resolver returned incomplete authority"
+    [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE" =~ ^[0-9a-f]{40}$       && "$layered_image" =~ ^sha256:[0-9a-f]{64}$       && -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE"       && -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE" ]]       || fail "layered Device Agent authority resolver returned incomplete authority"
     VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID="$layered_image"
     VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID=""
     VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID=""
     VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID=""
     VERIFIED_DEPLOYED_DEVICE_AGENT_RECOVERY_TAG=""
-    log "Resolved checksum-bound layered Device Agent runtime authority: source=$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE image=$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID evidence=$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE"
+    log "Resolved checksum-bound layered Device Agent runtime authority: source=$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE image=$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID runtime_evidence=$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE pre_cutover_evidence=$VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE"
   elif [[ "$layered_configured" != "false" ]]; then
     fail "layered Device Agent authority resolver returned invalid configured state"
   fi
@@ -1093,6 +1096,7 @@ preserve_deployed_device_agent_image_for_recovery() {
     if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE" ]]; then
       echo "layered_compatibility_source=$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE"
       echo "layered_runtime_evidence=$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE"
+      echo "layered_pre_cutover_evidence=$VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE"
     fi
   } > "$AUDIT_DIR/device-agent-recovery-image.txt"
   chmod 0600 "$AUDIT_DIR/device-agent-recovery-image.txt"
@@ -1167,6 +1171,7 @@ if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "1" ]]; then
   printf 'deployed_device_agent_image_id=%s\n' "${VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID:-not_available}"
   printf 'device_agent_layered_source=%s\n' "${VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE:-not_applicable}"
   printf 'device_agent_runtime_evidence=%s\n' "${VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE:-not_applicable}"
+  printf 'device_agent_pre_cutover_evidence=%s\n' "${VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE:-not_applicable}"
   printf 'deployment_evidence=%s\n' "${EXPECTED_DEPLOYMENT_EVIDENCE:-not_available}"
   printf 'origin_main=%s\n' "$CONTROL_HEAD"
   exit 0
