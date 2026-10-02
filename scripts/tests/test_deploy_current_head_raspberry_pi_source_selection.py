@@ -472,17 +472,22 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
             current_image="sha256:" + "8" * 64,
             previous_image="sha256:" + "6" * 64,
         )
-        recovery = self._set_forward_recovery_evidence("20260829T020000Z")
-        for name in ("edge-sqlite-pre-cutover.json", "edge-sqlite-restore-result.json"):
-            path = recovery / name
-            document = json.loads(path.read_text(encoding="utf-8"))
-            document["deployed_device_agent_image_id"] = "sha256:" + "8" * 64
-            path.write_text(json.dumps(document) + "\n", encoding="utf-8")
+        recovery = self._set_deployed_evidence(
+            None,
+            "20260829T020000Z",
+            passed=False,
+            mutated=True,
+            restored_source=self.base,
+            restored_device_agent_image_id="sha256:" + "8" * 64,
+            summary_extra="ERROR: post-mutation readiness failed",
+        )
 
         result = self._validate_current_main(self.base)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("deployed_device_agent_image_id=sha256:" + "8" * 64, result.stdout)
         self.assertIn(f"device_agent_layered_source={self.target}", result.stdout)
+        self.assertIn("device_agent_authority_role=restored_layered", result.stdout)
+        self.assertIn(str(recovery), result.stdout)
 
     def test_current_main_can_pin_exact_compatibility_runtime_authority(self) -> None:
         authority = self._set_compatibility_authority_evidence("20260829T010000Z")
