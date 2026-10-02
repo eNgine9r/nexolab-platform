@@ -57,6 +57,7 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         passed: bool = True,
         mutated: bool = False,
         restored_source: str | None = None,
+        restored_device_agent_image_id: str | None = None,
         device_agent_image_id: str | None = None,
         summary_extra: str = "",
     ) -> Path:
@@ -86,7 +87,7 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
                 "node_stream_sequences": {},
                 "deployment_evidence_id": stamp,
                 "deployed_source": restored_source,
-                "deployed_device_agent_image_id": "sha256:" + "d" * 64,
+                "deployed_device_agent_image_id": restored_device_agent_image_id or "sha256:" + "d" * 64,
                 "target_source": self.target,
             }
             metadata = {
@@ -656,6 +657,26 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         result = self._validate(self.target, self.base)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn(f"deployed={self.base}", result.stdout)
+        self.assertIn(str(recovered), result.stdout)
+
+    def test_verified_restore_of_layered_image_remains_retryable(self) -> None:
+        compatibility = self._create_layered_compatibility_fork()
+        self._set_layered_device_agent_baseline(compatibility_source=compatibility)
+        layered_image = "sha256:" + "8" * 64
+        recovered = self._set_deployed_evidence(
+            None,
+            "20260829T010000Z",
+            passed=False,
+            mutated=True,
+            restored_source=self.base,
+            restored_device_agent_image_id=layered_image,
+            summary_extra="ERROR: post-mutation readiness failed",
+        )
+        result = self._validate(self.latest, self.base)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(f"deployed={self.base}", result.stdout)
+        self.assertIn(f"deployed_device_agent_image_id={layered_image}", result.stdout)
+        self.assertIn("device_agent_authority_role=restored_layered", result.stdout)
         self.assertIn(str(recovered), result.stdout)
 
     def test_inconsistent_restore_evidence_fails_closed(self) -> None:
