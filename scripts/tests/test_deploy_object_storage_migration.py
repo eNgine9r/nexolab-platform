@@ -232,6 +232,62 @@ class MigrationTests(unittest.TestCase):
         self.assertEqual(result["status"], "inventory")
         self.assertEqual(dst.buckets, {})
 
+    def test_minio_dummy_private_acl_accepts_omitted_grantee_id_only_for_exact_shape(self):
+        src, dst = source(), S3()
+        src.acl = {
+            "Owner": {"ID": ""},
+            "Grants": [
+                {"Grantee": {"Type": "CanonicalUser"}, "Permission": "FULL_CONTROL"}
+            ],
+        }
+        result = migrate(src, dst, dry_run=True)
+        self.assertEqual(result["status"], "inventory")
+        self.assertEqual(dst.buckets, {})
+
+    def test_minio_dummy_private_acl_missing_id_rejects_alternate_identity_shapes(self):
+        invalid = (
+            (
+                {"Owner": {"ID": "owner"}},
+                {"Grantee": {"Type": "CanonicalUser"}, "Permission": "FULL_CONTROL"},
+            ),
+            (
+                {"Owner": {"ID": ""}},
+                {"Grantee": {"Type": "CanonicalUser", "URI": "http://acs.amazonaws.com/groups/global/AllUsers"}, "Permission": "FULL_CONTROL"},
+            ),
+            (
+                {"Owner": {"ID": ""}},
+                {"Grantee": {"Type": "CanonicalUser", "EmailAddress": "user@example.invalid"}, "Permission": "FULL_CONTROL"},
+            ),
+            (
+                {"Owner": {"ID": ""}},
+                {"Grantee": {"Type": "CanonicalUser"}, "Permission": "READ"},
+            ),
+            (
+                {"Owner": {"ID": ""}},
+                {"Grantee": {"Type": "Group"}, "Permission": "FULL_CONTROL"},
+            ),
+        )
+        for owner_record, grant in invalid:
+            with self.subTest(owner=owner_record, grant=grant):
+                src, dst = source(), S3()
+                src.acl = {"Owner": owner_record, "Grants": [grant]}
+                with self.assertRaisesRegex(ValueError, "custom or public ACL"):
+                    migrate(src, dst)
+                self.assertEqual(dst.buckets, {})
+
+    def test_minio_dummy_private_acl_missing_id_rejects_multiple_grants(self):
+        src, dst = source(), S3()
+        src.acl = {
+            "Owner": {"ID": ""},
+            "Grants": [
+                {"Grantee": {"Type": "CanonicalUser"}, "Permission": "FULL_CONTROL"},
+                {"Grantee": {"Type": "CanonicalUser", "ID": ""}, "Permission": "FULL_CONTROL"},
+            ],
+        }
+        with self.assertRaisesRegex(ValueError, "custom or public ACL"):
+            migrate(src, dst)
+        self.assertEqual(dst.buckets, {})
+
     def test_minio_empty_owner_id_does_not_mask_custom_or_public_acl(self):
         invalid_grants = (
             {"Grantee": {"Type": "Group", "URI": "AllUsers"}, "Permission": "READ"},
