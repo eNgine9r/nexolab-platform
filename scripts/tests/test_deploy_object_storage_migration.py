@@ -220,6 +220,50 @@ class MigrationTests(unittest.TestCase):
             migrate(src, dst)
         self.assertEqual(dst.buckets, {})
 
+    def test_minio_empty_canonical_ids_are_accepted_for_private_acl_shape(self):
+        src, dst = source(), S3()
+        src.acl = {
+            "Owner": {"ID": ""},
+            "Grants": [
+                {"Grantee": {"Type": "CanonicalUser", "ID": ""}, "Permission": "FULL_CONTROL"}
+            ],
+        }
+        result = migrate(src, dst, dry_run=True)
+        self.assertEqual(result["status"], "inventory")
+        self.assertEqual(dst.buckets, {})
+
+    def test_minio_empty_owner_id_does_not_mask_custom_or_public_acl(self):
+        invalid_grants = (
+            {"Grantee": {"Type": "Group", "URI": "AllUsers"}, "Permission": "READ"},
+            {"Grantee": {"Type": "CanonicalUser", "ID": "other"}, "Permission": "FULL_CONTROL"},
+            {"Grantee": {"Type": "CanonicalUser", "ID": ""}, "Permission": "READ"},
+        )
+        for invalid in invalid_grants:
+            with self.subTest(invalid=invalid):
+                src, dst = source(), S3()
+                src.acl = {
+                    "Owner": {"ID": ""},
+                    "Grants": [
+                        {"Grantee": {"Type": "CanonicalUser", "ID": ""}, "Permission": "FULL_CONTROL"},
+                        invalid,
+                    ],
+                }
+                with self.assertRaisesRegex(ValueError, "custom or public ACL"):
+                    migrate(src, dst)
+                self.assertEqual(dst.buckets, {})
+
+    def test_missing_owner_id_still_fails_closed(self):
+        src, dst = source(), S3()
+        src.acl = {
+            "Owner": {},
+            "Grants": [
+                {"Grantee": {"Type": "CanonicalUser", "ID": ""}, "Permission": "FULL_CONTROL"}
+            ],
+        }
+        with self.assertRaisesRegex(ValueError, "cannot establish private owner-only ACL"):
+            migrate(src, dst)
+        self.assertEqual(dst.buckets, {})
+
     def test_lifecycle_and_encryption_are_not_silently_lost(self):
         for field, value in (("lifecycle", True), ("head_extra", {"ServerSideEncryption": "AES256"}), ("head_extra", {"ObjectLockMode": "GOVERNANCE"})):
             src, dst = source(), S3()

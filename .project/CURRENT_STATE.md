@@ -2,6 +2,12 @@
 
 Updated: 2026-10-02
 
+## Issue #1251 — MinIO ACL compatibility candidate verified; merge pending
+
+The approved #1249 actual-host retry synchronized Raspberry main to `fa9fc82ada84f680f7c57a7f0cc60b5e5071962e` and passed historical source selection, then failed closed before Telemetry freeze, object copy or storage cutover with `Migration failed closed: cannot establish private owner-only ACL`. Runtime storage remained legacy MinIO and no production data or hardware was mutated.
+
+PR #1252 fixes the MinIO-compatible empty canonical owner/grantee ID representation without weakening the privacy gate: ID fields must be explicitly present strings, all grants must remain `CanonicalUser` + `FULL_CONTROL` with IDs matching the owner, and group/public, mixed-ID, missing-ID and non-FULL_CONTROL grants remain rejected. Existing anonymous bucket/object denial checks remain mandatory. Candidate head `48995143e4dbf390b50b316e050e1680dfec0d10` passed migration-safety, formatting, lint, typecheck, full tests, production build and Merge Gate, but review correctly requires lifecycle to remain `review` until the final exact-head evidence exists. Merge and completion state are still pending.
+
 ## Issue #1249 — authorized object-storage migration prerequisite in progress
 
 The actual-host #1247 attempt `runtime/deployments/20261002T070118Z` passed source selection and capacity, then stopped before runtime activation because legacy MinIO exists and the VersityGW volume does not. Canonical retention removed historical deployment `20260917T131852Z` (3129837871 bytes); three historical Telegram evidence directories were unreadable to `du`. The Product Owner explicitly authorized #1249 migration/cutover and project update on 2026-10-02. No repeat permission request is needed for this scoped operation.

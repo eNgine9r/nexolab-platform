@@ -38,12 +38,23 @@ def private_object(endpoint, bucket, key):
 
 
 def owner_only_acl(acl):
-    owner = acl.get("Owner", {}).get("ID")
-    if not owner or not acl.get("Grants"):
+    owner_record = acl.get("Owner")
+    grants = acl.get("Grants")
+    if not isinstance(owner_record, dict) or "ID" not in owner_record or not isinstance(grants, list) or not grants:
         raise MigrationError("cannot establish private owner-only ACL")
-    for grant in acl["Grants"]:
+    owner = owner_record["ID"]
+    if not isinstance(owner, str):
+        raise MigrationError("cannot establish private owner-only ACL")
+    for grant in grants:
         grantee = grant.get("Grantee", {})
-        if grantee.get("Type") != "CanonicalUser" or grantee.get("ID") != owner or grant.get("Permission") != "FULL_CONTROL":
+        grantee_id = grantee.get("ID")
+        if (
+            grantee.get("Type") != "CanonicalUser"
+            or "ID" not in grantee
+            or not isinstance(grantee_id, str)
+            or grantee_id != owner
+            or grant.get("Permission") != "FULL_CONTROL"
+        ):
             raise MigrationError("custom or public ACL requires separately reviewed migration")
 
 
