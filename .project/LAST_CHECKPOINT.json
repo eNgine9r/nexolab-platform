@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-02T11:46:00Z",
+  "timestamp": "2026-10-02T13:25:00Z",
   "actor": "ChatGPT",
-  "event": "minio_acl_compatibility_fix1251_review_feedback_addressed",
+  "event": "acl_fix1251_merged_resume_object_storage1249",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1251,
-    "title": "MinIO empty canonical ACL compatibility fix",
-    "branch": "fix/1251-minio-empty-canonical-acl"
+    "issue": 1249,
+    "title": "Verified object storage migration prerequisite",
+    "branch": "deploy/1249-object-storage-migration"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -1046,6 +1046,21 @@
       "verified_candidate_head": "48995143e4dbf390b50b316e050e1680dfec0d10",
       "candidate_quality": "migration_safety_format_lint_typecheck_tests_build_merge_gate_green",
       "review_feedback": "P2_keep_review_until_exact_head_completion_evidence"
+    },
+    "issue_1251_completed": {
+      "issue": 1251,
+      "pull_request": 1252,
+      "verified_head_sha": "55c5f35ab7e4a2fe1f1aabee732f701045919260",
+      "exact_head_ci": "quality_build_and_merge_gate_green_run_37003803307",
+      "review_feedback": "2_p2_addressed",
+      "merged_implementation_sha": "3ad3fe00f4652cfc55b39c095f445d2358d5ae47",
+      "issue_state": "closed_completed",
+      "installed_failure_pre_fix": "failed_closed_before_writer_freeze_copy_or_cutover",
+      "runtime_storage": "legacy_minio_unchanged",
+      "production_runtime_mutation": "none",
+      "persistent_data_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "observations": [
@@ -1796,7 +1811,7 @@
       }
     }
   ],
-  "next_action": "Verify corrected PR #1252 final exact head, merge only GREEN, then create state-only completion evidence and return to the already authorized #1249 actual-host retry.",
+  "next_action": "Fast-forward Raspberry main after this state-only reconciliation merges, then rerun the already authorized #1249 migration wrapper and verify storage, API, telemetry, dashboard and deployed source.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
