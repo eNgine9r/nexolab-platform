@@ -161,8 +161,10 @@ def resolve(
         raise AuthorityFailure("layered Device Agent image identity is invalid")
     if deployed != expected_deployed_source:
         raise AuthorityFailure("layered Device Agent baseline does not match formal deployed source")
-    if rollback_image != expected_formal_image:
-        raise AuthorityFailure("layered Device Agent rollback image does not match formal deployment authority")
+    if expected_formal_image not in {rollback_image, image}:
+        raise AuthorityFailure(
+            "authoritative Device Agent image matches neither formal rollback nor verified layered runtime"
+        )
 
     pre_cutover = resolve_evidence(repo, pre_cutover_ref, "Device Agent pre-cutover evidence")
     verify_checksum_manifest(
@@ -235,6 +237,7 @@ def resolve(
         "compatibility_source": compatibility,
         "device_agent_image_id": image,
         "device_agent_previous_image_id": rollback_image,
+        "formal_device_agent_image_id": rollback_image,
         "runtime_evidence": str(evidence.relative_to(repo)),
         "pre_cutover_evidence": str(pre_cutover.relative_to(repo)),
     }
@@ -267,6 +270,7 @@ def main() -> int:
         "compatibility_source",
         "device_agent_image_id",
         "device_agent_previous_image_id",
+        "formal_device_agent_image_id",
         "runtime_evidence",
         "pre_cutover_evidence",
     ):
