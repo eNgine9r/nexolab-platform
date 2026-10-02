@@ -2,6 +2,10 @@
 
 Updated: 2026-10-02
 
+## Issue #1249 — approved storage migration awaiting source and actual-host acceptance
+
+#1247 is blocked by the missing verified MinIO → VersityGW migration. #1249 is authorized and in progress; the candidate preserves legacy data and fails closed on incomplete integrity/security evidence. Source tests are not installed acceptance. Exact-head CI/review and ordinary Raspberry execution are required before actual migration; Commander execution currently returns `EXECUTION_HANDLER_FAILED`. Do not create an empty destination volume to bypass the deployment guard.
+
 ## Issue #1247 — approved Raspberry update blocked by actual-host execution surface
 
 The Product Owner authorized the update on 2026-10-02 after source acceptance. #1245 / PR #1246 merged after both workflows GREEN, 1141 tests and 39 browser cases. Current host health is ready; the update is not complete. Commander operator.shell has NoNewPrivs=1 (sudo denied) and the installed control checkout is mounted read-only (git fetch cannot write FETCH_HEAD). Neither restriction was bypassed. Required next action is an approved writable actual-host execution surface with the canonical deployment privileges, or user-local execution of the reviewed deployment. No runtime/production/hardware write occurred.

@@ -192,6 +192,11 @@ jobs:
         shell: bash
         run: bash scripts/tests/standalone-offline-runtime-contract.sh
 
+      - name: Validate object storage migration safety
+        if: ${{ contains(fromJSON(needs.classify.outputs.classes), 'deployment_runtime') }}
+        shell: bash
+        run: python3 -m unittest discover -s scripts/tests -p 'test_deploy_object_storage_migration.py' -v
+
       - name: Validate ADR registry
         shell: bash
         run: |

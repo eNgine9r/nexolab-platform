@@ -13,6 +13,9 @@ EDGE_COMPOSE="$CENTRAL_DIR/compose.edge.yaml"
 HARDWARE_COMPOSE="$CENTRAL_DIR/compose.hardware.yaml"
 BRIDGE_COMPOSE="$CENTRAL_DIR/compose.edge-central-bridge.yaml"
 
+source "$REPO/scripts/lib/deployment-lock.sh"
+nexolab_acquire_deployment_lock "${XDG_RUNTIME_DIR:-/tmp}/nexolab-current-head-launch.lock" || exit $?
+
 mkdir -p "$EVIDENCE_DIR"
 exec > >(tee "$EVIDENCE_DIR/resume.log") 2>&1
 

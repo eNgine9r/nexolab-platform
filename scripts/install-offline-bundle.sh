@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: install-offline-bundle.sh --central-env PATH [--edge-env PATH] [--skip-edge] [--local-auth] [--runtime-mode lan|standalone] [--hardware] [--qemu-arm64-validation]
+Usage: install-offline-bundle.sh --central-env PATH [--edge-env PATH] [--skip-edge] [--local-auth] [--runtime-mode lan|standalone] [--hardware] [--qemu-arm64-validation] [--object-storage-migration-authority PATH]
 
 Loads the verified image archive and starts NEXOLAB with Docker Compose
 `--pull never`. Existing named volumes are preserved. This script never adds
@@ -18,8 +18,10 @@ LOCAL_AUTH=false
 RUNTIME_MODE=""
 HARDWARE=false
 QEMU_ARM64_VALIDATION=false
+OBJECT_STORAGE_MIGRATION_AUTHORITY="${NEXOLAB_REPO:-$HOME/nexolab-platform}/runtime/object-storage-migration/authority.json"
 while (($#)); do
   case "$1" in
+    --object-storage-migration-authority) OBJECT_STORAGE_MIGRATION_AUTHORITY="${2:?}"; shift 2 ;;
     --central-env) CENTRAL_ENV="${2:?}"; shift 2 ;;
     --edge-env) EDGE_ENV="${2:?}"; shift 2 ;;
     --skip-edge) SKIP_EDGE=true; shift ;;
@@ -56,7 +58,7 @@ if [[ "$QEMU_ARM64_VALIDATION" == true ]]; then
   [[ "$(uname -m)" == "x86_64" ]] || { echo "--qemu-arm64-validation is restricted to an x86_64 emulation host" >&2; exit 2; }
 fi
 
-for command in docker python3; do
+for command in docker python3 flock; do
   command -v "$command" >/dev/null || { echo "Missing required command: $command" >&2; exit 1; }
 done
 docker compose version >/dev/null
@@ -94,6 +96,8 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUNDLE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$SCRIPT_DIR/lib/deployment-lock.sh"
+nexolab_acquire_deployment_lock "${XDG_RUNTIME_DIR:-/tmp}/nexolab-current-head-launch.lock"
 VERIFY="$BUNDLE_ROOT/scripts/verify-offline-bundle.py"
 MANIFEST="$BUNDLE_ROOT/manifest.json"
 IMAGE_ARCHIVE="$BUNDLE_ROOT/images/nexolab-images.tar"
@@ -193,10 +197,23 @@ PYOBJECTPREFIX
 )"
 LEGACY_OBJECT_STORAGE_VOLUME="${OBJECT_STORAGE_RESOURCE_PREFIX}-object-storage-data"
 VERSITY_OBJECT_STORAGE_VOLUME="${OBJECT_STORAGE_RESOURCE_PREFIX}-object-storage-versitygw-data"
-if docker volume inspect "$LEGACY_OBJECT_STORAGE_VOLUME" >/dev/null 2>&1 \
-  && ! docker volume inspect "$VERSITY_OBJECT_STORAGE_VOLUME" >/dev/null 2>&1; then
-  echo "object-storage migration is required before this bundle can replace the legacy MinIO runtime" >&2
-  exit 80
+if docker volume inspect "$LEGACY_OBJECT_STORAGE_VOLUME" >/dev/null 2>&1; then
+  [[ "$OBJECT_STORAGE_RESOURCE_PREFIX" == nexolab-central ]] || {
+    echo "legacy storage with a custom resource prefix requires separately verified migration" >&2
+    exit 80
+  }
+  BUNDLE_SOURCE="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["source_commit"])' "$MANIFEST")"
+  if ! python3 "$SCRIPT_DIR/deploy-object-storage-migration.py" --validate-proof --require-cutover \
+    --manifest "$OBJECT_STORAGE_MIGRATION_AUTHORITY" --expected-target-source "$BUNDLE_SOURCE" \
+    --source-repository "${NEXOLAB_REPO:-$HOME/nexolab-platform}"; then
+    echo "object-storage migration is required before this bundle can replace the legacy MinIO runtime; completed cutover authority is missing or invalid" >&2
+    exit 80
+  fi
+  [[ "$(docker image inspect --format '{{.Id}}' "$OFFLINE_OBJECT_STORAGE_IMAGE")" \
+    == "$(docker image inspect --format '{{.Id}}' nexolab/object-storage:versitygw-v1.8.0)" ]] || {
+    echo "offline bundle storage image differs from accepted migration image" >&2
+    exit 80
+  }
 fi
 
 CENTRAL=(docker compose --env-file "$CENTRAL_ENV" -f "$CENTRAL_BASE" -f "$CENTRAL_OFFLINE")

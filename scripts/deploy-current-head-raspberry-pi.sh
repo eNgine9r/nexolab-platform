@@ -11,11 +11,14 @@ source "$SCRIPT_DIR/deploy-capacity-guard.sh"
 source "$SCRIPT_DIR/lib/raspberry-pi-frontend-release.sh"
 # shellcheck source=lib/frontend-candidate-liveness.sh
 source "$SCRIPT_DIR/lib/frontend-candidate-liveness.sh"
+# shellcheck source=lib/deployment-lock.sh
+source "$SCRIPT_DIR/lib/deployment-lock.sh"
 
 usage() {
   cat <<'USAGE'
 Usage: deploy-current-head-raspberry-pi.sh [--runtime-mode lan|standalone] [--frontend-artifact PATH]
        [--source-ref SHA] [--expected-deployed-source SHA] [--source-selection-check-only]
+       [--offline-source-selection]
        [--restore-edge-snapshot DEPLOYMENT_EVIDENCE_DIR
         --expected-deployed-source SHA --expected-target-source SHA]
 
@@ -28,6 +31,9 @@ Options:
                            deployment authority, including an explicitly adopted compatibility runtime.
   --source-selection-check-only
                            Validate source lineage and exit before capacity, backup or runtime mutation.
+  --offline-source-selection
+                           Check exact cached main authority without fetch; requires source-selection-only,
+                           --source-ref and --expected-deployed-source. Never runs full deployment.
   --restore-edge-snapshot DEPLOYMENT_EVIDENCE_DIR
                            Explicitly restore that deployment's captured edge SQLite snapshot.
                            The Device Agent must already be stopped; this command never restarts it.
@@ -45,6 +51,7 @@ FRONTEND_ARTIFACT_INPUT=""
 REQUESTED_SOURCE_REF=""
 EXPECTED_DEPLOYED_SOURCE=""
 SOURCE_SELECTION_CHECK_ONLY="0"
+OFFLINE_SOURCE_SELECTION="0"
 RESTORE_EDGE_SNAPSHOT_DIR=""
 EXPECTED_TARGET_SOURCE=""
 while (($# > 0)); do
@@ -85,6 +92,10 @@ while (($# > 0)); do
       SOURCE_SELECTION_CHECK_ONLY="1"
       shift
       ;;
+    --offline-source-selection)
+      OFFLINE_SOURCE_SELECTION="1"
+      shift
+      ;;
     --restore-edge-snapshot)
       (($# >= 2)) || {
         echo "ERROR: --restore-edge-snapshot requires a deployment evidence directory" >&2
@@ -116,6 +127,14 @@ nexolab_validate_runtime_mode "$RUNTIME_MODE" || exit $?
 if [[ -n "$REQUESTED_SOURCE_REF" && -z "$EXPECTED_DEPLOYED_SOURCE" ]]; then
   echo "ERROR: --source-ref requires --expected-deployed-source" >&2
   exit 64
+fi
+
+if [[ "$OFFLINE_SOURCE_SELECTION" == 1 ]]; then
+  [[ "$SOURCE_SELECTION_CHECK_ONLY" == 1 && "$REQUESTED_SOURCE_REF" =~ ^[0-9a-f]{40}$ \
+    && "$EXPECTED_DEPLOYED_SOURCE" =~ ^[0-9a-f]{40}$ && -z "$RESTORE_EDGE_SNAPSHOT_DIR" ]] || {
+    echo "ERROR: offline source selection requires exact target/deployed SHAs and source-selection-only" >&2
+    exit 64
+  }
 fi
 
 REPO="${NEXOLAB_REPO:-$HOME/nexolab-platform}"
@@ -345,11 +364,7 @@ EDGE_COMPOSE_ARGS=(
 )
 
 mkdir -p "$AUDIT_DIR"
-exec 9>"$LOCK_FILE"
-if ! flock -n 9; then
-  echo "ERROR: another NEXOLAB deployment is already running." >&2
-  exit 75
-fi
+nexolab_acquire_deployment_lock "$LOCK_FILE" || exit $?
 
 log() {
   printf '[%s] %s\n' "$(date --iso-8601=seconds)" "$*" | tee -a "$SUMMARY"
@@ -1073,12 +1088,20 @@ fi
 [[ "$(git branch --show-current)" == "main" ]] || fail "deployment must start from the main branch"
 
 if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "1" ]]; then
-  log "Fetching current main for source-selection preflight"
-  git fetch --prune origin main
-  CONTROL_HEAD="$(git rev-parse origin/main 2>/dev/null || true)"
-  [[ -n "$CONTROL_HEAD" ]] || fail "origin/main is unavailable after source-selection preflight fetch"
-  git merge --ff-only "$CONTROL_HEAD" >/dev/null || fail "local main cannot fast-forward to fresh origin/main for source-selection preflight"
-  [[ "$(git rev-parse HEAD)" == "$CONTROL_HEAD" ]] || fail "local main is not synchronized to fresh origin/main for source-selection preflight"
+  if [[ "$OFFLINE_SOURCE_SELECTION" == 1 ]]; then
+    log "Validating exact cached main authority without network"
+    CONTROL_HEAD="$(git rev-parse origin/main 2>/dev/null || true)"
+    [[ "$CONTROL_HEAD" == "$REQUESTED_SOURCE_REF" \
+      && "$(git rev-parse HEAD)" == "$REQUESTED_SOURCE_REF" \
+      && "$(git branch --show-current)" == main ]] || fail "offline target must equal cached origin/main and the clean main checkout"
+  else
+    log "Fetching current main for source-selection preflight"
+    git fetch --prune origin main
+    CONTROL_HEAD="$(git rev-parse origin/main 2>/dev/null || true)"
+    [[ -n "$CONTROL_HEAD" ]] || fail "origin/main is unavailable after source-selection preflight fetch"
+    git merge --ff-only "$CONTROL_HEAD" >/dev/null || fail "local main cannot fast-forward to fresh origin/main for source-selection preflight"
+    [[ "$(git rev-parse HEAD)" == "$CONTROL_HEAD" ]] || fail "local main is not synchronized to fresh origin/main for source-selection preflight"
+  fi
   resolve_deployed_source_authority
   validate_selected_source_against_control
   if [[ "$TARGET_HEAD" != "$CONTROL_HEAD" ]]; then
@@ -1189,11 +1212,15 @@ git diff > "$AUDIT_DIR/tracked-working-tree.patch"
 git diff --cached > "$AUDIT_DIR/tracked-index.patch"
 git ls-files --others --exclude-standard > "$AUDIT_DIR/untracked-files.txt"
 
+MIGRATION_AUTHORITY_VALIDATED=0
 LEGACY_OBJECT_STORAGE_VOLUME="nexolab-central-object-storage-data"
 VERSITY_OBJECT_STORAGE_VOLUME="nexolab-central-object-storage-versitygw-data"
-if docker volume inspect "$LEGACY_OBJECT_STORAGE_VOLUME" >/dev/null 2>&1 \
-  && ! docker volume inspect "$VERSITY_OBJECT_STORAGE_VOLUME" >/dev/null 2>&1; then
-  fail "legacy MinIO object-storage volume exists but the VersityGW volume is not migration-proven; use the separately approved object-storage migration/cutover procedure"
+if docker volume inspect "$LEGACY_OBJECT_STORAGE_VOLUME" >/dev/null 2>&1; then
+  if ! python3 "$SCRIPT_DIR/deploy-object-storage-migration.py" --validate-proof --require-cutover \
+    --manifest "$REPO/runtime/object-storage-migration/authority.json" --expected-target-source "$TARGET_HEAD"; then
+    fail "legacy MinIO object-storage volume exists but the VersityGW volume is not migration-proven; use the separately approved object-storage migration/cutover procedure"
+  fi
+  MIGRATION_AUTHORITY_VALIDATED=1
 fi
 
 log "Rechecking deployment capacity immediately before large evidence writes"
@@ -1823,9 +1850,31 @@ capture_edge_sqlite_snapshot
 write_durable_runtime_mutation_marker
 log "RUNTIME MUTATION STARTED: central backend activation"
 log "Starting central backend, MinIO and observability"
-docker compose --env-file "$CENTRAL_ENV" \
-  "${CENTRAL_COMPOSE_ARGS[@]}" \
-  up -d --build --wait
+# Preserve the exact accepted storage image, including a preloaded offline image.
+nexolab_activate_central() {
+  if [[ "$MIGRATION_AUTHORITY_VALIDATED" == 1 ]]; then
+    local build_services
+    local -a services=()
+    build_services="$(docker compose --env-file "$CENTRAL_ENV" \
+      "${CENTRAL_COMPOSE_ARGS[@]}" config --format json | \
+      python3 -c 'import json,sys; c=json.load(sys.stdin); print("\n".join(n for n,s in c["services"].items() if n != "minio" and s.get("build")))')" || return
+    if [[ -n "$build_services" ]]; then
+      mapfile -t services <<< "$build_services"
+      docker compose --env-file "$CENTRAL_ENV" "${CENTRAL_COMPOSE_ARGS[@]}" \
+        build "${services[@]}" || return
+    fi
+    # Recheck immutable image/runtime authority immediately before activation.
+    python3 "$SCRIPT_DIR/deploy-object-storage-migration.py" --validate-proof --require-cutover \
+      --manifest "$REPO/runtime/object-storage-migration/authority.json" \
+      --expected-target-source "$TARGET_HEAD" || return
+    docker compose --env-file "$CENTRAL_ENV" "${CENTRAL_COMPOSE_ARGS[@]}" \
+      up -d --no-build --pull never --wait
+  else
+    docker compose --env-file "$CENTRAL_ENV" "${CENTRAL_COMPOSE_ARGS[@]}" \
+      up -d --build --wait
+  fi
+}
+nexolab_activate_central
 
 log "Starting real-hardware edge stack"
 docker compose --env-file "$EDGE_ENV" \
