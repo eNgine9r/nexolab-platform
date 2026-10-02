@@ -1122,10 +1122,6 @@ validate_selected_source_against_control() {
       log "Current-main source selection: target=$TARGET_HEAD"
     fi
   fi
-  if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE" ]]; then
-    git merge-base --is-ancestor "$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE" "$TARGET_HEAD" \
-      || fail "deployment target does not contain the accepted layered Device Agent compatibility source"
-  fi
 }
 
 if ! git diff --quiet || ! git diff --cached --quiet; then
