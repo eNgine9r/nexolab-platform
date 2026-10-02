@@ -6481,7 +6481,7 @@
         "authority_binding": "tracked_active_sprint_plus_checksum_verified_runtime_evidence",
         "migration_retry": "forbidden_after_verified_cutover",
         "legacy_resume_script": "not_approved_for_this_recovery",
-        "exact_head_ci": "pending_after_post_mutation_restore_remediation",
+        "exact_head_ci": "pending_after_launch_path_remediation",
         "production_runtime_mutation_by_pr": "none",
         "persistent_data_mutation_by_pr": "none",
         "modbus_write": "none",
@@ -6501,7 +6501,10 @@
         "post_mutation_restore_review_p1": "addressed_accept_only_verified_formal_or_layered_image_authority",
         "formal_image_identity": "preserved_separately_from_latest_restore_authority",
         "restored_layered_retry_regression": "covered",
-        "unknown_restore_image": "fail_closed"
+        "unknown_restore_image": "fail_closed",
+        "stale_script_launch_review_p1": "addressed_pre_sync_main_before_new_bash_process",
+        "canonical_retry_entry": "git_switch_fetch_ff_verify_then_deploy_current_head",
+        "internal_pull_as_code_update": "not_authoritative"
       }
     }
   ],
