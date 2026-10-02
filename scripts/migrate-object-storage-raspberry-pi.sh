@@ -71,11 +71,14 @@ nexolab_prepare_migration_image() {
   [[ "$(docker image inspect --format '{{json .Config.Entrypoint}}' "$image")" == '["/usr/local/bin/versitygw"]' ]] || {
     echo 'Migration image entrypoint differs' >&2; return 1;
   }
-  docker run --rm --network none --read-only --cap-drop ALL \
-    --security-opt no-new-privileges "$image" --version | \
-    grep -Eq '(^|[[:space:]])v?1\.8\.0([[:space:]]|$)' || {
-    echo 'Migration image must report VersityGW 1.8.0' >&2; return 1;
-  }
+  local version_output
+  if ! version_output="$(docker run --rm --network none --read-only --cap-drop ALL \
+    --security-opt no-new-privileges "$image" --version)"; then
+    echo 'Migration image version probe failed' >&2; return 1
+  fi
+  if ! grep -Eq '^Version[[:space:]]*:[[:space:]]*v?1\.8\.0[[:space:]]*$' <<<"$version_output"; then
+    echo 'Migration image must report VersityGW 1.8.0' >&2; return 1
+  fi
   TARGET_IMAGE="$(docker image inspect --format '{{.Id}}' "$image")"
   if [[ "$image" != "$canonical" ]]; then
     docker image tag "$TARGET_IMAGE" "$canonical" || return

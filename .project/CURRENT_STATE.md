@@ -2,6 +2,12 @@
 
 Updated: 2026-10-02
 
+## Issue #1255 — VersityGW version probe SIGPIPE fix in review
+
+The authorized #1249 actual-host retry on 2026-10-02 synchronized Raspberry main to `3928a0bb88a05458cba5c0c4957e19643247a4d0`, passed source selection, then failed closed before target volume creation, Telemetry writer freeze, object copy or storage cutover. The observed output was `write /dev/stdout: broken pipe` followed by `Migration image must report VersityGW 1.8.0`.
+
+Upstream VersityGW v1.8.0 writes a multi-line `--version` response (Version, Build, BuildTime). The migration probe used a quiet grep in a pipe under `set -o pipefail`; grep could exit after the first matching line and close stdout while VersityGW was still writing, turning a valid version into SIGPIPE. Branch `fix/1255-versitygw-version-probe` captures the complete successful probe output first, then matches the exact Version line. Wrong versions and failed probes still fail closed; Linux/arm64 and entrypoint checks are unchanged. Regression coverage includes realistic multi-line output and a non-zero version command. No runtime/data/hardware mutation occurred.
+
 ## Issue #1251 — MinIO ACL compatibility fix completed
 
 PR #1252 final head `55c5f35ab7e4a2fe1f1aabee732f701045919260` passed exact-head Quality and build plus NEXOLAB Merge Gate after both P2 review findings were addressed: lifecycle stayed in review until verification existed, and #1251 was made independent of downstream #1249. Squash merge `3ad3fe00f4652cfc55b39c095f445d2358d5ae47` closed #1251.

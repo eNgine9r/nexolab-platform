@@ -41,10 +41,10 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1249
+      "issue": 1255
     },
     "next_work_package": {
-      "issue": 1247
+      "issue": 1249
     }
   },
   "work_packages": [
@@ -6393,6 +6393,30 @@
         "review": "2_p2_findings_addressed_0_known_unresolved",
         "merged_implementation_sha": "3ad3fe00f4652cfc55b39c095f445d2358d5ae47",
         "issue_state": "closed_completed"
+      }
+    },
+    {
+      "issue": 1255,
+      "title": "Fix VersityGW version probe SIGPIPE in #1249 migration",
+      "priority": "critical",
+      "lifecycle": "review",
+      "depends_on": [],
+      "branch": "fix/1255-versitygw-version-probe",
+      "evidence": {
+        "installed_attempt_target": "3928a0bb88a05458cba5c0c4957e19643247a4d0",
+        "installed_failure": "versitygw_version_probe_sigpipe",
+        "failure_boundary": "before_target_volume_creation_writer_freeze_copy_or_cutover",
+        "root_cause": "quiet_grep_closes_multiline_version_pipe_under_pipefail",
+        "fix": "capture_complete_version_output_then_match_exact_version_line",
+        "linux_arm64_check": "preserved",
+        "entrypoint_check": "preserved",
+        "wrong_version_fail_closed": "preserved",
+        "failed_probe_fail_closed": "preserved",
+        "exact_head_ci": "pending",
+        "production_runtime_mutation": "none",
+        "persistent_data_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     }
   ],
