@@ -135,6 +135,7 @@ def resolve(
 
     layered_keys = (
         "device_agent_compatibility_source_sha",
+        "device_agent_compatibility_parent_sha",
         "device_agent_image_id",
         "device_agent_rollback_image_id",
         "device_agent_runtime_evidence",
@@ -148,12 +149,13 @@ def resolve(
 
     deployed = str(baselines["deployed_product_sha"])
     compatibility = str(baselines["device_agent_compatibility_source_sha"])
+    compatibility_parent = str(baselines["device_agent_compatibility_parent_sha"])
     image = str(baselines["device_agent_image_id"])
     rollback_image = str(baselines["device_agent_rollback_image_id"])
     evidence_ref = str(baselines["device_agent_runtime_evidence"])
     pre_cutover_ref = str(baselines["device_agent_pre_cutover_evidence"])
 
-    if not all(SHA_RE.fullmatch(value) for value in (deployed, compatibility, expected_deployed_source)):
+    if not all(SHA_RE.fullmatch(value) for value in (deployed, compatibility, compatibility_parent, expected_deployed_source)):
         raise AuthorityFailure("layered Device Agent source identity is invalid")
     if not all(IMAGE_RE.fullmatch(value) for value in (image, rollback_image, expected_formal_image)):
         raise AuthorityFailure("layered Device Agent image identity is invalid")
@@ -175,6 +177,7 @@ def resolve(
         "status": "PASS",
         "formal_deployed_product_sha": deployed,
         "candidate_compatibility_source_sha": compatibility,
+        "candidate_parent_sha": compatibility_parent,
         "package_manifest_identity": "PASS",
         "accepted_identity_mismatches": "0",
         "release_ci": "PASS",
@@ -182,9 +185,6 @@ def resolve(
     for key, expected in lineage_required.items():
         if lineage.get(key) != expected:
             raise AuthorityFailure(f"Device Agent pre-cutover lineage evidence mismatch: {key}")
-    if not SHA_RE.fullmatch(lineage.get("candidate_parent_sha", "")):
-        raise AuthorityFailure("Device Agent pre-cutover candidate parent identity is invalid")
-
     candidate_required = {
         "status": "PASS",
         "source_sha": compatibility,
