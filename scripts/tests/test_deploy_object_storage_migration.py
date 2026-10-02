@@ -323,7 +323,7 @@ docker() { return 1; }
         self.assertIn('HEAD changed', result.stderr)
         self.assertNotIn('UNSAFE_CONTINUATION', result.stdout)
 
-    def image_preparation(self, present, version="versitygw version v1.8.0"):
+    def image_preparation(self, present, version="versitygw version v1.8.0", bundle_present=False):
         text = (ROOT / 'scripts/migrate-object-storage-raspberry-pi.sh').read_text()
         start = text.index('nexolab_prepare_migration_image()')
         end = text.index('VOLUME=', start)
@@ -333,8 +333,10 @@ docker() {
     if [[ "$*" == *".Os"* ]]; then echo linux/arm64;
     elif [[ "$*" == *"Entrypoint"* ]]; then echo '["/usr/local/bin/versitygw"]';
     elif [[ "$*" == *".Id"* ]]; then echo sha256:accepted;
+    elif [[ "$*" == *"-arm64"* ]]; then return ''' + ("0" if bundle_present else "1") + ''';
     else return ''' + ("0" if present else "1") + ''';
     fi
+  elif [[ "$1 $2" == "image tag" ]]; then echo "TAG_VERIFIED:$3:$4";
   elif [[ "$1" == build ]]; then echo BUILD_REQUIRED;
   elif [[ "$1" == run ]]; then echo "''' + version + '''";
   fi
@@ -349,6 +351,15 @@ docker() {
         bad = self.image_preparation(True, "versitygw version v1.7.0")
         self.assertNotEqual(bad.returncode, 0)
         self.assertIn('must report', bad.stderr)
+
+    def test_actual_offline_bundle_tag_is_verified_and_retagged_without_build(self):
+        result = self.image_preparation(False, bundle_present=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('BUILD_REQUIRED', result.stdout)
+        self.assertIn('TAG_VERIFIED:sha256:accepted:nexolab/object-storage:versitygw-v1.8.0', result.stdout)
+        bad = self.image_preparation(False, version="versitygw version v1.7.0", bundle_present=True)
+        self.assertNotEqual(bad.returncode, 0)
+        self.assertNotIn('TAG_VERIFIED', bad.stdout)
 
     def test_missing_image_uses_pinned_build(self):
         result = self.image_preparation(False)

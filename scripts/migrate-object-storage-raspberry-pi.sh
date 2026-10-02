@@ -45,9 +45,14 @@ docker image tag "$SOURCE_IMAGE" "nexolab/minio-rollback:1249-$STAMP"
 docker run --rm --network none --entrypoint python "$WRITER_IMAGE" -c 'import boto3'
 # Reuse a verified preloaded offline image without requiring BuildKit fetch cache.
 nexolab_prepare_migration_image() {
-  local image=nexolab/object-storage:versitygw-v1.8.0
+  local canonical=nexolab/object-storage:versitygw-v1.8.0
+  local image="$canonical"
   if ! docker image inspect "$image" >/dev/null 2>&1; then
-    docker build --tag "$image" infrastructure/object-storage || return
+    if docker image inspect "$canonical-arm64" >/dev/null 2>&1; then
+      image="$canonical-arm64"
+    else
+      docker build --tag "$image" infrastructure/object-storage || return
+    fi
   fi
   [[ "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image")" == linux/arm64 ]] || {
     echo 'Migration image must be Linux arm64' >&2; return 1;
@@ -61,6 +66,9 @@ nexolab_prepare_migration_image() {
     echo 'Migration image must report VersityGW 1.8.0' >&2; return 1;
   }
   TARGET_IMAGE="$(docker image inspect --format '{{.Id}}' "$image")"
+  if [[ "$image" != "$canonical" ]]; then
+    docker image tag "$TARGET_IMAGE" "$canonical" || return
+  fi
 }
 nexolab_prepare_migration_image
 

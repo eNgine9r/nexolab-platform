@@ -53,7 +53,10 @@ canonical deployment. It does not deploy an unreviewed feature branch.
    rerun from synchronized accepted main.
 2. Reuse a preloaded VersityGW v1.8.0 image after checking Linux/arm64,
    the expected entrypoint and a network-isolated version probe. Offline bundle
-   transport/integrity checks remain required. Build the checksum-pinned image
+   transport/integrity checks remain required. Resolve the bundle tag
+   `nexolab/object-storage:versitygw-v1.8.0-arm64` when the standard tag is absent,
+   and assign its verified immutable image ID to the standard tag only after the
+   checks pass. Build the checksum-pinned image
    only when it is absent, before stopping API; missing offline prerequisites
    fail before migration. This does not remove canonical deployment prerequisites.
 3. Create an isolated, migration-owned destination volume and candidate container.
