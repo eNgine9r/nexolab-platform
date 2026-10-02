@@ -45,6 +45,24 @@ def owner_only_acl(acl):
     owner = owner_record["ID"]
     if not isinstance(owner, str):
         raise MigrationError("cannot establish private owner-only ACL")
+
+    # MinIO exposes GetBucketACL/GetObjectACL as dummy S3 compatibility calls.
+    # Its private response can omit the canonical grantee ID while still
+    # returning exactly one CanonicalUser FULL_CONTROL grant. Accept only that
+    # narrow representation when the owner ID is explicitly empty; any
+    # alternate identity/public grant remains fail-closed.
+    if owner == "" and len(grants) == 1:
+        grant = grants[0]
+        grantee = grant.get("Grantee", {})
+        if (
+            isinstance(grantee, dict)
+            and grantee.get("Type") == "CanonicalUser"
+            and "ID" not in grantee
+            and set(grantee) <= {"Type", "DisplayName"}
+            and grant.get("Permission") == "FULL_CONTROL"
+        ):
+            return
+
     for grant in grants:
         grantee = grant.get("Grantee", {})
         grantee_id = grantee.get("ID")

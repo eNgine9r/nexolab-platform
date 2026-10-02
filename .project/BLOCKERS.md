@@ -2,6 +2,10 @@
 
 Updated: 2026-10-02
 
+## Issue #1259 — MinIO dummy ACL compatibility fix required before #1249 retry
+
+The latest #1249 actual-host attempt passed source selection and VersityGW image validation, then failed closed during dry-run inventory because MinIO omits the grantee ID in its dummy private ACL response. #1259 accepts only the exact single CanonicalUser FULL_CONTROL / empty-owner compatibility shape; public/custom identities and all other ACL semantics remain blocked. Do not retry #1249 until #1259 exact-head CI/review is GREEN and merged. Legacy MinIO remains active; Telemetry was not frozen and no object copy/cutover occurred.
+
 ## Issue #1249 — approved storage migration awaiting actual-host acceptance
 
 #1251 / PR #1252 and #1255 / PR #1256 are merged GREEN. The MinIO ACL compatibility defect and VersityGW multi-line version-probe SIGPIPE are cleared without weakening privacy or image identity gates. #1249 now requires the already authorized ordinary Raspberry execution to perform and verify the MinIO → VersityGW migration plus controlled project update. Commander execution still cannot provide the required privileged surface. Do not create an empty destination volume or bypass the deployment guard.
