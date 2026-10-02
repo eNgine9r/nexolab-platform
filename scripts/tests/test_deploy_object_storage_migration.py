@@ -391,7 +391,7 @@ docker() { return 1; }
         self.assertIn('HEAD changed', result.stderr)
         self.assertNotIn('UNSAFE_CONTINUATION', result.stdout)
 
-    def image_preparation(self, present, version="versitygw version v1.8.0", bundle_present=False, offline=False):
+    def image_preparation(self, present, version="Version  : v1.8.0\nBuild    : deadbeef\nBuildTime: 2026-09-04T23:11:49Z", bundle_present=False, offline=False, version_status=0):
         text = (ROOT / 'scripts/migrate-object-storage-raspberry-pi.sh').read_text()
         start = text.index('nexolab_prepare_migration_image()')
         end = text.index('VOLUME=', start)
@@ -406,7 +406,9 @@ docker() {
     fi
   elif [[ "$1 $2" == "image tag" ]]; then echo "TAG_VERIFIED:$3:$4";
   elif [[ "$1" == build ]]; then echo BUILD_REQUIRED;
-  elif [[ "$1" == run ]]; then echo "''' + version + '''";
+  elif [[ "$1" == run ]]; then
+    printf '%s\n' "''' + version + '''"
+    return ''' + str(version_status) + '''
   fi
 }
 ''' + text[start:end]
@@ -416,9 +418,26 @@ docker() {
         result = self.image_preparation(True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn('BUILD_REQUIRED', result.stdout)
-        bad = self.image_preparation(True, "versitygw version v1.7.0")
+        bad = self.image_preparation(True, "Version  : v1.7.0\nBuild    : old\nBuildTime: old")
         self.assertNotEqual(bad.returncode, 0)
         self.assertIn('must report', bad.stderr)
+
+    def test_multiline_version_probe_is_consumed_before_matching(self):
+        result = self.image_preparation(
+            True,
+            "Version  : v1.8.0\nBuild    : 0123456789abcdef\nBuildTime: 2026-09-04T23:11:49Z",
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("broken pipe", result.stderr.lower())
+
+    def test_failed_version_probe_fails_closed_even_if_output_mentions_expected_version(self):
+        result = self.image_preparation(
+            True,
+            "Version  : v1.8.0\nBuild    : incomplete",
+            version_status=141,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("version probe failed", result.stderr)
 
     def test_actual_offline_bundle_tag_is_verified_and_retagged_without_build(self):
         result = self.image_preparation(False, bundle_present=True)
