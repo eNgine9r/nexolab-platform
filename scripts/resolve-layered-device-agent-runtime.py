@@ -153,17 +153,16 @@ def resolve(
     if not isinstance(baselines, dict):
         raise AuthorityFailure("canonical ACTIVE_SPRINT baselines are missing")
 
-    keys = (
-        "deployed_product_sha",
+    layered_keys = (
         "device_agent_compatibility_source_sha",
         "device_agent_image_id",
         "device_agent_rollback_image_id",
         "device_agent_runtime_evidence",
     )
-    configured = [key for key in keys if baselines.get(key) not in {None, ""}]
+    configured = [key for key in layered_keys if baselines.get(key) not in {None, ""}]
     if not configured:
         return None
-    if len(configured) != len(keys):
+    if len(configured) != len(layered_keys) or baselines.get("deployed_product_sha") in {None, ""}:
         raise AuthorityFailure("layered Device Agent baseline is partially configured")
 
     deployed = str(baselines["deployed_product_sha"])
