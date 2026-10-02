@@ -6343,17 +6343,18 @@
       "issue": 1249,
       "title": "Verified MinIO to VersityGW migration and controlled update prerequisite",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "depends_on": [],
       "branch": "deploy/1249-object-storage-migration",
       "evidence": {
         "authorization": "explicit_Product_Owner_2026_10_02",
-        "local_safety_tests": "17_passed",
+        "local_safety_tests": "22_passed",
         "exact_head_ci": "pending",
         "installed_migration": "not_executed",
         "production_runtime_mutation": "none_candidate",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "review_remediation": "required_authority_for_active_target_and_rollback_closed_before_writer_start"
       }
     }
   ],

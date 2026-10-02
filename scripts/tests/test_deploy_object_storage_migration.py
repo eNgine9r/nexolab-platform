@@ -28,6 +28,8 @@ class S3:
         self.policy = False
         self.tags = []
         self.acl = {"Owner": {"ID": "owner"}, "Grants": [{"Grantee": {"Type": "CanonicalUser", "ID": "owner"}, "Permission": "FULL_CONTROL"}]}
+        self.lifecycle = False
+        self.head_extra = {}
         self.corrupt = False
         self.fail_upload = False
         self.after_upload = lambda: None
@@ -42,6 +44,20 @@ class S3:
         if self.policy:
             return {"Policy": "{}"}
         raise Missing("NoSuchBucketPolicy")
+
+    def get_bucket_lifecycle_configuration(self, **kwargs):
+        if self.lifecycle:
+            return {"Rules": [{"Status": "Enabled"}]}
+        raise Missing("NoSuchLifecycleConfiguration")
+
+    def get_bucket_replication(self, **kwargs):
+        raise Missing("ReplicationConfigurationNotFoundError")
+
+    def get_bucket_tagging(self, **kwargs):
+        raise Missing("NoSuchTagSet")
+
+    def get_bucket_encryption(self, **kwargs):
+        raise Missing("ServerSideEncryptionConfigurationNotFoundError")
 
     def get_object_tagging(self, **kwargs):
         return {"TagSet": self.tags}
@@ -66,7 +82,7 @@ class S3:
         except KeyError:
             raise Missing("404")
         return {"ContentLength": len(obj["body"]), "ETag": '"' + M.hashlib.md5(obj["body"]).hexdigest() + '"',
-                "LastModified": "fixed", **obj["meta"]}
+                "LastModified": "fixed", **obj["meta"], **self.head_extra}
 
     def get_object(self, Bucket, Key, IfMatch=None):
         head = self.head_object(Bucket, Key)
@@ -179,6 +195,20 @@ class MigrationTests(unittest.TestCase):
             migrate(src, dst)
         self.assertEqual(dst.buckets, {})
 
+    def test_lifecycle_and_encryption_are_not_silently_lost(self):
+        for field, value in (("lifecycle", True), ("head_extra", {"ServerSideEncryption": "AES256"}), ("head_extra", {"ObjectLockMode": "GOVERNANCE"})):
+            src, dst = source(), S3()
+            setattr(src, field, value)
+            with self.assertRaises(ValueError):
+                migrate(src, dst)
+            self.assertEqual(dst.uploads, 0)
+
+    def test_target_inventory_uses_only_supported_read_contract(self):
+        dst = source()
+        dst.policy = True
+        dst.versioning = "unsupported_for_source"
+        self.assertEqual(set(M.inventory(dst, source_rules=False)), {"photos", "empty-bucket"})
+
     def test_atomic_evidence_is_private(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "manifest.json"
@@ -228,6 +258,51 @@ class AuthorityTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.validate()
             self.proof = before
+
+    def test_accepted_cutover_requires_live_target_and_retained_rollback(self):
+        self.proof.update(cutover_verified=True, target_container_id="target")
+        self.records[("container", "target")] = {"Image": "image-target", "State": {"Running": True}, "Mounts": [{"Name": "nexolab-central-object-storage-versitygw-data", "Destination": "/data"}]}
+        self.records[("active_storage", "nexolab-central")] = self.records[("container", "target")]
+        self.records[("image", "image-source")] = {"Id": "image-source"}
+        self.records[("volume", "nexolab-central-object-storage-data")] = {"Name": "nexolab-central-object-storage-data"}
+        self.records[("container", "writer")]["State"]["Running"] = True
+        self.validate()
+        M.validate_proof(self.proof, "b" * 40, lambda k, n: self.records[(k, n)], is_ancestor=lambda old, new: old == self.sha and new == "b" * 40)
+        with self.assertRaisesRegex(ValueError, "lineage"):
+            M.validate_proof(self.proof, "b" * 40, lambda k, n: self.records[(k, n)])
+        self.records[("container", "target")]["State"]["Running"] = False
+        with self.assertRaisesRegex(ValueError, "target storage identity"):
+            self.validate()
+
+    def test_already_mounted_target_cannot_bypass_canonical_guard(self):
+        text = (ROOT / 'scripts/deploy-current-head-raspberry-pi.sh').read_text()
+        start = text.index('LEGACY_OBJECT_STORAGE_VOLUME=')
+        end = text.index('log "Rechecking deployment capacity', start)
+        script = '''SCRIPT_DIR=/unused
+REPO=/unused
+TARGET_HEAD=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+docker() { if [[ "$*" == *"--format"* ]]; then echo nexolab-central-object-storage-versitygw-data; fi; return 0; }
+python3() { echo PROOF_WAS_REQUIRED; return 23; }
+fail() { exit 71; }
+''' + text[start:end]
+        result = subprocess.run(['bash', '-c', script], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 71)
+        self.assertIn('PROOF_WAS_REQUIRED', result.stdout)
+
+    def test_failed_writer_start_cannot_roll_storage_back(self):
+        text = (ROOT / 'scripts/migrate-object-storage-raspberry-pi.sh').read_text()
+        start = text.index('WRITER_RESUME_ATTEMPTED=1')
+        end = text.index("echo 'Storage cutover verified", start)
+        script = '''set -e
+FROZEN=1
+WRITER=writer
+trap 'if [[ "$FROZEN" == 1 ]]; then echo UNSAFE_ROLLBACK; else echo TARGET_RETAINED; fi' EXIT
+docker() { return 1; }
+''' + text[start:end]
+        result = subprocess.run(['bash', '-c', script], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('TARGET_RETAINED', result.stdout)
+        self.assertNotIn('UNSAFE_ROLLBACK', result.stdout)
 
     def test_shell_scripts_parse_and_cli_guard_has_no_boto_dependency(self):
         for name in ("migrate-object-storage-raspberry-pi.sh", "deploy-current-head-raspberry-pi.sh"):

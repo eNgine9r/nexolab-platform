@@ -20,6 +20,10 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
+class MigrationError(ValueError):
+    """A bounded, operator-safe migration failure reason."""
+
+
 FIELDS = ("ContentType", "CacheControl", "ContentDisposition", "ContentEncoding", "ContentLanguage", "Expires", "Metadata")
 
 
@@ -27,20 +31,20 @@ def private_object(endpoint, bucket, key):
     url = f"{endpoint.rstrip('/')}/{urllib.parse.quote(bucket, safe='')}/{urllib.parse.quote(key, safe='/')}"
     try:
         with urllib.request.urlopen(url, timeout=5):
-            raise ValueError("object is anonymously readable")
+            raise MigrationError("object is anonymously readable")
     except urllib.error.HTTPError as error:
         if error.code not in {401, 403}:
-            raise ValueError("anonymous object check did not deny access") from error
+            raise MigrationError("anonymous object check did not deny access") from error
 
 
 def owner_only_acl(acl):
     owner = acl.get("Owner", {}).get("ID")
     if not owner or not acl.get("Grants"):
-        raise ValueError("cannot establish private owner-only ACL")
+        raise MigrationError("cannot establish private owner-only ACL")
     for grant in acl["Grants"]:
         grantee = grant.get("Grantee", {})
         if grantee.get("Type") != "CanonicalUser" or grantee.get("ID") != owner or grant.get("Permission") != "FULL_CONTROL":
-            raise ValueError("custom or public ACL requires separately reviewed migration")
+            raise MigrationError("custom or public ACL requires separately reviewed migration")
 
 
 def metadata(head):
@@ -48,30 +52,40 @@ def metadata(head):
             for key in FIELDS if (value := head.get(key)) is not None}
 
 
-def inventory(s3):
+def inventory(s3, *, source_rules=True):
     result = {}
     for item in s3.list_buckets().get("Buckets", []):
         bucket = item["Name"]
-        owner_only_acl(s3.get_bucket_acl(Bucket=bucket))
-        if s3.get_bucket_versioning(Bucket=bucket).get("Status"):
-            raise ValueError("versioned buckets require a separate history-preserving migration")
+        if source_rules:
+            owner_only_acl(s3.get_bucket_acl(Bucket=bucket))
+        if source_rules and s3.get_bucket_versioning(Bucket=bucket).get("Status"):
+            raise MigrationError("versioned buckets require a separate history-preserving migration")
         # Policies and tags require separate semantics; never silently drop them.
-        try:
-            s3.get_bucket_policy(Bucket=bucket)
-        except Exception as error:
-            code = getattr(error, "response", {}).get("Error", {}).get("Code")
-            if code != "NoSuchBucketPolicy":
-                raise ValueError("cannot establish absence of source bucket policy") from error
-        else:
-            raise ValueError("bucket policy requires a separately reviewed migration")
+        if source_rules:
+            for method, missing in (("get_bucket_policy", "NoSuchBucketPolicy"),
+                                    ("get_bucket_lifecycle_configuration", "NoSuchLifecycleConfiguration"),
+                                    ("get_bucket_replication", "ReplicationConfigurationNotFoundError"),
+                                    ("get_bucket_tagging", "NoSuchTagSet"),
+                                    ("get_bucket_encryption", "ServerSideEncryptionConfigurationNotFoundError")):
+                try:
+                    getattr(s3, method)(Bucket=bucket)
+                except Exception as error:
+                    code = getattr(error, "response", {}).get("Error", {}).get("Code")
+                    if code != missing:
+                        raise MigrationError(f"cannot establish absence of source {method}") from error
+                else:
+                    raise MigrationError(f"source {method} configuration requires separately reviewed migration")
         objects = {}
         for page in s3.get_paginator("list_objects_v2").paginate(Bucket=bucket):
             for entry in page.get("Contents", []):
                 key = entry["Key"]
                 head = s3.head_object(Bucket=bucket, Key=key)
-                owner_only_acl(s3.get_object_acl(Bucket=bucket, Key=key))
-                if s3.get_object_tagging(Bucket=bucket, Key=key).get("TagSet"):
-                    raise ValueError("tagged objects require a separately reviewed migration")
+                if source_rules:
+                    owner_only_acl(s3.get_object_acl(Bucket=bucket, Key=key))
+                if source_rules and (any(head.get(field) for field in ("ServerSideEncryption", "SSECustomerAlgorithm", "ObjectLockMode", "ObjectLockRetainUntilDate", "ObjectLockLegalHoldStatus", "WebsiteRedirectLocation")) or head.get("StorageClass", "STANDARD") != "STANDARD"):
+                    raise MigrationError("encryption, object lock, redirect or nonstandard storage class requires separate migration")
+                if source_rules and s3.get_object_tagging(Bucket=bucket, Key=key).get("TagSet"):
+                    raise MigrationError("tagged objects require a separately reviewed migration")
                 objects[key] = {"size": head["ContentLength"], "etag": head["ETag"],
                                 "last_modified": str(head.get("LastModified")), "metadata": metadata(head)}
         result[bucket] = objects
@@ -93,7 +107,7 @@ def digest(s3, bucket, key, expected=None):
     finally:
         body.close()
     if expected and (size != expected["size"] or metadata(response) != expected["metadata"]):
-        raise ValueError("source object changed while reading")
+        raise MigrationError("source object changed while reading")
     return sha.hexdigest(), size
 
 
@@ -107,7 +121,7 @@ def copy_and_verify(source, target, *, private_check, checkpoint, dry_run=False)
                 "bytes": sum(item["size"] for items in before.values() for item in items.values())}
     target_buckets = {item["Name"] for item in target.list_buckets().get("Buckets", [])}
     if target_buckets - before.keys():
-        raise ValueError("unexpected target bucket; destination is not isolated")
+        raise MigrationError("unexpected target bucket; destination is not isolated")
     verified = []
     for bucket, objects in before.items():
         if bucket not in target_buckets:
@@ -127,7 +141,7 @@ def copy_and_verify(source, target, *, private_check, checkpoint, dry_run=False)
                 finally:
                     body.close()
                 if size != expected["size"] or metadata(response) != expected["metadata"]:
-                    raise ValueError("source object changed during copy")
+                    raise MigrationError("source object changed during copy")
                 source_sha = sha.hexdigest()
                 # Resume by accepting only an independently byte-verified target.
                 same = False
@@ -146,7 +160,7 @@ def copy_and_verify(source, target, *, private_check, checkpoint, dry_run=False)
                     target.upload_fileobj(spool, bucket, key, ExtraArgs=extra)
                 head = target.head_object(Bucket=bucket, Key=key)
                 if metadata(head) != expected["metadata"] or digest(target, bucket, key) != (source_sha, size):
-                    raise ValueError("target content or metadata verification failed")
+                    raise MigrationError("target content or metadata verification failed")
             verified.append({"bucket": bucket, "key": key, "bytes": size,
                              "sha256": source_sha, "metadata": expected["metadata"]})
             checkpoint({"status": "copying", "objects": verified})
@@ -154,13 +168,13 @@ def copy_and_verify(source, target, *, private_check, checkpoint, dry_run=False)
         for page in target.get_paginator("list_objects_v2").paginate(Bucket=bucket):
             actual.update(item["Key"] for item in page.get("Contents", []))
         if actual != objects.keys():
-            raise ValueError("target key set differs; no objects were deleted")
+            raise MigrationError("target key set differs; no objects were deleted")
     if inventory(source) != before:
-        raise ValueError("source changed; keep legacy storage active and repeat under write freeze")
+        raise MigrationError("source changed; keep legacy storage active and repeat under write freeze")
     # Re-read source bytes after copying to detect changes hidden by metadata.
     for item in verified:
         if digest(source, item["bucket"], item["key"], before[item["bucket"]][item["key"]]) != (item["sha256"], item["bytes"]):
-            raise ValueError("source bytes changed before final acceptance")
+            raise MigrationError("source bytes changed before final acceptance")
     for bucket in before:
         private_check("source", bucket)
         private_check("target", bucket)
@@ -182,52 +196,68 @@ def atomic_json(path, document):
     os.replace(temporary, path)
 
 
-def validate_proof(proof, target_source, inspect):
+def validate_proof(proof, target_source, inspect, is_ancestor=lambda _old, _new: False):
     """Check the exact frozen source and candidate identities before deployment."""
     if proof.get("schema_version") != 1 or proof.get("kind") != "nexolab-object-storage-migration" or proof.get("status") != "verified":
-        raise ValueError("verified migration authority is required")
-    if proof.get("target_source") != target_source or not re.fullmatch(r"[0-9a-f]{40}", target_source):
-        raise ValueError("migration source revision differs from deployment target")
+        raise MigrationError("verified migration authority is required")
+    approved_source = proof.get("target_source", "")
+    if not re.fullmatch(r"[0-9a-f]{40}", target_source) or not re.fullmatch(r"[0-9a-f]{40}", approved_source):
+        raise MigrationError("migration source revision differs from deployment target")
+    if approved_source != target_source and (proof.get("cutover_verified") is not True or not is_ancestor(approved_source, target_source)):
+        raise MigrationError("migration authority is not in the approved target lineage")
     objects = proof.get("objects")
     buckets = proof.get("buckets")
     if not isinstance(objects, list) or not isinstance(buckets, list):
-        raise ValueError("complete migration manifest is required")
+        raise MigrationError("complete migration manifest is required")
     identities = set()
     total = 0
     for item in objects:
         pair = (item.get("bucket"), item.get("key"))
         if pair in identities or pair[0] not in buckets or not isinstance(pair[1], str):
-            raise ValueError("invalid or repeated object identity")
+            raise MigrationError("invalid or repeated object identity")
         identities.add(pair)
         if not re.fullmatch(r"[0-9a-f]{64}", str(item.get("sha256", ""))) or type(item.get("bytes")) is not int or item["bytes"] < 0:
-            raise ValueError("object integrity evidence is invalid")
+            raise MigrationError("object integrity evidence is invalid")
         total += item["bytes"]
     if proof.get("total_bytes") != total:
-        raise ValueError("migration byte total is inconsistent")
+        raise MigrationError("migration byte total is inconsistent")
     volume = inspect("volume", "nexolab-central-object-storage-versitygw-data")
     if volume.get("CreatedAt") != proof.get("target_volume_created_at") or volume.get("Name") != "nexolab-central-object-storage-versitygw-data":
-        raise ValueError("candidate volume identity changed")
+        raise MigrationError("candidate volume identity changed")
     image = inspect("image", "nexolab/object-storage:versitygw-v1.8.0")
     if image.get("Id") != proof.get("target_image_id"):
-        raise ValueError("candidate image identity changed")
+        raise MigrationError("candidate image identity changed")
     if proof.get("cutover_verified") is True:
-        target = inspect("container", proof["target_container_id"])
+        inspect("image", proof["source_image_id"])
+        legacy = inspect("volume", "nexolab-central-object-storage-data")
+        if legacy.get("Name") != "nexolab-central-object-storage-data":
+            raise MigrationError("retained legacy rollback volume is missing")
+        # Compose may legitimately recreate a container around the same accepted
+        # immutable image and persistent volume. Resolve exactly one live service;
+        # retain the original cutover container ID in the manifest for audit.
+        target = inspect("active_storage", "nexolab-central")
         if target.get("Image") != proof["target_image_id"] or target.get("State", {}).get("Running") is not True:
-            raise ValueError("accepted target storage identity or state changed")
+            raise MigrationError("accepted target storage identity or state changed")
         if not any(m.get("Name") == volume["Name"] and m.get("Destination") == "/data" for m in target.get("Mounts", [])):
-            raise ValueError("accepted target storage volume changed")
+            raise MigrationError("accepted target storage volume changed")
         return
     writer = inspect("container", proof["frozen_writer_id"])
     if writer.get("State", {}).get("Running") is not False or writer.get("Image") != proof.get("source_writer_image_id"):
-        raise ValueError("source writer must remain frozen until activation")
+        raise MigrationError("source writer must remain frozen until activation")
     source = inspect("container", proof["source_container_id"])
     if source.get("Image") != proof.get("source_image_id") or source.get("State", {}).get("Running") is not True:
-        raise ValueError("legacy source identity or state changed")
+        raise MigrationError("legacy source identity or state changed")
     if not any(m.get("Name") == "nexolab-central-object-storage-data" and m.get("Destination") == "/data" for m in source.get("Mounts", [])):
-        raise ValueError("legacy source volume identity changed")
+        raise MigrationError("legacy source volume identity changed")
 
 
 def docker_inspect(kind, identity):
+    if kind == "active_storage":
+        ids = subprocess.check_output(["docker", "ps", "-q", "--filter", "label=com.docker.compose.project=nexolab-central",
+            "--filter", "label=com.docker.compose.service=minio"], text=True).splitlines()
+        if len(ids) != 1:
+            raise MigrationError("exactly one active accepted storage service is required")
+        kind, identity = "container", ids[0]
     return json.loads(subprocess.check_output(["docker", kind, "inspect", identity], text=True))[0]
 
 
@@ -242,8 +272,9 @@ def main():
     args = parser.parse_args()
     if args.validate_proof:
         if args.manifest.is_symlink() or not args.manifest.is_file():
-            raise ValueError("regular migration authority file is required")
-        validate_proof(json.loads(args.manifest.read_text()), args.expected_target_source or "", docker_inspect)
+            raise MigrationError("regular migration authority file is required")
+        validate_proof(json.loads(args.manifest.read_text()), args.expected_target_source or "", docker_inspect,
+            is_ancestor=lambda old, new: subprocess.run(["git", "merge-base", "--is-ancestor", old, new], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0)
         print("OBJECT_STORAGE_MIGRATION_AUTHORITY_VALIDATED")
         return
     if args.verify_target:
@@ -257,14 +288,14 @@ def main():
         helper.wait_ready(target, 60)
         manifest = json.loads(args.manifest.read_text())
         if manifest.get("status") != "verified":
-            raise ValueError("verified manifest required")
-        actual = inventory(target)
+            raise MigrationError("verified manifest required")
+        actual = inventory(target, source_rules=False)
         expected = {(item["bucket"], item["key"]): item for item in manifest["objects"]}
         if sorted(actual) != manifest["buckets"] or {(b, k) for b, items in actual.items() for k in items} != expected.keys():
-            raise ValueError("active target bucket/key set changed")
+            raise MigrationError("active target bucket/key set changed")
         for (bucket, key), item in expected.items():
             if actual[bucket][key]["metadata"] != item["metadata"] or digest(target, bucket, key) != (item["sha256"], item["bytes"]):
-                raise ValueError("active target integrity changed")
+                raise MigrationError("active target integrity changed")
             private_object(endpoint, bucket, key)
             signed = target.generate_presigned_url("get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=60)
             sha = hashlib.sha256()
@@ -274,7 +305,7 @@ def main():
                     sha.update(chunk)
                     size += len(chunk)
             if (sha.hexdigest(), size) != (item["sha256"], item["bytes"]):
-                raise ValueError("signed object GET verification failed")
+                raise MigrationError("signed object GET verification failed")
         for bucket in manifest["buckets"]:
             helper.assert_private(endpoint, bucket)
         print("ACTIVE_TARGET_STORAGE_VERIFIED")
@@ -313,6 +344,9 @@ def main():
 if __name__ == "__main__":
     try:
         main()
+    except MigrationError as error:
+        print(f"Migration failed closed: {error}", file=sys.stderr)
+        raise SystemExit(1)
     except Exception as error:
         # S3 errors can contain endpoints or credential material. Keep output bounded.
         print(f"Migration failed closed: {type(error).__name__}", file=sys.stderr)

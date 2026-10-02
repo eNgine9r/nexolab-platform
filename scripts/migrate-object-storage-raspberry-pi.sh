@@ -80,6 +80,7 @@ PY
 FROZEN=0
 DEPLOY_STARTED=0
 STORAGE_SWITCH_STARTED=0
+WRITER_RESUME_ATTEMPTED=0
 cleanup() {
   local result=$?
   trap - EXIT
@@ -99,6 +100,9 @@ cleanup() {
   fi
   if [[ "$result" != 0 && "$DEPLOY_STARTED" == 1 ]]; then
     echo "Deployment was attempted; use its canonical recovery evidence. Migration: $EVIDENCE" >&2
+  fi
+  if [[ "$result" != 0 && "$WRITER_RESUME_ATTEMPTED" == 1 && "$DEPLOY_STARTED" == 0 ]]; then
+    echo "Verified target retained: writer resume was attempted; automatic storage rollback is unsafe. Inspect writer and evidence: $EVIDENCE" >&2
   fi
   exit "$result"
 }
@@ -170,8 +174,12 @@ with temporary.open('w') as stream:
     os.fsync(stream.fileno())
 os.replace(temporary, path)
 PY
-docker start "$WRITER" >/dev/null
+# Close rollback authority BEFORE issuing start: a failed/interrupted return can
+# already have enabled uploads into the target. Never point their metadata back
+# at legacy storage.
+WRITER_RESUME_ATTEMPTED=1
 FROZEN=0
+docker start "$WRITER" >/dev/null
 echo 'Storage cutover verified; Telemetry writes resumed. Starting canonical project update.'
 DEPLOY_STARTED=1
 bash scripts/deploy-current-head-raspberry-pi.sh --runtime-mode lan \

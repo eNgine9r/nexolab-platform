@@ -16,7 +16,8 @@ Its retention step did remove the historical `20260917T131852Z` deployment archi
   The script stops that writer only for the final copy and storage switch. Edge
   acquisition remains enabled and buffers incoming telemetry locally.
 - The source must be private and unversioned, with owner-only ACLs, no bucket
-  policies and no object tags. Unsupported history/security semantics fail closed
+  policies, lifecycle/replication/default-encryption/tagging configuration or object
+  tags, encryption, lock or redirect semantics. Unsupported history/security semantics fail closed
   before activation; they require a separate migration implementation.
 - Default installed identities must match: Compose project/network
   `nexolab-central`, source service `minio`, source volume
@@ -86,7 +87,7 @@ legacy storage service using the protected exact Compose override, then restarts
 the unchanged writer. If restoring storage fails, the writer remains stopped and
 the script reports the blocker. This prevents writes into an unverified backend.
 
-Once Telemetry writes resume, automatic storage rollback is no longer allowed:
+Before attempting to restart Telemetry, automatic storage rollback is disabled:
 new uploads may exist only in VersityGW. If subsequent project deployment fails,
 inspect canonical deployment evidence and recover with its established procedures.
 Do not restore the legacy storage volume without reconciling post-cutover uploads
