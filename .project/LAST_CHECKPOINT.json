@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-02T07:28:38.510503+00:00",
-  "actor": "Codex",
-  "event": "object_storage_migration1249_candidate_prepared",
+  "timestamp": "2026-10-02T11:30:00Z",
+  "actor": "ChatGPT",
+  "event": "minio_acl_compatibility_fix1251_candidate_prepared",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1249,
-    "title": "Verified object storage migration prerequisite",
-    "branch": "deploy/1249-object-storage-migration"
+    "issue": 1251,
+    "title": "MinIO empty canonical ACL compatibility fix",
+    "branch": "fix/1251-minio-empty-canonical-acl"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -1022,6 +1022,22 @@
       "pull_request": 1250,
       "shared_lock": "P1_concurrent_deployment_race_fixed_two_real_flock_regressions",
       "source_pin": "P1_preflight_revision_mix_fixed_with_regression"
+    },
+    "issue_1251_candidate": {
+      "installed_attempt": "runtime/deployments/20261002T112539Z",
+      "installed_failure": "cannot_establish_private_owner_only_acl",
+      "failed_closed_before_writer_freeze": true,
+      "failed_closed_before_storage_cutover": true,
+      "target_main": "fa9fc82ada84f680f7c57a7f0cc60b5e5071962e",
+      "compatibility_basis": "MinIO_empty_canonical_owner_and_grantee_IDs",
+      "acceptance_boundary": "explicit_ID_fields_same_value_CanonicalUser_FULL_CONTROL_only",
+      "public_custom_acl_rejection": "preserved",
+      "anonymous_privacy_checks": "preserved",
+      "exact_head_ci": "pending",
+      "production_runtime_mutation": "none",
+      "persistent_data_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "observations": [
@@ -1772,7 +1788,7 @@
       }
     }
   ],
-  "next_action": "Verify and review #1249 exact candidate; merge only GREEN; execute approved migration/update wrapper from ordinary Raspberry terminal, verify installed storage/API/dashboard/telemetry evidence. Do not bypass Commander privileges.",
+  "next_action": "Verify #1251 exact-head CI/review; merge only GREEN; then fast-forward Raspberry main and rerun the already authorized #1249 migration wrapper.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
