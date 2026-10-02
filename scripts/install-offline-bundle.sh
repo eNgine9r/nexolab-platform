@@ -206,7 +206,7 @@ if docker volume inspect "$LEGACY_OBJECT_STORAGE_VOLUME" >/dev/null 2>&1; then
   if ! python3 "$SCRIPT_DIR/deploy-object-storage-migration.py" --validate-proof --require-cutover \
     --manifest "$OBJECT_STORAGE_MIGRATION_AUTHORITY" --expected-target-source "$BUNDLE_SOURCE" \
     --source-repository "${NEXOLAB_REPO:-$HOME/nexolab-platform}"; then
-    echo "completed object-storage cutover authority is required before offline activation" >&2
+    echo "object-storage migration is required before this bundle can replace the legacy MinIO runtime; completed cutover authority is missing or invalid" >&2
     exit 80
   fi
   [[ "$(docker image inspect --format '{{.Id}}' "$OFFLINE_OBJECT_STORAGE_IMAGE")" \
