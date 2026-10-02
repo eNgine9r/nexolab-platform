@@ -181,4 +181,13 @@ lineage fails closed. A partial destination volume never authorizes installation
 
 ### Durable layered Device Agent authority
 
-A successful storage cutover may coexist with a separately accepted Device Agent compatibility runtime that predates the current one-commit compatibility-authority format. Controlled deployment resolves that layered baseline only after synchronizing tracked main state. It requires the formal deployed source from canonical deployment evidence, tracked compatibility lineage `df368cfa… → 2296e307… → 7db6c8c3…`, checksum-verified #1117 runtime evidence, exact current/rollback image IDs, Product Owner cutover authorization and no-write/no-delete safety invariants. It does not require the historical fork commit to remain reachable in the local Git object database. If any identity or checksum disagrees, deployment fails closed.
+A successful storage cutover may coexist with a separately accepted Device Agent
+compatibility runtime that predates the current one-commit
+compatibility-authority format. Controlled deployment resolves that layered
+baseline only after synchronizing tracked main state. It requires the formal
+deployed source from canonical deployment evidence, tracked compatibility
+lineage `df368cfa… → 2296e307… → 7db6c8c3…`, checksum-verified #1117 runtime
+evidence, exact current/rollback image IDs, Product Owner cutover authorization
+and no-write/no-delete safety invariants. It does not require the historical
+fork commit to remain reachable in the local Git object database. If any
+identity or checksum disagrees, deployment fails closed.
