@@ -41,10 +41,10 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1259
+      "issue": 1249
     },
     "next_work_package": {
-      "issue": 1249
+      "issue": 1247
     }
   },
   "work_packages": [
@@ -6429,7 +6429,7 @@
       "issue": 1259,
       "title": "Accept MinIO dummy private ACL with omitted canonical grantee ID",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "fix/1259-minio-dummy-private-acl",
       "evidence": {
@@ -6441,11 +6441,17 @@
         "public_custom_rejection": "preserved",
         "policy_history_tag_encryption_lock_gates": "preserved",
         "anonymous_access_denial": "preserved",
-        "exact_head_ci": "pending",
+        "exact_head_ci": "migration_safety_format_lint_typecheck_tests_build_merge_gate_green_run_37019239981",
         "production_runtime_mutation": "none",
         "persistent_data_mutation": "none",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "verified_head_sha": "6e7bae76bee99bab23a1678511a8f648cd04a7d7",
+        "pull_request": 1260,
+        "review": "p1_fixture_finding_addressed_resolved_zero_unresolved",
+        "merged_implementation_sha": "b5ce3f9533a347efb8aff6511cefa82f9bd31102",
+        "issue_state": "closed_completed",
+        "runtime_storage": "legacy_minio_unchanged_before_retry"
       }
     }
   ],
