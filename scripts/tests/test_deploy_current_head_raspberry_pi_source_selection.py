@@ -465,6 +465,24 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         self.assertIn("device_agent_layered_source=not_applicable", result.stdout)
         self.assertEqual(run("git", "rev-parse", "HEAD", cwd=self.repo).stdout.strip(), refreshed_head)
 
+    def test_current_main_accepts_restored_layered_device_agent_image_authority(self) -> None:
+        self._set_layered_device_agent_baseline(
+            compatibility_source=self.target,
+            current_image="sha256:" + "8" * 64,
+            previous_image="sha256:" + "6" * 64,
+        )
+        recovery = self._set_forward_recovery_evidence("20260829T020000Z")
+        for name in ("edge-sqlite-pre-cutover.json", "edge-sqlite-restore-result.json"):
+            path = recovery / name
+            document = json.loads(path.read_text(encoding="utf-8"))
+            document["deployed_device_agent_image_id"] = "sha256:" + "8" * 64
+            path.write_text(json.dumps(document) + "\n", encoding="utf-8")
+
+        result = self._validate_current_main(self.base)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("deployed_device_agent_image_id=sha256:" + "8" * 64, result.stdout)
+        self.assertIn(f"device_agent_layered_source={self.target}", result.stdout)
+
     def test_current_main_can_pin_exact_compatibility_runtime_authority(self) -> None:
         authority = self._set_compatibility_authority_evidence("20260829T010000Z")
         result = self._validate_current_main(self.target)
