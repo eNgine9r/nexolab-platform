@@ -76,7 +76,10 @@ nexolab_prepare_migration_image() {
     --security-opt no-new-privileges "$image" --version)"; then
     echo 'Migration image version probe failed' >&2; return 1
   fi
-  grep -Eq '^Version[[:space:]]*:[[:space:]]*v?1\.8\.0[[:space:]]*  TARGET_IMAGE="$(docker image inspect --format '{{.Id}}' "$image")"
+  if ! grep -Eq '^Version[[:space:]]*:[[:space:]]*v?1\.8\.0[[:space:]]*$' <<<"$version_output"; then
+    echo 'Migration image must report VersityGW 1.8.0' >&2; return 1
+  fi
+  TARGET_IMAGE="$(docker image inspect --format '{{.Id}}' "$image")"
   if [[ "$image" != "$canonical" ]]; then
     docker image tag "$TARGET_IMAGE" "$canonical" || return
   fi
