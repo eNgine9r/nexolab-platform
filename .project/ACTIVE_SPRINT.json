@@ -6481,7 +6481,7 @@
         "authority_binding": "tracked_active_sprint_plus_checksum_verified_runtime_evidence",
         "migration_retry": "forbidden_after_verified_cutover",
         "legacy_resume_script": "not_approved_for_this_recovery",
-        "exact_head_ci": "pending_final_head_after_restore_retry_fix",
+        "exact_head_ci": "pending_after_post_mutation_restore_remediation",
         "production_runtime_mutation_by_pr": "none",
         "persistent_data_mutation_by_pr": "none",
         "modbus_write": "none",
@@ -6497,7 +6497,11 @@
         "post_mutation_layered_restore_retry": "addressed_accepts_exact_verified_layered_or_formal_current_authority",
         "formal_rollback_image_preservation": "sha256:25ba94b454ebe6dd0d22ed7501ea7368141a32507e09e181cc5b33056e1239db",
         "restored_layered_current_image": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
-        "review_p1_restore_retry": "addressed_with_unit_and_source_selection_regression"
+        "review_p1_restore_retry": "addressed_with_unit_and_source_selection_regression",
+        "post_mutation_restore_review_p1": "addressed_accept_only_verified_formal_or_layered_image_authority",
+        "formal_image_identity": "preserved_separately_from_latest_restore_authority",
+        "restored_layered_retry_regression": "covered",
+        "unknown_restore_image": "fail_closed"
       }
     }
   ],
