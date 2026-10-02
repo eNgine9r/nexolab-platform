@@ -2,6 +2,12 @@
 
 Updated: 2026-10-02
 
+## Issue #1259 — MinIO dummy private ACL compatibility fix in review
+
+The authorized #1249 actual-host retry on 2026-10-02 synchronized Raspberry main to `ebafa7b62ca896831a4f8dc36b1ee2e9cf02aadd`, passed source selection and the VersityGW image/version gate, then failed closed during dry-run source inventory with `custom or public ACL requires separately reviewed migration`. Telemetry was not frozen, no objects were copied and storage was not switched. A migration-owned candidate volume/container may have been created before inventory; the cleanup removes the candidate container and the existing volume ownership guard permits only the expected pending-1249 volume to be reused.
+
+MinIO's GetBucketACL/GetObjectACL handlers are dummy S3 compatibility calls and can omit the canonical grantee ID while returning exactly one CanonicalUser FULL_CONTROL grant. Branch `fix/1259-minio-dummy-private-acl` accepts that narrow shape only when the owner ID is explicitly empty, the grant count is exactly one, the grantee type is CanonicalUser, permission is FULL_CONTROL, and no alternate identity fields are present. Public/group/URI/email, multiple-grant, non-empty-owner-with-missing-grantee-ID and non-FULL_CONTROL cases remain fail-closed. Existing policy/history/tag/encryption/object-lock and anonymous-access gates remain unchanged. Exact-head CI/review is pending.
+
 ## Issue #1255 — VersityGW version probe fix completed
 
 PR #1256 final head `f562a69f495959881f5f32bfdb7da8d4e89411a9` passed migration-safety, formatting, lint, typecheck, full tests, production build and NEXOLAB Merge Gate. The stale P1 review on the malformed earlier commit was remediated and resolved; zero unresolved review threads remained. Squash merge `8c1c4825852adaa5d53a78a7107eada29be0fd16` closed #1255.
