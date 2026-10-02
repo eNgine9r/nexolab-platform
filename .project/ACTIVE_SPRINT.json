@@ -41,10 +41,10 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1249
+      "issue": 1263
     },
     "next_work_package": {
-      "issue": 1247
+      "issue": 1249
     }
   },
   "work_packages": [
@@ -6452,6 +6452,38 @@
         "merged_implementation_sha": "b5ce3f9533a347efb8aff6511cefa82f9bd31102",
         "issue_state": "closed_completed",
         "runtime_storage": "legacy_minio_unchanged_before_retry"
+      }
+    },
+    {
+      "issue": 1263,
+      "title": "Honor verified layered Device Agent runtime baseline during controlled deployment",
+      "priority": "critical",
+      "lifecycle": "review",
+      "depends_on": [],
+      "branch": "fix/1263-layered-device-agent-authority",
+      "evidence": {
+        "storage_migration_authority": "runtime/object-storage-migration/authority.json",
+        "storage_status": "verified_cutover_verified",
+        "storage_inventory": "1_bucket_6_objects_3733362_bytes",
+        "storage_target": "versitygw_v1.8.0_active",
+        "legacy_minio": "retained_rollback_evidence",
+        "telemetry_after_storage_cutover": "resumed",
+        "failed_application_deployment": "runtime/deployments/20261002T151232Z",
+        "application_failure": "running_device_agent_image_does_not_match_verified_recovery_authority",
+        "failure_boundary": "before_device_agent_quiesce_or_application_runtime_mutation",
+        "formal_deployed_source": "df368cfa27efa945d59de33de8268898b564a19f",
+        "formal_device_agent_image": "sha256:25ba94b454ebe6dd0d22ed7501ea7368141a32507e09e181cc5b33056e1239db",
+        "layered_compatibility_source": "7db6c8c34c7c94874afe2a3301a2209585795744",
+        "layered_device_agent_image": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+        "layered_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+        "authority_binding": "tracked_active_sprint_plus_checksum_verified_runtime_evidence",
+        "migration_retry": "forbidden_after_verified_cutover",
+        "legacy_resume_script": "not_approved_for_this_recovery",
+        "exact_head_ci": "pending",
+        "production_runtime_mutation_by_pr": "none",
+        "persistent_data_mutation_by_pr": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     }
   ],
