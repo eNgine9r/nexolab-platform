@@ -37,14 +37,16 @@
     "sdm120_production_bus_id": "rs485-sdm120",
     "sdm120_production_adapter": "A10Q34QC",
     "sdm120_production_unit_id": 1,
-    "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
+    "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+    "device_agent_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
+    "device_agent_compatibility_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb"
   },
   "selection": {
     "active_work_package": {
-      "issue": 1249
+      "issue": 1263
     },
     "next_work_package": {
-      "issue": 1247
+      "issue": 1249
     }
   },
   "work_packages": [
@@ -6452,6 +6454,57 @@
         "merged_implementation_sha": "b5ce3f9533a347efb8aff6511cefa82f9bd31102",
         "issue_state": "closed_completed",
         "runtime_storage": "legacy_minio_unchanged_before_retry"
+      }
+    },
+    {
+      "issue": 1263,
+      "title": "Honor verified layered Device Agent runtime baseline during controlled deployment",
+      "priority": "critical",
+      "lifecycle": "review",
+      "depends_on": [],
+      "branch": "fix/1263-layered-device-agent-authority",
+      "evidence": {
+        "storage_migration_authority": "runtime/object-storage-migration/authority.json",
+        "storage_status": "verified_cutover_verified",
+        "storage_inventory": "1_bucket_6_objects_3733362_bytes",
+        "storage_target": "versitygw_v1.8.0_active",
+        "legacy_minio": "retained_rollback_evidence",
+        "telemetry_after_storage_cutover": "resumed",
+        "failed_application_deployment": "runtime/deployments/20261002T151232Z",
+        "application_failure": "running_device_agent_image_does_not_match_verified_recovery_authority",
+        "failure_boundary": "before_device_agent_quiesce_or_application_runtime_mutation",
+        "formal_deployed_source": "df368cfa27efa945d59de33de8268898b564a19f",
+        "formal_device_agent_image": "sha256:25ba94b454ebe6dd0d22ed7501ea7368141a32507e09e181cc5b33056e1239db",
+        "layered_compatibility_source": "7db6c8c34c7c94874afe2a3301a2209585795744",
+        "layered_device_agent_image": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+        "layered_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+        "authority_binding": "tracked_active_sprint_plus_checksum_verified_runtime_evidence",
+        "migration_retry": "forbidden_after_verified_cutover",
+        "legacy_resume_script": "not_approved_for_this_recovery",
+        "exact_head_ci": "pending_after_launch_path_remediation",
+        "production_runtime_mutation_by_pr": "none",
+        "persistent_data_mutation_by_pr": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "durable_compatibility_lineage": "checksum_bound_issue_1117_pre_cutover_source_lineage_candidate_and_rollback_evidence",
+        "local_git_object_dependency": "removed",
+        "stale_state_after_fetch_review_p1": "addressed",
+        "unreferenced_fork_review_p2": "addressed_with_checksum_bound_offline_pre_cutover_evidence",
+        "layered_lineage_authority": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
+        "compatibility_git_object_dependency": "none",
+        "canonical_compatibility_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
+        "review_p1_parent_binding": "addressed_exact_parent_pinned_in_active_sprint_and_matched_to_checksum_bound_source_lineage",
+        "post_mutation_layered_restore_retry": "addressed_accepts_exact_verified_layered_or_formal_current_authority",
+        "formal_rollback_image_preservation": "sha256:25ba94b454ebe6dd0d22ed7501ea7368141a32507e09e181cc5b33056e1239db",
+        "restored_layered_current_image": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+        "review_p1_restore_retry": "addressed_with_unit_and_source_selection_regression",
+        "post_mutation_restore_review_p1": "addressed_accept_only_verified_formal_or_layered_image_authority",
+        "formal_image_identity": "preserved_separately_from_latest_restore_authority",
+        "restored_layered_retry_regression": "covered",
+        "unknown_restore_image": "fail_closed",
+        "stale_script_launch_review_p1": "addressed_pre_sync_main_before_new_bash_process",
+        "canonical_retry_entry": "git_switch_fetch_ff_verify_then_deploy_current_head",
+        "internal_pull_as_code_update": "not_authoritative"
       }
     }
   ],

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-02T14:30:00Z",
+  "timestamp": "2026-10-02T17:55:00Z",
   "actor": "ChatGPT",
-  "event": "minio_dummy_acl1259_merged_resume_object_storage1249",
+  "event": "issue1263_pre_synced_application_retry_entry_in_review",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -26,12 +26,14 @@
     "sdm120_production_bus_id": "rs485-sdm120",
     "sdm120_production_adapter": "A10Q34QC",
     "sdm120_production_unit_id": 1,
-    "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
+    "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+    "device_agent_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
+    "device_agent_compatibility_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb"
   },
   "active_work": {
-    "issue": 1249,
-    "title": "Verified object storage migration prerequisite",
-    "branch": "deploy/1249-object-storage-migration"
+    "issue": 1263,
+    "title": "Layered Device Agent deployment authority fix",
+    "branch": "fix/1263-layered-device-agent-authority"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -1118,6 +1120,60 @@
       "persistent_data_mutation": "none",
       "modbus_write": "none",
       "hardware_write": "none"
+    },
+    "issue_1249_storage_cutover": {
+      "target_source": "4c4e932759e5d9443b4c29729dc6b8ca9b0a697a",
+      "authority": "runtime/object-storage-migration/authority.json",
+      "status": "verified",
+      "cutover_verified": true,
+      "buckets": 1,
+      "objects": 6,
+      "total_bytes": 3733362,
+      "active_storage": "versitygw_v1.8.0",
+      "telemetry_writer": "resumed",
+      "legacy_minio": "retained",
+      "automatic_storage_rollback": "unsafe_after_writer_resume",
+      "migration_wrapper_retry": "forbidden"
+    },
+    "issue_1263_candidate": {
+      "failed_application_deployment": "runtime/deployments/20261002T151232Z",
+      "failure": "running_device_agent_image_does_not_match_verified_recovery_authority",
+      "failure_boundary": "before_device_agent_quiesce_or_application_runtime_mutation",
+      "formal_deployed_source": "df368cfa27efa945d59de33de8268898b564a19f",
+      "formal_device_agent_image": "sha256:25ba94b454ebe6dd0d22ed7501ea7368141a32507e09e181cc5b33056e1239db",
+      "layered_compatibility_source": "7db6c8c34c7c94874afe2a3301a2209585795744",
+      "layered_device_agent_image": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+      "layered_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+      "implementation": "checksum_bound_layered_runtime_resolver_plus_controlled_deployment_integration",
+      "exact_head_ci": "pending_after_launch_path_remediation",
+      "production_runtime_mutation_by_pr": "none",
+      "persistent_data_mutation_by_pr": "none",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "durable_lineage": "df368cfa27efa945d59de33de8268898b564a19f->2296e3070cbebff687418cf1ac161984086bebdb->7db6c8c34c7c94874afe2a3301a2209585795744",
+      "git_parent_observation": "7db6c8c3_parent_2296e307_and_2296e307_parent_df368cfa",
+      "runtime_lineage_validation": "tracked_state_plus_checksum_bound_runtime_evidence_no_local_git_object_dependency",
+      "review_p1": "addressed_resolve_layered_authority_after_main_sync",
+      "review_p2": "addressed_checksum_bound_pre_cutover_lineage_no_git_object_dependency",
+      "pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
+      "runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+      "production_runtime_mutation": "none",
+      "persistent_data_mutation": "none",
+      "canonical_compatibility_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
+      "review_parent_binding": "addressed",
+      "post_mutation_restore_retry": "verified_layered_current_image_or_formal_rollback_image_only",
+      "formal_rollback_image": "sha256:25ba94b454ebe6dd0d22ed7501ea7368141a32507e09e181cc5b33056e1239db",
+      "layered_current_image": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+      "source_selection_regression": "added_retry_after_layered_sqlite_restore",
+      "review_p1_restore_retry": "addressed",
+      "final_exact_head_ci": "pending",
+      "review_post_mutation_restore_p1": "addressed_formal_or_verified_layered_authority_only",
+      "formal_image_identity": "preserved_separately",
+      "restored_layered_authority_role": "explicit",
+      "restored_layered_retry_regression": "covered",
+      "unknown_restore_image": "fail_closed",
+      "stale_script_launch_review_p1": "addressed_pre_sync_main_then_new_bash_process",
+      "canonical_retry_entry": "git_switch_main_fetch_origin_main_ff_only_verify_head_then_deploy_current_head"
     }
   },
   "observations": [
@@ -1868,7 +1924,7 @@
       }
     }
   ],
-  "next_action": "Fast-forward Raspberry main after this state-only reconciliation merges, then rerun the already authorized #1249 migration wrapper and verify storage, API, telemetry, dashboard and deployed source.",
+  "next_action": "Verify #1263 exact-head CI/review after launch-path remediation; merge only GREEN, reconcile state, then on Raspberry fast-forward main and verify HEAD==origin/main before starting a new canonical deploy-current-head process. Do not rerun storage migration.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

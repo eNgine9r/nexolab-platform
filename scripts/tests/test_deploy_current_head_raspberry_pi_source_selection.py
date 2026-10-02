@@ -57,6 +57,7 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         passed: bool = True,
         mutated: bool = False,
         restored_source: str | None = None,
+        restored_device_agent_image_id: str | None = None,
         device_agent_image_id: str | None = None,
         summary_extra: str = "",
     ) -> Path:
@@ -86,7 +87,7 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
                 "node_stream_sequences": {},
                 "deployment_evidence_id": stamp,
                 "deployed_source": restored_source,
-                "deployed_device_agent_image_id": "sha256:" + "d" * 64,
+                "deployed_device_agent_image_id": restored_device_agent_image_id or "sha256:" + "d" * 64,
                 "target_source": self.target,
             }
             metadata = {
@@ -241,6 +242,136 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         (authority / "compatibility-runtime-authority.json").write_text(json.dumps(result) + "\n", encoding="utf-8")
         return authority
 
+    def _create_layered_compatibility_fork(self) -> str:
+        self.assertEqual(run("git", "switch", "-c", "layered-compat", self.base, cwd=self.repo).returncode, 0)
+        self._commit("layered compatibility base")
+        compatibility = self._commit("layered compatibility source")
+        self.assertEqual(run("git", "switch", "main", cwd=self.repo).returncode, 0)
+        self.assertNotEqual(
+            run("git", "merge-base", "--is-ancestor", compatibility, self.latest, cwd=self.repo).returncode,
+            0,
+        )
+        return compatibility
+
+    def _set_layered_device_agent_baseline(
+        self,
+        *,
+        compatibility_source: str | None = None,
+        current_image: str | None = None,
+        previous_image: str | None = None,
+    ) -> Path:
+        compatibility_source = compatibility_source or self.target
+        current_image = current_image or "sha256:" + "8" * 64
+        previous_image = previous_image or "sha256:" + "6" * 64
+
+        evidence = self.repo / "runtime" / "evidence" / "layered-device-agent"
+        evidence.mkdir(parents=True, exist_ok=True)
+        facts = {
+            "status": "PASS",
+            "cutover_authorized_by_product_owner": "true",
+            "compatibility_source": compatibility_source,
+            "device_agent_image_id": current_image,
+            "device_agent_previous_image_id": previous_image,
+            "modbus_write": "none",
+            "hardware_write": "none",
+            "persistent_data_deletion": "none",
+            "named_volume_deletion": "none",
+        }
+        final_runtime = evidence / "final-runtime.txt"
+        final_runtime.write_text(
+            "".join(f"{key}={value}\n" for key, value in facts.items()),
+            encoding="utf-8",
+        )
+        proof = evidence / "proof.txt"
+        proof.write_text("accepted\n", encoding="utf-8")
+        rows = [
+            f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path}"
+            for path in (final_runtime, proof)
+        ]
+        (evidence / "SHA256SUMS").write_text("\n".join(rows) + "\n", encoding="utf-8")
+
+        pre_cutover = self.repo / "runtime" / "evidence" / "layered-device-agent-precutover"
+        pre_cutover.mkdir(parents=True, exist_ok=True)
+        parent = run("git", "rev-parse", f"{compatibility_source}^", cwd=self.repo).stdout.strip()
+        (pre_cutover / "source-lineage.txt").write_text(
+            "\n".join(
+                (
+                    "status=PASS",
+                    f"formal_deployed_product_sha={self.base}",
+                    f"candidate_compatibility_source_sha={compatibility_source}",
+                    f"candidate_parent_sha={parent}",
+                    "package_manifest_identity=PASS",
+                    "accepted_identity_mismatches=0",
+                    "release_ci=PASS",
+                )
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        (pre_cutover / "candidate-device-agent.txt").write_text(
+            "\n".join(
+                (
+                    "status=PASS",
+                    f"source_sha={compatibility_source}",
+                    f"image_id={current_image}",
+                    "platform=linux/arm64",
+                )
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        (pre_cutover / "rollback-authority.txt").write_text(
+            "\n".join(
+                (
+                    "status=READY",
+                    f"current_device_agent_image_id={previous_image}",
+                    "active_env_mutated=false",
+                    "dashboard_mutated=false",
+                    "device_agent_mutated=false",
+                    "telemetry_mutated=false",
+                    "postgres_mutated=false",
+                    "mqtt_mutated=false",
+                    "modbus_write=none",
+                    "hardware_write=none",
+                    "persistent_data_deletion=none",
+                    "named_volume_deletion=none",
+                )
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        pre_rows = [
+            f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path}"
+            for path in (
+                pre_cutover / "source-lineage.txt",
+                pre_cutover / "candidate-device-agent.txt",
+                pre_cutover / "rollback-authority.txt",
+            )
+        ]
+        (pre_cutover / "SHA256SUMS").write_text("\n".join(pre_rows) + "\n", encoding="utf-8")
+
+        project = self.repo / ".project"
+        project.mkdir(exist_ok=True)
+        (project / "ACTIVE_SPRINT.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 2,
+                    "baselines": {
+                        "deployed_product_sha": self.base,
+                        "device_agent_compatibility_source_sha": compatibility_source,
+                        "device_agent_compatibility_parent_sha": parent,
+                        "device_agent_image_id": current_image,
+                        "device_agent_rollback_image_id": previous_image,
+                        "device_agent_runtime_evidence": str(evidence.relative_to(self.repo)),
+                        "device_agent_pre_cutover_evidence": str(pre_cutover.relative_to(self.repo)),
+                    },
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return evidence
+
     def _commit(self, value: str) -> str:
         (self.repo / "fixture.txt").write_text(value + "\n", encoding="utf-8")
         self.assertEqual(run("git", "add", "fixture.txt", cwd=self.repo).returncode, 0)
@@ -289,6 +420,74 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         self.assertIn(f"target={self.target}", result.stdout)
         self.assertEqual(run("git", "branch", "--show-current", cwd=self.repo).stdout.strip(), "main")
         self.assertEqual(run("git", "rev-parse", "HEAD", cwd=self.repo).stdout.strip(), self.latest)
+
+    def test_source_selection_uses_checksum_bound_layered_device_agent_fork(self) -> None:
+        compatibility = self._create_layered_compatibility_fork()
+        evidence = self._set_layered_device_agent_baseline(compatibility_source=compatibility)
+        result = self._validate(self.latest, self.base)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("deployed_device_agent_image_id=sha256:" + "8" * 64, result.stdout)
+        self.assertIn(f"device_agent_layered_source={compatibility}", result.stdout)
+        self.assertIn(
+            f"device_agent_runtime_evidence={evidence.relative_to(self.repo)}",
+            result.stdout,
+        )
+
+    def test_layered_device_agent_fork_does_not_replace_main_target_lineage_guard(self) -> None:
+        compatibility = self._create_layered_compatibility_fork()
+        self._set_layered_device_agent_baseline(compatibility_source=compatibility)
+        result = self._validate(self.feature, self.base)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("requested source is not contained in current main history", result.stdout + result.stderr)
+
+    def test_source_selection_resolves_layered_state_after_fetching_fresh_main(self) -> None:
+        compatibility = self._create_layered_compatibility_fork()
+        self._set_layered_device_agent_baseline(compatibility_source=compatibility)
+        state = self.repo / ".project" / "ACTIVE_SPRINT.json"
+        self.assertEqual(run("git", "add", str(state.relative_to(self.repo)), cwd=self.repo).returncode, 0)
+        self.assertEqual(run("git", "commit", "-m", "record layered state", cwd=self.repo).returncode, 0)
+        layered_head = run("git", "rev-parse", "HEAD", cwd=self.repo).stdout.strip()
+        self.assertEqual(run("git", "push", "origin", "main", cwd=self.repo).returncode, 0)
+
+        state.write_text(
+            json.dumps({"schema_version": 2, "baselines": {"deployed_product_sha": self.base}}) + "\n",
+            encoding="utf-8",
+        )
+        self.assertEqual(run("git", "add", str(state.relative_to(self.repo)), cwd=self.repo).returncode, 0)
+        self.assertEqual(run("git", "commit", "-m", "revoke layered state", cwd=self.repo).returncode, 0)
+        refreshed_head = run("git", "rev-parse", "HEAD", cwd=self.repo).stdout.strip()
+        self.assertEqual(run("git", "push", "origin", "main", cwd=self.repo).returncode, 0)
+
+        self.assertEqual(run("git", "reset", "--hard", layered_head, cwd=self.repo).returncode, 0)
+        result = self._validate_current_main(self.base)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(f"target={refreshed_head}", result.stdout)
+        self.assertIn("deployed_device_agent_image_id=sha256:" + "6" * 64, result.stdout)
+        self.assertIn("device_agent_layered_source=not_applicable", result.stdout)
+        self.assertEqual(run("git", "rev-parse", "HEAD", cwd=self.repo).stdout.strip(), refreshed_head)
+
+    def test_current_main_accepts_restored_layered_device_agent_image_authority(self) -> None:
+        self._set_layered_device_agent_baseline(
+            compatibility_source=self.target,
+            current_image="sha256:" + "8" * 64,
+            previous_image="sha256:" + "6" * 64,
+        )
+        recovery = self._set_deployed_evidence(
+            None,
+            "20260829T020000Z",
+            passed=False,
+            mutated=True,
+            restored_source=self.base,
+            restored_device_agent_image_id="sha256:" + "8" * 64,
+            summary_extra="ERROR: post-mutation readiness failed",
+        )
+
+        result = self._validate_current_main(self.base)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("deployed_device_agent_image_id=sha256:" + "8" * 64, result.stdout)
+        self.assertIn(f"device_agent_layered_source={self.target}", result.stdout)
+        self.assertIn("device_agent_authority_role=restored_layered", result.stdout)
+        self.assertIn(str(recovery), result.stdout)
 
     def test_current_main_can_pin_exact_compatibility_runtime_authority(self) -> None:
         authority = self._set_compatibility_authority_evidence("20260829T010000Z")
@@ -463,6 +662,26 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         result = self._validate(self.target, self.base)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn(f"deployed={self.base}", result.stdout)
+        self.assertIn(str(recovered), result.stdout)
+
+    def test_verified_restore_of_layered_image_remains_retryable(self) -> None:
+        compatibility = self._create_layered_compatibility_fork()
+        self._set_layered_device_agent_baseline(compatibility_source=compatibility)
+        layered_image = "sha256:" + "8" * 64
+        recovered = self._set_deployed_evidence(
+            None,
+            "20260829T010000Z",
+            passed=False,
+            mutated=True,
+            restored_source=self.base,
+            restored_device_agent_image_id=layered_image,
+            summary_extra="ERROR: post-mutation readiness failed",
+        )
+        result = self._validate(self.latest, self.base)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(f"deployed={self.base}", result.stdout)
+        self.assertIn(f"deployed_device_agent_image_id={layered_image}", result.stdout)
+        self.assertIn("device_agent_authority_role=restored_layered", result.stdout)
         self.assertIn(str(recovered), result.stdout)
 
     def test_inconsistent_restore_evidence_fails_closed(self) -> None:

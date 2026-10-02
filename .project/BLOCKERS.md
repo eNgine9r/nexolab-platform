@@ -2,9 +2,13 @@
 
 Updated: 2026-10-02
 
-## Issue #1249 — approved storage migration awaiting actual-host acceptance
+## Issue #1263 — layered Device Agent authority required before application deployment retry
 
-#1251 / PR #1252, #1255 / PR #1256 and #1259 / PR #1260 are merged GREEN. The MinIO empty-ID/dummy-private ACL compatibility cases and VersityGW multi-line version probe are cleared without weakening public/custom ACL, privacy or image identity gates. #1249 now requires the already authorized ordinary Raspberry execution to perform and verify the MinIO → VersityGW migration plus controlled project update. Commander execution still cannot provide the required privileged surface. Do not create or relabel a destination volume to bypass the ownership guard.
+Object storage is already migrated and verified on VersityGW; the latest controlled application deployment stopped before Device Agent quiesce because it selected the older formal-deployment Device Agent image instead of the separately accepted SDM120 compatibility image recorded in canonical state and checksum-protected #1117 evidence. #1263 is the bounded fail-closed authority fix. Do not rerun the storage migration wrapper, do not automatically restore MinIO, and do not use the legacy resume script. Retry only after #1263 exact-head CI/review is GREEN and merged. The ordinary Raspberry terminal must first fast-forward local `main` to `origin/main`, verify HEAD equals `origin/main`, and only then start a new `deploy-current-head-raspberry-pi.sh` process; an already-running old script must not self-update via its internal pull.
+
+## Issue #1249 — storage cutover complete; application deployment blocked by #1263
+
+MinIO → VersityGW migration is actual-host verified: `cutover_verified=true`, one bucket, six objects and 3,733,362 bytes passed integrity/privacy checks and Telemetry resumed. The retained legacy volume/image are rollback evidence, not the active backend. #1249 is now blocked only on completing the controlled application deployment after #1263. Any retry must use the existing migration authority and canonical deployment path; creating/relabeling volumes, rerunning migration, or automatic storage rollback is prohibited.
 
 ## Issue #1247 — approved Raspberry update blocked by actual-host execution surface
 

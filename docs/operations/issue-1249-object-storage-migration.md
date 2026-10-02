@@ -92,6 +92,54 @@ legacy MinIO volume/image remain available. Temporary candidate containers and
 temporary credential env files are removed; protected evidence and rollback
 configuration remain under ignored `runtime/object-storage-migration`.
 
+## Post-cutover application deployment recovery
+
+Once `runtime/object-storage-migration/authority.json` has
+`status=verified` and `cutover_verified=true`, and Telemetry writes have been
+resumed against VersityGW, the storage migration is complete even if the later
+application deployment fails.
+
+At that boundary:
+
+- **do not rerun** `migrate-object-storage-raspberry-pi.sh`; the active storage
+  service is no longer the legacy MinIO source expected by that wrapper;
+- **do not automatically restore MinIO**; post-cutover uploads may exist only in
+  VersityGW and must not be orphaned from PostgreSQL metadata;
+- preserve both storage volumes/images and the protected migration authority;
+- do not use the legacy `resume-current-head-raspberry-pi.sh` as a shortcut
+  around current deployment guards;
+- after any source fix has merged GREEN, continue only through
+  `deploy-current-head-raspberry-pi.sh`. Its storage guard accepts the verified
+  migration source itself or a Git descendant only when the retained target
+  image/volume and live VersityGW service still match the published authority.
+
+The post-cutover application retry **must synchronize the checkout before starting
+the deployment script**. Do not start an older copy of the script and rely on its
+internal `git pull`: Bash has already loaded that older program into the running
+process. The canonical online retry entry point is therefore:
+
+```bash
+cd ~/nexolab-platform &&
+git switch main &&
+git fetch origin main &&
+git merge --ff-only origin/main &&
+test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" &&
+sudo -v &&
+bash scripts/deploy-current-head-raspberry-pi.sh \
+  --runtime-mode lan \
+  --expected-deployed-source df368cfa27efa945d59de33de8268898b564a19f
+```
+
+The `test` is a fail-closed launch gate: the deployment process must be started
+from the already synchronized current `main`, so merged recovery logic is loaded
+by the new Bash process itself.
+
+The current controlled deployment also supports a separately accepted layered
+Device Agent runtime only through canonical tracked Sprint baselines plus
+checksum-protected runtime evidence. That authority never comes from the live
+container alone and does not weaken image, source-lineage, edge-SQLite or
+hardware-write guards.
+
 ## Failure and rollback boundaries
 
 Before storage switching, failure restarts only the unchanged frozen Telemetry
@@ -150,3 +198,16 @@ and excludes concurrent migration/deployment before any activation. Supply
 repository's default runtime path. Bundle source must match migration authority
 or descend from it in the local repository's available Git history; missing
 lineage fails closed. A partial destination volume never authorizes installation.
+
+### Durable layered Device Agent authority
+
+A successful storage cutover may coexist with a separately accepted Device Agent
+compatibility runtime that predates the current one-commit
+compatibility-authority format. Controlled deployment resolves that layered
+baseline only after synchronizing tracked main state. It requires the formal
+deployed source from canonical deployment evidence, tracked compatibility
+lineage `df368cfa… → 2296e307… → 7db6c8c3…`, checksum-verified #1117 runtime
+evidence, exact current/rollback image IDs, Product Owner cutover authorization
+and no-write/no-delete safety invariants. It does not require the historical
+fork commit to remain reachable in the local Git object database. If any
+identity or checksum disagrees, deployment fails closed.
