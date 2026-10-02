@@ -305,6 +305,16 @@ docker() { return 1; }
         self.assertIn('TARGET_RETAINED', result.stdout)
         self.assertNotIn('UNSAFE_ROLLBACK', result.stdout)
 
+    def test_source_preflight_cannot_mix_new_checkout_with_old_target(self):
+        text = (ROOT / 'scripts/migrate-object-storage-raspberry-pi.sh').read_text()
+        start = text.index('# Preflight synchronizes main.')
+        end = text.index('STAMP=', start)
+        script = 'TARGET=old\ngit() { echo new; }\n' + text[start:end] + '\necho UNSAFE_CONTINUATION\n'
+        result = subprocess.run(['bash', '-c', script], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('HEAD changed', result.stderr)
+        self.assertNotIn('UNSAFE_CONTINUATION', result.stdout)
+
     def test_shell_scripts_parse_and_cli_guard_has_no_boto_dependency(self):
         for name in ("migrate-object-storage-raspberry-pi.sh", "deploy-current-head-raspberry-pi.sh"):
             result = subprocess.run(["bash", "-n", str(ROOT / "scripts" / name)], capture_output=True)

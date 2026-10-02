@@ -6348,14 +6348,15 @@
       "branch": "deploy/1249-object-storage-migration",
       "evidence": {
         "authorization": "explicit_Product_Owner_2026_10_02",
-        "local_safety_tests": "24_passed",
+        "local_safety_tests": "25_passed",
         "exact_head_ci": "pending",
         "installed_migration": "not_executed",
         "production_runtime_mutation": "none_candidate",
         "modbus_write": "none",
         "hardware_write": "none",
         "review_remediation": "required_authority_for_active_target_and_rollback_closed_before_writer_start",
-        "shared_lock": "migration_deployment_and_resume_serialized_with_verified_inherited_descriptor"
+        "shared_lock": "migration_deployment_and_resume_serialized_with_verified_inherited_descriptor",
+        "source_pin": "abort_before_migration_if_preflight_changed_checkout"
       }
     }
   ],

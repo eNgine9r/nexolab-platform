@@ -1003,7 +1003,7 @@
       "deployment_attempt": "runtime/deployments/20261002T070118Z",
       "attempt_result": "blocked_before_runtime_activation_missing_verified_destination",
       "retention_removed_evidence": "20260917T131852Z_3129837871_bytes",
-      "local_safety_tests": "24_passed",
+      "local_safety_tests": "25_passed",
       "exact_head_ci": "pending",
       "actual_host_storage_migration": "not_executed",
       "commander_execution": "EXECUTION_HANDLER_FAILED",
@@ -1020,7 +1020,8 @@
       "baseline_process_cleanup_environment_failures": "3_reproduced_on_unchanged_main_fatal_library_error_lookup_self",
       "review_remediation": "P1_active_target_bypass_and_P2_writer_start_rollback_window_fixed_with_regressions",
       "pull_request": 1250,
-      "shared_lock": "P1_concurrent_deployment_race_fixed_two_real_flock_regressions"
+      "shared_lock": "P1_concurrent_deployment_race_fixed_two_real_flock_regressions",
+      "source_pin": "P1_preflight_revision_mix_fixed_with_regression"
     }
   },
   "observations": [

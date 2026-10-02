@@ -22,6 +22,12 @@ export NEXOLAB_INHERITED_DEPLOYMENT_LOCK_FD=9
 # started deployment/recovery processes cannot enter the mutation window.
 bash scripts/deploy-current-head-raspberry-pi.sh --runtime-mode lan \
   --source-ref "$TARGET" --expected-deployed-source "$EXPECTED" --source-selection-check-only
+# Preflight synchronizes main. Do not verify a backend from a newer checkout
+# while recording authority for the older target captured above.
+[[ "$(git rev-parse HEAD)" == "$TARGET" ]] || {
+  echo 'HEAD changed during source preflight; rerun from synchronized accepted main. No migration started.' >&2
+  exit 1
+}
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 EVIDENCE="$REPO/runtime/object-storage-migration/$STAMP"
 mkdir -p "$EVIDENCE"

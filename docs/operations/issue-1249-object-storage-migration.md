@@ -48,7 +48,9 @@ canonical deployment. It does not deploy an unreviewed feature branch.
 1. Acquire the shared canonical deployment/recovery lock for the entire wrapper
    lifetime. Child deployment calls reuse only a verified matching inherited file
    descriptor; independent deployment and resume processes fail closed. Canonical
-   source-selection preflight pins deployed authority and target source.
+   source-selection preflight pins deployed authority and target source. If it
+   changes the checkout after the target was captured, abort before migration and
+   rerun from synchronized accepted main.
 2. Build the existing checksum-pinned VersityGW v1.8.0 image before stopping API.
 3. Create an isolated, migration-owned destination volume and candidate container.
    An existing destination without the migration ownership label is rejected.
