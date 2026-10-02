@@ -347,6 +347,7 @@ TARGET_HEAD=""
 EXPECTED_DEPLOYMENT_EVIDENCE=""
 VERIFIED_DEPLOYED_SOURCE=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID=""
+VERIFIED_DEPLOYED_DEVICE_AGENT_FORMAL_IMAGE_ID=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID=""
@@ -923,6 +924,7 @@ PY_EVIDENCE
   VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID="$evidence_image"
   [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] \
     || VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID=""
+  VERIFIED_DEPLOYED_DEVICE_AGENT_FORMAL_IMAGE_ID="$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID"
   VERIFIED_DEPLOYED_COMPATIBILITY_BASE="$compatibility_base"
   [[ "$VERIFIED_DEPLOYED_COMPATIBILITY_BASE" =~ ^[0-9a-f]{40}$ ]] \
     || VERIFIED_DEPLOYED_COMPATIBILITY_BASE=""
@@ -931,41 +933,6 @@ PY_EVIDENCE
     || VERIFIED_DEPLOYED_COMPATIBILITY_TARGET=""
   VERIFIED_DEPLOYED_SOURCE="$evidence_commit"
 
-  if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" && -f "$REPO/.project/ACTIVE_SPRINT.json" ]]; then
-    local layered_device_agent_authority
-    if ! layered_device_agent_authority="$(
-      python3 "$SCRIPT_DIR/resolve-layered-device-agent-runtime.py" \
-        --repo "$REPO" \
-        --expected-deployed-source "$VERIFIED_DEPLOYED_SOURCE" \
-        --expected-formal-image "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID"
-    )"; then
-      fail "canonical layered Device Agent runtime authority is invalid"
-    fi
-    local layered_configured="false" layered_key layered_value
-    while IFS='=' read -r layered_key layered_value; do
-      case "$layered_key" in
-        configured) layered_configured="$layered_value" ;;
-        compatibility_source) VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE="$layered_value" ;;
-        device_agent_image_id) VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID="$layered_value" ;;
-        device_agent_previous_image_id)
-          [[ "$layered_value" == "$evidence_image" ]] \
-            || fail "layered Device Agent previous image changed after authority resolution"
-          ;;
-        runtime_evidence) VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE="$layered_value" ;;
-        "") ;;
-        *) fail "layered Device Agent authority resolver returned an unknown field" ;;
-      esac
-    done <<< "$layered_device_agent_authority"
-    if [[ "$layered_configured" == "true" ]]; then
-      [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE" =~ ^[0-9a-f]{40}$ \
-        && "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ \
-        && -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE" ]] \
-        || fail "layered Device Agent authority resolver returned incomplete authority"
-      log "Resolved checksum-bound layered Device Agent runtime authority: source=$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE image=$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID evidence=$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE"
-    elif [[ "$layered_configured" != "false" ]]; then
-      fail "layered Device Agent authority resolver returned invalid configured state"
-    fi
-  fi
 
   local rebaseline_authority="$REPO/runtime/recovery-authority/device-agent/current.json"
   local recorded_device_agent_image_unavailable="0"
@@ -1034,6 +1001,47 @@ PY_REBASELINE_SOURCE
     else
       log "Ignoring superseded Device Agent rebaseline pointer: pointer_source=$rebaseline_pointer_source deployed_source=$VERIFIED_DEPLOYED_SOURCE"
     fi
+  fi
+}
+
+
+resolve_layered_device_agent_authority() {
+  VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE=""
+  VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE=""
+  [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_FORMAL_IMAGE_ID"     && -f "$REPO/.project/ACTIVE_SPRINT.json" ]] || return 0
+
+  local layered_device_agent_authority
+  if ! layered_device_agent_authority="$(
+    python3 "$SCRIPT_DIR/resolve-layered-device-agent-runtime.py"       --repo "$REPO"       --expected-deployed-source "$VERIFIED_DEPLOYED_SOURCE"       --expected-formal-image "$VERIFIED_DEPLOYED_DEVICE_AGENT_FORMAL_IMAGE_ID"
+  )"; then
+    fail "canonical layered Device Agent runtime authority is invalid"
+  fi
+
+  local layered_configured="false" layered_key layered_value layered_image=""
+  while IFS='=' read -r layered_key layered_value; do
+    case "$layered_key" in
+      configured) layered_configured="$layered_value" ;;
+      compatibility_source) VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE="$layered_value" ;;
+      device_agent_image_id) layered_image="$layered_value" ;;
+      device_agent_previous_image_id)
+        [[ "$layered_value" == "$VERIFIED_DEPLOYED_DEVICE_AGENT_FORMAL_IMAGE_ID" ]]           || fail "layered Device Agent previous image changed after authority resolution"
+        ;;
+      runtime_evidence) VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE="$layered_value" ;;
+      "") ;;
+      *) fail "layered Device Agent authority resolver returned an unknown field" ;;
+    esac
+  done <<< "$layered_device_agent_authority"
+
+  if [[ "$layered_configured" == "true" ]]; then
+    [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE" =~ ^[0-9a-f]{40}$       && "$layered_image" =~ ^sha256:[0-9a-f]{64}$       && -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE" ]]       || fail "layered Device Agent authority resolver returned incomplete authority"
+    VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID="$layered_image"
+    VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID=""
+    VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID=""
+    VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID=""
+    VERIFIED_DEPLOYED_DEVICE_AGENT_RECOVERY_TAG=""
+    log "Resolved checksum-bound layered Device Agent runtime authority: source=$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE image=$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID evidence=$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE"
+  elif [[ "$layered_configured" != "false" ]]; then
+    fail "layered Device Agent authority resolver returned invalid configured state"
   fi
 }
 
@@ -1145,6 +1153,7 @@ if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "1" ]]; then
     [[ "$(git rev-parse HEAD)" == "$CONTROL_HEAD" ]] || fail "local main is not synchronized to fresh origin/main for source-selection preflight"
   fi
   resolve_deployed_source_authority
+  resolve_layered_device_agent_authority
   validate_selected_source_against_control
   if [[ "$TARGET_HEAD" != "$CONTROL_HEAD" ]]; then
     git switch --detach "$TARGET_HEAD" >/dev/null
@@ -1206,6 +1215,7 @@ git switch main
 git pull --ff-only origin main
 CONTROL_HEAD="$(git rev-parse origin/main)"
 [[ "$(git rev-parse HEAD)" == "$CONTROL_HEAD" ]] || fail "local main is not at origin/main after fetch"
+resolve_layered_device_agent_authority
 validate_selected_source_against_control
 
 {
