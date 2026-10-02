@@ -4,7 +4,7 @@ Updated: 2026-10-02
 
 ## Issue #1263 — layered Device Agent authority required before application deployment retry
 
-Object storage is already migrated and verified on VersityGW; the latest controlled application deployment stopped before Device Agent quiesce because it selected the older formal-deployment Device Agent image instead of the separately accepted SDM120 compatibility image recorded in canonical state and checksum-protected #1117 evidence. #1263 is the bounded fail-closed authority fix. Do not rerun the storage migration wrapper, do not automatically restore MinIO, and do not use the legacy resume script. Retry only canonical `deploy-current-head-raspberry-pi.sh` after #1263 exact-head CI/review is GREEN and merged.
+Object storage is already migrated and verified on VersityGW; the latest controlled application deployment stopped before Device Agent quiesce because it selected the older formal-deployment Device Agent image instead of the separately accepted SDM120 compatibility image recorded in canonical state and checksum-protected #1117 evidence. #1263 is the bounded fail-closed authority fix. Do not rerun the storage migration wrapper, do not automatically restore MinIO, and do not use the legacy resume script. Retry only after #1263 exact-head CI/review is GREEN and merged. The ordinary Raspberry terminal must first fast-forward local `main` to `origin/main`, verify HEAD equals `origin/main`, and only then start a new `deploy-current-head-raspberry-pi.sh` process; an already-running old script must not self-update via its internal pull.
 
 ## Issue #1249 — storage cutover complete; application deployment blocked by #1263
 
