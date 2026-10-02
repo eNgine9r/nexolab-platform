@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-02T17:40:00Z",
+  "timestamp": "2026-10-02T17:55:00Z",
   "actor": "ChatGPT",
-  "event": "issue1263_post_mutation_layered_restore_retry_remediation_in_review",
+  "event": "issue1263_pre_synced_application_retry_entry_in_review",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -1145,7 +1145,7 @@
       "layered_device_agent_image": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
       "layered_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
       "implementation": "checksum_bound_layered_runtime_resolver_plus_controlled_deployment_integration",
-      "exact_head_ci": "pending_after_post_mutation_restore_remediation",
+      "exact_head_ci": "pending_after_launch_path_remediation",
       "production_runtime_mutation_by_pr": "none",
       "persistent_data_mutation_by_pr": "none",
       "modbus_write": "none",
@@ -1171,7 +1171,9 @@
       "formal_image_identity": "preserved_separately",
       "restored_layered_authority_role": "explicit",
       "restored_layered_retry_regression": "covered",
-      "unknown_restore_image": "fail_closed"
+      "unknown_restore_image": "fail_closed",
+      "stale_script_launch_review_p1": "addressed_pre_sync_main_then_new_bash_process",
+      "canonical_retry_entry": "git_switch_main_fetch_origin_main_ff_only_verify_head_then_deploy_current_head"
     }
   },
   "observations": [
@@ -1922,7 +1924,7 @@
       }
     }
   ],
-  "next_action": "Wait for #1263 exact-head CI/review after post-mutation layered restore retry remediation; merge only GREEN, reconcile state, then retry only canonical controlled application deployment. Do not rerun storage migration.",
+  "next_action": "Verify #1263 exact-head CI/review after launch-path remediation; merge only GREEN, reconcile state, then on Raspberry fast-forward main and verify HEAD==origin/main before starting a new canonical deploy-current-head process. Do not rerun storage migration.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
