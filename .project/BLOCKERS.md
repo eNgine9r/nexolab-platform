@@ -2,13 +2,9 @@
 
 Updated: 2026-10-02
 
-## Issue #1263 — layered Device Agent authority required before application deployment retry
+## Issue #1249 — storage cutover complete; application deployment ready for actual-host retry
 
-Object storage is already migrated and verified on VersityGW; the latest controlled application deployment stopped before Device Agent quiesce because it selected the older formal-deployment Device Agent image instead of the separately accepted SDM120 compatibility image recorded in canonical state and checksum-protected #1117 evidence. #1263 is the bounded fail-closed authority fix. Do not rerun the storage migration wrapper, do not automatically restore MinIO, and do not use the legacy resume script. Retry only after #1263 exact-head CI/review is GREEN and merged. The ordinary Raspberry terminal must first fast-forward local `main` to `origin/main`, verify HEAD equals `origin/main`, and only then start a new `deploy-current-head-raspberry-pi.sh` process; an already-running old script must not self-update via its internal pull.
-
-## Issue #1249 — storage cutover complete; application deployment blocked by #1263
-
-MinIO → VersityGW migration is actual-host verified: `cutover_verified=true`, one bucket, six objects and 3,733,362 bytes passed integrity/privacy checks and Telemetry resumed. The retained legacy volume/image are rollback evidence, not the active backend. #1249 is now blocked only on completing the controlled application deployment after #1263. Any retry must use the existing migration authority and canonical deployment path; creating/relabeling volumes, rerunning migration, or automatic storage rollback is prohibited.
+MinIO → VersityGW migration is actual-host verified: `cutover_verified=true`, one bucket, six objects and 3,733,362 bytes passed integrity/privacy checks and Telemetry resumed. #1263 / PR #1264 is merged GREEN, so the layered SDM120 Device Agent authority blocker is cleared. #1249 now requires only the already authorized ordinary Raspberry controlled application deployment. Before invoking the script, fast-forward local `main` to `origin/main` and verify `HEAD == origin/main`; then run `deploy-current-head-raspberry-pi.sh` with expected deployed source `df368cfa27efa945d59de33de8268898b564a19f`. Do not rerun the storage migration wrapper, relabel volumes, use the legacy resume script, or automatically restore MinIO.
 
 ## Issue #1247 — approved Raspberry update blocked by actual-host execution surface
 

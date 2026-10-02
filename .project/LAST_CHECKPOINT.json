@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-02T17:55:00Z",
+  "timestamp": "2026-10-02T18:05:00Z",
   "actor": "ChatGPT",
-  "event": "issue1263_pre_synced_application_retry_entry_in_review",
+  "event": "issue1263_merged_object_storage_cutover_preserved_resume_application1249",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -31,9 +31,9 @@
     "device_agent_compatibility_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb"
   },
   "active_work": {
-    "issue": 1263,
-    "title": "Layered Device Agent deployment authority fix",
-    "branch": "fix/1263-layered-device-agent-authority"
+    "issue": 1249,
+    "title": "Verified object storage migration prerequisite / controlled application deployment",
+    "branch": "deploy/1249-object-storage-migration"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -1174,6 +1174,29 @@
       "unknown_restore_image": "fail_closed",
       "stale_script_launch_review_p1": "addressed_pre_sync_main_then_new_bash_process",
       "canonical_retry_entry": "git_switch_main_fetch_origin_main_ff_only_verify_head_then_deploy_current_head"
+    },
+    "issue_1263_completed": {
+      "issue": 1263,
+      "pull_request": 1264,
+      "verified_head_sha": "9e55f6912e2dda9ff7277fb3ce4558de48e03b9d",
+      "exact_head_ci": "quality_build_and_telemetry_green_merge_gate_110961162557",
+      "review": "all_findings_addressed_zero_unresolved",
+      "merged_implementation_sha": "29dc976c87b16c17ca16ccfa8e3e70674c2e3dfc",
+      "issue_state": "closed_completed",
+      "layered_device_agent_image": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+      "formal_rollback_image": "sha256:25ba94b454ebe6dd0d22ed7501ea7368141a32507e09e181cc5b33056e1239db",
+      "pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
+      "runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+      "object_storage_authority": "runtime/object-storage-migration/authority.json",
+      "object_storage_cutover_verified": true,
+      "object_storage_objects": 6,
+      "object_storage_total_bytes": 3733362,
+      "migration_retry": "forbidden_completed_cutover",
+      "application_retry": "ready_after_state_reconciliation_merge",
+      "production_runtime_mutation": "none_by_issue_1263",
+      "persistent_data_mutation": "none_by_issue_1263",
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "observations": [
@@ -1924,7 +1947,7 @@
       }
     }
   ],
-  "next_action": "Verify #1263 exact-head CI/review after launch-path remediation; merge only GREEN, reconcile state, then on Raspberry fast-forward main and verify HEAD==origin/main before starting a new canonical deploy-current-head process. Do not rerun storage migration.",
+  "next_action": "After #1265 state-only reconciliation merges GREEN, fast-forward Raspberry main to origin/main and verify equality before starting a new canonical deploy-current-head-raspberry-pi.sh application deployment. Do not rerun object-storage migration.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
