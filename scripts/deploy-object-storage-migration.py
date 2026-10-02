@@ -66,7 +66,8 @@ def inventory(s3, *, source_rules=True):
                                     ("get_bucket_lifecycle_configuration", "NoSuchLifecycleConfiguration"),
                                     ("get_bucket_replication", "ReplicationConfigurationNotFoundError"),
                                     ("get_bucket_tagging", "NoSuchTagSet"),
-                                    ("get_bucket_encryption", "ServerSideEncryptionConfigurationNotFoundError")):
+                                    ("get_bucket_encryption", "ServerSideEncryptionConfigurationNotFoundError"),
+                                    ("get_object_lock_configuration", "ObjectLockConfigurationNotFoundError")):
                 try:
                     getattr(s3, method)(Bucket=bucket)
                 except Exception as error:

@@ -31,6 +31,7 @@ class S3:
         self.acl = {"Owner": {"ID": "owner"}, "Grants": [{"Grantee": {"Type": "CanonicalUser", "ID": "owner"}, "Permission": "FULL_CONTROL"}]}
         self.lifecycle = False
         self.head_extra = {}
+        self.bucket_lock = False
         self.corrupt = False
         self.fail_upload = False
         self.after_upload = lambda: None
@@ -59,6 +60,11 @@ class S3:
 
     def get_bucket_encryption(self, **kwargs):
         raise Missing("ServerSideEncryptionConfigurationNotFoundError")
+
+    def get_object_lock_configuration(self, **kwargs):
+        if self.bucket_lock:
+            return {"ObjectLockConfiguration": {"ObjectLockEnabled": "Enabled"}}
+        raise Missing("ObjectLockConfigurationNotFoundError")
 
     def get_object_tagging(self, **kwargs):
         return {"TagSet": self.tags}
@@ -124,6 +130,24 @@ class MigrationTests(unittest.TestCase):
         self.assertEqual(dst.buckets, before)
         self.assertEqual(src.buckets, before)
         self.assertEqual(len(result["objects"]), 2)
+
+    def test_bucket_lock_rejected_even_without_retained_objects(self):
+        for src in (source(), S3({"empty-locked": {}})):
+            src.bucket_lock = True
+            dst = S3()
+            with self.assertRaisesRegex(ValueError, "get_object_lock_configuration"):
+                migrate(src, dst)
+            self.assertEqual(dst.buckets, {})
+            self.assertEqual(dst.uploads, 0)
+
+    def test_unreadable_bucket_lock_configuration_fails_closed(self):
+        src, dst = source(), S3()
+        def denied(**kwargs):
+            raise Missing("AccessDenied")
+        src.get_object_lock_configuration = denied
+        with self.assertRaisesRegex(ValueError, "cannot establish absence"):
+            migrate(src, dst)
+        self.assertEqual(dst.buckets, {})
 
     def test_dry_run_never_creates_or_uploads_target(self):
         dst = S3()

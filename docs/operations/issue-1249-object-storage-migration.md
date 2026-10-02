@@ -17,7 +17,8 @@ Its retention step did remove the historical `20260917T131852Z` deployment archi
   acquisition remains enabled and buffers incoming telemetry locally.
 - The source must be private and unversioned, with owner-only ACLs, no bucket
   policies, lifecycle/replication/default-encryption/tagging configuration or object
-  tags, encryption, lock or redirect semantics. Unsupported history/security semantics fail closed
+  tags, encryption, lock or redirect semantics. Bucket-level Object Lock is
+  queried even for empty buckets; enabled or unreadable configurations fail closed. Unsupported history/security semantics fail closed
   before activation; they require a separate migration implementation.
 - Default installed identities must match: Compose project/network
   `nexolab-central`, source service `minio`, source volume
