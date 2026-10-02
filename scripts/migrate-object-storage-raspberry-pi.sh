@@ -43,8 +43,27 @@ docker image tag "$SOURCE_IMAGE" "nexolab/minio-rollback:1249-$STAMP"
   echo 'Legacy storage identity differs; no migration performed' >&2; exit 1;
 }
 docker run --rm --network none --entrypoint python "$WRITER_IMAGE" -c 'import boto3'
-docker build --tag nexolab/object-storage:versitygw-v1.8.0 infrastructure/object-storage
-TARGET_IMAGE="$(docker image inspect --format '{{.Id}}' nexolab/object-storage:versitygw-v1.8.0)"
+# Reuse a verified preloaded offline image without requiring BuildKit fetch cache.
+nexolab_prepare_migration_image() {
+  local image=nexolab/object-storage:versitygw-v1.8.0
+  if ! docker image inspect "$image" >/dev/null 2>&1; then
+    docker build --tag "$image" infrastructure/object-storage || return
+  fi
+  [[ "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image")" == linux/arm64 ]] || {
+    echo 'Migration image must be Linux arm64' >&2; return 1;
+  }
+  [[ "$(docker image inspect --format '{{json .Config.Entrypoint}}' "$image")" == '["/usr/local/bin/versitygw"]' ]] || {
+    echo 'Migration image entrypoint differs' >&2; return 1;
+  }
+  docker run --rm --network none --read-only --cap-drop ALL \
+    --security-opt no-new-privileges "$image" --version | \
+    grep -Eq '(^|[[:space:]])v?1\.8\.0([[:space:]]|$)' || {
+    echo 'Migration image must report VersityGW 1.8.0' >&2; return 1;
+  }
+  TARGET_IMAGE="$(docker image inspect --format '{{.Id}}' "$image")"
+}
+nexolab_prepare_migration_image
+
 VOLUME=nexolab-central-object-storage-versitygw-data
 if docker volume inspect "$VOLUME" >/dev/null 2>&1; then
   [[ "$(docker volume inspect --format '{{index .Labels "nexolab.migration"}}' "$VOLUME")" == pending-1249 ]] || {

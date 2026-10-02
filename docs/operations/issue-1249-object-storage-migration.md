@@ -51,7 +51,11 @@ canonical deployment. It does not deploy an unreviewed feature branch.
    source-selection preflight pins deployed authority and target source. If it
    changes the checkout after the target was captured, abort before migration and
    rerun from synchronized accepted main.
-2. Build the existing checksum-pinned VersityGW v1.8.0 image before stopping API.
+2. Reuse a preloaded VersityGW v1.8.0 image after checking Linux/arm64,
+   the expected entrypoint and a network-isolated version probe. Offline bundle
+   transport/integrity checks remain required. Build the checksum-pinned image
+   only when it is absent, before stopping API; missing offline prerequisites
+   fail before migration. This does not remove canonical deployment prerequisites.
 3. Create an isolated, migration-owned destination volume and candidate container.
    An existing destination without the migration ownership label is rejected.
 4. Write only required credentials to mode-0600 temporary environment files.

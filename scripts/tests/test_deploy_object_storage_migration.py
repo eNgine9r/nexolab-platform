@@ -323,6 +323,38 @@ docker() { return 1; }
         self.assertIn('HEAD changed', result.stderr)
         self.assertNotIn('UNSAFE_CONTINUATION', result.stdout)
 
+    def image_preparation(self, present, version="versitygw version v1.8.0"):
+        text = (ROOT / 'scripts/migrate-object-storage-raspberry-pi.sh').read_text()
+        start = text.index('nexolab_prepare_migration_image()')
+        end = text.index('VOLUME=', start)
+        script = '''set -e
+docker() {
+  if [[ "$1 $2" == "image inspect" ]]; then
+    if [[ "$*" == *".Os"* ]]; then echo linux/arm64;
+    elif [[ "$*" == *"Entrypoint"* ]]; then echo '["/usr/local/bin/versitygw"]';
+    elif [[ "$*" == *".Id"* ]]; then echo sha256:accepted;
+    else return ''' + ("0" if present else "1") + ''';
+    fi
+  elif [[ "$1" == build ]]; then echo BUILD_REQUIRED;
+  elif [[ "$1" == run ]]; then echo "''' + version + '''";
+  fi
+}
+''' + text[start:end]
+        return subprocess.run(['bash', '-c', script], capture_output=True, text=True)
+
+    def test_preloaded_offline_image_skips_build_and_checks_version(self):
+        result = self.image_preparation(True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('BUILD_REQUIRED', result.stdout)
+        bad = self.image_preparation(True, "versitygw version v1.7.0")
+        self.assertNotEqual(bad.returncode, 0)
+        self.assertIn('must report', bad.stderr)
+
+    def test_missing_image_uses_pinned_build(self):
+        result = self.image_preparation(False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('BUILD_REQUIRED', result.stdout)
+
     def test_shell_scripts_parse_and_cli_guard_has_no_boto_dependency(self):
         for name in ("migrate-object-storage-raspberry-pi.sh", "deploy-current-head-raspberry-pi.sh"):
             result = subprocess.run(["bash", "-n", str(ROOT / "scripts" / name)], capture_output=True)

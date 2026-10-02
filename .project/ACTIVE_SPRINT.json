@@ -6348,7 +6348,7 @@
       "branch": "deploy/1249-object-storage-migration",
       "evidence": {
         "authorization": "explicit_Product_Owner_2026_10_02",
-        "local_safety_tests": "26_passed",
+        "local_safety_tests": "28_passed",
         "exact_head_ci": "pending",
         "installed_migration": "not_executed",
         "production_runtime_mutation": "none_candidate",
