@@ -6480,18 +6480,16 @@
         "authority_binding": "tracked_active_sprint_plus_checksum_verified_runtime_evidence",
         "migration_retry": "forbidden_after_verified_cutover",
         "legacy_resume_script": "not_approved_for_this_recovery",
-        "exact_head_ci": "pending_after_durable_lineage_remediation",
+        "exact_head_ci": "pending_after_p2_offline_lineage_remediation",
         "production_runtime_mutation_by_pr": "none",
         "persistent_data_mutation_by_pr": "none",
         "modbus_write": "none",
         "hardware_write": "none",
-        "durable_compatibility_lineage": "df368cfa27efa945d59de33de8268898b564a19f->2296e3070cbebff687418cf1ac161984086bebdb->7db6c8c34c7c94874afe2a3301a2209585795744",
-        "compatibility_source_parent": "2296e3070cbebff687418cf1ac161984086bebdb",
-        "compatibility_base_parent": "df368cfa27efa945d59de33de8268898b564a19f",
+        "durable_compatibility_lineage": "checksum_bound_issue_1117_pre_cutover_source_lineage_candidate_and_rollback_evidence",
         "local_git_object_dependency": "removed",
         "stale_state_after_fetch_review_p1": "addressed",
-        "unreferenced_fork_review_p2": "addressed_with_tracked_offline_lineage",
-        "layered_lineage_authority": "checksum_bound_pre_cutover_source_lineage_candidate_and_rollback_evidence",
+        "unreferenced_fork_review_p2": "addressed_with_checksum_bound_offline_pre_cutover_evidence",
+        "layered_lineage_authority": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
         "compatibility_git_object_dependency": "none"
       }
     }
