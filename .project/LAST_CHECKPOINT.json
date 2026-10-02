@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-02T11:30:00Z",
+  "timestamp": "2026-10-02T11:34:00Z",
   "actor": "ChatGPT",
-  "event": "minio_acl_compatibility_fix1251_candidate_prepared",
+  "event": "minio_acl_compatibility_fix1251_source_complete",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1251,
-    "title": "MinIO empty canonical ACL compatibility fix",
-    "branch": "fix/1251-minio-empty-canonical-acl"
+    "issue": 1249,
+    "title": "Verified object storage migration prerequisite",
+    "branch": "deploy/1249-object-storage-migration"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -1037,7 +1037,12 @@
       "production_runtime_mutation": "none",
       "persistent_data_mutation": "none",
       "modbus_write": "none",
-      "hardware_write": "none"
+      "hardware_write": "none",
+      "pull_request": 1252,
+      "lifecycle": "completed_source_scope",
+      "focused_migration_safety": "passed_on_candidate_head",
+      "final_quality_matrix": "required_green_on_final_head_before_merge",
+      "next_action": "merge_pr1252_then_retry_issue1249_actual_host"
     }
   },
   "observations": [
@@ -1788,7 +1793,7 @@
       }
     }
   ],
-  "next_action": "Verify #1251 exact-head CI/review; merge only GREEN; then fast-forward Raspberry main and rerun the already authorized #1249 migration wrapper.",
+  "next_action": "Merge PR #1252 only after final exact-head GREEN, then fast-forward Raspberry main and rerun the already authorized #1249 migration wrapper; verify storage, API, telemetry, dashboard and deployed source.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
