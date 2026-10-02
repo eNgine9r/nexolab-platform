@@ -1,10 +1,10 @@
 # NEXOLAB Blockers
 
-Updated: 2026-10-01
+Updated: 2026-10-02
 
-## UX source acceptance — #1243 verification pending
+## UX source acceptance — #1245 verification pending
 
-#1241 / PR #1242 merged after all three exact-head workflows GREEN, 1111 frontend tests and actual Nodes/restored-browser flows; the viewport-feedback review is fixed/resolved. UX-31 is closed in code. #1243 physical quantity/unit selection and unique key suggestion require all routed exact-head quality/browser/review GREEN before merge. Local exec-server remains unavailable; GitData and actual CI/browser verification remain the working route. No local checks are claimed. Installed #1191, approved laboratory templates and real-phone photo QA remain separate evidence boundaries.
+#1243 / PR #1244 completed after both workflows GREEN, 1130 frontend tests, six browser cases and the organization-wide uniqueness review resolved. #1245 requires hierarchy/search/group selection, focus/mobile and scoped read-only browser evidence before merge. Local execution is available again. Installed #1191, approved laboratory templates and real-phone photo QA remain separate evidence needs.
 
 ## UX-22/24 — approved laboratory template evidence unavailable
 

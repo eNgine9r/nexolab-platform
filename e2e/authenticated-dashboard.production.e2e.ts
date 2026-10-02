@@ -580,6 +580,108 @@ test("Overview visibility dialog contains keyboard focus and restores its opener
   }
 });
 
+test("Overview groups real catalog sensors and preserves display-only choices", async ({ browser }) => {
+  const context = await authenticatedContext(browser);
+  const page = await context.newPage();
+  const mutations = observeAcquisitionMutations(page);
+  const catalogRequests: Array<{ method: string; organization: string | undefined; authenticated: boolean }> =
+    [];
+  page.on("request", (request) => {
+    if (!new URL(request.url()).pathname.startsWith("/api/v1/climate-chambers")) return;
+    const headers = request.headers();
+    catalogRequests.push({
+      method: request.method(),
+      organization: headers["x-organization-id"],
+      authenticated: Boolean(headers.authorization?.startsWith("Bearer ")),
+    });
+  });
+  // The controlled Device Agent fixture uses edge-live-01, whereas the real seeded
+  // climate catalog uses edge-01. Only this read response supplies the matching test identity.
+  await page.route("**/api/device-agent/xjp60d", async (route) => {
+    expect(route.request().method()).toBe("GET");
+    const response = await route.fetch();
+    expect(response.status()).toBe(200);
+    await route.fulfill({
+      response,
+      json: { ...(await response.json()), node_id: "edge-01", active_points: ["106-03", "106-04"] },
+    });
+  });
+  try {
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const opener = page.getByRole("button", { name: "Налаштувати датчики на графіку Огляду" });
+    const dialog = page.getByRole("dialog", { name: "Датчики на графіку Огляду" });
+    for (const width of [320, 390, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(opener).toBeEnabled();
+      await opener.click();
+      const device = dialog.getByRole("checkbox", { name: /Показувати всі датчики приладу:.*106/ });
+      await expect(
+        dialog.getByRole("checkbox", { name: "Показувати всі датчики камери: Кліматична камера №2" }),
+      ).toBeVisible();
+      await expect(device).toBeChecked();
+      await dialog.getByRole("checkbox", { name: "Показувати 106-03 на Огляді", exact: true }).uncheck();
+      await expect(device).toHaveAttribute("aria-checked", "mixed");
+      await dialog.getByRole("searchbox").fill("106-03");
+      await expect(
+        dialog.getByRole("checkbox", { name: "Показувати 106-04 на Огляді", exact: true }),
+      ).toHaveCount(0);
+      await device.focus();
+      await page.keyboard.press("Space");
+      await expect(device).toBeChecked();
+      await page.keyboard.press("Space");
+      await expect(device).not.toBeChecked();
+      await page.keyboard.press("Escape");
+      await expect(opener).toBeFocused();
+      await opener.click();
+      const first = dialog.getByRole("checkbox", { name: "Показувати 106-03 на Огляді", exact: true });
+      const second = dialog.getByRole("checkbox", { name: "Показувати 106-04 на Огляді", exact: true });
+      await expect(first).toBeChecked();
+      await expect(second).toBeChecked();
+      await first.uncheck();
+      await dialog.getByRole("button", { name: "Застосувати відображення" }).click();
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expect(opener).toBeEnabled();
+      await opener.click();
+      await expect(first).not.toBeChecked();
+      await expect(second).toBeChecked();
+      await expect(device).toHaveAttribute("aria-checked", "mixed");
+      expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+        ),
+      ).toBe(true);
+      await dialog.getByRole("button", { name: "Показати всі" }).click();
+      await dialog.getByRole("button", { name: "Застосувати відображення" }).click();
+    }
+    await page.route("**/api/v1/climate-chambers", (route) =>
+      route.fulfill({
+        status: 503,
+        json: { detail: { message: "catalog unavailable", code: "unavailable" } },
+      }),
+    );
+    await opener.click();
+    await expect(dialog.getByRole("status")).toContainText("Каталог камер недоступний");
+    await expect(
+      dialog.getByRole("checkbox", { name: "Показувати 106-03 на Огляді", exact: true }),
+    ).toBeChecked();
+    await expect(
+      dialog.getByRole("checkbox", { name: "Показувати 106-04 на Огляді", exact: true }),
+    ).toBeChecked();
+    await page.keyboard.press("Escape");
+    expect(catalogRequests.length).toBeGreaterThan(0);
+    expect(
+      catalogRequests.every(
+        (request) =>
+          request.method === "GET" && request.organization === organizationId && request.authenticated,
+      ),
+    ).toBe(true);
+    expect(mutations).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
 test("grouped navigation preserves every destination and labels planned Lockers", async ({ browser }) => {
   const context = await authenticatedContext(browser);
   const page = await context.newPage();

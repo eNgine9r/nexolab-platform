@@ -114,7 +114,7 @@ it("opens a native modal and cancels without applying the pending selection", ()
   const dialog = screen.getByRole("dialog");
   expect(dialog.tagName).toBe("DIALOG");
   expect(showModal).toHaveBeenCalledOnce();
-  fireEvent.click(screen.getByRole("checkbox"));
+  fireEvent.click(screen.getByRole("checkbox", { name: "Показувати 106-01 на Огляді" }));
   const event = new Event("cancel", { cancelable: true });
   fireEvent(dialog, event);
   expect(event.defaultPrevented).toBe(true);
@@ -134,12 +134,12 @@ it("reopens with the current applied visibility after discarding an uncommitted 
     onClose: vi.fn(),
   };
   const { rerender } = render(<TemperatureVisibilityDialog {...props} open />);
-  fireEvent.click(screen.getByRole("checkbox"));
-  expect(screen.getByRole("checkbox")).not.toBeChecked();
+  fireEvent.click(screen.getByRole("checkbox", { name: "Показувати 106-01 на Огляді" }));
+  expect(screen.getByRole("checkbox", { name: "Показувати 106-01 на Огляді" })).not.toBeChecked();
   rerender(<TemperatureVisibilityDialog {...props} open={false} />);
   expect(close).toHaveBeenCalledOnce();
   rerender(<TemperatureVisibilityDialog {...props} open />);
-  expect(screen.getByRole("checkbox")).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "Показувати 106-01 на Огляді" })).toBeChecked();
   expect(showModal).toHaveBeenCalledTimes(2);
 });
 

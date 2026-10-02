@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-01T23:25:02.974Z",
+  "timestamp": "2026-10-02T06:37:17.620781+00:00",
   "actor": "Codex",
-  "event": "ux1241_merged_ux1243_signal_quantity_candidate",
+  "event": "ux1245_publication_and_post_completion_raspberry_update_authorized",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1243,
-    "title": "UX-30 physical quantity and compatible unit selector",
-    "branch": "fix/1243-signal-quantity-selector"
+    "issue": 1245,
+    "title": "UX-10 Overview camera device sensor hierarchy",
+    "branch": "fix/1245-overview-sensor-hierarchy"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -942,12 +942,37 @@
       "installed_acceptance": "access_gated_1191"
     },
     "issue_1243_signal_quantity": {
-      "qualification": "actual_free_text_SignalFields_and_canonical_metadata_contracts_verified",
-      "known_pairs": "temperature_degC_pressure_bar_kPa_relative_humidity_percent_RH",
-      "implementation": "quantity_unit_choices_unique_untouched_create_key_organization_wide_complete_inventory_custom_value_and_metadata_preservation",
-      "local_execution": "not_run_environment_offline",
+      "verified_head_sha": "3a44aae271cbc7ccbfb00839a49f4adab6b52a86",
+      "pull_request": 1244,
+      "exact_head_ci": "2_of_2_green",
+      "core_ci": "success:36942204857",
+      "frontend_tests": "1130_passed_183_files",
+      "production_build": "Next_16_3_6_passed",
+      "refrigeration_browser": "success:36942204870_6_passed_390_1280_organization_key_collision",
+      "review": "1_fixed_resolved_0_unresolved",
+      "source_acceptance": "completed",
+      "installed_acceptance": "access_gated_1191"
+    },
+    "issue_1245_overview_hierarchy": {
+      "qualification": "actual_transport_node_source_channel_and_device_identity",
+      "implementation": "authenticated_read_only_catalog_search_mixed_group_selection_unknown_identity_fallback",
+      "local_checks": "19_focused_tests_lint_typecheck_passed_build_pending",
       "exact_head_ci": "pending",
       "browser_acceptance": "pending"
+    },
+    "ux1245_local": {
+      "focused_tests": 19,
+      "typecheck": "passed",
+      "touched_lint_format": "passed",
+      "production_build": "passed_23_static_pages",
+      "build_environment": "local_dependency_symlink_replaced_with_copy_after_Turbopack_root_rejection",
+      "browser_acceptance": "pending_CI",
+      "production_cutover": "none",
+      "product_commit": "b90068ee",
+      "github_publication": "explicit_user_approval_2026_10_02",
+      "full_frontend_suite": "1141_passed_185_files",
+      "lint_staged_regressions": "5_contracts_passed",
+      "raspberry_update_authorization": "explicit_user_request_in_chat_2026_10_02_after_completion_repository_safety_flag_remains_policy_default"
     }
   },
   "observations": [
@@ -1676,9 +1701,29 @@
         "merge_sha": "35734c2e76489087337ea99965aaf59d6914c885",
         "next_issue": 1243
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-02T05:32:53.440Z",
+      "kind": "issue_1243_pr_1244_merged_1245_activated",
+      "data": {
+        "verified_head_sha": "3a44aae271cbc7ccbfb00839a49f4adab6b52a86",
+        "pull_request": 1244,
+        "exact_head_ci": "2_of_2_green",
+        "core_ci": "success:36942204857",
+        "frontend_tests": "1130_passed_183_files",
+        "production_build": "Next_16_3_6_passed",
+        "refrigeration_browser": "success:36942204870_6_passed_390_1280_organization_key_collision",
+        "review": "1_fixed_resolved_0_unresolved",
+        "source_acceptance": "completed",
+        "installed_acceptance": "access_gated_1191",
+        "issue": 1243,
+        "merge_sha": "c553dc065faa7679e3d63ac868d4a1a829907d7d",
+        "next_issue": 1245
+      }
     }
   ],
-  "next_action": "Verify #1243 quantity/unit/key selection and exact metadata preservation with all routed exact-head CI, real 390/1280 px registry-to-RFX10 browser evidence and review GREEN; then merge and continue the next independent Ready UX package. Approved laboratory templates, real-phone and installed operator acceptance remain separate evidence boundaries; no hardware/deployment action.",
+  "next_action": "Publish #1245, verify exact-head CI/browser/review and merge only GREEN; then prepare and execute approved controlled Raspberry project update with preflight, backup and rollback evidence. Modbus/hardware writes remain forbidden.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
