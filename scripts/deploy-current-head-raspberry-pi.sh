@@ -1019,15 +1019,14 @@ resolve_layered_device_agent_authority() {
     fail "canonical layered Device Agent runtime authority is invalid"
   fi
 
-  local layered_configured="false" layered_key layered_value layered_image=""
+  local layered_configured="false" layered_key layered_value layered_image="" layered_previous_image="" layered_formal_image=""
   while IFS='=' read -r layered_key layered_value; do
     case "$layered_key" in
       configured) layered_configured="$layered_value" ;;
       compatibility_source) VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE="$layered_value" ;;
       device_agent_image_id) layered_image="$layered_value" ;;
-      device_agent_previous_image_id)
-        [[ "$layered_value" == "$VERIFIED_DEPLOYED_DEVICE_AGENT_FORMAL_IMAGE_ID" ]]           || fail "layered Device Agent previous image changed after authority resolution"
-        ;;
+      device_agent_previous_image_id) layered_previous_image="$layered_value" ;;
+      formal_device_agent_image_id) layered_formal_image="$layered_value" ;;
       runtime_evidence) VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE="$layered_value" ;;
       pre_cutover_evidence) VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE="$layered_value" ;;
       "") ;;
@@ -1036,7 +1035,8 @@ resolve_layered_device_agent_authority() {
   done <<< "$layered_device_agent_authority"
 
   if [[ "$layered_configured" == "true" ]]; then
-    [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE" =~ ^[0-9a-f]{40}$       && "$layered_image" =~ ^sha256:[0-9a-f]{64}$       && -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE"       && -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE" ]]       || fail "layered Device Agent authority resolver returned incomplete authority"
+    [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE" =~ ^[0-9a-f]{40}$       && "$layered_image" =~ ^sha256:[0-9a-f]{64}$       && "$layered_previous_image" =~ ^sha256:[0-9a-f]{64}$       && "$layered_formal_image" =~ ^sha256:[0-9a-f]{64}$       && "$layered_previous_image" == "$layered_formal_image"       && -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE"       && -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE" ]]       || fail "layered Device Agent authority resolver returned incomplete authority"
+    VERIFIED_DEPLOYED_DEVICE_AGENT_FORMAL_IMAGE_ID="$layered_formal_image"
     VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID="$layered_image"
     VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID=""
     VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID=""
