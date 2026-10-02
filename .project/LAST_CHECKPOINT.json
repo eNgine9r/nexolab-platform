@@ -1003,7 +1003,7 @@
       "deployment_attempt": "runtime/deployments/20261002T070118Z",
       "attempt_result": "blocked_before_runtime_activation_missing_verified_destination",
       "retention_removed_evidence": "20260917T131852Z_3129837871_bytes",
-      "local_safety_tests": "25_passed",
+      "local_safety_tests": "26_passed",
       "exact_head_ci": "pending",
       "actual_host_storage_migration": "not_executed",
       "commander_execution": "EXECUTION_HANDLER_FAILED",

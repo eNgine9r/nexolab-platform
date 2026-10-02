@@ -196,10 +196,12 @@ def atomic_json(path, document):
     os.replace(temporary, path)
 
 
-def validate_proof(proof, target_source, inspect, is_ancestor=lambda _old, _new: False):
+def validate_proof(proof, target_source, inspect, is_ancestor=lambda _old, _new: False, require_cutover=False):
     """Check the exact frozen source and candidate identities before deployment."""
     if proof.get("schema_version") != 1 or proof.get("kind") != "nexolab-object-storage-migration" or proof.get("status") != "verified":
         raise MigrationError("verified migration authority is required")
+    if require_cutover and proof.get("cutover_verified") is not True:
+        raise MigrationError("completed cutover authority is required for deployment")
     approved_source = proof.get("target_source", "")
     if not re.fullmatch(r"[0-9a-f]{40}", target_source) or not re.fullmatch(r"[0-9a-f]{40}", approved_source):
         raise MigrationError("migration source revision differs from deployment target")
@@ -268,13 +270,15 @@ def main():
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--validate-proof", action="store_true")
     parser.add_argument("--verify-target", action="store_true")
+    parser.add_argument("--require-cutover", action="store_true")
     parser.add_argument("--expected-target-source")
     args = parser.parse_args()
     if args.validate_proof:
         if args.manifest.is_symlink() or not args.manifest.is_file():
             raise MigrationError("regular migration authority file is required")
         validate_proof(json.loads(args.manifest.read_text()), args.expected_target_source or "", docker_inspect,
-            is_ancestor=lambda old, new: subprocess.run(["git", "merge-base", "--is-ancestor", old, new], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0)
+            is_ancestor=lambda old, new: subprocess.run(["git", "merge-base", "--is-ancestor", old, new], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0,
+            require_cutover=args.require_cutover)
         print("OBJECT_STORAGE_MIGRATION_AUTHORITY_VALIDATED")
         return
     if args.verify_target:

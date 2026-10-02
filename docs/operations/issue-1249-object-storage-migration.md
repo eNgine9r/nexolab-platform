@@ -73,7 +73,9 @@ canonical deployment. It does not deploy an unreviewed feature branch.
    object/bucket access and signed object GET integrity.
 9. Resume the unchanged Telemetry writer. Run the canonical controlled deployment
    against the pinned source; it owns PostgreSQL/edge snapshots, frontend candidate
-   qualification, service activation and post-activation readiness.
+   qualification, service activation and post-activation readiness. Canonical
+   deployment requires completed cutover authority; frozen pre-cutover proof is
+   accepted only by the migration wrapper and cannot authorize deployment.
 
 The migration wrapper never removes a persistent volume or source object. The
 legacy MinIO volume/image remain available. Temporary candidate containers and

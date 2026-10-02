@@ -239,6 +239,12 @@ class AuthorityTests(unittest.TestCase):
     def test_frozen_exact_images_volume_and_source_accept(self):
         self.validate()
 
+    def test_canonical_deployment_rejects_frozen_pre_cutover_authority(self):
+        self.validate()  # Private wrapper pre-cutover validation still works.
+        with self.assertRaisesRegex(ValueError, "completed cutover"):
+            M.validate_proof(self.proof, self.sha, lambda kind, name: self.records[(kind, name)],
+                             require_cutover=True)
+
     def test_running_writer_rejects_stale_manifest(self):
         self.records[("container", "writer")]["State"]["Running"] = True
         with self.assertRaisesRegex(ValueError, "remain frozen"):
@@ -268,6 +274,7 @@ class AuthorityTests(unittest.TestCase):
         self.records[("volume", "nexolab-central-object-storage-data")] = {"Name": "nexolab-central-object-storage-data"}
         self.records[("container", "writer")]["State"]["Running"] = True
         self.validate()
+        M.validate_proof(self.proof, self.sha, lambda k, n: self.records[(k, n)], require_cutover=True)
         M.validate_proof(self.proof, "b" * 40, lambda k, n: self.records[(k, n)], is_ancestor=lambda old, new: old == self.sha and new == "b" * 40)
         with self.assertRaisesRegex(ValueError, "lineage"):
             M.validate_proof(self.proof, "b" * 40, lambda k, n: self.records[(k, n)])
@@ -277,6 +284,7 @@ class AuthorityTests(unittest.TestCase):
 
     def test_already_mounted_target_cannot_bypass_canonical_guard(self):
         text = (ROOT / 'scripts/deploy-current-head-raspberry-pi.sh').read_text()
+        self.assertIn('--validate-proof --require-cutover', text)
         start = text.index('LEGACY_OBJECT_STORAGE_VOLUME=')
         end = text.index('log "Rechecking deployment capacity', start)
         script = '''SCRIPT_DIR=/unused

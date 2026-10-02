@@ -1190,7 +1190,7 @@ git ls-files --others --exclude-standard > "$AUDIT_DIR/untracked-files.txt"
 LEGACY_OBJECT_STORAGE_VOLUME="nexolab-central-object-storage-data"
 VERSITY_OBJECT_STORAGE_VOLUME="nexolab-central-object-storage-versitygw-data"
 if docker volume inspect "$LEGACY_OBJECT_STORAGE_VOLUME" >/dev/null 2>&1; then
-  if ! python3 "$SCRIPT_DIR/deploy-object-storage-migration.py" --validate-proof \
+  if ! python3 "$SCRIPT_DIR/deploy-object-storage-migration.py" --validate-proof --require-cutover \
     --manifest "$REPO/runtime/object-storage-migration/authority.json" --expected-target-source "$TARGET_HEAD"; then
     fail "legacy MinIO object-storage volume exists but the VersityGW volume is not migration-proven; use the separately approved object-storage migration/cutover procedure"
   fi
