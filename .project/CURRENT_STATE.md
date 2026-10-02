@@ -2,11 +2,11 @@
 
 Updated: 2026-10-02
 
-## Issue #1255 — VersityGW version probe SIGPIPE fix in review
+## Issue #1255 — VersityGW version probe fix completed
 
-The authorized #1249 actual-host retry on 2026-10-02 synchronized Raspberry main to `3928a0bb88a05458cba5c0c4957e19643247a4d0`, passed source selection, then failed closed before target volume creation, Telemetry writer freeze, object copy or storage cutover. The observed output was `write /dev/stdout: broken pipe` followed by `Migration image must report VersityGW 1.8.0`.
+PR #1256 final head `f562a69f495959881f5f32bfdb7da8d4e89411a9` passed migration-safety, formatting, lint, typecheck, full tests, production build and NEXOLAB Merge Gate. The stale P1 review on the malformed earlier commit was remediated and resolved; zero unresolved review threads remained. Squash merge `8c1c4825852adaa5d53a78a7107eada29be0fd16` closed #1255.
 
-Upstream VersityGW v1.8.0 writes a multi-line `--version` response (Version, Build, BuildTime). The migration probe used a quiet grep in a pipe under `set -o pipefail`; grep could exit after the first matching line and close stdout while VersityGW was still writing, turning a valid version into SIGPIPE. Branch `fix/1255-versitygw-version-probe` captures the complete successful probe output first, then matches the exact Version line. Wrong versions and failed probes still fail closed; Linux/arm64 and entrypoint checks are unchanged. Regression coverage includes realistic multi-line output and a non-zero version command. No runtime/data/hardware mutation occurred.
+The fix captures the complete successful VersityGW `--version` output before checking the exact v1.8.0 Version line, preventing quiet-grep SIGPIPE under `pipefail`. Non-zero probes and wrong versions still fail closed; Linux/arm64 and entrypoint checks remain unchanged. The preceding actual-host attempt stopped before target volume creation, Telemetry freeze, object copy or storage cutover, so legacy MinIO remained active. #1249 installed acceptance is active again.
 
 ## Issue #1251 — MinIO ACL compatibility fix completed
 
