@@ -76,10 +76,7 @@ nexolab_prepare_migration_image() {
     --security-opt no-new-privileges "$image" --version)"; then
     echo 'Migration image version probe failed' >&2; return 1
   fi
-  if ! grep -Eq '^Version[[:space:]]*:[[:space:]]*v?1\.8\.0[[:space:]]*$' <<<"$version_output"; then
-    echo 'Migration image must report VersityGW 1.8.0' >&2; return 1
-  fi
-  TARGET_IMAGE="$(docker image inspect --format '{{.Id}}' "$image")"
+  if ! grep -Eq '^Version[[:space:]]*:[[:space:]]*v?1\.8\.0[[:space:]]*  TARGET_IMAGE="$(docker image inspect --format '{{.Id}}' "$image")"
   if [[ "$image" != "$canonical" ]]; then
     docker image tag "$TARGET_IMAGE" "$canonical" || return
   fi
@@ -241,9 +238,9 @@ DEPLOY_STARTED=1
 bash scripts/deploy-current-head-raspberry-pi.sh --runtime-mode lan \
   --source-ref "$TARGET" --expected-deployed-source "$EXPECTED"
 echo "Storage migration and controlled deployment passed. Legacy volume/image retained. Evidence: $EVIDENCE"
- <<<"$version_output" || {
-    echo 'Migration image must report VersityGW 1.8.0' >&2; return 1;
-  }
+ <<<"$version_output"; then
+    echo 'Migration image must report VersityGW 1.8.0' >&2; return 1
+  fi
   TARGET_IMAGE="$(docker image inspect --format '{{.Id}}' "$image")"
   if [[ "$image" != "$canonical" ]]; then
     docker image tag "$TARGET_IMAGE" "$canonical" || return
