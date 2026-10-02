@@ -348,6 +348,8 @@ EXPECTED_DEPLOYMENT_EVIDENCE=""
 VERIFIED_DEPLOYED_SOURCE=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_FORMAL_IMAGE_ID=""
+VERIFIED_DEPLOYED_DEVICE_AGENT_AUTHORITY_IMAGE_ID=""
+VERIFIED_DEPLOYED_DEVICE_AGENT_AUTHORITY_ROLE=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID=""
@@ -925,7 +927,9 @@ PY_EVIDENCE
   VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID="$evidence_image"
   [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] \
     || VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID=""
+  VERIFIED_DEPLOYED_DEVICE_AGENT_AUTHORITY_IMAGE_ID="$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID"
   VERIFIED_DEPLOYED_DEVICE_AGENT_FORMAL_IMAGE_ID="$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID"
+  VERIFIED_DEPLOYED_DEVICE_AGENT_AUTHORITY_ROLE="formal"
   VERIFIED_DEPLOYED_COMPATIBILITY_BASE="$compatibility_base"
   [[ "$VERIFIED_DEPLOYED_COMPATIBILITY_BASE" =~ ^[0-9a-f]{40}$ ]] \
     || VERIFIED_DEPLOYED_COMPATIBILITY_BASE=""
@@ -1010,23 +1014,26 @@ resolve_layered_device_agent_authority() {
   VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE=""
   VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE=""
   VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE=""
-  [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_FORMAL_IMAGE_ID"     && -f "$REPO/.project/ACTIVE_SPRINT.json" ]] || return 0
+  VERIFIED_DEPLOYED_DEVICE_AGENT_AUTHORITY_ROLE="formal"
+  [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_AUTHORITY_IMAGE_ID"     && -f "$REPO/.project/ACTIVE_SPRINT.json" ]] || return 0
 
   local layered_device_agent_authority
   if ! layered_device_agent_authority="$(
-    python3 "$SCRIPT_DIR/resolve-layered-device-agent-runtime.py"       --repo "$REPO"       --expected-deployed-source "$VERIFIED_DEPLOYED_SOURCE"       --expected-formal-image "$VERIFIED_DEPLOYED_DEVICE_AGENT_FORMAL_IMAGE_ID"
+    python3 "$SCRIPT_DIR/resolve-layered-device-agent-runtime.py"       --repo "$REPO"       --expected-deployed-source "$VERIFIED_DEPLOYED_SOURCE"       --expected-authority-image "$VERIFIED_DEPLOYED_DEVICE_AGENT_AUTHORITY_IMAGE_ID"
   )"; then
     fail "canonical layered Device Agent runtime authority is invalid"
   fi
 
-  local layered_configured="false" layered_key layered_value layered_image="" layered_previous_image="" layered_formal_image=""
+  local layered_configured="false" layered_key layered_value layered_image=""
+  local layered_previous_image="" layered_formal_image="" layered_authority_role=""
   while IFS='=' read -r layered_key layered_value; do
     case "$layered_key" in
       configured) layered_configured="$layered_value" ;;
       compatibility_source) VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE="$layered_value" ;;
       device_agent_image_id) layered_image="$layered_value" ;;
       device_agent_previous_image_id) layered_previous_image="$layered_value" ;;
-      formal_device_agent_image_id) layered_formal_image="$layered_value" ;;
+      formal_image_id) layered_formal_image="$layered_value" ;;
+      authority_image_role) layered_authority_role="$layered_value" ;;
       runtime_evidence) VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE="$layered_value" ;;
       pre_cutover_evidence) VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE="$layered_value" ;;
       "") ;;
@@ -1035,14 +1042,15 @@ resolve_layered_device_agent_authority() {
   done <<< "$layered_device_agent_authority"
 
   if [[ "$layered_configured" == "true" ]]; then
-    [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE" =~ ^[0-9a-f]{40}$       && "$layered_image" =~ ^sha256:[0-9a-f]{64}$       && "$layered_previous_image" =~ ^sha256:[0-9a-f]{64}$       && "$layered_formal_image" =~ ^sha256:[0-9a-f]{64}$       && "$layered_previous_image" == "$layered_formal_image"       && -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE"       && -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE" ]]       || fail "layered Device Agent authority resolver returned incomplete authority"
+    [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE" =~ ^[0-9a-f]{40}$       && "$layered_image" =~ ^sha256:[0-9a-f]{64}$       && "$layered_formal_image" =~ ^sha256:[0-9a-f]{64}$       && "$layered_previous_image" == "$layered_formal_image"       && ( "$layered_authority_role" == "formal" || "$layered_authority_role" == "restored_layered" )       && -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE"       && -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE" ]]       || fail "layered Device Agent authority resolver returned incomplete authority"
     VERIFIED_DEPLOYED_DEVICE_AGENT_FORMAL_IMAGE_ID="$layered_formal_image"
+    VERIFIED_DEPLOYED_DEVICE_AGENT_AUTHORITY_ROLE="$layered_authority_role"
     VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID="$layered_image"
     VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID=""
     VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID=""
     VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID=""
     VERIFIED_DEPLOYED_DEVICE_AGENT_RECOVERY_TAG=""
-    log "Resolved checksum-bound layered Device Agent runtime authority: source=$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE image=$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID runtime_evidence=$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE pre_cutover_evidence=$VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE"
+    log "Resolved checksum-bound layered Device Agent runtime authority: source=$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE image=$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID formal_image=$VERIFIED_DEPLOYED_DEVICE_AGENT_FORMAL_IMAGE_ID authority_role=$VERIFIED_DEPLOYED_DEVICE_AGENT_AUTHORITY_ROLE runtime_evidence=$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE pre_cutover_evidence=$VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE"
   elif [[ "$layered_configured" != "false" ]]; then
     fail "layered Device Agent authority resolver returned invalid configured state"
   fi
@@ -1097,6 +1105,8 @@ preserve_deployed_device_agent_image_for_recovery() {
       echo "layered_compatibility_source=$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE"
       echo "layered_runtime_evidence=$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE"
       echo "layered_pre_cutover_evidence=$VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE"
+      echo "layered_formal_image_id=$VERIFIED_DEPLOYED_DEVICE_AGENT_FORMAL_IMAGE_ID"
+      echo "layered_authority_role=$VERIFIED_DEPLOYED_DEVICE_AGENT_AUTHORITY_ROLE"
     fi
   } > "$AUDIT_DIR/device-agent-recovery-image.txt"
   chmod 0600 "$AUDIT_DIR/device-agent-recovery-image.txt"
@@ -1172,6 +1182,7 @@ if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "1" ]]; then
   printf 'device_agent_layered_source=%s\n' "${VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE:-not_applicable}"
   printf 'device_agent_runtime_evidence=%s\n' "${VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE:-not_applicable}"
   printf 'device_agent_pre_cutover_evidence=%s\n' "${VERIFIED_DEPLOYED_DEVICE_AGENT_PRE_CUTOVER_EVIDENCE:-not_applicable}"
+  printf 'device_agent_authority_role=%s\n' "${VERIFIED_DEPLOYED_DEVICE_AGENT_AUTHORITY_ROLE:-not_applicable}"
   printf 'deployment_evidence=%s\n' "${EXPECTED_DEPLOYMENT_EVIDENCE:-not_available}"
   printf 'origin_main=%s\n' "$CONTROL_HEAD"
   exit 0
