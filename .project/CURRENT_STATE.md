@@ -2,11 +2,11 @@
 
 Updated: 2026-10-02
 
-## Issue #1259 — MinIO dummy private ACL compatibility fix in review
+## Issue #1259 — MinIO dummy private ACL compatibility fix completed
 
-The authorized #1249 actual-host retry on 2026-10-02 synchronized Raspberry main to `ebafa7b62ca896831a4f8dc36b1ee2e9cf02aadd`, passed source selection and the VersityGW image/version gate, then failed closed during dry-run source inventory with `custom or public ACL requires separately reviewed migration`. Telemetry was not frozen, no objects were copied and storage was not switched. A migration-owned candidate volume/container may have been created before inventory; the cleanup removes the candidate container and the existing volume ownership guard permits only the expected pending-1249 volume to be reused.
+PR #1260 final head `6e7bae76bee99bab23a1678511a8f648cd04a7d7` passed migration-safety, formatting, lint, typecheck, full tests, production build and NEXOLAB Merge Gate. The P1 review finding in the negative fixture was fixed and resolved; zero unresolved review threads remained. Squash merge `b5ce3f9533a347efb8aff6511cefa82f9bd31102` closed #1259.
 
-MinIO's GetBucketACL/GetObjectACL handlers are dummy S3 compatibility calls and can omit the canonical grantee ID while returning exactly one CanonicalUser FULL_CONTROL grant. Branch `fix/1259-minio-dummy-private-acl` accepts that narrow shape only when the owner ID is explicitly empty, the grant count is exactly one, the grantee type is CanonicalUser, permission is FULL_CONTROL, and no alternate identity fields are present. Public/group/URI/email, multiple-grant, non-empty-owner-with-missing-grantee-ID and non-FULL_CONTROL cases remain fail-closed. Existing policy/history/tag/encryption/object-lock and anonymous-access gates remain unchanged. Exact-head CI/review is pending.
+The fix accepts MinIO's dummy private ACL only when the owner ID is explicitly empty, exactly one grant exists, the grantee is CanonicalUser with omitted ID and no alternate identity fields, and the permission is FULL_CONTROL. Matching non-empty canonical IDs and explicitly empty matching IDs remain supported. Public/group/URI/email identities, non-empty owner with missing grantee ID, multiple grants and non-FULL_CONTROL remain fail-closed. Existing policy/history/tag/encryption/object-lock and anonymous-access gates are unchanged. The preceding actual-host attempt stopped during dry-run inventory before Telemetry freeze, object copy or storage cutover; legacy MinIO remained active. #1249 installed acceptance is active again.
 
 ## Issue #1255 — VersityGW version probe fix completed
 
