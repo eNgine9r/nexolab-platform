@@ -172,7 +172,7 @@ class LayeredDeviceAgentRuntimeAuthorityTests(unittest.TestCase):
         return M.resolve(
             self.repo,
             expected_deployed_source=self.formal,
-            expected_formal_image=authoritative_image,
+            expected_authority_image=authoritative_image,
         )
 
     def test_accepts_checksum_bound_layered_runtime(self) -> None:
@@ -180,7 +180,8 @@ class LayeredDeviceAgentRuntimeAuthorityTests(unittest.TestCase):
         self.assertEqual(result["compatibility_source"], self.compatibility)
         self.assertEqual(result["device_agent_image_id"], CURRENT_IMAGE)
         self.assertEqual(result["device_agent_previous_image_id"], FORMAL_IMAGE)
-        self.assertEqual(result["formal_device_agent_image_id"], FORMAL_IMAGE)
+        self.assertEqual(result["formal_image_id"], FORMAL_IMAGE)
+        self.assertEqual(result["authority_image_role"], "formal")
         self.assertEqual(result["runtime_evidence"], str(self.runtime_evidence.relative_to(self.repo)))
         self.assertEqual(result["pre_cutover_evidence"], str(self.pre_cutover.relative_to(self.repo)))
 
@@ -202,7 +203,8 @@ class LayeredDeviceAgentRuntimeAuthorityTests(unittest.TestCase):
     def test_accepts_verified_layered_image_as_restored_current_authority(self) -> None:
         result = self.resolve(CURRENT_IMAGE)
         self.assertEqual(result["device_agent_image_id"], CURRENT_IMAGE)
-        self.assertEqual(result["formal_device_agent_image_id"], FORMAL_IMAGE)
+        self.assertEqual(result["formal_image_id"], FORMAL_IMAGE)
+        self.assertEqual(result["authority_image_role"], "restored_layered")
 
     def test_rejects_unknown_current_image_authority(self) -> None:
         with self.assertRaisesRegex(ValueError, "neither formal rollback nor verified layered runtime"):
