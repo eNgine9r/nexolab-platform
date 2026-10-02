@@ -241,6 +241,61 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         (authority / "compatibility-runtime-authority.json").write_text(json.dumps(result) + "\n", encoding="utf-8")
         return authority
 
+    def _set_layered_device_agent_baseline(
+        self,
+        *,
+        compatibility_source: str | None = None,
+        current_image: str | None = None,
+        previous_image: str | None = None,
+    ) -> Path:
+        compatibility_source = compatibility_source or self.target
+        current_image = current_image or "sha256:" + "8" * 64
+        previous_image = previous_image or "sha256:" + "6" * 64
+        evidence = self.repo / "runtime" / "evidence" / "layered-device-agent"
+        evidence.mkdir(parents=True, exist_ok=True)
+        facts = {
+            "status": "PASS",
+            "cutover_authorized_by_product_owner": "true",
+            "compatibility_source": compatibility_source,
+            "device_agent_image_id": current_image,
+            "device_agent_previous_image_id": previous_image,
+            "modbus_write": "none",
+            "hardware_write": "none",
+            "persistent_data_deletion": "none",
+            "named_volume_deletion": "none",
+        }
+        final_runtime = evidence / "final-runtime.txt"
+        final_runtime.write_text(
+            "".join(f"{key}={value}\n" for key, value in facts.items()),
+            encoding="utf-8",
+        )
+        proof = evidence / "proof.txt"
+        proof.write_text("accepted\n", encoding="utf-8")
+        rows = [
+            f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path}"
+            for path in (final_runtime, proof)
+        ]
+        (evidence / "SHA256SUMS").write_text("\n".join(rows) + "\n", encoding="utf-8")
+        project = self.repo / ".project"
+        project.mkdir(exist_ok=True)
+        (project / "ACTIVE_SPRINT.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 2,
+                    "baselines": {
+                        "deployed_product_sha": self.base,
+                        "device_agent_compatibility_source_sha": compatibility_source,
+                        "device_agent_image_id": current_image,
+                        "device_agent_rollback_image_id": previous_image,
+                        "device_agent_runtime_evidence": str(evidence.relative_to(self.repo)),
+                    },
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        return evidence
+
     def _commit(self, value: str) -> str:
         (self.repo / "fixture.txt").write_text(value + "\n", encoding="utf-8")
         self.assertEqual(run("git", "add", "fixture.txt", cwd=self.repo).returncode, 0)
@@ -289,6 +344,26 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         self.assertIn(f"target={self.target}", result.stdout)
         self.assertEqual(run("git", "branch", "--show-current", cwd=self.repo).stdout.strip(), "main")
         self.assertEqual(run("git", "rev-parse", "HEAD", cwd=self.repo).stdout.strip(), self.latest)
+
+    def test_source_selection_uses_checksum_bound_layered_device_agent_baseline(self) -> None:
+        evidence = self._set_layered_device_agent_baseline()
+        result = self._validate(self.latest, self.base)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("deployed_device_agent_image_id=sha256:" + "8" * 64, result.stdout)
+        self.assertIn(f"device_agent_layered_source={self.target}", result.stdout)
+        self.assertIn(
+            f"device_agent_runtime_evidence={evidence.relative_to(self.repo)}",
+            result.stdout,
+        )
+
+    def test_layered_device_agent_baseline_rejects_target_before_compatibility_source(self) -> None:
+        self._set_layered_device_agent_baseline(compatibility_source=self.latest)
+        result = self._validate(self.target, self.base)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "deployment target does not contain the accepted layered Device Agent compatibility source",
+            result.stdout + result.stderr,
+        )
 
     def test_current_main_can_pin_exact_compatibility_runtime_authority(self) -> None:
         authority = self._set_compatibility_authority_evidence("20260829T010000Z")
