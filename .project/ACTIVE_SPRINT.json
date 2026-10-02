@@ -43,10 +43,10 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1263
+      "issue": 1249
     },
     "next_work_package": {
-      "issue": 1249
+      "issue": 1247
     }
   },
   "work_packages": [
@@ -6460,7 +6460,7 @@
       "issue": 1263,
       "title": "Honor verified layered Device Agent runtime baseline during controlled deployment",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "fix/1263-layered-device-agent-authority",
       "evidence": {
@@ -6481,7 +6481,7 @@
         "authority_binding": "tracked_active_sprint_plus_checksum_verified_runtime_evidence",
         "migration_retry": "forbidden_after_verified_cutover",
         "legacy_resume_script": "not_approved_for_this_recovery",
-        "exact_head_ci": "pending_after_launch_path_remediation",
+        "exact_head_ci": "quality_build_and_telemetry_green_merge_gate_110961162557",
         "production_runtime_mutation_by_pr": "none",
         "persistent_data_mutation_by_pr": "none",
         "modbus_write": "none",
@@ -6504,7 +6504,19 @@
         "unknown_restore_image": "fail_closed",
         "stale_script_launch_review_p1": "addressed_pre_sync_main_before_new_bash_process",
         "canonical_retry_entry": "git_switch_fetch_ff_verify_then_deploy_current_head",
-        "internal_pull_as_code_update": "not_authoritative"
+        "internal_pull_as_code_update": "not_authoritative",
+        "verified_head_sha": "9e55f6912e2dda9ff7277fb3ce4558de48e03b9d",
+        "pull_request": 1264,
+        "merged_implementation_sha": "29dc976c87b16c17ca16ccfa8e3e70674c2e3dfc",
+        "review": "all_findings_addressed_zero_unresolved",
+        "state_sync_review": "pre_synced_main_required_before_application_retry",
+        "object_storage_migration": "completed_verified_cutover_do_not_rerun",
+        "object_storage_objects": 6,
+        "object_storage_total_bytes": 3733362,
+        "runtime_retry_scope": "application_deployment_only",
+        "production_runtime_mutation": "none_by_issue_1263",
+        "persistent_data_mutation": "none_by_issue_1263",
+        "issue_state": "closed_completed"
       }
     }
   ],
