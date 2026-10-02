@@ -351,6 +351,8 @@ VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_REBASELINE_ID=""
 VERIFIED_DEPLOYED_DEVICE_AGENT_RECOVERY_TAG=""
+VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE=""
+VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE=""
 DEPLOYED_DEVICE_AGENT_IMAGE_ID=""
 
 CENTRAL_COMPOSE_ARGS=(
@@ -929,6 +931,42 @@ PY_EVIDENCE
     || VERIFIED_DEPLOYED_COMPATIBILITY_TARGET=""
   VERIFIED_DEPLOYED_SOURCE="$evidence_commit"
 
+  if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]]; then
+    local layered_device_agent_authority
+    if ! layered_device_agent_authority="$(
+      python3 "$SCRIPT_DIR/resolve-layered-device-agent-runtime.py" \
+        --repo "$REPO" \
+        --expected-deployed-source "$VERIFIED_DEPLOYED_SOURCE" \
+        --expected-formal-image "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID"
+    )"; then
+      fail "canonical layered Device Agent runtime authority is invalid"
+    fi
+    local layered_configured="false" layered_key layered_value
+    while IFS='=' read -r layered_key layered_value; do
+      case "$layered_key" in
+        configured) layered_configured="$layered_value" ;;
+        compatibility_source) VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE="$layered_value" ;;
+        device_agent_image_id) VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID="$layered_value" ;;
+        device_agent_previous_image_id)
+          [[ "$layered_value" == "$evidence_image" ]] \
+            || fail "layered Device Agent previous image changed after authority resolution"
+          ;;
+        runtime_evidence) VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE="$layered_value" ;;
+        "") ;;
+        *) fail "layered Device Agent authority resolver returned an unknown field" ;;
+      esac
+    done <<< "$layered_device_agent_authority"
+    if [[ "$layered_configured" == "true" ]]; then
+      [[ "$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE" =~ ^[0-9a-f]{40}$ \
+        && "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ \
+        && -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE" ]] \
+        || fail "layered Device Agent authority resolver returned incomplete authority"
+      log "Resolved checksum-bound layered Device Agent runtime authority: source=$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE image=$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID evidence=$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE"
+    elif [[ "$layered_configured" != "false" ]]; then
+      fail "layered Device Agent authority resolver returned invalid configured state"
+    fi
+  fi
+
   local rebaseline_authority="$REPO/runtime/recovery-authority/device-agent/current.json"
   local recorded_device_agent_image_unavailable="0"
   if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]] \
@@ -1044,6 +1082,10 @@ preserve_deployed_device_agent_image_for_recovery() {
       echo "source_container_id=$VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_CONTAINER_ID"
       echo "source_container_image_id=$VERIFIED_DEPLOYED_DEVICE_AGENT_SOURCE_IMAGE_ID"
     fi
+    if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE" ]]; then
+      echo "layered_compatibility_source=$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE"
+      echo "layered_runtime_evidence=$VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE"
+    fi
   } > "$AUDIT_DIR/device-agent-recovery-image.txt"
   chmod 0600 "$AUDIT_DIR/device-agent-recovery-image.txt"
   log "Preserved exact deployed Device Agent image under immutable recovery tag"
@@ -1080,6 +1122,10 @@ validate_selected_source_against_control() {
       log "Current-main source selection: target=$TARGET_HEAD"
     fi
   fi
+  if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE" ]]; then
+    git merge-base --is-ancestor "$VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE" "$TARGET_HEAD" \
+      || fail "deployment target does not contain the accepted layered Device Agent compatibility source"
+  fi
 }
 
 if ! git diff --quiet || ! git diff --cached --quiet; then
@@ -1114,6 +1160,8 @@ if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "1" ]]; then
   printf 'target=%s\n' "$TARGET_HEAD"
   printf 'expected_deployed_source=%s\n' "${EXPECTED_DEPLOYED_SOURCE:-not_supplied}"
   printf 'deployed_device_agent_image_id=%s\n' "${VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID:-not_available}"
+  printf 'device_agent_layered_source=%s\n' "${VERIFIED_DEPLOYED_DEVICE_AGENT_LAYERED_SOURCE:-not_applicable}"
+  printf 'device_agent_runtime_evidence=%s\n' "${VERIFIED_DEPLOYED_DEVICE_AGENT_RUNTIME_EVIDENCE:-not_applicable}"
   printf 'deployment_evidence=%s\n' "${EXPECTED_DEPLOYMENT_EVIDENCE:-not_available}"
   printf 'origin_main=%s\n' "$CONTROL_HEAD"
   exit 0
