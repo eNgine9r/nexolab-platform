@@ -178,7 +178,6 @@ repository's default runtime path. Bundle source must match migration authority
 or descend from it in the local repository's available Git history; missing
 lineage fails closed. A partial destination volume never authorizes installation.
 
-
 ### Durable layered Device Agent authority
 
 A successful storage cutover may coexist with a separately accepted Device Agent
