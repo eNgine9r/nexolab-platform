@@ -113,6 +113,27 @@ At that boundary:
   migration source itself or a Git descendant only when the retained target
   image/volume and live VersityGW service still match the published authority.
 
+The post-cutover application retry **must synchronize the checkout before starting
+the deployment script**. Do not start an older copy of the script and rely on its
+internal `git pull`: Bash has already loaded that older program into the running
+process. The canonical online retry entry point is therefore:
+
+```bash
+cd ~/nexolab-platform &&
+git switch main &&
+git fetch origin main &&
+git merge --ff-only origin/main &&
+test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" &&
+sudo -v &&
+bash scripts/deploy-current-head-raspberry-pi.sh \
+  --runtime-mode lan \
+  --expected-deployed-source df368cfa27efa945d59de33de8268898b564a19f
+```
+
+The `test` is a fail-closed launch gate: the deployment process must be started
+from the already synchronized current `main`, so merged recovery logic is loaded
+by the new Bash process itself.
+
 The current controlled deployment also supports a separately accepted layered
 Device Agent runtime only through canonical tracked Sprint baselines plus
 checksum-protected runtime evidence. That authority never comes from the live
