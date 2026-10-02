@@ -125,3 +125,19 @@ acceptance succeeds.
 Local safety unit tests cover interrupted/resumed copy, corruption, source
 changes, privacy/security boundaries and migration authority. They are not real
 MinIO/VersityGW or installed Raspberry acceptance evidence.
+
+## Disconnected migration before an offline bundle update
+
+The normal entry point above performs the connected canonical update. On a
+disconnected host, prepare the accepted clean main checkout, its cached
+origin/main and verified preloaded arm64 bundle image before disconnecting.
+Run the wrapper with both exact SHA arguments and `--offline-source-ref SHA`.
+The requested offline SHA must equal HEAD and cached origin/main; ordinary
+deployed-authority and ancestry checks still run, with no fetch or checkout
+mutation. Missing preloaded images fail before migration; no online build is
+attempted. After verified storage cutover and writer resume, the wrapper reports
+`OFFLINE_STORAGE_CUTOVER_VERIFIED` and leaves the application update pending.
+Continue with the existing verified offline bundle/version-manager procedure.
+It does not run the networked current-head build/deployment or claim installed
+application update acceptance. Do not treat a cached ref as proof of current
+remote freshness or use a feature-branch SHA.

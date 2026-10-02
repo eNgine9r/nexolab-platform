@@ -3,15 +3,25 @@
 set -Eeuo pipefail
 umask 077
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-[[ $# == 2 && "$1" == --expected-deployed-source && "$2" =~ ^[0-9a-f]{40}$ ]] || {
-  echo 'Usage: migrate-object-storage-raspberry-pi.sh --expected-deployed-source SHA' >&2
-  exit 64
+EXPECTED=""
+OFFLINE_SOURCE_REF=""
+while (($#)); do
+  case "$1" in
+    --expected-deployed-source) EXPECTED="${2:?}"; shift 2 ;;
+    --offline-source-ref) OFFLINE_SOURCE_REF="${2:?}"; shift 2 ;;
+    *) echo 'Usage: migrate-object-storage-raspberry-pi.sh --expected-deployed-source SHA [--offline-source-ref SHA]' >&2; exit 64 ;;
+  esac
+done
+[[ "$EXPECTED" =~ ^[0-9a-f]{40}$ && ( -z "$OFFLINE_SOURCE_REF" || "$OFFLINE_SOURCE_REF" =~ ^[0-9a-f]{40}$ ) ]] || {
+  echo 'Exact deployed and optional offline source SHAs are required' >&2; exit 64;
 }
-EXPECTED="$2"
 cd "$REPO"
 [[ "$(git branch --show-current)" == main ]] || { echo 'Run only from accepted main' >&2; exit 1; }
 git diff --quiet && git diff --cached --quiet
 TARGET="$(git rev-parse HEAD)"
+[[ -z "$OFFLINE_SOURCE_REF" || "$OFFLINE_SOURCE_REF" == "$TARGET" ]] || { echo 'Offline SHA must equal accepted main checkout' >&2; exit 1; }
+SOURCE_PREFLIGHT_ARGS=()
+if [[ -n "$OFFLINE_SOURCE_REF" ]]; then SOURCE_PREFLIGHT_ARGS+=(--offline-source-selection); fi
 sudo -n true
 exec 8>"${XDG_RUNTIME_DIR:-/tmp}/nexolab-object-storage-migration.lock"
 flock -n 8 || { echo 'Another migration is running' >&2; exit 75; }
@@ -21,7 +31,7 @@ export NEXOLAB_INHERITED_DEPLOYMENT_LOCK_FD=9
 # Both child deployment calls reuse this actual held descriptor; independently
 # started deployment/recovery processes cannot enter the mutation window.
 bash scripts/deploy-current-head-raspberry-pi.sh --runtime-mode lan \
-  --source-ref "$TARGET" --expected-deployed-source "$EXPECTED" --source-selection-check-only
+  --source-ref "$TARGET" --expected-deployed-source "$EXPECTED" --source-selection-check-only "${SOURCE_PREFLIGHT_ARGS[@]}"
 # Preflight synchronizes main. Do not verify a backend from a newer checkout
 # while recording authority for the older target captured above.
 [[ "$(git rev-parse HEAD)" == "$TARGET" ]] || {
@@ -51,6 +61,7 @@ nexolab_prepare_migration_image() {
     if docker image inspect "$canonical-arm64" >/dev/null 2>&1; then
       image="$canonical-arm64"
     else
+      [[ -z "${OFFLINE_SOURCE_REF:-}" ]] || { echo 'Offline migration requires a verified preloaded arm64 image' >&2; return 1; }
       docker build --tag "$image" infrastructure/object-storage || return
     fi
   fi
@@ -218,6 +229,10 @@ PY
 WRITER_RESUME_ATTEMPTED=1
 FROZEN=0
 docker start "$WRITER" >/dev/null
+if [[ -n "$OFFLINE_SOURCE_REF" ]]; then
+  echo 'OFFLINE_STORAGE_CUTOVER_VERIFIED: application update remains pending; use the verified offline bundle update procedure.'
+  exit 0
+fi
 echo 'Storage cutover verified; Telemetry writes resumed. Starting canonical project update.'
 DEPLOY_STARTED=1
 bash scripts/deploy-current-head-raspberry-pi.sh --runtime-mode lan \

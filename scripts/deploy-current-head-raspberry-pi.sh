@@ -18,6 +18,7 @@ usage() {
   cat <<'USAGE'
 Usage: deploy-current-head-raspberry-pi.sh [--runtime-mode lan|standalone] [--frontend-artifact PATH]
        [--source-ref SHA] [--expected-deployed-source SHA] [--source-selection-check-only]
+       [--offline-source-selection]
        [--restore-edge-snapshot DEPLOYMENT_EVIDENCE_DIR
         --expected-deployed-source SHA --expected-target-source SHA]
 
@@ -30,6 +31,9 @@ Options:
                            deployment authority, including an explicitly adopted compatibility runtime.
   --source-selection-check-only
                            Validate source lineage and exit before capacity, backup or runtime mutation.
+  --offline-source-selection
+                           Check exact cached main authority without fetch; requires source-selection-only,
+                           --source-ref and --expected-deployed-source. Never runs full deployment.
   --restore-edge-snapshot DEPLOYMENT_EVIDENCE_DIR
                            Explicitly restore that deployment's captured edge SQLite snapshot.
                            The Device Agent must already be stopped; this command never restarts it.
@@ -47,6 +51,7 @@ FRONTEND_ARTIFACT_INPUT=""
 REQUESTED_SOURCE_REF=""
 EXPECTED_DEPLOYED_SOURCE=""
 SOURCE_SELECTION_CHECK_ONLY="0"
+OFFLINE_SOURCE_SELECTION="0"
 RESTORE_EDGE_SNAPSHOT_DIR=""
 EXPECTED_TARGET_SOURCE=""
 while (($# > 0)); do
@@ -87,6 +92,10 @@ while (($# > 0)); do
       SOURCE_SELECTION_CHECK_ONLY="1"
       shift
       ;;
+    --offline-source-selection)
+      OFFLINE_SOURCE_SELECTION="1"
+      shift
+      ;;
     --restore-edge-snapshot)
       (($# >= 2)) || {
         echo "ERROR: --restore-edge-snapshot requires a deployment evidence directory" >&2
@@ -118,6 +127,14 @@ nexolab_validate_runtime_mode "$RUNTIME_MODE" || exit $?
 if [[ -n "$REQUESTED_SOURCE_REF" && -z "$EXPECTED_DEPLOYED_SOURCE" ]]; then
   echo "ERROR: --source-ref requires --expected-deployed-source" >&2
   exit 64
+fi
+
+if [[ "$OFFLINE_SOURCE_SELECTION" == 1 ]]; then
+  [[ "$SOURCE_SELECTION_CHECK_ONLY" == 1 && "$REQUESTED_SOURCE_REF" =~ ^[0-9a-f]{40}$ \
+    && "$EXPECTED_DEPLOYED_SOURCE" =~ ^[0-9a-f]{40}$ && -z "$RESTORE_EDGE_SNAPSHOT_DIR" ]] || {
+    echo "ERROR: offline source selection requires exact target/deployed SHAs and source-selection-only" >&2
+    exit 64
+  }
 fi
 
 REPO="${NEXOLAB_REPO:-$HOME/nexolab-platform}"
@@ -1071,12 +1088,20 @@ fi
 [[ "$(git branch --show-current)" == "main" ]] || fail "deployment must start from the main branch"
 
 if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "1" ]]; then
-  log "Fetching current main for source-selection preflight"
-  git fetch --prune origin main
-  CONTROL_HEAD="$(git rev-parse origin/main 2>/dev/null || true)"
-  [[ -n "$CONTROL_HEAD" ]] || fail "origin/main is unavailable after source-selection preflight fetch"
-  git merge --ff-only "$CONTROL_HEAD" >/dev/null || fail "local main cannot fast-forward to fresh origin/main for source-selection preflight"
-  [[ "$(git rev-parse HEAD)" == "$CONTROL_HEAD" ]] || fail "local main is not synchronized to fresh origin/main for source-selection preflight"
+  if [[ "$OFFLINE_SOURCE_SELECTION" == 1 ]]; then
+    log "Validating exact cached main authority without network"
+    CONTROL_HEAD="$(git rev-parse origin/main 2>/dev/null || true)"
+    [[ "$CONTROL_HEAD" == "$REQUESTED_SOURCE_REF" \
+      && "$(git rev-parse HEAD)" == "$REQUESTED_SOURCE_REF" \
+      && "$(git branch --show-current)" == main ]] || fail "offline target must equal cached origin/main and the clean main checkout"
+  else
+    log "Fetching current main for source-selection preflight"
+    git fetch --prune origin main
+    CONTROL_HEAD="$(git rev-parse origin/main 2>/dev/null || true)"
+    [[ -n "$CONTROL_HEAD" ]] || fail "origin/main is unavailable after source-selection preflight fetch"
+    git merge --ff-only "$CONTROL_HEAD" >/dev/null || fail "local main cannot fast-forward to fresh origin/main for source-selection preflight"
+    [[ "$(git rev-parse HEAD)" == "$CONTROL_HEAD" ]] || fail "local main is not synchronized to fresh origin/main for source-selection preflight"
+  fi
   resolve_deployed_source_authority
   validate_selected_source_against_control
   if [[ "$TARGET_HEAD" != "$CONTROL_HEAD" ]]; then

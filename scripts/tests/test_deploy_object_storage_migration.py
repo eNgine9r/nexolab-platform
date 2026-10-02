@@ -347,11 +347,11 @@ docker() { return 1; }
         self.assertIn('HEAD changed', result.stderr)
         self.assertNotIn('UNSAFE_CONTINUATION', result.stdout)
 
-    def image_preparation(self, present, version="versitygw version v1.8.0", bundle_present=False):
+    def image_preparation(self, present, version="versitygw version v1.8.0", bundle_present=False, offline=False):
         text = (ROOT / 'scripts/migrate-object-storage-raspberry-pi.sh').read_text()
         start = text.index('nexolab_prepare_migration_image()')
         end = text.index('VOLUME=', start)
-        script = '''set -e
+        script = 'OFFLINE_SOURCE_REF=' + ('accepted' if offline else '') + '\n' + '''set -e
 docker() {
   if [[ "$1 $2" == "image inspect" ]]; then
     if [[ "$*" == *".Os"* ]]; then echo linux/arm64;
@@ -384,6 +384,12 @@ docker() {
         bad = self.image_preparation(False, version="versitygw version v1.7.0", bundle_present=True)
         self.assertNotEqual(bad.returncode, 0)
         self.assertNotIn('TAG_VERIFIED', bad.stdout)
+
+    def test_offline_missing_image_fails_without_build(self):
+        result = self.image_preparation(False, offline=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn('BUILD_REQUIRED', result.stdout)
+        self.assertIn('requires a verified preloaded', result.stderr)
 
     def test_missing_image_uses_pinned_build(self):
         result = self.image_preparation(False)
@@ -423,6 +429,37 @@ python3() {
             self.assertNotIn('--build', recorded)
             self.assertIn('up -d --no-build --pull never --wait', recorded)
             self.assertIn('PROOF_RECHECKED', result.stdout)
+
+    def test_offline_source_selection_never_fetches_and_rejects_cached_drift(self):
+        text = (ROOT / 'scripts/deploy-current-head-raspberry-pi.sh').read_text()
+        start = text.index('  if [[ "$OFFLINE_SOURCE_SELECTION" == 1 ]]; then', text.index('if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "1" ]]; then'))
+        end = text.index('  resolve_deployed_source_authority', start)
+        for cached in ("a" * 40, "b" * 40):
+            script = '''OFFLINE_SOURCE_SELECTION=1
+REQUESTED_SOURCE_REF=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+log() { :; }
+fail() { exit 71; }
+git() {
+  if [[ "$*" == "rev-parse origin/main" ]]; then echo ''' + cached + ''';
+  elif [[ "$*" == "rev-parse HEAD" ]]; then echo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
+  elif [[ "$*" == "branch --show-current" ]]; then echo main;
+  else echo NETWORK_OR_CHECKOUT_MUTATION; return 99;
+  fi
+}
+''' + text[start:end]
+            result = subprocess.run(['bash', '-c', script], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0 if cached == "a" * 40 else 71)
+            self.assertNotIn('NETWORK_OR_CHECKOUT_MUTATION', result.stdout)
+
+    def test_offline_migration_hands_off_without_networked_final_deployment(self):
+        text = (ROOT / 'scripts/migrate-object-storage-raspberry-pi.sh').read_text()
+        start = text.index('if [[ -n "$OFFLINE_SOURCE_REF" ]]; then\n  echo')
+        script = 'OFFLINE_SOURCE_REF=accepted\n' + text[start:]
+        result = subprocess.run(['bash', '-c', script], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('OFFLINE_STORAGE_CUTOVER_VERIFIED', result.stdout)
+        self.assertIn('update remains pending', result.stdout)
+        self.assertNotIn('Storage cutover verified;', result.stdout)
 
     def test_shell_scripts_parse_and_cli_guard_has_no_boto_dependency(self):
         for name in ("migrate-object-storage-raspberry-pi.sh", "deploy-current-head-raspberry-pi.sh"):
