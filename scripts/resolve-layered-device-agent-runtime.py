@@ -69,24 +69,27 @@ def parse_key_values(path: Path, label: str) -> dict[str, str]:
     return result
 
 
-def resolve_evidence(repo: Path, relative: str) -> Path:
+def resolve_evidence(repo: Path, relative: str, label: str) -> Path:
     if not relative or Path(relative).is_absolute():
-        raise AuthorityFailure("Device Agent runtime evidence path must be repository-relative")
+        raise AuthorityFailure(f"{label} path must be repository-relative")
     root = (repo / "runtime" / "evidence").resolve()
     candidate = repo / relative
     try:
         resolved = candidate.resolve(strict=True)
     except OSError as exc:
-        raise AuthorityFailure("Device Agent runtime evidence is unavailable") from exc
+        raise AuthorityFailure(f"{label} is unavailable") from exc
     if candidate.is_symlink() or resolved.parent != root or not resolved.is_dir():
-        raise AuthorityFailure("Device Agent runtime evidence must be a direct safe directory under runtime/evidence")
+        raise AuthorityFailure(f"{label} must be a direct safe directory under runtime/evidence")
     return resolved
 
 
-def verify_checksum_manifest(evidence: Path) -> None:
-    manifest = safe_file(evidence / "SHA256SUMS", "Device Agent runtime checksum manifest")
-    final_state = safe_file(evidence / "final-runtime.txt", "Device Agent final runtime evidence")
-    final_matches = 0
+def verify_checksum_manifest(evidence: Path, required_names: tuple[str, ...]) -> None:
+    manifest = safe_file(evidence / "SHA256SUMS", "runtime checksum manifest")
+    required = {
+        name: safe_file(evidence / name, f"runtime evidence {name}")
+        for name in required_names
+    }
+    matches = {name: 0 for name in required_names}
     seen_targets: set[Path] = set()
     rows = 0
     for raw in manifest.read_text(encoding="utf-8").splitlines():
@@ -94,7 +97,7 @@ def verify_checksum_manifest(evidence: Path) -> None:
             continue
         match = re.fullmatch(r"([0-9a-f]{64})  (.+)", raw)
         if not match:
-            raise AuthorityFailure("Device Agent runtime checksum manifest contains an invalid row")
+            raise AuthorityFailure("runtime checksum manifest contains an invalid row")
         expected, recorded = match.groups()
         candidate = Path(recorded)
         if not candidate.is_absolute():
@@ -104,24 +107,25 @@ def verify_checksum_manifest(evidence: Path) -> None:
         except OSError as exc:
             raise AuthorityFailure(f"checksum target is unavailable: {recorded}") from exc
         if candidate.is_symlink() or not resolved.is_file() or resolved.parent != evidence:
-            raise AuthorityFailure("Device Agent runtime checksum target escapes its evidence directory")
+            raise AuthorityFailure("runtime checksum target escapes its evidence directory")
         if resolved in seen_targets:
-            raise AuthorityFailure("Device Agent runtime checksum manifest contains a duplicate target")
+            raise AuthorityFailure("runtime checksum manifest contains a duplicate target")
         seen_targets.add(resolved)
         if sha256_file(resolved) != expected:
-            raise AuthorityFailure(f"Device Agent runtime checksum mismatch: {resolved.name}")
-        if resolved == final_state:
-            final_matches += 1
+            raise AuthorityFailure(f"runtime checksum mismatch: {resolved.name}")
+        for name, required_path in required.items():
+            if resolved == required_path:
+                matches[name] += 1
         rows += 1
-    if rows < 2 or final_matches != 1:
-        raise AuthorityFailure("Device Agent runtime checksum manifest does not uniquely cover final-runtime.txt")
+    if rows < len(required_names) or any(matches[name] != 1 for name in required_names):
+        raise AuthorityFailure("runtime checksum manifest does not uniquely cover required authority files")
 
 
 def resolve(
     repo: Path,
     *,
     expected_deployed_source: str,
-    expected_formal_image: str
+    expected_formal_image: str,
 ) -> dict[str, str] | None:
     repo = repo.resolve()
     state = read_json(repo / ".project" / "ACTIVE_SPRINT.json", "canonical ACTIVE_SPRINT")
@@ -131,12 +135,10 @@ def resolve(
 
     layered_keys = (
         "device_agent_compatibility_source_sha",
-        "device_agent_compatibility_source_parent_sha",
-        "device_agent_compatibility_base_sha",
-        "device_agent_compatibility_base_parent_sha",
         "device_agent_image_id",
         "device_agent_rollback_image_id",
         "device_agent_runtime_evidence",
+        "device_agent_pre_cutover_evidence",
     )
     configured = [key for key in layered_keys if baselines.get(key) not in {None, ""}]
     if not configured:
@@ -146,24 +148,12 @@ def resolve(
 
     deployed = str(baselines["deployed_product_sha"])
     compatibility = str(baselines["device_agent_compatibility_source_sha"])
-    compatibility_parent = str(baselines["device_agent_compatibility_source_parent_sha"])
-    compatibility_base = str(baselines["device_agent_compatibility_base_sha"])
-    compatibility_base_parent = str(baselines["device_agent_compatibility_base_parent_sha"])
     image = str(baselines["device_agent_image_id"])
     rollback_image = str(baselines["device_agent_rollback_image_id"])
     evidence_ref = str(baselines["device_agent_runtime_evidence"])
+    pre_cutover_ref = str(baselines["device_agent_pre_cutover_evidence"])
 
-    if not all(
-        SHA_RE.fullmatch(value)
-        for value in (
-            deployed,
-            compatibility,
-            compatibility_parent,
-            compatibility_base,
-            compatibility_base_parent,
-            expected_deployed_source,
-        )
-    ):
+    if not all(SHA_RE.fullmatch(value) for value in (deployed, compatibility, expected_deployed_source)):
         raise AuthorityFailure("layered Device Agent source identity is invalid")
     if not all(IMAGE_RE.fullmatch(value) for value in (image, rollback_image, expected_formal_image)):
         raise AuthorityFailure("layered Device Agent image identity is invalid")
@@ -172,13 +162,59 @@ def resolve(
     if rollback_image != expected_formal_image:
         raise AuthorityFailure("layered Device Agent rollback image does not match formal deployment authority")
 
-    if compatibility_parent != compatibility_base:
-        raise AuthorityFailure("Device Agent compatibility source parent does not match recorded compatibility base")
-    if compatibility_base_parent != deployed:
-        raise AuthorityFailure("Device Agent compatibility base parent does not match formal deployed source")
+    pre_cutover = resolve_evidence(repo, pre_cutover_ref, "Device Agent pre-cutover evidence")
+    verify_checksum_manifest(
+        pre_cutover,
+        ("source-lineage.txt", "candidate-device-agent.txt", "rollback-authority.txt"),
+    )
+    lineage = parse_key_values(pre_cutover / "source-lineage.txt", "Device Agent pre-cutover lineage evidence")
+    candidate = parse_key_values(pre_cutover / "candidate-device-agent.txt", "Device Agent pre-cutover candidate evidence")
+    rollback = parse_key_values(pre_cutover / "rollback-authority.txt", "Device Agent pre-cutover rollback evidence")
 
-    evidence = resolve_evidence(repo, evidence_ref)
-    verify_checksum_manifest(evidence)
+    lineage_required = {
+        "status": "PASS",
+        "formal_deployed_product_sha": deployed,
+        "candidate_compatibility_source_sha": compatibility,
+        "package_manifest_identity": "PASS",
+        "accepted_identity_mismatches": "0",
+        "release_ci": "PASS",
+    }
+    for key, expected in lineage_required.items():
+        if lineage.get(key) != expected:
+            raise AuthorityFailure(f"Device Agent pre-cutover lineage evidence mismatch: {key}")
+    if not SHA_RE.fullmatch(lineage.get("candidate_parent_sha", "")):
+        raise AuthorityFailure("Device Agent pre-cutover candidate parent identity is invalid")
+
+    candidate_required = {
+        "status": "PASS",
+        "source_sha": compatibility,
+        "image_id": image,
+        "platform": "linux/arm64",
+    }
+    for key, expected in candidate_required.items():
+        if candidate.get(key) != expected:
+            raise AuthorityFailure(f"Device Agent pre-cutover candidate evidence mismatch: {key}")
+
+    rollback_required = {
+        "status": "READY",
+        "current_device_agent_image_id": rollback_image,
+        "active_env_mutated": "false",
+        "dashboard_mutated": "false",
+        "device_agent_mutated": "false",
+        "telemetry_mutated": "false",
+        "postgres_mutated": "false",
+        "mqtt_mutated": "false",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "persistent_data_deletion": "none",
+        "named_volume_deletion": "none",
+    }
+    for key, expected in rollback_required.items():
+        if rollback.get(key) != expected:
+            raise AuthorityFailure(f"Device Agent pre-cutover rollback evidence mismatch: {key}")
+
+    evidence = resolve_evidence(repo, evidence_ref, "Device Agent runtime evidence")
+    verify_checksum_manifest(evidence, ("final-runtime.txt",))
     facts = parse_key_values(evidence / "final-runtime.txt", "Device Agent final runtime evidence")
     required = {
         "status": "PASS",
@@ -200,6 +236,7 @@ def resolve(
         "device_agent_image_id": image,
         "device_agent_previous_image_id": rollback_image,
         "runtime_evidence": str(evidence.relative_to(repo)),
+        "pre_cutover_evidence": str(pre_cutover.relative_to(repo)),
     }
 
 
@@ -226,7 +263,13 @@ def main() -> int:
         print("configured=false")
         return 0
     print("configured=true")
-    for key in ("compatibility_source", "device_agent_image_id", "device_agent_previous_image_id", "runtime_evidence"):
+    for key in (
+        "compatibility_source",
+        "device_agent_image_id",
+        "device_agent_previous_image_id",
+        "runtime_evidence",
+        "pre_cutover_evidence",
+    ):
         print(f"{key}={result[key]}")
     return 0
 
