@@ -2,11 +2,11 @@
 
 Updated: 2026-10-02
 
-## Issue #1251 — MinIO empty canonical ACL compatibility fix in progress
+## Issue #1251 — MinIO ACL compatibility source fix completed
 
-The approved #1249 actual-host retry on 2026-10-02 synchronized Raspberry main to `fa9fc82ada84f680f7c57a7f0cc60b5e5071962e` and passed historical source selection. The migration then failed closed before Telemetry freeze, object copy or storage cutover with `Migration failed closed: cannot establish private owner-only ACL`. Runtime storage therefore remains legacy MinIO and no production data or hardware was mutated.
+The approved #1249 actual-host retry synchronized Raspberry main to `fa9fc82ada84f680f7c57a7f0cc60b5e5071962e` and passed historical source selection, then failed closed before Telemetry freeze, object copy or storage cutover with `Migration failed closed: cannot establish private owner-only ACL`. Runtime storage remained legacy MinIO and no production data or hardware was mutated.
 
-MinIO compatibility can return empty canonical owner/grantee IDs. Branch `fix/1251-minio-empty-canonical-acl` keeps the ACL gate fail-closed but accepts an explicitly present empty owner ID only when every grant is an explicitly identified `CanonicalUser` with the same empty ID and `FULL_CONTROL`. Group/public, mixed-ID, missing-ID and non-FULL_CONTROL grants remain rejected; existing anonymous bucket/object denial checks remain mandatory. Focused regression tests were added; exact-head CI and review are pending.
+PR #1252 fixes the MinIO-compatible empty canonical owner/grantee ID representation without weakening the privacy gate: the ID fields must be explicitly present strings, all grants must remain `CanonicalUser` + `FULL_CONTROL` with IDs matching the owner, and group/public, mixed-ID, missing-ID and non-FULL_CONTROL grants remain rejected. Existing anonymous bucket/object denial checks remain mandatory. Focused migration-safety regression, formatting, lint, typecheck, full tests, production build and Merge Gate must be GREEN on the final PR head before merge. After merge, #1249 is the active installed-acceptance retry.
 
 ## Issue #1249 — authorized object-storage migration prerequisite in progress
 
