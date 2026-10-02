@@ -240,6 +240,9 @@ export function DashboardShell() {
       </div>
 
       <TemperatureVisibilityDialog
+        key={`${organizationId ?? "unverified"}:${monitoring.configuration?.node_id ?? "unconfirmed"}`}
+        organizationId={security.mode === "live" && securityReady ? organizationId : null}
+        nodeId={monitoring.configuration?.node_id ?? null}
         open={temperatureVisibilityOpen}
         monitoredChannelIds={monitoring.monitoredChannelIds}
         visibleChannelIds={temperatureVisibility.visibleChannelIds}

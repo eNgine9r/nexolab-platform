@@ -1,10 +1,14 @@
 # NEXOLAB Current State
 
-Updated: 2026-10-01
+Updated: 2026-10-02
 
-## Issue #1243 — UX-30 quantity/unit selector candidate
+## Issue #1245 — UX-10 Overview hierarchy candidate
 
-Signal authoring offers Ukrainian physical-quantity/unit choices for existing verified registry pairs: temperature/degC, pressure/bar or kPa, relative_humidity/%RH. Pressure requires an explicit unit; no physical conversion or scaling is inferred. New untouched keys are suggested uniquely from the complete organization-wide signal inventory; deliberate overrides and existing keys are retained. Missing/loading/mismatched inventory blocks creation rather than guessing across instruments. Existing custom quantity/unit values remain editable through explicit technical input, with exact metadata and versioned updates preserved. Helper/component tests and the real 390/1280 px keyboard registry-to-RFX10 browser flow verify canonical saved fields, zero selection writes and existing downstream binding/approval boundaries. Local executor remains unavailable; actual exact-head checks/review are pending. No backend/RBAC, acquisition, scaling/calibration/acceptance authority, dependency, deployment or hardware change.
+The open Overview dialog reads the verified organization's climate catalog and groups actual transport-node/source-channel/device matches by camera and device. Search and mixed group checkboxes edit only pending display choices; existing Apply, cancel, keyboard focus and local visibility memory remain. Failed, ambiguous or mismatched metadata keeps exact raw channels selectable. Reads are abortable and at most two concurrent; no monitoring enrollment or hardware action. 19 focused tests, typecheck, touched lint/format, diff check and production build (23 static pages) passed. Production browser and review are pending. Local execution recovered on 2026-10-02; replacing the local dependency symlink with a copy resolved Turbopack filesystem-root rejection without changing project configuration.
+
+## Issue #1243 — UX-30 completed
+
+PR #1244 final head 3a44aae271cbc7ccbfb00839a49f4adab6b52a86 passed both workflows: CI 36942204857 (1130 tests / 183 files, formatting, lint, typecheck and production build) and Refrigeration Browser 36942204870 (six cases). One organization-wide key uniqueness review was fixed and resolved; the real 390/1280 px flow saved pressure.2 when another instrument already owned pressure. Quantity/unit choices, explicit overrides and custom existing metadata are preserved. Source acceptance is complete; installed #1191 remains separate. Audit: 34 closed in code, zero partial, seven open. #1245 is active.
 
 ## Issue #1241 — UX-31 node status first completed
 

@@ -4,8 +4,11 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Eye, EyeOff, RotateCcw, X } from "lucide-react";
 
 import type { Xjp60dTargetDiagnostic } from "@/hooks/use-xjp60d-sensor-management";
+import { OverviewSensorGroups } from "./overview-sensor-groups";
 
 type Props = {
+  organizationId?: string | null;
+  nodeId?: string | null;
   open: boolean;
   monitoredChannelIds: readonly string[];
   visibleChannelIds: readonly string[];
@@ -37,6 +40,8 @@ export function TemperatureVisibilityDialog(props: Props) {
 }
 
 function TemperatureVisibilityDialogContent({
+  organizationId = null,
+  nodeId = null,
   monitoredChannelIds,
   visibleChannelIds,
   targetDiagnostics,
@@ -162,8 +167,19 @@ function TemperatureVisibilityDialogContent({
               </div>
             </div>
           ) : (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {monitored.map((channelId) => {
+            <OverviewSensorGroups
+              organizationId={organizationId}
+              nodeId={nodeId}
+              channelIds={monitored}
+              selected={selected}
+              onToggleGroup={(ids) =>
+                setSelected((current) =>
+                  ids.every((id) => current.includes(id))
+                    ? current.filter((id) => !ids.includes(id))
+                    : [...new Set([...current, ...ids])].sort(compareChannels),
+                )
+              }
+              renderSensor={(channelId, label) => {
                 const checked = selected.includes(channelId);
                 return (
                   <label
@@ -182,7 +198,8 @@ function TemperatureVisibilityDialogContent({
                       className="h-4 w-4 accent-cyan-400"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-semibold text-white">{channelId}</p>
+                      <p className="text-[10px] font-semibold break-words text-white">{label}</p>
+                      {label !== channelId ? <p className="text-[9px] text-slate-400">{channelId}</p> : null}
                       <p className="mt-1 text-[8px] text-slate-500">
                         {diagnosticLabel(diagnostics.get(channelId))}
                       </p>
@@ -194,8 +211,8 @@ function TemperatureVisibilityDialogContent({
                     )}
                   </label>
                 );
-              })}
-            </div>
+              }}
+            />
           )}
         </div>
 
