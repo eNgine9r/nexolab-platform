@@ -125,7 +125,7 @@ def resolve(
     repo: Path,
     *,
     expected_deployed_source: str,
-    expected_formal_image: str,
+    expected_authority_image: str,
 ) -> dict[str, str] | None:
     repo = repo.resolve()
     state = read_json(repo / ".project" / "ACTIVE_SPRINT.json", "canonical ACTIVE_SPRINT")
@@ -157,7 +157,7 @@ def resolve(
 
     if not all(SHA_RE.fullmatch(value) for value in (deployed, compatibility, compatibility_parent, expected_deployed_source)):
         raise AuthorityFailure("layered Device Agent source identity is invalid")
-    if not all(IMAGE_RE.fullmatch(value) for value in (image, rollback_image, expected_formal_image)):
+    if not all(IMAGE_RE.fullmatch(value) for value in (image, rollback_image, expected_authority_image)):
         raise AuthorityFailure("layered Device Agent image identity is invalid")
     if deployed != expected_deployed_source:
         raise AuthorityFailure("layered Device Agent baseline does not match formal deployed source")
@@ -247,7 +247,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, required=True)
     parser.add_argument("--expected-deployed-source", required=True)
-    parser.add_argument("--expected-formal-image", required=True)
+    parser.add_argument("--expected-authority-image", required=True)
     return parser.parse_args()
 
 
@@ -257,7 +257,7 @@ def main() -> int:
         result = resolve(
             args.repo,
             expected_deployed_source=args.expected_deployed_source,
-            expected_formal_image=args.expected_formal_image,
+            expected_authority_image=args.expected_authority_image,
         )
     except AuthorityFailure as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
