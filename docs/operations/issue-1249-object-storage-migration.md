@@ -80,6 +80,8 @@ canonical deployment. It does not deploy an unreviewed feature branch.
    qualification, service activation and post-activation readiness. Canonical
    deployment requires completed cutover authority; frozen pre-cutover proof is
    accepted only by the migration wrapper and cannot authorize deployment.
+   Build other configured services separately, recheck accepted storage authority,
+   and activate with no build/no pull so the verified storage image is retained.
 
 The migration wrapper never removes a persistent volume or source object. The
 legacy MinIO volume/image remain available. Temporary candidate containers and

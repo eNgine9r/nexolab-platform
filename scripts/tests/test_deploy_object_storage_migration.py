@@ -355,6 +355,40 @@ docker() {
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('BUILD_REQUIRED', result.stdout)
 
+    def test_final_deployment_preserves_verified_preloaded_storage_image(self):
+        text = (ROOT / 'scripts/deploy-current-head-raspberry-pi.sh').read_text()
+        start = text.index('nexolab_activate_central()')
+        end = text.index('log "Starting real-hardware edge stack"', start)
+        script = '''set -e
+MIGRATION_AUTHORITY_VALIDATED=1
+CENTRAL_ENV=/unused
+CENTRAL_COMPOSE_ARGS=(-f unused)
+SCRIPT_DIR=/unused
+REPO=/unused
+TARGET_HEAD=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+docker() {
+  echo "$*" >> "$CALLS"
+  if [[ "$*" == *"config --format json"* ]]; then
+    echo \'{"services":{"minio":{"build":"storage"},"telemetry-service":{"build":"telemetry"},"extra":{"build":"extra"},"db":{"image":"postgres"}}}\'
+  fi
+}
+python3() {
+  if [[ "$1" == -c ]]; then command python3 "$@";
+  else echo PROOF_RECHECKED;
+  fi
+}
+''' + text[start:end]
+        with tempfile.TemporaryDirectory() as temp:
+            calls = Path(temp) / 'calls'
+            result = subprocess.run(['bash', '-c', 'CALLS="' + str(calls) + '"\n' + script], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            recorded = calls.read_text()
+            self.assertIn('build telemetry-service extra', recorded)
+            self.assertNotIn('build minio', recorded)
+            self.assertNotIn('--build', recorded)
+            self.assertIn('up -d --no-build --pull never --wait', recorded)
+            self.assertIn('PROOF_RECHECKED', result.stdout)
+
     def test_shell_scripts_parse_and_cli_guard_has_no_boto_dependency(self):
         for name in ("migrate-object-storage-raspberry-pi.sh", "deploy-current-head-raspberry-pi.sh"):
             result = subprocess.run(["bash", "-n", str(ROOT / "scripts" / name)], capture_output=True)

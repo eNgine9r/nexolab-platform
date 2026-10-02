@@ -1187,6 +1187,7 @@ git diff > "$AUDIT_DIR/tracked-working-tree.patch"
 git diff --cached > "$AUDIT_DIR/tracked-index.patch"
 git ls-files --others --exclude-standard > "$AUDIT_DIR/untracked-files.txt"
 
+MIGRATION_AUTHORITY_VALIDATED=0
 LEGACY_OBJECT_STORAGE_VOLUME="nexolab-central-object-storage-data"
 VERSITY_OBJECT_STORAGE_VOLUME="nexolab-central-object-storage-versitygw-data"
 if docker volume inspect "$LEGACY_OBJECT_STORAGE_VOLUME" >/dev/null 2>&1; then
@@ -1194,6 +1195,7 @@ if docker volume inspect "$LEGACY_OBJECT_STORAGE_VOLUME" >/dev/null 2>&1; then
     --manifest "$REPO/runtime/object-storage-migration/authority.json" --expected-target-source "$TARGET_HEAD"; then
     fail "legacy MinIO object-storage volume exists but the VersityGW volume is not migration-proven; use the separately approved object-storage migration/cutover procedure"
   fi
+  MIGRATION_AUTHORITY_VALIDATED=1
 fi
 
 log "Rechecking deployment capacity immediately before large evidence writes"
@@ -1823,9 +1825,31 @@ capture_edge_sqlite_snapshot
 write_durable_runtime_mutation_marker
 log "RUNTIME MUTATION STARTED: central backend activation"
 log "Starting central backend, MinIO and observability"
-docker compose --env-file "$CENTRAL_ENV" \
-  "${CENTRAL_COMPOSE_ARGS[@]}" \
-  up -d --build --wait
+# Preserve the exact accepted storage image, including a preloaded offline image.
+nexolab_activate_central() {
+  if [[ "$MIGRATION_AUTHORITY_VALIDATED" == 1 ]]; then
+    local build_services
+    local -a services=()
+    build_services="$(docker compose --env-file "$CENTRAL_ENV" \
+      "${CENTRAL_COMPOSE_ARGS[@]}" config --format json | \
+      python3 -c 'import json,sys; c=json.load(sys.stdin); print("\n".join(n for n,s in c["services"].items() if n != "minio" and s.get("build")))')" || return
+    if [[ -n "$build_services" ]]; then
+      mapfile -t services <<< "$build_services"
+      docker compose --env-file "$CENTRAL_ENV" "${CENTRAL_COMPOSE_ARGS[@]}" \
+        build "${services[@]}" || return
+    fi
+    # Recheck immutable image/runtime authority immediately before activation.
+    python3 "$SCRIPT_DIR/deploy-object-storage-migration.py" --validate-proof --require-cutover \
+      --manifest "$REPO/runtime/object-storage-migration/authority.json" \
+      --expected-target-source "$TARGET_HEAD" || return
+    docker compose --env-file "$CENTRAL_ENV" "${CENTRAL_COMPOSE_ARGS[@]}" \
+      up -d --no-build --pull never --wait
+  else
+    docker compose --env-file "$CENTRAL_ENV" "${CENTRAL_COMPOSE_ARGS[@]}" \
+      up -d --build --wait
+  fi
+}
+nexolab_activate_central
 
 log "Starting real-hardware edge stack"
 docker compose --env-file "$EDGE_ENV" \
