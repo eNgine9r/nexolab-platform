@@ -2,6 +2,10 @@
 
 Updated: 2026-10-02
 
+## Issue #1255 — version probe fix required before #1249 retry
+
+The latest #1249 actual-host attempt failed closed before target volume creation or writer freeze because the v1.8.0 multi-line version command hit SIGPIPE through quiet grep under pipefail. #1255 preserves all image identity checks but consumes the complete probe output before matching. Do not retry #1249 until #1255 exact-head CI/review is GREEN and merged. Runtime remains on legacy MinIO.
+
 ## Issue #1249 — approved storage migration awaiting actual-host acceptance
 
 #1251 / PR #1252 is merged GREEN as `3ad3fe00f4652cfc55b39c095f445d2358d5ae47`; the MinIO empty-canonical-ID source compatibility gate is cleared without weakening ACL or anonymous-access checks. #1249 now requires the already authorized ordinary Raspberry execution to perform and verify the MinIO → VersityGW migration plus controlled project update. Commander execution still cannot provide the required privileged surface. Do not create an empty destination volume or bypass the deployment guard.
