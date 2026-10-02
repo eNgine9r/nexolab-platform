@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-02T17:15:00Z",
+  "timestamp": "2026-10-02T17:25:00Z",
   "actor": "ChatGPT",
-  "event": "issue1263_offline_lineage_p2_remediation_in_review",
+  "event": "issue1263_parent_binding_and_revocation_test_fix_in_review",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -27,7 +27,8 @@
     "sdm120_production_adapter": "A10Q34QC",
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
-    "device_agent_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300"
+    "device_agent_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
+    "device_agent_compatibility_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb"
   },
   "active_work": {
     "issue": 1263,
@@ -1144,7 +1145,7 @@
       "layered_device_agent_image": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
       "layered_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
       "implementation": "checksum_bound_layered_runtime_resolver_plus_controlled_deployment_integration",
-      "exact_head_ci": "pending_after_p2_remediation",
+      "exact_head_ci": "pending_after_latest_review_remediation",
       "production_runtime_mutation_by_pr": "none",
       "persistent_data_mutation_by_pr": "none",
       "modbus_write": "none",
@@ -1157,7 +1158,9 @@
       "pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
       "runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
       "production_runtime_mutation": "none",
-      "persistent_data_mutation": "none"
+      "persistent_data_mutation": "none",
+      "canonical_compatibility_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
+      "review_parent_binding": "addressed"
     }
   },
   "observations": [
