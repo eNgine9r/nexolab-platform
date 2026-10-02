@@ -6481,7 +6481,7 @@
         "authority_binding": "tracked_active_sprint_plus_checksum_verified_runtime_evidence",
         "migration_retry": "forbidden_after_verified_cutover",
         "legacy_resume_script": "not_approved_for_this_recovery",
-        "exact_head_ci": "pending_after_parent_binding_and_test_contract_fix",
+        "exact_head_ci": "pending_final_head_after_restore_retry_fix",
         "production_runtime_mutation_by_pr": "none",
         "persistent_data_mutation_by_pr": "none",
         "modbus_write": "none",
@@ -6493,7 +6493,11 @@
         "layered_lineage_authority": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
         "compatibility_git_object_dependency": "none",
         "canonical_compatibility_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
-        "review_p1_parent_binding": "addressed_exact_parent_pinned_in_active_sprint_and_matched_to_checksum_bound_source_lineage"
+        "review_p1_parent_binding": "addressed_exact_parent_pinned_in_active_sprint_and_matched_to_checksum_bound_source_lineage",
+        "post_mutation_layered_restore_retry": "addressed_accepts_exact_verified_layered_or_formal_current_authority",
+        "formal_rollback_image_preservation": "sha256:25ba94b454ebe6dd0d22ed7501ea7368141a32507e09e181cc5b33056e1239db",
+        "restored_layered_current_image": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+        "review_p1_restore_retry": "addressed_with_unit_and_source_selection_regression"
       }
     }
   ],
