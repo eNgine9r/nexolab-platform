@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-02T13:25:00Z",
+  "timestamp": "2026-10-02T13:50:00Z",
   "actor": "ChatGPT",
-  "event": "acl_fix1251_merged_resume_object_storage1249",
+  "event": "versitygw_version_probe1255_candidate_prepared",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1249,
-    "title": "Verified object storage migration prerequisite",
-    "branch": "deploy/1249-object-storage-migration"
+    "issue": 1255,
+    "title": "VersityGW version probe SIGPIPE fix",
+    "branch": "fix/1255-versitygw-version-probe"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -1061,6 +1061,19 @@
       "persistent_data_mutation": "none",
       "modbus_write": "none",
       "hardware_write": "none"
+    },
+    "issue_1255_candidate": {
+      "installed_target": "3928a0bb88a05458cba5c0c4957e19643247a4d0",
+      "installed_failure": "write_dev_stdout_broken_pipe_then_version_rejection",
+      "failure_boundary": "before_target_volume_creation_writer_freeze_copy_or_cutover",
+      "runtime_storage": "legacy_minio_unchanged",
+      "root_cause": "grep_quiet_sigpipe_under_pipefail_on_multiline_version_output",
+      "fix": "capture_complete_probe_output_before_exact_version_match",
+      "exact_head_ci": "pending",
+      "production_runtime_mutation": "none",
+      "persistent_data_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "observations": [
@@ -1811,7 +1824,7 @@
       }
     }
   ],
-  "next_action": "Fast-forward Raspberry main after this state-only reconciliation merges, then rerun the already authorized #1249 migration wrapper and verify storage, API, telemetry, dashboard and deployed source.",
+  "next_action": "Verify #1255 exact-head CI/review; merge only GREEN; then reconcile state and retry already authorized #1249 from ordinary Raspberry terminal.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
