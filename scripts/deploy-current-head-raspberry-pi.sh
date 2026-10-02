@@ -1191,9 +1191,15 @@ git ls-files --others --exclude-standard > "$AUDIT_DIR/untracked-files.txt"
 
 LEGACY_OBJECT_STORAGE_VOLUME="nexolab-central-object-storage-data"
 VERSITY_OBJECT_STORAGE_VOLUME="nexolab-central-object-storage-versitygw-data"
-if docker volume inspect "$LEGACY_OBJECT_STORAGE_VOLUME" >/dev/null 2>&1 \
-  && ! docker volume inspect "$VERSITY_OBJECT_STORAGE_VOLUME" >/dev/null 2>&1; then
-  fail "legacy MinIO object-storage volume exists but the VersityGW volume is not migration-proven; use the separately approved object-storage migration/cutover procedure"
+if docker volume inspect "$LEGACY_OBJECT_STORAGE_VOLUME" >/dev/null 2>&1; then
+  STORAGE_CONTAINER="$(docker ps -aq --filter label=com.docker.compose.project=nexolab-central --filter label=com.docker.compose.service=minio)"
+  STORAGE_VOLUME="$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/data"}}{{.Name}}{{end}}{{end}}' "$STORAGE_CONTAINER" 2>/dev/null || true)"
+  if [[ "$STORAGE_VOLUME" != "$VERSITY_OBJECT_STORAGE_VOLUME" ]]; then
+    if ! python3 "$SCRIPT_DIR/deploy-object-storage-migration.py" --validate-proof \
+      --manifest "$REPO/runtime/object-storage-migration/authority.json" --expected-target-source "$TARGET_HEAD"; then
+      fail "legacy MinIO object-storage volume exists but the VersityGW volume is not migration-proven; use the separately approved object-storage migration/cutover procedure"
+    fi
+  fi
 fi
 
 log "Rechecking deployment capacity immediately before large evidence writes"

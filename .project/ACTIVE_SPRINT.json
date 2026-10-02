@@ -40,8 +40,12 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": null
+    "active_work_package": {
+      "issue": 1249
+    },
+    "next_work_package": {
+      "issue": 1247
+    }
   },
   "work_packages": [
     {
@@ -6333,6 +6337,23 @@
         "formal_deployed_source": "df368cfa27efa945d59de33de8268898b564a19f",
         "runtime_mutation": "none",
         "next_action": "approved_host_execution_surface_or_user_local_reviewed_deployment"
+      }
+    },
+    {
+      "issue": 1249,
+      "title": "Verified MinIO to VersityGW migration and controlled update prerequisite",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "branch": "deploy/1249-object-storage-migration",
+      "evidence": {
+        "authorization": "explicit_Product_Owner_2026_10_02",
+        "local_safety_tests": "17_passed",
+        "exact_head_ci": "pending",
+        "installed_migration": "not_executed",
+        "production_runtime_mutation": "none_candidate",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     }
   ],

@@ -2,6 +2,12 @@
 
 Updated: 2026-10-02
 
+## Issue #1249 — authorized object-storage migration prerequisite in progress
+
+The actual-host #1247 attempt `runtime/deployments/20261002T070118Z` passed source selection and capacity, then stopped before runtime activation because legacy MinIO exists and the VersityGW volume does not. Canonical retention removed historical deployment `20260917T131852Z` (3129837871 bytes); three historical Telegram evidence directories were unreadable to `du`. The Product Owner explicitly authorized #1249 migration/cutover and project update on 2026-10-02. No repeat permission request is needed for this scoped operation.
+
+Branch `deploy/1249-object-storage-migration` prepares S3 inventory/copy/resume/integrity/privacy verification, exact frozen-writer/volume/image authority, protected rollback configuration and the one-entry-point Raspberry wrapper. Storage switches under a short API write freeze; Telemetry resumes before the canonical frontend build/project deployment. Legacy volume/image are retained. Local safety tests passed; exact-head CI/review and installed migration/runtime evidence are pending. Commander `execution.start` currently returns `EXECUTION_HANDLER_FAILED`; privileged actual-host execution still requires the ordinary Raspberry terminal. No migration or storage cutover has been performed by this candidate.
+
 ## Issue #1245 — Overview hierarchy completed; #1247 Raspberry update blocked
 
 PR #1246 verified head `55f99346f216fd3707fdd547f7097d9e9beb72b4` passed both routed workflows (CI 36974663950 and Dashboard 36974663912), 1141 frontend tests / 185 files and 39 Chromium cases, including actual hierarchy/search/group keyboard/cancel/apply/reload/failure fallback at 320/390/1280 px. Zero review threads/change requests. Source acceptance complete; installed #1191 remains separate.

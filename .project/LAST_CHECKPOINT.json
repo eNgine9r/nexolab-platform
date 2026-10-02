@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-02T06:49:06.779Z",
+  "timestamp": "2026-10-02T07:28:38.510503+00:00",
   "actor": "Codex",
-  "event": "ux1245_accepted_raspberry_update_actual_host_access_blocked",
+  "event": "object_storage_migration1249_candidate_prepared",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1247,
-    "title": "Controlled Raspberry update after UX acceptance",
-    "branch": "deploy/1247-runtime-update"
+    "issue": 1249,
+    "title": "Verified object storage migration prerequisite",
+    "branch": "deploy/1249-object-storage-migration"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -997,6 +997,27 @@
       "formal_deployed_source": "df368cfa27efa945d59de33de8268898b564a19f",
       "runtime_mutation": "none",
       "next_action": "approved_host_execution_surface_or_user_local_reviewed_deployment"
+    },
+    "object_storage_migration1249": {
+      "authorization": "explicit_Product_Owner_2026_10_02",
+      "deployment_attempt": "runtime/deployments/20261002T070118Z",
+      "attempt_result": "blocked_before_runtime_activation_missing_verified_destination",
+      "retention_removed_evidence": "20260917T131852Z_3129837871_bytes",
+      "local_safety_tests": "17_passed",
+      "exact_head_ci": "pending",
+      "actual_host_storage_migration": "not_executed",
+      "commander_execution": "EXECUTION_HANDLER_FAILED",
+      "rollback_boundary": "automatic_only_before_target_application_writes_resume",
+      "scoped_storage_cutover_authorization": "explicit_Product_Owner_2026_10_02_general_repository_default_remains_deny",
+      "deployment_capacity_tests": "14_passed",
+      "source_selection_tests": "25_passed",
+      "ci_policy_tests": "194_passed_1_expected_skip",
+      "frontend_tests": "1141_passed_185_files",
+      "lint": "passed",
+      "typecheck": "passed",
+      "production_build": "passed_23_static_pages",
+      "changed_format": "passed",
+      "baseline_process_cleanup_environment_failures": "3_reproduced_on_unchanged_main_fatal_library_error_lookup_self"
     }
   },
   "observations": [
@@ -1747,7 +1768,7 @@
       }
     }
   ],
-  "next_action": "Obtain approved actual-host writable execution with required deployment privileges for #1247; Commander view is read-only and operator.shell NoNewPrivs=1 blocks sudo. Do not bypass sandbox/privilege restrictions. Source #1245 merged GREEN; no independent Ready work remains.",
+  "next_action": "Verify and review #1249 exact candidate; merge only GREEN; execute approved migration/update wrapper from ordinary Raspberry terminal, verify installed storage/API/dashboard/telemetry evidence. Do not bypass Commander privileges.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
