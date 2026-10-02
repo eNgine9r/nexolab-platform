@@ -296,6 +296,15 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
                     "baselines": {
                         "deployed_product_sha": self.base,
                         "device_agent_compatibility_source_sha": compatibility_source,
+                        "device_agent_compatibility_source_parent_sha": run(
+                            "git", "rev-parse", f"{compatibility_source}^", cwd=self.repo
+                        ).stdout.strip(),
+                        "device_agent_compatibility_base_sha": run(
+                            "git", "rev-parse", f"{compatibility_source}^", cwd=self.repo
+                        ).stdout.strip(),
+                        "device_agent_compatibility_base_parent_sha": run(
+                            "git", "rev-parse", f"{compatibility_source}^^", cwd=self.repo
+                        ).stdout.strip(),
                         "device_agent_image_id": current_image,
                         "device_agent_rollback_image_id": previous_image,
                         "device_agent_runtime_evidence": str(evidence.relative_to(self.repo)),
