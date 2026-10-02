@@ -12,7 +12,6 @@ import argparse
 import hashlib
 import json
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -22,18 +21,6 @@ IMAGE_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 class AuthorityFailure(ValueError):
     """Fail-closed layered-runtime authority error."""
-
-
-def git(repo: Path, *args: str) -> str:
-    result = subprocess.run(
-        ["git", "-C", str(repo), *args],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        raise AuthorityFailure(result.stderr.strip() or "git authority check failed")
-    return result.stdout.strip()
 
 
 def sha256_file(path: Path) -> str:
@@ -130,17 +117,6 @@ def verify_checksum_manifest(evidence: Path) -> None:
         raise AuthorityFailure("Device Agent runtime checksum manifest does not uniquely cover final-runtime.txt")
 
 
-def ancestor(repo: Path, older: str, newer: str, label: str) -> None:
-    result = subprocess.run(
-        ["git", "-C", str(repo), "merge-base", "--is-ancestor", older, newer],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        raise AuthorityFailure(label)
-
-
 def resolve(
     repo: Path,
     *,
@@ -155,6 +131,9 @@ def resolve(
 
     layered_keys = (
         "device_agent_compatibility_source_sha",
+        "device_agent_compatibility_source_parent_sha",
+        "device_agent_compatibility_base_sha",
+        "device_agent_compatibility_base_parent_sha",
         "device_agent_image_id",
         "device_agent_rollback_image_id",
         "device_agent_runtime_evidence",
@@ -167,11 +146,24 @@ def resolve(
 
     deployed = str(baselines["deployed_product_sha"])
     compatibility = str(baselines["device_agent_compatibility_source_sha"])
+    compatibility_parent = str(baselines["device_agent_compatibility_source_parent_sha"])
+    compatibility_base = str(baselines["device_agent_compatibility_base_sha"])
+    compatibility_base_parent = str(baselines["device_agent_compatibility_base_parent_sha"])
     image = str(baselines["device_agent_image_id"])
     rollback_image = str(baselines["device_agent_rollback_image_id"])
     evidence_ref = str(baselines["device_agent_runtime_evidence"])
 
-    if not all(SHA_RE.fullmatch(value) for value in (deployed, compatibility, expected_deployed_source)):
+    if not all(
+        SHA_RE.fullmatch(value)
+        for value in (
+            deployed,
+            compatibility,
+            compatibility_parent,
+            compatibility_base,
+            compatibility_base_parent,
+            expected_deployed_source,
+        )
+    ):
         raise AuthorityFailure("layered Device Agent source identity is invalid")
     if not all(IMAGE_RE.fullmatch(value) for value in (image, rollback_image, expected_formal_image)):
         raise AuthorityFailure("layered Device Agent image identity is invalid")
@@ -180,9 +172,10 @@ def resolve(
     if rollback_image != expected_formal_image:
         raise AuthorityFailure("layered Device Agent rollback image does not match formal deployment authority")
 
-    for commit in (deployed, compatibility):
-        git(repo, "cat-file", "-e", f"{commit}^{{commit}}")
-    ancestor(repo, deployed, compatibility, "Device Agent compatibility source is not a descendant of formal deployed source")
+    if compatibility_parent != compatibility_base:
+        raise AuthorityFailure("Device Agent compatibility source parent does not match recorded compatibility base")
+    if compatibility_base_parent != deployed:
+        raise AuthorityFailure("Device Agent compatibility base parent does not match formal deployed source")
 
     evidence = resolve_evidence(repo, evidence_ref)
     verify_checksum_manifest(evidence)
