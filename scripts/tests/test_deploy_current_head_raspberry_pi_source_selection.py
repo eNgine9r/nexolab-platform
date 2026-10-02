@@ -358,6 +358,7 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
                     "baselines": {
                         "deployed_product_sha": self.base,
                         "device_agent_compatibility_source_sha": compatibility_source,
+                        "device_agent_compatibility_parent_sha": parent,
                         "device_agent_image_id": current_image,
                         "device_agent_rollback_image_id": previous_image,
                         "device_agent_runtime_evidence": str(evidence.relative_to(self.repo)),
@@ -461,7 +462,7 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn(f"target={refreshed_head}", result.stdout)
         self.assertIn("deployed_device_agent_image_id=sha256:" + "6" * 64, result.stdout)
-        self.assertNotIn("device_agent_layered_source=", result.stdout)
+        self.assertIn("device_agent_layered_source=not_applicable", result.stdout)
         self.assertEqual(run("git", "rev-parse", "HEAD", cwd=self.repo).stdout.strip(), refreshed_head)
 
     def test_current_main_can_pin_exact_compatibility_runtime_authority(self) -> None:
