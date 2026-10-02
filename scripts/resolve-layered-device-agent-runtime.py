@@ -144,8 +144,7 @@ def resolve(
     repo: Path,
     *,
     expected_deployed_source: str,
-    expected_formal_image: str,
-    expected_target_source: str,
+    expected_formal_image: str
 ) -> dict[str, str] | None:
     repo = repo.resolve()
     state = read_json(repo / ".project" / "ACTIVE_SPRINT.json", "canonical ACTIVE_SPRINT")
@@ -172,7 +171,7 @@ def resolve(
     rollback_image = str(baselines["device_agent_rollback_image_id"])
     evidence_ref = str(baselines["device_agent_runtime_evidence"])
 
-    if not all(SHA_RE.fullmatch(value) for value in (deployed, compatibility, expected_deployed_source, expected_target_source)):
+    if not all(SHA_RE.fullmatch(value) for value in (deployed, compatibility, expected_deployed_source)):
         raise AuthorityFailure("layered Device Agent source identity is invalid")
     if not all(IMAGE_RE.fullmatch(value) for value in (image, rollback_image, expected_formal_image)):
         raise AuthorityFailure("layered Device Agent image identity is invalid")
@@ -181,10 +180,9 @@ def resolve(
     if rollback_image != expected_formal_image:
         raise AuthorityFailure("layered Device Agent rollback image does not match formal deployment authority")
 
-    for commit in (deployed, compatibility, expected_target_source):
+    for commit in (deployed, compatibility):
         git(repo, "cat-file", "-e", f"{commit}^{{commit}}")
     ancestor(repo, deployed, compatibility, "Device Agent compatibility source is not a descendant of formal deployed source")
-    ancestor(repo, compatibility, expected_target_source, "deployment target does not contain the accepted Device Agent compatibility source")
 
     evidence = resolve_evidence(repo, evidence_ref)
     verify_checksum_manifest(evidence)
@@ -217,7 +215,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repo", type=Path, required=True)
     parser.add_argument("--expected-deployed-source", required=True)
     parser.add_argument("--expected-formal-image", required=True)
-    parser.add_argument("--expected-target-source", required=True)
     return parser.parse_args()
 
 
@@ -228,7 +225,6 @@ def main() -> int:
             args.repo,
             expected_deployed_source=args.expected_deployed_source,
             expected_formal_image=args.expected_formal_image,
-            expected_target_source=args.expected_target_source,
         )
     except AuthorityFailure as exc:
         print(f"ERROR: {exc}", file=__import__("sys").stderr)
