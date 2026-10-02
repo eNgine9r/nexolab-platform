@@ -2,11 +2,11 @@
 
 Updated: 2026-10-02
 
-## Issue #1251 — MinIO ACL compatibility candidate verified; merge pending
+## Issue #1251 — MinIO ACL compatibility fix completed
 
-The approved #1249 actual-host retry synchronized Raspberry main to `fa9fc82ada84f680f7c57a7f0cc60b5e5071962e` and passed historical source selection, then failed closed before Telemetry freeze, object copy or storage cutover with `Migration failed closed: cannot establish private owner-only ACL`. Runtime storage remained legacy MinIO and no production data or hardware was mutated.
+PR #1252 final head `55c5f35ab7e4a2fe1f1aabee732f701045919260` passed exact-head Quality and build plus NEXOLAB Merge Gate after both P2 review findings were addressed: lifecycle stayed in review until verification existed, and #1251 was made independent of downstream #1249. Squash merge `3ad3fe00f4652cfc55b39c095f445d2358d5ae47` closed #1251.
 
-PR #1252 fixes the MinIO-compatible empty canonical owner/grantee ID representation without weakening the privacy gate: ID fields must be explicitly present strings, all grants must remain `CanonicalUser` + `FULL_CONTROL` with IDs matching the owner, and group/public, mixed-ID, missing-ID and non-FULL_CONTROL grants remain rejected. Existing anonymous bucket/object denial checks remain mandatory. Candidate head `48995143e4dbf390b50b316e050e1680dfec0d10` passed migration-safety, formatting, lint, typecheck, full tests, production build and Merge Gate, but review correctly requires lifecycle to remain `review` until the final exact-head evidence exists. Merge and completion state are still pending.
+The fix accepts MinIO's explicitly present empty canonical owner/grantee IDs only when every grant remains `CanonicalUser` + `FULL_CONTROL` with an ID exactly matching the owner. Group/public, mixed-ID, missing-ID and non-FULL_CONTROL grants remain rejected, and anonymous bucket/object denial checks remain mandatory. The preceding actual-host attempt failed closed before Telemetry freeze, object copy or storage cutover; runtime storage therefore remained legacy MinIO. #1249 installed acceptance is now the active Work Package.
 
 ## Issue #1249 — authorized object-storage migration prerequisite in progress
 
