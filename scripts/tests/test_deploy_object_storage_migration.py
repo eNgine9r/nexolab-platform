@@ -247,23 +247,23 @@ class MigrationTests(unittest.TestCase):
     def test_minio_dummy_private_acl_missing_id_rejects_alternate_identity_shapes(self):
         invalid = (
             (
-                {"Owner": {"ID": "owner"}},
+                {"ID": "owner"},
                 {"Grantee": {"Type": "CanonicalUser"}, "Permission": "FULL_CONTROL"},
             ),
             (
-                {"Owner": {"ID": ""}},
+                {"ID": ""},
                 {"Grantee": {"Type": "CanonicalUser", "URI": "http://acs.amazonaws.com/groups/global/AllUsers"}, "Permission": "FULL_CONTROL"},
             ),
             (
-                {"Owner": {"ID": ""}},
+                {"ID": ""},
                 {"Grantee": {"Type": "CanonicalUser", "EmailAddress": "user@example.invalid"}, "Permission": "FULL_CONTROL"},
             ),
             (
-                {"Owner": {"ID": ""}},
+                {"ID": ""},
                 {"Grantee": {"Type": "CanonicalUser"}, "Permission": "READ"},
             ),
             (
-                {"Owner": {"ID": ""}},
+                {"ID": ""},
                 {"Grantee": {"Type": "Group"}, "Permission": "FULL_CONTROL"},
             ),
         )
