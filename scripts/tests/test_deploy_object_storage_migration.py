@@ -6,6 +6,7 @@ import io
 import json
 import subprocess
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -314,6 +315,45 @@ docker() { return 1; }
             result = subprocess.run(["python3", str(ROOT / "scripts/deploy-object-storage-migration.py"), "--validate-proof", "--manifest", str(path), "--expected-target-source", self.sha], capture_output=True, text=True)
             self.assertEqual(result.returncode, 1)
             self.assertNotIn("ModuleNotFoundError", result.stderr)
+
+
+class SharedLockTests(unittest.TestCase):
+    def test_inherited_canonical_lock_works_but_independent_operation_is_blocked(self):
+        library = ROOT / 'scripts/lib/deployment-lock.sh'
+        with tempfile.TemporaryDirectory() as temp:
+            lock = Path(temp) / 'canonical.lock'
+            ready = Path(temp) / 'ready'
+            holder_script = f'''set -e
+source "{library}"
+nexolab_acquire_deployment_lock "{lock}"
+export NEXOLAB_INHERITED_DEPLOYMENT_LOCK_FD=9
+bash -c 'source "{library}"; nexolab_acquire_deployment_lock "{lock}"; echo CHILD_VALIDATED'
+touch "{ready}"
+read -r _
+'''
+            holder = subprocess.Popen(['bash', '-c', holder_script], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            try:
+                deadline = time.monotonic() + 3
+                while not ready.exists() and holder.poll() is None and time.monotonic() < deadline:
+                    time.sleep(.01)
+                self.assertTrue(ready.exists())
+                independent = subprocess.run(['bash', '-c', f'source "{library}"; nexolab_acquire_deployment_lock "{lock}"'], capture_output=True, text=True)
+                self.assertEqual(independent.returncode, 75)
+                stdout, stderr = holder.communicate('release\n', timeout=3)
+                self.assertEqual(holder.returncode, 0, stderr)
+                self.assertIn('CHILD_VALIDATED', stdout)
+                after = subprocess.run(['bash', '-c', f'source "{library}"; nexolab_acquire_deployment_lock "{lock}"'], capture_output=True, text=True)
+                self.assertEqual(after.returncode, 0, after.stderr)
+            finally:
+                if holder.poll() is None:
+                    holder.kill()
+                    holder.communicate()
+
+    def test_claimed_inheritance_without_correct_descriptor_fails_closed(self):
+        library = ROOT / 'scripts/lib/deployment-lock.sh'
+        with tempfile.TemporaryDirectory() as temp:
+            result = subprocess.run(['bash', '-c', f'export NEXOLAB_INHERITED_DEPLOYMENT_LOCK_FD=9; source "{library}"; nexolab_acquire_deployment_lock "{temp}/canonical.lock"'], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 64)
 
 
 if __name__ == "__main__":

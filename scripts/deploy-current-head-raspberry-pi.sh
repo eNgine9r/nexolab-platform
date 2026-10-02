@@ -11,6 +11,8 @@ source "$SCRIPT_DIR/deploy-capacity-guard.sh"
 source "$SCRIPT_DIR/lib/raspberry-pi-frontend-release.sh"
 # shellcheck source=lib/frontend-candidate-liveness.sh
 source "$SCRIPT_DIR/lib/frontend-candidate-liveness.sh"
+# shellcheck source=lib/deployment-lock.sh
+source "$SCRIPT_DIR/lib/deployment-lock.sh"
 
 usage() {
   cat <<'USAGE'
@@ -345,11 +347,7 @@ EDGE_COMPOSE_ARGS=(
 )
 
 mkdir -p "$AUDIT_DIR"
-exec 9>"$LOCK_FILE"
-if ! flock -n 9; then
-  echo "ERROR: another NEXOLAB deployment is already running." >&2
-  exit 75
-fi
+nexolab_acquire_deployment_lock "$LOCK_FILE" || exit $?
 
 log() {
   printf '[%s] %s\n' "$(date --iso-8601=seconds)" "$*" | tee -a "$SUMMARY"

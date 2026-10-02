@@ -15,6 +15,11 @@ TARGET="$(git rev-parse HEAD)"
 sudo -n true
 exec 8>"${XDG_RUNTIME_DIR:-/tmp}/nexolab-object-storage-migration.lock"
 flock -n 8 || { echo 'Another migration is running' >&2; exit 75; }
+source scripts/lib/deployment-lock.sh
+nexolab_acquire_deployment_lock "${XDG_RUNTIME_DIR:-/tmp}/nexolab-current-head-launch.lock"
+export NEXOLAB_INHERITED_DEPLOYMENT_LOCK_FD=9
+# Both child deployment calls reuse this actual held descriptor; independently
+# started deployment/recovery processes cannot enter the mutation window.
 bash scripts/deploy-current-head-raspberry-pi.sh --runtime-mode lan \
   --source-ref "$TARGET" --expected-deployed-source "$EXPECTED" --source-selection-check-only
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
