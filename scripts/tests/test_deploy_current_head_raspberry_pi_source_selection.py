@@ -375,6 +375,32 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("requested source is not contained in current main history", result.stdout + result.stderr)
 
+    def test_source_selection_resolves_layered_state_after_fetching_fresh_main(self) -> None:
+        compatibility = self._create_layered_compatibility_fork()
+        self._set_layered_device_agent_baseline(compatibility_source=compatibility)
+        state = self.repo / ".project" / "ACTIVE_SPRINT.json"
+        self.assertEqual(run("git", "add", str(state.relative_to(self.repo)), cwd=self.repo).returncode, 0)
+        self.assertEqual(run("git", "commit", "-m", "record layered state", cwd=self.repo).returncode, 0)
+        layered_head = run("git", "rev-parse", "HEAD", cwd=self.repo).stdout.strip()
+        self.assertEqual(run("git", "push", "origin", "main", cwd=self.repo).returncode, 0)
+
+        state.write_text(
+            json.dumps({"schema_version": 2, "baselines": {"deployed_product_sha": self.base}}) + "\n",
+            encoding="utf-8",
+        )
+        self.assertEqual(run("git", "add", str(state.relative_to(self.repo)), cwd=self.repo).returncode, 0)
+        self.assertEqual(run("git", "commit", "-m", "revoke layered state", cwd=self.repo).returncode, 0)
+        refreshed_head = run("git", "rev-parse", "HEAD", cwd=self.repo).stdout.strip()
+        self.assertEqual(run("git", "push", "origin", "main", cwd=self.repo).returncode, 0)
+
+        self.assertEqual(run("git", "reset", "--hard", layered_head, cwd=self.repo).returncode, 0)
+        result = self._validate_current_main(self.base)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(f"target={refreshed_head}", result.stdout)
+        self.assertIn("deployed_device_agent_image_id=sha256:" + "6" * 64, result.stdout)
+        self.assertNotIn("device_agent_layered_source=", result.stdout)
+        self.assertEqual(run("git", "rev-parse", "HEAD", cwd=self.repo).stdout.strip(), refreshed_head)
+
     def test_current_main_can_pin_exact_compatibility_runtime_authority(self) -> None:
         authority = self._set_compatibility_authority_evidence("20260829T010000Z")
         result = self._validate_current_main(self.target)
