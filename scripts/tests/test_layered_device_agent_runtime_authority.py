@@ -126,10 +126,27 @@ class LayeredDeviceAgentRuntimeAuthorityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not a descendant"):
             self.resolve()
 
-    def test_rejects_partially_configured_state(self) -> None:
+    def test_absent_layered_baseline_allows_formal_runtime_only(self) -> None:
         project = self.repo / ".project"
         (project / "ACTIVE_SPRINT.json").write_text(
             json.dumps({"schema_version": 2, "baselines": {"deployed_product_sha": self.formal}}) + "\n",
+            encoding="utf-8",
+        )
+        self.assertIsNone(self.resolve())
+
+    def test_rejects_partially_configured_layered_state(self) -> None:
+        project = self.repo / ".project"
+        (project / "ACTIVE_SPRINT.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 2,
+                    "baselines": {
+                        "deployed_product_sha": self.formal,
+                        "device_agent_image_id": CURRENT_IMAGE,
+                    },
+                }
+            )
+            + "\n",
             encoding="utf-8",
         )
         with self.assertRaisesRegex(ValueError, "partially configured"):
