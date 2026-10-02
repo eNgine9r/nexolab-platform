@@ -92,6 +92,33 @@ legacy MinIO volume/image remain available. Temporary candidate containers and
 temporary credential env files are removed; protected evidence and rollback
 configuration remain under ignored `runtime/object-storage-migration`.
 
+## Post-cutover application deployment recovery
+
+Once `runtime/object-storage-migration/authority.json` has
+`status=verified` and `cutover_verified=true`, and Telemetry writes have been
+resumed against VersityGW, the storage migration is complete even if the later
+application deployment fails.
+
+At that boundary:
+
+- **do not rerun** `migrate-object-storage-raspberry-pi.sh`; the active storage
+  service is no longer the legacy MinIO source expected by that wrapper;
+- **do not automatically restore MinIO**; post-cutover uploads may exist only in
+  VersityGW and must not be orphaned from PostgreSQL metadata;
+- preserve both storage volumes/images and the protected migration authority;
+- do not use the legacy `resume-current-head-raspberry-pi.sh` as a shortcut
+  around current deployment guards;
+- after any source fix has merged GREEN, continue only through
+  `deploy-current-head-raspberry-pi.sh`. Its storage guard accepts the verified
+  migration source itself or a Git descendant only when the retained target
+  image/volume and live VersityGW service still match the published authority.
+
+The current controlled deployment also supports a separately accepted layered
+Device Agent runtime only through canonical tracked Sprint baselines plus
+checksum-protected runtime evidence. That authority never comes from the live
+container alone and does not weaken image, source-lineage, edge-SQLite or
+hardware-write guards.
+
 ## Failure and rollback boundaries
 
 Before storage switching, failure restarts only the unchanged frozen Telemetry
