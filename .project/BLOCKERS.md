@@ -2,6 +2,10 @@
 
 Updated: 2026-10-02
 
+## Issue #1251 — final exact-head verification and merge pending
+
+The MinIO empty-canonical-ID compatibility fix is implemented in PR #1252 and the prior candidate head passed the full quality matrix. A P2 review correctly identified that canonical state must not mark the Work Package completed before exact-head evidence exists. The state is therefore kept in `review`; do not retry #1249 until the corrected final head is GREEN and #1252 is merged.
+
 ## Issue #1249 — approved storage migration awaiting actual-host acceptance
 
 #1247 remains blocked by the missing verified MinIO → VersityGW installed migration. #1251 / PR #1252 closes the MinIO empty-canonical-ID source compatibility defect without weakening public/custom ACL rejection or anonymous-access checks. After #1252 merges GREEN, ordinary Raspberry execution is required to retry #1249; Commander execution still returns `EXECUTION_HANDLER_FAILED`. Do not create an empty destination volume or bypass the deployment guard.

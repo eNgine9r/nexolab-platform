@@ -41,10 +41,10 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1249
+      "issue": 1251
     },
     "next_work_package": {
-      "issue": 1247
+      "issue": 1249
     }
   },
   "work_packages": [
@@ -6363,7 +6363,7 @@
       "issue": 1251,
       "title": "Fix MinIO empty canonical owner IDs in object-storage migration ACL gate",
       "priority": "critical",
-      "lifecycle": "completed",
+      "lifecycle": "review",
       "depends_on": [
         1249
       ],
@@ -6377,7 +6377,7 @@
         "code_fix": "accept_explicit_empty_minio_canonical_ids_only_with_same_id_canonicaluser_full_control",
         "public_custom_acl_rejection": "preserved",
         "anonymous_bucket_object_denial": "preserved",
-        "exact_head_ci": "pending",
+        "exact_head_ci": "pending_after_state_review_correction",
         "production_runtime_mutation": "none",
         "persistent_data_mutation": "none",
         "modbus_write": "none",
@@ -6386,7 +6386,10 @@
         "focused_migration_safety": "passed_on_candidate_head",
         "format_lint_typecheck_tests_build": "required_green_on_final_head_before_merge",
         "merge_gate": "required_green_on_final_head_before_merge",
-        "next_action": "merge_pr1252_then_retry_authorized_issue1249_on_actual_raspberry"
+        "next_action": "verify_corrected_final_head_then_merge_pr1252",
+        "verified_candidate_head": "48995143e4dbf390b50b316e050e1680dfec0d10",
+        "candidate_quality": "migration_safety_format_lint_typecheck_tests_build_merge_gate_green",
+        "review_feedback": "P2_keep_review_until_exact_head_completion_evidence"
       }
     }
   ],
