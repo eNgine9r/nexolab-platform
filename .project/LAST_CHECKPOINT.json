@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-02T06:37:17.620781+00:00",
+  "timestamp": "2026-10-02T06:49:06.779Z",
   "actor": "Codex",
-  "event": "ux1245_publication_and_post_completion_raspberry_update_authorized",
+  "event": "ux1245_accepted_raspberry_update_actual_host_access_blocked",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -29,9 +29,9 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "active_work": {
-    "issue": 1245,
-    "title": "UX-10 Overview camera device sensor hierarchy",
-    "branch": "fix/1245-overview-sensor-hierarchy"
+    "issue": 1247,
+    "title": "Controlled Raspberry update after UX acceptance",
+    "branch": "deploy/1247-runtime-update"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -231,7 +231,7 @@
         "pointer_events": 1200,
         "cursor_callbacks": 1200,
         "median_ms": 248.6,
-        "p95_ms": 351.0
+        "p95_ms": 351
       },
       "candidate_arm64_hover": {
         "pointer_events": 1200,
@@ -241,7 +241,7 @@
         "p95_ms": 294.7
       },
       "median_improvement_percent": 20.9,
-      "p95_improvement_percent": 16.0,
+      "p95_improvement_percent": 16,
       "focused_adapter_tests": "12_passed",
       "broader_chart_regressions": "74_passed_16_files",
       "typescript_no_emit": "success_local",
@@ -973,6 +973,30 @@
       "full_frontend_suite": "1141_passed_185_files",
       "lint_staged_regressions": "5_contracts_passed",
       "raspberry_update_authorization": "explicit_user_request_in_chat_2026_10_02_after_completion_repository_safety_flag_remains_policy_default"
+    },
+    "completed_ux1245": {
+      "verified_head_sha": "55f99346f216fd3707fdd547f7097d9e9beb72b4",
+      "pull_request": 1246,
+      "exact_head_ci": "2_of_2_green",
+      "core_ci": "success:36974663950",
+      "dashboard": "success:36974663912",
+      "frontend_tests": "1141_passed_185_files",
+      "browser": "39_passed_including_hierarchy_320_390_1280",
+      "reviews": "zero_threads_zero_change_requests",
+      "installed_acceptance": "separate_1191",
+      "production_change": "none"
+    },
+    "raspberry_update1247": {
+      "authorization": "explicit_user_request_2026_10_02",
+      "read_only_preflight": "dashboard_API_database_MQTT_device_agent_healthy_current_samples_queue_0_123GiB_free_adapter_0133F090_present",
+      "blockers": [
+        "Commander_operator_shell_NoNewPrivs_1_sudo_unavailable",
+        "installed_control_checkout_read_only_FETCH_HEAD_EROFS"
+      ],
+      "installed_frontend": "7db6c8c34c7c94874afe2a3301a2209585795744",
+      "formal_deployed_source": "df368cfa27efa945d59de33de8268898b564a19f",
+      "runtime_mutation": "none",
+      "next_action": "approved_host_execution_surface_or_user_local_reviewed_deployment"
     }
   },
   "observations": [
@@ -1723,7 +1747,7 @@
       }
     }
   ],
-  "next_action": "Publish #1245, verify exact-head CI/browser/review and merge only GREEN; then prepare and execute approved controlled Raspberry project update with preflight, backup and rollback evidence. Modbus/hardware writes remain forbidden.",
+  "next_action": "Obtain approved actual-host writable execution with required deployment privileges for #1247; Commander view is read-only and operator.shell NoNewPrivs=1 blocks sudo. Do not bypass sandbox/privilege restrictions. Source #1245 merged GREEN; no independent Ready work remains.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

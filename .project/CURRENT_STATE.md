@@ -2,7 +2,13 @@
 
 Updated: 2026-10-02
 
-## Issue #1245 — UX-10 Overview hierarchy candidate
+## Issue #1245 — Overview hierarchy completed; #1247 Raspberry update blocked
+
+PR #1246 verified head `55f99346f216fd3707fdd547f7097d9e9beb72b4` passed both routed workflows (CI 36974663950 and Dashboard 36974663912), 1141 frontend tests / 185 files and 39 Chromium cases, including actual hierarchy/search/group keyboard/cancel/apply/reload/failure fallback at 320/390/1280 px. Zero review threads/change requests. Source acceptance complete; installed #1191 remains separate.
+
+Product Owner explicitly authorized Raspberry update after completion. Read-only host preflight confirmed dashboard active at frontend source `7db6c8c34c7c94874afe2a3301a2209585795744`, API/database/MQTT ready, Device Agent ok/current samples/queue 0, 123 GiB free and stable adapter 0133F090 present. Actual controlled activation is blocked: Commander shell `NoNewPrivs=1` prevents sudo, and installed checkout writes fail with `Read-only file system` for `.git/FETCH_HEAD`. No runtime/production/hardware mutation or policy workaround occurred. #1247 requires an approved writable actual-host execution surface with deployment privileges or user-local execution. No independent Ready source package remains.
+
+## Previous #1245 candidate evidence
 
 The open Overview dialog reads the verified organization's climate catalog and groups actual transport-node/source-channel/device matches by camera and device. Search and mixed group checkboxes edit only pending display choices; existing Apply, cancel, keyboard focus and local visibility memory remain. Failed, ambiguous or mismatched metadata keeps exact raw channels selectable. Reads are abortable and at most two concurrent; no monitoring enrollment or hardware action. 19 focused tests, typecheck, touched lint/format, diff check and production build (23 static pages) passed. Production browser and review are pending. Local execution recovered on 2026-10-02; replacing the local dependency symlink with a copy resolved Turbopack filesystem-root rejection without changing project configuration.
 
