@@ -262,6 +262,7 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         compatibility_source = compatibility_source or self.target
         current_image = current_image or "sha256:" + "8" * 64
         previous_image = previous_image or "sha256:" + "6" * 64
+
         evidence = self.repo / "runtime" / "evidence" / "layered-device-agent"
         evidence.mkdir(parents=True, exist_ok=True)
         facts = {
@@ -287,6 +288,67 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
             for path in (final_runtime, proof)
         ]
         (evidence / "SHA256SUMS").write_text("\n".join(rows) + "\n", encoding="utf-8")
+
+        pre_cutover = self.repo / "runtime" / "evidence" / "layered-device-agent-precutover"
+        pre_cutover.mkdir(parents=True, exist_ok=True)
+        parent = run("git", "rev-parse", f"{compatibility_source}^", cwd=self.repo).stdout.strip()
+        (pre_cutover / "source-lineage.txt").write_text(
+            "\n".join(
+                (
+                    "status=PASS",
+                    f"formal_deployed_product_sha={self.base}",
+                    f"candidate_compatibility_source_sha={compatibility_source}",
+                    f"candidate_parent_sha={parent}",
+                    "package_manifest_identity=PASS",
+                    "accepted_identity_mismatches=0",
+                    "release_ci=PASS",
+                )
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        (pre_cutover / "candidate-device-agent.txt").write_text(
+            "\n".join(
+                (
+                    "status=PASS",
+                    f"source_sha={compatibility_source}",
+                    f"image_id={current_image}",
+                    "platform=linux/arm64",
+                )
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        (pre_cutover / "rollback-authority.txt").write_text(
+            "\n".join(
+                (
+                    "status=READY",
+                    f"current_device_agent_image_id={previous_image}",
+                    "active_env_mutated=false",
+                    "dashboard_mutated=false",
+                    "device_agent_mutated=false",
+                    "telemetry_mutated=false",
+                    "postgres_mutated=false",
+                    "mqtt_mutated=false",
+                    "modbus_write=none",
+                    "hardware_write=none",
+                    "persistent_data_deletion=none",
+                    "named_volume_deletion=none",
+                )
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        pre_rows = [
+            f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path}"
+            for path in (
+                pre_cutover / "source-lineage.txt",
+                pre_cutover / "candidate-device-agent.txt",
+                pre_cutover / "rollback-authority.txt",
+            )
+        ]
+        (pre_cutover / "SHA256SUMS").write_text("\n".join(pre_rows) + "\n", encoding="utf-8")
+
         project = self.repo / ".project"
         project.mkdir(exist_ok=True)
         (project / "ACTIVE_SPRINT.json").write_text(
@@ -296,18 +358,10 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
                     "baselines": {
                         "deployed_product_sha": self.base,
                         "device_agent_compatibility_source_sha": compatibility_source,
-                        "device_agent_compatibility_source_parent_sha": run(
-                            "git", "rev-parse", f"{compatibility_source}^", cwd=self.repo
-                        ).stdout.strip(),
-                        "device_agent_compatibility_base_sha": run(
-                            "git", "rev-parse", f"{compatibility_source}^", cwd=self.repo
-                        ).stdout.strip(),
-                        "device_agent_compatibility_base_parent_sha": run(
-                            "git", "rev-parse", f"{compatibility_source}^^", cwd=self.repo
-                        ).stdout.strip(),
                         "device_agent_image_id": current_image,
                         "device_agent_rollback_image_id": previous_image,
                         "device_agent_runtime_evidence": str(evidence.relative_to(self.repo)),
+                        "device_agent_pre_cutover_evidence": str(pre_cutover.relative_to(self.repo)),
                     },
                 }
             )
