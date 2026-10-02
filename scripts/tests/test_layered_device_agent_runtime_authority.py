@@ -168,11 +168,11 @@ class LayeredDeviceAgentRuntimeAuthorityTests(unittest.TestCase):
         (self.runtime_evidence / "proof.txt").write_text("accepted\n", encoding="utf-8")
         self.write_manifest(self.runtime_evidence, ("final-runtime.txt", "proof.txt"))
 
-    def resolve(self):
+    def resolve(self, authoritative_image: str = FORMAL_IMAGE):
         return M.resolve(
             self.repo,
             expected_deployed_source=self.formal,
-            expected_formal_image=FORMAL_IMAGE,
+            expected_formal_image=authoritative_image,
         )
 
     def test_accepts_checksum_bound_layered_runtime(self) -> None:
@@ -180,6 +180,7 @@ class LayeredDeviceAgentRuntimeAuthorityTests(unittest.TestCase):
         self.assertEqual(result["compatibility_source"], self.compatibility)
         self.assertEqual(result["device_agent_image_id"], CURRENT_IMAGE)
         self.assertEqual(result["device_agent_previous_image_id"], FORMAL_IMAGE)
+        self.assertEqual(result["formal_device_agent_image_id"], FORMAL_IMAGE)
         self.assertEqual(result["runtime_evidence"], str(self.runtime_evidence.relative_to(self.repo)))
         self.assertEqual(result["pre_cutover_evidence"], str(self.pre_cutover.relative_to(self.repo)))
 
@@ -198,9 +199,18 @@ class LayeredDeviceAgentRuntimeAuthorityTests(unittest.TestCase):
         result = self.resolve()
         self.assertEqual(result["compatibility_source"], offline_source)
 
-    def test_rejects_formal_image_mismatch(self) -> None:
+    def test_accepts_verified_layered_image_as_restored_current_authority(self) -> None:
+        result = self.resolve(CURRENT_IMAGE)
+        self.assertEqual(result["device_agent_image_id"], CURRENT_IMAGE)
+        self.assertEqual(result["formal_device_agent_image_id"], FORMAL_IMAGE)
+
+    def test_rejects_unknown_current_image_authority(self) -> None:
+        with self.assertRaisesRegex(ValueError, "neither formal rollback nor verified layered runtime"):
+            self.resolve("sha256:" + "7" * 64)
+
+    def test_rejects_state_rollback_image_mismatch(self) -> None:
         self.write_state(device_agent_rollback_image_id="sha256:" + "7" * 64)
-        with self.assertRaisesRegex(ValueError, "rollback image"):
+        with self.assertRaisesRegex(ValueError, "neither formal rollback nor verified layered runtime"):
             self.resolve()
 
     def test_rejects_runtime_safety_mismatch(self) -> None:
