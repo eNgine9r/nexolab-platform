@@ -13,6 +13,7 @@ import hashlib
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -227,7 +228,7 @@ def main() -> int:
             expected_formal_image=args.expected_formal_image,
         )
     except AuthorityFailure as exc:
-        print(f"ERROR: {exc}", file=__import__("sys").stderr)
+        print(f"ERROR: {exc}", file=sys.stderr)
         return 1
     if result is None:
         print("configured=false")
