@@ -2,6 +2,10 @@
 
 Updated: 2026-10-02
 
+## Issue #1251 — source fix required before #1249 retry
+
+The 2026-10-02 actual-host #1249 retry stopped before writer freeze/copy/cutover because the ACL validator rejected MinIO's empty canonical owner ID representation. #1251 is the bounded compatibility fix. Do not rerun migration until #1251 exact-head CI/review is GREEN and merged. Runtime remains on legacy MinIO; no storage cutover or hardware write occurred.
+
 ## Issue #1249 — approved storage migration awaiting source and actual-host acceptance
 
 #1247 is blocked by the missing verified MinIO → VersityGW migration. #1249 is authorized and in progress; the candidate preserves legacy data and fails closed on incomplete integrity/security evidence. Source tests are not installed acceptance. Exact-head CI/review and ordinary Raspberry execution are required before actual migration; Commander execution currently returns `EXECUTION_HANDLER_FAILED`. Do not create an empty destination volume to bypass the deployment guard.
