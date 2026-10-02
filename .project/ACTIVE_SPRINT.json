@@ -41,10 +41,10 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1249
+      "issue": 1251
     },
     "next_work_package": {
-      "issue": 1247
+      "issue": 1249
     }
   },
   "work_packages": [
@@ -6357,6 +6357,31 @@
         "review_remediation": "required_authority_for_active_target_and_rollback_closed_before_writer_start",
         "shared_lock": "migration_deployment_and_resume_serialized_with_verified_inherited_descriptor",
         "source_pin": "abort_before_migration_if_preflight_changed_checkout"
+      }
+    },
+    {
+      "issue": 1251,
+      "title": "Fix MinIO empty canonical owner IDs in object-storage migration ACL gate",
+      "priority": "critical",
+      "lifecycle": "review",
+      "depends_on": [
+        1249
+      ],
+      "branch": "fix/1251-minio-empty-canonical-acl",
+      "evidence": {
+        "installed_attempt": "runtime/deployments/20261002T112539Z",
+        "installed_result": "failed_closed_before_writer_freeze_or_storage_cutover",
+        "failure": "cannot_establish_private_owner_only_acl",
+        "target_main": "fa9fc82ada84f680f7c57a7f0cc60b5e5071962e",
+        "runtime_storage": "legacy_minio_unchanged",
+        "code_fix": "accept_explicit_empty_minio_canonical_ids_only_with_same_id_canonicaluser_full_control",
+        "public_custom_acl_rejection": "preserved",
+        "anonymous_bucket_object_denial": "preserved",
+        "exact_head_ci": "pending",
+        "production_runtime_mutation": "none",
+        "persistent_data_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     }
   ],
