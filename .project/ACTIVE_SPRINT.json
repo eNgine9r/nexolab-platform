@@ -37,7 +37,10 @@
     "sdm120_production_bus_id": "rs485-sdm120",
     "sdm120_production_adapter": "A10Q34QC",
     "sdm120_production_unit_id": 1,
-    "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
+    "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+    "device_agent_compatibility_source_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
+    "device_agent_compatibility_base_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
+    "device_agent_compatibility_base_parent_sha": "df368cfa27efa945d59de33de8268898b564a19f"
   },
   "selection": {
     "active_work_package": {
@@ -6483,7 +6486,13 @@
         "production_runtime_mutation_by_pr": "none",
         "persistent_data_mutation_by_pr": "none",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "durable_compatibility_lineage": "df368cfa27efa945d59de33de8268898b564a19f->2296e3070cbebff687418cf1ac161984086bebdb->7db6c8c34c7c94874afe2a3301a2209585795744",
+        "compatibility_source_parent": "2296e3070cbebff687418cf1ac161984086bebdb",
+        "compatibility_base_parent": "df368cfa27efa945d59de33de8268898b564a19f",
+        "local_git_object_dependency": "removed",
+        "stale_state_after_fetch_review_p1": "addressed",
+        "unreferenced_fork_review_p2": "addressed_with_tracked_offline_lineage"
       }
     }
   ],
