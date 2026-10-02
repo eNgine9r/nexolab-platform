@@ -931,7 +931,7 @@ PY_EVIDENCE
     || VERIFIED_DEPLOYED_COMPATIBILITY_TARGET=""
   VERIFIED_DEPLOYED_SOURCE="$evidence_commit"
 
-  if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]]; then
+  if [[ -n "$VERIFIED_DEPLOYED_DEVICE_AGENT_IMAGE_ID" && -f "$REPO/.project/ACTIVE_SPRINT.json" ]]; then
     local layered_device_agent_authority
     if ! layered_device_agent_authority="$(
       python3 "$SCRIPT_DIR/resolve-layered-device-agent-runtime.py" \
