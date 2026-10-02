@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-02T17:25:00Z",
+  "timestamp": "2026-10-02T17:35:00Z",
   "actor": "ChatGPT",
-  "event": "issue1263_parent_binding_and_revocation_test_fix_in_review",
+  "event": "issue1263_layered_restore_retry_remediation_ready_for_final_ci",
   "baselines": {
     "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
     "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
@@ -1160,7 +1160,13 @@
       "production_runtime_mutation": "none",
       "persistent_data_mutation": "none",
       "canonical_compatibility_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb",
-      "review_parent_binding": "addressed"
+      "review_parent_binding": "addressed",
+      "post_mutation_restore_retry": "verified_layered_current_image_or_formal_rollback_image_only",
+      "formal_rollback_image": "sha256:25ba94b454ebe6dd0d22ed7501ea7368141a32507e09e181cc5b33056e1239db",
+      "layered_current_image": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+      "source_selection_regression": "added_retry_after_layered_sqlite_restore",
+      "review_p1_restore_retry": "addressed",
+      "final_exact_head_ci": "pending"
     }
   },
   "observations": [
@@ -1911,7 +1917,7 @@
       }
     }
   ],
-  "next_action": "Wait for #1263 exact-head CI/review after durable offline lineage remediation; merge only GREEN, reconcile state, then retry only canonical controlled application deployment. Do not rerun storage migration.",
+  "next_action": "Require final exact-head Quality/build, Telemetry service and NEXOLAB Merge Gate GREEN with zero unresolved review threads; then merge #1264, reconcile state, and retry only canonical application deployment against existing verified VersityGW authority.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
