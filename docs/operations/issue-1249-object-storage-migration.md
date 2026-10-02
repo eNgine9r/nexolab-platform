@@ -141,3 +141,12 @@ Continue with the existing verified offline bundle/version-manager procedure.
 It does not run the networked current-head build/deployment or claim installed
 application update acceptance. Do not treat a cached ref as proof of current
 remote freshness or use a feature-branch SHA.
+
+Offline bundles package the same stdlib authority validator and shared deployment
+lock. The installer requires completed cutover proof whenever legacy storage
+exists, checks the proposed bundle storage image against the accepted image,
+and excludes concurrent migration/deployment before any activation. Supply
+`--object-storage-migration-authority PATH` if evidence is outside the installed
+repository's default runtime path. Bundle source must match migration authority
+or descend from it in the local repository's available Git history; missing
+lineage fails closed. A partial destination volume never authorizes installation.

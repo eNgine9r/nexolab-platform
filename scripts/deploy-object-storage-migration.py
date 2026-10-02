@@ -273,12 +273,13 @@ def main():
     parser.add_argument("--verify-target", action="store_true")
     parser.add_argument("--require-cutover", action="store_true")
     parser.add_argument("--expected-target-source")
+    parser.add_argument("--source-repository", type=Path, default=Path.cwd())
     args = parser.parse_args()
     if args.validate_proof:
         if args.manifest.is_symlink() or not args.manifest.is_file():
             raise MigrationError("regular migration authority file is required")
         validate_proof(json.loads(args.manifest.read_text()), args.expected_target_source or "", docker_inspect,
-            is_ancestor=lambda old, new: subprocess.run(["git", "merge-base", "--is-ancestor", old, new], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0,
+            is_ancestor=lambda old, new: subprocess.run(["git", "-C", str(args.source_repository), "merge-base", "--is-ancestor", old, new], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0,
             require_cutover=args.require_cutover)
         print("OBJECT_STORAGE_MIGRATION_AUTHORITY_VALIDATED")
         return

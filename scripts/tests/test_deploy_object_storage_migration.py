@@ -461,6 +461,34 @@ git() {
         self.assertIn('update remains pending', result.stdout)
         self.assertNotIn('Storage cutover verified;', result.stdout)
 
+    def test_offline_installer_rejects_partial_target_and_uses_shared_lock(self):
+        text = (ROOT / 'scripts/install-offline-bundle.sh').read_text()
+        self.assertIn('nexolab_acquire_deployment_lock', text)
+        start = text.index('if docker volume inspect "$LEGACY_OBJECT_STORAGE_VOLUME"')
+        end = text.index('CENTRAL=', start)
+        script = '''LEGACY_OBJECT_STORAGE_VOLUME=legacy
+OBJECT_STORAGE_RESOURCE_PREFIX=nexolab-central
+SCRIPT_DIR=/unused
+MANIFEST=/unused
+OBJECT_STORAGE_MIGRATION_AUTHORITY=/unused
+docker() { return 0; }
+python3() {
+  if [[ "$1" == -c ]]; then echo aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
+  else echo REQUIRED_COMPLETED_PROOF; return 1;
+  fi
+}
+''' + text[start:end] + '\necho UNSAFE_OFFLINE_ACTIVATION\n'
+        result = subprocess.run(['bash', '-c', script], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 80)
+        self.assertIn('REQUIRED_COMPLETED_PROOF', result.stdout)
+        self.assertNotIn('UNSAFE_OFFLINE_ACTIVATION', result.stdout)
+        self.assertIn('--validate-proof --require-cutover', text[start:end])
+
+    def test_bundle_packages_portable_authority_validator_and_lock(self):
+        text = (ROOT / 'scripts/build-offline-bundle.sh').read_text()
+        self.assertIn('cp scripts/deploy-object-storage-migration.py', text)
+        self.assertIn('cp scripts/lib/deployment-lock.sh', text)
+
     def test_shell_scripts_parse_and_cli_guard_has_no_boto_dependency(self):
         for name in ("migrate-object-storage-raspberry-pi.sh", "deploy-current-head-raspberry-pi.sh"):
             result = subprocess.run(["bash", "-n", str(ROOT / "scripts" / name)], capture_output=True)
