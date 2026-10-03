@@ -1947,7 +1947,7 @@
       }
     },
     {
-      "source": "actual_host",
+      "source": "github",
       "observed_at": "2026-10-03T12:02:45+03:00",
       "kind": "issue_1249_1247_deployment_passed",
       "data": {
@@ -1966,7 +1966,7 @@
       }
     },
     {
-      "source": "ci",
+      "source": "github",
       "observed_at": "2026-10-03T10:41:28Z",
       "kind": "issue_1267_state_integrity_correction",
       "data": {
