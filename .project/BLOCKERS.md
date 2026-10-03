@@ -1,6 +1,10 @@
 # NEXOLAB Blockers
 
-Updated: 2026-10-02
+Updated: 2026-10-03
+
+## Issue #1249 / #1247 — cleared by successful actual-host deployment
+
+**Cleared 2026-10-03.** The authorized canonical deployment completed on `d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54` with evidence `runtime/deployments/20261003T084758Z` and `DEPLOYMENT PASSED`. Telemetry, Device Agent, dashboard, Prometheus, Alertmanager, Grafana and VersityGW readiness passed; Device Agent is publishing with MQTT connected and queue depth 0. SDM120 read-only FC04 telemetry and Embraco read-only FC03 telemetry were observed after activation. VersityGW migration authority remains verified/cutover-verified. No Modbus write, hardware write, persistent-data deletion or volume deletion occurred. The previous Commander sudo/read-only execution-surface blocker is no longer active because the Product Owner performed the reviewed local privileged deployment.
 
 ## Issue #1249 — storage cutover complete; application deployment ready for actual-host retry
 
