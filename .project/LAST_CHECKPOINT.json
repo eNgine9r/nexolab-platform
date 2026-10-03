@@ -1964,6 +1964,15 @@
         "modbus_write": "none",
         "hardware_write": "none"
       }
+    },
+    {
+      "source": "ci",
+      "observed_at": "2026-10-03T10:41:28Z",
+      "kind": "issue_1267_state_integrity_correction",
+      "data": {
+        "finding": "repository safety invariant requires production_cutover_authorized=false even after completed authorized deployment",
+        "correction": "authorization retained in historical evidence only; repository safety gate remains fail_closed"
+      }
     }
   ],
   "next_action": "Merge #1267 state reconciliation after GREEN, close #1249 and #1247 completed, then re-audit the remaining backlog for the next independent Ready Work Package. Do not infer unrelated hardware acceptance.",
@@ -1972,7 +1981,7 @@
     "hardware_write": "none",
     "product_persistent_data_deletion": "none",
     "volume_deletion": "none",
-    "production_cutover_authorized": true,
+    "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
   "snapshot": {
