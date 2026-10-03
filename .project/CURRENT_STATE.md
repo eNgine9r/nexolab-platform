@@ -1,6 +1,16 @@
 # NEXOLAB Current State
 
-Updated: 2026-10-02
+Updated: 2026-10-03
+
+## Issue #1249 / #1247 — Raspberry deployment accepted on actual host
+
+Product Owner-authorized post-cutover deployment completed successfully on 2026-10-03 from synchronized `main` at `d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54`. Canonical evidence is `runtime/deployments/20261003T084758Z`; the deployment reported `DEPLOYMENT PASSED`. Installed frontend build ID is `sCwzXg5ghkKu2_Rtus_F7`, runtime mode remains `lan`, JWT/local operator authentication is preserved, and the new Device Agent image is `sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48`. Exact pre-cutover Device Agent recovery image `sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1` is retained.
+
+Post-activation evidence shows Telemetry ready with database/MQTT ready, ingestion lag below one second at the deployment gate and queue size 0; Device Agent health is `ok`, MQTT connected, queue depth 0 and current samples are publishing. SDM120 Unit 1 produced successful FC04 reads for all eight configured targets; Embraco Unit 2 produced successful FC03 reads. The shared `rs485-main` path still shows known recovered XJP60D retry/timeouts, but successful samples continue and the capacity model remains safe. No Modbus write or hardware write occurred.
+
+VersityGW remains the verified active object-storage backend. Migration authority is still `status=verified`, `cutover_verified=true`, with one private bucket, six objects and 3,733,362 bytes integrity-verified. PostgreSQL pre-upgrade backup, edge SQLite snapshot, persistent-volume identities and runtime evidence archive were captured in the deployment evidence directory. Legacy MinIO recovery assets remain retained; the migration wrapper must not be rerun and MinIO must not be automatically restored.
+
+Issue #1267 performs state-only reconciliation. #1249 and #1247 may be closed completed after this state PR merges GREEN. Unrelated physical/hardware validation gates remain unchanged.
 
 ## Issue #1263 — layered Device Agent deployment authority fix completed
 

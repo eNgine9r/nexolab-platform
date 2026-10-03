@@ -3,14 +3,14 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-02T18:05:00Z",
-  "actor": "ChatGPT",
-  "event": "issue1263_merged_object_storage_cutover_preserved_resume_application1249",
+  "timestamp": "2026-10-03T13:40:00+03:00",
+  "actor": "ChatGPT Team Lead",
+  "event": "issue_1249_1247_actual_host_deployment_accepted",
   "baselines": {
-    "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
-    "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
-    "frontend_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
-    "frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
+    "accepted_product_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+    "deployed_product_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+    "frontend_compatibility_source_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+    "frontend_build_id": "sCwzXg5ghkKu2_Rtus_F7",
     "frontend_release": "runtime/frontend-releases/7db6c8c34c7c94874afe2a3301a2209585795744-20260922T134803Z",
     "frontend_rollback_release": "runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z",
     "frontend_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
@@ -19,9 +19,9 @@
     "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
     "sdm120_candidate_frontend_artifact_sha256": "d73ec2b840b01733a7761b8b555e1b62c4e12b574ea2a0db5a115acd62e32fb6",
     "sdm120_candidate_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
-    "device_agent_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
-    "device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
-    "device_agent_rollback_image_id": "sha256:25ba94b454ebe6dd0d22ed7501ea7368141a32507e09e181cc5b33056e1239db",
+    "device_agent_compatibility_source_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+    "device_agent_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
+    "device_agent_rollback_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
     "device_agent_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
     "sdm120_production_bus_id": "rs485-sdm120",
     "sdm120_production_adapter": "A10Q34QC",
@@ -30,11 +30,7 @@
     "device_agent_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
     "device_agent_compatibility_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb"
   },
-  "active_work": {
-    "issue": 1249,
-    "title": "Verified object storage migration prerequisite / controlled application deployment",
-    "branch": "deploy/1249-object-storage-migration"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -1945,9 +1941,50 @@
         "merge_sha": "c553dc065faa7679e3d63ac868d4a1a829907d7d",
         "next_issue": 1245
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-03T12:02:45+03:00",
+      "kind": "issue_1249_1247_deployment_passed",
+      "data": {
+        "installed_source": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+        "deployment_evidence": "runtime/deployments/20261003T084758Z",
+        "frontend_build_id": "sCwzXg5ghkKu2_Rtus_F7",
+        "device_agent_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
+        "recovery_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+        "readiness": "telemetry_device_agent_dashboard_prometheus_alertmanager_grafana_object_storage_passed",
+        "telemetry": "database_ready_mqtt_ready_queue_0_current_samples",
+        "sdm120": "8_of_8_fc04_read_success_at_activation",
+        "embraco": "fc03_read_success_at_activation",
+        "object_storage": "versitygw_verified_cutover_verified_6_objects_3733362_bytes",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-03T10:41:28Z",
+      "kind": "issue_1267_state_integrity_correction",
+      "data": {
+        "finding": "repository safety invariant requires production_cutover_authorized=false even after completed authorized deployment",
+        "correction": "authorization retained in historical evidence only; repository safety gate remains fail_closed"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-03T10:43:30Z",
+      "kind": "issue_1267_exact_head_green_before_final_self_reconcile",
+      "data": {
+        "pull_request": 1268,
+        "verified_head_sha": "deab8fde2d168563657a884d2216eb72ff62e54c",
+        "ci_run": 37117304370,
+        "state_integrity": "success",
+        "nexolab_merge_gate": "success",
+        "next_selection": "none_until_fresh_backlog_reaudit"
+      }
     }
   ],
-  "next_action": "After #1265 state-only reconciliation merges GREEN, fast-forward Raspberry main to origin/main and verify equality before starting a new canonical deploy-current-head-raspberry-pi.sh application deployment. Do not rerun object-storage migration.",
+  "next_action": "After #1268 merges GREEN and closes #1267, close #1249 and #1247 completed from actual-host evidence, then perform a fresh open-Issue/PR/backlog audit before selecting any next Work Package.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
