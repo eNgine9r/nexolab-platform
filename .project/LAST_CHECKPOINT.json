@@ -30,11 +30,7 @@
     "device_agent_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
     "device_agent_compatibility_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb"
   },
-  "active_work": {
-    "issue": 1267,
-    "scope": "canonical_state_only",
-    "status": "in_progress"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -1973,9 +1969,22 @@
         "finding": "repository safety invariant requires production_cutover_authorized=false even after completed authorized deployment",
         "correction": "authorization retained in historical evidence only; repository safety gate remains fail_closed"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-03T10:43:30Z",
+      "kind": "issue_1267_exact_head_green_before_final_self_reconcile",
+      "data": {
+        "pull_request": 1268,
+        "verified_head_sha": "deab8fde2d168563657a884d2216eb72ff62e54c",
+        "ci_run": 37117304370,
+        "state_integrity": "success",
+        "nexolab_merge_gate": "success",
+        "next_selection": "none_until_fresh_backlog_reaudit"
+      }
     }
   ],
-  "next_action": "Merge #1267 state reconciliation after GREEN, close #1249 and #1247 completed, then re-audit the remaining backlog for the next independent Ready Work Package. Do not infer unrelated hardware acceptance.",
+  "next_action": "After #1268 merges GREEN and closes #1267, close #1249 and #1247 completed from actual-host evidence, then perform a fresh open-Issue/PR/backlog audit before selecting any next Work Package.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
