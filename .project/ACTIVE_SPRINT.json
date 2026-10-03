@@ -42,9 +42,7 @@
     "device_agent_compatibility_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1267
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -6531,7 +6529,7 @@
       "issue": 1267,
       "title": "Reconcile successful #1249/#1247 Raspberry deployment acceptance",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1249,
         1247
@@ -6544,7 +6542,13 @@
         "frontend_build_id": "sCwzXg5ghkKu2_Rtus_F7",
         "production_runtime_mutation": "none_state_only",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "verified_head_sha": "deab8fde2d168563657a884d2216eb72ff62e54c",
+        "pull_request": 1268,
+        "state_integrity": "success:37117304370",
+        "nexolab_merge_gate": "success:37117304370",
+        "issue_state_after_merge": "closed_completed",
+        "next_ready_work_package": "pending_fresh_backlog_reaudit"
       }
     }
   ],
