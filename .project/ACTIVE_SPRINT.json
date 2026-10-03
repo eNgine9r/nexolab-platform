@@ -18,11 +18,11 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "8fe975524fe9449b96fedefa4430cb57829a49da",
-    "deployed_product_sha": "df368cfa27efa945d59de33de8268898b564a19f",
-    "frontend_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
-    "frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
-    "frontend_release": "runtime/frontend-releases/7db6c8c34c7c94874afe2a3301a2209585795744-20260922T134803Z",
+    "accepted_product_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+    "deployed_product_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+    "frontend_compatibility_source_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+    "frontend_build_id": "sCwzXg5ghkKu2_Rtus_F7",
+    "frontend_release": "runtime/frontend-releases/d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54-20261003T084758Z",
     "frontend_rollback_release": "runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z",
     "frontend_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
     "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
@@ -30,10 +30,10 @@
     "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
     "sdm120_candidate_frontend_artifact_sha256": "d73ec2b840b01733a7761b8b555e1b62c4e12b574ea2a0db5a115acd62e32fb6",
     "sdm120_candidate_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
-    "device_agent_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
-    "device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
-    "device_agent_rollback_image_id": "sha256:25ba94b454ebe6dd0d22ed7501ea7368141a32507e09e181cc5b33056e1239db",
-    "device_agent_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+    "device_agent_compatibility_source_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+    "device_agent_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
+    "device_agent_rollback_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
+    "device_agent_runtime_evidence": "runtime/deployments/20261003T084758Z",
     "sdm120_production_bus_id": "rs485-sdm120",
     "sdm120_production_adapter": "A10Q34QC",
     "sdm120_production_unit_id": 1,
@@ -43,11 +43,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1249
+      "issue": 1267
     },
-    "next_work_package": {
-      "issue": 1247
-    }
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -6324,7 +6322,7 @@
       "title": "Controlled Raspberry update after UX acceptance",
       "branch": "deploy/1247-runtime-update",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "completed",
       "depends_on": [
         1245
       ],
@@ -6338,14 +6336,21 @@
         "installed_frontend": "7db6c8c34c7c94874afe2a3301a2209585795744",
         "formal_deployed_source": "df368cfa27efa945d59de33de8268898b564a19f",
         "runtime_mutation": "none",
-        "next_action": "approved_host_execution_surface_or_user_local_reviewed_deployment"
+        "next_action": "approved_host_execution_surface_or_user_local_reviewed_deployment",
+        "deployment_evidence": "runtime/deployments/20261003T084758Z",
+        "installed_source": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+        "frontend_build_id": "sCwzXg5ghkKu2_Rtus_F7",
+        "device_agent_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
+        "deployment_status": "passed",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     },
     {
       "issue": 1249,
       "title": "Verified MinIO to VersityGW migration and controlled update prerequisite",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "deploy/1249-object-storage-migration",
       "evidence": {
@@ -6358,7 +6363,10 @@
         "hardware_write": "none",
         "review_remediation": "required_authority_for_active_target_and_rollback_closed_before_writer_start",
         "shared_lock": "migration_deployment_and_resume_serialized_with_verified_inherited_descriptor",
-        "source_pin": "abort_before_migration_if_preflight_changed_checkout"
+        "source_pin": "abort_before_migration_if_preflight_changed_checkout",
+        "deployment_evidence": "runtime/deployments/20261003T084758Z",
+        "storage_cutover": "verified_versitygw",
+        "deployment_status": "passed"
       }
     },
     {
@@ -6517,6 +6525,26 @@
         "production_runtime_mutation": "none_by_issue_1263",
         "persistent_data_mutation": "none_by_issue_1263",
         "issue_state": "closed_completed"
+      }
+    },
+    {
+      "issue": 1267,
+      "title": "Reconcile successful #1249/#1247 Raspberry deployment acceptance",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1249,
+        1247
+      ],
+      "branch": "chore/1267-reconcile-deployment-acceptance",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "deployment_evidence": "runtime/deployments/20261003T084758Z",
+        "installed_source": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+        "frontend_build_id": "sCwzXg5ghkKu2_Rtus_F7",
+        "production_runtime_mutation": "none_state_only",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     }
   ],
