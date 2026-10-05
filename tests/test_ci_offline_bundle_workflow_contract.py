@@ -28,6 +28,17 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         cls.dashboard_dockerignore = DASHBOARD_DOCKERIGNORE.read_text(encoding="utf-8")
         cls.dashboard_dockerfile = DASHBOARD_DOCKERFILE.read_text(encoding="utf-8")
 
+    def test_dashboard_prunes_production_dependencies_before_source_copy(self) -> None:
+        production_stage = self.dashboard_dockerfile.index("FROM dependencies AS production-dependencies")
+        prune_index = self.dashboard_dockerfile.index("npm prune --omit=dev")
+        builder_stage = self.dashboard_dockerfile.index("FROM dependencies AS builder")
+        source_copy = self.dashboard_dockerfile.index("COPY . .")
+        runtime_copy = self.dashboard_dockerfile.index("COPY --from=production-dependencies")
+        self.assertLess(production_stage, prune_index)
+        self.assertLess(prune_index, builder_stage)
+        self.assertLess(builder_stage, source_copy)
+        self.assertGreater(runtime_copy, source_copy)
+
     def test_dashboard_source_identity_does_not_invalidate_expensive_build(self) -> None:
         build_index = self.dashboard_dockerfile.index("&& npm run build")
         source_arg_index = self.dashboard_dockerfile.index("ARG NEXOLAB_SOURCE_COMMIT")
@@ -37,7 +48,18 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
 
     def test_dashboard_build_context_excludes_ci_generated_cache_busters(self) -> None:
         ignored = set(self.dashboard_dockerignore.splitlines())
-        for path in (".git", ".ci", "dist", "node_modules", ".next"):
+        for path in (
+            ".git",
+            ".ci",
+            "dist",
+            "node_modules",
+            ".next",
+            "__pycache__",
+            "**/__pycache__",
+            "*.pyc",
+            "**/*.pyc",
+            ".pytest_cache",
+        ):
             self.assertIn(path, ignored)
 
     def test_offline_builder_uses_bounded_persistent_buildkit_cache(self) -> None:
