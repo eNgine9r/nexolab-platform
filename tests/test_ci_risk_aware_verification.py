@@ -72,6 +72,8 @@ class RiskAwareVerificationContractTests(unittest.TestCase):
             "playwright.reports.config.ts",
             "playwright.alerts.config.ts",
             "playwright.rendered-reports.config.ts",
+            "scripts/run-authenticated-dashboard-acceptance.sh",
+            "scripts/run-test-sessions-browser-acceptance.sh",
         ):
             result = classify([path])
             self.assertFalse(result["fail_closed"], path)
