@@ -20,7 +20,13 @@ on:
     branches: [main]
     paths:
       - "services/device-agent/**"
-      - "services/telemetry-service/**"
+      - "services/telemetry-service/app/mqtt*.py"
+      - "services/telemetry-service/app/nodes/broker*.py"
+      - "services/telemetry-service/app/config.py"
+      - "services/telemetry-service/app/main.py"
+      - "services/telemetry-service/tests/test_mqtt_tls*.py"
+      - "services/telemetry-service/tests/test_node_broker_adapter_tls.py"
+      - "services/telemetry-service/requirements.txt"
       - "infrastructure/mqtt/dynamic-security/**"
       - "infrastructure/compose/compose.broker-control-acceptance.yaml"
       - "infrastructure/compose/compose.device-agent-fleet-acceptance.yaml"
