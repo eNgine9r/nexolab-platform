@@ -21,7 +21,7 @@ Discovery source: `56b4d41250dc6390506052356e498eedfe90faba`.
 - Stale registry tuples: 0.
 - Unmatched fresh tuples: 0.
 - Fresh HIGH findings with a non-empty Trivy `FixedVersion`: 0.
-- Exact tuple-set SHA-256: `ca05a899e5684acd7d8bcec2bfcf8c4c012c4d0fdc29f6ac0613ba777ddfcdc2`.
+- Exact tuple-set SHA-256: `a6a26eaf112c502e76da852ea0508364cb76d0659bd66fe41c369785b8bde403`.
 
 The revalidation does not add, widen or generalize any exception. CRITICAL findings remain unexceptable.
 
