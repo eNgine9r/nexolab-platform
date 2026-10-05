@@ -20,12 +20,14 @@ function tokenResponse(accessToken: string, refreshToken: string, expiresIn = 30
 }
 
 beforeEach(() => {
+  vi.stubGlobal("BroadcastChannel", undefined);
   window.sessionStorage.clear();
   setSecurityCredentials({ accessToken: null, organizationId: ORGANIZATION_ID });
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   vi.useRealTimers();
   window.sessionStorage.clear();
   setSecurityCredentials({ accessToken: null, organizationId: null });
