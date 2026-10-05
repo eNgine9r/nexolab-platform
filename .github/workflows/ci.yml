@@ -357,7 +357,7 @@ jobs:
   recovery_frontend_artifact:
     name: Raspberry Pi live frontend recovery artifact
     if: ${{ github.event_name == 'pull_request' && github.head_ref == 'fix/626-atomic-pi-deploy' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 35
 
     steps:
@@ -374,9 +374,6 @@ jobs:
           set -euo pipefail
           git diff --quiet "${{ github.event.pull_request.base.sha }}" -- \
             package.json package-lock.json next.config.ts src
-
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v4
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v4
