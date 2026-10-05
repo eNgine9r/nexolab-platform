@@ -128,12 +128,12 @@ jobs:
           print('Exact state-only diff verified without Node dependency installation.')
           PY
 
-  quality:
-    name: Quality and build
+  quality_policy:
+    name: Quality policy and contracts
     needs: classify
     if: ${{ needs.classify.outputs.needs_full_quality == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -217,6 +217,19 @@ jobs:
             -p 'test_dependency_policy.py' \
             -v
 
+  quality_static_build:
+    name: Static quality and build
+    needs: classify
+    if: ${{ needs.classify.outputs.needs_full_quality == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
@@ -263,13 +276,83 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Test
-        run: npm test
-
       - name: Build
         env:
           NEXT_TELEMETRY_DISABLED: 1
         run: npm run build
+
+  quality_tests:
+    name: Unit and component tests
+    needs: classify
+    if: ${{ needs.classify.outputs.needs_full_quality == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          cache: npm
+          cache-dependency-path: package-lock.json
+          node-version-file: .nvmrc
+
+      - name: Verify exact Node baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="v$(tr -d '[:space:]' < .nvmrc)"
+          actual="$(node --version)"
+          if [[ "$actual" != "$expected" ]]; then
+            printf 'Expected Node %s from .nvmrc, got %s\n' "$expected" "$actual" >&2
+            exit 1
+          fi
+          printf 'Verified Node baseline: %s\n' "$actual"
+          printf 'npm version: %s\n' "$(npm --version)"
+
+      - name: Install dependencies deterministically
+        env:
+          HUSKY: 0
+        run: npm ci --no-audit --fund=false
+
+      - name: Test
+        run: npm test
+
+  quality:
+    name: Quality and build
+    if: ${{ always() && needs.classify.outputs.needs_full_quality == 'true' }}
+    needs: [classify, quality_policy, quality_static_build, quality_tests]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Aggregate parallel quality lanes
+        shell: bash
+        env:
+          POLICY_RESULT: ${{ needs.quality_policy.result }}
+          STATIC_BUILD_RESULT: ${{ needs.quality_static_build.result }}
+          TEST_RESULT: ${{ needs.quality_tests.result }}
+        run: |
+          set -euo pipefail
+          printf 'policy=%s static_build=%s tests=%s\n' \
+            "$POLICY_RESULT" "$STATIC_BUILD_RESULT" "$TEST_RESULT"
+          [[ "$POLICY_RESULT" == "success" ]] || {
+            printf 'Quality policy/contracts lane did not pass.\n' >&2
+            exit 1
+          }
+          [[ "$STATIC_BUILD_RESULT" == "success" ]] || {
+            printf 'Static quality/build lane did not pass.\n' >&2
+            exit 1
+          }
+          [[ "$TEST_RESULT" == "success" ]] || {
+            printf 'Unit/component test lane did not pass.\n' >&2
+            exit 1
+          }
+          printf '%s\n' 'All parallel quality lanes are GREEN.'
 
   merge_gate:
     name: NEXOLAB Merge Gate
