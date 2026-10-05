@@ -283,6 +283,7 @@ class LocalAuthRepository:
         *,
         refresh_token_hash: str,
         replacement_hash: str,
+        expires_at: datetime,
         now: datetime,
     ) -> LocalSessionRecord:
         with Session(self._engine, expire_on_commit=False) as session:
@@ -314,43 +315,6 @@ class LocalAuthRepository:
                 )
                 local_session.refresh_token_hash = replacement_hash
                 local_session.last_refreshed_at = now
-                return LocalSessionRecord(
-                    id=local_session.id,
-                    account=_account_record(account, identity),
-                    expires_at=_as_utc(local_session.expires_at),
-                )
-
-    def extend_session_expiry(
-        self,
-        *,
-        session_id: str,
-        expires_at: datetime,
-        now: datetime,
-    ) -> LocalSessionRecord:
-        with Session(self._engine, expire_on_commit=False) as session:
-            with session.begin():
-                row = session.execute(
-                    select(SecurityLocalSession, SecurityLocalAccount, SecurityIdentity)
-                    .join(
-                        SecurityLocalAccount,
-                        SecurityLocalAccount.id == SecurityLocalSession.account_id,
-                    )
-                    .join(
-                        SecurityIdentity,
-                        SecurityIdentity.id == SecurityLocalAccount.identity_id,
-                    )
-                    .where(SecurityLocalSession.id == session_id)
-                    .with_for_update()
-                ).one_or_none()
-                if row is None:
-                    raise LocalSessionInvalidError("refresh session was not found")
-                local_session, account, identity = row
-                self._assert_session_rows_active(
-                    local_session,
-                    account,
-                    identity,
-                    now=now,
-                )
                 local_session.expires_at = expires_at
                 return LocalSessionRecord(
                     id=local_session.id,
