@@ -23,8 +23,7 @@ type LocalTokenPayload = {
 };
 
 type TokenPairRequestResult =
-  | { ok: true; value: LocalTokenPayload }
-  | { ok: false; message: string; terminal: boolean };
+  { ok: true; value: LocalTokenPayload } | { ok: false; message: string; terminal: boolean };
 
 type BrowserTokenSnapshot = {
   accessToken: string;
@@ -80,11 +79,7 @@ export function createLocalCredentialProvider(
     const activeRefresh =
       refreshPromise ??
       withRefreshLock(() =>
-        refreshCredentialSnapshot(
-          normalizedBaseUrl,
-          resolvedOrganizationId,
-          current.organizationId,
-        ),
+        refreshCredentialSnapshot(normalizedBaseUrl, resolvedOrganizationId, current.organizationId),
       );
     refreshPromise = activeRefresh;
     try {
@@ -180,9 +175,7 @@ async function refreshCredentialSnapshot(
 
   const latestOrganizationId = getSecurityCredentials().organizationId;
   const refreshedOrganizationId =
-    latestOrganizationId === organizationAtStart
-      ? resolvedOrganizationId
-      : latestOrganizationId;
+    latestOrganizationId === organizationAtStart ? resolvedOrganizationId : latestOrganizationId;
 
   if (!refreshed.ok) {
     if (refreshed.terminal) {
@@ -311,10 +304,7 @@ function adoptBrowserTokenSnapshot(snapshot: BrowserTokenSnapshot): boolean {
 function writeBrowserTokenSnapshot(snapshot: BrowserTokenSnapshot): void {
   window.sessionStorage.setItem(ACCESS_TOKEN_KEY, snapshot.accessToken);
   window.sessionStorage.setItem(REFRESH_TOKEN_KEY, snapshot.refreshToken);
-  window.sessionStorage.setItem(
-    ACCESS_EXPIRES_AT_KEY,
-    String(snapshot.expiresAt),
-  );
+  window.sessionStorage.setItem(ACCESS_EXPIRES_AT_KEY, String(snapshot.expiresAt));
 }
 
 function readBrowserTokenSnapshot(): BrowserTokenSnapshot | null {
@@ -322,14 +312,10 @@ function readBrowserTokenSnapshot(): BrowserTokenSnapshot | null {
   const accessToken = window.sessionStorage.getItem(ACCESS_TOKEN_KEY);
   const refreshToken = window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
   const expiresAt = readExpiresAt();
-  return accessToken && refreshToken && expiresAt > 0
-    ? { accessToken, refreshToken, expiresAt }
-    : null;
+  return accessToken && refreshToken && expiresAt > 0 ? { accessToken, refreshToken, expiresAt } : null;
 }
 
-function currentBrowserCredentialSnapshot(
-  organizationId: string | null,
-): SecurityCredentialSnapshot | null {
+function currentBrowserCredentialSnapshot(organizationId: string | null): SecurityCredentialSnapshot | null {
   const snapshot = readBrowserTokenSnapshot();
   if (!snapshot || snapshot.expiresAt <= Date.now() + REFRESH_SKEW_MS) {
     return null;
@@ -385,9 +371,7 @@ async function requestTokenPair(
   }
 }
 
-function currentCredentialSnapshot(
-  organizationId: string | null,
-): SecurityCredentialSnapshot {
+function currentCredentialSnapshot(organizationId: string | null): SecurityCredentialSnapshot {
   const snapshot = {
     accessToken: window.sessionStorage.getItem(ACCESS_TOKEN_KEY),
     organizationId,
@@ -426,9 +410,7 @@ function parseChannelMessage(value: unknown): LocalAuthChannelMessage | null {
   }
   if (type === "session-response") {
     const requestId = readString(record?.requestId);
-    return requestId
-      ? { type, requestId, accessToken, refreshToken, expiresAt }
-      : null;
+    return requestId ? { type, requestId, accessToken, refreshToken, expiresAt } : null;
   }
   return { type, accessToken, refreshToken, expiresAt };
 }
@@ -488,7 +470,5 @@ function readString(value: unknown): string | null {
 }
 
 function readPositiveInteger(value: unknown): number | null {
-  return typeof value === "number" && Number.isInteger(value) && value > 0
-    ? value
-    : null;
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
 }
