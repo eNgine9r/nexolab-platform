@@ -6,3 +6,8 @@ node_modules
 coverage
 playwright-report*
 test-results*
+__pycache__
+**/__pycache__
+*.pyc
+**/*.pyc
+.pytest_cache
