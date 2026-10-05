@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 from datetime import date
@@ -144,7 +145,7 @@ def test_current_cjson_exception_is_exact_and_short_lived() -> None:
     assert len(matches) == 1
     decision = matches[0]
     assert decision["owner"] == "platform-security"
-    assert decision["expires_on"] == "2026-10-02"
+    assert decision["expires_on"] == "2026-10-12"
     assert "mosquitto_ctrl" in decision["reason"]
     assert "Reviewed 2026-08-17" in decision["reason"]
     MODULE.validate_exceptions(
@@ -175,7 +176,7 @@ def test_2026_09_22_fresh_review_is_exact_owner_bound_and_seven_day_bounded() ->
         "telemetry-service",
     }
     assert all(entry["owner"] == "platform-security" for entry in reviewed)
-    assert all(entry["expires_on"] == "2026-10-02" for entry in reviewed)
+    assert all(entry["expires_on"] == "2026-10-12" for entry in reviewed)
     assert all("35704565417" in entry["reason"] for entry in reviewed)
     assert all(
         "2524f9c0c15218cc56a0416ecc76cb46040fab79" in entry["reason"]
@@ -204,7 +205,7 @@ def test_2026_09_23_expat_93990_findings_are_exact_and_short_lived() -> None:
     assert len(matches) == 2
     assert {entry["image_id"] for entry in matches} == {"device-agent", "telegram-gateway"}
     assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-10-02" for entry in matches)
+    assert all(entry["expires_on"] == "2026-10-12" for entry in matches)
     assert all("35866744217" in entry["reason"] for entry in matches)
     assert all("2.8.3-1~deb13u1" in entry["reason"] for entry in matches)
     assert all("no XML, pyexpat, Expat, ElementTree, SAX, minidom, or lxml" in entry["reason"] for entry in matches)
@@ -244,7 +245,7 @@ def test_2026_09_17_expat_66046_findings_are_current_and_bounded() -> None:
     assert len(matches) == 2
     assert {entry["image_id"] for entry in matches} == {"device-agent", "telegram-gateway"}
     assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-10-02" for entry in matches)
+    assert all(entry["expires_on"] == "2026-10-12" for entry in matches)
     assert all("35156866062" in entry["reason"] for entry in matches)
     assert all("2.8.4" in entry["reason"] for entry in matches)
     assert all("no XML/pyexpat parser path" in entry["reason"] for entry in matches)
@@ -273,7 +274,7 @@ def test_util_linux_78409_disagreement_is_explicit_and_short_lived() -> None:
         "telemetry-service",
     }
     assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-10-02" for entry in matches)
+    assert all(entry["expires_on"] == "2026-10-12" for entry in matches)
     assert all("34826380930" in entry["reason"] for entry in matches)
     assert all("02f42ff68c6189bc4c0cf2fcfa4be0503b0667bf" in entry["reason"] for entry in matches)
     assert all("2.41.5-0+deb13u1" in entry["reason"] for entry in matches)
@@ -302,7 +303,7 @@ def test_2026_09_14_expat_findings_are_current_and_bounded() -> None:
 
     assert len(matches) == 4
     assert {entry["image_id"] for entry in matches} == {"device-agent", "telegram-gateway"}
-    assert all(entry["expires_on"] == "2026-10-02" for entry in matches)
+    assert all(entry["expires_on"] == "2026-10-12" for entry in matches)
     assert all("34826380930" in entry["reason"] for entry in matches)
     assert all("2.8.3-1~deb13u1" in entry["reason"] for entry in matches)
     assert all("2.8.4" in entry["reason"] for entry in matches)
@@ -354,7 +355,7 @@ def test_2026_09_17_fresh_scan_keeps_stale_python_and_sqlite_retired_and_bounds_
         "python3.13-venv",
     }
     assert all(entry["owner"] == "platform-security" for entry in exceptions)
-    assert all(entry["expires_on"] == "2026-10-02" for entry in exceptions)
+    assert all(entry["expires_on"] == "2026-10-12" for entry in exceptions)
     assert all("35156866062" in entry["reason"] for entry in current_python)
     assert all("no tarfile/archive extraction path" in entry["reason"] for entry in current_python)
     assert all("severity becomes Critical" in entry["reason"] for entry in current_python)
@@ -405,7 +406,7 @@ def test_telemetry_systemd_homed_cve_exceptions_are_exact_and_short_lived() -> N
         ("libudev1", "CVE-2026-16742"),
     }
     assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-10-02" for entry in matches)
+    assert all(entry["expires_on"] == "2026-10-12" for entry in matches)
     assert all("33683425564" in entry["reason"] for entry in matches)
     assert all("0f9327f40e9a2f4b8527be78f94c925246ab1c8d" in entry["reason"] for entry in matches)
     assert all("systemd-homed" in entry["reason"] for entry in matches)
@@ -434,7 +435,7 @@ def test_telemetry_cjson_mergepatch_exception_is_exact_and_unreachable() -> None
     assert len(matches) == 1
     decision = matches[0]
     assert decision["owner"] == "platform-security"
-    assert decision["expires_on"] == "2026-10-02"
+    assert decision["expires_on"] == "2026-10-12"
     assert "34826380930" in decision["reason"]
     assert "34702355254" in decision["reason"]
     assert "1e1576b9edc5eac5f3be017753c382fc39c19278" in decision["reason"]
@@ -586,7 +587,7 @@ def test_2026_09_25_fresh_review_is_exact_and_seven_day_bounded() -> None:
     assert len(exceptions) == 92
     assert len(keys) == 92
     assert all(entry["owner"] == "platform-security" for entry in exceptions)
-    assert all(entry["expires_on"] == "2026-10-02" for entry in exceptions)
+    assert all(entry["expires_on"] == "2026-10-12" for entry in exceptions)
     assert all("36123964257" in entry["reason"] for entry in exceptions)
     assert all("a231169f0269a441fac4fc1f05da39097e4adfa3" in entry["reason"] for entry in exceptions)
     assert all("92 HIGH / 0 CRITICAL" in entry["reason"] for entry in exceptions)
@@ -600,6 +601,42 @@ def test_2026_09_25_fresh_review_is_exact_and_seven_day_bounded() -> None:
     )
 
 
+def test_2026_10_05_fresh_review_is_exact_and_seven_day_bounded() -> None:
+    root = Path(__file__).resolve().parents[1]
+    payload = json.loads(
+        (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
+    )
+    exceptions = payload["exceptions"]
+    keys = {
+        (entry["image_id"], entry["package"], entry["vulnerability"])
+        for entry in exceptions
+    }
+
+    assert len(exceptions) == 100
+    assert len(keys) == 100
+    assert all(entry["owner"] == "platform-security" for entry in exceptions)
+    assert all(entry["expires_on"] == "2026-10-12" for entry in exceptions)
+    assert all("37294551286" in entry["reason"] for entry in exceptions)
+    assert all("56b4d41250dc6390506052356e498eedfe90faba" in entry["reason"] for entry in exceptions)
+    assert all("100 HIGH / 0 CRITICAL" in entry["reason"] for entry in exceptions)
+    canonical_tuples = sorted([list(key) for key in keys])
+    canonical_bytes = json.dumps(
+        canonical_tuples,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    tuple_set_sha256 = hashlib.sha256(canonical_bytes).hexdigest()
+    assert tuple_set_sha256 == "a6a26eaf112c502e76da852ea0508364cb76d0659bd66fe41c369785b8bde403"
+    assert all(tuple_set_sha256 in entry["reason"] for entry in exceptions)
+    assert all("stale registry tuples=0" in entry["reason"] for entry in exceptions)
+    assert all("unmatched fresh tuples=0" in entry["reason"] for entry in exceptions)
+    assert all("empty Trivy FixedVersion" in entry["reason"] for entry in exceptions)
+    MODULE.validate_exceptions(
+        root / "security/vulnerability-exceptions.json",
+        date(2026, 10, 5),
+    )
+
+
 def test_2026_10_01_python_tls_decision_is_exact_and_does_not_extend_review() -> None:
     root = Path(__file__).resolve().parents[1]
     payload = json.loads((root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8"))
@@ -610,7 +647,7 @@ def test_2026_10_01_python_tls_decision_is_exact_and_does_not_extend_review() ->
     assert len(new) == 8
     assert len(payload["exceptions"]) == 100
     assert all(entry["owner"] == "platform-security" for entry in new)
-    assert all(entry["expires_on"] == "2026-10-02" for entry in payload["exceptions"])
+    assert all(entry["expires_on"] == "2026-10-12" for entry in payload["exceptions"])
     assert all("36921474135" in entry["reason"] and "#1236" in entry["reason"] for entry in new)
     assert all("server_hostname" in entry["reason"] and "wrap_socket" in entry["reason"] for entry in new)
     MODULE.validate_exceptions(root / "security/vulnerability-exceptions.json", date(2026, 10, 1))

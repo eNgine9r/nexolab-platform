@@ -47,6 +47,32 @@
   },
   "work_packages": [
     {
+      "issue": 1277,
+      "title": "Revalidate expired container HIGH exceptions through 2026-10-12",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "security/1277-container-high-revalidation",
+      "evidence": {
+        "verified_head_sha": "dba07ab0abbac7c689c060b4388fbf3c23ea0d33",
+        "pull_request": 1278,
+        "container_supply_chain": "success:37356060489",
+        "telemetry_service": "success:37356060431",
+        "core_ci_and_merge_gate": "success:37356060375",
+        "fresh_high_exact_tuples": 100,
+        "critical_findings": 0,
+        "stale_registry_tuples": 0,
+        "unmatched_fresh_tuples": 0,
+        "fresh_high_with_fixed_version": 0,
+        "tuple_set_sha256": "a6a26eaf112c502e76da852ea0508364cb76d0659bd66fe41c369785b8bde403",
+        "exception_expiry": "2026-10-12",
+        "production_runtime_mutation": "none",
+        "persistent_data_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
       "issue": 1073,
       "title": "Close #1050 after authenticated Chromium acceptance",
       "priority": "high",
