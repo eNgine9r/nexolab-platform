@@ -12,6 +12,7 @@ on:
       - "infrastructure/compose/compose.observability.yaml"
       - "infrastructure/observability/**"
       - "playwright.observability.config.ts"
+      - "scripts/resolve-playwright-browser.sh"
       - "scripts/observability-alert-sink.py"
       - "scripts/run-observability-acceptance.sh"
       - "scripts/serve-prometheus-textfile.py"
@@ -229,10 +230,15 @@ jobs:
           done
           sleep 15
 
-      - name: Install Chromium acceptance dependencies
+      - name: Install browser acceptance dependencies
+        run: npm ci --no-audit --fund=false
+
+      - name: Resolve preinstalled Chrome
+        shell: bash
         run: |
-          npm ci --no-audit --fund=false
-          npx playwright install --with-deps chromium
+          browser_path="$(bash scripts/resolve-playwright-browser.sh)"
+          printf 'PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=%s\n' "$browser_path" >> "$GITHUB_ENV"
+          "$browser_path" --version
 
       - name: Verify Grafana operator dashboard in Chromium
         run: npx playwright test --config=playwright.observability.config.ts
