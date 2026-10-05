@@ -164,6 +164,7 @@ it.each([200, 401])(
       ),
     );
     const pending = createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID)();
+    await vi.waitFor(() => expect(resolve).toBeTypeOf("function"));
     setSecurityCredentials({ accessToken: "expired", organizationId: "organization-b" });
     resolve(status === 200 ? tokenResponse("fresh", "refresh-new") : new Response("{}", { status }));
     expect((await pending).organizationId).toBe("organization-b");
