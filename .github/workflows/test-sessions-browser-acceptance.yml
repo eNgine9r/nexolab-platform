@@ -42,7 +42,6 @@ jobs:
     env:
       COMPOSE_PROJECT_NAME: nexolab-sessions-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
       NEXOLAB_SESSIONS_EVIDENCE_DIR: test-sessions-acceptance-evidence
-      PLAYWRIGHT_INSTALL_WITH_DEPS: "1"
       HUSKY: "0"
 
     steps:
