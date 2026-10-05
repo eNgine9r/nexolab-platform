@@ -69,7 +69,7 @@ export function createLocalCredentialProvider(
     if (fresh) return fresh;
 
     if (!window.sessionStorage.getItem(REFRESH_TOKEN_KEY)) {
-      const snapshot = { accessToken: null, organizationId: resolvedOrganizationId };
+      const snapshot = {\n        accessToken: null,\n        organizationId: resolvedOrganizationId,\n      };
       setSecurityCredentials(snapshot);
       return snapshot;
     }
@@ -159,7 +159,7 @@ async function refreshCredentialSnapshot(
 
   const refreshToken = window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
   if (!refreshToken) {
-    const snapshot = { accessToken: null, organizationId: resolvedOrganizationId };
+    const snapshot = {\n      accessToken: null,\n      organizationId: resolvedOrganizationId,\n    };
     setSecurityCredentials(snapshot);
     return snapshot;
   }
@@ -234,7 +234,7 @@ async function requestPeerSession(): Promise<boolean> {
 }
 
 function ensureSessionChannel(): BroadcastChannel | null {
-  if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") return null;
+  if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") {\n    return null;\n  }
   if (channel) return channel;
 
   channel = new BroadcastChannel(SESSION_CHANNEL_NAME);
@@ -303,7 +303,7 @@ function adoptBrowserTokenSnapshot(snapshot: BrowserTokenSnapshot): boolean {
 function writeBrowserTokenSnapshot(snapshot: BrowserTokenSnapshot): void {
   window.sessionStorage.setItem(ACCESS_TOKEN_KEY, snapshot.accessToken);
   window.sessionStorage.setItem(REFRESH_TOKEN_KEY, snapshot.refreshToken);
-  window.sessionStorage.setItem(ACCESS_EXPIRES_AT_KEY, String(snapshot.expiresAt));
+  window.sessionStorage.setItem(\n    ACCESS_EXPIRES_AT_KEY,\n    String(snapshot.expiresAt),\n  );
 }
 
 function readBrowserTokenSnapshot(): BrowserTokenSnapshot | null {
@@ -320,7 +320,7 @@ function currentBrowserCredentialSnapshot(
   organizationId: string | null,
 ): SecurityCredentialSnapshot | null {
   const snapshot = readBrowserTokenSnapshot();
-  if (!snapshot || snapshot.expiresAt <= Date.now() + REFRESH_SKEW_MS) return null;
+  if (!snapshot || snapshot.expiresAt <= Date.now() + REFRESH_SKEW_MS) {\n    return null;\n  }
   const credentials = {
     accessToken: snapshot.accessToken,
     organizationId,
@@ -372,7 +372,7 @@ async function requestTokenPair(
   }
 }
 
-function currentCredentialSnapshot(organizationId: string | null): SecurityCredentialSnapshot {
+function currentCredentialSnapshot(\n  organizationId: string | null,\n): SecurityCredentialSnapshot {
   const snapshot = {
     accessToken: window.sessionStorage.getItem(ACCESS_TOKEN_KEY),
     organizationId,
@@ -411,7 +411,7 @@ function parseChannelMessage(value: unknown): LocalAuthChannelMessage | null {
   }
   if (type === "session-response") {
     const requestId = readString(record?.requestId);
-    return requestId ? { type, requestId, accessToken, refreshToken, expiresAt } : null;
+    return requestId\n      ? { type, requestId, accessToken, refreshToken, expiresAt }\n      : null;
   }
   return { type, accessToken, refreshToken, expiresAt };
 }
@@ -471,5 +471,5 @@ function readString(value: unknown): string | null {
 }
 
 function readPositiveInteger(value: unknown): number | null {
-  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
+  return typeof value === "number" && Number.isInteger(value) && value > 0\n    ? value\n    : null;
 }
