@@ -24,6 +24,18 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         cls.installer = INSTALLER.read_text(encoding="utf-8")
         cls.smoke = SMOKE.read_text(encoding="utf-8")
 
+    def test_offline_builder_uses_bounded_persistent_buildkit_cache(self) -> None:
+        self.assertIn("NEXOLAB_BUILDX_CACHE_ROOT", self.offline_builder)
+        self.assertIn('--cache-from "type=local,src=$cache_src"', self.offline_builder)
+        self.assertIn('--cache-to "type=local,dest=$cache_dest,mode=max"', self.offline_builder)
+        self.assertIn("Restore reusable BuildKit cache", self.workflow)
+        self.assertIn("actions/cache@v4", self.workflow)
+        self.assertIn("nexolab-offline-buildx-v1-", self.workflow)
+        self.assertIn(
+            "NEXOLAB_BUILDX_CACHE_ROOT: ${{ runner.temp }}/nexolab-offline-buildx-cache",
+            self.workflow,
+        )
+
     def test_dispatch_exposes_bounded_recovery_inputs(self) -> None:
         for input_name in (
             "platform:",
