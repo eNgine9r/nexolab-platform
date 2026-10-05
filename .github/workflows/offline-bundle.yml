@@ -278,6 +278,14 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - name: Restore reusable BuildKit cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/nexolab-offline-buildx-cache
+          key: nexolab-offline-buildx-v1-${{ runner.os }}-${{ steps.contract.outputs.arch }}-${{ github.run_id }}
+          restore-keys: |
+            nexolab-offline-buildx-v1-${{ runner.os }}-${{ steps.contract.outputs.arch }}-
+
       - name: Prepare isolated validation configuration
         shell: bash
         env:
@@ -416,6 +424,7 @@ jobs:
           API_BASE_URL: ${{ steps.contract.outputs.api_base_url }}
           WEBSOCKET_URL: ${{ steps.contract.outputs.websocket_url }}
           AUTH_PROVIDER: ${{ steps.contract.outputs.auth_provider }}
+          NEXOLAB_BUILDX_CACHE_ROOT: ${{ runner.temp }}/nexolab-offline-buildx-cache
         run: |
           set -Eeuo pipefail
           ./scripts/build-offline-bundle.sh \
