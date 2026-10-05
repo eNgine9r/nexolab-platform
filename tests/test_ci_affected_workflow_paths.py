@@ -98,11 +98,48 @@ class AffectedWorkflowRoutingTests(unittest.TestCase):
             "rendered-reports-browser-acceptance.yml",
             "reports-browser-acceptance.yml",
             "observability.yml",
+            "test-sessions-browser-acceptance.yml",
         ):
             with self.subTest(workflow=name):
                 text = (WORKFLOWS / name).read_text(encoding="utf-8")
                 self.assertNotIn("npm install --no-audit", text)
                 self.assertIn("npm ci", text)
+
+    def test_browser_workflows_reuse_preinstalled_chrome(self) -> None:
+        workflows = (
+            "alerts-browser-acceptance.yml",
+            "broker-control-acceptance.yml",
+            "device-agent-fleet-acceptance.yml",
+            "disaster-recovery-browser.yml",
+            "mqtt-tls-fleet-acceptance.yml",
+            "nodes-browser-acceptance.yml",
+            "observability.yml",
+            "rendered-reports-browser-acceptance.yml",
+            "reports-browser-acceptance.yml",
+            "test-sessions-browser-acceptance.yml",
+        )
+        for name in workflows:
+            with self.subTest(workflow=name):
+                text = (WORKFLOWS / name).read_text(encoding="utf-8")
+                self.assertIn("resolve-playwright-browser.sh", text)
+                self.assertNotIn("npx playwright install --with-deps chromium", text)
+
+        configs = (
+            "playwright.alerts.config.ts",
+            "playwright.broker-control.config.ts",
+            "playwright.device-agent-fleet.config.ts",
+            "playwright.disaster-recovery.config.ts",
+            "playwright.nodes.config.ts",
+            "playwright.observability.config.ts",
+            "playwright.rendered-reports.config.ts",
+            "playwright.reports.config.ts",
+            "playwright.sessions.config.ts",
+        )
+        for name in configs:
+            with self.subTest(config=name):
+                text = (ROOT / name).read_text(encoding="utf-8")
+                self.assertIn("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH", text)
+                self.assertIn("executablePath", text)
 
 
 if __name__ == "__main__":
