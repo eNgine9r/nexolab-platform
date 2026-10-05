@@ -46,7 +46,7 @@ The report includes free, required, reserve, build, runtime-evidence, PostgreSQL
 
 ## Off-device frontend artifact path
 
-The preferred frontend preparation path is a verified off-device artifact. The reusable `Frontend Release Artifact` workflow cross-builds the exact requested source SHA as a self-contained `linux/arm64` production runtime using the existing offline Dashboard Dockerfile and the repository Node baseline. The artifact contains a tarred `.next` plus pruned production `node_modules`, package/source/runtime/platform/Node provenance, native-architecture evidence, and SHA-256 manifests.
+The preferred frontend preparation path is a verified off-device artifact. The reusable `Frontend Release Artifact` workflow builds the exact requested source SHA on a native GitHub-hosted ARM64 runner as a self-contained `linux/arm64` production runtime using the existing offline Dashboard Dockerfile and the repository Node baseline. The artifact contains a tarred `.next` plus pruned production `node_modules`, package/source/runtime/platform/Node provenance, native-architecture evidence, and SHA-256 manifests.
 
 After the artifact is downloaded and extracted to a local directory, the controlled deployment accepts it explicitly:
 
@@ -60,7 +60,7 @@ The artifact path is fail-closed. Before candidate startup the host verifies exa
 
 When an artifact is supplied, the Raspberry Pi does **not** run `npm ci` or `next build`. The high-memory frontend build-headroom gate is therefore recorded as `SKIPPED_OFF_DEVICE_ARTIFACT`; the normal deployment capacity gate and concurrent-heavy-work guard still apply. If artifact verification fails, deployment stops before dashboard activation and does not fall back silently to a local build.
 
-If no artifact is supplied, the bounded-container build path remains an explicit fallback with memory, CPU, PID and preflight limits. It must never build in the active dashboard directory.
+Normal full deployment now requires `--frontend-artifact`. The bounded-container local build remains available only as an explicit emergency fallback through `--allow-local-frontend-build`, with the existing memory, CPU, PID and preflight limits. It must never build in the active dashboard directory.
 
 The candidate is started first on the isolated verification port (default `127.0.0.1:3100`). Only after candidate routes pass does the deployment install the candidate systemd unit. Failed activation or post-activation health automatically restores the previous last-known-good unit.
 
