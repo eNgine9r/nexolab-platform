@@ -175,10 +175,12 @@ class LocalAuthService:
     def refresh(self, refresh_token: str) -> LocalTokenPair:
         now = datetime.now(UTC)
         replacement = secrets.token_urlsafe(48)
+        refresh_expires_at = now + timedelta(seconds=self._refresh_token_seconds)
         try:
             session = self._repository.rotate_refresh_token(
                 refresh_token_hash=hash_refresh_token(refresh_token),
                 replacement_hash=hash_refresh_token(replacement),
+                expires_at=refresh_expires_at,
                 now=now,
             )
         except LocalSessionInvalidError as error:
@@ -191,12 +193,6 @@ class LocalAuthService:
             raise LocalAccountAccessError(
                 "local account has no active organization membership"
             )
-        refresh_expires_at = now + timedelta(seconds=self._refresh_token_seconds)
-        session = self._repository.extend_session_expiry(
-            session_id=session.id,
-            expires_at=refresh_expires_at,
-            now=now,
-        )
         return self._token_pair(
             claims=session.account.claims,
             session_id=session.id,
