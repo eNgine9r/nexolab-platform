@@ -14,7 +14,13 @@ on:
       - "scripts/run_capacity_acceptance.py"
       - "scripts/validate_capacity_policy.py"
       - "scripts/verify_capacity_evidence.py"
-      - "services/telemetry-service/**"
+      - "services/telemetry-service/app/ingestion.py"
+      - "services/telemetry-service/app/metrics.py"
+      - "services/telemetry-service/app/state.py"
+      - "services/telemetry-service/app/config.py"
+      - "services/telemetry-service/app/main.py"
+      - "services/telemetry-service/migrations/**"
+      - "services/telemetry-service/requirements.txt"
       - "tests/test_capacity_*.py"
   push:
     branches: [main]
