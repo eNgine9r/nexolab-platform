@@ -21,6 +21,7 @@ function tokenResponse(accessToken: string, refreshToken: string, expiresIn = 30
 
 beforeEach(() => {
   vi.stubGlobal("BroadcastChannel", undefined);
+  vi.stubGlobal("navigator", { locks: undefined });
   window.sessionStorage.clear();
   setSecurityCredentials({ accessToken: null, organizationId: ORGANIZATION_ID });
 });
