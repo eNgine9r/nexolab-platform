@@ -11,19 +11,18 @@ on:
       - "e2e/alerts.production.e2e.ts"
       - "playwright.alerts.config.ts"
       - "scripts/run-alerts-browser-acceptance.sh"
+      - "scripts/resolve-playwright-browser.sh"
       - "package.json"
       - "package-lock.json"
       - "src/app/alerts/**"
       - "src/components/alerts/**"
       - "src/components/dashboard/alarms-panel.tsx"
       - "src/components/dashboard/sidebar.tsx"
-      - "src/features/security/**"
       - "src/lib/alerts/**"
       - "services/telemetry-service/app/alerts/**"
       - "services/telemetry-service/app/ingestion.py"
       - "services/telemetry-service/app/main.py"
       - "services/telemetry-service/app/model_registry.py"
-      - "services/telemetry-service/app/security/**"
       - "services/telemetry-service/migrations/versions/20260726_0010_add_production_alerts.py"
       - "services/telemetry-service/migrations/versions/20260726_0011_harden_alert_audit.py"
       - "infrastructure/compose/compose.central.yaml"
@@ -54,21 +53,26 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          package-manager-cache: false
+          cache: npm
+          cache-dependency-path: package-lock.json
           node-version-file: .nvmrc
 
       - name: Install frontend dependencies
         env:
           HUSKY: 0
-        run: npm install --no-audit
+        run: npm ci --no-audit --fund=false
 
       - name: Install MQTT client
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends mosquitto-clients
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Resolve preinstalled Chrome
+        shell: bash
+        run: |
+          browser_path="$(bash scripts/resolve-playwright-browser.sh)"
+          printf 'PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=%s\n' "$browser_path" >> "$GITHUB_ENV"
+          "$browser_path" --version
 
       - name: Run alerts browser acceptance
         run: |

@@ -11,15 +11,14 @@ on:
       - "e2e/rendered-reports.production.e2e.ts"
       - "playwright.rendered-reports.config.ts"
       - "scripts/run-rendered-reports-browser-acceptance.sh"
+      - "scripts/resolve-playwright-browser.sh"
       - "scripts/run-reports-browser-acceptance.sh"
       - "package.json"
       - "package-lock.json"
       - "src/app/reports/**"
       - "src/components/reports/**"
-      - "src/features/security/**"
       - "src/lib/reports/**"
       - "services/telemetry-service/app/reports/**"
-      - "services/telemetry-service/app/security/**"
       - "services/telemetry-service/app/main.py"
       - "services/telemetry-service/app/model_registry.py"
       - "services/telemetry-service/migrations/versions/20260726_0012_add_test_reports.py"
@@ -52,16 +51,21 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          package-manager-cache: false
+          cache: npm
+          cache-dependency-path: package-lock.json
           node-version-file: .nvmrc
 
       - name: Install frontend dependencies
         env:
           HUSKY: 0
-        run: npm install --no-audit
+        run: npm ci --no-audit --fund=false
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Resolve preinstalled Chrome
+        shell: bash
+        run: |
+          browser_path="$(bash scripts/resolve-playwright-browser.sh)"
+          printf 'PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=%s\n' "$browser_path" >> "$GITHUB_ENV"
+          "$browser_path" --version
 
       - name: Run rendered reports browser acceptance
         run: |

@@ -18,7 +18,9 @@ NEXOLAB Merge Gate
 external exact-head PR workflow matrix (non-state PRs)
 ```
 
-Specialized domain workflows keep their own repository path filters. For non-state pull requests, the stable merge gate waits for every other PR workflow that actually triggered on the same exact head and fails if any latest workflow run is not GREEN.
+Specialized domain workflows keep their own repository path filters. PR filters are intentionally narrower than the corresponding `push main` filters for expensive integration lanes: a pull request runs only the affected subsystem, while `main` retains the broader deep-regression surface. Generic security implementation changes therefore do not fan out into unrelated Nodes/Reports/Alerts/Test Sessions browser suites, and generic Telemetry Service changes do not automatically fan out into Broker Control, Device Agent Fleet, MQTT TLS, Capacity or Disaster Recovery unless their owned components changed.
+
+For non-state pull requests, the stable merge gate waits for the classifier-required external exact-head workflows and fails closed when a required workflow is absent, failed, cancelled or does not stabilize within the bounded aggregation timeout.
 
 ## Canonical state-only fast lane
 
@@ -81,7 +83,7 @@ Core jobs that need the frontend graph use the committed lockfile through:
 HUSKY=0 npm ci --no-audit --fund=false
 ```
 
-GitHub Actions may cache npm download artifacts keyed by the lockfile and Node baseline. `node_modules` is not an authoritative cached source of truth.
+GitHub Actions may cache npm download artifacts keyed by the lockfile and Node baseline. `node_modules` is not an authoritative cached source of truth. Specialized Node workflows use `actions/setup-node` npm caching with `cache-dependency-path: package-lock.json`; installation remains deterministic through `npm ci`.
 
 ## Merge-gate invariant
 
@@ -100,6 +102,26 @@ It fails when:
 The aggregator groups repeated runs by workflow and uses the latest run for the exact head. It excludes its own current Core workflow and requires a stable observation window before declaring the external matrix GREEN.
 
 Software CI does not substitute for Raspberry Pi or real-hardware acceptance.
+
+## Fast PR / deep main model
+
+The default verification model is:
+
+```text
+PR
+  -> classify exact diff
+  -> Core quality
+  -> affected browser/backend/security lanes only
+  -> NEXOLAB Merge Gate
+
+merge to main
+  -> broad subsystem regression lanes
+  -> deep disaster-recovery / fleet / capacity coverage
+```
+
+This keeps risk-sensitive verification but removes unrelated PR blockers. Workflow-definition changes still trigger their own workflows, so CI-routing migration PRs intentionally produce a one-time broad matrix.
+
+ARM64 frontend release artifacts are built on the native `ubuntu-24.04-arm` runner. Normal Raspberry Pi deployment consumes the verified artifact and does not compile the frontend on the production host; local frontend compilation is an explicit emergency-only opt-in.
 
 ## Development cadence
 

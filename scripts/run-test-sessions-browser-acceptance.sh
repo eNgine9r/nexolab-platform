@@ -148,8 +148,13 @@ for command in docker npm curl python3; do
 done
 
 cd "$ROOT_DIR"
-npm install --no-audit --no-fund
-if [[ "${PLAYWRIGHT_INSTALL_WITH_DEPS:-0}" == "1" ]]; then
+npm ci --no-audit --fund=false
+if [[ -n "${PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH:-}" ]]; then
+  [[ -x "$PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH" ]] || {
+    printf 'Configured Playwright browser is not executable: %s\n' "$PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH" >&2
+    exit 1
+  }
+elif [[ "${PLAYWRIGHT_INSTALL_WITH_DEPS:-0}" == "1" ]]; then
   npx playwright install --with-deps chromium
 else
   npx playwright install chromium

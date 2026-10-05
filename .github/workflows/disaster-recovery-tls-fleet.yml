@@ -14,7 +14,12 @@ on:
       - "scripts/nexolab-volume-archive.py"
       - "scripts/run-disaster-recovery-tls-fleet.sh"
       - "services/device-agent/**"
-      - "services/telemetry-service/**"
+      - "services/telemetry-service/app/mqtt*.py"
+      - "services/telemetry-service/app/nodes/broker*.py"
+      - "services/telemetry-service/app/config.py"
+      - "services/telemetry-service/app/main.py"
+      - "services/telemetry-service/migrations/**"
+      - "services/telemetry-service/requirements.txt"
   push:
     branches: [main]
     paths:

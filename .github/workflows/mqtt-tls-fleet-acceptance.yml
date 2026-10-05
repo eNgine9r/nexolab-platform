@@ -11,6 +11,7 @@ on:
       - "infrastructure/compose/compose.device-agent-fleet-acceptance.yaml"
       - "infrastructure/compose/compose.mqtt-tls-fleet-acceptance.yaml"
       - "scripts/run-device-agent-fleet-acceptance.sh"
+      - "scripts/resolve-playwright-browser.sh"
       - "scripts/run-mqtt-tls-fleet-acceptance.sh"
       - "scripts/generate-mqtt-tls-acceptance-material.sh"
       - "e2e/device-agent-fleet.production.e2e.ts"
@@ -20,7 +21,13 @@ on:
     branches: [main]
     paths:
       - "services/device-agent/**"
-      - "services/telemetry-service/**"
+      - "services/telemetry-service/app/mqtt*.py"
+      - "services/telemetry-service/app/nodes/broker*.py"
+      - "services/telemetry-service/app/config.py"
+      - "services/telemetry-service/app/main.py"
+      - "services/telemetry-service/tests/test_mqtt_tls*.py"
+      - "services/telemetry-service/tests/test_node_broker_adapter_tls.py"
+      - "services/telemetry-service/requirements.txt"
       - "infrastructure/mqtt/dynamic-security/**"
       - "infrastructure/compose/compose.broker-control-acceptance.yaml"
       - "infrastructure/compose/compose.device-agent-fleet-acceptance.yaml"
@@ -54,15 +61,19 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          package-manager-cache: false
           node-version: 22
           cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Resolve preinstalled Chrome
+        shell: bash
+        run: |
+          browser_path="$(bash scripts/resolve-playwright-browser.sh)"
+          printf 'PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=%s\n' "$browser_path" >> "$GITHUB_ENV"
+          "$browser_path" --version
 
       - name: Validate TLS acceptance contracts
         env:

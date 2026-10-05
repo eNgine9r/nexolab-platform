@@ -13,7 +13,13 @@ on:
       - "playwright.disaster-recovery.config.ts"
       - "scripts/disaster-recovery-domain-fixtures.sql"
       - "scripts/run-disaster-recovery-browser.sh"
-      - "services/telemetry-service/**"
+      - "scripts/resolve-playwright-browser.sh"
+      - "services/telemetry-service/app/nodes/**"
+      - "services/telemetry-service/app/reports/**"
+      - "services/telemetry-service/app/refrigeration/**"
+      - "services/telemetry-service/app/model_registry.py"
+      - "services/telemetry-service/migrations/**"
+      - "services/telemetry-service/requirements.txt"
       - "src/app/nodes/**"
       - "src/app/reports/**"
       - "src/app/refrigeration/**"
@@ -64,9 +70,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          package-manager-cache: false
           node-version: 24
           cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -113,15 +119,19 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          package-manager-cache: false
           node-version: 24
           cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Resolve preinstalled Chrome
+        shell: bash
+        run: |
+          browser_path="$(bash scripts/resolve-playwright-browser.sh)"
+          printf 'PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=%s\n' "$browser_path" >> "$GITHUB_ENV"
+          "$browser_path" --version
 
       - name: Run restored operator browser acceptance
         run: bash scripts/run-disaster-recovery-browser.sh
