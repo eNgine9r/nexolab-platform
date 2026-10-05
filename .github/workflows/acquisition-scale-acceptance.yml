@@ -167,13 +167,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          package-manager-cache: false
           node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         env:
           HUSKY: 0
-        run: npm install --no-audit
+        run: npm ci --no-audit --fund=false
 
       - name: Run truthful telemetry state tests
         shell: bash
