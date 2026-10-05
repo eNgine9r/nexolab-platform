@@ -14,6 +14,7 @@ PRESERVATION = ROOT / "scripts" / "verify-offline-volume-preservation.sh"
 INSTALLER = ROOT / "scripts" / "install-offline-bundle.sh"
 SMOKE = ROOT / "scripts" / "offline-bundle-smoke.sh"
 DASHBOARD_DOCKERIGNORE = ROOT / "infrastructure" / "offline" / "Dockerfile.dashboard.dockerignore"
+DASHBOARD_DOCKERFILE = ROOT / "infrastructure" / "offline" / "Dockerfile.dashboard"
 
 
 class OfflineBundleWorkflowContractTests(unittest.TestCase):
@@ -25,6 +26,14 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         cls.installer = INSTALLER.read_text(encoding="utf-8")
         cls.smoke = SMOKE.read_text(encoding="utf-8")
         cls.dashboard_dockerignore = DASHBOARD_DOCKERIGNORE.read_text(encoding="utf-8")
+        cls.dashboard_dockerfile = DASHBOARD_DOCKERFILE.read_text(encoding="utf-8")
+
+    def test_dashboard_source_identity_does_not_invalidate_expensive_build(self) -> None:
+        build_index = self.dashboard_dockerfile.index("&& npm run build")
+        source_arg_index = self.dashboard_dockerfile.index("ARG NEXOLAB_SOURCE_COMMIT")
+        identity_index = self.dashboard_dockerfile.index("identity_source")
+        self.assertLess(build_index, source_arg_index)
+        self.assertLess(source_arg_index, identity_index)
 
     def test_dashboard_build_context_excludes_ci_generated_cache_busters(self) -> None:
         ignored = set(self.dashboard_dockerignore.splitlines())
