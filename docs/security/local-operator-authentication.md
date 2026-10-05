@@ -60,7 +60,7 @@ AUTH_LOCAL_PUBLIC_KEY_HOST_FILE=./secrets/local-auth/public.pem
 AUTH_LOCAL_ISSUER=urn:nexolab:local
 AUTH_LOCAL_AUDIENCE=nexolab-api
 AUTH_LOCAL_ACCESS_TOKEN_SECONDS=300
-AUTH_LOCAL_REFRESH_TOKEN_SECONDS=43200
+AUTH_LOCAL_REFRESH_TOKEN_SECONDS=28800
 AUTH_LOCAL_MAX_FAILED_ATTEMPTS=5
 AUTH_LOCAL_LOCKOUT_SECONDS=300
 ```
@@ -151,8 +151,8 @@ For the offline bundle, also include `infrastructure/offline/compose.central.off
 ## Login and session behavior
 
 - access token lifetime defaults to 5 minutes;
-- refresh session lifetime defaults to 12 hours;
-- refresh tokens rotate on every refresh;
+- refresh session idle window defaults to 8 hours and extends after each successful refresh;
+- refresh tokens rotate on every refresh and remain only in per-tab `sessionStorage`; active same-origin NEXOLAB tabs exchange the current in-memory browser-session pair through `BroadcastChannel`, without persistent token storage;
 - reuse of a rotated token is rejected;
 - logout revokes the PostgreSQL session;
 - access tokens from a revoked session are rejected immediately;
