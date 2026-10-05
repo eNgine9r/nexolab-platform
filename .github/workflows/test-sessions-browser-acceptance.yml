@@ -19,12 +19,10 @@ on:
       - "package-lock.json"
       - "playwright.sessions.config.ts"
       - "scripts/run-test-sessions-browser-acceptance.sh"
-      - "services/telemetry-service/app/security/**"
       - "services/telemetry-service/app/sessions/**"
       - "services/telemetry-service/migrations/**"
       - "src/app/sessions/**"
       - "src/components/sessions/**"
-      - "src/features/security/**"
       - "src/lib/sessions/**"
   workflow_dispatch:
 
@@ -55,7 +53,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          package-manager-cache: false
+          cache: npm
+          cache-dependency-path: package-lock.json
           node-version-file: .nvmrc
 
       - name: Run controlled test sessions acceptance
