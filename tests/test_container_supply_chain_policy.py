@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 from datetime import date
@@ -618,11 +619,15 @@ def test_2026_10_05_fresh_review_is_exact_and_seven_day_bounded() -> None:
     assert all("37294551286" in entry["reason"] for entry in exceptions)
     assert all("56b4d41250dc6390506052356e498eedfe90faba" in entry["reason"] for entry in exceptions)
     assert all("100 HIGH / 0 CRITICAL" in entry["reason"] for entry in exceptions)
-    assert all(
-        "ca05a899e5684acd7d8bcec2bfcf8c4c012c4d0fdc29f6ac0613ba777ddfcdc2"
-        in entry["reason"]
-        for entry in exceptions
-    )
+    canonical_tuples = sorted([list(key) for key in keys])
+    canonical_bytes = json.dumps(
+        canonical_tuples,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    tuple_set_sha256 = hashlib.sha256(canonical_bytes).hexdigest()
+    assert tuple_set_sha256 == "a6a26eaf112c502e76da852ea0508364cb76d0659bd66fe41c369785b8bde403"
+    assert all(tuple_set_sha256 in entry["reason"] for entry in exceptions)
     assert all("stale registry tuples=0" in entry["reason"] for entry in exceptions)
     assert all("unmatched fresh tuples=0" in entry["reason"] for entry in exceptions)
     assert all("empty Trivy FixedVersion" in entry["reason"] for entry in exceptions)
