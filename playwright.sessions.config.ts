@@ -2,6 +2,8 @@ import path from "node:path";
 
 import { defineConfig, devices } from "@playwright/test";
 
+const browserExecutablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?.trim();
+
 const evidenceDirectory = process.env.NEXOLAB_SESSIONS_EVIDENCE_DIR ?? "session-acceptance-evidence";
 const webUrl = process.env.NEXOLAB_SESSIONS_WEB_URL ?? "http://127.0.0.1:13030";
 const webPort = new URL(webUrl).port || "13030";
@@ -29,7 +31,10 @@ export default defineConfig({
   projects: [
     {
       name: "chromium-test-sessions",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        ...(browserExecutablePath ? { executablePath: browserExecutablePath } : {}),
+      },
     },
   ],
   webServer: {
