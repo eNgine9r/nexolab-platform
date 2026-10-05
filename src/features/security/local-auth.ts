@@ -150,7 +150,9 @@ async function refreshCredentialSnapshot(
   resolvedOrganizationId: string | null,
   organizationAtStart: string | null,
 ): Promise<SecurityCredentialSnapshot> {
-  await requestPeerSession();
+  if (ensureSessionChannel()) {
+    await requestPeerSession();
+  }
 
   const peerFresh = currentBrowserCredentialSnapshot(resolvedOrganizationId);
   if (peerFresh) return peerFresh;
