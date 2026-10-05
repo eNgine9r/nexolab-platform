@@ -16,7 +16,13 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - "services/telemetry-service/**"
+      - "services/telemetry-service/app/nodes/**"
+      - "services/telemetry-service/app/config.py"
+      - "services/telemetry-service/app/main.py"
+      - "services/telemetry-service/bin/nexolab-dynsec-admin"
+      - "services/telemetry-service/tests/test_broker*.py"
+      - "services/telemetry-service/tests/test_node_broker*.py"
+      - "services/telemetry-service/requirements.txt"
       - "infrastructure/compose/compose.broker-control-acceptance.yaml"
       - "infrastructure/mqtt/dynamic-security/**"
       - "scripts/run-broker-control-acceptance.sh"
