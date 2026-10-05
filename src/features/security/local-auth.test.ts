@@ -210,4 +210,3 @@ it("adopts an active same-origin peer session without persistent storage or netw
   expect(window.localStorage.length).toBe(0);
   expect(fetchMock).not.toHaveBeenCalled();
 });
-
