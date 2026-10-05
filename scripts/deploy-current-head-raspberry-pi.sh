@@ -17,13 +17,17 @@ source "$SCRIPT_DIR/lib/deployment-lock.sh"
 usage() {
   cat <<'USAGE'
 Usage: deploy-current-head-raspberry-pi.sh [--runtime-mode lan|standalone] [--frontend-artifact PATH]
+       [--allow-local-frontend-build]
        [--source-ref SHA] [--expected-deployed-source SHA] [--source-selection-check-only]
        [--offline-source-selection]
        [--restore-edge-snapshot DEPLOYMENT_EVIDENCE_DIR
         --expected-deployed-source SHA --expected-target-source SHA]
 
 Options:
-  --frontend-artifact PATH  Import a verified off-device frontend artifact instead of building on this host.
+  --frontend-artifact PATH  Import a verified off-device frontend artifact. This is the default deployment path.
+  --allow-local-frontend-build
+                           Explicit emergency opt-in to the bounded on-host frontend build fallback.
+                           Normal production deployment fails closed without an artifact.
   --source-ref SHA          Deploy an explicitly approved historical commit already contained in main history.
   --expected-deployed-source SHA
                            Exact currently deployed source SHA. With --source-ref it pins the
@@ -48,6 +52,7 @@ USAGE
 
 RUNTIME_MODE="lan"
 FRONTEND_ARTIFACT_INPUT=""
+ALLOW_LOCAL_FRONTEND_BUILD="0"
 REQUESTED_SOURCE_REF=""
 EXPECTED_DEPLOYED_SOURCE=""
 SOURCE_SELECTION_CHECK_ONLY="0"
@@ -71,6 +76,10 @@ while (($# > 0)); do
       }
       FRONTEND_ARTIFACT_INPUT="$2"
       shift 2
+      ;;
+    --allow-local-frontend-build)
+      ALLOW_LOCAL_FRONTEND_BUILD="1"
+      shift
       ;;
     --source-ref)
       (($# >= 2)) || {
@@ -322,6 +331,10 @@ if [[ -n "$FRONTEND_ARTIFACT_INPUT" ]]; then
     exit 66
   }
   FRONTEND_ARTIFACT_DIR="$(cd "$FRONTEND_ARTIFACT_INPUT" && pwd -P)"
+fi
+if [[ -z "$FRONTEND_ARTIFACT_DIR" && "$SOURCE_SELECTION_CHECK_ONLY" == "0" && "$ALLOW_LOCAL_FRONTEND_BUILD" != "1" ]]; then
+  echo "ERROR: production deployment requires --frontend-artifact; use --allow-local-frontend-build only for an explicit emergency fallback" >&2
+  exit 64
 fi
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 AUDIT_DIR="$REPO/runtime/deployments/$STAMP"
@@ -1206,7 +1219,11 @@ docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is unavailable
 log "Starting controlled current-head deployment"
 log "Repository: $REPO"
 log "Runtime mode: $RUNTIME_MODE"
-if [[ -n "$FRONTEND_ARTIFACT_DIR" ]]; then log "Frontend candidate source: verified off-device artifact ($FRONTEND_ARTIFACT_DIR)"; else log "Frontend candidate source: bounded local build fallback"; fi
+if [[ -n "$FRONTEND_ARTIFACT_DIR" ]]; then
+  log "Frontend candidate source: verified off-device artifact ($FRONTEND_ARTIFACT_DIR)"
+else
+  log "Frontend candidate source: EXPLICIT emergency bounded local build fallback"
+fi
 log "Evidence: $AUDIT_DIR"
 
 PG_CONTAINER="$(docker ps -q \

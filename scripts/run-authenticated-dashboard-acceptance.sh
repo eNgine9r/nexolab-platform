@@ -189,7 +189,7 @@ done
 start_device_agent_fixture
 
 cd "$ROOT_DIR"
-npm install --no-audit --no-fund
+npm ci --no-audit --no-fund
 if [[ -n "${PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH:-}" ]]; then
   if [[ ! -x "$PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH" ]]; then
     printf 'Configured Playwright browser is not executable: %s\n' "$PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH" >&2

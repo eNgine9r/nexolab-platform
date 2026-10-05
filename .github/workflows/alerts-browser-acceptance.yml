@@ -10,6 +10,7 @@ on:
       - ".github/workflows/alerts-browser-acceptance.yml"
       - "e2e/alerts.production.e2e.ts"
       - "playwright.alerts.config.ts"
+      - "scripts/resolve-playwright-browser.sh"
       - "scripts/run-alerts-browser-acceptance.sh"
       - "package.json"
       - "package-lock.json"
@@ -54,21 +55,27 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          package-manager-cache: false
           node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install frontend dependencies
         env:
           HUSKY: 0
-        run: npm install --no-audit
+        run: npm ci --no-audit --fund=false
 
       - name: Install MQTT client
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends mosquitto-clients
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Resolve preinstalled Chrome
+        shell: bash
+        run: |
+          browser_path="$(bash scripts/resolve-playwright-browser.sh)"
+          printf 'PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=%s\n' "$browser_path" >> "$GITHUB_ENV"
+          "$browser_path" --version
+          npx playwright install ffmpeg
 
       - name: Run alerts browser acceptance
         run: |
