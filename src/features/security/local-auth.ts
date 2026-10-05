@@ -1,5 +1,6 @@
 import {
   getSecurityCredentials,
+  notifySecurityCredentialsInvalidated,
   setSecurityCredentials,
   type SecurityCredentialProvider,
   type SecurityCredentialSnapshot,
@@ -10,6 +11,7 @@ const REFRESH_TOKEN_KEY = "nexolab.local-auth.refresh-token";
 const ACCESS_EXPIRES_AT_KEY = "nexolab.local-auth.access-expires-at";
 const REFRESH_SKEW_MS = 30_000;
 const PEER_SESSION_WAIT_MS = 150;
+const AUTH_REQUEST_TIMEOUT_MS = 10_000;
 const REFRESH_LOCK_NAME = "nexolab.local-auth.refresh";
 const SESSION_CHANNEL_NAME = "nexolab.local-auth.session";
 
@@ -35,7 +37,7 @@ type LocalAuthChannelMessage =
   | { type: "session-request"; requestId: string }
   | ({ type: "session-response"; requestId: string } & BrowserTokenSnapshot)
   | ({ type: "session-update" } & BrowserTokenSnapshot)
-  | { type: "session-clear" };
+  | { type: "session-clear"; refreshToken?: string };
 
 type LockManagerLike = {
   request<T>(name: string, callback: () => Promise<T>): Promise<T>;
@@ -64,13 +66,17 @@ export function createLocalCredentialProvider(
       await requestPeerSession();
     }
 
-    const fresh = currentBrowserCredentialSnapshot(resolvedOrganizationId);
+    const peerOrganizationId = reconcileOrganization(
+      resolvedOrganizationId,
+      current.organizationId,
+    );
+    const fresh = currentBrowserCredentialSnapshot(peerOrganizationId);
     if (fresh) return fresh;
 
     if (!window.sessionStorage.getItem(REFRESH_TOKEN_KEY)) {
       const snapshot = {
         accessToken: null,
-        organizationId: resolvedOrganizationId,
+        organizationId: peerOrganizationId,
       };
       setSecurityCredentials(snapshot);
       return snapshot;
@@ -79,7 +85,11 @@ export function createLocalCredentialProvider(
     const activeRefresh =
       refreshPromise ??
       withRefreshLock(() =>
-        refreshCredentialSnapshot(normalizedBaseUrl, resolvedOrganizationId, current.organizationId),
+        refreshCredentialSnapshot(
+          normalizedBaseUrl,
+          peerOrganizationId,
+          getSecurityCredentials().organizationId,
+        ),
       );
     refreshPromise = activeRefresh;
     try {
@@ -117,20 +127,21 @@ export async function signInWithLocalPassword(
 }
 
 export async function signOutLocal(apiBaseUrl: string): Promise<void> {
-  const refreshToken =
-    typeof window === "undefined" ? null : window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
+  if (typeof window === "undefined") return;
+
   try {
-    if (refreshToken) {
-      await fetch(normalizeBaseUrl(apiBaseUrl) + "/api/v1/auth/local/logout", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
+    if (refreshPromise) {
+      await refreshPromise.catch(() => undefined);
     }
+    await withRefreshLock(async () => {
+      if (ensureSessionChannel()) {
+        await requestPeerSession();
+      }
+      const refreshToken = window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
+      if (refreshToken) {
+        await requestLogout(normalizeBaseUrl(apiBaseUrl), refreshToken);
+      }
+    });
   } finally {
     clearLocalAuthStorage();
     broadcastMessage({ type: "session-clear" });
@@ -154,49 +165,65 @@ async function refreshCredentialSnapshot(
     await requestPeerSession();
   }
 
-  const peerFresh = currentBrowserCredentialSnapshot(resolvedOrganizationId);
+  let effectiveOrganizationId = reconcileOrganization(
+    resolvedOrganizationId,
+    organizationAtStart,
+  );
+  const peerFresh = currentBrowserCredentialSnapshot(effectiveOrganizationId);
   if (peerFresh) return peerFresh;
 
   const refreshToken = window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
   if (!refreshToken) {
     const snapshot = {
       accessToken: null,
-      organizationId: resolvedOrganizationId,
+      organizationId: effectiveOrganizationId,
     };
     setSecurityCredentials(snapshot);
     return snapshot;
   }
 
-  const refreshed = await requestTokenPair(normalizedBaseUrl + "/api/v1/auth/local/refresh", {
+  let refreshed = await requestTokenPair(normalizedBaseUrl + "/api/v1/auth/local/refresh", {
     refresh_token: refreshToken,
   });
+  if (!refreshed.ok && !refreshed.terminal) {
+    refreshed = await requestTokenPair(normalizedBaseUrl + "/api/v1/auth/local/refresh", {
+      refresh_token: refreshToken,
+    });
+  }
 
   if (window.sessionStorage.getItem(REFRESH_TOKEN_KEY) !== refreshToken) {
     return currentCredentialSnapshot(getSecurityCredentials().organizationId);
   }
 
-  const latestOrganizationId = getSecurityCredentials().organizationId;
-  const refreshedOrganizationId =
-    latestOrganizationId === organizationAtStart ? resolvedOrganizationId : latestOrganizationId;
+  effectiveOrganizationId = reconcileOrganization(
+    effectiveOrganizationId,
+    organizationAtStart,
+  );
 
   if (!refreshed.ok) {
     if (refreshed.terminal) {
+      if (ensureSessionChannel()) {
+        await requestPeerSession();
+      }
+      if (window.sessionStorage.getItem(REFRESH_TOKEN_KEY) !== refreshToken) {
+        return currentCredentialSnapshot(getSecurityCredentials().organizationId);
+      }
       clearLocalAuthStorage();
-      broadcastMessage({ type: "session-clear" });
+      broadcastMessage({ type: "session-clear", refreshToken });
       const snapshot = {
         accessToken: null,
-        organizationId: refreshedOrganizationId,
+        organizationId: effectiveOrganizationId,
       };
       setSecurityCredentials(snapshot);
       return snapshot;
     }
-    return currentCredentialSnapshot(refreshedOrganizationId);
+    return currentCredentialSnapshot(effectiveOrganizationId);
   }
 
   storeTokenPair(refreshed.value, true);
   const snapshot = {
     accessToken: refreshed.value.access_token,
-    organizationId: refreshedOrganizationId,
+    organizationId: effectiveOrganizationId,
   };
   setSecurityCredentials(snapshot);
   return snapshot;
@@ -258,11 +285,16 @@ function ensureSessionChannel(): BroadcastChannel | null {
     }
 
     if (message.type === "session-clear") {
+      const currentRefreshToken = window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
+      if (message.refreshToken && currentRefreshToken !== message.refreshToken) {
+        return;
+      }
       clearLocalAuthStorage();
       setSecurityCredentials({
         accessToken: null,
         organizationId: getSecurityCredentials().organizationId,
       });
+      notifySecurityCredentialsInvalidated();
       return;
     }
 
@@ -317,7 +349,9 @@ function readBrowserTokenSnapshot(): BrowserTokenSnapshot | null {
   return accessToken && refreshToken && expiresAt > 0 ? { accessToken, refreshToken, expiresAt } : null;
 }
 
-function currentBrowserCredentialSnapshot(organizationId: string | null): SecurityCredentialSnapshot | null {
+function currentBrowserCredentialSnapshot(
+  organizationId: string | null,
+): SecurityCredentialSnapshot | null {
   const snapshot = readBrowserTokenSnapshot();
   if (!snapshot || snapshot.expiresAt <= Date.now() + REFRESH_SKEW_MS) {
     return null;
@@ -330,10 +364,22 @@ function currentBrowserCredentialSnapshot(organizationId: string | null): Securi
   return credentials;
 }
 
+function reconcileOrganization(
+  fallbackOrganizationId: string | null,
+  organizationAtStart: string | null,
+): string | null {
+  const latestOrganizationId = getSecurityCredentials().organizationId;
+  return latestOrganizationId === organizationAtStart
+    ? fallbackOrganizationId
+    : latestOrganizationId;
+}
+
 async function requestTokenPair(
   url: string,
   payload: Record<string, string>,
 ): Promise<TokenPairRequestResult> {
+  const controller = new AbortController();
+  const timeout = globalThis.setTimeout(() => controller.abort(), AUTH_REQUEST_TIMEOUT_MS);
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -343,6 +389,7 @@ async function requestTokenPair(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
     const body = await readJson(response);
     if (!response.ok) {
@@ -370,6 +417,30 @@ async function requestTokenPair(
       message: "Локальний сервер автентифікації NEXOLAB недоступний.",
       terminal: false,
     };
+  } finally {
+    globalThis.clearTimeout(timeout);
+  }
+}
+
+async function requestLogout(normalizedBaseUrl: string, refreshToken: string): Promise<void> {
+  const controller = new AbortController();
+  const timeout = globalThis.setTimeout(() => controller.abort(), AUTH_REQUEST_TIMEOUT_MS);
+  try {
+    await fetch(normalizedBaseUrl + "/api/v1/auth/local/logout", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+      signal: controller.signal,
+    });
+  } catch {
+    // Browser state still clears. The backend also accepts the immediately prior
+    // deterministic refresh generation for bounded logout recovery.
+  } finally {
+    globalThis.clearTimeout(timeout);
   }
 }
 
@@ -391,7 +462,10 @@ function readExpiresAt(): number {
 function parseChannelMessage(value: unknown): LocalAuthChannelMessage | null {
   const record = asRecord(value);
   const type = record ? readString(record.type) : null;
-  if (type === "session-clear") return { type };
+  if (type === "session-clear") {
+    const refreshToken = readString(record?.refreshToken);
+    return refreshToken ? { type, refreshToken } : { type };
+  }
   if (type === "session-request") {
     const requestId = readString(record?.requestId);
     return requestId ? { type, requestId } : null;
