@@ -1,6 +1,10 @@
 # NEXOLAB Blockers
 
-Updated: 2026-10-03
+Updated: 2026-10-05
+
+## Container HIGH exception review — cleared by #1277 verified candidate
+
+The scheduled 2026-10-02 exception boundary correctly failed closed during #1275. #1277 / PR #1278 revalidated the same exact 100 HIGH tuples from fresh no-cache evidence: 0 CRITICAL, 0 stale, 0 unmatched and 0 non-empty Trivy `FixedVersion` findings. Container Supply Chain `37295971163`, Telemetry Service `37295970776`, and Core CI / NEXOLAB Merge Gate `37295970972` are GREEN on implementation head `b69dc41aed65447c5cd9a97e234aebaac504cacf`. The bounded review window now ends **2026-10-12**; policy remains fail-closed and must be freshly revalidated again by then. #1275 must update to the merged security baseline before merge.
 
 ## Issue #1249 / #1247 — cleared by successful actual-host deployment
 
