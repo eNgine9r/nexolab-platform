@@ -2,6 +2,8 @@ import path from "node:path";
 
 import { defineConfig, devices } from "@playwright/test";
 
+const browserExecutablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?.trim();
+
 const evidenceDirectory = process.env.NEXOLAB_OBSERVABILITY_EVIDENCE_DIR ?? "test-results-observability";
 const grafanaUrl = process.env.NEXOLAB_OBSERVABILITY_GRAFANA_URL ?? "http://127.0.0.1:13030";
 
@@ -27,7 +29,10 @@ export default defineConfig({
   projects: [
     {
       name: "chromium-grafana-operator-dashboard",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        ...(browserExecutablePath ? { executablePath: browserExecutablePath } : {}),
+      },
     },
   ],
 });
