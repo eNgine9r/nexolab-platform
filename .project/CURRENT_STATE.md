@@ -1,6 +1,12 @@
 # NEXOLAB Current State
 
-Updated: 2026-10-03
+Updated: 2026-10-05
+
+## Issue #1277 — container HIGH exception revalidation verified
+
+PR #1278 implementation head `dba07ab0abbac7c689c060b4388fbf3c23ea0d33` passed Container Supply Chain `37356060489`, Telemetry Service `37356060431`, and Core CI / NEXOLAB Merge Gate `37356060375`. Fresh no-cache evidence contains exactly 100 HIGH / 0 CRITICAL image-package-CVE tuples: Device Agent 26, Telegram Gateway 26 and Telemetry Service 48; MQTT Dynamic Security and Object Storage contain zero HIGH/CRITICAL findings. The fresh set matches the 100-entry registry 1:1 with zero stale/unmatched tuples, zero non-empty Trivy `FixedVersion` findings, and tuple-set SHA-256 `a6a26eaf112c502e76da852ea0508364cb76d0659bd66fe41c369785b8bde403`.
+
+Current Debian Trixie fix availability and affected-runtime reachability were rechecked on 2026-10-05. The same exact decisions remain bounded through **2026-10-12**; no wildcard, package-family, severity-wide or CRITICAL exception was introduced. This supersedes the prior 2026-10-02 review boundary. No production deployment/restart, persistent-data or named-volume mutation, Modbus/controller write or hardware write occurred. #1274 / PR #1275 remains a separate auth Work Package and must rebase/update onto the merged security baseline before final exact-head verification.
 
 ## Issue #1249 / #1247 — Raspberry deployment accepted on actual host
 
