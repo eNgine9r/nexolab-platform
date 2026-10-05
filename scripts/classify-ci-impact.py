@@ -75,6 +75,20 @@ BROWSER_ACCEPTANCE_TOOLING_PATHS = {
     "playwright.reports.config.ts",
     "playwright.security.config.ts",
     "playwright.sessions.config.ts",
+    "scripts/run-acquisition-invariant-browser-acceptance.sh",
+    "scripts/run-alerts-browser-acceptance.sh",
+    "scripts/run-authenticated-dashboard-acceptance.sh",
+    "scripts/run-broker-control-acceptance.sh",
+    "scripts/run-device-agent-fleet-acceptance.sh",
+    "scripts/run-disaster-recovery-browser.sh",
+    "scripts/run-nodes-browser-acceptance.sh",
+    "scripts/run-observability-acceptance.sh",
+    "scripts/run-offline-auth-acceptance.sh",
+    "scripts/run-refrigeration-browser-acceptance.sh",
+    "scripts/run-rendered-reports-browser-acceptance.sh",
+    "scripts/run-reports-browser-acceptance.sh",
+    "scripts/run-security-browser-acceptance.sh",
+    "scripts/run-test-sessions-browser-acceptance.sh",
 }
 
 OFFLINE_EXTERNAL_DEPENDENCY_PATHS = {
