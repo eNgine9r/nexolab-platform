@@ -64,7 +64,7 @@
         "stale_registry_tuples": 0,
         "unmatched_fresh_tuples": 0,
         "fresh_high_with_fixed_version": 0,
-        "tuple_set_sha256": "ca05a899e5684acd7d8bcec2bfcf8c4c012c4d0fdc29f6ac0613ba777ddfcdc2",
+        "tuple_set_sha256": "a6a26eaf112c502e76da852ea0508364cb76d0659bd66fe41c369785b8bde403",
         "exception_expiry": "2026-10-12",
         "production_runtime_mutation": "none",
         "persistent_data_mutation": "none",
