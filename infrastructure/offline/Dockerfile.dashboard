@@ -5,6 +5,11 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
+FROM dependencies AS production-dependencies
+RUN cp package-lock.json /tmp/nexolab-package-lock.json \
+    && npm prune --omit=dev \
+    && mv /tmp/nexolab-package-lock.json package-lock.json
+
 FROM dependencies AS builder
 ARG NEXT_PUBLIC_NEXOLAB_DATA_MODE=live
 ARG NEXT_PUBLIC_NEXOLAB_API_BASE_URL
@@ -20,10 +25,7 @@ ENV NEXT_PUBLIC_NEXOLAB_DATA_MODE=${NEXT_PUBLIC_NEXOLAB_DATA_MODE} \
 COPY . .
 RUN test -n "$NEXT_PUBLIC_NEXOLAB_API_BASE_URL" \
     && test -n "$NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL" \
-    && npm run build \
-    && cp package-lock.json /tmp/nexolab-package-lock.json \
-    && npm prune --omit=dev \
-    && mv /tmp/nexolab-package-lock.json package-lock.json
+    && npm run build
 
 ARG NEXOLAB_SOURCE_COMMIT
 RUN test -n "$NEXOLAB_SOURCE_COMMIT" \
@@ -35,8 +37,8 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     PORT=3000
 WORKDIR /app
-COPY --from=builder --chown=node:node /app/package.json /app/package-lock.json ./
-COPY --from=builder --chown=node:node /app/node_modules ./node_modules
+COPY --from=production-dependencies --chown=node:node /app/package.json /app/package-lock.json ./
+COPY --from=production-dependencies --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/.next ./.next
 COPY --from=builder --chown=node:node /app/.nexolab-runtime-identity.json ./.nexolab-runtime-identity.json
 USER node
