@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const browserExecutablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?.trim();
+
 const baseURL = process.env.NEXOLAB_ALERTS_BASE_URL ?? "http://127.0.0.1:3103";
 
 export default defineConfig({
@@ -24,7 +26,10 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        ...(browserExecutablePath ? { launchOptions: { executablePath: browserExecutablePath } } : {}),
+      },
     },
   ],
 });

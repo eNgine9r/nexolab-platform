@@ -66,6 +66,23 @@ class RiskAwareVerificationContractTests(unittest.TestCase):
                     mismatches.append((path, required))
         self.assertEqual(mismatches, [])
 
+    def test_known_playwright_configs_do_not_force_unrelated_offline_bundle(self) -> None:
+        for path in (
+            "playwright.nodes.config.ts",
+            "playwright.reports.config.ts",
+            "playwright.alerts.config.ts",
+            "playwright.rendered-reports.config.ts",
+            "scripts/run-authenticated-dashboard-acceptance.sh",
+            "scripts/run-test-sessions-browser-acceptance.sh",
+        ):
+            result = classify([path])
+            self.assertFalse(result["fail_closed"], path)
+            self.assertNotIn(
+                "Offline Bundle",
+                result["verification"]["required_external_workflows"],
+                path,
+            )
+
     def test_offline_bundle_does_not_trigger_for_generic_frontend_sources(self) -> None:
         trigger = OFFLINE.split('workflow_dispatch:', 1)[0]
         self.assertNotIn('- "src/**"', trigger)

@@ -59,8 +59,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          package-manager-cache: false
           node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Run controlled security acceptance
         run: bash scripts/run-security-browser-acceptance.sh

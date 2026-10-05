@@ -312,6 +312,12 @@ class RaspberryPiFrontendReleaseTests(unittest.TestCase):
         self.assertIn("nexolab_frontend_import_artifact", text)
         self.assertIn("status=SKIPPED_OFF_DEVICE_ARTIFACT", text)
         self.assertIn('if [[ -n "$FRONTEND_ARTIFACT_DIR" ]]; then', text)
+        self.assertIn('ALLOW_LOCAL_FRONTEND_BUILD="0"', text)
+        self.assertIn("--allow-local-frontend-build", text)
+        self.assertIn(
+            "production deployment requires --frontend-artifact; use --allow-local-frontend-build only for an explicit emergency fallback",
+            text,
+        )
         self.assertNotIn("docker curl python3 openssl npm node flock", text)
         self.assertIn("docker curl python3 openssl node flock", text)
         self.assertIn('NVM_NODE_BIN="$HOME/.nvm/versions/node/v${EXPECTED_NODE_VERSION}/bin"', text)
@@ -344,8 +350,10 @@ class RaspberryPiFrontendReleaseTests(unittest.TestCase):
         self.assertIn("ref: ${{ github.event.pull_request.head.sha }}", ci)
         self.assertIn("fetch-depth: 0", ci)
         self.assertIn('git diff --quiet "${{ github.event.pull_request.base.sha }}"', ci)
-        self.assertIn("Setup QEMU", ci)
-        self.assertIn("Setup QEMU", release)
+        self.assertIn("runs-on: ubuntu-24.04-arm", ci)
+        self.assertIn("runs-on: ubuntu-24.04-arm", release)
+        self.assertNotIn("Setup QEMU", ci)
+        self.assertNotIn("Setup QEMU", release)
         self.assertIn("ARM64", builder)
         self.assertIn('docker create --platform "$PLATFORM" "$IMAGE"', builder)
         self.assertIn('--build-arg "NEXOLAB_SOURCE_COMMIT=$SOURCE_SHA"', builder)

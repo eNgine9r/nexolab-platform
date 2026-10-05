@@ -131,7 +131,7 @@ for command in docker npm curl python3; do
 done
 
 cd "$ROOT_DIR"
-npm install --no-audit --no-fund
+npm ci --no-audit --no-fund
 if [[ "${PLAYWRIGHT_INSTALL_WITH_DEPS:-0}" == "1" ]]; then
   npx playwright install --with-deps chromium
 else
