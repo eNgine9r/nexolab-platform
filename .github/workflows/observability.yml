@@ -169,7 +169,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          package-manager-cache: false
+          cache: npm
+          cache-dependency-path: package-lock.json
           node-version-file: .nvmrc
 
       - name: Generate temporary acceptance credentials
@@ -230,7 +231,7 @@ jobs:
 
       - name: Install Chromium acceptance dependencies
         run: |
-          npm install --no-audit --no-fund
+          npm ci --no-audit --fund=false
           npx playwright install --with-deps chromium
 
       - name: Verify Grafana operator dashboard in Chromium
