@@ -32,7 +32,7 @@ afterEach(() => {
 });
 
 describe("local browser authentication", () => {
-  it("stores the local session only for the current browser tab", async () => {
+  it("keeps local auth secrets out of persistent localStorage", async () => {
     const fetchMock = vi.fn(async () => tokenResponse("access-1", "refresh-1"));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -92,6 +92,21 @@ describe("local browser authentication", () => {
     ]);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("refresh-2");
+  });
+
+  it("retains browser session material when refresh fails transiently", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(tokenResponse("access-1", "refresh-1", 1))
+      .mockRejectedValueOnce(new TypeError("network unavailable"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await signInWithLocalPassword(API_BASE_URL, "operator", "valid-password");
+    const credentials = await createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID)();
+
+    expect(credentials).toEqual({ accessToken: "access-1", organizationId: ORGANIZATION_ID });
+    expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("refresh-1");
+    expect(window.localStorage.length).toBe(0);
   });
 
   it("clears local material when refresh is rejected", async () => {
