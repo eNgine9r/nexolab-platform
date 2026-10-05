@@ -61,6 +61,22 @@ DASHBOARD_EXTERNAL_TOOLCHAIN_PATHS = {
     "playwright.dashboard.config.ts",
 }
 
+BROWSER_ACCEPTANCE_TOOLING_PATHS = {
+    "playwright.alerts.config.ts",
+    "playwright.broker-control.config.ts",
+    "playwright.dashboard.config.ts",
+    "playwright.device-agent-fleet.config.ts",
+    "playwright.disaster-recovery.config.ts",
+    "playwright.local-auth.config.ts",
+    "playwright.nodes.config.ts",
+    "playwright.observability.config.ts",
+    "playwright.production.config.ts",
+    "playwright.rendered-reports.config.ts",
+    "playwright.reports.config.ts",
+    "playwright.security.config.ts",
+    "playwright.sessions.config.ts",
+}
+
 OFFLINE_EXTERNAL_DEPENDENCY_PATHS = {
     "package.json",
     "package-lock.json",
@@ -425,6 +441,10 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
 
         if path in DEPENDENCY_TOOLCHAIN_PATHS:
             classes.add("dependency_toolchain")
+            matched = True
+
+        if path in BROWSER_ACCEPTANCE_TOOLING_PATHS:
+            classes.add("frontend")
             matched = True
 
         if path.startswith("src/") or path.startswith("e2e/") or path.startswith("public/"):
