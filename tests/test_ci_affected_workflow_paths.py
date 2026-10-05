@@ -98,12 +98,17 @@ class AffectedWorkflowRoutingTests(unittest.TestCase):
             "rendered-reports-browser-acceptance.yml",
             "reports-browser-acceptance.yml",
             "observability.yml",
-            "test-sessions-browser-acceptance.yml",
         ):
             with self.subTest(workflow=name):
                 text = (WORKFLOWS / name).read_text(encoding="utf-8")
                 self.assertNotIn("npm install --no-audit", text)
                 self.assertIn("npm ci", text)
+
+        sessions_script = (ROOT / "scripts" / "run-test-sessions-browser-acceptance.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotIn("npm install --no-audit", sessions_script)
+        self.assertIn("npm ci --no-audit --fund=false", sessions_script)
 
     def test_browser_workflows_reuse_preinstalled_chrome(self) -> None:
         workflows = (
