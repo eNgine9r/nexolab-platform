@@ -13,6 +13,7 @@ OFFLINE_BUILDER = ROOT / "scripts" / "build-offline-bundle.sh"
 PRESERVATION = ROOT / "scripts" / "verify-offline-volume-preservation.sh"
 INSTALLER = ROOT / "scripts" / "install-offline-bundle.sh"
 SMOKE = ROOT / "scripts" / "offline-bundle-smoke.sh"
+DASHBOARD_DOCKERIGNORE = ROOT / "infrastructure" / "offline" / "Dockerfile.dashboard.dockerignore"
 
 
 class OfflineBundleWorkflowContractTests(unittest.TestCase):
@@ -23,6 +24,12 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         cls.preservation = PRESERVATION.read_text(encoding="utf-8")
         cls.installer = INSTALLER.read_text(encoding="utf-8")
         cls.smoke = SMOKE.read_text(encoding="utf-8")
+        cls.dashboard_dockerignore = DASHBOARD_DOCKERIGNORE.read_text(encoding="utf-8")
+
+    def test_dashboard_build_context_excludes_ci_generated_cache_busters(self) -> None:
+        ignored = set(self.dashboard_dockerignore.splitlines())
+        for path in (".git", ".ci", "dist", "node_modules", ".next"):
+            self.assertIn(path, ignored)
 
     def test_offline_builder_uses_bounded_persistent_buildkit_cache(self) -> None:
         self.assertIn("NEXOLAB_BUILDX_CACHE_ROOT", self.offline_builder)
