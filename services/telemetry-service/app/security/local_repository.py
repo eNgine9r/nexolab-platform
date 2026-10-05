@@ -68,6 +68,7 @@ class LocalSessionRecord:
     id: str
     account: LocalAccountRecord
     expires_at: datetime
+    last_refreshed_at: datetime
 
 
 class LocalAuthRepository:
@@ -283,7 +284,10 @@ class LocalAuthRepository:
         *,
         refresh_token_hash: str,
         replacement_hash: str,
+        recovery_hash: str,
+        recovery_after: datetime,
         expires_at: datetime,
+        idle_timeout_seconds: int,
         now: datetime,
     ) -> LocalSessionRecord:
         with Session(self._engine, expire_on_commit=False) as session:
@@ -304,6 +308,25 @@ class LocalAuthRepository:
                     )
                     .with_for_update()
                 ).one_or_none()
+                recovered = False
+                if row is None:
+                    row = session.execute(
+                        select(SecurityLocalSession, SecurityLocalAccount, SecurityIdentity)
+                        .join(
+                            SecurityLocalAccount,
+                            SecurityLocalAccount.id == SecurityLocalSession.account_id,
+                        )
+                        .join(
+                            SecurityIdentity,
+                            SecurityIdentity.id == SecurityLocalAccount.identity_id,
+                        )
+                        .where(
+                            SecurityLocalSession.refresh_token_hash == recovery_hash,
+                            SecurityLocalSession.last_refreshed_at >= recovery_after,
+                        )
+                        .with_for_update()
+                    ).one_or_none()
+                    recovered = row is not None
                 if row is None:
                     raise LocalSessionInvalidError("refresh session was not found")
                 local_session, account, identity = row
@@ -312,20 +335,25 @@ class LocalAuthRepository:
                     account,
                     identity,
                     now=now,
+                    idle_timeout_seconds=idle_timeout_seconds,
                 )
-                local_session.refresh_token_hash = replacement_hash
-                local_session.last_refreshed_at = now
-                local_session.expires_at = expires_at
+                if not recovered:
+                    local_session.refresh_token_hash = replacement_hash
+                    local_session.last_refreshed_at = now
+                    local_session.expires_at = expires_at
                 return LocalSessionRecord(
                     id=local_session.id,
                     account=_account_record(account, identity),
                     expires_at=_as_utc(local_session.expires_at),
+                    last_refreshed_at=_as_utc(local_session.last_refreshed_at),
                 )
 
     def revoke_session_by_refresh_token(
         self,
         *,
         refresh_token_hash: str,
+        recovery_hashes: tuple[str, ...] = (),
+        recovery_after: datetime | None = None,
         now: datetime,
     ) -> bool:
         with Session(self._engine) as session:
@@ -338,6 +366,15 @@ class LocalAuthRepository:
                     )
                     .with_for_update()
                 )
+                if local_session is None and recovery_hashes and recovery_after is not None:
+                    local_session = session.scalar(
+                        select(SecurityLocalSession)
+                        .where(
+                            SecurityLocalSession.refresh_token_hash.in_(recovery_hashes),
+                            SecurityLocalSession.last_refreshed_at >= recovery_after,
+                        )
+                        .with_for_update()
+                    )
                 if local_session is None:
                     return False
                 if local_session.revoked_at is None:
@@ -433,11 +470,16 @@ class LocalAuthRepository:
         identity: SecurityIdentity,
         *,
         now: datetime,
+        idle_timeout_seconds: int | None = None,
     ) -> None:
         if local_session.revoked_at is not None:
             raise LocalSessionInvalidError("local session is revoked")
         if _as_utc(local_session.expires_at) <= now:
             raise LocalSessionInvalidError("local session is expired")
+        if idle_timeout_seconds is not None:
+            last_refreshed_at = _as_utc(local_session.last_refreshed_at)
+            if last_refreshed_at + timedelta(seconds=idle_timeout_seconds) <= now:
+                raise LocalSessionInvalidError("local session idle timeout expired")
         if not account.is_active or not identity.is_active:
             raise LocalSessionInvalidError("local account is inactive")
 
