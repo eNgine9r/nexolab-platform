@@ -3,7 +3,11 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as refrigerationCache from "@/features/refrigeration/refrigeration-structural-cache";
-import { getSecurityCredentials, setSecurityCredentials } from "@/features/security/security-session";
+import {
+  getSecurityCredentials,
+  SECURITY_CREDENTIALS_INVALIDATED_EVENT,
+  setSecurityCredentials,
+} from "@/features/security/security-session";
 import * as readModelCache from "@/lib/monitoring-read-model-cache";
 
 const authState = vi.hoisted(() => ({
@@ -181,6 +185,31 @@ describe("useDashboardSecurity", () => {
       expect(result.current.state).toBe("ready");
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("drops cached authenticated UI immediately when a peer invalidates credentials", async () => {
+    window.localStorage.setItem("nexolab.selectedOrganizationId", "org-1");
+    const clearReadModels = vi.spyOn(readModelCache, "clearAllMonitoringReadModels");
+    const clearRefrigeration = vi.spyOn(refrigerationCache, "clearAllRefrigerationStructuralCaches");
+    const { result } = renderHook(() => useDashboardSecurity());
+    await waitFor(() => expect(result.current.state).toBe("ready"));
+
+    clearReadModels.mockClear();
+    clearRefrigeration.mockClear();
+    act(() => {
+      window.dispatchEvent(new Event(SECURITY_CREDENTIALS_INVALIDATED_EVENT));
+    });
+
+    expect(result.current.state).toBe("unauthenticated");
+    expect(result.current.session).toBeNull();
+    expect(result.current.membership).toBeNull();
+    expect(window.localStorage.getItem("nexolab.selectedOrganizationId")).toBeNull();
+    expect(getSecurityCredentials()).toEqual({
+      accessToken: null,
+      organizationId: null,
+    });
+    expect(clearReadModels).toHaveBeenCalledTimes(1);
+    expect(clearRefrigeration).toHaveBeenCalledTimes(1);
   });
 
   it("clears credentials, persisted organization and retained read models on logout", async () => {
