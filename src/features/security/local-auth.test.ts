@@ -171,3 +171,43 @@ it.each([200, 401])(
     expect(getSecurityCredentials().organizationId).toBe("organization-b");
   },
 );
+
+it("adopts an active same-origin peer session without persistent storage or network refresh", async () => {
+  type Listener = (event: MessageEvent<unknown>) => void;
+  class PeerSessionChannel {
+    private listener: Listener | null = null;
+
+    addEventListener(_type: "message", listener: Listener): void {
+      this.listener = listener;
+    }
+
+    postMessage(message: unknown): void {
+      const request = message as { type?: string; requestId?: string };
+      if (request.type !== "session-request" || !request.requestId) return;
+      queueMicrotask(() => {
+        this.listener?.({
+          data: {
+            type: "session-response",
+            requestId: request.requestId,
+            accessToken: "peer-access",
+            refreshToken: "peer-refresh",
+            expiresAt: Date.now() + 300_000,
+          },
+        } as MessageEvent<unknown>);
+      });
+    }
+  }
+
+  vi.stubGlobal("BroadcastChannel", PeerSessionChannel);
+  window.sessionStorage.clear();
+  const fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+
+  const credentials = await createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID)();
+
+  expect(credentials).toEqual({ accessToken: "peer-access", organizationId: ORGANIZATION_ID });
+  expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("peer-refresh");
+  expect(window.localStorage.length).toBe(0);
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
