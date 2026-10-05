@@ -108,6 +108,17 @@ class RiskAwareVerificationContractTests(unittest.TestCase):
         self.assertIn('NEXOLAB_DASHBOARD_TEST_MATCH:', DASHBOARD)
         self.assertIn('needs.route.outputs.test_match', DASHBOARD)
 
+    def test_core_quality_keeps_required_aggregator_while_parallelizing_work(self) -> None:
+        self.assertIn("quality_policy:", CORE)
+        self.assertIn("quality_static_build:", CORE)
+        self.assertIn("quality_tests:", CORE)
+        self.assertIn("name: Quality and build", CORE)
+        self.assertIn(
+            "needs: [classify, quality_policy, quality_static_build, quality_tests]",
+            CORE,
+        )
+        self.assertIn("Aggregate parallel quality lanes", CORE)
+
     def test_core_merge_gate_passes_required_external_workflow_contract(self) -> None:
         self.assertIn('required_external_workflows:', CORE)
         self.assertIn('REQUIRED_EXTERNAL_WORKFLOWS:', CORE)
