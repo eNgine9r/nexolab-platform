@@ -77,7 +77,11 @@ export function createLocalCredentialProvider(
     const activeRefresh =
       refreshPromise ??
       withRefreshLock(() =>
-        refreshCredentialSnapshot(normalizedBaseUrl, resolvedOrganizationId, current.organizationId),
+        refreshCredentialSnapshot(
+          normalizedBaseUrl,
+          resolvedOrganizationId,
+          current.organizationId,
+        ),
       );
     refreshPromise = activeRefresh;
     try {
@@ -170,7 +174,9 @@ async function refreshCredentialSnapshot(
 
   const latestOrganizationId = getSecurityCredentials().organizationId;
   const refreshedOrganizationId =
-    latestOrganizationId === organizationAtStart ? resolvedOrganizationId : latestOrganizationId;
+    latestOrganizationId === organizationAtStart
+      ? resolvedOrganizationId
+      : latestOrganizationId;
 
   if (!refreshed.ok) {
     if (refreshed.terminal) {
@@ -220,7 +226,10 @@ async function requestPeerSession(): Promise<boolean> {
       pendingPeerRequests.delete(requestId);
       resolve(received);
     });
-    activeChannel.postMessage({ type: "session-request", requestId } satisfies LocalAuthChannelMessage);
+    activeChannel.postMessage({
+      type: "session-request",
+      requestId,
+    } satisfies LocalAuthChannelMessage);
   });
 }
 
