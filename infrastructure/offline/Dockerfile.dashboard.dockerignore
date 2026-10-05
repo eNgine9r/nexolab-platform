@@ -1,0 +1,8 @@
+.git
+.ci
+dist
+node_modules
+.next
+coverage
+playwright-report*
+test-results*
