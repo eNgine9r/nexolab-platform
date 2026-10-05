@@ -9,6 +9,7 @@ import {
   createAuthenticatedFetch,
   getSecurityCredentials,
   HttpSecuritySessionClient,
+  SECURITY_CREDENTIALS_INVALIDATED_EVENT,
   setSecurityCredentials,
   type SecurityMembership,
   type SecuritySession,
@@ -184,6 +185,37 @@ export function useDashboardSecurity(): DashboardSecurityModel {
     clearFailure();
     setGeneration((value) => value + 1);
   }, [clearFailure, runtime]);
+
+  useEffect(() => {
+    if (runtime.mode === "demo") return;
+
+    const handleCredentialInvalidation = () => {
+      clearRetainedReadModels();
+      clearPersistedOrganizationId();
+      if (runtime.apiBaseUrl) {
+        invalidateMonitoringReadModel(
+          securitySessionScope(runtime.apiBaseUrl),
+          SECURITY_SESSION_CACHE_KEY,
+        );
+      }
+      setSecurityCredentials({ accessToken: null, organizationId: null });
+      setSession(null);
+      setMembership(null);
+      clearFailure();
+      setState("unauthenticated");
+    };
+
+    window.addEventListener(
+      SECURITY_CREDENTIALS_INVALIDATED_EVENT,
+      handleCredentialInvalidation,
+    );
+    return () => {
+      window.removeEventListener(
+        SECURITY_CREDENTIALS_INVALIDATED_EVENT,
+        handleCredentialInvalidation,
+      );
+    };
+  }, [clearFailure, runtime.apiBaseUrl, runtime.mode]);
 
   useEffect(() => {
     if (runtime.mode === "demo" || !runtime.apiBaseUrl) return;
