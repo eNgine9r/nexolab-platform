@@ -376,11 +376,7 @@ function ensureSessionChannel(): BroadcastChannel | null {
       }
 
       const binding = readBrowserSessionBinding();
-      if (
-        !binding ||
-        binding.subject !== message.subject ||
-        binding.sessionId !== message.sessionId
-      ) {
+      if (!binding || binding.subject !== message.subject || binding.sessionId !== message.sessionId) {
         return;
       }
 
