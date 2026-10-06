@@ -199,7 +199,7 @@ Do not include environment files, passwords, keys or tokens in evidence.
 2. Transfer it beside the current bundle.
 3. Back up PostgreSQL and local signing keys.
 4. Verify the new archive and manifest.
-5. Run its installer with the same external environment files.
+5. Run its installer with the same external environment files. When `--local-auth` is used, the installer migrates only the historical explicit `AUTH_LOCAL_REFRESH_TOKEN_SECONDS=43200` value to the current 8-hour `28800` idle window; absent or operator-customized values are preserved.
 6. Reapply `compose.local-auth.yaml` with `--pull never`.
 7. Verify an existing local account can log in and logout invalidates the prior token.
 
