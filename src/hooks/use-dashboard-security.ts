@@ -9,6 +9,8 @@ import {
   createAuthenticatedFetch,
   getSecurityCredentials,
   HttpSecuritySessionClient,
+  SECURITY_CREDENTIALS_INVALIDATED_EVENT,
+  SECURITY_CREDENTIALS_UPDATED_EVENT,
   setSecurityCredentials,
   type SecurityMembership,
   type SecuritySession,
@@ -18,6 +20,7 @@ import {
 } from "@/features/security/security-session";
 import {
   clearAllMonitoringReadModels,
+  clearMonitoringReadModelScope,
   invalidateMonitoringReadModel,
   readMonitoringReadModel,
 } from "@/lib/monitoring-read-model-cache";
@@ -184,6 +187,39 @@ export function useDashboardSecurity(): DashboardSecurityModel {
     clearFailure();
     setGeneration((value) => value + 1);
   }, [clearFailure, runtime]);
+
+  useEffect(() => {
+    if (runtime.mode === "demo") return;
+
+    const handleCredentialInvalidation = () => {
+      clearRetainedReadModels();
+      clearPersistedOrganizationId();
+      if (runtime.apiBaseUrl) {
+        invalidateMonitoringReadModel(securitySessionScope(runtime.apiBaseUrl), SECURITY_SESSION_CACHE_KEY);
+      }
+      setSecurityCredentials({ accessToken: null, organizationId: null });
+      setSession(null);
+      setMembership(null);
+      clearFailure();
+      setState("unauthenticated");
+      setGeneration((value) => value + 1);
+    };
+
+    const handleCredentialUpdate = () => {
+      if (!runtime.apiBaseUrl) return;
+      clearMonitoringReadModelScope(securitySessionScope(runtime.apiBaseUrl));
+      setState("loading");
+      clearFailure();
+      setGeneration((value) => value + 1);
+    };
+
+    window.addEventListener(SECURITY_CREDENTIALS_INVALIDATED_EVENT, handleCredentialInvalidation);
+    window.addEventListener(SECURITY_CREDENTIALS_UPDATED_EVENT, handleCredentialUpdate);
+    return () => {
+      window.removeEventListener(SECURITY_CREDENTIALS_INVALIDATED_EVENT, handleCredentialInvalidation);
+      window.removeEventListener(SECURITY_CREDENTIALS_UPDATED_EVENT, handleCredentialUpdate);
+    };
+  }, [clearFailure, runtime.apiBaseUrl, runtime.mode]);
 
   useEffect(() => {
     if (runtime.mode === "demo" || !runtime.apiBaseUrl) return;

@@ -31,6 +31,8 @@ class LocalTokenResponse(BaseModel):
     token_type: str = "Bearer"
     access_token: str
     refresh_token: str
+    subject: str
+    session_id: str
     expires_in: int
     refresh_expires_in: int
 
@@ -97,6 +99,8 @@ def _token_response(pair: LocalTokenPair) -> LocalTokenResponse:
     return LocalTokenResponse(
         access_token=pair.access_token,
         refresh_token=pair.refresh_token,
+        subject=pair.subject,
+        session_id=pair.session_id,
         expires_in=pair.access_expires_in,
         refresh_expires_in=pair.refresh_expires_in,
     )

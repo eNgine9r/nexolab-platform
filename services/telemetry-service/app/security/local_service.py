@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import base64
 import hashlib
+import hmac
 import secrets
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -18,6 +20,10 @@ from app.security.local_repository import (
 )
 from app.security.passwords import dummy_password_hash, verify_password
 from app.security.repository import AuditEventInput, SecurityRepository
+
+
+_REFRESH_RETRY_GRACE_SECONDS = 30
+_LOGOUT_ROTATION_DEPTH = 4
 
 
 class LocalAuthenticationError(RuntimeError):
@@ -48,6 +54,8 @@ class LocalAccountAccessError(LocalAuthenticationError):
 class LocalTokenPair:
     access_token: str
     refresh_token: str
+    subject: str
+    session_id: str
     access_expires_at: datetime
     refresh_expires_at: datetime
 
@@ -84,6 +92,9 @@ class LocalAuthService:
         self._repository = repository
         self._security_repository = security_repository
         self._private_key = private_key
+        self._refresh_rotation_key = hashlib.sha256(
+            b"nexolab-local-refresh-rotation-v1\0" + private_key.encode("utf-8")
+        ).digest()
         self._algorithm = algorithm
         self._issuer = issuer
         self._audience = audience
@@ -174,11 +185,16 @@ class LocalAuthService:
 
     def refresh(self, refresh_token: str) -> LocalTokenPair:
         now = datetime.now(UTC)
-        replacement = secrets.token_urlsafe(48)
+        replacement = self._replacement_refresh_token(refresh_token)
+        refresh_expires_at = now + timedelta(seconds=self._refresh_token_seconds)
         try:
             session = self._repository.rotate_refresh_token(
                 refresh_token_hash=hash_refresh_token(refresh_token),
                 replacement_hash=hash_refresh_token(replacement),
+                recovery_hash=hash_refresh_token(replacement),
+                recovery_after=now - timedelta(seconds=_REFRESH_RETRY_GRACE_SECONDS),
+                expires_at=refresh_expires_at,
+                idle_timeout_seconds=self._refresh_token_seconds,
                 now=now,
             )
         except LocalSessionInvalidError as error:
@@ -202,9 +218,17 @@ class LocalAuthService:
     def logout(self, refresh_token: str) -> None:
         if not refresh_token.strip():
             return
+        now = datetime.now(UTC)
+        lineage: list[str] = []
+        candidate = refresh_token
+        for _ in range(_LOGOUT_ROTATION_DEPTH):
+            candidate = self._replacement_refresh_token(candidate)
+            lineage.append(hash_refresh_token(candidate))
         self._repository.revoke_session_by_refresh_token(
             refresh_token_hash=hash_refresh_token(refresh_token),
-            now=datetime.now(UTC),
+            recovery_hashes=tuple(lineage),
+            recovery_after=now - timedelta(seconds=_REFRESH_RETRY_GRACE_SECONDS),
+            now=now,
         )
 
     def validate_access_claims(self, claims: VerifiedIdentityClaims) -> None:
@@ -216,6 +240,17 @@ class LocalAuthService:
             session_id=claims.session_id,
             subject=claims.subject,
         )
+
+    def _replacement_refresh_token(self, refresh_token: str) -> str:
+        normalized = refresh_token.strip()
+        if not normalized:
+            raise InvalidLocalRefreshTokenError("refresh token is required")
+        digest = hmac.new(
+            self._refresh_rotation_key,
+            normalized.encode("utf-8"),
+            hashlib.sha256,
+        ).digest()
+        return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
 
     def _token_pair(
         self,
@@ -250,6 +285,8 @@ class LocalAuthService:
         return LocalTokenPair(
             access_token=access_token,
             refresh_token=refresh_token,
+            subject=claims.subject,
+            session_id=session_id,
             access_expires_at=access_expires_at,
             refresh_expires_at=refresh_expires_at,
         )

@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.db import Database
 from app.model_registry import register_models
@@ -15,6 +18,7 @@ from app.security.authentication import JwtAuthenticator
 from app.security.authorization import Role
 from app.security.dependencies import SecurityDependencies
 from app.security.local_api import create_local_auth_router
+from app.security.local_models import SecurityLocalSession
 from app.security.local_repository import LOCAL_AUTH_PROVIDER, LocalAuthRepository
 from app.security.local_service import LocalAuthService
 from app.security.passwords import hash_password
@@ -126,6 +130,8 @@ def test_local_login_returns_revocable_access_and_refresh_tokens(tmp_path: Path)
     fixture = build_fixture(tmp_path)
     try:
         tokens = login(fixture.client, "admin")
+        assert tokens["subject"]
+        assert tokens["session_id"]
 
         response = fixture.client.get(
             "/api/v1/auth/session",
@@ -162,17 +168,20 @@ def test_refresh_rotates_token_and_logout_revokes_access_session(tmp_path: Path)
         assert refresh_response.status_code == 200
         refreshed = refresh_response.json()
         assert refreshed["refresh_token"] != initial["refresh_token"]
+        assert refreshed["subject"] == initial["subject"]
+        assert refreshed["session_id"] == initial["session_id"]
 
         replay_response = fixture.client.post(
             "/api/v1/auth/local/refresh",
             json={"refresh_token": initial["refresh_token"]},
         )
-        assert replay_response.status_code == 401
-        assert replay_response.json()["detail"]["code"] == "invalid_local_refresh_token"
+        assert replay_response.status_code == 200
+        replayed = replay_response.json()
+        assert replayed["refresh_token"] == refreshed["refresh_token"]
 
         logout_response = fixture.client.post(
             "/api/v1/auth/local/logout",
-            json={"refresh_token": refreshed["refresh_token"]},
+            json={"refresh_token": initial["refresh_token"]},
         )
         assert logout_response.status_code == 204
 
@@ -182,6 +191,85 @@ def test_refresh_rotates_token_and_logout_revokes_access_session(tmp_path: Path)
         )
         assert revoked_response.status_code == 401
         assert revoked_response.json()["detail"]["code"] == "local_session_invalid"
+    finally:
+        fixture.close()
+
+
+def test_refresh_recovery_is_bounded_to_recent_rotation(tmp_path: Path) -> None:
+    fixture = build_fixture(tmp_path)
+    try:
+        initial = login(fixture.client, "operator")
+        refreshed_response = fixture.client.post(
+            "/api/v1/auth/local/refresh",
+            json={"refresh_token": initial["refresh_token"]},
+        )
+        assert refreshed_response.status_code == 200
+
+        with Session(fixture.database.engine) as session:
+            with session.begin():
+                local_session = session.scalar(select(SecurityLocalSession))
+                assert local_session is not None
+                local_session.last_refreshed_at = datetime.now(UTC) - timedelta(seconds=31)
+
+        replay_response = fixture.client.post(
+            "/api/v1/auth/local/refresh",
+            json={"refresh_token": initial["refresh_token"]},
+        )
+        assert replay_response.status_code == 401
+        assert replay_response.json()["detail"]["code"] == "invalid_local_refresh_token"
+    finally:
+        fixture.close()
+
+
+def test_legacy_twelve_hour_expiry_still_enforces_current_idle_timeout(tmp_path: Path) -> None:
+    fixture = build_fixture(tmp_path)
+    try:
+        initial = login(fixture.client, "operator")
+        now = datetime.now(UTC)
+        with Session(fixture.database.engine) as session:
+            with session.begin():
+                local_session = session.scalar(select(SecurityLocalSession))
+                assert local_session is not None
+                local_session.last_refreshed_at = now - timedelta(hours=2)
+                local_session.expires_at = now + timedelta(hours=10)
+
+        response = fixture.client.post(
+            "/api/v1/auth/local/refresh",
+            json={"refresh_token": initial["refresh_token"]},
+        )
+        assert response.status_code == 401
+        assert response.json()["detail"]["code"] == "invalid_local_refresh_token"
+    finally:
+        fixture.close()
+
+
+def test_refresh_extends_the_server_session_idle_expiry(tmp_path: Path) -> None:
+    fixture = build_fixture(tmp_path)
+    try:
+        initial = login(fixture.client, "operator")
+        shortened_expiry = datetime.now(UTC) + timedelta(seconds=60)
+        with Session(fixture.database.engine) as session:
+            with session.begin():
+                local_session = session.scalar(select(SecurityLocalSession))
+                assert local_session is not None
+                local_session.expires_at = shortened_expiry
+
+        refreshed_response = fixture.client.post(
+            "/api/v1/auth/local/refresh",
+            json={"refresh_token": initial["refresh_token"]},
+        )
+        assert refreshed_response.status_code == 200
+        refreshed = refreshed_response.json()
+        assert 3_500 <= refreshed["refresh_expires_in"] <= 3_600
+
+        with Session(fixture.database.engine) as session:
+            local_session = session.scalar(select(SecurityLocalSession))
+            assert local_session is not None
+            expires_at = local_session.expires_at
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=UTC)
+            remaining = (expires_at - datetime.now(UTC)).total_seconds()
+            assert 3_500 <= remaining <= 3_600
     finally:
         fixture.close()
 

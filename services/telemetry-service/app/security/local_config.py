@@ -18,7 +18,7 @@ class LocalAuthSettings(BaseSettings):
     auth_local_audience: str = "nexolab-api"
     auth_local_provider: str = "nexolab-local"
     auth_local_access_token_seconds: int = Field(default=300, ge=60, le=3600)
-    auth_local_refresh_token_seconds: int = Field(default=43_200, ge=300, le=2_592_000)
+    auth_local_refresh_token_seconds: int = Field(default=28_800, ge=300, le=2_592_000)
     auth_local_max_failed_attempts: int = Field(default=5, ge=3, le=20)
     auth_local_lockout_seconds: int = Field(default=300, ge=30, le=86_400)
 
