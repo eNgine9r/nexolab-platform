@@ -165,7 +165,11 @@ describe("local browser authentication", () => {
     const credentials = await createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID)();
 
     expect(credentials).toEqual({ accessToken: null, organizationId: ORGANIZATION_ID });
-    expect(window.sessionStorage.length).toBe(0);
+    for (const key of ["nexolab.local-auth.access-token","nexolab.local-auth.refresh-token","nexolab.local-auth.access-expires-at","nexolab.local-auth.subject","nexolab.local-auth.session-id"]) {
+      expect(window.sessionStorage.getItem(key)).toBeNull();
+    }
+    expect(window.sessionStorage.getItem("nexolab.local-auth.peer-adoption-blocked")).toBe("1");
+    expect(window.sessionStorage.getItem("nexolab.local-auth.logged-out-session-ids")).toBeTruthy();
   });
 
   it("bounds a stalled refresh so the cross-tab lock is released", async () => {
@@ -232,7 +236,11 @@ describe("local browser authentication", () => {
     expect(JSON.parse(String(logoutBody))).toEqual({
       refresh_token: "refresh-new",
     });
-    expect(window.sessionStorage.length).toBe(0);
+    for (const key of ["nexolab.local-auth.access-token","nexolab.local-auth.refresh-token","nexolab.local-auth.access-expires-at","nexolab.local-auth.subject","nexolab.local-auth.session-id"]) {
+      expect(window.sessionStorage.getItem(key)).toBeNull();
+    }
+    expect(window.sessionStorage.getItem("nexolab.local-auth.peer-adoption-blocked")).toBe("1");
+    expect(window.sessionStorage.getItem("nexolab.local-auth.logged-out-session-ids")).toBeTruthy();
   });
 
   it("revokes the refresh session and clears browser credentials on logout", async () => {
@@ -245,7 +253,11 @@ describe("local browser authentication", () => {
     await signInWithLocalPassword(API_BASE_URL, "operator", "valid-password");
     await signOutLocal(API_BASE_URL);
 
-    expect(window.sessionStorage.length).toBe(0);
+    for (const key of ["nexolab.local-auth.access-token","nexolab.local-auth.refresh-token","nexolab.local-auth.access-expires-at","nexolab.local-auth.subject","nexolab.local-auth.session-id"]) {
+      expect(window.sessionStorage.getItem(key)).toBeNull();
+    }
+    expect(window.sessionStorage.getItem("nexolab.local-auth.peer-adoption-blocked")).toBe("1");
+    expect(window.sessionStorage.getItem("nexolab.local-auth.logged-out-session-ids")).toBeTruthy();
     expect(getSecurityCredentials()).toEqual({ accessToken: null, organizationId: null });
     expect(fetchMock.mock.calls[1]?.[0]).toBe(`${API_BASE_URL}/api/v1/auth/local/logout`);
   });
