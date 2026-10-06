@@ -338,11 +338,7 @@ function ensureSessionChannel(): BroadcastChannel | null {
 
     if (message.type === "session-request") {
       const snapshot = readBrowserTokenSnapshot();
-      if (
-        snapshot &&
-        snapshot.subject === message.subject &&
-        snapshot.sessionId === message.sessionId
-      ) {
+      if (snapshot && snapshot.subject === message.subject && snapshot.sessionId === message.sessionId) {
         channel?.postMessage({
           type: "session-response",
           requestId: message.requestId,
@@ -391,10 +387,7 @@ function ensureSessionChannel(): BroadcastChannel | null {
 }
 
 function recordPendingPeerResponse(pending: PendingPeerRequest, snapshot: BrowserTokenSnapshot): void {
-  if (
-    snapshot.subject !== pending.expectedSubject ||
-    snapshot.sessionId !== pending.expectedSessionId
-  ) {
+  if (snapshot.subject !== pending.expectedSubject || snapshot.sessionId !== pending.expectedSessionId) {
     return;
   }
 
