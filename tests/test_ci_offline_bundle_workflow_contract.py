@@ -62,6 +62,15 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         ):
             self.assertIn(path, ignored)
 
+    def test_offline_builder_parallelizes_sbom_with_bounded_workers_and_safe_compression_fallback(self) -> None:
+        self.assertIn('SBOM_JOBS="${NEXOLAB_SBOM_JOBS:-3}"', self.offline_builder)
+        self.assertIn("NEXOLAB_SBOM_JOBS must be an integer between 1 and 6", self.offline_builder)
+        self.assertIn('generate_sbom_pair "$logical_id" "$image" &', self.offline_builder)
+        self.assertIn('wait_for_sbom_batch "${sbom_pids[@]}"', self.offline_builder)
+        self.assertIn("command -v pigz", self.offline_builder)
+        self.assertIn('tar --create --file - --directory "$OUTPUT_DIR" "$BUNDLE_NAME" | pigz', self.offline_builder)
+        self.assertIn('tar --create --file - --directory "$OUTPUT_DIR" "$BUNDLE_NAME" | gzip', self.offline_builder)
+
     def test_offline_builder_uses_bounded_persistent_buildkit_cache(self) -> None:
         self.assertIn("NEXOLAB_BUILDX_CACHE_ROOT", self.offline_builder)
         self.assertIn('--cache-from "type=local,src=$cache_src"', self.offline_builder)
