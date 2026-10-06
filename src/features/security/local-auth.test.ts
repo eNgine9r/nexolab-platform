@@ -343,29 +343,101 @@ it("rejects a delayed session update after logout tombstones the server session"
   expect(window.sessionStorage.getItem("nexolab.local-auth.peer-adoption-blocked")).toBe("1");
 });
 
-it("notifies the dashboard when a peer snapshot arrives after the request timeout", async () => {
-  usePeerChannel();
+it("notifies the dashboard when a matching peer snapshot arrives after the request timeout", async () => {
+  vi.useFakeTimers();
+  let requestId = "";
+  usePeerChannel((message) => {
+    const request = message as { type?: string; requestId?: string };
+    if (request.type === "session-request") requestId = request.requestId ?? "";
+  });
   const updated = vi.fn();
   window.addEventListener(SECURITY_CREDENTIALS_UPDATED_EVENT, updated);
   try {
     const pending = createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID)();
-    await new Promise((resolve) => window.setTimeout(resolve, 175));
+    await vi.advanceTimersByTimeAsync(151);
     await expect(pending).resolves.toEqual({
       accessToken: null,
       organizationId: ORGANIZATION_ID,
     });
+    expect(requestId).not.toBe("");
 
     emitPeerMessage({
       type: "session-response",
-      requestId: "late-request",
+      requestId,
       accessToken: "peer-access",
       refreshToken: "peer-refresh",
       subject: "subject-1",
       sessionId: "session-1",
       expiresAt: Date.now() + 300_000,
     });
+    await vi.advanceTimersByTimeAsync(501);
 
     expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("peer-refresh");
+    expect(updated).toHaveBeenCalledOnce();
+  } finally {
+    window.removeEventListener(SECURITY_CREDENTIALS_UPDATED_EVENT, updated);
+  }
+});
+
+it("rejects ambiguous peer identities when bootstrapping an empty tab", async () => {
+  vi.useFakeTimers();
+  usePeerChannel((message) => {
+    const request = message as { type?: string; requestId?: string };
+    if (request.type !== "session-request" || !request.requestId) return;
+    emitPeerMessage({
+      type: "session-response",
+      requestId: request.requestId,
+      accessToken: "viewer-access",
+      refreshToken: "viewer-refresh",
+      subject: "viewer-subject",
+      sessionId: "viewer-session",
+      expiresAt: Date.now() + 300_000,
+    });
+    emitPeerMessage({
+      type: "session-response",
+      requestId: request.requestId,
+      accessToken: "admin-access",
+      refreshToken: "admin-refresh",
+      subject: "admin-subject",
+      sessionId: "admin-session",
+      expiresAt: Date.now() + 300_000,
+    });
+  });
+  const fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+
+  const pending = createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID)();
+  await vi.advanceTimersByTimeAsync(151);
+
+  await expect(pending).resolves.toEqual({
+    accessToken: null,
+    organizationId: ORGANIZATION_ID,
+  });
+  expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBeNull();
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it("notifies the dashboard when an existing expired peer snapshot is refreshed", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-08-01T18:00:00Z"));
+  usePeerChannel();
+  vi.stubGlobal("fetch", vi.fn(async () => tokenResponse("access-1", "refresh-1", 1)));
+  await signInWithLocalPassword(API_BASE_URL, "operator", "valid-password");
+  await vi.advanceTimersByTimeAsync(2_000);
+
+  const updated = vi.fn();
+  window.addEventListener(SECURITY_CREDENTIALS_UPDATED_EVENT, updated);
+  try {
+    emitPeerMessage({
+      type: "session-update",
+      accessToken: "access-2",
+      refreshToken: "refresh-2",
+      subject: "subject-1",
+      sessionId: "session-1",
+      expiresAt: Date.now() + 300_000,
+    });
+
+    expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("refresh-2");
     expect(updated).toHaveBeenCalledOnce();
   } finally {
     window.removeEventListener(SECURITY_CREDENTIALS_UPDATED_EVENT, updated);
