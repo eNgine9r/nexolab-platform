@@ -1,6 +1,16 @@
 # NEXOLAB Current State
 
-Updated: 2026-10-05
+Updated: 2026-10-06
+
+## Issue #1274 — browser session persistence source accepted; production deployment pending
+
+Issue #1274 / PR #1275 is repository-complete. Final verified head `b914b223efebde929866e06b01f5c2817fcc1781` passed **18/18 exact-head workflows GREEN**, including Core CI / NEXOLAB Merge Gate (`37459114838`), Authenticated Dashboard (`37459114936`), Offline Auth (`37459114928`), Offline Bundle (`37459114954`), Telemetry (`37459115041`), Security Browser (`37459114917`) and Container Supply Chain (`37459114869`). It squash-merged to `main` as `75d9c75f8d1901d6b639ec711bf3784e22ed0642`; GitHub #1274 is closed completed.
+
+The accepted behavior keeps access/refresh credentials session-scoped, binds cross-tab bootstrap to the explicit non-secret browser `subject + session_id`, serializes refresh rotation, preserves bounded lost-response recovery, revokes on explicit logout, and changes local refresh sessions to a rolling **8-hour idle timeout**. Historical explicit `AUTH_LOCAL_REFRESH_TOKEN_SECONDS=43200` is migrated to `28800` by both the controlled Raspberry deployment path and the offline bundle installer; absent or operator-customized values remain untouched. RBAC/organization scoping and offline/LAN-only runtime constraints remain unchanged.
+
+CI routing prerequisite #1281 / PR #1282 also merged GREEN as `2a3d62e948b8dc86564c90c3f65b8a1efb38c05a`, teaching the fail-closed classifier that the central smoke auth contract is deployment-runtime verification without weakening genuinely unknown-path handling.
+
+Canonical **accepted product source** is now `75d9c75f8d1901d6b639ec711bf3784e22ed0642`. Canonical **deployed product source remains** `d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54`: no Raspberry deployment/restart, persistent-data deletion, named-volume mutation, Modbus write, controller write or hardware write occurred in #1274. Production activation is a separate hard-gated action and requires explicit Product Owner authorization.
 
 ## Issue #1277 — container HIGH exception revalidation verified
 
