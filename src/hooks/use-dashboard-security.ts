@@ -10,6 +10,7 @@ import {
   getSecurityCredentials,
   HttpSecuritySessionClient,
   SECURITY_CREDENTIALS_INVALIDATED_EVENT,
+  SECURITY_CREDENTIALS_UPDATED_EVENT,
   setSecurityCredentials,
   type SecurityMembership,
   type SecuritySession,
@@ -200,11 +201,25 @@ export function useDashboardSecurity(): DashboardSecurityModel {
       setMembership(null);
       clearFailure();
       setState("unauthenticated");
+      setGeneration((value) => value + 1);
+    };
+
+    const handleCredentialUpdate = () => {
+      if (!runtime.apiBaseUrl) return;
+      invalidateMonitoringReadModel(
+        securitySessionScope(runtime.apiBaseUrl),
+        SECURITY_SESSION_CACHE_KEY,
+      );
+      setState("loading");
+      clearFailure();
+      setGeneration((value) => value + 1);
     };
 
     window.addEventListener(SECURITY_CREDENTIALS_INVALIDATED_EVENT, handleCredentialInvalidation);
+    window.addEventListener(SECURITY_CREDENTIALS_UPDATED_EVENT, handleCredentialUpdate);
     return () => {
       window.removeEventListener(SECURITY_CREDENTIALS_INVALIDATED_EVENT, handleCredentialInvalidation);
+      window.removeEventListener(SECURITY_CREDENTIALS_UPDATED_EVENT, handleCredentialUpdate);
     };
   }, [clearFailure, runtime.apiBaseUrl, runtime.mode]);
 
