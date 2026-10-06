@@ -16,6 +16,7 @@ const LOGGED_OUT_SESSION_IDS_KEY = "nexolab.local-auth.logged-out-session-ids";
 const PEER_ADOPTION_BLOCKED_KEY = "nexolab.local-auth.peer-adoption-blocked";
 const REFRESH_SKEW_MS = 30_000;
 const PEER_SESSION_WAIT_MS = 150;
+const PEER_SESSION_LATE_WAIT_MS = 500;
 const AUTH_REQUEST_TIMEOUT_MS = 10_000;
 const REFRESH_LOCK_NAME = "nexolab.local-auth.refresh";
 const SESSION_CHANNEL_NAME = "nexolab.local-auth.session";
@@ -52,9 +53,17 @@ type LockManagerLike = {
   request<T>(name: string, callback: () => Promise<T>): Promise<T>;
 };
 
+type PendingPeerRequest = {
+  resolve: (value: boolean) => void;
+  candidate: BrowserTokenSnapshot | null;
+  ambiguous: boolean;
+  settled: boolean;
+  timer: number;
+};
+
 let channel: BroadcastChannel | null = null;
 let refreshPromise: Promise<SecurityCredentialSnapshot> | null = null;
-const pendingPeerRequests = new Map<string, (value: boolean) => void>();
+const pendingPeerRequests = new Map<string, PendingPeerRequest>();
 
 export function createLocalCredentialProvider(
   apiBaseUrl: string,
@@ -268,15 +277,26 @@ async function requestPeerSession(): Promise<boolean> {
       : String(Date.now()) + "-" + Math.random().toString(16).slice(2);
 
   return new Promise<boolean>((resolve) => {
-    const timer = window.setTimeout(() => {
-      pendingPeerRequests.delete(requestId);
+    const pending: PendingPeerRequest = {
+      resolve,
+      candidate: null,
+      ambiguous: false,
+      settled: false,
+      timer: 0,
+    };
+    pending.timer = window.setTimeout(() => {
+      if (pending.candidate || pending.ambiguous) {
+        finalizePendingPeerRequest(requestId);
+        return;
+      }
+
+      pending.settled = true;
       resolve(false);
+      pending.timer = window.setTimeout(() => {
+        finalizePendingPeerRequest(requestId);
+      }, PEER_SESSION_LATE_WAIT_MS);
     }, PEER_SESSION_WAIT_MS);
-    pendingPeerRequests.set(requestId, (received) => {
-      window.clearTimeout(timer);
-      pendingPeerRequests.delete(requestId);
-      resolve(received);
-    });
+    pendingPeerRequests.set(requestId, pending);
     activeChannel.postMessage({
       type: "session-request",
       requestId,
@@ -326,18 +346,86 @@ function ensureSessionChannel(): BroadcastChannel | null {
       return;
     }
 
-    const hadSnapshot = readBrowserTokenSnapshot() !== null;
-    const pendingResolver =
-      message.type === "session-response" ? pendingPeerRequests.get(message.requestId) : undefined;
-    const accepted = adoptBrowserTokenSnapshot(message);
     if (message.type === "session-response") {
-      pendingResolver?.(accepted);
+      const pending = pendingPeerRequests.get(message.requestId);
+      if (pending) {
+        recordPendingPeerResponse(pending, message);
+      }
+      return;
     }
-    if (accepted && !hadSnapshot && !pendingResolver) {
+
+    const current = readBrowserTokenSnapshot();
+    if (!current) return;
+    const accepted = adoptBrowserTokenSnapshot(message);
+    if (accepted && browserTokenSnapshotChanged(current, message)) {
       notifySecurityCredentialsUpdated();
     }
   });
   return channel;
+}
+
+function recordPendingPeerResponse(
+  pending: PendingPeerRequest,
+  snapshot: BrowserTokenSnapshot,
+): void {
+  const current = readBrowserTokenSnapshot();
+  if (
+    current &&
+    (current.subject !== snapshot.subject || current.sessionId !== snapshot.sessionId)
+  ) {
+    return;
+  }
+
+  if (pending.ambiguous) return;
+  const candidate = pending.candidate;
+  if (!candidate) {
+    pending.candidate = snapshot;
+    return;
+  }
+  if (candidate.subject !== snapshot.subject || candidate.sessionId !== snapshot.sessionId) {
+    pending.candidate = null;
+    pending.ambiguous = true;
+    return;
+  }
+  if (snapshot.expiresAt > candidate.expiresAt) {
+    pending.candidate = snapshot;
+  }
+}
+
+function finalizePendingPeerRequest(requestId: string): boolean {
+  const pending = pendingPeerRequests.get(requestId);
+  if (!pending) return false;
+
+  window.clearTimeout(pending.timer);
+  pendingPeerRequests.delete(requestId);
+
+  if (pending.ambiguous || !pending.candidate) {
+    if (!pending.settled) pending.resolve(false);
+    return false;
+  }
+
+  const previous = readBrowserTokenSnapshot();
+  const accepted = adoptBrowserTokenSnapshot(pending.candidate);
+  if (!pending.settled) {
+    pending.resolve(accepted);
+  } else if (accepted && browserTokenSnapshotChanged(previous, pending.candidate)) {
+    notifySecurityCredentialsUpdated();
+  }
+  return accepted;
+}
+
+function browserTokenSnapshotChanged(
+  previous: BrowserTokenSnapshot | null,
+  next: BrowserTokenSnapshot,
+): boolean {
+  return (
+    !previous ||
+    previous.accessToken !== next.accessToken ||
+    previous.refreshToken !== next.refreshToken ||
+    previous.subject !== next.subject ||
+    previous.sessionId !== next.sessionId ||
+    previous.expiresAt !== next.expiresAt
+  );
 }
 
 function broadcastMessage(message: LocalAuthChannelMessage): void {
