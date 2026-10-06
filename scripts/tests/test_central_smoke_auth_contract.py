@@ -230,6 +230,26 @@ class CentralSmokeAuthContractTests(unittest.TestCase):
         self.assertIn("/api/v1/auth/local/login", text)
         self.assertIn("/api/v1/admin/users", text)
 
+    def test_deployment_migrates_only_the_legacy_local_auth_idle_timeout(self) -> None:
+        text = DEPLOY.read_text(encoding="utf-8")
+
+        self.assertIn(
+            'LEGACY_LOCAL_AUTH_REFRESH_SECONDS="$(env_get "$CENTRAL_ENV" AUTH_LOCAL_REFRESH_TOKEN_SECONDS)"',
+            text,
+        )
+        self.assertIn(
+            'if [[ "$LEGACY_LOCAL_AUTH_REFRESH_SECONDS" == "43200" ]]; then',
+            text,
+        )
+        self.assertIn(
+            'env_set "$CENTRAL_ENV" AUTH_LOCAL_REFRESH_TOKEN_SECONDS 28800',
+            text,
+        )
+        self.assertIn(
+            'Migrated legacy local-auth idle timeout from 43200s to 28800s',
+            text,
+        )
+
     def test_smoke_does_not_accept_operator_credentials(self) -> None:
         text = SMOKE.read_text(encoding="utf-8")
 
