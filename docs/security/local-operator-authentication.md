@@ -154,7 +154,7 @@ For the offline bundle, also include `infrastructure/offline/compose.central.off
 
 - access token lifetime defaults to 5 minutes;
 - refresh session idle window defaults to 8 hours and extends after each successful refresh;
-- refresh tokens rotate on every refresh and remain only in per-tab `sessionStorage`; after an explicit local login the browser persists only a non-secret `subject + session_id` binding in `localStorage`, and same-origin NEXOLAB tabs exchange credentials through `BroadcastChannel` only when they match that explicit binding; access/refresh tokens are never persisted in `localStorage`;
+- refresh tokens rotate on every refresh and remain only in per-tab `sessionStorage`; after an explicit local login the browser best-effort persists only a non-secret `subject + session_id` binding in `localStorage`, and same-origin NEXOLAB tabs exchange credentials through `BroadcastChannel` only when they match that explicit binding; access/refresh tokens are never persisted in `localStorage`; if persistent storage is unavailable, same-tab authentication continues and cross-tab adoption remains disabled;
 - the immediately previous refresh generation may be replayed only for a bounded 30-second idempotent recovery window after a lost response; it returns the already-derived current replacement without extending the session again, while older or unrelated replay is rejected;
 - logout revokes the PostgreSQL session and browser tabs tombstone that server session id so delayed pre-logout peer updates cannot restore credentials;
 - access tokens from a revoked session are rejected immediately;
