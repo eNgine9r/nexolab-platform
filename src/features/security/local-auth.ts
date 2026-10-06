@@ -14,6 +14,7 @@ const SUBJECT_KEY = "nexolab.local-auth.subject";
 const SESSION_ID_KEY = "nexolab.local-auth.session-id";
 const LOGGED_OUT_SESSION_IDS_KEY = "nexolab.local-auth.logged-out-session-ids";
 const PEER_ADOPTION_BLOCKED_KEY = "nexolab.local-auth.peer-adoption-blocked";
+const BROWSER_SESSION_BINDING_KEY = "nexolab.local-auth.browser-session-binding";
 const REFRESH_SKEW_MS = 30_000;
 const PEER_SESSION_WAIT_MS = 150;
 const PEER_SESSION_LATE_WAIT_MS = 500;
@@ -43,8 +44,13 @@ type BrowserTokenSnapshot = {
   expiresAt: number;
 };
 
+type BrowserSessionBinding = {
+  subject: string;
+  sessionId: string;
+};
+
 type LocalAuthChannelMessage =
-  | { type: "session-request"; requestId: string }
+  | ({ type: "session-request"; requestId: string } & BrowserSessionBinding)
   | ({ type: "session-response"; requestId: string } & BrowserTokenSnapshot)
   | ({ type: "session-update" } & BrowserTokenSnapshot)
   | { type: "session-clear"; refreshToken?: string; sessionId?: string };
@@ -56,7 +62,8 @@ type LockManagerLike = {
 type PendingPeerRequest = {
   resolve: (value: boolean) => void;
   candidate: BrowserTokenSnapshot | null;
-  ambiguous: boolean;
+  expectedSubject: string;
+  expectedSessionId: string;
   settled: boolean;
   timer: number;
 };
@@ -133,6 +140,10 @@ export async function signInWithLocalPassword(
     return { ok: false, message: result.message };
   }
   allowPeerAdoption();
+  writeBrowserSessionBinding({
+    subject: result.value.subject,
+    sessionId: result.value.session_id,
+  });
   storeTokenPair(result.value, true);
   const current = getSecurityCredentials();
   setSecurityCredentials({
@@ -164,6 +175,7 @@ export async function signOutLocal(apiBaseUrl: string): Promise<void> {
   } finally {
     if (logoutSessionId) {
       markLoggedOutSession(logoutSessionId);
+      clearBrowserSessionBinding(logoutSessionId);
     }
     blockPeerAdoption();
     clearLocalAuthStorage();
@@ -233,6 +245,7 @@ async function refreshCredentialSnapshot(
       const rejectedSnapshot = readBrowserTokenSnapshot();
       if (rejectedSnapshot?.sessionId) {
         markLoggedOutSession(rejectedSnapshot.sessionId);
+        clearBrowserSessionBinding(rejectedSnapshot.sessionId);
       }
       blockPeerAdoption();
       clearLocalAuthStorage();
@@ -271,6 +284,12 @@ async function requestPeerSession(): Promise<boolean> {
   const activeChannel = ensureSessionChannel();
   if (!activeChannel) return false;
 
+  const current = readBrowserTokenSnapshot();
+  const binding = current
+    ? { subject: current.subject, sessionId: current.sessionId }
+    : readBrowserSessionBinding();
+  if (!binding) return false;
+
   const requestId =
     typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID()
@@ -280,12 +299,13 @@ async function requestPeerSession(): Promise<boolean> {
     const pending: PendingPeerRequest = {
       resolve,
       candidate: null,
-      ambiguous: false,
+      expectedSubject: binding.subject,
+      expectedSessionId: binding.sessionId,
       settled: false,
       timer: 0,
     };
     pending.timer = window.setTimeout(() => {
-      if (pending.candidate || pending.ambiguous) {
+      if (pending.candidate) {
         finalizePendingPeerRequest(requestId);
         return;
       }
@@ -300,6 +320,7 @@ async function requestPeerSession(): Promise<boolean> {
     activeChannel.postMessage({
       type: "session-request",
       requestId,
+      ...binding,
     } satisfies LocalAuthChannelMessage);
   });
 }
@@ -317,7 +338,11 @@ function ensureSessionChannel(): BroadcastChannel | null {
 
     if (message.type === "session-request") {
       const snapshot = readBrowserTokenSnapshot();
-      if (snapshot) {
+      if (
+        snapshot &&
+        snapshot.subject === message.subject &&
+        snapshot.sessionId === message.sessionId
+      ) {
         channel?.postMessage({
           type: "session-response",
           requestId: message.requestId,
@@ -331,6 +356,7 @@ function ensureSessionChannel(): BroadcastChannel | null {
       const current = readBrowserTokenSnapshot();
       if (message.sessionId) {
         markLoggedOutSession(message.sessionId);
+        clearBrowserSessionBinding(message.sessionId);
       }
       if (!current) return;
       if (message.sessionId && current.sessionId !== message.sessionId) return;
@@ -365,23 +391,20 @@ function ensureSessionChannel(): BroadcastChannel | null {
 }
 
 function recordPendingPeerResponse(pending: PendingPeerRequest, snapshot: BrowserTokenSnapshot): void {
+  if (
+    snapshot.subject !== pending.expectedSubject ||
+    snapshot.sessionId !== pending.expectedSessionId
+  ) {
+    return;
+  }
+
   const current = readBrowserTokenSnapshot();
   if (current && (current.subject !== snapshot.subject || current.sessionId !== snapshot.sessionId)) {
     return;
   }
 
-  if (pending.ambiguous) return;
   const candidate = pending.candidate;
-  if (!candidate) {
-    pending.candidate = snapshot;
-    return;
-  }
-  if (candidate.subject !== snapshot.subject || candidate.sessionId !== snapshot.sessionId) {
-    pending.candidate = null;
-    pending.ambiguous = true;
-    return;
-  }
-  if (snapshot.expiresAt > candidate.expiresAt) {
+  if (!candidate || snapshot.expiresAt > candidate.expiresAt) {
     pending.candidate = snapshot;
   }
 }
@@ -393,7 +416,7 @@ function finalizePendingPeerRequest(requestId: string): boolean {
   window.clearTimeout(pending.timer);
   pendingPeerRequests.delete(requestId);
 
-  if (pending.ambiguous || !pending.candidate) {
+  if (!pending.candidate) {
     if (!pending.settled) pending.resolve(false);
     return false;
   }
@@ -446,6 +469,12 @@ function adoptBrowserTokenSnapshot(snapshot: BrowserTokenSnapshot): boolean {
   const current = readBrowserTokenSnapshot();
   if (current && (current.subject !== snapshot.subject || current.sessionId !== snapshot.sessionId)) {
     return false;
+  }
+  if (!current) {
+    const binding = readBrowserSessionBinding();
+    if (!binding || binding.subject !== snapshot.subject || binding.sessionId !== snapshot.sessionId) {
+      return false;
+    }
   }
   if (current && current.expiresAt > snapshot.expiresAt) return false;
   writeBrowserTokenSnapshot(snapshot);
@@ -605,7 +634,9 @@ function parseChannelMessage(value: unknown): LocalAuthChannelMessage | null {
   }
   if (type === "session-request") {
     const requestId = readString(record?.requestId);
-    return requestId ? { type, requestId } : null;
+    const subject = readString(record?.subject);
+    const sessionId = readString(record?.sessionId);
+    return requestId && subject && sessionId ? { type, requestId, subject, sessionId } : null;
   }
   if (type !== "session-response" && type !== "session-update") return null;
 
@@ -698,6 +729,33 @@ function markLoggedOutSession(sessionId: string): void {
 
 function isLoggedOutSession(sessionId: string): boolean {
   return readLoggedOutSessionIds().includes(sessionId);
+}
+
+function readBrowserSessionBinding(): BrowserSessionBinding | null {
+  if (typeof window === "undefined") return null;
+  const raw = window.localStorage.getItem(BROWSER_SESSION_BINDING_KEY);
+  if (!raw) return null;
+  try {
+    const value = asRecord(JSON.parse(raw) as unknown);
+    const subject = value ? readString(value.subject) : null;
+    const sessionId = value ? readString(value.sessionId) : null;
+    return subject && sessionId ? { subject, sessionId } : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeBrowserSessionBinding(binding: BrowserSessionBinding): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(BROWSER_SESSION_BINDING_KEY, JSON.stringify(binding));
+}
+
+function clearBrowserSessionBinding(sessionId: string): void {
+  if (typeof window === "undefined") return;
+  const binding = readBrowserSessionBinding();
+  if (binding?.sessionId === sessionId) {
+    window.localStorage.removeItem(BROWSER_SESSION_BINDING_KEY);
+  }
 }
 
 function blockPeerAdoption(): void {
