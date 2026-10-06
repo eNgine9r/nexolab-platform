@@ -210,6 +210,8 @@ describe("local browser authentication", () => {
     window.sessionStorage.setItem("nexolab.local-auth.access-token", "access-old");
     window.sessionStorage.setItem("nexolab.local-auth.refresh-token", "refresh-old");
     window.sessionStorage.setItem("nexolab.local-auth.access-expires-at", String(Date.now() + 300_000));
+    window.sessionStorage.setItem("nexolab.local-auth.subject", "subject-1");
+    window.sessionStorage.setItem("nexolab.local-auth.session-id", "session-1");
     vi.stubGlobal("navigator", {
       locks: {
         request: vi.fn(async (_name: string, callback: () => Promise<unknown>) => {
@@ -310,16 +312,14 @@ it("rejects a delayed session update after logout tombstones the server session"
   await createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID)();
 
   await signOutLocal(API_BASE_URL);
-  peerListener?.({
-    data: {
-      type: "session-update",
-      accessToken: "late-access",
-      refreshToken: "late-refresh",
-      subject: "subject-1",
-      sessionId: "session-1",
-      expiresAt: Date.now() + 600_000,
-    },
-  } as MessageEvent<unknown>);
+  emitPeerMessage({
+    type: "session-update",
+    accessToken: "late-access",
+    refreshToken: "late-refresh",
+    subject: "subject-1",
+    sessionId: "session-1",
+    expiresAt: Date.now() + 600_000,
+  });
 
   expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBeNull();
   expect(window.sessionStorage.getItem("nexolab.local-auth.peer-adoption-blocked")).toBe("1");
