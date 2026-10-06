@@ -1,6 +1,7 @@
 import {
   getSecurityCredentials,
   notifySecurityCredentialsInvalidated,
+  notifySecurityCredentialsUpdated,
   setSecurityCredentials,
   type SecurityCredentialProvider,
   type SecurityCredentialSnapshot,
@@ -9,6 +10,10 @@ import {
 const ACCESS_TOKEN_KEY = "nexolab.local-auth.access-token";
 const REFRESH_TOKEN_KEY = "nexolab.local-auth.refresh-token";
 const ACCESS_EXPIRES_AT_KEY = "nexolab.local-auth.access-expires-at";
+const SUBJECT_KEY = "nexolab.local-auth.subject";
+const SESSION_ID_KEY = "nexolab.local-auth.session-id";
+const LOGGED_OUT_SESSION_IDS_KEY = "nexolab.local-auth.logged-out-session-ids";
+const PEER_ADOPTION_BLOCKED_KEY = "nexolab.local-auth.peer-adoption-blocked";
 const REFRESH_SKEW_MS = 30_000;
 const PEER_SESSION_WAIT_MS = 150;
 const AUTH_REQUEST_TIMEOUT_MS = 10_000;
@@ -20,6 +25,8 @@ export type LocalAuthResult = { ok: true } | { ok: false; message: string };
 type LocalTokenPayload = {
   access_token: string;
   refresh_token: string;
+  subject: string;
+  session_id: string;
   expires_in: number;
   refresh_expires_in: number;
 };
@@ -30,6 +37,8 @@ type TokenPairRequestResult =
 type BrowserTokenSnapshot = {
   accessToken: string;
   refreshToken: string;
+  subject: string;
+  sessionId: string;
   expiresAt: number;
 };
 
@@ -37,7 +46,7 @@ type LocalAuthChannelMessage =
   | { type: "session-request"; requestId: string }
   | ({ type: "session-response"; requestId: string } & BrowserTokenSnapshot)
   | ({ type: "session-update" } & BrowserTokenSnapshot)
-  | { type: "session-clear"; refreshToken?: string };
+  | { type: "session-clear"; refreshToken?: string; sessionId?: string };
 
 type LockManagerLike = {
   request<T>(name: string, callback: () => Promise<T>): Promise<T>;
@@ -114,6 +123,7 @@ export async function signInWithLocalPassword(
     clearLocalAuthStorage();
     return { ok: false, message: result.message };
   }
+  allowPeerAdoption();
   storeTokenPair(result.value, true);
   const current = getSecurityCredentials();
   setSecurityCredentials({
@@ -126,6 +136,7 @@ export async function signInWithLocalPassword(
 export async function signOutLocal(apiBaseUrl: string): Promise<void> {
   if (typeof window === "undefined") return;
 
+  let logoutSessionId = readBrowserTokenSnapshot()?.sessionId ?? null;
   try {
     if (refreshPromise) {
       await refreshPromise.catch(() => undefined);
@@ -134,14 +145,23 @@ export async function signOutLocal(apiBaseUrl: string): Promise<void> {
       if (ensureSessionChannel()) {
         await requestPeerSession();
       }
-      const refreshToken = window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
+      const current = readBrowserTokenSnapshot();
+      logoutSessionId ??= current?.sessionId ?? null;
+      const refreshToken = current?.refreshToken ?? null;
       if (refreshToken) {
         await requestLogout(normalizeBaseUrl(apiBaseUrl), refreshToken);
       }
     });
   } finally {
+    if (logoutSessionId) {
+      markLoggedOutSession(logoutSessionId);
+    }
+    blockPeerAdoption();
     clearLocalAuthStorage();
-    broadcastMessage({ type: "session-clear" });
+    broadcastMessage({
+      type: "session-clear",
+      ...(logoutSessionId ? { sessionId: logoutSessionId } : {}),
+    });
     setSecurityCredentials({ accessToken: null, organizationId: null });
   }
 }
@@ -151,6 +171,8 @@ export function clearLocalAuthStorage(): void {
   window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
   window.sessionStorage.removeItem(REFRESH_TOKEN_KEY);
   window.sessionStorage.removeItem(ACCESS_EXPIRES_AT_KEY);
+  window.sessionStorage.removeItem(SUBJECT_KEY);
+  window.sessionStorage.removeItem(SESSION_ID_KEY);
 }
 
 async function refreshCredentialSnapshot(
@@ -199,8 +221,17 @@ async function refreshCredentialSnapshot(
       if (window.sessionStorage.getItem(REFRESH_TOKEN_KEY) !== refreshToken) {
         return currentCredentialSnapshot(getSecurityCredentials().organizationId);
       }
+      const rejectedSnapshot = readBrowserTokenSnapshot();
+      if (rejectedSnapshot?.sessionId) {
+        markLoggedOutSession(rejectedSnapshot.sessionId);
+      }
+      blockPeerAdoption();
       clearLocalAuthStorage();
-      broadcastMessage({ type: "session-clear", refreshToken });
+      broadcastMessage({
+        type: "session-clear",
+        refreshToken,
+        ...(rejectedSnapshot?.sessionId ? { sessionId: rejectedSnapshot.sessionId } : {}),
+      });
       const snapshot = {
         accessToken: null,
         organizationId: effectiveOrganizationId,
@@ -227,6 +258,7 @@ async function withRefreshLock<T>(callback: () => Promise<T>): Promise<T> {
 }
 
 async function requestPeerSession(): Promise<boolean> {
+  if (isPeerAdoptionBlocked()) return false;
   const activeChannel = ensureSessionChannel();
   if (!activeChannel) return false;
 
@@ -276,10 +308,15 @@ function ensureSessionChannel(): BroadcastChannel | null {
     }
 
     if (message.type === "session-clear") {
-      const currentRefreshToken = window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
-      if (message.refreshToken && currentRefreshToken !== message.refreshToken) {
-        return;
+      const current = readBrowserTokenSnapshot();
+      if (message.sessionId) {
+        markLoggedOutSession(message.sessionId);
       }
+      if (!current) return;
+      if (message.sessionId && current.sessionId !== message.sessionId) return;
+      if (message.refreshToken && current.refreshToken !== message.refreshToken) return;
+      markLoggedOutSession(current.sessionId);
+      blockPeerAdoption();
       clearLocalAuthStorage();
       setSecurityCredentials({
         accessToken: null,
@@ -289,9 +326,15 @@ function ensureSessionChannel(): BroadcastChannel | null {
       return;
     }
 
+    const hadSnapshot = readBrowserTokenSnapshot() !== null;
+    const pendingResolver =
+      message.type === "session-response" ? pendingPeerRequests.get(message.requestId) : undefined;
     const accepted = adoptBrowserTokenSnapshot(message);
     if (message.type === "session-response") {
-      pendingPeerRequests.get(message.requestId)?.(accepted);
+      pendingResolver?.(accepted);
+    }
+    if (accepted && !hadSnapshot && !pendingResolver) {
+      notifySecurityCredentialsUpdated();
     }
   });
   return channel;
@@ -306,6 +349,8 @@ function storeTokenPair(payload: LocalTokenPayload, broadcast: boolean): void {
   const snapshot = {
     accessToken: payload.access_token,
     refreshToken: payload.refresh_token,
+    subject: payload.subject,
+    sessionId: payload.session_id,
     expiresAt: Date.now() + payload.expires_in * 1_000,
   };
   writeBrowserTokenSnapshot(snapshot);
@@ -315,7 +360,14 @@ function storeTokenPair(payload: LocalTokenPayload, broadcast: boolean): void {
 }
 
 function adoptBrowserTokenSnapshot(snapshot: BrowserTokenSnapshot): boolean {
+  if (isPeerAdoptionBlocked() || isLoggedOutSession(snapshot.sessionId)) return false;
   const current = readBrowserTokenSnapshot();
+  if (
+    current &&
+    (current.subject !== snapshot.subject || current.sessionId !== snapshot.sessionId)
+  ) {
+    return false;
+  }
   if (current && current.expiresAt > snapshot.expiresAt) return false;
   writeBrowserTokenSnapshot(snapshot);
   const credentials = getSecurityCredentials();
@@ -330,6 +382,8 @@ function writeBrowserTokenSnapshot(snapshot: BrowserTokenSnapshot): void {
   window.sessionStorage.setItem(ACCESS_TOKEN_KEY, snapshot.accessToken);
   window.sessionStorage.setItem(REFRESH_TOKEN_KEY, snapshot.refreshToken);
   window.sessionStorage.setItem(ACCESS_EXPIRES_AT_KEY, String(snapshot.expiresAt));
+  window.sessionStorage.setItem(SUBJECT_KEY, snapshot.subject);
+  window.sessionStorage.setItem(SESSION_ID_KEY, snapshot.sessionId);
 }
 
 function readBrowserTokenSnapshot(): BrowserTokenSnapshot | null {
@@ -337,7 +391,19 @@ function readBrowserTokenSnapshot(): BrowserTokenSnapshot | null {
   const accessToken = window.sessionStorage.getItem(ACCESS_TOKEN_KEY);
   const refreshToken = window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
   const expiresAt = readExpiresAt();
-  return accessToken && refreshToken && expiresAt > 0 ? { accessToken, refreshToken, expiresAt } : null;
+  if (!accessToken || !refreshToken || expiresAt <= 0) return null;
+
+  const accessIdentity = readAccessTokenIdentity(accessToken);
+  const subject = window.sessionStorage.getItem(SUBJECT_KEY) ?? accessIdentity?.subject ?? null;
+  const sessionId = window.sessionStorage.getItem(SESSION_ID_KEY) ?? accessIdentity?.sessionId ?? null;
+  if (!subject || !sessionId) return null;
+  if (isLoggedOutSession(sessionId)) {
+    clearLocalAuthStorage();
+    return null;
+  }
+  window.sessionStorage.setItem(SUBJECT_KEY, subject);
+  window.sessionStorage.setItem(SESSION_ID_KEY, sessionId);
+  return { accessToken, refreshToken, subject, sessionId, expiresAt };
 }
 
 function currentBrowserCredentialSnapshot(organizationId: string | null): SecurityCredentialSnapshot | null {
@@ -451,7 +517,12 @@ function parseChannelMessage(value: unknown): LocalAuthChannelMessage | null {
   const type = record ? readString(record.type) : null;
   if (type === "session-clear") {
     const refreshToken = readString(record?.refreshToken);
-    return refreshToken ? { type, refreshToken } : { type };
+    const sessionId = readString(record?.sessionId);
+    return {
+      type,
+      ...(refreshToken ? { refreshToken } : {}),
+      ...(sessionId ? { sessionId } : {}),
+    };
   }
   if (type === "session-request") {
     const requestId = readString(record?.requestId);
@@ -471,11 +542,17 @@ function parseChannelMessage(value: unknown): LocalAuthChannelMessage | null {
   ) {
     return null;
   }
+  const accessIdentity = readAccessTokenIdentity(accessToken);
+  const subject = readString(record?.subject) ?? accessIdentity?.subject ?? null;
+  const sessionId = readString(record?.sessionId) ?? accessIdentity?.sessionId ?? null;
+  if (!subject || !sessionId) return null;
   if (type === "session-response") {
     const requestId = readString(record?.requestId);
-    return requestId ? { type, requestId, accessToken, refreshToken, expiresAt } : null;
+    return requestId
+      ? { type, requestId, accessToken, refreshToken, subject, sessionId, expiresAt }
+      : null;
   }
-  return { type, accessToken, refreshToken, expiresAt };
+  return { type, accessToken, refreshToken, subject, sessionId, expiresAt };
 }
 
 function parseTokenPair(value: unknown): LocalTokenPayload | null {
@@ -483,17 +560,88 @@ function parseTokenPair(value: unknown): LocalTokenPayload | null {
   if (!record) return null;
   const accessToken = readString(record.access_token);
   const refreshToken = readString(record.refresh_token);
+  const accessIdentity = readAccessTokenIdentity(accessToken);
+  const subject = readString(record.subject) ?? accessIdentity?.subject ?? null;
+  const sessionId = readString(record.session_id) ?? accessIdentity?.sessionId ?? null;
   const expiresIn = readPositiveInteger(record.expires_in);
   const refreshExpiresIn = readPositiveInteger(record.refresh_expires_in);
-  if (!accessToken || !refreshToken || !expiresIn || !refreshExpiresIn) {
+  if (
+    !accessToken ||
+    !refreshToken ||
+    !subject ||
+    !sessionId ||
+    !expiresIn ||
+    !refreshExpiresIn
+  ) {
     return null;
   }
   return {
     access_token: accessToken,
     refresh_token: refreshToken,
+    subject,
+    session_id: sessionId,
     expires_in: expiresIn,
     refresh_expires_in: refreshExpiresIn,
   };
+}
+
+type AccessTokenIdentity = {
+  subject: string;
+  sessionId: string;
+};
+
+function readAccessTokenIdentity(accessToken: string | null): AccessTokenIdentity | null {
+  if (!accessToken) return null;
+  const parts = accessToken.split(".");
+  if (parts.length !== 3 || typeof atob !== "function") return null;
+  try {
+    const encoded = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = encoded.padEnd(Math.ceil(encoded.length / 4) * 4, "=");
+    const payload = asRecord(JSON.parse(atob(padded)) as unknown);
+    const subject = payload ? readString(payload.sub) : null;
+    const sessionId = payload ? readString(payload.sid) : null;
+    return subject && sessionId ? { subject, sessionId } : null;
+  } catch {
+    return null;
+  }
+}
+
+function readLoggedOutSessionIds(): string[] {
+  if (typeof window === "undefined") return [];
+  const raw = window.sessionStorage.getItem(LOGGED_OUT_SESSION_IDS_KEY);
+  if (!raw) return [];
+  try {
+    const value = JSON.parse(raw) as unknown;
+    return Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === "string" && Boolean(item.trim()))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function markLoggedOutSession(sessionId: string): void {
+  if (typeof window === "undefined" || !sessionId.trim()) return;
+  const next = [sessionId, ...readLoggedOutSessionIds().filter((item) => item !== sessionId)].slice(0, 8);
+  window.sessionStorage.setItem(LOGGED_OUT_SESSION_IDS_KEY, JSON.stringify(next));
+}
+
+function isLoggedOutSession(sessionId: string): boolean {
+  return readLoggedOutSessionIds().includes(sessionId);
+}
+
+function blockPeerAdoption(): void {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(PEER_ADOPTION_BLOCKED_KEY, "1");
+}
+
+function allowPeerAdoption(): void {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(PEER_ADOPTION_BLOCKED_KEY);
+}
+
+function isPeerAdoptionBlocked(): boolean {
+  return typeof window !== "undefined" && window.sessionStorage.getItem(PEER_ADOPTION_BLOCKED_KEY) === "1";
 }
 
 function readErrorMessage(value: unknown): string | null {
