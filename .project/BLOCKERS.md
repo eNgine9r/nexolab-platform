@@ -1,6 +1,12 @@
 # NEXOLAB Blockers
 
-Updated: 2026-10-05
+Updated: 2026-10-06
+
+## Issue #1274 production activation — explicit authorization required
+
+**Source blocker cleared.** #1274 / PR #1275 merged GREEN as `75d9c75f8d1901d6b639ec711bf3784e22ed0642` after 18/18 exact-head workflows passed. The repository now contains browser-window session continuity and the rolling 8-hour local-auth idle policy, including controlled/offline legacy `43200 → 28800` migration.
+
+**Installed acceptance is not yet claimed.** Production Raspberry remains on `d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54`. Deployment/restart is a hard-gated production action and requires explicit Product Owner authorization. Until authorized, do not run the controlled deployment or represent the new auth behavior as installed production functionality.
 
 ## Container HIGH exception review — cleared by #1277 verified candidate
 
