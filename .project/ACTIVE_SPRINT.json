@@ -93,14 +93,14 @@
       "evidence": {
         "verified_head_sha": "2c23984b2c54bd0cc4ab715754b358a02db55cf0",
         "pull_request": 1282,
-        "merge_sha": "2a3d62e948b8dc86564c90c3f65b8a1efb38c05a",
         "classifier_fix": "central_smoke_auth_contract_is_known_deployment_runtime",
         "fail_closed_unknown_paths": "preserved",
         "unrelated_refrigeration_requirement": "removed_for_known_auth_deploy_contract_change_set",
         "exact_head_ci": "green_before_merge",
         "production_runtime_mutation": "none",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "merged_implementation_sha": "2a3d62e948b8dc86564c90c3f65b8a1efb38c05a"
       }
     },
     {
