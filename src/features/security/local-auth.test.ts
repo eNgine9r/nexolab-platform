@@ -30,6 +30,7 @@ function expectLocalAuthCredentialsCleared(): void {
   }
   expect(window.sessionStorage.getItem("nexolab.local-auth.peer-adoption-blocked")).toBe("1");
   expect(window.sessionStorage.getItem("nexolab.local-auth.logged-out-session-ids")).toBeTruthy();
+  expect(window.localStorage.getItem(BROWSER_SESSION_BINDING_KEY)).toBeNull();
 }
 
 type PeerListener = (event: MessageEvent<unknown>) => void;
