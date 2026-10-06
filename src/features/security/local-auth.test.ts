@@ -11,6 +11,30 @@ import {
 const API_BASE_URL = "http://127.0.0.1:8082";
 const ORGANIZATION_ID = "11111111-1111-1111-1111-111111111111";
 
+type PeerListener = (event: MessageEvent<unknown>) => void;
+let peerListener: PeerListener | null = null;
+let peerRequestHandler: ((message: unknown) => void) | null = null;
+
+class TestPeerSessionChannel {
+  addEventListener(_type: "message", listener: PeerListener): void {
+    peerListener = listener;
+  }
+
+  postMessage(message: unknown): void {
+    peerRequestHandler?.(message);
+  }
+}
+
+function usePeerChannel(handler?: (message: unknown) => void): void {
+  peerRequestHandler = handler ?? null;
+  vi.stubGlobal("BroadcastChannel", TestPeerSessionChannel);
+}
+
+function emitPeerMessage(data: unknown): void {
+  if (!peerListener) throw new Error("peer channel listener was not initialized");
+  peerListener({ data } as MessageEvent<unknown>);
+}
+
 function tokenResponse(
   accessToken: string,
   refreshToken: string,
@@ -253,30 +277,19 @@ it.each([200, 401])(
 it("rejects a peer snapshot from a different local operator session", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => tokenResponse("access-1", "refresh-1")));
   await signInWithLocalPassword(API_BASE_URL, "operator", "valid-password");
-  type Listener = (event: MessageEvent<unknown>) => void;
-  let peerListener: Listener | null = null;
-  class PeerSessionChannel {
-    addEventListener(_type: "message", listener: Listener): void {
-      peerListener = listener;
-    }
-
-    postMessage(): void {}
-  }
-  vi.stubGlobal("BroadcastChannel", PeerSessionChannel);
+  usePeerChannel();
   await createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID)();
   const invalidated = vi.fn();
   window.addEventListener(SECURITY_CREDENTIALS_UPDATED_EVENT, invalidated);
   try {
-    peerListener?.({
-      data: {
+    emitPeerMessage({
         type: "session-update",
         accessToken: "admin-access",
         refreshToken: "admin-refresh",
         subject: "administrator-subject",
         sessionId: "administrator-session",
         expiresAt: Date.now() + 600_000,
-      },
-    } as MessageEvent<unknown>);
+    });
 
     expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("refresh-1");
     expect(window.sessionStorage.getItem("nexolab.local-auth.subject")).toBe("subject-1");
@@ -293,16 +306,7 @@ it("rejects a delayed session update after logout tombstones the server session"
     .mockResolvedValueOnce(new Response(null, { status: 204 }));
   vi.stubGlobal("fetch", fetchMock);
   await signInWithLocalPassword(API_BASE_URL, "operator", "valid-password");
-  type Listener = (event: MessageEvent<unknown>) => void;
-  let peerListener: Listener | null = null;
-  class PeerSessionChannel {
-    addEventListener(_type: "message", listener: Listener): void {
-      peerListener = listener;
-    }
-
-    postMessage(): void {}
-  }
-  vi.stubGlobal("BroadcastChannel", PeerSessionChannel);
+  usePeerChannel();
   await createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID)();
 
   await signOutLocal(API_BASE_URL);
@@ -322,16 +326,7 @@ it("rejects a delayed session update after logout tombstones the server session"
 });
 
 it("notifies the dashboard when a peer snapshot arrives after the request timeout", async () => {
-  type Listener = (event: MessageEvent<unknown>) => void;
-  let peerListener: Listener | null = null;
-  class SilentPeerSessionChannel {
-    addEventListener(_type: "message", listener: Listener): void {
-      peerListener = listener;
-    }
-
-    postMessage(): void {}
-  }
-  vi.stubGlobal("BroadcastChannel", SilentPeerSessionChannel);
+  usePeerChannel();
   const updated = vi.fn();
   window.addEventListener(SECURITY_CREDENTIALS_UPDATED_EVENT, updated);
   try {
@@ -342,8 +337,7 @@ it("notifies the dashboard when a peer snapshot arrives after the request timeou
       organizationId: ORGANIZATION_ID,
     });
 
-    peerListener?.({
-      data: {
+    emitPeerMessage({
         type: "session-response",
         requestId: "late-request",
         accessToken: "peer-access",
@@ -351,8 +345,7 @@ it("notifies the dashboard when a peer snapshot arrives after the request timeou
         subject: "subject-1",
         sessionId: "session-1",
         expiresAt: Date.now() + 300_000,
-      },
-    } as MessageEvent<unknown>);
+    });
 
     expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("peer-refresh");
     expect(updated).toHaveBeenCalledOnce();
@@ -362,38 +355,22 @@ it("notifies the dashboard when a peer snapshot arrives after the request timeou
 });
 
 it("adopts the peer session without reverting organization and ignores stale peer clears", async () => {
-  type Listener = (event: MessageEvent<unknown>) => void;
-  let peerListener: Listener | null = null;
-  class PeerSessionChannel {
-    addEventListener(_type: "message", listener: Listener): void {
-      peerListener = listener;
-    }
-
-    postMessage(message: unknown): void {
-      const request = message as { type?: string; requestId?: string };
-      if (request.type !== "session-request" || !request.requestId) return;
-      setSecurityCredentials({ accessToken: "expired", organizationId: "organization-b" });
-      queueMicrotask(() => {
-        peerListener?.({
-          data: {
-            type: "session-response",
-            requestId: request.requestId,
-            accessToken: "peer-access",
-            refreshToken: "peer-refresh",
-            subject: "subject-1",
-            sessionId: "session-1",
-            expiresAt: Date.now() + 300_000,
-          },
-        } as MessageEvent<unknown>);
+  usePeerChannel((message) => {
+    const request = message as { type?: string; requestId?: string };
+    if (request.type !== "session-request" || !request.requestId) return;
+    setSecurityCredentials({ accessToken: "expired", organizationId: "organization-b" });
+    queueMicrotask(() => {
+      emitPeerMessage({
+        type: "session-response",
+        requestId: request.requestId,
+        accessToken: "peer-access",
+        refreshToken: "peer-refresh",
+        subject: "subject-1",
+        sessionId: "session-1",
+        expiresAt: Date.now() + 300_000,
       });
-    }
-  }
-
-  const emitPeerMessage = (data: unknown): void => {
-    peerListener?.({ data } as MessageEvent<unknown>);
-  };
-
-  vi.stubGlobal("BroadcastChannel", PeerSessionChannel);
+    });
+  });
   window.sessionStorage.clear();
   const fetchMock = vi.fn();
   vi.stubGlobal("fetch", fetchMock);
