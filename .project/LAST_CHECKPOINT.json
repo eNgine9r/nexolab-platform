@@ -1220,7 +1220,6 @@
       "issue": 1274,
       "pull_request": 1275,
       "verified_head_sha": "b914b223efebde929866e06b01f5c2817fcc1781",
-      "merge_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
       "exact_head_ci": "18_of_18_green",
       "core_ci_and_merge_gate": "success:37459114838",
       "authenticated_dashboard": "success:37459114936",
@@ -1240,7 +1239,8 @@
       "modbus_write": "none",
       "hardware_write": "none",
       "state_reconciliation_issue": 1284,
-      "state_reconciliation_pull_request": 1285
+      "state_reconciliation_pull_request": 1285,
+      "merged_implementation_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642"
     }
   },
   "observations": [
