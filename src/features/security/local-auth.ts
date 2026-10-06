@@ -372,6 +372,22 @@ function ensureSessionChannel(): BroadcastChannel | null {
       const pending = pendingPeerRequests.get(message.requestId);
       if (pending) {
         recordPendingPeerResponse(pending, message);
+        return;
+      }
+
+      const binding = readBrowserSessionBinding();
+      if (
+        !binding ||
+        binding.subject !== message.subject ||
+        binding.sessionId !== message.sessionId
+      ) {
+        return;
+      }
+
+      const current = readBrowserTokenSnapshot();
+      const accepted = adoptBrowserTokenSnapshot(message);
+      if (accepted && browserTokenSnapshotChanged(current, message)) {
+        notifySecurityCredentialsUpdated();
       }
       return;
     }
