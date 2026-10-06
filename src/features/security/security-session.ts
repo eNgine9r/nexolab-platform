@@ -237,8 +237,7 @@ export function createAuthenticatedFetch(
   };
 }
 
-export const SECURITY_CREDENTIALS_INVALIDATED_EVENT =
-  "nexolab:security-credentials-invalidated";
+export const SECURITY_CREDENTIALS_INVALIDATED_EVENT = "nexolab:security-credentials-invalidated";
 
 let inMemoryCredentials: SecurityCredentialSnapshot = {
   accessToken: null,

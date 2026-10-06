@@ -176,10 +176,7 @@ describe("local browser authentication", () => {
   it("reads the latest rotated token only after acquiring the logout lock", async () => {
     window.sessionStorage.setItem("nexolab.local-auth.access-token", "access-old");
     window.sessionStorage.setItem("nexolab.local-auth.refresh-token", "refresh-old");
-    window.sessionStorage.setItem(
-      "nexolab.local-auth.access-expires-at",
-      String(Date.now() + 300_000),
-    );
+    window.sessionStorage.setItem("nexolab.local-auth.access-expires-at", String(Date.now() + 300_000));
     vi.stubGlobal("navigator", {
       locks: {
         request: vi.fn(async (_name: string, callback: () => Promise<unknown>) => {

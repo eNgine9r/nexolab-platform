@@ -66,10 +66,7 @@ export function createLocalCredentialProvider(
       await requestPeerSession();
     }
 
-    const peerOrganizationId = reconcileOrganization(
-      resolvedOrganizationId,
-      current.organizationId,
-    );
+    const peerOrganizationId = reconcileOrganization(resolvedOrganizationId, current.organizationId);
     const fresh = currentBrowserCredentialSnapshot(peerOrganizationId);
     if (fresh) return fresh;
 
@@ -165,10 +162,7 @@ async function refreshCredentialSnapshot(
     await requestPeerSession();
   }
 
-  let effectiveOrganizationId = reconcileOrganization(
-    resolvedOrganizationId,
-    organizationAtStart,
-  );
+  let effectiveOrganizationId = reconcileOrganization(resolvedOrganizationId, organizationAtStart);
   const peerFresh = currentBrowserCredentialSnapshot(effectiveOrganizationId);
   if (peerFresh) return peerFresh;
 
@@ -195,10 +189,7 @@ async function refreshCredentialSnapshot(
     return currentCredentialSnapshot(getSecurityCredentials().organizationId);
   }
 
-  effectiveOrganizationId = reconcileOrganization(
-    effectiveOrganizationId,
-    organizationAtStart,
-  );
+  effectiveOrganizationId = reconcileOrganization(effectiveOrganizationId, organizationAtStart);
 
   if (!refreshed.ok) {
     if (refreshed.terminal) {
@@ -349,9 +340,7 @@ function readBrowserTokenSnapshot(): BrowserTokenSnapshot | null {
   return accessToken && refreshToken && expiresAt > 0 ? { accessToken, refreshToken, expiresAt } : null;
 }
 
-function currentBrowserCredentialSnapshot(
-  organizationId: string | null,
-): SecurityCredentialSnapshot | null {
+function currentBrowserCredentialSnapshot(organizationId: string | null): SecurityCredentialSnapshot | null {
   const snapshot = readBrowserTokenSnapshot();
   if (!snapshot || snapshot.expiresAt <= Date.now() + REFRESH_SKEW_MS) {
     return null;
@@ -369,9 +358,7 @@ function reconcileOrganization(
   organizationAtStart: string | null,
 ): string | null {
   const latestOrganizationId = getSecurityCredentials().organizationId;
-  return latestOrganizationId === organizationAtStart
-    ? fallbackOrganizationId
-    : latestOrganizationId;
+  return latestOrganizationId === organizationAtStart ? fallbackOrganizationId : latestOrganizationId;
 }
 
 async function requestTokenPair(

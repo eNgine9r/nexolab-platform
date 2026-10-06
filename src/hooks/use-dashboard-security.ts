@@ -193,10 +193,7 @@ export function useDashboardSecurity(): DashboardSecurityModel {
       clearRetainedReadModels();
       clearPersistedOrganizationId();
       if (runtime.apiBaseUrl) {
-        invalidateMonitoringReadModel(
-          securitySessionScope(runtime.apiBaseUrl),
-          SECURITY_SESSION_CACHE_KEY,
-        );
+        invalidateMonitoringReadModel(securitySessionScope(runtime.apiBaseUrl), SECURITY_SESSION_CACHE_KEY);
       }
       setSecurityCredentials({ accessToken: null, organizationId: null });
       setSession(null);
@@ -205,15 +202,9 @@ export function useDashboardSecurity(): DashboardSecurityModel {
       setState("unauthenticated");
     };
 
-    window.addEventListener(
-      SECURITY_CREDENTIALS_INVALIDATED_EVENT,
-      handleCredentialInvalidation,
-    );
+    window.addEventListener(SECURITY_CREDENTIALS_INVALIDATED_EVENT, handleCredentialInvalidation);
     return () => {
-      window.removeEventListener(
-        SECURITY_CREDENTIALS_INVALIDATED_EVENT,
-        handleCredentialInvalidation,
-      );
+      window.removeEventListener(SECURITY_CREDENTIALS_INVALIDATED_EVENT, handleCredentialInvalidation);
     };
   }, [clearFailure, runtime.apiBaseUrl, runtime.mode]);
 
