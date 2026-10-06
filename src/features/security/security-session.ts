@@ -238,6 +238,7 @@ export function createAuthenticatedFetch(
 }
 
 export const SECURITY_CREDENTIALS_INVALIDATED_EVENT = "nexolab:security-credentials-invalidated";
+export const SECURITY_CREDENTIALS_UPDATED_EVENT = "nexolab:security-credentials-updated";
 
 let inMemoryCredentials: SecurityCredentialSnapshot = {
   accessToken: null,
@@ -247,6 +248,11 @@ let inMemoryCredentials: SecurityCredentialSnapshot = {
 export function notifySecurityCredentialsInvalidated(): void {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new Event(SECURITY_CREDENTIALS_INVALIDATED_EVENT));
+}
+
+export function notifySecurityCredentialsUpdated(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(SECURITY_CREDENTIALS_UPDATED_EVENT));
 }
 
 export function setSecurityCredentials(snapshot: SecurityCredentialSnapshot): void {
