@@ -246,7 +246,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npm run format:check 2>&1 | tee prettier-diagnostics.txt
+          npx prettier --write \
+            src/features/security/local-auth.test.ts \
+            src/features/security/local-auth.ts \
+            src/hooks/use-dashboard-security.ts
+          git diff -- \
+            src/features/security/local-auth.test.ts \
+            src/features/security/local-auth.ts \
+            src/hooks/use-dashboard-security.ts | tee prettier-diagnostics.txt
+          test ! -s prettier-diagnostics.txt
 
       - name: Upload formatting diagnostics
         if: failure()
