@@ -78,7 +78,9 @@
         "production_runtime_mutation": "none_by_issue_1274",
         "persistent_data_mutation": "none",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "state_reconciliation_issue": 1284,
+        "state_reconciliation_pull_request": 1285
       }
     },
     {
