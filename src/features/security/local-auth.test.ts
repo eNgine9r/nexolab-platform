@@ -372,7 +372,7 @@ it("rejects a delayed session update after logout tombstones the server session"
   expect(window.sessionStorage.getItem("nexolab.local-auth.peer-adoption-blocked")).toBe("1");
 });
 
-it("notifies the dashboard when a matching peer snapshot arrives after the request timeout", async () => {
+it("notifies the dashboard when a matching bound peer responds after the late window", async () => {
   vi.useFakeTimers();
   window.localStorage.setItem(
     BROWSER_SESSION_BINDING_KEY,
@@ -394,6 +394,7 @@ it("notifies the dashboard when a matching peer snapshot arrives after the reque
     });
     expect(requestId).not.toBe("");
 
+    await vi.advanceTimersByTimeAsync(600);
     emitPeerMessage({
       type: "session-response",
       requestId,
@@ -403,7 +404,6 @@ it("notifies the dashboard when a matching peer snapshot arrives after the reque
       sessionId: "session-1",
       expiresAt: Date.now() + 300_000,
     });
-    await vi.advanceTimersByTimeAsync(501);
 
     expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("peer-refresh");
     expect(updated).toHaveBeenCalledOnce();
