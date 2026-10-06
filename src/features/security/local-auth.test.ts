@@ -17,6 +17,12 @@ const LOCAL_AUTH_CREDENTIAL_STORAGE_KEYS = [
   "nexolab.local-auth.subject",
   "nexolab.local-auth.session-id",
 ] as const;
+const BROWSER_SESSION_BINDING_KEY = "nexolab.local-auth.browser-session-binding";
+
+function expectNoPersistentLocalAuthSecrets(): void {
+  expect(window.localStorage.getItem("nexolab.local-auth.access-token")).toBeNull();
+  expect(window.localStorage.getItem("nexolab.local-auth.refresh-token")).toBeNull();
+}
 
 function expectLocalAuthCredentialsCleared(): void {
   for (const key of LOCAL_AUTH_CREDENTIAL_STORAGE_KEYS) {
@@ -75,6 +81,7 @@ beforeEach(() => {
   vi.stubGlobal("BroadcastChannel", undefined);
   vi.stubGlobal("navigator", { locks: undefined });
   window.sessionStorage.clear();
+  window.localStorage.clear();
   setSecurityCredentials({ accessToken: null, organizationId: ORGANIZATION_ID });
 });
 
@@ -83,6 +90,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
   window.sessionStorage.clear();
+  window.localStorage.clear();
   setSecurityCredentials({ accessToken: null, organizationId: null });
 });
 
@@ -97,7 +105,11 @@ describe("local browser authentication", () => {
     expect(result).toEqual({ ok: true });
     expect(credentials).toEqual({ accessToken: "access-1", organizationId: ORGANIZATION_ID });
     expect(getSecurityCredentials()).toEqual(credentials);
-    expect(window.localStorage.length).toBe(0);
+    expectNoPersistentLocalAuthSecrets();
+    expect(JSON.parse(window.localStorage.getItem(BROWSER_SESSION_BINDING_KEY) ?? "null")).toEqual({
+      subject: "subject-1",
+      sessionId: "session-1",
+    });
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
@@ -161,7 +173,7 @@ describe("local browser authentication", () => {
 
     expect(credentials).toEqual({ accessToken: "access-1", organizationId: ORGANIZATION_ID });
     expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("refresh-1");
-    expect(window.localStorage.length).toBe(0);
+    expectNoPersistentLocalAuthSecrets();
   });
 
   it("clears local material when refresh is rejected", async () => {
@@ -345,6 +357,10 @@ it("rejects a delayed session update after logout tombstones the server session"
 
 it("notifies the dashboard when a matching peer snapshot arrives after the request timeout", async () => {
   vi.useFakeTimers();
+  window.localStorage.setItem(
+    BROWSER_SESSION_BINDING_KEY,
+    JSON.stringify({ subject: "subject-1", sessionId: "session-1" }),
+  );
   let requestId = "";
   usePeerChannel((message) => {
     const request = message as { type?: string; requestId?: string };
@@ -379,11 +395,32 @@ it("notifies the dashboard when a matching peer snapshot arrives after the reque
   }
 });
 
-it("rejects ambiguous peer identities when bootstrapping an empty tab", async () => {
+it("binds an empty tab to the explicitly selected browser session", async () => {
   vi.useFakeTimers();
+  window.localStorage.setItem(
+    BROWSER_SESSION_BINDING_KEY,
+    JSON.stringify({ subject: "viewer-subject", sessionId: "viewer-session" }),
+  );
   usePeerChannel((message) => {
-    const request = message as { type?: string; requestId?: string };
+    const request = message as {
+      type?: string;
+      requestId?: string;
+      subject?: string;
+      sessionId?: string;
+    };
     if (request.type !== "session-request" || !request.requestId) return;
+    expect(request.subject).toBe("viewer-subject");
+    expect(request.sessionId).toBe("viewer-session");
+
+    emitPeerMessage({
+      type: "session-response",
+      requestId: request.requestId,
+      accessToken: "admin-access",
+      refreshToken: "admin-refresh",
+      subject: "admin-subject",
+      sessionId: "admin-session",
+      expiresAt: Date.now() + 600_000,
+    });
     emitPeerMessage({
       type: "session-response",
       requestId: request.requestId,
@@ -393,15 +430,17 @@ it("rejects ambiguous peer identities when bootstrapping an empty tab", async ()
       sessionId: "viewer-session",
       expiresAt: Date.now() + 300_000,
     });
-    emitPeerMessage({
-      type: "session-response",
-      requestId: request.requestId,
-      accessToken: "admin-access",
-      refreshToken: "admin-refresh",
-      subject: "admin-subject",
-      sessionId: "admin-session",
-      expiresAt: Date.now() + 300_000,
-    });
+    window.setTimeout(() => {
+      emitPeerMessage({
+        type: "session-response",
+        requestId: request.requestId!,
+        accessToken: "late-admin-access",
+        refreshToken: "late-admin-refresh",
+        subject: "admin-subject",
+        sessionId: "admin-session",
+        expiresAt: Date.now() + 900_000,
+      });
+    }, 200);
   });
   const fetchMock = vi.fn();
   vi.stubGlobal("fetch", fetchMock);
@@ -410,10 +449,13 @@ it("rejects ambiguous peer identities when bootstrapping an empty tab", async ()
   await vi.advanceTimersByTimeAsync(151);
 
   await expect(pending).resolves.toEqual({
-    accessToken: null,
+    accessToken: "viewer-access",
     organizationId: ORGANIZATION_ID,
   });
-  expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBeNull();
+  expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("viewer-refresh");
+
+  await vi.advanceTimersByTimeAsync(250);
+  expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("viewer-refresh");
   expect(fetchMock).not.toHaveBeenCalled();
 });
 
@@ -448,6 +490,10 @@ it("notifies the dashboard when an existing expired peer snapshot is refreshed",
 });
 
 it("adopts the peer session without reverting organization and ignores stale peer clears", async () => {
+  window.localStorage.setItem(
+    BROWSER_SESSION_BINDING_KEY,
+    JSON.stringify({ subject: "subject-1", sessionId: "session-1" }),
+  );
   usePeerChannel((message) => {
     const request = message as { type?: string; requestId?: string };
     if (request.type !== "session-request" || !request.requestId) return;
@@ -475,7 +521,7 @@ it("adopts the peer session without reverting organization and ignores stale pee
 
     expect(credentials).toEqual({ accessToken: "peer-access", organizationId: "organization-b" });
     expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("peer-refresh");
-    expect(window.localStorage.length).toBe(0);
+    expectNoPersistentLocalAuthSecrets();
     expect(fetchMock).not.toHaveBeenCalled();
 
     emitPeerMessage({ type: "session-clear", refreshToken: "stale-refresh" });
