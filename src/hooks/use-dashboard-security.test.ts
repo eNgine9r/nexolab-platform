@@ -6,6 +6,7 @@ import * as refrigerationCache from "@/features/refrigeration/refrigeration-stru
 import {
   getSecurityCredentials,
   SECURITY_CREDENTIALS_INVALIDATED_EVENT,
+  SECURITY_CREDENTIALS_UPDATED_EVENT,
   setSecurityCredentials,
 } from "@/features/security/security-session";
 import * as readModelCache from "@/lib/monitoring-read-model-cache";
@@ -210,6 +211,56 @@ describe("useDashboardSecurity", () => {
     });
     expect(clearReadModels).toHaveBeenCalledTimes(1);
     expect(clearRefrigeration).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries the session load when late peer credentials become available", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ detail: { message: "authentication required" } }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(sessionResponse());
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = renderHook(() => useDashboardSecurity());
+
+    await waitFor(() => expect(result.current.state).toBe("unauthenticated"));
+    act(() => {
+      window.dispatchEvent(new Event(SECURITY_CREDENTIALS_UPDATED_EVENT));
+    });
+
+    await waitFor(() => expect(result.current.state).toBe("ready"));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not restore ready state from a session response that predates peer logout", async () => {
+    let resolveFirst!: (response: Response) => void;
+    const firstResponse = new Promise<Response>((resolve) => {
+      resolveFirst = resolve;
+    });
+    const fetchMock = vi
+      .fn()
+      .mockReturnValueOnce(firstResponse)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ detail: { message: "authentication required" } }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = renderHook(() => useDashboardSecurity());
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    act(() => {
+      window.dispatchEvent(new Event(SECURITY_CREDENTIALS_INVALIDATED_EVENT));
+    });
+    resolveFirst(sessionResponse());
+
+    await waitFor(() => expect(result.current.state).toBe("unauthenticated"));
+    expect(result.current.session).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("clears credentials, persisted organization and retained read models on logout", async () => {
