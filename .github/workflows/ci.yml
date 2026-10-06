@@ -246,9 +246,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npx prettier --write src/hooks/use-dashboard-security.test.ts
-          git diff -- src/hooks/use-dashboard-security.test.ts | tee prettier-diagnostics.txt
-          test ! -s prettier-diagnostics.txt
+          npm run format:check 2>&1 | tee prettier-diagnostics.txt
 
       - name: Upload formatting diagnostics
         if: failure()

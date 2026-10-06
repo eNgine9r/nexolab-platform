@@ -235,37 +235,31 @@ describe("useDashboardSecurity", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it(
-    "starts a distinct authenticated session load when peer credentials arrive during an inflight 401",
-    async () => {
-      let resolveFirst!: (response: Response) => void;
-      const firstResponse = new Promise<Response>((resolve) => {
-        resolveFirst = resolve;
-      });
-      const fetchMock = vi
-        .fn()
-        .mockReturnValueOnce(firstResponse)
-        .mockResolvedValueOnce(sessionResponse());
-      vi.stubGlobal("fetch", fetchMock);
-      const { result } = renderHook(() => useDashboardSecurity());
+  it("starts a distinct authenticated session load when peer credentials arrive during an inflight 401", async () => {
+    let resolveFirst!: (response: Response) => void;
+    const firstResponse = new Promise<Response>((resolve) => {
+      resolveFirst = resolve;
+    });
+    const fetchMock = vi.fn().mockReturnValueOnce(firstResponse).mockResolvedValueOnce(sessionResponse());
+    vi.stubGlobal("fetch", fetchMock);
+    const { result } = renderHook(() => useDashboardSecurity());
 
-      await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
-      act(() => {
-        window.dispatchEvent(new Event(SECURITY_CREDENTIALS_UPDATED_EVENT));
-      });
-      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+    act(() => {
+      window.dispatchEvent(new Event(SECURITY_CREDENTIALS_UPDATED_EVENT));
+    });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
 
-      resolveFirst(
-        new Response(JSON.stringify({ detail: { message: "authentication required" } }), {
-          status: 401,
-          headers: { "Content-Type": "application/json" },
-        }),
-      );
+    resolveFirst(
+      new Response(JSON.stringify({ detail: { message: "authentication required" } }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
 
-      await waitFor(() => expect(result.current.state).toBe("ready"));
-      expect(result.current.membership?.organizationId).toBe("org-1");
-    },
-  );
+    await waitFor(() => expect(result.current.state).toBe("ready"));
+    expect(result.current.membership?.organizationId).toBe("org-1");
+  });
 
   it("does not restore ready state from a session response that predates peer logout", async () => {
     let resolveFirst!: (response: Response) => void;
