@@ -227,6 +227,10 @@ VERSION_MANAGER_TOOLING_PATHS = {
     "scripts/install-offline-bundle.sh",
 }
 
+DEPLOYMENT_RUNTIME_CONTRACT_TEST_PATHS = {
+    "scripts/tests/test_central_smoke_auth_contract.py",
+}
+
 DISASTER_RECOVERY_TOOLING_PATHS = {
     "scripts/run-disaster-recovery-acceptance.sh",
     "tests/test_disaster_recovery_assets.py",
@@ -497,6 +501,10 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
             matched = True
 
         if path in VERSION_MANAGER_TOOLING_PATHS:
+            classes.add("deployment_runtime")
+            matched = True
+
+        if path in DEPLOYMENT_RUNTIME_CONTRACT_TEST_PATHS:
             classes.add("deployment_runtime")
             matched = True
 
