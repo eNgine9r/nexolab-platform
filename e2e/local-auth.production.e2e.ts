@@ -136,6 +136,40 @@ test("authenticates local viewer, operator and administrator without an external
   );
 });
 
+test("shares the explicit local browser session with a new same-origin tab", async ({ browser }) => {
+  const { page } = await loginThroughBrowser(browser, "viewer");
+  const secondPage = await page.context().newPage();
+  try {
+    await secondPage.goto("/", { waitUntil: "networkidle" });
+    await expect(secondPage).not.toHaveURL(/\/login(?:\?|$)/);
+    await expect(secondPage.getByLabel("Вийти з NEXOLAB")).toBeVisible();
+
+    const adopted = await secondPage.evaluate(() => ({
+      accessToken: window.sessionStorage.getItem("nexolab.local-auth.access-token"),
+      refreshToken: window.sessionStorage.getItem("nexolab.local-auth.refresh-token"),
+      browserSessionBinding: window.localStorage.getItem("nexolab.local-auth.browser-session-binding"),
+    }));
+    expect(adopted.accessToken).toBeTruthy();
+    expect(adopted.refreshToken).toBeTruthy();
+    expect(adopted.browserSessionBinding).toBeTruthy();
+
+    await secondPage.reload({ waitUntil: "networkidle" });
+    await expect(secondPage.getByLabel("Вийти з NEXOLAB")).toBeVisible();
+
+    await page.getByLabel("Вийти з NEXOLAB").click();
+    await expect
+      .poll(() =>
+        secondPage.evaluate(() => ({
+          accessToken: window.sessionStorage.getItem("nexolab.local-auth.access-token"),
+          refreshToken: window.sessionStorage.getItem("nexolab.local-auth.refresh-token"),
+        })),
+      )
+      .toEqual({ accessToken: null, refreshToken: null });
+  } finally {
+    await page.context().close();
+  }
+});
+
 test("administrator provisions every product role with bounded server-side access", async ({ browser }) => {
   mkdirSync(evidenceDirectory, { recursive: true });
   const username = "issue385.engineer";
