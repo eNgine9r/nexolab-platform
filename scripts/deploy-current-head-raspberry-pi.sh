@@ -1631,6 +1631,13 @@ if [[ ! -f "$CENTRAL_ENV" ]]; then
 fi
 chmod 0600 "$CENTRAL_ENV"
 
+LEGACY_LOCAL_AUTH_REFRESH_SECONDS="$(env_get "$CENTRAL_ENV" AUTH_LOCAL_REFRESH_TOKEN_SECONDS)"
+if [[ "$LEGACY_LOCAL_AUTH_REFRESH_SECONDS" == "43200" ]]; then
+  env_set "$CENTRAL_ENV" AUTH_LOCAL_REFRESH_TOKEN_SECONDS 28800
+  chmod 0600 "$CENTRAL_ENV"
+  log "Migrated legacy local-auth idle timeout from 43200s to 28800s"
+fi
+
 LAN_BIND_IP=""
 if [[ "$RUNTIME_MODE" == "lan" ]]; then
   LAN_BIND_IP="$(env_get "$CENTRAL_ENV" CENTRAL_BIND_ADDRESS)"
