@@ -67,6 +67,8 @@ AUTH_LOCAL_LOCKOUT_SECONDS=300
 
 `compose.local-auth.yaml` overrides the container to `AUTH_MODE=jwt` and `AUTH_LOCAL_ENABLED=true`. Keeping `AUTH_MODE=disabled` in the shared environment prevents accidental activation when the required overlay is omitted; the production start command must include the overlay.
 
+When upgrading an existing controlled Raspberry Pi installation, the deployment script migrates only the historical explicit default `AUTH_LOCAL_REFRESH_TOKEN_SECONDS=43200` to `28800`. Any other operator-selected value is preserved unchanged. This reconciliation happens only when a controlled deployment is actually executed; editing or merging this source does not mutate the running host.
+
 Validate the merged configuration without printing secret contents:
 
 ```bash
@@ -152,9 +154,9 @@ For the offline bundle, also include `infrastructure/offline/compose.central.off
 
 - access token lifetime defaults to 5 minutes;
 - refresh session idle window defaults to 8 hours and extends after each successful refresh;
-- refresh tokens rotate on every refresh and remain only in per-tab `sessionStorage`; active same-origin NEXOLAB tabs exchange the current in-memory browser-session pair through `BroadcastChannel`, without persistent token storage;
-- reuse of a rotated token is rejected;
-- logout revokes the PostgreSQL session;
+- refresh tokens rotate on every refresh and remain only in per-tab `sessionStorage`; active same-origin NEXOLAB tabs exchange only snapshots bound to the same verified local subject and server session id through `BroadcastChannel`, without persistent token storage;
+- the immediately previous refresh generation may be replayed only for a bounded 30-second idempotent recovery window after a lost response; it returns the already-derived current replacement without extending the session again, while older or unrelated replay is rejected;
+- logout revokes the PostgreSQL session and browser tabs tombstone that server session id so delayed pre-logout peer updates cannot restore credentials;
 - access tokens from a revoked session are rejected immediately;
 - five failed password attempts lock the account for five minutes by default;
 - passwords and refresh tokens are never written to audit snapshots;
@@ -228,7 +230,7 @@ Rolling back to a version before ADR 0009 disables local login endpoints and doe
 - [ ] A valid local operator can log in while internet egress is blocked.
 - [ ] Viewer, operator and administrator permissions differ as expected.
 - [ ] Logout causes the previous access token to return HTTP 401.
-- [ ] Rotated refresh-token replay returns HTTP 401.
+- [ ] Immediate previous refresh replay within the 30-second recovery window returns the same current replacement; replay outside that window returns HTTP 401.
 - [ ] Audit records identify provider `nexolab-local` and the local actor subject.
 - [ ] PostgreSQL and signing keys are present in the controlled backup set.
 - [ ] No password, token or private key appears in Git, logs or artifacts.
