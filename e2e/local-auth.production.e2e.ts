@@ -47,11 +47,21 @@ async function loginWithCredentials(
   const storage = await page.evaluate(() => ({
     accessToken: window.sessionStorage.getItem("nexolab.local-auth.access-token"),
     refreshToken: window.sessionStorage.getItem("nexolab.local-auth.refresh-token"),
-    localTokenKeys: Object.keys(window.localStorage).filter((key) => key.startsWith("nexolab.local-auth.")),
+    browserSessionBinding: window.localStorage.getItem("nexolab.local-auth.browser-session-binding"),
+    localAuthPersistentKeys: Object.keys(window.localStorage)
+      .filter((key) => key.startsWith("nexolab.local-auth."))
+      .sort(),
   }));
   expect(storage.accessToken).toBeTruthy();
   expect(storage.refreshToken).toBeTruthy();
-  expect(storage.localTokenKeys).toEqual([]);
+  expect(storage.localAuthPersistentKeys).toEqual(["nexolab.local-auth.browser-session-binding"]);
+  expect(storage.browserSessionBinding).toBeTruthy();
+  const binding = JSON.parse(storage.browserSessionBinding as string) as {
+    subject?: unknown;
+    sessionId?: unknown;
+  };
+  expect(typeof binding.subject).toBe("string");
+  expect(typeof binding.sessionId).toBe("string");
   return {
     page,
     accessToken: storage.accessToken as string,
