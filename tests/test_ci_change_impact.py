@@ -526,6 +526,35 @@ class ChangeImpactClassifierTests(unittest.TestCase):
                 self.assertEqual(result["unknown_files"], [])
                 self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_central_auth_deploy_contract_is_known_deployment_runtime(self) -> None:
+        result = classify(["scripts/tests/test_central_smoke_auth_contract.py"])
+        self.assertEqual(result["classes"], ["deployment_runtime"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertEqual(result["verification"]["required_external_workflows"], [])
+
+    def test_local_auth_deploy_change_set_does_not_require_refrigeration(self) -> None:
+        result = classify(
+            [
+                "scripts/deploy-current-head-raspberry-pi.sh",
+                "scripts/tests/test_central_smoke_auth_contract.py",
+                "services/telemetry-service/app/security/local_service.py",
+                "services/telemetry-service/tests/test_local_auth_api.py",
+                "src/features/security/local-auth.ts",
+                "src/hooks/use-dashboard-security.ts",
+                "infrastructure/compose/compose.local-auth.yaml",
+                "docs/security/local-operator-authentication.md",
+            ]
+        )
+        verification = result["verification"]
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertFalse(verification["refrigeration_browser"])
+        self.assertEqual(
+            set(verification["required_external_workflows"]),
+            {"Authenticated Dashboard Acceptance", "Offline Bundle"},
+        )
+
     def test_version_manager_with_offline_installer_routes_only_offline_bundle(self) -> None:
         result = classify(
             [
