@@ -188,12 +188,16 @@ describe("local browser authentication", () => {
         }),
       },
     });
-    const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
+    let logoutBody: BodyInit | null | undefined;
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      logoutBody = init?.body;
+      return new Response(null, { status: 204 });
+    });
     vi.stubGlobal("fetch", fetchMock);
 
     await signOutLocal(API_BASE_URL);
 
-    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+    expect(JSON.parse(String(logoutBody))).toEqual({
       refresh_token: "refresh-new",
     });
     expect(window.sessionStorage.length).toBe(0);
@@ -242,16 +246,10 @@ it.each([200, 401])(
 
 it("adopts the peer session without reverting organization and ignores stale peer clears", async () => {
   type Listener = (event: MessageEvent<unknown>) => void;
-  let peerChannel: PeerSessionChannel | null = null;
+  let peerListener: Listener | null = null;
   class PeerSessionChannel {
-    private listener: Listener | null = null;
-
-    constructor() {
-      peerChannel = this;
-    }
-
     addEventListener(_type: "message", listener: Listener): void {
-      this.listener = listener;
+      peerListener = listener;
     }
 
     postMessage(message: unknown): void {
@@ -259,7 +257,7 @@ it("adopts the peer session without reverting organization and ignores stale pee
       if (request.type !== "session-request" || !request.requestId) return;
       setSecurityCredentials({ accessToken: "expired", organizationId: "organization-b" });
       queueMicrotask(() => {
-        this.listener?.({
+        peerListener?.({
           data: {
             type: "session-response",
             requestId: request.requestId,
@@ -270,11 +268,11 @@ it("adopts the peer session without reverting organization and ignores stale pee
         } as MessageEvent<unknown>);
       });
     }
-
-    emit(data: unknown): void {
-      this.listener?.({ data } as MessageEvent<unknown>);
-    }
   }
+
+  const emitPeerMessage = (data: unknown): void => {
+    peerListener?.({ data } as MessageEvent<unknown>);
+  };
 
   vi.stubGlobal("BroadcastChannel", PeerSessionChannel);
   window.sessionStorage.clear();
@@ -291,11 +289,11 @@ it("adopts the peer session without reverting organization and ignores stale pee
     expect(window.localStorage.length).toBe(0);
     expect(fetchMock).not.toHaveBeenCalled();
 
-    peerChannel?.emit({ type: "session-clear", refreshToken: "stale-refresh" });
+    emitPeerMessage({ type: "session-clear", refreshToken: "stale-refresh" });
     expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("peer-refresh");
     expect(invalidated).not.toHaveBeenCalled();
 
-    peerChannel?.emit({ type: "session-clear" });
+    emitPeerMessage({ type: "session-clear" });
     expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBeNull();
     expect(invalidated).toHaveBeenCalledOnce();
   } finally {
