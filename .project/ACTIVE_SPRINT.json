@@ -18,7 +18,7 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+    "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
     "deployed_product_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
     "frontend_compatibility_source_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
     "frontend_build_id": "sCwzXg5ghkKu2_Rtus_F7",
@@ -46,6 +46,63 @@
     "next_work_package": null
   },
   "work_packages": [
+    {
+      "issue": 1274,
+      "title": "Persist local operator session across browser windows with 8h idle timeout",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1281,
+        1277
+      ],
+      "branch": "fix/1274-local-auth-browser-session",
+      "evidence": {
+        "verified_head_sha": "b914b223efebde929866e06b01f5c2817fcc1781",
+        "pull_request": 1275,
+        "exact_head_ci": "18_of_18_green",
+        "core_ci_and_merge_gate": "success:37459114838",
+        "authenticated_dashboard": "success:37459114936",
+        "offline_auth": "success:37459114928",
+        "offline_bundle": "success:37459114954",
+        "telemetry_service": "success:37459115041",
+        "security_browser": "success:37459114917",
+        "container_supply_chain": "success:37459114869",
+        "session_policy": "rolling_8h_idle_timeout",
+        "browser_continuity": "same_origin_bound_subject_and_session_id_with_session_scoped_tokens",
+        "persistent_token_storage": "none",
+        "legacy_timeout_migration": "43200_to_28800_controlled_deploy_and_offline_installer_only",
+        "merged_implementation_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+        "issue_state": "closed_completed",
+        "source_acceptance": "completed",
+        "deployed_acceptance": "pending_explicit_product_owner_deployment_authorization",
+        "production_runtime_mutation": "none_by_issue_1274",
+        "persistent_data_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "state_reconciliation_issue": 1284,
+        "state_reconciliation_pull_request": 1285
+      }
+    },
+    {
+      "issue": 1281,
+      "title": "Align CI classifier with central deployment auth contract test",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "fix/1281-ci-classifier-deploy-auth-contract",
+      "evidence": {
+        "verified_head_sha": "2c23984b2c54bd0cc4ab715754b358a02db55cf0",
+        "pull_request": 1282,
+        "classifier_fix": "central_smoke_auth_contract_is_known_deployment_runtime",
+        "fail_closed_unknown_paths": "preserved",
+        "unrelated_refrigeration_requirement": "removed_for_known_auth_deploy_contract_change_set",
+        "exact_head_ci": "green_before_merge",
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "merged_implementation_sha": "2a3d62e948b8dc86564c90c3f65b8a1efb38c05a"
+      }
+    },
     {
       "issue": 1277,
       "title": "Revalidate expired container HIGH exceptions through 2026-10-12",
@@ -7551,6 +7608,32 @@
         "pull_request": 1246,
         "verified_head": "55f99346f216fd3707fdd547f7097d9e9beb72b4",
         "merge_sha": "8db1004333b4b49284dfab36b7c8ad292a963974"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-06T10:04:13Z",
+      "kind": "issue_1281_pr_1282_merged",
+      "data": {
+        "issue": 1281,
+        "pull_request": 1282,
+        "verified_head_sha": "2c23984b2c54bd0cc4ab715754b358a02db55cf0",
+        "merge_sha": "2a3d62e948b8dc86564c90c3f65b8a1efb38c05a",
+        "result": "ci_classifier_routing_corrected_fail_closed_preserved"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-06T12:09:07Z",
+      "kind": "issue_1274_pr_1275_merged",
+      "data": {
+        "issue": 1274,
+        "pull_request": 1275,
+        "verified_head_sha": "b914b223efebde929866e06b01f5c2817fcc1781",
+        "merge_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+        "exact_head_ci": "18_of_18_green",
+        "source_acceptance": "completed",
+        "deployed_acceptance": "pending_explicit_authorization"
       }
     }
   ],

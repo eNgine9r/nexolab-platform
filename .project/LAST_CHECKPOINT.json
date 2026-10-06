@@ -3,11 +3,11 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-05T21:21:00+03:00",
+  "timestamp": "2026-10-06T16:56:00+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1277_container_high_revalidation_verified",
+  "event": "issue_1274_browser_session_source_acceptance_reconciled",
   "baselines": {
-    "accepted_product_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+    "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
     "deployed_product_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
     "frontend_compatibility_source_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
     "frontend_build_id": "sCwzXg5ghkKu2_Rtus_F7",
@@ -1215,6 +1215,32 @@
       "persistent_data_mutation": "none",
       "modbus_write": "none",
       "hardware_write": "none"
+    },
+    "completed_browser_session_persistence_1274": {
+      "issue": 1274,
+      "pull_request": 1275,
+      "verified_head_sha": "b914b223efebde929866e06b01f5c2817fcc1781",
+      "exact_head_ci": "18_of_18_green",
+      "core_ci_and_merge_gate": "success:37459114838",
+      "authenticated_dashboard": "success:37459114936",
+      "offline_auth": "success:37459114928",
+      "offline_bundle": "success:37459114954",
+      "telemetry_service": "success:37459115041",
+      "security_browser": "success:37459114917",
+      "container_supply_chain": "success:37459114869",
+      "ci_routing_prerequisite": "issue_1281_pr_1282_merge_2a3d62e948b8dc86564c90c3f65b8a1efb38c05a",
+      "browser_session_policy": "same_origin_explicit_subject_session_binding_session_scoped_tokens",
+      "refresh_idle_timeout_seconds": 28800,
+      "legacy_timeout_migration": "43200_to_28800_only",
+      "source_acceptance": "completed",
+      "installed_acceptance": "pending_explicit_product_owner_authorization",
+      "production_runtime_mutation": "none",
+      "persistent_data_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "state_reconciliation_issue": 1284,
+      "state_reconciliation_pull_request": 1285,
+      "merged_implementation_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642"
     }
   },
   "observations": [
@@ -2004,9 +2030,28 @@
         "nexolab_merge_gate": "success",
         "next_selection": "none_until_fresh_backlog_reaudit"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-06T10:04:13Z",
+      "kind": "issue_1281_pr_1282_merged",
+      "data": {
+        "merge_sha": "2a3d62e948b8dc86564c90c3f65b8a1efb38c05a",
+        "result": "ci_classifier_auth_deploy_contract_routing_corrected"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-06T12:09:07Z",
+      "kind": "issue_1274_pr_1275_merged",
+      "data": {
+        "verified_head_sha": "b914b223efebde929866e06b01f5c2817fcc1781",
+        "merge_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+        "exact_head_ci": "18_of_18_green"
+      }
     }
   ],
-  "next_action": "After #1268 merges GREEN and closes #1267, close #1249 and #1247 completed from actual-host evidence, then perform a fresh open-Issue/PR/backlog audit before selecting any next Work Package.",
+  "next_action": "Await explicit Product Owner authorization before controlled production deployment of accepted source 75d9c75f8d1901d6b639ec711bf3784e22ed0642; until then deployed_product_sha remains d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
