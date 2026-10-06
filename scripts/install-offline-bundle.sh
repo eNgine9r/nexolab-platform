@@ -64,6 +64,22 @@ done
 docker compose version >/dev/null
 
 if [[ "$LOCAL_AUTH" == true ]]; then
+  python3 - "$CENTRAL_ENV" <<'PYLOCALAUTHTIMEOUT'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+lines = path.read_text(encoding="utf-8").splitlines()
+for index, line in enumerate(lines):
+    if not line.startswith("AUTH_LOCAL_REFRESH_TOKEN_SECONDS="):
+        continue
+    if line.split("=", 1)[1].strip() == "43200":
+        lines[index] = "AUTH_LOCAL_REFRESH_TOKEN_SECONDS=28800"
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        print("Migrated legacy local-auth idle timeout from 43200s to 28800s")
+    break
+PYLOCALAUTHTIMEOUT
+
   LOCAL_AUTH_EXPORTS="$(python3 - "$CENTRAL_ENV" <<'PYLOCALAUTH'
 import os
 import shlex
