@@ -114,6 +114,22 @@ describe("local browser authentication", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
+  it("keeps same-tab login working when persistent browser storage is unavailable", async () => {
+    vi.spyOn(window.localStorage, "setItem").mockImplementation(() => {
+      throw new DOMException("Persistent storage unavailable", "SecurityError");
+    });
+    const fetchMock = vi.fn(async () => tokenResponse("access-1", "refresh-1"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await signInWithLocalPassword(API_BASE_URL, "operator", "valid-password");
+    const credentials = await createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID)();
+
+    expect(result).toEqual({ ok: true });
+    expect(credentials).toEqual({ accessToken: "access-1", organizationId: ORGANIZATION_ID });
+    expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("refresh-1");
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it("rotates an expiring access token through the local refresh endpoint", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-01T18:00:00Z"));
