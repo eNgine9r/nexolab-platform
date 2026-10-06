@@ -726,9 +726,9 @@ function isLoggedOutSession(sessionId: string): boolean {
 
 function readBrowserSessionBinding(): BrowserSessionBinding | null {
   if (typeof window === "undefined") return null;
-  const raw = window.localStorage.getItem(BROWSER_SESSION_BINDING_KEY);
-  if (!raw) return null;
   try {
+    const raw = window.localStorage.getItem(BROWSER_SESSION_BINDING_KEY);
+    if (!raw) return null;
     const value = asRecord(JSON.parse(raw) as unknown);
     const subject = value ? readString(value.subject) : null;
     const sessionId = value ? readString(value.sessionId) : null;
@@ -740,14 +740,23 @@ function readBrowserSessionBinding(): BrowserSessionBinding | null {
 
 function writeBrowserSessionBinding(binding: BrowserSessionBinding): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(BROWSER_SESSION_BINDING_KEY, JSON.stringify(binding));
+  try {
+    window.localStorage.setItem(BROWSER_SESSION_BINDING_KEY, JSON.stringify(binding));
+  } catch {
+    // The binding is non-secret and optional. Same-tab authentication continues
+    // from sessionStorage when persistent browser storage is unavailable.
+  }
 }
 
 function clearBrowserSessionBinding(sessionId: string): void {
   if (typeof window === "undefined") return;
   const binding = readBrowserSessionBinding();
-  if (binding?.sessionId === sessionId) {
+  if (binding?.sessionId !== sessionId) return;
+  try {
     window.localStorage.removeItem(BROWSER_SESSION_BINDING_KEY);
+  } catch {
+    // Storage policy failures cannot restore browser credentials because tokens
+    // remain in sessionStorage and the local session is revoked server-side.
   }
 }
 
