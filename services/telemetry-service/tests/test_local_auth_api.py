@@ -130,6 +130,8 @@ def test_local_login_returns_revocable_access_and_refresh_tokens(tmp_path: Path)
     fixture = build_fixture(tmp_path)
     try:
         tokens = login(fixture.client, "admin")
+        assert tokens["subject"]
+        assert tokens["session_id"]
 
         response = fixture.client.get(
             "/api/v1/auth/session",
@@ -166,6 +168,8 @@ def test_refresh_rotates_token_and_logout_revokes_access_session(tmp_path: Path)
         assert refresh_response.status_code == 200
         refreshed = refresh_response.json()
         assert refreshed["refresh_token"] != initial["refresh_token"]
+        assert refreshed["subject"] == initial["subject"]
+        assert refreshed["session_id"] == initial["session_id"]
 
         replay_response = fixture.client.post(
             "/api/v1/auth/local/refresh",
