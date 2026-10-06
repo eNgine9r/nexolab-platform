@@ -32,6 +32,8 @@ TRIVY_IMAGE="${TRIVY_IMAGE:-aquasec/trivy:0.69.3}"
 
 BUILDX_CACHE_ROOT="${NEXOLAB_BUILDX_CACHE_ROOT:-}"
 
+SBOM_JOBS="${NEXOLAB_SBOM_JOBS:-3}"
+
 while (($#)); do
   case "$1" in
     --version) VERSION="${2:?}"; shift 2 ;;
@@ -67,6 +69,11 @@ done
   exit 2
 }
 [[ "$VERSION" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "Invalid bundle version" >&2; exit 2; }
+
+[[ "$SBOM_JOBS" =~ ^[1-6]$ ]] || {
+  echo "NEXOLAB_SBOM_JOBS must be an integer between 1 and 6" >&2
+  exit 2
+}
 
 git diff --quiet -- . ':!dist' || {
   echo "Refusing to build from a dirty working tree" >&2
@@ -214,9 +221,8 @@ IMAGE_REFS=(
 
 docker save --output "$STAGING/images/nexolab-images.tar" "${IMAGE_REFS[@]}"
 
-for record in "${IMAGE_RECORDS[@]}"; do
-  logical_id="${record%%=*}"
-  image="${record#*=}"
+generate_sbom_pair() {
+  local logical_id="$1" image="$2"
   docker run --rm \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v "$STAGING/evidence:/evidence" \
@@ -227,7 +233,30 @@ for record in "${IMAGE_RECORDS[@]}"; do
     -v "$STAGING/evidence:/evidence" \
     "$TRIVY_IMAGE" image --quiet --format spdx-json \
     --output "/evidence/${logical_id}.spdx.json" "$image"
+}
+
+wait_for_sbom_batch() {
+  local rc=0 pid
+  for pid in "$@"; do
+    wait "$pid" || rc=$?
+  done
+  return "$rc"
+}
+
+sbom_pids=()
+for record in "${IMAGE_RECORDS[@]}"; do
+  logical_id="${record%%=*}"
+  image="${record#*=}"
+  generate_sbom_pair "$logical_id" "$image" &
+  sbom_pids+=("$!")
+  if (( ${#sbom_pids[@]} >= SBOM_JOBS )); then
+    wait_for_sbom_batch "${sbom_pids[@]}"
+    sbom_pids=()
+  fi
 done
+if (( ${#sbom_pids[@]} > 0 )); then
+  wait_for_sbom_batch "${sbom_pids[@]}"
+fi
 
 cp infrastructure/compose/compose.central.yaml "$STAGING/deploy/compose/"
 cp infrastructure/compose/compose.edge.yaml "$STAGING/deploy/compose/"
@@ -326,7 +355,11 @@ python3 scripts/generate-offline-bundle-manifest.py \
 )
 python3 scripts/verify-offline-bundle.py "$STAGING" --check-loaded-images
 
-tar --create --gzip --file "$ARCHIVE" --directory "$OUTPUT_DIR" "$BUNDLE_NAME"
+if command -v pigz >/dev/null 2>&1; then
+  tar --create --file - --directory "$OUTPUT_DIR" "$BUNDLE_NAME" | pigz > "$ARCHIVE"
+else
+  tar --create --file - --directory "$OUTPUT_DIR" "$BUNDLE_NAME" | gzip > "$ARCHIVE"
+fi
 printf '%s  %s\n' "$(sha256sum "$ARCHIVE" | awk '{print $1}')" "$(basename "$ARCHIVE")" \
   > "${ARCHIVE}.sha256"
 
