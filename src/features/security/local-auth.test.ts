@@ -4,18 +4,27 @@ import { createLocalCredentialProvider, signInWithLocalPassword, signOutLocal } 
 import {
   getSecurityCredentials,
   SECURITY_CREDENTIALS_INVALIDATED_EVENT,
+  SECURITY_CREDENTIALS_UPDATED_EVENT,
   setSecurityCredentials,
 } from "./security-session";
 
 const API_BASE_URL = "http://127.0.0.1:8082";
 const ORGANIZATION_ID = "11111111-1111-1111-1111-111111111111";
 
-function tokenResponse(accessToken: string, refreshToken: string, expiresIn = 300): Response {
+function tokenResponse(
+  accessToken: string,
+  refreshToken: string,
+  expiresIn = 300,
+  subject = "subject-1",
+  sessionId = "session-1",
+): Response {
   return new Response(
     JSON.stringify({
       token_type: "Bearer",
       access_token: accessToken,
       refresh_token: refreshToken,
+      subject,
+      session_id: sessionId,
       expires_in: expiresIn,
       refresh_expires_in: 3600,
     }),
@@ -241,6 +250,112 @@ it.each([200, 401])(
   },
 );
 
+it("rejects a peer snapshot from a different local operator session", async () => {
+  await signInWithLocalPassword(API_BASE_URL, "operator", "valid-password");
+  type Listener = (event: MessageEvent<unknown>) => void;
+  let peerListener: Listener | null = null;
+  class PeerSessionChannel {
+    addEventListener(_type: "message", listener: Listener): void {
+      peerListener = listener;
+    }
+
+    postMessage(): void {}
+  }
+  vi.stubGlobal("BroadcastChannel", PeerSessionChannel);
+  createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID);
+  const invalidated = vi.fn();
+  window.addEventListener(SECURITY_CREDENTIALS_UPDATED_EVENT, invalidated);
+  try {
+    peerListener?.({
+      data: {
+        type: "session-update",
+        accessToken: "admin-access",
+        refreshToken: "admin-refresh",
+        subject: "administrator-subject",
+        sessionId: "administrator-session",
+        expiresAt: Date.now() + 600_000,
+      },
+    } as MessageEvent<unknown>);
+
+    expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("refresh-1");
+    expect(window.sessionStorage.getItem("nexolab.local-auth.subject")).toBe("subject-1");
+    expect(invalidated).not.toHaveBeenCalled();
+  } finally {
+    window.removeEventListener(SECURITY_CREDENTIALS_UPDATED_EVENT, invalidated);
+  }
+});
+
+it("rejects a delayed session update after logout tombstones the server session", async () => {
+  await signInWithLocalPassword(API_BASE_URL, "operator", "valid-password");
+  type Listener = (event: MessageEvent<unknown>) => void;
+  let peerListener: Listener | null = null;
+  class PeerSessionChannel {
+    addEventListener(_type: "message", listener: Listener): void {
+      peerListener = listener;
+    }
+
+    postMessage(): void {}
+  }
+  vi.stubGlobal("BroadcastChannel", PeerSessionChannel);
+  createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID);
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 204 })));
+
+  await signOutLocal(API_BASE_URL);
+  peerListener?.({
+    data: {
+      type: "session-update",
+      accessToken: "late-access",
+      refreshToken: "late-refresh",
+      subject: "subject-1",
+      sessionId: "session-1",
+      expiresAt: Date.now() + 600_000,
+    },
+  } as MessageEvent<unknown>);
+
+  expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBeNull();
+  expect(window.sessionStorage.getItem("nexolab.local-auth.peer-adoption-blocked")).toBe("1");
+});
+
+it("notifies the dashboard when a peer snapshot arrives after the request timeout", async () => {
+  type Listener = (event: MessageEvent<unknown>) => void;
+  let peerListener: Listener | null = null;
+  class SilentPeerSessionChannel {
+    addEventListener(_type: "message", listener: Listener): void {
+      peerListener = listener;
+    }
+
+    postMessage(): void {}
+  }
+  vi.stubGlobal("BroadcastChannel", SilentPeerSessionChannel);
+  const updated = vi.fn();
+  window.addEventListener(SECURITY_CREDENTIALS_UPDATED_EVENT, updated);
+  try {
+    const pending = createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID)();
+    await new Promise((resolve) => window.setTimeout(resolve, 175));
+    await expect(pending).resolves.toEqual({
+      accessToken: null,
+      organizationId: ORGANIZATION_ID,
+    });
+
+    peerListener?.({
+      data: {
+        type: "session-response",
+        requestId: "late-request",
+        accessToken: "peer-access",
+        refreshToken: "peer-refresh",
+        subject: "subject-1",
+        sessionId: "session-1",
+        expiresAt: Date.now() + 300_000,
+      },
+    } as MessageEvent<unknown>);
+
+    expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("peer-refresh");
+    expect(updated).toHaveBeenCalledOnce();
+  } finally {
+    window.removeEventListener(SECURITY_CREDENTIALS_UPDATED_EVENT, updated);
+  }
+});
+
 it("adopts the peer session without reverting organization and ignores stale peer clears", async () => {
   type Listener = (event: MessageEvent<unknown>) => void;
   let peerListener: Listener | null = null;
@@ -260,6 +375,8 @@ it("adopts the peer session without reverting organization and ignores stale pee
             requestId: request.requestId,
             accessToken: "peer-access",
             refreshToken: "peer-refresh",
+            subject: "subject-1",
+            sessionId: "session-1",
             expiresAt: Date.now() + 300_000,
           },
         } as MessageEvent<unknown>);
