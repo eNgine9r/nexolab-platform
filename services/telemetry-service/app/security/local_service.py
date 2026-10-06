@@ -54,6 +54,8 @@ class LocalAccountAccessError(LocalAuthenticationError):
 class LocalTokenPair:
     access_token: str
     refresh_token: str
+    subject: str
+    session_id: str
     access_expires_at: datetime
     refresh_expires_at: datetime
 
@@ -283,6 +285,8 @@ class LocalAuthService:
         return LocalTokenPair(
             access_token=access_token,
             refresh_token=refresh_token,
+            subject=claims.subject,
+            session_id=session_id,
             access_expires_at=access_expires_at,
             refresh_expires_at=refresh_expires_at,
         )
