@@ -421,7 +421,10 @@ it("notifies the dashboard when an existing expired peer snapshot is refreshed",
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-08-01T18:00:00Z"));
   usePeerChannel();
-  vi.stubGlobal("fetch", vi.fn(async () => tokenResponse("access-1", "refresh-1", 1)));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => tokenResponse("access-1", "refresh-1", 1)),
+  );
   await signInWithLocalPassword(API_BASE_URL, "operator", "valid-password");
   await vi.advanceTimersByTimeAsync(2_000);
 

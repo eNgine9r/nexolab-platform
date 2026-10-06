@@ -364,15 +364,9 @@ function ensureSessionChannel(): BroadcastChannel | null {
   return channel;
 }
 
-function recordPendingPeerResponse(
-  pending: PendingPeerRequest,
-  snapshot: BrowserTokenSnapshot,
-): void {
+function recordPendingPeerResponse(pending: PendingPeerRequest, snapshot: BrowserTokenSnapshot): void {
   const current = readBrowserTokenSnapshot();
-  if (
-    current &&
-    (current.subject !== snapshot.subject || current.sessionId !== snapshot.sessionId)
-  ) {
+  if (current && (current.subject !== snapshot.subject || current.sessionId !== snapshot.sessionId)) {
     return;
   }
 
