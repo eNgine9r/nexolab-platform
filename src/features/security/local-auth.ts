@@ -362,10 +362,7 @@ function storeTokenPair(payload: LocalTokenPayload, broadcast: boolean): void {
 function adoptBrowserTokenSnapshot(snapshot: BrowserTokenSnapshot): boolean {
   if (isPeerAdoptionBlocked() || isLoggedOutSession(snapshot.sessionId)) return false;
   const current = readBrowserTokenSnapshot();
-  if (
-    current &&
-    (current.subject !== snapshot.subject || current.sessionId !== snapshot.sessionId)
-  ) {
+  if (current && (current.subject !== snapshot.subject || current.sessionId !== snapshot.sessionId)) {
     return false;
   }
   if (current && current.expiresAt > snapshot.expiresAt) return false;
@@ -548,9 +545,7 @@ function parseChannelMessage(value: unknown): LocalAuthChannelMessage | null {
   if (!subject || !sessionId) return null;
   if (type === "session-response") {
     const requestId = readString(record?.requestId);
-    return requestId
-      ? { type, requestId, accessToken, refreshToken, subject, sessionId, expiresAt }
-      : null;
+    return requestId ? { type, requestId, accessToken, refreshToken, subject, sessionId, expiresAt } : null;
   }
   return { type, accessToken, refreshToken, subject, sessionId, expiresAt };
 }
@@ -565,14 +560,7 @@ function parseTokenPair(value: unknown): LocalTokenPayload | null {
   const sessionId = readString(record.session_id) ?? accessIdentity?.sessionId ?? null;
   const expiresIn = readPositiveInteger(record.expires_in);
   const refreshExpiresIn = readPositiveInteger(record.refresh_expires_in);
-  if (
-    !accessToken ||
-    !refreshToken ||
-    !subject ||
-    !sessionId ||
-    !expiresIn ||
-    !refreshExpiresIn
-  ) {
+  if (!accessToken || !refreshToken || !subject || !sessionId || !expiresIn || !refreshExpiresIn) {
     return null;
   }
   return {

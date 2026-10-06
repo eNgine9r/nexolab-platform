@@ -206,10 +206,7 @@ export function useDashboardSecurity(): DashboardSecurityModel {
 
     const handleCredentialUpdate = () => {
       if (!runtime.apiBaseUrl) return;
-      invalidateMonitoringReadModel(
-        securitySessionScope(runtime.apiBaseUrl),
-        SECURITY_SESSION_CACHE_KEY,
-      );
+      invalidateMonitoringReadModel(securitySessionScope(runtime.apiBaseUrl), SECURITY_SESSION_CACHE_KEY);
       setState("loading");
       clearFailure();
       setGeneration((value) => value + 1);

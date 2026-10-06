@@ -277,7 +277,10 @@ it.each([200, 401])(
 );
 
 it("rejects a peer snapshot from a different local operator session", async () => {
-  vi.stubGlobal("fetch", vi.fn(async () => tokenResponse("access-1", "refresh-1")));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => tokenResponse("access-1", "refresh-1")),
+  );
   await signInWithLocalPassword(API_BASE_URL, "operator", "valid-password");
   usePeerChannel();
   await createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID)();
@@ -285,12 +288,12 @@ it("rejects a peer snapshot from a different local operator session", async () =
   window.addEventListener(SECURITY_CREDENTIALS_UPDATED_EVENT, invalidated);
   try {
     emitPeerMessage({
-        type: "session-update",
-        accessToken: "admin-access",
-        refreshToken: "admin-refresh",
-        subject: "administrator-subject",
-        sessionId: "administrator-session",
-        expiresAt: Date.now() + 600_000,
+      type: "session-update",
+      accessToken: "admin-access",
+      refreshToken: "admin-refresh",
+      subject: "administrator-subject",
+      sessionId: "administrator-session",
+      expiresAt: Date.now() + 600_000,
     });
 
     expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("refresh-1");
@@ -338,13 +341,13 @@ it("notifies the dashboard when a peer snapshot arrives after the request timeou
     });
 
     emitPeerMessage({
-        type: "session-response",
-        requestId: "late-request",
-        accessToken: "peer-access",
-        refreshToken: "peer-refresh",
-        subject: "subject-1",
-        sessionId: "session-1",
-        expiresAt: Date.now() + 300_000,
+      type: "session-response",
+      requestId: "late-request",
+      accessToken: "peer-access",
+      refreshToken: "peer-refresh",
+      subject: "subject-1",
+      sessionId: "session-1",
+      expiresAt: Date.now() + 300_000,
     });
 
     expect(window.sessionStorage.getItem("nexolab.local-auth.refresh-token")).toBe("peer-refresh");
