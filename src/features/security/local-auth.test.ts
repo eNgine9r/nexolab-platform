@@ -251,6 +251,7 @@ it.each([200, 401])(
 );
 
 it("rejects a peer snapshot from a different local operator session", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => tokenResponse("access-1", "refresh-1")));
   await signInWithLocalPassword(API_BASE_URL, "operator", "valid-password");
   type Listener = (event: MessageEvent<unknown>) => void;
   let peerListener: Listener | null = null;
@@ -262,7 +263,7 @@ it("rejects a peer snapshot from a different local operator session", async () =
     postMessage(): void {}
   }
   vi.stubGlobal("BroadcastChannel", PeerSessionChannel);
-  createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID);
+  await createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID)();
   const invalidated = vi.fn();
   window.addEventListener(SECURITY_CREDENTIALS_UPDATED_EVENT, invalidated);
   try {
@@ -286,6 +287,11 @@ it("rejects a peer snapshot from a different local operator session", async () =
 });
 
 it("rejects a delayed session update after logout tombstones the server session", async () => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(tokenResponse("access-1", "refresh-1"))
+    .mockResolvedValueOnce(new Response(null, { status: 204 }));
+  vi.stubGlobal("fetch", fetchMock);
   await signInWithLocalPassword(API_BASE_URL, "operator", "valid-password");
   type Listener = (event: MessageEvent<unknown>) => void;
   let peerListener: Listener | null = null;
@@ -297,8 +303,7 @@ it("rejects a delayed session update after logout tombstones the server session"
     postMessage(): void {}
   }
   vi.stubGlobal("BroadcastChannel", PeerSessionChannel);
-  createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID);
-  vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 204 })));
+  await createLocalCredentialProvider(API_BASE_URL, ORGANIZATION_ID)();
 
   await signOutLocal(API_BASE_URL);
   peerListener?.({
