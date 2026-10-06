@@ -240,7 +240,10 @@ describe("useDashboardSecurity", () => {
     const firstResponse = new Promise<Response>((resolve) => {
       resolveFirst = resolve;
     });
-    const fetchMock = vi.fn().mockReturnValueOnce(firstResponse).mockResolvedValueOnce(sessionResponse());
+    const fetchMock = vi
+      .fn()
+      .mockReturnValueOnce(firstResponse)
+      .mockResolvedValueOnce(sessionResponse());
     vi.stubGlobal("fetch", fetchMock);
     const { result } = renderHook(() => useDashboardSecurity());
 
