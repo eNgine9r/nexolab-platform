@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-07T22:11:35+03:00",
+  "timestamp": "2026-10-07T22:23:30+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1294_production_ux_wave1_ready_for_merge",
+  "event": "issue_1295_in_progress",
   "baselines": {
     "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
     "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
@@ -28,7 +28,11 @@
     "deployed_device_agent_rollback_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1295,
+    "title": "Alerts auth gate",
+    "branch": "fix/1295-alerts-auth-gate"
+  },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -2178,7 +2182,7 @@
       }
     }
   ],
-  "next_action": "Merge PR #1297 only after final exact-head Quality and build plus NEXOLAB Merge Gate are GREEN; then start Ready P1 #1295.",
+  "next_action": "Complete focused #1295 implementation and verification.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
