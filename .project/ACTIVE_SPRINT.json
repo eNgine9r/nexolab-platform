@@ -7819,10 +7819,11 @@
       }
     },
     {
-      "source": "actual_host",
+      "source": "github",
       "observed_at": "2026-10-07T13:44:03Z",
       "kind": "issue_1286_production_chromium_acceptance_passed",
       "data": {
+        "observed_via": "actual_host",
         "issue": 1286,
         "browser": "chromium",
         "playwright_version": "1.62.0",
