@@ -34,7 +34,7 @@ Read-only source qualification finds illustrative hard-coded initial wizard valu
 
 ## Audit #1191 — authenticated deployed evidence partially cleared by #1294
 
-Wave 1 authenticated production Chromium evidence is now available for shared shell, Overview and Live at 360/390/430/1440 px. The previous blanket blocker “no authenticated operator browser session” is no longer true. #1294 confirms one active navigation item, working logout, Overview sensor dialog Escape/focus behavior, direct Live entry, channel selection and mobile no-overflow behavior on the deployed build. It also reproduced two focused follow-ups: #1295 signed-out Alerts auth-state truthfulness (P1) and #1296 mobile Topbar 40×40 touch targets (P2).
+Wave 1 authenticated production Chromium evidence is now available for shared shell, Overview and Live at 360/390/430/1440 px. The previous blanket blocker “no authenticated operator browser session” is no longer true. #1294 confirms one active navigation item, visible logout affordance, Overview sensor dialog Escape/focus behavior, direct Live entry, channel selection and mobile no-overflow behavior on the deployed build. It also reproduced two focused follow-ups: #1295 signed-out Alerts auth-state truthfulness (P1) and #1296 mobile Topbar 40×40 touch targets (P2).
 
 Parent #1191 remains partially evidence-gated: the service account exposes one membership only, and remaining routes/role-specific affordances, sessions/reports/schemes/settings, error/stale/offline/recovery and full all-page coverage still require later waves. No production service restart, product-data mutation, Modbus/controller write or hardware write occurred.
 
