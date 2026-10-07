@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-07T12:07:00+03:00",
+  "timestamp": "2026-10-07T12:12:00+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1286_production_deployment_passed_browser_acceptance_blocked_on_secret_gate",
+  "event": "issue_1290_state_reconciliation_ready_for_merge",
   "baselines": {
     "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
     "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
@@ -28,11 +28,7 @@
     "deployed_device_agent_rollback_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
-  "active_work": {
-    "issue": 1290,
-    "title": "Reconcile #1286 production deployment and remaining browser gate",
-    "branch": "chore/1290-reconcile-1286-deployment"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -2094,9 +2090,22 @@
         "auth_refresh_idle_seconds": 28800,
         "post_deploy_service_session_refresh_window_seconds": 28800
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T09:12:00Z",
+      "kind": "issue_1290_pre_final_state_green",
+      "data": {
+        "issue": 1290,
+        "pull_request": 1291,
+        "verified_head_sha": "29771863f01d092a3a041c696d514fca745169e1",
+        "workflow_run": 37598838420,
+        "state_integrity": "success",
+        "nexolab_merge_gate": "success"
+      }
     }
   ],
-  "next_action": "Merge #1290 state-only reconciliation GREEN. Then complete #1286 production Chromium login/refresh/logout and same-origin tab continuity using either an already-authenticated browser surface or separate Product Owner authorization to use the existing root-only service credential without exposing it.",
+  "next_action": "Complete #1286 production Chromium login/refresh/logout and same-origin second-tab continuity using either an already-authenticated browser surface or separate Product Owner authorization to use the existing root-only service credential without exposing it.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
