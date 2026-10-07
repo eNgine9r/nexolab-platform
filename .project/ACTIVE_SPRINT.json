@@ -40,11 +40,15 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 1295,
       "title": "Alerts signed-out authentication gate truthfulness",
       "branch": "fix/1295-alerts-auth-gate"
+    },
+    "next_work_package": {
+      "issue": 1296,
+      "title": "Standardize primary mobile topbar touch targets",
+      "branch": "fix/1296-mobile-topbar-touch-targets"
     }
   },
   "work_packages": [
@@ -92,7 +96,7 @@
       "issue": 1295,
       "title": "Alerts signed-out authentication gate truthfulness",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [
         1294
       ],
@@ -7998,6 +8002,20 @@
         "quality_and_build": "success",
         "nexolab_merge_gate": "success",
         "next_issue": 1295
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T19:23:30Z",
+      "kind": "issue_1295_started_after_wave1_merge",
+      "data": {
+        "issue": 1295,
+        "parent_issue": 1294,
+        "branch": "fix/1295-alerts-auth-gate",
+        "scope": "alerts_auth_gate_only",
+        "backend_authorization_change": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
       }
     }
   ],
