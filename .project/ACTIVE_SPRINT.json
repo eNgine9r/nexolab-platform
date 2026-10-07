@@ -40,11 +40,7 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1294,
-      "title": "Production operator wave 1: shared shell, Overview and Live",
-      "branch": "audit/1294-production-shell-overview-live"
-    },
+    "active_work_package": null,
     "next_work_package": {
       "issue": 1295,
       "title": "Alerts signed-out authentication gate truthfulness"
@@ -55,7 +51,7 @@
       "issue": 1294,
       "title": "Production operator wave 1: shared shell, Overview and Live",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "audit/1294-production-shell-overview-live",
       "evidence": {
@@ -84,7 +80,11 @@
         "raw_browser_artifacts_retained": "none",
         "production_data_mutation": "none",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "pre_final_verified_head_sha": "013c57f1c855ea0bef51422cc2c3b62b0870d46b",
+        "pre_final_workflow_run": 37672365539,
+        "quality_and_build": "success",
+        "nexolab_merge_gate": "success"
       }
     },
     {
@@ -7983,6 +7983,20 @@
         "secret_persisted": "none",
         "modbus_write": "none",
         "hardware_write": "none"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T19:11:35Z",
+      "kind": "issue_1294_pre_final_ci_green",
+      "data": {
+        "issue": 1294,
+        "pull_request": 1297,
+        "verified_head_sha": "013c57f1c855ea0bef51422cc2c3b62b0870d46b",
+        "workflow_run": 37672365539,
+        "quality_and_build": "success",
+        "nexolab_merge_gate": "success",
+        "next_issue": 1295
       }
     }
   ],
