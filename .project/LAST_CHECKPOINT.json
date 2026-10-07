@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-07T16:53:40+03:00",
+  "timestamp": "2026-10-07T22:11:35+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1292_state_reconciliation_ready_for_merge",
+  "event": "issue_1294_production_ux_wave1_ready_for_merge",
   "baselines": {
     "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
     "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
@@ -1239,6 +1239,34 @@
       "state_reconciliation_issue": 1284,
       "state_reconciliation_pull_request": 1285,
       "merged_implementation_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642"
+    },
+    "issue_1294_production_ux_wave1": {
+      "issue": 1294,
+      "parent_issue": 1191,
+      "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+      "frontend_build_id": "Up0mYuGscMzOz00Qyyacp",
+      "widths_css_px": [
+        360,
+        390,
+        430,
+        1440
+      ],
+      "navigation": "passed",
+      "overview_sensor_dialog": "passed",
+      "live_workspace": "passed",
+      "live_inventory_rows": 219,
+      "horizontal_overflow": "none",
+      "followups": [
+        1295,
+        1296
+      ],
+      "audit_report": "docs/audits/nexolab-ux-production-wave1-2026-10-07.md",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "pre_final_verified_head_sha": "013c57f1c855ea0bef51422cc2c3b62b0870d46b",
+      "pre_final_workflow_run": 37672365539,
+      "quality_and_build": "success",
+      "nexolab_merge_gate": "success"
     }
   },
   "observations": [
@@ -2150,7 +2178,7 @@
       }
     }
   ],
-  "next_action": "Merge PR #1293 only after final exact-head State integrity and NEXOLAB Merge Gate are GREEN; then re-audit the backlog because no independent Ready Work Package is selected.",
+  "next_action": "Merge PR #1297 only after final exact-head Quality and build plus NEXOLAB Merge Gate are GREEN; then start Ready P1 #1295.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

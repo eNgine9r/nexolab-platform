@@ -41,9 +41,96 @@
   },
   "selection": {
     "active_work_package": null,
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 1295,
+      "title": "Alerts signed-out authentication gate truthfulness",
+      "branch": "fix/1295-alerts-auth-gate"
+    }
   },
   "work_packages": [
+    {
+      "issue": 1294,
+      "title": "Production operator wave 1: shared shell, Overview and Live",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "audit/1294-production-shell-overview-live",
+      "evidence": {
+        "scope": "read_only_production_chromium_ux_audit",
+        "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+        "frontend_build_id": "Up0mYuGscMzOz00Qyyacp",
+        "widths_css_px": [
+          360,
+          390,
+          430,
+          1440
+        ],
+        "overview_navigation": "passed_one_active_item_all_widths",
+        "overview_sensor_dialog": "passed_15_checkboxes_escape_focus_return",
+        "live_entry": "passed_primary_monitoring_workspace",
+        "live_selection": "passed_focus_and_display_selection",
+        "live_inventory_rows": 219,
+        "horizontal_overflow": "none_all_widths",
+        "post_login_mutating_network_requests": 0,
+        "reproduced_followups": [
+          1295,
+          1296
+        ],
+        "secret_output": "none",
+        "secret_persisted": "none",
+        "raw_browser_artifacts_retained": "none",
+        "production_data_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "pre_final_verified_head_sha": "013c57f1c855ea0bef51422cc2c3b62b0870d46b",
+        "pre_final_workflow_run": 37672365539,
+        "quality_and_build": "success",
+        "nexolab_merge_gate": "success"
+      }
+    },
+    {
+      "issue": 1295,
+      "title": "Alerts signed-out authentication gate truthfulness",
+      "priority": "high",
+      "lifecycle": "ready",
+      "depends_on": [
+        1294
+      ],
+      "branch": "fix/1295-alerts-auth-gate",
+      "evidence": {
+        "reproduced_in_production": true,
+        "signed_out_overview": "auth_gate",
+        "signed_out_live": "auth_gate",
+        "signed_out_alerts": "operational_workspace_plus_api_unavailable",
+        "backend_authorization_weakened": false,
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1296,
+      "title": "Standardize primary mobile topbar touch targets",
+      "priority": "medium",
+      "lifecycle": "ready",
+      "depends_on": [
+        1294
+      ],
+      "branch": "fix/1296-mobile-topbar-touch-targets",
+      "evidence": {
+        "reproduced_widths_css_px": [
+          360,
+          390,
+          430
+        ],
+        "menu_css_px": "40x40",
+        "alerts_css_px": "40x40",
+        "logout_css_px": "40x40",
+        "live_selection_height_css_px": 44,
+        "source_class": "icon-button_2.5rem",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
     {
       "issue": 1292,
       "title": "State reconciliation after #1286 completion",
@@ -7866,6 +7953,51 @@
         "state_integrity": "success",
         "nexolab_merge_gate": "success",
         "next_selection": "none_until_fresh_backlog_reaudit"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T19:04:27Z",
+      "kind": "issue_1294_production_wave1_authenticated_chromium_completed",
+      "data": {
+        "observed_via": "actual_host",
+        "issue": 1294,
+        "parent_issue": 1191,
+        "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+        "frontend_build_id": "Up0mYuGscMzOz00Qyyacp",
+        "widths": [
+          360,
+          390,
+          430,
+          1440
+        ],
+        "navigation": "passed",
+        "overview_sensor_dialog": "passed",
+        "live_monitoring": "passed",
+        "live_inventory_rows": 219,
+        "unexpected_mutating_requests_after_login": 0,
+        "new_followup_issues": [
+          1295,
+          1296
+        ],
+        "secret_output": "none",
+        "secret_persisted": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T19:11:35Z",
+      "kind": "issue_1294_pre_final_ci_green",
+      "data": {
+        "issue": 1294,
+        "pull_request": 1297,
+        "verified_head_sha": "013c57f1c855ea0bef51422cc2c3b62b0870d46b",
+        "workflow_run": 37672365539,
+        "quality_and_build": "success",
+        "nexolab_merge_gate": "success",
+        "next_issue": 1295
       }
     }
   ],

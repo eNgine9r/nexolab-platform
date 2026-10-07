@@ -32,9 +32,11 @@ The Product Owner authorized the update on 2026-10-02 after source acceptance. #
 
 Read-only source qualification finds illustrative hard-coded initial wizard values and no approved session-template catalog or versioned laboratory approval contract in the repository. Existing form/draft validation does not establish laboratory approval. The simplified approved-template creation journey and approved-method acceptance cannot be truthfully closed from these defaults. Approved laboratory templates and their ownership/version/approval criteria remain an evidence dependency. Independent software UX packages continue; no standards-compliance conclusion or laboratory parameters are invented.
 
-## Audit #1191 — authenticated deployed all-page evidence pending
+## Audit #1191 — authenticated deployed evidence partially cleared by #1294
 
-Read-only inspection confirmed the installed dashboard service is active, with release `7db6c8c34c7c94874afe2a3301a2209585795744-20260922T134803Z` and build ID `Y_SLpdT2dyZiZ5SGk-QZn`. The configured Session API is reachable and returns HTTP 401 to an anonymous request; this is an authentication requirement, not evidence of a runtime outage. No authenticated operator browser session is available in the current execution surface. Full deployed all-page/mobile/role journeys remain unverified until normal operator access is available. Source/component/isolated CI evidence for #1192/#1194/#1196 must not be represented as deployed acceptance. No service restart, cutover, credential change or hardware action was performed.
+Wave 1 authenticated production Chromium evidence is now available for shared shell, Overview and Live at 360/390/430/1440 px. The previous blanket blocker “no authenticated operator browser session” is no longer true. #1294 confirms one active navigation item, visible logout affordance, Overview sensor dialog Escape/focus behavior, direct Live entry, channel selection and mobile no-overflow behavior on the deployed build. It also reproduced two focused follow-ups: #1295 signed-out Alerts auth-state truthfulness (P1) and #1296 mobile Topbar 40×40 touch targets (P2).
+
+Parent #1191 remains partially evidence-gated: the service account exposes one membership only, and remaining routes/role-specific affordances, sessions/reports/schemes/settings, error/stale/offline/recovery and full all-page coverage still require later waves. No production service restart, product-data mutation, Modbus/controller write or hardware write occurred.
 
 ## React 19.3 maintenance — cleared
 
