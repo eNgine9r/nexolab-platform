@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-07T22:04:27+03:00",
+  "timestamp": "2026-10-07T22:11:35+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1294_production_ux_wave1_in_review",
+  "event": "issue_1294_production_ux_wave1_ready_for_merge",
   "baselines": {
     "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
     "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
@@ -28,11 +28,7 @@
     "deployed_device_agent_rollback_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
-  "active_work": {
-    "issue": 1294,
-    "title": "Production operator wave 1: shared shell, Overview and Live",
-    "branch": "audit/1294-production-shell-overview-live"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -1266,7 +1262,11 @@
       ],
       "audit_report": "docs/audits/nexolab-ux-production-wave1-2026-10-07.md",
       "modbus_write": "none",
-      "hardware_write": "none"
+      "hardware_write": "none",
+      "pre_final_verified_head_sha": "013c57f1c855ea0bef51422cc2c3b62b0870d46b",
+      "pre_final_workflow_run": 37672365539,
+      "quality_and_build": "success",
+      "nexolab_merge_gate": "success"
     }
   },
   "observations": [
@@ -2178,7 +2178,7 @@
       }
     }
   ],
-  "next_action": "Verify and merge the #1294 audit/report PR when GREEN; then implement Ready P1 #1295 before P2 #1296.",
+  "next_action": "Merge PR #1297 only after final exact-head Quality and build plus NEXOLAB Merge Gate are GREEN; then start Ready P1 #1295.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
