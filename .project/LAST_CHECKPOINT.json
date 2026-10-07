@@ -2049,10 +2049,11 @@
       }
     },
     {
-      "source": "actual_host",
+      "source": "github",
       "observed_at": "2026-10-07T05:54:33Z",
       "kind": "issue_1286_source_preflight_fail_closed",
       "data": {
+        "observed_via": "actual_host",
         "error": "Device Agent pre-cutover lineage evidence mismatch: formal_deployed_product_sha",
         "deployed_source": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
         "deployment_evidence": "runtime/deployments/20261003T084758Z",
