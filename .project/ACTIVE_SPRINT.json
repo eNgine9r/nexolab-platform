@@ -30,22 +30,63 @@
     "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
     "sdm120_candidate_frontend_artifact_sha256": "d73ec2b840b01733a7761b8b555e1b62c4e12b574ea2a0db5a115acd62e32fb6",
     "sdm120_candidate_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
-    "device_agent_compatibility_source_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
-    "device_agent_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
-    "device_agent_rollback_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
-    "device_agent_runtime_evidence": "runtime/deployments/20261003T084758Z",
     "sdm120_production_bus_id": "rs485-sdm120",
     "sdm120_production_adapter": "A10Q34QC",
     "sdm120_production_unit_id": 1,
-    "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
-    "device_agent_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
-    "device_agent_compatibility_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb"
+    "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": null
+    "active_work_package": {
+      "issue": 1288
+    },
+    "next_work_package": {
+      "issue": 1286
+    }
   },
   "work_packages": [
+    {
+      "issue": 1288,
+      "title": "Clear stale layered Device Agent baseline after formal d816 deployment",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "branch": "chore/1288-clear-stale-layered-device-agent",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "actual_host_preflight": "failed_closed_before_runtime_mutation",
+        "failure": "layered Device Agent pre-cutover lineage mismatch: formal_deployed_product_sha",
+        "latest_successful_deployed_source": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+        "latest_deployment_evidence": "runtime/deployments/20261003T084758Z",
+        "formal_device_agent_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
+        "obsolete_layered_evidence_formal_source": "df368cfa27efa945d59de33de8268898b564a19f",
+        "production_runtime_mutation": "none",
+        "persistent_data_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1286,
+      "title": "Deploy #1274 browser-session persistence to production Raspberry",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "depends_on": [
+        1288
+      ],
+      "branch": null,
+      "evidence": {
+        "product_owner_authorization": "explicit_current_chat_2026-10-06_reconfirmed_2026-10-07",
+        "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+        "expected_deployed_product_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+        "runtime_mode": "lan",
+        "latest_preflight": "fail_closed_before_runtime_mutation",
+        "blocked_by_issue": 1288,
+        "object_storage_migration": "must_not_rerun",
+        "persistent_data_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
     {
       "issue": 1274,
       "title": "Persist local operator session across browser windows with 8h idle timeout",
@@ -7634,6 +7675,19 @@
         "exact_head_ci": "18_of_18_green",
         "source_acceptance": "completed",
         "deployed_acceptance": "pending_explicit_authorization"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T05:54:33Z",
+      "kind": "issue_1286_preflight_blocked_by_stale_layered_authority",
+      "data": {
+        "observed_via": "actual_host",
+        "deployed_source": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+        "latest_deployment_evidence": "runtime/deployments/20261003T084758Z",
+        "formal_device_agent_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
+        "layered_evidence_formal_source": "df368cfa27efa945d59de33de8268898b564a19f",
+        "result": "fail_closed_before_runtime_mutation"
       }
     }
   ],

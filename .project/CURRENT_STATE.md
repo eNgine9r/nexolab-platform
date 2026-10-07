@@ -1,6 +1,12 @@
 # NEXOLAB Current State
 
-Updated: 2026-10-06
+Updated: 2026-10-07
+
+## Issue #1288 — stale layered Device Agent authority blocks #1286 preflight
+
+The Product Owner-authorized production deployment #1286 reached exact source-selection preflight on `nexolab-edge-01` and stopped **before runtime mutation**. Latest successful deployment evidence `runtime/deployments/20261003T084758Z` proves formal deployed source `d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54` and formal Device Agent image `sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48`. Canonical state still carried the older SDM120 layered override whose immutable pre-cutover lineage correctly belongs to prior formal source `df368cfa27efa945d59de33de8268898b564a19f`; the layered resolver therefore failed closed on `formal_deployed_product_sha`.
+
+#1288 removes only the obsolete layered override keys from canonical baselines. Historical SDM120 candidate/production evidence remains intact. After this state-only correction merges GREEN, #1286 must rerun source-selection preflight before any production mutation.
 
 ## Issue #1274 — browser session persistence source accepted; production deployment pending
 

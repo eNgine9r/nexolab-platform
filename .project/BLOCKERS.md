@@ -1,6 +1,12 @@
 # NEXOLAB Blockers
 
-Updated: 2026-10-06
+Updated: 2026-10-07
+
+## Issue #1286 production deployment — soft blocker #1288
+
+**Runtime mutation has not started.** Source-selection preflight failed closed because canonical state retained stale layered Device Agent authority after the successful formal `d816c3e9...` deployment. Actual-host evidence confirms the currently deployed formal Device Agent image is `sha256:f90f03a0...` and the old immutable SDM120 layered lineage correctly references `df368cfa...`.
+
+#1288 clears only the obsolete layered baseline override. Do not edit old immutable evidence, do not rerun object-storage migration, and do not bypass the resolver. After #1288 merges GREEN, rerun the exact #1286 preflight; only a clean pass may proceed to runtime mutation.
 
 ## Issue #1274 production activation — explicit authorization required
 
