@@ -2,17 +2,11 @@
 
 Updated: 2026-10-07
 
-## Issue #1286 production deployment — soft blocker #1288
+## Issue #1286 — production Chromium acceptance hard gate
 
-**Runtime mutation has not started.** Source-selection preflight failed closed because canonical state retained stale layered Device Agent authority after the successful formal `d816c3e9...` deployment. Actual-host evidence confirms the currently deployed formal Device Agent image is `sha256:f90f03a0...` and the old immutable SDM120 layered lineage correctly references `df368cfa...`.
+**Deployment is complete and healthy.** Source `75d9c75f8d1901d6b639ec711bf3784e22ed0642` is live with evidence `runtime/deployments/20261007T061059Z`; 8-hour local-auth idle timeout is effective, all runtime readiness gates passed, telemetry is flowing, and rollback authority is preserved.
 
-#1288 clears only the obsolete layered baseline override. Do not edit old immutable evidence, do not rerun object-storage migration, and do not bypass the resolver. After #1288 merges GREEN, rerun the exact #1286 preflight; only a clean pass may proceed to runtime mutation.
-
-## Issue #1274 production activation — explicit authorization required
-
-**Source blocker cleared.** #1274 / PR #1275 merged GREEN as `75d9c75f8d1901d6b639ec711bf3784e22ed0642` after 18/18 exact-head workflows passed. The repository now contains browser-window session continuity and the rolling 8-hour local-auth idle policy, including controlled/offline legacy `43200 → 28800` migration.
-
-**Installed acceptance is not yet claimed.** Production Raspberry remains on `d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54`. Deployment/restart is a hard-gated production action and requires explicit Product Owner authorization. Until authorized, do not run the controlled deployment or represent the new auth behavior as installed production functionality.
+The only remaining #1286 acceptance item is real production Chromium login → refresh → same-origin second-tab adoption/reload → logout propagation. The active workstation Commander is offline. The Raspberry has an existing root-only service credential that could exercise this flow without creating test users, but reading/using that credential is secret work and therefore requires separate Product Owner authorization. Until then, do not expose, copy or consume the secret and do not claim final production browser acceptance.
 
 ## Container HIGH exception review — cleared by #1277 verified candidate
 
