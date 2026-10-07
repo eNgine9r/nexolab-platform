@@ -2105,10 +2105,11 @@
       }
     },
     {
-      "source": "actual_host",
+      "source": "github",
       "observed_at": "2026-10-07T13:44:03Z",
       "kind": "issue_1286_production_chromium_acceptance_passed",
       "data": {
+        "observed_via": "actual_host",
         "issue": 1286,
         "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
         "deployment_evidence": "runtime/deployments/20261007T061059Z",
