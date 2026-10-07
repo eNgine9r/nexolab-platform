@@ -2,11 +2,11 @@
 
 Updated: 2026-10-07
 
-## Issue #1286 — production Chromium acceptance hard gate
+## Issue #1286 — cleared: production Chromium acceptance passed
 
-**Deployment is complete and healthy.** Source `75d9c75f8d1901d6b639ec711bf3784e22ed0642` is live with evidence `runtime/deployments/20261007T061059Z`; 8-hour local-auth idle timeout is effective, all runtime readiness gates passed, telemetry is flowing, and rollback authority is preserved.
+**Cleared and completed 2026-10-07.** Source `75d9c75f8d1901d6b639ec711bf3784e22ed0642` remains live with deployment evidence `runtime/deployments/20261007T061059Z`. The focused real production Chromium flow passed 2/2: same-origin second-tab adoption/reload/logout propagation and refresh rotation with rejection of both current and pre-refresh access tokens after logout. Post-checks returned dashboard 200, unauthenticated auth session 401 as expected, and Device Agent health 200.
 
-The only remaining #1286 acceptance item is real production Chromium login → refresh → same-origin second-tab adoption/reload → logout propagation. The active workstation Commander is offline. The Raspberry has an existing root-only service credential that could exercise this flow without creating test users, but reading/using that credential is secret work and therefore requires separate Product Owner authorization. Until then, do not expose, copy or consume the secret and do not claim final production browser acceptance.
+The authorized root-only service credential was neither printed nor persisted; raw browser artifacts were removed. No Modbus/controller write, hardware write, product-data deletion or named-volume deletion occurred. #1286 is closed completed and no longer blocks the sprint. A zero-length mode-600 FIFO node from the one-time handoff may remain on the host because Commander mounts `/home` read-only; FIFO nodes do not persist the transferred credential bytes and this is non-blocking hygiene only.
 
 ## Container HIGH exception review — cleared by #1277 verified candidate
 

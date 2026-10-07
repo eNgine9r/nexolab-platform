@@ -41,11 +41,38 @@
   },
   "selection": {
     "active_work_package": null,
-    "next_work_package": {
-      "issue": 1286
-    }
+    "next_work_package": null
   },
   "work_packages": [
+    {
+      "issue": 1292,
+      "title": "State reconciliation after #1286 completion",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "branch": "chore/1292-reconcile-1286-completion",
+      "evidence": {
+        "scope": "canonical_state_only",
+        "issue_1286_state": "closed_completed",
+        "deployment_evidence": "runtime/deployments/20261007T061059Z",
+        "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+        "frontend_build_id": "Up0mYuGscMzOz00Qyyacp",
+        "production_chromium_acceptance": "2_of_2_passed",
+        "post_check": "dashboard_200_api_401_expected_device_agent_200",
+        "product_code_change": "none",
+        "production_runtime_mutation": "none_by_issue_1292",
+        "secret_output": "none",
+        "secret_persisted": "none",
+        "persistent_data_deletion": "none",
+        "volume_deletion": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "pre_final_verified_head_sha": "bdd7053bb164dd535855898301c8256bd0617112",
+        "pre_final_workflow_run": 37631845053,
+        "state_integrity": "success",
+        "nexolab_merge_gate": "success"
+      }
+    },
     {
       "issue": 1290,
       "title": "Reconcile #1286 production deployment and remaining browser gate",
@@ -101,7 +128,7 @@
       "issue": 1286,
       "title": "Deploy #1274 browser-session persistence to production Raspberry",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": null,
       "evidence": {
@@ -127,11 +154,19 @@
         "telemetry_latest_rows": 219,
         "device_agent_health": "ok_modbus_mqtt_connected_queue_0_workers_healthy",
         "object_storage_authority": "verified_cutover_verified_versitygw_v1_8_0",
-        "browser_production_acceptance": "blocked_requires_authorized_secret_or_already_authenticated_browser_surface",
+        "browser_production_acceptance": "passed_real_production_chromium_2_of_2",
         "persistent_data_deletion": "none",
         "volume_deletion": "none",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "browser_same_origin_second_tab": "passed",
+        "browser_refresh_logout_revocation": "passed",
+        "playwright_version": "1.62.0",
+        "issue_state": "closed_completed",
+        "secret_output": "none",
+        "secret_persisted": "none",
+        "raw_browser_artifacts_retained": "none",
+        "post_check": "dashboard_200_api_401_expected_device_agent_200"
       }
     },
     {
@@ -7783,6 +7818,54 @@
         "platform": "linux/arm64",
         "frontend_build_id": "Up0mYuGscMzOz00Qyyacp",
         "artifact_checksums": "passed"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T13:44:03Z",
+      "kind": "issue_1286_production_chromium_acceptance_passed",
+      "data": {
+        "observed_via": "actual_host",
+        "issue": 1286,
+        "browser": "chromium",
+        "playwright_version": "1.62.0",
+        "same_origin_second_tab": "passed",
+        "refresh_logout_revocation": "passed",
+        "focused_tests": "2_of_2_passed",
+        "deployed_api_base_url": "http://172.18.48.66:8082",
+        "dashboard_login_http": 200,
+        "post_acceptance_unauthenticated_session_http": 401,
+        "device_agent_health_http": 200,
+        "secret_output": "none",
+        "secret_persisted": "none",
+        "raw_browser_artifacts_retained": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T13:46:14Z",
+      "kind": "issue_1286_closed_completed",
+      "data": {
+        "issue": 1286,
+        "state": "closed",
+        "state_reason": "completed",
+        "final_comment_id": 6039308373
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T13:53:40Z",
+      "kind": "issue_1292_pre_final_state_green",
+      "data": {
+        "issue": 1292,
+        "pull_request": 1293,
+        "verified_head_sha": "bdd7053bb164dd535855898301c8256bd0617112",
+        "workflow_run": 37631845053,
+        "state_integrity": "success",
+        "nexolab_merge_gate": "success",
+        "next_selection": "none_until_fresh_backlog_reaudit"
       }
     }
   ],
