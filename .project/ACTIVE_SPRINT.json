@@ -7652,10 +7652,11 @@
       }
     },
     {
-      "source": "actual_host",
+      "source": "github",
       "observed_at": "2026-10-07T05:54:33Z",
       "kind": "issue_1286_preflight_blocked_by_stale_layered_authority",
       "data": {
+        "observed_via": "actual_host",
         "deployed_source": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
         "latest_deployment_evidence": "runtime/deployments/20261003T084758Z",
         "formal_device_agent_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
