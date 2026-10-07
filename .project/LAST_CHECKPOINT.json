@@ -3,17 +3,17 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-07T08:58:00+03:00",
+  "timestamp": "2026-10-07T12:12:00+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1288_stale_layered_device_agent_state_fix_in_progress",
+  "event": "issue_1290_state_reconciliation_ready_for_merge",
   "baselines": {
     "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
-    "deployed_product_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
-    "frontend_compatibility_source_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
-    "frontend_build_id": "sCwzXg5ghkKu2_Rtus_F7",
-    "frontend_release": "runtime/frontend-releases/7db6c8c34c7c94874afe2a3301a2209585795744-20260922T134803Z",
-    "frontend_rollback_release": "runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z",
-    "frontend_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+    "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+    "frontend_compatibility_source_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+    "frontend_build_id": "Up0mYuGscMzOz00Qyyacp",
+    "frontend_release": "runtime/frontend-releases/75d9c75f8d1901d6b639ec711bf3784e22ed0642-20261007T061059Z",
+    "frontend_rollback_release": "runtime/frontend-releases/d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54-20261003T084758Z",
+    "frontend_runtime_evidence": "runtime/deployments/20261007T061059Z",
     "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
     "sdm120_candidate_device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
     "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
@@ -22,13 +22,13 @@
     "sdm120_production_bus_id": "rs485-sdm120",
     "sdm120_production_adapter": "A10Q34QC",
     "sdm120_production_unit_id": 1,
-    "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
+    "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+    "deployed_runtime_evidence": "runtime/deployments/20261007T061059Z",
+    "deployed_device_agent_image_id": "sha256:5344b4bef506d89923afd39413ee1bd7d1bb668ac1d123ed899a6d22fa58b957",
+    "deployed_device_agent_rollback_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
+    "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
-  "active_work": {
-    "issue": 1288,
-    "title": "Clear stale layered Device Agent baseline after formal d816 deployment",
-    "branch": "chore/1288-clear-stale-layered-device-agent"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -2060,9 +2060,52 @@
         "formal_device_agent_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
         "runtime_mutation": "none"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T06:08:12Z",
+      "kind": "issue_1286_production_deployment_passed",
+      "data": {
+        "observed_via": "actual_host",
+        "deployment_evidence": "runtime/deployments/20261007T061059Z",
+        "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+        "previous_deployed_product_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+        "frontend_build_id": "Up0mYuGscMzOz00Qyyacp",
+        "deployed_device_agent_image_id": "sha256:5344b4bef506d89923afd39413ee1bd7d1bb668ac1d123ed899a6d22fa58b957",
+        "auth_refresh_idle_seconds": 28800,
+        "runtime_readiness": "passed",
+        "browser_production_acceptance": "pending_secret_or_authenticated_browser_surface"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T09:00:00Z",
+      "kind": "issue_1286_post_deploy_read_only_health",
+      "data": {
+        "observed_via": "actual_host",
+        "telemetry_latest_rows": 219,
+        "device_agent": "ok_modbus_mqtt_connected_queue_0_workers_healthy",
+        "object_storage": "versitygw_v1_8_0_verified_cutover_verified",
+        "auth_access_token_seconds": 300,
+        "auth_refresh_idle_seconds": 28800,
+        "post_deploy_service_session_refresh_window_seconds": 28800
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T09:12:00Z",
+      "kind": "issue_1290_pre_final_state_green",
+      "data": {
+        "issue": 1290,
+        "pull_request": 1291,
+        "verified_head_sha": "29771863f01d092a3a041c696d514fca745169e1",
+        "workflow_run": 37598838420,
+        "state_integrity": "success",
+        "nexolab_merge_gate": "success"
+      }
     }
   ],
-  "next_action": "Merge #1288 state-only correction GREEN, then rerun #1286 exact source-selection preflight before any production runtime mutation.",
+  "next_action": "Complete #1286 production Chromium login/refresh/logout and same-origin second-tab continuity using either an already-authenticated browser surface or separate Product Owner authorization to use the existing root-only service credential without exposing it.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
