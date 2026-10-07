@@ -2,13 +2,13 @@
 
 Updated: 2026-10-07
 
-## Issue #1294 / parent #1191 — production UX Wave 1 in review
+## Issue #1294 / parent #1191 — production UX Wave 1 completed
 
 Authenticated production Chromium evidence now covers the shared shell, Overview and Live at 360/390/430/1440 CSS px on deployed product source `75d9c75f8d1901d6b639ec711bf3784e22ed0642`, frontend build `Up0mYuGscMzOz00Qyyacp`. Navigation has exactly one active item on Overview and Live, logout and Alerts access are visible, Overview sensor display dialog opens with 15 monitored channels and closes on Escape with focus returned, Live opens directly to the monitoring workspace, channel selection focuses search and display-only selection works against 219 current rows. No horizontal overflow was observed at any tested width and no post-login mutating network request was emitted by the audit.
 
 Two focused production findings were split out instead of broad redesign: #1295 (P1) because signed-out `/alerts` renders the operational workspace and “Alerts API недоступний” instead of the canonical auth gate, and #1296 (P2) because primary mobile Topbar menu/Alerts/logout targets measure 40×40 CSS px at 360/390/430 while the Live selection action is 44 px high. The service account has only one membership, so multi-organization switching remains outside this evidence wave. Parent #1191 remains open for the remaining pages, roles, sessions/reports/schemes/settings and error/offline/recovery journeys.
 
-The audit used the existing root-only service credential once after explicit Product Owner approval. The credential was not printed or committed, raw browser screenshots/traces/videos were not retained, no production data mutation was observed, and no Modbus/controller or hardware write occurred. Detailed evidence is recorded in `docs/audits/nexolab-ux-production-wave1-2026-10-07.md`.
+The audit used the existing root-only service credential once after explicit Product Owner approval. The credential was not printed or committed, raw browser screenshots/traces/videos were not retained, no production data mutation was observed, and no Modbus/controller or hardware write occurred. Detailed evidence is recorded in `docs/audits/nexolab-ux-production-wave1-2026-10-07.md`. Pre-final PR #1297 head `013c57f1c855ea0bef51422cc2c3b62b0870d46b` passed Quality and build plus NEXOLAB Merge Gate; final exact-head verification remains required after this state self-reconcile.
 
 ## Issue #1292 / #1286 — production Chromium acceptance completed
 
