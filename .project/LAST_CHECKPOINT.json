@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-06T16:56:00+03:00",
+  "timestamp": "2026-10-07T08:58:00+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1274_browser_session_source_acceptance_reconciled",
+  "event": "issue_1288_stale_layered_device_agent_state_fix_in_progress",
   "baselines": {
     "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
     "deployed_product_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
@@ -19,18 +19,16 @@
     "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
     "sdm120_candidate_frontend_artifact_sha256": "d73ec2b840b01733a7761b8b555e1b62c4e12b574ea2a0db5a115acd62e32fb6",
     "sdm120_candidate_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
-    "device_agent_compatibility_source_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
-    "device_agent_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
-    "device_agent_rollback_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
-    "device_agent_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
     "sdm120_production_bus_id": "rs485-sdm120",
     "sdm120_production_adapter": "A10Q34QC",
     "sdm120_production_unit_id": 1,
-    "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
-    "device_agent_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
-    "device_agent_compatibility_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb"
+    "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1288,
+    "title": "Clear stale layered Device Agent baseline after formal d816 deployment",
+    "branch": "chore/1288-clear-stale-layered-device-agent"
+  },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -2049,9 +2047,21 @@
         "merge_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
         "exact_head_ci": "18_of_18_green"
       }
+    },
+    {
+      "source": "actual_host",
+      "observed_at": "2026-10-07T05:54:33Z",
+      "kind": "issue_1286_source_preflight_fail_closed",
+      "data": {
+        "error": "Device Agent pre-cutover lineage evidence mismatch: formal_deployed_product_sha",
+        "deployed_source": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+        "deployment_evidence": "runtime/deployments/20261003T084758Z",
+        "formal_device_agent_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
+        "runtime_mutation": "none"
+      }
     }
   ],
-  "next_action": "Await explicit Product Owner authorization before controlled production deployment of accepted source 75d9c75f8d1901d6b639ec711bf3784e22ed0642; until then deployed_product_sha remains d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54.",
+  "next_action": "Merge #1288 state-only correction GREEN, then rerun #1286 exact source-selection preflight before any production runtime mutation.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
