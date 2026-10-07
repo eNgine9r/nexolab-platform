@@ -36,8 +36,12 @@
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z"
   },
   "selection": {
-    "active_work_package": 1288,
-    "next_work_package": 1286
+    "active_work_package": {
+      "issue": 1288
+    },
+    "next_work_package": {
+      "issue": 1286
+    }
   },
   "work_packages": [
     {
@@ -56,6 +60,28 @@
         "formal_device_agent_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
         "obsolete_layered_evidence_formal_source": "df368cfa27efa945d59de33de8268898b564a19f",
         "production_runtime_mutation": "none",
+        "persistent_data_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "issue": 1286,
+      "title": "Deploy #1274 browser-session persistence to production Raspberry",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "depends_on": [
+        1288
+      ],
+      "branch": null,
+      "evidence": {
+        "product_owner_authorization": "explicit_current_chat_2026-10-06_reconfirmed_2026-10-07",
+        "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+        "expected_deployed_product_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+        "runtime_mode": "lan",
+        "latest_preflight": "fail_closed_before_runtime_mutation",
+        "blocked_by_issue": 1288,
+        "object_storage_migration": "must_not_rerun",
         "persistent_data_mutation": "none",
         "modbus_write": "none",
         "hardware_write": "none"
