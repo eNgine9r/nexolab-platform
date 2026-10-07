@@ -40,9 +40,7 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1292
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -50,7 +48,7 @@
       "issue": 1292,
       "title": "State reconciliation after #1286 completion",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "chore/1292-reconcile-1286-completion",
       "evidence": {
@@ -68,7 +66,11 @@
         "persistent_data_deletion": "none",
         "volume_deletion": "none",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "pre_final_verified_head_sha": "bdd7053bb164dd535855898301c8256bd0617112",
+        "pre_final_workflow_run": 37631845053,
+        "state_integrity": "success",
+        "nexolab_merge_gate": "success"
       }
     },
     {
@@ -7850,6 +7852,20 @@
         "state": "closed",
         "state_reason": "completed",
         "final_comment_id": 6039308373
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T13:53:40Z",
+      "kind": "issue_1292_pre_final_state_green",
+      "data": {
+        "issue": 1292,
+        "pull_request": 1293,
+        "verified_head_sha": "bdd7053bb164dd535855898301c8256bd0617112",
+        "workflow_run": 37631845053,
+        "state_integrity": "success",
+        "nexolab_merge_gate": "success",
+        "next_selection": "none_until_fresh_backlog_reaudit"
       }
     }
   ],
