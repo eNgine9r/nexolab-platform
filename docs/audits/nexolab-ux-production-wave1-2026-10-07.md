@@ -19,22 +19,22 @@ Chromium запускався на Raspberry поза Commander service cgroup �
 
 ## Production health перед аудитом
 
-| Перевірка | Результат |
-| --- | --- |
-| Dashboard `/login` | HTTP 200 |
-| Auth session без токена | HTTP 401, очікувано |
-| Device Agent `/health` | HTTP 200 |
-| Chromium launch | PASS |
+| Перевірка                             | Результат                                                              |
+| ------------------------------------- | ---------------------------------------------------------------------- |
+| Dashboard `/login`                    | HTTP 200                                                               |
+| Auth session без токена               | HTTP 401, очікувано                                                    |
+| Device Agent `/health`                | HTTP 200                                                               |
+| Chromium launch                       | PASS                                                                   |
 | Product code deployed vs current main | однаковий; після deployment у main змінювався лише `.project/**` state |
 
 ## Результати по ширинах
 
-| Width | Login | Overview | Live | Horizontal overflow |
-| ---: | ---: | ---: | ---: | --- |
-| 360 | 2304 ms | 981 ms | 1062 ms | none |
-| 390 | 1480 ms | 1072 ms | 1071 ms | none |
-| 430 | 1364 ms | 1133 ms | 1066 ms | none |
-| 1440 | 1615 ms | 1140 ms | 1078 ms | none |
+| Width |   Login | Overview |    Live | Horizontal overflow |
+| ----: | ------: | -------: | ------: | ------------------- |
+|   360 | 2304 ms |   981 ms | 1062 ms | none                |
+|   390 | 1480 ms |  1072 ms | 1071 ms | none                |
+|   430 | 1364 ms |  1133 ms | 1066 ms | none                |
+|  1440 | 1615 ms |  1140 ms | 1078 ms | none                |
 
 Це single-pass observed timings, а не performance benchmark. Орієнтовна медіана: login 1.55 s, Overview 1.10 s, Live 1.07 s.
 
