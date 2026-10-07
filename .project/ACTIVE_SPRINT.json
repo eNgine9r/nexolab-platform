@@ -40,9 +40,7 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1290
-    },
+    "active_work_package": null,
     "next_work_package": {
       "issue": 1286
     }
@@ -52,7 +50,7 @@
       "issue": 1290,
       "title": "Reconcile #1286 production deployment and remaining browser gate",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "chore/1290-reconcile-1286-deployment",
       "evidence": {
@@ -64,7 +62,12 @@
         "persistent_data_deletion": "none",
         "volume_deletion": "none",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "pull_request": 1291,
+        "verified_head_sha": "29771863f01d092a3a041c696d514fca745169e1",
+        "pre_final_state_integrity": "success:37598838420",
+        "pre_final_nexolab_merge_gate": "success:37598838420",
+        "issue_state": "closes_with_pr_1291"
       }
     },
     {
