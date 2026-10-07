@@ -43,7 +43,8 @@
     "active_work_package": null,
     "next_work_package": {
       "issue": 1295,
-      "title": "Alerts signed-out authentication gate truthfulness"
+      "title": "Alerts signed-out authentication gate truthfulness",
+      "branch": "fix/1295-alerts-auth-gate"
     }
   },
   "work_packages": [
@@ -95,7 +96,7 @@
       "depends_on": [
         1294
       ],
-      "branch": null,
+      "branch": "fix/1295-alerts-auth-gate",
       "evidence": {
         "reproduced_in_production": true,
         "signed_out_overview": "auth_gate",
@@ -114,7 +115,7 @@
       "depends_on": [
         1294
       ],
-      "branch": null,
+      "branch": "fix/1296-mobile-topbar-touch-targets",
       "evidence": {
         "reproduced_widths_css_px": [
           360,
