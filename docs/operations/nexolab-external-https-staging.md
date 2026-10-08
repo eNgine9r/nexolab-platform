@@ -69,6 +69,7 @@ NEXT_PUBLIC_NEXOLAB_DATA_MODE=live
 NEXT_PUBLIC_NEXOLAB_API_BASE_URL=https://nexolab-edge-01.example.ts.net
 NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL=wss://nexolab-edge-01.example.ts.net/api/v1/telemetry/live
 NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=local
+NEXT_PUBLIC_NEXOLAB_EXTERNAL_HTTPS_STAGE=true
 ```
 
 **Server-only runtime environment** for that candidate:
@@ -89,6 +90,26 @@ private IPv4/loopback, port 8082 and no userinfo, path, query or fragment.
 **Do not put a private server URL into a `NEXT_PUBLIC_` environment
 variable.** That would make the private address visible to browsers
 and could make app API calls bypass or fail at the public gateway.
+
+## Authenticated private equipment image delivery — source candidate
+
+The new `GET /api/v1/equipment/{equipment_id}/images/{image_id}/content`
+Telemetry API endpoint requires `dashboard.read`, validates the selected
+organization and equipment ownership, enforces the image size cap, verifies
+SHA-256 integrity and returns image bytes with `Cache-Control: private, no-store`.
+It never serves an arbitrary user-supplied URL or publicly exposes S3 port 9000.
+
+With `NEXT_PUBLIC_NEXOLAB_EXTERNAL_HTTPS_STAGE=true`, the layout views,
+camera-scoped view, equipment history thumbnails and revision preview fetch
+images using the existing JWT-aware `createAuthenticatedFetch` and display
+short-lived, browser-local blob URLs. The private S3 signed URL is never used
+by these staged UI components. The currently deployed LAN build preserves
+its existing signed-URL behavior.
+
+This is **source preparation**, not an acceptance verdict. Staged E2E
+must verify image upload/download, 401/403, cross-organization denial,
+revocation, large/corrupt object handling, blob URL revocation and every
+refrigeration image surface before production exposure.
 
 ## Read-only staging policy gate
 
