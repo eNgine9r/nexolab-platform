@@ -97,6 +97,7 @@ class GoogleOAuthReadinessTests(unittest.TestCase):
             "proxy_pass http://127.0.0.1:4180/oauth2/auth;",
             "location @nexolab_sign_in",
             "return 302 /oauth2/start?rd=%2F;",
+            "absolute_redirect off;",
         ):
             self.assertIn(fragment, nginx)
         for api_prefix in ("location ^~ /api/v1/", "location ^~ /api/device-agent/"):
