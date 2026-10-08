@@ -38,7 +38,7 @@ import type { SessionWorkspaceData } from "./use-session-workspace";
 
 const CONNECTION_LABELS: Record<WorkspaceConnectionState, string> = {
   connecting: "Підключення",
-  live: "Live",
+  live: "Наживо",
   stale: "Застарілі дані",
   offline: "Офлайн · кешовані дані",
   error: "Помилка",
@@ -76,7 +76,7 @@ export function SessionHero({
             </span>
             {readOnly && (
               <span className="rounded-full border border-slate-300/15 bg-slate-400/[0.05] px-2.5 py-1 text-[8px] font-semibold text-slate-300">
-                Read-only
+                Лише перегляд
               </span>
             )}
           </div>
@@ -88,15 +88,15 @@ export function SessionHero({
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:min-w-[620px]">
           <HeroMetric
-            label="Elapsed"
+            label="Минуло часу"
             value={formatDuration(sessionElapsedMs(session, clock))}
             icon={Clock3}
           />
-          <HeroMetric label="Node" value={session.node_id} icon={RadioTower} />
+          <HeroMetric label="Вузол" value={session.node_id} icon={RadioTower} />
           <HeroMetric label="Обмеження" value={`v${session.active_limit_version ?? "—"}`} icon={Gauge} />
           <HeroMetric
-            label="Snapshot"
-            value={session.active_config_snapshot_id ? "Frozen" : "Pending"}
+            label="Знімок даних"
+            value={session.active_config_snapshot_id ? "Зафіксовано" : "Очікується"}
             icon={ShieldCheck}
           />
         </div>
