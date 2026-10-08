@@ -207,7 +207,7 @@ export function StageTimeline({
     <section className="panel p-5 sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-[9px] font-semibold tracking-[0.16em] text-cyan-300 uppercase">Stage timeline</p>
+          <p className="text-[9px] font-semibold tracking-[0.16em] text-cyan-300 uppercase">Хронологія етапів</p>
           <h2 className="mt-2 text-sm font-semibold text-white">Зафіксовані межі етапів</h2>
         </div>
         {!readOnly && (
@@ -267,7 +267,7 @@ export function StageTimeline({
               <h3 className="mt-2 text-[11px] font-semibold text-white">{stage.name}</h3>
               <p className="mt-1 text-[9px] text-slate-500">{stage.stage_type}</p>
               <p className="mt-3 text-[8px] text-slate-600">
-                {stage.entered_at ? formatTime(stage.entered_at, displayTimeZone) : "not entered"}
+                {stage.entered_at ? formatTime(stage.entered_at, displayTimeZone) : "ще не розпочато"}
                 {stage.exited_at ? ` → ${formatTime(stage.exited_at, displayTimeZone)}` : ""}
               </p>
             </article>
@@ -341,13 +341,13 @@ export function NotesAndAudit({
       <div className="panel p-5 sm:p-6">
         <div className="flex items-center gap-2">
           <FileClock className="h-4 w-4 text-cyan-300" />
-          <h2 className="text-sm font-semibold text-white">Immutable audit</h2>
+          <h2 className="text-sm font-semibold text-white">Незмінний журнал аудиту</h2>
         </div>
         <div className="mt-4 max-h-[390px] scrollbar-thin space-y-2 overflow-y-auto">
           {!auditReadable ? (
             <Empty label="Журнал аудиту доступний користувачам із відповідним правом." />
           ) : audit.length === 0 ? (
-            <Empty label="Audit events не знайдені" />
+            <Empty label="Подій аудиту не знайдено" />
           ) : (
             audit.map((entry) => (
               <article key={entry.id} className="rounded-xl border border-white/[0.055] bg-white/[0.02] p-3">
@@ -374,18 +374,18 @@ export function ConfigurationEvidence({ data }: { data: SessionWorkspaceData }) 
     <section className="panel p-5 sm:p-6">
       <div className="flex items-center gap-2">
         <ShieldCheck className="h-4 w-4 text-cyan-300" />
-        <h2 className="text-sm font-semibold text-white">Configuration evidence</h2>
+        <h2 className="text-sm font-semibold text-white">Докази конфігурації</h2>
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-4">
-        <Info label="Bindings" value={`${data.configuration.bindings.length} / 34`} />
+        <Info label="Прив’язки" value={`${data.configuration.bindings.length} / 34`} />
         <Info
-          label="Limits"
+          label="Обмеження"
           value={`v${data.session.active_limit_version ?? "—"} · ${data.configuration.active_limits.length} правил`}
         />
-        <Info label="Snapshots" value={String(data.configuration.snapshots.length)} />
+        <Info label="Знімки даних" value={String(data.configuration.snapshots.length)} />
         <Info
           label="Content SHA-256"
-          value={data.configuration.active_snapshot?.content_sha256.slice(0, 16) ?? "pending"}
+          value={data.configuration.active_snapshot?.content_sha256.slice(0, 16) ?? "очікується"}
           mono
         />
       </div>
@@ -398,7 +398,7 @@ export function WorkspaceLoading() {
     <div className="panel grid min-h-[580px] place-items-center">
       <div className="text-center">
         <LoaderCircle className="mx-auto h-7 w-7 animate-spin text-cyan-300" />
-        <p className="mt-3 text-[11px] text-slate-500">Завантаження real session snapshot…</p>
+        <p className="mt-3 text-[11px] text-slate-500">Завантаження фактичних даних випробування…</p>
       </div>
     </div>
   );
@@ -409,7 +409,7 @@ export function WorkspaceError({ message, onRetry }: { message: string; onRetry:
     <div className="panel grid min-h-[500px] place-items-center p-6 text-center">
       <div>
         <CircleOff className="mx-auto h-8 w-8 text-amber-300" />
-        <h2 className="mt-3 text-lg font-semibold text-white">Session workspace недоступний</h2>
+        <h2 className="mt-3 text-lg font-semibold text-white">Сторінка випробування недоступна</h2>
         <p className="mt-2 max-w-xl text-[11px] leading-5 text-slate-400">{message}</p>
         <button className="primary-button mt-4" onClick={onRetry}>
           Повторити
