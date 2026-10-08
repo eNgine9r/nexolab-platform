@@ -41,11 +41,7 @@
   },
   "selection": {
     "active_work_package": null,
-    "next_work_package": {
-      "issue": 1296,
-      "title": "Standardize primary mobile topbar touch targets",
-      "branch": "fix/1296-mobile-topbar-touch-targets"
-    }
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -124,7 +120,7 @@
       "issue": 1296,
       "title": "Standardize primary mobile topbar touch targets",
       "priority": "medium",
-      "lifecycle": "ready",
+      "lifecycle": "completed",
       "depends_on": [
         1294
       ],
@@ -141,7 +137,30 @@
         "live_selection_height_css_px": 44,
         "source_class": "icon-button_2.5rem",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "implementation_scope": "three_primary_topbar_mobile_targets_only",
+        "target_mobile_css_px": "minimum_44x44",
+        "desktop_constraint": "preserve_40x40_at_1440",
+        "software_verification": "passed_exact_code_head",
+        "hardware_evidence": "not_applicable",
+        "implementation": "topbar_mobile_hit_area_minimum_44_css_px",
+        "responsive_widths_css_px": [
+          360,
+          390,
+          430,
+          1440
+        ],
+        "overview_and_live_browser_geometry": "passed",
+        "desktop_primary_hit_area": "unchanged_40_css_px",
+        "horizontal_overflow": "none_at_360",
+        "formatting": "success",
+        "verified_code_head_sha": "72edcc6936dd9d50317efdcd3cc1af10019f60e4",
+        "checks": {
+          "core_ci": "success:37712642648",
+          "authenticated_dashboard": "success:37712642614",
+          "merge_gate": "success:37712642648"
+        },
+        "production_deployment": "not_performed"
       }
     },
     {
@@ -8040,6 +8059,33 @@
         "alerts_browser_run": 37710886067,
         "all_required_checks": "success",
         "next_ready_issue": 1296
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T01:22:02.126Z",
+      "kind": "issue_1296_started",
+      "data": {
+        "issue": 1296,
+        "branch": "fix/1296-mobile-topbar-touch-targets",
+        "parent": 1294,
+        "scope": "topbar_mobile_44px",
+        "no_backend_change": true,
+        "no_hardware_change": true
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T01:29:35.662Z",
+      "kind": "issue_1296_pre_final_chromium_and_core_green",
+      "data": {
+        "issue": 1296,
+        "pr": 1299,
+        "code_head_sha": "72edcc6936dd9d50317efdcd3cc1af10019f60e4",
+        "core_run": 37712642648,
+        "authenticated_dashboard_run": 37712642614,
+        "merge_gate": "success",
+        "next_work": "review_remaining_1191_ux_waves"
       }
     }
   ],

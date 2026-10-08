@@ -38,6 +38,21 @@ describe("Topbar operator actions", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
+  it("keeps primary mobile touch areas at least 44px without globally resizing icons", () => {
+    render(<Topbar title="Огляд" onMenuOpen={vi.fn()} onSignOut={vi.fn()} showCreateSession={false} />);
+
+    const primaryActions = [
+      screen.getByRole("button", { name: "Відкрити меню" }),
+      screen.getByRole("link", { name: "Відкрити тривоги" }),
+      screen.getByRole("button", { name: "Вийти з NEXOLAB" }),
+    ];
+    for (const control of primaryActions) {
+      expect(control).toHaveClass("icon-button");
+      expect(control).toHaveClass("max-lg:min-h-11", "max-lg:min-w-11");
+      expect(control).not.toHaveClass("h-11", "w-11");
+    }
+  });
+
   it("uses verified membership and invokes organization and account actions", () => {
     const select = vi.fn();
     const signOut = vi.fn();

@@ -2,6 +2,14 @@
 
 Updated: 2026-10-08
 
+## Issue #1296 — primary mobile Topbar touch targets (source accepted)
+
+The shared Topbar uses a narrowly scoped `max-lg:min-h-11 max-lg:min-w-11` utility on menu, Alerts and logout actions only. At mobile widths 360/390/430 CSS px the required hit areas are at least 44×44 CSS px; at 1440 CSS px the desktop Alerts/logout controls retain their 40×40 sizing and the mobile menu remains hidden. The icon glyphs, global `.icon-button`, account disabled/aria semantics and unrelated UI stay unchanged.
+
+The focused Topbar unit test and real Chromium Overview/Live geometry assertions passed in isolated CI on implementation head `72edcc6936dd9d50317efdcd3cc1af10019f60e4`. Core Quality/build and NEXOLAB Merge Gate are GREEN in workflow `37712642648`; Authenticated Dashboard Acceptance is GREEN in `37712642614`. This is source/software evidence, not installed-site acceptance. PR #1299 awaits final exact-head verification after the state checkpoint update.
+
+The production Raspberry remains deployed at product source `75d9c75f8d1901d6b639ec711bf3784e22ed0642`. Neither #1295 nor #1296 has been deployed to production. No cutover, Modbus/controller write, hardware write or product-data mutation occurred. Parent UX audit #1191 remains open for subsequent operator waves; a new Ready Work Package must be scoped after PR #1299 merges GREEN.
+
 ## Issue #1295 — Alerts operator authentication gate (source accepted)
 
 PR #1298 isolates the signed-out Alerts UX bug reproduced by #1294. `AlertsTelemetryScope` now uses the canonical `useDashboardSecurity` and `SecurityGate`: before a verified live session/membership, the operator sees the auth-state message and the Alerts workspace is not mounted. Channel inventory is disabled until ready and uses the verified membership's organization ID afterward; existing demo behavior is preserved. Focused component tests and anonymous browser checks at 360/390/430/1440 CSS px were added.
