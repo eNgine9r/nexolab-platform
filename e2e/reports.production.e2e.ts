@@ -360,7 +360,7 @@ test("production reports preserve immutable selected evidence across API, UI and
     await expect(viewerPage).toHaveURL(new RegExp(`/reports\\?session=${completedSessionId}$`));
     await expect(viewerPage.getByTestId("reports-workspace")).toBeVisible();
     await expect(viewerPage.getByTestId("report-generation-panel")).toHaveCount(0);
-    await expect(viewerPage.getByText("Поточна роль має read-only доступ.")).toBeVisible();
+    await expect(viewerPage.getByText("Поточна роль має доступ лише для перегляду.")).toBeVisible();
     await expect(viewerPage.getByTestId("report-detail")).toContainText("Версія звіту");
     await viewerContext.close();
   } finally {
