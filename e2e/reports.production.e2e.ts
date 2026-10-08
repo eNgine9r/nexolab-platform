@@ -210,7 +210,7 @@ test("production reports preserve immutable selected evidence across API, UI and
       .getByPlaceholder("Контрольований evidence export…")
       .fill("Production browser evidence");
     await engineerPage.getByTestId("generate-report").click();
-    await expect(engineerPage.getByTestId("report-detail")).toContainText("Report version 1");
+    await expect(engineerPage.getByTestId("report-detail")).toContainText("Версія звіту 1");
     expect(browserReportWrites).toBe(1);
     await expect(engineerPage).not.toHaveURL(/token|access_token|bearer/i);
 
@@ -363,7 +363,7 @@ test("production reports preserve immutable selected evidence across API, UI and
     await expect(viewerPage.getByTestId("reports-workspace")).toBeVisible();
     await expect(viewerPage.getByTestId("report-generation-panel")).toHaveCount(0);
     await expect(viewerPage.getByText("Поточна роль має read-only доступ.")).toBeVisible();
-    await expect(viewerPage.getByTestId("report-detail")).toContainText("Report version");
+    await expect(viewerPage.getByTestId("report-detail")).toContainText("Версія звіту");
     await viewerContext.close();
   } finally {
     await anonymous.dispose();
