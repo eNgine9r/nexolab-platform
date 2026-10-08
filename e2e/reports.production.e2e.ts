@@ -473,7 +473,6 @@ test("engineering and foreign-organization report journeys remain scoped at ever
   engineerPage.on("request", (request) => {
     if (!["GET", "HEAD", "OPTIONS"].includes(request.method())) writes += 1;
   });
-
   try {
     for (const width of [360, 390, 430, 1440]) {
       await engineerPage.setViewportSize({ width, height: 900 });
@@ -513,8 +512,8 @@ test("engineering and foreign-organization report journeys remain scoped at ever
       await expect(
         foreignPage.getByRole("alert").filter({ hasText: "Вибране випробування недоступне" }),
       ).toBeVisible();
-      await expect(
       await expect(foreignPage.getByRole("link", { name: "Назад до випробування" })).toHaveCount(0);
+      await expect(foreignPage.getByTestId("report-session-select")).toHaveValue("");
       await expect(foreignPage.getByTestId("generate-report")).toBeDisabled();
       await expectNoDocumentOverflow(foreignPage, width);
     }
