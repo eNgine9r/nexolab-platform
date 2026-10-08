@@ -12,11 +12,11 @@ WORKDIR /opt/app
 COPY requirements.txt ./
 RUN python -m pip install --target /opt/app/site-packages -r requirements.txt
 COPY *.py ./
+# pip, vendored setuptools/urllib3/msgpack and installer tooling are
+# build-only and must not enter the minimal runtime image.
 RUN mkdir -p /opt/runtime-data \
     && find /opt/app -type d -exec chmod 0755 {} + \
     && find /opt/app -type f -exec chmod 0644 {} + \
-    # pip, vendored setuptools/urllib3/msgpack and installer tooling are
-    # build-only and must not enter the minimal runtime image.
     && rm -rf /usr/local/lib/python3.13/site-packages/pip \
               /usr/local/lib/python3.13/site-packages/pip-*.dist-info \
               /usr/local/lib/python3.13/site-packages/setuptools \
