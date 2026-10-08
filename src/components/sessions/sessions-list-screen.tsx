@@ -252,7 +252,7 @@ export function SessionsListScreen() {
                 <div>
                   <p className="text-[8px] tracking-[0.12em] text-slate-600 uppercase">Конфігурація</p>
                   <p className="mt-1 text-[10px] text-slate-300">
-                    Знімок даних {session.active_config_snapshot_id ? "зафіксовано" : "не зафіксовано"}
+                    Знімок конфігурації {session.active_config_snapshot_id ? "зафіксовано" : "не зафіксовано"}
                   </p>
                   <p className="mt-1 text-[9px] text-slate-600">
                     Обмеження v{session.active_limit_version ?? "—"}
