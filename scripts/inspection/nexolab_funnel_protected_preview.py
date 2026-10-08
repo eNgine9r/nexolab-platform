@@ -110,9 +110,9 @@ class PreviewHandler(BaseHTTPRequestHandler):
         if path not in ("/", PREFIX[:-1], PREFIX):
             self.respond(404, "Not found")
         elif not self.valid_cookie():
-            self.respond(200, SHELL.format(content=FORM))
+            self.respond(200, SHELL.replace("{content}", FORM))
         else:
-            self.respond(200, SHELL.format(content=PREVIEW))
+            self.respond(200, SHELL.replace("{content}", PREVIEW))
 
     def do_HEAD(self) -> None:
         self.do_GET()
@@ -148,7 +148,7 @@ class PreviewHandler(BaseHTTPRequestHandler):
         supplied = body.get("password", [""])[0]
         if not hmac.compare_digest(supplied, self.server.password):
             self.server.failures.append(now)
-            self.respond(403, SHELL.format(content=FORM + "<p>Невірний пароль.</p>"))
+            self.respond(403, SHELL.replace("{content}", FORM + "<p>Невірний пароль.</p>"))
             return
         expiry = str(int(time.time()) + TTL_SECONDS)
         nonce = secrets.token_urlsafe(16)
