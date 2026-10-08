@@ -257,6 +257,48 @@ def create_refrigeration_router(
         response.headers["ETag"] = _draft_etag(draft.version)
         return _draft_response(repository, storage, draft, signed_url_seconds)
 
+    @router.get(
+        "/{equipment_id}/images/{image_id}/content",
+        responses={404: {"model": ApiErrorResponse}, 503: {"model": ApiErrorResponse}},
+    )
+    def get_image_content(
+        equipment_id: str,
+        image_id: str,
+        authorized: AuthorizedRequest = Depends(read_access),
+    ) -> Response:
+        """Return image bytes only after JWT/organization/role authorization.
+
+        Unlike a signed S3 URL this endpoint is safe for same-origin
+        authenticated fetch and does not reveal the object store location.
+        """
+        try:
+            image = repository.get_image(
+                equipment_id,
+                image_id,
+                organization_id=authorized.principal.organization_id,
+            )
+        except LayoutRepositoryError as error:
+            raise _repository_http_error(error) from error
+        if image.size_bytes > image_max_bytes:
+            raise _api_http_error(503, "object_storage_unavailable", "stored image size exceeds the allowed limit")
+        if image.media_type not in {"image/jpeg", "image/png", "image/webp"}:
+            raise _api_http_error(503, "object_storage_unavailable", "stored image type is unsupported")
+        try:
+            content = storage.get(key=image.storage_key, max_bytes=image_max_bytes)
+        except ObjectStorageError as error:
+            raise _api_http_error(503, "object_storage_unavailable", "unable to retrieve equipment image") from error
+        if len(content) != image.size_bytes or hashlib.sha256(content).hexdigest() != image.checksum_sha256:
+            raise _api_http_error(503, "object_storage_unavailable", "stored image integrity check failed")
+        return Response(
+            content=content,
+            media_type=image.media_type,
+            headers={
+                "Cache-Control": "private, no-store",
+                "X-Content-Type-Options": "nosniff",
+                "Content-Security-Policy": "default-src 'none'; sandbox",
+            },
+        )
+
     @router.post(
         "/{equipment_id}/images",
         response_model=EquipmentImageResponse,
