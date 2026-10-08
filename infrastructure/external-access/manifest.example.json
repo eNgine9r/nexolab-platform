@@ -19,5 +19,5 @@
   "object_storage_externally_exposed": false,
   "object_storage_browser_support": "blocked_pending_proxy",
   "modbus_writes_enabled": false,
-  "company_it_approval_recorded": false
+  "owner_publication_authority_confirmed": true
 }

@@ -1,5 +1,10 @@
 # NEXOLAB external HTTPS — separated staging candidate (NO-GO / NOT DEPLOYED)
 
+**Authorization note (2026-10-08):** the owner has confirmed that separate
+corporate IT approval is not required for this service. This does **not**
+waive real Google sign-in, MFA verification, application JWT/RBAC, browser E2E,
+private image security, operator go-live signoff or rollback readiness.
+
 **Safety classification: source-only preparation.** This change does not enable
 Tailscale Funnel on NEXOLAB, create or modify a public route, start an identity
 provider, modify any network interface, restart services, or touch controllers.
@@ -34,7 +39,7 @@ no purchased domain. BTC Radar remains the NEXUS/Commander control plane,
 not an unauthenticated internet relay for lab hardware.
 
 ```text
-External browser (corporate IT approval required)
+External browser (owner-authorized publication; access still gated)
   |
   v
 Dedicated HTTPS origin via Tailscale Funnel on NEXOLAB (NOT ENABLED)
@@ -119,8 +124,9 @@ presence of `provider = "google"` as "MFA confirmed".
    rotation, wrong-identity rejection, Google OAuth callback state/CSRF,
    logout/session revocation, expired cookie, API 401 vs browser redirects,
    WebSocket upgrades and rate limits in a disconnected staging fixture.
-7. Obtain owner go-live approval **again**, in addition to explicit company
-   IT permission for the destination and network. Only then may a dedicated
+7. Obtain final, explicit owner go-live approval **again** for the exact
+   hostname and isolated candidate. The owner confirms separate corporate IT
+   approval is not required for this deployment. Only then may a dedicated
    Funnel route be created; preserve existing NEXUS/BTC routes.
 
 ### Local-only credentials provisioning — operator-completed; NOT activated
@@ -180,7 +186,7 @@ credentials. The real OAuth2 Proxy v7.15.5 `--config-test` also returned
 mechanism on the Raspberry Pi; systemd `verify` of the inert unit completed
 successfully. No production secret was accessed by these remote tests.
 Live systemd user isolation, WebSocket gating, end-to-end sign-in/MFA
-assurance and corporate IT permission remain **unverified**. Do not
+assurance and final owner go-live authorization remain **unverified**. Do not
 weaken permissions or run the gateway as root.
 
 The official OAuth2 Proxy **v7.15.5 Linux ARM64** release artifact was
@@ -229,7 +235,7 @@ python3 scripts/inspection/nexolab_oauth_loopback_nginx_probe.py \
 Do not direct the probe at the production NGINX listener or actual backends;
 its port rewriting is purposely limited to synthetic loopback mocks.
 This offline gate is a useful acceptance signal, **not** proof that a
-Google login, corporate MFA requirements, IT approval or full external
+Google login, MFA assurance, final owner approval or full external
 NEXOLAB image upload/download path has passed.
 
 ### Real OAuth2 Proxy and NGINX acceptance — 2026-10-08
@@ -404,8 +410,8 @@ this release blocker.
 
 ## Additional hard gates before a production full-feature rollout
 
-1. Confirm that corporate IT permits connecting to the site from managed
-   browsers. Never evade managed-device policy.
+1. Record the owner's authority to publish this exact hostname and service.
+   Managed-device restrictions still apply; never evade those policies.
 2. Verify a separately deployed OIDC/MFA gateway end-to-end:
    logged-out user, wrong identity, correct identity + MFA, revoked user,
    expired session, CSRF request and WebSocket handshake. Confirm
@@ -426,8 +432,8 @@ this release blocker.
    verify token expiration, forced revocation, reconnect and gateway outage.
 9. Check resource envelope of Raspberry Pi 5 (4 GB), latency and NEXUS/BTC
    isolation. Preserve rollback and 24h LAN telemetry continuity.
-10. Obtain explicit owner approval for production public route and separate
-    corporate IT permission. Only then can a controlled, reversible
+10. Obtain explicit final owner approval for the exact production public route.
+    Only then can a controlled, reversible
     publication be scheduled.
 
 ## Rollback boundary

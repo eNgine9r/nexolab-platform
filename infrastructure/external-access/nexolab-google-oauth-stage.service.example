@@ -6,7 +6,7 @@
 # No production service, Tailscale Funnel route or controller is changed.
 #
 # Before deployment: verify actual Google OAuth callback + MFA assurance,
-# revoke/expire behavior, CI/CVE security gate, IT approval and owner cutover.
+# revoke/expire behavior, CI/CVE security gate and explicit owner cutover.
 [Unit]
 Description=NEXOLAB isolated Google OAuth2 Proxy (DRAFT / NOT ENABLED)
 Documentation=https://oauth2-proxy.github.io/oauth2-proxy/

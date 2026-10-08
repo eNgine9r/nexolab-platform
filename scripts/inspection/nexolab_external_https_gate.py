@@ -98,7 +98,7 @@ def validate(profile: dict[str, object]) -> None:
         "object_storage_externally_exposed",
         "object_storage_browser_support",
         "modbus_writes_enabled",
-        "company_it_approval_recorded",
+        "owner_publication_authority_confirmed",
     }
     missing, unknown = required - profile.keys(), profile.keys() - required
     if missing or unknown:
@@ -142,10 +142,11 @@ def validate(profile: dict[str, object]) -> None:
     if profile["object_storage_browser_support"] != "blocked_pending_proxy":
         raise GateError("object storage is not accepted for external browsers until authorized proxy is tested")
 
-    # Stage may be prepared without corporate IT approval, but its absence is
-    # a hard public GO-LIVE blocker, independent from this dry-run gate.
-    if type(profile["company_it_approval_recorded"]) is not bool:
-        raise GateError("company_it_approval_recorded must be boolean")
+    # The owner has asserted authority to publish this service without a
+    # separate IT approval. This explicit attestation does NOT prove OAuth/MFA
+    # security or authorize activating the external route.
+    if profile["owner_publication_authority_confirmed"] is not True:
+        raise GateError("owner publication authority must be confirmed")
 
 
 def main() -> int:
@@ -162,7 +163,7 @@ def main() -> int:
         return 1
 
     print("PASS: source-only HTTPS staging profile passes the basic fail-closed policy checks")
-    print("PUBLICATION=BLOCKED: identity provider, image path, live endpoint RBAC, MFA, staging E2E and IT approval not verified")
+    print("PUBLICATION=BLOCKED: identity provider, image path, live endpoint RBAC, MFA, staging E2E and final owner cutover not verified")
     print("NO DEVICES TOUCHED; NO TUNNEL ENABLED")
     return 0
 

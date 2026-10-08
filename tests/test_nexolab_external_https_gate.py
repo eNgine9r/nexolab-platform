@@ -36,7 +36,7 @@ SAFE = {
     "object_storage_externally_exposed": False,
     "object_storage_browser_support": "blocked_pending_proxy",
     "modbus_writes_enabled": False,
-    "company_it_approval_recorded": False,
+    "owner_publication_authority_confirmed": True,
 }
 
 
@@ -67,6 +67,12 @@ class ExternalHttpsGateTests(unittest.TestCase):
 
     def test_websocket_query_token_denied(self) -> None:
         self._reject(websocket_url="wss://nexolab-edge-01.example.ts.net/api/v1/telemetry/live?token=foo")
+
+    def test_publication_authority_required(self) -> None:
+        self._reject(owner_publication_authority_confirmed=False)
+
+    def test_publication_authority_must_be_exact_true(self) -> None:
+        self._reject(owner_publication_authority_confirmed=1)
 
     def test_public_route_denied(self) -> None:
         self._reject(public_route_enabled=True)
