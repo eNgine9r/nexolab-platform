@@ -399,7 +399,7 @@ export function ConfigurationEvidence({ data }: { data: SessionWorkspaceData }) 
           label="Обмеження"
           value={`v${data.session.active_limit_version ?? "—"} · ${data.configuration.active_limits.length} правил`}
         />
-        <Info label="Знімки даних" value={String(data.configuration.snapshots.length)} />
+        <Info label="Знімки конфігурації" value={String(data.configuration.snapshots.length)} />
         <Info
           label="SHA-256 вмісту"
           value={data.configuration.active_snapshot?.content_sha256.slice(0, 16) ?? "очікується"}
