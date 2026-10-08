@@ -1,0 +1,23 @@
+{
+  "profile": "isolated_external_stage",
+  "public_origin": "https://nexolab-edge-01.example.ts.net",
+  "api_base_url": "https://nexolab-edge-01.example.ts.net",
+  "websocket_url": "wss://nexolab-edge-01.example.ts.net/api/v1/telemetry/live",
+  "frontend_origin": "http://127.0.0.1:3100",
+  "private_api_origin": "http://172.18.48.66:8082",
+  "gateway_origin": "http://127.0.0.1:18790",
+  "identity_gateway_origin": "http://127.0.0.1:4180",
+  "frontend_auth_provider": "local",
+  "backend_auth_mode": "jwt",
+  "backend_local_auth": true,
+  "dedicated_hostname": true,
+  "named_identity_allowlist": true,
+  "identity_mfa": true,
+  "dashboard_rbac": true,
+  "direct_wan_port_forwarding": false,
+  "public_route_enabled": false,
+  "object_storage_externally_exposed": false,
+  "object_storage_browser_support": "blocked_pending_proxy",
+  "modbus_writes_enabled": false,
+  "company_it_approval_recorded": false
+}
