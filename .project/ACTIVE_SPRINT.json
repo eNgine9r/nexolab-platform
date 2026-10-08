@@ -40,12 +40,12 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "selection": {
-    "active_work_package": null,
-    "next_work_package": {
+    "active_work_package": {
       "issue": 1296,
       "title": "Standardize primary mobile topbar touch targets",
       "branch": "fix/1296-mobile-topbar-touch-targets"
-    }
+    },
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -124,7 +124,7 @@
       "issue": 1296,
       "title": "Standardize primary mobile topbar touch targets",
       "priority": "medium",
-      "lifecycle": "ready",
+      "lifecycle": "in_progress",
       "depends_on": [
         1294
       ],
@@ -141,7 +141,12 @@
         "live_selection_height_css_px": 44,
         "source_class": "icon-button_2.5rem",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "implementation_scope": "three_primary_topbar_mobile_targets_only",
+        "target_mobile_css_px": "minimum_44x44",
+        "desktop_constraint": "preserve_40x40_at_1440",
+        "software_verification": "pending",
+        "hardware_evidence": "not_applicable"
       }
     },
     {
@@ -8040,6 +8045,19 @@
         "alerts_browser_run": 37710886067,
         "all_required_checks": "success",
         "next_ready_issue": 1296
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T01:22:02.126Z",
+      "kind": "issue_1296_started",
+      "data": {
+        "issue": 1296,
+        "branch": "fix/1296-mobile-topbar-touch-targets",
+        "parent": 1294,
+        "scope": "topbar_mobile_44px",
+        "no_backend_change": true,
+        "no_hardware_change": true
       }
     }
   ],
