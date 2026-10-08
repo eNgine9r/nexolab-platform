@@ -57,11 +57,13 @@ def wait_for_service(port: int, proc: subprocess.Popen[bytes]) -> None:
             diagnostic = proc.stderr.read(2400).decode("utf-8", "replace") if proc.stderr else ""
             # Explicitly synthetic inputs only: never run this probe with real
             # Google credentials or a real operator allowlist.
-            safe_diagnostics = [line for line in diagnostic.splitlines()
-                                if ("error" in line.lower() or "fatal" in line.lower())]
+            # This runner provisions exclusively disposable fake credentials.
+            # Limit diagnostics, but retain ordinary error lines (not always
+            # tagged Error/Fatal by the upstream binary).
+            safe_diagnostics = [line.split("]", 1)[-1].strip() for line in diagnostic.splitlines()]
             raise AssertionError(
                 "synthetic OAuth server exited before opening loopback: "
-                + ("; ".join(safe_diagnostics[-3:])[:800] or "no matching error diagnostics")
+                + ("; ".join(safe_diagnostics[-4:])[:950] or "no diagnostic text")
             )
         try:
             http_get(port, "/oauth2/auth")
