@@ -142,7 +142,6 @@
         "production_site_deployment": "none",
         "unresolved_review_threads": 0,
         "review_threads_resolved": 4,
-        "merge_sha": "ee9738ab39ca369b8d49aec9971fdf25a2ed0b79",
         "verified_final_head": "1beb52468531e5ab8f50bbe73989ba7a7e54ab69",
         "shared_cache": {
           "key": "nexolab-offline-buildx-v3-Linux-amd64-main-ee9738ab39ca369b8d49aec9971fdf25a2ed0b79",
@@ -8333,6 +8332,16 @@
         "required_checks": "success",
         "next_candidate_issue": 1304,
         "production_activation": "not_performed"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T11:28:00Z",
+      "kind": "issue_1306_merge_commit_observed",
+      "data": {
+        "issue": 1306,
+        "pr": 1280,
+        "merge_sha": "ee9738ab39ca369b8d49aec9971fdf25a2ed0b79"
       }
     }
   ],
