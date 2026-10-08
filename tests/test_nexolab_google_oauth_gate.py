@@ -85,6 +85,27 @@ class GoogleOAuthReadinessTests(unittest.TestCase):
         self.assertNotIn("mfa_verified", self.cfg)
         self.assertNotIn("amr", self.cfg)
 
+    def test_gateway_api_routes_are_authorized_without_html_redirect(self) -> None:
+        nginx = (ROOT / "infrastructure" / "external-access" / "nginx-staging.example.conf").read_text()
+        for fragment in (
+            "listen 127.0.0.1:18790;",
+            "server_name nexolab-edge-01.tail7f9b04.ts.net;",
+            "location ^~ /api/v1/",
+            "location ^~ /api/device-agent/",
+            "location = /_nexolab_external_auth",
+            "auth_request /_nexolab_external_auth;",
+            "proxy_pass http://127.0.0.1:4180/oauth2/auth;",
+            "location @nexolab_sign_in",
+            "return 302 /oauth2/sign_in?",
+        ):
+            self.assertIn(fragment, nginx)
+        for api_prefix in ("location ^~ /api/v1/", "location ^~ /api/device-agent/"):
+            area = nginx.split(api_prefix, 1)[1].split("location ", 1)[0]
+            self.assertIn("auth_request /_nexolab_external_auth;", area)
+            self.assertNotIn("error_page 401", area)
+        self.assertIn("REPLACE_WITH_APPROVED_PRIVATE_API_IP", nginx)
+        self.assertNotIn("listen 0.0.0.0:18790", nginx)
+
     def reject(self, **modifiers) -> None:
         candidate = copy.deepcopy(self.cfg)
         candidate.update(modifiers)
