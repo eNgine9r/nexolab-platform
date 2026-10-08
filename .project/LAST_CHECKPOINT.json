@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-08T05:21:08.165Z",
+  "timestamp": "2026-10-08T06:27:49.403Z",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1296_mobile_topbar_source_complete_ready_for_merge",
+  "event": "issue_1302_localization_candidate_in_review",
   "baselines": {
     "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
     "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
@@ -28,7 +28,11 @@
     "deployed_device_agent_rollback_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1302,
+    "title": "Normalize Sessions and Reports operator-facing labels to Ukrainian",
+    "branch": "fix/1302-localize-sessions-reports-labels"
+  },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -1300,6 +1304,18 @@
       "hardware_evidence": "not_applicable",
       "modbus_write": "none",
       "hardware_write": "none"
+    },
+    "issue_1302": {
+      "issue": 1302,
+      "parent_issue": 1191,
+      "branch": "fix/1302-localize-sessions-reports-labels",
+      "scope": "Sessions_and_Reports_visible_copy_only",
+      "unit_tests": "added_pending_run",
+      "formatting": "passed_isolated_prettier_checks_on_commit_candidate",
+      "code_and_api_semantics": "unchanged",
+      "production_deployment": "not_performed",
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "observations": [
@@ -2224,9 +2240,21 @@
         "actual_site_deployment": "not_performed",
         "hardware_write": "none"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T06:27:49.403Z",
+      "kind": "issue_1302_pre_ci_source_candidate",
+      "data": {
+        "issue": 1302,
+        "branch": "fix/1302-localize-sessions-reports-labels",
+        "scope": "ui_copy_only",
+        "site_acceptance": "unverified",
+        "next": "exact_head_ci"
+      }
     }
   ],
-  "next_action": "Verify final exact-head Core Quality/build, Authenticated Dashboard Acceptance and NEXOLAB Merge Gate for PR #1299, resolve reviews, merge only when GREEN; then scope next UX audit wave under #1191.",
+  "next_action": "Open focused PR for #1302, run exact-head targeted unit tests, prettier, lint, typecheck, build and relevant browser acceptance; merge only GREEN. UX audit #1300 remains draft awaiting separately scoped role/keyboard proof.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
