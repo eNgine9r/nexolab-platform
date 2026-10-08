@@ -78,6 +78,7 @@ NEXT_PUBLIC_NEXOLAB_EXTERNAL_HTTPS_STAGE=true
 NEXOLAB_EXTERNAL_HTTPS_STAGE=true
 NEXOLAB_SERVER_API_BASE_URL=http://REPLACE_WITH_APPROVED_PRIVATE_API_IP:8082
 NEXOLAB_DEVICE_AGENT_BASE_URL=http://127.0.0.1:8081
+NEXOLAB_EQUIPMENT_IMAGE_AUTHENTICATED_URLS=true
 ```
 
 The new `getServerTelemetryApiBaseUrl()` helper ensures that the
@@ -98,6 +99,10 @@ Telemetry API endpoint requires `dashboard.read`, validates the selected
 organization and equipment ownership, enforces the image size cap, verifies
 SHA-256 integrity and returns image bytes with `Cache-Control: private, no-store`.
 It never serves an arbitrary user-supplied URL or publicly exposes S3 port 9000.
+
+With the server-only `NEXOLAB_EQUIPMENT_IMAGE_AUTHENTICATED_URLS=true` flag,
+image metadata contains only the authenticated relative API path, not a
+presigned internal S3 URL. The production LAN mode keeps the prior behavior.
 
 With `NEXT_PUBLIC_NEXOLAB_EXTERNAL_HTTPS_STAGE=true`, the layout views,
 camera-scoped view, equipment history thumbnails and revision preview fetch
