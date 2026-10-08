@@ -233,7 +233,9 @@ def test_authenticated_image_content_requires_jwt_and_correct_organization(tmp_p
     assert uploaded.status_code == 201
     path = f"/api/v1/equipment/showcase-1/images/{uploaded.json()['id']}/content"
 
-    anonymous = api.get(path)
+    # Explicit organization avoids request-header validation taking precedence
+    # over JWT authentication, so this tests the authentication boundary.
+    anonymous = api.get(path, headers={"X-Organization-ID": ORGANIZATION_ID})
     assert anonymous.status_code == 401
 
     authorized = api.get(path, headers=headers("operator"))
