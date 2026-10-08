@@ -218,7 +218,9 @@ export function StageTimeline({
     <section className="panel p-5 sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-[9px] font-semibold tracking-[0.16em] text-cyan-300 uppercase">Хронологія етапів</p>
+          <p className="text-[9px] font-semibold tracking-[0.16em] text-cyan-300 uppercase">
+            Хронологія етапів
+          </p>
           <h2 className="mt-2 text-sm font-semibold text-white">Зафіксовані межі етапів</h2>
         </div>
         {!readOnly && (
@@ -238,7 +240,9 @@ export function StageTimeline({
                 "completion",
                 "report",
               ].map((value) => (
-                <option key={value} value={value}>{STAGE_TYPE_LABELS[value as SessionStageType]}</option>
+                <option key={value} value={value}>
+                  {STAGE_TYPE_LABELS[value as SessionStageType]}
+                </option>
               ))}
             </select>
             <input className="form-input" value={name} onChange={(event) => setName(event.target.value)} />
