@@ -84,7 +84,7 @@ security reviewer must accept the residual risk or deploy an IdP that can
 enforce and verify MFA for each privileged session. Never label the mere
 presence of `provider = "google"` as "MFA confirmed".
 
-### Operator-only Google Cloud setup, **not performed**
+### Operator-only Google Cloud setup — operator-reported complete; verification pending
 
 1. Check the Google Account at
    https://myaccount.google.com/security: configure 2-Step Verification
@@ -123,10 +123,62 @@ presence of `provider = "google"` as "MFA confirmed".
    IT permission for the destination and network. Only then may a dedicated
    Funnel route be created; preserve existing NEXUS/BTC routes.
 
+### Local-only credentials provisioning — ready but NOT executed
+
+The operator reports that Google 2-Step Verification is enabled, a new
+Web OAuth client was created after revoking the compromised original,
+the dedicated callback URL was saved and the approved account was added
+to **Test users**. These are user-reported settings, not independently
+verified through the Google Cloud control plane. The OAuth Client ID and
+Secret have NOT been copied to NEXOLAB.
+
+An interactive, fail-closed provisioning script is prepared in
+`scripts/operations/nexolab_google_oauth_private_provision.py` and copied
+(without any credentials) to the Pi's isolated workspace at:
+
+```text
+/home/nexolab/commander-workspaces/nexolab-external-stage/google-oauth-private-provision.py
+```
+
+Only **from the Raspberry Pi's own trusted terminal or a private SSH
+terminal** run the following when authorized to create private local
+staging credentials. **Do not invoke this command using NEXUS Commander
+or a chat tool**, because no Google secret may pass through orchestrator
+commands, stdout, recorded logs or conversation history.
+
+```bash
+sudo python3 /home/nexolab/commander-workspaces/nexolab-external-stage/google-oauth-private-provision.py
+sudo python3 /home/nexolab/commander-workspaces/nexolab-external-stage/google-oauth-private-provision.py --check
+```
+
+The first command asks for the Google Web Client ID and Client Secret
+with hidden terminal input, then the operator-approved single email. It
+generates its own 32-byte random cookie secret and creates files under
+`/etc/nexolab-external`, mode 0700, files mode 0600. It refuses
+overwrite/symlinks/non-interactive secret input and does not print them.
+No service, NGINX, Funnel, firewall, Modbus, working dashboard or
+production runtime is modified.
+
+**Service-reader permission remains an explicit unsolved gate**:
+`allowed-emails.txt` and the environment are root-only. Before
+starting a separately provisioned unprivileged OAuth2 Proxy service,
+design and verify a least-privilege systemd credential handoff. Do not
+make the folder globally readable, relax permissions or run a proxy as
+root to hide an integration problem.
+
+The official OAuth2 Proxy **v7.15.5 Linux ARM64** release artifact was
+downloaded into the isolated Pi workspace and SHA-256 verified. Its
+`--config-test` reported `configuration is valid` using a synthetic
+single-user list and synthetic credentials. No gateway was started.
+Eight standalone local credential-wizard tests passed, including unsafe
+permissions, symlinks and duplicate writes. None of these isolated tests
+validate the Google OAuth flow, MFA challenge or token/session revocation.
+
 ### Current release verdict
 
 `GOOGLE_OAUTH_CONFIG=DRAFT`,
-`GOOGLE_OAUTH_CLIENT=NOT_PROVISIONED`,
+`GOOGLE_OAUTH_CLIENT=USER_REPORTED_CREATED_NOT_ON_DEVICE`,
+`GOOGLE_2SV=USER_REPORTED_ENABLED`,
 `MFA_ENFORCEMENT=NOT_VERIFIED`,
 `FUNNEL_EXTERNAL_ROUTE=DISABLED`,
 `GO_LIVE=DENIED`.
