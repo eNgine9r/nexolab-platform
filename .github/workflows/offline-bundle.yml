@@ -283,9 +283,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/nexolab-offline-buildx-cache
-          key: nexolab-offline-buildx-v2-${{ runner.os }}-${{ steps.contract.outputs.arch }}-main-${{ github.sha }}
+          key: nexolab-offline-buildx-v3-${{ runner.os }}-${{ steps.contract.outputs.arch }}-main-${{ github.sha }}
           restore-keys: |
-            nexolab-offline-buildx-v2-${{ runner.os }}-${{ steps.contract.outputs.arch }}-main-
+            nexolab-offline-buildx-v3-${{ runner.os }}-${{ steps.contract.outputs.arch }}-main-
 
       - name: Prepare isolated validation configuration
         shell: bash
@@ -709,7 +709,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: ${{ runner.temp }}/nexolab-offline-buildx-cache
-          key: nexolab-offline-buildx-v2-${{ runner.os }}-${{ steps.contract.outputs.arch }}-main-${{ github.sha }}
+          key: nexolab-offline-buildx-v3-${{ runner.os }}-${{ steps.contract.outputs.arch }}-main-${{ github.sha }}
 
       - name: Upload accepted offline bundle and verification evidence
         if: ${{ success() }}

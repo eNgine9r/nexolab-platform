@@ -154,7 +154,11 @@ build_image() {
   local cache_src=""
   local cache_dest=""
 
-  if [[ -n "$BUILDX_CACHE_ROOT" ]]; then
+  # Only lockfile-backed dashboard compilation may import long-lived CI layers.
+  # Python and OS package-resolution layers must be refreshed for each image build.
+  if [[ "$cache_id" != "dashboard" ]]; then
+    cache_args+=(--no-cache)
+  elif [[ -n "$BUILDX_CACHE_ROOT" ]]; then
     mkdir -p "$BUILDX_CACHE_ROOT"
     cache_src="$BUILDX_CACHE_ROOT/$cache_id"
     cache_dest="$BUILDX_CACHE_ROOT/.next-$cache_id"

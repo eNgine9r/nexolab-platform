@@ -78,11 +78,51 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertIn("Restore trusted default-branch BuildKit cache", self.workflow)
         self.assertIn("actions/cache/restore@v4", self.workflow)
         self.assertIn("actions/cache/save@v4", self.workflow)
-        self.assertIn("nexolab-offline-buildx-v2-", self.workflow)
+        self.assertIn("nexolab-offline-buildx-v3-", self.workflow)
         self.assertIn(
             "NEXOLAB_BUILDX_CACHE_ROOT: ${{ runner.temp }}/nexolab-offline-buildx-cache",
             self.workflow,
         )
+
+    def test_backend_builds_never_import_persistent_package_resolution_cache(self) -> None:
+        # Exercise the exact build_image() shell function with a fake Docker CLI:
+        # no builds or package installations are performed by this test.
+        function = self.offline_builder.split("build_image() {", 1)[1].split(
+            "\nbuild_image dashboard ", 1
+        )[0]
+        function = "build_image() {" + function
+        for cache_id in ("telemetry", "device-agent", "object-storage"):
+            with self.subTest(cache_id=cache_id):
+                with tempfile.TemporaryDirectory() as temporary:
+                    probe = (
+                        "set -euo pipefail\n"
+                        "PLATFORM=linux/amd64\n"
+                        "SOURCE_COMMIT=0123456789abcdef0123456789abcdef01234567\n"
+                        "VERSION=ci\n"
+                        f"BUILDX_CACHE_ROOT={temporary!r}\n"
+                        'docker() { printf "%s\\n" "$@"; }\n'
+                        + function
+                        + f'\nbuild_image {cache_id} test-image /Dockerfile /context\n'
+                    )
+                    output = subprocess.run(
+                        ["bash", "-c", probe],
+                        capture_output=True,
+                        text=True,
+                        check=True,
+                    ).stdout.splitlines()
+                    self.assertIn("--no-cache", output)
+                    self.assertNotIn("--cache-from", output)
+                    self.assertNotIn("--cache-to", output)
+
+    def test_persistent_cache_is_scoped_to_frontend(self) -> None:
+        function = self.offline_builder.split("build_image() {", 1)[1].split(
+            "\nbuild_image dashboard ", 1
+        )[0]
+        self.assertIn('if [[ "$cache_id" != "dashboard" ]]; then', function)
+        self.assertIn('cache_args+=(--no-cache)', function)
+        self.assertIn('elif [[ -n "$BUILDX_CACHE_ROOT" ]]; then', function)
+        self.assertIn('--cache-from "type=local,src=$cache_src"', function)
+        self.assertIn('--cache-to "type=local,dest=$cache_dest,mode=max"', function)
 
     def test_shared_buildkit_cache_is_seeded_by_main_only(self) -> None:
         self.assertIn("id: buildx_cache_restore", self.workflow)
@@ -93,6 +133,7 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertIn("steps.buildx_cache_restore.outputs.cache-hit != 'true'", self.workflow)
         self.assertIn("-main-${{ github.sha }}", self.workflow)
         self.assertNotIn("nexolab-offline-buildx-v1-", self.workflow)
+        self.assertNotIn("nexolab-offline-buildx-v2-", self.workflow)
         self.assertLess(
             self.workflow.index("Prove update and rollback preserve persistent data"),
             self.workflow.index("Save verified default-branch BuildKit seed"),
