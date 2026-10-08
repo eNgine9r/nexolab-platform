@@ -257,7 +257,7 @@ export function RefrigerationImageCanvas({
               {authenticatedImageUrl ? (
                 <Image
                   src={authenticatedImageUrl}
-                  alt={image.alt}
+                  alt={image?.alt ?? `Фото ${equipmentName}`}
                   fill
                   unoptimized
                   draggable={false}
