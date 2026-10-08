@@ -3,7 +3,9 @@ from __future__ import annotations
 import hashlib
 import re
 from io import BytesIO
+import os
 from pathlib import PurePath
+from urllib.parse import quote
 from typing import Callable
 from uuid import uuid4
 
@@ -545,10 +547,18 @@ def _revision_response(
 def _image_response(
     storage: ObjectStorage, image: EquipmentImage, signed_url_seconds: int
 ) -> EquipmentImageResponse:
-    try:
-        content_url = storage.signed_get_url(image.storage_key, expires_seconds=signed_url_seconds)
-    except ObjectStorageError as error:
-        raise _api_http_error(503, "object_storage_unavailable", str(error)) from error
+    if os.getenv("NEXOLAB_EQUIPMENT_IMAGE_AUTHENTICATED_URLS") == "true":
+        # The external staging browser must never receive an internal S3 URL
+        # or a presigned S3 access key identifier/signature in JSON metadata.
+        content_url = (
+            f"/api/v1/equipment/{quote(image.equipment_id, safe='')}"
+            f"/images/{quote(image.id, safe='')}/content"
+        )
+    else:
+        try:
+            content_url = storage.signed_get_url(image.storage_key, expires_seconds=signed_url_seconds)
+        except ObjectStorageError as error:
+            raise _api_http_error(503, "object_storage_unavailable", str(error)) from error
     return EquipmentImageResponse(
         id=image.id,
         equipment_id=image.equipment_id,
