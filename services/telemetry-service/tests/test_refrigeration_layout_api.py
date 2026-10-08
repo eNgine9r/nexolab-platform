@@ -170,3 +170,21 @@ def test_equipment_image_content_is_private_bounded_and_verified(tmp_path: Path)
     corrupted = api.get(base)
     assert corrupted.status_code == 503
     assert corrupted.json()["detail"]["code"] == "object_storage_unavailable"
+
+
+def test_external_stage_does_not_return_private_s3_signed_urls(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("NEXOLAB_EQUIPMENT_IMAGE_AUTHENTICATED_URLS", "true")
+    api, _, _ = client(tmp_path)
+    uploaded = api.post(
+        "/api/v1/equipment/showcase-1/images",
+        files={"file": ("showcase.png", png_bytes(), "image/png")},
+    )
+    assert uploaded.status_code == 201
+    image_id = uploaded.json()["id"]
+    expected = f"/api/v1/equipment/showcase-1/images/{image_id}/content"
+    assert uploaded.json()["content_url"] == expected
+    assert "memory://" not in uploaded.text
+    assert "X-Amz-" not in uploaded.text
+    response = api.get(expected)
+    assert response.status_code == 200
+    assert response.content == png_bytes()
