@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { LaboratorySession } from "@/lib/sessions/types";
-import { SessionHero, WorkspaceError, WorkspaceLoading } from "./workspace-panels";
+import { SessionHero, StageTimeline, WorkspaceError, WorkspaceLoading } from "./workspace-panels";
 
 const session = {
   id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
@@ -28,6 +28,24 @@ describe("Sessions localization", () => {
     expect(screen.getByText("Лише перегляд")).toBeVisible();
     expect(screen.getByText(/Офлайн · кешовані дані/)).toBeVisible();
     expect(screen.getByText("LAB-001")).toBeVisible();
+  });
+
+  it("shows Ukrainian stage options while preserving protocol stage type values", () => {
+    render(
+      <StageTimeline
+        stages={[]}
+        currentStageId={null}
+        readOnly={false}
+        mutating={false}
+        onAdvance={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Хронологія етапів")).toBeVisible();
+    const select = screen.getByRole("combobox");
+    expect(screen.getByRole("option", { name: "Відтавання" })).toHaveValue("defrost");
+    expect(screen.getByRole("option", { name: "Підготовка" })).toHaveValue("preparation");
+    expect(select).toHaveValue("main_test");
   });
 
   it("shows a localized loading and error state with a working retry control", () => {
