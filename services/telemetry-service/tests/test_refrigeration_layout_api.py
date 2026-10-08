@@ -141,3 +141,32 @@ def test_upload_rejects_checksum_corrupted_png(tmp_path: Path) -> None:
     assert response.status_code == 415
     assert response.json()["detail"]["code"] == "invalid_image"
     assert storage.objects == {}
+
+
+def test_equipment_image_content_is_private_bounded_and_verified(tmp_path: Path) -> None:
+    api, repository, storage = client(tmp_path)
+    image_bytes = png_bytes()
+    uploaded = api.post(
+        "/api/v1/equipment/showcase-1/images",
+        files={"file": ("showcase.png", image_bytes, "image/png")},
+    )
+    assert uploaded.status_code == 201
+    image_id = uploaded.json()["id"]
+    base = f"/api/v1/equipment/showcase-1/images/{image_id}/content"
+
+    response = api.get(base)
+    assert response.status_code == 200
+    assert response.content == image_bytes
+    assert response.headers["content-type"] == "image/png"
+    assert response.headers["cache-control"] == "private, no-store"
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+    other_equipment = api.get(f"/api/v1/equipment/showcase-2/images/{image_id}/content")
+    assert other_equipment.status_code == 404
+
+    saved = repository.get_image("showcase-1", image_id)
+    content, media_type, checksum = storage.objects[saved.storage_key]
+    storage.objects[saved.storage_key] = (content + b"altered", media_type, checksum)
+    corrupted = api.get(base)
+    assert corrupted.status_code == 503
+    assert corrupted.json()["detail"]["code"] == "object_storage_unavailable"
