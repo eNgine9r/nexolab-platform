@@ -105,7 +105,7 @@ curl -fsS http://127.0.0.1:18787/healthz
 python3 -m unittest discover -s tests -p 'test_quick_tunnel_preview_isolated.py'
 # On a second terminal of the same staging machine, only after separate approval
 # for publication and IT review:
-cloudflared tunnel --url http://127.0.0.1:18787 \\
+cloudflared tunnel --url http://127.0.0.1:18787 \
   --allowed-mail approved-tester@example.com
 ```
 
