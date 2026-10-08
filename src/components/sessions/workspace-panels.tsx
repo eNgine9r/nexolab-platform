@@ -148,7 +148,9 @@ export function TemperatureAndChart({ data }: { data: SessionWorkspaceData }) {
       <div className="panel p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[9px] font-semibold tracking-[0.16em] text-cyan-300 uppercase">Історія вимірювань</p>
+            <p className="text-[9px] font-semibold tracking-[0.16em] text-cyan-300 uppercase">
+              Історія вимірювань
+            </p>
             <h2 className="mt-2 text-sm font-semibold text-white">Температурний тренд · останні 24 години</h2>
           </div>
           <span className="rounded-full border border-white/[0.06] px-2.5 py-1 text-[8px] text-slate-500">
