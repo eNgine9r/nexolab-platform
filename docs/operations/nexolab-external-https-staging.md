@@ -133,6 +133,39 @@ origin mismatch, token-bearing query strings, exposed S3 port,
 wide-open WAN listener, missing local JWT/RBAC/MFA, active public route,
 and enabled Modbus writes.
 
+## Container vulnerability policy — independent release blocker (2026-10-08)
+
+Fresh GitHub Container Supply Chain run
+[37793481715](https://github.com/eNgine9r/nexolab-platform/actions/runs/37793481715)
+correctly **rejected** four unapproved `HIGH` Trivy records for
+`CVE-2026-19445` in the Device Agent distroless Debian 13 image:
+`libpython3.13-minimal`, `libpython3.13-stdlib`,
+`python3.13-minimal` and `python3.13-venv`, installed
+`3.13.5-2+deb13u5`. The CI merge gate rejected the failed supply-chain
+prerequisite; other independent functional pipelines passing does not lift
+this release blocker.
+
+- [Debian's source package tracker](https://security-tracker.debian.org/tracker/CVE-2026-19445)
+  lists Debian 13 Python 3.13 as affected with **no distro fixed version**.
+- The triggering condition is server-side `ssl.SSLContext.sni_callback`
+  changing a socket's `SSLContext` without preserving the original context
+  lifetime. TLS *clients* are not affected by this particular bug.
+- Inspected Device Agent `mqtt_tls.py`: it constructs outbound MQTT TLS
+  **client** contexts with certificate validation. Repository code search
+  found no `sni_callback` assignment in the Device Agent source. The
+  current Device Agent API is an internal-only HTTP service on :8081, not
+  an externally published TLS terminator.
+- This is a **bounded source-level reachability observation, not a
+  scanner waiver**. Dependency changes, library call paths or deployment
+  changes can invalidate the observation. External NEXOLAB must never
+  forward :8081 or device/serial buses to untrusted networks.
+- Security owner must separately review the full reachable runtime and
+  fresh CVE evidence. Prefer an upstream/distro patched image when
+  available. Do not loosen Trivy thresholds, introduce blanket exceptions,
+  substitute an unreviewed Python/runtime or mark CI green manually.
+- Until a reviewed policy-compliant remediation or explicitly authorized
+  bounded decision passes a fresh exact-head scan, **release remains NO-GO**.
+
 ## Additional hard gates before a production full-feature rollout
 
 1. Confirm that corporate IT permits connecting to the site from managed
