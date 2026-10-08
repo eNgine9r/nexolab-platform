@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-08T10:25:00Z",
+  "timestamp": "2026-10-08T11:30:45.972Z",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1306_code_candidate_reconciled_with_current_main",
+  "event": "issue_1309_shared_buildkit_cache_cross_branch_verified_green",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -1371,15 +1371,37 @@
     "issue_1306_ci_review": {
       "issue": 1306,
       "pr": 1280,
-      "state": "source_candidate_pre_final_gate",
-      "prior_source_head": "b4978c1726af9a26d77fa5b210996fbca0d5c6f2",
-      "updated_head": "86d61bf1a30505c04ac7cd2fa12ae5b013489f21",
-      "source_changes": "shared_main_cache_restore_only_PR_default_branch_verified_seed_and_frontend_context_allowlist",
-      "prior_workflows": "4_of_4_green",
-      "exact_head": "pending",
-      "risk": "main_cache_missing_until_seeded",
+      "state": "merged_green",
+      "merged_sha": "ee9738ab39ca369b8d49aec9971fdf25a2ed0b79",
+      "verified_final_head": "1beb52468531e5ab8f50bbe73989ba7a7e54ab69",
+      "review_threads_unresolved": 0,
+      "review_threads_resolved": 4,
+      "exact_head_workflows": {
+        "core": 37764355388,
+        "offline": 37764355025,
+        "telemetry": 37764355190,
+        "telegram": 37764355019
+      },
+      "offline_rollback": "verified_in_CI",
       "hardware": "not_touched",
       "production": "not_touched"
+    },
+    "issue_1309_ci_cache": {
+      "issue": 1309,
+      "status": "source_evidence_green_state_merge_pending",
+      "cache_key": "nexolab-offline-buildx-v3-Linux-amd64-main-ee9738ab39ca369b8d49aec9971fdf25a2ed0b79",
+      "scope": "refs/heads/main",
+      "bytes": 730097276,
+      "seed_run": 37765454910,
+      "cross_branch_restore_run": 37769230362,
+      "seed": "success",
+      "restore": "success_cache_hit",
+      "reused_layers": "CACHED",
+      "cold_seconds": 614,
+      "warm_seconds": 531,
+      "observed_difference_seconds": 83,
+      "site_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+      "hardware": "not_touched"
     }
   },
   "observations": [
@@ -2331,7 +2353,7 @@
       }
     }
   ],
-  "next_action": "Verify #1280 exact final head CI (Core, Offline Bundle, Telemetry, Telegram, Merge Gate); resolve two P2 review threads only if validated, merge GREEN. After merge, run trusted default-branch Offline Bundle dispatch to seed reusable BuildKit cache and collect actual timing. No production deployment.",
+  "next_action": "Finish #1309 state-only PR exact-head CI and merge if GREEN; afterward select a genuinely independent Ready Work Package from fresh GitHub and ACTIVE_SPRINT state. #1300 authenticated host UX audit remains separately gated. Never deploy the CI-only main merge to Raspberry without approval.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

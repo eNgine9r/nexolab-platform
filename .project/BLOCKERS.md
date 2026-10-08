@@ -2,9 +2,9 @@
 
 Updated: 2026-10-08
 
-## Issue #1306 — CI candidate implemented; merge gated by exact-head validation
+## Issues #1306 / #1309 — CI optimization complete; no remaining merge/cache blocker
 
-The two P2 source fixes are present in PR #1280: main-only verified BuildKit cache seeding with PR restore-only, and frontend-only Docker context. The previous head passed four workflows GREEN. The refreshed branch requires exact-head CI and resolution of the two review threads before merge; do not count the prior GREEN as final. After source merge, run one trusted main `workflow_dispatch` to actually seed the shared cache (or report cold-cache-only evidence). Production Raspberry deployment is out of scope.
+PR #1280 merged GREEN to `main` at `ee9738ab39ca369b8d49aec9971fdf25a2ed0b79` (Issue #1306 closed); all four P2/P1 review threads are resolved. Exact-head Core, Offline Bundle, Telemetry and Telegram workflows, including Merge Gate and offline/rollback proof, passed. Trusted main cache seed run `37765454910` saved v3 cache (730,097,276 bytes); cross-branch restore run `37769230362` proved `Cache hit` and offline/rollback success. No CI cache blocker remains. This is **not** proof of universal cache speedups or live Raspberry hardware acceptance. Main CI-only source `ee9738ab39ca369b8d49aec9971fdf25a2ed0b79` is not the installed site baseline; the Raspberry remains at `d00a83bfc83fb120777c721b5e46fa50ae455c7d`. Historical notes below are not current blockers.
 
 ## Issue #1307 — deployment blocker cleared; residual scope boundaries
 
