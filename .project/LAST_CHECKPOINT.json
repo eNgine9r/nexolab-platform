@@ -3,17 +3,17 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-08T08:04:22.149Z",
+  "timestamp": "2026-10-08T09:38:00Z",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1304_source_accepted_pre_final_state_checkpoint",
+  "event": "issue_1307_actual_host_deployment_passed_reconciled",
   "baselines": {
-    "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
-    "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
-    "frontend_compatibility_source_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
-    "frontend_build_id": "Up0mYuGscMzOz00Qyyacp",
-    "frontend_release": "runtime/frontend-releases/75d9c75f8d1901d6b639ec711bf3784e22ed0642-20261007T061059Z",
-    "frontend_rollback_release": "runtime/frontend-releases/d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54-20261003T084758Z",
-    "frontend_runtime_evidence": "runtime/deployments/20261007T061059Z",
+    "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+    "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+    "frontend_compatibility_source_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+    "frontend_build_id": "hA8usmV6ZKwgZUYhmOLHZ",
+    "frontend_release": "runtime/frontend-releases/d00a83bfc83fb120777c721b5e46fa50ae455c7d-20261008T092219Z",
+    "frontend_rollback_release": "runtime/frontend-releases/75d9c75f8d1901d6b639ec711bf3784e22ed0642-20261007T061059Z",
+    "frontend_runtime_evidence": "runtime/deployments/20261008T092219Z",
     "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
     "sdm120_candidate_device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
     "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
@@ -23,9 +23,9 @@
     "sdm120_production_adapter": "A10Q34QC",
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
-    "deployed_runtime_evidence": "runtime/deployments/20261007T061059Z",
-    "deployed_device_agent_image_id": "sha256:5344b4bef506d89923afd39413ee1bd7d1bb668ac1d123ed899a6d22fa58b957",
-    "deployed_device_agent_rollback_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
+    "deployed_runtime_evidence": "runtime/deployments/20261008T092219Z",
+    "deployed_device_agent_image_id": "sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323",
+    "deployed_device_agent_rollback_image_id": "sha256:5344b4bef506d89923afd39413ee1bd7d1bb668ac1d123ed899a6d22fa58b957",
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "active_work": null,
@@ -1349,6 +1349,24 @@
         "merge_gate": "success_37746833296",
         "final_state_checkpoint": "pending_exact_head"
       }
+    },
+    "issue_1307_deployment": {
+      "issue": 1307,
+      "target_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+      "previous_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+      "evidence_path": "runtime/deployments/20261008T092219Z",
+      "frontend_build_id": "hA8usmV6ZKwgZUYhmOLHZ",
+      "result": "DEPLOYMENT PASSED",
+      "checks": "http_readiness_all_200",
+      "hardware": "read_only_sampled_not_formal_acceptance",
+      "offline": "unverified",
+      "postgresql_backup": "present",
+      "edge_sqlite_backup": "present",
+      "mqtt": "connected",
+      "queue": 0,
+      "workers": "3_of_3",
+      "degraded_endpoints": 0,
+      "modbus_write": "none"
     }
   },
   "observations": [
@@ -2300,7 +2318,7 @@
       }
     }
   ],
-  "next_action": "Verify #1305 final exact-head CI, all required browser workflows and Merge Gate GREEN; then merge and close #1304. No site deployment or production credential reuse. Select next independent Ready UX package afterward.",
+  "next_action": "Verify docs/state PR exact-head CI and merge if GREEN; then continue next independent Ready Work Package (#1306 CI P2 review) while keeping Wave 2 #1300 authenticated production audit separately gated. No additional Raspberry deployment required.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

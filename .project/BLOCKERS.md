@@ -2,6 +2,10 @@
 
 Updated: 2026-10-08
 
+## Issue #1307 — deployment blocker cleared; residual scope boundaries
+
+RDC privilege execution was performed by Product Owner in the Raspberry terminal; reviewed deployment completed with `DEPLOYMENT PASSED` on `d00a83bfc83fb120777c721b5e46fa50ae455c7d` and post-activation HTTP readiness 200. Existing PostgreSQL and SQLite rollback snapshots preserved at `runtime/deployments/20261008T092219Z`. A temporary degraded acquisition endpoint recovered automatically; three RS-485 bus workers are healthy and sampling. **No current #1307 source/site deployment blocker.** Real-device protocol-level acceptance, sustained disconnected runtime and UX audit #1300 remain separate unverified gates. Logs include `du` permission warnings for a few historical Telegram evidence folders even though capacity preflight passed; review separately without deleting protected evidence. Compose reports legacy Telegram container as orphan; do not remove without separate ownership review.
+
 ## Issue #1304 — actual-host acceptance remains separate
 
 PR #1305 covers isolated seeded browser fixtures. This is not a source-merge blocker once final exact-head CI/review are GREEN. Real-host operator evidence using the previously consumed #1300 credential is prohibited; fresh authorization would be required for any later production-authenticated test. The site remains on product source `75d9c75f8d1901d6b639ec711bf3784e22ed0642`. No deployment or hardware write is part of #1304.

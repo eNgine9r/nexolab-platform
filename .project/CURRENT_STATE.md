@@ -2,6 +2,12 @@
 
 Updated: 2026-10-08
 
+## Issue #1307 — Raspberry Pi controlled deployment to d00a83bf (actual-host PASSED)
+
+Product Owner authorized the update. On `nexolab-edge-01` the reviewed `scripts/deploy-current-head-raspberry-pi.sh` deployed exact source `d00a83bfc83fb120777c721b5e46fa50ae455c7d` using native ARM64 artifact from Frontend Release Artifact GitHub run `37751399612` (successful; source/platform/public-contract/checksums verified). The site log at `runtime/deployments/20261008T092219Z/summary.txt` states `DEPLOYMENT PASSED` at 2026-10-08 12:35:44 EEST. Previous deployed source `75d9c75f8d1901d6b639ec711bf3784e22ed0642` and release `runtime/frontend-releases/75d9c75f8d1901d6b639ec711bf3784e22ed0642-20261007T061059Z` were retained for rollback. PostgreSQL pre-upgrade dump, runtime evidence archive, edge SQLite snapshot and capacity preflight exist and have nonzero sizes.
+
+Read-only actual-host follow-up at ~12:36–12:38 EEST verified runtime dashboard identity `d00a83bfc83fb120777c721b5e46fa50ae455c7d` and build ID `hA8usmV6ZKwgZUYhmOLHZ`; Dashboard, telemetry/API, Device Agent, Prometheus, Alertmanager, Grafana, and object-storage readiness all HTTP 200. Core containers remain running. Initial transient `degraded` acquisition state on rs485-main (one protocol error) recovered without intervention: Device Agent `status=ok`, MQTT connected, queue 0, active/expected bus workers 3/3, degraded endpoints 0, cooldown endpoints 0, samples advancing (149 → 237 → 325). No Modbus/controller write, hardware write, data reset, volume removal, DNS/billing changes, or restart outside the reviewed deployment occurred. Long-duration offline/disconnected-runtime testing and physical hardware acceptance remain **unverified**, notwithstanding read-only sample evidence. The older UX audit #1300 still requires its own authorization and is not cleared by this rollout.
+
 ## Issue #1304 — isolated Sessions → Reports operator acceptance (source GREEN)
 
 Pre-final source head `65631e4f6381cb5f567e580db9db6b27232186b0` passed Reports Browser `37746833321`, Test Sessions Browser `37746833286`, Core Quality/build and NEXOLAB Merge Gate `37746833296`. A final exact-head gate is still required after this checkpoint-only update, before merge. Actual-host deployment and hardware acceptance remain unverified.
