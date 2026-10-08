@@ -23,6 +23,16 @@ RUN mkdir -p /opt/runtime-data \
               /usr/local/lib/python3.13/site-packages/setuptools-*.dist-info \
               /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.13
 
+# The minimal distroless base omits Python's SQLite shared library, even
+# though the upstream Python standard library needs it for acquisition state.
+# Copy only the real ABI-matched library from the pinned build stage.
+# Its Debian package provenance/version must remain part of the release review.
+RUN mkdir -p /opt/runtime-libs \
+    && sqlite_lib="$(find /usr/lib -name libsqlite3.so.0 -print -quit)" \
+    && test -n "$sqlite_lib" \
+    && cp -L "$sqlite_lib" /opt/runtime-libs/libsqlite3.so.0 \
+    && chmod 0644 /opt/runtime-libs/libsqlite3.so.0
+
 FROM gcr.io/distroless/base-debian13:nonroot
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -32,6 +42,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 COPY --from=builder --chown=nonroot:nonroot /usr/local /usr/local
+COPY --from=builder --chown=nonroot:nonroot /opt/runtime-libs /usr/local/lib
 COPY --from=builder --chown=nonroot:nonroot /opt/app /app
 COPY --from=builder --chown=nonroot:nonroot /opt/runtime-data /var/lib/nexolab
 
