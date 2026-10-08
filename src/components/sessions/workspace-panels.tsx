@@ -40,7 +40,7 @@ const CONNECTION_LABELS: Record<WorkspaceConnectionState, string> = {
   connecting: "Підключення",
   live: "Live",
   stale: "Застарілі дані",
-  offline: "Offline · cached snapshot",
+  offline: "Офлайн · кешовані дані",
   error: "Помилка",
 };
 
@@ -93,7 +93,7 @@ export function SessionHero({
             icon={Clock3}
           />
           <HeroMetric label="Node" value={session.node_id} icon={RadioTower} />
-          <HeroMetric label="Limits" value={`v${session.active_limit_version ?? "—"}`} icon={Gauge} />
+          <HeroMetric label="Обмеження" value={`v${session.active_limit_version ?? "—"}`} icon={Gauge} />
           <HeroMetric
             label="Snapshot"
             value={session.active_config_snapshot_id ? "Frozen" : "Pending"}
@@ -380,7 +380,7 @@ export function ConfigurationEvidence({ data }: { data: SessionWorkspaceData }) 
         <Info label="Bindings" value={`${data.configuration.bindings.length} / 34`} />
         <Info
           label="Limits"
-          value={`v${data.session.active_limit_version ?? "—"} · ${data.configuration.active_limits.length} rules`}
+          value={`v${data.session.active_limit_version ?? "—"} · ${data.configuration.active_limits.length} правил`}
         />
         <Info label="Snapshots" value={String(data.configuration.snapshots.length)} />
         <Info
