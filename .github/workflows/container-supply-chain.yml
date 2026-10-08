@@ -201,6 +201,9 @@ jobs:
             --entrypoint /usr/local/bin/python3 \
             "$LOCAL_IMAGE" \
             -c 'import os,sys,ssl,sqlite3,hashlib,tarfile,serial,paho.mqtt.client; assert (3,13,16) <= sys.version_info[:3] < (3,14,0); assert os.geteuid() != 0; print("fixed Python, TLS, SQLite, Modbus UART/MQTT imports and nonroot: OK")'
+          # Existing recovery/rollback scripts can invoke /usr/bin/python3.13.
+          docker run --rm --network none --entrypoint /usr/bin/python3 "$LOCAL_IMAGE" -c 'import os,sys; assert sys.version_info[:3] >= (3,13,16); assert os.geteuid() != 0'
+          docker run --rm --network none --entrypoint /usr/bin/python3.13 "$LOCAL_IMAGE" -c 'import os,sys; assert sys.version_info[:3] >= (3,13,16); assert os.geteuid() != 0'
 
       - name: Verify Telegram Gateway runtime Python and native dependencies
         if: matrix.id == 'telegram-gateway'
@@ -210,6 +213,9 @@ jobs:
             --entrypoint /usr/local/bin/python3 \
             "$LOCAL_IMAGE" \
             -c 'import os,sys,ssl,sqlite3,fastapi,pydantic,uvicorn; assert (3,13,16) <= sys.version_info[:3] < (3,14,0); assert os.geteuid() != 0; print("fixed Python, TLS, SQLite, FastAPI/Uvicorn and nonroot: OK")'
+          # Existing recovery/rollback scripts can invoke /usr/bin/python3.13.
+          docker run --rm --network none --entrypoint /usr/bin/python3 "$LOCAL_IMAGE" -c 'import os,sys; assert sys.version_info[:3] >= (3,13,16); assert os.geteuid() != 0'
+          docker run --rm --network none --entrypoint /usr/bin/python3.13 "$LOCAL_IMAGE" -c 'import os,sys; assert sys.version_info[:3] >= (3,13,16); assert os.geteuid() != 0'
 
       - name: Prepare evidence directory
         run: mkdir -p "$EVIDENCE_DIR"
