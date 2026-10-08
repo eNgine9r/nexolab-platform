@@ -39,6 +39,7 @@ import {
 } from "@/lib/reports/session-navigation";
 import { createSessionApiClient } from "@/lib/sessions/api-client";
 import type { LaboratorySession } from "@/lib/sessions/types";
+import { SESSION_STATE_LABELS } from "@/lib/sessions/view-model";
 
 function formatDate(value: string, displayTimeZone: string): string {
   return formatOperationalTimestamp(new Date(value), displayTimeZone, {
@@ -313,7 +314,7 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
                 {sessions.length === 0 ? <option value="">Немає завершених випробувань</option> : null}
                 {sessions.map((session) => (
                   <option key={session.id} value={session.id}>
-                    {session.session_number} · {session.test_object} · {session.state}
+                    {session.session_number} · {session.test_object} · {SESSION_STATE_LABELS[session.state]}
                   </option>
                 ))}
               </select>
