@@ -2,11 +2,11 @@
 
 Updated: 2026-10-08
 
-## Issue #1302 — no source blocker; deployment remains separate
+## Issue #1302 — source localization verification GREEN; site activation separate
 
-The copy-only localization candidate is restricted to Sessions/Reports operator labels and focused tests. No API, acquisition, protocol or permission changes are included. Exact-head CI and browser checks are pending; no product-completion or runtime-activation claim is made before they pass.
+The focused Sessions/Reports localization PR #1303 has passed Core Quality/build, Reports Browser, Test Sessions Browser, Rendered Reports Browser, Disaster Recovery Browser and NEXOLAB Merge Gate on implementation head `e3d2fb28b1166a3a95ec51e87fe864b1a3c88db9`. Code review feedback about confusing configuration snapshots with measurement data was addressed, and the translated E2E assertions were corrected. There is no outstanding **source acceptance** blocker.
 
-The real-host UX route audit #1300 is still draft/in review with keyboard and role-specific acceptance unverified. Its previously approved one-time credential use has been consumed; further access needs a new authorization. Stable NEXOLAB monitoring runtime is not blocked by #1302.
+This does not imply Raspberry production frontend deployment or actual-site acceptance. Stable live runtime remains unchanged. The real-host UX audit #1300 remains draft/in review for keyboard, role and completed-session context evidence; its one-time service-credential authorization was consumed. Further real-host authentication requires a new approval. No Modbus/hardware write or production data mutation occurred.
 
 ## Issue #1295 — software acceptance cleared; production activation separate
 
