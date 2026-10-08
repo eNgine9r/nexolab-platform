@@ -148,7 +148,7 @@ export function TemperatureAndChart({ data }: { data: SessionWorkspaceData }) {
       <div className="panel p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[9px] font-semibold tracking-[0.16em] text-cyan-300 uppercase">Live history</p>
+            <p className="text-[9px] font-semibold tracking-[0.16em] text-cyan-300 uppercase">Історія вимірювань</p>
             <h2 className="mt-2 text-sm font-semibold text-white">Температурний тренд · останні 24 години</h2>
           </div>
           <span className="rounded-full border border-white/[0.06] px-2.5 py-1 text-[8px] text-slate-500">
@@ -174,16 +174,16 @@ export function EnergyGrid({ samples }: { samples: AttributedTelemetrySample[] }
           <article key={unit.equipmentId} className="bg-[#0a1f3d] p-5">
             <div className="flex items-center justify-between">
               <p className="font-mono text-[10px] text-cyan-300">{unit.equipmentId}</p>
-              <span className="text-[8px] text-slate-500">quality: {unit.quality}</span>
+              <span className="text-[8px] text-slate-500">Якість: {unit.quality}</span>
             </div>
             <p className="mt-4 text-2xl font-semibold text-white">
               {number(unit.activePower)} <span className="text-[10px] text-slate-500">W</span>
             </p>
             <dl className="mt-4 grid grid-cols-2 gap-3 text-[9px]">
-              <MetricTerm label="Voltage" value={`${number(unit.voltage)} V`} />
-              <MetricTerm label="Current" value={`${number(unit.current)} A`} />
-              <MetricTerm label="Frequency" value={`${number(unit.frequency)} Hz`} />
-              <MetricTerm label="Power factor" value={number(unit.powerFactor)} />
+              <MetricTerm label="Напруга" value={`${number(unit.voltage)} V`} />
+              <MetricTerm label="Струм" value={`${number(unit.current)} A`} />
+              <MetricTerm label="Частота" value={`${number(unit.frequency)} Hz`} />
+              <MetricTerm label="Коефіцієнт потужності" value={number(unit.powerFactor)} />
             </dl>
           </article>
         ))}
@@ -399,7 +399,7 @@ export function ConfigurationEvidence({ data }: { data: SessionWorkspaceData }) 
         />
         <Info label="Знімки даних" value={String(data.configuration.snapshots.length)} />
         <Info
-          label="Content SHA-256"
+          label="SHA-256 вмісту"
           value={data.configuration.active_snapshot?.content_sha256.slice(0, 16) ?? "очікується"}
           mono
         />
