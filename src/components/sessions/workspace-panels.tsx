@@ -106,7 +106,7 @@ export function SessionHero({
           <HeroMetric label="Вузол" value={session.node_id} icon={RadioTower} />
           <HeroMetric label="Обмеження" value={`v${session.active_limit_version ?? "—"}`} icon={Gauge} />
           <HeroMetric
-            label="Знімок даних"
+            label="Знімок конфігурації"
             value={session.active_config_snapshot_id ? "Зафіксовано" : "Очікується"}
             icon={ShieldCheck}
           />
