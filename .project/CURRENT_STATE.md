@@ -2,7 +2,9 @@
 
 Updated: 2026-10-08
 
-## Issue #1304 — isolated Sessions → Reports keyboard/permission acceptance (active)
+## Issue #1304 — isolated Sessions → Reports operator acceptance (source GREEN)
+
+Pre-final source head `65631e4f6381cb5f567e580db9db6b27232186b0` passed Reports Browser `37746833321`, Test Sessions Browser `37746833286`, Core Quality/build and NEXOLAB Merge Gate `37746833296`. A final exact-head gate is still required after this checkpoint-only update, before merge. Actual-host deployment and hardware acceptance remain unverified.
 
 #1302 was merged through PR #1303 at `cc82f7eb90c40a1e8456772e3301edf0e5f979df`. The next focused Work Package is #1304, PR #1305 (`test/1304-sessions-reports-operator-acceptance`). Source tests target draft/running/completed/archived session report affordances, keyboard Tab/Shift+Tab/Enter/Escape and focus restoration, report generation versus read-only access, foreign-organization rejection and responsive overflow at 360/390/430/1440 CSS px. CI acceptance is assessed only at the final exact PR head; do not mistake intermediate GREEN workflows for final approval.
 

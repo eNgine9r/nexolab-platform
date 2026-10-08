@@ -40,9 +40,7 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1304
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -50,7 +48,7 @@
       "issue": 1304,
       "title": "Sessions/Reports isolated keyboard, role and report-context acceptance",
       "priority": "medium",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1302
       ],
@@ -84,7 +82,16 @@
         "actual_host_acceptance": "unverified",
         "required_ci": "final_exact_head_green_required",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "source_acceptance": "pre_final_code_head_green_pending_final_state_checkpoint_gate",
+        "verified_head_sha": "65631e4f6381cb5f567e580db9db6b27232186b0",
+        "checks": {
+          "reports_browser": "success_37746833321",
+          "test_sessions_browser": "success_37746833286",
+          "core_quality_and_build": "success_37746833296",
+          "merge_gate": "success_37746833296",
+          "final_state_checkpoint": "pending_exact_head"
+        }
       }
     },
     {
