@@ -404,7 +404,7 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
             spin
           />
         ) : error && reports.length === 0 ? (
-          <Status icon={WifiOff} title="Reports API недоступний" detail={error.message} />
+          <Status icon={WifiOff} title="API звітів недоступний" detail={error.message} />
         ) : reports.length === 0 ? (
           <Status
             icon={Archive}
