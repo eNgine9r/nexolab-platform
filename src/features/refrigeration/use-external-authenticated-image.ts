@@ -16,10 +16,11 @@ export function useExternalAuthenticatedImage(
   image: EquipmentImageMetadata | null,
 ): string | null {
   const stageEnabled = process.env.NEXT_PUBLIC_NEXOLAB_EXTERNAL_HTTPS_STAGE === "true";
-  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState<{ key: string; url: string } | null>(null);
   const imageId = image?.id ?? null;
   const originalUrl = image?.sourceUrl ?? null;
   const expectedMime = image?.mimeType ?? null;
+  const imageKey = imageId ? `${equipmentId}:${imageId}` : null;
 
   useEffect(() => {
     if (!stageEnabled || !imageId || imageId.startsWith("local-") || !expectedMime) {
@@ -28,7 +29,6 @@ export function useExternalAuthenticatedImage(
     const apiBaseUrl = process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL?.trim();
     const controller = new AbortController();
     let ownedUrl: string | null = null;
-    setObjectUrl(null);
 
     if (!apiBaseUrl) return;
 
@@ -64,7 +64,7 @@ export function useExternalAuthenticatedImage(
         const blob = await response.blob();
         if (controller.signal.aborted || blob.size > 16 * 1024 * 1024 || blob.type !== expectedMime) return;
         ownedUrl = URL.createObjectURL(blob);
-        setObjectUrl(ownedUrl);
+        setLoaded({ key: `${equipmentId}:${imageId}`, url: ownedUrl });
       } catch {
         // Fail closed: no fallback to the private signed URL.
       }
@@ -78,5 +78,5 @@ export function useExternalAuthenticatedImage(
 
   if (!image || !originalUrl) return null;
   if (!stageEnabled || imageId?.startsWith("local-")) return originalUrl;
-  return objectUrl;
+  return loaded?.key === imageKey ? loaded.url : null;
 }
