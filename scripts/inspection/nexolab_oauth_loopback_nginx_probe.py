@@ -26,6 +26,7 @@ NEEDED = (
     "proxy_pass http://REPLACE_WITH_APPROVED_PRIVATE_API_IP:8082;",
     "proxy_pass http://127.0.0.1:3100;",
     "include /etc/nginx/mime.types;",
+    "absolute_redirect off;",
 )
 
 
