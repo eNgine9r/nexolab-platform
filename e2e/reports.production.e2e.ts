@@ -207,7 +207,7 @@ test("production reports preserve immutable selected evidence across API, UI and
     }
 
     await engineerPage
-      .getByPlaceholder("Контрольований evidence export…")
+      .getByPlaceholder("Причина формування звіту…")
       .fill("Production browser evidence");
     await engineerPage.getByTestId("generate-report").click();
     await expect(engineerPage.getByTestId("report-detail")).toContainText("Версія звіту 1");
