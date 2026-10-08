@@ -40,10 +40,51 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": 1304,
     "next_work_package": null
   },
   "work_packages": [
+    {
+      "issue": 1304,
+      "title": "Sessions/Reports isolated keyboard, role and report-context acceptance",
+      "priority": "medium",
+      "lifecycle": "needs_validation",
+      "depends_on": [
+        1302
+      ],
+      "branch": "test/1304-sessions-reports-operator-acceptance",
+      "evidence": {
+        "parent_issue": 1191,
+        "related_audit_issue": 1300,
+        "pull_request": 1305,
+        "scope": "isolated_fixture_browser_acceptance_only",
+        "widths_css_px": [
+          360,
+          390,
+          430,
+          1440
+        ],
+        "scenarios": [
+          "draft_no_report_action",
+          "running_no_report_action",
+          "completed_reader_vs_generator",
+          "archived_report_link",
+          "foreign_organization_rejected",
+          "keyboard_focus_navigation",
+          "responsive_overflow"
+        ],
+        "source_files_changed": [
+          "e2e/test-sessions.production.e2e.ts",
+          "e2e/reports.production.e2e.ts"
+        ],
+        "production_credentials": "not_used_one_time_1300_consumed",
+        "production_deployment": "not_performed",
+        "actual_host_acceptance": "unverified",
+        "required_ci": "final_exact_head_green_required",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
     {
       "issue": 1302,
       "title": "Normalize Sessions and Reports operator-facing labels to Ukrainian",

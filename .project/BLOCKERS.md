@@ -2,6 +2,10 @@
 
 Updated: 2026-10-08
 
+## Issue #1304 — actual-host acceptance remains separate
+
+PR #1305 covers isolated seeded browser fixtures. This is not a source-merge blocker once final exact-head CI/review are GREEN. Real-host operator evidence using the previously consumed #1300 credential is prohibited; fresh authorization would be required for any later production-authenticated test. The site remains on product source `75d9c75f8d1901d6b639ec711bf3784e22ed0642`. No deployment or hardware write is part of #1304.
+
 ## Issue #1302 — source localization verification GREEN; site activation separate
 
 The focused Sessions/Reports localization PR #1303 has passed Core Quality/build, Reports Browser, Test Sessions Browser, Rendered Reports Browser, Disaster Recovery Browser and NEXOLAB Merge Gate on implementation head `e3d2fb28b1166a3a95ec51e87fe864b1a3c88db9`. Code review feedback about confusing configuration snapshots with measurement data was addressed, and the translated E2E assertions were corrected. There is no outstanding **source acceptance** blocker.

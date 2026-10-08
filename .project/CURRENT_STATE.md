@@ -2,6 +2,12 @@
 
 Updated: 2026-10-08
 
+## Issue #1304 — isolated Sessions → Reports keyboard/permission acceptance (active)
+
+#1302 was merged through PR #1303 at `cc82f7eb90c40a1e8456772e3301edf0e5f979df`. The next focused Work Package is #1304, PR #1305 (`test/1304-sessions-reports-operator-acceptance`). Source tests target draft/running/completed/archived session report affordances, keyboard Tab/Shift+Tab/Enter/Escape and focus restoration, report generation versus read-only access, foreign-organization rejection and responsive overflow at 360/390/430/1440 CSS px. CI acceptance is assessed only at the final exact PR head; do not mistake intermediate GREEN workflows for final approval.
+
+All new tests run on isolated CI/fixture infrastructure; no production credentials were used or authorized again. #1300's one-time credential is consumed. Actual-site acceptance for these newly added tests and deployment of post-`75d9c75f8d1901d6b639ec711bf3784e22ed0642` sources are **not verified**. No Modbus/controller write, hardware write, site cutover or production session/report mutation was performed.
+
 ## Issue #1302 — Ukrainian operator labels in Sessions and Reports (software accepted)
 
 Issue #1302 addresses source-confirmed mixed-language captions within the Sessions → Reports operator journey, reported under parent #1191 and authenticated Wave 2 #1300. The focused `fix/1302-localize-sessions-reports-labels` candidate translates visible navigation context, loading/error/readonly states, session hero metrics, stage names, report generation/report detail metadata and audit/configuration captions into Ukrainian. Underlying `SessionStageType` values, API/permission codes, stable data selectors, CSV/JSON, SHA-256 and application business logic remain unchanged. Focused localization unit coverage was added in both components.
