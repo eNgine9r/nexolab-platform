@@ -54,7 +54,15 @@ def http_get(port: int, target: str, *, cookie: str = "", upgrade: bool = False,
 def wait_for_service(port: int, proc: subprocess.Popen[bytes]) -> None:
     for _ in range(80):
         if proc.poll() is not None:
-            raise AssertionError("synthetic service exited prematurely")
+            diagnostic = proc.stderr.read(2400).decode("utf-8", "replace") if proc.stderr else ""
+            # Explicitly synthetic inputs only: never run this probe with real
+            # Google credentials or a real operator allowlist.
+            safe_diagnostics = [line for line in diagnostic.splitlines()
+                                if ("error" in line.lower() or "fatal" in line.lower())]
+            raise AssertionError(
+                "synthetic OAuth server exited before opening loopback: "
+                + ("; ".join(safe_diagnostics[-3:])[:800] or "no matching error diagnostics")
+            )
         try:
             http_get(port, "/oauth2/auth")
             return
