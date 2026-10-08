@@ -40,7 +40,9 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "selection": {
-    "active_work_package": 1304,
+    "active_work_package": {
+      "issue": 1304
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -48,7 +50,7 @@
       "issue": 1304,
       "title": "Sessions/Reports isolated keyboard, role and report-context acceptance",
       "priority": "medium",
-      "lifecycle": "needs_validation",
+      "lifecycle": "review",
       "depends_on": [
         1302
       ],
