@@ -1,0 +1,25 @@
+# Limit dashboard context to actual Next.js build inputs.
+*
+!src/
+!src/**
+!public/
+!public/**
+!package.json
+!package-lock.json
+!next.config.ts
+!postcss.config.mjs
+!tsconfig.json
+!next-env.d.ts
+.git
+.ci
+dist
+node_modules
+.next
+coverage
+playwright-report*
+test-results*
+__pycache__
+**/__pycache__
+*.pyc
+**/*.pyc
+.pytest_cache

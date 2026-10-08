@@ -13,6 +13,8 @@ OFFLINE_BUILDER = ROOT / "scripts" / "build-offline-bundle.sh"
 PRESERVATION = ROOT / "scripts" / "verify-offline-volume-preservation.sh"
 INSTALLER = ROOT / "scripts" / "install-offline-bundle.sh"
 SMOKE = ROOT / "scripts" / "offline-bundle-smoke.sh"
+DASHBOARD_DOCKERIGNORE = ROOT / "infrastructure" / "offline" / "Dockerfile.dashboard.dockerignore"
+DASHBOARD_DOCKERFILE = ROOT / "infrastructure" / "offline" / "Dockerfile.dashboard"
 
 
 class OfflineBundleWorkflowContractTests(unittest.TestCase):
@@ -23,6 +25,134 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         cls.preservation = PRESERVATION.read_text(encoding="utf-8")
         cls.installer = INSTALLER.read_text(encoding="utf-8")
         cls.smoke = SMOKE.read_text(encoding="utf-8")
+        cls.dashboard_dockerignore = DASHBOARD_DOCKERIGNORE.read_text(encoding="utf-8")
+        cls.dashboard_dockerfile = DASHBOARD_DOCKERFILE.read_text(encoding="utf-8")
+
+    def test_dashboard_prunes_production_dependencies_before_source_copy(self) -> None:
+        production_stage = self.dashboard_dockerfile.index("FROM dependencies AS production-dependencies")
+        prune_index = self.dashboard_dockerfile.index("npm prune --omit=dev")
+        builder_stage = self.dashboard_dockerfile.index("FROM dependencies AS builder")
+        source_copy = self.dashboard_dockerfile.index("COPY . .")
+        runtime_copy = self.dashboard_dockerfile.index("COPY --from=production-dependencies")
+        self.assertLess(production_stage, prune_index)
+        self.assertLess(prune_index, builder_stage)
+        self.assertLess(builder_stage, source_copy)
+        self.assertGreater(runtime_copy, source_copy)
+
+    def test_dashboard_source_identity_does_not_invalidate_expensive_build(self) -> None:
+        build_index = self.dashboard_dockerfile.index("&& npm run build")
+        source_arg_index = self.dashboard_dockerfile.index("ARG NEXOLAB_SOURCE_COMMIT")
+        identity_index = self.dashboard_dockerfile.index("identity_source")
+        self.assertLess(build_index, source_arg_index)
+        self.assertLess(source_arg_index, identity_index)
+
+    def test_dashboard_build_context_excludes_ci_generated_cache_busters(self) -> None:
+        ignored = set(self.dashboard_dockerignore.splitlines())
+        for path in (
+            ".git",
+            ".ci",
+            "dist",
+            "node_modules",
+            ".next",
+            "__pycache__",
+            "**/__pycache__",
+            "*.pyc",
+            "**/*.pyc",
+            ".pytest_cache",
+        ):
+            self.assertIn(path, ignored)
+
+    def test_offline_builder_parallelizes_sbom_with_bounded_workers_and_safe_compression_fallback(self) -> None:
+        self.assertIn('SBOM_JOBS="${NEXOLAB_SBOM_JOBS:-3}"', self.offline_builder)
+        self.assertIn("NEXOLAB_SBOM_JOBS must be an integer between 1 and 6", self.offline_builder)
+        self.assertIn('generate_sbom_pair "$logical_id" "$image" &', self.offline_builder)
+        self.assertIn('wait_for_sbom_batch "${sbom_pids[@]}"', self.offline_builder)
+        self.assertIn("command -v pigz", self.offline_builder)
+        self.assertIn('tar --create --file - --directory "$OUTPUT_DIR" "$BUNDLE_NAME" | pigz', self.offline_builder)
+        self.assertIn('tar --create --file - --directory "$OUTPUT_DIR" "$BUNDLE_NAME" | gzip', self.offline_builder)
+
+    def test_offline_builder_uses_bounded_persistent_buildkit_cache(self) -> None:
+        self.assertIn("NEXOLAB_BUILDX_CACHE_ROOT", self.offline_builder)
+        self.assertIn('--cache-from "type=local,src=$cache_src"', self.offline_builder)
+        self.assertIn('--cache-to "type=local,dest=$cache_dest,mode=max"', self.offline_builder)
+        self.assertIn("Restore trusted default-branch BuildKit cache", self.workflow)
+        self.assertIn("actions/cache/restore@v4", self.workflow)
+        self.assertIn("actions/cache/save@v4", self.workflow)
+        self.assertIn("nexolab-offline-buildx-v3-", self.workflow)
+        self.assertIn(
+            "NEXOLAB_BUILDX_CACHE_ROOT: ${{ runner.temp }}/nexolab-offline-buildx-cache",
+            self.workflow,
+        )
+
+    def test_backend_builds_never_import_persistent_package_resolution_cache(self) -> None:
+        # Exercise the exact build_image() shell function with a fake Docker CLI:
+        # no builds or package installations are performed by this test.
+        function = self.offline_builder.split("build_image() {", 1)[1].split(
+            "\nbuild_image dashboard ", 1
+        )[0]
+        function = "build_image() {" + function
+        for cache_id in ("telemetry", "device-agent", "object-storage"):
+            with self.subTest(cache_id=cache_id):
+                with tempfile.TemporaryDirectory() as temporary:
+                    probe = (
+                        "set -euo pipefail\n"
+                        "PLATFORM=linux/amd64\n"
+                        "SOURCE_COMMIT=0123456789abcdef0123456789abcdef01234567\n"
+                        "VERSION=ci\n"
+                        f"BUILDX_CACHE_ROOT={temporary!r}\n"
+                        'docker() { printf "%s\\n" "$@"; }\n'
+                        + function
+                        + f'\nbuild_image {cache_id} test-image /Dockerfile /context\n'
+                    )
+                    output = subprocess.run(
+                        ["bash", "-c", probe],
+                        capture_output=True,
+                        text=True,
+                        check=True,
+                    ).stdout.splitlines()
+                    self.assertIn("--no-cache", output)
+                    self.assertNotIn("--cache-from", output)
+                    self.assertNotIn("--cache-to", output)
+
+    def test_persistent_cache_is_scoped_to_frontend(self) -> None:
+        function = self.offline_builder.split("build_image() {", 1)[1].split(
+            "\nbuild_image dashboard ", 1
+        )[0]
+        self.assertIn('if [[ "$cache_id" != "dashboard" ]]; then', function)
+        self.assertIn('cache_args+=(--no-cache)', function)
+        self.assertIn('elif [[ -n "$BUILDX_CACHE_ROOT" ]]; then', function)
+        self.assertIn('--cache-from "type=local,src=$cache_src"', function)
+        self.assertIn('--cache-to "type=local,dest=$cache_dest,mode=max"', function)
+
+    def test_shared_buildkit_cache_is_seeded_by_main_only(self) -> None:
+        self.assertIn("id: buildx_cache_restore", self.workflow)
+        self.assertIn("uses: actions/cache/restore@v4", self.workflow)
+        self.assertIn("uses: actions/cache/save@v4", self.workflow)
+        self.assertIn("github.event_name == 'workflow_dispatch'", self.workflow)
+        self.assertIn("github.ref == 'refs/heads/main'", self.workflow)
+        self.assertIn("steps.buildx_cache_restore.outputs.cache-hit != 'true'", self.workflow)
+        self.assertIn("-main-${{ github.sha }}", self.workflow)
+        self.assertNotIn("nexolab-offline-buildx-v1-", self.workflow)
+        self.assertNotIn("nexolab-offline-buildx-v2-", self.workflow)
+        self.assertLess(
+            self.workflow.index("Prove update and rollback preserve persistent data"),
+            self.workflow.index("Save verified default-branch BuildKit seed"),
+        )
+
+    def test_dashboard_context_uses_a_frontend_allowlist(self) -> None:
+        lines = {
+            line.strip()
+            for line in self.dashboard_dockerignore.splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        }
+        for expected in (
+            "*", "!src/", "!src/**", "!package.json", "!package-lock.json",
+            "!next.config.ts", "!postcss.config.mjs", "!tsconfig.json",
+        ):
+            self.assertIn(expected, lines)
+        for excluded in ("!services/**", "!infrastructure/**", "!docs/**"):
+            self.assertNotIn(excluded, lines)
+        self.assertIn("COPY . .", self.dashboard_dockerfile)
 
     def test_dispatch_exposes_bounded_recovery_inputs(self) -> None:
         for input_name in (

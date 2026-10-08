@@ -2,9 +2,9 @@
 
 Updated: 2026-10-08
 
-## Issue #1306 — CI performance review not Ready
+## Issue #1306 — CI candidate implemented; merge gated by exact-head validation
 
-PR #1280 still has two unresolved P2 review threads: PR-only BuildKit cache visibility and dashboard Docker build context invalidation on unrelated changes. A proposed edit was blocked by the connector and not published. Work Package #1306 is **blocked**, not independently Ready; focus repairs only in its existing feature branch, verify exact-head Offline Bundle/Core CI, and resolve reviews before merge. No Raspberry deployment belongs to this task.
+The two P2 source fixes are present in PR #1280: main-only verified BuildKit cache seeding with PR restore-only, and frontend-only Docker context. The previous head passed four workflows GREEN. The refreshed branch requires exact-head CI and resolution of the two review threads before merge; do not count the prior GREEN as final. After source merge, run one trusted main `workflow_dispatch` to actually seed the shared cache (or report cold-cache-only evidence). Production Raspberry deployment is out of scope.
 
 ## Issue #1307 — deployment blocker cleared; residual scope boundaries
 
