@@ -1,6 +1,12 @@
 # NEXOLAB Blockers
 
-Updated: 2026-10-07
+Updated: 2026-10-08
+
+## Issue #1295 — software acceptance cleared; production activation separate
+
+The signed-out Alerts auth gate fix is verified in isolated CI browser environments: Core, Authenticated Dashboard, Alerts Browser and Merge Gate are GREEN on implementation head `208d0ac219e637710b30b1322321448bda173400`. The original production UX defect was observed before this fix; no new production deployment or actual-host acceptance has occurred. This is **not a merge blocker** for the source-only Work Package. Any installation of the new frontend needs its own controlled runtime update authorization and subsequent browser verification.
+
+No Modbus/controller write, hardware write, live alert acknowledgement/closure or production-data mutation was performed.
 
 ## Issue #1286 — cleared: production Chromium acceptance passed
 

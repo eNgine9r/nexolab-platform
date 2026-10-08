@@ -42,9 +42,9 @@
   "selection": {
     "active_work_package": null,
     "next_work_package": {
-      "issue": 1295,
-      "title": "Alerts signed-out authentication gate truthfulness",
-      "branch": "fix/1295-alerts-auth-gate"
+      "issue": 1296,
+      "title": "Standardize primary mobile topbar touch targets",
+      "branch": "fix/1296-mobile-topbar-touch-targets"
     }
   },
   "work_packages": [
@@ -92,7 +92,7 @@
       "issue": 1295,
       "title": "Alerts signed-out authentication gate truthfulness",
       "priority": "high",
-      "lifecycle": "ready",
+      "lifecycle": "completed",
       "depends_on": [
         1294
       ],
@@ -104,7 +104,20 @@
         "signed_out_alerts": "operational_workspace_plus_api_unavailable",
         "backend_authorization_weakened": false,
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "implementation": "canonical_security_gate_and_verified_membership_inventory_scope",
+        "unauthenticated_workspace": "blocked",
+        "pre_session_inventory": "disabled",
+        "demo_behavior": "preserved",
+        "verified_code_head_sha": "208d0ac219e637710b30b1322321448bda173400",
+        "checks": {
+          "core_ci": "success:37710885910",
+          "authenticated_dashboard": "success:37710885908",
+          "alerts_browser": "success:37710886067",
+          "nexolab_merge_gate": "success:37710885910"
+        },
+        "production_deployment": "not_performed_by_this_work_package",
+        "actual_site_acceptance": "unverified"
       }
     },
     {
@@ -7998,6 +8011,35 @@
         "quality_and_build": "success",
         "nexolab_merge_gate": "success",
         "next_issue": 1295
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T19:23:30Z",
+      "kind": "issue_1295_started_after_wave1_merge",
+      "data": {
+        "issue": 1295,
+        "parent_issue": 1294,
+        "branch": "fix/1295-alerts-auth-gate",
+        "scope": "alerts_auth_gate_only",
+        "backend_authorization_change": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T01:11:00Z",
+      "kind": "issue_1295_pre_final_product_ci_green",
+      "data": {
+        "issue": 1295,
+        "pr": 1298,
+        "code_head_sha": "208d0ac219e637710b30b1322321448bda173400",
+        "core_run": 37710885910,
+        "authenticated_dashboard_run": 37710885908,
+        "alerts_browser_run": 37710886067,
+        "all_required_checks": "success",
+        "next_ready_issue": 1296
       }
     }
   ],

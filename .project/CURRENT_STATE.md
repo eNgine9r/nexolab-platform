@@ -1,6 +1,14 @@
 # NEXOLAB Current State
 
-Updated: 2026-10-07
+Updated: 2026-10-08
+
+## Issue #1295 — Alerts operator authentication gate (source accepted)
+
+PR #1298 isolates the signed-out Alerts UX bug reproduced by #1294. `AlertsTelemetryScope` now uses the canonical `useDashboardSecurity` and `SecurityGate`: before a verified live session/membership, the operator sees the auth-state message and the Alerts workspace is not mounted. Channel inventory is disabled until ready and uses the verified membership's organization ID afterward; existing demo behavior is preserved. Focused component tests and anonymous browser checks at 360/390/430/1440 CSS px were added.
+
+Implementation head `208d0ac219e637710b30b1322321448bda173400` passed Core Quality/build and NEXOLAB Merge Gate (workflow `37710885910`), Authenticated Dashboard Acceptance (`37710885908`) and Alerts Browser Acceptance (`37710886067`). The browser evidence here is CI acceptance, **not a new actual-host deployment**. Production remains on product source `75d9c75f8d1901d6b639ec711bf3784e22ed0642` until a separately authorized deployment. The next independent Ready Work Package is #1296 (mobile Topbar touch targets).
+
+This issue changes no backend authorization, runtime deployment, Modbus/controller configuration or hardware. No Modbus write, hardware write or production-data mutation occurred.
 
 ## Issue #1294 / parent #1191 — production UX Wave 1 completed
 

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-07T22:11:35+03:00",
+  "timestamp": "2026-10-08T01:10:45.774Z",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1294_production_ux_wave1_ready_for_merge",
+  "event": "issue_1295_source_ready_for_merge",
   "baselines": {
     "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
     "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
@@ -1267,6 +1267,20 @@
       "pre_final_workflow_run": 37672365539,
       "quality_and_build": "success",
       "nexolab_merge_gate": "success"
+    },
+    "issue_1295": {
+      "issue": 1295,
+      "pull_request": 1298,
+      "product_head_sha": "208d0ac219e637710b30b1322321448bda173400",
+      "core_ci_run": 37710885910,
+      "authenticated_dashboard_run": 37710885908,
+      "alerts_browser_run": 37710886067,
+      "all_required_checks": "success_before_state_reconciliation",
+      "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+      "site_acceptance": "not_performed",
+      "next_ready_issue": 1296,
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "observations": [
@@ -2178,7 +2192,7 @@
       }
     }
   ],
-  "next_action": "Merge PR #1297 only after final exact-head Quality and build plus NEXOLAB Merge Gate are GREEN; then start Ready P1 #1295.",
+  "next_action": "Verify final exact-head CI for PR #1298, merge only after GREEN, then start Ready #1296.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
