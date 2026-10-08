@@ -2,11 +2,11 @@
 
 Updated: 2026-10-08
 
-## Issue #1302 — Ukrainian operator labels in Sessions and Reports (source candidate)
+## Issue #1302 — Ukrainian operator labels in Sessions and Reports (software accepted)
 
 Issue #1302 addresses source-confirmed mixed-language captions within the Sessions → Reports operator journey, reported under parent #1191 and authenticated Wave 2 #1300. The focused `fix/1302-localize-sessions-reports-labels` candidate translates visible navigation context, loading/error/readonly states, session hero metrics, stage names, report generation/report detail metadata and audit/configuration captions into Ukrainian. Underlying `SessionStageType` values, API/permission codes, stable data selectors, CSV/JSON, SHA-256 and application business logic remain unchanged. Focused localization unit coverage was added in both components.
 
-This is **code evidence only**; exact-head targeted tests, full Core Quality/build and any required browser lanes remain to be verified before merge. It is not actual production acceptance. The last accepted deployed product source remains `75d9c75f8d1901d6b639ec711bf3784e22ed0642`, with later fixes #1295/#1296 still awaiting a separately approved site deployment. No Modbus/controller write, hardware write, session/report mutation, restart or cutover occurred.
+Source-only acceptance is GREEN on code head `e3d2fb28b1166a3a95ec51e87fe864b1a3c88db9`: Core Quality/build and NEXOLAB Merge Gate (`37740906128`), Reports Browser (`37740906376`), Test Sessions Browser (`37740906247`), Rendered Reports Browser (`37740906194`), and Disaster Recovery Browser (`37740906135`). Review feedback corrected terminology to «Знімок конфігурації» for `SessionConfigSnapshot` and aligned E2E assertions with translated UI. This is CI/software evidence, **not actual-site frontend deployment acceptance**. The last accepted deployed product source remains `75d9c75f8d1901d6b639ec711bf3784e22ed0642`, with later fixes #1295/#1296 still awaiting a separately approved site deployment. No Modbus/controller write, hardware write, session/report mutation, restart or cutover occurred.
 
 UX Wave 2 #1300 remains in draft PR #1301 with authenticated route-level browser evidence, but keyboard, role/membership and completed-session report-context assertions still need separate scoped verification. Do not reuse the consumed one-time credential from #1300.
 
