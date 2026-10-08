@@ -470,3 +470,31 @@ test("anonymous users cannot mount Sessions or Lockers domain content", async ({
     await context.close();
   }
 });
+
+test("operator keyboard navigation preserves topbar focus across mobile and desktop Sessions", async ({
+  browser,
+}) => {
+  for (const width of [360, 390, 430, 1440]) {
+    const context = await authenticatedContext(browser, viewerToken, organizationA);
+    const page = await context.newPage();
+    try {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/sessions", { waitUntil: "domcontentloaded" });
+      const logout = page.getByTestId("platform-topbar").getByRole("button", {
+        name: "Вийти з NEXOLAB",
+      });
+      await expect(logout).toBeVisible();
+      await logout.focus();
+      await expect(logout).toBeFocused();
+      await page.keyboard.press("Shift+Tab");
+      await expect(logout).not.toBeFocused();
+      await page.keyboard.press("Tab");
+      await expect(logout).toBeFocused();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+      ).toBeLessThanOrEqual(1);
+    } finally {
+      await context.close();
+    }
+  }
+});
