@@ -45,6 +45,45 @@
   },
   "work_packages": [
     {
+      "issue": 1300,
+      "title": "Production operator Wave 2: Sessions to Reports read-only journey",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "depends_on": [
+        1294,
+        1295,
+        1296
+      ],
+      "branch": "audit/1300-production-sessions-reports-wave2",
+      "evidence": {
+        "parent_issue": 1191,
+        "mode": "read_only_chromium_production",
+        "anonymous_routes": [
+          "/sessions",
+          "/sessions/new",
+          "/reports"
+        ],
+        "responsive_widths_css_px": [
+          360,
+          390,
+          430,
+          1440
+        ],
+        "anonymous_browser_checks": "12_of_12_passed",
+        "auth_gate": "12_of_12_passed",
+        "safe_login_return_to": "12_of_12_passed",
+        "horizontal_overflow": "none_12_of_12",
+        "observed_mutating_http_requests": 0,
+        "authenticated_session_and_reports": "pending_explicit_one_time_authorization",
+        "production_existing_records": "unverified",
+        "report": "docs/audits/nexolab-ux-production-wave2-2026-10-08.md",
+        "secret_read": "none",
+        "production_data_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
       "issue": 1294,
       "title": "Production operator wave 1: shared shell, Overview and Live",
       "priority": "high",
@@ -8086,6 +8125,32 @@
         "authenticated_dashboard_run": 37712642614,
         "merge_gate": "success",
         "next_work": "review_remaining_1191_ux_waves"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T05:32:56.873Z",
+      "kind": "issue_1300_wave2_anonymous_production_chromium_partial_evidence",
+      "data": {
+        "issue": 1300,
+        "parent_issue": 1191,
+        "observed_via": "actual_host",
+        "routes": [
+          "/sessions",
+          "/sessions/new",
+          "/reports"
+        ],
+        "widths": [
+          360,
+          390,
+          430,
+          1440
+        ],
+        "auth_gate": "12_of_12_passed",
+        "return_to": "12_of_12_passed",
+        "overflow": "none",
+        "mutating_http_requests": 0,
+        "pending": "fresh_explicit_credential_authorization_for_authenticated_read_only_journey"
       }
     }
   ],
