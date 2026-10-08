@@ -54,11 +54,11 @@ def verify(config: dict[str, object], *, expected_origin: str) -> None:
         raise GoogleOAuthGateError("Google identity requires OIDC/email scopes")
     if config["cookie_name"] != "__Host-nexolab_gateway" or config["cookie_path"] != "/":
         raise GoogleOAuthGateError("host-only secure cookie naming and path are mandatory")
-    for key in ("force_https", "cookie_secure", "cookie_httponly"):
+    for key in ("cookie_secure", "cookie_httponly"):
         if config[key] is not True:
             raise GoogleOAuthGateError(f"{key} must be true")
     for key in (
-        "ssl_insecure_skip_verify", "skip_auth_preflight", "pass_access_token",
+        "force_https", "ssl_insecure_skip_verify", "skip_auth_preflight", "pass_access_token",
         "pass_authorization_header", "pass_user_headers", "set_xauthrequest",
         "request_logging", "auth_logging",
     ):
