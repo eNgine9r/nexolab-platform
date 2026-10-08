@@ -54,8 +54,8 @@ revocation. No "bypass", anonymous health path or wildcard origin.
 The identity provider must be selected, configured and audited; the
 NGINX example fails closed without it.
 
-The NGINX template intentionally has a placeholder private API IP and an
-example hostname. It cannot be used without explicit staging substitution
+The NGINX template intentionally has a placeholder private API IP. The
+Tailscale hostname has been read from the live device but no public route exists. It cannot be used without explicit staging substitution
 and validation. Never publish or deploy this template as-is.
 
 ## Separate frontend artifact for external staging
@@ -66,8 +66,8 @@ Relevant build-time variables for the externally staged artifact:
 
 ```dotenv
 NEXT_PUBLIC_NEXOLAB_DATA_MODE=live
-NEXT_PUBLIC_NEXOLAB_API_BASE_URL=https://nexolab-edge-01.example.ts.net
-NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL=wss://nexolab-edge-01.example.ts.net/api/v1/telemetry/live
+NEXT_PUBLIC_NEXOLAB_API_BASE_URL=https://nexolab-edge-01.tail7f9b04.ts.net
+NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL=wss://nexolab-edge-01.tail7f9b04.ts.net/api/v1/telemetry/live
 NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=local
 NEXT_PUBLIC_NEXOLAB_EXTERNAL_HTTPS_STAGE=true
 ```
