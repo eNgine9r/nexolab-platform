@@ -40,7 +40,11 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1300,
+      "title": "Production operator Wave 2: Sessions to Reports read-only journey",
+      "branch": "audit/1300-production-sessions-reports-wave2"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -48,7 +52,7 @@
       "issue": 1300,
       "title": "Production operator Wave 2: Sessions to Reports read-only journey",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "review",
       "depends_on": [
         1294,
         1295,
@@ -78,9 +82,34 @@
         "production_existing_records": "unverified",
         "report": "docs/audits/nexolab-ux-production-wave2-2026-10-08.md",
         "secret_read": "none",
-        "production_data_mutation": "none",
+        "production_data_mutation": "none_observed",
         "modbus_write": "none",
-        "hardware_write": "none"
+        "hardware_write": "none",
+        "authenticated_browser": "completed_read_only",
+        "authenticated_widths_css_px": [
+          360,
+          390,
+          430,
+          1440
+        ],
+        "authenticated_route_visits": "20_of_20_http_200",
+        "authenticated_auth_gate_absent": "20_of_20_as_expected",
+        "existing_session_links_observed_per_width": 4,
+        "existing_report_open_action": "present",
+        "existing_session_and_report_detail_routes": "reachable_4_of_4_widths",
+        "horizontal_overflow_authenticated": "0_px_all_routes_all_widths",
+        "browser_blocked_mutating_requests": 0,
+        "credential_use": "one_time_approved_consumed",
+        "credential_output": "none",
+        "credential_persisted": "none",
+        "browser_trace_video_screenshot": "none",
+        "session_to_report_action": "conditional_unverified_not_reproduced_defect",
+        "remaining_browser_criteria": [
+          "keyboard_focus_tab_escape",
+          "full_record_content_truthfulness",
+          "role_permission_boundary",
+          "completed_session_report_context"
+        ]
       }
     },
     {
@@ -8151,6 +8180,34 @@
         "overflow": "none",
         "mutating_http_requests": 0,
         "pending": "fresh_explicit_credential_authorization_for_authenticated_read_only_journey"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T05:52:00Z",
+      "kind": "issue_1300_authenticated_read_only_production_chromium_route_pass",
+      "data": {
+        "issue": 1300,
+        "observed_via": "actual_host",
+        "widths_css_px": [
+          360,
+          390,
+          430,
+          1440
+        ],
+        "route_visits_passed": 20,
+        "anonymous_gate_passed": 12,
+        "existing_session_links_per_width": 4,
+        "existing_report_available": true,
+        "horizontal_overflow_px": 0,
+        "browser_blocked_mutations": 0,
+        "credential_use": "one_time_consumed",
+        "unverified": [
+          "keyboard_focus",
+          "role_permissions",
+          "conditional_completed_session_report_navigation",
+          "content_correctness"
+        ]
       }
     }
   ],
