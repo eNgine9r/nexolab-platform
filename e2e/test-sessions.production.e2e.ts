@@ -171,6 +171,36 @@ test("enforces organization-scoped authenticated production session workflow", a
   });
   expect(viewerMutation.status()).toBe(403);
 
+  const draftContext = await authenticatedContext(browser, engineerAToken, organizationA);
+  const draftPage = await draftContext.newPage();
+  try {
+    for (const width of [360, 390, 430, 1440]) {
+      await draftPage.setViewportSize({ width, height: 900 });
+      await draftPage.goto(`/sessions/${createdA.session.id}`, {
+        waitUntil: "domcontentloaded",
+      });
+      await expect(draftPage.getByRole("button", { name: "Оновити", exact: true })).toBeVisible();
+      await expect(
+        draftPage.getByRole("link", { name: /^(Сформувати звіт|Переглянути звіти)$/ }),
+      ).toHaveCount(0);
+      expect(
+        await draftPage.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+      ).toBeLessThanOrEqual(1);
+    }
+    await draftPage.goto("/sessions", { waitUntil: "domcontentloaded" });
+    const runningFilter = draftPage.getByRole("button", { name: "Виконуються", exact: true });
+    await expect(runningFilter).toBeVisible();
+    await runningFilter.focus();
+    await draftPage.keyboard.press("Tab");
+    await expect(draftPage.getByRole("button", { name: "Призупинені", exact: true })).toBeFocused();
+    await draftPage.keyboard.press("Shift+Tab");
+    await expect(runningFilter).toBeFocused();
+    await draftPage.keyboard.press("Escape");
+    await expect(draftPage).toHaveURL(/\/sessions$/);
+  } finally {
+    await draftContext.close();
+  }
+
   const bindings = await postCommand(
     request,
     `/api/v1/sessions/${createdA.session.id}/bindings/production`,
