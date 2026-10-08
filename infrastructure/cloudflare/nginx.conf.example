@@ -1,0 +1,58 @@
+# STAGING TEMPLATE ONLY. Separate, loopback-only NGINX instance.
+# This configuration MUST NOT replace production Next.js or API services.
+# Set an approved hostname and compile the frontend for that exact HTTPS origin.
+worker_processes 1;
+error_log stderr warn;
+pid /tmp/nexolab-external-nginx.pid;
+
+events { worker_connections 1024; }
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    server_tokens off;
+    # Avoid logging tokens or filter values in URLs; use application audit + Access logs.
+    access_log off;
+
+    map $http_upgrade $connection_upgrade {
+        default upgrade;
+        '' close;
+    }
+
+    server {
+        listen 127.0.0.1:17878;
+        server_name nexolab.example.com;
+        client_max_body_size 8m;
+
+        if ($host != "nexolab.example.com") { return 421; }
+
+        # Backend API and authenticated telemetry WebSocket share the public origin.
+        location ^~ /api/v1/ {
+            proxy_pass http://127.0.0.1:8082;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-For $remote_addr;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_read_timeout 180s;
+            proxy_send_timeout 180s;
+            proxy_buffering off;
+            add_header Cache-Control "private, no-store" always;
+        }
+
+        # The Next.js application retains same-origin /api/device-agent/* RBAC routes.
+        location / {
+            proxy_pass http://127.0.0.1:3000;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-For $remote_addr;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_read_timeout 180s;
+        }
+    }
+}
