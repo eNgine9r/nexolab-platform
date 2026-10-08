@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-08T05:21:08.165Z",
+  "timestamp": "2026-10-08T05:33:56.358Z",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1296_mobile_topbar_source_complete_ready_for_merge",
+  "event": "issue_1300_production_ux_wave2_credential_gate",
   "baselines": {
     "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
     "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
@@ -1300,6 +1300,32 @@
       "hardware_evidence": "not_applicable",
       "modbus_write": "none",
       "hardware_write": "none"
+    },
+    "issue_1300_production_ux_wave2": {
+      "issue": 1300,
+      "parent_issue": 1191,
+      "branch": "audit/1300-production-sessions-reports-wave2",
+      "report": "docs/audits/nexolab-ux-production-wave2-2026-10-08.md",
+      "widths_css_px": [
+        360,
+        390,
+        430,
+        1440
+      ],
+      "anonymous_routes": [
+        "/sessions",
+        "/sessions/new",
+        "/reports"
+      ],
+      "auth_gate": "passed_12_of_12",
+      "login_return_to": "passed_12_of_12",
+      "horizontal_overflow": "none",
+      "observed_mutating_requests": 0,
+      "authenticated_journey": "unverified_authorization_required",
+      "credential_consumed_by_issue_1300": "none",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "production_deployment": "not_performed"
     }
   },
   "observations": [
@@ -2224,9 +2250,24 @@
         "actual_site_deployment": "not_performed",
         "hardware_write": "none"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T05:33:56.358Z",
+      "kind": "issue_1300_partial_chromium_evidence_and_hard_auth_gate",
+      "data": {
+        "issue": 1300,
+        "observed_via": "actual_host",
+        "width_count": 4,
+        "route_count": 3,
+        "anonymous_gate": "12_of_12_passed",
+        "safe_return_to": "12_of_12_passed",
+        "browser_http_write_count": 0,
+        "remaining": "fresh_explicit_one_time_service_credential_authorization"
+      }
     }
   ],
-  "next_action": "Verify final exact-head Core Quality/build, Authenticated Dashboard Acceptance and NEXOLAB Merge Gate for PR #1299, resolve reviews, merge only when GREEN; then scope next UX audit wave under #1191.",
+  "next_action": "Issue #1300: obtain fresh explicit Product Owner authorization for one read-only service-credential use, then verify existing authenticated Sessions/Reports journey on 360/390/430/1440. No production mutation. Keep #1300 blocked until then.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
