@@ -39,7 +39,7 @@ function ReportsSecurityGate({
             )}
           </div>
           <div>
-            <p className="text-xs tracking-[0.2em] text-cyan-300 uppercase">NEXOLAB Reports Gate</p>
+            <p className="text-xs tracking-[0.2em] text-cyan-300 uppercase">NEXOLAB · доступ до звітів</p>
             <h1 className="mt-1 text-xl font-semibold text-white">
               {loading
                 ? "Перевірка захищеної сесії"
@@ -88,7 +88,7 @@ export function ReportsScreen({ target = NO_REPORT_SESSION_TARGET }: { target?: 
     return (
       <ReportsSecurityGate
         state="configuration"
-        error="Встановіть NEXT_PUBLIC_NEXOLAB_DATA_MODE=live і production API URL. Demo reports навмисно відсутні."
+        error="Встановіть NEXT_PUBLIC_NEXOLAB_DATA_MODE=live і адресу робочого API. Демонстраційні звіти навмисно відсутні."
         onRetry={() => undefined}
       />
     );
