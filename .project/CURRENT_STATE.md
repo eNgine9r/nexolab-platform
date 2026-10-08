@@ -2,6 +2,12 @@
 
 Updated: 2026-10-08
 
+## Issue #1296 — primary mobile Topbar touch targets (in progress)
+
+The source-only Work Package follows #1294 production UX findings and completed #1295. The shared Topbar now applies a scoped `max-lg:min-h-11 max-lg:min-w-11` utility to menu, Alerts and logout controls only. Glyphs, global `.icon-button` styles, desktop density, disabled states and account semantics remain unchanged. The focused unit test checks the mobile-only utility; the browser acceptance extends existing Overview/Live journeys to 360/390/430/1440 CSS px, asserting actual hit-box geometry and no horizontal overflow. CI/browser evidence is pending.
+
+The deployed Raspberry still serves product source `75d9c75f8d1901d6b639ec711bf3784e22ed0642`. The new #1295 and #1296 UI changes are not deployed. No production cutover, Modbus/controller write, hardware write or data mutation is in scope.
+
 ## Issue #1295 — Alerts operator authentication gate (source accepted)
 
 PR #1298 isolates the signed-out Alerts UX bug reproduced by #1294. `AlertsTelemetryScope` now uses the canonical `useDashboardSecurity` and `SecurityGate`: before a verified live session/membership, the operator sees the auth-state message and the Alerts workspace is not mounted. Channel inventory is disabled until ready and uses the verified membership's organization ID afterward; existing demo behavior is preserved. Focused component tests and anonymous browser checks at 360/390/430/1440 CSS px were added.
