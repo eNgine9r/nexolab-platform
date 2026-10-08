@@ -97,7 +97,7 @@ presence of `provider = "google"` as "MFA confirmed".
    exactly match:
    `https://nexolab-edge-01.tail7f9b04.ts.net/oauth2/callback`.
    The hostname is confirmed through the live Pi's Tailscale DNS; however,
-   *no Funnel route is enabled*. Google OAuth domain restrictions may reject
+   _no Funnel route is enabled_. Google OAuth domain restrictions may reject
    a `.ts.net` host under Google's domain ownership/verification rules.
    If so, stop and obtain an owned/approved domain. Do not work around the
    ownership policy by substituting another party's redirect URL.
