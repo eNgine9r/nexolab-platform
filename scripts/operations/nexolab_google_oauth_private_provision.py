@@ -19,9 +19,9 @@ import tempfile
 from pathlib import Path
 
 DEFAULT_DIR = Path("/etc/nexolab-external")
-CLIENT_ID_RE = re.compile(r"[0-9]+-[a-zA-Z0-9_-]+\\.apps\\.googleusercontent\\.com\\Z")
-SECRET_RE = re.compile(r"[a-zA-Z0-9_-]{12,256}\\Z")
-EMAIL_RE = re.compile(r"[A-Za-z0-9_.+%-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\Z")
+CLIENT_ID_RE = re.compile(r"[0-9]+-[a-zA-Z0-9_-]+\.apps\.googleusercontent\.com\Z")
+SECRET_RE = re.compile(r"[a-zA-Z0-9_-]{12,256}\Z")
+EMAIL_RE = re.compile(r"[A-Za-z0-9_.+%-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\Z")
 ENV_NAME = "google-oauth.env"
 ALLOWLIST_NAME = "allowed-emails.txt"
 
@@ -97,11 +97,11 @@ def provision(
     # The cookie secret is generated ON DEVICE and is never sent to GitHub/chat.
     cookie_secret = base64.b64encode(secrets.token_bytes(32)).decode("ascii")
     environment = (
-        f"OAUTH2_PROXY_CLIENT_ID={client_id}\\n"
-        f"OAUTH2_PROXY_CLIENT_SECRET={client_secret}\\n"
-        f"OAUTH2_PROXY_COOKIE_SECRET={cookie_secret}\\n"
+        f"OAUTH2_PROXY_CLIENT_ID={client_id}\n"
+        f"OAUTH2_PROXY_CLIENT_SECRET={client_secret}\n"
+        f"OAUTH2_PROXY_COOKIE_SECRET={cookie_secret}\n"
     ).encode("ascii")
-    allowlist = (email + "\\n").encode("ascii")
+    allowlist = (email + "\n").encode("ascii")
     env_tmp: Path | None = None
     allowlist_tmp: Path | None = None
     try:
