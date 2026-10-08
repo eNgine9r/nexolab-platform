@@ -56,7 +56,7 @@ export function SessionWorkspace({ sessionId }: { sessionId: string }) {
       <section className="panel flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div>
           <p className="text-[9px] font-semibold tracking-[0.16em] text-cyan-300 uppercase">
-            Operator controls
+            Керування випробуванням
           </p>
           <p className="mt-1 text-[10px] text-slate-500">
             Кожна команда має стабільний idempotency key до підтвердженого commit.
