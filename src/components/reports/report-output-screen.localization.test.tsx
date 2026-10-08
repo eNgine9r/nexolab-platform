@@ -15,8 +15,6 @@ describe("Report route localization", () => {
 
     expect(screen.getByText("NEXOLAB · доступ до звітів")).toBeVisible();
     expect(screen.getByRole("heading", { name: "Деталі звіту недоступні" })).toBeVisible();
-    expect(
-      screen.getByText("Готові звіти доступні лише в робочому режимі з локальним API."),
-    ).toBeVisible();
+    expect(screen.getByText("Готові звіти доступні лише в робочому режимі з локальним API.")).toBeVisible();
   });
 });
