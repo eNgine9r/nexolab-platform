@@ -206,9 +206,7 @@ test("production reports preserve immutable selected evidence across API, UI and
       await expectNoDocumentOverflow(engineerPage, width);
     }
 
-    await engineerPage
-      .getByPlaceholder("Причина формування звіту…")
-      .fill("Production browser evidence");
+    await engineerPage.getByPlaceholder("Причина формування звіту…").fill("Production browser evidence");
     await engineerPage.getByTestId("generate-report").click();
     await expect(engineerPage.getByTestId("report-detail")).toContainText("Версія звіту 1");
     expect(browserReportWrites).toBe(1);
