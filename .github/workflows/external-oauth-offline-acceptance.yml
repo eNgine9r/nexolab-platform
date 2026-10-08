@@ -1,0 +1,84 @@
+name: NEXOLAB External OAuth Offline Acceptance
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/external-oauth-offline-acceptance.yml"
+      - "infrastructure/external-access/**"
+      - "scripts/inspection/nexolab_oauth_*.py"
+      - "scripts/inspection/nexolab_google_oauth_gate.py"
+      - "scripts/operations/nexolab_google_oauth_*.py"
+      - "tests/test_nexolab_google_oauth_*.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oauth-loopback-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-oauth-nginx:
+    name: Real binaries, fake identity, loopback only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      NEXOLAB_OFFLINE_SYNTHETIC_TEST: "yes"
+    steps:
+      - name: Fetch only the audited source tree
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check local Google OAuth static policy and secret-file contracts
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_nexolab_google_oauth_*.py' -v
+
+      - name: Extract disposable local NGINX binary (no system service)
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          cd "${RUNNER_TEMP}"
+          apt-get download nginx
+          mkdir -p "${RUNNER_TEMP}/nxl-nginx"
+          dpkg-deb -x nginx_*.deb "${RUNNER_TEMP}/nxl-nginx"
+          test -x "${RUNNER_TEMP}/nxl-nginx/usr/sbin/nginx"
+
+      - name: Download checksum-verified OAuth2 Proxy v7.15.5 (no Google credentials)
+        run: |
+          set -euo pipefail
+          cd "${RUNNER_TEMP}"
+          version=v7.15.5
+          archive="oauth2-proxy-${version}.linux-amd64.tar.gz"
+          base="https://github.com/oauth2-proxy/oauth2-proxy/releases/download/${version}"
+          curl --fail --silent --show-error --location --retry 3 "${base}/${archive}" -o "${archive}"
+          curl --fail --silent --show-error --location --retry 3 "${base}/${archive}-sha256sum.txt" -o "${archive}-sha256sum.txt"
+          sha256sum --check "${archive}-sha256sum.txt"
+          tar -xzf "${archive}"
+          test -x "${RUNNER_TEMP}/oauth2-proxy-${version}.linux-amd64/oauth2-proxy"
+
+      - name: Test real NGINX with fake OAuth/API/WebSocket backends
+        run: |
+          set -euo pipefail
+          python3 scripts/inspection/nexolab_oauth_loopback_nginx_probe.py \
+            --nginx-binary "${RUNNER_TEMP}/nxl-nginx/usr/sbin/nginx" \
+            --template infrastructure/external-access/nginx-staging.example.conf
+
+      - name: Test REAL OAuth2 Proxy with raw synthetic cookie key through NGINX
+        run: |
+          set -euo pipefail
+          python3 scripts/inspection/nexolab_oauth_real_proxy_offline_probe.py \
+            --oauth2-proxy-binary "${RUNNER_TEMP}/oauth2-proxy-v7.15.5.linux-amd64/oauth2-proxy" \
+            --nginx-binary "${RUNNER_TEMP}/nxl-nginx/usr/sbin/nginx" \
+            --oauth-config infrastructure/external-access/oauth2-proxy-google.example.cfg \
+            --nginx-config infrastructure/external-access/nginx-staging.example.conf \
+            --nginx-fixture scripts/inspection/nexolab_oauth_loopback_nginx_probe.py
+
+      - name: Confirm no public network route is created
+        if: always()
+        run: |
+          set -euo pipefail
+          echo "No Cloud/Funnel/Google credentials were supplied. Test processes were ephemeral loopback fixtures."
+          echo "PUBLICATION=BLOCKED"
