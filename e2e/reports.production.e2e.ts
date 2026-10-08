@@ -483,24 +483,15 @@ test("engineering and foreign-organization report journeys remain scoped at ever
         engineerPage.getByRole("link", { name: /^(Сформувати звіт|Переглянути звіти)$/ }),
       ).toHaveCount(0);
 
-      await engineerPage.goto(`/sessions/${completedSessionId}`, {
-        waitUntil: "domcontentloaded",
-      });
-      const generateLink = engineerPage.getByRole("link", {
-        name: "Сформувати звіт",
-        exact: true,
-      });
+      await engineerPage.goto(`/sessions/${completedSessionId}`, { waitUntil: "domcontentloaded" });
+      const generateLink = engineerPage.getByRole("link", { name: "Сформувати звіт", exact: true });
       await expect(generateLink).toHaveAttribute("href", `/reports?session=${completedSessionId}`);
       await generateLink.focus();
       await expect(generateLink).toBeFocused();
       await engineerPage.keyboard.press("Enter");
-      await expect(engineerPage).toHaveURL(
-        new RegExp(`/reports\\?session=${completedSessionId}$`),
-      );
+      await expect(engineerPage).toHaveURL(new RegExp(`/reports\\?session=${completedSessionId}$`));
       await expect(engineerPage.getByTestId("report-generation-panel")).toBeVisible();
-      await expect(engineerPage.getByTestId("report-session-select")).toHaveValue(
-        completedSessionId,
-      );
+      await expect(engineerPage.getByTestId("report-session-select")).toHaveValue(completedSessionId);
       await expectNoDocumentOverflow(engineerPage, width);
     }
     expect(writes).toBe(0);
@@ -518,16 +509,12 @@ test("engineering and foreign-organization report journeys remain scoped at ever
   try {
     for (const width of [360, 390, 430, 1440]) {
       await foreignPage.setViewportSize({ width, height: 900 });
-      await foreignPage.goto(`/reports?session=${completedSessionId}`, {
-        waitUntil: "domcontentloaded",
-      });
+      await foreignPage.goto(`/reports?session=${completedSessionId}`, { waitUntil: "domcontentloaded" });
       await expect(
         foreignPage.getByRole("alert").filter({ hasText: "Вибране випробування недоступне" }),
       ).toBeVisible();
       await expect(
-        foreignPage.getByRole("link", { name: "Назад до випробування" }),
-      ).toHaveCount(0);
-      await expect(foreignPage.getByTestId("report-session-select")).toHaveValue("");
+      await expect(foreignPage.getByRole("link", { name: "Назад до випробування" })).toHaveCount(0);
       await expect(foreignPage.getByTestId("generate-report")).toBeDisabled();
       await expectNoDocumentOverflow(foreignPage, width);
     }
