@@ -94,6 +94,32 @@ class GoogleOAuthPrivateHandoffTests(unittest.TestCase):
             with self.assertRaises(MOD.CredentialError):
                 MOD.prepare_arguments(cred, runtime)
 
+    def test_two_google_identities_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cred, runtime = create_fixture(Path(tmp))
+            (cred / "allowed-emails.txt").write_text(
+                "synthetic@example.test\nother@example.test\n"
+            )
+            with self.assertRaises(MOD.CredentialError):
+                MOD.prepare_arguments(cred, runtime)
+            self.assertEqual(list(runtime.iterdir()), [])
+
+    def test_domain_wildcard_denied_before_secret_handoff(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cred, runtime = create_fixture(Path(tmp))
+            (cred / "allowed-emails.txt").write_text("*@example.test\n")
+            with self.assertRaises(MOD.CredentialError):
+                MOD.prepare_arguments(cred, runtime)
+            self.assertEqual(list(runtime.iterdir()), [])
+
+    def test_nonascii_allowlist_denied_before_secret_handoff(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cred, runtime = create_fixture(Path(tmp))
+            (cred / "allowed-emails.txt").write_text("тест@example.test\n")
+            with self.assertRaises(MOD.CredentialError):
+                MOD.prepare_arguments(cred, runtime)
+            self.assertEqual(list(runtime.iterdir()), [])
+
     def test_non_private_runtime_directory_denied(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             cred, runtime = create_fixture(Path(tmp))
