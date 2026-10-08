@@ -10,7 +10,6 @@ Remaining coverage is keyboard focus/Tab/Escape, role-specific affordances, reco
 
 Draft PR #1301 remains in review. Further authenticated audit requires a separate authorization or an already valid authorized browser context. No hardware interaction or runtime change is needed.
 
-
 ## Issue #1295 — software acceptance cleared; production activation separate
 
 The signed-out Alerts auth gate fix is verified in isolated CI browser environments: Core, Authenticated Dashboard, Alerts Browser and Merge Gate are GREEN on implementation head `208d0ac219e637710b30b1322321448bda173400`. The original production UX defect was observed before this fix; no new production deployment or actual-host acceptance has occurred. This is **not a merge blocker** for the source-only Work Package. Any installation of the new frontend needs its own controlled runtime update authorization and subsequent browser verification.
