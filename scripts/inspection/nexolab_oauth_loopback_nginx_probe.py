@@ -80,7 +80,7 @@ def render_template(source: str, *, auth_port: int, api_port: int, web_port: int
     ).replace(
         "proxy_pass http://REPLACE_WITH_APPROVED_PRIVATE_API_IP:8082;",
         f"proxy_pass http://127.0.0.1:{api_port};",
-    ).replaceAll(
+    ).replace(
         "proxy_pass http://127.0.0.1:3100;",
         f"proxy_pass http://127.0.0.1:{web_port};",
     ).replace(
