@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 from io import BytesIO
-import os
 from pathlib import PurePath
-from urllib.parse import quote
 from typing import Callable
+from urllib.parse import quote
 from uuid import uuid4
 
 from fastapi import (
