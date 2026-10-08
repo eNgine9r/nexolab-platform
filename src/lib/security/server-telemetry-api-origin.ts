@@ -12,17 +12,10 @@ function allowedPrivateIPv4(host: string): boolean {
     return false;
   }
   const [a, b] = octets.map(Number);
-  return (
-    a === 10 ||
-    a === 127 ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168)
-  );
+  return a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
 }
 
-export function getServerTelemetryApiBaseUrl(
-  env: ServerTelemetryApiEnv = process.env,
-): URL {
+export function getServerTelemetryApiBaseUrl(env: ServerTelemetryApiEnv = process.env): URL {
   const privateOrigin = env.NEXOLAB_SERVER_API_BASE_URL?.trim();
   const externalStage = env.NEXOLAB_EXTERNAL_HTTPS_STAGE === "true";
 
@@ -45,11 +38,7 @@ export function getServerTelemetryApiBaseUrl(
       url.pathname !== "/" ||
       url.search ||
       url.hash ||
-      !(
-        url.hostname === "localhost" ||
-        url.hostname === "[::1]" ||
-        allowedPrivateIPv4(url.hostname)
-      )
+      !(url.hostname === "localhost" || url.hostname === "[::1]" || allowedPrivateIPv4(url.hostname))
     ) {
       throw new Error("NEXOLAB private server API must use a trusted local address on port 8082");
     }
