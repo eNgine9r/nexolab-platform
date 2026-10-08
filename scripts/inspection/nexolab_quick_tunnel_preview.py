@@ -9,7 +9,7 @@ from __future__ import annotations
 import argparse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-PAGE = b"""<!doctype html>
+PAGE = """<!doctype html>
 <html lang="uk">
 <head>
 <meta charset="utf-8">
@@ -35,7 +35,7 @@ API та керування обладнанням тут немає.</strong></
 <p>Після перевірки браузерного доступу окремо потрібні аудит і приймання
 повного HTTPS/WSS-застосунку, згода власника та корпоративного IT.</p>
 </article>
-</body></html>"""
+</body></html>""".encode("utf-8")
 
 
 class PreviewHandler(BaseHTTPRequestHandler):
