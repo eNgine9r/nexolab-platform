@@ -36,11 +36,22 @@ import {
 
 import type { SessionWorkspaceData } from "./use-session-workspace";
 
+const STAGE_TYPE_LABELS: Record<SessionStageType, string> = {
+  preparation: "Підготовка",
+  preconditioning: "Попередня витримка",
+  stabilization: "Стабілізація",
+  main_test: "Основне випробування",
+  defrost: "Відтавання",
+  recovery: "Відновлення",
+  completion: "Завершення",
+  report: "Звіт",
+};
+
 const CONNECTION_LABELS: Record<WorkspaceConnectionState, string> = {
   connecting: "Підключення",
-  live: "Live",
+  live: "Наживо",
   stale: "Застарілі дані",
-  offline: "Offline · cached snapshot",
+  offline: "Офлайн · кешовані дані",
   error: "Помилка",
 };
 
@@ -76,7 +87,7 @@ export function SessionHero({
             </span>
             {readOnly && (
               <span className="rounded-full border border-slate-300/15 bg-slate-400/[0.05] px-2.5 py-1 text-[8px] font-semibold text-slate-300">
-                Read-only
+                Лише перегляд
               </span>
             )}
           </div>
@@ -88,15 +99,15 @@ export function SessionHero({
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:min-w-[620px]">
           <HeroMetric
-            label="Elapsed"
+            label="Минуло часу"
             value={formatDuration(sessionElapsedMs(session, clock))}
             icon={Clock3}
           />
-          <HeroMetric label="Node" value={session.node_id} icon={RadioTower} />
-          <HeroMetric label="Limits" value={`v${session.active_limit_version ?? "—"}`} icon={Gauge} />
+          <HeroMetric label="Вузол" value={session.node_id} icon={RadioTower} />
+          <HeroMetric label="Обмеження" value={`v${session.active_limit_version ?? "—"}`} icon={Gauge} />
           <HeroMetric
-            label="Snapshot"
-            value={session.active_config_snapshot_id ? "Frozen" : "Pending"}
+            label="Знімок конфігурації"
+            value={session.active_config_snapshot_id ? "Зафіксовано" : "Очікується"}
             icon={ShieldCheck}
           />
         </div>
@@ -137,7 +148,9 @@ export function TemperatureAndChart({ data }: { data: SessionWorkspaceData }) {
       <div className="panel p-5 sm:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[9px] font-semibold tracking-[0.16em] text-cyan-300 uppercase">Live history</p>
+            <p className="text-[9px] font-semibold tracking-[0.16em] text-cyan-300 uppercase">
+              Історія вимірювань
+            </p>
             <h2 className="mt-2 text-sm font-semibold text-white">Температурний тренд · останні 24 години</h2>
           </div>
           <span className="rounded-full border border-white/[0.06] px-2.5 py-1 text-[8px] text-slate-500">
@@ -163,16 +176,16 @@ export function EnergyGrid({ samples }: { samples: AttributedTelemetrySample[] }
           <article key={unit.equipmentId} className="bg-[#0a1f3d] p-5">
             <div className="flex items-center justify-between">
               <p className="font-mono text-[10px] text-cyan-300">{unit.equipmentId}</p>
-              <span className="text-[8px] text-slate-500">quality: {unit.quality}</span>
+              <span className="text-[8px] text-slate-500">Якість: {unit.quality}</span>
             </div>
             <p className="mt-4 text-2xl font-semibold text-white">
               {number(unit.activePower)} <span className="text-[10px] text-slate-500">W</span>
             </p>
             <dl className="mt-4 grid grid-cols-2 gap-3 text-[9px]">
-              <MetricTerm label="Voltage" value={`${number(unit.voltage)} V`} />
-              <MetricTerm label="Current" value={`${number(unit.current)} A`} />
-              <MetricTerm label="Frequency" value={`${number(unit.frequency)} Hz`} />
-              <MetricTerm label="Power factor" value={number(unit.powerFactor)} />
+              <MetricTerm label="Напруга" value={`${number(unit.voltage)} V`} />
+              <MetricTerm label="Струм" value={`${number(unit.current)} A`} />
+              <MetricTerm label="Частота" value={`${number(unit.frequency)} Hz`} />
+              <MetricTerm label="Коефіцієнт потужності" value={number(unit.powerFactor)} />
             </dl>
           </article>
         ))}
@@ -207,7 +220,9 @@ export function StageTimeline({
     <section className="panel p-5 sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-[9px] font-semibold tracking-[0.16em] text-cyan-300 uppercase">Stage timeline</p>
+          <p className="text-[9px] font-semibold tracking-[0.16em] text-cyan-300 uppercase">
+            Хронологія етапів
+          </p>
           <h2 className="mt-2 text-sm font-semibold text-white">Зафіксовані межі етапів</h2>
         </div>
         {!readOnly && (
@@ -227,7 +242,9 @@ export function StageTimeline({
                 "completion",
                 "report",
               ].map((value) => (
-                <option key={value}>{value}</option>
+                <option key={value} value={value}>
+                  {STAGE_TYPE_LABELS[value as SessionStageType]}
+                </option>
               ))}
             </select>
             <input className="form-input" value={name} onChange={(event) => setName(event.target.value)} />
@@ -265,9 +282,9 @@ export function StageTimeline({
             >
               <p className="font-mono text-[9px] text-cyan-300">#{stage.sequence_index + 1}</p>
               <h3 className="mt-2 text-[11px] font-semibold text-white">{stage.name}</h3>
-              <p className="mt-1 text-[9px] text-slate-500">{stage.stage_type}</p>
+              <p className="mt-1 text-[9px] text-slate-500">{STAGE_TYPE_LABELS[stage.stage_type]}</p>
               <p className="mt-3 text-[8px] text-slate-600">
-                {stage.entered_at ? formatTime(stage.entered_at, displayTimeZone) : "not entered"}
+                {stage.entered_at ? formatTime(stage.entered_at, displayTimeZone) : "ще не розпочато"}
                 {stage.exited_at ? ` → ${formatTime(stage.exited_at, displayTimeZone)}` : ""}
               </p>
             </article>
@@ -341,13 +358,13 @@ export function NotesAndAudit({
       <div className="panel p-5 sm:p-6">
         <div className="flex items-center gap-2">
           <FileClock className="h-4 w-4 text-cyan-300" />
-          <h2 className="text-sm font-semibold text-white">Immutable audit</h2>
+          <h2 className="text-sm font-semibold text-white">Незмінний журнал аудиту</h2>
         </div>
         <div className="mt-4 max-h-[390px] scrollbar-thin space-y-2 overflow-y-auto">
           {!auditReadable ? (
             <Empty label="Журнал аудиту доступний користувачам із відповідним правом." />
           ) : audit.length === 0 ? (
-            <Empty label="Audit events не знайдені" />
+            <Empty label="Подій аудиту не знайдено" />
           ) : (
             audit.map((entry) => (
               <article key={entry.id} className="rounded-xl border border-white/[0.055] bg-white/[0.02] p-3">
@@ -374,18 +391,18 @@ export function ConfigurationEvidence({ data }: { data: SessionWorkspaceData }) 
     <section className="panel p-5 sm:p-6">
       <div className="flex items-center gap-2">
         <ShieldCheck className="h-4 w-4 text-cyan-300" />
-        <h2 className="text-sm font-semibold text-white">Configuration evidence</h2>
+        <h2 className="text-sm font-semibold text-white">Докази конфігурації</h2>
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-4">
-        <Info label="Bindings" value={`${data.configuration.bindings.length} / 34`} />
+        <Info label="Прив’язки" value={`${data.configuration.bindings.length} / 34`} />
         <Info
-          label="Limits"
-          value={`v${data.session.active_limit_version ?? "—"} · ${data.configuration.active_limits.length} rules`}
+          label="Обмеження"
+          value={`v${data.session.active_limit_version ?? "—"} · ${data.configuration.active_limits.length} правил`}
         />
-        <Info label="Snapshots" value={String(data.configuration.snapshots.length)} />
+        <Info label="Знімки конфігурації" value={String(data.configuration.snapshots.length)} />
         <Info
-          label="Content SHA-256"
-          value={data.configuration.active_snapshot?.content_sha256.slice(0, 16) ?? "pending"}
+          label="SHA-256 вмісту"
+          value={data.configuration.active_snapshot?.content_sha256.slice(0, 16) ?? "очікується"}
           mono
         />
       </div>
@@ -398,7 +415,7 @@ export function WorkspaceLoading() {
     <div className="panel grid min-h-[580px] place-items-center">
       <div className="text-center">
         <LoaderCircle className="mx-auto h-7 w-7 animate-spin text-cyan-300" />
-        <p className="mt-3 text-[11px] text-slate-500">Завантаження real session snapshot…</p>
+        <p className="mt-3 text-[11px] text-slate-500">Завантаження фактичних даних випробування…</p>
       </div>
     </div>
   );
@@ -409,7 +426,7 @@ export function WorkspaceError({ message, onRetry }: { message: string; onRetry:
     <div className="panel grid min-h-[500px] place-items-center p-6 text-center">
       <div>
         <CircleOff className="mx-auto h-8 w-8 text-amber-300" />
-        <h2 className="mt-3 text-lg font-semibold text-white">Session workspace недоступний</h2>
+        <h2 className="mt-3 text-lg font-semibold text-white">Сторінка випробування недоступна</h2>
         <p className="mt-2 max-w-xl text-[11px] leading-5 text-slate-400">{message}</p>
         <button className="primary-button mt-4" onClick={onRetry}>
           Повторити

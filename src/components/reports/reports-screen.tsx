@@ -39,21 +39,21 @@ function ReportsSecurityGate({
             )}
           </div>
           <div>
-            <p className="text-xs tracking-[0.2em] text-cyan-300 uppercase">NEXOLAB Reports Gate</p>
+            <p className="text-xs tracking-[0.2em] text-cyan-300 uppercase">NEXOLAB · доступ до звітів</p>
             <h1 className="mt-1 text-xl font-semibold text-white">
               {loading
                 ? "Перевірка захищеної сесії"
                 : unauthenticated
                   ? "Потрібен вхід до системи"
                   : configuration
-                    ? "Reports доступні лише в live mode"
+                    ? "Звіти доступні лише в робочому режимі"
                     : "Доступ до звітів відхилено"}
             </h1>
           </div>
         </div>
         <p className="mt-5 text-sm leading-6 text-slate-400">
           {loading
-            ? "Backend перевіряє JWT, членство в організації та reports.read до завантаження evidence metadata."
+            ? "Сервер перевіряє JWT, членство в організації та reports.read перед завантаженням метаданих доказів."
             : (error ?? "Поточна сесія не має доступу до звітів вибраної організації.")}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
@@ -88,7 +88,7 @@ export function ReportsScreen({ target = NO_REPORT_SESSION_TARGET }: { target?: 
     return (
       <ReportsSecurityGate
         state="configuration"
-        error="Встановіть NEXT_PUBLIC_NEXOLAB_DATA_MODE=live і production API URL. Demo reports навмисно відсутні."
+        error="Встановіть NEXT_PUBLIC_NEXOLAB_DATA_MODE=live і адресу робочого API. Демонстраційні звіти навмисно відсутні."
         onRetry={() => undefined}
       />
     );

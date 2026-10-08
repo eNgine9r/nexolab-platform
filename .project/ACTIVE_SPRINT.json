@@ -45,6 +45,54 @@
   },
   "work_packages": [
     {
+      "issue": 1302,
+      "title": "Normalize Sessions and Reports operator-facing labels to Ukrainian",
+      "priority": "medium",
+      "lifecycle": "completed",
+      "depends_on": [
+        1294
+      ],
+      "branch": "fix/1302-localize-sessions-reports-labels",
+      "evidence": {
+        "parent_issue": 1191,
+        "discovered_during_issue": 1300,
+        "scope": "operator_visible_copy_only",
+        "source_files_changed": [
+          "src/components/sessions/session-workspace.tsx",
+          "src/components/sessions/sessions-list-screen.tsx",
+          "src/components/sessions/workspace-panels.tsx",
+          "src/components/reports/reports-workspace.tsx",
+          "src/components/reports/report-output-screen.tsx",
+          "src/components/reports/reports-screen.tsx",
+          "src/components/reports/report-output-workspace.tsx"
+        ],
+        "focused_test_files": [
+          "src/components/sessions/workspace-panels.localization.test.tsx",
+          "src/components/reports/report-output-screen.localization.test.tsx"
+        ],
+        "stage_protocol_values": "preserved",
+        "api_and_permission_tokens": "preserved",
+        "verified_source_prettier": "passed_on_isolated_copies",
+        "targeted_tests": "pending_ci",
+        "production_deployment": "not_performed",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "source_acceptance": "passed_exact_code_head",
+        "code_head_sha": "e3d2fb28b1166a3a95ec51e87fe864b1a3c88db9",
+        "translated_config_snapshot": "consistent_with_SessionConfigSnapshot",
+        "reviewer_threads": "resolved",
+        "checks": {
+          "core_ci": "success_37740906128",
+          "reports_browser": "success_37740906376",
+          "test_sessions_browser": "success_37740906247",
+          "rendered_reports_browser": "success_37740906194",
+          "disaster_recovery_browser": "success_37740906135",
+          "nexolab_merge_gate": "success_37740906128"
+        },
+        "hardware_evidence": "not_applicable"
+      }
+    },
+    {
       "issue": 1294,
       "title": "Production operator wave 1: shared shell, Overview and Live",
       "priority": "high",
@@ -8086,6 +8134,39 @@
         "authenticated_dashboard_run": 37712642614,
         "merge_gate": "success",
         "next_work": "review_remaining_1191_ux_waves"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T06:27:09.559Z",
+      "kind": "issue_1302_ui_copy_candidate",
+      "data": {
+        "issue": 1302,
+        "branch": "fix/1302-localize-sessions-reports-labels",
+        "parent_issue": 1191,
+        "source_only": true,
+        "stage_code_unchanged": true,
+        "production_deployment": "none"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T07:08:30Z",
+      "kind": "issue_1302_pre_final_ci_green",
+      "data": {
+        "issue": 1302,
+        "pr": 1303,
+        "verified_code_head_sha": "e3d2fb28b1166a3a95ec51e87fe864b1a3c88db9",
+        "workflow_runs": [
+          37740906128,
+          37740906376,
+          37740906247,
+          37740906194,
+          37740906135
+        ],
+        "required_checks": "success",
+        "next_candidate_issue": 1304,
+        "production_activation": "not_performed"
       }
     }
   ],

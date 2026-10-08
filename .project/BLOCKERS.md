@@ -2,6 +2,12 @@
 
 Updated: 2026-10-08
 
+## Issue #1302 — source localization verification GREEN; site activation separate
+
+The focused Sessions/Reports localization PR #1303 has passed Core Quality/build, Reports Browser, Test Sessions Browser, Rendered Reports Browser, Disaster Recovery Browser and NEXOLAB Merge Gate on implementation head `e3d2fb28b1166a3a95ec51e87fe864b1a3c88db9`. Code review feedback about confusing configuration snapshots with measurement data was addressed, and the translated E2E assertions were corrected. There is no outstanding **source acceptance** blocker.
+
+This does not imply Raspberry production frontend deployment or actual-site acceptance. Stable live runtime remains unchanged. The real-host UX audit #1300 remains draft/in review for keyboard, role and completed-session context evidence; its one-time service-credential authorization was consumed. Further real-host authentication requires a new approval. No Modbus/hardware write or production data mutation occurred.
+
 ## Issue #1295 — software acceptance cleared; production activation separate
 
 The signed-out Alerts auth gate fix is verified in isolated CI browser environments: Core, Authenticated Dashboard, Alerts Browser and Merge Gate are GREEN on implementation head `208d0ac219e637710b30b1322321448bda173400`. The original production UX defect was observed before this fix; no new production deployment or actual-host acceptance has occurred. This is **not a merge blocker** for the source-only Work Package. Any installation of the new frontend needs its own controlled runtime update authorization and subsequent browser verification.

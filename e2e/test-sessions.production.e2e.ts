@@ -356,7 +356,7 @@ test("enforces organization-scoped authenticated production session workflow", a
     await page.goto("/sessions", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("NXL-SESSION-GATE-001", { exact: true })).toBeVisible();
     await page.getByText("NXL-SESSION-GATE-001", { exact: true }).click();
-    await expect(page.getByText("Immutable view", { exact: true })).toBeVisible();
+    await expect(page.getByText("Незмінний перегляд", { exact: true })).toBeVisible();
     await expect(
       page.getByTestId("platform-topbar").getByText("Engineer A Acceptance", { exact: true }),
     ).toBeVisible();
