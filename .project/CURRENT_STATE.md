@@ -2,6 +2,14 @@
 
 Updated: 2026-10-08
 
+## Issue #1302 — Ukrainian operator labels in Sessions and Reports (source candidate)
+
+Issue #1302 addresses source-confirmed mixed-language captions within the Sessions → Reports operator journey, reported under parent #1191 and authenticated Wave 2 #1300. The focused `fix/1302-localize-sessions-reports-labels` candidate translates visible navigation context, loading/error/readonly states, session hero metrics, stage names, report generation/report detail metadata and audit/configuration captions into Ukrainian. Underlying `SessionStageType` values, API/permission codes, stable data selectors, CSV/JSON, SHA-256 and application business logic remain unchanged. Focused localization unit coverage was added in both components.
+
+This is **code evidence only**; exact-head targeted tests, full Core Quality/build and any required browser lanes remain to be verified before merge. It is not actual production acceptance. The last accepted deployed product source remains `75d9c75f8d1901d6b639ec711bf3784e22ed0642`, with later fixes #1295/#1296 still awaiting a separately approved site deployment. No Modbus/controller write, hardware write, session/report mutation, restart or cutover occurred.
+
+UX Wave 2 #1300 remains in draft PR #1301 with authenticated route-level browser evidence, but keyboard, role/membership and completed-session report-context assertions still need separate scoped verification. Do not reuse the consumed one-time credential from #1300.
+
 ## Issue #1296 — primary mobile Topbar touch targets (source accepted)
 
 The shared Topbar uses a narrowly scoped `max-lg:min-h-11 max-lg:min-w-11` utility on menu, Alerts and logout actions only. At mobile widths 360/390/430 CSS px the required hit areas are at least 44×44 CSS px; at 1440 CSS px the desktop Alerts/logout controls retain their 40×40 sizing and the mobile menu remains hidden. The icon glyphs, global `.icon-button`, account disabled/aria semantics and unrelated UI stay unchanged.
