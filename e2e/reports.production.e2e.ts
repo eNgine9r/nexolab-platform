@@ -419,3 +419,40 @@ test("report navigation rejects unavailable contexts without substituting a test
     await foreignContext.close();
   }
 });
+
+test("read-only operator can keyboard-open eligible session reports and return to context", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ baseURL: frontendBaseUrl });
+  const page = await context.newPage();
+  await installBrowserCredentials(page, viewerAToken, organizationA);
+  let writes = 0;
+  page.on("request", (request) => {
+    if (!["GET", "HEAD", "OPTIONS"].includes(request.method())) writes += 1;
+  });
+  try {
+    for (const width of [360, 390, 430, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`/sessions/${completedSessionId}`, { waitUntil: "domcontentloaded" });
+      const reportLink = page.getByRole("link", { name: "Переглянути звіти", exact: true });
+      await expect(reportLink).toBeVisible();
+      await reportLink.focus();
+      await expect(reportLink).toBeFocused();
+      await page.keyboard.press("Enter");
+      await expect(page).toHaveURL(new RegExp(`/reports\\?session=${completedSessionId}$`));
+      await expect(page.getByTestId("reports-workspace")).toBeVisible();
+      await expect(page.getByTestId("report-generation-panel")).toHaveCount(0);
+
+      const returnLink = page.getByRole("link", { name: "Назад до випробування" });
+      await expect(returnLink).toBeVisible();
+      await returnLink.focus();
+      await expect(returnLink).toBeFocused();
+      await page.keyboard.press("Enter");
+      await expect(page).toHaveURL(new RegExp(`/sessions/${completedSessionId}$`));
+      await expectNoDocumentOverflow(page, width);
+    }
+    expect(writes).toBe(0);
+  } finally {
+    await context.close();
+  }
+});
