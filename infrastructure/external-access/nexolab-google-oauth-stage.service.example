@@ -1,22 +1,14 @@
-# INERT TEMPLATE — do not install/start/enable or expose real data.
-# This file is tracked as a staging design artifact only.
-# Approval required: container CVE gate, MFA, corporate IT, operator publication.
+# INERT DRAFT - cannot be enabled; DO NOT INSTALL/START or publish NEXOLAB.
+# OAuth2 Proxy runs as DynamicUser, never receives Google secrets via process
+# environment, command-line values or service logs. systemd PID1 loads
+# root-only files, handing them to the unprivileged launcher via credentials.
+# The isolated launcher is source-only and is NOT installed by this PR.
+# No production service, Tailscale Funnel route or controller is changed.
 #
-# Future deployment would copy the checksum-verified OAuth2 Proxy binary to
-# /opt/nexolab-external/bin, the reviewed oauth2-proxy.cfg to /opt/nexolab-external,
-# and this template to a systemd .service file; NONE of that is done in this PR.
-#
-# systemd PID 1 reads root-only /etc/nexolab-external/google-oauth.env.
-# The OAuth process runs as a distinct DynamicUser, not root.
-# The root-only allowlist is delivered using systemd's private credential API,
-# not by weakening its mode 0600.
-#
-# NOTE: EnvironmentFile is an interim design. Before any launch, audit whether
-# the systemd/process environment could be disclosed to other users and prefer
-# splitting secrets into LoadCredential+--client-secret-file and
-# --cookie-secret-file. Do not start this draft unit as-is.
+# Before deployment: verify actual Google OAuth callback + MFA assurance,
+# revoke/expire behavior, CI/CVE security gate, IT approval and owner cutover.
 [Unit]
-Description=NEXOLAB isolated external Google OAuth2 Proxy (DRAFT / NOT ENABLED)
+Description=NEXOLAB isolated Google OAuth2 Proxy (DRAFT / NOT ENABLED)
 Documentation=https://oauth2-proxy.github.io/oauth2-proxy/
 After=network-online.target
 Wants=network-online.target
@@ -24,13 +16,18 @@ ConditionPathExists=/etc/nexolab-external/google-oauth.env
 ConditionPathExists=/etc/nexolab-external/allowed-emails.txt
 ConditionPathExists=/opt/nexolab-external/oauth2-proxy.cfg
 ConditionPathExists=/opt/nexolab-external/bin/oauth2-proxy
+ConditionPathExists=/opt/nexolab-external/bin/launch-google-oauth.py
 
 [Service]
 Type=simple
 DynamicUser=yes
-EnvironmentFile=/etc/nexolab-external/google-oauth.env
+# These root-owned originals retain their restrictive on-disk permissions.
+LoadCredential=google-oauth.env:/etc/nexolab-external/google-oauth.env
 LoadCredential=allowed-emails.txt:/etc/nexolab-external/allowed-emails.txt
-ExecStart=/opt/nexolab-external/bin/oauth2-proxy --config=/opt/nexolab-external/oauth2-proxy.cfg --authenticated-emails-file=%d/allowed-emails.txt
+# This directory disappears when the service stops. Runtime secrets are 0600.
+RuntimeDirectory=nexolab-external-google
+RuntimeDirectoryMode=0700
+ExecStart=/usr/bin/python3 /opt/nexolab-external/bin/launch-google-oauth.py --run
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
@@ -41,6 +38,7 @@ ProtectKernelModules=yes
 ProtectKernelLogs=yes
 ProtectControlGroups=yes
 RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 LockPersonality=yes
 CapabilityBoundingSet=
 AmbientCapabilities=
@@ -50,4 +48,4 @@ TasksMax=64
 Restart=on-failure
 RestartSec=5s
 
-# NO [Install] section: an operator cannot accidentally "enable" this draft.
+# Deliberately NO [Install] section. This template must not be enabled.
