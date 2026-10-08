@@ -107,7 +107,7 @@ class PreviewHandler(BaseHTTPRequestHandler):
         # Sec-Fetch-* are browser-controlled forbidden request headers, so a
         # same-origin navigation provides a strict fallback for Chrome.
         # Cross-site and same-site (other subdomain) requests remain denied.
-        if (self.headers.get("Sec-Fetch-Site", "") == "same-origin":
+        if self.headers.get("Sec-Fetch-Site", "") == "same-origin":
             return self.headers.get("Sec-Fetch-Mode", "") == "navigate" and self.headers.get("Sec-Fetch-Dest", "") == "document"
         return self.headers.get("Origin", "") == PUBLIC_ORIGIN
 
