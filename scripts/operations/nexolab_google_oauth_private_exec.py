@@ -20,6 +20,7 @@ from pathlib import Path
 PROXY_BINARY = "/opt/nexolab-external/bin/oauth2-proxy"
 PROXY_CONFIG = "/opt/nexolab-external/oauth2-proxy.cfg"
 ID_RE = re.compile(r"[0-9]+-[A-Za-z0-9_-]+\.apps\.googleusercontent\.com\Z")
+EMAIL_RE = re.compile(r"[a-z0-9_.+%-]+@[a-z0-9.-]+\.[a-z]{2,}\Z")
 SECRET_RE = re.compile(r"[A-Za-z0-9_-]{12,256}\Z")
 KEYS = (
     "OAUTH2_PROXY_CLIENT_ID",
@@ -99,8 +100,17 @@ def prepare_arguments(
         raise CredentialError("missing or unsafe systemd credentials")
     client_id, client_secret, cookie_secret = read_private_credentials(legacy_env)
     # The identity list and actual user email never enter argv or stdout.
-    if len(allowlist.read_bytes()) > 320:
-        raise CredentialError("unexpected allowlist size")
+    try:
+        # The gateway must authorize exactly one specific operator; a wildcard
+        # or multiple entries could silently broaden access to lab telemetry.
+        content = allowlist.read_bytes()
+        if len(content) > 320:
+            raise CredentialError("unexpected allowlist size")
+        emails = content.decode("ascii").splitlines()
+        if len(emails) != 1 or not EMAIL_RE.fullmatch(emails[0]) or "*" in emails[0]:
+            raise CredentialError("allowlist must contain exactly one named Google user")
+    except (OSError, UnicodeError):
+        raise CredentialError("allowlist cannot be read safely") from None
     secret_path = _write_private_file(runtime_directory, "google-client-secret", client_secret)
     cookie_path = _write_private_file(runtime_directory, "oauth-cookie-secret", cookie_secret)
     args = [
