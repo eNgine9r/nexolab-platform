@@ -191,6 +191,47 @@ Eleven standalone local credential-wizard tests passed, including unsafe
 permissions, malformed terminal UTF-8, symlinks and duplicate writes. None of these isolated tests
 validate the Google OAuth flow, MFA challenge or token/session revocation.
 
+### Isolated NGINX route and OAuth fail-closed acceptance — 2026-10-08
+
+The `scripts/inspection/nexolab_oauth_loopback_nginx_probe.py` source-only
+probe was run on NEXOLAB's Raspberry Pi using a **locally unpacked Debian
+NGINX 1.26.3 ARM64 binary**. It created ephemeral loopback ports,
+a synthetic OAuth2 /auth identity server, a synthetic API and a synthetic
+Next.js upstream. **No** real Google client ID/secret, local JWT, controller,
+Telemetry API, S3, public domain request or Funnel was used. NGINX and the
+mock servers were terminated at test completion.
+
+The gateway template first exhibited an HTTPS termination bug: NGINX's
+default absolute redirects could generate an `http://` Location when it
+received plain HTTP from Tailscale's TLS terminator. Added
+`absolute_redirect off;` to the candidate NGINX server to preserve
+**relative** Google sign-in redirects; this does not relax OAuth or
+backend JWT requirements.
+
+**11 of 11** synthetic scenarios passed: anonymous browser 302 to a fixed
+relative login destination, unauthorized REST 401, unauthorized device
+route 401, unauthorized WebSocket 401, wrong-host 421, inaccessible internal
+auth subrequest 404, authorized fake API/Next.js/device routes 200,
+authorized fake WebSocket upgrade 101 and identity-server failure 500
+(with no application backend forwarding). The real backend JWT/RBAC and
+Google MFA were deliberately **not** simulated as passing: those remain
+separate verification gates.
+
+The probe is reproducible with any independently supplied trusted NGINX
+binary and needs no root privileges:
+
+```bash
+python3 scripts/inspection/nexolab_oauth_loopback_nginx_probe.py \
+  --nginx-binary /path/to/local/nginx \
+  --template infrastructure/external-access/nginx-staging.example.conf
+```
+
+Do not direct the probe at the production NGINX listener or actual backends;
+its port rewriting is purposely limited to synthetic loopback mocks.
+This offline gate is a useful acceptance signal, **not** proof that a
+Google login, corporate MFA requirements, IT approval or full external
+NEXOLAB image upload/download path has passed.
+
 ### Current release verdict
 
 `GOOGLE_OAUTH_CONFIG=DRAFT`,
