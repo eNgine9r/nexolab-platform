@@ -18,13 +18,13 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
-    "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
-    "frontend_compatibility_source_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
-    "frontend_build_id": "Up0mYuGscMzOz00Qyyacp",
-    "frontend_release": "runtime/frontend-releases/75d9c75f8d1901d6b639ec711bf3784e22ed0642-20261007T061059Z",
-    "frontend_rollback_release": "runtime/frontend-releases/d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54-20261003T084758Z",
-    "frontend_runtime_evidence": "runtime/deployments/20261007T061059Z",
+    "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+    "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+    "frontend_compatibility_source_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+    "frontend_build_id": "hA8usmV6ZKwgZUYhmOLHZ",
+    "frontend_release": "runtime/frontend-releases/d00a83bfc83fb120777c721b5e46fa50ae455c7d-20261008T092219Z",
+    "frontend_rollback_release": "runtime/frontend-releases/75d9c75f8d1901d6b639ec711bf3784e22ed0642-20261007T061059Z",
+    "frontend_runtime_evidence": "runtime/deployments/20261008T092219Z",
     "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
     "sdm120_candidate_device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
     "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
@@ -34,9 +34,9 @@
     "sdm120_production_adapter": "A10Q34QC",
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
-    "deployed_runtime_evidence": "runtime/deployments/20261007T061059Z",
-    "deployed_device_agent_image_id": "sha256:5344b4bef506d89923afd39413ee1bd7d1bb668ac1d123ed899a6d22fa58b957",
-    "deployed_device_agent_rollback_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
+    "deployed_runtime_evidence": "runtime/deployments/20261008T092219Z",
+    "deployed_device_agent_image_id": "sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323",
+    "deployed_device_agent_rollback_image_id": "sha256:5344b4bef506d89923afd39413ee1bd7d1bb668ac1d123ed899a6d22fa58b957",
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "selection": {
@@ -44,6 +44,60 @@
     "next_work_package": null
   },
   "work_packages": [
+    {
+      "issue": 1307,
+      "title": "Controlled Raspberry Pi current-main deployment and acceptance",
+      "priority": "high",
+      "lifecycle": "completed",
+      "depends_on": [
+        1304
+      ],
+      "branch": "docs/1307-raspberry-main-deploy-acceptance",
+      "evidence": {
+        "source": "actual_host_RDC_and_operator_log",
+        "source_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+        "previous_source_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+        "frontend_build_id": "hA8usmV6ZKwgZUYhmOLHZ",
+        "github_frontend_artifact_run": 37751399612,
+        "github_main_ci_run": 37748119964,
+        "host": "nexolab-edge-01",
+        "runtime_mode": "lan",
+        "deployment_evidence": "runtime/deployments/20261008T092219Z",
+        "deployment_result": "passed",
+        "http_readiness": "dashboard_api_device_agent_prometheus_alertmanager_grafana_object_storage_200",
+        "postgresql_backup": "exists_nonzero",
+        "sqlite_snapshot": "exists_nonzero",
+        "telemetry": "samples_advancing_queue_zero_mqtt_connected",
+        "workers": "3_of_3_healthy",
+        "degraded_endpoints": 0,
+        "hardware_software_readonly_evidence": "yes",
+        "hardware_formal_acceptance": "unverified",
+        "disconnected_runtime": "unverified",
+        "production_credential_exposure": "none",
+        "hardware_write": "none",
+        "modbus_write": "none"
+      }
+    },
+    {
+      "issue": 1306,
+      "title": "Fix reviewed shared BuildKit caching and bounded dashboard Docker context",
+      "priority": "medium",
+      "lifecycle": "blocked",
+      "depends_on": [],
+      "branch": "perf/ci-v2-build-cache-parallel-core",
+      "evidence": {
+        "pull_request": 1280,
+        "unresolved_p2_threads": 2,
+        "blocker": "review_findings_need_implementation_and_exact_head_ci",
+        "findings": [
+          "PR-scoped cache does not warm sibling PRs",
+          "Broad Docker dashboard context defeats layer reuse"
+        ],
+        "no_production_deployment": true,
+        "hardware_write": "none",
+        "modbus_write": "none"
+      }
+    },
     {
       "issue": 1304,
       "title": "Sessions/Reports isolated keyboard, role and report-context acceptance",
