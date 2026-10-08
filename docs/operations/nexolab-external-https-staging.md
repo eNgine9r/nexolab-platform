@@ -48,7 +48,7 @@ Dedicated HTTPS origin via Tailscale Funnel on NEXOLAB (NOT ENABLED)
 ```
 
 Every application request (including API/WS) requires the independent
-OIDC/MFA gateway *and* NEXOLAB's signed JWT and server-side RBAC. OIDC
+OIDC/MFA gateway _and_ NEXOLAB's signed JWT and server-side RBAC. OIDC
 must have named identities, MFA, time-limited sessions and session
 revocation. No "bypass", anonymous health path or wildcard origin.
 The identity provider must be selected, configured and audited; the
@@ -122,7 +122,7 @@ and enabled Modbus writes.
 5. Validate the separate frontend artifact (not the active LAN build).
    Inspect browser network: no `http://172.18...`, private IP,
    direct port 8082, `ws://`, localhost or mixed-content requests.
-6. Solve private equipment image delivery with a *bounded, authenticated*
+6. Solve private equipment image delivery with a _bounded, authenticated_
    same-origin object proxy or equivalent server-side image handler.
    Revalidate signed URLs and upload limits. Port 9000 stays private.
 7. Verify control action allowlists, reconfirmations, ownership and audit
@@ -137,7 +137,7 @@ and enabled Modbus writes.
 
 ## Rollback boundary
 
-Disconnect the *new dedicated NEXOLAB public route* only; do not reset
+Disconnect the _new dedicated NEXOLAB public route_ only; do not reset
 Tailscale Funnel on BTC Radar or touch its existing MCP/OAuth paths.
 Terminate the external gateway, identity service and the isolated
 dashboard candidate. Keep the active LAN release, databases, storage
