@@ -66,7 +66,8 @@ def start_mock(name: str, forwarded: list[tuple[str, str]]):
 def render_template(source: str, *, auth_port: int, api_port: int, web_port: int,
                     gateway_port: int, work: Path) -> str:
     for expected in NEEDED:
-        if source.count(expected) != 1:
+        expected_count = 2 if expected == "proxy_pass http://127.0.0.1:3100;" else 1
+        if source.count(expected) != expected_count:
             raise AssertionError(f"unreviewed NGINX template: {expected}")
     prepared = source.replace(
         "listen 127.0.0.1:18790;", f"listen 127.0.0.1:{gateway_port};"
@@ -79,7 +80,7 @@ def render_template(source: str, *, auth_port: int, api_port: int, web_port: int
     ).replace(
         "proxy_pass http://REPLACE_WITH_APPROVED_PRIVATE_API_IP:8082;",
         f"proxy_pass http://127.0.0.1:{api_port};",
-    ).replace(
+    ).replaceAll(
         "proxy_pass http://127.0.0.1:3100;",
         f"proxy_pass http://127.0.0.1:{web_port};",
     ).replace(
