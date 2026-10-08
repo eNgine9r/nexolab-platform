@@ -232,31 +232,52 @@ This offline gate is a useful acceptance signal, **not** proof that a
 Google login, corporate MFA requirements, IT approval or full external
 NEXOLAB image upload/download path has passed.
 
-### Additional real OAuth2 Proxy secret-format gate — 2026-10-08
+### Real OAuth2 Proxy and NGINX acceptance — 2026-10-08
 
-A deeper test used the _actual_ isolated OAuth2 Proxy v7.15.5 binary
-with **disposable synthetic credentials**, never the operator's private
-OAuth files. The first startup failed because the drafted
-`--cookie-secret-file` contained a 44-byte textual Base64 encoding.
-OAuth2 Proxy's file option requires **raw 16/24/32-byte key material**,
-unlike the Base64-compatible text option `--cookie-secret`.
+An **independent GitHub Actions gate** now starts the real OAuth2 Proxy
+**v7.15.5** and locally unpacked NGINX with **disposable synthetic
+credentials**, all over ephemeral loopback listeners. No Google account,
+operator secrets, production Telemetry API, Modbus device, public route
+or Tailscale Funnel is touched.
 
-The launcher now decodes the locally generated 32-byte cookie key from
-the private environment's Base64 value and writes **exactly 32 raw bytes**
-to its 0600 ephemeral systemd runtime file. Unit acceptance asserts
-the decoded bytes and byte length, not the former 44-character string.
-The disposable-real-proxy smoke-test fixture was corrected likewise.
+Two real startup defects were caught and fixed:
 
-Upstream reference:
-https://oauth2-proxy.github.io/oauth2-proxy/configuration/overview/
+- `--cookie-secret-file` consumes raw AES key bytes. The launcher now
+  decodes the private Base64 cookie value to **exactly 32 bytes** before
+  writing its mode-0600 ephemeral systemd credential file. The former
+  44-byte Base64 text did not start OAuth2 Proxy.
+- `force_https=true` requires a local TLS bind address and failed startup.
+  Tailscale terminates public HTTPS, while NGINX forwards only to a
+  loopback HTTP OAuth listener. The OAuth2 Proxy stage now has
+  `force_https=false`, **without** changing the HTTPS callback,
+  `cookie_secure=true`, `cookie_httponly=true` or NGINX's
+  fail-closed auth gate. The static policy prohibits re-enabling
+  local HTTPS forcing in this topology.
 
-**Verification boundary:** the earlier failed real-binary run confirmed
-the defect, while the corrected path has _not yet completed an actual
-real-binary round trip_ on the Raspberry Pi. Unit tests and CI are
-required; until the real-proxy startup/NGINX integration test passes,
-`REAL_PROXY_COOKIE_HANDOFF=UNVERIFIED` and `GO_LIVE=DENIED`.
-The experimental command-line probe is source-only and must never be
-invoked with operator credentials or production upstreams.
+Verified on the exact PR source with
+[External OAuth Offline Acceptance run 37831228049](https://github.com/eNgine9r/nexolab-platform/actions/runs/37831228049):
+
+- **45/45** static identity/secret-file contract tests passed.
+- **11/11** synthetic NGINX API/browser/WebSocket/host checks passed.
+- **8/8** real OAuth2 Proxy tests passed: anonymous 401,
+  HTTPS Google login redirect and Secure/HttpOnly CSRF cookie,
+  callback without matching state rejected, anonymous browser redirect,
+  unauthorized API, Device Agent and WebSocket blocked,
+  and NGINX login forwarding.
+- NGINX and OAuth2 Proxy test instances shut down after the test.
+  No production services were started, and the public route stayed
+  disabled.
+
+Reproducible, entirely source-scoped evidence is in
+`.github/workflows/external-oauth-offline-acceptance.yml` and
+`scripts/inspection/nexolab_oauth_real_proxy_offline_probe.py`.
+
+**Verification boundary:** this is an offline **anonymous/negative-path**
+test using real binaries and synthetic identities, **not** an actual
+Google account login, MFA-enforcement proof, application JWT/RBAC
+end-to-end test or approval to publish NEXOLAB. Those remain
+independent gates. `REAL_PROXY_COOKIE_HANDOFF=VERIFIED_SYNTHETIC`;
+`GO_LIVE=DENIED`.
 
 ### Current release verdict
 
