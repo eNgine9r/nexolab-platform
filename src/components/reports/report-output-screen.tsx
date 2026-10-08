@@ -45,7 +45,7 @@ export function ReportOutputScreen({ reportId }: { reportId: string }) {
       />
       <div className="min-h-screen lg:pl-[264px]">
         <Topbar
-          title="Report detail"
+          title="Деталі звіту"
           onMenuOpen={() => setSidebarOpen(true)}
           showCreateSession={false}
           securitySession={security.session}
@@ -101,7 +101,7 @@ function OutputSecurityGate({
                 ? "Перевірка захищеної сесії"
                 : unauthenticated
                   ? "Потрібен вхід до системи"
-                  : "Report detail недоступний"}
+                  : "Деталі звіту недоступні"}
             </h1>
           </div>
         </div>
