@@ -17,7 +17,10 @@ export function EquipmentLayoutPreview({
   item: LayoutCatalogReadyItem;
   onClose: () => void;
 }) {
-  const authenticatedImageUrl = useExternalAuthenticatedImage(item.equipment.id, item.published?.image ?? null);
+  const authenticatedImageUrl = useExternalAuthenticatedImage(
+    item.equipment.id,
+    item.published?.image ?? null,
+  );
   const displayTimeZone = useDisplayTimeZone();
   const published = item.published;
   const [imageFailed, setImageFailed] = useState(false);
