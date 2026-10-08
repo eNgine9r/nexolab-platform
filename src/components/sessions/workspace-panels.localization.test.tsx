@@ -23,7 +23,7 @@ describe("Sessions localization", () => {
 
     expect(screen.getByText("Минуло часу")).toBeVisible();
     expect(screen.getByText("Вузол")).toBeVisible();
-    expect(screen.getByText("Знімок даних")).toBeVisible();
+    expect(screen.getByText("Знімок конфігурації")).toBeVisible();
     expect(screen.getByText("Очікується")).toBeVisible();
     expect(screen.getByText("Лише перегляд")).toBeVisible();
     expect(screen.getByText(/Офлайн · кешовані дані/)).toBeVisible();
