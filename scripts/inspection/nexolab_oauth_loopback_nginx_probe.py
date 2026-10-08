@@ -93,7 +93,10 @@ def render_template(source: str, *, auth_port: int, api_port: int, web_port: int
     prepared = prepared.replace(
         "http {", "http {\n" +
         f"  client_body_temp_path {work / 'body'};\n" +
-        f"  proxy_temp_path {work / 'proxy'};\n",
+        f"  proxy_temp_path {work / 'proxy'};\n" +
+        f"  fastcgi_temp_path {work / 'fastcgi'};\n" +
+        f"  uwsgi_temp_path {work / 'uwsgi'};\n" +
+        f"  scgi_temp_path {work / 'scgi'};\n",
         1,
     )
     return prepared
@@ -130,7 +133,7 @@ def run(binary: Path, template: Path) -> None:
     nginx: subprocess.Popen[bytes] | None = None
     with tempfile.TemporaryDirectory(prefix="nexolab-nginx-oauth-test-") as work_name:
         work = Path(work_name)
-        for kind in ("body", "proxy"):
+        for kind in ("body", "proxy", "fastcgi", "uwsgi", "scgi"):
             (work / kind).mkdir()
         try:
             for name in ("oauth", "api", "web"):
