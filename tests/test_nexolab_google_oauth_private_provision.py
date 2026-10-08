@@ -7,7 +7,8 @@ import os
 import stat
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stdout, redirect_stderr
+from unittest.mock import patch
 from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "operations" / "nexolab_google_oauth_private_provision.py"
@@ -88,6 +89,40 @@ class PrivateGoogleOAuthProvisioningTests(unittest.TestCase):
             os.chmod(target, 0o755)
             with self.assertRaises(MOD.ProvisioningError):
                 MOD.provision(target, client_id=TEST_CLIENT, client_secret=TEST_SECRET, email=TEST_EMAIL)
+
+    def test_broken_utf8_from_terminal_is_reprompted_without_secret_leak(self) -> None:
+        malformed = UnicodeDecodeError("utf-8", b"\xd0", 0, 1, "unexpected end of data")
+        warnings = io.StringIO()
+        with (
+            patch.object(MOD.getpass, "getpass", side_effect=[malformed, TEST_SECRET]) as prompt,
+            redirect_stderr(warnings),
+        ):
+            value = MOD.read_ascii_field("Google Client Secret: ", hidden=True)
+        self.assertEqual(value, TEST_SECRET)
+        self.assertEqual(prompt.call_count, 2)
+        self.assertIn("Invalid terminal text encoding", warnings.getvalue())
+        self.assertNotIn(TEST_SECRET, warnings.getvalue())
+
+    def test_ukrainian_layout_rejected_and_retried_as_ascii(self) -> None:
+        warnings = io.StringIO()
+        with (
+            patch("builtins.input", side_effect=["тест", TEST_EMAIL]) as prompt,
+            redirect_stderr(warnings),
+        ):
+            value = MOD.read_ascii_field("Approved email: ", hidden=False)
+        self.assertEqual(value, TEST_EMAIL)
+        self.assertEqual(prompt.call_count, 2)
+        self.assertIn("English/ASCII", warnings.getvalue())
+
+    def test_three_malformed_terminal_inputs_fail_without_leaking_data(self) -> None:
+        warnings = io.StringIO()
+        with (
+            patch.object(MOD.getpass, "getpass", side_effect=["тест"] * 3),
+            redirect_stderr(warnings),
+        ):
+            with self.assertRaises(MOD.ProvisioningError):
+                MOD.read_ascii_field("Google Client Secret: ", hidden=True)
+        self.assertNotIn("тест", warnings.getvalue())
 
     def test_symlinked_credential_file_refused(self) -> None:
         with tempfile.TemporaryDirectory() as scratch:
