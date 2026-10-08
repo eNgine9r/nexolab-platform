@@ -123,14 +123,17 @@ presence of `provider = "google"` as "MFA confirmed".
    IT permission for the destination and network. Only then may a dedicated
    Funnel route be created; preserve existing NEXUS/BTC routes.
 
-### Local-only credentials provisioning — ready but NOT executed
+### Local-only credentials provisioning — operator-completed; NOT activated
 
 The operator reports that Google 2-Step Verification is enabled, a new
 Web OAuth client was created after revoking the compromised original,
 the dedicated callback URL was saved and the approved account was added
 to **Test users**. These are user-reported settings, not independently
-verified through the Google Cloud control plane. The OAuth Client ID and
-Secret have NOT been copied to NEXOLAB.
+verified through the Google Cloud control plane. The owner has now run
+the local provisioning wizard and its root-only `--check` successfully:
+`PASS: local files present with private permissions; credentials NOT verified
+with Google`. The actual Google credentials remain in private files on
+NEXOLAB and are never sent to Commander, chat or GitHub.
 
 An interactive, fail-closed provisioning script is prepared in
 `scripts/operations/nexolab_google_oauth_private_provision.py` and copied
@@ -159,25 +162,39 @@ overwrite/symlinks/non-interactive secret input and does not print them.
 No service, NGINX, Funnel, firewall, Modbus, working dashboard or
 production runtime is modified.
 
-**Service-reader permission remains an explicit unsolved gate**:
-`allowed-emails.txt` and the environment are root-only. Before
-starting a separately provisioned unprivileged OAuth2 Proxy service,
-design and verify a least-privilege systemd credential handoff. Do not
-make the folder globally readable, relax permissions or run a proxy as
-root to hide an integration problem.
+**Unprivileged secret delivery: code drafted and tested, NOT deployed.**
+The root-only originals remain private. The separate inert systemd
+template (`infrastructure/external-access/nexolab-google-oauth-stage.service.example`)
+would use `DynamicUser=yes`, `LoadCredential` for the two original files,
+and a 0700 `RuntimeDirectory`. The new
+`scripts/operations/nexolab_google_oauth_private_exec.py` reads that
+private credential copy; it creates ephemeral 0600 `client-secret` and
+`cookie-secret` files and passes only their file **paths** to OAuth2 Proxy.
+Secret values are never passed to the process environment, command line
+or logs. The service is missing an install section and is not deployed,
+started or enabled.
+
+Eight focused credential-handoff tests passed on isolated synthetic
+credentials. The real OAuth2 Proxy v7.15.5 `--config-test` also returned
+`configuration is valid` when invoked through that synthetic file-handoff
+mechanism on the Raspberry Pi; systemd `verify` of the inert unit completed
+successfully. No production secret was accessed by these remote tests.
+Live systemd user isolation, WebSocket gating, end-to-end sign-in/MFA
+assurance and corporate IT permission remain **unverified**. Do not
+weaken permissions or run the gateway as root.
 
 The official OAuth2 Proxy **v7.15.5 Linux ARM64** release artifact was
 downloaded into the isolated Pi workspace and SHA-256 verified. Its
 `--config-test` reported `configuration is valid` using a synthetic
 single-user list and synthetic credentials. No gateway was started.
-Eight standalone local credential-wizard tests passed, including unsafe
-permissions, symlinks and duplicate writes. None of these isolated tests
+Eleven standalone local credential-wizard tests passed, including unsafe
+permissions, malformed terminal UTF-8, symlinks and duplicate writes. None of these isolated tests
 validate the Google OAuth flow, MFA challenge or token/session revocation.
 
 ### Current release verdict
 
 `GOOGLE_OAUTH_CONFIG=DRAFT`,
-`GOOGLE_OAUTH_CLIENT=USER_REPORTED_CREATED_NOT_ON_DEVICE`,
+`GOOGLE_OAUTH_CLIENT=USER_PROVISIONED_ROOT_ONLY_NOT_VALIDATED_WITH_GOOGLE`,
 `GOOGLE_2SV=USER_REPORTED_ENABLED`,
 `MFA_ENFORCEMENT=NOT_VERIFIED`,
 `FUNNEL_EXTERNAL_ROUTE=DISABLED`,
