@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getServerTelemetryApiBaseUrl } from "@/lib/security/server-telemetry-api-origin";
+
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
@@ -18,9 +20,7 @@ type SessionPayload = {
 };
 
 function apiBaseUrl(): URL {
-  const value = process.env.NEXT_PUBLIC_NEXOLAB_API_BASE_URL?.trim();
-  if (!value) throw new Error("NEXOLAB API base URL is not configured");
-  return new URL(value);
+  return getServerTelemetryApiBaseUrl();
 }
 
 function agentBaseUrl(): URL {
