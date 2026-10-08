@@ -54,9 +54,10 @@ class GoogleOAuthPrivateHandoffTests(unittest.TestCase):
                 (runtime / "google-client-secret").read_text(), SECRET
             )
             self.assertEqual(
-                (runtime / "oauth-cookie-secret").read_text(), COOKIE
+                (runtime / "oauth-cookie-secret").read_bytes(), base64.b64decode(COOKIE)
             )
             self.assertEqual(stat.S_IMODE((runtime / "google-client-secret").stat().st_mode), 0o600)
+            self.assertEqual((runtime / "oauth-cookie-secret").stat().st_size, 32)
             self.assertEqual(stat.S_IMODE((runtime / "oauth-cookie-secret").stat().st_mode), 0o600)
             self.assertEqual(stat.S_IMODE(runtime.stat().st_mode), 0o700)
 
