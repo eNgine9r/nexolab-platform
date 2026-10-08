@@ -76,6 +76,11 @@ function observeAlertsDomainRequests(page: Page): RuntimeRequest[] {
   return requests;
 }
 
+async function expectNoDocumentOverflow(page: Page, width: number): Promise<void> {
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow, `Horizontal overflow at ${width}px`).toBeLessThanOrEqual(1);
+}
+
 function observeAcquisitionMutations(page: Page): RuntimeRequest[] {
   const mutations: RuntimeRequest[] = [];
   page.on("request", (request) => {
