@@ -58,6 +58,85 @@ The NGINX template intentionally has a placeholder private API IP. The
 Tailscale hostname has been read from the live device but no public route exists. It cannot be used without explicit staging substitution
 and validation. Never publish or deploy this template as-is.
 
+## Google identity and MFA — approved choice, not activated
+
+**Selected external identity:** personal Google Account with the owner-approved
+single email address. Store that address only in the protected on-device
+`/etc/nexolab-external/allowed-emails.txt`, not this public repository.
+The file MUST contain exactly one address. `--authenticated-emails-file`
+is a named-user authorization boundary. Do NOT configure
+`email_domains = ["*"]`, `trusted_ips`, unauthenticated routes, or
+`skip_jwt_bearer_tokens`. A Google login by someone else (including a
+different Gmail user) must be denied. Local NEXOLAB JWT and RBAC remain enabled.
+
+Inert candidate: `infrastructure/external-access/oauth2-proxy-google.example.cfg`.
+It accepts Google identity on loopback `127.0.0.1:4180`, has a dedicated
+`__Host-` session cookie (Secure, HttpOnly, SameSite=Lax, 2h expire,
+15m refresh), strict exact redirect URL and trusted NGINX proxy address.
+There are no Google credentials, email addresses or cryptographic keys in Git.
+
+**Critical: OAuth Google login is NOT independently a proof that MFA was
+required or freshly performed.** The OAuth2 Proxy `google` provider
+does not provide a dedicated Google MFA-enforcement control here. Before
+go-live the owner must confirm 2-Step Verification or a passkey on the
+approved Google Account, test an interactive reauthentication, and the
+security reviewer must accept the residual risk or deploy an IdP that can
+enforce and verify MFA for each privileged session. Never label the mere
+presence of `provider = "google"` as "MFA confirmed".
+
+### Operator-only Google Cloud setup, **not performed**
+
+1. Check the Google Account at
+   https://myaccount.google.com/security: configure 2-Step Verification
+   with a passkey/security key if possible. Do NOT share backup codes.
+2. In https://console.cloud.google.com/auth/ create/select a Google Cloud
+   project, configure the Google Auth Platform branding and set the audience
+   to External/Testing with the approved user as a test user. The OAuth scopes
+   are `openid email profile` only — no Gmail, Drive or other scopes.
+3. Create an OAuth client **Web application**. Allowed redirect URI must
+   exactly match:
+   `https://nexolab-edge-01.tail7f9b04.ts.net/oauth2/callback`.
+   The hostname is confirmed through the live Pi's Tailscale DNS; however,
+   *no Funnel route is enabled*. Google OAuth domain restrictions may reject
+   a `.ts.net` host under Google's domain ownership/verification rules.
+   If so, stop and obtain an owned/approved domain. Do not work around the
+   ownership policy by substituting another party's redirect URL.
+4. Provision the Google `client_id`, `client_secret`, strong random
+   `cookie_secret` as a private root/operator-owned service environment
+   outside Git. Never paste secrets into PRs, the chat or command logs.
+5. Provision `allowed-emails.txt` with exactly one approved address,
+   restrictive file permissions and audited operator access. Validate the
+   template first (without identity secrets):
+
+   ```bash
+   python3 scripts/inspection/nexolab_google_oauth_gate.py \
+     --config infrastructure/external-access/oauth2-proxy-google.example.cfg \
+     --expected-origin https://nexolab-edge-01.tail7f9b04.ts.net
+   python3 -m unittest discover -s tests -p test_nexolab_google_oauth_gate.py
+   ```
+
+6. Before any real publication: review NGINX `auth_request`, signed cookie
+   rotation, wrong-identity rejection, Google OAuth callback state/CSRF,
+   logout/session revocation, expired cookie, API 401 vs browser redirects,
+   WebSocket upgrades and rate limits in a disconnected staging fixture.
+7. Obtain owner go-live approval **again**, in addition to explicit company
+   IT permission for the destination and network. Only then may a dedicated
+   Funnel route be created; preserve existing NEXUS/BTC routes.
+
+### Current release verdict
+
+`GOOGLE_OAUTH_CONFIG=DRAFT`,
+`GOOGLE_OAUTH_CLIENT=NOT_PROVISIONED`,
+`MFA_ENFORCEMENT=NOT_VERIFIED`,
+`FUNNEL_EXTERNAL_ROUTE=DISABLED`,
+`GO_LIVE=DENIED`.
+
+References: [OAuth2 Proxy Google](https://oauth2-proxy.github.io/oauth2-proxy/configuration/providers/google/),
+[OAuth2 Proxy NGINX](https://oauth2-proxy.github.io/oauth2-proxy/configuration/integrations/nginx/),
+[Google OAuth for server-side apps](https://developers.google.com/identity/protocols/oauth2/web-server),
+[Google OAuth policies](https://developers.google.com/identity/protocols/oauth2/policies),
+[Google 2-Step Verification](https://support.google.com/accounts/answer/185839).
+
 ## Separate frontend artifact for external staging
 
 Do not rebuild or overwrite the active LAN dashboard. Only an isolated
