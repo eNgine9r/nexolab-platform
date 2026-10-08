@@ -167,7 +167,7 @@ verify_markers() {
   minio_marker="$("${CENTRAL[@]}" run --rm -T --no-deps --entrypoint /bin/sh minio-init -ec '
     python /opt/nexolab/scripts/object-storage-s3.py cat --bucket "$OBJECT_STORAGE_BUCKET" --key offline-bundle/marker.txt
   ' | tr -d '\r\n')"
-  edge_marker="$("${EDGE[@]}" exec -T device-agent /usr/bin/python3 -c \
+  edge_marker="$("${EDGE[@]}" exec -T device-agent python3 -c \
     'from pathlib import Path; print(Path("/var/lib/nexolab/offline-bundle.marker").read_text(encoding="utf-8"), end="")' \
     | tr -d '\r\n')"
 
@@ -319,7 +319,7 @@ printf 'offline-bundle-v1' | "${CENTRAL[@]}" run --rm -T --no-deps \
     python /opt/nexolab/scripts/object-storage-s3.py put-file --bucket "$OBJECT_STORAGE_BUCKET" --key offline-bundle/marker.txt --path /tmp/offline-bundle-marker --content-type text/plain
   '
 
-"${EDGE[@]}" exec -T device-agent /usr/bin/python3 -c \
+"${EDGE[@]}" exec -T device-agent python3 -c \
   'from pathlib import Path; Path("/var/lib/nexolab/offline-bundle.marker").write_text("offline-bundle-v1", encoding="utf-8")'
 
 verify_markers
