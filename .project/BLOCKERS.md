@@ -2,29 +2,35 @@
 
 Updated: 2026-10-08
 
+## Issue #1306 — CI performance review not Ready
+
+PR #1280 still has two unresolved P2 review threads: PR-only BuildKit cache visibility and dashboard Docker build context invalidation on unrelated changes. A proposed edit was blocked by the connector and not published. Work Package #1306 is **blocked**, not independently Ready; focus repairs only in its existing feature branch, verify exact-head Offline Bundle/Core CI, and resolve reviews before merge. No Raspberry deployment belongs to this task.
+
 ## Issue #1307 — deployment blocker cleared; residual scope boundaries
 
 RDC privilege execution was performed by Product Owner in the Raspberry terminal; reviewed deployment completed with `DEPLOYMENT PASSED` on `d00a83bfc83fb120777c721b5e46fa50ae455c7d` and post-activation HTTP readiness 200. Existing PostgreSQL and SQLite rollback snapshots preserved at `runtime/deployments/20261008T092219Z`. A temporary degraded acquisition endpoint recovered automatically; three RS-485 bus workers are healthy and sampling. **No current #1307 source/site deployment blocker.** Real-device protocol-level acceptance, sustained disconnected runtime and UX audit #1300 remain separate unverified gates. Logs include `du` permission warnings for a few historical Telegram evidence folders even though capacity preflight passed; review separately without deleting protected evidence. Compose reports legacy Telegram container as orphan; do not remove without separate ownership review.
 
+**Current installed source:** `d00a83bfc83fb120777c721b5e46fa50ae455c7d` from #1307. All older blockers below are dated historical records and do not override current production authority, even where their original present-tense wording is retained. Do not act on superseded instructions for previous deployments.
+
 ## Issue #1304 — actual-host acceptance remains separate
 
-PR #1305 covers isolated seeded browser fixtures. This is not a source-merge blocker once final exact-head CI/review are GREEN. Real-host operator evidence using the previously consumed #1300 credential is prohibited; fresh authorization would be required for any later production-authenticated test. The site remains on product source `75d9c75f8d1901d6b639ec711bf3784e22ed0642`. No deployment or hardware write is part of #1304.
+PR #1305 covers isolated seeded browser fixtures. This is not a source-merge blocker once final exact-head CI/review are GREEN. Real-host operator evidence using the previously consumed #1300 credential is prohibited; fresh authorization would be required for any later production-authenticated test. The site had `75d9c75f8d1901d6b639ec711bf3784e22ed0642` during #1304 source-only acceptance; #1307 later deployed `d00a83bfc83fb120777c721b5e46fa50ae455c7d`. No deployment or hardware write is part of #1304.
 
 ## Issue #1302 — source localization verification GREEN; site activation separate
 
 The focused Sessions/Reports localization PR #1303 has passed Core Quality/build, Reports Browser, Test Sessions Browser, Rendered Reports Browser, Disaster Recovery Browser and NEXOLAB Merge Gate on implementation head `e3d2fb28b1166a3a95ec51e87fe864b1a3c88db9`. Code review feedback about confusing configuration snapshots with measurement data was addressed, and the translated E2E assertions were corrected. There is no outstanding **source acceptance** blocker.
 
-This does not imply Raspberry production frontend deployment or actual-site acceptance. Stable live runtime remains unchanged. The real-host UX audit #1300 remains draft/in review for keyboard, role and completed-session context evidence; its one-time service-credential authorization was consumed. Further real-host authentication requires a new approval. No Modbus/hardware write or production data mutation occurred.
+At that time source-only checks did not imply deployed acceptance. #1307 subsequently installed the changes; authenticated Wave 2 actual-host verification is still gated. The real-host UX audit #1300 remains draft/in review for keyboard, role and completed-session context evidence; its one-time service-credential authorization was consumed. Further real-host authentication requires a new approval. No Modbus/hardware write or production data mutation occurred.
 
 ## Issue #1295 — software acceptance cleared; production activation separate
 
-The signed-out Alerts auth gate fix is verified in isolated CI browser environments: Core, Authenticated Dashboard, Alerts Browser and Merge Gate are GREEN on implementation head `208d0ac219e637710b30b1322321448bda173400`. The original production UX defect was observed before this fix; no new production deployment or actual-host acceptance has occurred. This is **not a merge blocker** for the source-only Work Package. Any installation of the new frontend needs its own controlled runtime update authorization and subsequent browser verification.
+The signed-out Alerts auth gate fix is verified in isolated CI browser environments: Core, Authenticated Dashboard, Alerts Browser and Merge Gate are GREEN on implementation head `208d0ac219e637710b30b1322321448bda173400`. The original production UX defect was observed before this fix; no production deployment had occurred at that time; #1307 later installed the source while detailed Alerts actual-host acceptance remained separate. This is **not a merge blocker** for the source-only Work Package. Any installation of the new frontend needs its own controlled runtime update authorization and subsequent browser verification.
 
 No Modbus/controller write, hardware write, live alert acknowledgement/closure or production-data mutation was performed.
 
 ## Issue #1286 — cleared: production Chromium acceptance passed
 
-**Cleared and completed 2026-10-07.** Source `75d9c75f8d1901d6b639ec711bf3784e22ed0642` remains live with deployment evidence `runtime/deployments/20261007T061059Z`. The focused real production Chromium flow passed 2/2: same-origin second-tab adoption/reload/logout propagation and refresh rotation with rejection of both current and pre-refresh access tokens after logout. Post-checks returned dashboard 200, unauthenticated auth session 401 as expected, and Device Agent health 200.
+**Cleared and completed 2026-10-07.** Historical source `75d9c75f8d1901d6b639ec711bf3784e22ed0642` was live on 2026-10-07 with deployment evidence `runtime/deployments/20261007T061059Z`. The focused real production Chromium flow passed 2/2: same-origin second-tab adoption/reload/logout propagation and refresh rotation with rejection of both current and pre-refresh access tokens after logout. Post-checks returned dashboard 200, unauthenticated auth session 401 as expected, and Device Agent health 200.
 
 The authorized root-only service credential was neither printed nor persisted; raw browser artifacts were removed. No Modbus/controller write, hardware write, product-data deletion or named-volume deletion occurred. #1286 is closed completed and no longer blocks the sprint. A zero-length mode-600 FIFO node from the one-time handoff may remain on the host because Commander mounts `/home` read-only; FIFO nodes do not persist the transferred credential bytes and this is non-blocking hygiene only.
 

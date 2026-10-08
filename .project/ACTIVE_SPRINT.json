@@ -79,6 +79,26 @@
       }
     },
     {
+      "issue": 1306,
+      "title": "Fix reviewed shared BuildKit caching and bounded dashboard Docker context",
+      "priority": "medium",
+      "lifecycle": "blocked",
+      "depends_on": [],
+      "branch": "perf/ci-v2-build-cache-parallel-core",
+      "evidence": {
+        "pull_request": 1280,
+        "unresolved_p2_threads": 2,
+        "blocker": "review_findings_need_implementation_and_exact_head_ci",
+        "findings": [
+          "PR-scoped cache does not warm sibling PRs",
+          "Broad Docker dashboard context defeats layer reuse"
+        ],
+        "no_production_deployment": true,
+        "hardware_write": "none",
+        "modbus_write": "none"
+      }
+    },
+    {
       "issue": 1304,
       "title": "Sessions/Reports isolated keyboard, role and report-context acceptance",
       "priority": "medium",
