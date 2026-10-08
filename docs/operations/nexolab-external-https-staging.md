@@ -234,7 +234,7 @@ NEXOLAB image upload/download path has passed.
 
 ### Additional real OAuth2 Proxy secret-format gate — 2026-10-08
 
-A deeper test used the *actual* isolated OAuth2 Proxy v7.15.5 binary
+A deeper test used the _actual_ isolated OAuth2 Proxy v7.15.5 binary
 with **disposable synthetic credentials**, never the operator's private
 OAuth files. The first startup failed because the drafted
 `--cookie-secret-file` contained a 44-byte textual Base64 encoding.
@@ -251,8 +251,8 @@ Upstream reference:
 https://oauth2-proxy.github.io/oauth2-proxy/configuration/overview/
 
 **Verification boundary:** the earlier failed real-binary run confirmed
-the defect, while the corrected path has *not yet completed an actual
-real-binary round trip* on the Raspberry Pi. Unit tests and CI are
+the defect, while the corrected path has _not yet completed an actual
+real-binary round trip_ on the Raspberry Pi. Unit tests and CI are
 required; until the real-proxy startup/NGINX integration test passes,
 `REAL_PROXY_COOKIE_HANDOFF=UNVERIFIED` and `GO_LIVE=DENIED`.
 The experimental command-line probe is source-only and must never be
