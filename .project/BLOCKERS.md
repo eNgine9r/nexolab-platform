@@ -2,11 +2,14 @@
 
 Updated: 2026-10-08
 
-## Issue #1300 — authenticated UX Wave 2 authorization gate
+## Issue #1300 — remaining UX acceptance only
 
-Anonymous production Chromium acceptance for `/sessions`, `/sessions/new` and `/reports` is 12/12 GREEN at 360/390/430/1440 CSS px: truthful auth gate, safe returnTo, no overflow and no mutating HTTP requests. The read-only existing Sessions → Reports operator journey remains unverified without an authenticated session. The #1294 one-time root-only service credential approval has already been consumed; do not reuse it.
+Production Chromium authenticated read-only routes passed 20/20 at 360/390/430/1440 CSS px, including existing session and report detail routes; anonymous auth/returnTo passed 12/12. No horizontal overflow or application write requests were observed. The authorized one-time audit was completed.
 
-Required: fresh explicit Product Owner authorization for one read-only credential use specifically for #1300, or an already authorized browser context. Do not create/change sessions or reports, persist secrets, or capture real production records. If safe existing records are unavailable, report `unverified_missing_fixture`. This blocks #1300 completion, not live NEXOLAB availability.
+Remaining coverage is keyboard focus/Tab/Escape, role-specific affordances, record-field truthfulness and report-context navigation from a completed or archived session. The missing report link on the sampled existing session is not an established defect because source restricts the action to eligible completed/archived sessions with the appropriate permission.
+
+Draft PR #1301 remains in review. Further authenticated audit requires a separate authorization or an already valid authorized browser context. No hardware interaction or runtime change is needed.
+
 
 ## Issue #1295 — software acceptance cleared; production activation separate
 
