@@ -60,7 +60,7 @@ def read_private_credentials(path: Path) -> tuple[str, str, str]:
         raise CredentialError("credential file cannot be read safely") from None
 
 
-def _write_private_file(directory: Path, name: str, content: str) -> Path:
+def _write_private_file(directory: Path, name: str, content: bytes) -> Path:
     target = directory / name
     if target.is_symlink() or (target.exists() and not target.is_file()):
         raise CredentialError("unsafe secret destination")
@@ -68,7 +68,7 @@ def _write_private_file(directory: Path, name: str, content: str) -> Path:
     try:
         os.fchmod(fd, 0o600)
         with os.fdopen(fd, "wb", closefd=True) as output:
-            output.write(content.encode("ascii"))
+            output.write(content)
             output.flush()
             os.fsync(output.fileno())
         os.replace(tmp, target)
@@ -111,8 +111,15 @@ def prepare_arguments(
             raise CredentialError("allowlist must contain exactly one named Google user")
     except (OSError, UnicodeError):
         raise CredentialError("allowlist cannot be read safely") from None
-    secret_path = _write_private_file(runtime_directory, "google-client-secret", client_secret)
-    cookie_path = _write_private_file(runtime_directory, "oauth-cookie-secret", cookie_secret)
+    secret_path = _write_private_file(runtime_directory, "google-client-secret", client_secret.encode("ascii"))
+    # oauth2-proxy --cookie-secret-file uses the file BYTES as the AES key.
+    # The legacy root-only environment contains a Base64-encoded 32-byte
+    # random secret. Decode first; passing 44 textual Base64 bytes fails.
+    cookie_path = _write_private_file(
+        runtime_directory,
+        "oauth-cookie-secret",
+        base64.b64decode(cookie_secret, validate=True),
+    )
     args = [
         proxy_binary,
         "--config", proxy_config,
