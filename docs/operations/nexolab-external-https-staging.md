@@ -149,7 +149,7 @@ this release blocker.
   lists Debian 13 Python 3.13 as affected with **no distro fixed version**.
 - The triggering condition is server-side `ssl.SSLContext.sni_callback`
   changing a socket's `SSLContext` without preserving the original context
-  lifetime. TLS *clients* are not affected by this particular bug.
+  lifetime. TLS _clients_ are not affected by this particular bug.
 - Inspected Device Agent `mqtt_tls.py`: it constructs outbound MQTT TLS
   **client** contexts with certificate validation. Repository code search
   found no `sni_callback` assignment in the Device Agent source. The
