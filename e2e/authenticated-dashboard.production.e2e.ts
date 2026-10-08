@@ -228,6 +228,46 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
     }
   });
 
+  await test.step("keep primary mobile Topbar hit areas at 44px without desktop growth", async () => {
+    const context = await authenticatedContext(browser);
+    const page = await context.newPage();
+    try {
+      for (const route of ["/", "/live"]) {
+        await page.goto(route, { waitUntil: "domcontentloaded" });
+        await expect(page.getByTestId("platform-topbar")).toBeVisible();
+
+        for (const width of [360, 390, 430, 1440]) {
+          await page.setViewportSize({ width, height: 900 });
+          const menu = page.getByRole("button", { name: "Відкрити меню" });
+          const primaryActions = [
+            page.getByRole("link", { name: "Відкрити тривоги" }),
+            page.getByRole("button", { name: "Вийти з NEXOLAB" }),
+          ];
+          if (width < 1024) {
+            await expect(menu).toBeVisible();
+            primaryActions.unshift(menu);
+          } else {
+            await expect(menu).toBeHidden();
+          }
+
+          for (const action of primaryActions) {
+            const bounds = await action.boundingBox();
+            expect(bounds).not.toBeNull();
+            expect(bounds!.width).toBeGreaterThanOrEqual(width < 1024 ? 44 : 39);
+            expect(bounds!.height).toBeGreaterThanOrEqual(width < 1024 ? 44 : 39);
+            if (width === 1440) {
+              expect(bounds!.width).toBeLessThanOrEqual(41);
+              expect(bounds!.height).toBeLessThanOrEqual(41);
+            }
+          }
+          await expectNoDocumentOverflow(page, width);
+        }
+      }
+    } finally {
+      await context.close();
+    }
+  });
+
   await test.step("load verified viewer inventory and canonical Overview history without leaking credentials", async () => {
     const context = await authenticatedContext(browser);
     const page = await context.newPage();
