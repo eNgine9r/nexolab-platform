@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-08T01:10:45.774Z",
+  "timestamp": "2026-10-08T01:22:15.093Z",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1295_source_ready_for_merge",
+  "event": "issue_1296_mobile_topbar_implementation_in_progress",
   "baselines": {
     "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
     "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
@@ -28,7 +28,11 @@
     "deployed_device_agent_rollback_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1296,
+    "title": "Standardize primary mobile topbar touch targets",
+    "branch": "fix/1296-mobile-topbar-touch-targets"
+  },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -1281,6 +1285,17 @@
       "next_ready_issue": 1296,
       "modbus_write": "none",
       "hardware_write": "none"
+    },
+    "issue_1296": {
+      "issue": 1296,
+      "parent_issue": 1294,
+      "scope": "topbar_only",
+      "expected_mobile_css_px": "minimum_44x44",
+      "expected_desktop_css_px": "40x40",
+      "browser_verification": "pending",
+      "source_deployment": "not_performed",
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "observations": [
@@ -2192,7 +2207,7 @@
       }
     }
   ],
-  "next_action": "Verify final exact-head CI for PR #1298, merge only after GREEN, then start Ready #1296.",
+  "next_action": "Run focused Topbar unit, formatting and 360/390/430/1440 Chromium browser checks, then publish PR #1296 for required CI.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
