@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-08T06:27:49.403Z",
+  "timestamp": "2026-10-08T10:09:00+03:00",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1302_localization_candidate_in_review",
+  "event": "issue_1302_source_accepted_ready_for_final_merge_gate",
   "baselines": {
     "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
     "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
@@ -28,11 +28,7 @@
     "deployed_device_agent_rollback_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
-  "active_work": {
-    "issue": 1302,
-    "title": "Normalize Sessions and Reports operator-facing labels to Ukrainian",
-    "branch": "fix/1302-localize-sessions-reports-labels"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -1307,13 +1303,22 @@
     },
     "issue_1302": {
       "issue": 1302,
-      "parent_issue": 1191,
-      "branch": "fix/1302-localize-sessions-reports-labels",
+      "pr": 1303,
       "scope": "Sessions_and_Reports_visible_copy_only",
-      "unit_tests": "added_pending_run",
-      "formatting": "passed_isolated_prettier_checks_on_commit_candidate",
-      "code_and_api_semantics": "unchanged",
+      "verified_code_head_sha": "e3d2fb28b1166a3a95ec51e87fe864b1a3c88db9",
+      "ci_core": 37740906128,
+      "browser_runs": [
+        37740906376,
+        37740906247,
+        37740906194,
+        37740906135
+      ],
+      "status": "all_required_checks_green_before_state_reconciliation",
+      "review_threads": "resolved",
+      "snapshot_terminology": "configuration_not_telemetry",
+      "site_acceptance": "not_performed",
       "production_deployment": "not_performed",
+      "next_candidate_issue": 1304,
       "modbus_write": "none",
       "hardware_write": "none"
     }
@@ -2252,9 +2257,22 @@
         "site_acceptance": "unverified",
         "next": "exact_head_ci"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T07:09:00Z",
+      "kind": "issue_1302_source_acceptance_pre_final_green",
+      "data": {
+        "issue": 1302,
+        "pr": 1303,
+        "verified_code_head_sha": "e3d2fb28b1166a3a95ec51e87fe864b1a3c88db9",
+        "required_checks": "success",
+        "site_deployment": "not_performed",
+        "next_candidate_issue": 1304
+      }
     }
   ],
-  "next_action": "Open focused PR for #1302, run exact-head targeted unit tests, prettier, lint, typecheck, build and relevant browser acceptance; merge only GREEN. UX audit #1300 remains draft awaiting separately scoped role/keyboard proof.",
+  "next_action": "Verify PR #1303 final exact-head Core/browser/DR CI and NEXOLAB Merge Gate; squash merge only on GREEN. Then start independent Ready #1304 isolated keyboard/role/report-context tests without production credential.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
