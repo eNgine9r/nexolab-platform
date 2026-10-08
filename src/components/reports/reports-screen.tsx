@@ -46,14 +46,14 @@ function ReportsSecurityGate({
                 : unauthenticated
                   ? "Потрібен вхід до системи"
                   : configuration
-                    ? "Reports доступні лише в live mode"
+                    ? "Звіти доступні лише в робочому режимі"
                     : "Доступ до звітів відхилено"}
             </h1>
           </div>
         </div>
         <p className="mt-5 text-sm leading-6 text-slate-400">
           {loading
-            ? "Backend перевіряє JWT, членство в організації та reports.read до завантаження evidence metadata."
+            ? "Сервер перевіряє JWT, членство в організації та reports.read перед завантаженням метаданих доказів."
             : (error ?? "Поточна сесія не має доступу до звітів вибраної організації.")}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
