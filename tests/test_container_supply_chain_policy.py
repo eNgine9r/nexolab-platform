@@ -168,10 +168,9 @@ def test_2026_09_22_fresh_review_is_exact_owner_bound_and_seven_day_bounded() ->
         for entry in reviewed
     }
 
-    assert len(reviewed) == 69
-    assert len(keys) == 69
+    assert len(reviewed) == 48
+    assert len(keys) == 48
     assert {entry["image_id"] for entry in reviewed} == {
-        "telegram-gateway",
         "telemetry-service",
     }
     assert all(entry["owner"] == "platform-security" for entry in reviewed)
@@ -189,7 +188,8 @@ def test_2026_09_22_fresh_review_is_exact_owner_bound_and_seven_day_bounded() ->
     )
 
 
-def test_2026_09_23_expat_93990_findings_are_exact_and_short_lived() -> None:
+def test_2026_09_23_expat_93990_findings_are_now_retired() -> None:
+    """Both repaired Python images must no longer need Expat HIGH waivers."""
     root = Path(__file__).resolve().parents[1]
     payload = json.loads(
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
@@ -200,15 +200,7 @@ def test_2026_09_23_expat_93990_findings_are_exact_and_short_lived() -> None:
         if entry["package"] == "libexpat1"
         and entry["vulnerability"] == "CVE-2026-93990"
     ]
-
-    assert len(matches) == 1
-    assert {entry["image_id"] for entry in matches} == {"telegram-gateway"}
-    assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-10-12" for entry in matches)
-    assert all("35866744217" in entry["reason"] for entry in matches)
-    assert all("2.8.3-1~deb13u1" in entry["reason"] for entry in matches)
-    assert all("no XML, pyexpat, Expat, ElementTree, SAX, minidom, or lxml" in entry["reason"] for entry in matches)
-    assert all("severity becomes Critical" in entry["reason"] for entry in matches)
+    assert matches == []
 
 
 def test_openssl_quic_exception_is_fully_retired_after_fresh_scan() -> None:
@@ -229,7 +221,8 @@ def test_openssl_quic_exception_is_fully_retired_after_fresh_scan() -> None:
     )
 
 
-def test_2026_09_17_expat_66046_findings_are_current_and_bounded() -> None:
+def test_2026_09_17_expat_66046_findings_are_now_retired() -> None:
+    """Both repaired Python images must no longer need Expat HIGH waivers."""
     root = Path(__file__).resolve().parents[1]
     payload = json.loads(
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
@@ -240,19 +233,7 @@ def test_2026_09_17_expat_66046_findings_are_current_and_bounded() -> None:
         if entry["package"] == "libexpat1"
         and entry["vulnerability"] == "CVE-2026-66046"
     ]
-
-    assert len(matches) == 1
-    assert {entry["image_id"] for entry in matches} == {"telegram-gateway"}
-    assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-10-12" for entry in matches)
-    assert all("35156866062" in entry["reason"] for entry in matches)
-    assert all("2.8.4" in entry["reason"] for entry in matches)
-    assert all("no XML/pyexpat parser path" in entry["reason"] for entry in matches)
-    assert all("severity becomes Critical" in entry["reason"] for entry in matches)
-    MODULE.validate_exceptions(
-        root / "security/vulnerability-exceptions.json",
-        date(2026, 9, 17),
-    )
+    assert matches == []
 
 
 def test_util_linux_78409_disagreement_is_explicit_and_short_lived() -> None:
@@ -266,9 +247,8 @@ def test_util_linux_78409_disagreement_is_explicit_and_short_lived() -> None:
         if entry["vulnerability"] == "CVE-2026-78409"
     ]
 
-    assert len(matches) == 10
+    assert len(matches) == 9
     assert {entry["image_id"] for entry in matches} == {
-        "telegram-gateway",
         "telemetry-service",
     }
     assert all(entry["owner"] == "platform-security" for entry in matches)
@@ -287,7 +267,8 @@ def test_util_linux_78409_disagreement_is_explicit_and_short_lived() -> None:
     )
 
 
-def test_2026_09_14_expat_findings_are_current_and_bounded() -> None:
+def test_2026_09_14_expat_findings_are_now_retired() -> None:
+    """Both repaired Python images must no longer need Expat HIGH waivers."""
     root = Path(__file__).resolve().parents[1]
     payload = json.loads(
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
@@ -298,14 +279,7 @@ def test_2026_09_14_expat_findings_are_current_and_bounded() -> None:
         if entry["package"] == "libexpat1"
         and entry["vulnerability"] in {"CVE-2026-76956", "CVE-2026-76957"}
     ]
-
-    assert len(matches) == 2
-    assert {entry["image_id"] for entry in matches} == {"telegram-gateway"}
-    assert all(entry["expires_on"] == "2026-10-12" for entry in matches)
-    assert all("34826380930" in entry["reason"] for entry in matches)
-    assert all("2.8.3-1~deb13u1" in entry["reason"] for entry in matches)
-    assert all("2.8.4" in entry["reason"] for entry in matches)
-    assert all("no XML/pyexpat/XMLParser/UnknownEncodingHandler path" in entry["reason"] for entry in matches)
+    assert matches == []
 
 
 def test_2026_09_17_fresh_scan_keeps_stale_python_and_sqlite_retired_and_bounds_new_python_findings() -> None:
@@ -341,17 +315,12 @@ def test_2026_09_17_fresh_scan_keeps_stale_python_and_sqlite_retired_and_bounds_
 
     assert len(keys) == len(exceptions)
     assert keys.isdisjoint(stale)
-    assert len(prior_review) == 64
+    assert len(prior_review) == 48
     assert all("34826380930" in entry["reason"] for entry in prior_review)
     assert all("02f42ff68c6189bc4c0cf2fcfa4be0503b0667bf" in entry["reason"] for entry in prior_review)
-    assert len(current_python) == 4
-    assert {entry["image_id"] for entry in current_python} == {"telegram-gateway"}
-    assert {entry["package"] for entry in current_python} == {
-        "libpython3.13-minimal",
-        "libpython3.13-stdlib",
-        "python3.13-minimal",
-        "python3.13-venv",
-    }
+    assert len(current_python) == 0
+    assert current_python == []
+    assert all(entry["image_id"] == "telemetry-service" for entry in exceptions)
     assert all(entry["owner"] == "platform-security" for entry in exceptions)
     assert all(entry["expires_on"] == "2026-10-12" for entry in exceptions)
     assert all("35156866062" in entry["reason"] for entry in current_python)
@@ -582,8 +551,8 @@ def test_2026_09_25_fresh_review_is_exact_and_seven_day_bounded() -> None:
         for entry in exceptions
     }
 
-    assert len(exceptions) == 70
-    assert len(keys) == 70
+    assert len(exceptions) == 48
+    assert len(keys) == 48
     assert all(entry["owner"] == "platform-security" for entry in exceptions)
     assert all(entry["expires_on"] == "2026-10-12" for entry in exceptions)
     assert all("36123964257" in entry["reason"] for entry in exceptions)
@@ -610,8 +579,8 @@ def test_2026_10_05_fresh_review_is_exact_and_seven_day_bounded() -> None:
         for entry in exceptions
     }
 
-    assert len(exceptions) == 74
-    assert len(keys) == 74
+    assert len(exceptions) == 48
+    assert len(keys) == 48
     assert all(entry["owner"] == "platform-security" for entry in exceptions)
     assert all(entry["expires_on"] == "2026-10-12" for entry in exceptions)
     assert all("37294551286" in entry["reason"] for entry in exceptions)
@@ -640,11 +609,11 @@ def test_2026_10_01_python_tls_decision_is_exact_and_does_not_extend_review() ->
     root = Path(__file__).resolve().parents[1]
     payload = json.loads((root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8"))
     new = [entry for entry in payload["exceptions"] if entry["vulnerability"] == "CVE-2026-19553"]
-    expected = {(image, package, "CVE-2026-19553") for image in {"telegram-gateway"} for package in {"libpython3.13-minimal", "libpython3.13-stdlib", "python3.13-minimal", "python3.13-venv"}}
+    expected = set()
     keys = {(entry["image_id"], entry["package"], entry["vulnerability"]) for entry in new}
     assert keys == expected
-    assert len(new) == 4
-    assert len(payload["exceptions"]) == 74
+    assert len(new) == 0
+    assert len(payload["exceptions"]) == 48
     assert all(entry["owner"] == "platform-security" for entry in new)
     assert all(entry["expires_on"] == "2026-10-12" for entry in payload["exceptions"])
     assert all("36921474135" in entry["reason"] and "#1236" in entry["reason"] for entry in new)
@@ -654,18 +623,20 @@ def test_2026_10_01_python_tls_decision_is_exact_and_does_not_extend_review() ->
 def test_device_agent_patched_python_runtime_has_no_high_exceptions() -> None:
     """The 2026-10-08 fixed-Python candidate has no inherited HIGH waivers."""
     root = Path(__file__).resolve().parents[1]
-    dockerfile = (root / "services/device-agent/Dockerfile").read_text(encoding="utf-8")
+    dockerfiles = [(root / f"services/{image}/Dockerfile").read_text(encoding="utf-8") for image in ("device-agent", "telegram-gateway")]
     registry = json.loads(
         (root / "security/vulnerability-exceptions.json").read_text(encoding="utf-8")
     )
     import re
 
-    match = re.search(r"^FROM python:3\.13\.(\d+)-slim-trixie AS builder$", dockerfile, re.M)
-    assert match is not None and int(match.group(1)) >= 16
-    assert "FROM gcr.io/distroless/base-debian13:nonroot" in dockerfile
-    assert "FROM gcr.io/distroless/python3-debian13:nonroot" not in dockerfile
-    assert "COPY --from=builder --chown=nonroot:nonroot /usr/local /usr/local" in dockerfile
-    assert "USER nonroot" in dockerfile
-    assert 'CMD ["/usr/local/bin/python3", "/app/adaptive_main.py"]' in dockerfile
-    assert all(entry["image_id"] != "device-agent" for entry in registry["exceptions"])
+    for dockerfile in dockerfiles:
+        match = re.search(r"^FROM python:3\.13\.(\d+)-slim-trixie AS builder$", dockerfile, re.M)
+        assert match is not None and int(match.group(1)) >= 16
+        assert "FROM gcr.io/distroless/base-debian13:nonroot" in dockerfile
+        assert "FROM gcr.io/distroless/python3-debian13:nonroot" not in dockerfile
+        assert "COPY --from=builder --chown=nonroot:nonroot /usr/local /usr/local" in dockerfile
+        assert "USER nonroot" in dockerfile
+    assert 'CMD ["/usr/local/bin/python3", "/app/adaptive_main.py"]' in dockerfiles[0]
+    assert 'CMD ["/usr/local/bin/python3", "-m", "uvicorn"' in dockerfiles[1]
+    assert all(entry["image_id"] == "telemetry-service" for entry in registry["exceptions"])
 
