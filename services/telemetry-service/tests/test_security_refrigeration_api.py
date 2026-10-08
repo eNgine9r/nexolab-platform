@@ -221,3 +221,31 @@ def test_cross_organization_layout_is_not_visible(tmp_path: Path) -> None:
 
     assert denied.status_code == 403
     assert denied.json()["detail"]["code"] == "organization_membership_not_found"
+
+
+def test_authenticated_image_content_requires_jwt_and_correct_organization(tmp_path: Path) -> None:
+    api, _ = build_client(tmp_path, subject="operator", roles={Role.OPERATOR})
+    uploaded = api.post(
+        "/api/v1/equipment/showcase-1/images",
+        headers=headers("operator"),
+        files={"file": ("showcase.png", png_bytes(), "image/png")},
+    )
+    assert uploaded.status_code == 201
+    path = f"/api/v1/equipment/showcase-1/images/{uploaded.json()['id']}/content"
+
+    anonymous = api.get(path)
+    assert anonymous.status_code == 401
+
+    authorized = api.get(path, headers=headers("operator"))
+    assert authorized.status_code == 200
+    assert authorized.content == png_bytes()
+    assert authorized.headers["cache-control"] == "private, no-store"
+
+    other_organization = api.get(path, headers=headers("operator", OTHER_ORGANIZATION_ID))
+    assert other_organization.status_code == 403
+
+    other_equipment = api.get(
+        f"/api/v1/equipment/showcase-2/images/{uploaded.json()['id']}/content",
+        headers=headers("operator"),
+    )
+    assert other_equipment.status_code == 404
