@@ -138,6 +138,36 @@ def check_local_files(directory: Path) -> None:
         raise ProvisioningError("allowlist must contain exactly one email")
 
 
+def read_ascii_field(prompt: str, *, hidden: bool) -> str:
+    """Retry a malformed terminal input line without leaking its content.
+
+    Some terminals send non-UTF-8 bytes when the keyboard layout changes.
+    The values supplied by Google must be plain ASCII; never attempt an
+    automatic charset conversion for a credential.
+    """
+    for _ in range(3):
+        try:
+            entered = getpass.getpass(prompt) if hidden else input(prompt)
+        except UnicodeError:
+            print(
+                "Invalid terminal text encoding. Switch to the English keyboard, "
+                "paste plain ASCII text only and retry this field.",
+                file=sys.stderr,
+            )
+            continue
+        if not entered.isascii() or len(entered) > 1024:
+            print(
+                "Only standard English/ASCII characters are accepted. "
+                "Switch keyboard layout or check the clipboard, then retry.",
+                file=sys.stderr,
+            )
+            continue
+        return entered.strip()
+    raise ProvisioningError(
+        "input failed after three attempts; check the terminal keyboard layout/clipboard"
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Local-only inert Google OAuth staging credentials")
     parser.add_argument("--directory", type=Path, default=DEFAULT_DIR)
@@ -155,9 +185,9 @@ def main() -> int:
             return 0
         if not sys.stdin.isatty() or not sys.stderr.isatty():
             raise ProvisioningError("interactive terminal required; NEVER pass secrets via chat/Commander")
-        client_id = getpass.getpass("Google Web OAuth Client ID (hidden): ").strip()
-        client_secret = getpass.getpass("Google OAuth Client Secret (hidden): ").strip()
-        email = input("Approved Google account (email only): ").strip().lower()
+        client_id = read_ascii_field("Google Web OAuth Client ID (hidden): ", hidden=True)
+        client_secret = read_ascii_field("Google OAuth Client Secret (hidden): ", hidden=True)
+        email = read_ascii_field("Approved Google account (email only): ", hidden=False).lower()
         if args.directory.exists():
             raise ProvisioningError("credentials directory already exists; refusing silent replacement")
         provision(args.directory, client_id=client_id, client_secret=client_secret, email=email)
