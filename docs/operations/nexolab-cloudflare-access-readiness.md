@@ -91,8 +91,31 @@ cloudflared tunnel --url http://127.0.0.1:18787 \
   --allowed-mail approved-tester@example.com
 ```
 
-The disposable staging fixture is deliberately **not provided** by this PR:
-port 18787 is a placeholder and must not fall through to live Raspberry services.
+A disposable, loopback-only, **synthetic** staging fixture is included at
+`scripts/inspection/nexolab_quick_tunnel_preview.py`. It contains no real NEXOLAB
+metrics, application session, API endpoints, Modbus or controller functionality.
+It serves GET / and GET /healthz, rejects write requests, and refuses all
+other paths. It can be started ONLY on an independently approved isolated
+development/staging machine, never as an automatic production Pi service:
+
+```bash
+python3 scripts/inspection/nexolab_quick_tunnel_preview.py --port 18787
+# A local smoke test before any tunnel:
+curl -fsS http://127.0.0.1:18787/healthz
+python3 -m unittest discover -s tests -p 'test_quick_tunnel_preview_isolated.py'
+# On a second terminal of the same staging machine, only after separate approval
+# for publication and IT review:
+cloudflared tunnel --url http://127.0.0.1:18787 \\
+  --allowed-mail approved-tester@example.com
+```
+
+Use cloudflared 2026.9.3 or later. Enter an explicitly approved *individual*
+email; never a wildcard corporate domain. Without `--allowed-mail` the URL
+is public to anyone who learns it. Stop `cloudflared` to revoke the link.
+
+A newly reported issue (cloudflare/cloudflared#1752, opened 2026-10-06) describes
+a protected Quick Tunnel session expiring ~5 seconds after PIN login; verify
+authenticated session stability before relying on this experimental feature.
 Access by the company-owned laptop requires IT approval regardless of the test URL.
 Quick Tunnel provides no stable hostname or uptime guarantee; restart changes the URL.
 For permanent full-functionality access, purchase/use a controlled domain and
