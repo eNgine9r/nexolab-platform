@@ -36,6 +36,17 @@ import {
 
 import type { SessionWorkspaceData } from "./use-session-workspace";
 
+const STAGE_TYPE_LABELS: Record<SessionStageType, string> = {
+  preparation: "Підготовка",
+  preconditioning: "Попередня витримка",
+  stabilization: "Стабілізація",
+  main_test: "Основне випробування",
+  defrost: "Відтавання",
+  recovery: "Відновлення",
+  completion: "Завершення",
+  report: "Звіт",
+};
+
 const CONNECTION_LABELS: Record<WorkspaceConnectionState, string> = {
   connecting: "Підключення",
   live: "Наживо",
@@ -227,7 +238,7 @@ export function StageTimeline({
                 "completion",
                 "report",
               ].map((value) => (
-                <option key={value}>{value}</option>
+                <option key={value} value={value}>{STAGE_TYPE_LABELS[value as SessionStageType]}</option>
               ))}
             </select>
             <input className="form-input" value={name} onChange={(event) => setName(event.target.value)} />
@@ -265,7 +276,7 @@ export function StageTimeline({
             >
               <p className="font-mono text-[9px] text-cyan-300">#{stage.sequence_index + 1}</p>
               <h3 className="mt-2 text-[11px] font-semibold text-white">{stage.name}</h3>
-              <p className="mt-1 text-[9px] text-slate-500">{stage.stage_type}</p>
+              <p className="mt-1 text-[9px] text-slate-500">{STAGE_TYPE_LABELS[stage.stage_type]}</p>
               <p className="mt-3 text-[8px] text-slate-600">
                 {stage.entered_at ? formatTime(stage.entered_at, displayTimeZone) : "ще не розпочато"}
                 {stage.exited_at ? ` → ${formatTime(stage.exited_at, displayTimeZone)}` : ""}
