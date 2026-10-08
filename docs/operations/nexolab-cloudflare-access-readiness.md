@@ -70,6 +70,36 @@ Browser -> HTTPS `nexolab.example.com` -> Cloudflare Access (named users + MFA)
 - Do not route PostgreSQL, MQTT, S3, Grafana, Prometheus, device-agent port, SSH,
   Commander, or any other administrative service through this published hostname.
 
+## No owned domain? Use a protected Quick Tunnel ONLY for disposable staging
+
+Cloudflare added `cloudflared tunnel --url ... --allowed-mail ...` support for temporary
+`*.trycloudflare.com` test links on 2026-10-02. This option requires neither an
+owned domain nor a Cloudflare account, and requires an email one-time PIN before a
+visitor can access the selected test origin. It is **not** equivalent to our proposed
+named Tunnel with Cloudflare Access policies and validated application identity.
+
+**Strict isolation requirement:** never target the active NEXOLAB Dashboard (:3000),
+the LAN API (:8082), Device Agent, database, or any service backed by production
+telemetry/hardware. Use ONLY an isolated local fixture that has no access to the
+live controllers, no real user data, and no inherited production credentials.
+
+Example syntax **for a disposable staging fixture only** (illustration, do not run
+until the fixture is independently approved and created):
+
+```bash
+cloudflared tunnel --url http://127.0.0.1:18787 \
+  --allowed-mail approved-tester@example.com
+```
+
+The disposable staging fixture is deliberately **not provided** by this PR:
+port 18787 is a placeholder and must not fall through to live Raspberry services.
+Access by the company-owned laptop requires IT approval regardless of the test URL.
+Quick Tunnel provides no stable hostname or uptime guarantee; restart changes the URL.
+For permanent full-functionality access, purchase/use a controlled domain and
+complete all named-Tunnel, Access, application auth, and hardware safety gates.
+
+Official reference: https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/
+
 ## Cloudflare Access provisioning — after approval only
 
 1. Verify Cloudflare-controlled domain and required account access.
