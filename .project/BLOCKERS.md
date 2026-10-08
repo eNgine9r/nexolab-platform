@@ -2,6 +2,12 @@
 
 Updated: 2026-10-08
 
+## Issue #1300 — authenticated UX Wave 2 authorization gate
+
+Anonymous production Chromium acceptance for `/sessions`, `/sessions/new` and `/reports` is 12/12 GREEN at 360/390/430/1440 CSS px: truthful auth gate, safe returnTo, no overflow and no mutating HTTP requests. The read-only existing Sessions → Reports operator journey remains unverified without an authenticated session. The #1294 one-time root-only service credential approval has already been consumed; do not reuse it.
+
+Required: fresh explicit Product Owner authorization for one read-only credential use specifically for #1300, or an already authorized browser context. Do not create/change sessions or reports, persist secrets, or capture real production records. If safe existing records are unavailable, report `unverified_missing_fixture`. This blocks #1300 completion, not live NEXOLAB availability.
+
 ## Issue #1295 — software acceptance cleared; production activation separate
 
 The signed-out Alerts auth gate fix is verified in isolated CI browser environments: Core, Authenticated Dashboard, Alerts Browser and Merge Gate are GREEN on implementation head `208d0ac219e637710b30b1322321448bda173400`. The original production UX defect was observed before this fix; no new production deployment or actual-host acceptance has occurred. This is **not a merge blocker** for the source-only Work Package. Any installation of the new frontend needs its own controlled runtime update authorization and subsequent browser verification.
