@@ -40,10 +40,49 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1302,
+      "title": "Normalize Sessions and Reports operator-facing labels to Ukrainian",
+      "branch": "fix/1302-localize-sessions-reports-labels"
+    },
     "next_work_package": null
   },
   "work_packages": [
+    {
+      "issue": 1302,
+      "title": "Normalize Sessions and Reports operator-facing labels to Ukrainian",
+      "priority": "medium",
+      "lifecycle": "review",
+      "depends_on": [
+        1294
+      ],
+      "branch": "fix/1302-localize-sessions-reports-labels",
+      "evidence": {
+        "parent_issue": 1191,
+        "discovered_during_issue": 1300,
+        "scope": "operator_visible_copy_only",
+        "source_files_changed": [
+          "src/components/sessions/session-workspace.tsx",
+          "src/components/sessions/sessions-list-screen.tsx",
+          "src/components/sessions/workspace-panels.tsx",
+          "src/components/reports/reports-workspace.tsx",
+          "src/components/reports/report-output-screen.tsx",
+          "src/components/reports/reports-screen.tsx",
+          "src/components/reports/report-output-workspace.tsx"
+        ],
+        "focused_test_files": [
+          "src/components/sessions/workspace-panels.localization.test.tsx",
+          "src/components/reports/report-output-screen.localization.test.tsx"
+        ],
+        "stage_protocol_values": "preserved",
+        "api_and_permission_tokens": "preserved",
+        "verified_source_prettier": "passed_on_isolated_copies",
+        "targeted_tests": "pending_ci",
+        "production_deployment": "not_performed",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
     {
       "issue": 1294,
       "title": "Production operator wave 1: shared shell, Overview and Live",
@@ -8086,6 +8125,19 @@
         "authenticated_dashboard_run": 37712642614,
         "merge_gate": "success",
         "next_work": "review_remaining_1191_ux_waves"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T06:27:09.559Z",
+      "kind": "issue_1302_ui_copy_candidate",
+      "data": {
+        "issue": 1302,
+        "branch": "fix/1302-localize-sessions-reports-labels",
+        "parent_issue": 1191,
+        "source_only": true,
+        "stage_code_unchanged": true,
+        "production_deployment": "none"
       }
     }
   ],
