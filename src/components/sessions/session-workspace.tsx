@@ -39,7 +39,7 @@ export function SessionWorkspace({ sessionId }: { sessionId: string }) {
     return <WorkspaceError message={workspace.error.message} onRetry={workspace.refresh} />;
   }
   if (!workspace.data)
-    return <WorkspaceError message="Session snapshot is unavailable." onRetry={workspace.refresh} />;
+    return <WorkspaceError message="Знімок даних випробування недоступний." onRetry={workspace.refresh} />;
 
   const { data } = workspace;
   const actions = ACTIONS_BY_STATE[data.session.state];
@@ -83,7 +83,7 @@ export function SessionWorkspace({ sessionId }: { sessionId: string }) {
           {workspace.readOnly && (
             <span className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-300/10 bg-slate-400/[0.04] px-4 text-[10px] font-semibold text-slate-400">
               <Archive className="h-4 w-4" />
-              Immutable view
+              Незмінний перегляд
             </span>
           )}
         </div>
@@ -97,7 +97,7 @@ export function SessionWorkspace({ sessionId }: { sessionId: string }) {
               <p className="text-[11px] font-semibold text-white">Останнє оновлення не завершено</p>
               <p className="mt-1 text-[10px] leading-5 text-slate-400">{workspace.error.message}</p>
               <p className="mt-1 text-[9px] text-slate-600">
-                Попередній підтверджений snapshot залишається видимим і позначений як offline.
+                Попередній підтверджений знімок даних залишається видимим і позначений як офлайн.
               </p>
             </div>
           </div>
