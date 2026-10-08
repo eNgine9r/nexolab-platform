@@ -45,6 +45,31 @@
   },
   "work_packages": [
     {
+      "issue": 1309,
+      "title": "Record verified CI cache v3 cross-branch acceptance and #1306 merge",
+      "priority": "low",
+      "lifecycle": "completed",
+      "depends_on": [
+        1306
+      ],
+      "branch": "docs/1309-ci-cache-acceptance-checkpoint",
+      "evidence": {
+        "merged_sha": "ee9738ab39ca369b8d49aec9971fdf25a2ed0b79",
+        "verified_head": "1beb52468531e5ab8f50bbe73989ba7a7e54ab69",
+        "ci": "success_four_required_workflows",
+        "seed_run": "37765454910:success",
+        "cache_bytes": 730097276,
+        "cache_scope": "refs/heads/main",
+        "cross_branch_run": "37769230362:success",
+        "cache_hit": true,
+        "offline_rollback": "success",
+        "site_baseline_unchanged": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+        "docs_pr_gate_policy": "exact_head_green_required_before_merge",
+        "hardware_write": "none",
+        "modbus_write": "none"
+      }
+    },
+    {
       "issue": 1307,
       "title": "Controlled Raspberry Pi current-main deployment and acceptance",
       "priority": "high",
@@ -87,7 +112,7 @@
       "branch": "perf/ci-v2-build-cache-parallel-core",
       "evidence": {
         "pull_request": 1280,
-        "unresolved_p2_threads": 2,
+        "unresolved_p2_threads": 0,
         "findings": [
           "PR-scoped cache does not warm sibling PRs",
           "Broad Docker dashboard context defeats layer reuse"
@@ -95,7 +120,7 @@
         "no_production_deployment": true,
         "hardware_write": "none",
         "modbus_write": "none",
-        "source_status": "P2_implementation_present_pending_latest_exact_head_validation",
+        "source_status": "merged_green",
         "review_findings_repaired": [
           "main-only verified buildkit cache seed via workflow_dispatch, PR restore-only",
           "Dockerfile.dashboard.dockerignore frontend allowlist"
@@ -107,9 +132,32 @@
         "verified_prior_head": "b4978c1726af9a26d77fa5b210996fbca0d5c6f2",
         "prior_head_ci": "Core_Telemetry_Telegram_OfflineBundle_green",
         "latest_merge_sync_head": "86d61bf1a30505c04ac7cd2fa12ae5b013489f21",
-        "latest_exact_head_ci": "pending_after_state_checkpoint",
-        "cache_seeding_note": "default branch requires one verified workflow_dispatch after merge",
-        "production_site_deployment": "none"
+        "latest_exact_head_ci": {
+          "core": "success:37764355388",
+          "offline": "success:37764355025",
+          "telemetry": "success:37764355190",
+          "telegram": "success:37764355019",
+          "merge_gate": "success:37764355388"
+        },
+        "production_site_deployment": "none",
+        "unresolved_review_threads": 0,
+        "review_threads_resolved": 4,
+        "merge_sha": "ee9738ab39ca369b8d49aec9971fdf25a2ed0b79",
+        "verified_final_head": "1beb52468531e5ab8f50bbe73989ba7a7e54ab69",
+        "shared_cache": {
+          "key": "nexolab-offline-buildx-v3-Linux-amd64-main-ee9738ab39ca369b8d49aec9971fdf25a2ed0b79",
+          "scope": "refs/heads/main",
+          "bytes": 730097276,
+          "seed_workflow": "success:37765454910",
+          "cross_branch_restore_workflow": "success:37769230362",
+          "hit_logged": true,
+          "restore_logged": true,
+          "docker_cached_layers_logged": true,
+          "cold_seconds": 614,
+          "warm_seconds": 531,
+          "difference_seconds": 83,
+          "measured_reduction_percent_approx": 13.5
+        }
       }
     },
     {
