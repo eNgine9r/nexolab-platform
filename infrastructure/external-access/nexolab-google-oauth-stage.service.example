@@ -1,0 +1,53 @@
+# INERT TEMPLATE — do not install/start/enable or expose real data.
+# This file is tracked as a staging design artifact only.
+# Approval required: container CVE gate, MFA, corporate IT, operator publication.
+#
+# Future deployment would copy the checksum-verified OAuth2 Proxy binary to
+# /opt/nexolab-external/bin, the reviewed oauth2-proxy.cfg to /opt/nexolab-external,
+# and this template to a systemd .service file; NONE of that is done in this PR.
+#
+# systemd PID 1 reads root-only /etc/nexolab-external/google-oauth.env.
+# The OAuth process runs as a distinct DynamicUser, not root.
+# The root-only allowlist is delivered using systemd's private credential API,
+# not by weakening its mode 0600.
+#
+# NOTE: EnvironmentFile is an interim design. Before any launch, audit whether
+# the systemd/process environment could be disclosed to other users and prefer
+# splitting secrets into LoadCredential+--client-secret-file and
+# --cookie-secret-file. Do not start this draft unit as-is.
+[Unit]
+Description=NEXOLAB isolated external Google OAuth2 Proxy (DRAFT / NOT ENABLED)
+Documentation=https://oauth2-proxy.github.io/oauth2-proxy/
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/nexolab-external/google-oauth.env
+ConditionPathExists=/etc/nexolab-external/allowed-emails.txt
+ConditionPathExists=/opt/nexolab-external/oauth2-proxy.cfg
+ConditionPathExists=/opt/nexolab-external/bin/oauth2-proxy
+
+[Service]
+Type=simple
+DynamicUser=yes
+EnvironmentFile=/etc/nexolab-external/google-oauth.env
+LoadCredential=allowed-emails.txt:/etc/nexolab-external/allowed-emails.txt
+ExecStart=/opt/nexolab-external/bin/oauth2-proxy --config=/opt/nexolab-external/oauth2-proxy.cfg --authenticated-emails-file=%d/allowed-emails.txt
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0077
+MemoryMax=256M
+TasksMax=64
+Restart=on-failure
+RestartSec=5s
+
+# NO [Install] section: an operator cannot accidentally "enable" this draft.
