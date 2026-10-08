@@ -171,6 +171,36 @@ test("enforces organization-scoped authenticated production session workflow", a
   });
   expect(viewerMutation.status()).toBe(403);
 
+  const draftContext = await authenticatedContext(browser, engineerAToken, organizationA);
+  const draftPage = await draftContext.newPage();
+  try {
+    for (const width of [360, 390, 430, 1440]) {
+      await draftPage.setViewportSize({ width, height: 900 });
+      await draftPage.goto(`/sessions/${createdA.session.id}`, {
+        waitUntil: "domcontentloaded",
+      });
+      await expect(draftPage.getByRole("button", { name: "Оновити", exact: true })).toBeVisible();
+      await expect(
+        draftPage.getByRole("link", { name: /^(Сформувати звіт|Переглянути звіти)$/ }),
+      ).toHaveCount(0);
+      expect(
+        await draftPage.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+      ).toBeLessThanOrEqual(1);
+    }
+    await draftPage.goto("/sessions", { waitUntil: "domcontentloaded" });
+    const runningFilter = draftPage.getByRole("button", { name: "Виконуються", exact: true });
+    await expect(runningFilter).toBeVisible();
+    await runningFilter.focus();
+    await draftPage.keyboard.press("Tab");
+    await expect(draftPage.getByRole("button", { name: "Призупинені", exact: true })).toBeFocused();
+    await draftPage.keyboard.press("Shift+Tab");
+    await expect(runningFilter).toBeFocused();
+    await draftPage.keyboard.press("Escape");
+    await expect(draftPage).toHaveURL(/\/sessions$/);
+  } finally {
+    await draftContext.close();
+  }
+
   const bindings = await postCommand(
     request,
     `/api/v1/sessions/${createdA.session.id}/bindings/production`,
@@ -384,6 +414,29 @@ test("enforces organization-scoped authenticated production session workflow", a
   expect(archived.status()).toBe(200);
   expect((await archived.json()).session.state).toBe("archived");
 
+  const archivedContext = await authenticatedContext(browser, engineerAToken, organizationA);
+  const archivedPage = await archivedContext.newPage();
+  try {
+    for (const width of [360, 390, 430, 1440]) {
+      await archivedPage.setViewportSize({ width, height: 900 });
+      await archivedPage.goto(`/sessions/${createdA.session.id}`, {
+        waitUntil: "domcontentloaded",
+      });
+      await expect(archivedPage.getByText("Незмінний перегляд", { exact: true })).toBeVisible();
+      const reportLink = archivedPage.getByRole("link", {
+        name: /^(Сформувати звіт|Переглянути звіти)$/,
+      });
+      await expect(reportLink).toHaveAttribute("href", `/reports?session=${createdA.session.id}`);
+      await reportLink.focus();
+      await expect(reportLink).toBeFocused();
+      expect(
+        await archivedPage.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+      ).toBeLessThanOrEqual(1);
+    }
+  } finally {
+    await archivedContext.close();
+  }
+
   writeFileSync(
     path.join(evidenceDirectory, "test-sessions-acceptance-summary.json"),
     `${JSON.stringify(
@@ -468,5 +521,33 @@ test("anonymous users cannot mount Sessions or Lockers domain content", async ({
     expect(domainRequests).toHaveLength(0);
   } finally {
     await context.close();
+  }
+});
+
+test("operator keyboard navigation preserves topbar focus across mobile and desktop Sessions", async ({
+  browser,
+}) => {
+  for (const width of [360, 390, 430, 1440]) {
+    const context = await authenticatedContext(browser, viewerToken, organizationA);
+    const page = await context.newPage();
+    try {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/sessions", { waitUntil: "domcontentloaded" });
+      const logout = page.getByTestId("platform-topbar").getByRole("button", {
+        name: "Вийти з NEXOLAB",
+      });
+      await expect(logout).toBeVisible();
+      await logout.focus();
+      await expect(logout).toBeFocused();
+      await page.keyboard.press("Shift+Tab");
+      await expect(logout).not.toBeFocused();
+      await page.keyboard.press("Tab");
+      await expect(logout).toBeFocused();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+      ).toBeLessThanOrEqual(1);
+    } finally {
+      await context.close();
+    }
   }
 });

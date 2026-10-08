@@ -45,6 +45,56 @@
   },
   "work_packages": [
     {
+      "issue": 1304,
+      "title": "Sessions/Reports isolated keyboard, role and report-context acceptance",
+      "priority": "medium",
+      "lifecycle": "completed",
+      "depends_on": [
+        1302
+      ],
+      "branch": "test/1304-sessions-reports-operator-acceptance",
+      "evidence": {
+        "parent_issue": 1191,
+        "related_audit_issue": 1300,
+        "pull_request": 1305,
+        "scope": "isolated_fixture_browser_acceptance_only",
+        "widths_css_px": [
+          360,
+          390,
+          430,
+          1440
+        ],
+        "scenarios": [
+          "draft_no_report_action",
+          "running_no_report_action",
+          "completed_reader_vs_generator",
+          "archived_report_link",
+          "foreign_organization_rejected",
+          "keyboard_focus_navigation",
+          "responsive_overflow"
+        ],
+        "source_files_changed": [
+          "e2e/test-sessions.production.e2e.ts",
+          "e2e/reports.production.e2e.ts"
+        ],
+        "production_credentials": "not_used_one_time_1300_consumed",
+        "production_deployment": "not_performed",
+        "actual_host_acceptance": "unverified",
+        "required_ci": "final_exact_head_green_required",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "source_acceptance": "pre_final_code_head_green_pending_final_state_checkpoint_gate",
+        "verified_head_sha": "65631e4f6381cb5f567e580db9db6b27232186b0",
+        "checks": {
+          "reports_browser": "success_37746833321",
+          "test_sessions_browser": "success_37746833286",
+          "core_quality_and_build": "success_37746833296",
+          "merge_gate": "success_37746833296",
+          "final_state_checkpoint": "pending_exact_head"
+        }
+      }
+    },
+    {
       "issue": 1302,
       "title": "Normalize Sessions and Reports operator-facing labels to Ukrainian",
       "priority": "medium",

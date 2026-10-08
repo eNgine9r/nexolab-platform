@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-08T10:09:00+03:00",
+  "timestamp": "2026-10-08T08:04:22.149Z",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1302_source_accepted_ready_for_final_merge_gate",
+  "event": "issue_1304_source_accepted_pre_final_state_checkpoint",
   "baselines": {
     "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
     "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
@@ -1321,6 +1321,34 @@
       "next_candidate_issue": 1304,
       "modbus_write": "none",
       "hardware_write": "none"
+    },
+    "issue_1304_operator_acceptance": {
+      "issue": 1304,
+      "pull_request": 1305,
+      "branch": "test/1304-sessions-reports-operator-acceptance",
+      "acceptance_scope": "isolated_ci_fixture_only",
+      "widths_css_px": [
+        360,
+        390,
+        430,
+        1440
+      ],
+      "permission_states": "reader_generator_foreign_org",
+      "session_states": "draft_running_completed_archived",
+      "keyboard": "tab_shift_tab_enter_escape",
+      "production_credentials": "none",
+      "production_deployment": "none",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "ci": "pre_final_code_head_green_final_checkpoint_gate_pending",
+      "verified_head_sha": "65631e4f6381cb5f567e580db9db6b27232186b0",
+      "checks": {
+        "reports_browser": "success_37746833321",
+        "test_sessions_browser": "success_37746833286",
+        "core_quality_and_build": "success_37746833296",
+        "merge_gate": "success_37746833296",
+        "final_state_checkpoint": "pending_exact_head"
+      }
     }
   },
   "observations": [
@@ -2272,7 +2300,7 @@
       }
     }
   ],
-  "next_action": "Verify PR #1303 final exact-head Core/browser/DR CI and NEXOLAB Merge Gate; squash merge only on GREEN. Then start independent Ready #1304 isolated keyboard/role/report-context tests without production credential.",
+  "next_action": "Verify #1305 final exact-head CI, all required browser workflows and Merge Gate GREEN; then merge and close #1304. No site deployment or production credential reuse. Select next independent Ready UX package afterward.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
