@@ -66,10 +66,7 @@ function observeAlertsDomainRequests(page: Page): RuntimeRequest[] {
   const requests: RuntimeRequest[] = [];
   page.on("request", (request) => {
     const pathname = new URL(request.url()).pathname;
-    if (
-      pathname.startsWith("/api/v1/alerts") ||
-      pathname === "/api/v1/live-dashboards/channel-inventory"
-    ) {
+    if (pathname.startsWith("/api/v1/alerts") || pathname === "/api/v1/live-dashboards/channel-inventory") {
       requests.push({ url: request.url(), method: request.method() });
     }
   });
