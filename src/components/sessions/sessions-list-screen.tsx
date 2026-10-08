@@ -121,12 +121,12 @@ export function SessionsListScreen() {
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="text-[9px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">
-              M4 · Sessions
+              Випробування · Моніторинг
             </p>
             <h1 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">Лабораторні випробування</h1>
             <p className="mt-2 max-w-3xl text-[12px] leading-6 text-slate-400">
-              Реальні сесії з central backend: конфігурація, 34 production series, етапи, телеметрія та
-              immutable audit.
+              Реальні випробування з локальної системи: конфігурація, 34 ряди вимірювань, етапи, телеметрія та
+              незмінний журнал аудиту.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 sm:min-w-[420px]">
@@ -187,7 +187,7 @@ export function SessionsListScreen() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-300" />
               <div>
-                <h2 className="text-sm font-semibold text-white">Sessions API недоступний</h2>
+                <h2 className="text-sm font-semibold text-white">API випробувань недоступний</h2>
                 <p className="mt-1 text-[11px] leading-5 text-slate-400">{error.message}</p>
                 <button className="secondary-button mt-3" onClick={refresh}>
                   Повторити
@@ -252,10 +252,10 @@ export function SessionsListScreen() {
                 <div>
                   <p className="text-[8px] tracking-[0.12em] text-slate-600 uppercase">Конфігурація</p>
                   <p className="mt-1 text-[10px] text-slate-300">
-                    Snapshot {session.active_config_snapshot_id ? "зафіксовано" : "не зафіксовано"}
+                    Знімок даних {session.active_config_snapshot_id ? "зафіксовано" : "не зафіксовано"}
                   </p>
                   <p className="mt-1 text-[9px] text-slate-600">
-                    Limits v{session.active_limit_version ?? "—"}
+                    Обмеження v{session.active_limit_version ?? "—"}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 text-[9px] text-slate-500 sm:justify-end">
