@@ -2,11 +2,15 @@
 
 Updated: 2026-10-08
 
-## Issue #1300 / parent #1191 — Production UX Wave 2 partially verified, auth gate pending
+## Issue #1300 / parent #1191 — Production UX Wave 2 authenticated route evidence recorded
 
-Read-only actual-host Chromium verified signed-out `/sessions`, `/sessions/new` and `/reports` at 360/390/430/1440 CSS px on `nexolab-edge-01`: all 12 route/width combinations showed the correct “Потрібен вхід до системи” auth gate, a local `/login` link preserving the requested `returnTo`, no horizontal overflow and no mutating HTTP requests during navigation. No credential was read and no production session/report data was modified. Detailed measured evidence and source-only observations are in `docs/audits/nexolab-ux-production-wave2-2026-10-08.md`.
+Actual-host Chromium evidence on `nexolab-edge-01` now has two verified passes for Sessions → Reports: **12/12 signed-out auth-gate + safe local returnTo checks**, and **20/20 authenticated read-only route visits** at 360/390/430/1440 CSS px. The authenticated browser opened `/sessions`, `/sessions/new`, `/reports`, the detail route of an existing session and the detail route of an existing report at every width, all HTTP 200 with `authGate=false` and no horizontal overflow. The list exposed four existing session links in the observed sample and the reports view contained an action to open an existing rendered report. This is real-browser **route-level** evidence, not a claim that every record field or operator action is correct.
 
-The **authenticated** existing Sessions → Reports operator journey, session/report detail, responsive controls and role-specific visibility remain unverified. The #1294 one-time service-credential authorization was consumed; #1300 is blocked pending a fresh explicit Product Owner authorization for one read-only authenticated Chromium run (or an already authorized browser session). Until then, do not claim complete production UX acceptance. #1295 and #1296 product fixes are merged in main, but their actual site deployment is still separately gated; the accepted deployed baseline was last recorded as `75d9c75f8d1901d6b639ec711bf3784e22ed0642`.
+The Product Owner explicitly approved one root-only service-credential use for #1300; it was consumed once. The credential and auth tokens were not printed or committed, no screenshots/traces/videos were retained, and the Chromium audit blocked mutating HTTP methods after login (0 blocked write attempts). No session/report creation, report generation/export, lifecycle transition, Modbus/controller write, hardware write, service restart or cutover occurred.
+
+The initially missing session → report link is **not a reproduced defect**: source `SessionReportAction` intentionally shows that action only for completed/archived sessions with `reports.read`; the selected real record's state/permission was not captured. Remaining **unverified** acceptance includes keyboard Tab/Shift+Tab/Escape/focus, session/report field-level truthfulness, role/membership permissions and completed-session context navigation. Do not treat HTTP 200 as proof of these. The single-use credential authorization is consumed. Canonical report: `docs/audits/nexolab-ux-production-wave2-2026-10-08.md`, draft PR #1301. #1300 remains under review until residual scope is verified or explicitly split by Product Owner.
+
+The approved deployed product baseline is still `75d9c75f8d1901d6b639ec711bf3784e22ed0642` unless independently superseded by an accepted site deployment; #1295/#1296 source changes have not been redeployed by this audit.
 
 ## Issue #1296 — primary mobile Topbar touch targets (source accepted)
 
