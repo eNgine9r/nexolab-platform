@@ -103,6 +103,12 @@ class PreviewHandler(BaseHTTPRequestHandler):
         return hmac.compare_digest(signature, expected)
 
     def same_origin(self) -> bool:
+        # Browser form navigation may omit/rewrite Origin under privacy tooling.
+        # Sec-Fetch-* are browser-controlled forbidden request headers, so a
+        # same-origin navigation provides a strict fallback for Chrome.
+        # Cross-site and same-site (other subdomain) requests remain denied.
+        if (self.headers.get("Sec-Fetch-Site", "") == "same-origin":
+            return self.headers.get("Sec-Fetch-Mode", "") == "navigate" and self.headers.get("Sec-Fetch-Dest", "") == "document"
         return self.headers.get("Origin", "") == PUBLIC_ORIGIN
 
     def do_GET(self) -> None:
