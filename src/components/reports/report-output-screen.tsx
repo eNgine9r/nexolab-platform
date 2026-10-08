@@ -20,7 +20,7 @@ export function ReportOutputScreen({ reportId }: { reportId: string }) {
     return (
       <OutputSecurityGate
         state="configuration"
-        error="Rendered reports доступні лише в live mode з production API."
+        error="Готові звіти доступні лише в робочому режимі з локальним API."
         onRetry={() => undefined}
       />
     );
@@ -95,7 +95,7 @@ function OutputSecurityGate({
             )}
           </div>
           <div>
-            <p className="text-xs tracking-[0.2em] text-cyan-300 uppercase">NEXOLAB Output Gate</p>
+            <p className="text-xs tracking-[0.2em] text-cyan-300 uppercase">NEXOLAB · доступ до звітів</p>
             <h1 className="mt-1 text-xl font-semibold text-white">
               {loading
                 ? "Перевірка захищеної сесії"
@@ -107,7 +107,7 @@ function OutputSecurityGate({
         </div>
         <p className="mt-5 text-sm leading-6 text-slate-400">
           {loading
-            ? "Backend перевіряє JWT, organization membership та reports.read."
+            ? "Система перевіряє JWT, членство в організації та право reports.read."
             : (error ?? "Поточна сесія не має доступу до цього звіту.")}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
