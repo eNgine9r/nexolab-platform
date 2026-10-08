@@ -384,6 +384,29 @@ test("enforces organization-scoped authenticated production session workflow", a
   expect(archived.status()).toBe(200);
   expect((await archived.json()).session.state).toBe("archived");
 
+  const archivedContext = await authenticatedContext(browser, engineerAToken, organizationA);
+  const archivedPage = await archivedContext.newPage();
+  try {
+    for (const width of [360, 390, 430, 1440]) {
+      await archivedPage.setViewportSize({ width, height: 900 });
+      await archivedPage.goto(`/sessions/${createdA.session.id}`, {
+        waitUntil: "domcontentloaded",
+      });
+      await expect(archivedPage.getByText("Незмінний перегляд", { exact: true })).toBeVisible();
+      const reportLink = archivedPage.getByRole("link", {
+        name: /^(Сформувати звіт|Переглянути звіти)$/,
+      });
+      await expect(reportLink).toHaveAttribute("href", `/reports?session=${createdA.session.id}`);
+      await reportLink.focus();
+      await expect(reportLink).toBeFocused();
+      expect(
+        await archivedPage.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+      ).toBeLessThanOrEqual(1);
+    }
+  } finally {
+    await archivedContext.close();
+  }
+
   writeFileSync(
     path.join(evidenceDirectory, "test-sessions-acceptance-summary.json"),
     `${JSON.stringify(
