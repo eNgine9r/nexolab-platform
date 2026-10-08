@@ -8,7 +8,6 @@ Every process terminates on exit. Never run as root or enable Tailscale Funnel.
 from __future__ import annotations
 
 import argparse
-import base64
 import http.client
 import importlib.util
 import os
@@ -118,7 +117,7 @@ def run(proxy: Path, nginx: Path, config: Path, nginx_config: Path, ng_fixture: 
         client_file = work / "secrets" / "fake-google-secret"
         cookie_file = work / "secrets" / "fake-cookie-secret"
         client_file.write_text("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xture", encoding="ascii")
-        cookie_file.write_text(base64.b64encode(secrets.token_bytes(32)).decode("ascii"), encoding="ascii")
+        cookie_file.write_bytes(secrets.token_bytes(32))
         for file in (client_file, cookie_file):
             file.chmod(0o600)
         # Actual OAuth binary, fake credentials and loopback-only. No env
