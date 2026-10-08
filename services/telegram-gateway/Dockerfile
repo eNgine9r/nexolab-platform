@@ -37,6 +37,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 COPY --from=builder --chown=nonroot:nonroot /usr/local /usr/local
+# Preserve existing operational scripts that invoke Debian's old interpreter path.
+# Same patched interpreter binary, no second Python package manager/runtime.
+COPY --from=builder --chown=nonroot:nonroot /usr/local/bin/python3.13 /usr/bin/python3
+COPY --from=builder --chown=nonroot:nonroot /usr/local/bin/python3.13 /usr/bin/python3.13
 COPY --from=builder --chown=nonroot:nonroot /opt/runtime-libs /usr/local/lib
 COPY --from=builder --chown=nonroot:nonroot /opt/app /app
 COPY --from=builder --chown=nonroot:nonroot /opt/runtime-data /app/data/telegram-delivery
