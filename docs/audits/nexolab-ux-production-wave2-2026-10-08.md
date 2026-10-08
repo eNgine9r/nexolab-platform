@@ -14,20 +14,20 @@ Read-only Chromium запущено на `nexolab-edge-01` поза Commander pr
 
 ## Реальний Chromium evidence: anonymous gate
 
-| Width | Route | HTTP | Auth gate | Safe returnTo | Horizontal overflow | Час, мс |
-| ---: | --- | ---: | --- | --- | ---: | ---: |
-| 360 | `/sessions` | 200 | PASS | PASS | 0 px | 1081 |
-| 360 | `/sessions/new` | 200 | PASS | PASS | 0 px | 910 |
-| 360 | `/reports` | 200 | PASS | PASS | 0 px | 895 |
-| 390 | `/sessions` | 200 | PASS | PASS | 0 px | 1016 |
-| 390 | `/sessions/new` | 200 | PASS | PASS | 0 px | 913 |
-| 390 | `/reports` | 200 | PASS | PASS | 0 px | 908 |
-| 430 | `/sessions` | 200 | PASS | PASS | 0 px | 996 |
-| 430 | `/sessions/new` | 200 | PASS | PASS | 0 px | 906 |
-| 430 | `/reports` | 200 | PASS | PASS | 0 px | 901 |
-| 1440 | `/sessions` | 200 | PASS | PASS | 0 px | 982 |
-| 1440 | `/sessions/new` | 200 | PASS | PASS | 0 px | 944 |
-| 1440 | `/reports` | 200 | PASS | PASS | 0 px | 904 |
+| Width | Route           | HTTP | Auth gate | Safe returnTo | Horizontal overflow | Час, мс |
+| ----: | --------------- | ---: | --------- | ------------- | ------------------: | ------: |
+|   360 | `/sessions`     |  200 | PASS      | PASS          |                0 px |    1081 |
+|   360 | `/sessions/new` |  200 | PASS      | PASS          |                0 px |     910 |
+|   360 | `/reports`      |  200 | PASS      | PASS          |                0 px |     895 |
+|   390 | `/sessions`     |  200 | PASS      | PASS          |                0 px |    1016 |
+|   390 | `/sessions/new` |  200 | PASS      | PASS          |                0 px |     913 |
+|   390 | `/reports`      |  200 | PASS      | PASS          |                0 px |     908 |
+|   430 | `/sessions`     |  200 | PASS      | PASS          |                0 px |     996 |
+|   430 | `/sessions/new` |  200 | PASS      | PASS          |                0 px |     906 |
+|   430 | `/reports`      |  200 | PASS      | PASS          |                0 px |     901 |
+|  1440 | `/sessions`     |  200 | PASS      | PASS          |                0 px |     982 |
+|  1440 | `/sessions/new` |  200 | PASS      | PASS          |                0 px |     944 |
+|  1440 | `/reports`      |  200 | PASS      | PASS          |                0 px |     904 |
 
 Час — один single-pass замір для DOMContentLoaded + 800 мс очікування, включає фіксовану затримку; це **не показник реального часу завантаження для користувачів** і не performance SLA. HTTP 200 тут означає доставку frontend-сторінки; правильний результат без сесії — видимий security gate, а не відкрита production інформація.
 
@@ -36,6 +36,7 @@ Read-only Chromium запущено на `nexolab-edge-01` поза Commander pr
 ## Source review (не production acceptance)
 
 Оглянуті актуальні `main` файли:
+
 - `src/app/sessions/page.tsx`, `src/app/sessions/new/page.tsx`, `src/app/sessions/[sessionId]/page.tsx`;
 - `src/app/reports/page.tsx`, `src/app/reports/[reportId]/page.tsx`;
 - `src/components/sessions/sessions-list-screen.tsx`, `session-wizard.tsx`, `session-workspace.tsx`;
