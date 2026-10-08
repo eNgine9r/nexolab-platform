@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-08T05:21:08.165Z",
+  "timestamp": "2026-10-08T05:56:28.654Z",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1296_mobile_topbar_source_complete_ready_for_merge",
+  "event": "issue_1300_authenticated_route_level_acceptance_in_review",
   "baselines": {
     "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
     "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
@@ -28,7 +28,11 @@
     "deployed_device_agent_rollback_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1300,
+    "title": "Production operator Wave 2: Sessions to Reports read-only journey",
+    "branch": "audit/1300-production-sessions-reports-wave2"
+  },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -1300,6 +1304,38 @@
       "hardware_evidence": "not_applicable",
       "modbus_write": "none",
       "hardware_write": "none"
+    },
+    "issue_1300_production_ux_wave2": {
+      "issue": 1300,
+      "parent_issue": 1191,
+      "branch": "audit/1300-production-sessions-reports-wave2",
+      "pr": 1301,
+      "report": "docs/audits/nexolab-ux-production-wave2-2026-10-08.md",
+      "widths_css_px": [
+        360,
+        390,
+        430,
+        1440
+      ],
+      "anonymous_gate": "passed_12_of_12",
+      "login_return_to": "passed_12_of_12",
+      "authenticated_read_only_routes": "passed_20_of_20",
+      "existing_session_and_report_routes": "reached",
+      "existing_session_links_per_width": 4,
+      "existing_rendered_report_action": "present",
+      "horizontal_overflow_px": 0,
+      "observed_mutating_requests": 0,
+      "one_time_approval": "consumed",
+      "remaining_unverified": [
+        "keyboard_focus",
+        "role_permissions",
+        "record_content",
+        "completed_session_report_context"
+      ],
+      "findings": "no_reproduced_product_defect",
+      "production_deployment": "not_performed",
+      "modbus_write": "none",
+      "hardware_write": "none"
     }
   },
   "observations": [
@@ -2224,9 +2260,40 @@
         "actual_site_deployment": "not_performed",
         "hardware_write": "none"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T05:33:56.358Z",
+      "kind": "issue_1300_partial_chromium_evidence_and_hard_auth_gate",
+      "data": {
+        "issue": 1300,
+        "observed_via": "actual_host",
+        "width_count": 4,
+        "route_count": 3,
+        "anonymous_gate": "12_of_12_passed",
+        "safe_return_to": "12_of_12_passed",
+        "browser_http_write_count": 0,
+        "remaining": "fresh_explicit_one_time_service_credential_authorization"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T05:56:28.658Z",
+      "kind": "issue_1300_authenticated_chromium_route_level_pass",
+      "data": {
+        "issue": 1300,
+        "parent_issue": 1191,
+        "pr": 1301,
+        "verified_routes": 20,
+        "verified_widths": 4,
+        "anonymous_auth_checks": 12,
+        "mutating_requests": 0,
+        "record_names_or_ids_saved": false,
+        "remaining": "keyboard_role_context_acceptance"
+      }
     }
   ],
-  "next_action": "Verify final exact-head Core Quality/build, Authenticated Dashboard Acceptance and NEXOLAB Merge Gate for PR #1299, resolve reviews, merge only when GREEN; then scope next UX audit wave under #1191.",
+  "next_action": "Verify #1301 exact-head docs/state CI; do not close #1300 yet. Residual keyboard, role and completed-session context checks need a separate authorized scope or a subsequent focused Work Package.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
