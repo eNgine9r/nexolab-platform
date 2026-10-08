@@ -224,7 +224,7 @@ def run(binary: Path, template: Path) -> None:
             if status < 500 or len(forwarded) != before:
                 raise AssertionError("identity proxy outage must fail closed without forwarding")
             print(f"PASS OAuth outage remains fail-closed: HTTP {status}")
-            print("PASS: 10 synthetic HTTP cases; no Google, controllers, S3, LAN API or public route")
+            print("PASS: 11 synthetic HTTP cases; no Google, controllers, S3, LAN API or public route")
         finally:
             if nginx is not None:
                 nginx.terminate()
