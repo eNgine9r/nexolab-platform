@@ -12,14 +12,16 @@ RUN python -m pip install --target /opt/app/site-packages -r requirements.txt \
 COPY app ./app
 
 # Keep only application deps and fixed CPython, not build-time package tooling.
-# SQLite is needed by the rootless delivery outbox and is absent from distroless/base.
+# SQLite is needed by the rootless delivery outbox; pydantic-core also needs libgcc_s. Both are absent from distroless/base.
 RUN mkdir -p /opt/runtime-data /opt/runtime-libs \
     && find /opt/app -type d -exec chmod 0755 {} + \
     && find /opt/app -type f -exec chmod 0644 {} + \
-    && sqlite_lib="$(find /usr/lib -name libsqlite3.so.0 -print -quit)" \
-    && test -n "$sqlite_lib" \
-    && cp -L "$sqlite_lib" /opt/runtime-libs/libsqlite3.so.0 \
-    && chmod 0644 /opt/runtime-libs/libsqlite3.so.0 \
+    && for soname in libsqlite3.so.0 libgcc_s.so.1; do \
+         source_lib="$(find /usr/lib -name "$soname" -print -quit)"; \
+         test -n "$source_lib"; \
+         cp -L "$source_lib" "/opt/runtime-libs/$soname"; \
+         chmod 0644 "/opt/runtime-libs/$soname"; \
+       done \
     && rm -rf /usr/local/lib/python3.13/site-packages/pip \
               /usr/local/lib/python3.13/site-packages/pip-*.dist-info \
               /usr/local/lib/python3.13/site-packages/setuptools \
