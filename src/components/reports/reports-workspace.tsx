@@ -39,6 +39,7 @@ import {
 } from "@/lib/reports/session-navigation";
 import { createSessionApiClient } from "@/lib/sessions/api-client";
 import type { LaboratorySession } from "@/lib/sessions/types";
+import { SESSION_STATE_LABELS } from "@/lib/sessions/view-model";
 
 function formatDate(value: string, displayTimeZone: string): string {
   return formatOperationalTimestamp(new Date(value), displayTimeZone, {
@@ -278,12 +279,12 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <p className="text-[9px] font-semibold tracking-[0.18em] text-cyan-300 uppercase">
-              Sprint 13 · Immutable Evidence
+              Звіти · Незмінні докази
             </p>
             <h1 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">Звіти випробувань</h1>
             <p className="mt-2 max-w-3xl text-[12px] leading-6 text-slate-400">
-              Відтворювані версії звітів, deterministic CSV/JSON, SHA-256 і організаційно ізольоване
-              завантаження evidence.
+              Відтворювані версії звітів, детерміновані CSV/JSON, SHA-256 і ізольоване за організаціями
+              завантаження доказових матеріалів.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 sm:min-w-[460px]">
@@ -310,10 +311,10 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
                 className="form-input"
                 data-testid="report-session-select"
               >
-                {sessions.length === 0 ? <option value="">Немає reportable сесій</option> : null}
+                {sessions.length === 0 ? <option value="">Немає завершених випробувань</option> : null}
                 {sessions.map((session) => (
                   <option key={session.id} value={session.id}>
-                    {session.session_number} · {session.test_object} · {session.state}
+                    {session.session_number} · {session.test_object} · {SESSION_STATE_LABELS[session.state]}
                   </option>
                 ))}
               </select>
@@ -325,7 +326,7 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
               <input
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
-                placeholder="Контрольований evidence export…"
+                placeholder="Причина формування звіту…"
                 className="form-input"
               />
             </label>
@@ -357,7 +358,7 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
 
           {selectedSession ? (
             <p className="mt-3 text-[10px] text-slate-500">
-              Source boundary:{" "}
+              Період вихідних даних:{" "}
               {selectedSession.started_at ? formatDate(selectedSession.started_at, displayTimeZone) : "—"} —{" "}
               {selectedSession.completed_at ? formatDate(selectedSession.completed_at, displayTimeZone) : "—"}
             </p>
@@ -366,7 +367,7 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
       ) : (
         <section className="panel flex items-center gap-3 p-4 text-[11px] text-slate-400">
           <ShieldCheck className="h-5 w-5 text-cyan-300" />
-          Поточна роль має read-only доступ. Генерація потребує permission
+          Поточна роль має доступ лише для перегляду. Для формування потрібне право
           <code className="rounded bg-white/[0.04] px-1.5 py-0.5 text-cyan-200">reports.generate</code>.
         </section>
       )}
@@ -382,7 +383,7 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
           <div>
             <h2 className="text-sm font-semibold text-white">Версії звітів</h2>
             <p className="mt-1 text-[10px] text-slate-500">
-              {stale ? "Дані можуть бути застарілими" : "Immutable source snapshots"}
+              {stale ? "Дані можуть бути застарілими" : "Незмінні знімки вихідних даних"}
             </p>
           </div>
           <button
@@ -400,11 +401,11 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
           <Status
             icon={LoaderCircle}
             title="Завантаження звітів"
-            detail="Читаємо immutable report metadata…"
+            detail="Завантаження метаданих незмінних версій звітів…"
             spin
           />
         ) : error && reports.length === 0 ? (
-          <Status icon={WifiOff} title="Reports API недоступний" detail={error.message} />
+          <Status icon={WifiOff} title="API звітів недоступний" detail={error.message} />
         ) : reports.length === 0 ? (
           <Status
             icon={Archive}
@@ -452,7 +453,7 @@ export function ReportsWorkspace({ target = NO_REPORT_SESSION_TARGET }: { target
                 <Status
                   icon={FileCheck2}
                   title="Оберіть звіт"
-                  detail="Виберіть immutable report version у списку."
+                  detail="Виберіть незмінну версію звіту зі списку."
                 />
               )}
             </div>
@@ -478,7 +479,7 @@ function ReportDetail({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-[9px] font-semibold tracking-[0.14em] text-cyan-300 uppercase">
-            Report version {report.version}
+            Версія звіту {report.version}
           </p>
           <h3 className="mt-2 text-xl font-semibold break-words text-white">{reportTitle(report)}</h3>
           <ReportObject report={report} />
@@ -497,7 +498,7 @@ function ReportDetail({
           </Link>
           <div className="rounded-xl border border-emerald-300/20 bg-emerald-400/[0.055] px-3 py-2 text-[10px] text-emerald-200">
             <CheckCircle2 className="mr-2 inline h-3.5 w-3.5" />
-            Append-only
+            Лише додавання
           </div>
         </div>
       </div>
@@ -505,13 +506,13 @@ function ReportDetail({
       <ReportTechnicalDetails report={report} />
       <div>
         <Meta
-          label="Source window"
+          label="Період вихідних даних"
           value={`${formatDate(report.source_started_at, displayTimeZone)} — ${formatDate(report.source_ended_at, displayTimeZone)}`}
         />
       </div>
 
       <div>
-        <h4 className="text-[11px] font-semibold text-slate-200">Evidence artifacts</h4>
+        <h4 className="text-[11px] font-semibold text-slate-200">Доказові файли</h4>
         <div className="mt-3 space-y-2">
           {report.artifacts.map((artifact) => {
             const Icon = artifactIcon(artifact);
@@ -529,7 +530,7 @@ function ReportDetail({
                     <p className="truncate text-[11px] font-semibold text-slate-100">{artifact.name}</p>
                     <p className="mt-1 text-[9px] text-slate-500">
                       {formatBytes(artifact.size_bytes)}
-                      {artifact.row_count === null ? "" : ` · ${artifact.row_count} rows`}
+                      {artifact.row_count === null ? "" : ` · ${artifact.row_count} рядків`}
                       {` · ${compactHash(artifact.sha256)}`}
                     </p>
                   </div>

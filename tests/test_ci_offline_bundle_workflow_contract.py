@@ -273,6 +273,21 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertNotIn('chmod 0444 "$private_key_file"', self.workflow)
         self.assertNotIn('chown 10001:10001 "$private_key_file"', self.workflow)
 
+    def test_local_auth_offline_update_migrates_only_legacy_idle_timeout(self) -> None:
+        self.assertIn('if [[ "$LOCAL_AUTH" == true ]]', self.installer)
+        self.assertIn(
+            'if line.split("=", 1)[1].strip() == "43200":',
+            self.installer,
+        )
+        self.assertIn(
+            'lines[index] = "AUTH_LOCAL_REFRESH_TOKEN_SECONDS=28800"',
+            self.installer,
+        )
+        self.assertIn(
+            "Migrated legacy local-auth idle timeout from 43200s to 28800s",
+            self.installer,
+        )
+
     def test_installer_allows_runner_local_dashboard_bind_override(self) -> None:
         self.assertIn('python3 - "$MANIFEST" "$CENTRAL_ENV"', self.installer)
         self.assertIn('configured_bind = env.get("DASHBOARD_BIND_ADDRESS", "")', self.installer)

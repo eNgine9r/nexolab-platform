@@ -3,32 +3,30 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-05T21:21:00+03:00",
+  "timestamp": "2026-10-08T09:45:00Z",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1277_container_high_revalidation_verified",
+  "event": "issue_1307_actual_host_deployment_passed_reconciled",
   "baselines": {
-    "accepted_product_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
-    "deployed_product_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
-    "frontend_compatibility_source_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
-    "frontend_build_id": "sCwzXg5ghkKu2_Rtus_F7",
-    "frontend_release": "runtime/frontend-releases/7db6c8c34c7c94874afe2a3301a2209585795744-20260922T134803Z",
-    "frontend_rollback_release": "runtime/frontend-releases/2296e3070cbebff687418cf1ac161984086bebdb-20260918T184540Z",
-    "frontend_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
+    "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+    "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+    "frontend_compatibility_source_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+    "frontend_build_id": "hA8usmV6ZKwgZUYhmOLHZ",
+    "frontend_release": "runtime/frontend-releases/d00a83bfc83fb120777c721b5e46fa50ae455c7d-20261008T092219Z",
+    "frontend_rollback_release": "runtime/frontend-releases/75d9c75f8d1901d6b639ec711bf3784e22ed0642-20261007T061059Z",
+    "frontend_runtime_evidence": "runtime/deployments/20261008T092219Z",
     "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
     "sdm120_candidate_device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
     "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
     "sdm120_candidate_frontend_artifact_sha256": "d73ec2b840b01733a7761b8b555e1b62c4e12b574ea2a0db5a115acd62e32fb6",
     "sdm120_candidate_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
-    "device_agent_compatibility_source_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
-    "device_agent_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
-    "device_agent_rollback_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
-    "device_agent_runtime_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
     "sdm120_production_bus_id": "rs485-sdm120",
     "sdm120_production_adapter": "A10Q34QC",
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
-    "device_agent_pre_cutover_evidence": "runtime/evidence/issue-1117-sdm120-precutover-20260922T163357+0300",
-    "device_agent_compatibility_parent_sha": "2296e3070cbebff687418cf1ac161984086bebdb"
+    "deployed_runtime_evidence": "runtime/deployments/20261008T092219Z",
+    "deployed_device_agent_image_id": "sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323",
+    "deployed_device_agent_rollback_image_id": "sha256:5344b4bef506d89923afd39413ee1bd7d1bb668ac1d123ed899a6d22fa58b957",
+    "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "active_work": null,
   "evidence_snapshot": {
@@ -1215,6 +1213,167 @@
       "persistent_data_mutation": "none",
       "modbus_write": "none",
       "hardware_write": "none"
+    },
+    "completed_browser_session_persistence_1274": {
+      "issue": 1274,
+      "pull_request": 1275,
+      "verified_head_sha": "b914b223efebde929866e06b01f5c2817fcc1781",
+      "exact_head_ci": "18_of_18_green",
+      "core_ci_and_merge_gate": "success:37459114838",
+      "authenticated_dashboard": "success:37459114936",
+      "offline_auth": "success:37459114928",
+      "offline_bundle": "success:37459114954",
+      "telemetry_service": "success:37459115041",
+      "security_browser": "success:37459114917",
+      "container_supply_chain": "success:37459114869",
+      "ci_routing_prerequisite": "issue_1281_pr_1282_merge_2a3d62e948b8dc86564c90c3f65b8a1efb38c05a",
+      "browser_session_policy": "same_origin_explicit_subject_session_binding_session_scoped_tokens",
+      "refresh_idle_timeout_seconds": 28800,
+      "legacy_timeout_migration": "43200_to_28800_only",
+      "source_acceptance": "completed",
+      "installed_acceptance": "pending_explicit_product_owner_authorization",
+      "production_runtime_mutation": "none",
+      "persistent_data_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "state_reconciliation_issue": 1284,
+      "state_reconciliation_pull_request": 1285,
+      "merged_implementation_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642"
+    },
+    "issue_1294_production_ux_wave1": {
+      "issue": 1294,
+      "parent_issue": 1191,
+      "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+      "frontend_build_id": "Up0mYuGscMzOz00Qyyacp",
+      "widths_css_px": [
+        360,
+        390,
+        430,
+        1440
+      ],
+      "navigation": "passed",
+      "overview_sensor_dialog": "passed",
+      "live_workspace": "passed",
+      "live_inventory_rows": 219,
+      "horizontal_overflow": "none",
+      "followups": [
+        1295,
+        1296
+      ],
+      "audit_report": "docs/audits/nexolab-ux-production-wave1-2026-10-07.md",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "pre_final_verified_head_sha": "013c57f1c855ea0bef51422cc2c3b62b0870d46b",
+      "pre_final_workflow_run": 37672365539,
+      "quality_and_build": "success",
+      "nexolab_merge_gate": "success"
+    },
+    "issue_1295": {
+      "issue": 1295,
+      "pull_request": 1298,
+      "product_head_sha": "208d0ac219e637710b30b1322321448bda173400",
+      "core_ci_run": 37710885910,
+      "authenticated_dashboard_run": 37710885908,
+      "alerts_browser_run": 37710886067,
+      "all_required_checks": "success_before_state_reconciliation",
+      "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+      "site_acceptance": "not_performed",
+      "next_ready_issue": 1296,
+      "modbus_write": "none",
+      "hardware_write": "none"
+    },
+    "issue_1296": {
+      "issue": 1296,
+      "parent_issue": 1294,
+      "pull_request": 1299,
+      "scope": "topbar_only",
+      "mobile_hit_area_css_px": "minimum_44x44_at_360_390_430",
+      "desktop_hit_area_css_px": "40x40_at_1440",
+      "overview_live_chromium": "passed_in_ci",
+      "formatting": "passed",
+      "tested_code_head_sha": "72edcc6936dd9d50317efdcd3cc1af10019f60e4",
+      "core_workflow_run": 37712642648,
+      "authenticated_dashboard_run": 37712642614,
+      "pre_final_merge_gate": "success",
+      "final_exact_head_check": "pending_after_state_reconciliation",
+      "source_deployment": "not_performed",
+      "hardware_evidence": "not_applicable",
+      "modbus_write": "none",
+      "hardware_write": "none"
+    },
+    "issue_1302": {
+      "issue": 1302,
+      "pr": 1303,
+      "scope": "Sessions_and_Reports_visible_copy_only",
+      "verified_code_head_sha": "e3d2fb28b1166a3a95ec51e87fe864b1a3c88db9",
+      "ci_core": 37740906128,
+      "browser_runs": [
+        37740906376,
+        37740906247,
+        37740906194,
+        37740906135
+      ],
+      "status": "all_required_checks_green_before_state_reconciliation",
+      "review_threads": "resolved",
+      "snapshot_terminology": "configuration_not_telemetry",
+      "site_acceptance": "not_performed",
+      "production_deployment": "not_performed",
+      "next_candidate_issue": 1304,
+      "modbus_write": "none",
+      "hardware_write": "none"
+    },
+    "issue_1304_operator_acceptance": {
+      "issue": 1304,
+      "pull_request": 1305,
+      "branch": "test/1304-sessions-reports-operator-acceptance",
+      "acceptance_scope": "isolated_ci_fixture_only",
+      "widths_css_px": [
+        360,
+        390,
+        430,
+        1440
+      ],
+      "permission_states": "reader_generator_foreign_org",
+      "session_states": "draft_running_completed_archived",
+      "keyboard": "tab_shift_tab_enter_escape",
+      "production_credentials": "none",
+      "production_deployment": "none",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "ci": "pre_final_code_head_green_final_checkpoint_gate_pending",
+      "verified_head_sha": "65631e4f6381cb5f567e580db9db6b27232186b0",
+      "checks": {
+        "reports_browser": "success_37746833321",
+        "test_sessions_browser": "success_37746833286",
+        "core_quality_and_build": "success_37746833296",
+        "merge_gate": "success_37746833296",
+        "final_state_checkpoint": "pending_exact_head"
+      }
+    },
+    "issue_1307_deployment": {
+      "issue": 1307,
+      "target_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+      "previous_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+      "evidence_path": "runtime/deployments/20261008T092219Z",
+      "frontend_build_id": "hA8usmV6ZKwgZUYhmOLHZ",
+      "result": "DEPLOYMENT PASSED",
+      "checks": "http_readiness_all_200",
+      "hardware": "read_only_sampled_not_formal_acceptance",
+      "offline": "unverified",
+      "postgresql_backup": "present",
+      "edge_sqlite_backup": "present",
+      "mqtt": "connected",
+      "queue": 0,
+      "workers": "3_of_3",
+      "degraded_endpoints": 0,
+      "modbus_write": "none"
+    },
+    "issue_1306_ci_review": {
+      "issue": 1306,
+      "pr": 1280,
+      "state": "blocked",
+      "unresolved_p2_threads": 2,
+      "published_fix": "none"
     }
   },
   "observations": [
@@ -2004,9 +2163,169 @@
         "nexolab_merge_gate": "success",
         "next_selection": "none_until_fresh_backlog_reaudit"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-06T10:04:13Z",
+      "kind": "issue_1281_pr_1282_merged",
+      "data": {
+        "merge_sha": "2a3d62e948b8dc86564c90c3f65b8a1efb38c05a",
+        "result": "ci_classifier_auth_deploy_contract_routing_corrected"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-06T12:09:07Z",
+      "kind": "issue_1274_pr_1275_merged",
+      "data": {
+        "verified_head_sha": "b914b223efebde929866e06b01f5c2817fcc1781",
+        "merge_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+        "exact_head_ci": "18_of_18_green"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T05:54:33Z",
+      "kind": "issue_1286_source_preflight_fail_closed",
+      "data": {
+        "observed_via": "actual_host",
+        "error": "Device Agent pre-cutover lineage evidence mismatch: formal_deployed_product_sha",
+        "deployed_source": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+        "deployment_evidence": "runtime/deployments/20261003T084758Z",
+        "formal_device_agent_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
+        "runtime_mutation": "none"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T06:08:12Z",
+      "kind": "issue_1286_production_deployment_passed",
+      "data": {
+        "observed_via": "actual_host",
+        "deployment_evidence": "runtime/deployments/20261007T061059Z",
+        "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+        "previous_deployed_product_sha": "d816c3e9fa1580b1710a6c6b023a7c20d1c7ce54",
+        "frontend_build_id": "Up0mYuGscMzOz00Qyyacp",
+        "deployed_device_agent_image_id": "sha256:5344b4bef506d89923afd39413ee1bd7d1bb668ac1d123ed899a6d22fa58b957",
+        "auth_refresh_idle_seconds": 28800,
+        "runtime_readiness": "passed",
+        "browser_production_acceptance": "pending_secret_or_authenticated_browser_surface"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T09:00:00Z",
+      "kind": "issue_1286_post_deploy_read_only_health",
+      "data": {
+        "observed_via": "actual_host",
+        "telemetry_latest_rows": 219,
+        "device_agent": "ok_modbus_mqtt_connected_queue_0_workers_healthy",
+        "object_storage": "versitygw_v1_8_0_verified_cutover_verified",
+        "auth_access_token_seconds": 300,
+        "auth_refresh_idle_seconds": 28800,
+        "post_deploy_service_session_refresh_window_seconds": 28800
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T09:12:00Z",
+      "kind": "issue_1290_pre_final_state_green",
+      "data": {
+        "issue": 1290,
+        "pull_request": 1291,
+        "verified_head_sha": "29771863f01d092a3a041c696d514fca745169e1",
+        "workflow_run": 37598838420,
+        "state_integrity": "success",
+        "nexolab_merge_gate": "success"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T13:44:03Z",
+      "kind": "issue_1286_production_chromium_acceptance_passed",
+      "data": {
+        "observed_via": "actual_host",
+        "issue": 1286,
+        "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
+        "deployment_evidence": "runtime/deployments/20261007T061059Z",
+        "browser": "chromium",
+        "focused_tests": "2_of_2_passed",
+        "same_origin_second_tab": "passed",
+        "refresh_logout_revocation": "passed",
+        "post_check": "dashboard_200_api_401_expected_device_agent_200",
+        "secret_output": "none",
+        "secret_persisted": "none",
+        "modbus_write": "none",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T13:46:14Z",
+      "kind": "issue_1286_closed_completed",
+      "data": {
+        "issue": 1286,
+        "state": "closed",
+        "state_reason": "completed",
+        "final_comment_id": 6039308373
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-07T13:53:40Z",
+      "kind": "issue_1292_pre_final_state_green",
+      "data": {
+        "issue": 1292,
+        "pull_request": 1293,
+        "verified_head_sha": "bdd7053bb164dd535855898301c8256bd0617112",
+        "workflow_run": 37631845053,
+        "state_integrity": "success",
+        "nexolab_merge_gate": "success",
+        "next_selection": "none_until_fresh_backlog_reaudit"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T05:21:08.169Z",
+      "kind": "issue_1296_software_acceptance_green",
+      "data": {
+        "issue": 1296,
+        "pull_request": 1299,
+        "verified_code_head_sha": "72edcc6936dd9d50317efdcd3cc1af10019f60e4",
+        "core_workflow_run": 37712642648,
+        "authenticated_dashboard_run": 37712642614,
+        "final_check": "pending",
+        "actual_site_deployment": "not_performed",
+        "hardware_write": "none"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T06:27:49.403Z",
+      "kind": "issue_1302_pre_ci_source_candidate",
+      "data": {
+        "issue": 1302,
+        "branch": "fix/1302-localize-sessions-reports-labels",
+        "scope": "ui_copy_only",
+        "site_acceptance": "unverified",
+        "next": "exact_head_ci"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T07:09:00Z",
+      "kind": "issue_1302_source_acceptance_pre_final_green",
+      "data": {
+        "issue": 1302,
+        "pr": 1303,
+        "verified_code_head_sha": "e3d2fb28b1166a3a95ec51e87fe864b1a3c88db9",
+        "required_checks": "success",
+        "site_deployment": "not_performed",
+        "next_candidate_issue": 1304
+      }
     }
   ],
-  "next_action": "After #1268 merges GREEN and closes #1267, close #1249 and #1247 completed from actual-host evidence, then perform a fresh open-Issue/PR/backlog audit before selecting any next Work Package.",
+  "next_action": "Verify PR #1308 final exact-head required Core/Telemetry and Merge Gate GREEN and resolve P2 review feedback before merge. After #1307 reconciliation, triage currently blocked #1306 / PR #1280 P2 issues (not Ready); #1300 remains separately authenticated-acceptance gated.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

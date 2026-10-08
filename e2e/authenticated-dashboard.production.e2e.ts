@@ -62,6 +62,22 @@ function observeTelemetryRequests(page: Page): ObservedRequest[] {
   return requests;
 }
 
+function observeAlertsDomainRequests(page: Page): RuntimeRequest[] {
+  const requests: RuntimeRequest[] = [];
+  page.on("request", (request) => {
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.startsWith("/api/v1/alerts") || pathname === "/api/v1/live-dashboards/channel-inventory") {
+      requests.push({ url: request.url(), method: request.method() });
+    }
+  });
+  return requests;
+}
+
+async function expectNoDocumentOverflow(page: Page, width: number): Promise<void> {
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow, `Horizontal overflow at ${width}px`).toBeLessThanOrEqual(1);
+}
+
 function observeAcquisitionMutations(page: Page): RuntimeRequest[] {
   const mutations: RuntimeRequest[] = [];
   page.on("request", (request) => {
@@ -188,6 +204,65 @@ test("protects and renders authenticated REST, history and WebSocket telemetry",
       await page.goto("/", { waitUntil: "domcontentloaded" });
       await expect(page.getByRole("heading", { name: "Потрібен вхід до системи" })).toBeVisible();
       expect(requests).toHaveLength(0);
+    } finally {
+      await context.close();
+    }
+  });
+
+  await test.step("block anonymous Alerts before Alerts or inventory requests", async () => {
+    for (const width of [360, 390, 430, 1440]) {
+      const context = await browser.newContext({ viewport: { width, height: width < 1024 ? 844 : 900 } });
+      const page = await context.newPage();
+      const requests = observeAlertsDomainRequests(page);
+      try {
+        await page.goto("/alerts", { waitUntil: "domcontentloaded" });
+        await expect(page.getByRole("heading", { name: "Потрібен вхід до системи" })).toBeVisible();
+        await expect(page.getByTestId("alerts-workspace")).toHaveCount(0);
+        const login = page.getByRole("link", { name: "Увійти", exact: true });
+        await expect(login).toHaveAttribute("href", "/login?returnTo=%2Falerts");
+        await expectNoDocumentOverflow(page, width);
+        expect(requests).toHaveLength(0);
+      } finally {
+        await context.close();
+      }
+    }
+  });
+
+  await test.step("keep primary mobile Topbar hit areas at 44px without desktop growth", async () => {
+    const context = await authenticatedContext(browser);
+    const page = await context.newPage();
+    try {
+      for (const route of ["/", "/live"]) {
+        await page.goto(route, { waitUntil: "domcontentloaded" });
+        await expect(page.getByTestId("platform-topbar")).toBeVisible();
+
+        for (const width of [360, 390, 430, 1440]) {
+          await page.setViewportSize({ width, height: 900 });
+          const menu = page.getByRole("button", { name: "Відкрити меню" });
+          const primaryActions = [
+            page.getByRole("link", { name: "Відкрити тривоги" }),
+            page.getByRole("button", { name: "Вийти з NEXOLAB" }),
+          ];
+          if (width < 1024) {
+            await expect(menu).toBeVisible();
+            primaryActions.unshift(menu);
+          } else {
+            await expect(menu).toBeHidden();
+          }
+
+          for (const action of primaryActions) {
+            const bounds = await action.boundingBox();
+            expect(bounds).not.toBeNull();
+            expect(bounds!.width).toBeGreaterThanOrEqual(width < 1024 ? 44 : 39);
+            expect(bounds!.height).toBeGreaterThanOrEqual(width < 1024 ? 44 : 39);
+            if (width === 1440) {
+              expect(bounds!.width).toBeLessThanOrEqual(41);
+              expect(bounds!.height).toBeLessThanOrEqual(41);
+            }
+          }
+          await expectNoDocumentOverflow(page, width);
+        }
+      }
     } finally {
       await context.close();
     }

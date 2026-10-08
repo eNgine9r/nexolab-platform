@@ -41,6 +41,8 @@ describe("optional Supabase authentication", () => {
             token_type: "Bearer",
             access_token: "local-access",
             refresh_token: "local-refresh",
+            subject: "subject-1",
+            session_id: "session-1",
             expires_in: 300,
             refresh_expires_in: 3600,
           }),

@@ -3,22 +3,48 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
+import { SecurityGate } from "@/components/dashboard/security-gate";
 import { TelemetryPointSelector } from "@/components/telemetry-selection/telemetry-point-selector";
 import {
   buildAlertTelemetrySelectionModel,
   commitAlertTelemetryScope,
 } from "@/lib/alerts/telemetry-selection";
+import { useDashboardSecurity } from "@/hooks/use-dashboard-security";
 import { useLiveDashboardInventory } from "@/hooks/use-live-dashboard-inventory";
 
 import { AlertsWorkspace } from "./alerts-workspace";
 
 export function AlertsTelemetryScope() {
-  const inventory = useLiveDashboardInventory({ enabled: true, organizationId: null });
+  const security = useDashboardSecurity();
+  const securityReady = security.mode === "demo" || security.state === "ready";
+  const organizationId = security.mode === "live" ? (security.membership?.organizationId ?? null) : null;
+  const inventory = useLiveDashboardInventory({
+    enabled: securityReady,
+    organizationId,
+  });
   const model = useMemo(() => buildAlertTelemetrySelectionModel(inventory.items), [inventory.items]);
   const [telemetryPoints, setTelemetryPoints] = useState<string[] | undefined>(undefined);
   const [committedSelection, setCommittedSelection] = useState<string[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const selectorValue = telemetryPoints === undefined ? model.allPointKeys : (committedSelection ?? []);
+
+  if (
+    security.mode === "live" &&
+    (security.state === "loading" ||
+      security.state === "unauthenticated" ||
+      security.state === "forbidden" ||
+      security.state === "error")
+  ) {
+    return (
+      <SecurityGate
+        state={security.state}
+        error={security.error}
+        errorCode={security.errorCode}
+        diagnostics={security.diagnostics}
+        onRetry={security.retry}
+      />
+    );
+  }
 
   const selector = (
     <section className="panel p-4 sm:p-5" data-testid="alerts-telemetry-scope">

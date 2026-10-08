@@ -118,6 +118,8 @@ it("refreshes an expired local token while retaining the explicit organization",
         JSON.stringify({
           access_token: "fresh-token",
           refresh_token: "new-refresh-token",
+          subject: "subject-1",
+          session_id: "session-1",
           expires_in: 600,
           refresh_expires_in: 3600,
         }),
@@ -171,6 +173,8 @@ it("pins an old scoped request without reverting the UI organization during dela
         JSON.stringify({
           access_token: "fresh",
           refresh_token: "refresh-new",
+          subject: "subject-1",
+          session_id: "session-1",
           expires_in: 600,
           refresh_expires_in: 3600,
         }),

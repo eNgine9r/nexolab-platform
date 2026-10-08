@@ -60,7 +60,7 @@ export function Topbar({
     >
       <button
         type="button"
-        className="icon-button inline-grid shrink-0 lg:hidden"
+        className="icon-button inline-grid shrink-0 max-lg:min-h-11 max-lg:min-w-11 lg:hidden"
         onClick={onMenuOpen}
         aria-label="Відкрити меню"
       >
@@ -71,7 +71,7 @@ export function Topbar({
       <div className="flex shrink-0 items-center gap-2">
         <Link
           href="/alerts"
-          className="icon-button inline-grid"
+          className="icon-button inline-grid max-lg:min-h-11 max-lg:min-w-11"
           aria-label="Відкрити тривоги"
           title="Тривоги"
         >
@@ -93,7 +93,7 @@ export function Topbar({
             type="button"
             onClick={onSignOut}
             disabled={accountActionsDisabled}
-            className="icon-button inline-grid disabled:cursor-wait disabled:opacity-50"
+            className="icon-button inline-grid disabled:cursor-wait disabled:opacity-50 max-lg:min-h-11 max-lg:min-w-11"
             aria-label="Вийти з NEXOLAB"
             title="Вийти з NEXOLAB"
           >
