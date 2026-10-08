@@ -78,6 +78,11 @@ class GoogleOAuthReadinessTests(unittest.TestCase):
     def test_unsafely_forwarding_google_token_denied(self) -> None:
         self.reject(pass_access_token=True)
 
+    def test_local_force_https_requires_unsupported_tls_listener(self) -> None:
+        # Public HTTPS is terminated before the NGINX -> OAuth loopback hop.
+        # Enabling this option fails startup without a separate HTTPS listener.
+        self.reject(force_https=True)
+
     def test_cookie_must_be_secure_denied(self) -> None:
         self.reject(cookie_secure=False)
 
