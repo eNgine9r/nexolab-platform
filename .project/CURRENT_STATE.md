@@ -2,6 +2,12 @@
 
 Updated: 2026-10-08
 
+## Issue #1300 / parent #1191 — Production UX Wave 2 partially verified, auth gate pending
+
+Read-only actual-host Chromium verified signed-out `/sessions`, `/sessions/new` and `/reports` at 360/390/430/1440 CSS px on `nexolab-edge-01`: all 12 route/width combinations showed the correct “Потрібен вхід до системи” auth gate, a local `/login` link preserving the requested `returnTo`, no horizontal overflow and no mutating HTTP requests during navigation. No credential was read and no production session/report data was modified. Detailed measured evidence and source-only observations are in `docs/audits/nexolab-ux-production-wave2-2026-10-08.md`.
+
+The **authenticated** existing Sessions → Reports operator journey, session/report detail, responsive controls and role-specific visibility remain unverified. The #1294 one-time service-credential authorization was consumed; #1300 is blocked pending a fresh explicit Product Owner authorization for one read-only authenticated Chromium run (or an already authorized browser session). Until then, do not claim complete production UX acceptance. #1295 and #1296 product fixes are merged in main, but their actual site deployment is still separately gated; the accepted deployed baseline was last recorded as `75d9c75f8d1901d6b639ec711bf3784e22ed0642`.
+
 ## Issue #1296 — primary mobile Topbar touch targets (source accepted)
 
 The shared Topbar uses a narrowly scoped `max-lg:min-h-11 max-lg:min-w-11` utility on menu, Alerts and logout actions only. At mobile widths 360/390/430 CSS px the required hit areas are at least 44×44 CSS px; at 1440 CSS px the desktop Alerts/logout controls retain their 40×40 sizing and the mobile menu remains hidden. The icon glyphs, global `.icon-button`, account disabled/aria semantics and unrelated UI stay unchanged.
