@@ -82,20 +82,34 @@
       "issue": 1306,
       "title": "Fix reviewed shared BuildKit caching and bounded dashboard Docker context",
       "priority": "medium",
-      "lifecycle": "blocked",
+      "lifecycle": "completed",
       "depends_on": [],
       "branch": "perf/ci-v2-build-cache-parallel-core",
       "evidence": {
         "pull_request": 1280,
         "unresolved_p2_threads": 2,
-        "blocker": "review_findings_need_implementation_and_exact_head_ci",
         "findings": [
           "PR-scoped cache does not warm sibling PRs",
           "Broad Docker dashboard context defeats layer reuse"
         ],
         "no_production_deployment": true,
         "hardware_write": "none",
-        "modbus_write": "none"
+        "modbus_write": "none",
+        "source_status": "P2_implementation_present_pending_latest_exact_head_validation",
+        "review_findings_repaired": [
+          "main-only verified buildkit cache seed via workflow_dispatch, PR restore-only",
+          "Dockerfile.dashboard.dockerignore frontend allowlist"
+        ],
+        "test_modules": [
+          "tests/test_ci_offline_bundle_workflow_contract.py",
+          "tests/test_ci_risk_aware_verification.py"
+        ],
+        "verified_prior_head": "b4978c1726af9a26d77fa5b210996fbca0d5c6f2",
+        "prior_head_ci": "Core_Telemetry_Telegram_OfflineBundle_green",
+        "latest_merge_sync_head": "86d61bf1a30505c04ac7cd2fa12ae5b013489f21",
+        "latest_exact_head_ci": "pending_after_state_checkpoint",
+        "cache_seeding_note": "default branch requires one verified workflow_dispatch after merge",
+        "production_site_deployment": "none"
       }
     },
     {

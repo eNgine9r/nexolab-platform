@@ -2,6 +2,10 @@
 
 Updated: 2026-10-08
 
+## Issue #1306 — CI performance candidate ready for final exact-head gate
+
+PR #1280 (`perf/ci-v2-build-cache-parallel-core`) contains the reviewed BuildKit fixes: PR jobs restore (but do not publish) reusable default-branch caches; only a verified `workflow_dispatch` on `main` may seed a cache after disconnected-runtime and rollback evidence. Dashboard Docker build context uses an allowlist of actual Next.js input files so backend/docs-only changes cannot invalidate the expensive frontend `COPY . .` layer. Core quality lanes run in parallel while keeping the same mandatory fail-closed `Quality and build` aggregation and Merge Gate. The code head `b4978c1726af9a26d77fa5b210996fbca0d5c6f2` completed Core, Telemetry, Telegram and Offline Bundle GREEN, then the PR branch was synchronized to current `main` (`86d61bf1a30505c04ac7cd2fa12ae5b013489f21`). This state-only checkpoint requires new exact-head CI and code-review resolution; no merge until GREEN. An actual shared cache will remain cold until the trusted `main` workflow is dispatched after merge. No Raspberry/runtime/hardware deployment, data mutation, or Modbus write.
+
 ## Issue #1307 — Raspberry Pi controlled deployment to d00a83bf (actual-host PASSED)
 
 Product Owner authorized the update. On `nexolab-edge-01` the reviewed `scripts/deploy-current-head-raspberry-pi.sh` deployed exact source `d00a83bfc83fb120777c721b5e46fa50ae455c7d` using native ARM64 artifact from Frontend Release Artifact GitHub run `37751399612` (successful; source/platform/public-contract/checksums verified). The site log at `runtime/deployments/20261008T092219Z/summary.txt` states `DEPLOYMENT PASSED` at 2026-10-08 12:35:44 EEST. Previous deployed source `75d9c75f8d1901d6b639ec711bf3784e22ed0642` and release `runtime/frontend-releases/75d9c75f8d1901d6b639ec711bf3784e22ed0642-20261007T061059Z` were retained for rollback. PostgreSQL pre-upgrade dump, runtime evidence archive, edge SQLite snapshot and capacity preflight exist and have nonzero sizes.
