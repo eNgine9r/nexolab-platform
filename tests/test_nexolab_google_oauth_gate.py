@@ -96,7 +96,7 @@ class GoogleOAuthReadinessTests(unittest.TestCase):
             "auth_request /_nexolab_external_auth;",
             "proxy_pass http://127.0.0.1:4180/oauth2/auth;",
             "location @nexolab_sign_in",
-            "return 302 /oauth2/sign_in?",
+            "return 302 /oauth2/start?rd=%2F;",
         ):
             self.assertIn(fragment, nginx)
         for api_prefix in ("location ^~ /api/v1/", "location ^~ /api/device-agent/"):
@@ -105,6 +105,8 @@ class GoogleOAuthReadinessTests(unittest.TestCase):
             self.assertNotIn("error_page 401", area)
         self.assertIn("REPLACE_WITH_APPROVED_PRIVATE_API_IP", nginx)
         self.assertNotIn("listen 0.0.0.0:18790", nginx)
+        self.assertNotIn("rd=https://$host$request_uri", nginx)
+        self.assertNotIn("return 302 /oauth2/start?rd=$request_uri", nginx)
 
     def reject(self, **modifiers) -> None:
         candidate = copy.deepcopy(self.cfg)
