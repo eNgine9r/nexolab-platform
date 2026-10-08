@@ -14,8 +14,10 @@ import { Expand, ImageIcon, Maximize2, Minimize2, Minus, Pencil, Plus, Scan, Shr
 import type { EquipmentImageMetadata, RefrigerationSensor } from "@/data/refrigeration";
 import type { AvailableSensor } from "@/features/refrigeration/equipment-lifecycle-repository";
 import type { LayoutPlacement, NormalizedPoint, SnapMode } from "@/features/refrigeration/layout-editor";
+import { useExternalAuthenticatedImage } from "@/features/refrigeration/use-external-authenticated-image";
 
 export function CameraScopedImageCanvas({
+  equipmentId,
   equipmentName,
   image,
   visibleSensors,
@@ -55,6 +57,7 @@ export function CameraScopedImageCanvas({
   onPlaceAtPoint: (point: NormalizedPoint) => void;
   onImageDimensions: (widthPx: number, heightPx: number) => void;
 }) {
+  const authenticatedImageUrl = useExternalAuthenticatedImage(equipmentId, image);
   const sliderId = useId();
   const workspaceRef = useRef<HTMLDivElement>(null);
   const placementGestureRef = useRef<{
@@ -279,9 +282,9 @@ export function CameraScopedImageCanvas({
             }
           >
             <div className="absolute inset-0 z-0 overflow-hidden rounded-lg">
-              {image?.sourceUrl ? (
+              {authenticatedImageUrl ? (
                 <Image
-                  src={image.sourceUrl}
+                  src={authenticatedImageUrl}
                   alt={image.alt}
                   fill
                   unoptimized
