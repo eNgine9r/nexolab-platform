@@ -236,3 +236,7 @@ The manifest records each image's unpacked Docker size and the image archive siz
 6. backup staging space.
 
 Do not remove old data volumes to create space. Remove only verified obsolete image layers or old bundle archives after rollback retention requirements are satisfied.
+
+### Trusted BuildKit cache seed for CI offline builds
+
+Pull-request **Offline Bundle** jobs restore a trusted `main` BuildKit cache but never publish caches scoped to temporary PR refs. To seed the cache, manually dispatch the **Offline Bundle** workflow **on `main`**, with platform `linux/amd64`, runtime source `main`, `auth_provider=disabled`, dashboard origin `http://127.0.0.1:3000`, API base `http://127.0.0.1:8082`, and WebSocket `ws://127.0.0.1:8082/api/v1/telemetry/live`. A shared seed is stored only after disconnected-runtime and persistent-volume rollback tests pass. For `arm64`, run a separate trusted `main` dispatch. A cache miss is safe and triggers a normal cold rebuild. This CI path does not deploy to a Raspberry Pi or weaken the exact-head Merge Gate.

@@ -278,13 +278,14 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Restore reusable BuildKit cache
-        uses: actions/cache@v4
+      - name: Restore trusted default-branch BuildKit cache
+        id: buildx_cache_restore
+        uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/nexolab-offline-buildx-cache
-          key: nexolab-offline-buildx-v1-${{ runner.os }}-${{ steps.contract.outputs.arch }}-${{ github.run_id }}
+          key: nexolab-offline-buildx-v2-${{ runner.os }}-${{ steps.contract.outputs.arch }}-main-${{ github.sha }}
           restore-keys: |
-            nexolab-offline-buildx-v1-${{ runner.os }}-${{ steps.contract.outputs.arch }}-
+            nexolab-offline-buildx-v2-${{ runner.os }}-${{ steps.contract.outputs.arch }}-main-
 
       - name: Prepare isolated validation configuration
         shell: bash
@@ -702,6 +703,13 @@ jobs:
             fi
             "${central[@]}" down --remove-orphans
           fi
+
+      - name: Save verified default-branch BuildKit seed
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && steps.buildx_cache_restore.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/nexolab-offline-buildx-cache
+          key: nexolab-offline-buildx-v2-${{ runner.os }}-${{ steps.contract.outputs.arch }}-main-${{ github.sha }}
 
       - name: Upload accepted offline bundle and verification evidence
         if: ${{ success() }}

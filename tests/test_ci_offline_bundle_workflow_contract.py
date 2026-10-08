@@ -75,13 +75,43 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertIn("NEXOLAB_BUILDX_CACHE_ROOT", self.offline_builder)
         self.assertIn('--cache-from "type=local,src=$cache_src"', self.offline_builder)
         self.assertIn('--cache-to "type=local,dest=$cache_dest,mode=max"', self.offline_builder)
-        self.assertIn("Restore reusable BuildKit cache", self.workflow)
-        self.assertIn("actions/cache@v4", self.workflow)
-        self.assertIn("nexolab-offline-buildx-v1-", self.workflow)
+        self.assertIn("Restore trusted default-branch BuildKit cache", self.workflow)
+        self.assertIn("actions/cache/restore@v4", self.workflow)
+        self.assertIn("actions/cache/save@v4", self.workflow)
+        self.assertIn("nexolab-offline-buildx-v2-", self.workflow)
         self.assertIn(
             "NEXOLAB_BUILDX_CACHE_ROOT: ${{ runner.temp }}/nexolab-offline-buildx-cache",
             self.workflow,
         )
+
+    def test_shared_buildkit_cache_is_seeded_by_main_only(self) -> None:
+        self.assertIn("id: buildx_cache_restore", self.workflow)
+        self.assertIn("uses: actions/cache/restore@v4", self.workflow)
+        self.assertIn("uses: actions/cache/save@v4", self.workflow)
+        self.assertIn("github.event_name == 'workflow_dispatch'", self.workflow)
+        self.assertIn("github.ref == 'refs/heads/main'", self.workflow)
+        self.assertIn("steps.buildx_cache_restore.outputs.cache-hit != 'true'", self.workflow)
+        self.assertIn("-main-${{ github.sha }}", self.workflow)
+        self.assertNotIn("nexolab-offline-buildx-v1-", self.workflow)
+        self.assertLess(
+            self.workflow.index("Prove update and rollback preserve persistent data"),
+            self.workflow.index("Save verified default-branch BuildKit seed"),
+        )
+
+    def test_dashboard_context_uses_a_frontend_allowlist(self) -> None:
+        lines = {
+            line.strip()
+            for line in self.dashboard_dockerignore.splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        }
+        for expected in (
+            "*", "!src/", "!src/**", "!package.json", "!package-lock.json",
+            "!next.config.ts", "!postcss.config.mjs", "!tsconfig.json",
+        ):
+            self.assertIn(expected, lines)
+        for excluded in ("!services/**", "!infrastructure/**", "!docs/**"):
+            self.assertNotIn(excluded, lines)
+        self.assertIn("COPY . .", self.dashboard_dockerfile)
 
     def test_dispatch_exposes_bounded_recovery_inputs(self) -> None:
         for input_name in (
