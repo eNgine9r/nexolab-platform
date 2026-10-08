@@ -2,6 +2,12 @@
 
 Updated: 2026-10-08
 
+## Issue #1302 — no source blocker; deployment remains separate
+
+The copy-only localization candidate is restricted to Sessions/Reports operator labels and focused tests. No API, acquisition, protocol or permission changes are included. Exact-head CI and browser checks are pending; no product-completion or runtime-activation claim is made before they pass.
+
+The real-host UX route audit #1300 is still draft/in review with keyboard and role-specific acceptance unverified. Its previously approved one-time credential use has been consumed; further access needs a new authorization. Stable NEXOLAB monitoring runtime is not blocked by #1302.
+
 ## Issue #1295 — software acceptance cleared; production activation separate
 
 The signed-out Alerts auth gate fix is verified in isolated CI browser environments: Core, Authenticated Dashboard, Alerts Browser and Merge Gate are GREEN on implementation head `208d0ac219e637710b30b1322321448bda173400`. The original production UX defect was observed before this fix; no new production deployment or actual-host acceptance has occurred. This is **not a merge blocker** for the source-only Work Package. Any installation of the new frontend needs its own controlled runtime update authorization and subsequent browser verification.
