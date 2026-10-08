@@ -106,7 +106,7 @@ export function ReportOutputWorkspace({ reportId }: { reportId: string }) {
       >
         <div className="text-center">
           <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-cyan-300" />
-          <p className="mt-4 text-sm font-semibold text-slate-200">Завантаження report detail</p>
+          <p className="mt-4 text-sm font-semibold text-slate-200">Завантаження деталей звіту</p>
           <p className="mt-2 text-[11px] text-slate-500">
             Перевіряємо organization scope та immutable metadata…
           </p>
@@ -123,7 +123,7 @@ export function ReportOutputWorkspace({ reportId }: { reportId: string }) {
       >
         <div className="max-w-xl text-center">
           <FileCheck2 className="mx-auto h-8 w-8 text-red-300" />
-          <p className="mt-4 text-sm font-semibold text-slate-100">Report detail недоступний</p>
+          <p className="mt-4 text-sm font-semibold text-slate-100">Деталі звіту недоступні</p>
           <p className="mt-2 text-[11px] leading-5 text-slate-500">{error?.message ?? "Звіт не знайдено."}</p>
           <Link
             href="/reports"
@@ -165,7 +165,7 @@ export function ReportOutputWorkspace({ reportId }: { reportId: string }) {
             onClick={() => void load()}
             disabled={loading}
             className="icon-button"
-            aria-label="Оновити report detail"
+            aria-label="Оновити деталі звіту"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </button>
