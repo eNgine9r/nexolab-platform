@@ -108,7 +108,7 @@ export function ReportOutputWorkspace({ reportId }: { reportId: string }) {
           <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-cyan-300" />
           <p className="mt-4 text-sm font-semibold text-slate-200">Завантаження деталей звіту</p>
           <p className="mt-2 text-[11px] text-slate-500">
-            Перевіряємо organization scope та immutable metadata…
+            Перевіряємо доступ до організації та незмінні метадані…
           </p>
         </div>
       </section>
@@ -150,7 +150,7 @@ export function ReportOutputWorkspace({ reportId }: { reportId: string }) {
               Усі звіти
             </Link>
             <p className="mt-4 text-[9px] font-semibold tracking-[0.16em] text-cyan-300 uppercase">
-              Immutable report · version {report.version}
+              Незмінний звіт · версія {report.version}
             </p>
             <h1 className="mt-2 text-2xl font-semibold break-words text-white sm:text-3xl">
               {reportTitle(report)}
