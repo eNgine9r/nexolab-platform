@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-08T01:22:15.093Z",
+  "timestamp": "2026-10-08T05:21:08.165Z",
   "actor": "ChatGPT Team Lead",
-  "event": "issue_1296_mobile_topbar_implementation_in_progress",
+  "event": "issue_1296_mobile_topbar_source_complete_ready_for_merge",
   "baselines": {
     "accepted_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
     "deployed_product_sha": "75d9c75f8d1901d6b639ec711bf3784e22ed0642",
@@ -28,11 +28,7 @@
     "deployed_device_agent_rollback_image_id": "sha256:f90f03a053d9dfe247e3e40a014bfdec389250176b41689a23740a99f472ef48",
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
-  "active_work": {
-    "issue": 1296,
-    "title": "Standardize primary mobile topbar touch targets",
-    "branch": "fix/1296-mobile-topbar-touch-targets"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -1289,11 +1285,19 @@
     "issue_1296": {
       "issue": 1296,
       "parent_issue": 1294,
+      "pull_request": 1299,
       "scope": "topbar_only",
-      "expected_mobile_css_px": "minimum_44x44",
-      "expected_desktop_css_px": "40x40",
-      "browser_verification": "pending",
+      "mobile_hit_area_css_px": "minimum_44x44_at_360_390_430",
+      "desktop_hit_area_css_px": "40x40_at_1440",
+      "overview_live_chromium": "passed_in_ci",
+      "formatting": "passed",
+      "tested_code_head_sha": "72edcc6936dd9d50317efdcd3cc1af10019f60e4",
+      "core_workflow_run": 37712642648,
+      "authenticated_dashboard_run": 37712642614,
+      "pre_final_merge_gate": "success",
+      "final_exact_head_check": "pending_after_state_reconciliation",
       "source_deployment": "not_performed",
+      "hardware_evidence": "not_applicable",
       "modbus_write": "none",
       "hardware_write": "none"
     }
@@ -2205,9 +2209,24 @@
         "nexolab_merge_gate": "success",
         "next_selection": "none_until_fresh_backlog_reaudit"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-08T05:21:08.169Z",
+      "kind": "issue_1296_software_acceptance_green",
+      "data": {
+        "issue": 1296,
+        "pull_request": 1299,
+        "verified_code_head_sha": "72edcc6936dd9d50317efdcd3cc1af10019f60e4",
+        "core_workflow_run": 37712642648,
+        "authenticated_dashboard_run": 37712642614,
+        "final_check": "pending",
+        "actual_site_deployment": "not_performed",
+        "hardware_write": "none"
+      }
     }
   ],
-  "next_action": "Run focused Topbar unit, formatting and 360/390/430/1440 Chromium browser checks, then publish PR #1296 for required CI.",
+  "next_action": "Verify final exact-head Core Quality/build, Authenticated Dashboard Acceptance and NEXOLAB Merge Gate for PR #1299, resolve reviews, merge only when GREEN; then scope next UX audit wave under #1191.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
