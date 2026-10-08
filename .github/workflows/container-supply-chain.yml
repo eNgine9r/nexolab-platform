@@ -191,6 +191,17 @@ jobs:
           esac
           echo "digest=$image_digest" >> "$GITHUB_OUTPUT"
 
+      # The fixed-CPython Distroless candidate must be bootable before its
+      # no-HIGH/CRITICAL scan is counted as release evidence.
+      - name: Verify Device Agent runtime Python and native dependencies
+        if: matrix.id == 'device-agent'
+        run: |
+          docker run --rm \
+            --network none \
+            --entrypoint /usr/local/bin/python3 \
+            "$LOCAL_IMAGE" \
+            -c 'import os,sys,ssl,sqlite3,hashlib,tarfile,serial,paho.mqtt.client; assert (3,13,16) <= sys.version_info[:3] < (3,14,0); assert os.geteuid() != 0; print("fixed Python, TLS, SQLite, Modbus UART/MQTT imports and nonroot: OK")'
+
       - name: Prepare evidence directory
         run: mkdir -p "$EVIDENCE_DIR"
 
