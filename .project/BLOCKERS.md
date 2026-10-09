@@ -2,7 +2,55 @@
 
 Updated: 2026-10-09
 
-## Issue #1323 — runtime report read; corrected frontend/API capture prepared
+## Issue #1323 — corrected actual runtime verified; continuation source accepted
+
+V2 report `runtime-check-1323-4j0c_0ij/report.json` was read in full at
+19:17:48 UTC, SHA256 `45b29478615b520344d5fba2b8748bfd42c7a81ec17d3ad24daedea3fdeba71f`.
+LAN 3000 is D00 / hA8usmV6ZKwgZUYhmOLHZ; protected 3100 is 4b9dc85a /
+KVMryq76dj1LhzOW30pgA. Both are active with matching process directories.
+Central API on actual 172.18.48.66:8082, PostgreSQL and MQTT are ready. Exact
+recovered old agent is healthy, MQTT connected, workers 3/3, samples 9650→9653,
+queue 0. All 96 existing volume identities are captured. The failed C296 central
+activation remains partial; current.json is the stale September 9a3556 record.
+No runtime/data/authority change occurred. The earlier V2 capture gate is passed;
+all earlier diagnostic/full-installer instructions below are historical.
+
+Focused source PR #1324 passed final exact-head CI 37982198820 (quality/build,
+policy/contracts, unit tests and Merge Gate) and Telemetry 37982198819 on
+20704fba23c9459eaf971543c9dc19b1ac9ab528. Review completed without findings;
+source is accepted. 70 targeted recovery/source-selection tests and compile,
+Bash syntax, State Model v2 and diff checks passed. The explicit preserved-data
+continuation accepts only the same latest failed target with exact reviewed
+control/prior/target/report/recovery pins. Original evidence and site settings
+are preserved, helper/context are checksum-staged before historical checkout,
+live identities are rechecked before quiesce, fresh bounded backup/snapshot gates
+retain post-failure data, and all 96 old volume identities must remain unchanged
+before genuine new deployment success. The default unresolved gate stays closed.
+This source acceptance is not a site deployment or package handoff.
+
+The prepared paired C296 ARM64 frontends remain pinned to LAN build
+Ar6aVrTWJICF6TKFaWxHw and protected build mcG0fHLcpCeVbTX--85gF, preserving
+actual LAN API and existing Google HTTPS origin. New owner-local preflight is
+staged and read back exactly, SHA256 `ac86897d2e413595ceaa864303f735a64daa3a60e81301568015ec540cbd5b89`.
+It checks pinned input/artifact inventories, fast-forwards tracked main only to
+reviewed control, and executes source-selection-check-only. It performs no
+service/container/database/package/controller mutation. Compile and two simulated
+read-only/drift-before-checkout cases passed; actual execution is not claimed.
+Fresh Commander execution still failed internally before start at 19:46:54 UTC.
+One owner-local command is the remaining mandatory access gate:
+
+```bash
+python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-preflight-1323.py
+```
+
+Read its private PARTIAL_PREFLIGHT_REPORT remotely, then prepare/execute only the
+concrete reviewed continuation. Source dependency #1321 is accepted. Corrected
+native ARM64 packages and actual paired LAN/HTTPS install/update/rollback,
+authentication and data preservation are still required. Previous native build
+dispatch permissions have already been used. Parent #1313 and #1323 stay OPEN;
+operator #1318 remains DRAFT/unmerged; accepted whole-site baselines are unchanged.
+
+## Historical checkpoint before corrected V2 execution — runtime capture prepared
 
 Owner report `runtime-check-1323-6ql6q9dk/report.json` finished at 18:49:30 UTC
 and was independently read at 19:00:09 UTC. The recovered exact old Device Agent

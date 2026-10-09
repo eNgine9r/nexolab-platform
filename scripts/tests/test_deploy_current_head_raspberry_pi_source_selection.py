@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import hashlib
+import io
+import importlib.util
 import json
 import os
 from pathlib import Path
 import subprocess
 import tempfile
 import time
+import sys
+from types import SimpleNamespace
 import unittest
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[2]
 DEPLOY = ROOT / "scripts" / "deploy-current-head-raspberry-pi.sh"
@@ -764,6 +769,75 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         result = self._validate(self.latest, self.target)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("forward recovery authority evidence is invalid", result.stdout + result.stderr)
+
+    def test_partial_options_require_complete_pins_before_any_host_action(self):
+        for options in (['--continue-partial-activation','/missing'],
+                        ['--runtime-check-report','/missing'],
+                        ['--runtime-check-sha256','a'*64]):
+            with self.subTest(options=options):
+                result=run('bash',str(DEPLOY),*options,cwd=ROOT)
+                self.assertEqual(result.returncode,64)
+                self.assertIn('partial continuation requires exact',result.stderr)
+
+    def partial_resolver(self, *, second_failure=False, explicit=True, wrong_prior=False):
+        failed=self._set_deployed_evidence(None,'20260830T000000Z',passed=False,mutated=True)
+        if second_failure:
+            self._set_deployed_evidence(None,'20260831T000000Z',passed=False,mutated=True)
+        audit=self.repo/'runtime/deployments/20260901T000000Z';audit.mkdir()
+        program=DEPLOY.read_text().split("<<'PY_EVIDENCE'\n",1)[1].split('\nPY_EVIDENCE\n',1)[0]
+        validator=Mock(return_value={'status':'validated_partial_baseline','baseline_scope':'partial_only_not_deployment_authority'})
+        helper=SimpleNamespace(validate_partial_continuation=validator,
+            atomic_json=lambda p,value:p.write_text(json.dumps(value)),read_json=lambda p,label:json.loads(p.read_text()))
+        def spec(name,path):return SimpleNamespace(name=name,loader=SimpleNamespace(exec_module=lambda module:None))
+        argv=['resolver',str(self.repo/'runtime/deployments'),str(audit),'forward','compatibility',str(self.repo),
+              str(failed) if explicit else '',str(self.repo/'capture.json'),'a'*64,str(self.repo/'recovery.json'),
+              'f'*40 if wrong_prior else self.base,self.target]
+        output=io.StringIO()
+        status=0
+        with patch.object(sys,'argv',argv),patch.object(sys,'stdout',output),patch.object(sys,'stderr',output),\
+            patch.object(importlib.util,'spec_from_file_location',side_effect=spec),\
+            patch.object(importlib.util,'module_from_spec',side_effect=lambda s:helper if s.name=='nexolab_forward_deployment_recovery' else SimpleNamespace()):
+            try:exec(compile(program,'embedded-resolver','exec'),{})
+            except SystemExit as error:status=error.code
+        return status,output.getvalue(),validator,audit,failed
+
+    def test_partial_resolver_accepts_only_explicit_exact_single_failed_attempt(self):
+        status,output,validator,audit,failed=self.partial_resolver()
+        self.assertEqual(status,0,output)
+        validator.assert_called_once()
+        self.assertEqual(validator.call_args.args[1],failed)
+        self.assertTrue((audit/'partial-continuation-context.json').is_file())
+        self.assertFalse((failed/'final-state.txt').exists())
+        self.assertIn(self.base,output)
+
+    def test_partial_resolver_keeps_default_gate_closed(self):
+        status,output,validator,audit,failed=self.partial_resolver(explicit=False)
+        self.assertEqual(status,2)
+        validator.assert_not_called()
+        self.assertFalse((audit/'partial-continuation-context.json').exists())
+
+    def test_partial_resolver_rejects_second_mutation_or_wrong_prior(self):
+        for options in ({'second_failure':True},{'wrong_prior':True}):
+            with self.subTest(options=options):
+                # This fixture already has a failed attempt after the first subtest.
+                for p in (self.repo/'runtime/deployments').glob('2026*'):
+                    if p.name!='20260829T000000Z':
+                        import shutil
+                        shutil.rmtree(p)
+                status,output,validator,audit,failed=self.partial_resolver(**options)
+                self.assertEqual(status,2)
+                validator.assert_not_called()
+                self.assertFalse((audit/'partial-continuation-context.json').exists())
+
+    def test_partial_helper_is_staged_and_rechecked_before_quiesce_and_success(self):
+        source=DEPLOY.read_text()
+        stage=source.index('install -m 0500 "$SCRIPT_DIR/forward_deployment_recovery.py"')
+        checkout=source.index('git switch --detach "$TARGET_HEAD"',stage)
+        self.assertLess(stage,checkout)
+        gate=source.index('verify_partial_continuation before-quiesce')
+        self.assertLess(gate,source.index('\nquiesce_edge_device_agent_for_cutover',gate))
+        success=source.index('verify_partial_continuation before-success')
+        self.assertLess(success,source.index('echo "deployed_at=$DASHBOARD_DEPLOYED_AT"',success))
 
 
 

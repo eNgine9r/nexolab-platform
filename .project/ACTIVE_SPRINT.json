@@ -7132,7 +7132,7 @@
         },
         "final_exact_head_ci": "18_completed_success_on_fc4e3bc375618ebae87c9208cfec3b3f63317427",
         "final_verified_head_sha": "fc4e3bc375618ebae87c9208cfec3b3f63317427",
-        "host_installation_blocker": "source_startup_CI_and_explicit_partial_activation_reconciliation_and_rebuilt_packages_required",
+        "host_installation_blocker": "source_guard_accepted;_owner_local_live_preflight_then_controlled_continuation_corrected_native_packages_and_actual_acceptance_pending",
         "frontend_artifact_run_37892179879": "failed_missing_app_public_directory",
         "followup_package_workflow_issue": 1315,
         "isolated_host_candidate_cleanup": "3_passed_without_service_mutation",
@@ -7149,7 +7149,7 @@
         "current_package_run": 37893279867,
         "target_package_run": 37893977461,
         "package_transfer": "both_protected_ARM64_packages_archive_and_inventory_verified_on_actual_host",
-        "host_health": "V2_report_exact_old_agent_MQTT_3_workers_samples_advancing;_current_frontend_and_central_identity_require_fresh_evidence",
+        "host_health": "corrected_V2_API_database_MQTT_ready;_exact_old_agent_3_workers_samples9650_to9653;_LAN_D00_HTTPS_4b9dc85_mixed",
         "current_package_ci": "37893279867_GREEN_ARM64_offline_start_update_rollback_auth_volume_preservation",
         "target_package_ci": "37893977461_GREEN_ARM64_offline_start_update_rollback_auth_volume_preservation",
         "prepared_packages": [
@@ -7946,9 +7946,88 @@
             "library_file_id": "libfile_431730fae9008191aa2df91fe0886e59",
             "library_version": 1,
             "scope": "read_only_metadata_no_activation",
-            "actual_execution": "pending_owner_local"
+            "actual_execution": "verified_corrected_V2;_see_actual_runtime_capture_1323_verified"
           },
-          "next_action": "Owner runs corrected read-only V2 capture; inspect actual active LAN/HTTPS identities and Docker-bound central readiness before selecting preserved-data continuation. No full installer retry."
+          "next_action": "superseded_by_verified_V2_and_prepared_live_preflight"
+        },
+        "actual_runtime_capture_1323_verified": {
+          "owner_v2_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/runtime-check-1323-4j0c_0ij/report.json",
+          "owner_v2_report_sha256": "45b29478615b520344d5fba2b8748bfd42c7a81ec17d3ad24daedea3fdeba71f",
+          "owner_v2_finished_at": "2026-10-09T19:16:31.980071+00:00",
+          "owner_v2_read_at": "2026-10-09T19:17:48.880Z",
+          "status": "actual_mixed_profiles_and_local_API_verified;_capture_gate_passed",
+          "frontends": {
+            "lan": {
+              "source_commit": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+              "build_id": "hA8usmV6ZKwgZUYhmOLHZ",
+              "active_port": 3000,
+              "process_cwd": "/home/nexolab/nexolab-platform/runtime/frontend-releases/d00a83bfc83fb120777c721b5e46fa50ae455c7d-20261008T092219Z"
+            },
+            "protected": {
+              "source_commit": "4b9dc85ab2e7924195d5d2030fb298aaaf78aaf4",
+              "build_id": "KVMryq76dj1LhzOW30pgA",
+              "active_port": 3100,
+              "process_cwd": "/home/nexolab/commander-workspaces/nexolab-external-stage/source-4b9dc85"
+            }
+          },
+          "central_ready": {
+            "endpoint": [
+              "172.18.48.66",
+              8082
+            ],
+            "endpoint_basis": "unique_Docker_binding_on_actual_local_interface",
+            "http_status": 200,
+            "status": "ready",
+            "database": "ready",
+            "mqtt": "ready"
+          },
+          "agent": {
+            "image": "sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323",
+            "container": "614e5d1e26f96eba43810662f24e3fdac65f7921c069295186054713749ff428",
+            "mqtt_connected": true,
+            "workers": "3/3",
+            "samples": "9650_to_9653",
+            "queue_depth": 0
+          },
+          "all_existing_volume_count": 96,
+          "runtime_mutation": "none",
+          "source_pull_request": 1324,
+          "source_verified_head": "20704fba23c9459eaf971543c9dc19b1ac9ab528",
+          "source_tree": "f6b444ed30a6fe814bafcc8153232803325f17ec",
+          "source_ci_runs": [
+            37982198820,
+            37982198819
+          ],
+          "source_ci": "all_exact_head_GREEN_including_Merge_Gate",
+          "source_review": "completed_2026-10-09T19:46:22Z_no_findings",
+          "source_acceptance_scope": "software_only;_actual_preserved_data_continuation_and_native_packages_pending",
+          "source_tests": "70_targeted_PASS;_compile_Bash_syntax_State_Model_v2_diff_PASS",
+          "source_guard": "only_same_latest_failed_target;_exact_control_prior_target_report_recovery_pins;_staged_pre_quiesce_recheck;_fresh_backups;_preserve_live_data_all_inputs_configuration_96_volumes;_default_unresolved_gate_closed",
+          "fresh_remote_execution": {
+            "at": "2026-10-09T19:46:54.968Z",
+            "code": "EXECUTION_HANDLER_FAILED",
+            "started": false,
+            "retryable": false
+          },
+          "prepared_owner_preflight": {
+            "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-preflight-1323.py",
+            "sha256": "ac86897d2e413595ceaa864303f735a64daa3a60e81301568015ec540cbd5b89",
+            "bytes": 9449,
+            "write_at": "2026-10-09T19:53:33.908Z",
+            "readback_at": "2026-10-09T19:53:35.564Z",
+            "exact_readback": true,
+            "owner_command": "python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-preflight-1323.py",
+            "verification": "Python_compile_and_2_simulated_readonly_source_guard_cases_passed;_not_actual_execution",
+            "control": "1556d8f135bcaaa192fe2d338bc07b269e702f5e",
+            "runtime_mutation": "none",
+            "library_file_id": "libfile_e6440a38d1588191b61c3dd7077cd612",
+            "library_version": 0,
+            "file_id": "file_00000000c75c824698075e433d59099a"
+          },
+          "actual_preflight_execution": "pending_owner_local;_remote_executor_internal_access_gate",
+          "next_action": "Owner runs one pinned read-only preflight without sudo; inspect PARTIAL_PREFLIGHT_REPORT remotely before separately reviewed continuation. No old installer retry or new diagnostic capture.",
+          "package_authority": "unchanged_stale_9a3556_record;_no_fabricated_success",
+          "native_package_rebuild": "required_with_corrected_digest_bound_startup_tooling;_two_previous_dispatch_authorizations_already_used"
         }
       },
       "depends_on": [
@@ -8154,9 +8233,88 @@
             "library_file_id": "libfile_431730fae9008191aa2df91fe0886e59",
             "library_version": 1,
             "scope": "read_only_metadata_no_activation",
-            "actual_execution": "pending_owner_local"
+            "actual_execution": "verified_corrected_V2;_see_actual_runtime_capture_1323_verified"
           },
-          "next_action": "Owner runs corrected read-only V2 capture; inspect actual active LAN/HTTPS identities and Docker-bound central readiness before selecting preserved-data continuation. No full installer retry."
+          "next_action": "superseded_by_verified_V2_and_prepared_live_preflight"
+        },
+        "actual_runtime_capture_1323_verified": {
+          "owner_v2_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/runtime-check-1323-4j0c_0ij/report.json",
+          "owner_v2_report_sha256": "45b29478615b520344d5fba2b8748bfd42c7a81ec17d3ad24daedea3fdeba71f",
+          "owner_v2_finished_at": "2026-10-09T19:16:31.980071+00:00",
+          "owner_v2_read_at": "2026-10-09T19:17:48.880Z",
+          "status": "actual_mixed_profiles_and_local_API_verified;_capture_gate_passed",
+          "frontends": {
+            "lan": {
+              "source_commit": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+              "build_id": "hA8usmV6ZKwgZUYhmOLHZ",
+              "active_port": 3000,
+              "process_cwd": "/home/nexolab/nexolab-platform/runtime/frontend-releases/d00a83bfc83fb120777c721b5e46fa50ae455c7d-20261008T092219Z"
+            },
+            "protected": {
+              "source_commit": "4b9dc85ab2e7924195d5d2030fb298aaaf78aaf4",
+              "build_id": "KVMryq76dj1LhzOW30pgA",
+              "active_port": 3100,
+              "process_cwd": "/home/nexolab/commander-workspaces/nexolab-external-stage/source-4b9dc85"
+            }
+          },
+          "central_ready": {
+            "endpoint": [
+              "172.18.48.66",
+              8082
+            ],
+            "endpoint_basis": "unique_Docker_binding_on_actual_local_interface",
+            "http_status": 200,
+            "status": "ready",
+            "database": "ready",
+            "mqtt": "ready"
+          },
+          "agent": {
+            "image": "sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323",
+            "container": "614e5d1e26f96eba43810662f24e3fdac65f7921c069295186054713749ff428",
+            "mqtt_connected": true,
+            "workers": "3/3",
+            "samples": "9650_to_9653",
+            "queue_depth": 0
+          },
+          "all_existing_volume_count": 96,
+          "runtime_mutation": "none",
+          "source_pull_request": 1324,
+          "source_verified_head": "20704fba23c9459eaf971543c9dc19b1ac9ab528",
+          "source_tree": "f6b444ed30a6fe814bafcc8153232803325f17ec",
+          "source_ci_runs": [
+            37982198820,
+            37982198819
+          ],
+          "source_ci": "all_exact_head_GREEN_including_Merge_Gate",
+          "source_review": "completed_2026-10-09T19:46:22Z_no_findings",
+          "source_acceptance_scope": "software_only;_actual_preserved_data_continuation_and_native_packages_pending",
+          "source_tests": "70_targeted_PASS;_compile_Bash_syntax_State_Model_v2_diff_PASS",
+          "source_guard": "only_same_latest_failed_target;_exact_control_prior_target_report_recovery_pins;_staged_pre_quiesce_recheck;_fresh_backups;_preserve_live_data_all_inputs_configuration_96_volumes;_default_unresolved_gate_closed",
+          "fresh_remote_execution": {
+            "at": "2026-10-09T19:46:54.968Z",
+            "code": "EXECUTION_HANDLER_FAILED",
+            "started": false,
+            "retryable": false
+          },
+          "prepared_owner_preflight": {
+            "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-preflight-1323.py",
+            "sha256": "ac86897d2e413595ceaa864303f735a64daa3a60e81301568015ec540cbd5b89",
+            "bytes": 9449,
+            "write_at": "2026-10-09T19:53:33.908Z",
+            "readback_at": "2026-10-09T19:53:35.564Z",
+            "exact_readback": true,
+            "owner_command": "python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-preflight-1323.py",
+            "verification": "Python_compile_and_2_simulated_readonly_source_guard_cases_passed;_not_actual_execution",
+            "control": "1556d8f135bcaaa192fe2d338bc07b269e702f5e",
+            "runtime_mutation": "none",
+            "library_file_id": "libfile_e6440a38d1588191b61c3dd7077cd612",
+            "library_version": 0,
+            "file_id": "file_00000000c75c824698075e433d59099a"
+          },
+          "actual_preflight_execution": "pending_owner_local;_remote_executor_internal_access_gate",
+          "next_action": "Owner runs one pinned read-only preflight without sudo; inspect PARTIAL_PREFLIGHT_REPORT remotely before separately reviewed continuation. No old installer retry or new diagnostic capture.",
+          "package_authority": "unchanged_stale_9a3556_record;_no_fabricated_success",
+          "native_package_rebuild": "required_with_corrected_digest_bound_startup_tooling;_two_previous_dispatch_authorizations_already_used"
         }
       },
       "scope": "Four canonical project-state files only; preserve accepted runtime baselines",
@@ -8391,7 +8549,7 @@
       "branch": "fix/1323-partial-unified-activation",
       "evidence": {
         "source_dependency_pull_request": 1322,
-        "mandatory_gate": "corrected_actual_active_profile_and_API_capture_V2;_V1_agent_facts_verified_but_profile_fields_defective",
+        "mandatory_gate": "owner_local_readonly_live_continuation_preflight_due_Commander_internal_failure;_capture_and_source_CI_gates_passed",
         "prepared_runtime_capture": {
           "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-runtime-check-1323.py",
           "size_bytes": 12542,
@@ -8406,9 +8564,9 @@
           "library_file_id": "libfile_431730fae9008191aa2df91fe0886e59",
           "library_version": 0
         },
-        "next_action": "Owner runs corrected read-only V2 capture; inspect actual active LAN/HTTPS identities and Docker-bound central readiness before selecting preserved-data continuation. No full installer retry.",
+        "next_action": "Owner runs one pinned read-only preflight without sudo; inspect PARTIAL_PREFLIGHT_REPORT remotely before separately reviewed continuation. No old installer retry or new diagnostic capture.",
         "source_dependency_1321": "verified_startup_tooling_head_40e5af2b;_acceptance_in_GitHub_observations",
-        "blocker": "corrected_actual_frontend_and_local_API_evidence_pending;_fresh_Commander_execution_internal_failure_before_start",
+        "blocker": "mandatory_execution_access;_actual_preflight_owner_local_pending",
         "actual_runtime_capture_1323": {
           "owner_v1_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/runtime-check-1323-6ql6q9dk/report.json",
           "owner_v1_report_sha256": "e7ed1d8a262dce9cc667db1c9c09fc2086abaca98b75df93d07d802b82dc5944",
@@ -8465,9 +8623,88 @@
             "library_file_id": "libfile_431730fae9008191aa2df91fe0886e59",
             "library_version": 1,
             "scope": "read_only_metadata_no_activation",
-            "actual_execution": "pending_owner_local"
+            "actual_execution": "verified_corrected_V2;_see_actual_runtime_capture_1323_verified"
           },
-          "next_action": "Owner runs corrected read-only V2 capture; inspect actual active LAN/HTTPS identities and Docker-bound central readiness before selecting preserved-data continuation. No full installer retry."
+          "next_action": "superseded_by_verified_V2_and_prepared_live_preflight"
+        },
+        "actual_runtime_capture_1323_verified": {
+          "owner_v2_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/runtime-check-1323-4j0c_0ij/report.json",
+          "owner_v2_report_sha256": "45b29478615b520344d5fba2b8748bfd42c7a81ec17d3ad24daedea3fdeba71f",
+          "owner_v2_finished_at": "2026-10-09T19:16:31.980071+00:00",
+          "owner_v2_read_at": "2026-10-09T19:17:48.880Z",
+          "status": "actual_mixed_profiles_and_local_API_verified;_capture_gate_passed",
+          "frontends": {
+            "lan": {
+              "source_commit": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+              "build_id": "hA8usmV6ZKwgZUYhmOLHZ",
+              "active_port": 3000,
+              "process_cwd": "/home/nexolab/nexolab-platform/runtime/frontend-releases/d00a83bfc83fb120777c721b5e46fa50ae455c7d-20261008T092219Z"
+            },
+            "protected": {
+              "source_commit": "4b9dc85ab2e7924195d5d2030fb298aaaf78aaf4",
+              "build_id": "KVMryq76dj1LhzOW30pgA",
+              "active_port": 3100,
+              "process_cwd": "/home/nexolab/commander-workspaces/nexolab-external-stage/source-4b9dc85"
+            }
+          },
+          "central_ready": {
+            "endpoint": [
+              "172.18.48.66",
+              8082
+            ],
+            "endpoint_basis": "unique_Docker_binding_on_actual_local_interface",
+            "http_status": 200,
+            "status": "ready",
+            "database": "ready",
+            "mqtt": "ready"
+          },
+          "agent": {
+            "image": "sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323",
+            "container": "614e5d1e26f96eba43810662f24e3fdac65f7921c069295186054713749ff428",
+            "mqtt_connected": true,
+            "workers": "3/3",
+            "samples": "9650_to_9653",
+            "queue_depth": 0
+          },
+          "all_existing_volume_count": 96,
+          "runtime_mutation": "none",
+          "source_pull_request": 1324,
+          "source_verified_head": "20704fba23c9459eaf971543c9dc19b1ac9ab528",
+          "source_tree": "f6b444ed30a6fe814bafcc8153232803325f17ec",
+          "source_ci_runs": [
+            37982198820,
+            37982198819
+          ],
+          "source_ci": "all_exact_head_GREEN_including_Merge_Gate",
+          "source_review": "completed_2026-10-09T19:46:22Z_no_findings",
+          "source_acceptance_scope": "software_only;_actual_preserved_data_continuation_and_native_packages_pending",
+          "source_tests": "70_targeted_PASS;_compile_Bash_syntax_State_Model_v2_diff_PASS",
+          "source_guard": "only_same_latest_failed_target;_exact_control_prior_target_report_recovery_pins;_staged_pre_quiesce_recheck;_fresh_backups;_preserve_live_data_all_inputs_configuration_96_volumes;_default_unresolved_gate_closed",
+          "fresh_remote_execution": {
+            "at": "2026-10-09T19:46:54.968Z",
+            "code": "EXECUTION_HANDLER_FAILED",
+            "started": false,
+            "retryable": false
+          },
+          "prepared_owner_preflight": {
+            "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-preflight-1323.py",
+            "sha256": "ac86897d2e413595ceaa864303f735a64daa3a60e81301568015ec540cbd5b89",
+            "bytes": 9449,
+            "write_at": "2026-10-09T19:53:33.908Z",
+            "readback_at": "2026-10-09T19:53:35.564Z",
+            "exact_readback": true,
+            "owner_command": "python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-preflight-1323.py",
+            "verification": "Python_compile_and_2_simulated_readonly_source_guard_cases_passed;_not_actual_execution",
+            "control": "1556d8f135bcaaa192fe2d338bc07b269e702f5e",
+            "runtime_mutation": "none",
+            "library_file_id": "libfile_e6440a38d1588191b61c3dd7077cd612",
+            "library_version": 0,
+            "file_id": "file_00000000c75c824698075e433d59099a"
+          },
+          "actual_preflight_execution": "pending_owner_local;_remote_executor_internal_access_gate",
+          "next_action": "Owner runs one pinned read-only preflight without sudo; inspect PARTIAL_PREFLIGHT_REPORT remotely before separately reviewed continuation. No old installer retry or new diagnostic capture.",
+          "package_authority": "unchanged_stale_9a3556_record;_no_fabricated_success",
+          "native_package_rebuild": "required_with_corrected_digest_bound_startup_tooling;_two_previous_dispatch_authorizations_already_used"
         }
       },
       "depends_on": [
@@ -9779,6 +10016,25 @@
         "fresh_review": "completed_clean_on_exact_head",
         "native_arm64_packages": "rebuild_pending",
         "site_acceptance": "partial_runtime_owner_readonly_report_gate_pending"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-09T19:55:24.735099+00:00",
+      "kind": "issue_1323_source_accepted_corrected_actual_runtime_verified",
+      "data": {
+        "issue": 1323,
+        "issue_state": "open",
+        "pull_request": 1324,
+        "pull_request_state": "merged",
+        "verified_head": "20704fba23c9459eaf971543c9dc19b1ac9ab528",
+        "merge_sha": "1556d8f135bcaaa192fe2d338bc07b269e702f5e",
+        "exact_head_ci": [
+          37982198820,
+          37982198819
+        ],
+        "merge_gate": "success",
+        "scope": "source_only_not_site_acceptance"
       }
     }
   ],
