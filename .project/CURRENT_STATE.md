@@ -41,6 +41,12 @@ Review additionally found that a later helper-only change could skip Offline Bun
 Both the helper and its focused test now independently require Offline Bundle and
 match its pull-request path triggers. A regression failed for both paths before the
 fix and passes afterward. Full Core and unknown-path fail-closed behavior remain.
+Recovery review also found the lost-image rebaseline helper still required the old
+startup pair. It now recognizes only the old and new exact approved pairs, imports
+the observed pair, verifies the imported image and digest-binds that selected
+configuration in immutable authority. Startup drift fails before publication.
+The regression first rejected the new approved pair; 34 recovery tests now pass,
+including actual temporary export/import/authority flow for both variants.
 The classifier change itself triggers broader CI. Final exact-head CI and native
 ARM64 package preparation remain pending. This
 workspace has no Docker; three existing candidate-cleanup baseline tests fail

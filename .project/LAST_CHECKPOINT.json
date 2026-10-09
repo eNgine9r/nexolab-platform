@@ -1479,6 +1479,12 @@
         "scope": "startup helper and focused test independently require and trigger Offline Bundle",
         "regression": "both standalone paths failed before correction, passed afterward",
         "runtime_mutation": "none"
+      },
+      "review_recovery_correction": {
+        "review_thread": "PRRT_kwDOTe72wM6q5Yq0",
+        "scope": "recognize and reproduce only the observed old/new exact startup pair through imported image and immutable authority",
+        "tests": "34_passed_including_both_import_authority_flows_and_drift_rejection",
+        "runtime_mutation": "none"
       }
     }
   },

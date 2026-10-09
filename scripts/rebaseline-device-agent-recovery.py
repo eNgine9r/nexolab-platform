@@ -65,6 +65,12 @@ SAFE_CONFIG: dict[str, Any] = {
     },
     "environment": SAFE_ENV,
 }
+HARDWARE_SAFE_CONFIG = {
+    **SAFE_CONFIG,
+    "entrypoint": ["/usr/bin/python3"],
+    "cmd": ["/app/dual_bus_main.py"],
+}
+SAFE_CONFIGS = (SAFE_CONFIG, HARDWARE_SAFE_CONFIG)
 EDGE_SQLITE_AUDIT = r"""
 import hashlib
 import json
@@ -432,7 +438,11 @@ def verify_container(
     }
     if container["state"] != expected_state:
         fail(f"Device Agent is not in the required healthy running state: {container['state']}")
-    if container["config"] != {key: SAFE_CONFIG[key] for key in container["config"]}:
+    safe_config = next((
+        approved for approved in SAFE_CONFIGS
+        if container["config"] == {key: value for key, value in approved.items() if key != "environment"}
+    ), None)
+    if safe_config is None:
         fail("Device Agent safe image configuration differs from the approved allowlist")
 
     safe_mounts = [
@@ -467,7 +477,7 @@ def verify_container(
     rootfs_size = container["size_root_fs"]
     if not isinstance(rootfs_size, int) or rootfs_size <= 0:
         fail("Device Agent root filesystem size is unavailable")
-    return {**container, "mounts": safe_mounts}
+    return {**container, "mounts": safe_mounts, "safe_config": safe_config}
 
 
 def matching_device_agent_container() -> str:
@@ -661,16 +671,21 @@ def postgresql_authority() -> dict[str, Any]:
     }
 
 
-def import_changes(rebaseline_id: str, expected_source: str, container_id: str) -> list[str]:
-    health = SAFE_CONFIG["healthcheck"]
+def import_changes(
+    rebaseline_id: str, expected_source: str, container_id: str,
+    safe_config: dict[str, Any] = SAFE_CONFIG,
+) -> list[str]:
+    if safe_config not in SAFE_CONFIGS:
+        fail("recovery import configuration is not an approved allowlist")
+    health = safe_config["healthcheck"]
     changes = [
         "ENV PYTHONDONTWRITEBYTECODE=1",
         "ENV PYTHONUNBUFFERED=1",
         "ENV PYTHONPATH=/app/site-packages",
         "WORKDIR /app",
         "USER nonroot",
-        'ENTRYPOINT ["/usr/bin/python3.13"]',
-        'CMD ["dual_bus_main.py"]',
+        f"ENTRYPOINT {json.dumps(safe_config['entrypoint'], separators=(',', ':'))}",
+        f"CMD {json.dumps(safe_config['cmd'], separators=(',', ':'))}",
         "EXPOSE 8081",
         (
             "HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 "
@@ -686,7 +701,11 @@ def import_changes(rebaseline_id: str, expected_source: str, container_id: str) 
     return changes
 
 
-def inspect_imported_image(image: str) -> dict[str, Any]:
+def inspect_imported_image(
+    image: str, safe_config: dict[str, Any] = SAFE_CONFIG,
+) -> dict[str, Any]:
+    if safe_config not in SAFE_CONFIGS:
+        fail("recovery image configuration is not an approved allowlist")
     document = docker_json(["image", "inspect", image])[0]
     config = document.get("Config") or {}
     safe = {
@@ -705,7 +724,7 @@ def inspect_imported_image(image: str) -> dict[str, Any]:
         "image_id": safe["image_id"],
         "os": "linux",
         "architecture": "arm64",
-        **SAFE_CONFIG,
+        **safe_config,
     }
     if safe != expected:
         fail(f"imported recovery image config is not the safe allowlist: {safe}")
@@ -897,6 +916,7 @@ def establish(args: argparse.Namespace) -> dict[str, Any]:
     container = verify_container(
         inspect_container(selected), args.expected_container, args.lost_image_id
     )
+    selected_safe_config = container["safe_config"]
     diff = verify_diff(container["id"])
     health_before = read_runtime_health()
     sqlite_evidence = read_edge_sqlite(container["id"])
@@ -974,12 +994,12 @@ def establish(args: argparse.Namespace) -> dict[str, Any]:
             f"NEXOLAB Issue 768 sanitized recovery rebaseline {rebaseline_id}",
         ]
         for change in import_changes(
-            rebaseline_id, args.expected_deployed_source, container["id"]
+            rebaseline_id, args.expected_deployed_source, container["id"], selected_safe_config
         ):
             command.extend(["--change", change])
         command.extend([str(tar_path), rebaseline_tag])
         imported_id = run(command).stdout.strip()
-        imported = inspect_imported_image(rebaseline_tag)
+        imported = inspect_imported_image(rebaseline_tag, selected_safe_config)
         if imported_id != imported["image_id"]:
             fail("docker import result does not match inspected recovery image ID")
         recovery_tag = f"nexolab-device-agent:recovery-{imported_id.removeprefix('sha256:')}"
@@ -999,12 +1019,17 @@ def establish(args: argparse.Namespace) -> dict[str, Any]:
     )
     if container_after["id"] != container["id"] or container_after["created"] != container["created"]:
         fail("production Device Agent identity changed during rebaseline")
+    if container_after["config"] != container["config"]:
+        fail("production Device Agent startup configuration changed during rebaseline")
     if verify_diff(container["id"]) != diff:
         fail("production Device Agent writable-layer drift changed during rebaseline")
     health_after = read_runtime_health()
 
     created_at = datetime.now(UTC).isoformat()
-    safe_config = {**SAFE_CONFIG, "safe_config_sha256": canonical_sha256(SAFE_CONFIG)}
+    safe_config = {
+        **selected_safe_config,
+        "safe_config_sha256": canonical_sha256(selected_safe_config),
+    }
     document: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "kind": "nexolab-device-agent-recovery-rebaseline",

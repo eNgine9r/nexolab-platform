@@ -16,13 +16,21 @@ deletion, or product-data deletion.
 The helper never requests the source container's environment array. `docker
 export` contributes filesystem content only; mounted edge-data and `/host/dev`
 content are excluded. `docker import` restores only this fixed non-secret image
-configuration allowlist:
+configuration allowlist, retaining the exact approved startup pair observed on
+the source container:
 
 - user `nonroot` and working directory `/app`;
-- entrypoint `/usr/bin/python3.13` and command `dual_bus_main.py`;
+- legacy entrypoint `/usr/bin/python3.13` with command `dual_bus_main.py`, or
+  hardware entrypoint `/usr/bin/python3` with command `/app/dual_bus_main.py`;
 - `PYTHONDONTWRITEBYTECODE=1`, `PYTHONUNBUFFERED=1`, and
   `PYTHONPATH=/app/site-packages`;
 - port `8081` and the repository-defined local healthcheck.
+
+The helper rejects mixed pairs, arbitrary commands and other configuration drift.
+It imports the selected pair, verifies that exact configuration on the imported
+image and records its digest in immutable recovery authority. It also rechecks
+that the source configuration did not change during export/import. No source
+container environment values are copied into the imported image or evidence.
 
 If the running container differs from that allowlist, has writable-layer drift
 beyond the known `/host` mount-point artifacts, has unexpected mounts, is not
