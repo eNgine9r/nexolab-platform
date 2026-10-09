@@ -7132,7 +7132,7 @@
         },
         "final_exact_head_ci": "18_completed_success_on_fc4e3bc375618ebae87c9208cfec3b3f63317427",
         "final_verified_head_sha": "fc4e3bc375618ebae87c9208cfec3b3f63317427",
-        "host_installation_blocker": "local_sudo_password_required",
+        "host_installation_blocker": "interrupted_before_cutover;_privileged_recovery_metadata_pending;_backup_load_cause_unconfirmed",
         "frontend_artifact_run_37892179879": "failed_missing_app_public_directory",
         "followup_package_workflow_issue": 1315,
         "isolated_host_candidate_cleanup": "3_passed_without_service_mutation",
@@ -7177,7 +7177,31 @@
         "package_source_relation": "current_reviewed_source_and_canonical_merge_target_have_identical_product_tree_distinct_source_identities",
         "host_preparation_checked_at": "2026-10-09T07:24:03.729977+00:00",
         "host_installer_check": "PASS_PREPARED_FILES_VERIFIED_exit_0_no_sudo_or_runtime_mutation",
-        "host_installer_check_passed_at": "2026-10-09T07:26:28.836847+00:00"
+        "host_installer_check_passed_at": "2026-10-09T07:26:28.836847+00:00",
+        "post_reboot_recovery": {
+          "owner_report": "installer_started_host_froze_owner_rebooted",
+          "last_persisted_stage": "creating_PostgreSQL_preupgrade_backup_2026-10-09T10:52:53+03:00",
+          "attempt_evidence": "runtime/deployments/20261009T074623Z",
+          "runtime_mutation_marker": false,
+          "completed_postgresql_backup": false,
+          "partial_postgresql_backup_bytes": 1221208,
+          "partial_backup_preserved": true,
+          "preparation_archive_bytes": 2539446366,
+          "boot_started_at": "2026-10-09T10:57:55+03:00",
+          "kernel_oom_or_IO_fault_evidence": "none_recorded_in_available_previous_boot_logs;_cause_unconfirmed",
+          "swap_after_reboot": "2_GiB_zram_only_no_disk_swap_active",
+          "runtime_identity": "LAN_d00a83bf_hA8usmV6ZKwgZUYhmOLHZ;_HTTPS_4b9dc85a_KVMryq76dj1LhzOW30pgA",
+          "post_reboot_readiness": "API_database_MQTT_ready;_Device_Agent_ok_MQTT_connected_queue_0;_both_frontends_active",
+          "persistent_volume_identity": "6_of_6_same_Name_CreatedAt_Mountpoint_Driver_as_pre_attempt_snapshot",
+          "production_mutation_in_recovery": "none",
+          "modbus_write": "none",
+          "hardware_write": "none",
+          "privileged_metadata_access": "sudo_local_password_required_current_record_not_read",
+          "recovery_check_script": "/home/nexolab/commander-workspaces/unified-update-c296c58f3cb2/nexolab-recovery-check.sh",
+          "recovery_check_sha256": "00bb6138c244f9a198eab52cd09ab4d2770534a883fafb458db758cf4a0a0faf",
+          "recovery_check_validation": "host_and_local_Bash_syntax_and_embedded_Python_AST_passed;_privileged_run_pending",
+          "next_action": "owner_local_readonly_recovery_check;_collect_result_remotely;_investigate_and_bound_backup_load_before_any_retry"
+        }
       },
       "depends_on": [],
       "scope": "Gateway-aware source deployment and offline package update/rollback; truthful Settings version readiness",
@@ -7221,7 +7245,8 @@
         "modbus_write": "none",
         "hardware_write": "none",
         "checkpoint_merge": "hold_draft_until_actual_host_acceptance_to_preserve_pinned_package_target",
-        "local_state_verification": "28_project_state_tests_one_existing_skip;_State_Model_v2_integrity_and_format_passed"
+        "local_state_verification": "28_project_state_tests_one_existing_skip;_State_Model_v2_integrity_and_format_passed",
+        "post_reboot_recovery_checkpoint": "record_pre_cutover_interruption_and_owner_local_readonly_metadata_gate"
       },
       "scope": "Four canonical project-state files only; preserve accepted runtime baselines",
       "verification": "State Model v2 integrity and exact-head state-only CI"

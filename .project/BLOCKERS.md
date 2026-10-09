@@ -2,6 +2,12 @@
 
 Updated: 2026-10-09
 
+## Issue #1313 — interrupted backup; privileged metadata and guarded retry pending
+
+The owner-started attempt `20261009T074623Z` froze during PostgreSQL pre-upgrade backup and was physically rebooted. No cutover marker or completed database dump exists; preserve its partial dump/evidence. Post-reboot frontends/API/database/MQTT/Device Agent are ready and all six volume identities match. Root cause is unconfirmed; no OOM/I-O fault is recorded in the available prior-boot logs. Do not infer a successful installation or retry the same heavy path.
+
+Root-only version authority/catalog/operation metadata still needs local sudo. Run the prepared lightweight `nexolab-recovery-check.sh`; collect its owner-private `recovery-check-*/authority.json` remotely. It is read-only and avoids the backup workload. Afterward bound and diagnose the backup before any new activation. Parent #1313 remains open, checkpoint #1318 remains draft, main stays pinned, and accepted/deployed baselines remain unchanged.
+
 ## Issue #1313 — local sudo and actual operator package acceptance
 
 Source PRs #1312/#1314/#1316 and paired ARM64 frontend artifacts are GREEN/merged; actual-host frontend transfers and source-selection preflight passed. Current/target protected ARM64 package jobs `37893279867` / `37893977461` both passed disconnected startup and data/volume-preserving update/rollback proof; both archives and full package inventories are now verified on the actual host. The actual-host installer `--check` passed at 07:26 UTC with exit 0. All preparation is unprivileged and leaves runtime authority unchanged.
