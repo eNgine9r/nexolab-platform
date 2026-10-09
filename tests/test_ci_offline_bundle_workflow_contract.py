@@ -418,6 +418,18 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         self.assertIn("logs --no-color --tail 200 device-agent", capture)
         self.assertNotIn("docker inspect", capture.split("{{json .State.Health}}", 1)[1])
 
+    def test_offline_volume_proof_uses_image_python_path(self) -> None:
+        # The old Distroless Python uses /usr/bin/python3; the patched
+        # CPython runtime uses /usr/local/bin/python3. Both expose python3
+        # on PATH; avoid pinning an executable absent in the new image.
+        self.assertEqual(
+            self.preservation.count('exec -T device-agent python3 -c'),
+            2,
+        )
+        self.assertNotIn('exec -T device-agent /usr/bin/python3', self.preservation)
+        self.assertNotIn('exec -T device-agent /usr/local/bin/python3', self.preservation)
+        self.assertIn('offline-bundle.marker', self.preservation)
+
     def test_persistence_helper_preserves_local_auth_overlay(self) -> None:
         self.assertIn("--local-auth) LOCAL_AUTH=true", self.preservation)
         self.assertIn("--local-auth-refresh-token-file", self.preservation)

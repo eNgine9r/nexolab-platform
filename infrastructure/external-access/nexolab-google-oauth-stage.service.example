@@ -1,0 +1,51 @@
+# INERT DRAFT - cannot be enabled; DO NOT INSTALL/START or publish NEXOLAB.
+# OAuth2 Proxy runs as DynamicUser, never receives Google secrets via process
+# environment, command-line values or service logs. systemd PID1 loads
+# root-only files, handing them to the unprivileged launcher via credentials.
+# The isolated launcher is source-only and is NOT installed by this PR.
+# No production service, Tailscale Funnel route or controller is changed.
+#
+# Before deployment: verify actual Google OAuth callback + MFA assurance,
+# revoke/expire behavior, CI/CVE security gate and explicit owner cutover.
+[Unit]
+Description=NEXOLAB isolated Google OAuth2 Proxy (DRAFT / NOT ENABLED)
+Documentation=https://oauth2-proxy.github.io/oauth2-proxy/
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/nexolab-external/google-oauth.env
+ConditionPathExists=/etc/nexolab-external/allowed-emails.txt
+ConditionPathExists=/opt/nexolab-external/oauth2-proxy.cfg
+ConditionPathExists=/opt/nexolab-external/bin/oauth2-proxy
+ConditionPathExists=/opt/nexolab-external/bin/launch-google-oauth.py
+
+[Service]
+Type=simple
+DynamicUser=yes
+# These root-owned originals retain their restrictive on-disk permissions.
+LoadCredential=google-oauth.env:/etc/nexolab-external/google-oauth.env
+LoadCredential=allowed-emails.txt:/etc/nexolab-external/allowed-emails.txt
+# This directory disappears when the service stops. Runtime secrets are 0600.
+RuntimeDirectory=nexolab-external-google
+RuntimeDirectoryMode=0700
+ExecStart=/usr/bin/python3 /opt/nexolab-external/bin/launch-google-oauth.py --run
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0077
+MemoryMax=256M
+TasksMax=64
+Restart=on-failure
+RestartSec=5s
+
+# Deliberately NO [Install] section. This template must not be enabled.

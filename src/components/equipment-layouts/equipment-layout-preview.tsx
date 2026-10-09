@@ -2,6 +2,7 @@
 
 import { formatOperationalTimestamp } from "@/features/display-time/format";
 import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
+import { useExternalAuthenticatedImage } from "@/features/refrigeration/use-external-authenticated-image";
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -16,6 +17,10 @@ export function EquipmentLayoutPreview({
   item: LayoutCatalogReadyItem;
   onClose: () => void;
 }) {
+  const authenticatedImageUrl = useExternalAuthenticatedImage(
+    item.equipment.id,
+    item.published?.image ?? null,
+  );
   const displayTimeZone = useDisplayTimeZone();
   const published = item.published;
   const [imageFailed, setImageFailed] = useState(false);
@@ -35,7 +40,7 @@ export function EquipmentLayoutPreview({
 
   if (!published) return null;
 
-  const sourceUrl = published.image.sourceUrl;
+  const sourceUrl = authenticatedImageUrl;
   const aspectRatio =
     published.image.widthPx > 0 && published.image.heightPx > 0
       ? `${published.image.widthPx} / ${published.image.heightPx}`

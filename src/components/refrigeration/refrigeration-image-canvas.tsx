@@ -13,6 +13,7 @@ import { Expand, ImageIcon, Maximize2, Minimize2, Minus, Plus, Scan, Shrink } fr
 
 import type { EquipmentImageMetadata, RefrigerationSensor } from "@/data/refrigeration";
 import type { LayoutPlacement, SnapMode } from "@/features/refrigeration/layout-editor";
+import { useExternalAuthenticatedImage } from "@/features/refrigeration/use-external-authenticated-image";
 
 type RefrigerationImageCanvasProps = {
   equipmentId: string;
@@ -57,6 +58,7 @@ export function RefrigerationImageCanvas({
   onMarkerPointerUp,
   onImageDimensions,
 }: RefrigerationImageCanvasProps) {
+  const authenticatedImageUrl = useExternalAuthenticatedImage(equipmentId, image);
   const sliderId = useId();
   const workspaceRef = useRef<HTMLDivElement>(null);
   const [fitContour, setFitContour] = useState(true);
@@ -252,10 +254,10 @@ export function RefrigerationImageCanvas({
               data-testid="equipment-image-media-layer"
               className="absolute inset-0 z-0 overflow-hidden rounded-lg"
             >
-              {image?.sourceUrl ? (
+              {authenticatedImageUrl ? (
                 <Image
-                  src={image.sourceUrl}
-                  alt={image.alt}
+                  src={authenticatedImageUrl}
+                  alt={image?.alt ?? `Фото ${equipmentName}`}
                   fill
                   unoptimized
                   draggable={false}

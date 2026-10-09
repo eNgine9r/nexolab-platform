@@ -19,6 +19,7 @@ import {
   type EquipmentNodeOption as DialogNodeOption,
 } from "@/components/refrigeration/refrigeration-equipment-dialogs";
 import type { EquipmentImageMetadata, RefrigerationEquipment } from "@/data/refrigeration";
+import { useExternalAuthenticatedImage } from "@/features/refrigeration/use-external-authenticated-image";
 import type { ClimateCatalogRepository } from "@/features/refrigeration/climate-catalog-repository";
 import type {
   EquipmentLifecycleRepository,
@@ -231,18 +232,7 @@ export function EquipmentLifecyclePanel({
                   key={image.id}
                   className="flex items-center gap-2 rounded-xl border border-white/[0.06] p-2"
                 >
-                  {image.sourceUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={image.sourceUrl}
-                      alt={image.alt}
-                      className="h-10 w-14 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="grid h-10 w-14 place-items-center rounded-lg bg-white/[0.04]">
-                      <ImageIcon className="h-4 w-4 text-slate-500" />
-                    </div>
-                  )}
+                  <SecureEquipmentThumbnail equipmentId={equipment.id} image={image} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[11px] text-slate-200">{image.fileName}</p>
                     <p className="text-[9px] text-slate-600">
@@ -384,5 +374,23 @@ function IconButton({
     >
       {children}
     </button>
+  );
+}
+
+function SecureEquipmentThumbnail({
+  equipmentId,
+  image,
+}: {
+  equipmentId: string;
+  image: EquipmentImageMetadata;
+}) {
+  const sourceUrl = useExternalAuthenticatedImage(equipmentId, image);
+  return sourceUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={sourceUrl} alt={image.alt} className="h-10 w-14 rounded-lg object-cover" />
+  ) : (
+    <div className="grid h-10 w-14 place-items-center rounded-lg bg-white/[0.04]">
+      <ImageIcon className="h-4 w-4 text-slate-500" />
+    </div>
   );
 }

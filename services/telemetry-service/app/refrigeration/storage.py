@@ -21,6 +21,8 @@ class ObjectStorage(Protocol):
 
     def signed_get_url(self, key: str, *, expires_seconds: int) -> str: ...
 
+    def get(self, *, key: str, max_bytes: int) -> bytes: ...
+
 
 class UnavailableObjectStorage:
     def put(self, *, key: str, content: bytes, media_type: str, checksum_sha256: str) -> StoredObject:
@@ -30,6 +32,9 @@ class UnavailableObjectStorage:
         return None
 
     def signed_get_url(self, key: str, *, expires_seconds: int) -> str:
+        raise ObjectStorageError("object storage is not configured")
+
+    def get(self, *, key: str, max_bytes: int) -> bytes:
         raise ObjectStorageError("object storage is not configured")
 
 
@@ -48,6 +53,15 @@ class InMemoryObjectStorage:
         if key not in self.objects:
             raise ObjectStorageError(f"object {key!r} was not found")
         return f"memory://{key}?expires={expires_seconds}"
+
+    def get(self, *, key: str, max_bytes: int) -> bytes:
+        item = self.objects.get(key)
+        if item is None:
+            raise ObjectStorageError("object storage unavailable")
+        content = item[0]
+        if len(content) > max_bytes:
+            raise ObjectStorageError("stored object exceeds the allowed image size")
+        return bytes(content)
 
 
 class S3ObjectStorage:
@@ -117,3 +131,17 @@ class S3ObjectStorage:
             )
         except Exception as error:
             raise ObjectStorageError("failed to sign object URL") from error
+
+    def get(self, *, key: str, max_bytes: int) -> bytes:
+        try:
+            response = self._client.get_object(Bucket=self._bucket, Key=key)
+            stream = response["Body"]
+            try:
+                content = stream.read(max_bytes + 1)
+            finally:
+                stream.close()
+        except Exception as error:
+            raise ObjectStorageError("failed to read object") from error
+        if len(content) > max_bytes:
+            raise ObjectStorageError("stored object exceeds the allowed image size")
+        return content
