@@ -7110,7 +7110,7 @@
         "local_updater_tests": "102_passed_9_subtests_in_primary_CI_suite",
         "local_node": "24.19.0_supported_development_runtime",
         "exact_head_ci": "running_PR_1314",
-        "actual_host_acceptance": "failed_partial_cutover;_agent_recovery_and_genuine_package_authority_LAN_HTTPS_update_rollback_pending",
+        "actual_host_acceptance": "agent_only_recovery_verified;_partial_central_activation_authority_and_full_LAN_HTTPS_acceptance_pending",
         "production_runtime_mutation": "central_services_activated;_MQTT_and_agent_recreated;_agent_start_failed",
         "modbus_write": "none",
         "hardware_write": "none",
@@ -7132,7 +7132,7 @@
         },
         "final_exact_head_ci": "18_completed_success_on_fc4e3bc375618ebae87c9208cfec3b3f63317427",
         "final_verified_head_sha": "fc4e3bc375618ebae87c9208cfec3b3f63317427",
-        "host_installation_blocker": "critical_agent_startup_failure_after_central_mutation;_owner_local_narrow_recovery_required",
+        "host_installation_blocker": "source_startup_CI_and_explicit_partial_activation_reconciliation_and_rebuilt_packages_required",
         "frontend_artifact_run_37892179879": "failed_missing_app_public_directory",
         "followup_package_workflow_issue": 1315,
         "isolated_host_candidate_cleanup": "3_passed_without_service_mutation",
@@ -7149,7 +7149,7 @@
         "current_package_run": 37893279867,
         "target_package_run": 37893977461,
         "package_transfer": "both_protected_ARM64_packages_archive_and_inventory_verified_on_actual_host",
-        "host_health": "historical_pre_install_health_only;_current_agent_health_unverified_after_failed_startup",
+        "host_health": "V2_report_exact_old_agent_MQTT_3_workers_samples_advancing;_current_frontend_and_central_identity_require_fresh_evidence",
         "current_package_ci": "37893279867_GREEN_ARM64_offline_start_update_rollback_auth_volume_preservation",
         "target_package_ci": "37893977461_GREEN_ARM64_offline_start_update_rollback_auth_volume_preservation",
         "prepared_packages": [
@@ -7827,6 +7827,57 @@
             "acceptance": "real_image_Docker_health_MQTT_3_workers_advancing_samples_and_unchanged_other_containers_volumes_required"
           },
           "next_action": "Owner runs v2 command; inspect new AGENT_RECOVERY_REPORT remotely. Recovery is unverified. Full installer remains paused."
+        },
+        "critical_agent_recovery_verified": {
+          "report_path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/agent-recovery-1321-6vfd0nw3/report.json",
+          "report_read_at": "2026-10-09T17:29:09.780Z",
+          "started_at": "2026-10-09T17:27:07.752407+00:00",
+          "finished_at": "2026-10-09T17:28:29.238266+00:00",
+          "status": "agent_recovery_verified",
+          "script_sha256": "05969ab467ff962c561af4ef946a044d45814fc8ef80f97416b2605cd5ae8d65",
+          "runtime_mutation": "device_agent_only",
+          "recovery_image_id": "sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323",
+          "recovered_container_id": "614e5d1e26f96eba43810662f24e3fdac65f7921c069295186054713749ff428",
+          "mqtt_connected": true,
+          "workers": "3/3",
+          "samples_total": [
+            148,
+            149
+          ],
+          "queue_depth": 0,
+          "existing_volume_count": 96,
+          "persistent_volume_identity": "all_existing_unchanged",
+          "non_agent_containers": "unchanged",
+          "database_restore": "none",
+          "package_authority": "not_modified",
+          "unified_install_acceptance": "pending",
+          "source_startup_pull_request": 1322,
+          "source_head_sha": "302293058106b4621a90ccaa5a372f9e1aeab45b",
+          "source_tree_sha": "9cfac3b145995e7618a84aa1d8e72ee536b3a527",
+          "source_baseline_sha": "df5485f6ece4203a74a84f106195fae855d81731",
+          "source_exact_head_ci": "in_progress",
+          "targeted_tests": "78_module_16_subtests_24_sqlite_18_health_30_source_selection_30_offline_contracts_passed",
+          "commander_readonly_execution": "EXECUTION_HANDLER_FAILED_before_start_at_2026-10-09T17:33:32.794Z",
+          "current_runtime": "partial_C296_central_activation_old_D00_agent_recovered_frontends_not_activated",
+          "next_action": "Collect required exact-head CI for #1322; explicitly reconcile partial source activation without database restore or fabricated current.json; rebuild native ARM64 current/rollback packages with hardware-startup-gate before full installer retry.",
+          "first_candidate_ci": "Core_telemetry_offline_passed;_aggregate_failed_missing_browser_workflows;_registration_fixed",
+          "final_source_ci": "six_workflows_in_progress",
+          "partial_reconciliation_issue": 1323,
+          "prepared_runtime_capture": {
+            "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-runtime-check-1323.py",
+            "size_bytes": 12542,
+            "sha256": "513b735c59b96f370753602e724d43e893e6c65c52daef89d2c7149c9ea55f61",
+            "remote_write_at": "2026-10-09T18:00:45.616Z",
+            "remote_readback_at": "2026-10-09T18:01:09.688Z",
+            "exact_readback_match": true,
+            "python_compile": "passed",
+            "sanitized_readonly_tests": "6_passed",
+            "activation": "none_readonly_capture_only",
+            "actual_capture": "pending_owner_local_execution",
+            "library_file_id": "libfile_431730fae9008191aa2df91fe0886e59",
+            "library_version": 0
+          },
+          "review_recovery_correction": "observed_old_new_exact_startup_pair_preserved_through_import_and_immutable_authority;_startup_drift_rejected;_145_affected_tests_passed"
         }
       },
       "depends_on": [
@@ -8036,7 +8087,7 @@
       "issue": 1321,
       "title": "Recover Device Agent and validate hardware image startup before cutover",
       "priority": "critical",
-      "lifecycle": "blocked",
+      "lifecycle": "in_progress",
       "branch": "fix/1321-hardware-agent-startup",
       "evidence": {
         "issue": 1321,
@@ -8097,7 +8148,7 @@
           "execution": "pending_owner_local_command_due_Commander_internal_failure",
           "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321.py"
         },
-        "next_action": "Owner executes narrow recovery; inspect AGENT_RECOVERY_REPORT remotely. Do not rerun full installer. Complete critical startup/pre-mutation correction before unified installation resumes.",
+        "next_action": "Collect required exact-head CI for #1322; explicitly reconcile partial source activation without database restore or fabricated current.json; rebuild native ARM64 current/rollback packages with hardware-startup-gate before full installer retry.",
         "modbus_write": "none",
         "hardware_write": "none",
         "volume_or_evidence_deletion": "none",
@@ -8133,11 +8184,91 @@
             "acceptance": "real_image_Docker_health_MQTT_3_workers_advancing_samples_and_unchanged_other_containers_volumes_required"
           },
           "next_action": "Owner runs v2 command; inspect new AGENT_RECOVERY_REPORT remotely. Recovery is unverified. Full installer remains paused."
+        },
+        "owner_recovery_verified": {
+          "report_path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/agent-recovery-1321-6vfd0nw3/report.json",
+          "report_read_at": "2026-10-09T17:29:09.780Z",
+          "started_at": "2026-10-09T17:27:07.752407+00:00",
+          "finished_at": "2026-10-09T17:28:29.238266+00:00",
+          "status": "agent_recovery_verified",
+          "script_sha256": "05969ab467ff962c561af4ef946a044d45814fc8ef80f97416b2605cd5ae8d65",
+          "runtime_mutation": "device_agent_only",
+          "recovery_image_id": "sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323",
+          "recovered_container_id": "614e5d1e26f96eba43810662f24e3fdac65f7921c069295186054713749ff428",
+          "mqtt_connected": true,
+          "workers": "3/3",
+          "samples_total": [
+            148,
+            149
+          ],
+          "queue_depth": 0,
+          "existing_volume_count": 96,
+          "persistent_volume_identity": "all_existing_unchanged",
+          "non_agent_containers": "unchanged",
+          "database_restore": "none",
+          "package_authority": "not_modified",
+          "unified_install_acceptance": "pending",
+          "source_startup_pull_request": 1322,
+          "source_head_sha": "302293058106b4621a90ccaa5a372f9e1aeab45b",
+          "source_tree_sha": "9cfac3b145995e7618a84aa1d8e72ee536b3a527",
+          "source_baseline_sha": "df5485f6ece4203a74a84f106195fae855d81731",
+          "source_exact_head_ci": "in_progress",
+          "targeted_tests": "78_module_16_subtests_24_sqlite_18_health_30_source_selection_30_offline_contracts_passed",
+          "commander_readonly_execution": "EXECUTION_HANDLER_FAILED_before_start_at_2026-10-09T17:33:32.794Z",
+          "current_runtime": "partial_C296_central_activation_old_D00_agent_recovered_frontends_not_activated",
+          "next_action": "Collect required exact-head CI for #1322; explicitly reconcile partial source activation without database restore or fabricated current.json; rebuild native ARM64 current/rollback packages with hardware-startup-gate before full installer retry.",
+          "first_candidate_ci": "Core_telemetry_offline_passed;_aggregate_failed_missing_browser_workflows;_registration_fixed",
+          "final_source_ci": "six_workflows_in_progress",
+          "partial_reconciliation_issue": 1323,
+          "prepared_runtime_capture": {
+            "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-runtime-check-1323.py",
+            "size_bytes": 12542,
+            "sha256": "513b735c59b96f370753602e724d43e893e6c65c52daef89d2c7149c9ea55f61",
+            "remote_write_at": "2026-10-09T18:00:45.616Z",
+            "remote_readback_at": "2026-10-09T18:01:09.688Z",
+            "exact_readback_match": true,
+            "python_compile": "passed",
+            "sanitized_readonly_tests": "6_passed",
+            "activation": "none_readonly_capture_only",
+            "actual_capture": "pending_owner_local_execution",
+            "library_file_id": "libfile_431730fae9008191aa2df91fe0886e59",
+            "library_version": 0
+          },
+          "review_recovery_correction": "observed_old_new_exact_startup_pair_preserved_through_import_and_immutable_authority;_startup_drift_rejected;_145_affected_tests_passed"
         }
       },
       "depends_on": [],
       "scope": "Narrow owner-local exact-image agent recovery; explicit hardware startup and pre-mutation historical-source compatibility gate; preserve all site state",
       "verification": "v1_rejected_before_mutation;_v2_17_gate_tests_3_digest_subtests_and_compile_passed;_actual_v2_recovery_and_source_CI_pending"
+    },
+    {
+      "issue": 1323,
+      "title": "Reconcile partial unified activation after verified agent recovery",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "branch": "fix/1323-partial-unified-activation",
+      "dependencies": [
+        1321
+      ],
+      "evidence": {
+        "source_dependency_pull_request": 1322,
+        "mandatory_gate": "owner_local_fresh_readonly_runtime_report;_Commander_internal_execution_failure",
+        "prepared_runtime_capture": {
+          "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-runtime-check-1323.py",
+          "size_bytes": 12542,
+          "sha256": "513b735c59b96f370753602e724d43e893e6c65c52daef89d2c7149c9ea55f61",
+          "remote_write_at": "2026-10-09T18:00:45.616Z",
+          "remote_readback_at": "2026-10-09T18:01:09.688Z",
+          "exact_readback_match": true,
+          "python_compile": "passed",
+          "sanitized_readonly_tests": "6_passed",
+          "activation": "none_readonly_capture_only",
+          "actual_capture": "pending_owner_local_execution",
+          "library_file_id": "libfile_431730fae9008191aa2df91fe0886e59",
+          "library_version": 0
+        },
+        "next_action": "Owner captures current facts; inspect saved UNIFIED_RUNTIME_REPORT remotely before preparing explicit preserved-data continuation. No full installer retry."
+      }
     }
   ],
   "maintenance_actions": [

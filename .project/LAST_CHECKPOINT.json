@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-09T17:23:08.463214+00:00",
+  "timestamp": "2026-10-09T18:07:25Z",
   "actor": "ChatGPT",
-  "event": "owner_recovery_v1_stopped_before_mutation_OCI_label_assumption_corrected_exact_digest_v2_prepared",
+  "event": "agent_recovery_verified_source_ci_corrected_readonly_capture_prepared",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -2495,15 +2495,64 @@
         "remote_readback_at": "2026-10-09T17:21:35.595Z",
         "exact_readback_match": true,
         "verification": "regressions_first_failed_v1_on_missing_OCI_labels_and_wrong_candidate_ID;_v2_Python_compile_and_17_tests_plus_3_digest_subtests_passed",
-        "activation": "pending_owner_local_execution",
-        "source_startup_correction": "pending",
+        "activation": "owner_executed_agent_recovery_verified",
+        "source_startup_correction": "PR_1322_in_CI",
         "old_v1_script_and_report": "preserved;_v1_execution_command_superseded",
         "diagnostics": "whitelisted_image_and_failed_container_metadata_saved_before_gate;_private_report_fsynced_before_only_agent_recreate",
         "check_only": "optional_--check_runs_all_preflight_without_agent_recreation",
         "scope": "same_exact_preserved_image_and_site_config;_only_device_agent;_no_DB_restore_or_package_authority_edit",
         "acceptance": "real_image_Docker_health_MQTT_3_workers_advancing_samples_and_unchanged_other_containers_volumes_required"
       },
-      "next_action": "Owner runs v2 command; inspect new AGENT_RECOVERY_REPORT remotely. Recovery is unverified. Full installer remains paused."
+      "next_action": "Collect required exact-head CI for #1322; explicitly reconcile partial source activation without database restore or fabricated current.json; rebuild native ARM64 current/rollback packages with hardware-startup-gate before full installer retry."
+    },
+    "issue_1321_recovery_verified": {
+      "report_path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/agent-recovery-1321-6vfd0nw3/report.json",
+      "report_read_at": "2026-10-09T17:29:09.780Z",
+      "started_at": "2026-10-09T17:27:07.752407+00:00",
+      "finished_at": "2026-10-09T17:28:29.238266+00:00",
+      "status": "agent_recovery_verified",
+      "script_sha256": "05969ab467ff962c561af4ef946a044d45814fc8ef80f97416b2605cd5ae8d65",
+      "runtime_mutation": "device_agent_only",
+      "recovery_image_id": "sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323",
+      "recovered_container_id": "614e5d1e26f96eba43810662f24e3fdac65f7921c069295186054713749ff428",
+      "mqtt_connected": true,
+      "workers": "3/3",
+      "samples_total": [
+        148,
+        149
+      ],
+      "queue_depth": 0,
+      "existing_volume_count": 96,
+      "persistent_volume_identity": "all_existing_unchanged",
+      "non_agent_containers": "unchanged",
+      "database_restore": "none",
+      "package_authority": "not_modified",
+      "unified_install_acceptance": "pending",
+      "source_startup_pull_request": 1322,
+      "source_head_sha": "302293058106b4621a90ccaa5a372f9e1aeab45b",
+      "source_tree_sha": "9cfac3b145995e7618a84aa1d8e72ee536b3a527",
+      "source_baseline_sha": "df5485f6ece4203a74a84f106195fae855d81731",
+      "source_exact_head_ci": "six_workflows_in_progress_after_registration_correction",
+      "targeted_tests": "78_module_16_subtests_24_sqlite_18_health_30_source_selection_30_offline_contracts_passed",
+      "commander_readonly_execution": "EXECUTION_HANDLER_FAILED_before_start_at_2026-10-09T17:33:32.794Z",
+      "current_runtime": "partial_C296_central_activation_old_D00_agent_recovered_frontends_not_activated",
+      "next_action": "Collect required exact-head CI for #1322; explicitly reconcile partial source activation without database restore or fabricated current.json; rebuild native ARM64 current/rollback packages with hardware-startup-gate before full installer retry.",
+      "first_candidate_ci": "Core_telemetry_offline_passed;_aggregate_failed_missing_browser_registration",
+      "review_recovery_correction": "observed_old_new_exact_startup_pair_preserved_through_import_and_immutable_authority;_startup_drift_rejected;_145_affected_tests_passed"
+    },
+    "issue_1323_readonly_runtime_capture": {
+      "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-runtime-check-1323.py",
+      "size_bytes": 12542,
+      "sha256": "513b735c59b96f370753602e724d43e893e6c65c52daef89d2c7149c9ea55f61",
+      "remote_write_at": "2026-10-09T18:00:45.616Z",
+      "remote_readback_at": "2026-10-09T18:01:09.688Z",
+      "exact_readback_match": true,
+      "python_compile": "passed",
+      "sanitized_readonly_tests": "6_passed",
+      "activation": "none_readonly_capture_only",
+      "actual_capture": "pending_owner_local_execution",
+      "library_file_id": "libfile_431730fae9008191aa2df91fe0886e59",
+      "library_version": 0
     }
   },
   "observations": [
@@ -3482,7 +3531,7 @@
       }
     }
   ],
-  "next_action": "Owner runs v2 command; inspect new AGENT_RECOVERY_REPORT remotely. Recovery is unverified. Full installer remains paused. Command: sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321-v2.py Password entry stays in Raspberry terminal; no repeated authorization required.",
+  "next_action": "Collect exact final GREEN source CI on PR #1322; owner executes prepared read-only #1323 capture and shares UNIFIED_RUNTIME_REPORT path. Inspect actual mixed-runtime facts before explicit preserved-data source/package reconciliation and corrected native ARM64 packages; do not rerun old installers.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

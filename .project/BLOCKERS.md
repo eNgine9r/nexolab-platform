@@ -2,6 +2,73 @@
 
 Updated: 2026-10-09
 
+## Issue #1321 — scoped agent recovery VERIFIED; permanent source correction in CI
+
+The V2 report `agent-recovery-1321-6vfd0nw3/report.json` was independently read at
+2026-10-09T17:29:09.780Z. Recovery finished at 17:28:29 UTC with
+`agent_recovery_verified`: exact old image
+`sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323`,
+MQTT connected, healthy 3/3 workers, samples 148→149 and queue 0. All 96 existing
+named-volume identities and non-agent containers remain unchanged. Only Device
+Agent was recreated; no database restore or package-authority edit occurred.
+The report and durable recovery override remain preserved. Prior recovery
+commands below are historical and must not be rerun.
+
+The current stack is still a partial C296 central activation with the old agent
+recovered; frontend activation was never reached. This does not prove whole-stack
+D00 rollback or C296 acceptance. D00 remains the last accepted deployment baseline.
+The unresolved mutation must be reconciled explicitly before a full installer
+retry; do not fabricate current.json, restore newer SQLite data or run either
+earlier full installer.
+
+Permanent startup correction is published in [PR #1322](https://github.com/eNgine9r/nexolab-platform/pull/1322),
+exact head `302293058106b4621a90ccaa5a372f9e1aeab45b`, tree
+`9cfac3b145995e7618a84aa1d8e72ee536b3a527`, based on canonical main df5485f6.
+The explicit interpreter/absolute script, immutable image override and staged
+startup gate survive historical checkout. Offline hardware installation and
+update/rollback also preflight before Dashboard shutdown or central activation;
+new packages require digest-bound hardware-startup-gate tooling. Targeted
+checks passed; required exact-head CI and actual image proof are in progress.
+No full installer retry occurred. Fresh Commander read-only execution still
+fails internally before start at 17:33:32 UTC; file-based evidence access works.
+
+First source candidate passed Core/build/unit tests, Telemetry and Offline Bundle
+but aggregate Merge Gate failed because two required browser workflows did not
+register for unknown new helper paths. Their explicit deployment-tooling
+registration and fail-closed regressions now pass 217 local policy/state tests
+(one existing skip); the corrected final head runs all six triggered workflows.
+Review also found that standalone helper changes could skip Offline Bundle.
+Both helper/test paths now independently require and launch it; the regression
+failed before the correction and passes afterward, with 99 related tests GREEN.
+The lost-image recovery helper now also recognizes and reproduces only the
+observed old/new exact startup pair, verifies imported image configuration and
+digest-binds immutable authority. Drift fails before publication. Both review
+findings are addressed; 145 affected tests pass, including both real temporary
+export/import/authority flows. No actual host recovery/export was performed.
+No source merge is claimed until the exact final Merge Gate is GREEN.
+
+Follow-up [#1323](https://github.com/eNgine9r/nexolab-platform/issues/1323) records
+mixed-runtime authority reconciliation. A bounded owner-local read-only capture
+is prepared and read back unchanged at 18:01:09 UTC:
+`nexolab-unified-runtime-check-1323.py`, 12,542 bytes, SHA256
+`513b735c59b96f370753602e724d43e893e6c65c52daef89d2c7149c9ea55f61`.
+Python compile and six sanitized/read-only capture tests passed. It reads current
+container/image/volume, frontend identity and authority metadata and writes only
+a private report; no actual capture or service mutation is claimed. Owner runs:
+
+```bash
+sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-runtime-check-1323.py
+```
+
+Inspect the printed UNIFIED_RUNTIME_REPORT remotely before deciding the concrete
+continuation. This is the mandatory access/evidence gate because Commander
+execution still fails internally; it does not rerun a full installer.
+
+Parent #1313 remains OPEN and operator PR #1318 remains DRAFT/unmerged. Next:
+required source CI, explicit mixed-runtime authority reconciliation, rebuilt
+native ARM64 current/rollback packages and actual LAN/HTTPS update/rollback and
+Google authentication journeys.
+
 ## Issue #1321 — corrected exact-image recovery v2 needs owner-local execution
 
 V1 owner report was read at 17:14:40 UTC: stopped on combined image-ID/OCI-revision validation, runtime mutation none, six protected volume identities matched. The script incorrectly assumed mandatory OCI Git labels; local build/import does not guarantee them. V2 retains exact captured image-ID/source authority, adds exact failed-build digest pins and diagnostics, and preserves all data/config gates. Python compile and 17 tests plus three digest subtests passed; host write/readback verified SHA256 `05969ab467ff962c561af4ef946a044d45814fc8ef80f97416b2605cd5ae8d65` at 17:21:35 UTC. Old script and stopped report stay preserved.
