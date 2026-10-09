@@ -70,7 +70,15 @@ HARDWARE_SAFE_CONFIG = {
     "entrypoint": ["/usr/bin/python3"],
     "cmd": ["/app/dual_bus_main.py"],
 }
-SAFE_CONFIGS = (SAFE_CONFIG, HARDWARE_SAFE_CONFIG)
+CURRENT_HARDWARE_SAFE_CONFIG = {
+    **HARDWARE_SAFE_CONFIG,
+    "healthcheck": {
+        **SAFE_CONFIG["healthcheck"],
+        "Test": ["CMD", "/usr/local/bin/python3", *SAFE_CONFIG["healthcheck"]["Test"][2:]],
+    },
+    "environment": [*SAFE_ENV, "LD_LIBRARY_PATH=/usr/local/lib"],
+}
+SAFE_CONFIGS = (SAFE_CONFIG, HARDWARE_SAFE_CONFIG, CURRENT_HARDWARE_SAFE_CONFIG)
 EDGE_SQLITE_AUDIT = r"""
 import hashlib
 import json
@@ -678,10 +686,8 @@ def import_changes(
     if safe_config not in SAFE_CONFIGS:
         fail("recovery import configuration is not an approved allowlist")
     health = safe_config["healthcheck"]
-    changes = [
-        "ENV PYTHONDONTWRITEBYTECODE=1",
-        "ENV PYTHONUNBUFFERED=1",
-        "ENV PYTHONPATH=/app/site-packages",
+    changes = [f"ENV {value}" for value in safe_config["environment"]]
+    changes.extend([
         "WORKDIR /app",
         "USER nonroot",
         f"ENTRYPOINT {json.dumps(safe_config['entrypoint'], separators=(',', ':'))}",
@@ -697,7 +703,7 @@ def import_changes(
             f"org.opencontainers.image.revision={expected_source} "
             f"io.nexolab.recovery.source-container={container_id}"
         ),
-    ]
+    ])
     return changes
 
 

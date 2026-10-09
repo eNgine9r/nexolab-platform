@@ -26,6 +26,13 @@ the source container:
   `PYTHONPATH=/app/site-packages`;
 - port `8081` and the repository-defined local healthcheck.
 
+The current fixed-Python image has its own exact hardware configuration: the
+healthcheck invokes `/usr/local/bin/python3` and the fixed environment also
+contains `LD_LIBRARY_PATH=/usr/local/lib`, matching its Dockerfile. Legacy image
+configurations retain the `/usr/bin/python3` healthcheck and three fixed Python
+environment entries. The current healthcheck is accepted only with the explicit
+hardware startup pair; arbitrary healthcheck changes fail closed.
+
 The helper rejects mixed pairs, arbitrary commands and other configuration drift.
 It imports the selected pair, verifies that exact configuration on the imported
 image and records its digest in immutable recovery authority. It also rechecks

@@ -215,6 +215,21 @@ class ContainerSafetyTests(unittest.TestCase):
                 with self.assertRaises(MODULE.RebaselineError):
                     MODULE.verify_container(container, None, self.lost_image)
 
+    def test_current_dockerfile_hardware_configuration_is_recoverable(self) -> None:
+        dockerfile = (ROOT / "services/device-agent/Dockerfile").read_text()
+        health = json.loads(dockerfile.split("HEALTHCHECK ", 1)[1].split("CMD ", 1)[1].splitlines()[0])
+        container = self.container()
+        container["config"].update(entrypoint=["/usr/bin/python3"], cmd=["/app/dual_bus_main.py"])
+        container["config"]["healthcheck"] = {**container["config"]["healthcheck"], "Test": ["CMD", *health]}
+        verified = MODULE.verify_container(container, None, self.lost_image)
+        changes = MODULE.import_changes("20260830T120000Z", "f" * 40, self.container_id, verified["safe_config"])
+        self.assertIn("ENV LD_LIBRARY_PATH=/usr/local/lib", changes)
+        self.assertIn("LD_LIBRARY_PATH=/usr/local/lib", dockerfile)
+        self.assertIn('CMD ' + json.dumps(health, separators=(",", ":")), next(value for value in changes if value.startswith("HEALTHCHECK ")))
+        container["config"].update(entrypoint=["/usr/bin/python3.13"], cmd=["dual_bus_main.py"])
+        with self.assertRaises(MODULE.RebaselineError):
+            MODULE.verify_container(container, None, self.lost_image)
+
     def test_establish_binds_observed_startup_pair_to_import_and_authority(self) -> None:
         scenarios = [(approved, drift) for approved in MODULE.SAFE_CONFIGS for drift in (False, True)]
         for approved, drift in scenarios:
@@ -224,11 +239,11 @@ class ContainerSafetyTests(unittest.TestCase):
                 deployment = repo / "runtime/deployments/20260829T154823Z"
                 evidence = repo / "runtime/evidence"
                 source = self.container()
-                source["config"].update(entrypoint=approved["entrypoint"], cmd=approved["cmd"])
+                source["config"].update(entrypoint=approved["entrypoint"], cmd=approved["cmd"], healthcheck=approved["healthcheck"])
                 source_after = json.loads(json.dumps(source))
                 if drift:
                     other = next(config for config in MODULE.SAFE_CONFIGS if config != approved)
-                    source_after["config"].update(entrypoint=other["entrypoint"], cmd=other["cmd"])
+                    source_after["config"].update(entrypoint=other["entrypoint"], cmd=other["cmd"], healthcheck=other["healthcheck"])
                 image_id = "sha256:" + "1" * 64
                 imported = {"Id": image_id, "Os": "linux", "Architecture": "arm64", "Config": {
                     "User": approved["user"], "WorkingDir": approved["working_dir"],

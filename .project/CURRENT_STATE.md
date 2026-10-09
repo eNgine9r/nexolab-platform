@@ -45,8 +45,12 @@ Recovery review also found the lost-image rebaseline helper still required the o
 startup pair. It now recognizes only the old and new exact approved pairs, imports
 the observed pair, verifies the imported image and digest-binds that selected
 configuration in immutable authority. Startup drift fails before publication.
-The regression first rejected the new approved pair; 34 recovery tests now pass,
-including actual temporary export/import/authority flow for both variants.
+The regression first rejected the new approved pair. Current-Dockerfile health
+and its fixed LD_LIBRARY_PATH now form a separate exact approved configuration;
+legacy configurations remain accepted, arbitrary combinations are rejected.
+The Dockerfile-derived regression failed before correction; 35 recovery tests
+now pass, including mocked Docker export/import for every approved variant with
+real temporary archive/authority files and fail-closed source drift.
 The classifier change itself triggers broader CI. Final exact-head CI and native
 ARM64 package preparation remain pending. This
 workspace has no Docker; three existing candidate-cleanup baseline tests fail

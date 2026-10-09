@@ -1485,6 +1485,12 @@
         "scope": "recognize and reproduce only the observed old/new exact startup pair through imported image and immutable authority",
         "tests": "34_passed_including_both_import_authority_flows_and_drift_rejection",
         "runtime_mutation": "none"
+      },
+      "review_current_image_recovery": {
+        "review_thread": "PRRT_kwDOTe72wM6q5hck",
+        "scope": "exact current Dockerfile healthcheck and fixed LD_LIBRARY_PATH; preserve legacy configurations; reject mixed startup/health contracts",
+        "tests": "35_recovery_tests_passed;_146_affected_tests_passed;_Dockerfile_derived_RED_then_GREEN;_mocked_Docker_with_real_temp_files",
+        "runtime_mutation": "none"
       }
     }
   },
