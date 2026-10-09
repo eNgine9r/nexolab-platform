@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-09T15:13:41.516750Z",
+  "timestamp": "2026-10-09T16:50:00Z",
   "actor": "ChatGPT",
-  "event": "actual_host_guarded_preparation_verified_installer_check_passed_owner_local_activation_required",
+  "event": "guarded_backup_passed_post_mutation_agent_start_failed_exact_image_recovery_prepared_owner_local_execution_required",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -1953,15 +1953,15 @@
         "git_bundle_sha256": "0fe12bc4880d4e9f163e012364dbb6587b385fa27bbf7e88fb41c733eef31c35",
         "base64_file_sha256": "ee0230a12edd7bfc835a369982e5d4ec2b4c78f70cd3226233c6a0c31dced4b1",
         "execution": "EXECUTION_HANDLER_FAILED_2026-10-09T12:19:24.958Z",
-        "runtime_mutation": "none",
+        "runtime_mutation": "central_services_activated;_MQTT_and_agent_recreated;_agent_start_failed",
         "host_package_transfer": "completed_full_actual_host_verification_passed",
         "installer_check": "passed_owner_local_without_sudo",
         "owner_local_preparation": "completed_and_report_independently_reviewed",
         "old_work_session": "WORK_SESSION_DIVERGED_preserved_user_changes_no_execution",
-        "script_execution": "owner_preparer_completed_and_installer_--check_passed;_activation_not_evidenced",
+        "script_execution": "owner_guarded_installer_failed_after_bounded_backup_and_central_edge_mutation",
         "site_guard_installed": false,
         "full_site_backup_accepted": false,
-        "owner_command": "bash /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-update-guarded.sh",
+        "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321.py",
         "owner_package_input": "both_pinned_archives_or_GitHub_ZIPs_in_/home/nexolab/Downloads;_existing_authenticated_gh_optional_no_login",
         "preparation_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/prepare-3pf3m7i2/report.json",
         "preparer_scope": "verify_packages_and_reuse_paired_frontends_after_fresh_validation;_offline_fast_forward_clean_control_main_A78_to_T;_installer_--check;_no_sudo_or_runtime",
@@ -1990,7 +1990,7 @@
         "control_status": "clean_main_tracking_origin_main_observed_2026-10-09T15:11:55.751Z",
         "installed_script_sha256": "c68ddff14fcaa42cdd4f6268bab881cf37ce84494602b29c7d6cd89822d856f0",
         "installed_script_read_at": "2026-10-09T15:08:39.179Z",
-        "next_owner_command": "bash /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-update-guarded.sh",
+        "next_owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321.py",
         "preparation_runtime_mutation": "none",
         "preparation_sudo_used": false,
         "owner_preparation_report": {
@@ -2026,6 +2026,74 @@
           "installer_check": "passed",
           "runtime_mutation": "none",
           "sudo_used": false
+        },
+        "bounded_postgresql_dump_completed": true,
+        "full_installation_acceptance": "failed;_database_restore_not_verified",
+        "site_guard_status": "used_by_canonical_installer_backup;_worker_installation_not_reached",
+        "full_installer_retry": "paused_pending_agent_recovery_and_reviewed_startup_correction",
+        "guarded_install_failure_1321": {
+          "issue": 1321,
+          "classification": "critical_installed_agent_startup_defect_interrupting_1313",
+          "owner_installer_log": "owner_attached_332_line_log_reviewed_2026-10-09",
+          "installer_log_directory": "/home/nexolab/nexolab-platform/runtime/guarded-unified-install-20261009T155212Z-859296",
+          "deployment_evidence": "/home/nexolab/nexolab-platform/runtime/deployments/20261009T155213Z",
+          "postgresql_backup": {
+            "status": "bounded_dump_completed_and_archive_listing_passed_before_runtime_mutation",
+            "bytes": 927435219,
+            "remote_file_info_at": "2026-10-09T16:30:07Z",
+            "restore_test": "unverified",
+            "full_installation": "failed"
+          },
+          "edge_snapshot": {
+            "status": "consistent_pre_cutover_snapshot_preserved_no_restore",
+            "bytes": 290816,
+            "registry_revision": 22,
+            "outbound_queue_count": 0,
+            "source_quick_check": "ok",
+            "snapshot_quick_check": "ok"
+          },
+          "runtime_mutation": "central_services_activated;_MQTT_and_agent_recreated;_agent_start_failed",
+          "mutation_boundary_at": "2026-10-09T19:04:34+03:00",
+          "agent_failure_at": "2026-10-09T19:05:22+03:00",
+          "agent_error": "exec: \"dual_bus_main.py\": executable file not found in $PATH",
+          "source_cause": "hardware_overlay_replaces_full_interpreter_CMD_with_bare_script_on_image_without_Python_ENTRYPOINT",
+          "source_control_restore": "installer_log_reports_main_df5485f6_restored_after_failure;_not_a_runtime_rollback",
+          "frontend_activation": "not_reached_in_attempt;_current_live_identity_requires_fresh_check",
+          "source_adoption": "not_reached",
+          "guarded_worker_installation": "not_reached",
+          "package_authority_handoff": "not_reached_no_PACKAGE_AUTHORITY_READY",
+          "current_runtime_identity": "partial_failed_cutover;_do_not_claim_whole_stack_D00_or_C296",
+          "accepted_baselines": "unchanged_D00;_new_partial_runtime_is_not_accepted",
+          "commander_diagnostic": {
+            "status": "EXECUTION_HANDLER_FAILED_before_execution",
+            "observed_at": "2026-10-09T16:30:05.486Z",
+            "retry_loop": false
+          },
+          "recovery_image": {
+            "image_id": "sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323",
+            "source": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+            "status": "preserved_exact_tag_in_attempt_evidence;_fresh_local_probe_required"
+          },
+          "prepared_recovery": {
+            "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321.py",
+            "sha256": "7257e9c66811c2c29f579e48c24a07d89f896a4cdd9fa3104c453dfd36a149b6",
+            "size_bytes": 19225,
+            "remote_write_at": "2026-10-09T16:48:15.240Z",
+            "remote_readback_at": "2026-10-09T16:49:20.461Z",
+            "exact_readback_match": true,
+            "verification": "Python_compile_and_11_mocked_gate_tests_passed;_not_actual_host_execution",
+            "scope": "only_existing_failed_Device_Agent;_exact_preserved_image_and_explicit_Python;_no_dependencies_builds_pulls",
+            "pre_mutation_checks": "failed_state_and_source;_Compose_files_model_env_mounts_networks_groups_ports;_all_volume_identities;_image_user_and_interpreter_script",
+            "success_gate": "exact_image_Docker_health_MQTT_3_workers_and_advancing_samples;_other_containers_and_all_existing_volumes_unchanged",
+            "database_restore": "none",
+            "package_authority_change": "none",
+            "execution": "pending_owner_local_command_due_Commander_internal_failure",
+            "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321.py"
+          },
+          "next_action": "Owner executes narrow recovery; inspect AGENT_RECOVERY_REPORT remotely. Do not rerun full installer. Complete critical startup/pre-mutation correction before unified installation resumes.",
+          "modbus_write": "none",
+          "hardware_write": "none",
+          "volume_or_evidence_deletion": "none"
         }
       }
     },
@@ -2124,15 +2192,15 @@
       "git_bundle_sha256": "0fe12bc4880d4e9f163e012364dbb6587b385fa27bbf7e88fb41c733eef31c35",
       "base64_file_sha256": "ee0230a12edd7bfc835a369982e5d4ec2b4c78f70cd3226233c6a0c31dced4b1",
       "execution": "EXECUTION_HANDLER_FAILED_2026-10-09T12:19:24.958Z",
-      "runtime_mutation": "none",
+      "runtime_mutation": "central_services_activated;_MQTT_and_agent_recreated;_agent_start_failed",
       "host_package_transfer": "completed_full_actual_host_verification_passed",
       "installer_check": "passed_owner_local_without_sudo",
       "owner_local_preparation": "completed_and_report_independently_reviewed",
       "old_work_session": "WORK_SESSION_DIVERGED_preserved_user_changes_no_execution",
-      "script_execution": "owner_preparer_completed_and_installer_--check_passed;_activation_not_evidenced",
+      "script_execution": "owner_guarded_installer_failed_after_bounded_backup_and_central_edge_mutation",
       "site_guard_installed": false,
       "full_site_backup_accepted": false,
-      "owner_command": "bash /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-update-guarded.sh",
+      "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321.py",
       "owner_package_input": "both_pinned_archives_or_GitHub_ZIPs_in_/home/nexolab/Downloads;_existing_authenticated_gh_optional_no_login",
       "preparation_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/prepare-3pf3m7i2/report.json",
       "preparer_scope": "verify_packages_and_reuse_paired_frontends_after_fresh_validation;_offline_fast_forward_clean_control_main_A78_to_T;_installer_--check;_no_sudo_or_runtime",
@@ -2161,7 +2229,7 @@
       "control_status": "clean_main_tracking_origin_main_observed_2026-10-09T15:11:55.751Z",
       "installed_script_sha256": "c68ddff14fcaa42cdd4f6268bab881cf37ce84494602b29c7d6cd89822d856f0",
       "installed_script_read_at": "2026-10-09T15:08:39.179Z",
-      "next_owner_command": "bash /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-update-guarded.sh",
+      "next_owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321.py",
       "preparation_runtime_mutation": "none",
       "preparation_sudo_used": false,
       "owner_preparation_report": {
@@ -2197,6 +2265,74 @@
         "installer_check": "passed",
         "runtime_mutation": "none",
         "sudo_used": false
+      },
+      "bounded_postgresql_dump_completed": true,
+      "full_installation_acceptance": "failed;_database_restore_not_verified",
+      "site_guard_status": "used_by_canonical_installer_backup;_worker_installation_not_reached",
+      "full_installer_retry": "paused_pending_agent_recovery_and_reviewed_startup_correction",
+      "guarded_install_failure_1321": {
+        "issue": 1321,
+        "classification": "critical_installed_agent_startup_defect_interrupting_1313",
+        "owner_installer_log": "owner_attached_332_line_log_reviewed_2026-10-09",
+        "installer_log_directory": "/home/nexolab/nexolab-platform/runtime/guarded-unified-install-20261009T155212Z-859296",
+        "deployment_evidence": "/home/nexolab/nexolab-platform/runtime/deployments/20261009T155213Z",
+        "postgresql_backup": {
+          "status": "bounded_dump_completed_and_archive_listing_passed_before_runtime_mutation",
+          "bytes": 927435219,
+          "remote_file_info_at": "2026-10-09T16:30:07Z",
+          "restore_test": "unverified",
+          "full_installation": "failed"
+        },
+        "edge_snapshot": {
+          "status": "consistent_pre_cutover_snapshot_preserved_no_restore",
+          "bytes": 290816,
+          "registry_revision": 22,
+          "outbound_queue_count": 0,
+          "source_quick_check": "ok",
+          "snapshot_quick_check": "ok"
+        },
+        "runtime_mutation": "central_services_activated;_MQTT_and_agent_recreated;_agent_start_failed",
+        "mutation_boundary_at": "2026-10-09T19:04:34+03:00",
+        "agent_failure_at": "2026-10-09T19:05:22+03:00",
+        "agent_error": "exec: \"dual_bus_main.py\": executable file not found in $PATH",
+        "source_cause": "hardware_overlay_replaces_full_interpreter_CMD_with_bare_script_on_image_without_Python_ENTRYPOINT",
+        "source_control_restore": "installer_log_reports_main_df5485f6_restored_after_failure;_not_a_runtime_rollback",
+        "frontend_activation": "not_reached_in_attempt;_current_live_identity_requires_fresh_check",
+        "source_adoption": "not_reached",
+        "guarded_worker_installation": "not_reached",
+        "package_authority_handoff": "not_reached_no_PACKAGE_AUTHORITY_READY",
+        "current_runtime_identity": "partial_failed_cutover;_do_not_claim_whole_stack_D00_or_C296",
+        "accepted_baselines": "unchanged_D00;_new_partial_runtime_is_not_accepted",
+        "commander_diagnostic": {
+          "status": "EXECUTION_HANDLER_FAILED_before_execution",
+          "observed_at": "2026-10-09T16:30:05.486Z",
+          "retry_loop": false
+        },
+        "recovery_image": {
+          "image_id": "sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323",
+          "source": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+          "status": "preserved_exact_tag_in_attempt_evidence;_fresh_local_probe_required"
+        },
+        "prepared_recovery": {
+          "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321.py",
+          "sha256": "7257e9c66811c2c29f579e48c24a07d89f896a4cdd9fa3104c453dfd36a149b6",
+          "size_bytes": 19225,
+          "remote_write_at": "2026-10-09T16:48:15.240Z",
+          "remote_readback_at": "2026-10-09T16:49:20.461Z",
+          "exact_readback_match": true,
+          "verification": "Python_compile_and_11_mocked_gate_tests_passed;_not_actual_host_execution",
+          "scope": "only_existing_failed_Device_Agent;_exact_preserved_image_and_explicit_Python;_no_dependencies_builds_pulls",
+          "pre_mutation_checks": "failed_state_and_source;_Compose_files_model_env_mounts_networks_groups_ports;_all_volume_identities;_image_user_and_interpreter_script",
+          "success_gate": "exact_image_Docker_health_MQTT_3_workers_and_advancing_samples;_other_containers_and_all_existing_volumes_unchanged",
+          "database_restore": "none",
+          "package_authority_change": "none",
+          "execution": "pending_owner_local_command_due_Commander_internal_failure",
+          "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321.py"
+        },
+        "next_action": "Owner executes narrow recovery; inspect AGENT_RECOVERY_REPORT remotely. Do not rerun full installer. Complete critical startup/pre-mutation correction before unified installation resumes.",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "volume_or_evidence_deletion": "none"
       }
     },
     "guarded_artifact_delivery": {
@@ -2205,6 +2341,70 @@
       "owner_input_route": "GitHub_Actions_exact_artifacts_11616051071_and_11618085443;_save_ZIPs_in_Raspberry_Downloads_without_renaming;_preparer_accepts_exact_pinned_ZIP_or_inner_archive",
       "github_artifact_expiry": "2026-10-12",
       "old_installer": "preserved_obsolete_do_not_rerun"
+    },
+    "issue_1321_failed_guarded_install": {
+      "issue": 1321,
+      "classification": "critical_installed_agent_startup_defect_interrupting_1313",
+      "owner_installer_log": "owner_attached_332_line_log_reviewed_2026-10-09",
+      "installer_log_directory": "/home/nexolab/nexolab-platform/runtime/guarded-unified-install-20261009T155212Z-859296",
+      "deployment_evidence": "/home/nexolab/nexolab-platform/runtime/deployments/20261009T155213Z",
+      "postgresql_backup": {
+        "status": "bounded_dump_completed_and_archive_listing_passed_before_runtime_mutation",
+        "bytes": 927435219,
+        "remote_file_info_at": "2026-10-09T16:30:07Z",
+        "restore_test": "unverified",
+        "full_installation": "failed"
+      },
+      "edge_snapshot": {
+        "status": "consistent_pre_cutover_snapshot_preserved_no_restore",
+        "bytes": 290816,
+        "registry_revision": 22,
+        "outbound_queue_count": 0,
+        "source_quick_check": "ok",
+        "snapshot_quick_check": "ok"
+      },
+      "runtime_mutation": "central_services_activated;_MQTT_and_agent_recreated;_agent_start_failed",
+      "mutation_boundary_at": "2026-10-09T19:04:34+03:00",
+      "agent_failure_at": "2026-10-09T19:05:22+03:00",
+      "agent_error": "exec: \"dual_bus_main.py\": executable file not found in $PATH",
+      "source_cause": "hardware_overlay_replaces_full_interpreter_CMD_with_bare_script_on_image_without_Python_ENTRYPOINT",
+      "source_control_restore": "installer_log_reports_main_df5485f6_restored_after_failure;_not_a_runtime_rollback",
+      "frontend_activation": "not_reached_in_attempt;_current_live_identity_requires_fresh_check",
+      "source_adoption": "not_reached",
+      "guarded_worker_installation": "not_reached",
+      "package_authority_handoff": "not_reached_no_PACKAGE_AUTHORITY_READY",
+      "current_runtime_identity": "partial_failed_cutover;_do_not_claim_whole_stack_D00_or_C296",
+      "accepted_baselines": "unchanged_D00;_new_partial_runtime_is_not_accepted",
+      "commander_diagnostic": {
+        "status": "EXECUTION_HANDLER_FAILED_before_execution",
+        "observed_at": "2026-10-09T16:30:05.486Z",
+        "retry_loop": false
+      },
+      "recovery_image": {
+        "image_id": "sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323",
+        "source": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+        "status": "preserved_exact_tag_in_attempt_evidence;_fresh_local_probe_required"
+      },
+      "prepared_recovery": {
+        "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321.py",
+        "sha256": "7257e9c66811c2c29f579e48c24a07d89f896a4cdd9fa3104c453dfd36a149b6",
+        "size_bytes": 19225,
+        "remote_write_at": "2026-10-09T16:48:15.240Z",
+        "remote_readback_at": "2026-10-09T16:49:20.461Z",
+        "exact_readback_match": true,
+        "verification": "Python_compile_and_11_mocked_gate_tests_passed;_not_actual_host_execution",
+        "scope": "only_existing_failed_Device_Agent;_exact_preserved_image_and_explicit_Python;_no_dependencies_builds_pulls",
+        "pre_mutation_checks": "failed_state_and_source;_Compose_files_model_env_mounts_networks_groups_ports;_all_volume_identities;_image_user_and_interpreter_script",
+        "success_gate": "exact_image_Docker_health_MQTT_3_workers_and_advancing_samples;_other_containers_and_all_existing_volumes_unchanged",
+        "database_restore": "none",
+        "package_authority_change": "none",
+        "execution": "pending_owner_local_command_due_Commander_internal_failure",
+        "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321.py"
+      },
+      "next_action": "Owner executes narrow recovery; inspect AGENT_RECOVERY_REPORT remotely. Do not rerun full installer. Complete critical startup/pre-mutation correction before unified installation resumes.",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "volume_or_evidence_deletion": "none"
     }
   },
   "observations": [
@@ -3183,7 +3383,7 @@
       }
     }
   ],
-  "next_action": "Owner runs the reviewed exact-pinned guarded installer in the Raspberry terminal; sudo password stays there. Inspect its private installer log and whitelisted completion evidence before Settings target update/rollback and Google journeys. Preserve old evidence, keep #1313 open and #1318 draft, and keep tooling/target pinned to df5485f6. Preparation is accepted; full bounded site backup and runtime/package authority remain unverified.",
+  "next_action": "Owner executes narrow recovery; inspect AGENT_RECOVERY_REPORT remotely. Do not rerun full installer. Complete critical startup/pre-mutation correction before unified installation resumes. Password stays in Raspberry terminal. Keep #1313/#1321 open and #1318 draft; accepted main/tooling/target remain pinned to df5485f6 until reviewed correction.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -2,7 +2,23 @@
 
 Updated: 2026-10-09
 
-## Issue #1313 — installation interrupted during backup; post-reboot services ready
+## Issues #1313 / #1321 — bounded backup passed; failed Device Agent needs recovery
+
+The owner ran the reviewed guarded installer. Attempt `runtime/deployments/20261009T155213Z` completed a **927,435,219-byte bounded PostgreSQL dump and archive-list validation**, then crossed the runtime-mutation boundary at 19:04:34 EEST. The central services activated; edge MQTT and Device Agent were recreated. At 19:05:22 Device Agent failed with `exec: "dual_bus_main.py": executable file not found in $PATH`. The hardware overlay supplies a bare script while the current image has a full interpreter CMD and no Python ENTRYPOINT. The consistent pre-cutover SQLite snapshot, exact D00 agent recovery image and private failure evidence are preserved. Backup completion does not establish restore or full-install acceptance.
+
+This is a **partially changed runtime**, not a successful whole-stack D00/C296 deployment. Control-source restoration to df5485f6 is not runtime rollback. Frontend activation, source adoption, guarded worker installation and package authority handoff were not reached. Current live frontend identities and acquisition require fresh evidence. Accepted/deployed _accepted_ baselines remain anchored to D00; do not fabricate current.json or claim new acceptance. Keep #1313 OPEN and #1318 DRAFT/unmerged.
+
+Critical follow-up [#1321](https://github.com/eNgine9r/nexolab-platform/issues/1321) records the startup/pre-mutation verification gap. Commander read-only execution failed internally at 16:30:05 UTC before starting. A narrow owner-local recovery is staged as `nexolab-agent-recovery-1321.py` in the guarded workspace, SHA256 `7257e9c66811c2c29f579e48c24a07d89f896a4cdd9fa3104c453dfd36a149b6`; exact remote readback passed at 16:49:20 UTC. Python compilation and 11 isolated mocked gate tests passed. No recovery execution is claimed.
+
+The recovery gates exact image/source, current failed container, site environment, Compose model, mounts/networks and existing volume identities. It probes the interpreter/script without network/data/device access, then recreates **only Device Agent** with no dependencies/builds/pulls. Success requires exact old image, Docker health, MQTT, three healthy acquisition workers, advancing samples and unchanged other containers/volumes. It does not restore databases or change package authority. Owner password entry stays in the terminal:
+
+```bash
+sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321.py
+```
+
+Inspect the printed `AGENT_RECOVERY_REPORT` remotely before resuming work. **Do not rerun either full installer.** Recovery and the source startup correction must precede a reviewed unified-install retry; Settings LAN/HTTPS update/rollback and Google session journeys remain unverified. Historical notes below do not override this failed-cutover status.
+
+## Historical #1313 preparation and first interrupted backup — superseded above
 
 Actual-host guarded preparation is accepted. The owner ran the staged nonprivileged preparer; its report `prepare-3pf3m7i2/report.json` was read at 15:07 UTC and independently checked against exact reviewed pins. Both full current C296 / target df5485f6 packages and the reused paired C296 frontend inventories passed on Raspberry. Control source is canonical df5485f6, with a fresh clean main/origin-main status at 15:11 UTC. Installer `--check` passed; preparation used no sudo and performed no runtime mutation. A fresh read of the actual staged installer matches SHA256 `c68ddff14fcaa42cdd4f6268bab881cf37ce84494602b29c7d6cd89822d856f0`. Earlier native CI/full local package evidence remains valid. The Python extraction deprecation warning did not stop verification. Next is the previously authorized owner-local guarded installer, with password entry only in the terminal. Full bounded site backup, installed guard, genuine package authority, LAN/HTTPS target update/rollback and Google journeys remain unverified; keep #1313 OPEN and #1318 DRAFT.
 

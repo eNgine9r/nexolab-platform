@@ -2,7 +2,13 @@
 
 Updated: 2026-10-09
 
-## Issue #1313 — preparation passed; local guarded installation required
+## Issues #1313 / #1321 — failed post-mutation agent startup; local recovery pending
+
+The reviewed owner-local guarded installer passed the bounded 927,435,219-byte PostgreSQL dump/list step, then mutated central/edge runtime. Device Agent failed to start because `compose.hardware.yaml` supplies bare `dual_bus_main.py` to an image without a Python ENTRYPOINT. Source adoption/worker/package-authority handoff and frontend activation were not reached. Acquisition is unverified after this failure. Preserve dump, consistent SQLite snapshot, exact D00 recovery image, all volumes and private attempt evidence. Do not interpret restored control checkout or historical D00 baselines as a whole-stack rollback.
+
+Commander execution still fails internally (`EXECUTION_HANDLER_FAILED`, fresh 16:30:05 UTC observation), before any diagnostic process starts. Narrow recovery script is staged, compiled, passed 11 mocked gate tests and exact host readback (16:49:20 UTC). Owner-local sudo execution is the remaining access gate; report inspection follows. No local recovery, current health, live frontend identity or installed package authority is claimed. Full installer retry is paused pending #1321 recovery and reviewed startup/pre-mutation correction. Parent #1313 stays OPEN; checkpoint #1318 stays DRAFT/unmerged, accepted baselines remain unchanged. Historical preparation/backup instructions below are superseded by this recovery step.
+
+## Historical #1313 preparation and first-backup blockers — superseded above
 
 The owner-local preparation gate is resolved: both pinned guarded packages, paired frontend inventories and installer --check passed on actual Raspberry without sudo/runtime mutation. The persisted report was independently reviewed and the staged installer hash rechecked; control main is clean at reviewed df5485f6. The earlier Commander execution failure is historical and was not retested here. Password entry and privileged activation stay in the owner's Raspberry terminal. Actual full bounded site backup, installed guards, genuine package authority, LAN/HTTPS target update/rollback and Google account/session journeys remain unverified. Preserve old installer/partial evidence and keep #1318 draft.
 
