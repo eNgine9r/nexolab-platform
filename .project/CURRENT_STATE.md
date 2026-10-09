@@ -37,6 +37,10 @@ update/rollback and volume preservation. Merge Gate failed because the new
 helper/test were unknown to the classifier and two required browser workflows
 did not register. Only those two concrete paths are now registered as deployment
 tooling; unrelated unknown paths still fail closed and full Core remains required.
+Review additionally found that a later helper-only change could skip Offline Bundle.
+Both the helper and its focused test now independently require Offline Bundle and
+match its pull-request path triggers. A regression failed for both paths before the
+fix and passes afterward. Full Core and unknown-path fail-closed behavior remain.
 The classifier change itself triggers broader CI. Final exact-head CI and native
 ARM64 package preparation remain pending. This
 workspace has no Docker; three existing candidate-cleanup baseline tests fail

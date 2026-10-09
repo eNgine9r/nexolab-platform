@@ -1473,6 +1473,12 @@
         "offline_bundle": "success_run_37969039220",
         "aggregate_merge_gate": "failed_missing_required_browser_workflows_due_to_unknown_new_tooling_paths",
         "correction": "register_only_two_startup_tooling_paths;_full_Core_and_unknown_path_fail_closed_preserved"
+      },
+      "review_routing_correction": {
+        "review_thread": "PRRT_kwDOTe72wM6q5N6F",
+        "scope": "startup helper and focused test independently require and trigger Offline Bundle",
+        "regression": "both standalone paths failed before correction, passed afterward",
+        "runtime_mutation": "none"
       }
     }
   },

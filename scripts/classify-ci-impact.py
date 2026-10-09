@@ -184,6 +184,8 @@ TELEGRAM_GATEWAY_PATTERNS = (
 )
 
 OFFLINE_BUNDLE_PATTERNS = (
+    "scripts/device-agent-startup-gate.py",
+    "scripts/tests/test_device_agent_startup_gate.py",
     "services/telegram-gateway/**",
     "infrastructure/compose/**",
     "infrastructure/offline/**",
