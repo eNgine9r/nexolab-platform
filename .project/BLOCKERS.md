@@ -4,6 +4,8 @@ Updated: 2026-10-09
 
 ## Issue #1313 — authority snapshot read; guarded backup correction pending
 
+GitHub browser fallback authorization is resolved and sign-in succeeded. Current replacement ARM64 run `37926945966` is in progress on reviewed tooling `df5485f6`; target dispatch must wait for current GREEN and inventory/provenance verification. Both replacement package transfers, installer pins, guarded worker installation and full actual-site backup/update/rollback are still pending.
+
 The owner-started attempt `20261009T074623Z` froze during PostgreSQL pre-upgrade backup and was physically rebooted. No cutover marker or completed database dump exists; preserve its partial dump/evidence. Post-reboot frontends/API/database/MQTT/Device Agent are ready and all six volume identities match. Root cause is unconfirmed; no OOM/I-O fault is recorded in the available prior-boot logs. Do not infer a successful installation or retry the same heavy path.
 
 The owner-copy gate is resolved: Commander read the snapshot at 09:29:09 UTC. It contains legacy controlled-source authority `9a3556b2` from 2026-09-04, no bundle root and no queued requests/operations; package authority is not established. Current frontend identities differ from that stale record. Do not patch authority metadata to imitate installation.

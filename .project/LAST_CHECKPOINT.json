@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-09T11:02:58.016862Z",
+  "timestamp": "2026-10-09T12:04:02.643391Z",
   "actor": "ChatGPT",
-  "event": "bounded_backup_correction_merged_exact_head_GREEN_native_package_dispatch_prepared",
+  "event": "GitHub_browser_authorized_current_guarded_ARM64_bundle_running",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -1882,7 +1882,14 @@
               "auth_provider": "local",
               "external_origin": "https://nexolab-edge-01.tail7f9b04.ts.net",
               "runtime_source_ref": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2"
-            }
+            },
+            "run_id": 37926945966,
+            "job_id": 113808049734,
+            "run_url": "https://github.com/eNgine9r/nexolab-platform/actions/runs/37926945966",
+            "run_head_sha": "df5485f6ece4203a74a84f106195fae855d81731",
+            "status": "in_progress",
+            "observed_at": "2026-10-09T12:04:02.643391Z",
+            "artifact_verification": "pending"
           },
           {
             "role": "target",
@@ -1894,13 +1901,19 @@
               "auth_provider": "local",
               "external_origin": "https://nexolab-edge-01.tail7f9b04.ts.net",
               "runtime_source_ref": "df5485f6ece4203a74a84f106195fae855d81731"
-            }
+            },
+            "status": "not_dispatched_wait_for_current_GREEN_and_package_verification"
           }
         ],
         "required_after_each": "verify_run_head_equals_expected_tooling_commit;_complete_GREEN_before_next_dispatch;_verify_manifest_source_tooling_origin_auth_checksums_and_bounded_backup_capability",
-        "status": "prepared_not_dispatched",
-        "action_channel": "GitHub_connector_has_no_workflow_dispatch;_browser_fallback_requires_owner_approval",
-        "site_mutation": "none"
+        "status": "current_running_target_not_dispatched",
+        "action_channel": "owner_approved_GitHub_browser_fallback;_signed_in_visible_Run_workflow",
+        "site_mutation": "none",
+        "browser_fallback_authorization": {
+          "owner_authorization": "Дозволяю",
+          "authorized_at": "2026-10-09T11:08:36Z",
+          "scope": "two_prepared_ARM64_workflow_dispatches_sequentially"
+        }
       }
     },
     "checkpoint_publication_1317": {
@@ -1927,7 +1940,14 @@
             "auth_provider": "local",
             "external_origin": "https://nexolab-edge-01.tail7f9b04.ts.net",
             "runtime_source_ref": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2"
-          }
+          },
+          "run_id": 37926945966,
+          "job_id": 113808049734,
+          "run_url": "https://github.com/eNgine9r/nexolab-platform/actions/runs/37926945966",
+          "run_head_sha": "df5485f6ece4203a74a84f106195fae855d81731",
+          "status": "in_progress",
+          "observed_at": "2026-10-09T12:04:02.643391Z",
+          "artifact_verification": "pending"
         },
         {
           "role": "target",
@@ -1939,13 +1959,19 @@
             "auth_provider": "local",
             "external_origin": "https://nexolab-edge-01.tail7f9b04.ts.net",
             "runtime_source_ref": "df5485f6ece4203a74a84f106195fae855d81731"
-          }
+          },
+          "status": "not_dispatched_wait_for_current_GREEN_and_package_verification"
         }
       ],
       "required_after_each": "verify_run_head_equals_expected_tooling_commit;_complete_GREEN_before_next_dispatch;_verify_manifest_source_tooling_origin_auth_checksums_and_bounded_backup_capability",
-      "status": "prepared_not_dispatched",
-      "action_channel": "GitHub_connector_has_no_workflow_dispatch;_browser_fallback_requires_owner_approval",
-      "site_mutation": "none"
+      "status": "current_running_target_not_dispatched",
+      "action_channel": "owner_approved_GitHub_browser_fallback;_signed_in_visible_Run_workflow",
+      "site_mutation": "none",
+      "browser_fallback_authorization": {
+        "owner_authorization": "Дозволяю",
+        "authorized_at": "2026-10-09T11:08:36Z",
+        "scope": "two_prepared_ARM64_workflow_dispatches_sequentially"
+      }
     }
   },
   "observations": [
@@ -2924,7 +2950,7 @@
       }
     }
   ],
-  "next_action": "Launch the prepared sequential protected ARM64 current/target builds on canonical tooling df5485f6 after obtaining the separately required browser fallback approval (GitHub connector has no workflow dispatch). Verify run/tooling/runtime identities, transfer through permitted access, then prepare a replacement pinned installer and unprivileged --check. Commander execution still fails internally; denied host write paths are not bypassed. Actual owner-local sudo activation and full site backup/update/rollback remain unverified. Keep #1318 draft and main pinned to reviewed df5485f6 during package preparation.",
+  "next_action": "Monitor current protected ARM64 run 37926945966. After exact tooling/runtime and bundle inventories pass on GREEN, dispatch and verify target df5485f6 sequentially. Complete replacement installer pins and permitted host preparation. Keep old installer unused, #1318 draft and installed baselines unchanged; owner-local sudo and full site backup/update/rollback remain unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
