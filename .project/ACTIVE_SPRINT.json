@@ -7450,7 +7450,7 @@
           }
         },
         "guarded_repreparation_plan": {
-          "status": "source_review_and_required_CI_accepted;_canonical_tooling_and_target_pinned;_native_build_dispatch_pending",
+          "status": "both_guarded_packages_GREEN_verified_final_scripts_staged_owner_preparation_pending",
           "old_installer": "do_not_rerun_097af197;_prepared_A78_tooling_lacks_client_guards",
           "steps": [
             "Keep operator checkpoint PR #1318 unmerged. Source PR #1320 accepted after all six exact-head workflows GREEN and clean manual review; never deploy its feature branch.",
@@ -7461,7 +7461,7 @@
             "Use approved guarded canonical source deployment for current C296, then adoption, guarded worker installation and genuine current package authority transition. Each completed full backup must be nonzero, structurally listed and retained before mutation; failure stops and preserves diagnostics.",
             "Verify target update and prior-package rollback on both LAN/HTTPS, unchanged persistent volumes/data evidence and advancing telemetry; separately verify authorized Google account/session journeys. Close parent #1313 only on actual-host acceptance."
           ],
-          "remaining_host_access": "Commander execution internally unavailable and attempted write paths refused; no alternative upload. Local password entry remains owner-local only.",
+          "remaining_host_access": "Exact final installer/preparer and canonical Git bundle are staged in the permitted workspace and read back unchanged. Commander execution remains internally unavailable; owner-local nonprivileged preparation/check, then local sudo and actual acceptance, remain pending. Denied old paths are not accessed through another tool.",
           "site_guard_installed": false,
           "full_site_backup_accepted": false,
           "canonical_tooling_commit": "df5485f6ece4203a74a84f106195fae855d81731",
@@ -7488,9 +7488,21 @@
                 "job_id": 113808049734,
                 "run_url": "https://github.com/eNgine9r/nexolab-platform/actions/runs/37926945966",
                 "run_head_sha": "df5485f6ece4203a74a84f106195fae855d81731",
-                "status": "in_progress",
-                "observed_at": "2026-10-09T12:04:02.643391Z",
-                "artifact_verification": "pending"
+                "status": "completed_success",
+                "observed_at": "2026-10-09T13:26:52.546651Z",
+                "artifact_verification": "complete_local_canonical_verifier_provenance_63_files_6_images_and_docker_config_identity_passed",
+                "artifact_id": 11616051071,
+                "artifact_name": "nexolab-offline-arm64-runtime-c296c58f3cb2-tooling-df5485f6ece4-protected",
+                "zip_size_bytes": 787612511,
+                "zip_sha256": "d2e64e6d36f5dddb79d0a7af9e2c16479ee0922e82f36ceebd49982588541a5e",
+                "archive_sha256": "b424ce4e6a4f6145a3b4473f5a1b578a35d43d59ec72e6d17ccd35ecb043e809",
+                "manifest_sha256": "d40105a8af07c1a753de2537595f48c17b90a34e4b28780071f107340e2419d5",
+                "directory": "nexolab-offline-recovery-c296c58f3cb2-tooling-df5485f6ece4-protected-arm64",
+                "external_build": "IALIMAK_5svG6DAwFp35v",
+                "file_inventory_count": 63,
+                "image_count": 6,
+                "site_transfer": "pending_owner_local_preparation",
+                "archive_size_bytes": 790749920
               },
               {
                 "role": "target",
@@ -7503,18 +7515,76 @@
                   "external_origin": "https://nexolab-edge-01.tail7f9b04.ts.net",
                   "runtime_source_ref": "df5485f6ece4203a74a84f106195fae855d81731"
                 },
-                "status": "not_dispatched_wait_for_current_GREEN_and_package_verification"
+                "status": "completed_success",
+                "run_id": 37931496615,
+                "job_id": 113823075472,
+                "run_url": "https://github.com/eNgine9r/nexolab-platform/actions/runs/37931496615",
+                "run_head_sha": "df5485f6ece4203a74a84f106195fae855d81731",
+                "artifact_verification": "complete_local_canonical_verifier_provenance_63_files_6_images_and_docker_config_identity_passed",
+                "observed_at": "2026-10-09T13:26:52.546651Z",
+                "site_transfer": "pending_owner_local_preparation",
+                "artifact_id": 11618085443,
+                "artifact_name": "nexolab-offline-arm64-runtime-df5485f6ece4-tooling-df5485f6ece4-protected",
+                "zip_size_bytes": 787507588,
+                "zip_sha256": "9d8deee3a6e1666d9882a927a5d5135e13934504393c0598617c704c159964c9",
+                "archive_size_bytes": 790657165,
+                "archive_sha256": "59fd2458f1720288a7beee23cb0b5a74f28d055d1db771c7e654e01a64cdcb7e",
+                "manifest_sha256": "3db855d0aa749c57fdf91026e69c6381e4bbf3d2c47bdcb97a26d127e78b7a78",
+                "directory": "nexolab-offline-recovery-df5485f6ece4-tooling-df5485f6ece4-protected-arm64",
+                "external_build": "7dVZRshKXOOGWX1mzU9En",
+                "file_inventory_count": 63,
+                "image_count": 6
               }
             ],
             "required_after_each": "verify_run_head_equals_expected_tooling_commit;_complete_GREEN_before_next_dispatch;_verify_manifest_source_tooling_origin_auth_checksums_and_bounded_backup_capability",
-            "status": "current_running_target_not_dispatched",
+            "status": "both_sequential_native_ARM64_runs_GREEN_independently_verified",
             "action_channel": "owner_approved_GitHub_browser_fallback;_signed_in_visible_Run_workflow",
             "site_mutation": "none",
             "browser_fallback_authorization": {
               "owner_authorization": "Дозволяю",
               "authorized_at": "2026-10-09T11:08:36Z",
               "scope": "two_prepared_ARM64_workflow_dispatches_sequentially"
-            }
+            },
+            "verification_scope": "CI_disconnected_startup_local_auth_update_rollback_and_preserved_data_volumes;_independent_local_full_inventory;_not_actual_site_acceptance"
+          },
+          "permitted_host_preparation": {
+            "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6",
+            "directory_create": "success_2026-10-09T12:18:32.182Z",
+            "canonical_git_bundle_base64_write": "success_2026-10-09T12:27:56.693Z",
+            "git_bundle_sha256": "0fe12bc4880d4e9f163e012364dbb6587b385fa27bbf7e88fb41c733eef31c35",
+            "base64_file_sha256": "ee0230a12edd7bfc835a369982e5d4ec2b4c78f70cd3226233c6a0c31dced4b1",
+            "execution": "EXECUTION_HANDLER_FAILED_2026-10-09T12:19:24.958Z",
+            "runtime_mutation": "none",
+            "host_package_transfer": "pending",
+            "installer_check": "pending_owner_local_execution",
+            "owner_local_preparation": "required_due_to_EXECUTION_HANDLER_FAILED;_nonprivileged_python_preparer_first",
+            "old_work_session": "WORK_SESSION_DIVERGED_preserved_user_changes_no_execution",
+            "script_execution": "not_started",
+            "site_guard_installed": false,
+            "full_site_backup_accepted": false,
+            "owner_command": "python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-guarded-prepare.py",
+            "owner_package_input": "both_pinned_archives_or_GitHub_ZIPs_in_/home/nexolab/Downloads;_existing_authenticated_gh_optional_no_login",
+            "preparation_report": "new_attempt_directory/report.json;_GUARDED_PREPARATION_READY_marker",
+            "preparer_scope": "verify_packages_and_reuse_paired_frontends_after_fresh_validation;_offline_fast_forward_clean_control_main_A78_to_T;_installer_--check;_no_sudo_or_runtime",
+            "final_scripts": [
+              {
+                "name": "nexolab-unified-update-guarded.sh",
+                "size_bytes": 13536,
+                "sha256": "c68ddff14fcaa42cdd4f6268bab881cf37ce84494602b29c7d6cd89822d856f0",
+                "write_completed_at": "2026-10-09T13:17:49.341Z",
+                "readback_completed_at": "2026-10-09T13:23:11.068Z",
+                "exact_readback_match": true
+              },
+              {
+                "name": "nexolab-guarded-prepare.py",
+                "size_bytes": 17006,
+                "sha256": "422b0f3a83ad787346970a28e907c44a49ac4b639d4c4d4d33af40647fb0e9a7",
+                "write_completed_at": "2026-10-09T13:17:58.814Z",
+                "readback_completed_at": "2026-10-09T13:23:11.559Z",
+                "exact_readback_match": true
+              }
+            ],
+            "final_script_checks": "Bash_and_all_6_embedded_Python_blocks_parse;_Python_compile;_safe_archive_extraction_report_preservation_package_resume_contracts;_final_pinned_preparer_verifies_real_target_bundle"
           }
         }
       },
@@ -7563,9 +7633,9 @@
         "hardware_write": "none",
         "checkpoint_merge": "hold_draft_until_actual_host_acceptance_to_preserve_pinned_package_target",
         "local_state_verification": "28_project_state_tests_one_existing_skip;_State_Model_v2_integrity_and_format_passed",
-        "post_reboot_recovery_checkpoint": "authority_snapshot_read_and_client_guard_feasibility_verified;_software_PR_1320_published_CI_pending;_site_guard_not_installed",
-        "checkpoint_publication": "owner_authorization_resolved;_approved_checkpoint_prepared_for_publication",
-        "native_package_dispatch": "current_run_37926945966_in_progress_on_reviewed_tooling_df5485f6;_target_waiting_sequential_gate"
+        "post_reboot_recovery_checkpoint": "authority_snapshot_read;_source_PR_1320_merged_GREEN;_site_guard_not_installed",
+        "checkpoint_publication": "previous_remote_b79ab779_exact_head_state_CI_37929286419_GREEN;_final_verified_package_and_script_checkpoint_prepared_for_publication",
+        "native_package_dispatch": "both_sequential_runs_37926945966_and_37931496615_GREEN_independently_verified;_final_scripts_staged_and_exact_readback_passed;_owner_nonprivileged_preparation_pending"
       },
       "scope": "Four canonical project-state files only; preserve accepted runtime baselines",
       "verification": "State Model v2 integrity and exact-head state-only CI"
