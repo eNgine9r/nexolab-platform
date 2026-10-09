@@ -41,9 +41,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1315,
-      "title": "Build protected ARM64 offline packages for unified update acceptance",
-      "branch": "feat/protected-offline-package-workflow"
+      "issue": 1317,
+      "title": "Record prepared unified update installation and privilege checkpoint",
+      "branch": "docs/unified-update-installation-checkpoint"
     },
     "next_work_package": null
   },
@@ -7135,7 +7135,49 @@
         "host_installation_blocker": "local_sudo_password_required",
         "frontend_artifact_run_37892179879": "failed_missing_app_public_directory",
         "followup_package_workflow_issue": 1315,
-        "isolated_host_candidate_cleanup": "3_passed_without_service_mutation"
+        "isolated_host_candidate_cleanup": "3_passed_without_service_mutation",
+        "prepared_source_commit": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+        "target_package_source_commit": "a78ee7d564db2ada8d1e7c5efe192ce72fd2f56b",
+        "paired_frontend_run": 37893277127,
+        "prepared_lan_build": "Ar6aVrTWJICF6TKFaWxHw",
+        "prepared_https_build": "mcG0fHLcpCeVbTX--85gF",
+        "frontend_transfer": "two_artifacts_inventory_verified_on_actual_host",
+        "host_source_selection": "PASS_expected_d00a83bf_target_c296c58f_canonical_ancestor",
+        "host_control_checkout": "clean_main_no_runtime_activation",
+        "prepared_installer": "/home/nexolab/commander-workspaces/unified-update-c296c58f3cb2/nexolab-unified-update.sh",
+        "prepared_installer_sha256": "097af197dedcfc4b8e80855a71a7d0a03f23b7731da31f954e55f7b8e799fd4a",
+        "current_package_run": 37893279867,
+        "target_package_run": 37893977461,
+        "package_transfer": "both_protected_ARM64_packages_archive_and_inventory_verified_on_actual_host",
+        "host_health": "LAN_and_HTTPS_unchanged;_API_database_MQTT_ready;_Device_Agent_ok_MQTT_connected_queue_0_workers_3_of_3_healthy_no_degraded_or_cooldown_endpoints",
+        "current_package_ci": "37893279867_GREEN_ARM64_offline_start_update_rollback_auth_volume_preservation",
+        "target_package_ci": "37893977461_GREEN_ARM64_offline_start_update_rollback_auth_volume_preservation",
+        "prepared_packages": [
+          {
+            "archive_sha256": "14d8d87698b381736287d60273a3d60716817b8cfecf56309f6c5e3b86b34986",
+            "bundle_id": "recovery-c296c58f3cb2-tooling-c296c58f3cb2-protected-arm64-c296c58f3cb2",
+            "directory": "/home/nexolab/commander-workspaces/unified-update-c296c58f3cb2/packages/current/nexolab-offline-recovery-c296c58f3cb2-tooling-c296c58f3cb2-protected-arm64",
+            "external_build": "B3IJCl6W5uYzK--_pCgDE",
+            "manifest_sha256": "57af148f7fd0779bea2a82e152df0e11a4deba8fe73c701590431102f6dbd2c4",
+            "role": "current",
+            "run": 37893279867,
+            "source": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2"
+          },
+          {
+            "archive_sha256": "61adf062b9d0112c17c511edabb81a747fae4029edbec547a1c012a4d0c39a27",
+            "bundle_id": "recovery-a78ee7d564db-tooling-a78ee7d564db-protected-arm64-a78ee7d564db",
+            "directory": "/home/nexolab/commander-workspaces/unified-update-c296c58f3cb2/packages/target/nexolab-offline-recovery-a78ee7d564db-tooling-a78ee7d564db-protected-arm64",
+            "external_build": "3kRyIh3iRGepcwR_iWnEF",
+            "manifest_sha256": "e5516130f1cd00bd966a43e3512b802eb02f6e5ea29343d2f0d75c297c1e3682",
+            "role": "target",
+            "run": 37893977461,
+            "source": "a78ee7d564db2ada8d1e7c5efe192ce72fd2f56b"
+          }
+        ],
+        "package_source_relation": "current_reviewed_source_and_canonical_merge_target_have_identical_product_tree_distinct_source_identities",
+        "host_preparation_checked_at": "2026-10-09T07:24:03.729977+00:00",
+        "host_installer_check": "PASS_PREPARED_FILES_VERIFIED_exit_0_no_sudo_or_runtime_mutation",
+        "host_installer_check_passed_at": "2026-10-09T07:26:28.836847+00:00"
       },
       "depends_on": [],
       "scope": "Gateway-aware source deployment and offline package update/rollback; truthful Settings version readiness",
@@ -7145,18 +7187,44 @@
       "issue": 1315,
       "title": "Build protected ARM64 offline packages for unified update acceptance",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "feat/protected-offline-package-workflow",
       "evidence": {
         "local_workflow_contract_tests": "30_passed",
         "format": "workflow_and_runbook_passed",
-        "actual_arm64_build": "pending_after_required_CI",
+        "actual_arm64_build": "paired_frontends_and_both_full_protected_ARM64_packages_PASS",
         "modbus_write": "none",
         "hardware_write": "none",
-        "runtime_mutation": "none"
+        "runtime_mutation": "none",
+        "verified_head_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+        "verified_tree_sha": "35392897604d8279af5bf9319c7e764473ac0a79",
+        "pull_request": 1316,
+        "checks": {
+          "core_ci": "37893099196_GREEN_with_Merge_Gate",
+          "telemetry": "37893099231_GREEN",
+          "offline_bundle": "37893099295_GREEN",
+          "paired_arm64_frontend": "37893277127_GREEN"
+        }
       },
       "scope": "Optional protected offline artifact workflow; Dashboard public export fix",
       "verification": "Executable source/origin/worktree failure tests; required CI; actual ARM64 artifact builds after merge"
+    },
+    {
+      "issue": 1317,
+      "title": "Record prepared unified update installation and privilege checkpoint",
+      "priority": "low",
+      "lifecycle": "review",
+      "branch": "docs/unified-update-installation-checkpoint",
+      "evidence": {
+        "scope": "state_only",
+        "runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "checkpoint_merge": "hold_draft_until_actual_host_acceptance_to_preserve_pinned_package_target",
+        "local_state_verification": "28_project_state_tests_one_existing_skip;_State_Model_v2_integrity_and_format_passed"
+      },
+      "scope": "Four canonical project-state files only; preserve accepted runtime baselines",
+      "verification": "State Model v2 integrity and exact-head state-only CI"
     }
   ],
   "maintenance_actions": [
@@ -8420,6 +8488,24 @@
         "merge_sha": "8c1a4510887a141c4efb1d2440d066167d52a47d",
         "dependency_merge_sha": "e0a79c988d84d528ae724b7c17c51dbdddd16bc3",
         "workflow_runs_success": 18
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-09T07:02:54.803191Z",
+      "kind": "protected_package_workflow_source_acceptance",
+      "data": {
+        "issue": 1315,
+        "pull_request": 1316,
+        "head_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+        "merge_sha": "a78ee7d564db2ada8d1e7c5efe192ce72fd2f56b",
+        "pr_workflow_runs_success": [
+          37893099196,
+          37893099231,
+          37893099295
+        ],
+        "paired_frontend_run_success": 37893277127,
+        "push_ci_success": 37893906475
       }
     }
   ],

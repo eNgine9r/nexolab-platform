@@ -2,11 +2,13 @@
 
 Updated: 2026-10-09
 
-## Issue #1313 — local privilege and complete ARM64 package acceptance
+## Issue #1313 — local sudo and actual operator package acceptance
 
-Source PRs #1312 and #1314 are merged after required GREEN CI. The owner authorized continuation. Host activation still requires local sudo because `sudo -n -v` reports a password is required; do not bypass this restriction or request the password in chat. LAN/HTTPS identities remain mixed and the historical version record has no validated package authority.
+Source PRs #1312/#1314/#1316 and paired ARM64 frontend artifacts are GREEN/merged; actual-host frontend transfers and source-selection preflight passed. Current/target protected ARM64 package jobs `37893279867` / `37893977461` both passed disconnected startup and data/volume-preserving update/rollback proof; both archives and full package inventories are now verified on the actual host. The actual-host installer `--check` passed at 07:26 UTC with exit 0. All preparation is unprivileged and leaves runtime authority unchanged.
 
-Actual ARM64 artifact run `37892179879` failed on missing `/app/public`. Focused #1315 fixes that runtime directory and adds optional protected artifact preparation to the standard offline package workflow. Merge only after exact-head CI/review, then prepare paired frontend artifacts and sequential current/target protected bundles, verify/stage them and provide a concrete reviewed privileged activation command. Source CI is not actual-host update/rollback or Google-account/session-expiry acceptance. Existing site environment, credentials, volumes and data must be preserved.
+The prepared local installer is `/home/nexolab/commander-workspaces/unified-update-c296c58f3cb2/nexolab-unified-update.sh`. It stops on missing/unverified files before sudo, then uses approved canonical helpers for source deployment, adoption, worker installation, package staging and backup/volume/readiness authority transition. Missing local sudo access is a hard blocker; do not bypass it or request a password in chat. Parent #1313 stays open until actual installation plus authenticated LAN/HTTPS update and rollback are verified. Google account/session-expiry journeys remain separately unverified.
+
+Checkpoint #1317 stays draft so main remains pinned to target package source `a78ee7d564db2ada8d1e7c5efe192ce72fd2f56b` through this acceptance. Existing generated cache was moved/preserved; no production data/evidence/volume was deleted and no hardware/Modbus write occurred.
 
 ## Issues #1306 / #1309 — CI optimization complete; no remaining merge/cache blocker
 
