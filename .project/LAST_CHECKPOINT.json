@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-09T08:12:39.575527Z",
+  "timestamp": "2026-10-09T10:36:14.159587Z",
   "actor": "ChatGPT",
-  "event": "unified_installation_interrupted_before_mutation_post_reboot_readonly_recovery",
+  "event": "backup_correction_published_owner_authorization_resolved_exact_head_CI_pending",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -1474,7 +1474,7 @@
       },
       "final_exact_head_ci": "18_completed_success_on_fc4e3bc375618ebae87c9208cfec3b3f63317427",
       "final_verified_head_sha": "fc4e3bc375618ebae87c9208cfec3b3f63317427",
-      "host_installation_blocker": "interrupted_before_cutover;_privileged_recovery_metadata_pending;_backup_load_cause_unconfirmed",
+      "host_installation_blocker": "interrupted_before_cutover;_authority_snapshot_read_stale;_guard_CI_and_revised_preparation_pending;_freeze_cause_unconfirmed",
       "frontend_artifact_run_37892179879": "failed_missing_app_public_directory",
       "followup_package_workflow_issue": 1315,
       "isolated_host_candidate_cleanup": "3_passed_without_service_mutation",
@@ -1538,12 +1538,295 @@
         "production_mutation_in_recovery": "none",
         "modbus_write": "none",
         "hardware_write": "none",
-        "privileged_metadata_access": "sudo_local_password_required_current_record_not_read",
+        "privileged_metadata_access": "owner_copied_snapshot_to_allowed_path;_NEXUS_Commander_read_success",
         "recovery_check_script": "/home/nexolab/commander-workspaces/unified-update-c296c58f3cb2/nexolab-recovery-check.sh",
         "recovery_check_sha256": "00bb6138c244f9a198eab52cd09ab4d2770534a883fafb458db758cf4a0a0faf",
-        "recovery_check_validation": "host_and_local_Bash_syntax_and_embedded_Python_AST_passed;_privileged_run_pending",
-        "next_action": "owner_local_readonly_recovery_check;_collect_result_remotely;_investigate_and_bound_backup_load_before_any_retry"
+        "recovery_check_validation": "owner_capture_and_permitted_remote_read_complete",
+        "next_action": "Verify exact-head CI/review for published backup correction PR #1320. Keep #1318 draft and canonical main/package target pinned until a reviewed tooling/package re-preparation plan is ready. Do not rerun the prior installer; the guard is not installed and full bounded site backup/update/rollback acceptance remains unverified.",
+        "recovery_check_captured_path": "/home/nexolab/commander-workspaces/unified-update-c296c58f3cb2/recovery-check-20261009T082453Z-51972/authority.json",
+        "recovery_report_remote_read": "success_2026-10-09T09:29:09.578Z",
+        "permitted_report_copy_path": "/home/nexolab/nexolab-platform/runtime/recovery-authority-20261009T082453Z-51972.json",
+        "permitted_directory_check": "NEXUS_Commander_file.list_runtime_success_2026-10-09T08:30:43.639Z",
+        "backup_source_review": "deployment_and_version_manager_pg_dump_have_no_timeout_or_resource_guard;_freeze_cause_unconfirmed",
+        "authority_snapshot_checked_at": "2026-10-09T08:25:01.032572+00:00",
+        "authority_snapshot": {
+          "schema_version": 1,
+          "checked_at": "2026-10-09T08:25:01.032572+00:00",
+          "scope": "read_only_update_metadata_no_activation",
+          "current": {
+            "present": true,
+            "source_commit": "9a3556b25b257396d15db80af591d1cc3684b8f7",
+            "bundle_id": "source-main-9a3556b25b25",
+            "bundle_root": null,
+            "release": "source-main-9a3556b25b25",
+            "health": "ready",
+            "runtime_state_known": true,
+            "deployment_authority": "controlled_source_deployment",
+            "deployed_at": "2026-09-04T06:30:45+03:00",
+            "last_operation_id": null,
+            "transition_evidence_id": null,
+            "protected_frontend_enabled": null
+          },
+          "requests": {
+            "count": 0,
+            "recent": []
+          },
+          "operations": {
+            "count": 0,
+            "recent": []
+          },
+          "catalog": [
+            {
+              "directory": "recovery-cc27b609eea2-tooling-431f2a28a8eb-arm64-cc27b609eea2",
+              "validated_marker_present": true,
+              "manifest": {
+                "present": true,
+                "source_commit": "cc27b609eea2917b97da96003a08e5c84a7edbb1",
+                "platform": "linux/arm64",
+                "bundle_version": "recovery-cc27b609eea2-tooling-431f2a28a8eb"
+              }
+            }
+          ],
+          "installed_worker_sha256": "2a388e042803882b53ec13e266c6a334253312d40c2167ebf571d048c9690525"
+        },
+        "live_backup_diagnostics": {
+          "schema_version": 1,
+          "checked_at": "2026-10-09T09:39:39.215046+00:00",
+          "scope": "read_only_backup_metadata_no_dump_no_activation",
+          "memory_kib": {
+            "MemTotal": 4142224,
+            "MemAvailable": 2358240,
+            "Cached": 1955088,
+            "SwapTotal": 2097136,
+            "SwapFree": 2061136,
+            "Dirty": 1440,
+            "Writeback": 0
+          },
+          "vm_counters": {
+            "pswpin": 214,
+            "pswpout": 2372,
+            "pgmajfault": 8763
+          },
+          "load_average": [
+            0.48828125,
+            0.396484375,
+            0.404296875
+          ],
+          "disk_free_bytes": 120932651008,
+          "host_tools": {
+            "docker": "/usr/bin/docker",
+            "timeout": "/usr/bin/timeout",
+            "nice": "/usr/bin/nice",
+            "ionice": "/usr/bin/ionice",
+            "prlimit": "/usr/bin/prlimit"
+          },
+          "pressure_interfaces": {
+            "memory": false,
+            "io": false
+          },
+          "previous_completed_backup": {
+            "present": true,
+            "bytes": 767538771,
+            "modified_at": "2026-10-08T09:32:08.881257+00:00"
+          },
+          "interrupted_partial_backup": {
+            "present": true,
+            "bytes": 1221208,
+            "modified_at": "2026-10-09T07:53:18.685933+00:00"
+          },
+          "cgroup_controllers": [
+            "cpuset",
+            "cpu",
+            "io",
+            "memory",
+            "pids"
+          ],
+          "temperature_millicelsius": 45750,
+          "swap_devices": [
+            {
+              "device": "/dev/zram0",
+              "type": "partition",
+              "size_kib": "2097136",
+              "used_kib": "36000",
+              "priority": "100"
+            }
+          ],
+          "postgres": {
+            "limits_and_state": {
+              "status": "ok",
+              "data": {
+                "memory_bytes": 0,
+                "memory_swap_bytes": 0,
+                "oom_killed": false,
+                "running": true
+              }
+            },
+            "client_tools_and_limits": {
+              "status": "ok",
+              "returncode": 0,
+              "stdout": "pg_dump:/usr/local/bin/pg_dump\npg_restore:/usr/local/bin/pg_restore\npsql:/usr/local/bin/psql\ntimeout:/usr/bin/timeout\nnice:/bin/nice\nionice:/bin/ionice\nprlimit:virtual_memory_kib:unlimited\ncpu_time_seconds:unlimited\n"
+            },
+            "readonly_catalog": {
+              "status": "ok",
+              "data": {
+                "database_bytes": 16170248519,
+                "settings": [
+                  {
+                    "name": "maintenance_work_mem",
+                    "setting": "65536",
+                    "unit": "kB"
+                  },
+                  {
+                    "name": "max_connections",
+                    "setting": "100",
+                    "unit": null
+                  },
+                  {
+                    "name": "shared_buffers",
+                    "setting": "16384",
+                    "unit": "8kB"
+                  },
+                  {
+                    "name": "work_mem",
+                    "setting": "4096",
+                    "unit": "kB"
+                  }
+                ],
+                "largest_relations": [
+                  {
+                    "relname": "telemetry_samples",
+                    "bytes": 14196326400
+                  },
+                  {
+                    "relname": "telemetry_session_contexts",
+                    "bytes": 1954562048
+                  },
+                  {
+                    "relname": "telemetry_latest",
+                    "bytes": 1130496
+                  },
+                  {
+                    "relname": "security_audit_events",
+                    "bytes": 950272
+                  },
+                  {
+                    "relname": "test_report_artifacts",
+                    "bytes": 892928
+                  },
+                  {
+                    "relname": "security_local_sessions",
+                    "bytes": 524288
+                  },
+                  {
+                    "relname": "measurement_channels",
+                    "bytes": 442368
+                  },
+                  {
+                    "relname": "test_report_renders",
+                    "bytes": 376832
+                  }
+                ],
+                "active_client_backends": 0,
+                "oldest_transaction_seconds": null
+              }
+            }
+          }
+        },
+        "completed_capacity_dump_bytes": 778213529,
+        "capacity_dump_reuse": "streamed_pg_dump_cache_in_attempt_capacity_report",
+        "inert_backup_client_guard_probe": {
+          "scope": "inert_client_limit_and_timeout_probe_no_database_connection_no_dump",
+          "returncode": 143,
+          "elapsed_seconds": 2.101,
+          "stdout": "pg_dump (PostgreSQL) 16.15\nchild_virtual_memory_kib=524288\nchild_cpu_seconds=600\n",
+          "stderr_present": false
+        },
+        "inert_probe_cleanup": "subsequent_readonly_process_check_sleep_false_pg_dump_false;_3_diagnostic_processes_completed_exit_0",
+        "commander_execution": "EXECUTION_HANDLER_FAILED",
+        "commander_diagnostic_upload": "WRITE_POLICY_PATH_OUTSIDE_ROOTS_for_runtime_and_prepared_workspace;_no_alternate_upload",
+        "diagnostic_route": "previously_authorized_readonly_fallback_stdout_only_no_host_report_write",
+        "backup_guard_implementation": "published_source_PR_1320;_not_installed;_full_site_backup_unverified",
+        "diagnostic_script": "separate_saved_operator_artifact_not_host_installed",
+        "diagnostic_script_sha256": "02b748b5c0034b00cd23e10791643bb3b60ee4d26b279882f04abb221d7e3ea7",
+        "backup_guard_candidate": {
+          "scope": "source_only_backup_guard",
+          "head_sha": "e34035a996a1177954db80063c6a36e50ae519f3",
+          "tree_sha": "c4e47971f3449c59fc2765d317813a4d9328e1fb",
+          "changed_files": 12,
+          "checkpoint_files_in_code_diff": 0,
+          "new_host_observations_in_code_diff": 0,
+          "local_checks": "189_tests_and_48_subtests_passed;_shell_syntax_host_contract_format_diff_passed",
+          "publication": "published_via_connected_GitHub_after_explicit_owner_authorization;_tree_matches_locally_verified_candidate",
+          "exact_head_ci": "in_progress_3_routed_workflows",
+          "pull_request": 1320,
+          "installed_guard": "not_installed",
+          "full_site_backup": "not_performed",
+          "runtime_mutation": "none",
+          "modbus_write": "none",
+          "hardware_write": "none",
+          "local_verified_head_sha": "320e3ad8401ae55c684a25eee1acfce3f25afa28",
+          "publication_authorization": {
+            "destination": "eNgine9r/nexolab-platform",
+            "owner_authorization": "Дозволяю",
+            "authorized_at": "2026-10-09T10:28:50Z",
+            "scope": "publish_1319_source_and_separate_operator_checkpoint"
+          }
+        }
       }
+    },
+    "recovery_report_checkpoint_publication": {
+      "status": "blocked_operator_checkpoint_and_code_only_source_by_automatic_approval_review",
+      "local_checkpoint_commit": "877d658",
+      "reason": "potential_sensitive_internal_host_deployment_metadata;_GitHub_destination_not_verified_trusted;_explicit_disclosure_authorization_missing",
+      "alternate_publication_attempted": false,
+      "new_exact_head_CI": "not_run_unpublished_checkpoint",
+      "last_rejection": "code_branch_excludes_checkpoint_and_host_observation_files;_internal_source_export_to_GitHub_still_requires_explicit_authorization"
+    },
+    "issue_1319": {
+      "scope": "source_only_backup_guard",
+      "head_sha": "e34035a996a1177954db80063c6a36e50ae519f3",
+      "tree_sha": "c4e47971f3449c59fc2765d317813a4d9328e1fb",
+      "changed_files": 12,
+      "checkpoint_files_in_code_diff": 0,
+      "new_host_observations_in_code_diff": 0,
+      "local_checks": "189_tests_and_48_subtests_passed;_shell_syntax_host_contract_format_diff_passed",
+      "publication": "published_via_connected_GitHub_after_explicit_owner_authorization;_tree_matches_locally_verified_candidate",
+      "exact_head_ci": "in_progress_3_routed_workflows",
+      "pull_request": 1320,
+      "installed_guard": "not_installed",
+      "full_site_backup": "not_performed",
+      "runtime_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "local_verified_head_sha": "320e3ad8401ae55c684a25eee1acfce3f25afa28",
+      "publication_authorization": {
+        "destination": "eNgine9r/nexolab-platform",
+        "owner_authorization": "Дозволяю",
+        "authorized_at": "2026-10-09T10:28:50Z",
+        "scope": "publish_1319_source_and_separate_operator_checkpoint"
+      }
+    },
+    "github_publication_authorization_20261009": {
+      "destination": "eNgine9r/nexolab-platform",
+      "owner_authorization": "Дозволяю",
+      "authorized_at": "2026-10-09T10:28:50Z",
+      "scope": "publish_1319_source_and_separate_operator_checkpoint"
+    },
+    "issue_1313_guarded_repreparation_plan": {
+      "status": "reviewed_sequence_prepared;_exact_canonical_tooling_pin_pending_GREEN_review_and_merge_of_PR_1320",
+      "old_installer": "do_not_rerun_097af197;_prepared_A78_tooling_lacks_client_guards",
+      "steps": [
+        "Keep checkpoint PR #1318 unmerged. Require all routed CI and review at PR #1320 exact head; no feature-branch deployment.",
+        "After accepted source merge, pin its canonical-main commit as tooling and new target runtime; current runtime remains genuine canonical ancestor c296c58f3cb2.",
+        "Build replacement protected ARM64 current and target bundles sequentially with that reviewed tooling, exact runtime_source_ref values, local authentication and existing LAN/HTTPS origins. Require bounded-postgresql-backup capability and checksummed helper; preserve original packages unchanged.",
+        "Reuse existing source-matched paired current frontend artifacts only after fresh inventory validation; rebuild paired target artifacts at the new canonical target as needed. Record every source/tooling/build/hash identity.",
+        "Prepare a replacement owner-local installer pinned to exact tooling, current and target; replace the old A78 script comparison with exact reviewed tooling checks, verify helper installation and genuine package transition. Run unprivileged --check before local sudo.",
+        "Use approved guarded canonical source deployment for current C296, then adoption, guarded worker installation and genuine current package authority transition. Each completed full backup must be nonzero, structurally listed and retained before mutation; failure stops and preserves diagnostics.",
+        "Verify target update and prior-package rollback on both LAN/HTTPS, unchanged persistent volumes/data evidence and advancing telemetry; separately verify authorized Google account/session journeys. Close parent #1313 only on actual-host acceptance."
+      ],
+      "remaining_host_access": "Commander execution internally unavailable and attempted write paths refused; no alternative upload. Local password entry remains owner-local only.",
+      "site_guard_installed": false,
+      "full_site_backup_accepted": false
     }
   },
   "observations": [
@@ -2506,7 +2789,7 @@
       }
     }
   ],
-  "next_action": "Owner runs the prepared lightweight read-only recovery check with local sudo. Collect authority.json remotely; do not repeat the interrupted installer until privileged authority metadata and backup resource constraints are understood. Keep checkpoint PR #1318 draft and canonical main pinned to the prepared package target; actual LAN/HTTPS package update/rollback remains unaccepted.",
+  "next_action": "Verify exact-head CI/review for published backup correction PR #1320. Keep #1318 draft and canonical main/package target pinned until a reviewed tooling/package re-preparation plan is ready. Do not rerun the prior installer; the guard is not installed and full bounded site backup/update/rollback acceptance remains unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

@@ -2,11 +2,17 @@
 
 Updated: 2026-10-09
 
-## Issue #1313 — interrupted backup; privileged metadata and guarded retry pending
+## Issue #1313 — authority snapshot read; guarded backup correction pending
 
 The owner-started attempt `20261009T074623Z` froze during PostgreSQL pre-upgrade backup and was physically rebooted. No cutover marker or completed database dump exists; preserve its partial dump/evidence. Post-reboot frontends/API/database/MQTT/Device Agent are ready and all six volume identities match. Root cause is unconfirmed; no OOM/I-O fault is recorded in the available prior-boot logs. Do not infer a successful installation or retry the same heavy path.
 
-Root-only version authority/catalog/operation metadata still needs local sudo. Run the prepared lightweight `nexolab-recovery-check.sh`; collect its owner-private `recovery-check-*/authority.json` remotely. It is read-only and avoids the backup workload. Afterward bound and diagnose the backup before any new activation. Parent #1313 remains open, checkpoint #1318 remains draft, main stays pinned, and accepted/deployed baselines remain unchanged.
+The owner-copy gate is resolved: Commander read the snapshot at 09:29:09 UTC. It contains legacy controlled-source authority `9a3556b2` from 2026-09-04, no bundle root and no queued requests/operations; package authority is not established. Current frontend identities differ from that stale record. Do not patch authority metadata to imitate installation.
+
+Read-only resource/catalog diagnostics completed through the previously authorized fallback after Commander execution failed internally. No rejected file write/read was retried through the fallback. An inert in-container probe verified client limits/timer termination and no remaining test/dump process. Software correction #1319 is implemented locally and passed 189 tests plus 48 subtests; it has not been installed and no full bounded site backup was performed. The owner authorized both publications to `eNgine9r/nexolab-platform`; PR #1320 is published with the exact locally verified source tree. Its required CI is in progress; the operator checkpoint is being published separately. Exact-head CI/review and revised exact-source tooling/package acceptance are required before retry. Current observations do not identify the historical freeze cause. Preserve evidence and the pinned target; #1313 stays open and #1318 draft.
+
+## Issue #1317 — publication authorization resolved; checkpoint remains draft
+
+Earlier automatic approval review refused the operator metadata and the stricter source-only correction until explicit destination authorization. The owner granted that authorization for both to `eNgine9r/nexolab-platform` on 2026-10-09 at 10:28:50 UTC. PR #1320 is published; its tree matches the local verified source candidate. The four-file operator checkpoint is prepared for #1318. Required exact-head CI/review and revised exact-source preparation remain pending; keep both PRs draft and preserve the prepared package target until its replacement plan is resolved.
 
 ## Issue #1313 — local sudo and actual operator package acceptance
 
