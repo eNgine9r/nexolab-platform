@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-09T17:46:51Z",
+  "timestamp": "2026-10-09T19:37:54.422548+00:00",
   "actor": "ChatGPT",
-  "event": "issue_1321_agent_recovery_verified_startup_source_prepared",
+  "event": "corrected_actual_runtime_report_verified_explicit_partial_continuation_source_guard_implemented",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -29,9 +29,9 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "active_work": {
-    "issue": 1321,
-    "title": "Validate hardware image startup before cutover",
-    "branch": "fix/1321-hardware-agent-startup"
+    "issue": 1323,
+    "title": "Reconcile partial unified activation after verified agent recovery",
+    "branch": "fix/1323-partial-unified-activation"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -1492,6 +1492,30 @@
         "tests": "35_recovery_tests_passed;_146_affected_tests_passed;_Dockerfile_derived_RED_then_GREEN;_mocked_Docker_with_real_temp_files",
         "runtime_mutation": "none"
       }
+    },
+    "issue_1323_actual_report_and_continuation": {
+      "runtime_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/runtime-check-1323-4j0c_0ij/report.json",
+      "report_sha256": "45b29478615b520344d5fba2b8748bfd42c7a81ec17d3ad24daedea3fdeba71f",
+      "finished_at": "2026-10-09T19:16:31.980071+00:00",
+      "read_at": "2026-10-09T19:17:48.880Z",
+      "lan_source": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+      "lan_build": "hA8usmV6ZKwgZUYhmOLHZ",
+      "protected_source": "4b9dc85ab2e7924195d5d2030fb298aaaf78aaf4",
+      "protected_build": "KVMryq76dj1LhzOW30pgA",
+      "api": "http://172.18.48.66:8082",
+      "api_database_mqtt": "ready",
+      "agent_workers": "3/3",
+      "samples": [
+        9650,
+        9653
+      ],
+      "queue_depth": 0,
+      "existing_volume_count": 96,
+      "mutation": "none",
+      "new_source_guard": "explicit_single_exact_unresolved_attempt_only;_fresh_live_preflight;_immutable_staged_context_and_helper;_fresh_backups_no_restore;_same_site_settings;_all_volume_identity_preservation_before_success",
+      "local_tests": "70_forward_recovery_and_real_Git_source_selection_tests_passed;_compile_shell_syntax_diff_checks_passed",
+      "site_continuation": "not_executed",
+      "native_packages": "corrected_tooling_rebuild_pending"
     }
   },
   "observations": [
@@ -2454,7 +2478,7 @@
       }
     }
   ],
-  "next_action": "Verify the #1321 source PR on required exact-head CI; reconcile the partial activation without database restore or fabricated package authority, then rebuild digest-bound native ARM64 current/rollback packages and resume controlled LAN/HTTPS acceptance.",
+  "next_action": "Run exact-head source CI/review; prepare one reviewed pinned owner-local preserved-data continuation. Do not rerun old installers or fabricate current.json. Native ARM64 packages and actual LAN/HTTPS update/rollback remain pending.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

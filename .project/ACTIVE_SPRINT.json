@@ -41,9 +41,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1315,
-      "title": "Build protected ARM64 offline packages for unified update acceptance",
-      "branch": "feat/protected-offline-package-workflow"
+      "issue": 1323,
+      "title": "Reconcile partial unified activation after verified agent recovery",
+      "branch": "fix/1323-partial-unified-activation"
     },
     "next_work_package": null
   },
@@ -7157,6 +7157,50 @@
       },
       "scope": "Optional protected offline artifact workflow; Dashboard public export fix",
       "verification": "Executable source/origin/worktree failure tests; required CI; actual ARM64 artifact builds after merge"
+    },
+    {
+      "issue": 1321,
+      "title": "Verify hardware agent startup before cutover",
+      "priority": "high",
+      "lifecycle": "completed",
+      "branch": "fix/1321-hardware-agent-startup",
+      "scope": "Accepted source startup gate and verified agent-only recovery; no whole-site acceptance"
+    },
+    {
+      "issue": 1323,
+      "title": "Reconcile partial unified activation after verified agent recovery",
+      "priority": "high",
+      "lifecycle": "in_progress",
+      "branch": "fix/1323-partial-unified-activation",
+      "depends_on": [
+        1321
+      ],
+      "scope": "Explicit guarded same-target source continuation preserving later live data and original evidence; no fabricated authority",
+      "verification": "Targeted recovery/source-selection tests, full exact-head CI/review; actual owner-local continuation and unified package acceptance separately gated",
+      "evidence": {
+        "runtime_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/runtime-check-1323-4j0c_0ij/report.json",
+        "report_sha256": "45b29478615b520344d5fba2b8748bfd42c7a81ec17d3ad24daedea3fdeba71f",
+        "finished_at": "2026-10-09T19:16:31.980071+00:00",
+        "read_at": "2026-10-09T19:17:48.880Z",
+        "lan_source": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+        "lan_build": "hA8usmV6ZKwgZUYhmOLHZ",
+        "protected_source": "4b9dc85ab2e7924195d5d2030fb298aaaf78aaf4",
+        "protected_build": "KVMryq76dj1LhzOW30pgA",
+        "api": "http://172.18.48.66:8082",
+        "api_database_mqtt": "ready",
+        "agent_workers": "3/3",
+        "samples": [
+          9650,
+          9653
+        ],
+        "queue_depth": 0,
+        "existing_volume_count": 96,
+        "mutation": "none",
+        "new_source_guard": "explicit_single_exact_unresolved_attempt_only;_fresh_live_preflight;_immutable_staged_context_and_helper;_fresh_backups_no_restore;_same_site_settings;_all_volume_identity_preservation_before_success",
+        "local_tests": "70_forward_recovery_and_real_Git_source_selection_tests_passed;_compile_shell_syntax_diff_checks_passed",
+        "site_continuation": "not_executed",
+        "native_packages": "corrected_tooling_rebuild_pending"
+      }
     }
   ],
   "maintenance_actions": [
@@ -8420,6 +8464,18 @@
         "merge_sha": "8c1a4510887a141c4efb1d2440d066167d52a47d",
         "dependency_merge_sha": "e0a79c988d84d528ae724b7c17c51dbdddd16bc3",
         "workflow_runs_success": 18
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-09T19:37:54.422548+00:00",
+      "kind": "accepted_startup_dependency",
+      "data": {
+        "issue": 1321,
+        "state": "closed",
+        "pull_request": 1322,
+        "merge_sha": "4379409bce04db7d81c77ed32c13987ec7612148",
+        "verified_head": "40e5af2b6b01790d398fd94b101e2d73771b77d0"
       }
     }
   ],

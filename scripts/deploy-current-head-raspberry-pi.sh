@@ -40,6 +40,18 @@ Options:
                            deployment authority, including an explicitly adopted compatibility runtime.
   --source-selection-check-only
                            Validate source lineage and exit before capacity, backup or runtime mutation.
+  --continue-partial-activation DEPLOYMENT_EVIDENCE_DIR
+                           Explicitly continue only this latest incomplete mutation to its same target.
+                           Requires the three report options below and exact source/deployed pins.
+                           Retains live data; never publishes success for the partial baseline.
+  --runtime-check-report PATH
+                           Corrected V2 read-only actual-host report, with both active frontend profiles.
+  --runtime-check-sha256 SHA256
+                           Exact externally reviewed SHA256 of that report.
+  --verified-agent-recovery-report PATH
+                           Verified agent-only recovery bound by the runtime-check report.
+  --expected-control-source SHA
+                           Reviewed main/tooling commit; mandatory for partial continuation.
   --offline-source-selection
                            Check exact cached main authority without fetch; requires source-selection-only,
                            --source-ref and --expected-deployed-source. Never runs full deployment.
@@ -67,6 +79,11 @@ SOURCE_SELECTION_CHECK_ONLY="0"
 OFFLINE_SOURCE_SELECTION="0"
 RESTORE_EDGE_SNAPSHOT_DIR=""
 EXPECTED_TARGET_SOURCE=""
+PARTIAL_ACTIVATION_DIR=""
+PARTIAL_RUNTIME_CHECK_REPORT=""
+PARTIAL_RUNTIME_CHECK_SHA256=""
+PARTIAL_AGENT_RECOVERY_REPORT=""
+EXPECTED_CONTROL_SOURCE=""
 while (($# > 0)); do
   case "$1" in
     --runtime-mode)
@@ -117,6 +134,26 @@ while (($# > 0)); do
       SOURCE_SELECTION_CHECK_ONLY="1"
       shift
       ;;
+    --continue-partial-activation)
+      PARTIAL_ACTIVATION_DIR="${2:?--continue-partial-activation requires evidence}"
+      shift 2
+      ;;
+    --runtime-check-report)
+      PARTIAL_RUNTIME_CHECK_REPORT="${2:?--runtime-check-report requires a report}"
+      shift 2
+      ;;
+    --runtime-check-sha256)
+      PARTIAL_RUNTIME_CHECK_SHA256="${2:?--runtime-check-sha256 requires a digest}"
+      shift 2
+      ;;
+    --verified-agent-recovery-report)
+      PARTIAL_AGENT_RECOVERY_REPORT="${2:?--verified-agent-recovery-report requires a report}"
+      shift 2
+      ;;
+    --expected-control-source)
+      EXPECTED_CONTROL_SOURCE="${2:?--expected-control-source requires reviewed main}"
+      shift 2
+      ;;
     --offline-source-selection)
       OFFLINE_SOURCE_SELECTION="1"
       shift
@@ -163,6 +200,16 @@ if [[ "$OFFLINE_SOURCE_SELECTION" == 1 ]]; then
 fi
 
 REPO="${NEXOLAB_REPO:-$HOME/nexolab-platform}"
+if [[ -n "$PARTIAL_ACTIVATION_DIR$PARTIAL_RUNTIME_CHECK_REPORT$PARTIAL_RUNTIME_CHECK_SHA256$PARTIAL_AGENT_RECOVERY_REPORT" ]]; then
+  [[ -n "$PARTIAL_ACTIVATION_DIR" && -n "$PARTIAL_RUNTIME_CHECK_REPORT" && -n "$PARTIAL_AGENT_RECOVERY_REPORT" \
+    && "$PARTIAL_RUNTIME_CHECK_SHA256" =~ ^[0-9a-f]{64}$ \
+    && "$REQUESTED_SOURCE_REF" =~ ^[0-9a-f]{40}$ && "$EXPECTED_DEPLOYED_SOURCE" =~ ^[0-9a-f]{40}$ \
+    && "$EXPECTED_CONTROL_SOURCE" =~ ^[0-9a-f]{40}$ \
+    && "$RUNTIME_MODE" == lan && -z "$RESTORE_EDGE_SNAPSHOT_DIR$EXPECTED_TARGET_SOURCE" && "$OFFLINE_SOURCE_SELECTION" == 0 ]] || {
+    echo "ERROR: partial continuation requires exact failed/source/report pins, LAN mode and no restore/offline option" >&2
+    exit 64
+  }
+fi
 
 restore_edge_sqlite_snapshot() {
   [[ -z "$REQUESTED_SOURCE_REF" && "$SOURCE_SELECTION_CHECK_ONLY" == "0" \
@@ -742,7 +789,9 @@ validate_full_sha() {
 
 resolve_latest_deployment_evidence() {
   local deployment_evidence
-  if ! deployment_evidence="$(python3 - "$REPO/runtime/deployments" "$AUDIT_DIR" "$SCRIPT_DIR/forward_deployment_recovery.py" "$SCRIPT_DIR/compatibility_runtime_authority.py" "$REPO" <<'PY_EVIDENCE'
+  if ! deployment_evidence="$(python3 - "$REPO/runtime/deployments" "$AUDIT_DIR" "$SCRIPT_DIR/forward_deployment_recovery.py" "$SCRIPT_DIR/compatibility_runtime_authority.py" "$REPO" \
+    "$PARTIAL_ACTIVATION_DIR" "$PARTIAL_RUNTIME_CHECK_REPORT" "$PARTIAL_RUNTIME_CHECK_SHA256" "$PARTIAL_AGENT_RECOVERY_REPORT" \
+    "$EXPECTED_DEPLOYED_SOURCE" "$REQUESTED_SOURCE_REF" <<'PY_EVIDENCE'
 from datetime import datetime
 import importlib.util
 import json
@@ -943,11 +992,33 @@ for (
     if stamp <= success_stamp or directory == current_audit:
         continue
     if mutated and commit is None:
+        if len(sys.argv) > 6 and sys.argv[6]:
+            unresolved = [row for row in attempts if row[0] > success_stamp and row[1] != current_audit and row[3] and row[4] is None]
+            if len(unresolved) != 1 or directory != Path(sys.argv[6]).resolve() or success_commit != sys.argv[10]:
+                print("ERROR: partial continuation must select the only latest unresolved attempt and exact prior authority", file=sys.stderr)
+                raise SystemExit(2)
+            try:
+                context = forward_recovery.validate_partial_continuation(
+                    repo, directory, sys.argv[10], sys.argv[11], Path(sys.argv[7]), sys.argv[8], Path(sys.argv[9]))
+                context_path = current_audit / "partial-continuation-context.json"
+                if context_path.exists():
+                    if forward_recovery.read_json(context_path, "partial continuation context") != context:
+                        raise ValueError("partial continuation context changed")
+                else:
+                    forward_recovery.atomic_json(context_path, context)
+            except Exception:
+                print("ERROR: partial continuation immutable/live baseline verification failed", file=sys.stderr)
+                raise SystemExit(2)
+            continue
         print(
             f"ERROR: newer deployment attempt crossed runtime mutation boundary without success: {directory}",
             file=sys.stderr,
         )
         raise SystemExit(2)
+
+if len(sys.argv) > 6 and sys.argv[6] and not (current_audit / "partial-continuation-context.json").is_file():
+    print("ERROR: selected partial continuation is not an unresolved deployment", file=sys.stderr)
+    raise SystemExit(2)
 
 print(
     f"{success_commit}\t{success_dir}\t{success_stamp}\t{success_image or 'not_applicable'}\t"
@@ -1188,6 +1259,10 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   fail "tracked local changes detected before source selection"
 fi
 [[ "$(git branch --show-current)" == "main" ]] || fail "deployment must start from the main branch"
+if [[ -n "$EXPECTED_CONTROL_SOURCE" ]]; then
+  validate_full_sha "$EXPECTED_CONTROL_SOURCE" || fail "expected control source must be a full SHA"
+  [[ "$(git rev-parse HEAD)" == "$EXPECTED_CONTROL_SOURCE" ]] || fail "main checkout differs from the reviewed control source"
+fi
 
 if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "1" ]]; then
   if [[ "$OFFLINE_SOURCE_SELECTION" == 1 ]]; then
@@ -1204,6 +1279,8 @@ if [[ "$SOURCE_SELECTION_CHECK_ONLY" == "1" ]]; then
     git merge --ff-only "$CONTROL_HEAD" >/dev/null || fail "local main cannot fast-forward to fresh origin/main for source-selection preflight"
     [[ "$(git rev-parse HEAD)" == "$CONTROL_HEAD" ]] || fail "local main is not synchronized to fresh origin/main for source-selection preflight"
   fi
+  [[ -z "$EXPECTED_CONTROL_SOURCE" || "$CONTROL_HEAD" == "$EXPECTED_CONTROL_SOURCE" ]] \
+    || fail "fresh main differs from the reviewed control source"
   resolve_deployed_source_authority
   resolve_layered_device_agent_authority
   validate_selected_source_against_control
@@ -1258,9 +1335,13 @@ PG_CONTAINER="$(docker ps -q \
 
 recover_interrupted_pre_mutation_quiesce
 resolve_deployed_source_authority
-log "Applying bounded deployment-evidence retention"
-if ! nexolab_prune_deployment_evidence "$REPO/runtime/deployments" "$AUDIT_DIR" "$EXPECTED_DEPLOYMENT_EVIDENCE"; then
-  fail "deployment evidence retention failed before runtime mutation"
+if [[ -n "$PARTIAL_ACTIVATION_DIR" ]]; then
+  log "Partial continuation preserves all existing deployment/failure/recovery evidence"
+else
+  log "Applying bounded deployment-evidence retention"
+  if ! nexolab_prune_deployment_evidence "$REPO/runtime/deployments" "$AUDIT_DIR" "$EXPECTED_DEPLOYMENT_EVIDENCE"; then
+    fail "deployment evidence retention failed before runtime mutation"
+  fi
 fi
 log "Running deployment capacity preflight before evidence capture"
 if ! nexolab_capacity_preflight "$REPO" "$AUDIT_DIR" "$PG_CONTAINER" "$AUDIT_DIR/capacity-preflight.txt"; then
@@ -1273,6 +1354,8 @@ git switch main
 git pull --ff-only origin main
 CONTROL_HEAD="$(git rev-parse origin/main)"
 [[ "$(git rev-parse HEAD)" == "$CONTROL_HEAD" ]] || fail "local main is not at origin/main after fetch"
+[[ -z "$EXPECTED_CONTROL_SOURCE" || "$CONTROL_HEAD" == "$EXPECTED_CONTROL_SOURCE" ]] \
+  || fail "fresh main differs from the reviewed control source"
 resolve_layered_device_agent_authority
 validate_selected_source_against_control
 
@@ -1406,6 +1489,46 @@ sha256sum "$DEVICE_AGENT_STARTUP_GATE_HELPER" > "$AUDIT_DIR/device-agent-startup
 # only startup/image selection, retaining the selected source's site contract.
 python3 "$DEVICE_AGENT_STARTUP_GATE_HELPER" write-overlay --output "$DEVICE_AGENT_STARTUP_OVERLAY"
 EDGE_COMPOSE_ARGS+=( -f "$DEVICE_AGENT_STARTUP_OVERLAY" )
+
+PARTIAL_CONTINUATION_HELPER="$AUDIT_DIR/partial-continuation-helper.py"
+if [[ -n "$PARTIAL_ACTIVATION_DIR" ]]; then
+  install -m 0500 "$SCRIPT_DIR/forward_deployment_recovery.py" "$PARTIAL_CONTINUATION_HELPER"
+  sha256sum "$PARTIAL_CONTINUATION_HELPER" > "$AUDIT_DIR/partial-continuation-helper.sha256"
+  sha256sum "$AUDIT_DIR/partial-continuation-context.json" > "$AUDIT_DIR/partial-continuation-context.sha256"
+fi
+
+verify_partial_continuation() {
+  [[ -n "$PARTIAL_ACTIVATION_DIR" ]] || return 0
+  sha256sum --check --status "$AUDIT_DIR/partial-continuation-helper.sha256" || return 1
+  sha256sum --check --status "$AUDIT_DIR/partial-continuation-context.sha256" || return 1
+  python3 - "$PARTIAL_CONTINUATION_HELPER" "$REPO" "$PARTIAL_ACTIVATION_DIR" "$EXPECTED_DEPLOYED_SOURCE" \
+    "$REQUESTED_SOURCE_REF" "$PARTIAL_RUNTIME_CHECK_REPORT" "$PARTIAL_RUNTIME_CHECK_SHA256" \
+    "$PARTIAL_AGENT_RECOVERY_REPORT" "$AUDIT_DIR/partial-continuation-context.json" "$1" <<'PY_PARTIAL_CONTINUATION'
+import importlib.util
+import sys
+from pathlib import Path
+try:
+    spec = importlib.util.spec_from_file_location("partial_continuation", sys.argv[1])
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    if sys.argv[10] == "before-quiesce":
+        context = module.validate_partial_continuation(Path(sys.argv[2]), Path(sys.argv[3]), sys.argv[4], sys.argv[5],
+            Path(sys.argv[6]), sys.argv[7], Path(sys.argv[8]))
+        if context != module.read_json(Path(sys.argv[9]), "partial continuation context"):
+            raise ValueError("partial baseline changed")
+    elif sys.argv[10] == "before-success":
+        if module.sha256_file(Path(sys.argv[6])) != sys.argv[7]:
+            raise ValueError("partial capture changed")
+        module.check_partial_input_preservation(Path(sys.argv[2]), Path(sys.argv[3]), Path(sys.argv[8]),
+            module.read_json(Path(sys.argv[9]), "partial continuation context"))
+        module.check_partial_volume_preservation(module.read_json(Path(sys.argv[6]), "partial capture")["facts"])
+    else:
+        raise ValueError("unknown partial continuation phase")
+except Exception:
+    print("ERROR: staged partial continuation evidence/live preservation gate failed", file=sys.stderr)
+    raise SystemExit(2)
+PY_PARTIAL_CONTINUATION
+}
 
 if [[ "$TARGET_HEAD" != "$CONTROL_HEAD" ]]; then
   log "Switching temporarily to approved historical main source: $TARGET_HEAD"
@@ -1624,6 +1747,11 @@ env_get() {
 
 env_set() {
   local file=$1 key=$2 value=$3
+  if [[ -n "$PARTIAL_ACTIVATION_DIR" ]]; then
+    [[ "$(env_get "$file" "$key")" == "$value" ]] \
+      || fail "partial continuation refuses a site setting change: $key"
+    return 0
+  fi
   python3 - "$file" "$key" "$value" <<'PY'
 from pathlib import Path
 import sys
@@ -1648,6 +1776,7 @@ ensure_secret() {
   local value
   value="$(env_get "$file" "$key")"
   if [[ -z "$value" || "$value" == replace-with-* ]]; then
+    [[ -z "$PARTIAL_ACTIVATION_DIR" ]] || fail "partial continuation refuses secret provisioning: $key"
     value="$(openssl rand -hex 32)"
     env_set "$file" "$key" "$value"
   fi
@@ -2000,6 +2129,7 @@ sha256sum --check --status "$AUDIT_DIR/device-agent-startup-gate.sha256" \
   || fail "staged Device Agent startup gate changed before quiesce"
 sha256sum --check --status "$AUDIT_DIR/compose.device-agent-startup.sha256" \
   || fail "startup-verified Device Agent override changed before quiesce"
+verify_partial_continuation before-quiesce || fail "partial activation baseline drifted before agent quiesce"
 quiesce_edge_device_agent_for_cutover
 capture_edge_sqlite_snapshot
 write_durable_runtime_mutation_marker
@@ -2292,6 +2422,8 @@ docker image inspect "$DEPLOYED_DEVICE_AGENT_IMAGE_ID" >/dev/null 2>&1 \
   || fail "successful deployment Device Agent image is not addressable"
 [[ "$(docker image inspect --format '{{.Id}}' nexolab-device-agent:local)" == "$DEPLOYED_DEVICE_AGENT_IMAGE_ID" ]] \
   || fail "successful deployment Device Agent container does not match the activated local image"
+
+verify_partial_continuation before-success || fail "partial continuation did not preserve all existing volumes"
 
 {
   echo "deployed_at=$DASHBOARD_DEPLOYED_AT"

@@ -2,6 +2,42 @@
 
 Updated: 2026-10-09
 
+## Issue #1323 — actual mixed runtime verified; explicit preserved-data continuation implemented
+
+Corrected V2 report `runtime-check-1323-4j0c_0ij/report.json` was independently
+read at 19:17:48 UTC, SHA256
+`45b29478615b520344d5fba2b8748bfd42c7a81ec17d3ad24daedea3fdeba71f`.
+At 19:16:31 UTC, LAN source/build was D00 / hA8usmV6ZKwgZUYhmOLHZ and protected
+HTTPS was 4b9dc85a / KVMryq76dj1LhzOW30pgA. Both active process working directories
+match their identities. Central API at 172.18.48.66:8082, database and MQTT are
+ready; the exact recovered old agent has healthy 3/3 workers, samples 9650→9653
+and queue 0. All 96 existing volume identities were captured. Control checkout
+remains df5485f6; current.json still records September 9a3556. This is a mixed
+partial C296 central activation, not complete source/package authority. Capture
+made no runtime/data/authority changes; its earlier owner-command gate is passed.
+
+Source dependency #1321 is accepted on reviewed main 4379409 after six required
+exact-head workflows and resolved review. The #1323 source branch adds explicit
+continuation of only the same latest failed target, requiring reviewed control,
+prior/target/report pins and verified agent-only recovery. The ordinary unresolved
+mutation gate stays closed. A private partial context grants no success; live
+components, profiles, API/advancing workers and volumes are rechecked, then the
+helper/context are checksum-staged before historical checkout and rechecked
+before quiesce. Fresh normal bounded backup/startup/frontend/snapshot gates retain
+later live data. Site setting/secret changes and evidence retention are refused
+in this mode. All original evidence, site configuration and all pre-existing
+volume identities must remain intact before normal successful authority is written.
+
+70 targeted recovery/source-selection tests passed, including real temporary Git
+history and explicit/default/multiple-failure resolver paths; compile, Bash syntax
+and diff checks passed. Source required CI/review and site continuation remain
+pending. No new source deployment, database restore, package handoff, obsolete
+installer retry, gateway/serial/controller change or full installation is claimed.
+Next: exact-head source CI/review, then prepare one exact reviewed owner-local
+continuation, followed by corrected native ARM64 packages and actual LAN/HTTPS
+installation/update/rollback/authentication acceptance. Parent #1313 stays open;
+operator #1318 remains draft/unmerged and whole-site baselines are unchanged.
+
 ## Issue #1321 — verified scoped agent recovery and permanent startup correction
 
 Parent #1313 remains OPEN. Owner recovery V2 was independently verified from
