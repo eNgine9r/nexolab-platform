@@ -4,7 +4,7 @@ Updated: 2026-10-08
 
 ## Issue #1313 — source review and exact-source host acceptance required
 
-The unified update implementation is isolated on `feat/1313-unified-protected-updates` and depends on draft PR #1312. Required exact-head CI and review must complete before merge. Current production LAN and HTTPS source identities differ; the version record remains source-only, so package actions correctly stay blocked. Source tests do not grant package authority.
+The unified update implementation is published in draft PR #1314 on `feat/1313-unified-protected-updates` and depends on draft PR #1312. Required exact-head CI and review must complete before merge. Current production LAN and HTTPS source identities differ; the version record remains source-only, so package actions correctly stay blocked. Source tests do not grant package authority.
 
 After source acceptance, a Product Owner-approved exact-source activation must unify both frontends, adopt authoritative deployment lineage, install the new worker/tooling, stage current and target offline packages including their matching HTTPS artifacts, and perform the existing backup/volume/readiness package-authority transition. Commander root/read-only restrictions must be respected. Actual-host update/rollback, permitted/denied Google accounts and full-session expiry are unverified for this Work Package. OAuth/NGINX/Funnel configuration, Modbus/hardware writes and destructive data operations are outside scope. Production activation remains unapproved.
 
