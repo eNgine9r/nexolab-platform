@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-09T13:26:52.546651Z",
+  "timestamp": "2026-10-09T15:13:41.516750Z",
   "actor": "ChatGPT",
-  "event": "both_guarded_ARM64_packages_GREEN_verified_final_scripts_staged_owner_preparation_required",
+  "event": "actual_host_guarded_preparation_verified_installer_check_passed_owner_local_activation_required",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -1849,7 +1849,7 @@
       "scope": "publish_1319_source_and_separate_operator_checkpoint"
     },
     "issue_1313_guarded_repreparation_plan": {
-      "status": "both_guarded_packages_GREEN_verified_final_scripts_staged_owner_preparation_pending",
+      "status": "guarded_owner_preparation_and_installer_check_passed_local_sudo_activation_pending",
       "old_installer": "do_not_rerun_097af197;_prepared_A78_tooling_lacks_client_guards",
       "steps": [
         "Keep checkpoint PR #1318 unmerged. Require all routed CI and review at PR #1320 exact head; no feature-branch deployment.",
@@ -1860,7 +1860,7 @@
         "Use approved guarded canonical source deployment for current C296, then adoption, guarded worker installation and genuine current package authority transition. Each completed full backup must be nonzero, structurally listed and retained before mutation; failure stops and preserves diagnostics.",
         "Verify target update and prior-package rollback on both LAN/HTTPS, unchanged persistent volumes/data evidence and advancing telemetry; separately verify authorized Google account/session journeys. Close parent #1313 only on actual-host acceptance."
       ],
-      "remaining_host_access": "Exact final installer/preparer and canonical Git bundle are staged in the permitted workspace and read back unchanged. Commander execution remains internally unavailable; owner-local nonprivileged preparation/check, then local sudo and actual acceptance, remain pending. Denied old paths are not accessed through another tool.",
+      "remaining_host_access": "Owner preparation completed, report independently reviewed, both full pinned packages and paired C296 frontends verified on actual host. Control checkout fast-forwarded cleanly to canonical T; installer --check passed without sudo or runtime mutation. Next action is previously authorized owner-local guarded installer with terminal-only sudo password. Full site backup/authority/update/rollback remain unverified.",
       "site_guard_installed": false,
       "full_site_backup_accepted": false,
       "canonical_tooling_commit": "df5485f6ece4203a74a84f106195fae855d81731",
@@ -1900,7 +1900,7 @@
             "external_build": "IALIMAK_5svG6DAwFp35v",
             "file_inventory_count": 63,
             "image_count": 6,
-            "site_transfer": "pending_owner_local_preparation",
+            "site_transfer": "actual_host_verified_by_owner_preparer_and_report_review",
             "archive_size_bytes": 790749920
           },
           {
@@ -1921,7 +1921,7 @@
             "run_head_sha": "df5485f6ece4203a74a84f106195fae855d81731",
             "artifact_verification": "complete_local_canonical_verifier_provenance_63_files_6_images_and_docker_config_identity_passed",
             "observed_at": "2026-10-09T13:26:52.546651Z",
-            "site_transfer": "pending_owner_local_preparation",
+            "site_transfer": "actual_host_verified_by_owner_preparer_and_report_review",
             "artifact_id": 11618085443,
             "artifact_name": "nexolab-offline-arm64-runtime-df5485f6ece4-tooling-df5485f6ece4-protected",
             "zip_size_bytes": 787507588,
@@ -1954,16 +1954,16 @@
         "base64_file_sha256": "ee0230a12edd7bfc835a369982e5d4ec2b4c78f70cd3226233c6a0c31dced4b1",
         "execution": "EXECUTION_HANDLER_FAILED_2026-10-09T12:19:24.958Z",
         "runtime_mutation": "none",
-        "host_package_transfer": "pending",
-        "installer_check": "pending_owner_local_execution",
-        "owner_local_preparation": "required_due_to_EXECUTION_HANDLER_FAILED;_nonprivileged_python_preparer_first",
+        "host_package_transfer": "completed_full_actual_host_verification_passed",
+        "installer_check": "passed_owner_local_without_sudo",
+        "owner_local_preparation": "completed_and_report_independently_reviewed",
         "old_work_session": "WORK_SESSION_DIVERGED_preserved_user_changes_no_execution",
-        "script_execution": "not_started",
+        "script_execution": "owner_preparer_completed_and_installer_--check_passed;_activation_not_evidenced",
         "site_guard_installed": false,
         "full_site_backup_accepted": false,
-        "owner_command": "python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-guarded-prepare.py",
+        "owner_command": "bash /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-update-guarded.sh",
         "owner_package_input": "both_pinned_archives_or_GitHub_ZIPs_in_/home/nexolab/Downloads;_existing_authenticated_gh_optional_no_login",
-        "preparation_report": "new_attempt_directory/report.json;_GUARDED_PREPARATION_READY_marker",
+        "preparation_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/prepare-3pf3m7i2/report.json",
         "preparer_scope": "verify_packages_and_reuse_paired_frontends_after_fresh_validation;_offline_fast_forward_clean_control_main_A78_to_T;_installer_--check;_no_sudo_or_runtime",
         "final_scripts": [
           {
@@ -1983,15 +1983,58 @@
             "exact_readback_match": true
           }
         ],
-        "final_script_checks": "Bash_and_all_6_embedded_Python_blocks_parse;_Python_compile;_safe_archive_extraction_report_preservation_package_resume_contracts;_final_pinned_preparer_verifies_real_target_bundle"
+        "final_script_checks": "Bash_and_all_6_embedded_Python_blocks_parse;_Python_compile;_safe_archive_extraction_report_preservation_package_resume_contracts;_final_pinned_preparer_verifies_real_target_bundle",
+        "report_checked_at": "2026-10-09T14:10:36.602415+00:00",
+        "report_read_at": "2026-10-09T15:07:41.269Z",
+        "control_source": "df5485f6ece4203a74a84f106195fae855d81731",
+        "control_status": "clean_main_tracking_origin_main_observed_2026-10-09T15:11:55.751Z",
+        "installed_script_sha256": "c68ddff14fcaa42cdd4f6268bab881cf37ce84494602b29c7d6cd89822d856f0",
+        "installed_script_read_at": "2026-10-09T15:08:39.179Z",
+        "next_owner_command": "bash /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-update-guarded.sh",
+        "preparation_runtime_mutation": "none",
+        "preparation_sudo_used": false,
+        "owner_preparation_report": {
+          "checked_at": "2026-10-09T14:10:36.602415+00:00",
+          "control_source": "df5485f6ece4203a74a84f106195fae855d81731",
+          "packages": [
+            {
+              "role": "current",
+              "source": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+              "tooling": "df5485f6ece4203a74a84f106195fae855d81731",
+              "run": 37926945966,
+              "archive_sha256": "b424ce4e6a4f6145a3b4473f5a1b578a35d43d59ec72e6d17ccd35ecb043e809",
+              "manifest_sha256": "d40105a8af07c1a753de2537595f48c17b90a34e4b28780071f107340e2419d5",
+              "directory": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/packages/guarded-current/nexolab-offline-recovery-c296c58f3cb2-tooling-df5485f6ece4-protected-arm64",
+              "bundle_id": "recovery-c296c58f3cb2-tooling-df5485f6ece4-protected-arm64-c296c58f3cb2",
+              "external_build": "IALIMAK_5svG6DAwFp35v",
+              "verification": "passed"
+            },
+            {
+              "role": "target",
+              "source": "df5485f6ece4203a74a84f106195fae855d81731",
+              "tooling": "df5485f6ece4203a74a84f106195fae855d81731",
+              "run": 37931496615,
+              "archive_sha256": "59fd2458f1720288a7beee23cb0b5a74f28d055d1db771c7e654e01a64cdcb7e",
+              "manifest_sha256": "3db855d0aa749c57fdf91026e69c6381e4bbf3d2c47bdcb97a26d127e78b7a78",
+              "directory": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/packages/guarded-target/nexolab-offline-recovery-df5485f6ece4-tooling-df5485f6ece4-protected-arm64",
+              "bundle_id": "recovery-df5485f6ece4-tooling-df5485f6ece4-protected-arm64-df5485f6ece4",
+              "external_build": "7dVZRshKXOOGWX1mzU9En",
+              "verification": "passed"
+            }
+          ],
+          "installer_sha256": "c68ddff14fcaa42cdd4f6268bab881cf37ce84494602b29c7d6cd89822d856f0",
+          "installer_check": "passed",
+          "runtime_mutation": "none",
+          "sudo_used": false
+        }
       }
     },
     "checkpoint_publication_1317": {
-      "head_sha": "b79ab779635382f35c5b7efe3f1057c68d455183",
-      "tree_sha": "8564f857acd1227ec5573a5f9cb3ae3c56a4effb",
+      "head_sha": "e412ed5966b5f0772ba887847bc37917f3918979",
+      "tree_sha": "3cc1b29cda735d7932fe8c8c9d5bb3406074786c",
       "pull_request": 1318,
-      "exact_head_ci": "37929286419_GREEN_State_integrity_and_Merge_Gate",
-      "next_checkpoint": "both_verified_packages_and_staged_final_scripts_prepared_for_authorized_state_only_publication"
+      "exact_head_ci": "37937460027_GREEN_State_integrity_and_Merge_Gate",
+      "next_checkpoint": "actual_host_owner_preparation_report_accepted_before_local_privileged_installer"
     },
     "native_package_dispatch_plan": {
       "repository": "eNgine9r/nexolab-platform",
@@ -2028,7 +2071,7 @@
           "external_build": "IALIMAK_5svG6DAwFp35v",
           "file_inventory_count": 63,
           "image_count": 6,
-          "site_transfer": "pending_owner_local_preparation",
+          "site_transfer": "actual_host_verified_by_owner_preparer_and_report_review",
           "archive_size_bytes": 790749920
         },
         {
@@ -2049,7 +2092,7 @@
           "run_head_sha": "df5485f6ece4203a74a84f106195fae855d81731",
           "artifact_verification": "complete_local_canonical_verifier_provenance_63_files_6_images_and_docker_config_identity_passed",
           "observed_at": "2026-10-09T13:26:52.546651Z",
-          "site_transfer": "pending_owner_local_preparation",
+          "site_transfer": "actual_host_verified_by_owner_preparer_and_report_review",
           "artifact_id": 11618085443,
           "artifact_name": "nexolab-offline-arm64-runtime-df5485f6ece4-tooling-df5485f6ece4-protected",
           "zip_size_bytes": 787507588,
@@ -2082,16 +2125,16 @@
       "base64_file_sha256": "ee0230a12edd7bfc835a369982e5d4ec2b4c78f70cd3226233c6a0c31dced4b1",
       "execution": "EXECUTION_HANDLER_FAILED_2026-10-09T12:19:24.958Z",
       "runtime_mutation": "none",
-      "host_package_transfer": "pending",
-      "installer_check": "pending_owner_local_execution",
-      "owner_local_preparation": "required_due_to_EXECUTION_HANDLER_FAILED;_nonprivileged_python_preparer_first",
+      "host_package_transfer": "completed_full_actual_host_verification_passed",
+      "installer_check": "passed_owner_local_without_sudo",
+      "owner_local_preparation": "completed_and_report_independently_reviewed",
       "old_work_session": "WORK_SESSION_DIVERGED_preserved_user_changes_no_execution",
-      "script_execution": "not_started",
+      "script_execution": "owner_preparer_completed_and_installer_--check_passed;_activation_not_evidenced",
       "site_guard_installed": false,
       "full_site_backup_accepted": false,
-      "owner_command": "python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-guarded-prepare.py",
+      "owner_command": "bash /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-update-guarded.sh",
       "owner_package_input": "both_pinned_archives_or_GitHub_ZIPs_in_/home/nexolab/Downloads;_existing_authenticated_gh_optional_no_login",
-      "preparation_report": "new_attempt_directory/report.json;_GUARDED_PREPARATION_READY_marker",
+      "preparation_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/prepare-3pf3m7i2/report.json",
       "preparer_scope": "verify_packages_and_reuse_paired_frontends_after_fresh_validation;_offline_fast_forward_clean_control_main_A78_to_T;_installer_--check;_no_sudo_or_runtime",
       "final_scripts": [
         {
@@ -2111,7 +2154,50 @@
           "exact_readback_match": true
         }
       ],
-      "final_script_checks": "Bash_and_all_6_embedded_Python_blocks_parse;_Python_compile;_safe_archive_extraction_report_preservation_package_resume_contracts;_final_pinned_preparer_verifies_real_target_bundle"
+      "final_script_checks": "Bash_and_all_6_embedded_Python_blocks_parse;_Python_compile;_safe_archive_extraction_report_preservation_package_resume_contracts;_final_pinned_preparer_verifies_real_target_bundle",
+      "report_checked_at": "2026-10-09T14:10:36.602415+00:00",
+      "report_read_at": "2026-10-09T15:07:41.269Z",
+      "control_source": "df5485f6ece4203a74a84f106195fae855d81731",
+      "control_status": "clean_main_tracking_origin_main_observed_2026-10-09T15:11:55.751Z",
+      "installed_script_sha256": "c68ddff14fcaa42cdd4f6268bab881cf37ce84494602b29c7d6cd89822d856f0",
+      "installed_script_read_at": "2026-10-09T15:08:39.179Z",
+      "next_owner_command": "bash /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-update-guarded.sh",
+      "preparation_runtime_mutation": "none",
+      "preparation_sudo_used": false,
+      "owner_preparation_report": {
+        "checked_at": "2026-10-09T14:10:36.602415+00:00",
+        "control_source": "df5485f6ece4203a74a84f106195fae855d81731",
+        "packages": [
+          {
+            "role": "current",
+            "source": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+            "tooling": "df5485f6ece4203a74a84f106195fae855d81731",
+            "run": 37926945966,
+            "archive_sha256": "b424ce4e6a4f6145a3b4473f5a1b578a35d43d59ec72e6d17ccd35ecb043e809",
+            "manifest_sha256": "d40105a8af07c1a753de2537595f48c17b90a34e4b28780071f107340e2419d5",
+            "directory": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/packages/guarded-current/nexolab-offline-recovery-c296c58f3cb2-tooling-df5485f6ece4-protected-arm64",
+            "bundle_id": "recovery-c296c58f3cb2-tooling-df5485f6ece4-protected-arm64-c296c58f3cb2",
+            "external_build": "IALIMAK_5svG6DAwFp35v",
+            "verification": "passed"
+          },
+          {
+            "role": "target",
+            "source": "df5485f6ece4203a74a84f106195fae855d81731",
+            "tooling": "df5485f6ece4203a74a84f106195fae855d81731",
+            "run": 37931496615,
+            "archive_sha256": "59fd2458f1720288a7beee23cb0b5a74f28d055d1db771c7e654e01a64cdcb7e",
+            "manifest_sha256": "3db855d0aa749c57fdf91026e69c6381e4bbf3d2c47bdcb97a26d127e78b7a78",
+            "directory": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/packages/guarded-target/nexolab-offline-recovery-df5485f6ece4-tooling-df5485f6ece4-protected-arm64",
+            "bundle_id": "recovery-df5485f6ece4-tooling-df5485f6ece4-protected-arm64-df5485f6ece4",
+            "external_build": "7dVZRshKXOOGWX1mzU9En",
+            "verification": "passed"
+          }
+        ],
+        "installer_sha256": "c68ddff14fcaa42cdd4f6268bab881cf37ce84494602b29c7d6cd89822d856f0",
+        "installer_check": "passed",
+        "runtime_mutation": "none",
+        "sudo_used": false
+      }
     },
     "guarded_artifact_delivery": {
       "local_archive_exports": "both_full_size_and_exact_pinned_SHA256_verified_after_atomic_copy",
@@ -3097,7 +3183,7 @@
       }
     }
   ],
-  "next_action": "Owner saves both exact pinned archives in Raspberry Downloads and runs the staged nonprivileged Python preparer. Inspect its allowlisted report before local guarded installation; preserve old installer/evidence. Keep #1318 draft and main/tooling/target pinned to df5485f6. Full actual-site bounded backup, genuine package authority, LAN/HTTPS target update/rollback and Google session journeys remain unverified.",
+  "next_action": "Owner runs the reviewed exact-pinned guarded installer in the Raspberry terminal; sudo password stays there. Inspect its private installer log and whitelisted completion evidence before Settings target update/rollback and Google journeys. Preserve old evidence, keep #1313 open and #1318 draft, and keep tooling/target pinned to df5485f6. Preparation is accepted; full bounded site backup and runtime/package authority remain unverified.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
