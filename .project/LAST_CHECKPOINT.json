@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-09T18:07:25Z",
+  "timestamp": "2026-10-09T18:38:37Z",
   "actor": "ChatGPT",
-  "event": "agent_recovery_verified_source_ci_corrected_readonly_capture_prepared",
+  "event": "verified_agent_recovery_startup_source_accepted_runtime_report_gate",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -2529,16 +2529,28 @@
       "package_authority": "not_modified",
       "unified_install_acceptance": "pending",
       "source_startup_pull_request": 1322,
-      "source_head_sha": "302293058106b4621a90ccaa5a372f9e1aeab45b",
-      "source_tree_sha": "9cfac3b145995e7618a84aa1d8e72ee536b3a527",
+      "source_head_sha": "40e5af2b6b01790d398fd94b101e2d73771b77d0",
+      "source_tree_sha": "840d4182a0d2979093d723a5cc8e720ff978f39b",
       "source_baseline_sha": "df5485f6ece4203a74a84f106195fae855d81731",
-      "source_exact_head_ci": "six_workflows_in_progress_after_registration_correction",
+      "source_exact_head_ci": "all_six_workflows_and_Merge_Gate_success",
       "targeted_tests": "78_module_16_subtests_24_sqlite_18_health_30_source_selection_30_offline_contracts_passed",
       "commander_readonly_execution": "EXECUTION_HANDLER_FAILED_before_start_at_2026-10-09T17:33:32.794Z",
       "current_runtime": "partial_C296_central_activation_old_D00_agent_recovered_frontends_not_activated",
-      "next_action": "Collect required exact-head CI for #1322; explicitly reconcile partial source activation without database restore or fabricated current.json; rebuild native ARM64 current/rollback packages with hardware-startup-gate before full installer retry.",
+      "next_action": "Read the owner-local #1323 actual runtime report; explicitly reconcile partial activation, then rebuild native ARM64 current/rollback packages and prepare controlled continuation.",
       "first_candidate_ci": "Core_telemetry_offline_passed;_aggregate_failed_missing_browser_registration",
-      "review_recovery_correction": "observed_old_new_exact_startup_pair_preserved_through_import_and_immutable_authority;_startup_drift_rejected;_145_affected_tests_passed"
+      "review_recovery_correction": "observed_old_new_exact_startup_pair_preserved_through_import_and_immutable_authority;_startup_drift_rejected;_145_affected_tests_passed",
+      "review_current_image_correction": "exact_Dockerfile_healthcheck_and_fixed_LD_LIBRARY_PATH;_legacy_variants_retained;_mixed_contracts_rejected;_146_affected_tests_passed",
+      "final_source_ci": "all_six_success",
+      "source_issue_state": "closed_completed",
+      "source_ci_runs": {
+        "CI": 37973369213,
+        "Offline Bundle": 37973369231,
+        "Telemetry service": 37973369238,
+        "Authenticated Dashboard Acceptance": 37973369232,
+        "Refrigeration Browser Acceptance": 37973369195,
+        "Telegram Gateway": 37973369151
+      },
+      "current_native_packages": "require_rebuild_with_accepted_startup_gate_tooling"
     },
     "issue_1323_readonly_runtime_capture": {
       "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-runtime-check-1323.py",
@@ -3529,9 +3541,34 @@
         "exact_head_ci": "6_of_6_GREEN",
         "site_guard_installed": false
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-09T18:39:30Z",
+      "kind": "issue_1321_source_accepted_after_verified_agent_recovery",
+      "data": {
+        "issue": 1321,
+        "pull_request": 1322,
+        "verified_head_sha": "40e5af2b6b01790d398fd94b101e2d73771b77d0",
+        "verified_tree_sha": "840d4182a0d2979093d723a5cc8e720ff978f39b",
+        "merge_sha": "4379409bce04db7d81c77ed32c13987ec7612148",
+        "issue_state": "closed_completed",
+        "required_ci": "all_six_and_Merge_Gate_success",
+        "workflow_runs": [
+          37973369213,
+          37973369231,
+          37973369238,
+          37973369232,
+          37973369195,
+          37973369151
+        ],
+        "fresh_review": "completed_clean_on_exact_head",
+        "native_arm64_packages": "rebuild_pending",
+        "site_acceptance": "partial_runtime_owner_readonly_report_gate_pending"
+      }
     }
   ],
-  "next_action": "Collect exact final GREEN source CI on PR #1322; owner executes prepared read-only #1323 capture and shares UNIFIED_RUNTIME_REPORT path. Inspect actual mixed-runtime facts before explicit preserved-data source/package reconciliation and corrected native ARM64 packages; do not rerun old installers.",
+  "next_action": "Inspect owner-local #1323 UNIFIED_RUNTIME_REPORT; reconcile partial activation without database restore or fabricated authority; rebuild native ARM64 current/rollback packages with accepted startup-gate tooling and prepare controlled LAN/HTTPS continuation.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

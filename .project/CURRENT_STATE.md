@@ -2,7 +2,7 @@
 
 Updated: 2026-10-09
 
-## Issue #1321 — scoped agent recovery VERIFIED; permanent source correction in CI
+## Issue #1321 — scoped agent recovery VERIFIED; permanent source correction accepted
 
 The V2 report `agent-recovery-1321-6vfd0nw3/report.json` was independently read at
 2026-10-09T17:29:09.780Z. Recovery finished at 17:28:29 UTC with
@@ -22,13 +22,16 @@ retry; do not fabricate current.json, restore newer SQLite data or run either
 earlier full installer.
 
 Permanent startup correction is published in [PR #1322](https://github.com/eNgine9r/nexolab-platform/pull/1322),
-exact head `302293058106b4621a90ccaa5a372f9e1aeab45b`, tree
-`9cfac3b145995e7618a84aa1d8e72ee536b3a527`, based on canonical main df5485f6.
+exact head `40e5af2b6b01790d398fd94b101e2d73771b77d0`, tree
+`840d4182a0d2979093d723a5cc8e720ff978f39b`, based on canonical main df5485f6.
 The explicit interpreter/absolute script, immutable image override and staged
 startup gate survive historical checkout. Offline hardware installation and
 update/rollback also preflight before Dashboard shutdown or central activation;
 new packages require digest-bound hardware-startup-gate tooling. Targeted
-checks passed; required exact-head CI and actual image proof are in progress.
+checks and all six final-head CI workflows passed, including real image startup,
+disconnected runtime, update/rollback and volume preservation (PR Linux/amd64).
+PR #1322 squash-merged as `4379409bce04db7d81c77ed32c13987ec7612148`; Issue #1321 is closed.
+This source acceptance is not native ARM64 package or actual site acceptance.
 No full installer retry occurred. Fresh Commander read-only execution still
 fails internally before start at 17:33:32 UTC; file-based evidence access works.
 
@@ -42,10 +45,14 @@ Both helper/test paths now independently require and launch it; the regression
 failed before the correction and passes afterward, with 99 related tests GREEN.
 The lost-image recovery helper now also recognizes and reproduces only the
 observed old/new exact startup pair, verifies imported image configuration and
-digest-binds immutable authority. Drift fails before publication. Both review
-findings are addressed; 145 affected tests pass, including both real temporary
-export/import/authority flows. No actual host recovery/export was performed.
-No source merge is claimed until the exact final Merge Gate is GREEN.
+digest-binds immutable authority. Drift fails before publication. All review
+findings are addressed; 146 affected tests pass, including mocked Docker
+export/import with real temporary archive/authority files for all configurations.
+The current-Dockerfile healthcheck and fixed LD_LIBRARY_PATH are reproduced
+exactly; legacy configurations remain accepted and mixed contracts fail closed. No lost-image rebaseline/export was performed on the actual host.
+All required final-head workflows and Merge Gate are GREEN on `40e5af2b6b01790d398fd94b101e2d73771b77d0`.
+The accepted tooling merge is `4379409bce04db7d81c77ed32c13987ec7612148`; actual host
+control checkout still needs explicit preparation. Native packages require rebuild.
 
 Follow-up [#1323](https://github.com/eNgine9r/nexolab-platform/issues/1323) records
 mixed-runtime authority reconciliation. A bounded owner-local read-only capture
@@ -65,7 +72,7 @@ continuation. This is the mandatory access/evidence gate because Commander
 execution still fails internally; it does not rerun a full installer.
 
 Parent #1313 remains OPEN and operator PR #1318 remains DRAFT/unmerged. Next:
-required source CI, explicit mixed-runtime authority reconciliation, rebuilt
+fresh owner-local read-only report, explicit mixed-runtime authority reconciliation, rebuilt
 native ARM64 current/rollback packages and actual LAN/HTTPS update/rollback and
 Google authentication journeys.
 

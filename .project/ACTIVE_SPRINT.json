@@ -7852,16 +7852,16 @@
           "package_authority": "not_modified",
           "unified_install_acceptance": "pending",
           "source_startup_pull_request": 1322,
-          "source_head_sha": "302293058106b4621a90ccaa5a372f9e1aeab45b",
-          "source_tree_sha": "9cfac3b145995e7618a84aa1d8e72ee536b3a527",
+          "source_head_sha": "40e5af2b6b01790d398fd94b101e2d73771b77d0",
+          "source_tree_sha": "840d4182a0d2979093d723a5cc8e720ff978f39b",
           "source_baseline_sha": "df5485f6ece4203a74a84f106195fae855d81731",
-          "source_exact_head_ci": "in_progress",
+          "source_exact_head_ci": "all_six_workflows_and_Merge_Gate_success",
           "targeted_tests": "78_module_16_subtests_24_sqlite_18_health_30_source_selection_30_offline_contracts_passed",
           "commander_readonly_execution": "EXECUTION_HANDLER_FAILED_before_start_at_2026-10-09T17:33:32.794Z",
           "current_runtime": "partial_C296_central_activation_old_D00_agent_recovered_frontends_not_activated",
-          "next_action": "Collect required exact-head CI for #1322; explicitly reconcile partial source activation without database restore or fabricated current.json; rebuild native ARM64 current/rollback packages with hardware-startup-gate before full installer retry.",
+          "next_action": "Read the owner-local #1323 actual runtime report; explicitly reconcile partial activation, then rebuild native ARM64 current/rollback packages and prepare controlled continuation.",
           "first_candidate_ci": "Core_telemetry_offline_passed;_aggregate_failed_missing_browser_workflows;_registration_fixed",
-          "final_source_ci": "six_workflows_in_progress",
+          "final_source_ci": "all_six_success",
           "partial_reconciliation_issue": 1323,
           "prepared_runtime_capture": {
             "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-runtime-check-1323.py",
@@ -7877,7 +7877,18 @@
             "library_file_id": "libfile_431730fae9008191aa2df91fe0886e59",
             "library_version": 0
           },
-          "review_recovery_correction": "observed_old_new_exact_startup_pair_preserved_through_import_and_immutable_authority;_startup_drift_rejected;_145_affected_tests_passed"
+          "review_recovery_correction": "observed_old_new_exact_startup_pair_preserved_through_import_and_immutable_authority;_startup_drift_rejected;_145_affected_tests_passed",
+          "review_current_image_correction": "exact_Dockerfile_healthcheck_and_fixed_LD_LIBRARY_PATH;_legacy_variants_retained;_mixed_contracts_rejected;_146_affected_tests_passed",
+          "source_issue_state": "closed_completed",
+          "source_ci_runs": {
+            "CI": 37973369213,
+            "Offline Bundle": 37973369231,
+            "Telemetry service": 37973369238,
+            "Authenticated Dashboard Acceptance": 37973369232,
+            "Refrigeration Browser Acceptance": 37973369195,
+            "Telegram Gateway": 37973369151
+          },
+          "current_native_packages": "require_rebuild_with_accepted_startup_gate_tooling"
         }
       },
       "depends_on": [
@@ -8087,7 +8098,7 @@
       "issue": 1321,
       "title": "Recover Device Agent and validate hardware image startup before cutover",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "branch": "fix/1321-hardware-agent-startup",
       "evidence": {
         "issue": 1321,
@@ -8209,16 +8220,16 @@
           "package_authority": "not_modified",
           "unified_install_acceptance": "pending",
           "source_startup_pull_request": 1322,
-          "source_head_sha": "302293058106b4621a90ccaa5a372f9e1aeab45b",
-          "source_tree_sha": "9cfac3b145995e7618a84aa1d8e72ee536b3a527",
+          "source_head_sha": "40e5af2b6b01790d398fd94b101e2d73771b77d0",
+          "source_tree_sha": "840d4182a0d2979093d723a5cc8e720ff978f39b",
           "source_baseline_sha": "df5485f6ece4203a74a84f106195fae855d81731",
-          "source_exact_head_ci": "in_progress",
+          "source_exact_head_ci": "all_six_workflows_and_Merge_Gate_success",
           "targeted_tests": "78_module_16_subtests_24_sqlite_18_health_30_source_selection_30_offline_contracts_passed",
           "commander_readonly_execution": "EXECUTION_HANDLER_FAILED_before_start_at_2026-10-09T17:33:32.794Z",
           "current_runtime": "partial_C296_central_activation_old_D00_agent_recovered_frontends_not_activated",
-          "next_action": "Collect required exact-head CI for #1322; explicitly reconcile partial source activation without database restore or fabricated current.json; rebuild native ARM64 current/rollback packages with hardware-startup-gate before full installer retry.",
+          "next_action": "Read the owner-local #1323 actual runtime report; explicitly reconcile partial activation, then rebuild native ARM64 current/rollback packages and prepare controlled continuation.",
           "first_candidate_ci": "Core_telemetry_offline_passed;_aggregate_failed_missing_browser_workflows;_registration_fixed",
-          "final_source_ci": "six_workflows_in_progress",
+          "final_source_ci": "all_six_success",
           "partial_reconciliation_issue": 1323,
           "prepared_runtime_capture": {
             "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-runtime-check-1323.py",
@@ -8234,12 +8245,23 @@
             "library_file_id": "libfile_431730fae9008191aa2df91fe0886e59",
             "library_version": 0
           },
-          "review_recovery_correction": "observed_old_new_exact_startup_pair_preserved_through_import_and_immutable_authority;_startup_drift_rejected;_145_affected_tests_passed"
+          "review_recovery_correction": "observed_old_new_exact_startup_pair_preserved_through_import_and_immutable_authority;_startup_drift_rejected;_145_affected_tests_passed",
+          "review_current_image_correction": "exact_Dockerfile_healthcheck_and_fixed_LD_LIBRARY_PATH;_legacy_variants_retained;_mixed_contracts_rejected;_146_affected_tests_passed",
+          "source_issue_state": "closed_completed",
+          "source_ci_runs": {
+            "CI": 37973369213,
+            "Offline Bundle": 37973369231,
+            "Telemetry service": 37973369238,
+            "Authenticated Dashboard Acceptance": 37973369232,
+            "Refrigeration Browser Acceptance": 37973369195,
+            "Telegram Gateway": 37973369151
+          },
+          "current_native_packages": "require_rebuild_with_accepted_startup_gate_tooling"
         }
       },
       "depends_on": [],
       "scope": "Narrow owner-local exact-image agent recovery; explicit hardware startup and pre-mutation historical-source compatibility gate; preserve all site state",
-      "verification": "v1_rejected_before_mutation;_v2_17_gate_tests_3_digest_subtests_and_compile_passed;_actual_v2_recovery_and_source_CI_pending"
+      "verification": "actual_v2_agent_recovery_verified;_146_affected_tests_35_recovery_tests_passed;_all_six_final_head_CI_and_Merge_Gate_GREEN;_source_acceptance_in_GitHub_observations"
     },
     {
       "issue": 1323,
@@ -8247,9 +8269,6 @@
       "priority": "high",
       "lifecycle": "blocked",
       "branch": "fix/1323-partial-unified-activation",
-      "dependencies": [
-        1321
-      ],
       "evidence": {
         "source_dependency_pull_request": 1322,
         "mandatory_gate": "owner_local_fresh_readonly_runtime_report;_Commander_internal_execution_failure",
@@ -8267,8 +8286,13 @@
           "library_file_id": "libfile_431730fae9008191aa2df91fe0886e59",
           "library_version": 0
         },
-        "next_action": "Owner captures current facts; inspect saved UNIFIED_RUNTIME_REPORT remotely before preparing explicit preserved-data continuation. No full installer retry."
-      }
+        "next_action": "Owner captures current facts; inspect saved UNIFIED_RUNTIME_REPORT remotely before preparing explicit preserved-data continuation. No full installer retry.",
+        "source_dependency_1321": "verified_startup_tooling_head_40e5af2b;_acceptance_in_GitHub_observations",
+        "blocker": "mandatory_fresh_actual_host_readonly_report;_Commander_execution_internal_failure_before_start"
+      },
+      "depends_on": [
+        1321
+      ]
     }
   ],
   "maintenance_actions": [
@@ -9550,6 +9574,31 @@
         ],
         "paired_frontend_run_success": 37893277127,
         "push_ci_success": 37893906475
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-09T18:39:30Z",
+      "kind": "issue_1321_source_accepted_after_verified_agent_recovery",
+      "data": {
+        "issue": 1321,
+        "pull_request": 1322,
+        "verified_head_sha": "40e5af2b6b01790d398fd94b101e2d73771b77d0",
+        "verified_tree_sha": "840d4182a0d2979093d723a5cc8e720ff978f39b",
+        "merge_sha": "4379409bce04db7d81c77ed32c13987ec7612148",
+        "issue_state": "closed_completed",
+        "required_ci": "all_six_and_Merge_Gate_success",
+        "workflow_runs": [
+          37973369213,
+          37973369231,
+          37973369238,
+          37973369232,
+          37973369195,
+          37973369151
+        ],
+        "fresh_review": "completed_clean_on_exact_head",
+        "native_arm64_packages": "rebuild_pending",
+        "site_acceptance": "partial_runtime_owner_readonly_report_gate_pending"
       }
     }
   ],
