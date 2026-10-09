@@ -7132,7 +7132,7 @@
         },
         "final_exact_head_ci": "18_completed_success_on_fc4e3bc375618ebae87c9208cfec3b3f63317427",
         "final_verified_head_sha": "fc4e3bc375618ebae87c9208cfec3b3f63317427",
-        "host_installation_blocker": "interrupted_before_cutover;_authority_snapshot_read_stale;_guard_CI_and_revised_preparation_pending;_freeze_cause_unconfirmed",
+        "host_installation_blocker": "guard_software_accepted;_native_package_build_dispatch_channel_and_Commander_execution_pending;_site_backup_and_activation_unverified",
         "frontend_artifact_run_37892179879": "failed_missing_app_public_directory",
         "followup_package_workflow_issue": 1315,
         "isolated_host_candidate_cleanup": "3_passed_without_service_mutation",
@@ -7408,35 +7408,53 @@
           "diagnostic_script_sha256": "02b748b5c0034b00cd23e10791643bb3b60ee4d26b279882f04abb221d7e3ea7",
           "backup_guard_candidate": {
             "scope": "source_only_backup_guard",
-            "head_sha": "e34035a996a1177954db80063c6a36e50ae519f3",
-            "tree_sha": "c4e47971f3449c59fc2765d317813a4d9328e1fb",
-            "changed_files": 12,
+            "head_sha": "4b187ff44df7fe7418284c42fb0abcc013fc8232",
+            "tree_sha": "f6a550d156e2126d1489e02aa12af85587243c71",
+            "changed_files": 15,
             "checkpoint_files_in_code_diff": 0,
             "new_host_observations_in_code_diff": 0,
             "local_checks": "189_tests_and_48_subtests_passed;_shell_syntax_host_contract_format_diff_passed",
-            "publication": "published_via_connected_GitHub_after_explicit_owner_authorization;_tree_matches_locally_verified_candidate",
-            "exact_head_ci": "in_progress_3_routed_workflows",
+            "publication": "merged_PR_1320_after_explicit_owner_publication_authorization_and_exact_head_GREEN;_tree_matches_local",
+            "exact_head_ci": "6_of_6_workflows_GREEN_at_4b187ff4",
             "pull_request": 1320,
             "installed_guard": "not_installed",
             "full_site_backup": "not_performed",
             "runtime_mutation": "none",
             "modbus_write": "none",
             "hardware_write": "none",
-            "local_verified_head_sha": "320e3ad8401ae55c684a25eee1acfce3f25afa28",
+            "local_verified_head_sha": "406b0d950adf9c1b18d2e8a24ccdf01c3b416491",
             "publication_authorization": {
               "destination": "eNgine9r/nexolab-platform",
               "owner_authorization": "Дозволяю",
               "authorized_at": "2026-10-09T10:28:50Z",
               "scope": "publish_1319_source_and_separate_operator_checkpoint"
-            }
+            },
+            "initial_exact_head_ci": {
+              "head_sha": "e34035a996a1177954db80063c6a36e50ae519f3",
+              "telemetry": "37918473490_success",
+              "offline_bundle": "37918473292_success",
+              "merge_gate": "37918473290_failed_unregistered_backup_paths_missing_required_browser_workflows",
+              "remediation": "register_three_exact_paths_and_matching_triggers;_unknown_fallback_unchanged"
+            },
+            "local_routing_checks": "96_tests_and_77_subtests_passed;_YAML_format_diff_passed",
+            "exact_head_ci_runs": {
+              "core_merge_gate": 37919733922,
+              "telemetry": 37919733886,
+              "offline_bundle": 37919733844,
+              "authenticated_dashboard": 37919733888,
+              "refrigeration_browser": 37919733978,
+              "telegram_gateway": 37919733849
+            },
+            "manual_review": "Team_Lead_review_no_blocking_defect;_zero_unresolved_review_threads",
+            "software_acceptance": "accepted_source_only_not_site_backup_acceptance"
           }
         },
         "guarded_repreparation_plan": {
-          "status": "reviewed_sequence_prepared;_exact_canonical_tooling_pin_pending_GREEN_review_and_merge_of_PR_1320",
+          "status": "source_review_and_required_CI_accepted;_canonical_tooling_and_target_pinned;_native_build_dispatch_pending",
           "old_installer": "do_not_rerun_097af197;_prepared_A78_tooling_lacks_client_guards",
           "steps": [
-            "Keep checkpoint PR #1318 unmerged. Require all routed CI and review at PR #1320 exact head; no feature-branch deployment.",
-            "After accepted source merge, pin its canonical-main commit as tooling and new target runtime; current runtime remains genuine canonical ancestor c296c58f3cb2.",
+            "Keep operator checkpoint PR #1318 unmerged. Source PR #1320 accepted after all six exact-head workflows GREEN and clean manual review; never deploy its feature branch.",
+            "Canonical reviewed tooling and new target runtime are pinned to df5485f6ece4203a74a84f106195fae855d81731; current runtime remains genuine canonical ancestor c296c58f3cb2.",
             "Build replacement protected ARM64 current and target bundles sequentially with that reviewed tooling, exact runtime_source_ref values, local authentication and existing LAN/HTTPS origins. Require bounded-postgresql-backup capability and checksummed helper; preserve original packages unchanged.",
             "Reuse existing source-matched paired current frontend artifacts only after fresh inventory validation; rebuild paired target artifacts at the new canonical target as needed. Record every source/tooling/build/hash identity.",
             "Prepare a replacement owner-local installer pinned to exact tooling, current and target; replace the old A78 script comparison with exact reviewed tooling checks, verify helper installation and genuine package transition. Run unprivileged --check before local sudo.",
@@ -7445,7 +7463,46 @@
           ],
           "remaining_host_access": "Commander execution internally unavailable and attempted write paths refused; no alternative upload. Local password entry remains owner-local only.",
           "site_guard_installed": false,
-          "full_site_backup_accepted": false
+          "full_site_backup_accepted": false,
+          "canonical_tooling_commit": "df5485f6ece4203a74a84f106195fae855d81731",
+          "target_runtime_commit": "df5485f6ece4203a74a84f106195fae855d81731",
+          "native_package_dispatch_plan": {
+            "repository": "eNgine9r/nexolab-platform",
+            "workflow": "offline-bundle.yml",
+            "ref": "main",
+            "expected_tooling_commit": "df5485f6ece4203a74a84f106195fae855d81731",
+            "sequential": true,
+            "jobs": [
+              {
+                "role": "current",
+                "inputs": {
+                  "platform": "linux/arm64",
+                  "dashboard_origin": "http://172.18.48.66:3000",
+                  "api_base_url": "http://172.18.48.66:8082",
+                  "websocket_url": "ws://172.18.48.66:8082/api/v1/telemetry/live",
+                  "auth_provider": "local",
+                  "external_origin": "https://nexolab-edge-01.tail7f9b04.ts.net",
+                  "runtime_source_ref": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2"
+                }
+              },
+              {
+                "role": "target",
+                "inputs": {
+                  "platform": "linux/arm64",
+                  "dashboard_origin": "http://172.18.48.66:3000",
+                  "api_base_url": "http://172.18.48.66:8082",
+                  "websocket_url": "ws://172.18.48.66:8082/api/v1/telemetry/live",
+                  "auth_provider": "local",
+                  "external_origin": "https://nexolab-edge-01.tail7f9b04.ts.net",
+                  "runtime_source_ref": "df5485f6ece4203a74a84f106195fae855d81731"
+                }
+              }
+            ],
+            "required_after_each": "verify_run_head_equals_expected_tooling_commit;_complete_GREEN_before_next_dispatch;_verify_manifest_source_tooling_origin_auth_checksums_and_bounded_backup_capability",
+            "status": "prepared_not_dispatched",
+            "action_channel": "GitHub_connector_has_no_workflow_dispatch;_browser_fallback_requires_owner_approval",
+            "site_mutation": "none"
+          }
         }
       },
       "depends_on": [
@@ -7503,31 +7560,49 @@
       "issue": 1319,
       "title": "Bound PostgreSQL backup clients before runtime mutation",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "fix/1319-bounded-postgresql-backups",
       "evidence": {
         "scope": "source_only_backup_guard",
-        "head_sha": "e34035a996a1177954db80063c6a36e50ae519f3",
-        "tree_sha": "c4e47971f3449c59fc2765d317813a4d9328e1fb",
-        "changed_files": 12,
+        "head_sha": "4b187ff44df7fe7418284c42fb0abcc013fc8232",
+        "tree_sha": "f6a550d156e2126d1489e02aa12af85587243c71",
+        "changed_files": 15,
         "checkpoint_files_in_code_diff": 0,
         "new_host_observations_in_code_diff": 0,
         "local_checks": "189_tests_and_48_subtests_passed;_shell_syntax_host_contract_format_diff_passed",
-        "publication": "published_via_connected_GitHub_after_explicit_owner_authorization;_tree_matches_locally_verified_candidate",
-        "exact_head_ci": "in_progress_3_routed_workflows",
+        "publication": "merged_PR_1320_after_explicit_owner_publication_authorization_and_exact_head_GREEN;_tree_matches_local",
+        "exact_head_ci": "6_of_6_workflows_GREEN_at_4b187ff4",
         "pull_request": 1320,
         "installed_guard": "not_installed",
         "full_site_backup": "not_performed",
         "runtime_mutation": "none",
         "modbus_write": "none",
         "hardware_write": "none",
-        "local_verified_head_sha": "320e3ad8401ae55c684a25eee1acfce3f25afa28",
+        "local_verified_head_sha": "406b0d950adf9c1b18d2e8a24ccdf01c3b416491",
         "publication_authorization": {
           "destination": "eNgine9r/nexolab-platform",
           "owner_authorization": "Дозволяю",
           "authorized_at": "2026-10-09T10:28:50Z",
           "scope": "publish_1319_source_and_separate_operator_checkpoint"
-        }
+        },
+        "initial_exact_head_ci": {
+          "head_sha": "e34035a996a1177954db80063c6a36e50ae519f3",
+          "telemetry": "37918473490_success",
+          "offline_bundle": "37918473292_success",
+          "merge_gate": "37918473290_failed_unregistered_backup_paths_missing_required_browser_workflows",
+          "remediation": "register_three_exact_paths_and_matching_triggers;_unknown_fallback_unchanged"
+        },
+        "local_routing_checks": "96_tests_and_77_subtests_passed;_YAML_format_diff_passed",
+        "exact_head_ci_runs": {
+          "core_merge_gate": 37919733922,
+          "telemetry": 37919733886,
+          "offline_bundle": 37919733844,
+          "authenticated_dashboard": 37919733888,
+          "refrigeration_browser": 37919733978,
+          "telegram_gateway": 37919733849
+        },
+        "manual_review": "Team_Lead_review_no_blocking_defect;_zero_unresolved_review_threads",
+        "software_acceptance": "accepted_source_only_not_site_backup_acceptance"
       },
       "depends_on": [],
       "scope": "Shared bounded backup client policy and capacity/source/package paths, tooling assets and tests",

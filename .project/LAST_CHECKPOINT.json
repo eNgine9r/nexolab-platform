@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-09T10:36:14.159587Z",
+  "timestamp": "2026-10-09T11:02:58.016862Z",
   "actor": "ChatGPT",
-  "event": "backup_correction_published_owner_authorization_resolved_exact_head_CI_pending",
+  "event": "bounded_backup_correction_merged_exact_head_GREEN_native_package_dispatch_prepared",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -1750,27 +1750,45 @@
         "diagnostic_script_sha256": "02b748b5c0034b00cd23e10791643bb3b60ee4d26b279882f04abb221d7e3ea7",
         "backup_guard_candidate": {
           "scope": "source_only_backup_guard",
-          "head_sha": "e34035a996a1177954db80063c6a36e50ae519f3",
-          "tree_sha": "c4e47971f3449c59fc2765d317813a4d9328e1fb",
-          "changed_files": 12,
+          "head_sha": "4b187ff44df7fe7418284c42fb0abcc013fc8232",
+          "tree_sha": "f6a550d156e2126d1489e02aa12af85587243c71",
+          "changed_files": 15,
           "checkpoint_files_in_code_diff": 0,
           "new_host_observations_in_code_diff": 0,
           "local_checks": "189_tests_and_48_subtests_passed;_shell_syntax_host_contract_format_diff_passed",
-          "publication": "published_via_connected_GitHub_after_explicit_owner_authorization;_tree_matches_locally_verified_candidate",
-          "exact_head_ci": "in_progress_3_routed_workflows",
+          "publication": "merged_PR_1320_after_explicit_owner_publication_authorization_and_exact_head_GREEN;_tree_matches_local",
+          "exact_head_ci": "6_of_6_workflows_GREEN_at_4b187ff4",
           "pull_request": 1320,
           "installed_guard": "not_installed",
           "full_site_backup": "not_performed",
           "runtime_mutation": "none",
           "modbus_write": "none",
           "hardware_write": "none",
-          "local_verified_head_sha": "320e3ad8401ae55c684a25eee1acfce3f25afa28",
+          "local_verified_head_sha": "406b0d950adf9c1b18d2e8a24ccdf01c3b416491",
           "publication_authorization": {
             "destination": "eNgine9r/nexolab-platform",
             "owner_authorization": "Дозволяю",
             "authorized_at": "2026-10-09T10:28:50Z",
             "scope": "publish_1319_source_and_separate_operator_checkpoint"
-          }
+          },
+          "initial_exact_head_ci": {
+            "head_sha": "e34035a996a1177954db80063c6a36e50ae519f3",
+            "telemetry": "37918473490_success",
+            "offline_bundle": "37918473292_success",
+            "merge_gate": "37918473290_failed_unregistered_backup_paths_missing_required_browser_workflows",
+            "remediation": "register_three_exact_paths_and_matching_triggers;_unknown_fallback_unchanged"
+          },
+          "local_routing_checks": "96_tests_and_77_subtests_passed;_YAML_format_diff_passed",
+          "exact_head_ci_runs": {
+            "core_merge_gate": 37919733922,
+            "telemetry": 37919733886,
+            "offline_bundle": 37919733844,
+            "authenticated_dashboard": 37919733888,
+            "refrigeration_browser": 37919733978,
+            "telegram_gateway": 37919733849
+          },
+          "manual_review": "Team_Lead_review_no_blocking_defect;_zero_unresolved_review_threads",
+          "software_acceptance": "accepted_source_only_not_site_backup_acceptance"
         }
       }
     },
@@ -1784,27 +1802,45 @@
     },
     "issue_1319": {
       "scope": "source_only_backup_guard",
-      "head_sha": "e34035a996a1177954db80063c6a36e50ae519f3",
-      "tree_sha": "c4e47971f3449c59fc2765d317813a4d9328e1fb",
-      "changed_files": 12,
+      "head_sha": "4b187ff44df7fe7418284c42fb0abcc013fc8232",
+      "tree_sha": "f6a550d156e2126d1489e02aa12af85587243c71",
+      "changed_files": 15,
       "checkpoint_files_in_code_diff": 0,
       "new_host_observations_in_code_diff": 0,
       "local_checks": "189_tests_and_48_subtests_passed;_shell_syntax_host_contract_format_diff_passed",
-      "publication": "published_via_connected_GitHub_after_explicit_owner_authorization;_tree_matches_locally_verified_candidate",
-      "exact_head_ci": "in_progress_3_routed_workflows",
+      "publication": "merged_PR_1320_after_explicit_owner_publication_authorization_and_exact_head_GREEN;_tree_matches_local",
+      "exact_head_ci": "6_of_6_workflows_GREEN_at_4b187ff4",
       "pull_request": 1320,
       "installed_guard": "not_installed",
       "full_site_backup": "not_performed",
       "runtime_mutation": "none",
       "modbus_write": "none",
       "hardware_write": "none",
-      "local_verified_head_sha": "320e3ad8401ae55c684a25eee1acfce3f25afa28",
+      "local_verified_head_sha": "406b0d950adf9c1b18d2e8a24ccdf01c3b416491",
       "publication_authorization": {
         "destination": "eNgine9r/nexolab-platform",
         "owner_authorization": "Дозволяю",
         "authorized_at": "2026-10-09T10:28:50Z",
         "scope": "publish_1319_source_and_separate_operator_checkpoint"
-      }
+      },
+      "initial_exact_head_ci": {
+        "head_sha": "e34035a996a1177954db80063c6a36e50ae519f3",
+        "telemetry": "37918473490_success",
+        "offline_bundle": "37918473292_success",
+        "merge_gate": "37918473290_failed_unregistered_backup_paths_missing_required_browser_workflows",
+        "remediation": "register_three_exact_paths_and_matching_triggers;_unknown_fallback_unchanged"
+      },
+      "local_routing_checks": "96_tests_and_77_subtests_passed;_YAML_format_diff_passed",
+      "exact_head_ci_runs": {
+        "core_merge_gate": 37919733922,
+        "telemetry": 37919733886,
+        "offline_bundle": 37919733844,
+        "authenticated_dashboard": 37919733888,
+        "refrigeration_browser": 37919733978,
+        "telegram_gateway": 37919733849
+      },
+      "manual_review": "Team_Lead_review_no_blocking_defect;_zero_unresolved_review_threads",
+      "software_acceptance": "accepted_source_only_not_site_backup_acceptance"
     },
     "github_publication_authorization_20261009": {
       "destination": "eNgine9r/nexolab-platform",
@@ -1813,7 +1849,7 @@
       "scope": "publish_1319_source_and_separate_operator_checkpoint"
     },
     "issue_1313_guarded_repreparation_plan": {
-      "status": "reviewed_sequence_prepared;_exact_canonical_tooling_pin_pending_GREEN_review_and_merge_of_PR_1320",
+      "status": "reviewed_canonical_tooling_and_target_pinned_native_dispatch_pending",
       "old_installer": "do_not_rerun_097af197;_prepared_A78_tooling_lacks_client_guards",
       "steps": [
         "Keep checkpoint PR #1318 unmerged. Require all routed CI and review at PR #1320 exact head; no feature-branch deployment.",
@@ -1826,7 +1862,90 @@
       ],
       "remaining_host_access": "Commander execution internally unavailable and attempted write paths refused; no alternative upload. Local password entry remains owner-local only.",
       "site_guard_installed": false,
-      "full_site_backup_accepted": false
+      "full_site_backup_accepted": false,
+      "canonical_tooling_commit": "df5485f6ece4203a74a84f106195fae855d81731",
+      "target_runtime_commit": "df5485f6ece4203a74a84f106195fae855d81731",
+      "native_package_dispatch_plan": {
+        "repository": "eNgine9r/nexolab-platform",
+        "workflow": "offline-bundle.yml",
+        "ref": "main",
+        "expected_tooling_commit": "df5485f6ece4203a74a84f106195fae855d81731",
+        "sequential": true,
+        "jobs": [
+          {
+            "role": "current",
+            "inputs": {
+              "platform": "linux/arm64",
+              "dashboard_origin": "http://172.18.48.66:3000",
+              "api_base_url": "http://172.18.48.66:8082",
+              "websocket_url": "ws://172.18.48.66:8082/api/v1/telemetry/live",
+              "auth_provider": "local",
+              "external_origin": "https://nexolab-edge-01.tail7f9b04.ts.net",
+              "runtime_source_ref": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2"
+            }
+          },
+          {
+            "role": "target",
+            "inputs": {
+              "platform": "linux/arm64",
+              "dashboard_origin": "http://172.18.48.66:3000",
+              "api_base_url": "http://172.18.48.66:8082",
+              "websocket_url": "ws://172.18.48.66:8082/api/v1/telemetry/live",
+              "auth_provider": "local",
+              "external_origin": "https://nexolab-edge-01.tail7f9b04.ts.net",
+              "runtime_source_ref": "df5485f6ece4203a74a84f106195fae855d81731"
+            }
+          }
+        ],
+        "required_after_each": "verify_run_head_equals_expected_tooling_commit;_complete_GREEN_before_next_dispatch;_verify_manifest_source_tooling_origin_auth_checksums_and_bounded_backup_capability",
+        "status": "prepared_not_dispatched",
+        "action_channel": "GitHub_connector_has_no_workflow_dispatch;_browser_fallback_requires_owner_approval",
+        "site_mutation": "none"
+      }
+    },
+    "checkpoint_publication_1317": {
+      "head_sha": "62f699ec9200919629245daa0ee0d63d759fc7ac",
+      "tree_sha": "769e68a012f93ee8f21c2deb8abbcc4b411551a1",
+      "pull_request": 1318,
+      "exact_head_ci": "37918873017_GREEN_State_integrity_and_Merge_Gate",
+      "next_checkpoint": "final_source_CI_evidence_pending_before_next_publication"
+    },
+    "native_package_dispatch_plan": {
+      "repository": "eNgine9r/nexolab-platform",
+      "workflow": "offline-bundle.yml",
+      "ref": "main",
+      "expected_tooling_commit": "df5485f6ece4203a74a84f106195fae855d81731",
+      "sequential": true,
+      "jobs": [
+        {
+          "role": "current",
+          "inputs": {
+            "platform": "linux/arm64",
+            "dashboard_origin": "http://172.18.48.66:3000",
+            "api_base_url": "http://172.18.48.66:8082",
+            "websocket_url": "ws://172.18.48.66:8082/api/v1/telemetry/live",
+            "auth_provider": "local",
+            "external_origin": "https://nexolab-edge-01.tail7f9b04.ts.net",
+            "runtime_source_ref": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2"
+          }
+        },
+        {
+          "role": "target",
+          "inputs": {
+            "platform": "linux/arm64",
+            "dashboard_origin": "http://172.18.48.66:3000",
+            "api_base_url": "http://172.18.48.66:8082",
+            "websocket_url": "ws://172.18.48.66:8082/api/v1/telemetry/live",
+            "auth_provider": "local",
+            "external_origin": "https://nexolab-edge-01.tail7f9b04.ts.net",
+            "runtime_source_ref": "df5485f6ece4203a74a84f106195fae855d81731"
+          }
+        }
+      ],
+      "required_after_each": "verify_run_head_equals_expected_tooling_commit;_complete_GREEN_before_next_dispatch;_verify_manifest_source_tooling_origin_auth_checksums_and_bounded_backup_capability",
+      "status": "prepared_not_dispatched",
+      "action_channel": "GitHub_connector_has_no_workflow_dispatch;_browser_fallback_requires_owner_approval",
+      "site_mutation": "none"
     }
   },
   "observations": [
@@ -2787,9 +2906,25 @@
         "tree_sha": "b12266a1ba3b7f9f523e983a2325c045613d02f3",
         "ci": "running"
       }
+    },
+    {
+      "kind": "github_source_merge",
+      "source": "github",
+      "observed_at": "2026-10-09T11:02:58.016862Z",
+      "data": {
+        "issue": 1319,
+        "issue_state": "closed",
+        "pull_request": 1320,
+        "merged": true,
+        "merge_sha": "df5485f6ece4203a74a84f106195fae855d81731",
+        "verified_head_sha": "4b187ff44df7fe7418284c42fb0abcc013fc8232",
+        "verified_tree_sha": "f6a550d156e2126d1489e02aa12af85587243c71",
+        "exact_head_ci": "6_of_6_GREEN",
+        "site_guard_installed": false
+      }
     }
   ],
-  "next_action": "Verify exact-head CI/review for published backup correction PR #1320. Keep #1318 draft and canonical main/package target pinned until a reviewed tooling/package re-preparation plan is ready. Do not rerun the prior installer; the guard is not installed and full bounded site backup/update/rollback acceptance remains unverified.",
+  "next_action": "Launch the prepared sequential protected ARM64 current/target builds on canonical tooling df5485f6 after obtaining the separately required browser fallback approval (GitHub connector has no workflow dispatch). Verify run/tooling/runtime identities, transfer through permitted access, then prepare a replacement pinned installer and unprivileged --check. Commander execution still fails internally; denied host write paths are not bypassed. Actual owner-local sudo activation and full site backup/update/rollback remain unverified. Keep #1318 draft and main pinned to reviewed df5485f6 during package preparation.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
