@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import unittest
+from fnmatch import fnmatchcase
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -59,6 +60,48 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertFalse(result["fail_closed"])
         self.assertEqual(result["unknown_files"], [])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
+
+    def test_hardware_startup_gate_is_known_deployment_tooling(self) -> None:
+        result = classify([
+            "scripts/device-agent-startup-gate.py",
+            "scripts/tests/test_device_agent_startup_gate.py",
+            "scripts/nexolab-version-manager.py",
+            "scripts/install-offline-bundle.sh",
+            "scripts/build-offline-bundle.sh",
+            "infrastructure/compose/compose.hardware.yaml",
+        ])
+        self.assertEqual(result["classes"], ["deployment_runtime"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertFalse(result["fail_closed"])
+        self.assertTrue(result["needs_full_quality"])
+        self.assertTrue(result["verification"]["offline_bundle"])
+
+    def test_registering_startup_gate_does_not_allow_unknown_script_to_skip_gates(self) -> None:
+        result = classify(["scripts/device-agent-startup-gate.py", "scripts/unregistered-new-tool.py"])
+        self.assertTrue(result["fail_closed"])
+        self.assertIn("scripts/unregistered-new-tool.py", result["unknown_files"])
+        self.assertIn("Authenticated Dashboard Acceptance", result["verification"]["required_external_workflows"])
+
+    def test_each_startup_gate_path_requires_and_triggers_offline_bundle(self) -> None:
+        workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(encoding="utf-8")
+        trigger = workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
+        patterns = [
+            line.strip()[2:].strip('"\'')
+            for line in trigger.splitlines()
+            if line.strip().startswith("- ")
+        ]
+        for path in (
+            "scripts/device-agent-startup-gate.py",
+            "scripts/tests/test_device_agent_startup_gate.py",
+        ):
+            with self.subTest(path=path):
+                result = classify([path])
+                self.assertEqual(result["classes"], ["deployment_runtime"])
+                self.assertFalse(result["fail_closed"])
+                self.assertTrue(result["needs_full_quality"])
+                self.assertTrue(result["verification"]["offline_bundle"])
+                self.assertIn("Offline Bundle", result["verification"]["required_external_workflows"])
+                self.assertTrue(any(fnmatchcase(path, pattern) for pattern in patterns))
 
     def test_ssd_migration_regression_is_known_deployment_runtime(self) -> None:
         result = classify(

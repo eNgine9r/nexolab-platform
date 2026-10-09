@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: install-offline-bundle.sh --central-env PATH [--edge-env PATH] [--skip-edge] [--local-auth] [--runtime-mode lan|standalone] [--hardware] [--qemu-arm64-validation] [--object-storage-migration-authority PATH]
+Usage: install-offline-bundle.sh --central-env PATH [--edge-env PATH] [--skip-edge] [--local-auth] [--runtime-mode lan|standalone] [--hardware] [--preflight-only] [--qemu-arm64-validation] [--object-storage-migration-authority PATH]
 
 Loads the verified image archive and starts NEXOLAB with Docker Compose
 `--pull never`. Existing named volumes are preserved. This script never adds
@@ -17,6 +17,7 @@ SKIP_EDGE=false
 LOCAL_AUTH=false
 RUNTIME_MODE=""
 HARDWARE=false
+PREFLIGHT_ONLY=false
 QEMU_ARM64_VALIDATION=false
 OBJECT_STORAGE_MIGRATION_AUTHORITY="${NEXOLAB_REPO:-$HOME/nexolab-platform}/runtime/object-storage-migration/authority.json"
 while (($#)); do
@@ -28,6 +29,7 @@ while (($#)); do
     --local-auth) LOCAL_AUTH=true; shift ;;
     --runtime-mode) RUNTIME_MODE="${2:?}"; shift 2 ;;
     --hardware) HARDWARE=true; shift ;;
+    --preflight-only) PREFLIGHT_ONLY=true; shift ;;
     --qemu-arm64-validation) QEMU_ARM64_VALIDATION=true; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
@@ -63,7 +65,7 @@ for command in docker python3 flock; do
 done
 docker compose version >/dev/null
 
-if [[ "$LOCAL_AUTH" == true ]]; then
+if [[ "$LOCAL_AUTH" == true && "$PREFLIGHT_ONLY" == false ]]; then
   python3 - "$CENTRAL_ENV" <<'PYLOCALAUTHTIMEOUT'
 import sys
 from pathlib import Path
@@ -79,7 +81,9 @@ for index, line in enumerate(lines):
         print("Migrated legacy local-auth idle timeout from 43200s to 28800s")
     break
 PYLOCALAUTHTIMEOUT
+fi
 
+if [[ "$LOCAL_AUTH" == true ]]; then
   LOCAL_AUTH_EXPORTS="$(python3 - "$CENTRAL_ENV" <<'PYLOCALAUTH'
 import os
 import shlex
@@ -240,7 +244,6 @@ if [[ "$LOCAL_AUTH" == true ]]; then
   CENTRAL+=( -f "$BUNDLE_ROOT/deploy/compose/compose.local-auth.yaml" )
 fi
 "${CENTRAL[@]}" config --quiet
-"${CENTRAL[@]}" up -d --no-build --pull never --wait
 
 if [[ "$SKIP_EDGE" == false ]]; then
   EDGE=(docker compose --env-file "$EDGE_ENV" -f "$EDGE_BASE" -f "$EDGE_OFFLINE")
@@ -269,6 +272,37 @@ PYHW
     fi
   fi
   "${EDGE[@]}" config --quiet
+  if [[ "$HARDWARE" == true ]]; then
+    STARTUP_IMAGE_ID="$(docker image inspect --format '{{.Id}}' "$OFFLINE_DEVICE_AGENT_IMAGE")"
+    STARTUP_PLATFORM="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["platform"])' "$MANIFEST")"
+    # Keep the bundle immutable and retain the overlay for the installed
+    # container's Compose provenance/recovery. It contains no site environment.
+    STARTUP_ROOT="${NEXOLAB_STARTUP_EVIDENCE_ROOT:-${NEXOLAB_REPO:-$HOME/nexolab-platform}/runtime/device-agent-startup}"
+    mkdir -p "$STARTUP_ROOT"
+    STARTUP_TEMP="$(mktemp -d "$STARTUP_ROOT/hardware-startup.XXXXXX")"
+    STARTUP_OVERLAY="$STARTUP_TEMP/compose.startup.json"
+    python3 "$SCRIPT_DIR/device-agent-startup-gate.py" write-overlay \
+      --output "$STARTUP_OVERLAY" --image-id "$STARTUP_IMAGE_ID"
+    EDGE+=( -f "$STARTUP_OVERLAY" )
+    STARTUP_COMPOSE_ARGS=()
+    for ((startup_index=4; startup_index<${#EDGE[@]}; startup_index+=2)); do
+      STARTUP_COMPOSE_ARGS+=( --compose-file "${EDGE[startup_index+1]}" )
+    done
+    python3 "$SCRIPT_DIR/device-agent-startup-gate.py" check \
+      --expected-image-id "$STARTUP_IMAGE_ID" --platform "$STARTUP_PLATFORM" \
+      --env-file "$EDGE_ENV" "${STARTUP_COMPOSE_ARGS[@]}" \
+      > "$STARTUP_TEMP/startup-gate.json"
+    sha256sum "$STARTUP_OVERLAY" > "$STARTUP_TEMP/compose.startup.sha256"
+    printf 'DEVICE_AGENT_STARTUP_EVIDENCE=%s\n' "$STARTUP_TEMP"
+  fi
+fi
+
+if [[ "$PREFLIGHT_ONLY" == true ]]; then
+  printf 'OFFLINE_INSTALL_PREFLIGHT_PASSED\n'
+  exit 0
+fi
+"${CENTRAL[@]}" up -d --no-build --pull never --wait
+if [[ "$SKIP_EDGE" == false ]]; then
   if [[ "$QEMU_ARM64_VALIDATION" == true ]]; then
     "${EDGE[@]}" up -d --no-build --pull never
   else

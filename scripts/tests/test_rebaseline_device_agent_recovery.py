@@ -178,6 +178,129 @@ class ContainerSafetyTests(unittest.TestCase):
         with self.assertRaisesRegex(MODULE.RebaselineError, "safe image configuration"):
             MODULE.verify_container(container, None, self.lost_image)
 
+    def test_explicit_hardware_startup_is_preserved_through_recovery_import(self) -> None:
+        container = self.container()
+        container["config"].update(entrypoint=["/usr/bin/python3"], cmd=["/app/dual_bus_main.py"])
+        verified = MODULE.verify_container(container, None, self.lost_image)
+        safe = verified["safe_config"]
+        changes = MODULE.import_changes("20260830T120000Z", "f" * 40, self.container_id, safe)
+        self.assertIn('ENTRYPOINT ["/usr/bin/python3"]', changes)
+        self.assertIn('CMD ["/app/dual_bus_main.py"]', changes)
+        image = {
+            "Id": "sha256:" + "1" * 64, "Os": "linux", "Architecture": "arm64",
+            "Config": {
+                "User": safe["user"], "WorkingDir": safe["working_dir"],
+                "Entrypoint": safe["entrypoint"], "Cmd": safe["cmd"],
+                "ExposedPorts": {port: {} for port in safe["exposed_ports"]},
+                "Healthcheck": safe["healthcheck"], "Env": safe["environment"],
+            },
+        }
+        with mock.patch.object(MODULE, "docker_json", return_value=[image]):
+            imported = MODULE.inspect_imported_image("recovery", safe)
+            self.assertEqual(imported["entrypoint"], safe["entrypoint"])
+            self.assertEqual(imported["cmd"], safe["cmd"])
+            image["Config"]["Cmd"] = ["dual_bus_main.py"]
+            with self.assertRaises(MODULE.RebaselineError):
+                MODULE.inspect_imported_image("recovery", safe)
+
+    def test_mixed_startup_pairs_are_rejected(self) -> None:
+        for entrypoint, command in (
+            (["/usr/bin/python3"], ["dual_bus_main.py"]),
+            (["/usr/bin/python3.13"], ["/app/dual_bus_main.py"]),
+            (["/bin/sh"], ["/app/dual_bus_main.py"]),
+        ):
+            with self.subTest(entrypoint=entrypoint, command=command):
+                container = self.container()
+                container["config"].update(entrypoint=entrypoint, cmd=command)
+                with self.assertRaises(MODULE.RebaselineError):
+                    MODULE.verify_container(container, None, self.lost_image)
+
+    def test_current_dockerfile_hardware_configuration_is_recoverable(self) -> None:
+        dockerfile = (ROOT / "services/device-agent/Dockerfile").read_text()
+        health = json.loads(dockerfile.split("HEALTHCHECK ", 1)[1].split("CMD ", 1)[1].splitlines()[0])
+        container = self.container()
+        container["config"].update(entrypoint=["/usr/bin/python3"], cmd=["/app/dual_bus_main.py"])
+        container["config"]["healthcheck"] = {**container["config"]["healthcheck"], "Test": ["CMD", *health]}
+        verified = MODULE.verify_container(container, None, self.lost_image)
+        changes = MODULE.import_changes("20260830T120000Z", "f" * 40, self.container_id, verified["safe_config"])
+        self.assertIn("ENV LD_LIBRARY_PATH=/usr/local/lib", changes)
+        self.assertIn("LD_LIBRARY_PATH=/usr/local/lib", dockerfile)
+        self.assertIn('CMD ' + json.dumps(health, separators=(",", ":")), next(value for value in changes if value.startswith("HEALTHCHECK ")))
+        container["config"].update(entrypoint=["/usr/bin/python3.13"], cmd=["dual_bus_main.py"])
+        with self.assertRaises(MODULE.RebaselineError):
+            MODULE.verify_container(container, None, self.lost_image)
+
+    def test_establish_binds_observed_startup_pair_to_import_and_authority(self) -> None:
+        scenarios = [(approved, drift) for approved in MODULE.SAFE_CONFIGS for drift in (False, True)]
+        for approved, drift in scenarios:
+            with self.subTest(entrypoint=approved["entrypoint"], drift=drift), tempfile.TemporaryDirectory() as temporary:
+                repo = Path(temporary)
+                (repo / ".git").mkdir()
+                deployment = repo / "runtime/deployments/20260829T154823Z"
+                evidence = repo / "runtime/evidence"
+                source = self.container()
+                source["config"].update(entrypoint=approved["entrypoint"], cmd=approved["cmd"], healthcheck=approved["healthcheck"])
+                source_after = json.loads(json.dumps(source))
+                if drift:
+                    other = next(config for config in MODULE.SAFE_CONFIGS if config != approved)
+                    source_after["config"].update(entrypoint=other["entrypoint"], cmd=other["cmd"], healthcheck=other["healthcheck"])
+                image_id = "sha256:" + "1" * 64
+                imported = {"Id": image_id, "Os": "linux", "Architecture": "arm64", "Config": {
+                    "User": approved["user"], "WorkingDir": approved["working_dir"],
+                    "Entrypoint": approved["entrypoint"], "Cmd": approved["cmd"],
+                    "ExposedPorts": {port: {} for port in approved["exposed_ports"]},
+                    "Healthcheck": approved["healthcheck"], "Env": approved["environment"],
+                }}
+                commands = []
+
+                def fake_run(command, **kwargs):
+                    commands.append(command)
+                    if command[:2] == ["docker", "export"]:
+                        with tarfile.open(command[3], "w") as archive:
+                            for name in ("var/lib/nexolab", "host/dev"):
+                                member = tarfile.TarInfo(name)
+                                member.type = tarfile.DIRTYPE
+                                archive.addfile(member)
+                    return subprocess.CompletedProcess(command, 0, image_id + "\n" if command[1] == "import" else "", "")
+
+                args = SimpleNamespace(repo=repo, expected_deployed_source="f" * 40,
+                                       deployment_evidence=deployment, lost_image_id=self.lost_image,
+                                       expected_container=self.container_id, evidence_root=evidence,
+                                       check_only=False)
+                with (
+                    mock.patch.object(MODULE, "verify_git_authority"),
+                    mock.patch.object(MODULE, "authoritative_deployment", return_value={"path": str(deployment.relative_to(repo))}),
+                    mock.patch.object(MODULE, "verify_lost_image"),
+                    mock.patch.object(MODULE, "matching_device_agent_container", return_value=self.container_id),
+                    mock.patch.object(MODULE, "inspect_container", side_effect=[source, source_after]),
+                    mock.patch.object(MODULE, "verify_diff", return_value=MODULE.ALLOWED_DIFF),
+                    mock.patch.object(MODULE, "read_runtime_health", return_value={}),
+                    mock.patch.object(MODULE, "read_edge_sqlite", return_value={}),
+                    mock.patch.object(MODULE, "runtime_authority", return_value={}),
+                    mock.patch.object(MODULE, "postgresql_authority", return_value={}),
+                    mock.patch.object(MODULE, "run", side_effect=fake_run),
+                    mock.patch.object(MODULE, "docker_json", side_effect=lambda command: image_id if "--format" in command else [imported]),
+                    mock.patch.object(MODULE, "validate_create", return_value={"started": False, "removed": True}),
+                ):
+                    if drift:
+                        with self.assertRaisesRegex(MODULE.RebaselineError, "startup configuration changed"):
+                            MODULE.establish(args)
+                    else:
+                        result = MODULE.establish(args)
+                if drift:
+                    self.assertFalse((repo / "runtime/recovery-authority/device-agent/current.json").exists())
+                    continue
+                command = next(command for command in commands if command[1] == "import")
+                self.assertIn("ENTRYPOINT " + json.dumps(approved["entrypoint"], separators=(",", ":")), command)
+                self.assertIn("CMD " + json.dumps(approved["cmd"], separators=(",", ":")), command)
+                for key in ("source_container", "recovery_image"):
+                    self.assertEqual(result[key]["safe_config"]["entrypoint"], approved["entrypoint"])
+                    self.assertEqual(result[key]["safe_config"]["cmd"], approved["cmd"])
+                    self.assertEqual(result[key]["safe_config"]["safe_config_sha256"], MODULE.canonical_sha256(approved))
+                current = repo / "runtime/recovery-authority/device-agent/current.json"
+                self.assertEqual(json.loads(current.read_text()), result)
+                self.assertEqual(current.read_bytes(), (repo / result["evidence_path"]).read_bytes())
+
     def test_additional_mount_is_rejected(self) -> None:
         container = self.container()
         container["mounts"].append(  # type: ignore[union-attr]

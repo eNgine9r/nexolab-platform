@@ -6,6 +6,8 @@ on:
     paths:
       - ".github/workflows/offline-bundle.yml"
       - "scripts/classify-ci-impact.py"
+      - "scripts/device-agent-startup-gate.py"
+      - "scripts/tests/test_device_agent_startup_gate.py"
       - "infrastructure/compose/**"
       - "infrastructure/offline/**"
       - "infrastructure/object-storage/**"

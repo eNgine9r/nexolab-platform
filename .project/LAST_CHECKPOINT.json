@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-09T06:20:00Z",
+  "timestamp": "2026-10-09T17:46:51Z",
   "actor": "ChatGPT",
-  "event": "protected_offline_package_workflow_followup",
+  "event": "issue_1321_agent_recovery_verified_startup_source_prepared",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -29,9 +29,9 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "active_work": {
-    "issue": 1315,
-    "title": "Build protected ARM64 offline packages for unified update acceptance",
-    "branch": "feat/protected-offline-package-workflow"
+    "issue": 1321,
+    "title": "Validate hardware image startup before cutover",
+    "branch": "fix/1321-hardware-agent-startup"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -1435,6 +1435,63 @@
       "modbus_write": "none",
       "hardware_write": "none",
       "runtime_mutation": "none"
+    },
+    "issue_1321_agent_startup": {
+      "source_baseline_sha": "df5485f6ece4203a74a84f106195fae855d81731",
+      "recovery_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/agent-recovery-1321-6vfd0nw3/report.json",
+      "report_read_at": "2026-10-09T17:29:09.780Z",
+      "recovery_status": "agent_recovery_verified",
+      "recovery_script_sha256": "05969ab467ff962c561af4ef946a044d45814fc8ef80f97416b2605cd5ae8d65",
+      "recovered_image_id": "sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323",
+      "mqtt_connected": true,
+      "active_expected_workers": "3/3",
+      "samples_total": [
+        148,
+        149
+      ],
+      "queue_depth": 0,
+      "existing_volume_count": 96,
+      "all_existing_volume_identities": "unchanged",
+      "non_agent_containers": "unchanged",
+      "database_restore": "none",
+      "package_authority": "not_modified",
+      "current_runtime": "partial_C296_central_activation_old_agent_recovered_frontends_not_activated",
+      "targeted_module_tests": "78_passed_16_subtests",
+      "sqlite_snapshot_tests": "24_passed",
+      "final_health_tests": "18_passed",
+      "offline_workflow_contracts": "30_passed",
+      "existing_cleanup_baseline_tests": "3_failures_before_edits_ps_environment_library_error",
+      "docker_runtime_proof": "pending_no_local_Docker",
+      "commander_readonly_execution": "internal_handler_failure_before_start_20261009T173332Z",
+      "required_exact_head_ci": "pending",
+      "full_unified_install_acceptance": "pending",
+      "source_selection_tests": "30_passed",
+      "first_candidate_ci": {
+        "head_sha": "e86cc1fa4cf19fa4e1a27aac9c06fca8a1a1b6c5",
+        "core_quality_build_units": "success_run_37969039001",
+        "telemetry": "success_run_37969039362",
+        "offline_bundle": "success_run_37969039220",
+        "aggregate_merge_gate": "failed_missing_required_browser_workflows_due_to_unknown_new_tooling_paths",
+        "correction": "register_only_two_startup_tooling_paths;_full_Core_and_unknown_path_fail_closed_preserved"
+      },
+      "review_routing_correction": {
+        "review_thread": "PRRT_kwDOTe72wM6q5N6F",
+        "scope": "startup helper and focused test independently require and trigger Offline Bundle",
+        "regression": "both standalone paths failed before correction, passed afterward",
+        "runtime_mutation": "none"
+      },
+      "review_recovery_correction": {
+        "review_thread": "PRRT_kwDOTe72wM6q5Yq0",
+        "scope": "recognize and reproduce only the observed old/new exact startup pair through imported image and immutable authority",
+        "tests": "34_passed_including_both_import_authority_flows_and_drift_rejection",
+        "runtime_mutation": "none"
+      },
+      "review_current_image_recovery": {
+        "review_thread": "PRRT_kwDOTe72wM6q5hck",
+        "scope": "exact current Dockerfile healthcheck and fixed LD_LIBRARY_PATH; preserve legacy configurations; reject mixed startup/health contracts",
+        "tests": "35_recovery_tests_passed;_146_affected_tests_passed;_Dockerfile_derived_RED_then_GREEN;_mocked_Docker_with_real_temp_files",
+        "runtime_mutation": "none"
+      }
     }
   },
   "observations": [
@@ -2397,7 +2454,7 @@
       }
     }
   ],
-  "next_action": "Verify focused PR #1315 exact-head CI/review; merge GREEN, build paired ARM64 frontends and current/target protected packages. Prepare reviewed local-sudo activation for parent #1313; installed site and package authority remain unchanged.",
+  "next_action": "Verify the #1321 source PR on required exact-head CI; reconcile the partial activation without database restore or fabricated package authority, then rebuild digest-bound native ARM64 current/rollback packages and resume controlled LAN/HTTPS acceptance.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

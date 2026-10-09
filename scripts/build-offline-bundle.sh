@@ -201,6 +201,11 @@ build_image dashboard "$DASHBOARD_IMAGE" "$RUNTIME_SOURCE_ROOT/infrastructure/of
   --build-arg "NEXOLAB_SOURCE_COMMIT=${SOURCE_COMMIT}"
 build_image telemetry "$TELEMETRY_IMAGE" "$RUNTIME_SOURCE_ROOT/services/telemetry-service/Dockerfile" "$RUNTIME_SOURCE_ROOT/services/telemetry-service"
 build_image device-agent "$DEVICE_AGENT_IMAGE" "$RUNTIME_SOURCE_ROOT/services/device-agent/Dockerfile" "$RUNTIME_SOURCE_ROOT/services/device-agent"
+# Prove the real hardware interpreter/script contract, even when disconnected
+# acceptance uses the simulator. The probe mounts neither devices nor data.
+DEVICE_AGENT_STARTUP_IMAGE_ID="$(docker image inspect --format '{{.Id}}' "$DEVICE_AGENT_IMAGE")"
+python3 scripts/device-agent-startup-gate.py probe --image-id "$DEVICE_AGENT_STARTUP_IMAGE_ID" \
+  > "$STAGING/evidence/device-agent-startup-probe.json"
 build_image object-storage "$OBJECT_STORAGE_IMAGE" "$RUNTIME_SOURCE_ROOT/infrastructure/object-storage/Dockerfile" "$RUNTIME_SOURCE_ROOT/infrastructure/object-storage"
 
 for image in "$MQTT_IMAGE" "$POSTGRES_IMAGE"; do
@@ -310,6 +315,7 @@ if [[ -n "$EXTERNAL_FRONTEND_ARTIFACT" ]]; then
     cp "$EXTERNAL_FRONTEND_ARTIFACT/$name" "$STAGING/frontend-external/$name"
   done
 fi
+cp scripts/device-agent-startup-gate.py "$STAGING/scripts/"
 cp scripts/install-offline-bundle.sh "$STAGING/scripts/"
 cp scripts/offline-bundle-smoke.sh "$STAGING/scripts/"
 cp scripts/nexolab-version-manager.py "$STAGING/scripts/"
@@ -333,7 +339,7 @@ payload = {
     "source_repository": "eNgine9r/nexolab-platform",
     "source_commit": source_commit,
     "tooling_commit": tooling_commit,
-    "tooling_capabilities": ["runtime-mode", "hardware", "split-runtime-tooling", "bounded-postgresql-backup"],
+    "tooling_capabilities": ["runtime-mode", "hardware", "split-runtime-tooling", "bounded-postgresql-backup", "hardware-startup-gate"],
     "bundle_version": version,
     "platform": platform,
     "builder": "scripts/build-offline-bundle.sh",
