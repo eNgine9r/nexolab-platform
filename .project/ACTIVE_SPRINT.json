@@ -7562,7 +7562,7 @@
             "script_execution": "owner_guarded_installer_failed_after_bounded_backup_and_central_edge_mutation",
             "site_guard_installed": false,
             "full_site_backup_accepted": false,
-            "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321.py",
+            "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321-v2.py",
             "owner_package_input": "both_pinned_archives_or_GitHub_ZIPs_in_/home/nexolab/Downloads;_existing_authenticated_gh_optional_no_login",
             "preparation_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/prepare-3pf3m7i2/report.json",
             "preparer_scope": "verify_packages_and_reuse_paired_frontends_after_fresh_validation;_offline_fast_forward_clean_control_main_A78_to_T;_installer_--check;_no_sudo_or_runtime",
@@ -7591,7 +7591,7 @@
             "control_status": "clean_main_tracking_origin_main_observed_2026-10-09T15:11:55.751Z",
             "installed_script_sha256": "c68ddff14fcaa42cdd4f6268bab881cf37ce84494602b29c7d6cd89822d856f0",
             "installed_script_read_at": "2026-10-09T15:08:39.179Z",
-            "next_owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321.py",
+            "next_owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321-v2.py",
             "preparation_runtime_mutation": "none",
             "preparation_sudo_used": false,
             "owner_preparation_report": {
@@ -7695,6 +7695,39 @@
               "modbus_write": "none",
               "hardware_write": "none",
               "volume_or_evidence_deletion": "none"
+            },
+            "recovery_v2": {
+              "owner_v1_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/agent-recovery-1321-vhiqjqml/report.json",
+              "owner_v1_started_at": "2026-10-09T17:12:53.865064+00:00",
+              "owner_v1_finished_at": "2026-10-09T17:12:54.328188+00:00",
+              "report_read_at": "2026-10-09T17:14:40.168Z",
+              "owner_v1_status": "recovery_stopped_unverified",
+              "owner_v1_reason": "Preserved recovery image identity mismatch",
+              "owner_v1_runtime_mutation": "none",
+              "owner_v1_gate_passed": "six_protected_volume_identities_matched_pre_cutover_snapshot_before_image_gate",
+              "diagnostic_limitation": "v1_combined_image_ID_and_OCI_revision_check_did_not_record_observed_image_metadata;_actual_ID_vs_label_cause_not_distinguished",
+              "code_defect": "recovery_script_incorrectly_required_OCI_git_revision_labels_not_guaranteed_by_canonical_unlabelled_docker_build_or_import",
+              "source_authority": "exact_old_image_514b504_bound_by_canonical_recovery_record_and_snapshot_and_quiesce_source_target_evidence;_unchanged_exact_ID_required",
+              "candidate_authority": "owner_build_log_21_pins_config_66d749_manifest_ff22aee_and_index_8f0680c;_unknown_candidate_ID_rejected_even_if_revision_label_matches",
+              "remote_diagnostic_execution": "EXECUTION_HANDLER_FAILED_before_start_at_2026-10-09T17:15:50.272Z;_no_retry_loop",
+              "prepared_recovery_v2": {
+                "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321-v2.py",
+                "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321-v2.py",
+                "size_bytes": 22492,
+                "sha256": "05969ab467ff962c561af4ef946a044d45814fc8ef80f97416b2605cd5ae8d65",
+                "remote_write_at": "2026-10-09T17:20:50.854Z",
+                "remote_readback_at": "2026-10-09T17:21:35.595Z",
+                "exact_readback_match": true,
+                "verification": "regressions_first_failed_v1_on_missing_OCI_labels_and_wrong_candidate_ID;_v2_Python_compile_and_17_tests_plus_3_digest_subtests_passed",
+                "activation": "pending_owner_local_execution",
+                "source_startup_correction": "pending",
+                "old_v1_script_and_report": "preserved;_v1_execution_command_superseded",
+                "diagnostics": "whitelisted_image_and_failed_container_metadata_saved_before_gate;_private_report_fsynced_before_only_agent_recreate",
+                "check_only": "optional_--check_runs_all_preflight_without_agent_recreation",
+                "scope": "same_exact_preserved_image_and_site_config;_only_device_agent;_no_DB_restore_or_package_authority_edit",
+                "acceptance": "real_image_Docker_health_MQTT_3_workers_advancing_samples_and_unchanged_other_containers_volumes_required"
+              },
+              "next_action": "Owner runs v2 command; inspect new AGENT_RECOVERY_REPORT remotely. Recovery is unverified. Full installer remains paused."
             }
           }
         },
@@ -7761,6 +7794,39 @@
           "modbus_write": "none",
           "hardware_write": "none",
           "volume_or_evidence_deletion": "none"
+        },
+        "recovery_v1_stop_and_v2_preparation": {
+          "owner_v1_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/agent-recovery-1321-vhiqjqml/report.json",
+          "owner_v1_started_at": "2026-10-09T17:12:53.865064+00:00",
+          "owner_v1_finished_at": "2026-10-09T17:12:54.328188+00:00",
+          "report_read_at": "2026-10-09T17:14:40.168Z",
+          "owner_v1_status": "recovery_stopped_unverified",
+          "owner_v1_reason": "Preserved recovery image identity mismatch",
+          "owner_v1_runtime_mutation": "none",
+          "owner_v1_gate_passed": "six_protected_volume_identities_matched_pre_cutover_snapshot_before_image_gate",
+          "diagnostic_limitation": "v1_combined_image_ID_and_OCI_revision_check_did_not_record_observed_image_metadata;_actual_ID_vs_label_cause_not_distinguished",
+          "code_defect": "recovery_script_incorrectly_required_OCI_git_revision_labels_not_guaranteed_by_canonical_unlabelled_docker_build_or_import",
+          "source_authority": "exact_old_image_514b504_bound_by_canonical_recovery_record_and_snapshot_and_quiesce_source_target_evidence;_unchanged_exact_ID_required",
+          "candidate_authority": "owner_build_log_21_pins_config_66d749_manifest_ff22aee_and_index_8f0680c;_unknown_candidate_ID_rejected_even_if_revision_label_matches",
+          "remote_diagnostic_execution": "EXECUTION_HANDLER_FAILED_before_start_at_2026-10-09T17:15:50.272Z;_no_retry_loop",
+          "prepared_recovery_v2": {
+            "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321-v2.py",
+            "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321-v2.py",
+            "size_bytes": 22492,
+            "sha256": "05969ab467ff962c561af4ef946a044d45814fc8ef80f97416b2605cd5ae8d65",
+            "remote_write_at": "2026-10-09T17:20:50.854Z",
+            "remote_readback_at": "2026-10-09T17:21:35.595Z",
+            "exact_readback_match": true,
+            "verification": "regressions_first_failed_v1_on_missing_OCI_labels_and_wrong_candidate_ID;_v2_Python_compile_and_17_tests_plus_3_digest_subtests_passed",
+            "activation": "pending_owner_local_execution",
+            "source_startup_correction": "pending",
+            "old_v1_script_and_report": "preserved;_v1_execution_command_superseded",
+            "diagnostics": "whitelisted_image_and_failed_container_metadata_saved_before_gate;_private_report_fsynced_before_only_agent_recreate",
+            "check_only": "optional_--check_runs_all_preflight_without_agent_recreation",
+            "scope": "same_exact_preserved_image_and_site_config;_only_device_agent;_no_DB_restore_or_package_authority_edit",
+            "acceptance": "real_image_Docker_health_MQTT_3_workers_advancing_samples_and_unchanged_other_containers_volumes_required"
+          },
+          "next_action": "Owner runs v2 command; inspect new AGENT_RECOVERY_REPORT remotely. Recovery is unverified. Full installer remains paused."
         }
       },
       "depends_on": [
@@ -7810,7 +7876,7 @@
         "checkpoint_merge": "hold_draft_until_actual_host_acceptance_to_preserve_pinned_package_target",
         "local_state_verification": "28_project_state_tests_one_existing_skip;_State_Model_v2_integrity_and_format_passed",
         "post_reboot_recovery_checkpoint": "authority_snapshot_read;_source_PR_1320_merged_GREEN;_site_guard_not_installed",
-        "checkpoint_publication": "previous_35de630c_exact_head_state_CI_37950479969_GREEN;_failed_install_recovery_checkpoint_locally_pending",
+        "checkpoint_publication": "previous_db91e39d_exact_head_state_CI_37962366601_GREEN;_v2_report_correction_checkpoint_prepared",
         "native_package_dispatch": "both_sequential_ARM64_runs_GREEN;_both_pinned_packages_and_paired_frontends_verified_on_actual_host;_installer_--check_passed_without_sudo",
         "owner_preparation": "accepted_historical_preparation;_owner_installer_now_failed_after_successful_guarded_backup",
         "agent_recovery_1321": {
@@ -7876,6 +7942,39 @@
           "modbus_write": "none",
           "hardware_write": "none",
           "volume_or_evidence_deletion": "none"
+        },
+        "recovery_v1_stop_and_v2_preparation": {
+          "owner_v1_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/agent-recovery-1321-vhiqjqml/report.json",
+          "owner_v1_started_at": "2026-10-09T17:12:53.865064+00:00",
+          "owner_v1_finished_at": "2026-10-09T17:12:54.328188+00:00",
+          "report_read_at": "2026-10-09T17:14:40.168Z",
+          "owner_v1_status": "recovery_stopped_unverified",
+          "owner_v1_reason": "Preserved recovery image identity mismatch",
+          "owner_v1_runtime_mutation": "none",
+          "owner_v1_gate_passed": "six_protected_volume_identities_matched_pre_cutover_snapshot_before_image_gate",
+          "diagnostic_limitation": "v1_combined_image_ID_and_OCI_revision_check_did_not_record_observed_image_metadata;_actual_ID_vs_label_cause_not_distinguished",
+          "code_defect": "recovery_script_incorrectly_required_OCI_git_revision_labels_not_guaranteed_by_canonical_unlabelled_docker_build_or_import",
+          "source_authority": "exact_old_image_514b504_bound_by_canonical_recovery_record_and_snapshot_and_quiesce_source_target_evidence;_unchanged_exact_ID_required",
+          "candidate_authority": "owner_build_log_21_pins_config_66d749_manifest_ff22aee_and_index_8f0680c;_unknown_candidate_ID_rejected_even_if_revision_label_matches",
+          "remote_diagnostic_execution": "EXECUTION_HANDLER_FAILED_before_start_at_2026-10-09T17:15:50.272Z;_no_retry_loop",
+          "prepared_recovery_v2": {
+            "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321-v2.py",
+            "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321-v2.py",
+            "size_bytes": 22492,
+            "sha256": "05969ab467ff962c561af4ef946a044d45814fc8ef80f97416b2605cd5ae8d65",
+            "remote_write_at": "2026-10-09T17:20:50.854Z",
+            "remote_readback_at": "2026-10-09T17:21:35.595Z",
+            "exact_readback_match": true,
+            "verification": "regressions_first_failed_v1_on_missing_OCI_labels_and_wrong_candidate_ID;_v2_Python_compile_and_17_tests_plus_3_digest_subtests_passed",
+            "activation": "pending_owner_local_execution",
+            "source_startup_correction": "pending",
+            "old_v1_script_and_report": "preserved;_v1_execution_command_superseded",
+            "diagnostics": "whitelisted_image_and_failed_container_metadata_saved_before_gate;_private_report_fsynced_before_only_agent_recreate",
+            "check_only": "optional_--check_runs_all_preflight_without_agent_recreation",
+            "scope": "same_exact_preserved_image_and_site_config;_only_device_agent;_no_DB_restore_or_package_authority_edit",
+            "acceptance": "real_image_Docker_health_MQTT_3_workers_advancing_samples_and_unchanged_other_containers_volumes_required"
+          },
+          "next_action": "Owner runs v2 command; inspect new AGENT_RECOVERY_REPORT remotely. Recovery is unverified. Full installer remains paused."
         }
       },
       "scope": "Four canonical project-state files only; preserve accepted runtime baselines",
@@ -8001,11 +8100,44 @@
         "next_action": "Owner executes narrow recovery; inspect AGENT_RECOVERY_REPORT remotely. Do not rerun full installer. Complete critical startup/pre-mutation correction before unified installation resumes.",
         "modbus_write": "none",
         "hardware_write": "none",
-        "volume_or_evidence_deletion": "none"
+        "volume_or_evidence_deletion": "none",
+        "recovery_v1_stop_and_v2_preparation": {
+          "owner_v1_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/agent-recovery-1321-vhiqjqml/report.json",
+          "owner_v1_started_at": "2026-10-09T17:12:53.865064+00:00",
+          "owner_v1_finished_at": "2026-10-09T17:12:54.328188+00:00",
+          "report_read_at": "2026-10-09T17:14:40.168Z",
+          "owner_v1_status": "recovery_stopped_unverified",
+          "owner_v1_reason": "Preserved recovery image identity mismatch",
+          "owner_v1_runtime_mutation": "none",
+          "owner_v1_gate_passed": "six_protected_volume_identities_matched_pre_cutover_snapshot_before_image_gate",
+          "diagnostic_limitation": "v1_combined_image_ID_and_OCI_revision_check_did_not_record_observed_image_metadata;_actual_ID_vs_label_cause_not_distinguished",
+          "code_defect": "recovery_script_incorrectly_required_OCI_git_revision_labels_not_guaranteed_by_canonical_unlabelled_docker_build_or_import",
+          "source_authority": "exact_old_image_514b504_bound_by_canonical_recovery_record_and_snapshot_and_quiesce_source_target_evidence;_unchanged_exact_ID_required",
+          "candidate_authority": "owner_build_log_21_pins_config_66d749_manifest_ff22aee_and_index_8f0680c;_unknown_candidate_ID_rejected_even_if_revision_label_matches",
+          "remote_diagnostic_execution": "EXECUTION_HANDLER_FAILED_before_start_at_2026-10-09T17:15:50.272Z;_no_retry_loop",
+          "prepared_recovery_v2": {
+            "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321-v2.py",
+            "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321-v2.py",
+            "size_bytes": 22492,
+            "sha256": "05969ab467ff962c561af4ef946a044d45814fc8ef80f97416b2605cd5ae8d65",
+            "remote_write_at": "2026-10-09T17:20:50.854Z",
+            "remote_readback_at": "2026-10-09T17:21:35.595Z",
+            "exact_readback_match": true,
+            "verification": "regressions_first_failed_v1_on_missing_OCI_labels_and_wrong_candidate_ID;_v2_Python_compile_and_17_tests_plus_3_digest_subtests_passed",
+            "activation": "pending_owner_local_execution",
+            "source_startup_correction": "pending",
+            "old_v1_script_and_report": "preserved;_v1_execution_command_superseded",
+            "diagnostics": "whitelisted_image_and_failed_container_metadata_saved_before_gate;_private_report_fsynced_before_only_agent_recreate",
+            "check_only": "optional_--check_runs_all_preflight_without_agent_recreation",
+            "scope": "same_exact_preserved_image_and_site_config;_only_device_agent;_no_DB_restore_or_package_authority_edit",
+            "acceptance": "real_image_Docker_health_MQTT_3_workers_advancing_samples_and_unchanged_other_containers_volumes_required"
+          },
+          "next_action": "Owner runs v2 command; inspect new AGENT_RECOVERY_REPORT remotely. Recovery is unverified. Full installer remains paused."
+        }
       },
       "depends_on": [],
       "scope": "Narrow owner-local exact-image agent recovery; explicit hardware startup and pre-mutation historical-source compatibility gate; preserve all site state",
-      "verification": "11 mocked recovery gate tests and syntax passed; actual recovery report pending; source checks and exact-head CI pending"
+      "verification": "v1_rejected_before_mutation;_v2_17_gate_tests_3_digest_subtests_and_compile_passed;_actual_v2_recovery_and_source_CI_pending"
     }
   ],
   "maintenance_actions": [

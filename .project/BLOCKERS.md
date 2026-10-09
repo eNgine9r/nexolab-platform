@@ -2,7 +2,13 @@
 
 Updated: 2026-10-09
 
-## Issues #1313 / #1321 — failed post-mutation agent startup; local recovery pending
+## Issue #1321 — corrected exact-image recovery v2 needs owner-local execution
+
+V1 owner report was read at 17:14:40 UTC: stopped on combined image-ID/OCI-revision validation, runtime mutation none, six protected volume identities matched. The script incorrectly assumed mandatory OCI Git labels; local build/import does not guarantee them. V2 retains exact captured image-ID/source authority, adds exact failed-build digest pins and diagnostics, and preserves all data/config gates. Python compile and 17 tests plus three digest subtests passed; host write/readback verified SHA256 `05969ab467ff962c561af4ef946a044d45814fc8ef80f97416b2605cd5ae8d65` at 17:21:35 UTC. Old script and stopped report stay preserved.
+
+Commander read-only execution freshly failed internally at 17:15:50 UTC before starting; no fallback/retry loop. Owner must run staged `nexolab-agent-recovery-1321-v2.py` using sudo in the local terminal. Actual recovery and fresh image/health/sampling evidence are still absent. Do not run v1 or either full installer. #1313/#1321 stay open, #1318 draft; source hardware startup/pre-mutation correction and real package/update/rollback acceptance remain pending.
+
+## Historical failed install and v1 recovery gates — superseded above
 
 The reviewed owner-local guarded installer passed the bounded 927,435,219-byte PostgreSQL dump/list step, then mutated central/edge runtime. Device Agent failed to start because `compose.hardware.yaml` supplies bare `dual_bus_main.py` to an image without a Python ENTRYPOINT. Source adoption/worker/package-authority handoff and frontend activation were not reached. Acquisition is unverified after this failure. Preserve dump, consistent SQLite snapshot, exact D00 recovery image, all volumes and private attempt evidence. Do not interpret restored control checkout or historical D00 baselines as a whole-stack rollback.
 

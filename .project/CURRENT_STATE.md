@@ -2,7 +2,21 @@
 
 Updated: 2026-10-09
 
-## Issues #1313 / #1321 — bounded backup passed; failed Device Agent needs recovery
+## Issue #1321 — owner recovery stopped before mutation; corrected v2 prepared
+
+Owner ran recovery v1 at 17:12:53 UTC. The remotely read report `agent-recovery-1321-vhiqjqml/report.json` says `recovery_stopped_unverified`, reason `Preserved recovery image identity mismatch`, **runtime mutation none**. The six protected volume identities passed before that gate. No agent recreation occurred. The combined v1 image-ID/OCI-revision check omitted observed metadata, so its report cannot distinguish an ID mismatch from a missing label.
+
+Source inspection and new failing regressions found an error in the operator script: it required OCI Git-revision labels that canonical local Docker build/import does not guarantee. Corrected v2 still requires the exact old image `514b504...`, bound to recovery/snapshot/quiesce source-target evidence. It also pins candidate config/manifest/index digests from the owner's exact C296 build log and rejects unknown image IDs even with a matching label. OCI labels are diagnostic only; whitelist image/container metadata is recorded before gates and the private report is fsynced before agent recreation. No site/startup source change or successful recovery is claimed.
+
+V2 Python compile and **17 tests plus three digest subtests** passed; new regressions failed against v1 first. V2 is staged and read back unchanged at 17:21:35 UTC, SHA256 `05969ab467ff962c561af4ef946a044d45814fc8ef80f97416b2605cd5ae8d65`, 22,492 bytes. The original script/report are preserved. Fresh read-only Commander execution again failed internally at 17:15:50 UTC before starting, without fallback or retry loop. Owner-local execution remains required:
+
+```bash
+sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321-v2.py
+```
+
+Read the new `AGENT_RECOVERY_REPORT` before continuing. Agent recovery, source startup remediation, genuine package authority, LAN/HTTPS update/rollback and Google journeys remain pending. Full installers stay paused; #1313/#1321 remain OPEN and #1318 DRAFT/unmerged. The earlier partial central/edge cutover is not an accepted whole-stack deployment; baselines remain unchanged.
+
+## Historical failed guarded install and v1 recovery preparation — superseded above
 
 The owner ran the reviewed guarded installer. Attempt `runtime/deployments/20261009T155213Z` completed a **927,435,219-byte bounded PostgreSQL dump and archive-list validation**, then crossed the runtime-mutation boundary at 19:04:34 EEST. The central services activated; edge MQTT and Device Agent were recreated. At 19:05:22 Device Agent failed with `exec: "dual_bus_main.py": executable file not found in $PATH`. The hardware overlay supplies a bare script while the current image has a full interpreter CMD and no Python ENTRYPOINT. The consistent pre-cutover SQLite snapshot, exact D00 agent recovery image and private failure evidence are preserved. Backup completion does not establish restore or full-install acceptance.
 
