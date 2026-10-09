@@ -7122,7 +7122,14 @@
         "verified_head_sha": "d18c2b7ea8aba43597dcfcf5bf2c82d5c31f851b",
         "verified_tree_sha": "b12266a1ba3b7f9f523e983a2325c045613d02f3",
         "existing_gateway_readonly": "kernel_memory_origin_loopback_and_anonymous_API_WebSocket_upgrade_image_Device_Agent_denial_passed",
-        "existing_https_build": "KVMryq76dj1LhzOW30pgA"
+        "existing_https_build": "KVMryq76dj1LhzOW30pgA",
+        "actual_host_readonly_identity": {
+          "lan_source": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
+          "https_source": "4b9dc85ab2e7924195d5d2030fb298aaaf78aaf4",
+          "lan_build": "hA8usmV6ZKwgZUYhmOLHZ",
+          "https_build": "KVMryq76dj1LhzOW30pgA",
+          "runtime_mutation": "none"
+        }
       },
       "depends_on": [],
       "scope": "Gateway-aware source deployment and offline package update/rollback; truthful Settings version readiness",
@@ -8377,18 +8384,6 @@
         "issue": 1306,
         "pr": 1280,
         "merge_sha": "ee9738ab39ca369b8d49aec9971fdf25a2ed0b79"
-      }
-    },
-    {
-      "source": "actual_host",
-      "observed_at": "2026-10-09T05:44:55.527Z",
-      "kind": "unified_update_preimplementation_identity",
-      "data": {
-        "lan_source": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
-        "https_source": "4b9dc85ab2e7924195d5d2030fb298aaaf78aaf4",
-        "lan_build": "hA8usmV6ZKwgZUYhmOLHZ",
-        "https_build": "KVMryq76dj1LhzOW30pgA",
-        "runtime_mutation": "none"
       }
     }
   ],
