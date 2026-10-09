@@ -31,7 +31,14 @@ New packages require digest-bound `hardware-startup-gate` tooling. See
 
 Targeted software checks passed: 78 module tests plus 16 subtests, 24 SQLite
 snapshot/recovery tests, 18 final-health tests, 30 source-selection tests and 30 offline-workflow contracts.
-Required exact-head CI and real Docker/ARM64 package proof remain pending. This
+First candidate e86cc1fa passed Core quality/build/unit tests, Telemetry and Offline
+Bundle including the isolated hardware entry-script probe, disconnected runtime,
+update/rollback and volume preservation. Merge Gate failed because the new
+helper/test were unknown to the classifier and two required browser workflows
+did not register. Only those two concrete paths are now registered as deployment
+tooling; unrelated unknown paths still fail closed and full Core remains required.
+The classifier change itself triggers broader CI. Final exact-head CI and native
+ARM64 package preparation remain pending. This
 workspace has no Docker; three existing candidate-cleanup baseline tests fail
 because its `ps` command returns `fatal library error, lookup self`. Those failures
 were observed before edits and are not passing evidence. Fresh Commander

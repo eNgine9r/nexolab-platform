@@ -60,6 +60,27 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertEqual(result["unknown_files"], [])
         self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_hardware_startup_gate_is_known_deployment_tooling(self) -> None:
+        result = classify([
+            "scripts/device-agent-startup-gate.py",
+            "scripts/tests/test_device_agent_startup_gate.py",
+            "scripts/nexolab-version-manager.py",
+            "scripts/install-offline-bundle.sh",
+            "scripts/build-offline-bundle.sh",
+            "infrastructure/compose/compose.hardware.yaml",
+        ])
+        self.assertEqual(result["classes"], ["deployment_runtime"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertFalse(result["fail_closed"])
+        self.assertTrue(result["needs_full_quality"])
+        self.assertTrue(result["verification"]["offline_bundle"])
+
+    def test_registering_startup_gate_does_not_allow_unknown_script_to_skip_gates(self) -> None:
+        result = classify(["scripts/device-agent-startup-gate.py", "scripts/unregistered-new-tool.py"])
+        self.assertTrue(result["fail_closed"])
+        self.assertIn("scripts/unregistered-new-tool.py", result["unknown_files"])
+        self.assertIn("Authenticated Dashboard Acceptance", result["verification"]["required_external_workflows"])
+
     def test_ssd_migration_regression_is_known_deployment_runtime(self) -> None:
         result = classify(
             [

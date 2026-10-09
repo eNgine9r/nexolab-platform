@@ -223,6 +223,8 @@ FRONTEND_RELEASE_TOOLING_PATHS = {
 }
 
 VERSION_MANAGER_TOOLING_PATHS = {
+    "scripts/device-agent-startup-gate.py",
+    "scripts/tests/test_device_agent_startup_gate.py",
     "scripts/nexolab-version-manager.py",
     "scripts/tests/test_nexolab_version_manager.py",
     "scripts/lib/postgresql-backup-client.sh",
