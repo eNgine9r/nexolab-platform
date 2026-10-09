@@ -674,14 +674,30 @@ def capture_volume_identities(*, skip_edge: bool) -> list[dict[str, Any]]:
     return sorted(identities, key=lambda item: str(item["name"]))
 
 
+def postgresql_client_policy(mode: str) -> str:
+    if mode not in {"dump", "list"}:
+        raise VersionManagerFailure("invalid PostgreSQL backup client mode")
+    helper = Path(__file__).parent / "lib" / "postgresql-backup-client.sh"
+    if not helper.is_file():
+        raise VersionManagerFailure("bounded PostgreSQL backup client policy is missing")
+    return f"set -- {mode}\n" + helper.read_text(encoding="utf-8")
+
+
 def create_postgresql_backup(
     central: list[str], backup_dir: Path, backup_id: str,
     *, compose_env: dict[str, str] | None = None,
 ) -> Path:
     backup_path = backup_dir.resolve() / backup_id
     partial_backup_path = backup_path.with_suffix(".dump.partial")
+    stderr_path = backup_path.with_suffix(".dump.stderr")
+    dump_policy = postgresql_client_policy("dump")
+    list_policy = postgresql_client_policy("list")
+    if backup_path.exists() or backup_path.is_symlink():
+        raise VersionManagerFailure("PostgreSQL backup already exists; preserving it")
     backup_path.parent.mkdir(parents=True, exist_ok=True, mode=0o750)
-    with partial_backup_path.open("xb") as output:
+    with partial_backup_path.open("xb") as output, stderr_path.open("xb") as errors:
+        os.fchmod(output.fileno(), 0o600)
+        os.fchmod(errors.fileno(), 0o600)
         subprocess.run(
             central
             + [
@@ -690,21 +706,25 @@ def create_postgresql_backup(
                 "postgres",
                 "sh",
                 "-ec",
-                'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc',
+                dump_policy,
             ],
             check=True,
             stdout=output,
+            stderr=errors,
             env=compose_env,
+            timeout=930,
         )
     if partial_backup_path.stat().st_size == 0:
         raise VersionManagerFailure("PostgreSQL backup is empty")
-    with partial_backup_path.open("rb") as backup_input:
+    with partial_backup_path.open("rb") as backup_input, stderr_path.open("ab") as errors:
         subprocess.run(
-            central + ["exec", "-T", "postgres", "pg_restore", "--list"],
+            central + ["exec", "-T", "postgres", "sh", "-ec", list_policy],
             check=True,
             stdin=backup_input,
             stdout=subprocess.DEVNULL,
+            stderr=errors,
             env=compose_env,
+            timeout=90,
         )
     os.replace(partial_backup_path, backup_path)
     return backup_path

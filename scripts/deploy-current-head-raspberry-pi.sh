@@ -1236,7 +1236,7 @@ if ! command -v node >/dev/null 2>&1; then
   log "Resolved repository Node baseline from deterministic NVM location: $NVM_NODE_BIN"
 fi
 
-for command in docker curl python3 openssl node flock ip sudo tar du df find sort stat mv rm ss sha256sum cp cmp install setsid ps awk; do
+for command in docker curl python3 openssl node flock ip sudo tar du df find sort stat mv rm ss sha256sum cp cmp install setsid ps awk timeout; do
   require "$command"
 done
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is unavailable"
@@ -1365,16 +1365,21 @@ docker volume inspect \
 if [[ -n "$PG_CONTAINER" ]]; then
   log "Creating PostgreSQL pre-upgrade backup"
   PG_DUMP_TMP="$AUDIT_DIR/.postgresql-pre-upgrade.dump.partial"
-  rm -f -- "$PG_DUMP_TMP"
-  if ! docker exec "$PG_CONTAINER" sh -ec \
-    'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' \
-    > "$PG_DUMP_TMP"; then
-    rm -f -- "$PG_DUMP_TMP"
-    fail "PostgreSQL backup failed; partial dump was removed"
+  PG_DUMP_ERR="$AUDIT_DIR/postgresql-backup.err"
+  PG_CLIENT_POLICY="$(nexolab_postgresql_client_policy)" || fail "PostgreSQL backup guard is missing"
+  [[ ! -e "$AUDIT_DIR/postgresql-pre-upgrade.dump" ]] || fail "PostgreSQL backup already exists; preserving it"
+  if ! (set -o noclobber; timeout -k 10 930 docker exec "$PG_CONTAINER" sh -ec \
+    "set -- dump
+$PG_CLIENT_POLICY" > "$PG_DUMP_TMP" 2> "$PG_DUMP_ERR"); then
+    fail "Bounded PostgreSQL backup failed; partial dump and diagnostics preserved"
   fi
   if [[ ! -s "$PG_DUMP_TMP" ]]; then
-    rm -f -- "$PG_DUMP_TMP"
-    fail "PostgreSQL backup is empty; partial dump was removed"
+    fail "PostgreSQL backup is empty; partial dump and diagnostics preserved"
+  fi
+  if ! timeout -k 10 90 docker exec -i "$PG_CONTAINER" sh -ec \
+    "set -- list
+$PG_CLIENT_POLICY" < "$PG_DUMP_TMP" > /dev/null 2>> "$PG_DUMP_ERR"; then
+    fail "PostgreSQL archive verification failed; partial dump and diagnostics preserved"
   fi
   mv -- "$PG_DUMP_TMP" "$AUDIT_DIR/postgresql-pre-upgrade.dump"
 else

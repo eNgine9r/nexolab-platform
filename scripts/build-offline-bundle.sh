@@ -290,6 +290,7 @@ cp scripts/deploy-object-storage-migration.py "$STAGING/scripts/"
 mkdir -p "$STAGING/scripts/lib"
 cp scripts/lib/deployment-lock.sh "$STAGING/scripts/lib/"
 cp scripts/lib/raspberry-pi-frontend-release.sh "$STAGING/scripts/lib/"
+cp scripts/lib/postgresql-backup-client.sh "$STAGING/scripts/lib/"
 cp scripts/nexolab-protected-frontend.py "$STAGING/scripts/"
 cp scripts/nexolab-protected-package.py "$STAGING/scripts/"
 if [[ -n "$EXTERNAL_FRONTEND_ARTIFACT" ]]; then
@@ -332,7 +333,7 @@ payload = {
     "source_repository": "eNgine9r/nexolab-platform",
     "source_commit": source_commit,
     "tooling_commit": tooling_commit,
-    "tooling_capabilities": ["runtime-mode", "hardware", "split-runtime-tooling"],
+    "tooling_capabilities": ["runtime-mode", "hardware", "split-runtime-tooling", "bounded-postgresql-backup"],
     "bundle_version": version,
     "platform": platform,
     "builder": "scripts/build-offline-bundle.sh",

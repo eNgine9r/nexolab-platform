@@ -118,6 +118,26 @@ frontend restoration alone does not prove backend/database recovery.
 
 ## Operator acceptance
 
+PostgreSQL backup clients now use one policy inside their database container:
+512 MiB of virtual address space, 600 seconds of CPU time, a 900-second wall-clock
+timeout with a ten-second kill grace, and lower CPU/I/O priority. The host worker
+also bounds its Docker invocation. These are client limits; database-server
+resources are unchanged. Missing tools or unsupported limits fail closed.
+Container environment overrides may only shorten the reviewed time limits or
+lower the memory ceiling; zero, unlimited and larger values are rejected.
+Archive listing has its own 60-second container timeout. Failed, empty or invalid
+backups retain private partial files and diagnostics and stop before mutation;
+only an archive passing `pg_restore --list` is promoted. This listing checks
+archive structure, and does not replace restore testing.
+
+Capacity measurement uses the same bounded dump policy, reuses its successful
+process-local measurement, and falls back to a conservative database-size
+estimate on measurement failure. New bundle provenance advertises
+`bounded-postgresql-backup`; its client policy must be in the checksum inventory.
+Install the corresponding reviewed worker/tooling before repeating an interrupted
+installation. An inert limit probe is not evidence of a successful full backup
+or a diagnosis of a host freeze.
+
 Settings → System Version displays the actual frontend commit/build for the
 current link separately from the update record. A mismatch warns the operator and
 blocks activation. Unpackaged source authority gives an explicit package setup
