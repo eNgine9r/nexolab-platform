@@ -127,6 +127,7 @@ jobs:
             scripts/tests/test_nexolab_update_orchestrator.py \
             scripts/tests/test_nexolab_update_orchestrator_requests.py \
             scripts/tests/test_nexolab_version_manager.py \
+            scripts/tests/test_nexolab_postgresql_backup.py \
             scripts/tests/test_nexolab_version_manager_runtime.py \
             scripts/tests/test_protected_frontend_release.py \
             scripts/tests/test_protected_package.py \

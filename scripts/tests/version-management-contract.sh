@@ -16,7 +16,9 @@ python3 "$SCRIPT" stage --help >/dev/null
 python3 "$SCRIPT" bootstrap --help >/dev/null
 python3 "$SCRIPT" run-once --help >/dev/null
 
-grep -q 'pg_dump' "$SCRIPT"
+grep -q 'postgresql_client_policy' "$SCRIPT"
+grep -q 'pg_dump' "$REPO_ROOT/scripts/lib/postgresql-backup-client.sh"
+sh -n "$REPO_ROOT/scripts/lib/postgresql-backup-client.sh"
 grep -q 'alembic.*current' "$SCRIPT"
 grep -q 'verify-offline-bundle.py' "$SCRIPT"
 grep -q 'runtime_compatible_schema_heads' "$SCRIPT"

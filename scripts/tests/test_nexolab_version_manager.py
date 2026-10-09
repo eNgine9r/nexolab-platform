@@ -210,6 +210,72 @@ def test_backup_failure_stops_before_install_and_preserves_current(tmp_path: Pat
     assert not request_path.exists()
 
 
+def test_backup_timeout_preserves_partial_and_source_authority(tmp_path: Path) -> None:
+    root, _, target_root, current, args = fixture_state(tmp_path, "backup-timeout")
+    _, verified_manifest = manifests(target_root)
+    request = root / "requests" / "backup-timeout.json"
+
+    def timeout(command, **kwargs):
+        kwargs["stdout"].write(b"incomplete-dump")
+        raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+
+    with (
+        patch.object(manager, "verify_staged_bundle", side_effect=verified_manifest),
+        patch.object(manager, "run_capacity_preflight", return_value="capacity.txt"),
+        patch.object(manager.subprocess, "run", side_effect=timeout),
+    ):
+        with pytest.raises(subprocess.TimeoutExpired):
+            manager.execute_request(args, request)
+    assert json.loads((root / "current.json").read_text()) == current
+    operation = json.loads((root / "operations" / "backup-timeout.json").read_text())
+    assert operation["phase"] == "creating_backup"
+    assert operation["status"] == "failed"
+    partials = list(args.backup_dir.glob("*.dump.partial"))
+    assert len(partials) == 1
+    assert partials[0].read_bytes() == b"incomplete-dump"
+    assert partials[0].stat().st_mode & 0o777 == 0o600
+
+
+def test_invalid_backup_archive_never_promotes_partial(tmp_path: Path) -> None:
+    calls = []
+
+    def backup_then_bad_archive(command, **kwargs):
+        calls.append(command)
+        if command[-1].startswith("set -- dump\n"):
+            kwargs["stdout"].write(b"invalid-archive")
+            return subprocess.CompletedProcess(command, 0)
+        raise subprocess.CalledProcessError(1, command)
+
+    with patch.object(manager.subprocess, "run", side_effect=backup_then_bad_archive):
+        with pytest.raises(subprocess.CalledProcessError):
+            manager.create_postgresql_backup(["docker", "compose"], tmp_path, "invalid.dump")
+    assert len(calls) == 2
+    assert not (tmp_path / "invalid.dump").exists()
+    assert (tmp_path / "invalid.dump.partial").read_bytes() == b"invalid-archive"
+    assert (tmp_path / "invalid.dump.stderr").stat().st_mode & 0o777 == 0o600
+
+
+def test_existing_verified_backup_cannot_be_overwritten(tmp_path: Path) -> None:
+    archive = tmp_path / "previous.dump"
+    archive.write_bytes(b"preserve verified archive")
+    with patch.object(manager.subprocess, "run") as process:
+        with pytest.raises(manager.VersionManagerFailure, match="already exists"):
+            manager.create_postgresql_backup(["docker", "compose"], tmp_path, archive.name)
+    process.assert_not_called()
+    assert archive.read_bytes() == b"preserve verified archive"
+
+
+def test_missing_client_policy_stops_before_backup_files_or_commands(tmp_path: Path) -> None:
+    with (
+        patch.object(manager, "__file__", str(tmp_path / "worker.py")),
+        patch.object(manager.subprocess, "run") as process,
+    ):
+        with pytest.raises(manager.VersionManagerFailure, match="policy is missing"):
+            manager.create_postgresql_backup(["docker", "compose"], tmp_path / "backups", "backup.dump")
+    process.assert_not_called()
+    assert not (tmp_path / "backups").exists()
+
+
 @pytest.mark.parametrize("install_fails", [False, True])
 def test_worker_records_verified_success_or_truthful_post_mutation_failure(
     tmp_path: Path,
@@ -244,7 +310,8 @@ def test_worker_records_verified_success_or_truthful_post_mutation_failure(
             manager.execute_request(args, request_path)
 
     assert "pg_dump" in calls[0][-1]
-    assert calls[1][-2:] == ["pg_restore", "--list"]
+    assert calls[1][-1].startswith("set -- list\n")
+    assert "pg_restore --list" in calls[1][-1]
     assert calls[2][0] == str(installer)
     deployed = json.loads((root / "current.json").read_text(encoding="utf-8"))
     completed = json.loads((root / "operations" / "operation-2.json").read_text(encoding="utf-8"))
