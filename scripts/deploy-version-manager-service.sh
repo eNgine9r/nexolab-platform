@@ -43,6 +43,7 @@ for file in \
   "$SOURCE_ROOT/scripts/nexolab-protected-package.py" \
   "$SOURCE_ROOT/scripts/nexolab-protected-frontend.py" \
   "$SOURCE_ROOT/scripts/lib/raspberry-pi-frontend-release.sh" \
+  "$SOURCE_ROOT/scripts/lib/postgresql-backup-client.sh" \
   "$SOURCE_ROOT/scripts/nexolab-update-orchestrator.py" \
   "$SOURCE_ROOT/scripts/deploy-capacity-guard.sh" \
   "$UNIT_ROOT/nexolab-version-manager.service" \
@@ -81,6 +82,7 @@ install -d -m 0755 /usr/local/lib/nexolab/lib
 install -m 0755 "$SOURCE_ROOT/scripts/nexolab-protected-package.py" /usr/local/lib/nexolab/nexolab-protected-package.py
 install -m 0755 "$SOURCE_ROOT/scripts/nexolab-protected-frontend.py" /usr/local/lib/nexolab/nexolab-protected-frontend.py
 install -m 0755 "$SOURCE_ROOT/scripts/lib/raspberry-pi-frontend-release.sh" /usr/local/lib/nexolab/lib/raspberry-pi-frontend-release.sh
+install -m 0755 "$SOURCE_ROOT/scripts/lib/postgresql-backup-client.sh" /usr/local/lib/nexolab/lib/postgresql-backup-client.sh
 install -m 0755 "$SOURCE_ROOT/scripts/nexolab-update-orchestrator.py" /usr/local/lib/nexolab/nexolab-update-orchestrator.py
 install -m 0755 "$SOURCE_ROOT/scripts/deploy-capacity-guard.sh" /usr/local/lib/nexolab/deploy-capacity-guard-base.sh
 cat > /usr/local/lib/nexolab/deploy-capacity-guard.sh <<'EOF'

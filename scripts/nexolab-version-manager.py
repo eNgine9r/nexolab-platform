@@ -674,14 +674,30 @@ def capture_volume_identities(*, skip_edge: bool) -> list[dict[str, Any]]:
     return sorted(identities, key=lambda item: str(item["name"]))
 
 
+def postgresql_client_policy(mode: str) -> str:
+    if mode not in {"dump", "list"}:
+        raise VersionManagerFailure("invalid PostgreSQL backup client mode")
+    helper = Path(__file__).parent / "lib" / "postgresql-backup-client.sh"
+    if not helper.is_file():
+        raise VersionManagerFailure("bounded PostgreSQL backup client policy is missing")
+    return f"set -- {mode}\n" + helper.read_text(encoding="utf-8")
+
+
 def create_postgresql_backup(
     central: list[str], backup_dir: Path, backup_id: str,
     *, compose_env: dict[str, str] | None = None,
 ) -> Path:
     backup_path = backup_dir.resolve() / backup_id
     partial_backup_path = backup_path.with_suffix(".dump.partial")
+    stderr_path = backup_path.with_suffix(".dump.stderr")
+    dump_policy = postgresql_client_policy("dump")
+    list_policy = postgresql_client_policy("list")
+    if backup_path.exists() or backup_path.is_symlink():
+        raise VersionManagerFailure("PostgreSQL backup already exists; preserving it")
     backup_path.parent.mkdir(parents=True, exist_ok=True, mode=0o750)
-    with partial_backup_path.open("xb") as output:
+    with partial_backup_path.open("xb") as output, stderr_path.open("xb") as errors:
+        os.fchmod(output.fileno(), 0o600)
+        os.fchmod(errors.fileno(), 0o600)
         subprocess.run(
             central
             + [
@@ -690,21 +706,25 @@ def create_postgresql_backup(
                 "postgres",
                 "sh",
                 "-ec",
-                'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc',
+                dump_policy,
             ],
             check=True,
             stdout=output,
+            stderr=errors,
             env=compose_env,
+            timeout=930,
         )
     if partial_backup_path.stat().st_size == 0:
         raise VersionManagerFailure("PostgreSQL backup is empty")
-    with partial_backup_path.open("rb") as backup_input:
+    with partial_backup_path.open("rb") as backup_input, stderr_path.open("ab") as errors:
         subprocess.run(
-            central + ["exec", "-T", "postgres", "pg_restore", "--list"],
+            central + ["exec", "-T", "postgres", "sh", "-ec", list_policy],
             check=True,
             stdin=backup_input,
             stdout=subprocess.DEVNULL,
+            stderr=errors,
             env=compose_env,
+            timeout=90,
         )
     os.replace(partial_backup_path, backup_path)
     return backup_path
@@ -746,12 +766,14 @@ def validate_package_tooling(bundle_root: Path, manifest: dict[str, Any]) -> dic
     ):
         raise VersionManagerFailure("package tooling commit evidence is missing or invalid")
     capabilities = provenance.get("tooling_capabilities")
-    required_capabilities = {"runtime-mode", "hardware", "split-runtime-tooling"}
+    required_capabilities = {"runtime-mode", "hardware", "split-runtime-tooling", "hardware-startup-gate"}
     if not isinstance(capabilities, list) or not required_capabilities.issubset(set(capabilities)):
         raise VersionManagerFailure("package tooling capability evidence is incomplete")
     installer = bundle_root / "scripts" / "install-offline-bundle.sh"
     if not installer.is_file():
         raise VersionManagerFailure("package installer is missing")
+    if not (bundle_root / "scripts" / "device-agent-startup-gate.py").is_file():
+        raise VersionManagerFailure("package hardware startup gate is missing")
     required_overlays = (
         "compose.hardware.yaml",
         "compose.edge-central-bridge.yaml",
@@ -769,6 +791,19 @@ def validate_package_tooling(bundle_root: Path, manifest: dict[str, Any]) -> dic
         "tooling_commit": tooling_commit,
         "tooling_capabilities": sorted(required_capabilities),
     }
+
+
+def preflight_offline_hardware(
+    bundle_root: Path, args: argparse.Namespace, runtime_mode: str,
+    compose_env: dict[str, str],
+) -> None:
+    # Loading/verifying images and isolated startup must finish before stopping
+    # a source dashboard or declaring a transaction runtime-mutating.
+    subprocess.run(
+        offline_installer_command(bundle_root, args, runtime_mode=runtime_mode, hardware=True)
+        + ["--preflight-only"],
+        check=True, env=compose_env,
+    )
 
 
 def offline_installer_command(
@@ -997,6 +1032,11 @@ def establish_package_authority(args: argparse.Namespace) -> None:
             protected_frontend.prepare()
             atomic_json(transition_path, transition)
 
+            if not args.skip_edge:
+                preflight_offline_hardware(
+                    target_root, args, str(current["runtime_mode"]), compose_env
+                )
+
             central = compose_args(
                 target_root,
                 args.central_env.resolve(),
@@ -1204,6 +1244,11 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         operation["capacity_evidence_id"] = run_capacity_preflight(root, operation_id)
         protected_frontend.prepare()
         atomic_json(operation_path, operation)
+
+        if hardware_required:
+            preflight_offline_hardware(
+                target_root, args, str(current["runtime_mode"]), compose_env
+            )
 
         enter_phase(operation_path, operation, "creating_backup")
         backup_id = f"{operation_id}-postgresql.dump"

@@ -37,6 +37,7 @@ def write_tooling_fixture(bundle_root: Path, source_commit: str) -> None:
     (bundle_root / "scripts" / "install-offline-bundle.sh").write_text(
         "#!/bin/sh\nexit 0\n", encoding="utf-8"
     )
+    (bundle_root / "scripts" / "device-agent-startup-gate.py").write_text("# fixture\n")
     (bundle_root / "evidence").mkdir(parents=True, exist_ok=True)
     (bundle_root / "evidence" / "provenance.json").write_text(
         json.dumps(
@@ -47,6 +48,7 @@ def write_tooling_fixture(bundle_root: Path, source_commit: str) -> None:
                     "runtime-mode",
                     "hardware",
                     "split-runtime-tooling",
+                    "hardware-startup-gate",
                 ],
             }
         ),
@@ -210,6 +212,72 @@ def test_backup_failure_stops_before_install_and_preserves_current(tmp_path: Pat
     assert not request_path.exists()
 
 
+def test_backup_timeout_preserves_partial_and_source_authority(tmp_path: Path) -> None:
+    root, _, target_root, current, args = fixture_state(tmp_path, "backup-timeout")
+    _, verified_manifest = manifests(target_root)
+    request = root / "requests" / "backup-timeout.json"
+
+    def timeout(command, **kwargs):
+        kwargs["stdout"].write(b"incomplete-dump")
+        raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+
+    with (
+        patch.object(manager, "verify_staged_bundle", side_effect=verified_manifest),
+        patch.object(manager, "run_capacity_preflight", return_value="capacity.txt"),
+        patch.object(manager.subprocess, "run", side_effect=timeout),
+    ):
+        with pytest.raises(subprocess.TimeoutExpired):
+            manager.execute_request(args, request)
+    assert json.loads((root / "current.json").read_text()) == current
+    operation = json.loads((root / "operations" / "backup-timeout.json").read_text())
+    assert operation["phase"] == "creating_backup"
+    assert operation["status"] == "failed"
+    partials = list(args.backup_dir.glob("*.dump.partial"))
+    assert len(partials) == 1
+    assert partials[0].read_bytes() == b"incomplete-dump"
+    assert partials[0].stat().st_mode & 0o777 == 0o600
+
+
+def test_invalid_backup_archive_never_promotes_partial(tmp_path: Path) -> None:
+    calls = []
+
+    def backup_then_bad_archive(command, **kwargs):
+        calls.append(command)
+        if command[-1].startswith("set -- dump\n"):
+            kwargs["stdout"].write(b"invalid-archive")
+            return subprocess.CompletedProcess(command, 0)
+        raise subprocess.CalledProcessError(1, command)
+
+    with patch.object(manager.subprocess, "run", side_effect=backup_then_bad_archive):
+        with pytest.raises(subprocess.CalledProcessError):
+            manager.create_postgresql_backup(["docker", "compose"], tmp_path, "invalid.dump")
+    assert len(calls) == 2
+    assert not (tmp_path / "invalid.dump").exists()
+    assert (tmp_path / "invalid.dump.partial").read_bytes() == b"invalid-archive"
+    assert (tmp_path / "invalid.dump.stderr").stat().st_mode & 0o777 == 0o600
+
+
+def test_existing_verified_backup_cannot_be_overwritten(tmp_path: Path) -> None:
+    archive = tmp_path / "previous.dump"
+    archive.write_bytes(b"preserve verified archive")
+    with patch.object(manager.subprocess, "run") as process:
+        with pytest.raises(manager.VersionManagerFailure, match="already exists"):
+            manager.create_postgresql_backup(["docker", "compose"], tmp_path, archive.name)
+    process.assert_not_called()
+    assert archive.read_bytes() == b"preserve verified archive"
+
+
+def test_missing_client_policy_stops_before_backup_files_or_commands(tmp_path: Path) -> None:
+    with (
+        patch.object(manager, "__file__", str(tmp_path / "worker.py")),
+        patch.object(manager.subprocess, "run") as process,
+    ):
+        with pytest.raises(manager.VersionManagerFailure, match="policy is missing"):
+            manager.create_postgresql_backup(["docker", "compose"], tmp_path / "backups", "backup.dump")
+    process.assert_not_called()
+    assert not (tmp_path / "backups").exists()
+
+
 @pytest.mark.parametrize("install_fails", [False, True])
 def test_worker_records_verified_success_or_truthful_post_mutation_failure(
     tmp_path: Path,
@@ -244,7 +312,8 @@ def test_worker_records_verified_success_or_truthful_post_mutation_failure(
             manager.execute_request(args, request_path)
 
     assert "pg_dump" in calls[0][-1]
-    assert calls[1][-2:] == ["pg_restore", "--list"]
+    assert calls[1][-1].startswith("set -- list\n")
+    assert "pg_restore --list" in calls[1][-1]
     assert calls[2][0] == str(installer)
     deployed = json.loads((root / "current.json").read_text(encoding="utf-8"))
     completed = json.loads((root / "operations" / "operation-2.json").read_text(encoding="utf-8"))
@@ -590,7 +659,8 @@ def test_backup_failure_preserves_source_authority_and_skips_install(tmp_path: P
         with pytest.raises(manager.VersionManagerFailure, match="backup failed"):
             manager.establish_package_authority(args)
 
-    installer_run.assert_not_called()
+    assert installer_run.call_count == 1
+    assert "--preflight-only" in installer_run.call_args.args[0]
     assert json.loads((root / "current.json").read_text(encoding="utf-8")) == current
     evidence = json.loads(
         (root / "operation-evidence" / "transition-backup-fail" / "transition.json").read_text(
@@ -607,6 +677,8 @@ def test_installer_failure_preserves_source_authority(tmp_path: Path) -> None:
 
     def fail_installer(command: list[str], **_: object):
         assert command[0] == str(installer)
+        if "--preflight-only" in command:
+            return subprocess.CompletedProcess(command, 0, stdout="")
         raise subprocess.CalledProcessError(1, command)
 
     with (
@@ -639,6 +711,10 @@ def test_failed_protected_restore_keeps_authority_unknown_despite_lan_restore(tm
     root, target_root, target, current, args, volumes = transition_fixture(tmp_path)
     protected = Mock()
     protected.rollback.side_effect = ValueError("protected frontend recovery failed")
+    def fail_activation(command: list[str], **_: object):
+        if "--preflight-only" in command:
+            return subprocess.CompletedProcess(command, 0)
+        raise subprocess.CalledProcessError(1, ["installer"])
     with (
         patch.object(manager, "verify_staged_bundle", return_value=target),
         patch.object(manager, "verify_real_hardware_runtime", return_value={"status": "verified"}),
@@ -650,7 +726,7 @@ def test_failed_protected_restore_keeps_authority_unknown_despite_lan_restore(tm
         patch.object(manager, "capture_volume_identities", return_value=volumes),
         patch.object(manager, "run_capacity_preflight", return_value="capacity.txt"),
         patch.object(manager, "create_postgresql_backup"),
-        patch.object(manager.subprocess, "run", side_effect=subprocess.CalledProcessError(1, ["installer"])),
+        patch.object(manager.subprocess, "run", side_effect=fail_activation),
     ):
         with pytest.raises(subprocess.CalledProcessError):
             manager.establish_package_authority(args)
@@ -868,6 +944,7 @@ def test_package_tooling_allows_runtime_commit_to_differ_from_tooling_commit(tmp
     assert evidence["tooling_commit"] != evidence["source_commit"]
     assert evidence["tooling_capabilities"] == [
         "hardware",
+        "hardware-startup-gate",
         "runtime-mode",
         "split-runtime-tooling",
     ]
@@ -893,6 +970,8 @@ def test_installer_failure_restores_full_source_runtime(tmp_path: Path) -> None:
 
     def fail_installer(command: list[str], **_: object):
         assert command[0] == str(installer)
+        if "--preflight-only" in command:
+            return subprocess.CompletedProcess(command, 0, stdout="")
         raise subprocess.CalledProcessError(1, command)
 
     with (
@@ -1057,3 +1136,40 @@ def test_direct_installer_local_auth_preflight_fails_before_docker_load(tmp_path
     assert docker_calls == ["compose version"]
     installer_text = installer.read_text(encoding="utf-8")
     assert installer_text.index("LOCAL_AUTH_EXPORTS=") < installer_text.index("docker load --input")
+
+
+def test_hardware_startup_failure_preserves_live_source_before_backup_or_handoff(tmp_path: Path) -> None:
+    root, _, target, current, args, volumes = transition_fixture(tmp_path)
+    with (
+        patch.object(manager, "verify_staged_bundle", return_value=target),
+        patch.object(manager, "verify_real_hardware_runtime", return_value={"status": "verified"}),
+        patch.object(manager, "source_dashboard_state", return_value={"active": True, "enabled": True}),
+        patch.object(manager, "source_transition_id", return_value="transition-startup-fail"),
+        patch.object(manager, "capture_volume_identities", return_value=volumes),
+        patch.object(manager, "run_capacity_preflight", return_value="capacity.txt"),
+        patch.object(manager, "create_postgresql_backup") as backup,
+        patch.object(manager, "stop_source_dashboard") as stop,
+        patch.object(manager, "restore_source_runtime") as restore,
+        patch.object(manager.subprocess, "run", side_effect=subprocess.CalledProcessError(1, ["startup-preflight"])) as run,
+    ):
+        with pytest.raises(subprocess.CalledProcessError):
+            manager.establish_package_authority(args)
+    assert "--preflight-only" in run.call_args.args[0]
+    assert backup.call_count == stop.call_count == restore.call_count == 0
+    assert json.loads((root / "current.json").read_text()) == current
+
+
+def test_package_tooling_rejects_missing_startup_gate_capability_or_file(tmp_path: Path) -> None:
+    bundle = tmp_path / "bundle"
+    source = "a" * 40
+    write_tooling_fixture(bundle, source)
+    provenance_path = bundle / "evidence/provenance.json"
+    provenance = json.loads(provenance_path.read_text())
+    provenance["tooling_capabilities"].remove("hardware-startup-gate")
+    provenance_path.write_text(json.dumps(provenance))
+    with pytest.raises(manager.VersionManagerFailure, match="capability evidence is incomplete"):
+        manager.validate_package_tooling(bundle, {"source_commit": source})
+    write_tooling_fixture(bundle, source)
+    (bundle / "scripts/device-agent-startup-gate.py").unlink()
+    with pytest.raises(manager.VersionManagerFailure, match="startup gate is missing"):
+        manager.validate_package_tooling(bundle, {"source_commit": source})

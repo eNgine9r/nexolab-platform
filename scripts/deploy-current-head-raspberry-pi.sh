@@ -1236,7 +1236,7 @@ if ! command -v node >/dev/null 2>&1; then
   log "Resolved repository Node baseline from deterministic NVM location: $NVM_NODE_BIN"
 fi
 
-for command in docker curl python3 openssl node flock ip sudo tar du df find sort stat mv rm ss sha256sum cp cmp install setsid ps awk; do
+for command in docker curl python3 openssl node flock ip sudo tar du df find sort stat mv rm ss sha256sum cp cmp install setsid ps awk timeout; do
   require "$command"
 done
 docker compose version >/dev/null 2>&1 || fail "Docker Compose v2 is unavailable"
@@ -1365,16 +1365,21 @@ docker volume inspect \
 if [[ -n "$PG_CONTAINER" ]]; then
   log "Creating PostgreSQL pre-upgrade backup"
   PG_DUMP_TMP="$AUDIT_DIR/.postgresql-pre-upgrade.dump.partial"
-  rm -f -- "$PG_DUMP_TMP"
-  if ! docker exec "$PG_CONTAINER" sh -ec \
-    'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' \
-    > "$PG_DUMP_TMP"; then
-    rm -f -- "$PG_DUMP_TMP"
-    fail "PostgreSQL backup failed; partial dump was removed"
+  PG_DUMP_ERR="$AUDIT_DIR/postgresql-backup.err"
+  PG_CLIENT_POLICY="$(nexolab_postgresql_client_policy)" || fail "PostgreSQL backup guard is missing"
+  [[ ! -e "$AUDIT_DIR/postgresql-pre-upgrade.dump" ]] || fail "PostgreSQL backup already exists; preserving it"
+  if ! (set -o noclobber; timeout -k 10 930 docker exec "$PG_CONTAINER" sh -ec \
+    "set -- dump
+$PG_CLIENT_POLICY" > "$PG_DUMP_TMP" 2> "$PG_DUMP_ERR"); then
+    fail "Bounded PostgreSQL backup failed; partial dump and diagnostics preserved"
   fi
   if [[ ! -s "$PG_DUMP_TMP" ]]; then
-    rm -f -- "$PG_DUMP_TMP"
-    fail "PostgreSQL backup is empty; partial dump was removed"
+    fail "PostgreSQL backup is empty; partial dump and diagnostics preserved"
+  fi
+  if ! timeout -k 10 90 docker exec -i "$PG_CONTAINER" sh -ec \
+    "set -- list
+$PG_CLIENT_POLICY" < "$PG_DUMP_TMP" > /dev/null 2>> "$PG_DUMP_ERR"; then
+    fail "PostgreSQL archive verification failed; partial dump and diagnostics preserved"
   fi
   mv -- "$PG_DUMP_TMP" "$AUDIT_DIR/postgresql-pre-upgrade.dump"
 else
@@ -1392,6 +1397,15 @@ sha256sum "$EDGE_SNAPSHOT_HELPER" > "$AUDIT_DIR/deploy-edge-sqlite-snapshot.sha2
 DEVICE_AGENT_HEALTH_GATE_HELPER="$AUDIT_DIR/device-agent-deployment-health-gate.py"
 install -m 0500 "$SCRIPT_DIR/device-agent-deployment-health-gate.py" "$DEVICE_AGENT_HEALTH_GATE_HELPER"
 sha256sum "$DEVICE_AGENT_HEALTH_GATE_HELPER" > "$AUDIT_DIR/device-agent-deployment-health-gate.sha256"
+
+DEVICE_AGENT_STARTUP_GATE_HELPER="$AUDIT_DIR/device-agent-startup-gate.py"
+DEVICE_AGENT_STARTUP_OVERLAY="$AUDIT_DIR/compose.device-agent-startup.json"
+install -m 0500 "$SCRIPT_DIR/device-agent-startup-gate.py" "$DEVICE_AGENT_STARTUP_GATE_HELPER"
+sha256sum "$DEVICE_AGENT_STARTUP_GATE_HELPER" > "$AUDIT_DIR/device-agent-startup-gate.sha256"
+# This control-tooling overlay survives historical source checkout. It changes
+# only startup/image selection, retaining the selected source's site contract.
+python3 "$DEVICE_AGENT_STARTUP_GATE_HELPER" write-overlay --output "$DEVICE_AGENT_STARTUP_OVERLAY"
+EDGE_COMPOSE_ARGS+=( -f "$DEVICE_AGENT_STARTUP_OVERLAY" )
 
 if [[ "$TARGET_HEAD" != "$CONTROL_HEAD" ]]; then
   log "Switching temporarily to approved historical main source: $TARGET_HEAD"
@@ -1827,6 +1841,20 @@ fi
 preserve_deployed_device_agent_image_for_recovery
 log "Building current Device Agent image"
 docker build --pull -t nexolab-device-agent:local "$REPO/services/device-agent"
+DEVICE_AGENT_CANDIDATE_IMAGE_ID="$(docker image inspect --format '{{.Id}}' nexolab-device-agent:local)"
+python3 "$DEVICE_AGENT_STARTUP_GATE_HELPER" write-overlay \
+  --output "$DEVICE_AGENT_STARTUP_OVERLAY" --image-id "$DEVICE_AGENT_CANDIDATE_IMAGE_ID"
+sha256sum "$DEVICE_AGENT_STARTUP_OVERLAY" > "$AUDIT_DIR/compose.device-agent-startup.sha256"
+DEVICE_AGENT_STARTUP_COMPOSE_ARGS=()
+for ((startup_index=1; startup_index<${#EDGE_COMPOSE_ARGS[@]}; startup_index+=2)); do
+  DEVICE_AGENT_STARTUP_COMPOSE_ARGS+=( --compose-file "${EDGE_COMPOSE_ARGS[startup_index]}" )
+done
+log "Verifying isolated Device Agent startup before quiesce or runtime mutation"
+python3 "$DEVICE_AGENT_STARTUP_GATE_HELPER" check \
+  --expected-image-id "$DEVICE_AGENT_CANDIDATE_IMAGE_ID" --platform linux/arm64 \
+  --env-file "$EDGE_ENV" "${DEVICE_AGENT_STARTUP_COMPOSE_ARGS[@]}" \
+  > "$AUDIT_DIR/device-agent-startup-gate.json" \
+  || fail "Device Agent startup preflight failed; running acquisition was not stopped"
 
 ACTUAL_NODE_VERSION="$(node --version | sed 's/^v//')"
 [[ "$ACTUAL_NODE_VERSION" == "$EXPECTED_NODE_VERSION" ]] \
@@ -1968,6 +1996,10 @@ fi
 log "Frontend candidate verified and terminated without mutating the active dashboard"
 nexolab_external_frontend_prepare || fail "protected frontend candidate verification failed before runtime mutation"
 
+sha256sum --check --status "$AUDIT_DIR/device-agent-startup-gate.sha256" \
+  || fail "staged Device Agent startup gate changed before quiesce"
+sha256sum --check --status "$AUDIT_DIR/compose.device-agent-startup.sha256" \
+  || fail "startup-verified Device Agent override changed before quiesce"
 quiesce_edge_device_agent_for_cutover
 capture_edge_sqlite_snapshot
 write_durable_runtime_mutation_marker
@@ -2252,6 +2284,8 @@ python3 "$DEVICE_AGENT_HEALTH_GATE_HELPER" \
   >/dev/null \
   || fail "successful deployment evidence requires trustworthy Device Agent health"
 DEPLOYED_DEVICE_AGENT_IMAGE_ID="$(docker inspect --format '{{.Image}}' "$DEPLOYED_DEVICE_AGENT_CONTAINER")"
+[[ "$DEPLOYED_DEVICE_AGENT_IMAGE_ID" == "$DEVICE_AGENT_CANDIDATE_IMAGE_ID" ]] \
+  || fail "activated Device Agent image differs from the startup-verified candidate"
 [[ "$DEPLOYED_DEVICE_AGENT_IMAGE_ID" =~ ^sha256:[0-9a-f]{64}$ ]] \
   || fail "successful deployment evidence requires an exact Device Agent image ID"
 docker image inspect "$DEPLOYED_DEVICE_AGENT_IMAGE_ID" >/dev/null 2>&1 \

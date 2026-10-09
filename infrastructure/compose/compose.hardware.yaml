@@ -3,7 +3,10 @@ services:
     # The hardware overlay always uses the bus-aware entrypoint. Without an
     # explicit RS485_BUS_CONFIG_JSON it delegates to the exact legacy
     # rs485-main runtime path for backward compatibility.
-    command: ["dual_bus_main.py"]
+    # Both legacy distroless/python3 and the patched base-debian13 image expose
+    # this interpreter. Do not depend on the image's optional ENTRYPOINT.
+    entrypoint: ["/usr/bin/python3"]
+    command: ["/app/dual_bus_main.py"]
     environment:
       DEVICE_MODE: ${HARDWARE_DEVICE_MODE:-xjp60d}
       # Keep the operator-approved stable host identity authoritative inside the

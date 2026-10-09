@@ -4,6 +4,22 @@
 NEXOLAB_CAPACITY_PG_DUMP_CACHE_CONTAINER=
 NEXOLAB_CAPACITY_PG_DUMP_CACHE_BYTES=
 
+# Pin canonical tooling before historical source selection replaces the checkout.
+# Never use inherited executable policy from the environment.
+NEXOLAB_POSTGRESQL_CLIENT_POLICY=
+NEXOLAB_POSTGRESQL_CLIENT_POLICY_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/postgresql-backup-client.sh"
+if [[ -r "$NEXOLAB_POSTGRESQL_CLIENT_POLICY_PATH" ]]; then
+  NEXOLAB_POSTGRESQL_CLIENT_POLICY="$(cat -- "$NEXOLAB_POSTGRESQL_CLIENT_POLICY_PATH")"
+fi
+
+nexolab_postgresql_client_policy() {
+  [[ -n "$NEXOLAB_POSTGRESQL_CLIENT_POLICY" ]] || {
+    printf 'ERROR: bounded PostgreSQL client policy is missing\n' >&2
+    return 78
+  }
+  printf '%s\n' "$NEXOLAB_POSTGRESQL_CLIENT_POLICY"
+}
+
 nexolab_capacity_uint() {
   local name=$1
   local value=$2
@@ -225,7 +241,11 @@ nexolab_capacity_measure_postgres_dump() {
     return 0
   fi
 
-  local status_file measured dump_rc
+  local status_file measured dump_rc client_policy
+  client_policy="$(nexolab_postgresql_client_policy)" || {
+    NEXOLAB_CAPACITY_PG_DUMP_SOURCE=unavailable
+    return 0
+  }
   if ! status_file="$(mktemp "${TMPDIR:-/tmp}/nexolab-pg-dump-status.XXXXXX")"; then
     NEXOLAB_CAPACITY_PG_DUMP_SOURCE=unavailable
     NEXOLAB_CAPACITY_PG_DUMP_BYTES=0
@@ -235,7 +255,8 @@ nexolab_capacity_measure_postgres_dump() {
     {
       set +e
       docker exec "$pg_container" sh -ec \
-        'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' 2>/dev/null
+        "set -- dump
+$client_policy" 2>/dev/null
       printf '%s\n' "$?" > "$status_file"
     } | wc -c
   )"

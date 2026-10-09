@@ -53,6 +53,19 @@ def require(condition: bool, message: str) -> None:
         raise SystemExit(message)
 
 
+def verify_backup_policy_inventory(bundle_root: Path, seen_paths: set[str]) -> None:
+    provenance_path = bundle_root / "evidence" / "provenance.json"
+    if provenance_path.is_file():
+        capabilities = load_json(provenance_path).get("tooling_capabilities", [])
+        require(isinstance(capabilities, list), "Invalid tooling capabilities")
+        if "hardware-startup-gate" in capabilities:
+            require("scripts/device-agent-startup-gate.py" in seen_paths,
+                    "Hardware startup gate is not digest-bound")
+        if "bounded-postgresql-backup" in capabilities:
+            require("scripts/lib/postgresql-backup-client.sh" in seen_paths,
+                    "Bounded PostgreSQL backup policy is not digest-bound")
+
+
 def verify_manifest(bundle_root: Path, manifest: dict[str, Any]) -> dict[str, dict[str, Any]]:
     require(manifest.get("schema_version") == 1, "Unsupported manifest schema")
     require(manifest.get("platform") in {"linux/amd64", "linux/arm64"}, "Unsupported platform")
@@ -140,6 +153,7 @@ def verify_manifest(bundle_root: Path, manifest: dict[str, Any]) -> dict[str, di
         require(path.stat().st_size == record.get("size_bytes"), f"Size mismatch: {relative}")
         require(sha256(path) == record.get("sha256"), f"Checksum mismatch: {relative}")
     require(overlay_relative in seen_paths, "Local auth Compose overlay is not in the file inventory")
+    verify_backup_policy_inventory(bundle_root, seen_paths)
     if manifest.get("external_frontend") is not None or (bundle_root / "frontend-external").exists():
         for dependency in ("scripts/nexolab-protected-package.py", "scripts/nexolab-protected-frontend.py", "scripts/lib/raspberry-pi-frontend-release.sh"):
             require(dependency in seen_paths, "Protected frontend tooling is not digest-bound: " + dependency)
