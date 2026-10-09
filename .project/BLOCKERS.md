@@ -2,6 +2,12 @@
 
 Updated: 2026-10-08
 
+## Issue #1313 — source review and exact-source host acceptance required
+
+The unified update implementation is published in draft PR #1314 on `feat/1313-unified-protected-updates` and depends on draft PR #1312. Required exact-head CI and review must complete before merge. Current production LAN and HTTPS source identities differ; the version record remains source-only, so package actions correctly stay blocked. Source tests do not grant package authority.
+
+After source acceptance, a Product Owner-approved exact-source activation must unify both frontends, adopt authoritative deployment lineage, install the new worker/tooling, stage current and target offline packages including their matching HTTPS artifacts, and perform the existing backup/volume/readiness package-authority transition. Commander root/read-only restrictions must be respected. Actual-host update/rollback, permitted/denied Google accounts and full-session expiry are unverified for this Work Package. OAuth/NGINX/Funnel configuration, Modbus/hardware writes and destructive data operations are outside scope. Production activation remains unapproved.
+
 ## Issues #1306 / #1309 — CI optimization complete; no remaining merge/cache blocker
 
 PR #1280 merged GREEN to `main` at `ee9738ab39ca369b8d49aec9971fdf25a2ed0b79` (Issue #1306 closed); all four P2/P1 review threads are resolved. Exact-head Core, Offline Bundle, Telemetry and Telegram workflows, including Merge Gate and offline/rollback proof, passed. Trusted main cache seed run `37765454910` saved v3 cache (730,097,276 bytes); cross-branch restore run `37769230362` proved `Cache hit` and offline/rollback success. No CI cache blocker remains. This is **not** proof of universal cache speedups or live Raspberry hardware acceptance. Main CI-only source `ee9738ab39ca369b8d49aec9971fdf25a2ed0b79` is not the installed site baseline; the Raspberry remains at `d00a83bfc83fb120777c721b5e46fa50ae455c7d`. Historical notes below are not current blockers.

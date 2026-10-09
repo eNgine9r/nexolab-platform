@@ -13,6 +13,16 @@ manager = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(manager)
 
 
+def test_package_worker_rejects_unsynchronized_protected_frontend_before_mutation(tmp_path, monkeypatch):
+    unit = tmp_path / "nexolab-external-frontend.service"
+    monkeypatch.setattr(manager, "PROTECTED_FRONTEND_UNIT", unit)
+    manager.require_supported_frontend_topology()
+    unit.write_text("[Service]\nWorkingDirectory=/old-external-release\n")
+    with pytest.raises(manager.VersionManagerFailure, match="protected_frontend_package_required"):
+        manager.require_supported_frontend_topology()
+    manager.require_supported_frontend_topology({"external_frontend": {"profile": "google_https"}})
+
+
 def health_payload(
     *,
     expected: int = 1,

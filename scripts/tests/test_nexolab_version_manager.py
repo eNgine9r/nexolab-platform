@@ -635,6 +635,32 @@ def test_installer_failure_preserves_source_authority(tmp_path: Path) -> None:
     assert failed_current["health"] == "verification_failed"
 
 
+def test_failed_protected_restore_keeps_authority_unknown_despite_lan_restore(tmp_path: Path) -> None:
+    root, target_root, target, current, args, volumes = transition_fixture(tmp_path)
+    protected = Mock()
+    protected.rollback.side_effect = ValueError("protected frontend recovery failed")
+    with (
+        patch.object(manager, "verify_staged_bundle", return_value=target),
+        patch.object(manager, "verify_real_hardware_runtime", return_value={"status": "verified"}),
+        patch.object(manager, "source_dashboard_state", return_value={"active": True, "enabled": True}),
+        patch.object(manager, "stop_source_dashboard"),
+        patch.object(manager, "protected_frontend_transaction", return_value=protected),
+        patch.object(manager, "restore_source_runtime", return_value={"status": "restored"}),
+        patch.object(manager, "source_transition_id", return_value="transition-protected-restore-fail"),
+        patch.object(manager, "capture_volume_identities", return_value=volumes),
+        patch.object(manager, "run_capacity_preflight", return_value="capacity.txt"),
+        patch.object(manager, "create_postgresql_backup"),
+        patch.object(manager.subprocess, "run", side_effect=subprocess.CalledProcessError(1, ["installer"])),
+    ):
+        with pytest.raises(subprocess.CalledProcessError):
+            manager.establish_package_authority(args)
+    failed = json.loads((root / "current.json").read_text())
+    assert failed["source_commit"] == current["source_commit"]
+    assert failed["runtime_state_known"] is False
+    assert failed["health"] == "verification_failed"
+    protected.rollback.assert_called_once()
+
+
 def test_volume_identity_drift_blocks_authority_commit(tmp_path: Path) -> None:
     root, _, target, current, args, volumes = transition_fixture(tmp_path)
     changed = [dict(item) for item in volumes]
