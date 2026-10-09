@@ -11,6 +11,7 @@ on:
       - "infrastructure/object-storage/**"
       - "scripts/object-storage-s3.py"
       - "scripts/build-offline-bundle.sh"
+      - "scripts/lib/postgresql-backup-client.sh"
       - "scripts/generate-offline-bundle-manifest.py"
       - "scripts/install-offline-bundle.sh"
       - "scripts/offline-bundle-smoke.sh"

@@ -570,6 +570,30 @@ class ChangeImpactClassifierTests(unittest.TestCase):
             ["Offline Bundle"],
         )
 
+    def test_backup_policy_and_contracts_have_registered_routes(self) -> None:
+        policy = "scripts/lib/postgresql-backup-client.sh"
+        paths = [policy, "scripts/tests/test_nexolab_postgresql_backup.py",
+                 "scripts/tests/version-management-contract.sh"]
+        result = classify(paths)
+        self.assertEqual(result["classes"], ["deployment_runtime"])
+        self.assertFalse(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertTrue(result["needs_full_quality"])
+        self.assertEqual(result["verification"]["required_external_workflows"], ["Offline Bundle"])
+        self.assertIn(f'"{policy}"', (ROOT / ".github/workflows/offline-bundle.yml").read_text())
+        telemetry = (ROOT / ".github/workflows/telemetry-service.yml").read_text()
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertEqual(telemetry.count(f'      - "{path}"'), 2)
+
+    def test_unregistered_backup_neighbor_still_requires_full_fallback(self) -> None:
+        path = "scripts/lib/unregistered-postgresql-backup.sh"
+        result = classify([path])
+        self.assertTrue(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], [path])
+        self.assertEqual(set(result["verification"]["required_external_workflows"]),
+                         {"Authenticated Dashboard Acceptance", "Offline Bundle", "Refrigeration Browser Acceptance"})
+
     def test_frontend_release_tooling_with_dashboard_dockerfile_requires_offline_only(self) -> None:
         result = classify(
             [

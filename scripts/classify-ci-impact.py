@@ -192,6 +192,7 @@ OFFLINE_BUNDLE_PATTERNS = (
     "services/telemetry-service/**",
     "src/app/api/**",
     "scripts/build-offline-bundle.sh",
+    "scripts/lib/postgresql-backup-client.sh",
     "scripts/generate-offline-bundle-manifest.py",
     "scripts/install-offline-bundle.sh",
     "scripts/offline-bundle-smoke.sh",
@@ -224,6 +225,9 @@ FRONTEND_RELEASE_TOOLING_PATHS = {
 VERSION_MANAGER_TOOLING_PATHS = {
     "scripts/nexolab-version-manager.py",
     "scripts/tests/test_nexolab_version_manager.py",
+    "scripts/lib/postgresql-backup-client.sh",
+    "scripts/tests/test_nexolab_postgresql_backup.py",
+    "scripts/tests/version-management-contract.sh",
     "scripts/install-offline-bundle.sh",
 }
 
