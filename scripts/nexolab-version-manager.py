@@ -766,12 +766,14 @@ def validate_package_tooling(bundle_root: Path, manifest: dict[str, Any]) -> dic
     ):
         raise VersionManagerFailure("package tooling commit evidence is missing or invalid")
     capabilities = provenance.get("tooling_capabilities")
-    required_capabilities = {"runtime-mode", "hardware", "split-runtime-tooling"}
+    required_capabilities = {"runtime-mode", "hardware", "split-runtime-tooling", "hardware-startup-gate"}
     if not isinstance(capabilities, list) or not required_capabilities.issubset(set(capabilities)):
         raise VersionManagerFailure("package tooling capability evidence is incomplete")
     installer = bundle_root / "scripts" / "install-offline-bundle.sh"
     if not installer.is_file():
         raise VersionManagerFailure("package installer is missing")
+    if not (bundle_root / "scripts" / "device-agent-startup-gate.py").is_file():
+        raise VersionManagerFailure("package hardware startup gate is missing")
     required_overlays = (
         "compose.hardware.yaml",
         "compose.edge-central-bridge.yaml",
@@ -789,6 +791,19 @@ def validate_package_tooling(bundle_root: Path, manifest: dict[str, Any]) -> dic
         "tooling_commit": tooling_commit,
         "tooling_capabilities": sorted(required_capabilities),
     }
+
+
+def preflight_offline_hardware(
+    bundle_root: Path, args: argparse.Namespace, runtime_mode: str,
+    compose_env: dict[str, str],
+) -> None:
+    # Loading/verifying images and isolated startup must finish before stopping
+    # a source dashboard or declaring a transaction runtime-mutating.
+    subprocess.run(
+        offline_installer_command(bundle_root, args, runtime_mode=runtime_mode, hardware=True)
+        + ["--preflight-only"],
+        check=True, env=compose_env,
+    )
 
 
 def offline_installer_command(
@@ -1017,6 +1032,11 @@ def establish_package_authority(args: argparse.Namespace) -> None:
             protected_frontend.prepare()
             atomic_json(transition_path, transition)
 
+            if not args.skip_edge:
+                preflight_offline_hardware(
+                    target_root, args, str(current["runtime_mode"]), compose_env
+                )
+
             central = compose_args(
                 target_root,
                 args.central_env.resolve(),
@@ -1224,6 +1244,11 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         operation["capacity_evidence_id"] = run_capacity_preflight(root, operation_id)
         protected_frontend.prepare()
         atomic_json(operation_path, operation)
+
+        if hardware_required:
+            preflight_offline_hardware(
+                target_root, args, str(current["runtime_mode"]), compose_env
+            )
 
         enter_phase(operation_path, operation, "creating_backup")
         backup_id = f"{operation_id}-postgresql.dump"

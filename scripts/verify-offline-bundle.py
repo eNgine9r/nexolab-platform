@@ -58,6 +58,9 @@ def verify_backup_policy_inventory(bundle_root: Path, seen_paths: set[str]) -> N
     if provenance_path.is_file():
         capabilities = load_json(provenance_path).get("tooling_capabilities", [])
         require(isinstance(capabilities, list), "Invalid tooling capabilities")
+        if "hardware-startup-gate" in capabilities:
+            require("scripts/device-agent-startup-gate.py" in seen_paths,
+                    "Hardware startup gate is not digest-bound")
         if "bounded-postgresql-backup" in capabilities:
             require("scripts/lib/postgresql-backup-client.sh" in seen_paths,
                     "Bounded PostgreSQL backup policy is not digest-bound")

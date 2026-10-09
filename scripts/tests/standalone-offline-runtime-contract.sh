@@ -22,6 +22,7 @@ bash -n "$REPO_ROOT/scripts/lib/frontend-candidate-liveness.sh"
 bash -n "$REPO_ROOT/scripts/install-raspberry-pi-remote-admin.sh"
 bash -n "$REPO_ROOT/scripts/install-raspberry-pi-persistent-journal.sh"
 bash -n "$REPO_ROOT/scripts/diagnose-raspberry-pi-remote-admin.sh"
+python3 "$REPO_ROOT/scripts/tests/test_device_agent_startup_gate.py"
 python3 "$REPO_ROOT/scripts/tests/test_deploy_current_head_raspberry_pi_auth.py"
 python3 "$REPO_ROOT/scripts/tests/test_deploy_current_head_raspberry_pi_candidate_cleanup.py"
 python3 "$REPO_ROOT/scripts/tests/test_ssd_root_mountpoint_contract.py"
@@ -165,6 +166,8 @@ assert edge_services["mqtt"]["environment"]["CENTRAL_MQTT_HOST"] == "central-mqt
 assert str(edge_services["mqtt"]["environment"]["CENTRAL_MQTT_PORT"]) == "1883"
 
 device_agent = edge_services["device-agent"]
+assert device_agent["entrypoint"] == ["/usr/bin/python3"]
+assert device_agent["command"] == ["/app/dual_bus_main.py"]
 assert device_agent["environment"]["SERIAL_DEVICE"] == (
     "/host/dev/serial/by-id/usb-NEXOLAB-test-if00-port0"
 )

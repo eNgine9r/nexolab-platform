@@ -2,6 +2,45 @@
 
 Updated: 2026-10-09
 
+## Issue #1321 — verified scoped agent recovery and permanent startup correction
+
+Parent #1313 remains OPEN. Owner recovery V2 was independently verified from
+`agent-recovery-1321-6vfd0nw3/report.json` at 2026-10-09T17:29:09.780Z. The exact
+pre-cutover agent image `sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323`
+is restored; MQTT is connected, workers are healthy 3/3, samples advance 148→149,
+queue is 0, all 96 existing named-volume identities and non-agent containers are
+unchanged. No database restore or package-authority edit occurred.
+
+**Current runtime is a partial activation, not a whole-stack rollback:** the failed
+`runtime/deployments/20261009T155213Z` crossed central C296 activation, Device Agent
+was subsequently recovered alone, and frontend activation was never reached.
+D00 remains the last accepted deployment baseline; older "currently deployed"
+statements below are historical. Recovery does not resolve canonical deployment
+or package authority. PR #1318 remains DRAFT/unmerged. Do not rerun either earlier
+full installer.
+
+The focused `fix/1321-hardware-agent-startup` source change starts from accepted
+main `df5485f6ece4203a74a84f106195fae855d81731`. Hardware Compose now supplies the
+explicit Python interpreter and absolute entry script. Checksum-staged tooling
+and an immutable image override survive historical checkout. An isolated,
+resource-bounded startup probe runs before quiesce or runtime activation. Offline
+installers and hardware update/rollback also preflight before Dashboard shutdown;
+bundle builds probe the real hardware entry script even when CI uses a simulator.
+New packages require digest-bound `hardware-startup-gate` tooling. See
+`docs/operations/device-agent-startup-preflight.md`.
+
+Targeted software checks passed: 78 module tests plus 16 subtests, 24 SQLite
+snapshot/recovery tests, 18 final-health tests, 30 source-selection tests and 30 offline-workflow contracts.
+Required exact-head CI and real Docker/ARM64 package proof remain pending. This
+workspace has no Docker; three existing candidate-cleanup baseline tests fail
+because its `ps` command returns `fatal library error, lookup self`. Those failures
+were observed before edits and are not passing evidence. Fresh Commander
+read-only execution also failed internally before starting at 17:33:32 UTC;
+file-based evidence access remains available. No additional site cutover or
+hardware/Modbus write was performed by this source work. Next: required CI,
+explicit mixed-runtime authority reconciliation, corrected ARM64 packages and
+actual LAN/HTTPS install/update/rollback acceptance.
+
 ## Issue #1315 — complete protected ARM64 package build preparation
 
 Parent #1313 source acceptance is GREEN: PR #1312 merged as `e0a79c988d84d528ae724b7c17c51dbdddd16bc3`, then #1314 merged as `8c1a4510887a141c4efb1d2440d066167d52a47d` after 18 successful workflows on `fc4e3bc375618ebae87c9208cfec3b3f63317427`. Unified source tooling, protected offline transactions and truthful Settings readiness are accepted software. The real site remains LAN `d00a83bfc83fb120777c721b5e46fa50ae455c7d` / HTTPS `4b9dc85ab2e7924195d5d2030fb298aaaf78aaf4`; package authority and actual-host acceptance are unchanged and unverified.
