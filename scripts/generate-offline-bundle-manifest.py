@@ -6,11 +6,14 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import hashlib
+import importlib.util
 import json
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
+sys.dont_write_bytecode = True
 
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -193,6 +196,12 @@ def main() -> int:
     }
 
     output = bundle_root / args.output
+    if (bundle_root / "frontend-external").exists():
+        spec = importlib.util.spec_from_file_location("protected_package", Path(__file__).parent / "nexolab-protected-package.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        manifest["external_frontend"] = module.artifact_metadata(bundle_root, args.source_commit, args.platform)
+        module.verify_metadata(bundle_root, manifest)
     output.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0
 

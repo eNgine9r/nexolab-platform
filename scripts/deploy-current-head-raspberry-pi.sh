@@ -9,6 +9,8 @@ source "$SCRIPT_DIR/lib/raspberry-pi-runtime-mode.sh"
 source "$SCRIPT_DIR/deploy-capacity-guard.sh"
 # shellcheck source=lib/raspberry-pi-frontend-release.sh
 source "$SCRIPT_DIR/lib/raspberry-pi-frontend-release.sh"
+# shellcheck source=lib/protected-frontend-release.sh
+source "$SCRIPT_DIR/lib/protected-frontend-release.sh"
 # shellcheck source=lib/frontend-candidate-liveness.sh
 source "$SCRIPT_DIR/lib/frontend-candidate-liveness.sh"
 # shellcheck source=lib/deployment-lock.sh
@@ -25,6 +27,9 @@ Usage: deploy-current-head-raspberry-pi.sh [--runtime-mode lan|standalone] [--fr
 
 Options:
   --frontend-artifact PATH  Import a verified off-device frontend artifact. This is the default deployment path.
+  --external-frontend-artifact PATH
+                           Matching HTTPS artifact; mandatory when a protected frontend is installed.
+  --external-origin URL    Exact existing Google-protected HTTPS origin. Does not publish a route.
   --allow-local-frontend-build
                            Explicit emergency opt-in to the bounded on-host frontend build fallback.
                            Normal production deployment fails closed without an artifact.
@@ -52,6 +57,9 @@ USAGE
 
 RUNTIME_MODE="lan"
 FRONTEND_ARTIFACT_INPUT=""
+EXTERNAL_FRONTEND_ARTIFACT_INPUT=""
+EXTERNAL_FRONTEND_ORIGIN=""
+LAN_FRONTEND_TOUCHED=0
 ALLOW_LOCAL_FRONTEND_BUILD="0"
 REQUESTED_SOURCE_REF=""
 EXPECTED_DEPLOYED_SOURCE=""
@@ -80,6 +88,14 @@ while (($# > 0)); do
     --allow-local-frontend-build)
       ALLOW_LOCAL_FRONTEND_BUILD="1"
       shift
+      ;;
+    --external-frontend-artifact)
+      EXTERNAL_FRONTEND_ARTIFACT_INPUT="${2:?--external-frontend-artifact requires a directory}"
+      shift 2
+      ;;
+    --external-origin)
+      EXTERNAL_FRONTEND_ORIGIN="${2:?--external-origin requires the existing HTTPS origin}"
+      shift 2
       ;;
     --source-ref)
       (($# >= 2)) || {
@@ -633,12 +649,21 @@ on_exit() {
   local restore_rc=0
   trap - EXIT ERR
   if ((rc != 0)); then
+    if [[ "$LAN_FRONTEND_TOUCHED" == 1 ]]; then
+      rollback_dashboard_release || log "ERROR: paired frontend rollback was not verified"
+    else
+      nexolab_external_frontend_rollback || log "ERROR: protected frontend rollback failed"
+    fi
     if restart_quiesced_device_agent_after_pre_mutation_failure; then
       edge_restart_rc=0
     else
       edge_restart_rc=$?
       log "ERROR: unchanged Device Agent could not be restarted during failed deployment exit"
     fi
+  fi
+  if ! nexolab_external_frontend_cleanup_candidate; then
+    log "ERROR: protected candidate cleanup failed"
+    rc=1
   fi
   if cleanup_frontend_candidate; then
     cleanup_rc=0
@@ -1719,6 +1744,7 @@ if [[ "$LOCAL_AUTH_OVERLAY_ENABLED" == "true" ]]; then
 fi
 FRONTEND_ORGANIZATION_ID="$(env_get "$CENTRAL_ENV" AUTH_DEFAULT_ORGANIZATION_ID)"
 [[ -n "$FRONTEND_ORGANIZATION_ID" ]] || fail "AUTH_DEFAULT_ORGANIZATION_ID must be configured"
+nexolab_external_frontend_preflight || fail "protected frontend preflight failed before runtime mutation"
 
 if [[ ! -f "$EDGE_ENV" ]]; then
   if [[ -f "$CENTRAL_DIR/.env.edge" ]]; then
@@ -1863,7 +1889,9 @@ nexolab_frontend_write_provenance \
   "$FRONTEND_AUTH_PROVIDER" \
   "$FRONTEND_ORGANIZATION_ID"
 
-FRONTEND_CANDIDATE_PORT="${NEXOLAB_FRONTEND_CANDIDATE_PORT:-3100}"
+FRONTEND_CANDIDATE_PORT="${NEXOLAB_FRONTEND_CANDIDATE_PORT:-3101}"
+[[ "$FRONTEND_CANDIDATE_PORT" != 3100 && "$FRONTEND_CANDIDATE_PORT" != 3102 ]] \
+  || fail "LAN candidate port conflicts with a reserved protected frontend port"
 if ss -ltn | awk '{print $4}' | grep -Eq "(^|:)$FRONTEND_CANDIDATE_PORT$"; then
   fail "frontend candidate verification port is already in use: $FRONTEND_CANDIDATE_PORT"
 fi
@@ -1938,6 +1966,7 @@ if ss -ltn | awk '{print $4}' | grep -Eq "(^|:)$FRONTEND_CANDIDATE_PORT$"; then
   fail "frontend candidate cleanup left verification port in use: $FRONTEND_CANDIDATE_PORT"
 fi
 log "Frontend candidate verified and terminated without mutating the active dashboard"
+nexolab_external_frontend_prepare || fail "protected frontend candidate verification failed before runtime mutation"
 
 quiesce_edge_device_agent_for_cutover
 capture_edge_sqlite_snapshot
@@ -1982,6 +2011,10 @@ DASHBOARD_UNIT="/etc/systemd/system/nexolab-dashboard.service"
 DASHBOARD_UNIT_BACKUP="$AUDIT_DIR/dashboard-unit-before.service"
 DASHBOARD_UNIT_CANDIDATE="$AUDIT_DIR/dashboard-unit-candidate.service"
 DASHBOARD_RUNTIME_IDENTITY_FILE="$REPO/runtime/dashboard-runtime-identity.json"
+DASHBOARD_RUNTIME_IDENTITY_BACKUP="$AUDIT_DIR/dashboard-identity-before.json"
+if [[ -f "$DASHBOARD_RUNTIME_IDENTITY_FILE" ]]; then
+  cp "$DASHBOARD_RUNTIME_IDENTITY_FILE" "$DASHBOARD_RUNTIME_IDENTITY_BACKUP"
+fi
 
 if sudo test -f "$DASHBOARD_UNIT"; then
   sudo cp -a "$DASHBOARD_UNIT" "$DASHBOARD_UNIT_BACKUP"
@@ -2053,28 +2086,41 @@ PY_RUNTIME_IDENTITY
 }
 
 rollback_dashboard_release() {
+  local restore_rc=0
+  nexolab_external_frontend_rollback || restore_rc=1
   log "Rolling back dashboard service to the last-known-good unit"
   sudo systemctl stop nexolab-dashboard.service >/dev/null 2>&1 || true
   if [[ -f "$DASHBOARD_UNIT_BACKUP" ]]; then
-    sudo install -m 0644 "$DASHBOARD_UNIT_BACKUP" "$DASHBOARD_UNIT"
-    sudo systemctl daemon-reload
+    sudo install -m 0644 "$DASHBOARD_UNIT_BACKUP" "$DASHBOARD_UNIT" || return
+    sudo systemctl daemon-reload || return
     if sudo systemctl start nexolab-dashboard.service >/dev/null 2>&1; then
-      ROLLBACK_RELEASE="$(sudo systemctl show nexolab-dashboard.service -p WorkingDirectory --value)"
-      if ! write_dashboard_runtime_identity_manifest "$ROLLBACK_RELEASE" "" raspberry_rollback; then
-        rm -f "$DASHBOARD_RUNTIME_IDENTITY_FILE"
-        log "WARNING: rollback dashboard identity could not be refreshed"
+      if [[ -f "$DASHBOARD_RUNTIME_IDENTITY_BACKUP" ]]; then
+        cp "$DASHBOARD_RUNTIME_IDENTITY_BACKUP" "$DASHBOARD_RUNTIME_IDENTITY_FILE" || return
+        python3 "$SCRIPT_DIR/nexolab-protected-frontend.py" probe --origin https://localhost \
+          --port 3000 --identity "$DASHBOARD_RUNTIME_IDENTITY_BACKUP" || restore_rc=1
+      else
+        ROLLBACK_RELEASE="$(sudo systemctl show nexolab-dashboard.service -p WorkingDirectory --value)"
+        if ! write_dashboard_runtime_identity_manifest "$ROLLBACK_RELEASE" "" raspberry_rollback; then
+          rm -f "$DASHBOARD_RUNTIME_IDENTITY_FILE"
+          log "WARNING: rollback dashboard identity could not be refreshed"
+          restore_rc=1
+        fi
       fi
     else
       rm -f "$DASHBOARD_RUNTIME_IDENTITY_FILE"
+      restore_rc=1
     fi
   else
     rm -f "$DASHBOARD_RUNTIME_IDENTITY_FILE"
     sudo rm -f "$DASHBOARD_UNIT"
     sudo systemctl daemon-reload
   fi
+  [[ "$restore_rc" == 0 ]] && LAN_FRONTEND_TOUCHED=0
+  return "$restore_rc"
 }
 
 log "Activating verified frontend release"
+LAN_FRONTEND_TOUCHED=1
 sudo systemctl stop nexolab-dashboard.service >/dev/null 2>&1 || true
 if [[ -f "$REPO/runtime/dashboard.pid" ]]; then
   OLD_PID="$(cat "$REPO/runtime/dashboard.pid" 2>/dev/null || true)"
@@ -2108,6 +2154,10 @@ if ! write_dashboard_runtime_identity_manifest "$FRONTEND_RELEASE_DIR" "$CURRENT
 fi
 NEXOLAB_FRONTEND_ACTIVATED=1
 log "Activated frontend release: $FRONTEND_RELEASE_DIR"
+if ! nexolab_external_frontend_activate; then
+  rollback_dashboard_release || fail "protected frontend activation failed; frontend recovery was not verified"
+  fail "protected frontend activation failed; previous frontend pair restored"
+fi
 
 wait_http() {
   local label=$1 url=$2 attempts=${3:-60}
@@ -2228,6 +2278,12 @@ docker image inspect "$DEPLOYED_DEVICE_AGENT_IMAGE_ID" >/dev/null 2>&1 \
   echo "dashboard_organization_id=$FRONTEND_ORGANIZATION_ID"
   echo "frontend_release_dir=$FRONTEND_RELEASE_DIR"
   echo "frontend_build_id=$(cat "$FRONTEND_RELEASE_DIR/.next/BUILD_ID")"
+  if [[ "$EXTERNAL_FRONTEND_ENABLED" == 1 ]]; then
+    echo "external_frontend_origin=$EXTERNAL_FRONTEND_ORIGIN"
+    echo "external_frontend_release_dir=$EXTERNAL_FRONTEND_RELEASE_DIR"
+    echo "external_frontend_source_commit=$CURRENT_HEAD"
+    echo "external_frontend_build_id=$(cat "$EXTERNAL_FRONTEND_RELEASE_DIR/.next/BUILD_ID")"
+  fi
   echo "grafana_local=http://127.0.0.1:3001"
   echo "prometheus_local=http://127.0.0.1:9090"
   echo "alertmanager_local=http://127.0.0.1:9093"

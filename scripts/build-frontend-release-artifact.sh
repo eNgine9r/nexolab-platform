@@ -5,7 +5,7 @@ usage() {
   cat <<'EOF'
 Usage: build-frontend-release-artifact.sh --platform linux/arm64|linux/amd64 \
   --api-base-url URL --websocket-url URL --auth-provider PROVIDER \
-  --organization-id UUID --output DIR
+  --organization-id UUID --output DIR [--external-https]
 
 Builds a self-contained production Dashboard runtime artifact for a target Linux
 architecture. The connected builder may use internet; the resulting artifact is
@@ -19,6 +19,7 @@ WEBSOCKET_URL=""
 AUTH_PROVIDER=""
 ORGANIZATION_ID=""
 OUTPUT=""
+EXTERNAL_HTTPS_STAGE=false
 
 while (($#)); do
   case "$1" in
@@ -28,6 +29,7 @@ while (($#)); do
     --auth-provider) AUTH_PROVIDER="${2:?}"; shift 2 ;;
     --organization-id) ORGANIZATION_ID="${2:?}"; shift 2 ;;
     --output) OUTPUT="${2:?}"; shift 2 ;;
+    --external-https) EXTERNAL_HTTPS_STAGE=true; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "ERROR: unknown argument: $1" >&2; usage >&2; exit 64 ;;
   esac
@@ -44,6 +46,19 @@ done
   exit 64
 }
 [[ -n "$ORGANIZATION_ID" && -n "$OUTPUT" ]] || { usage >&2; exit 64; }
+if [[ "$EXTERNAL_HTTPS_STAGE" == true ]]; then
+  python3 - "$API_BASE_URL" "$WEBSOCKET_URL" "$AUTH_PROVIDER" <<'PY_ORIGIN'
+import sys
+from urllib.parse import urlsplit
+api, ws = map(urlsplit, sys.argv[1:3])
+valid = (api.scheme == "https" and api.hostname and not api.username and not api.password
+         and api.path in ("", "/") and not api.query and not api.fragment
+         and ws.scheme == "wss" and ws.netloc == api.netloc
+         and ws.path == "/api/v1/telemetry/live" and not ws.query and not ws.fragment
+         and sys.argv[3] == "local")
+raise SystemExit(0 if valid else "ERROR: protected artifact requires same-origin HTTPS/WSS and local auth")
+PY_ORIGIN
+fi
 
 for command in docker git python3 sha256sum tar file; do
   command -v "$command" >/dev/null || { echo "ERROR: missing command: $command" >&2; exit 69; }
@@ -51,6 +66,10 @@ done
 
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
+if [[ "$EXTERNAL_HTTPS_STAGE" == true && ! -f src/features/refrigeration/use-external-authenticated-image.ts ]]; then
+  echo "ERROR: source revision lacks the authenticated external image contract" >&2
+  exit 70
+fi
 if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
   echo "ERROR: refusing to build frontend artifact from a dirty working tree" >&2
   exit 70
@@ -58,7 +77,7 @@ fi
 SOURCE_SHA="$(git rev-parse HEAD)"
 NODE_VERSION="$(tr -d '[:space:]' < .nvmrc)"
 ARCH="${PLATFORM#linux/}"
-IMAGE="nexolab/frontend-release:${SOURCE_SHA:0:12}-${ARCH}"
+IMAGE="nexolab/frontend-release:${SOURCE_SHA:0:12}-${ARCH}-${EXTERNAL_HTTPS_STAGE}"
 OUTPUT="$(mkdir -p "$OUTPUT" && cd "$OUTPUT" && pwd)"
 if find "$OUTPUT" -mindepth 1 -maxdepth 1 -print -quit | grep -q .; then
   echo "ERROR: output directory must be empty: $OUTPUT" >&2
@@ -94,6 +113,7 @@ docker buildx build \
   --build-arg "NEXT_PUBLIC_NEXOLAB_API_BASE_URL=$API_BASE_URL" \
   --build-arg "NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL=$WEBSOCKET_URL" \
   --build-arg "NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER=$AUTH_PROVIDER" \
+  --build-arg "NEXT_PUBLIC_NEXOLAB_EXTERNAL_HTTPS_STAGE=$EXTERNAL_HTTPS_STAGE" \
   --build-arg "NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID=$ORGANIZATION_ID" \
   --build-arg "NEXOLAB_SOURCE_COMMIT=$SOURCE_SHA" \
   .
@@ -107,6 +127,7 @@ IMAGE_REVISION="$(docker image inspect "$IMAGE" --format '{{index .Config.Labels
 CONTAINER_ID="$(docker create --platform "$PLATFORM" "$IMAGE")"
 docker cp "$CONTAINER_ID:/app/.next" "$STAGING/.next"
 docker cp "$CONTAINER_ID:/app/node_modules" "$STAGING/node_modules"
+docker cp "$CONTAINER_ID:/app/public" "$STAGING/public"
 docker cp "$CONTAINER_ID:/app/package.json" "$STAGING/package.json"
 docker cp "$CONTAINER_ID:/app/package-lock.json" "$STAGING/package-lock.json"
 cmp -s package.json "$STAGING/package.json"
@@ -136,11 +157,11 @@ fi
 
 (
   cd "$STAGING"
-  find .next node_modules -type f -print0 | sort -z | xargs -0 sha256sum
+  find .next node_modules public -type f -print0 | sort -z | xargs -0 sha256sum
 ) > "$OUTPUT/frontend-runtime-files-sha256.txt"
 
 tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner \
-  -czf "$OUTPUT/frontend-runtime.tar.gz" -C "$STAGING" .next node_modules
+  -czf "$OUTPUT/frontend-runtime.tar.gz" -C "$STAGING" .next node_modules public
 cp package.json package-lock.json "$OUTPUT/"
 printf '%s\n' "$SOURCE_SHA" > "$OUTPUT/frontend-source-sha.txt"
 sha256sum "$OUTPUT/package.json" "$OUTPUT/package-lock.json" \
@@ -151,6 +172,7 @@ api_base_url=$API_BASE_URL
 websocket_url=$WEBSOCKET_URL
 auth_provider=$AUTH_PROVIDER
 organization_id=$ORGANIZATION_ID
+external_https_stage=$EXTERNAL_HTTPS_STAGE
 EOF
 printf '%s\n' "$PLATFORM" > "$OUTPUT/frontend-platform.txt"
 printf '%s\n' "$NODE_VERSION" > "$OUTPUT/frontend-node-version.txt"

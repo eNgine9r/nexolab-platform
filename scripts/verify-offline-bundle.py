@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import re
 import subprocess
@@ -12,6 +13,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+sys.dont_write_bytecode = True
 IMAGE_ENV = {
     "dashboard": "OFFLINE_DASHBOARD_IMAGE",
     "telemetry-service": "OFFLINE_TELEMETRY_IMAGE",
@@ -138,6 +140,15 @@ def verify_manifest(bundle_root: Path, manifest: dict[str, Any]) -> dict[str, di
         require(path.stat().st_size == record.get("size_bytes"), f"Size mismatch: {relative}")
         require(sha256(path) == record.get("sha256"), f"Checksum mismatch: {relative}")
     require(overlay_relative in seen_paths, "Local auth Compose overlay is not in the file inventory")
+    if manifest.get("external_frontend") is not None or (bundle_root / "frontend-external").exists():
+        for dependency in ("scripts/nexolab-protected-package.py", "scripts/nexolab-protected-frontend.py", "scripts/lib/raspberry-pi-frontend-release.sh"):
+            require(dependency in seen_paths, "Protected frontend tooling is not digest-bound: " + dependency)
+        artifact_files = {path.relative_to(bundle_root).as_posix() for path in (bundle_root / "frontend-external").rglob("*") if path.is_file()}
+        require(artifact_files <= seen_paths, "Protected artifact is not fully digest-bound")
+        spec = importlib.util.spec_from_file_location("protected_package", Path(__file__).parent / "nexolab-protected-package.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        module.verify_metadata(bundle_root, manifest)
 
     policy = manifest.get("persistent_data_policy")
     require(isinstance(policy, dict), "Missing persistent data policy")

@@ -41,6 +41,10 @@ const versionApi = vi.hoisted(() => ({
   setAutomaticUpdates: vi.fn(),
   requestUpdateCheck: vi.fn(),
   requestAction: vi.fn(),
+  readFrontendIdentity: vi.fn(),
+}));
+vi.mock("@/features/settings/version-frontend-identity", () => ({
+  readVersionFrontendIdentity: versionApi.readFrontendIdentity,
 }));
 
 const snapshot = () => ({
@@ -104,6 +108,7 @@ describe("VersionScreen authorization boundary", () => {
     security.value.state = "ready";
     security.value.membership.permissions = ["dashboard.read"];
     versionApi.read.mockResolvedValue(snapshot());
+    versionApi.readFrontendIdentity.mockResolvedValue(null);
     versionApi.setAutomaticUpdates.mockResolvedValue({
       ...snapshot().updatePolicy,
       automaticUpdatesEnabled: true,
@@ -139,6 +144,55 @@ describe("VersionScreen authorization boundary", () => {
 
     expect(screen.getByRole("heading", { name: "Version management недоступний у demo mode" })).toBeVisible();
     expect(versionApi.read).not.toHaveBeenCalled();
+  });
+
+  it("disables activation when only a source record exists, even with a target package", async () => {
+    security.value.membership.permissions = ["dashboard.read", "project_versions.manage"];
+    const value = snapshot();
+    value.current.knownPackagedRelease = false;
+    Object.assign(value, {
+      catalog: [
+        {
+          bundleId: "target",
+          release: "new",
+          sourceCommit: "b".repeat(40),
+          platform: "linux-arm64",
+          schemaHead: "head-1",
+        },
+      ],
+      updateCheck: { status: "completed", candidateBundleId: "target", activationEligible: true },
+    });
+    versionApi.read.mockResolvedValue(value);
+    render(<VersionScreen />);
+    expect(await screen.findByRole("button", { name: "Оновити зараз" })).toBeDisabled();
+    expect(screen.getByText(/Потрібен перевірений пакет поточної версії/)).toBeVisible();
+    expect(versionApi.requestAction).not.toHaveBeenCalled();
+  });
+
+  it("shows the actual browser build and blocks activation when the authority is stale", async () => {
+    security.value.membership.permissions = ["dashboard.read", "project_versions.manage"];
+    const value = snapshot();
+    Object.assign(value, {
+      catalog: [
+        {
+          bundleId: "target",
+          release: "new",
+          sourceCommit: "b".repeat(40),
+          platform: "linux-arm64",
+          schemaHead: "head-1",
+        },
+      ],
+      updateCheck: { status: "completed", candidateBundleId: "target", activationEligible: true },
+    });
+    versionApi.read.mockResolvedValue(value);
+    versionApi.readFrontendIdentity.mockResolvedValue({
+      sourceCommit: "c".repeat(40),
+      buildId: "actual-build",
+    });
+    render(<VersionScreen />);
+    expect(await screen.findByText("actual-build")).toBeVisible();
+    expect(screen.getByText(/Версія інтерфейсу відрізняється/)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Оновити зараз" })).toBeDisabled();
   });
 
   it("renders the persisted automatic-update policy and manual check control", async () => {

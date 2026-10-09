@@ -7,7 +7,8 @@ Usage: build-offline-bundle.sh --version VERSION --platform linux/amd64|linux/ar
   --dashboard-origin URL --api-base-url URL --websocket-url URL \
   [--schema-head REVISION] [--upgrade-from-schema-head REVISION] \
   [--runtime-compatible-schema-head REVISION] \
-  [--auth-provider disabled|local|acceptance|supabase] [--runtime-source-ref REF] [--output DIR]
+  [--auth-provider disabled|local|acceptance|supabase] [--runtime-source-ref REF] \
+  [--external-frontend-artifact DIR] [--output DIR]
 
 Builds a versioned NEXOLAB offline bundle. This command is intentionally run on a
 connected build host; the resulting archive is self-contained for disconnected
@@ -23,6 +24,7 @@ DASHBOARD_ORIGIN=""
 API_BASE_URL=""
 WEBSOCKET_URL=""
 AUTH_PROVIDER="disabled"
+EXTERNAL_FRONTEND_ARTIFACT=""
 RUNTIME_SOURCE_REF="HEAD"
 SCHEMA_HEAD=""
 UPGRADE_FROM_SCHEMA_HEADS=()
@@ -42,6 +44,7 @@ while (($#)); do
     --api-base-url) API_BASE_URL="${2:?}"; shift 2 ;;
     --websocket-url) WEBSOCKET_URL="${2:?}"; shift 2 ;;
     --auth-provider) AUTH_PROVIDER="${2:?}"; shift 2 ;;
+    --external-frontend-artifact) EXTERNAL_FRONTEND_ARTIFACT="${2:?}"; shift 2 ;;
     --runtime-source-ref) RUNTIME_SOURCE_REF="${2:?}"; shift 2 ;;
     --schema-head) SCHEMA_HEAD="${2:?}"; shift 2 ;;
     --upgrade-from-schema-head) UPGRADE_FROM_SCHEMA_HEADS+=("${2:?}"); shift 2 ;;
@@ -286,6 +289,26 @@ cp scripts/object-storage-s3.py "$STAGING/scripts/"
 cp scripts/deploy-object-storage-migration.py "$STAGING/scripts/"
 mkdir -p "$STAGING/scripts/lib"
 cp scripts/lib/deployment-lock.sh "$STAGING/scripts/lib/"
+cp scripts/lib/raspberry-pi-frontend-release.sh "$STAGING/scripts/lib/"
+cp scripts/nexolab-protected-frontend.py "$STAGING/scripts/"
+cp scripts/nexolab-protected-package.py "$STAGING/scripts/"
+if [[ -n "$EXTERNAL_FRONTEND_ARTIFACT" ]]; then
+  [[ -d "$EXTERNAL_FRONTEND_ARTIFACT" && "$AUTH_PROVIDER" == local ]] || {
+    echo "ERROR: protected frontend artifact requires an existing directory and local authentication" >&2
+    exit 70
+  }
+  mkdir "$STAGING/frontend-external"
+  for name in frontend-runtime.tar.gz package.json package-lock.json frontend-source-sha.txt \
+    frontend-package-sha256.txt frontend-runtime-contract.txt frontend-platform.txt \
+    frontend-node-version.txt frontend-build-id.txt frontend-runtime-files-sha256.txt \
+    frontend-public-contract.txt frontend-native-files.txt frontend-artifact-sha256.txt; do
+    [[ -f "$EXTERNAL_FRONTEND_ARTIFACT/$name" && ! -L "$EXTERNAL_FRONTEND_ARTIFACT/$name" ]] || {
+      echo "ERROR: external artifact requires a regular provenance file: $name" >&2
+      exit 70
+    }
+    cp "$EXTERNAL_FRONTEND_ARTIFACT/$name" "$STAGING/frontend-external/$name"
+  done
+fi
 cp scripts/install-offline-bundle.sh "$STAGING/scripts/"
 cp scripts/offline-bundle-smoke.sh "$STAGING/scripts/"
 cp scripts/nexolab-version-manager.py "$STAGING/scripts/"

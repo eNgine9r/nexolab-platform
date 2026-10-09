@@ -36,6 +36,27 @@ def run_bash(script: str, *, env: dict[str, str] | None = None) -> subprocess.Co
 
 
 class RaspberryPiFrontendReleaseTests(unittest.TestCase):
+    def test_profile_rejects_lan_artifact_for_protected_origin(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            contract = Path(temp) / "contract.txt"
+            contract.write_text("runtime_mode=live\nexternal_https_stage=false\n")
+            result = run_bash(
+                f"source {HELPER}; nexolab_frontend_verify_profile {contract} true"
+            )
+            self.assertEqual(result.returncode, 70)
+
+    def test_profile_requires_explicit_boolean_and_accepts_legacy_lan(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            contract = Path(temp) / "contract.txt"
+            contract.write_text("runtime_mode=live\n")
+            result = run_bash(f"source {HELPER}; nexolab_frontend_verify_profile {contract} false")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            result = run_bash(f"source {HELPER}; nexolab_frontend_verify_profile {contract} true")
+            self.assertEqual(result.returncode, 70)
+            contract.write_text("external_https_stage=true\nexternal_https_stage=false\n")
+            result = run_bash(f"source {HELPER}; nexolab_frontend_verify_profile {contract} true")
+            self.assertEqual(result.returncode, 70)
+
     def test_scripts_parse(self) -> None:
         for path in (HELPER, DEPLOY, ARTIFACT_BUILDER):
             result = subprocess.run(["bash", "-n", str(path)], capture_output=True, text=True)

@@ -229,7 +229,7 @@ from pathlib import Path, PurePosixPath
 
 archive = Path(sys.argv[1])
 report = Path(sys.argv[2])
-allowed = {".next", "node_modules"}
+allowed = {".next", "node_modules", "public"}
 errors: list[str] = []
 member_count = 0
 
@@ -275,9 +275,22 @@ report.write_text("\n".join(lines) + "\n", encoding="utf-8")
 PY_ARCHIVE
 }
 
+nexolab_frontend_verify_profile() {
+  python3 - "$1" "${2:-false}" <<'PY_PROFILE'
+from pathlib import Path
+import sys
+lines = Path(sys.argv[1]).read_text().splitlines()
+values = [line.split("=", 1)[1] for line in lines if line.startswith("external_https_stage=")]
+expected = sys.argv[2]
+valid = expected in ("true", "false") and (values == [expected] or (not values and expected == "false"))
+raise SystemExit(0 if valid else 70)
+PY_PROFILE
+}
+
 nexolab_frontend_import_artifact() {
   local artifact_root=$1 repo=$2 release_dir=$3 target_commit=$4
   local mode=$5 api_url=$6 websocket_url=$7 auth_provider=$8 organization_id=$9 report=${10}
+  local external_https_stage=${11:-false}
   local required source_sha artifact_platform host_platform artifact_node expected_node actual_node
   : > "$report"
   for required in \
@@ -308,6 +321,10 @@ nexolab_frontend_import_artifact() {
     printf 'status=FAIL\nerror=target-package-identity-mismatch\n' > "$report"
     return 70
   fi
+  if ! nexolab_frontend_verify_profile "$artifact_root/frontend-runtime-contract.txt" "$external_https_stage"; then
+    printf 'status=FAIL\nerror=external-https-profile-mismatch\n' > "$report"
+    return 70
+  fi
   if ! python3 - "$artifact_root/frontend-runtime-contract.txt" "$mode" "$api_url" "$websocket_url" "$auth_provider" "$organization_id" <<'PY_CONTRACT'
 import sys
 from pathlib import Path
@@ -322,7 +339,8 @@ for line in path.read_text(encoding="utf-8").splitlines():
     if key in parsed:
         raise SystemExit(70)
     parsed[key] = value
-raise SystemExit(0 if parsed == expected else 70)
+profile = parsed.pop("external_https_stage", "false")
+raise SystemExit(0 if parsed == expected and profile in ("true", "false") else 70)
 PY_CONTRACT
   then
     printf 'status=FAIL\nerror=runtime-contract-mismatch\n' > "$report"

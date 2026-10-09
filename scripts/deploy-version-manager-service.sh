@@ -40,6 +40,9 @@ else
 fi
 for file in \
   "$SOURCE_ROOT/scripts/nexolab-version-manager.py" \
+  "$SOURCE_ROOT/scripts/nexolab-protected-package.py" \
+  "$SOURCE_ROOT/scripts/nexolab-protected-frontend.py" \
+  "$SOURCE_ROOT/scripts/lib/raspberry-pi-frontend-release.sh" \
   "$SOURCE_ROOT/scripts/nexolab-update-orchestrator.py" \
   "$SOURCE_ROOT/scripts/deploy-capacity-guard.sh" \
   "$UNIT_ROOT/nexolab-version-manager.service" \
@@ -74,6 +77,10 @@ install -d -o 10001 -g 10001 -m 0750 \
   /var/lib/nexolab/version-management/update-check-rejected
 install -d -o root -g root -m 0755 /var/lib/nexolab/version-management/catalog
 install -m 0755 "$SOURCE_ROOT/scripts/nexolab-version-manager.py" /usr/local/lib/nexolab/nexolab-version-manager.py
+install -d -m 0755 /usr/local/lib/nexolab/lib
+install -m 0755 "$SOURCE_ROOT/scripts/nexolab-protected-package.py" /usr/local/lib/nexolab/nexolab-protected-package.py
+install -m 0755 "$SOURCE_ROOT/scripts/nexolab-protected-frontend.py" /usr/local/lib/nexolab/nexolab-protected-frontend.py
+install -m 0755 "$SOURCE_ROOT/scripts/lib/raspberry-pi-frontend-release.sh" /usr/local/lib/nexolab/lib/raspberry-pi-frontend-release.sh
 install -m 0755 "$SOURCE_ROOT/scripts/nexolab-update-orchestrator.py" /usr/local/lib/nexolab/nexolab-update-orchestrator.py
 install -m 0755 "$SOURCE_ROOT/scripts/deploy-capacity-guard.sh" /usr/local/lib/nexolab/deploy-capacity-guard-base.sh
 cat > /usr/local/lib/nexolab/deploy-capacity-guard.sh <<'EOF'

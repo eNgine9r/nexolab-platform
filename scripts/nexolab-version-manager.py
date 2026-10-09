@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import fcntl
 import hashlib
+import importlib.util
 import json
 import os
 import platform
@@ -19,6 +20,7 @@ from typing import Any
 import urllib.error
 import urllib.request
 
+sys.dont_write_bytecode = True
 
 OPERATION_PHASES = (
     "verifying_package",
@@ -56,6 +58,27 @@ EDGE_PERSISTENT_VOLUMES = (
 
 class VersionManagerFailure(RuntimeError):
     pass
+
+
+PROTECTED_FRONTEND_UNIT = Path("/etc/systemd/system/nexolab-external-frontend.service")
+
+
+def require_supported_frontend_topology(manifest: dict[str, Any] | None = None) -> None:
+    # The current offline installer owns one Dashboard image. It must not silently
+    # upgrade the API/LAN image while leaving the Google frontend pinned to old code.
+    if PROTECTED_FRONTEND_UNIT.exists() and not (manifest and manifest.get("external_frontend")):
+        raise VersionManagerFailure(
+            "protected_frontend_package_required: this package worker cannot synchronize "
+            "the installed Google frontend; prepare a gateway-aware offline package first"
+        )
+
+
+def protected_frontend_transaction(bundle, manifest, current, evidence):
+    require_supported_frontend_topology(manifest)
+    spec = importlib.util.spec_from_file_location("protected_package", Path(__file__).parent / "nexolab-protected-package.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.ProtectedPackageFrontend(bundle, manifest, current, evidence)
 
 
 def now() -> str:
@@ -937,6 +960,7 @@ def establish_package_authority(args: argparse.Namespace) -> None:
         evidence_dir = root / "operation-evidence" / transition_id
         evidence_dir.mkdir(parents=True, exist_ok=False, mode=0o750)
         transition_path = evidence_dir / "transition.json"
+        protected_frontend = protected_frontend_transaction(target_root, target, current, evidence_dir)
         atomic_json(evidence_dir / "source-lineage-before.json", recorded_current)
         mutation_started = False
         dashboard_handoff_started = False
@@ -970,6 +994,7 @@ def establish_package_authority(args: argparse.Namespace) -> None:
                 {"volumes": transition["volume_identities_before"]},
             )
             transition["capacity_evidence_id"] = run_capacity_preflight(root, transition_id)
+            protected_frontend.prepare()
             atomic_json(transition_path, transition)
 
             central = compose_args(
@@ -1003,6 +1028,8 @@ def establish_package_authority(args: argparse.Namespace) -> None:
             verified_target = verify_staged_bundle(target_root, args.bundle_id)
             if manifest_digest(target_root) != transition["target_manifest_sha256"]:
                 raise VersionManagerFailure("staged package manifest changed during installation")
+            protected_frontend.activate()
+            transition["external_frontend"] = protected_frontend.metadata
             transition["runtime_verification"] = verify_transition_runtime(
                 target_root,
                 verified_target,
@@ -1039,6 +1066,8 @@ def establish_package_authority(args: argparse.Namespace) -> None:
                     "schema_head": current_schema,
                     "deployed_at": now(),
                     "health": "ready",
+                    "protected_frontend_enabled": protected_frontend.enabled,
+                    "external_frontend": protected_frontend.metadata,
                     "runtime_state_known": True,
                     "previous_bundle_id": None,
                     "previous_release": None,
@@ -1059,13 +1088,19 @@ def establish_package_authority(args: argparse.Namespace) -> None:
             atomic_json(transition_path, transition)
         except Exception as error:
             source_restored = False
+            external_restored = True
+            try:
+                protected_frontend.rollback()
+            except Exception as restore_error:
+                external_restored = False
+                transition["external_frontend_restore"] = {"status": "failed", "failure_type": type(restore_error).__name__}
             if dashboard_handoff_started:
                 try:
                     transition["source_restore"] = restore_source_runtime(
                         target_root, target, current, args, dashboard_state,
                         compose_env=compose_env,
                     )
-                    source_restored = transition["source_restore"].get("status") == "restored"
+                    source_restored = external_restored and transition["source_restore"].get("status") == "restored"
                 except Exception as restore_error:
                     transition["source_restore"] = {
                         "status": "failed",
@@ -1129,9 +1164,11 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
     operation.setdefault("completed_phases", [])
     atomic_json(operation_path, operation)
     mutation_started = False
+    protected_frontend = None
     try:
         enter_phase(operation_path, operation, "verifying_package")
         target = verify_staged_bundle(target_root, target_id)
+        protected_frontend = protected_frontend_transaction(target_root, target, current, root / "operation-evidence" / operation_id)
         operation["target_tooling"] = validate_package_tooling(target_root, target)
         schema = target["version_management"]["database_schema"]
         current_schema = str(current["schema_head"])
@@ -1165,6 +1202,7 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
 
         enter_phase(operation_path, operation, "checking_capacity")
         operation["capacity_evidence_id"] = run_capacity_preflight(root, operation_id)
+        protected_frontend.prepare()
         atomic_json(operation_path, operation)
 
         enter_phase(operation_path, operation, "creating_backup")
@@ -1194,6 +1232,8 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         atomic_json(operation_path, operation)
 
         enter_phase(operation_path, operation, "verifying_runtime")
+        protected_frontend.activate()
+        operation["external_frontend"] = protected_frontend.metadata
         activate_offline_image_environment(target)
         target_central = compose_args(
             target_root, args.central_env.resolve(), central=True, local_auth=args.local_auth
@@ -1264,6 +1304,8 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
             "schema_head": expected_schema,
             "deployed_at": now(),
             "health": "ready",
+            "protected_frontend_enabled": protected_frontend.enabled,
+            "external_frontend": protected_frontend.metadata,
             "runtime_state_known": True,
             "previous_bundle_id": current["bundle_id"],
             "previous_release": current["release"],
@@ -1284,6 +1326,11 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         operation["result_code"] = "verified_ready"
         enter_phase(operation_path, operation, "done")
     except Exception as error:
+        if protected_frontend is not None:
+            try:
+                protected_frontend.rollback()
+            except Exception as restore_error:
+                operation["external_frontend_restore"] = {"status": "failed", "failure_type": type(restore_error).__name__}
         operation["status"] = "failed"
         operation["result_code"] = type(error).__name__
         operation["safe_message"] = str(error)[:500]

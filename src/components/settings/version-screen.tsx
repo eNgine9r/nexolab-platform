@@ -25,6 +25,10 @@ import { createRuntimeCredentialProvider } from "@/features/security/auth-runtim
 import { createAuthenticatedFetch } from "@/features/security/security-session";
 import { versionConfirmationPhrase } from "@/features/settings/version-confirmation";
 import {
+  readVersionFrontendIdentity,
+  type VersionFrontendIdentity,
+} from "@/features/settings/version-frontend-identity";
+import {
   VersionManagementClient,
   type UpdateCheck,
   type VersionAction,
@@ -43,6 +47,7 @@ export function VersionScreen() {
   const security = useDashboardSecurity();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [snapshot, setSnapshot] = useState<VersionSnapshot | null>(null);
+  const [frontendIdentity, setFrontendIdentity] = useState<VersionFrontendIdentity | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -81,8 +86,9 @@ export function VersionScreen() {
     setLoading(true);
     setError(null);
     try {
-      const next = await client.read();
+      const [next, identity] = await Promise.all([client.read(), readVersionFrontendIdentity()]);
       setSnapshot(next);
+      setFrontendIdentity(identity);
       if (next.updateCheck && next.updateCheck.status !== "checking") {
         setCheckQueued(false);
       }
@@ -106,6 +112,15 @@ export function VersionScreen() {
   }, [checkQueued, refresh, snapshot?.activeOperation, snapshot?.updateCheck?.status]);
 
   const current = snapshot?.current ?? null;
+  const frontendDrift = Boolean(
+    frontendIdentity && current && frontendIdentity.sourceCommit !== current.sourceCommit,
+  );
+  const activationAllowed = Boolean(
+    current?.knownPackagedRelease &&
+    current.runtimeStateKnown &&
+    !snapshot?.activeOperation &&
+    !frontendDrift,
+  );
   const updateCheck = snapshot?.updateCheck ?? null;
   const automaticUpdatesEnabled = snapshot?.updatePolicy.automaticUpdatesEnabled ?? false;
   const updateCandidate = updateCheck?.candidateBundleId
@@ -276,12 +291,41 @@ export function VersionScreen() {
                       <PackageCheck className="h-5 w-5 text-cyan-200" />
                       <h2 className="text-lg font-semibold">Поточна версія</h2>
                     </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <Fact
+                        label="Інтерфейс цього посилання"
+                        value={
+                          frontendIdentity ? shortCommit(frontendIdentity.sourceCommit) : "Не підтверджено"
+                        }
+                        title={frontendIdentity?.sourceCommit}
+                        mono
+                      />
+                      <Fact
+                        label="Збірка інтерфейсу"
+                        value={frontendIdentity?.buildId ?? "Не підтверджено"}
+                        mono
+                      />
+                    </div>
+                    {frontendDrift ? (
+                      <Notice>
+                        Версія інтерфейсу відрізняється від запису оновлення. Потрібно звірити LAN і HTTPS та
+                        оновити підтвердження розгортання перед встановленням пакета.
+                      </Notice>
+                    ) : null}
+                    {!current?.knownPackagedRelease ? (
+                      <Notice>
+                        Потрібен перевірений пакет поточної версії. Адміністратор має підготувати локальні
+                        пакети поточної та нової версій і виконати контрольований перехід до пакетного
+                        оновлення з резервною копією. Після цього встановлення та відкат стануть доступними
+                        тут.
+                      </Notice>
+                    ) : null}
                     {current ? (
                       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                         <Fact label="Release" value={current.release} />
                         <Fact label="Bundle" value={current.bundleId} mono />
                         <Fact
-                          label="Commit"
+                          label="Версія в записі оновлення"
                           value={shortCommit(current.sourceCommit)}
                           mono
                           title={current.sourceCommit}
@@ -491,7 +535,7 @@ export function VersionScreen() {
                         </label>
                         <button
                           type="button"
-                          disabled={!current?.runtimeStateKnown || Boolean(snapshot.activeOperation)}
+                          disabled={!activationAllowed}
                           onClick={() => setShowConfirm(true)}
                           className="inline-flex w-fit items-center gap-2 rounded-xl border border-amber-300/30 bg-amber-300/8 px-4 py-2.5 text-sm text-amber-100 disabled:opacity-50"
                         >

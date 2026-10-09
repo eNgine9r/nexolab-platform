@@ -20,6 +20,10 @@ on:
       organization_id:
         description: Default organization UUID
         required: true
+      external_origin:
+        description: Optional existing Google-protected HTTPS origin; builds a second artifact at the same SHA
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -28,7 +32,7 @@ jobs:
   build:
     name: Build verified ARM64 frontend release
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 35
+    timeout-minutes: 70
 
     steps:
       - name: Checkout requested source
@@ -47,14 +51,19 @@ jobs:
 
       - name: Build self-contained ARM64 frontend runtime artifact
         shell: bash
+        env:
+          API_BASE_URL: ${{ inputs.api_base_url }}
+          WEBSOCKET_URL: ${{ inputs.websocket_url }}
+          AUTH_PROVIDER: ${{ inputs.auth_provider }}
+          ORGANIZATION_ID: ${{ inputs.organization_id }}
         run: |
           set -euo pipefail
           scripts/build-frontend-release-artifact.sh \
             --platform linux/arm64 \
-            --api-base-url "${{ inputs.api_base_url }}" \
-            --websocket-url "${{ inputs.websocket_url }}" \
-            --auth-provider "${{ inputs.auth_provider }}" \
-            --organization-id "${{ inputs.organization_id }}" \
+            --api-base-url "$API_BASE_URL" \
+            --websocket-url "$WEBSOCKET_URL" \
+            --auth-provider "$AUTH_PROVIDER" \
+            --organization-id "$ORGANIZATION_ID" \
             --output "${{ runner.temp }}/nexolab-frontend-release"
 
       - name: Upload verified frontend release
@@ -62,6 +71,35 @@ jobs:
         with:
           name: nexolab-frontend-release-${{ steps.provenance.outputs.sha }}-arm64
           path: ${{ runner.temp }}/nexolab-frontend-release
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Build matching protected HTTPS frontend
+        if: inputs.external_origin != ''
+        shell: bash
+        env:
+          EXTERNAL_ORIGIN: ${{ inputs.external_origin }}
+          AUTH_PROVIDER: ${{ inputs.auth_provider }}
+          ORGANIZATION_ID: ${{ inputs.organization_id }}
+        run: |
+          set -euo pipefail
+          external_websocket="${EXTERNAL_ORIGIN/#https:/wss:}"
+          scripts/build-frontend-release-artifact.sh \
+            --platform linux/arm64 \
+            --api-base-url "$EXTERNAL_ORIGIN" \
+            --websocket-url "${external_websocket%/}/api/v1/telemetry/live" \
+            --auth-provider "$AUTH_PROVIDER" \
+            --organization-id "$ORGANIZATION_ID" \
+            --external-https \
+            --output "${{ runner.temp }}/nexolab-external-frontend-release"
+
+      - name: Upload matching protected HTTPS frontend
+        if: inputs.external_origin != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: nexolab-external-frontend-release-${{ steps.provenance.outputs.sha }}-arm64
+          path: ${{ runner.temp }}/nexolab-external-frontend-release
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 7

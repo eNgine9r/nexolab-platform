@@ -1,6 +1,14 @@
 # NEXOLAB Current State
 
-Updated: 2026-10-08
+Updated: 2026-10-09
+
+## Issue #1313 — unified protected updates implemented; host acceptance pending
+
+The owner requested one LAN/Google HTTPS update process and a working Settings version page. The feature branch `feat/1313-unified-protected-updates` depends on PR #1312 source `4b9dc85ab2e7924195d5d2030fb298aaaf78aaf4`. The canonical deployed LOCAL_LAN baseline remains `d00a83bfc83fb120777c721b5e46fa50ae455c7d`; the separately activated HTTPS frontend is pinned to `4b9dc85ab2e7924195d5d2030fb298aaaf78aaf4`. These identities are deliberately recorded separately until an approved unified deployment. No new production activation occurred.
+
+Implementation prepares checksum-bound LAN and HTTPS artifacts from one source on ports 3101/3102, preserves the existing loopback 3100 Google gateway frontend and its kernel memory cap, and restores frontend units/identities after failure. Offline packages now bind a matching HTTPS artifact into manifest/inventory; both source-to-package authority and normal package update/rollback prepare and verify that frontend. Missing artifacts, mixed current authority and unsafe gateway contracts fail before runtime mutation. Failed runtime recovery cannot silently restore ready package authority.
+
+The version page shows its actual frontend commit/build separately from the update record, warns on drift and disables activation for source-only/unknown authority. The photographed historical source record cannot authorize package installation. Local verification: 1192 frontend tests in 191 files, lint-staged regression, and 102 updater/artifact tests with 9 subtests plus additional source-selection/capacity/auth checks passed. Three existing process-group cleanup cases fail locally with `ps: fatal library error, lookup self`; the unchanged dependency baseline reproduces all three failures, so their acceptance is delegated to the normal Linux CI runner. Exact-head CI/review, ARM64 release artifact builds, current+target package staging, privileged authority transition and actual-host update/rollback acceptance remain pending. See `docs/operations/unified-lan-protected-updates.md`. No Modbus/hardware writes or persistent-data/volume deletion occurred.
 
 ## Issue #1309 — verified shared BuildKit cache v3 and cross-branch acceptance (GREEN)
 

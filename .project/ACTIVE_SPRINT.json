@@ -40,7 +40,11 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1313,
+      "title": "Synchronize LAN and Google HTTPS releases and complete update readiness",
+      "branch": "feat/1313-unified-protected-updates"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -7092,6 +7096,32 @@
         "issue_state_after_merge": "closed_completed",
         "next_ready_work_package": "pending_fresh_backlog_reaudit"
       }
+    },
+    {
+      "issue": 1313,
+      "title": "Synchronize LAN and Google HTTPS releases and complete update readiness",
+      "priority": "high",
+      "lifecycle": "review",
+      "branch": "feat/1313-unified-protected-updates",
+      "evidence": {
+        "source_dependency_pull_request": 1312,
+        "dependency_source_sha": "4b9dc85ab2e7924195d5d2030fb298aaaf78aaf4",
+        "local_frontend_tests": "1192_passed_191_files",
+        "local_updater_tests": "102_passed_9_subtests_in_primary_CI_suite",
+        "local_node": "24.19.0_supported_development_runtime",
+        "exact_head_ci": "pending_publication",
+        "actual_host_acceptance": "not_performed",
+        "production_runtime_mutation": "none",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "local_controlled_deploy_checks": "additional_source_selection_capacity_auth_tests_passed",
+        "local_lint": "passed",
+        "local_production_build": "passed",
+        "local_candidate_cleanup": "3_process_group_cases_blocked_by_sandbox_ps_lookup_self_also_fail_on_unchanged_dependency_baseline"
+      },
+      "depends_on": [],
+      "scope": "Gateway-aware source deployment and offline package update/rollback; truthful Settings version readiness",
+      "verification": "Local frontend suite, production build, updater/artifact transaction regressions, exact-head required CI; host activation separately gated"
     }
   ],
   "maintenance_actions": [

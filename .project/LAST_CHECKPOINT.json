@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-08T11:30:45.972Z",
-  "actor": "ChatGPT Team Lead",
-  "event": "issue_1309_shared_buildkit_cache_cross_branch_verified_green",
+  "timestamp": "2026-10-09T08:43:00Z",
+  "actor": "ChatGPT",
+  "event": "unified_protected_updates_local_verification",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -28,7 +28,11 @@
     "deployed_device_agent_rollback_image_id": "sha256:5344b4bef506d89923afd39413ee1bd7d1bb668ac1d123ed899a6d22fa58b957",
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1313,
+    "title": "Synchronize LAN and Google HTTPS releases and complete update readiness",
+    "branch": "feat/1313-unified-protected-updates"
+  },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -1402,6 +1406,22 @@
       "observed_difference_seconds": 83,
       "site_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
       "hardware": "not_touched"
+    },
+    "active_issue_evidence": {
+      "source_dependency_pull_request": 1312,
+      "dependency_source_sha": "4b9dc85ab2e7924195d5d2030fb298aaaf78aaf4",
+      "local_frontend_tests": "1192_passed_191_files",
+      "local_updater_tests": "102_passed_9_subtests_in_primary_CI_suite",
+      "local_node": "24.19.0_supported_development_runtime",
+      "exact_head_ci": "pending_publication",
+      "actual_host_acceptance": "not_performed",
+      "production_runtime_mutation": "none",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "local_controlled_deploy_checks": "additional_source_selection_capacity_auth_tests_passed",
+      "local_lint": "passed",
+      "local_production_build": "passed",
+      "local_candidate_cleanup": "3_process_group_cases_blocked_by_sandbox_ps_lookup_self_also_fail_on_unchanged_dependency_baseline"
     }
   },
   "observations": [
@@ -2353,7 +2373,7 @@
       }
     }
   ],
-  "next_action": "Finish #1309 state-only PR exact-head CI and merge if GREEN; afterward select a genuinely independent Ready Work Package from fresh GitHub and ACTIVE_SPRINT state. #1300 authenticated host UX audit remains separately gated. Never deploy the CI-only main merge to Raspberry without approval.",
+  "next_action": "Publish #1313 draft PR, verify exact-head CI and source dependency #1312; prepare concrete reviewed ARM64/source and protected current/target package activation for Product Owner approval. Actual host acceptance remains pending.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -2361,24 +2381,5 @@
     "volume_deletion": "none",
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
-  },
-  "snapshot": {
-    "ux1194_local_checks": {
-      "focused_tests": 28,
-      "refrigeration_tests": 90,
-      "security_hook_tests": 5,
-      "typecheck": "pass",
-      "eslint": "pass",
-      "build": "pass",
-      "authenticated_browser_ci": "pending"
-    },
-    "ux1196_local_checks": {
-      "component_tests": 18,
-      "domain_tests": 62,
-      "typecheck": "pass",
-      "lint_format": "pass",
-      "build": "pass",
-      "browser_ci": "pending"
-    }
   }
 }
