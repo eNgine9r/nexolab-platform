@@ -1,12 +1,12 @@
 # NEXOLAB Blockers
 
-Updated: 2026-10-08
+Updated: 2026-10-09
 
-## Issue #1313 — source review and exact-source host acceptance required
+## Issue #1313 — local privilege and complete ARM64 package acceptance
 
-The unified update implementation is published in draft PR #1314 on `feat/1313-unified-protected-updates` and depends on draft PR #1312. Required exact-head CI and review must complete before merge. Current production LAN and HTTPS source identities differ; the version record remains source-only, so package actions correctly stay blocked. Source tests do not grant package authority.
+Source PRs #1312 and #1314 are merged after required GREEN CI. The owner authorized continuation. Host activation still requires local sudo because `sudo -n -v` reports a password is required; do not bypass this restriction or request the password in chat. LAN/HTTPS identities remain mixed and the historical version record has no validated package authority.
 
-After source acceptance, a Product Owner-approved exact-source activation must unify both frontends, adopt authoritative deployment lineage, install the new worker/tooling, stage current and target offline packages including their matching HTTPS artifacts, and perform the existing backup/volume/readiness package-authority transition. Commander root/read-only restrictions must be respected. Actual-host update/rollback, permitted/denied Google accounts and full-session expiry are unverified for this Work Package. OAuth/NGINX/Funnel configuration, Modbus/hardware writes and destructive data operations are outside scope. Production activation remains unapproved.
+Actual ARM64 artifact run `37892179879` failed on missing `/app/public`. Focused #1315 fixes that runtime directory and adds optional protected artifact preparation to the standard offline package workflow. Merge only after exact-head CI/review, then prepare paired frontend artifacts and sequential current/target protected bundles, verify/stage them and provide a concrete reviewed privileged activation command. Source CI is not actual-host update/rollback or Google-account/session-expiry acceptance. Existing site environment, credentials, volumes and data must be preserved.
 
 ## Issues #1306 / #1309 — CI optimization complete; no remaining merge/cache blocker
 

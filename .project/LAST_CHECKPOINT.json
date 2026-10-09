@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-09T05:44:55.527Z",
+  "timestamp": "2026-10-09T06:20:00Z",
   "actor": "ChatGPT",
-  "event": "unified_protected_updates_PR_1314_published",
+  "event": "protected_offline_package_workflow_followup",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -29,9 +29,9 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "active_work": {
-    "issue": 1313,
-    "title": "Synchronize LAN and Google HTTPS releases and complete update readiness",
-    "branch": "feat/1313-unified-protected-updates"
+    "issue": 1315,
+    "title": "Build protected ARM64 offline packages for unified update acceptance",
+    "branch": "feat/protected-offline-package-workflow"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -1427,6 +1427,14 @@
       "verified_tree_sha": "b12266a1ba3b7f9f523e983a2325c045613d02f3",
       "existing_gateway_readonly": "kernel_memory_origin_loopback_and_anonymous_API_WebSocket_upgrade_image_Device_Agent_denial_passed",
       "existing_https_build": "KVMryq76dj1LhzOW30pgA"
+    },
+    "issue_1315": {
+      "local_workflow_contract_tests": "30_passed",
+      "format": "workflow_and_runbook_passed",
+      "actual_arm64_build": "pending_after_required_CI",
+      "modbus_write": "none",
+      "hardware_write": "none",
+      "runtime_mutation": "none"
     }
   },
   "observations": [
@@ -2389,7 +2397,7 @@
       }
     }
   ],
-  "next_action": "Verify PR #1314 exact-head CI/review and source dependency #1312; then prepare reviewed ARM64 artifacts/current+target protected offline packages and exact-source host activation for Product Owner approval. Actual-host update/rollback acceptance remains pending.",
+  "next_action": "Verify focused PR #1315 exact-head CI/review; merge GREEN, build paired ARM64 frontends and current/target protected packages. Prepare reviewed local-sudo activation for parent #1313; installed site and package authority remain unchanged.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
