@@ -41,9 +41,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1313,
-      "title": "Synchronize LAN and Google HTTPS releases and complete update readiness",
-      "branch": "feat/1313-unified-protected-updates"
+      "issue": 1315,
+      "title": "Build protected ARM64 offline packages for unified update acceptance",
+      "branch": "feat/protected-offline-package-workflow"
     },
     "next_work_package": null
   },
@@ -7101,7 +7101,7 @@
       "issue": 1313,
       "title": "Synchronize LAN and Google HTTPS releases and complete update readiness",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "blocked",
       "branch": "feat/1313-unified-protected-updates",
       "evidence": {
         "source_dependency_pull_request": 1312,
@@ -7129,11 +7129,34 @@
           "lan_build": "hA8usmV6ZKwgZUYhmOLHZ",
           "https_build": "KVMryq76dj1LhzOW30pgA",
           "runtime_mutation": "none"
-        }
+        },
+        "final_exact_head_ci": "18_completed_success_on_fc4e3bc375618ebae87c9208cfec3b3f63317427",
+        "final_verified_head_sha": "fc4e3bc375618ebae87c9208cfec3b3f63317427",
+        "host_installation_blocker": "local_sudo_password_required",
+        "frontend_artifact_run_37892179879": "failed_missing_app_public_directory",
+        "followup_package_workflow_issue": 1315,
+        "isolated_host_candidate_cleanup": "3_passed_without_service_mutation"
       },
       "depends_on": [],
       "scope": "Gateway-aware source deployment and offline package update/rollback; truthful Settings version readiness",
       "verification": "Local frontend suite, production build, updater/artifact transaction regressions, exact-head required CI; host activation separately gated"
+    },
+    {
+      "issue": 1315,
+      "title": "Build protected ARM64 offline packages for unified update acceptance",
+      "priority": "high",
+      "lifecycle": "review",
+      "branch": "feat/protected-offline-package-workflow",
+      "evidence": {
+        "local_workflow_contract_tests": "30_passed",
+        "format": "workflow_and_runbook_passed",
+        "actual_arm64_build": "pending_after_required_CI",
+        "modbus_write": "none",
+        "hardware_write": "none",
+        "runtime_mutation": "none"
+      },
+      "scope": "Optional protected offline artifact workflow; Dashboard public export fix",
+      "verification": "Executable source/origin/worktree failure tests; required CI; actual ARM64 artifact builds after merge"
     }
   ],
   "maintenance_actions": [
@@ -8384,6 +8407,19 @@
         "issue": 1306,
         "pr": 1280,
         "merge_sha": "ee9738ab39ca369b8d49aec9971fdf25a2ed0b79"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-09T06:20:00Z",
+      "kind": "unified_update_source_acceptance",
+      "data": {
+        "issue": 1313,
+        "pull_request": 1314,
+        "head_sha": "fc4e3bc375618ebae87c9208cfec3b3f63317427",
+        "merge_sha": "8c1a4510887a141c4efb1d2440d066167d52a47d",
+        "dependency_merge_sha": "e0a79c988d84d528ae724b7c17c51dbdddd16bc3",
+        "workflow_runs_success": 18
       }
     }
   ],

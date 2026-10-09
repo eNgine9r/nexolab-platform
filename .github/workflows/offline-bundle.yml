@@ -59,6 +59,11 @@ on:
         options:
           - local
           - disabled
+      external_origin:
+        description: Optional existing Google-protected HTTPS origin; includes a matching frontend
+        required: false
+        default: ""
+        type: string
 
 concurrency:
   group: offline-bundle-${{ github.ref }}
@@ -103,6 +108,7 @@ jobs:
           DISPATCH_API_BASE_URL: ${{ inputs.api_base_url }}
           DISPATCH_WEBSOCKET_URL: ${{ inputs.websocket_url }}
           DISPATCH_AUTH_PROVIDER: ${{ inputs.auth_provider }}
+          DISPATCH_EXTERNAL_ORIGIN: ${{ inputs.external_origin }}
         run: |
           set -Eeuo pipefail
           tooling_sha="$(git rev-parse HEAD)"
@@ -113,6 +119,7 @@ jobs:
             api_base_url="$DISPATCH_API_BASE_URL"
             websocket_url="$DISPATCH_WEBSOCKET_URL"
             auth_provider="$DISPATCH_AUTH_PROVIDER"
+            external_origin="$DISPATCH_EXTERNAL_ORIGIN"
           else
             platform="linux/amd64"
             runtime_source_ref="$tooling_sha"
@@ -120,6 +127,7 @@ jobs:
             api_base_url="http://127.0.0.1:8082"
             websocket_url="ws://127.0.0.1:8082/api/v1/telemetry/live"
             auth_provider="disabled"
+            external_origin=""
           fi
 
           case "$platform" in
@@ -130,6 +138,17 @@ jobs:
             local|disabled) ;;
             *) echo "Unsupported offline auth provider: $auth_provider" >&2; exit 2 ;;
           esac
+          if [[ -n "$external_origin" ]]; then
+            [[ "$auth_provider" == "local" ]] || {
+              echo "Protected frontend requires local authentication" >&2; exit 2
+            }
+            python3 - "$external_origin" <<'PYEXTERNAL'
+          import runpy
+          import sys
+
+          runpy.run_path("scripts/nexolab-protected-frontend.py")["origin_host"](sys.argv[1])
+          PYEXTERNAL
+          fi
           runtime_source_sha="$(git rev-parse --verify "${runtime_source_ref}^{commit}")" || {
             echo "Runtime source ref cannot be resolved: $runtime_source_ref" >&2
             exit 2
@@ -249,6 +268,10 @@ jobs:
             version="ci-${tooling_sha:0:12}"
             artifact_name="nexolab-offline-amd64-${tooling_sha}"
           fi
+          if [[ -n "$external_origin" ]]; then
+            version+="-protected"
+            artifact_name+="-protected"
+          fi
           local_auth=false
           [[ "$auth_provider" == "local" ]] && local_auth=true
 
@@ -264,6 +287,7 @@ jobs:
             echo "websocket_url=$websocket_url"
             echo "auth_provider=$auth_provider"
             echo "local_auth=$local_auth"
+            echo "external_origin=$external_origin"
           } >> "$GITHUB_OUTPUT"
 
       - name: Setup Python
@@ -412,6 +436,29 @@ jobs:
             scripts/offline-bundle-smoke.sh \
             scripts/verify-offline-volume-preservation.sh
 
+      - name: Build matching protected frontend artifact
+        if: steps.contract.outputs.external_origin != ''
+        shell: bash
+        env:
+          PLATFORM: ${{ steps.contract.outputs.platform }}
+          RUNTIME_SOURCE_SHA: ${{ steps.contract.outputs.runtime_source_sha }}
+          EXTERNAL_ORIGIN: ${{ steps.contract.outputs.external_origin }}
+        run: |
+          set -Eeuo pipefail
+          protected_source="$RUNNER_TEMP/nexolab-package-external-source"
+          protected_artifact="$RUNNER_TEMP/nexolab-package-external-frontend"
+          git -C "$GITHUB_WORKSPACE" worktree add --detach "$protected_source" "$RUNTIME_SOURCE_SHA"
+          trap 'git -C "$GITHUB_WORKSPACE" worktree remove --force "$protected_source"' EXIT
+          cd "$protected_source"
+          "$GITHUB_WORKSPACE/scripts/build-frontend-release-artifact.sh" \
+            --platform "$PLATFORM" \
+            --api-base-url "$EXTERNAL_ORIGIN" \
+            --websocket-url "${EXTERNAL_ORIGIN/#https:/wss:}/api/v1/telemetry/live" \
+            --auth-provider local \
+            --organization-id 00000000-0000-0000-0000-000000000001 \
+            --external-https \
+            --output "$protected_artifact"
+
       - name: Build selected offline bundle on connected builder
         id: bundle
         shell: bash
@@ -425,9 +472,14 @@ jobs:
           API_BASE_URL: ${{ steps.contract.outputs.api_base_url }}
           WEBSOCKET_URL: ${{ steps.contract.outputs.websocket_url }}
           AUTH_PROVIDER: ${{ steps.contract.outputs.auth_provider }}
+          EXTERNAL_ORIGIN: ${{ steps.contract.outputs.external_origin }}
           NEXOLAB_BUILDX_CACHE_ROOT: ${{ runner.temp }}/nexolab-offline-buildx-cache
         run: |
           set -Eeuo pipefail
+          external_args=()
+          if [[ -n "$EXTERNAL_ORIGIN" ]]; then
+            external_args+=(--external-frontend-artifact "$RUNNER_TEMP/nexolab-package-external-frontend")
+          fi
           ./scripts/build-offline-bundle.sh \
             --version "$VERSION" \
             --platform "$PLATFORM" \
@@ -436,7 +488,8 @@ jobs:
             --api-base-url "$API_BASE_URL" \
             --websocket-url "$WEBSOCKET_URL" \
             --auth-provider "$AUTH_PROVIDER" \
-            --output "$PWD/dist/offline"
+            --output "$PWD/dist/offline" \
+            "${external_args[@]}"
           archive="$PWD/dist/offline/nexolab-offline-${VERSION}-${ARCH}.tar.gz"
           test -f "$archive"
           test -f "${archive}.sha256"

@@ -68,6 +68,22 @@ bundle contains the HTTPS runtime and fixed provenance files, never the site
 environment or Google credentials. Its manifest and package inventory bind the
 external source, build, origin, organization and checksums.
 
+Alternatively, dispatch `offline-bundle.yml` on reviewed canonical tooling with
+the exact `runtime_source_ref`, `platform=linux/arm64`, the LAN origins,
+`auth_provider=local` and the optional `external_origin` above. The workflow
+builds the protected artifact in a clean detached worktree at the selected runtime
+SHA, then includes it in the verified bundle. Generated CI configuration stays in
+the tooling checkout; it cannot contaminate the frontend source. Protected
+versions/artifact names receive a `-protected` suffix. Empty `external_origin`
+keeps the existing LAN-only build and CI behavior.
+
+The selected runtime must include the #1315 Dashboard Dockerfile fix that creates
+and copies `public` even when the source has no public assets. Older runtime
+Dockerfiles omit that directory and fail frontend artifact export; do not reuse
+the failed run `37892179879` or treat its successful Next compilation as a usable
+release. Build current and target packages sequentially on `main`, because the
+workflow's per-ref concurrency cancels an earlier in-progress run.
+
 Verify each bundle, transfer it locally, and stage it with the version manager.
 Install the reviewed version-manager service/tooling using
 `scripts/deploy-version-manager-service.sh`, preserving existing site environment

@@ -25,7 +25,8 @@ ENV NEXT_PUBLIC_NEXOLAB_DATA_MODE=${NEXT_PUBLIC_NEXOLAB_DATA_MODE} \
     NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID=${NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID} \
     NEXT_TELEMETRY_DISABLED=1
 COPY . .
-RUN test -n "$NEXT_PUBLIC_NEXOLAB_API_BASE_URL" \
+RUN mkdir -p public \
+    && test -n "$NEXT_PUBLIC_NEXOLAB_API_BASE_URL" \
     && test -n "$NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL" \
     && npm run build
 
@@ -42,6 +43,7 @@ WORKDIR /app
 COPY --from=production-dependencies --chown=node:node /app/package.json /app/package-lock.json ./
 COPY --from=production-dependencies --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/.next ./.next
+COPY --from=builder --chown=node:node /app/public ./public
 COPY --from=builder --chown=node:node /app/.nexolab-runtime-identity.json ./.nexolab-runtime-identity.json
 USER node
 EXPOSE 3000

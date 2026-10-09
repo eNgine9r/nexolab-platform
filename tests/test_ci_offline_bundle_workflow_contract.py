@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import os
 import shutil
 import subprocess
 import sys
@@ -153,6 +155,106 @@ class OfflineBundleWorkflowContractTests(unittest.TestCase):
         for excluded in ("!services/**", "!infrastructure/**", "!docs/**"):
             self.assertNotIn(excluded, lines)
         self.assertIn("COPY . .", self.dashboard_dockerfile)
+
+    def test_runtime_keeps_public_assets_and_supports_sources_without_public(self) -> None:
+        self.assertIn("RUN mkdir -p public", self.dashboard_dockerfile)
+        self.assertIn("COPY --from=builder --chown=node:node /app/public ./public", self.dashboard_dockerfile)
+        self.assertIn("!public/**", self.dashboard_dockerignore)
+
+    def _step_script(self, name: str) -> str:
+        step = self.workflow.split(f"      - name: {name}\n", 1)[1].split("\n      - name:", 1)[0]
+        return "\n".join(line[10:] for line in step.split("        run: |\n", 1)[1].splitlines())
+
+    def test_protected_contract_rejects_bad_origins_and_disabled_auth(self) -> None:
+        script = self._step_script("Resolve bounded build contract")
+        for origin, auth, accepted in (
+            ("https://nexolab.example.net", "local", True),
+            ("", "disabled", True),
+            ("https://nexolab.example.net", "disabled", False),
+            ("http://nexolab.example.net", "local", False),
+            ("https://user:password@nexolab.example.net", "local", False),
+            ("https://nexolab.example.net/path", "local", False),
+            ("https://nexolab.example.net:443", "local", False),
+            ("https://nexolab.example.net\nversion=forged", "local", False),
+        ):
+            with self.subTest(origin=origin, auth=auth), tempfile.TemporaryDirectory() as temporary:
+                output = Path(temporary) / "outputs"
+                result = subprocess.run(
+                    ["bash", "-c", script], cwd=ROOT, capture_output=True, text=True,
+                    env={**os.environ, "EVENT_NAME": "workflow_dispatch", "DISPATCH_PLATFORM": "linux/arm64",
+                         "DISPATCH_RUNTIME_SOURCE_REF": "HEAD", "DISPATCH_DASHBOARD_ORIGIN": "http://127.0.0.1:3000",
+                         "DISPATCH_API_BASE_URL": "http://127.0.0.1:8082",
+                         "DISPATCH_WEBSOCKET_URL": "ws://127.0.0.1:8082/api/v1/telemetry/live",
+                         "DISPATCH_AUTH_PROVIDER": auth, "DISPATCH_EXTERNAL_ORIGIN": origin,
+                         "GITHUB_OUTPUT": str(output), "PYTHONDONTWRITEBYTECODE": "1"},
+                )
+                self.assertEqual(result.returncode == 0, accepted, result.stderr)
+                if accepted:
+                    self.assertIn(f"external_origin={origin}\n", output.read_text())
+                    self.assertEqual("-protected\n" in output.read_text(), bool(origin))
+                else:
+                    self.assertFalse(output.exists())
+
+    def test_protected_build_uses_clean_selected_source_and_cleans_up_on_failure(self) -> None:
+        script = self._step_script("Build matching protected frontend artifact")
+        for fail in (False, True):
+            with self.subTest(fail=fail), tempfile.TemporaryDirectory() as temporary:
+                workspace = Path(temporary) / "workspace"
+                workspace.mkdir()
+                def git(*args: str) -> str:
+                    return subprocess.check_output(["git", "-C", str(workspace), *args], text=True).strip()
+                git("init", "--quiet")
+                git("config", "user.email", "fixture@example.net")
+                git("config", "user.name", "Fixture")
+                (workspace / "runtime").write_text("historical runtime")
+                git("add", "runtime")
+                git("commit", "--quiet", "-m", "selected runtime")
+                selected = git("rev-parse", "HEAD")
+                builder = workspace / "scripts" / "build-frontend-release-artifact.sh"
+                builder.parent.mkdir()
+                builder.write_text(
+                    "#!/usr/bin/env python3\nimport json, os, subprocess, sys\nfrom pathlib import Path\n"
+                    "probe={'cwd':os.getcwd(),'args':sys.argv[1:],"
+                    "'sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),"
+                    "'dirty':subprocess.check_output(['git','status','--porcelain'],text=True).strip()}\n"
+                    "Path(os.environ['PROBE']).write_text(json.dumps(probe))\n"
+                    "raise SystemExit(42 if os.environ['FAIL_BUILD']=='true' else 0)\n"
+                )
+                builder.chmod(0o755)
+                git("add", "scripts")
+                git("commit", "--quiet", "-m", "reviewed tooling")
+                (workspace / ".ci-generated").write_text("dirty tooling checkout")
+                runner = Path(temporary) / "runner"
+                runner.mkdir()
+                probe = Path(temporary) / "probe.json"
+                result = subprocess.run(
+                    ["bash", "-c", script], cwd=workspace, capture_output=True, text=True,
+                    env={**os.environ, "GITHUB_WORKSPACE": str(workspace), "RUNNER_TEMP": str(runner),
+                         "RUNTIME_SOURCE_SHA": selected, "PLATFORM": "linux/arm64",
+                         "EXTERNAL_ORIGIN": "https://nexolab.example.net", "PROBE": str(probe),
+                         "FAIL_BUILD": str(fail).lower()},
+                )
+                self.assertEqual(result.returncode, 42 if fail else 0, result.stderr)
+                recorded = json.loads(probe.read_text())
+                self.assertEqual(recorded["sha"], selected)
+                self.assertEqual(recorded["dirty"], "")
+                self.assertEqual(recorded["cwd"], str(runner / "nexolab-package-external-source"))
+                self.assertEqual(recorded["args"], [
+                    "--platform", "linux/arm64", "--api-base-url", "https://nexolab.example.net",
+                    "--websocket-url", "wss://nexolab.example.net/api/v1/telemetry/live",
+                    "--auth-provider", "local", "--organization-id", "00000000-0000-0000-0000-000000000001",
+                    "--external-https", "--output", str(runner / "nexolab-package-external-frontend"),
+                ])
+                self.assertFalse((runner / "nexolab-package-external-source").exists())
+                self.assertEqual(git("worktree", "list", "--porcelain").count("worktree "), 1)
+
+    def test_offline_package_receives_protected_artifact_only_when_requested(self) -> None:
+        script = self._step_script("Build selected offline bundle on connected builder")
+        self.assertIn('if [[ -n "$EXTERNAL_ORIGIN" ]]; then', script)
+        self.assertIn('external_args+=(--external-frontend-artifact "$RUNNER_TEMP/nexolab-package-external-frontend")', script)
+        self.assertIn('"${external_args[@]}"', script)
+        self.assertLess(self.workflow.index("Build matching protected frontend artifact"),
+                        self.workflow.index("Build selected offline bundle on connected builder"))
 
     def test_dispatch_exposes_bounded_recovery_inputs(self) -> None:
         for input_name in (
