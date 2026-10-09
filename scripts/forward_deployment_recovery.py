@@ -13,12 +13,14 @@ import ast
 from datetime import UTC, datetime
 import hashlib
 import json
+import ipaddress
 import os
 from pathlib import Path
 import platform
 import re
 import subprocess
 import sys
+import time
 from typing import Any
 import urllib.request
 from uuid import uuid4
@@ -803,6 +805,273 @@ def parser() -> argparse.ArgumentParser:
     mode.add_argument("--check-only", action="store_true")
     mode.add_argument("--execute", action="store_true")
     return result
+
+
+def _partial_read(path: Path) -> dict[str, Any]:
+    if not path.is_absolute() or path.is_symlink() or not path.is_file() or path.stat().st_size > 262144:
+        raise RecoveryFailure("partial continuation metadata path is missing or unsafe")
+    return read_json(path, "partial continuation metadata")
+
+
+def _partial_run(*command: str) -> str:
+    # Never include raw Docker/systemd output or environment in failures.
+    args = list(command)
+    if args[0] == "docker":
+        args[1:1] = ["--host", "unix:///var/run/docker.sock"]
+    try:
+        result = subprocess.run(args, capture_output=True, text=True, timeout=15, check=False,
+                                env={key: value for key, value in os.environ.items()
+                                     if key in {"PATH", "HOME", "LANG", "LC_ALL"}})
+    except (OSError, subprocess.SubprocessError) as error:
+        raise RecoveryFailure("partial continuation read-only command unavailable") from error
+    if result.returncode:
+        raise RecoveryFailure("partial continuation read-only command failed")
+    return result.stdout.strip()
+
+
+def _partial_http(host: str, port: int, route: str) -> dict[str, Any]:
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args: Any, **kwargs: Any) -> None:
+            return None
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
+    try:
+        with opener.open(f"http://{host}:{port}{route}", timeout=3) as response:
+            if response.status != 200:
+                raise ValueError("HTTP not ready")
+            raw = response.read(65537)
+            if len(raw) > 65536:
+                raise ValueError("oversized health response")
+            document = json.loads(raw)
+            if not isinstance(document, dict):
+                raise ValueError("invalid health response")
+            return document
+    except Exception as error:
+        raise RecoveryFailure("partial continuation local health/identity check failed") from error
+
+
+def _partial_container(document: dict[str, Any]) -> dict[str, Any]:
+    config = document.get("Config") or {}
+    labels = config.get("Labels") or {}
+    state = document.get("State") or {}
+    return {"id": document.get("Id"), "image_id": document.get("Image"),
+            "project": labels.get("com.docker.compose.project"),
+            "service": labels.get("com.docker.compose.service"), "running": state.get("Running"),
+            "docker_health": (state.get("Health") or {}).get("Status"),
+            "status": state.get("Status"), "oom_killed": state.get("OOMKilled"),
+            "name": document.get("Name"), "user": config.get("User"), "working_dir": config.get("WorkingDir"),
+            "named_volumes": [{"name": item.get("Name"), "target": item.get("Destination"), "rw": item.get("RW")}
+                              for item in document.get("Mounts", []) if item.get("Type") == "volume"]}
+
+
+def check_partial_volume_preservation(facts: dict[str, Any]) -> None:
+    for item in facts["all_existing_volumes"]:
+        documents = json.loads(_partial_run("docker", "volume", "inspect", item["Name"]))
+        if len(documents) != 1 or {key: documents[0].get(key) for key in ("Name", "Driver", "Mountpoint", "CreatedAt")} != item:
+            raise RecoveryFailure("partial continuation persistent volume identity drifted")
+
+
+def check_partial_input_preservation(repo: Path, failed: Path, recovery_path: Path, context: dict[str, Any]) -> None:
+    paths = {"snapshot_metadata": failed / "edge-sqlite-pre-cutover.json",
+             "attempt_quiesce": failed / "edge-device-agent-quiesce.json",
+             "attempt_mutation_marker": failed / "runtime-mutation-started", "prior_recovery": recovery_path,
+             "volume_identities_before": failed / "volume-identities-before.json"}
+    for key, path in paths.items():
+        _safe_file(path, "preserved partial continuation evidence")
+        if sha256_file(path) != context["input_hashes"][key]:
+            raise RecoveryFailure("partial continuation original evidence changed")
+    for name, digest in context["site_configuration_sha256"].items():
+        if name not in {".env.central", ".env.edge-central"}:
+            raise RecoveryFailure("partial continuation site configuration identity is invalid")
+        path = _safe_file(repo / "infrastructure/compose" / name, "preserved site configuration")
+        if sha256_file(path) != digest:
+            raise RecoveryFailure("partial continuation site configuration changed")
+
+
+def check_partial_live_baseline(facts: dict[str, Any]) -> None:
+    if platform.machine() != "aarch64":
+        raise RecoveryFailure("partial continuation is limited to the actual ARM64 host")
+    expected = facts["containers"]
+    observed = []
+    telemetry = []
+    for project in ("nexolab-central", "nexolab-edge"):
+        ids = _partial_run("docker", "ps", "-aq", "--filter", f"label=com.docker.compose.project={project}").split()
+        if len(ids) > 30 or any(not re.fullmatch("[0-9a-f]{12,64}", item) for item in ids):
+            raise RecoveryFailure("partial continuation container inventory is ambiguous")
+        for identifier in ids:
+            documents = json.loads(_partial_run("docker", "inspect", identifier))
+            if not isinstance(documents, list) or len(documents) != 1 or not isinstance(documents[0], dict):
+                raise RecoveryFailure("partial continuation container metadata is ambiguous")
+            item = _partial_container(documents[0])
+            observed.append(item)
+            if item["project"] == "nexolab-central" and item["service"] == "telemetry-service":
+                telemetry.append(documents[0])
+    keys = ("id", "image_id", "project", "service", "running", "name", "user", "working_dir", "named_volumes", "docker_health", "status", "oom_killed")
+    pinned = [{key: item.get(key) for key in keys} for item in expected]
+    if sorted(pinned, key=lambda x: x["id"]) != sorted(observed, key=lambda x: x["id"]):
+        raise RecoveryFailure("partial continuation live container/image/mount baseline drifted")
+    check_partial_volume_preservation(facts)
+    expected_names = {item["Name"] for item in facts["all_existing_volumes"]}
+    if set(_partial_run("docker", "volume", "ls", "-q").splitlines()) != expected_names:
+        raise RecoveryFailure("partial continuation full volume inventory drifted")
+    for profile, port, unit in (("lan", 3000, "nexolab-dashboard.service"),
+                                ("protected", 3100, "nexolab-external-frontend.service")):
+        anchor = facts["frontends"][profile]
+        state = _partial_run("systemctl", "show", unit, "-p", "WorkingDirectory", "-p", "MainPID", "-p", "ActiveState", "-p", "ExecStart")
+        values = dict(line.split("=", 1) for line in state.splitlines() if "=" in line)
+        pid = values.get("MainPID", "")
+        if values.get("ActiveState") != "active" or not re.fullmatch("[1-9][0-9]{0,8}", pid):
+            raise RecoveryFailure("partial continuation active frontend process missing")
+        if re.findall(r'(?<!\S)--port(?:\s+|=)([0-9]+)(?=\s|[;}]|$)', values.get("ExecStart", "")) != [str(port)]:
+            raise RecoveryFailure("partial continuation active frontend port drifted")
+        if values.get("WorkingDirectory") != anchor["unit"]["WorkingDirectory"] or os.readlink(f"/proc/{pid}/cwd") != anchor["process_cwd"]:
+            raise RecoveryFailure("partial continuation frontend process baseline drifted")
+        identity = _partial_http("127.0.0.1", port, "/api/runtime-identity")
+        if any(identity.get(key) != anchor["identity"].get(key) for key in ("schema_version", "service", "source_commit", "build_id")):
+            raise RecoveryFailure("partial continuation frontend source/build baseline drifted")
+    endpoint = facts["central_ready"]["endpoint"]
+    host, port = endpoint
+    if len(telemetry) != 1:
+        raise RecoveryFailure("partial continuation central service is ambiguous")
+    bindings = (telemetry[0].get("HostConfig", {}).get("PortBindings") or {}).get("8082/tcp")
+    addresses = json.loads(_partial_run("ip", "-j", "-4", "address", "show"))
+    local = {item.get("local") for address in addresses for item in address.get("addr_info", []) if item.get("family") == "inet"}
+    if not isinstance(bindings, list) or len(bindings) != 1:
+        raise RecoveryFailure("partial continuation central socket is ambiguous")
+    binding = bindings[0]
+    bound_host = binding.get("HostIp") or "0.0.0.0"
+    normalized = "127.0.0.1" if bound_host == "0.0.0.0" or ipaddress.IPv4Address(bound_host).is_loopback else bound_host
+    if host != normalized or int(binding["HostPort"]) != port or (host != "127.0.0.1" and host not in local):
+        raise RecoveryFailure("partial continuation central socket baseline drifted")
+    ready = _partial_http(host, port, "/health/ready")
+    if any(ready.get(key) != "ready" for key in ("status", "database", "mqtt")):
+        raise RecoveryFailure("partial continuation central readiness failed")
+    def health() -> int:
+        value = _partial_http("127.0.0.1", 8081, "/health")
+        scheduler = ((value.get("acquisition") or {}).get("scheduler") or {})
+        expected_workers = scheduler.get("expected_bus_workers")
+        if (value.get("status") != "ok" or value.get("mqtt_connected") is not True or value.get("queue_depth") != 0
+            or scheduler.get("workers_healthy") is not True or type(expected_workers) is not int or expected_workers <= 0
+            or expected_workers != facts["agent_health"][0]["expected_bus_workers"]
+            or scheduler.get("active_bus_workers") != expected_workers or type(value.get("samples_total")) is not int):
+            raise RecoveryFailure("partial continuation recovered agent is not operationally healthy")
+        return value["samples_total"]
+    first = health()
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        time.sleep(1)
+        if health() > first:
+            return
+    raise RecoveryFailure("partial continuation recovered acquisition is not advancing")
+
+
+def validate_partial_continuation(repo: Path, evidence: Path, previous: str, target: str,
+                                  capture_path: Path, capture_digest: str, recovery_path: Path) -> dict[str, Any]:
+    """Validate a partial baseline; never declare it a completed deployment.
+
+    Only the explicit deploy continuation calls this. The normal unresolved-
+    mutation gate remains closed. It reads metadata and live identities/health,
+    without writing runtime, authority, SQLite or PostgreSQL.
+    """
+    repo = repo.resolve()
+    failed = evidence.resolve()
+    if evidence.is_symlink() or failed.parent != (repo / "runtime/deployments").resolve() or not _valid_stamp(failed.name):
+        raise RecoveryFailure("partial continuation must select one canonical failed deployment")
+    if not SHA_RE.fullmatch(previous) or not SHA_RE.fullmatch(target):
+        raise RecoveryFailure("partial continuation source pins must be full SHAs")
+    for filename in ("final-state.txt", "edge-sqlite-restore-result.json", RESULT_NAME):
+        if (failed / filename).exists():
+            raise RecoveryFailure("partial continuation cannot reuse completed or restored deployment evidence")
+    summary = _safe_file(failed / "summary.txt", "failed deployment summary")
+    if "DEPLOYMENT PASSED" in summary.read_text():
+        raise RecoveryFailure("partial continuation cannot reuse a successful attempt")
+    ensure_no_newer_mutation(repo, failed.name)
+    marker = parse_key_values(failed / "runtime-mutation-started", "failed mutation marker")
+    snapshot_path = failed / "edge-sqlite-pre-cutover.json"
+    quiesce_path = failed / "edge-device-agent-quiesce.json"
+    snapshot = _partial_read(snapshot_path)
+    quiesce = _partial_read(quiesce_path)
+    if (marker.get("source") != target or not marker.get("started_at")
+        or snapshot.get("kind") != "nexolab-edge-sqlite-pre-cutover" or snapshot.get("schema_version") != 1
+        or snapshot.get("deployment_evidence_id") != failed.name or snapshot.get("deployed_source") != previous
+        or snapshot.get("target_source") != target or snapshot.get("source_quick_check") != "ok"
+        or snapshot.get("snapshot_quick_check") != "ok"):
+        raise RecoveryFailure("partial continuation failed-attempt source/snapshot lineage mismatch")
+    image = snapshot.get("deployed_device_agent_image_id")
+    if not isinstance(image, str) or not IMAGE_RE.fullmatch(image) or quiesce.get("kind") != "nexolab-edge-device-agent-quiesce" or quiesce.get("schema_version") != 1 or quiesce.get("image_id") != image or quiesce.get("target_source") != target or quiesce.get("deployment_evidence_id") != failed.name:
+        raise RecoveryFailure("partial continuation exact quiesced agent image mismatch")
+    capture = _partial_read(capture_path)
+    if not re.fullmatch("[0-9a-f]{64}", capture_digest) or sha256_file(capture_path) != capture_digest:
+        raise RecoveryFailure("partial continuation capture digest mismatch")
+    if (capture.get("kind") != "nexolab-unified-runtime-check-1323" or capture.get("capture_version") != 2
+        or capture.get("status") != "captured" or capture.get("runtime_mutation") != "none"):
+        raise RecoveryFailure("partial continuation requires corrected complete read-only capture")
+    facts = capture.get("facts")
+    if not isinstance(facts, dict):
+        raise RecoveryFailure("partial continuation capture facts missing")
+    paths = {"snapshot_metadata": snapshot_path, "attempt_quiesce": quiesce_path,
+             "attempt_mutation_marker": failed / "runtime-mutation-started", "prior_recovery": recovery_path}
+    for key, path in paths.items():
+        _safe_file(path, "partial continuation immutable input")
+        if (facts.get(key) or {}).get("metadata_sha256") != sha256_file(path):
+            raise RecoveryFailure("partial continuation immutable input hash mismatch")
+    recovered = _partial_read(recovery_path)
+    if (recovered.get("status") != "agent_recovery_verified" or recovered.get("runtime_mutation") != "device_agent_only"
+        or recovered.get("database_restore") != "none" or recovered.get("package_authority") != "not_modified"
+        or recovered.get("persistent_volume_identity") != "all_existing_unchanged"
+        or recovered.get("non_agent_containers") != "unchanged" or recovered.get("recovery_image_id") != image):
+        raise RecoveryFailure("partial continuation requires exact verified data-preserving agent-only recovery")
+    containers = facts.get("containers")
+    if not isinstance(containers, list) or not containers or any(not isinstance(x, dict) or not re.fullmatch("[0-9a-f]{64}", str(x.get("id", ""))) for x in containers) or len({x["id"] for x in containers}) != len(containers):
+        raise RecoveryFailure("partial continuation captured containers are invalid")
+    agents = [x for x in containers if x.get("project") == "nexolab-edge" and x.get("service") == "device-agent"]
+    if len(agents) != 1 or agents[0].get("id") != recovered.get("recovered_container_id") or agents[0].get("image_id") != image or agents[0].get("running") is not True:
+        raise RecoveryFailure("partial continuation recovered container/image binding mismatch")
+    volumes = facts.get("all_existing_volumes")
+    if not isinstance(volumes, list) or not volumes or any(not isinstance(x, dict) or not re.fullmatch("[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", str(x.get("Name", ""))) for x in volumes) or len({x["Name"] for x in volumes}) != len(volumes):
+        raise RecoveryFailure("partial continuation volume inventory is empty or ambiguous")
+    if facts.get("existing_volume_count") != len(volumes):
+        raise RecoveryFailure("partial continuation capture did not retain its whole volume inventory")
+    baseline_path = _safe_file(failed / "volume-identities-before.json", "failed volume baseline")
+    baseline_volumes = json.loads(baseline_path.read_text())
+    captured_volumes = {x["Name"]: x for x in volumes}
+    if not isinstance(baseline_volumes, list) or not baseline_volumes or any(not isinstance(x, dict) or captured_volumes.get(x.get("Name")) != {key: x.get(key) for key in ("Name", "Driver", "Mountpoint", "CreatedAt")} for x in baseline_volumes):
+        raise RecoveryFailure("partial continuation captured volumes do not match canonical failed baseline")
+    health = facts.get("agent_health")
+    if (not isinstance(health, list) or len(health) != 2 or any(not isinstance(x, dict) for x in health)
+        or any(x.get("status") != "ok" or x.get("mqtt_connected") is not True or x.get("workers_healthy") is not True
+               or type(x.get("expected_bus_workers")) is not int or x["expected_bus_workers"] <= 0
+               or x.get("active_bus_workers") != x["expected_bus_workers"] or type(x.get("samples_total")) is not int for x in health)
+        or health[1]["samples_total"] <= health[0]["samples_total"]):
+        raise RecoveryFailure("partial continuation captured acquisition evidence is not healthy and advancing")
+    for profile, port in (("lan", 3000), ("protected", 3100)):
+        front = (facts.get("frontends") or {}).get(profile) or {}
+        identity = front.get("identity") or {}
+        if (front.get("http_status") != 200 or front.get("active_port") != port or front.get("port_contract_verified") is not True
+            or identity.get("schema_version") != "nexolab-runtime-identity-v1" or identity.get("service") != "dashboard"
+            or not SHA_RE.fullmatch(str(identity.get("source_commit", ""))) or not identity.get("build_id")
+            or not (front.get("unit") or {}).get("WorkingDirectory") or front.get("process_cwd") != front["unit"]["WorkingDirectory"]):
+            raise RecoveryFailure("partial continuation active frontend identity is incomplete")
+    ready = facts.get("central_ready") or {}
+    endpoint = ready.get("endpoint")
+    if not isinstance(endpoint, list) or len(endpoint) != 2 or type(endpoint[1]) is not int or not 1 <= endpoint[1] <= 65535 or any(ready.get(key) != "ready" for key in ("status", "database", "mqtt")):
+        raise RecoveryFailure("partial continuation captured central readiness is incomplete")
+    try:
+        ipaddress.IPv4Address(endpoint[0])
+    except (ValueError, TypeError) as error:
+        raise RecoveryFailure("partial continuation central address is invalid") from error
+    check_partial_live_baseline(facts)
+    paths["volume_identities_before"] = baseline_path
+    configuration_hashes = {}
+    for name in (".env.central", ".env.edge-central"):
+        path = _safe_file(repo / "infrastructure/compose" / name, "existing site configuration")
+        configuration_hashes[name] = sha256_file(path)
+    return {"kind": "nexolab-partial-activation-continuation", "schema_version": 1,
+            "status": "validated_partial_baseline", "baseline_scope": "partial_only_not_deployment_authority",
+            "failed_deployment_evidence_id": failed.name, "previous_source": previous, "target_source": target,
+            "recovered_device_agent_image_id": image, "recovered_device_agent_container_id": agents[0]["id"],
+            "capture_sha256": capture_digest, "input_hashes": {key: sha256_file(path) for key, path in paths.items()},
+            "site_configuration_sha256": configuration_hashes,
+            "preservation": "retain_live_SQLite_outbox_PostgreSQL_and_all_existing_volumes;_no_restore"}
 
 
 def main(argv: list[str] | None = None) -> int:

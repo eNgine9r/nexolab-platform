@@ -48,6 +48,62 @@ policy are not changed.
 
 ## Establishing package authority
 
+### Explicit continuation after a partial source activation
+
+A failed attempt with `runtime-mutation-started` remains unresolved even when an
+agent-only recovery succeeds. The normal deployment gate still rejects it. Do
+not edit `current.json`, call forward recovery against mixed frontends, restore
+the old SQLite snapshot over newer acquisition, or rerun an obsolete installer.
+
+The controlled source deployer supports one explicit continuation to the **same
+failed target** after separate review of the actual partial baseline. Required
+inputs are the canonical failed deployment directory, exact previous/target
+commits, reviewed main/tooling commit, corrected V2 runtime report with its
+externally reviewed SHA256, and the hash-bound verified agent-only recovery report:
+
+```bash
+bash scripts/deploy-current-head-raspberry-pi.sh \
+  --runtime-mode lan \
+  --source-ref EXACT_FAILED_TARGET \
+  --expected-deployed-source EXACT_PRIOR_AUTHORITY \
+  --expected-control-source REVIEWED_MAIN_TOOLING_COMMIT \
+  --continue-partial-activation runtime/deployments/EXACT_FAILED_STAMP \
+  --runtime-check-report /absolute/path/to/runtime-report.json \
+  --runtime-check-sha256 EXACT_REVIEWED_REPORT_SHA256 \
+  --verified-agent-recovery-report /absolute/path/to/verified-agent-report.json \
+  --frontend-artifact /absolute/path/to/verified-lan-artifact \
+  --external-frontend-artifact /absolute/path/to/verified-https-artifact \
+  --external-origin https://nexolab-edge-01.tail7f9b04.ts.net
+```
+
+This is a command template, not site activation approval. Add
+`--source-selection-check-only` for the live read-only preflight. Partial mode
+requires LAN, both reports and all pins; restore and offline-selection options
+cannot be combined with it. It accepts only one latest unresolved attempt after
+the exact prior authority. Snapshot/quiesce source, image and input digests must
+match the capture and verified data-preserving recovery. Both frontend process
+directories, source/build identities, Docker component identities and mounts,
+local API binding/readiness, advancing workers and every captured existing
+volume are observed again; unknown or drifting state fails closed.
+
+The new private `partial-continuation-context.json` records only a validated
+**partial baseline**, never completed deployment/source/package authority. The
+reviewed helper and context are checksum-staged before historical checkout and
+checked again immediately before quiesce. Existing site settings and secrets
+must remain identical; partial mode refuses setting changes or provisioning.
+It skips deployment-evidence retention and preserves all old failure/recovery
+evidence. Normal bounded capacity/backup, both frontend candidates, exact hardware
+startup and quiesced fresh SQLite snapshot gates still run. They protect current
+live PostgreSQL and later outbox/sequence state without a restore.
+
+Before success publication the staged gate rechecks original immutable evidence,
+site configuration and **all** pre-existing volume identities, allowing new
+volumes while rejecting deletion/replacement. Only the normal exact runtime and
+paired frontend readiness gates can publish a genuine successful new deployment.
+The older failed attempt remains intact. A later failed mutation requires a new
+explicit recovery decision; this mode does not skip multiple unresolved attempts
+or grant permission for an automatic retry.
+
 The photograph's historical source record is not a validated package. Never edit
 `current.json` to set `known_packaged_release=true`, and never use `bootstrap` to
 pretend that a source deployment was installed from an offline bundle.
