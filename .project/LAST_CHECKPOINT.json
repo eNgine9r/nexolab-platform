@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-09T18:38:37Z",
+  "timestamp": "2026-10-09T19:08:39.024368+00:00",
   "actor": "ChatGPT",
-  "event": "verified_agent_recovery_startup_source_accepted_runtime_report_gate",
+  "event": "actual_agent_runtime_verified_v1_capture_profile_defects_reproduced_corrected_readonly_V2_staged",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -2565,6 +2565,66 @@
       "actual_capture": "pending_owner_local_execution",
       "library_file_id": "libfile_431730fae9008191aa2df91fe0886e59",
       "library_version": 0
+    },
+    "actual_runtime_capture_1323": {
+      "owner_v1_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/runtime-check-1323-6ql6q9dk/report.json",
+      "owner_v1_report_sha256": "e7ed1d8a262dce9cc667db1c9c09fc2086abaca98b75df93d07d802b82dc5944",
+      "owner_v1_finished_at": "2026-10-09T18:49:30.135750+00:00",
+      "owner_v1_read_at": "2026-10-09T19:00:09.684Z",
+      "owner_v1_status": "captured",
+      "runtime_mutation": "none",
+      "agent_observed": {
+        "exact_image": true,
+        "mqtt_connected": true,
+        "workers": "3/3",
+        "samples_first": 7262,
+        "samples_second": 7277,
+        "queue_depth": 0
+      },
+      "control_source_observed": {
+        "head": "df5485f6ece4203a74a84f106195fae855d81731",
+        "origin_main_cached": "df5485f6ece4203a74a84f106195fae855d81731",
+        "branch": "main",
+        "tracked_status": ""
+      },
+      "current_record_observed": {
+        "present": true,
+        "sha256": "dcab659b82874134d3678d17f5a18a2e774445ec6103a143b68d0437a142e14e",
+        "source_commit": "9a3556b25b257396d15db80af591d1cc3684b8f7",
+        "bundle_id": "source-main-9a3556b25b25",
+        "release": "source-main-9a3556b25b25",
+        "health": "ready",
+        "runtime_state_known": true,
+        "deployment_authority": "controlled_source_deployment",
+        "source_deployment_evidence": "runtime/deployments/20260904T032305Z",
+        "last_operation_id": null,
+        "deployed_at": "2026-09-04T06:30:45+03:00"
+      },
+      "v1_frontend_and_central_limitations": "wrong_profile_ports_3100_3102_instead_of_active_3000_3100;_wrong_source_sha_field_instead_of_source_commit;_assumed_loopback_central_binding;_no_service_failure_or_actual_profile_source_inferred",
+      "v1_snapshot_hash_limitation": "selected_database_sha256_overrode_metadata_file_hash;_v2_separates_metadata_sha256",
+      "fresh_remote_execution": {
+        "at": "2026-10-09T19:00:58.972Z",
+        "code": "EXECUTION_HANDLER_FAILED",
+        "started": false,
+        "retryable": false
+      },
+      "corrected_capture_v2": {
+        "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-runtime-check-1323-v2.py",
+        "size": 17015,
+        "write_at": "2026-10-09T19:06:36.851Z",
+        "readback_at": "2026-10-09T19:07:14.166Z",
+        "sha256": "5a840d24170e9b17565c71258e141e128ab546d22bc8e9e750b72cc50751a143",
+        "exact_readback": true,
+        "tests": "14_passed",
+        "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-runtime-check-1323-v2.py",
+        "compile": "passed",
+        "regression_evidence": "new_profile_contract_regression_failed_v1_before_correction",
+        "library_file_id": "libfile_431730fae9008191aa2df91fe0886e59",
+        "library_version": 1,
+        "scope": "read_only_metadata_no_activation",
+        "actual_execution": "pending_owner_local"
+      },
+      "next_action": "Owner runs corrected read-only V2 capture; inspect actual active LAN/HTTPS identities and Docker-bound central readiness before selecting preserved-data continuation. No full installer retry."
     }
   },
   "observations": [
@@ -3568,7 +3628,7 @@
       }
     }
   ],
-  "next_action": "Inspect owner-local #1323 UNIFIED_RUNTIME_REPORT; reconcile partial activation without database restore or fabricated authority; rebuild native ARM64 current/rollback packages with accepted startup-gate tooling and prepare controlled LAN/HTTPS continuation.",
+  "next_action": "Owner runs corrected read-only V2 capture; inspect actual active LAN/HTTPS identities and Docker-bound central readiness before selecting preserved-data continuation. No full installer retry. Command: sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-runtime-check-1323-v2.py",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

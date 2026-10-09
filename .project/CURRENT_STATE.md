@@ -2,7 +2,53 @@
 
 Updated: 2026-10-09
 
-## Issue #1321 — scoped agent recovery VERIFIED; permanent source correction accepted
+## Issue #1323 — runtime report read; corrected frontend/API capture prepared
+
+Owner report `runtime-check-1323-6ql6q9dk/report.json` finished at 18:49:30 UTC
+and was independently read at 19:00:09 UTC. The recovered exact old Device Agent
+is running and healthy: MQTT connected, 3/3 workers, samples 7262→7277 and queue 0.
+Control main/cached origin remain df5485f6 and tracked files are clean. The
+version-management record still reports source 9a3556b25b25 from 4 September;
+this is stale lineage, not evidence of a validated package or current activation.
+The failed attempt retains its mutation marker and lacks final/restore/forward
+authority. No runtime, data or authority mutation occurred during capture.
+
+V1 has a diagnosed capture defect: it queried LAN/protected on 3100/3102, although
+the active profiles use 3000/3100, and selected source_sha rather than the API's
+source_commit. It also assumed central API loopback instead of inspecting the
+actual Docker host binding. Its HTTP 0 results do not establish service failure;
+its frontend source/build fields do not establish actual per-profile identity.
+V1 snapshot SHA selection also hid the metadata-file checksum. Preserve the
+original report and script; do not use these fields as activation authority.
+
+Corrected V2 derives each active frontend port from whitelisted systemd
+ExecStart, rejects candidate/mismatched ports, selects the canonical source_commit,
+and records process working directory without raw command/environment output.
+Central readiness uses its unique Docker-published socket only on an actual local
+IPv4 interface. All existing named-volume identities are captured; immutable
+snapshot/marker/quiesce/import metadata checksums are separate from data digests.
+New regression failed V1 first; Python compile and **14 tests passed**, including
+an integrated distinct-profile/LAN-bound API fixture and secret exclusion.
+
+V2 is staged and independently read back unchanged at 19:07:14 UTC: 17,015 bytes,
+SHA256 `5a840d24170e9b17565c71258e141e128ab546d22bc8e9e750b72cc50751a143`.
+It only reads metadata/health and writes a private atomic report. Fresh remote
+read-only execution failed internally before start at 19:00:58 UTC, so one
+owner-local capture is required:
+
+```bash
+sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-runtime-check-1323-v2.py
+```
+
+Read its printed UNIFIED_RUNTIME_REPORT remotely before selecting a concrete
+guarded continuation. Source dependency #1321 is accepted; source #1323
+continuation implementation/native package rebuild/site acceptance remain
+pending this corrected actual-host evidence. No obsolete installer, SQLite/DB
+restore, hand-written current.json, gateway configuration or controller write.
+Parent #1313 remains open; operator #1318 stays draft/unmerged and accepted
+whole-site baselines remain unchanged.
+
+## Historical checkpoint before V1 capture — scoped agent recovery VERIFIED; permanent source correction accepted
 
 The V2 report `agent-recovery-1321-6vfd0nw3/report.json` was independently read at
 2026-10-09T17:29:09.780Z. Recovery finished at 17:28:29 UTC with
