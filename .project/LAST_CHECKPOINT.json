@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-09T19:37:54.422548+00:00",
+  "timestamp": "2026-10-10T17:52:47.664964+00:00",
   "actor": "ChatGPT",
-  "event": "corrected_actual_runtime_report_verified_explicit_partial_continuation_source_guard_implemented",
+  "event": "partial_acquisition_cadence_root_cause_verified_source_fix_candidate",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -1516,6 +1516,54 @@
       "local_tests": "70_forward_recovery_and_real_Git_source_selection_tests_passed;_compile_shell_syntax_diff_checks_passed",
       "site_continuation": "not_executed",
       "native_packages": "corrected_tooling_rebuild_pending"
+    },
+    "partial_acquisition_cadence_1325": {
+      "issue": 1325,
+      "status": "source_candidate_live_acquisition_guard_passed",
+      "source_module_sha256": "cc5e5824428c0889f02710799b3410267f97608e49f45efd9de0e6d9d98fdaf3",
+      "function_sha256": "1af4c37df371ab0f16e29c14c376172d9a5c8fcd50c78295b1926706414575af",
+      "owner_diagnostic_path": "partial-diagnostic-1323-8bva9_45/report.json",
+      "owner_diagnostic_status": "baseline_rejected",
+      "owner_diagnostic_reason": "partial continuation recovered acquisition is not advancing",
+      "remote_observation": {
+        "execution_id": "exec-9347117b0ce239ef05ec5a1b6fe4457d",
+        "started_at": "2026-10-10T17:45:13.696787+00:00",
+        "finished_at": "2026-10-10T17:46:13.726601+00:00",
+        "sample_counters": [
+          128297,
+          128358,
+          128385,
+          128385
+        ],
+        "persisted_intervals_seconds": [
+          30,
+          60
+        ],
+        "configured_targets": 61
+      },
+      "candidate_live_acquisition_guard": {
+        "execution_id": "exec-0d47ec83e220a4fdb1e61319a1593977",
+        "observed_at": "2026-10-10T17:52:47.664964+00:00",
+        "result": "passed",
+        "elapsed_seconds": 8.217,
+        "sample_counters": [
+          128974,
+          128983
+        ],
+        "window_seconds": 70,
+        "scope": "acquisition_guard_only_not_canonical_deployment_preflight"
+      },
+      "local_checks": [
+        "45 recovery/adoption tests passed",
+        "35 source-selection tests passed",
+        "RED persisted cadence regression before fix"
+      ],
+      "canonical_privileged_preflight": "pending",
+      "site_activation": "not_started",
+      "whole_site_acceptance": "unfinished",
+      "runtime_mutation": "none",
+      "database_restore": "none",
+      "package_authority": "not_modified"
     }
   },
   "observations": [
@@ -2478,7 +2526,7 @@
       }
     }
   ],
-  "next_action": "Run exact-head source CI/review; prepare one reviewed pinned owner-local preserved-data continuation. Do not rerun old installers or fabricate current.json. Native ARM64 packages and actual LAN/HTTPS update/rollback remain pending.",
+  "next_action": "Accept focused #1325 cadence fix after required exact-head CI/review; then run one pinned canonical preflight/continuation. #1313/#1323 remain open and #1318 draft; native packages and actual LAN/HTTPS installation/update/rollback remain unfinished.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

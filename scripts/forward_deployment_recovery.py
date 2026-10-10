@@ -14,6 +14,7 @@ from datetime import UTC, datetime
 import hashlib
 import json
 import ipaddress
+import math
 import os
 from pathlib import Path
 import platform
@@ -887,6 +888,53 @@ def check_partial_input_preservation(repo: Path, failed: Path, recovery_path: Pa
             raise RecoveryFailure("partial continuation site configuration changed")
 
 
+def _partial_acquisition_window(scheduler: dict[str, Any]) -> float:
+    # Legacy health documents retain the existing short, fail-closed deadline.
+    if "targets" not in scheduler:
+        return 15.0
+    targets = scheduler["targets"]
+    count = scheduler.get("configured_targets")
+    if (not isinstance(targets, list) or not targets or len(targets) > 4096
+        or type(count) is not int or count != len(targets)):
+        raise RecoveryFailure("partial continuation acquisition cadence metadata is invalid")
+    intervals = []
+    for target in targets:
+        interval = target.get("interval_seconds") if isinstance(target, dict) else None
+        if (type(interval) not in (int, float) or interval <= 0 or interval > 86400
+            or not math.isfinite(interval)):
+            raise RecoveryFailure("partial continuation acquisition cadence metadata is invalid")
+        intervals.append(interval)
+    # At least one sample is required: use the fastest persisted target, with
+    # two opportunities plus 10s scheduler allowance. Never wait indefinitely.
+    return min(120.0, max(15.0, 2 * min(intervals) + 10.0))
+
+
+def check_partial_acquisition(facts: dict[str, Any]) -> None:
+    def health() -> tuple[int, dict[str, Any]]:
+        value = _partial_http("127.0.0.1", 8081, "/health")
+        scheduler = ((value.get("acquisition") or {}).get("scheduler") or {})
+        expected_workers = scheduler.get("expected_bus_workers")
+        if (value.get("status") != "ok" or value.get("mqtt_connected") is not True or value.get("queue_depth") != 0
+            or scheduler.get("workers_healthy") is not True or type(expected_workers) is not int or expected_workers <= 0
+            or expected_workers != facts["agent_health"][0]["expected_bus_workers"]
+            or scheduler.get("active_bus_workers") != expected_workers or type(value.get("samples_total")) is not int
+            or value["samples_total"] < 0):
+            raise RecoveryFailure("partial continuation recovered agent is not operationally healthy")
+        return value["samples_total"], scheduler
+    first, scheduler = health()
+    deadline = time.monotonic() + _partial_acquisition_window(scheduler)
+    while time.monotonic() < deadline:
+        time.sleep(1)
+        observed, _ = health()
+        if observed < first:
+            raise RecoveryFailure("partial continuation recovered acquisition counter reset")
+        if time.monotonic() > deadline:
+            break
+        if observed > first:
+            return
+    raise RecoveryFailure("partial continuation recovered acquisition is not advancing")
+
+
 def check_partial_live_baseline(facts: dict[str, Any]) -> None:
     if platform.machine() != "aarch64":
         raise RecoveryFailure("partial continuation is limited to the actual ARM64 host")
@@ -945,23 +993,7 @@ def check_partial_live_baseline(facts: dict[str, Any]) -> None:
     ready = _partial_http(host, port, "/health/ready")
     if any(ready.get(key) != "ready" for key in ("status", "database", "mqtt")):
         raise RecoveryFailure("partial continuation central readiness failed")
-    def health() -> int:
-        value = _partial_http("127.0.0.1", 8081, "/health")
-        scheduler = ((value.get("acquisition") or {}).get("scheduler") or {})
-        expected_workers = scheduler.get("expected_bus_workers")
-        if (value.get("status") != "ok" or value.get("mqtt_connected") is not True or value.get("queue_depth") != 0
-            or scheduler.get("workers_healthy") is not True or type(expected_workers) is not int or expected_workers <= 0
-            or expected_workers != facts["agent_health"][0]["expected_bus_workers"]
-            or scheduler.get("active_bus_workers") != expected_workers or type(value.get("samples_total")) is not int):
-            raise RecoveryFailure("partial continuation recovered agent is not operationally healthy")
-        return value["samples_total"]
-    first = health()
-    deadline = time.monotonic() + 15
-    while time.monotonic() < deadline:
-        time.sleep(1)
-        if health() > first:
-            return
-    raise RecoveryFailure("partial continuation recovered acquisition is not advancing")
+    check_partial_acquisition(facts)
 
 
 def validate_partial_continuation(repo: Path, evidence: Path, previous: str, target: str,

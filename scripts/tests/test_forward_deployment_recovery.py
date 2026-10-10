@@ -410,6 +410,62 @@ class PartialActivationContinuationTests(unittest.TestCase):
             patch.object(recovery.time,'sleep'),patch.object(recovery.time,'monotonic',side_effect=(0,0,16)):
             with self.assertRaisesRegex(recovery.RecoveryFailure,'not advancing'):recovery.check_partial_live_baseline(self.facts)
 
+    def check_cadenced_live(self, intervals, advance_at=None, changed_health=None):
+        """Exercise the entire read-only guard using a deterministic site clock."""
+        docs,run,http,calls=self.live_fixture()
+        clock=[0.0]
+        targets=[{'target_id':f'target-{index}','interval_seconds':interval}
+                 for index,interval in enumerate(intervals)]
+        def fetch(host,port,route):
+            if port != 8081:return http(host,port,route)
+            value={'status':'ok','mqtt_connected':True,'queue_depth':0,
+                'samples_total':10+int(advance_at is not None and clock[0]>=advance_at),
+                'acquisition':{'scheduler':{'workers_healthy':True,'expected_bus_workers':3,
+                    'active_bus_workers':3,'configured_targets':len(targets),'targets':targets}}}
+            if changed_health is not None:changed_health(value,clock[0])
+            return value
+        def sleep(seconds):clock[0]+=seconds
+        with patch.object(recovery,'_partial_run',side_effect=run),patch.object(recovery,'_partial_http',side_effect=fetch),\
+            patch.object(recovery.platform,'machine',return_value='aarch64'),\
+            patch.object(recovery.os,'readlink',side_effect=lambda p:'/lan' if '/123/' in p else '/protected'),\
+            patch.object(recovery.time,'sleep',side_effect=sleep),patch.object(recovery.time,'monotonic',side_effect=lambda:clock[0]):
+            try:recovery.check_partial_live_baseline(self.facts)
+            finally:self.cadence_elapsed=clock[0]
+        return clock[0]
+
+    def test_site_persisted_30_second_cadence_accepts_real_progress_after_15_seconds(self):
+        self.assertEqual(self.check_cadenced_live([30]*40+[60]*21,advance_at=30),30)
+
+    def test_60_second_cadence_accepts_actual_progress_in_next_period(self):
+        self.assertEqual(self.check_cadenced_live([60],advance_at=60),60)
+
+    def test_cadenced_flat_acquisition_still_rejected(self):
+        with self.assertRaisesRegex(recovery.RecoveryFailure,'not advancing'):
+            self.check_cadenced_live([30,60])
+        self.assertEqual(self.cadence_elapsed,70)
+
+    def test_long_cadence_cannot_extend_deadline_past_120_seconds(self):
+        with self.assertRaisesRegex(recovery.RecoveryFailure,'not advancing'):
+            self.check_cadenced_live([300],advance_at=121)
+        self.assertEqual(self.cadence_elapsed,120)
+
+    def test_invalid_cadence_metadata_cannot_extend_observation(self):
+        for interval in (True,0,-1,float('inf'),float('nan'),'60',10**500):
+            with self.subTest(interval=interval),self.assertRaisesRegex(recovery.RecoveryFailure,'cadence'):
+                self.check_cadenced_live([interval],advance_at=1)
+
+    def test_health_degradation_during_cadence_wait_rejected_before_progress(self):
+        def degrade(value,elapsed):
+            if elapsed>=20:value['mqtt_connected']=False
+        with self.assertRaisesRegex(recovery.RecoveryFailure,'not operationally healthy'):
+            self.check_cadenced_live([30],advance_at=30,changed_health=degrade)
+
+    def test_counter_reset_cannot_be_mistaken_for_delayed_progress(self):
+        def reset(value,elapsed):
+            if 20<=elapsed<25:value['samples_total']=0
+        with self.assertRaisesRegex(recovery.RecoveryFailure,'counter'):
+            self.check_cadenced_live([30],advance_at=30,changed_health=reset)
+
     def test_site_setting_drift_prevents_success_publication(self):
         context=self.validate()
         recovery.check_partial_input_preservation(self.repo,self.failed,self.recovery_path,context)

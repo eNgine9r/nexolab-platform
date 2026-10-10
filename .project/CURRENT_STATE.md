@@ -1,6 +1,36 @@
 # NEXOLAB Current State
 
-Updated: 2026-10-09
+Updated: 2026-10-10
+
+## Issue #1325 — healthy persisted cadence caused false partial-preflight rejection
+
+Source #1323 / PR #1324 is accepted on reviewed main
+1556d8f135bcaaa192fe2d338bc07b269e702f5e. Actual V2 diagnostic
+`partial-diagnostic-1323-8bva9_45/report.json` finished at 17:40:46 UTC:
+container/image/mount, all-volume, both frontend and central-readiness checks
+passed; only the 15-second acquisition observation rejected continuation.
+Read-only Commander observation at 17:45:13–17:46:13 UTC confirmed samples
+128297 → 128358 → 128385 → 128385, healthy 3/3 workers, MQTT connected, queue 0
+and 61 persisted targets at 30/60-second intervals. Healthy acquisition can have
+a gap longer than that fixed deadline. No runtime/data/authority mutation.
+
+Focused dependency #1325 derives a bounded window from persisted cadence,
+requires actual counter advancement and retains the existing operational guards.
+Legacy health without cadence metadata retains 15 seconds. Invalid metadata,
+counter reset and flat acquisition fail closed; observation is capped at 120
+seconds. A regression reproduced the old rejection before the fix. The exact
+candidate acquisition functions passed a read-only actual-agent observation at
+17:52:39–17:52:47 UTC: samples 128974 → 128983, healthy 3/3, MQTT true, queue 0.
+This proves only the acquisition guard, not canonical privileged preflight or
+site activation. Module SHA256
+cc5e5824428c0889f02710799b3410267f97608e49f45efd9de0e6d9d98fdaf3.
+
+Recovery/adoption tests (45) and source-selection tests (35) passed. Source CI
+and review remain pending. Next: accept #1325 source after required GREEN checks,
+then one reviewed pinned canonical preflight/continuation. #1313/#1323 stay OPEN,
+#1318 stays DRAFT/unmerged, and whole-site baselines remain unchanged. Corrected
+native packages and real LAN/existing Google HTTPS install/update/rollback and
+authentication acceptance are unfinished. Earlier entries below are historical.
 
 ## Issue #1323 — actual mixed runtime verified; explicit preserved-data continuation implemented
 
