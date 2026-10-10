@@ -2,6 +2,45 @@
 
 Updated: 2026-10-10
 
+## Issue #1323 — resumed; exact baseline rejection awaits one read-only diagnostic
+
+Owner explicitly resumed work on 2026-10-10 after suspension. Actual privileged
+preflight V2 finished at 2026-10-10T07:47:41.238554+00:00 and was independently read
+at 15:17:55 UTC. Report SHA256 `34a6abbe0fbbb89debe6b689fb30467f2f16b5e5a2831c5555ea332e2d4d75bd`.
+It passed canonical lock acquisition/inheritance and preserved the root lock
+inode/mode, reviewed main 1556d8f1 and owner index UID 1000. Immutable inputs and
+both prepared frontend artifacts passed. Source selection returned 1 at the
+accepted partial-baseline guard; its generic exception handler hid the exact
+cause. No runtime mutation, database restore or package-authority write occurred.
+Git/index and lock access are passed gates; do not repeat their repairs.
+
+One bounded Commander read-only execution failed internally before start at
+15:17:36 UTC; no retry loop. Static comparison of the saved capture does not
+prove a current live baseline or identify the failing guard. Exact cause remains
+unverified; no runtime repair is proposed from speculation.
+
+The new diagnostic calls only the unchanged, digest-pinned accepted validator.
+It reuses the existing canonical lock and preserves all evidence, Git, databases,
+volumes and runtime. It writes only its own private report with a literal safe
+reason and the failing helper function/line; secret-bearing exception text is
+excluded. Deadline 180 seconds. Seven targeted tests and Python compile passed.
+Staged/read back byte for byte: 8264 bytes, SHA256
+`9de774b93fd64d4ea4c26bbe9e2a7665f1ac9ef9f9e6697a3189f20b7a4b1b70`. Actual diagnostic execution is pending.
+
+Current owner action:
+
+```bash
+sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-diagnostic-1323.py
+```
+
+Inspect PARTIAL_DIAGNOSTIC_REPORT remotely before any repair or activation.
+Previous preflight, capture and installer commands below are historical only.
+#1313/#1323 remain OPEN, #1318 DRAFT/unmerged and accepted whole-site baselines
+unchanged. Full LAN/existing Google HTTPS installation/update/rollback remains
+unfinished. No new native package dispatch was started.
+
+## Historical checkpoint — privileged preflight prepared before its actual run
+
 ## Issue #1323 — index repaired and reviewed main reached; privileged live preflight prepared
 
 Actual repair report `git-access-1323-nkacextk/report.json` finished at
