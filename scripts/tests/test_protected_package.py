@@ -86,6 +86,62 @@ ReadWritePaths=/old/.next/cache
 
 
 class ProtectedPackageTests(unittest.TestCase):
+    def test_inactive_gateway_blocks_package_before_mutation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            manifest, unit, nginx = fixture(root)
+            calls = []
+
+            def runner(args, **kwargs):
+                calls.append(args)
+                code = 3 if args == ["systemctl", "is-active", "--quiet", "nexolab-external-nginx.service"] else 0
+                return subprocess.CompletedProcess(args, code, stdout="")
+
+            with (patch.object(package, "UNIT", unit), patch.object(package, "NGINX", nginx),
+                  patch.object(package.subprocess, "run", side_effect=runner),
+                  patch.object(package.frontend, "request", return_value=(200, json.dumps({"source_commit": SOURCE, "build_id": "old-build"}).encode()))):
+                with self.assertRaisesRegex(ValueError, "must be active"):
+                    package.ProtectedPackageFrontend(root / "bundle", manifest, {"source_commit": SOURCE}, root / "evidence")
+                self.assertFalse((root / "evidence").exists())
+                self.assertFalse(any(args[0] in ("install", "systemd-run") or args[:2] in (["systemctl", "stop"], ["systemctl", "start"]) for args in calls))
+
+    def test_package_handoff_and_rollback_restore_requires_dependent_gateway(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            manifest, unit, nginx = fixture(root)
+            evidence = root / "evidence"
+            evidence.mkdir()
+            (evidence / "external-unit-before.service").write_text(unit.read_text())
+            (evidence / "external-unit-candidate.service").write_text(unit.read_text())
+            state = {"gateway": True}
+            calls = []
+
+            def runner(args, **kwargs):
+                calls.append(args)
+                if args[:2] == ["systemctl", "stop"] and args[-1] == unit.name:
+                    state["gateway"] = False
+                if args[:2] == ["systemctl", "start"] and args[-1] == "nexolab-external-nginx.service":
+                    state["gateway"] = True
+                return subprocess.CompletedProcess(args, 0, stdout="", stderr="")
+
+            def gateway(_host):
+                if not state["gateway"]:
+                    raise ConnectionRefusedError("Requires dependency stopped gateway")
+
+            with (patch.object(package, "UNIT", unit), patch.object(package, "NGINX", nginx),
+                  patch.object(package, "RELEASES", root / "releases"),
+                  patch.object(package.subprocess, "run", side_effect=runner),
+                  patch.object(package.frontend, "request", return_value=(200, json.dumps({"source_commit": SOURCE, "build_id": "old-build"}).encode())),
+                  patch.object(package.frontend, "probe_frontend"),
+                  patch.object(package.frontend, "probe_gateway", side_effect=gateway)):
+                transaction = package.ProtectedPackageFrontend(root / "bundle", manifest, {"source_commit": SOURCE}, evidence)
+                transaction.activate()
+                self.assertTrue(state["gateway"])
+                transaction.rollback()
+                self.assertTrue(state["gateway"])
+                self.assertFalse(transaction.touched)
+                self.assertEqual(calls.count(["systemctl", "start", "nexolab-external-nginx.service"]), 2)
+
     def test_metadata_binds_source_profile_and_entire_artifact_inventory(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -128,6 +184,10 @@ class ProtectedPackageTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     transaction.activate()
                 self.assertTrue(transaction.touched)
+                with self.assertRaises(ValueError):
+                    transaction.rollback()
+                self.assertTrue(transaction.touched)
+                gateway.side_effect = None
                 transaction.rollback()
                 self.assertFalse(transaction.touched)
                 self.assertEqual(unit.read_text(), original)

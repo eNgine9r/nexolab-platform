@@ -1059,8 +1059,9 @@ for (
                         raise ValueError("partial continuation context changed")
                 else:
                     forward_recovery.atomic_json(context_path, context)
-            except Exception:
-                print("ERROR: partial continuation immutable/live baseline verification failed", file=sys.stderr)
+            except Exception as error:
+                print("ERROR: partial continuation immutable/live baseline verification failed: "
+                      + json.dumps(forward_recovery.partial_failure_details(error), sort_keys=True), file=sys.stderr)
                 raise SystemExit(2)
             continue
         print(
@@ -1545,6 +1546,11 @@ DEVICE_AGENT_HEALTH_GATE_HELPER="$AUDIT_DIR/device-agent-deployment-health-gate.
 install -m 0500 "$SCRIPT_DIR/device-agent-deployment-health-gate.py" "$DEVICE_AGENT_HEALTH_GATE_HELPER"
 sha256sum "$DEVICE_AGENT_HEALTH_GATE_HELPER" > "$AUDIT_DIR/device-agent-deployment-health-gate.sha256"
 
+# Keep reviewed gateway lifecycle tooling across historical runtime checkout.
+EXTERNAL_FRONTEND_TOOL="$AUDIT_DIR/nexolab-protected-frontend.py"
+install -m 0500 "$SCRIPT_DIR/nexolab-protected-frontend.py" "$EXTERNAL_FRONTEND_TOOL"
+sha256sum "$EXTERNAL_FRONTEND_TOOL" > "$AUDIT_DIR/protected-frontend-tool.sha256"
+
 DEVICE_AGENT_STARTUP_GATE_HELPER="$AUDIT_DIR/device-agent-startup-gate.py"
 DEVICE_AGENT_STARTUP_OVERLAY="$AUDIT_DIR/compose.device-agent-startup.json"
 install -m 0500 "$SCRIPT_DIR/device-agent-startup-gate.py" "$DEVICE_AGENT_STARTUP_GATE_HELPER"
@@ -1569,6 +1575,7 @@ verify_partial_continuation() {
     "$REQUESTED_SOURCE_REF" "$PARTIAL_RUNTIME_CHECK_REPORT" "$PARTIAL_RUNTIME_CHECK_SHA256" \
     "$PARTIAL_AGENT_RECOVERY_REPORT" "$AUDIT_DIR/partial-continuation-context.json" "$1" <<'PY_PARTIAL_CONTINUATION'
 import importlib.util
+import json
 import sys
 from pathlib import Path
 try:
@@ -1588,8 +1595,12 @@ try:
         module.check_partial_volume_preservation(module.read_json(Path(sys.argv[6]), "partial capture")["facts"])
     else:
         raise ValueError("unknown partial continuation phase")
-except Exception:
-    print("ERROR: staged partial continuation evidence/live preservation gate failed", file=sys.stderr)
+except Exception as error:
+    reporter = getattr(locals().get("module"), "partial_failure_details", None)
+    details = reporter(error) if callable(reporter) else {
+        "error_type": type(error).__name__, "reason": "partial_helper_unavailable"}
+    print("ERROR: staged partial continuation evidence/live preservation gate failed: "
+          + json.dumps(details, sort_keys=True), file=sys.stderr)
     raise SystemExit(2)
 PY_PARTIAL_CONTINUATION
 }

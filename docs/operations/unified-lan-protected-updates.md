@@ -39,12 +39,119 @@ An installed gateway without its matching artifact, a changed API upstream,
 service override, missing memory controller or occupied candidate port fails
 before backend runtime mutation.
 
+The existing NGINX gateway must already be active and prove anonymous REST,
+WebSocket, Device Agent and image denial (401) plus browser sign-in redirection
+(302), both at preflight and after candidate preparation. An inactive gateway
+blocks the update; the updater never enables a previously inactive interface.
+
 Both candidates must prove exact source/build and login readiness. The frontend
 handoff preserves the previous LAN identity and protected unit/identity. Failed
 frontend activation restores both frontends and verifies the protected previous
-identity. This is frontend recovery; backend/database recovery still follows the
-existing controlled-deployment runbook. OAuth, NGINX, Funnel and Google account
-policy are not changed.
+identity. The installed NGINX unit requires the protected frontend, so stopping
+the frontend also stops the gateway. Source and offline-package handoffs start
+that same previously active gateway after exact frontend readiness and verify
+the denial contract again. Rollback must restore the previous frontend AND its
+gateway before reporting success. Gateway transport startup has a fixed
+15-second readiness budget; unexpected HTTP access is rejected immediately.
+This is frontend recovery; backend/database recovery still follows the existing
+controlled-deployment runbook. OAuth, NGINX configuration, Funnel and Google
+account policy are not changed.
+
+### Interrupted owner continuation on 2026-10-10
+
+Attempt `runtime/deployments/20261010T194054Z` with accepted control `53e4812a`
+passed the original partial baseline and both frontend candidates, refreshed
+backups, and activated central/agent services. Protected frontend stop then
+stopped its required gateway; activation failed at the listener on port 18790.
+The old frontend pair was restored, but the earlier rollback omitted the
+gateway. Device acquisition and central readiness remain observed healthy.
+No genuine full deployment/package authority was established. All 96 original
+volume identities (name, driver, mountpoint, creation time) remain unchanged.
+
+The original Oct 9 runtime capture and owner launcher are now historical inputs,
+not an accepted live baseline for this newer mutation. Do not rerun them, restore
+old databases/SQLite, discard evidence or edit source/package authority. First
+restore the existing gateway alongside the already-restored old frontend using
+owner-local privilege and verify denial. Any forward completion requires review
+of the latest attempt and fresh actual component/data evidence.
+
+### Complete the latest attempt's frontend pair without another backend mutation
+
+The owner restored the existing gateway on Oct 10. Anonymous REST, WebSocket,
+Device Agent and image access return 401; login returns 302, including the
+existing public HTTPS route. Acquisition advances with 3/3 healthy workers;
+all 96 original volume identities remain unchanged. Owner-read private metadata
+for `20261010T194054Z` binds SQLite snapshot
+`f64b524d11da19bbea7a8530bb3de790cee38c1d47886e234a13bf1790e73a15`,
+registry 22, queue 0 and high-water 10948434. A fresh read-only live check has
+quick_check=ok and high-water 10951927. These are preserved-data observations,
+not completed source/package authority.
+
+`scripts/deploy-complete-partial-frontends.py` is scoped only to that latest
+attempt and the exact current central/agent containers. It checks the private
+lineage and SQLite snapshot digest, all current container/mount/volume identities,
+schema/readiness and advancing acquisition. It verifies both existing native
+artifact inventories and extracted candidate runtimes, then runs both candidates
+sequentially on isolated ports under the preserved nexolab account. Reviewed
+control must equal freshly fetched main and the staged tool must match its Git
+object. The existing canonical lock is held; old evidence/configuration is hashed
+and preserved. No source checkout to historical runtime, backend deployment,
+agent quiesce, database restoration or new gateway publication occurs.
+
+After source checks, review and owner authorization, use its exact staged bytes:
+
+```bash
+sudo python3 /absolute/path/to/deploy-complete-partial-frontends.py \
+  --control-source EXACT_REVIEWED_MERGED_CONTROL_SHA --execute
+```
+
+Omitting `--execute` performs candidate/data verification without active frontend
+handoff, but creates audit and candidate identity metadata. With `--execute`, a
+single-use marker is written before touching the active pair. Only the two
+frontend units change; the previously active gateway restarts and proves denial.
+Isolated candidates use a separate identity manifest with no deployment time.
+Before production LAN starts, a new immutable manifest records the actual UTC
+handoff time under the service owner; live runtime identity must report that time.
+Any failed handoff restores both exact old identities and verifies the gateway;
+failed recovery is explicitly unverified. Backend, all volumes and live high-water
+are checked again. Genuine forward recovery is recorded only after the actual
+target pair and the complete original data gate pass. If publication might have
+already committed, preserve the verified target pair and report uncertainty;
+never roll back behind possibly published authority. There is no automatic retry.
+Paired handoff publishes forward-recovery contract v2 with canonical
+`safety.runtime_mutation=paired_frontends_only`; database/controller writes stay
+`none`. The loader and source adopter validate the completion marker, protected
+artifact/unit hashes and exact source/build/origin/control lineage. Existing v1
+read-only reconciliation remains valid with `runtime_mutation=none` and cannot
+claim a paired completion through an unchecked extension.
+The actual frontend UTC activation record and production identity digest are
+also evidence-bound. V2 source adoption uses that later handoff time as
+`deployed_at`, preserving the original backend mutation time separately.
+The recovery tool's `--check-only` revalidates published v1/v2 authority and the
+current full runtime without changing any evidence.
+The private completion report grants no offline package authority. Actual execution,
+Google account/session-expiry and native package update/rollback remain separate
+parent acceptance evidence.
+
+### Recorded LAN contract failure and one explicit continuation
+
+Owner completion with control `8aa7a61a` produced audit
+`runtime/frontend-completions/20261010T214443Z-0vvgd4n8`. Both target identities
+passed, but the final gate rejected the valid LAN artifact: the builder emits
+`external_https_stage=false` while the expected dictionary omitted it. Actual
+read-only checks confirmed both old frontend identities and the gateway restored,
+healthy advancing acquisition, newer SQLite data and all 96 original volumes.
+
+The corrected gate compares all six fields, requires LAN stage `false`, and runs
+before candidate preparation/handoff as well as before reconciliation. Never
+remove the previous marker or rerun the old command. After accepted source checks,
+`--continue-contract-failure --execute` permits only this exact recorded failure:
+the original report SHA256, marker, actual activation record/identity and restored
+unit bytes must match. It retains the original audit and writes a separate
+single-use continuation marker. Genuine v2 publication and its loader bind both
+audit lineages and the new actual frontend activation time. A second continuation
+rejects; changed lineage or recovery blocks before mutation. Existing backend,
+acquisition and newer data remain in place; no full installer or old data restore.
 
 ## Establishing package authority
 
