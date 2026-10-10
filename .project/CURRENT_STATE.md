@@ -1,5 +1,53 @@
 # NEXOLAB Current State
 
+## Issue #1333 — complete only the latest attempt's frontend pair
+
+Gateway lifecycle fix #1331 / PR #1332 is accepted after six GREEN workflows and
+clean review. The owner restored NGINX. Read-only checks at 20:27 UTC verified
+anonymous REST/WebSocket/Device Agent/image denial and login redirect, including
+public HTTPS. Acquisition advanced 2965 -> 2992 with healthy 3/3 workers, MQTT and
+queue 0. All 96 original volume identities match; data-content checksums are not
+claimed.
+
+The owner supplied private latest-attempt metadata for 20261010T194054Z: SQLite
+snapshot f64b524d..., 290816 bytes, registry 22, queue 0, high-water 10948434 and
+both integrity checks ok. Fresh read-only SQL at 20:33:33 UTC verified live
+quick_check ok, queue 0, registry 22 and high-water 10951927. Exact new central and
+agent containers are healthy; schema is 20260908_0037. Old frontend pair remains
+active; whole-site source/package authority is not complete.
+
+Focused #1333 verifies that latest private lineage, existing paired native
+artifacts/candidates and actual preserved backend/data before switching only
+LAN/HTTPS frontends. It preserves the canonical lock, source owner, all
+containers/mounts/volumes/configuration and newer acquisition. Gateway readiness
+and denial are rechecked; failed handoff restores both old identities and gateway.
+Only the existing genuine forward-recovery gate may record completed source
+reconciliation after the real target pair and all data checks pass. No full
+installer, backend build/deployment, agent quiesce, old data restore, package
+authority edit or controller write. One durable marker prevents automatic retry.
+
+Targeted checks: 169 passed. Review P1 reproduced the real acquisition-gate
+KeyError and was fixed with the pinned current 3-worker baseline. Review P2 is
+fixed by validated forward-recovery v2 canonical safety paired_frontends_only,
+bound to the real completion marker and protected artifact/unit hashes. Real
+publication, source-adopter loading, tamper rejection and legacy v1 compatibility
+regressions pass; standalone unittest needs no third-party package. The later
+P2 activation-time finding is fixed: an immutable owner-readable production
+identity records real UTC handoff time before LAN starts and live identity must
+report it; candidate identity remains separate with null time. Both regressions
+pass. Follow-up P2 findings are fixed: v2 binds the immutable activation
+record and production identity digest, source adoption uses actual frontend
+handoff time with backend time preserved separately, and --check-only
+revalidates v1/v2 authority without writes. Real CLI/adopter/tamper regressions
+pass. Both retained
+candidate runtime inventories matched on the Pi at 20:55/20:56 UTC. Fresh source
+exact-head CI/review and owner-local execution are pending. #1313/#1323 stay open; operator #1318 stays draft. Original Oct 9
+capture/full 1327 launcher must not rerun. The gateway fix is not yet installed
+in the Pi's control checkout; the reviewed completion requires exact fresh main.
+All historical accepted/deployed baselines remain unchanged. Next: GREEN source
+checks/review, then stage one concrete owner-local frontend completion command.
+Earlier pending commands and observations below are historical where superseded.
+
 ## Issue #1331 — gateway dependency stopped HTTPS during frontend handoff
 
 The owner continuation with accepted control 53e4812a passed the original partial

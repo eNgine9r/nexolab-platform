@@ -41,23 +41,88 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1331,
-      "title": "Restore existing Google gateway after protected frontend handoff",
-      "branch": "fix/1331-protected-gateway-lifecycle"
+      "issue": 1333,
+      "title": "Complete latest partial attempt paired frontends without backend mutation",
+      "branch": "fix/latest-partial-frontend-completion"
     },
     "next_work_package": {
       "issue": 1323,
-      "title": "Review latest partial attempt and fresh preserved-data completion evidence",
+      "title": "Owner-local latest-attempt paired completion and package acceptance",
       "branch": "fix/1323-partial-unified-activation"
     }
   },
   "work_packages": [
     {
+      "issue": 1333,
+      "title": "Complete latest partial attempt paired frontends without backend mutation",
+      "branch": "fix/latest-partial-frontend-completion",
+      "priority": "critical",
+      "lifecycle": "review",
+      "depends_on": [
+        1331
+      ],
+      "scope": "Owner-local frontend pair only; preserve current backend/newer data/all evidence; genuine reconciliation after exact pair/data gates",
+      "permitted_paths": [
+        "scripts/**",
+        "tests/test_ci_change_impact.py",
+        ".github/workflows/offline-bundle.yml",
+        "docs/operations/unified-lan-protected-updates.md",
+        ".project/**",
+        ".github/workflows/ci.yml"
+      ],
+      "evidence": {
+        "latest_partial_frontend_completion": {
+          "observed_at": "2026-10-10T20:33:33Z",
+          "latest_attempt": "runtime/deployments/20261010T194054Z",
+          "owner_private_metadata": {
+            "snapshot_sha256": "f64b524d11da19bbea7a8530bb3de790cee38c1d47886e234a13bf1790e73a15",
+            "snapshot_bytes": 290816,
+            "registry_revision": 22,
+            "queue_depth": 0,
+            "high_water": 10948434
+          },
+          "live_readonly": {
+            "execution": "exec-314584296a50d1c77b311697aa21b395",
+            "sqlite_quick_check": "ok",
+            "high_water": 10951927,
+            "registry_revision": 22,
+            "queue_depth": 0,
+            "schema_head": "20260908_0037",
+            "central": "ready_database_MQTT",
+            "agent": "healthy_3_of_3_MQTT_advancing",
+            "gateway": "active_4_anonymous_routes_401_login_302",
+            "volumes": "96_original_identities_unchanged"
+          },
+          "gateway_source_fix": {
+            "issue": 1331,
+            "pull_request": 1332,
+            "accepted_control": "c509270b9b075a0f452cf08128646a3e77fe8359",
+            "required_exact_head_ci": "six_GREEN",
+            "review": "clean"
+          },
+          "candidate_checks": "169_passed; 26 standalone completion tests; P1 actual acquisition regression fixed with pinned 3 workers; P2 real publication/adopter/tamper/v1 compatibility pass; Python syntax, state v2, format and diff PASS",
+          "site_completion": "not_executed",
+          "source_ci_review": "pending",
+          "whole_site_authority": "unchanged_historical_D00",
+          "old_launcher": "obsolete_do_not_rerun",
+          "automatic_retry": false,
+          "retained_runtime_inventory": {
+            "execution": "exec-15fc488da7f21eab337f1e0060e2ce38",
+            "lan": "all_checksums_match_20261010T205518Z",
+            "protected": "all_checksums_match_20261010T205649Z"
+          },
+          "authority_contract": "v2_validated_paired_frontends_only; no_DB_controller_writes; immutable_marker_protected_artifact_unit_bound; legacy_v1_readonly_supported",
+          "activation_identity": "P2 fixed; real immutable production UTC time before LAN start; live identity equality required; candidate separate null time; regression PASS",
+          "v2_revalidation": "P2 check-only and adopted timestamp fixed; immutable actual activation record/production identity hash bound; genuine CLI no-write/adopter/time/tamper regressions PASS"
+        }
+      }
+    },
+    {
       "issue": 1331,
       "title": "Restore existing Google gateway after protected frontend handoff",
       "branch": "fix/1331-protected-gateway-lifecycle",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1329
       ],
@@ -126,6 +191,14 @@
           "whole_site_authority": "not_advanced",
           "obsolete_continuation": "original_Oct9_capture_and_1327_launcher_must_not_rerun_after_new_mutation",
           "next": "owner_restore_existing_gateway_only; verify_denial; accept_source_after_green_CI_review; fresh_latest_attempt_forward_completion_evidence_required"
+        },
+        "accepted_source_and_gateway_restore": {
+          "pull_request": 1332,
+          "accepted_control": "c509270b9b075a0f452cf08128646a3e77fe8359",
+          "six_required_workflows": "GREEN",
+          "review": "clean",
+          "site_gateway_restore": "owner_start_then_verified_20261010T2027Z",
+          "full_site_update": "not_completed"
         }
       }
     },
@@ -7366,7 +7439,8 @@
         1321,
         1325,
         1329,
-        1331
+        1331,
+        1333
       ],
       "scope": "Explicit guarded same-target source continuation preserving later live data and original evidence; no fabricated authority",
       "verification": "Targeted recovery/source-selection tests, full exact-head CI/review; actual owner-local continuation and unified package acceptance separately gated",

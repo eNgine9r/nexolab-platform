@@ -6,6 +6,8 @@ on:
     paths:
       - ".github/workflows/offline-bundle.yml"
       - "scripts/classify-ci-impact.py"
+      - "scripts/deploy-complete-partial-frontends.py"
+      - "scripts/tests/test_deploy_complete_partial_frontends.py"
       - "scripts/nexolab-protected-frontend.py"
       - "scripts/nexolab-protected-package.py"
       - "scripts/tests/test_protected_frontend_release.py"

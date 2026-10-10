@@ -561,7 +561,8 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(encoding="utf-8")
         trigger = workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
         patterns = [line.strip()[2:].strip('"\'') for line in trigger.splitlines() if line.strip().startswith("- ")]
-        for path in ("scripts/nexolab-protected-frontend.py", "scripts/nexolab-protected-package.py",
+        for path in ("scripts/deploy-complete-partial-frontends.py", "scripts/tests/test_deploy_complete_partial_frontends.py",
+                     "scripts/nexolab-protected-frontend.py", "scripts/nexolab-protected-package.py",
                      "scripts/tests/test_protected_frontend_release.py", "scripts/tests/test_protected_package.py"):
             with self.subTest(path=path):
                 result = classify([path])
