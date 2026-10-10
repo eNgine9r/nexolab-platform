@@ -26,10 +26,14 @@ reconciliation after the real target pair and all data checks pass. No full
 installer, backend build/deployment, agent quiesce, old data restore, package
 authority edit or controller write. One durable marker prevents automatic retry.
 
-Targeted checks: 148 passed. Review P1 first reproduced KeyError in the real
-acquisition gate; completion now supplies the fresh pinned 3-worker baseline.
-Changed worker plans still reject. Source exact-head CI/review and owner-local execution
-are pending. #1313/#1323 stay open; operator #1318 stays draft. Original Oct 9
+Targeted checks: 164 passed. Review P1 reproduced the real acquisition-gate
+KeyError and was fixed with the pinned current 3-worker baseline. Review P2 is
+fixed by validated forward-recovery v2 canonical safety paired_frontends_only,
+bound to the real completion marker and protected artifact/unit hashes. Real
+publication, source-adopter loading, tamper rejection and legacy v1 compatibility
+regressions pass; standalone unittest needs no third-party package. Both retained
+candidate runtime inventories matched on the Pi at 20:55/20:56 UTC. Fresh source
+exact-head CI/review and owner-local execution are pending. #1313/#1323 stay open; operator #1318 stays draft. Original Oct 9
 capture/full 1327 launcher must not rerun. The gateway fix is not yet installed
 in the Pi's control checkout; the reviewed completion requires exact fresh main.
 All historical accepted/deployed baselines remain unchanged. Next: GREEN source

@@ -3,7 +3,7 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-10T20:41:41.731800+00:00",
+  "timestamp": "2026-10-10T21:02:03.243738+00:00",
   "actor": "ChatGPT",
   "event": "latest_attempt_paired_frontend_completion_candidate",
   "baselines": {
@@ -1721,12 +1721,18 @@
         "required_exact_head_ci": "six_GREEN",
         "review": "clean"
       },
-      "candidate_checks": "148_passed; real acquisition-gate regression reproduced KeyError then fixed with pinned 3 workers; Python syntax, state v2, format and diff PASS",
+      "candidate_checks": "164_passed; 21 standalone completion tests; P1 actual acquisition regression fixed with pinned 3 workers; P2 real publication/adopter/tamper/v1 compatibility pass; Python syntax, state v2, format and diff PASS",
       "site_completion": "not_executed",
       "source_ci_review": "pending",
       "whole_site_authority": "unchanged_historical_D00",
       "old_launcher": "obsolete_do_not_rerun",
-      "automatic_retry": false
+      "automatic_retry": false,
+      "retained_runtime_inventory": {
+        "execution": "exec-15fc488da7f21eab337f1e0060e2ce38",
+        "lan": "all_checksums_match_20261010T205518Z",
+        "protected": "all_checksums_match_20261010T205649Z"
+      },
+      "authority_contract": "v2_validated_paired_frontends_only; no_DB_controller_writes; immutable_marker_protected_artifact_unit_bound; legacy_v1_readonly_supported"
     }
   },
   "observations": [

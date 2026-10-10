@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
@@ -14,9 +16,123 @@ SCRIPT = Path(__file__).resolve().parents[1] / "deploy-complete-partial-frontend
 spec = importlib.util.spec_from_file_location("completion", SCRIPT)
 completion = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(completion)
+adopter_spec = importlib.util.spec_from_file_location(
+    "completion_adopter", SCRIPT.parent / "nexolab-adopt-source-deployment.py")
+adopter = importlib.util.module_from_spec(adopter_spec)
+adopter_spec.loader.exec_module(adopter)
 
 
 class CompletionTests(unittest.TestCase):
+    def authority_fixture(self, root):
+        repo = Path(root) / 'repo'
+        snapshot, context = fixture()
+        context['target_source'] = completion.TARGET
+        evidence = repo / 'runtime/deployments' / context['stamp']
+        evidence.mkdir(parents=True)
+        audit = repo / 'runtime/frontend-completions/verified-pair'
+        audit.mkdir(parents=True)
+        release = repo / 'runtime/frontend-releases' / (completion.TARGET + '-' + context['stamp'])
+        context['release_dir'] = release
+        snapshot['dashboard'].update(working_directory=str(release), process_cwd=str(release), source_sha=completion.TARGET)
+        common = context['expected_contract']
+        documents = {
+            'summary.txt': 'Deployment failed after runtime mutation\n',
+            'runtime-mutation-started': f"source={completion.TARGET}\nstarted_at={context['mutation_started_at']}\n",
+            'edge-sqlite-pre-cutover.json': json.dumps({
+                'schema_version': 1, 'kind': 'nexolab-edge-sqlite-pre-cutover',
+                'deployed_source': context['prior_source'], 'target_source': completion.TARGET,
+                'source_quick_check': 'ok', 'snapshot_quick_check': 'ok', 'outbound_queue_count': 0}),
+            'frontend-artifact-import.txt': f'status=PASS\nsource_sha={completion.TARGET}\nplatform=linux/arm64\nbuild_id=build-1\n',
+            'dashboard-unit-candidate.service': f'[Service]\nWorkingDirectory={release}\n' + '\n'.join(
+                f'Environment={key}={value}' for key, value in {
+                    'NEXT_PUBLIC_NEXOLAB_DATA_MODE': 'live', 'NEXT_PUBLIC_NEXOLAB_API_BASE_URL': common['api_base_url'],
+                    'NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER': 'local',
+                    'NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID': common['organization_id']}.items()) + '\n',
+            'volume-identities-before.json': json.dumps(context['volumes']),
+            'external-artifact-import.txt': f'status=PASS\nsource_sha={completion.TARGET}\nplatform=linux/arm64\nbuild_id=protected-build\n',
+            'external-unit-candidate.service': '[Service]\nUser=nexolab\nGroup=nexolab\n' +
+                f"WorkingDirectory={repo}/runtime/external-frontend-releases/{completion.TARGET}-{context['stamp']}\n" +
+                f'Environment=NEXT_PUBLIC_NEXOLAB_API_BASE_URL={completion.ORIGIN}\n',
+            'frontend-completion-started.json': json.dumps({
+                'schema_version': 1, 'kind': 'nexolab-frontend-only-completion-started',
+                'failed_attempt': context['stamp'], 'control_source': context['origin_main'],
+                'target_source': completion.TARGET, 'completion_audit': str(audit), 'automatic_retry': False}),
+        }
+        for name, text in documents.items():
+            (evidence / name).write_text(text)
+        context['evidence_hashes'] = {key: recovery.sha256_file(evidence / name) for key, name in {
+            'runtime_mutation_started': 'runtime-mutation-started', 'edge_sqlite_pre_cutover': 'edge-sqlite-pre-cutover.json',
+            'frontend_artifact_import': 'frontend-artifact-import.txt', 'dashboard_unit_candidate': 'dashboard-unit-candidate.service',
+            'volume_identities_before': 'volume-identities-before.json'}.items()}
+        op = completion.Operations.__new__(completion.Operations)
+        op.context, op.snapshot, op.recovery, op.failed = context, snapshot, recovery, evidence
+        op.audit, op.control, op.builds = audit, context['origin_main'], {'protected': 'protected-build'}
+        return repo, op
+
+    def test_actual_publication_and_adoption_validate_paired_mutation(self):
+        with tempfile.TemporaryDirectory() as root:
+            repo, op = self.authority_fixture(root)
+            op.publish()
+            result = json.loads((op.failed / recovery.RESULT_NAME).read_text())
+            self.assertEqual(result['schema_version'], 2)
+            self.assertEqual(result['safety']['runtime_mutation'], 'paired_frontends_only')
+            with patch.object(adopter.forward_recovery, 'git', return_value=''), \
+                    patch.object(adopter.forward_recovery, 'repository_schema_head', return_value=op.context['schema_head']):
+                directory, source = adopter.authoritative_source_deployment(repo)
+                self.assertEqual((directory, source), (op.failed, completion.TARGET))
+                _, facts = adopter.deployment_evidence(repo, op.failed)
+                self.assertEqual(facts['commit'], completion.TARGET)
+
+    def test_paired_authority_rejects_false_safety_and_handoff_claims(self):
+        with tempfile.TemporaryDirectory() as root:
+            _, op = self.authority_fixture(root)
+            context = recovery.frontend_completion_context(op.context, op.failed)
+            result = recovery.build_frontend_completion_result(op.snapshot, context)
+            for field, value in (('runtime_mutation', 'none'), ('edge_sqlite_write', 'performed'),
+                                 ('postgres_write', 'performed'), ('modbus_write', 'performed')):
+                bad = copy.deepcopy(result)
+                bad['safety'][field] = value
+                with self.assertRaises(recovery.RecoveryFailure):
+                    recovery.validate_result(bad, context)
+            bad = copy.deepcopy(result)
+            bad['frontend_completion']['external_frontend_build_id'] = 'wrong'
+            with self.assertRaises(recovery.RecoveryFailure):
+                recovery.validate_result(bad, context)
+            legacy = recovery.build_result(op.snapshot, op.context)
+            recovery.validate_result(legacy, op.context)
+            legacy['frontend_completion'] = result['frontend_completion']
+            with self.assertRaises(recovery.RecoveryFailure):
+                recovery.validate_result(legacy, op.context)
+
+    def test_existing_read_only_authority_remains_valid(self):
+        with tempfile.TemporaryDirectory() as root:
+            repo, op = self.authority_fixture(root)
+            legacy = recovery.build_result(op.snapshot, op.context)
+            recovery.atomic_json(op.failed / recovery.RESULT_NAME, legacy)
+            with patch.object(recovery, 'git', return_value=''), \
+                    patch.object(recovery, 'repository_schema_head', return_value=op.context['schema_head']):
+                self.assertEqual(recovery.load_published_authority(repo, op.failed), legacy)
+
+    def test_adoption_rejects_changed_completion_evidence(self):
+        with tempfile.TemporaryDirectory() as root:
+            repo, op = self.authority_fixture(root)
+            op.publish()
+            path = op.failed / 'external-unit-candidate.service'
+            path.write_text(path.read_text() + '\n# changed after publication\n')
+            with self.assertRaisesRegex(adopter.AdoptionFailure, 'hashes'):
+                adopter.deployment_evidence(repo, op.failed)
+
+    def test_publication_rejects_completion_marker_from_another_attempt(self):
+        with tempfile.TemporaryDirectory() as root:
+            _, op = self.authority_fixture(root)
+            path = op.failed / 'frontend-completion-started.json'
+            marker = json.loads(path.read_text())
+            marker['failed_attempt'] = '20261009T155213Z'
+            path.write_text(json.dumps(marker))
+            with self.assertRaisesRegex(recovery.RecoveryFailure, 'marker lineage'):
+                op.publish()
+            self.assertFalse((op.failed / recovery.RESULT_NAME).exists())
+
     def test_check_data_uses_real_acquisition_gate_with_current_worker_baseline(self):
         snapshot, context = fixture()
         for field, (identifier, image) in completion.EXPECTED_COMPONENTS.items():

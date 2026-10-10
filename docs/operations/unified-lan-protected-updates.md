@@ -115,6 +115,12 @@ are checked again. Genuine forward recovery is recorded only after the actual
 target pair and the complete original data gate pass. If publication might have
 already committed, preserve the verified target pair and report uncertainty;
 never roll back behind possibly published authority. There is no automatic retry.
+Paired handoff publishes forward-recovery contract v2 with canonical
+`safety.runtime_mutation=paired_frontends_only`; database/controller writes stay
+`none`. The loader and source adopter validate the completion marker, protected
+artifact/unit hashes and exact source/build/origin/control lineage. Existing v1
+read-only reconciliation remains valid with `runtime_mutation=none` and cannot
+claim a paired completion through an unchecked extension.
 The private completion report grants no offline package authority. Actual execution,
 Google account/session-expiry and native package update/rollback remain separate
 parent acceptance evidence.

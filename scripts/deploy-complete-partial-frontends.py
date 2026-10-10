@@ -296,12 +296,15 @@ class Operations:
         self.gateway.require_gateway_active(self.gateway.origin_host(ORIGIN))
 
     def publish(self):
-        result = self.recovery.build_result(self.snapshot, self.context)
-        result['frontend_completion'] = {'audit': str(self.audit), 'control_source': self.control,
+        context = self.recovery.frontend_completion_context(self.context, self.failed)
+        expected = {'audit': str(self.audit), 'control_source': self.control,
             'external_frontend_origin': ORIGIN, 'external_frontend_source_commit': TARGET,
             'external_frontend_build_id': self.builds['protected'],
             'runtime_mutation': 'paired_frontends_only', 'backend_containers': 'unchanged'}
-        self.recovery.validate_result(result, self.context)
+        if context['frontend_completion'] != expected:
+            raise CompletionFailure('paired completion publication evidence differs from verified handoff')
+        result = self.recovery.build_frontend_completion_result(self.snapshot, context)
+        self.recovery.validate_result(result, context)
         self.recovery.atomic_json(self.failed / self.recovery.RESULT_NAME, result)
 
     def publication_exists(self):

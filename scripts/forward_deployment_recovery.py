@@ -447,6 +447,8 @@ def load_published_authority(repo: Path, evidence: Path) -> dict[str, Any]:
         "target_source": target,
         "evidence_hashes": expected_hashes,
     }
+    if document.get("schema_version") == 2:
+        context = frontend_completion_context(context, resolved)
     validate_result(document, context)
     if document.get("runtime_activated_at") != marker["started_at"]:
         raise RecoveryFailure("published recovery activation timestamp mismatch")
@@ -802,6 +804,60 @@ def build_result(snapshot: dict[str, Any], context: dict[str, Any]) -> dict[str,
         },
     }
 
+def frontend_completion_context(context: dict[str, Any], evidence: Path) -> dict[str, Any]:
+    """Bind paired handoff authority to its real marker and protected candidate."""
+    repo = evidence.parent.parent.parent
+    files = {
+        "frontend_completion_started": evidence / "frontend-completion-started.json",
+        "external_artifact_import": evidence / "external-artifact-import.txt",
+        "external_unit_candidate": evidence / "external-unit-candidate.service",
+    }
+    marker = read_json(files["frontend_completion_started"], "frontend completion marker")
+    audit = Path(marker.get("completion_audit", ""))
+    if (
+        marker.get("schema_version") != 1
+        or marker.get("kind") != "nexolab-frontend-only-completion-started"
+        or marker.get("failed_attempt") != context["stamp"]
+        or marker.get("target_source") != context["target_source"]
+        or marker.get("automatic_retry") is not False
+        or not isinstance(marker.get("control_source"), str)
+        or not SHA_RE.fullmatch(marker["control_source"])
+        or not audit.is_absolute() or audit.is_symlink() or not audit.is_dir()
+        or audit.resolve() != audit
+        or audit.parent != repo / "runtime" / "frontend-completions"
+    ):
+        raise RecoveryFailure("frontend completion marker lineage is invalid")
+    frontend = parse_key_values(files["external_artifact_import"], "protected frontend import")
+    if (frontend.get("status") != "PASS" or frontend.get("platform") != "linux/arm64"
+            or frontend.get("source_sha") != context["target_source"] or not frontend.get("build_id")):
+        raise RecoveryFailure("frontend completion protected artifact identity is invalid")
+    unit = _safe_file(files["external_unit_candidate"], "protected candidate unit").read_text(encoding="utf-8")
+    release = repo / "runtime" / "external-frontend-releases" / f"{context['target_source']}-{context['stamp']}"
+    origin = _unit_environment(unit, "NEXT_PUBLIC_NEXOLAB_API_BASE_URL")
+    if (_unit_value(unit, "WorkingDirectory") != str(release)
+            or _unit_value(unit, "User") != "nexolab" or _unit_value(unit, "Group") != "nexolab"
+            or not re.fullmatch(r"https://[a-z0-9.-]+", origin)):
+        raise RecoveryFailure("frontend completion protected candidate contract is invalid")
+    bound = dict(context)
+    bound["evidence_hashes"] = {**context["evidence_hashes"], **{
+        key: sha256_file(_safe_file(path, "frontend completion evidence")) for key, path in files.items()}}
+    bound["frontend_completion"] = {
+        "audit": str(audit), "control_source": marker["control_source"],
+        "external_frontend_origin": origin, "external_frontend_source_commit": context["target_source"],
+        "external_frontend_build_id": frontend["build_id"],
+        "runtime_mutation": "paired_frontends_only", "backend_containers": "unchanged",
+    }
+    return bound
+
+
+def build_frontend_completion_result(snapshot: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
+    document = build_result(snapshot, context)
+    document["schema_version"] = 2
+    document["safety"]["runtime_mutation"] = "paired_frontends_only"
+    document["frontend_completion"] = dict(context["frontend_completion"])
+    return document
+
+
 def validate_result(document: dict[str, Any], context: dict[str, Any]) -> None:
     required_strings = (
         "deployment_evidence_id", "previous_source", "target_source", "runtime_activated_at",
@@ -811,7 +867,8 @@ def validate_result(document: dict[str, Any], context: dict[str, Any]) -> None:
         "telemetry_service_container_id", "telemetry_service_image_id", "postgres_container_id",
         "postgres_volume_name",
     )
-    if document.get("schema_version") != 1 or document.get("kind") != "nexolab-forward-deployment-recovery-result":
+    version = document.get("schema_version")
+    if version not in (1, 2) or document.get("kind") != "nexolab-forward-deployment-recovery-result":
         raise RecoveryFailure("forward recovery result contract is invalid")
     if document.get("status") != "reconciled":
         raise RecoveryFailure("forward recovery result is not reconciled")
@@ -826,10 +883,17 @@ def validate_result(document: dict[str, Any], context: dict[str, Any]) -> None:
     if document.get("evidence_hashes") != context["evidence_hashes"]:
         raise RecoveryFailure("forward recovery evidence hashes do not match immutable inputs")
     safety = document.get("safety")
-    if not isinstance(safety, dict) or any(safety.get(key) != "none" for key in (
-        "runtime_mutation", "edge_sqlite_write", "postgres_write", "modbus_write", "hardware_write"
-    )):
+    mutation = "none" if version == 1 else "paired_frontends_only"
+    if (not isinstance(safety, dict) or safety.get("runtime_mutation") != mutation
+            or any(safety.get(key) != "none" for key in (
+                "edge_sqlite_write", "postgres_write", "modbus_write", "hardware_write"))):
         raise RecoveryFailure("forward recovery safety record is invalid")
+    if version == 1 and "frontend_completion" in document:
+        raise RecoveryFailure("read-only recovery cannot claim a frontend completion")
+    if version == 2 and (not isinstance(context.get("frontend_completion"), dict)
+                        or document.get("frontend_completion") != context["frontend_completion"]
+                        or document["control_origin_main"] != context["frontend_completion"]["control_source"]):
+        raise RecoveryFailure("frontend completion authority is not bound to paired handoff evidence")
 
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description="Reconcile a healthy forward-mutated NEXOLAB deployment without data rollback.")
