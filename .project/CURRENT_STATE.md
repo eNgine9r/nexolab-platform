@@ -2,6 +2,14 @@
 
 Updated: 2026-10-10
 
+## Current checkpoint — cadence fix accepted; full installer paused for preserved service owner
+
+#1325 / PR #1326 is accepted on source main 3320d42b1edc3b5a80a3c49a0b8b4e73f1bf056e. Final head a29735a2b9275e49515ebe44e1131f1b63567ea3 has CI 38074270212 and Telemetry 38074270206 GREEN, clean final review, 82 targeted tests and actual read-only acquisition-guard proof. Healthy site polling is 30/60 seconds; the old fixed 15-second window was a false rejection. The fix still requires real samples and continuously healthy workers/MQTT/queue, validates cadence on every poll, rejects counter resets and caps observation at 120 seconds.
+
+Actual both frontend services run as nexolab:nexolab. A full root caller sets the LAN unit owner from id -un and would change it to root. #1327 now scopes the required launcher correction preserving service accounts/readability, owner Git, exact privileged evidence/lock and all data/configuration/volume guards. No full launcher was staged or executed. Commander sees the actual source mount read-only; its source fast-forward did not apply. No extra diagnostic command is requested. Complete LAN/existing Google HTTPS installation/update/rollback remains unfinished; #1313/#1323 OPEN, #1318 DRAFT/unmerged, whole-site baselines unchanged.
+
+Next: #1327, then one concrete checked owner-local continuation. Earlier commands below are historical.
+
 ## Issue #1323 — actual container baseline drift confirmed; exact field comparison prepared
 
 Actual diagnostic `partial-diagnostic-1323-5i2gnzjh/report.json` finished at

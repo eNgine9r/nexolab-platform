@@ -2,6 +2,18 @@
 
 Updated: 2026-10-10
 
+## Issue #1327 — privileged continuation must preserve existing frontend accounts
+
+Accepted #1325 fixes the acquisition false rejection; the current full installer
+is paused. Actual LAN/HTTPS units both run as nexolab:nexolab. Running the full
+deployer as root derives the LAN service owner from the caller and would change
+it to root; candidate/identity readability also needs the existing account. A
+scoped checked owner-local launcher is required before site activation. No
+launcher was staged/executed, no runtime/data/authority change occurred, and the
+Commander view of the source repository is read-only. Complete #1327; do not
+repeat the historical diagnostics or promote the root read-only preflight into
+the installer. Whole-site installation/update/rollback remains unfinished.
+
 ## Issue #1323 — actual container baseline drift confirmed; exact field comparison prepared
 
 Actual diagnostic `partial-diagnostic-1323-5i2gnzjh/report.json` finished at

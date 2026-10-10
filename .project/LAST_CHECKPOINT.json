@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-10T17:37:35.486680+00:00",
+  "timestamp": "2026-10-10T18:17:01.165Z",
   "actor": "ChatGPT",
-  "event": "actual_container_baseline_drift_verified_sanitized_exact_field_diagnostic_V2_staged",
+  "event": "acquisition_cadence_fix_accepted_installer_paused_pending_preserved_service_owner_launcher",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -2949,6 +2949,88 @@
       "activation": "not_started",
       "accepted_baselines": "unchanged",
       "next_action": "Owner runs the read-only diagnostic V2 once; inspect exact container before/after differences remotely. Diagnose the specific drift before changing runtime or accepting a new baseline. Original evidence and guards remain unchanged."
+    },
+    "partial_acquisition_cadence_1325": {
+      "issue": 1325,
+      "status": "source_fix_accepted_actual_installer_paused",
+      "source_module_sha256": "f8c25b651a1faf01e5ed07fb7bd4b2a5063c6b9d8acf35ce6236a739074229ab",
+      "function_sha256": "1f7e88eca7fc81c3999d6b572ca43d39c5acdb736c016673a33e357803f6a20e",
+      "owner_diagnostic_path": "partial-diagnostic-1323-8bva9_45/report.json",
+      "owner_diagnostic_status": "baseline_rejected",
+      "owner_diagnostic_reason": "partial continuation recovered acquisition is not advancing",
+      "remote_observation": {
+        "execution_id": "exec-9347117b0ce239ef05ec5a1b6fe4457d",
+        "started_at": "2026-10-10T17:45:13.696787+00:00",
+        "finished_at": "2026-10-10T17:46:13.726601+00:00",
+        "sample_counters": [
+          128297,
+          128358,
+          128385,
+          128385
+        ],
+        "persisted_intervals_seconds": [
+          30,
+          60
+        ],
+        "configured_targets": 61
+      },
+      "candidate_live_acquisition_guard": {
+        "execution_id": "exec-cae86b69c01819ee320924b4981904f9",
+        "observed_at": "2026-10-10T18:01:19.620224+00:00",
+        "result": "passed",
+        "elapsed_seconds": 1.071,
+        "sample_counters": [
+          129726,
+          129733
+        ],
+        "window_seconds": 70,
+        "scope": "acquisition_guard_only_not_canonical_deployment_preflight",
+        "asserted_sent_function_sha256": "1f7e88eca7fc81c3999d6b572ca43d39c5acdb736c016673a33e357803f6a20e",
+        "report_metadata_note": "The raw observation retained the earlier function_sha256 label; the injected script asserted the correct final function digest before execution. Module digest and actual observations are unchanged."
+      },
+      "local_checks": [
+        "82 recovery/adoption/source-selection tests passed",
+        "RED initial cadence and per-poll corruption regressions before fixes"
+      ],
+      "canonical_privileged_preflight": "pending",
+      "site_activation": "paused_not_started",
+      "whole_site_acceptance": "unfinished",
+      "runtime_mutation": "none",
+      "database_restore": "none",
+      "package_authority": "not_modified",
+      "latest_candidate_actual_acquisition": "passed_readonly",
+      "accepted_source": {
+        "verified_head_sha": "a29735a2b9275e49515ebe44e1131f1b63567ea3",
+        "source_tree": "77575cd935c72fef3f2e490ee589a347e0001c92",
+        "source_pr": 1326,
+        "source_ci": 38074270212,
+        "telemetry_ci": 38074270206,
+        "review": "completed_no_new_findings_two_threads_resolved",
+        "observed_main": "3320d42b1edc3b5a80a3c49a0b8b4e73f1bf056e"
+      },
+      "host_source_access": {
+        "kind": "readonly_source_access",
+        "uid": 1000,
+        "repo_uid": 1000,
+        "index_uid": 1000,
+        "filesystem_readonly": true,
+        "git_read_returncode": 0,
+        "git_branch": "main",
+        "safe_error_classes": []
+      },
+      "host_source_update": "not_applied_commander_mount_read_only",
+      "actual_frontend_service_accounts": {
+        "observed_at": "2026-10-10T18:11:01Z",
+        "lan_user": "nexolab",
+        "lan_group": "nexolab",
+        "protected_user": "nexolab",
+        "protected_group": "nexolab"
+      },
+      "continuation_launcher": {
+        "status": "not_staged_or_executed",
+        "blocking_dependency": 1327,
+        "reason": "full root caller changes LAN service owner; preserve existing non-root units and release readability before activation"
+      }
     }
   },
   "observations": [
@@ -3971,7 +4053,7 @@
       }
     }
   ],
-  "next_action": "Owner runs the read-only diagnostic V2 once; inspect exact container before/after differences remotely. Diagnose the specific drift before changing runtime or accepting a new baseline. Original evidence and guards remain unchanged. Command: sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-diagnostic-1323-v2.py",
+  "next_action": "Complete focused #1327 service-owner/readability launch correction and concrete verified owner-local continuation before any site activation. Do not repeat earlier diagnostics or run the read-only root preflight as a full installer. #1313/#1323 open; #1318 draft; complete LAN/HTTPS install/update/rollback unfinished.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
