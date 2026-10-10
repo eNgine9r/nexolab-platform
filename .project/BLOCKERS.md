@@ -2,17 +2,20 @@
 
 Updated: 2026-10-10
 
-## Issue #1327 — privileged continuation must preserve existing frontend accounts
+## Current blocker — one owner-local source continuation remains pending
 
-Accepted #1325 fixes the acquisition false rejection; the current full installer
-is paused. Actual LAN/HTTPS units both run as nexolab:nexolab. Running the full
-deployer as root derives the LAN service owner from the caller and would change
-it to root; candidate/identity readability also needs the existing account. A
-scoped checked owner-local launcher is required before site activation. No
-launcher was staged/executed, no runtime/data/authority change occurred, and the
-Commander view of the source repository is read-only. Complete #1327; do not
-repeat the historical diagnostics or promote the root read-only preflight into
-the installer. Whole-site installation/update/rollback remains unfinished.
+#1327 source correction is accepted through PR #1328 on reviewed main
+2bda5e6286a4076ae5cf47d2471089d6b3f6b13e after six GREEN exact-head workflows and
+clean final review. The owner-preserving launcher is staged byte-for-byte against
+the accepted tree. Its command and immutable pins are recorded in CURRENT_STATE
+and the structured checkpoint. No further diagnostic is required before that command.
+
+Commander exposes the actual source mount read-only and has no owner-local sudo;
+the prepared full continuation must run once in the owner's Raspberry terminal.
+Do not bypass the mount, change service accounts, delete/recreate the canonical
+lock, restore old data or rerun the superseded candidate. No activation or native
+package dispatch occurred. #1313/#1323 remain open; whole-site install/update/rollback
+is still unverified. The historical blockers below do not supersede this checkpoint.
 
 ## Issue #1323 — actual container baseline drift confirmed; exact field comparison prepared
 

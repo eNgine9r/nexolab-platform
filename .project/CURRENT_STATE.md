@@ -2,13 +2,35 @@
 
 Updated: 2026-10-10
 
-## Current checkpoint — cadence fix accepted; full installer paused for preserved service owner
+## Current checkpoint — owner-preserving launcher accepted and staged; local execution pending
 
-#1325 / PR #1326 is accepted on source main 3320d42b1edc3b5a80a3c49a0b8b4e73f1bf056e. Final head a29735a2b9275e49515ebe44e1131f1b63567ea3 has CI 38074270212 and Telemetry 38074270206 GREEN, clean final review, 82 targeted tests and actual read-only acquisition-guard proof. Healthy site polling is 30/60 seconds; the old fixed 15-second window was a false rejection. The fix still requires real samples and continuously healthy workers/MQTT/queue, validates cadence on every poll, rejects counter resets and caps observation at 120 seconds.
+#1327 / PR #1328 is accepted on source main 2bda5e6286a4076ae5cf47d2471089d6b3f6b13e.
+Final head 33340ab85bd77dd92408312347cc13181f203db8 has all six exact-head workflows
+GREEN, clean final review and zero review threads. The owner-preserving handoff
+keeps both frontend accounts, private release readability, owner Git/index,
+canonical lock identity and all immutable evidence/data/volume gates.
 
-Actual both frontend services run as nexolab:nexolab. A full root caller sets the LAN unit owner from id -un and would change it to root. #1327 now scopes the required launcher correction preserving service accounts/readability, owner Git, exact privileged evidence/lock and all data/configuration/volume guards. No full launcher was staged or executed. Commander sees the actual source mount read-only; its source fast-forward did not apply. No extra diagnostic command is requested. Complete LAN/existing Google HTTPS installation/update/rollback remains unfinished; #1313/#1323 OPEN, #1318 DRAFT/unmerged, whole-site baselines unchanged.
+The exact merged launcher is staged and read back at 2026-10-10T19:11:29.083Z:
+`/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/deploy-partial-continuation-1327.py`,
+14494 bytes, SHA256 55f9bd3d223e6e3a90b8892832208c2cbba47f29212bb9d293c84aa176506378.
+One owner-local full continuation command is ready:
 
-Next: #1327, then one concrete checked owner-local continuation. Earlier commands below are historical.
+```bash
+sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/deploy-partial-continuation-1327.py --control-source 2bda5e6286a4076ae5cf47d2471089d6b3f6b13e
+```
+
+Actual execution remains pending because Commander mounts the source read-only
+and cannot acquire owner-local sudo. No installer was run, no runtime/data/authority
+was changed and no native package dispatch was added. The differently named earlier
+candidate launcher was staged only and is superseded; do not run it. This command
+is full source continuation, not another diagnostic. It has no automatic retry,
+requires genuine final state and keeps current.json/package authority unchanged.
+
+#1325 / PR #1326 cadence fix remains accepted; the 30/60-second polling false
+rejection is resolved. Parent #1313/#1323 stay OPEN and #1318 DRAFT/unmerged;
+whole-site baselines remain D00 and the previously captured mixed frontend state.
+Actual unified source activation, source adoption and full LAN/existing Google HTTPS
+offline installation/update/rollback remain required. Earlier commands below are historical.
 
 ## Issue #1323 — actual container baseline drift confirmed; exact field comparison prepared
 

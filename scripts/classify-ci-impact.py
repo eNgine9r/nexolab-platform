@@ -220,6 +220,7 @@ INSPECTION_SECURITY_PATTERNS = (
 )
 
 FRONTEND_RELEASE_TOOLING_PATHS = {
+    "scripts/lib/protected-frontend-release.sh",
     "scripts/build-frontend-release-artifact.sh",
     "scripts/tests/test_raspberry_pi_frontend_release.py",
 }

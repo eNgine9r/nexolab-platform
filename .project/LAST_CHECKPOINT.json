@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-10T18:17:01.165Z",
+  "timestamp": "2026-10-10T19:11:29.083Z",
   "actor": "ChatGPT",
-  "event": "acquisition_cadence_fix_accepted_installer_paused_pending_preserved_service_owner_launcher",
+  "event": "owner_preserved_partial_source_continuation_accepted_staged_awaiting_local_execution",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -3031,6 +3031,55 @@
         "blocking_dependency": 1327,
         "reason": "full root caller changes LAN service owner; preserve existing non-root units and release readability before activation"
       }
+    },
+    "owner_preserved_partial_launch_1327": {
+      "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/deploy-partial-continuation-1327.py",
+      "bytes": 14494,
+      "sha256": "55f9bd3d223e6e3a90b8892832208c2cbba47f29212bb9d293c84aa176506378",
+      "readback_at": "2026-10-10T19:11:29.083Z",
+      "exact_readback": true,
+      "accepted_control": "2bda5e6286a4076ae5cf47d2471089d6b3f6b13e",
+      "verified_head": "33340ab85bd77dd92408312347cc13181f203db8",
+      "tree": "9d27b0bbe992e7d21f5a425f40616e8c478d655d",
+      "ci": [
+        {
+          "id": 38078157839,
+          "name": "Telegram Gateway",
+          "conclusion": "success"
+        },
+        {
+          "id": 38078157972,
+          "name": "Refrigeration Browser Acceptance",
+          "conclusion": "success"
+        },
+        {
+          "id": 38078157948,
+          "name": "Telemetry service",
+          "conclusion": "success"
+        },
+        {
+          "id": 38078157834,
+          "name": "Authenticated Dashboard Acceptance",
+          "conclusion": "success"
+        },
+        {
+          "id": 38078158065,
+          "name": "Offline Bundle",
+          "conclusion": "success"
+        },
+        {
+          "id": 38078157824,
+          "name": "CI",
+          "conclusion": "success"
+        }
+      ],
+      "review": "final exact-head complete; no findings; zero threads",
+      "local_tests": "112 targeted (111 passed/1 skipped); 218 CI policy (217 passed/1 skipped); candidate cleanup contract passed; compile/syntax/format/state/diff passed",
+      "runtime_mutation": "none",
+      "package_dispatch": "none",
+      "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/deploy-partial-continuation-1327.py --control-source 2bda5e6286a4076ae5cf47d2471089d6b3f6b13e",
+      "status": "prepared_verified; owner_local_execution_required",
+      "superseded_stage": "nexolab-partial-continuation-1327.py was candidate-only and never executed; do not run"
     }
   },
   "observations": [
@@ -4053,7 +4102,7 @@
       }
     }
   ],
-  "next_action": "Complete focused #1327 service-owner/readability launch correction and concrete verified owner-local continuation before any site activation. Do not repeat earlier diagnostics or run the read-only root preflight as a full installer. #1313/#1323 open; #1318 draft; complete LAN/HTTPS install/update/rollback unfinished.",
+  "next_action": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/deploy-partial-continuation-1327.py --control-source 2bda5e6286a4076ae5cf47d2471089d6b3f6b13e",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -4061,5 +4110,7 @@
     "volume_deletion": "none",
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
-  }
+  },
+  "runtime_mutation": "none_this_checkpoint",
+  "full_installation_update_rollback": "not_verified"
 }
