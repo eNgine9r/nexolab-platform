@@ -681,6 +681,17 @@ def validate_runtime_snapshot(snapshot: dict[str, Any], context: dict[str, Any])
     if dashboard["runtime_contract"].get("auth_provider") != "local":
         raise RecoveryFailure("active Dashboard authentication provider is not local")
 
+    validate_runtime_data_snapshot(snapshot, context)
+
+
+def validate_runtime_data_snapshot(snapshot: dict[str, Any], context: dict[str, Any]) -> None:
+    """Read-only backend/data gate, also used before a frontend-only completion.
+
+    This grants no source authority. The full gate still requires the actual
+    target Dashboard before calling it and before publishing reconciliation.
+    """
+    if snapshot.get("platform", {}).get("machine") != "aarch64":
+        raise RecoveryFailure("forward recovery is limited to the controlled linux/arm64 host")
     device = snapshot.get("device_agent") or {}
     _require_container_from_attempt(device.get("created_at"), context, "Device Agent")
     if device.get("image_id") != device.get("local_image_id") or not IMAGE_RE.fullmatch(str(device.get("image_id", ""))):

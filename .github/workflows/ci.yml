@@ -192,6 +192,12 @@ jobs:
         shell: bash
         run: bash scripts/tests/standalone-offline-runtime-contract.sh
 
+      - name: Validate paired frontend completion and preserved-data gates
+        shell: bash
+        run: |
+          python3 -B -m unittest discover -s scripts/tests -p 'test_forward_deployment*.py'
+          python3 -B -m unittest discover -s scripts/tests -p 'test_deploy_complete_partial_frontends.py'
+
       - name: Validate object storage migration safety
         if: ${{ contains(fromJSON(needs.classify.outputs.classes), 'deployment_runtime') }}
         shell: bash

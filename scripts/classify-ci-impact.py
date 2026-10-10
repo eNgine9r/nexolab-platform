@@ -184,6 +184,8 @@ TELEGRAM_GATEWAY_PATTERNS = (
 )
 
 OFFLINE_BUNDLE_PATTERNS = (
+    "scripts/deploy-complete-partial-frontends.py",
+    "scripts/tests/test_deploy_complete_partial_frontends.py",
     "scripts/nexolab-protected-frontend.py",
     "scripts/nexolab-protected-package.py",
     "scripts/tests/test_protected_frontend_release.py",
@@ -224,6 +226,8 @@ INSPECTION_SECURITY_PATTERNS = (
 )
 
 FRONTEND_RELEASE_TOOLING_PATHS = {
+    "scripts/deploy-complete-partial-frontends.py",
+    "scripts/tests/test_deploy_complete_partial_frontends.py",
     "scripts/lib/protected-frontend-release.sh",
     "scripts/nexolab-protected-frontend.py",
     "scripts/nexolab-protected-package.py",
