@@ -100,7 +100,7 @@
             "required_exact_head_ci": "six_GREEN",
             "review": "clean"
           },
-          "candidate_checks": "145_passed; Python syntax, state v2, format and diff PASS",
+          "candidate_checks": "148_passed; real acquisition-gate regression reproduced KeyError then fixed with pinned 3 workers; Python syntax, state v2, format and diff PASS",
           "site_completion": "not_executed",
           "source_ci_review": "pending",
           "whole_site_authority": "unchanged_historical_D00",

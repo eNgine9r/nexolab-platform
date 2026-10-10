@@ -5,7 +5,7 @@ import importlib.util
 from pathlib import Path
 import sys
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_forward_deployment_recovery import fixture, recovery
@@ -17,12 +17,50 @@ spec.loader.exec_module(completion)
 
 
 class CompletionTests(unittest.TestCase):
+    def test_check_data_uses_real_acquisition_gate_with_current_worker_baseline(self):
+        snapshot, context = fixture()
+        for field, (identifier, image) in completion.EXPECTED_COMPONENTS.items():
+            snapshot[field]['container_id'], snapshot[field]['image_id'] = identifier, image
+            snapshot[field]['local_image_id'] = image
+        agent = snapshot['device_agent']
+        agent['expected_bus_workers'] = agent['active_bus_workers'] = 3
+        op = completion.Operations.__new__(completion.Operations)
+        op.context, op.recovery = context, recovery
+        op.live_high_water, op.before, op.input_hashes = None, {}, {}
+        op.footprint = lambda: {}
+        health = {'status': 'ok', 'mqtt_connected': True, 'queue_depth': 0,
+                  'samples_total': 100, 'acquisition': {'scheduler': {
+                      'expected_bus_workers': 3, 'active_bus_workers': 3, 'workers_healthy': True}}}
+        later = copy.deepcopy(health)
+        later['samples_total'] = 101
+        with patch.object(recovery, 'collect_runtime_snapshot', return_value=snapshot), \
+                patch.object(recovery, '_partial_http', side_effect=[health, later]), \
+                patch.object(recovery.time, 'sleep'):
+            op.check_data()
+
     def test_backend_gate_accepts_old_frontend_without_weakening_full_gate(self):
         snapshot, context = fixture()
         snapshot["dashboard"]["working_directory"] = "/old/frontend"
         recovery.validate_runtime_data_snapshot(snapshot, context)
         with self.assertRaisesRegex(recovery.RecoveryFailure, "active Dashboard"):
             recovery.validate_runtime_snapshot(snapshot, context)
+
+    def test_completion_acquisition_gate_rejects_changed_worker_plan(self):
+        health = {'status': 'ok', 'mqtt_connected': True, 'queue_depth': 0,
+                  'samples_total': 100, 'acquisition': {'scheduler': {
+                      'expected_bus_workers': 2, 'active_bus_workers': 2, 'workers_healthy': True}}}
+        with patch.object(recovery, '_partial_http', return_value=health):
+            with self.assertRaisesRegex(recovery.RecoveryFailure, 'not operationally healthy'):
+                recovery.check_partial_acquisition({'agent_health': [{
+                    'expected_bus_workers': completion.EXPECTED_BUS_WORKERS}]})
+
+    def test_check_data_rejects_later_live_high_water_regression(self):
+        snapshot, context = fixture()
+        op = completion.Operations.__new__(completion.Operations)
+        op.context, op.recovery, op.live_high_water = context, recovery, 102
+        with patch.object(recovery, 'collect_runtime_snapshot', return_value=snapshot):
+            with self.assertRaisesRegex(completion.CompletionFailure, 'high-water regressed'):
+                op.check_data()
 
     def test_data_gate_rejects_high_water_regression_and_schema_drift(self):
         snapshot, context = fixture()

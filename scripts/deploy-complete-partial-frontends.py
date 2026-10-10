@@ -54,6 +54,7 @@ OLD_RELEASES = {
 }
 UNITS = {'lan': 'nexolab-dashboard.service', 'protected': 'nexolab-external-frontend.service'}
 PORTS = {'lan': 3000, 'protected': 3100}
+EXPECTED_BUS_WORKERS = 3  # Fresh actual site observation; no old recovery report.
 
 
 class CompletionFailure(RuntimeError):
@@ -209,7 +210,8 @@ class Operations:
         require_unchanged(self.before, self.footprint())
         if any(self.launcher.digest(p) != value for p, value in self.input_hashes.items()):
             raise CompletionFailure('original audit or site configuration changed')
-        self.recovery.check_partial_acquisition({})
+        self.recovery.check_partial_acquisition({
+            'agent_health': [{'expected_bus_workers': EXPECTED_BUS_WORKERS}]})
         return snapshot
 
     def probe(self, profile, source, build):

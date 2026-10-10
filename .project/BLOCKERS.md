@@ -26,7 +26,9 @@ reconciliation after the real target pair and all data checks pass. No full
 installer, backend build/deployment, agent quiesce, old data restore, package
 authority edit or controller write. One durable marker prevents automatic retry.
 
-Targeted checks: 145 passed. Source exact-head CI/review and owner-local execution
+Targeted checks: 148 passed. Review P1 first reproduced KeyError in the real
+acquisition gate; completion now supplies the fresh pinned 3-worker baseline.
+Changed worker plans still reject. Source exact-head CI/review and owner-local execution
 are pending. #1313/#1323 stay open; operator #1318 stays draft. Original Oct 9
 capture/full 1327 launcher must not rerun. The gateway fix is not yet installed
 in the Pi's control checkout; the reviewed completion requires exact fresh main.
