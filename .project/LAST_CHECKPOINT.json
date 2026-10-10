@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-10T15:25:29.743880+00:00",
+  "timestamp": "2026-10-10T17:37:35.486680+00:00",
   "actor": "ChatGPT",
-  "event": "owner_resumed_actual_privileged_preflight_evidence_verified_exact_rejection_diagnostic_staged",
+  "event": "actual_container_baseline_drift_verified_sanitized_exact_field_diagnostic_V2_staged",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -2902,12 +2902,53 @@
         "activation": "not_started",
         "local_tests": "7_passed",
         "python_compile": "passed",
-        "execution": "pending_owner_local_sudo_access;_not_a_deployment_or_a_completed_fix"
+        "execution": "completed_actual_report;_baseline_rejected_at_container_guard"
       },
-      "next_action": "Owner runs the pinned read-only diagnostic once; inspect PARTIAL_DIAGNOSTIC_REPORT remotely for the exact accepted-validator rejection before any repair or activation. Do not repeat preflight V2, Git index repair, capture or full installer.",
+      "next_action": "completed;_superseded_by_partial_container_drift_1323",
       "next_owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-diagnostic-1323.py",
       "accepted_whole_site_baselines": "unchanged",
       "native_package_dispatch": "none_this_continuation"
+    },
+    "partial_container_drift_1323": {
+      "actual_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/partial-diagnostic-1323-5i2gnzjh/report.json",
+      "actual_report_sha256": "67fb3feb10a245939a9fa826c6f17adbf5acc3c3e1829bf2eced9895cb660b47",
+      "finished_at": "2026-10-10T17:28:38.466869+00:00",
+      "independently_read_at": "2026-10-10T17:30:29.708Z",
+      "status": "baseline_rejected",
+      "reason": "partial continuation live container/image/mount baseline drifted",
+      "failure_location": {
+        "file": "scripts/forward_deployment_recovery.py",
+        "function": "check_partial_live_baseline",
+        "line": 911
+      },
+      "canonical_lock_preserved": true,
+      "passed_gates": "exact_accepted_helper_capture_recovery_digests;_failed_attempt_lineage_metadata_hashes;_recovery_binding;_captured_volumes_frontend_identity_central_and_acquisition_evidence",
+      "remaining_unknown": "specific_container_or_field_difference;_fresh_volume_frontend_central_acquisition_checks_follow_container_guard_and_have_not_passed",
+      "diagnostic_v1_limitation": "reason_and_location_only;_no_actual_live_field_values_preserved",
+      "commander_contract_correction": "execution.start_requires_only_alias;_prior_commandAlias_args_cwd_calls_were_invalid;_not_evidence_of_unavailable_execution_engine;_ADMIN_sudo_not_advertised",
+      "prepared_diagnostic_v2": {
+        "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-diagnostic-1323-v2.py",
+        "sha256": "c60d05db07b723b685f43ca6405bea3a5bf6c805f5629c6800921c11f559aa26",
+        "size_bytes": 10938,
+        "remote_write_at": "2026-10-10T17:35:45.847Z",
+        "remote_readback_at": "2026-10-10T17:36:20.363Z",
+        "exact_readback_match": true,
+        "scope": "observe_existing_sanitizer_output_unchanged;_same_validator_and_exact_guard;_field_by_field_diff;_private_report_only",
+        "tests": "9_passed;_two_missing_diff_regressions_failed_before_implementation",
+        "python_compile": "passed",
+        "library_file_id": "libfile_273e184fab6481919c61a825419e3cec",
+        "library_version": 1,
+        "deadline_seconds": 180,
+        "actual_execution": "pending_owner_local_sudo;_not_executed",
+        "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-diagnostic-1323-v2.py"
+      },
+      "runtime_mutation": "none",
+      "database_restore": "none",
+      "package_authority": "not_modified",
+      "git_operations_on_host": "none",
+      "activation": "not_started",
+      "accepted_baselines": "unchanged",
+      "next_action": "Owner runs the read-only diagnostic V2 once; inspect exact container before/after differences remotely. Diagnose the specific drift before changing runtime or accepting a new baseline. Original evidence and guards remain unchanged."
     }
   },
   "observations": [
@@ -3930,7 +3971,7 @@
       }
     }
   ],
-  "next_action": "Owner runs the pinned read-only diagnostic once; inspect PARTIAL_DIAGNOSTIC_REPORT remotely for the exact accepted-validator rejection before any repair or activation. Do not repeat preflight V2, Git index repair, capture or full installer. Command: sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-diagnostic-1323.py",
+  "next_action": "Owner runs the read-only diagnostic V2 once; inspect exact container before/after differences remotely. Diagnose the specific drift before changing runtime or accepting a new baseline. Original evidence and guards remain unchanged. Command: sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-diagnostic-1323-v2.py",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

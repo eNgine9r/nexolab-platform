@@ -2,42 +2,42 @@
 
 Updated: 2026-10-10
 
-## Issue #1323 — resumed; exact baseline rejection awaits one read-only diagnostic
+## Issue #1323 — actual container baseline drift confirmed; exact field comparison prepared
 
-Owner explicitly resumed work on 2026-10-10 after suspension. Actual privileged
-preflight V2 finished at 2026-10-10T07:47:41.238554+00:00 and was independently read
-at 15:17:55 UTC. Report SHA256 `34a6abbe0fbbb89debe6b689fb30467f2f16b5e5a2831c5555ea332e2d4d75bd`.
-It passed canonical lock acquisition/inheritance and preserved the root lock
-inode/mode, reviewed main 1556d8f1 and owner index UID 1000. Immutable inputs and
-both prepared frontend artifacts passed. Source selection returned 1 at the
-accepted partial-baseline guard; its generic exception handler hid the exact
-cause. No runtime mutation, database restore or package-authority write occurred.
-Git/index and lock access are passed gates; do not repeat their repairs.
+Actual diagnostic `partial-diagnostic-1323-5i2gnzjh/report.json` finished at
+2026-10-10T17:28:38.466869+00:00 and was independently read at 17:30:29 UTC.
+SHA256 `67fb3feb10a245939a9fa826c6f17adbf5acc3c3e1829bf2eced9895cb660b47`.
+The accepted validator rejected the live container/image/mount comparison at
+scripts/forward_deployment_recovery.py, check_partial_live_baseline, line 911.
+Exact input hashes, failed-attempt lineage and captured evidence checks passed;
+the canonical lock was preserved. Fresh volume/frontend/API/agent checks follow
+this guard and are not claimed passed. No runtime/data/authority mutation.
 
-One bounded Commander read-only execution failed internally before start at
-15:17:36 UTC; no retry loop. Static comparison of the saved capture does not
-prove a current live baseline or identify the failing guard. Exact cause remains
-unverified; no runtime repair is proposed from speculation.
+The V1 diagnostic recorded only the reason and code location, so the particular
+container and changed field remain unknown. V2 records the accepted sanitizer's
+result without changing it, then reports exact captured/live field differences,
+missing/new containers and mount-order-only differences. Original capture and
+all accepted guards remain unchanged; this is not a new baseline or authority.
+Nine tests and Python compile passed; missing diff tests failed before the change.
+Staged and read back byte for byte: 10938 bytes, SHA256
+`c60d05db07b723b685f43ca6405bea3a5bf6c805f5629c6800921c11f559aa26`. Actual V2 execution is pending.
 
-The new diagnostic calls only the unchanged, digest-pinned accepted validator.
-It reuses the existing canonical lock and preserves all evidence, Git, databases,
-volumes and runtime. It writes only its own private report with a literal safe
-reason and the failing helper function/line; secret-bearing exception text is
-excluded. Deadline 180 seconds. Seven targeted tests and Python compile passed.
-Staged/read back byte for byte: 8264 bytes, SHA256
-`9de774b93fd64d4ea4c26bbe9e2a7665f1ac9ef9f9e6697a3189f20b7a4b1b70`. Actual diagnostic execution is pending.
+Commander contract inspection found an agent caller error: execution.start takes
+only an alias, not commandAlias/args/cwd. Previous such failures do not prove the
+execution engine unavailable. Fixed-alias execution grants no ADMIN/sudo; the
+privileged canonical lock/evidence check still needs owner-local sudo access.
 
 Current owner action:
 
 ```bash
-sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-diagnostic-1323.py
+sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-diagnostic-1323-v2.py
 ```
 
-Inspect PARTIAL_DIAGNOSTIC_REPORT remotely before any repair or activation.
-Previous preflight, capture and installer commands below are historical only.
-#1313/#1323 remain OPEN, #1318 DRAFT/unmerged and accepted whole-site baselines
-unchanged. Full LAN/existing Google HTTPS installation/update/rollback remains
-unfinished. No new native package dispatch was started.
+Read PARTIAL_DIAGNOSTIC_REPORT remotely and identify the exact drift before any
+runtime repair, recapture or activation. Earlier commands below are historical.
+#1313/#1323 remain OPEN; #1318 DRAFT/unmerged; accepted baselines unchanged.
+Complete LAN/existing Google HTTPS installation/update/rollback remains unfinished.
+No new native package dispatch or site configuration change.
 
 ## Historical checkpoint — privileged preflight prepared before its actual run
 
