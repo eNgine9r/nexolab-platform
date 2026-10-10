@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-10T06:57:27.403469+00:00",
+  "timestamp": "2026-10-10T07:43:40.296341+00:00",
   "actor": "ChatGPT",
-  "event": "owner_preflight_git_index_permission_diagnosed_narrow_repair_and_nonmutating_git_capture_staged",
+  "event": "actual_Git_index_repair_and_reviewed_main_verified_split_context_privileged_readonly_preflight_staged",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -2724,7 +2724,7 @@
       "package_authority": "not_modified",
       "root_cause": "privileged_V2_git_status_optional_index_refresh_under_umask_077_can_replace_owner_index_with_private_root_index",
       "reproduction": "real_temp_Git_repo_clean_status_replaced_index_inode_and_changed_0644_to_0600;_no_optional_locks_preserved_mode_and_inode",
-      "actual_index_uid": "unverified_until_narrow_owner_local_repair_report",
+      "actual_index_uid": "verified_root_0_to_nexolab_1000_exact_content_and_mode_preserved",
       "fresh_remote_execution": {
         "at": "2026-10-10T06:42:31.592Z",
         "code": "EXECUTION_HANDLER_FAILED",
@@ -2767,8 +2767,78 @@
         "actual_owner_execution": "pending",
         "old_reports_scripts_and_preflight": "preserved"
       },
-      "next_action": "Owner runs one sudo Git-index repair helper; it preserves exact index bytes/mode, refuses drift/locks, repairs only diagnosed ownership, then runs the unchanged pinned preflight as nexolab. Read GIT_ACCESS_REPORT and PARTIAL_PREFLIGHT_REPORT remotely before continuation.",
+      "next_action": "completed_index_repair;_superseded_by_owner_split_preflight_1323",
       "source_acceptance": "PR_1324_accepted_main_unchanged;_site_continuation_native_packages_and_LAN_HTTPS_acceptance_pending"
+    },
+    "owner_split_preflight_1323": {
+      "owner_index_repair_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/git-access-1323-nkacextk/report.json",
+      "repair_report_sha256": "1f45fa63a505429dabeb97c3cad531760de830cd65ad1ca5bac12935f575d780",
+      "repair_finished_at": "2026-10-10T07:29:05.656313+00:00",
+      "repair_report_read_at": "2026-10-10T07:30:04.999Z",
+      "index_repair_status": "verified_on_actual_Pi",
+      "index": {
+        "path": "/home/nexolab/nexolab-platform/.git/index",
+        "before": {
+          "uid": 0,
+          "gid": 0,
+          "mode": "0o600",
+          "bytes": 186168,
+          "device": 2050,
+          "inode": 10803179
+        },
+        "sha256_before": "d23b038fa078c641124caca115ba15d2298cea1bff43283209865f415d348f19",
+        "backup_path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/git-access-1323-nkacextk/index-before-repair",
+        "scope": "only_git_index_ownership;_bytes_and_mode_preserved",
+        "after": {
+          "uid": 1000,
+          "gid": 1000,
+          "mode": "0o600",
+          "bytes": 186168,
+          "device": 2050,
+          "inode": 10803179
+        },
+        "sha256_after": "d23b038fa078c641124caca115ba15d2298cea1bff43283209865f415d348f19",
+        "status": "owner_access_repaired"
+      },
+      "owner_preflight_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/partial-preflight-1323-m9vb3_up/report.json",
+      "preflight_report_sha256": "76d899c3b8acf758c09901ae486981d3a195b9617133696c7681e7a4cc340e19",
+      "preflight_finished_at": "2026-10-10T07:29:05.612743+00:00",
+      "preflight_report_read_at": "2026-10-10T07:30:04.999Z",
+      "owner_checkout_before": "df5485f6ece4203a74a84f106195fae855d81731",
+      "owner_checkout_after_from_log": "1556d8f135bcaaa192fe2d338bc07b269e702f5e",
+      "git_fast_forward": "completed_as_nexolab_to_exact_reviewed_main",
+      "prepared_artifact_inventories_and_immutable_inputs": "passed",
+      "actual_preflight": "stopped_before_live_evidence_resolution_due_canonical_lock_open_permission",
+      "exact_log_error": "/tmp/nexolab-current-head-launch.lock: Permission denied; flock: 9: Bad file descriptor",
+      "log_read_at": "2026-10-10T07:30:32.695Z",
+      "lock_uid_and_active_holder": "not_verified;_permission_failure_is_not_proof_of_an_active_operation",
+      "diagnosis": "owner_Git_preparation_passed;_root_private_deployment_lock_and_evidence_require_split_context_preflight",
+      "fresh_remote_execution": {
+        "at": "2026-10-10T07:31:29.701Z",
+        "code": "EXECUTION_HANDLER_FAILED",
+        "started": false,
+        "retryable": false
+      },
+      "prepared_split_context_preflight": {
+        "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-preflight-1323-v2.py",
+        "bytes": 12653,
+        "sha256": "c1ef0a9be642c4df9e50ad40a60eb307bbf17f1b521d5ae1e39f9b8c7b645b3b",
+        "write_at": "2026-10-10T07:41:30.600Z",
+        "readback_at": "2026-10-10T07:41:34.197Z",
+        "exact_readback": true,
+        "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-preflight-1323-v2.py",
+        "verification": "14_tests_PASS;_compile_PASS;_Linux_child_fd_flock_PASS;_actual_Pi_preflight_pending;_executor_proc_PID_fd_identity_not_available_for_full_Bash_protocol_fixture",
+        "library_file_id": "libfile_e6440a38d1588191b61c3dd7077cd612",
+        "file_id": "file_00000000a6b08246ade747bc5d2655b4",
+        "library_version": 1
+      },
+      "context_scope": "Git_fetch_temp_historical_checkout_and_main_restore_as_nexolab;_root_only_for_existing_canonical_lock_and_private_readonly_live_evidence",
+      "lock_scope": "existing_nofollow_regular_single_link_zero_byte_private_lock_only;_exclusive_nonblocking_read_descriptor;_same_inode_permissions_preserved;_inherited_fd_9;_busy_or_drift_stops",
+      "runtime_mutation": "none",
+      "database_restore": "none",
+      "package_authority": "not_modified",
+      "actual_split_context_execution": "pending_owner_local_sudo",
+      "next_action": "Owner runs the new pinned sudo preflight V2. Inspect its PARTIAL_PREFLIGHT_REPORT remotely before preparing preserved-data activation. Do not repeat completed index repair, old preflight or runtime capture."
     }
   },
   "observations": [
@@ -3791,7 +3861,7 @@
       }
     }
   ],
-  "next_action": "Owner runs one sudo Git-index repair helper; it preserves exact index bytes/mode, refuses drift/locks, repairs only diagnosed ownership, then runs the unchanged pinned preflight as nexolab. Read GIT_ACCESS_REPORT and PARTIAL_PREFLIGHT_REPORT remotely before continuation. Command: sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-repair-git-access-1323.py",
+  "next_action": "Owner runs the new pinned sudo preflight V2. Inspect its PARTIAL_PREFLIGHT_REPORT remotely before preparing preserved-data activation. Do not repeat completed index repair, old preflight or runtime capture. Command: sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-preflight-1323-v2.py",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

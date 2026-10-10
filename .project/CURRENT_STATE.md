@@ -2,7 +2,54 @@
 
 Updated: 2026-10-10
 
-## Issue #1323 — owner preflight stopped on Git index access; narrow repair prepared
+## Issue #1323 — index repaired and reviewed main reached; privileged live preflight prepared
+
+Actual repair report `git-access-1323-nkacextk/report.json` finished at
+2026-10-10 07:29:05 UTC and was independently read at 07:30:04 UTC.
+SHA256 `1f45fa63a505429dabeb97c3cad531760de830cd65ad1ca5bac12935f575d780`. The index changed only from root UID/GID 0 to
+nexolab UID/GID 1000; its 186,168 bytes, mode 0600, device/inode and exact
+SHA256 d23b038fa078c641124caca115ba15d2298cea1bff43283209865f415d348f19
+were preserved. The index access gate is passed on the actual Pi.
+
+Delegated owner preflight `partial-preflight-1323-m9vb3_up/report.json`, SHA256
+`76d899c3b8acf758c09901ae486981d3a195b9617133696c7681e7a4cc340e19`, verified all immutable input/artifact pins and
+fast-forwarded main from df5485f6 to reviewed 1556d8f1. Its private log then shows
+Permission denied opening /tmp/nexolab-current-head-launch.lock and Bad file
+descriptor from flock. The resulting 'another operation is running' message
+does not establish a held lock. Lock UID/holder and live baseline are unverified;
+source selection/activation did not start. No runtime/database/package change.
+
+New preflight V2 separates owner Git from privileged lock/evidence reads. It
+reuses only the existing validated canonical lock inode through nonblocking
+exclusive flock and inherited FD 9; no lock removal, permission change or new
+lock namespace. Busy or drift stops. All Git runs as nexolab with optional index
+refresh disabled, exact reviewed fetch/merge pin, permitted target checkout and
+main restore only. The accepted deployer runs solely with source-selection-check-only,
+bounded by timeout. Afterward lock identity, clean reviewed main and index owner
+must still match. Original inputs, scripts and all site evidence remain preserved.
+
+Python compile and 14 lock/shim regression tests passed, including actual child
+flock on the inherited descriptor and independent-lock rejection. The executor
+does not expose process-specific /proc/PID/fd paths, so the deployer's complete
+Bash descriptor identity check is pending actual Pi execution, not claimed here.
+V2 was staged/read back byte for byte: 12653 bytes, SHA256
+`c1ef0a9be642c4df9e50ad40a60eb307bbf17f1b521d5ae1e39f9b8c7b645b3b`. Actual V2 execution remains unverified.
+
+Fresh Commander execution failed internally before start at 07:31:29 UTC.
+The mandatory next owner-local action is:
+
+```bash
+sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-preflight-1323-v2.py
+```
+
+Read PARTIAL_PREFLIGHT_REPORT remotely before reviewed continuation. Do not
+repeat index repair or diagnostic capture. Source PR #1324 is accepted and main
+is unchanged; corrected native packages and actual LAN/existing Google HTTPS
+install/update/rollback/authentication acceptance remain pending. #1313/#1323
+stay OPEN, #1318 stays DRAFT/unmerged and accepted whole-site baselines unchanged.
+Earlier commands below are historical checkpoints.
+
+## Historical checkpoint before index repair execution — narrow repair prepared
 
 Owner report `partial-preflight-1323-51l_43lf/report.json` finished on
 2026-10-10 at 06:38:17 UTC and was independently read at 06:40:03 UTC.
