@@ -133,6 +133,26 @@ The private completion report grants no offline package authority. Actual execut
 Google account/session-expiry and native package update/rollback remain separate
 parent acceptance evidence.
 
+### Recorded LAN contract failure and one explicit continuation
+
+Owner completion with control `8aa7a61a` produced audit
+`runtime/frontend-completions/20261010T214443Z-0vvgd4n8`. Both target identities
+passed, but the final gate rejected the valid LAN artifact: the builder emits
+`external_https_stage=false` while the expected dictionary omitted it. Actual
+read-only checks confirmed both old frontend identities and the gateway restored,
+healthy advancing acquisition, newer SQLite data and all 96 original volumes.
+
+The corrected gate compares all six fields, requires LAN stage `false`, and runs
+before candidate preparation/handoff as well as before reconciliation. Never
+remove the previous marker or rerun the old command. After accepted source checks,
+`--continue-contract-failure --execute` permits only this exact recorded failure:
+the original report SHA256, marker, actual activation record/identity and restored
+unit bytes must match. It retains the original audit and writes a separate
+single-use continuation marker. Genuine v2 publication and its loader bind both
+audit lineages and the new actual frontend activation time. A second continuation
+rejects; changed lineage or recovery blocks before mutation. Existing backend,
+acquisition and newer data remain in place; no full installer or old data restore.
+
 ## Establishing package authority
 
 ### Explicit continuation after a partial source activation

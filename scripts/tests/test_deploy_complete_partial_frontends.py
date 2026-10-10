@@ -69,13 +69,17 @@ class CompletionTests(unittest.TestCase):
             with self.assertRaisesRegex(completion.CompletionFailure, 'actual handoff time'):
                 op.verify_target()
 
-    def authority_fixture(self, root):
+    def authority_fixture(self, root, *, stamp=None, control=None, audit_name='verified-pair', activated_at=None):
         repo = Path(root) / 'repo'
         snapshot, context = fixture()
         context['target_source'] = completion.TARGET
+        if stamp:
+            context['stamp'] = stamp
+        if control:
+            context['origin_main'] = control
         evidence = repo / 'runtime/deployments' / context['stamp']
         evidence.mkdir(parents=True)
-        audit = repo / 'runtime/frontend-completions/verified-pair'
+        audit = repo / 'runtime/frontend-completions' / audit_name
         audit.mkdir(parents=True)
         release = repo / 'runtime/frontend-releases' / (completion.TARGET + '-' + context['stamp'])
         context['release_dir'] = release
@@ -106,7 +110,7 @@ class CompletionTests(unittest.TestCase):
         }
         for name, text in documents.items():
             (evidence / name).write_text(text)
-        frontend_activated_at = completion.datetime.now(completion.timezone.utc).isoformat()
+        frontend_activated_at = activated_at or completion.datetime.now(completion.timezone.utc).isoformat()
         manifest = repo / 'runtime' / ('frontend-completion-identity-' + audit.name + '.json')
         manifest.write_text(json.dumps({
             'schema_version': 'nexolab-runtime-identity-v1', 'service': 'dashboard',
@@ -125,7 +129,80 @@ class CompletionTests(unittest.TestCase):
         op.context, op.snapshot, op.recovery, op.failed = context, snapshot, recovery, evidence
         op.audit, op.control, op.builds = audit, context['origin_main'], {'protected': 'protected-build'}
         op.frontend_activated_at = frontend_activated_at
+        op.predecessor = None
         return repo, op
+
+    def continuation_fixture(self, root):
+        repo, op = self.authority_fixture(root, stamp=completion.ATTEMPT,
+            control=recovery.CONTRACT_FAILURE_CONTROL, audit_name=recovery.CONTRACT_FAILURE_AUDIT,
+            activated_at='2026-10-10T21:45:58.900316+00:00')
+        report = {'kind': 'nexolab-paired-frontend-completion', 'schema_version': 1,
+            'status': 'stopped_unverified', 'automatic_retry': False,
+            'failed_attempt': completion.ATTEMPT, 'control_source': recovery.CONTRACT_FAILURE_CONTROL,
+            'started_at': '2026-10-10T21:44:39.365999+00:00', 'execute': True,
+            'failed_stage': 'paired_handoff_and_genuine_reconciliation', 'error_type': 'RecoveryFailure',
+            'reason': 'active Dashboard runtime contract does not match failed evidence',
+            'failure_location': {'file': 'scripts/forward_deployment_recovery.py',
+                                 'function': 'validate_runtime_snapshot', 'line': 684},
+            'finished_at': '2026-10-10T21:46:34.797614+00:00'}
+        (op.audit / 'report.json').write_text(json.dumps(report, indent=2) + '\n')
+        for profile in ('lan', 'protected'):
+            (op.audit / (profile + '-unit-before.service')).write_text('original ' + profile + ' unit\n')
+        self.assertEqual(recovery.sha256_file(op.audit / 'report.json'), recovery.CONTRACT_FAILURE_REPORT_SHA)
+        previous = recovery.completion_contract_predecessor(op.context, op.failed)
+        op.predecessor = previous
+        op.audit = repo / 'runtime/frontend-completions/next-reviewed-pair'
+        op.audit.mkdir()
+        op.control = op.context['origin_main'] = 'f' * 40
+        op.builds['lan'] = 'build-1'
+        op.identity_path = repo / 'runtime' / ('frontend-completion-identity-' + op.audit.name + '.json')
+        op.owner = SimpleNamespace(pw_uid=0, pw_gid=0)
+        with patch.object(completion.os, 'chown'):
+            op.write_identity(completion.datetime.now(completion.timezone.utc).isoformat())
+        return repo, op
+
+    def test_continuation_preserves_original_marker_and_authority_binds_both_audits(self):
+        with tempfile.TemporaryDirectory() as root:
+            repo, op = self.continuation_fixture(root)
+            original = op.failed / 'frontend-completion-started.json'
+            before = original.read_bytes()
+            op.mark_started()
+            self.assertEqual(original.read_bytes(), before)
+            with self.assertRaisesRegex(completion.CompletionFailure, 'no retry'):
+                op.mark_started()
+            op.publish()
+            result = json.loads((op.failed / recovery.RESULT_NAME).read_text())
+            self.assertEqual(result['frontend_completion']['predecessor_audit'], op.predecessor['frontend_completion']['audit'])
+            self.assertIn('frontend_completion_previous_report', result['evidence_hashes'])
+            self.assertIn('frontend_completion_continuation_started', result['evidence_hashes'])
+            with patch.object(adopter.forward_recovery, 'git', return_value=''), \
+                    patch.object(adopter.forward_recovery, 'repository_schema_head', return_value=op.context['schema_head']):
+                _, facts = adopter.deployment_evidence(repo, op.failed)
+                self.assertEqual(facts['deployed_at'], op.frontend_activated_at)
+                report_path = Path(op.predecessor['frontend_completion']['audit']) / 'report.json'
+                report_path.write_text(report_path.read_text() + ' ')
+                with self.assertRaisesRegex(adopter.AdoptionFailure, 'predecessor'):
+                    adopter.deployment_evidence(repo, op.failed)
+
+    def test_continuation_rejects_changed_predecessor_and_same_activation_audit(self):
+        for change in ('report', 'marker', 'activation', 'continuation'):
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as root:
+                _, op = self.continuation_fixture(root)
+                op.mark_started()
+                prior = Path(op.predecessor['frontend_completion']['audit'])
+                if change == 'report':
+                    path = prior / 'report.json'; path.write_text(path.read_text() + ' ')
+                else:
+                    path = (op.failed / 'frontend-completion-started.json' if change == 'marker'
+                            else prior / 'frontend-activation.json' if change == 'activation'
+                            else op.failed / recovery.CONTRACT_CONTINUATION_MARKER)
+                    data = json.loads(path.read_text())
+                    key = 'target_source' if change == 'marker' else 'frontend_activated_at' if change == 'activation' else 'completion_audit'
+                    data[key] = '0' * 40 if change == 'marker' else '2026-10-10T23:00:00+00:00' if change == 'activation' else str(prior)
+                    path.write_text(json.dumps(data))
+                with self.assertRaises(recovery.RecoveryFailure):
+                    op.publish()
+                self.assertFalse((op.failed / recovery.RESULT_NAME).exists())
 
     def test_actual_publication_and_adoption_validate_paired_mutation(self):
         with tempfile.TemporaryDirectory() as root:

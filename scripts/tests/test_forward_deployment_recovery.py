@@ -35,6 +35,7 @@ def fixture() -> tuple[dict, dict]:
         "websocket_url": "ws://172.18.48.66:8082/api/v1/telemetry/live",
         "auth_provider": "local",
         "organization_id": "org-1",
+        "external_https_stage": "false",
     }
     context = {
         "stamp": "20260901T064156Z",
@@ -114,6 +115,42 @@ class ForwardDeploymentRecoveryTests(unittest.TestCase):
     def test_valid_runtime_snapshot_passes(self) -> None:
         snapshot, context = fixture()
         recovery.validate_runtime_snapshot(snapshot, context)
+
+    def test_builder_shaped_lan_contract_passes_real_collector_boundary(self) -> None:
+        snapshot, context = fixture()
+        builder = (SCRIPT.parent / "build-frontend-release-artifact.sh").read_text()
+        recipe = builder.split('cat > "$OUTPUT/frontend-runtime-contract.txt" <<EOF\n', 1)[1].split('\nEOF', 1)[0]
+        variables = {"API_BASE_URL": context["expected_contract"]["api_base_url"],
+                     "WEBSOCKET_URL": context["expected_contract"]["websocket_url"],
+                     "AUTH_PROVIDER": "local", "ORGANIZATION_ID": "org-1",
+                     "EXTERNAL_HTTPS_STAGE": "false"}
+        for key, value in variables.items():
+            recipe = recipe.replace("$" + key, value)
+        with tempfile.TemporaryDirectory() as root:
+            contract = Path(root) / "frontend-runtime-contract.txt"
+            contract.write_text(recipe)
+            snapshot["dashboard"]["runtime_contract"] = recovery.parse_key_values(contract, "builder contract")
+        recovery.validate_runtime_snapshot(snapshot, context)
+
+    def test_complete_contract_rejects_missing_extra_and_changed_fields(self) -> None:
+        for field in fixture()[1]["expected_contract"]:
+            with self.subTest(field=field):
+                snapshot, context = fixture()
+                snapshot["dashboard"]["runtime_contract"] = dict(context["expected_contract"])
+                snapshot["dashboard"]["runtime_contract"][field] = "drift"
+                self.assert_failure(snapshot, context, "runtime contract")
+        for mode in ("missing", "unknown", "protected"):
+            with self.subTest(mode=mode):
+                snapshot, context = fixture()
+                contract = dict(context["expected_contract"])
+                if mode == "missing":
+                    del contract["external_https_stage"]
+                elif mode == "unknown":
+                    contract["unknown"] = "false"
+                else:
+                    contract["external_https_stage"] = "true"
+                snapshot["dashboard"]["runtime_contract"] = contract
+                self.assert_failure(snapshot, context, "runtime contract")
 
     def test_wrong_dashboard_source_fails_closed(self) -> None:
         snapshot, context = fixture()

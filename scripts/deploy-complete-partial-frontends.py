@@ -98,6 +98,7 @@ def handoff(operations):
             failures.append('pair_or_gateway')
         if failures:
             raise CompletionFailure('frontend rollback unverified; preserve audit and stop') from None
+        operations.restoration = 'original_frontend_pair_and_gateway_verified'
         raise
 
 
@@ -109,20 +110,28 @@ def load_helper(name, filename):
 
 
 class Operations:
-    def __init__(self, control, audit, owner, launcher, recovery, gateway):
+    def __init__(self, control, audit, owner, launcher, recovery, gateway, continue_contract_failure=False):
         self.control, self.audit, self.owner = control, audit, owner
         self.launcher, self.recovery, self.gateway = launcher, recovery, gateway
         self.failed = REPO / 'runtime/deployments' / ATTEMPT
         self.context = recovery.build_context(REPO, self.failed, PREVIOUS, TARGET)
+        self.continue_contract_failure = continue_contract_failure
         validate_latest_lineage(self.context['metadata'], recovery.read_json(
             self.failed / 'edge-device-agent-quiesce.json', 'latest quiesce'))
         snapshot = self.failed / 'edge-sqlite-pre-cutover.db'
         recovery._safe_file(snapshot, 'latest SQLite snapshot')
         if snapshot.stat().st_size != EXPECTED_METADATA['bytes'] or launcher.digest(snapshot) != EXPECTED_METADATA['sha256']:
             raise CompletionFailure('latest preserved SQLite snapshot digest differs')
-        for filename in ('final-state.txt', 'edge-sqlite-restore-result.json', recovery.RESULT_NAME, 'frontend-completion-started.json'):
+        for filename in ('final-state.txt', 'edge-sqlite-restore-result.json', recovery.RESULT_NAME,
+                         recovery.CONTRACT_CONTINUATION_MARKER):
             if (self.failed / filename).exists() or (self.failed / filename).is_symlink():
                 raise CompletionFailure('latest attempt already completed, restored or completion attempted')
+        self.predecessor = None
+        original_marker = self.failed / 'frontend-completion-started.json'
+        if continue_contract_failure:
+            self.predecessor = recovery.completion_contract_predecessor(self.context, self.failed)
+        elif original_marker.exists() or original_marker.is_symlink():
+            raise CompletionFailure('completion already attempted; explicit reviewed contract continuation required')
         self.identity_path = REPO / 'runtime' / ('frontend-completion-identity-' + audit.name + '.json')
         self.candidate_identity_path = self.identity_path.with_name(self.identity_path.stem + '-candidate.json')
         self.node = Path('/home/nexolab/.nvm/versions/node') / ('v' + (REPO / '.nvmrc').read_text().strip()) / 'bin/node'
@@ -138,6 +147,12 @@ class Operations:
             REPO / 'infrastructure/compose/.env.edge-central', Path('/opt/nexolab-external/nginx.conf'),
             Path('/etc/systemd/system/nexolab-external-nginx.service'),
             Path('/etc/systemd/system/nexolab-google-oauth-stage.service'))}
+        if self.predecessor:
+            predecessor_audit = Path(self.predecessor['frontend_completion']['audit'])
+            for path in (original_marker, predecessor_audit / 'report.json',
+                         predecessor_audit / 'frontend-activation.json',
+                         REPO / 'runtime' / ('frontend-completion-identity-' + predecessor_audit.name + '.json')):
+                self.input_hashes[path] = launcher.digest(path)
         self.before = self.footprint()
         historical = recovery.read_json(launcher.CAPTURE, 'historical volume identity reference')
         if launcher.digest(launcher.CAPTURE) != launcher.CAPTURE_SHA:
@@ -167,7 +182,17 @@ class Operations:
             for name in ('frontend-source-sha.txt', 'frontend-platform.txt', 'frontend-runtime-contract.txt'):
                 if (release / name).read_bytes() != (artifact / name).read_bytes():
                     raise CompletionFailure('candidate source or runtime contract differs from artifact')
+            if profile == 'lan':
+                recovery.validate_lan_runtime_contract(recovery.parse_key_values(
+                    release / 'frontend-runtime-contract.txt', 'candidate LAN contract'),
+                    self.context['expected_contract'])
             self.old_units[profile] = Path('/etc/systemd/system', UNITS[profile]).read_text()
+            if self.predecessor:
+                predecessor_unit = predecessor_audit / (profile + '-unit-before.service')
+                recovery._safe_file(predecessor_unit, 'previous frontend unit')
+                if predecessor_unit.read_text() != self.old_units[profile]:
+                    raise CompletionFailure('previous frontend unit was not restored exactly')
+                self.input_hashes[predecessor_unit] = launcher.digest(predecessor_unit)
             (audit / (profile + '-unit-before.service')).write_text(self.old_units[profile])
             if profile == 'lan':
                 key = 'Environment=NEXOLAB_RUNTIME_IDENTITY_FILE='
@@ -275,10 +300,20 @@ class Operations:
         self.check_data()
 
     def mark_started(self):
-        self.recovery.atomic_json(self.failed / 'frontend-completion-started.json', {
+        marker = {
             'schema_version': 1, 'kind': 'nexolab-frontend-only-completion-started',
             'failed_attempt': ATTEMPT, 'control_source': self.control, 'target_source': TARGET,
-            'completion_audit': str(self.audit), 'automatic_retry': False})
+            'completion_audit': str(self.audit), 'automatic_retry': False}
+        filename = 'frontend-completion-started.json'
+        if self.predecessor:
+            filename = self.recovery.CONTRACT_CONTINUATION_MARKER
+            marker.update(predecessor_audit=self.predecessor['frontend_completion']['audit'],
+                          predecessor_report_sha256=self.recovery.CONTRACT_FAILURE_REPORT_SHA)
+        path = self.failed / filename
+        # The canonical deployment lock is held. Neither marker may be replaced.
+        if path.exists() or path.is_symlink():
+            raise CompletionFailure('completion marker already exists; no retry')
+        self.recovery.atomic_json(path, marker)
         print('FRONTEND_COMPLETION_PAIRED_HANDOFF_STARTED; backend retained', flush=True)
 
     def switch(self, profile, candidate):
@@ -323,6 +358,8 @@ class Operations:
             'frontend_activated_at': self.frontend_activated_at,
             'backend_mutation_started_at': self.context['mutation_started_at'],
             'runtime_mutation': 'paired_frontends_only', 'backend_containers': 'unchanged'}
+        if self.predecessor:
+            expected['predecessor_audit'] = self.predecessor['frontend_completion']['audit']
         if context['frontend_completion'] != expected:
             raise CompletionFailure('paired completion publication evidence differs from verified handoff')
         result = self.recovery.build_frontend_completion_result(self.snapshot, context)
@@ -337,6 +374,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--control-source', required=True)
     parser.add_argument('--execute', action='store_true')
+    parser.add_argument('--continue-contract-failure', action='store_true',
+                        help='Continue only the recorded 20261010T214443Z contract failure; retain its marker/audit')
     args = parser.parse_args()
     if (not re.fullmatch('[0-9a-f]{40}', args.control_source) or os.geteuid() != 0
             or os.environ.get('SUDO_USER') != 'nexolab' or platform.node() != 'nexolab-edge-01'
@@ -392,7 +431,8 @@ def main():
         signal.signal(signal.SIGTERM, interrupted)
         signal.signal(signal.SIGINT, interrupted)
         report['failed_stage'] = 'latest_attempt_and_current_data_preflight'
-        operations = Operations(args.control_source, audit, owner, launcher, recovery, gateway)
+        operations = Operations(args.control_source, audit, owner, launcher, recovery, gateway,
+                                continue_contract_failure=args.continue_contract_failure)
         report['failed_stage'] = 'isolated_frontend_candidates'
         operations.prepare_candidates()
         launcher.verify_locked_inode(launcher.LOCK, descriptor, lock)
@@ -411,6 +451,8 @@ def main():
         report['reason'] = str(error) if isinstance(error, CompletionFailure) else 'bounded operation failed; preserve private audit'
         if 'recovery' in locals() and isinstance(error, recovery.RecoveryFailure):
             report.update(recovery.partial_failure_details(error))
+        if 'operations' in locals() and getattr(operations, 'restoration', None):
+            report['frontend_restoration'] = operations.restoration
     finally:
         if descriptor is not None:
             os.close(descriptor)
