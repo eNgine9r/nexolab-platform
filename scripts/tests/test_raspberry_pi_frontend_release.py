@@ -39,9 +39,21 @@ def run_bash(script: str, *, env: dict[str, str] | None = None) -> subprocess.Co
 
 
 class PrivilegedFrontendOwnerTests(unittest.TestCase):
+    def test_deployment_entrypoints_keep_full_quality_and_unknown_paths_fail_closed(self):
+        spec = importlib.util.spec_from_file_location("impact", ROOT / "scripts/classify-ci-impact.py")
+        classifier = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(classifier)
+        paths = ["scripts/deploy-privileged-service-owner.py", "scripts/deploy-partial-continuation-1327.py",
+                 "scripts/lib/protected-frontend-release.sh"]
+        result = classifier.classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertTrue(result["needs_full_quality"])
+        self.assertEqual(result["classes"], ["deployment_runtime"])
+        self.assertTrue(classifier.classify(paths + ["scripts/unregistered-new-tool.py"])["fail_closed"])
+
     def module(self):
         spec = importlib.util.spec_from_file_location(
-            "privileged_partial_launch", ROOT / "scripts/privileged_partial_launch.py"
+            "privileged_partial_launch", ROOT / "scripts/deploy-privileged-service-owner.py"
         )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
@@ -150,7 +162,7 @@ class PrivilegedFrontendOwnerTests(unittest.TestCase):
 
     def launcher(self):
         spec = importlib.util.spec_from_file_location(
-            "owner_continuation", ROOT / "scripts/nexolab-partial-continuation-1327.py"
+            "owner_continuation", ROOT / "scripts/deploy-partial-continuation-1327.py"
         )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)

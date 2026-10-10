@@ -207,7 +207,7 @@ def main() -> int:
         owner_git('fetch', '--prune', 'origin', 'main')
         if owner_git('rev-parse', 'origin/main').strip().decode() != control:
             raise ValueError('fresh_main_differs_from_reviewed_control')
-        tracked_launcher = owner_git('show', control + ':scripts/nexolab-partial-continuation-1327.py')
+        tracked_launcher = owner_git('show', control + ':scripts/deploy-partial-continuation-1327.py')
         if Path(__file__).read_bytes() != tracked_launcher:
             raise ValueError('launcher_differs_from_reviewed_control')
         owner_git('merge', '--ff-only', control)

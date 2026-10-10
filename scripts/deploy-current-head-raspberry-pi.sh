@@ -470,7 +470,7 @@ nexolab_acquire_deployment_lock "$LOCK_FILE" || exit $?
 
 DASHBOARD_USER="$(id -un)"
 DASHBOARD_GROUP="$(id -gn)"
-SERVICE_OWNER_HELPER="$SCRIPT_DIR/privileged_partial_launch.py"
+SERVICE_OWNER_HELPER="$SCRIPT_DIR/deploy-privileged-service-owner.py"
 if [[ -n "$PRESERVED_SERVICE_OWNER" ]]; then
   DASHBOARD_GROUP="$(python3 "$SERVICE_OWNER_HELPER" configure --repo "$REPO" \
     --owner "$PRESERVED_SERVICE_OWNER" --control "$EXPECTED_CONTROL_SOURCE" \

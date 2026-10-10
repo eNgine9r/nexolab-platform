@@ -1579,7 +1579,9 @@
       "next": "accept source then stage exact merged launcher for owner-local execution",
       "candidate_checks": "111 targeted tests: 110 passed; real chown/read skipped only in scratch UID namespace; syntax/compile/format/state/diff passed",
       "first_ci": "CI 38076929593 rejected old candidate-start text assertion; contract updated, all existing cleanup requirements retained; final exact-head CI pending",
-      "pull_request": 1328
+      "pull_request": 1328,
+      "final_candidate_routing": "deploy-* entrypoints use existing deployment pattern; protected frontend library explicitly registered as deployment tooling; full Core and classifier-triggered browser/offline gates retained; unknown-neighbor still fails closed",
+      "prior_exact_head": "3d854289f89e3e514a7939481f1f472db9c9a1cf: Core product jobs and Telemetry GREEN, final review clean; Merge Gate rejected unregistered entrypoint paths; rename candidate pending exact-head CI"
     }
   },
   "observations": [

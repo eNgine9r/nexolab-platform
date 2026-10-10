@@ -126,11 +126,11 @@ the active services are touched. The ownership helper is checksum-staged before
 historical source checkout so it remains available at the failed target.
 
 For the captured #1323 site, the reviewed single-use launcher is
-`scripts/nexolab-partial-continuation-1327.py`. Stage its exact merged bytes and
+`scripts/deploy-partial-continuation-1327.py`. Stage its exact merged bytes and
 invoke it locally as the owner, supplying the accepted merged control SHA:
 
 ```bash
-sudo python3 /absolute/path/to/nexolab-partial-continuation-1327.py \
+sudo python3 /absolute/path/to/deploy-partial-continuation-1327.py \
   --control-source EXACT_REVIEWED_MERGED_CONTROL_SHA
 ```
 
