@@ -18,13 +18,13 @@
     "verification_policy": "proportional_to_changed_product_surface"
   },
   "baselines": {
-    "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
-    "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
-    "frontend_compatibility_source_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
-    "frontend_build_id": "hA8usmV6ZKwgZUYhmOLHZ",
-    "frontend_release": "runtime/frontend-releases/d00a83bfc83fb120777c721b5e46fa50ae455c7d-20261008T092219Z",
-    "frontend_rollback_release": "runtime/frontend-releases/75d9c75f8d1901d6b639ec711bf3784e22ed0642-20261007T061059Z",
-    "frontend_runtime_evidence": "runtime/deployments/20261008T092219Z",
+    "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+    "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+    "frontend_compatibility_source_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+    "frontend_build_id": "Ar6aVrTWJICF6TKFaWxHw",
+    "frontend_release": "runtime/frontend-releases/c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2-20261010T194054Z",
+    "frontend_rollback_release": "runtime/frontend-releases/d00a83bfc83fb120777c721b5e46fa50ae455c7d-20261008T092219Z",
+    "frontend_runtime_evidence": "runtime/frontend-completions/20261010T221214Z-p5w6jzu0/report.json",
     "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
     "sdm120_candidate_device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
     "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
@@ -34,10 +34,13 @@
     "sdm120_production_adapter": "A10Q34QC",
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
-    "deployed_runtime_evidence": "runtime/deployments/20261008T092219Z",
-    "deployed_device_agent_image_id": "sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323",
-    "deployed_device_agent_rollback_image_id": "sha256:5344b4bef506d89923afd39413ee1bd7d1bb668ac1d123ed899a6d22fa58b957",
-    "object_storage_authority": "runtime/object-storage-migration/authority.json"
+    "deployed_runtime_evidence": "runtime/deployments/20261010T194054Z",
+    "deployed_device_agent_image_id": "sha256:3d50e14ceb396ab9e442f26b66703838a86e7b7d6e5b79373ef62f45bee94037",
+    "deployed_device_agent_rollback_image_id": "sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323",
+    "object_storage_authority": "runtime/object-storage-migration/authority.json",
+    "protected_frontend_compatibility_source_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+    "protected_frontend_build_id": "mcG0fHLcpCeVbTX--85gF",
+    "protected_frontend_release": "runtime/external-frontend-releases/c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2-20261010T194054Z"
   },
   "selection": {
     "active_work_package": {
@@ -46,7 +49,7 @@
     },
     "next_work_package": {
       "issue": 1323,
-      "title": "Canonical source adoption, then reviewed package readiness",
+      "title": "Corrected-tooling ARM64 packages and real update/rollback acceptance",
       "branch": "fix/1323-partial-unified-activation"
     }
   },
@@ -7481,7 +7484,7 @@
         "frontend_artifact_run_37892179879": "failed_missing_app_public_directory",
         "followup_package_workflow_issue": 1315,
         "isolated_host_candidate_cleanup": "3_passed_without_service_mutation",
-        "current_gate": "paired_source_completed; canonical_adoption_and_package_authority_update_rollback_acceptance_pending"
+        "current_gate": "source_metadata_recorded; retained_packages_rejected; additional_bounded_ARM64_build_approval_pending"
       },
       "depends_on": [
         1329,
@@ -7552,10 +7555,10 @@
         "mutation": "none",
         "new_source_guard": "explicit_single_exact_unresolved_attempt_only;_fresh_live_preflight;_immutable_staged_context_and_helper;_fresh_backups_no_restore;_same_site_settings;_all_volume_identity_preservation_before_success",
         "local_tests": "70_forward_recovery_and_real_Git_source_selection_tests_passed;_compile_shell_syntax_diff_checks_passed",
-        "site_continuation": "paired_frontends_reconciled; version_metadata_adoption_pending",
-        "native_packages": "two corrected native ARM64 current/target artifacts previously built and staged; actual package authority/update/rollback unverified",
+        "site_continuation": "paired_frontends_reconciled_and_source_adoption_recorded",
+        "native_packages": "old retained packages rejected by current startup gate; rebuilding with reviewed 24e21f2b tooling required",
         "current_source_dependency": "1325_persisted_acquisition_cadence_fix_pending_exact_head_ci_review",
-        "current_gate": "owner_local_canonical_source_adoption; then reviewed package readiness",
+        "current_gate": "additional authorization for two sequential corrected-tooling ARM64 bundles; then owner-local reviewed worker/stage/package authority and real update/rollback",
         "latest_owner_continuation": {
           "owner_report": "partial-continuation-1327-26oqf7mn/report.json",
           "owner_control": "53e4812acd727ab2f333f969c848fbe5fb050c50",
@@ -7653,6 +7656,52 @@
           "database_restore": "none",
           "controller_write": "none",
           "next": "owner-local canonical source adoption with GIT_OPTIONAL_LOCKS=0; then reviewed package-authority readiness, no old installer retry"
+        },
+        "source_adoption_completed": {
+          "status": "recorded",
+          "proof_source": "owner_terminal_output_2026-10-10T22:24:01Z",
+          "deployment_authority": "controlled_source_deployment",
+          "source_commit": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+          "evidence": "runtime/deployments/20261010T194054Z",
+          "health": "ready",
+          "known_packaged_release": false,
+          "platform": "linux/arm64",
+          "runtime_mode": "lan",
+          "schema_head": "20260908_0037",
+          "live_identity_check_at": "2026-10-10T22:25:09.322026+00:00",
+          "lan_build": "Ar6aVrTWJICF6TKFaWxHw",
+          "protected_build": "mcG0fHLcpCeVbTX--85gF",
+          "agent_samples": 13288,
+          "agent_workers": "3/3_healthy",
+          "mqtt_connected": true,
+          "queue_depth": 0
+        },
+        "retained_package_tooling_rejected": {
+          "captured_at": "2026-10-10T22:26:28.891Z",
+          "read_only_validation": "current canonical validate_package_tooling rejected both retained bundles",
+          "reason": "package tooling capability evidence is incomplete",
+          "missing_capability": "hardware-startup-gate",
+          "startup_gate_file_present": false,
+          "old_hardware_command": [
+            "dual_bus_main.py"
+          ],
+          "old_tooling_commit": "df5485f6ece4203a74a84f106195fae855d81731",
+          "package_gateway_helper_present": false,
+          "current_bundle_manifest_sha256": "d40105a8af07c1a753de2537595f48c17b90a34e4b28780071f107340e2419d5",
+          "target_bundle_manifest_sha256": "3db855d0aa749c57fdf91026e69c6381e4bbf3d2c47bdcb97a26d127e78b7a78",
+          "prepared_build_tooling": "24e21f2bce0ddeff6e8086b130fa79e4af38d3b2",
+          "prepared_current_runtime": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+          "prepared_target_runtime": "df5485f6ece4203a74a84f106195fae855d81731",
+          "build_plan": "guarded-update-1313-df5485f6/arm64-rebuild-plan-after-source-adoption.json",
+          "previous_manual_arm64_workflows": [
+            37926945966,
+            37931496615
+          ],
+          "additional_dispatch_authorization": "pending_for_two_sequential_ARM64_builds",
+          "workflow_id": 325147947,
+          "workflow_access": "read_only_gh_api_passed",
+          "automatic_retries": false,
+          "site_runtime_mutation": "none; old_packages_not_activated"
         }
       }
     },
@@ -7782,6 +7831,52 @@
           "database_restore": "none",
           "controller_write": "none",
           "next": "owner-local canonical source adoption with GIT_OPTIONAL_LOCKS=0; then reviewed package-authority readiness, no old installer retry"
+        },
+        "source_adoption_completed": {
+          "status": "recorded",
+          "proof_source": "owner_terminal_output_2026-10-10T22:24:01Z",
+          "deployment_authority": "controlled_source_deployment",
+          "source_commit": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+          "evidence": "runtime/deployments/20261010T194054Z",
+          "health": "ready",
+          "known_packaged_release": false,
+          "platform": "linux/arm64",
+          "runtime_mode": "lan",
+          "schema_head": "20260908_0037",
+          "live_identity_check_at": "2026-10-10T22:25:09.322026+00:00",
+          "lan_build": "Ar6aVrTWJICF6TKFaWxHw",
+          "protected_build": "mcG0fHLcpCeVbTX--85gF",
+          "agent_samples": 13288,
+          "agent_workers": "3/3_healthy",
+          "mqtt_connected": true,
+          "queue_depth": 0
+        },
+        "retained_package_tooling_rejected": {
+          "captured_at": "2026-10-10T22:26:28.891Z",
+          "read_only_validation": "current canonical validate_package_tooling rejected both retained bundles",
+          "reason": "package tooling capability evidence is incomplete",
+          "missing_capability": "hardware-startup-gate",
+          "startup_gate_file_present": false,
+          "old_hardware_command": [
+            "dual_bus_main.py"
+          ],
+          "old_tooling_commit": "df5485f6ece4203a74a84f106195fae855d81731",
+          "package_gateway_helper_present": false,
+          "current_bundle_manifest_sha256": "d40105a8af07c1a753de2537595f48c17b90a34e4b28780071f107340e2419d5",
+          "target_bundle_manifest_sha256": "3db855d0aa749c57fdf91026e69c6381e4bbf3d2c47bdcb97a26d127e78b7a78",
+          "prepared_build_tooling": "24e21f2bce0ddeff6e8086b130fa79e4af38d3b2",
+          "prepared_current_runtime": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+          "prepared_target_runtime": "df5485f6ece4203a74a84f106195fae855d81731",
+          "build_plan": "guarded-update-1313-df5485f6/arm64-rebuild-plan-after-source-adoption.json",
+          "previous_manual_arm64_workflows": [
+            37926945966,
+            37931496615
+          ],
+          "additional_dispatch_authorization": "pending_for_two_sequential_ARM64_builds",
+          "workflow_id": 325147947,
+          "workflow_access": "read_only_gh_api_passed",
+          "automatic_retries": false,
+          "site_runtime_mutation": "none; old_packages_not_activated"
         }
       }
     }

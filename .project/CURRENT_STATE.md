@@ -1,5 +1,41 @@
 # NEXOLAB Current State
 
+## Source adoption complete; retained package tooling rejected — 2026-10-10 22:30 UTC
+
+Owner canonical source adoption returned status=recorded for C296, controlled
+source deployment, LOCAL_LAN linux/arm64, schema 20260908_0037 and health ready.
+The Version lineage gate is complete; known_packaged_release remains false.
+The source-only accepted/deployed baseline advances to C296 with the genuine
+20261010T194054Z evidence; former D00 baseline remains preserved in checkpoint
+history and rollback references. This does not grant validated package authority.
+
+Read-only host checks at 22:25:09Z confirm both frontend C296 identities, healthy
+3/3 acquisition workers, MQTT connected, queue 0 and samples 13288. The manager
+request paths and update timer are enabled/active; the oneshot worker is idle.
+Installed protected worker byte versions were not readable to Commander.
+
+The current canonical validate_package_tooling rejects BOTH retained current and
+target bundles: package tooling capability evidence is incomplete. Both bind old
+df5485f6 tooling, omit hardware-startup-gate and its script, retain bare hardware
+command dual_bus_main.py, and lack the corrected gateway lifecycle helper. Their
+manifest digests match the original retained packages. Do not activate them or
+rerun the old installer. The source startup/gateway fixes are already accepted.
+
+Two exact sequential ARM64 package builds are prepared on reviewed tooling
+24e21f2b: current runtime C296 and the originally approved df5485f6 target, same
+LAN/HTTPS origins and local auth. GitHub workflow 325147947 is active and read
+access via gh passed. The plan is staged as arm64-rebuild-plan-after-source-adoption.json.
+Two previous manual builds have been consumed; additional bounded dispatch
+approval remains pending. No dispatch or runtime/package mutation occurred.
+
+Next: authorize the two prepared builds; verify new provenance/startup contracts,
+then install reviewed host tooling and stage packages before the separately
+checked package-authority transition and actual LAN/HTTPS update/rollback.
+#1313/#1323 stay open; #1318 stays draft/unmerged. Google account/session journeys
+remain separate acceptance. No data restore/deletion or controller write.
+
+Earlier adoption-pending commands and package-ready claims below are historical.
+
 ## Actual paired source completion — 2026-10-10 22:18 UTC
 
 Owner execution of accepted #1335 / PR #1336 control 24e21f2b succeeded.
