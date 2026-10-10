@@ -41,9 +41,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1333,
-      "title": "Complete latest partial attempt paired frontends without backend mutation",
-      "branch": "fix/latest-partial-frontend-completion"
+      "issue": 1335,
+      "reason": "critical reproduced contract gate defect blocks current paired frontend completion"
     },
     "next_work_package": {
       "issue": 1323,
@@ -53,11 +52,51 @@
   },
   "work_packages": [
     {
+      "issue": 1335,
+      "title": "Validate complete LAN artifact contract before frontend completion handoff",
+      "branch": "fix/1335-complete-lan-runtime-contract",
+      "priority": "critical",
+      "lifecycle": "review",
+      "depends_on": [
+        1333
+      ],
+      "scope": "Strict LAN contract preflight and one exact preserved-audit continuation; frontend pair only, newer data/backend preserved",
+      "permitted_paths": [
+        "scripts/**",
+        "docs/operations/unified-lan-protected-updates.md",
+        ".project/**"
+      ],
+      "evidence": {
+        "lan_contract_failure_1335": {
+          "failed_owner_control": "8aa7a61a4ee852e36eba8951a37ec6c6d49f9867",
+          "failed_audit": "runtime/frontend-completions/20261010T214443Z-0vvgd4n8",
+          "failed_report_sha256": "1be47312f9a9a169d00a56c22b449fe59504d6b6c4b7e515b966584fb40a9bd6",
+          "reason": "builder emits external_https_stage=false; expected LAN contract omitted sixth field",
+          "before_fix_regression": "real builder recipe + collector parser reproduced identical RecoveryFailure",
+          "restored_frontends": "D00/hA8usmV6ZKwgZUYhmOLHZ and 4b9dc85/KVMryq76dj1LhzOW30pgA; both active at 21:52 UTC",
+          "gateway": "active; anonymous REST/device/image 401; login 302 at 21:52:54 UTC",
+          "acquisition": "samples 10384 -> 10449; healthy 3/3 workers, MQTT, queue 0",
+          "backend_readonly": "same actual central/agent container and image identities; both healthy at 21:56:08 UTC",
+          "sqlite": "quick_check ok, queue 0, high_water 10959170",
+          "volumes": "96 original identities unchanged at 21:56:08 UTC",
+          "fix": "strict complete six-field LAN contract; preflight before isolated candidates/handoff; preserve original marker/audit; explicit single continuation bound to exact predecessor report and immutable activation identity",
+          "targeted_checks": "144 passed + 79 subtests; 51 additional source-selection/adopter consumer tests + 5 subtests passed",
+          "source_ci_review": "pending",
+          "site_continuation": "not_executed",
+          "automatic_retry": false,
+          "database_restore": "none",
+          "backend_mutation": "none",
+          "controller_write": "none",
+          "whole_site_authority": "unchanged_historical_D00"
+        }
+      }
+    },
+    {
       "issue": 1333,
       "title": "Complete latest partial attempt paired frontends without backend mutation",
       "branch": "fix/latest-partial-frontend-completion",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1331
       ],
@@ -101,8 +140,8 @@
             "review": "clean"
           },
           "candidate_checks": "169_passed; 26 standalone completion tests; P1 actual acquisition regression fixed with pinned 3 workers; P2 real publication/adopter/tamper/v1 compatibility pass; Python syntax, state v2, format and diff PASS",
-          "site_completion": "not_executed",
-          "source_ci_review": "pending",
+          "site_completion": "owner_attempt_stopped_contract_mismatch; recovery_verified; defect_1335",
+          "source_ci_review": "six_GREEN_clean_review_PR1334_accepted",
           "whole_site_authority": "unchanged_historical_D00",
           "old_launcher": "obsolete_do_not_rerun",
           "automatic_retry": false,
@@ -7399,7 +7438,8 @@
         "current_gate": "source_fix_1329_then_owner_local_continuation; see_LAST_CHECKPOINT.partial_mount_order_1329"
       },
       "depends_on": [
-        1329
+        1329,
+        1335
       ],
       "scope": "Gateway-aware source deployment and offline package update/rollback; truthful Settings version readiness",
       "verification": "Local frontend suite, production build, updater/artifact transaction regressions, exact-head required CI; host activation separately gated"
@@ -7440,7 +7480,8 @@
         1325,
         1329,
         1331,
-        1333
+        1333,
+        1335
       ],
       "scope": "Explicit guarded same-target source continuation preserving later live data and original evidence; no fabricated authority",
       "verification": "Targeted recovery/source-selection tests, full exact-head CI/review; actual owner-local continuation and unified package acceptance separately gated",
@@ -8871,6 +8912,19 @@
         "issue": 1331,
         "url": "https://github.com/eNgine9r/nexolab-platform/issues/1331",
         "scope": "source_fix; owner_STOPPED_attempt_and_readonly_Commander_evidence_recorded_in_work_package"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-10T21:58:20.886875+00:00",
+      "kind": "accepted_source_before_owner_contract_failure",
+      "data": {
+        "issue": 1333,
+        "pull_request": 1334,
+        "accepted_control": "8aa7a61a4ee852e36eba8951a37ec6c6d49f9867",
+        "verified_head": "4990ff218d943d6f3ed2de937113fa85e64af288",
+        "checks": "six_GREEN_clean_review",
+        "site_acceptance": "failed_contract_gate_recovery_verified"
       }
     }
   ],

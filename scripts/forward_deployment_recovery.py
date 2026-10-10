@@ -334,6 +334,10 @@ def build_context(repo: Path, evidence: Path, prior_source: str, target_source: 
         "websocket_url": _unit_environment(unit_text, "NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL"),
         "auth_provider": _unit_environment(unit_text, "NEXT_PUBLIC_NEXOLAB_AUTH_PROVIDER"),
         "organization_id": _unit_environment(unit_text, "NEXT_PUBLIC_NEXOLAB_ORGANIZATION_ID"),
+        # The native builder emits this sixth field even for the LAN artifact.
+        # LAN units have no external-stage environment directive; the profile
+        # itself requires false, rather than inheriting the candidate's value.
+        "external_https_stage": "false",
     }
     expected_name = f"{target_source}-{resolved.name}"
     if release_dir.name != expected_name or release_dir.parent != repo / "runtime" / "frontend-releases":
@@ -666,6 +670,16 @@ def _require_container_from_attempt(created_at: object, context: dict[str, Any],
         raise RecoveryFailure(f"{label} container was not created by the failed deployment attempt")
 
 
+def validate_lan_runtime_contract(contract: dict[str, str], expected: dict[str, str]) -> None:
+    keys = {"runtime_mode", "api_base_url", "websocket_url", "auth_provider",
+            "organization_id", "external_https_stage"}
+    if (not isinstance(contract, dict) or not isinstance(expected, dict)
+            or set(expected) != keys or expected.get("runtime_mode") != "live"
+            or expected.get("auth_provider") != "local"
+            or expected.get("external_https_stage") != "false" or contract != expected):
+        raise RecoveryFailure("active Dashboard runtime contract does not match failed evidence")
+
+
 def validate_runtime_snapshot(snapshot: dict[str, Any], context: dict[str, Any]) -> None:
     if snapshot.get("platform", {}).get("machine") != "aarch64":
         raise RecoveryFailure("forward recovery is limited to the controlled linux/arm64 host")
@@ -680,8 +694,7 @@ def validate_runtime_snapshot(snapshot: dict[str, Any], context: dict[str, Any])
         raise RecoveryFailure("active Dashboard build identity does not match failed evidence")
     if dashboard.get("http_status") != 200:
         raise RecoveryFailure("active Dashboard is not HTTP-ready")
-    if dashboard.get("runtime_contract") != context.get("expected_contract"):
-        raise RecoveryFailure("active Dashboard runtime contract does not match failed evidence")
+    validate_lan_runtime_contract(dashboard.get("runtime_contract"), context.get("expected_contract"))
     if dashboard["runtime_contract"].get("runtime_mode") != "live":
         raise RecoveryFailure("active Dashboard runtime mode is not live")
     if dashboard["runtime_contract"].get("auth_provider") != "local":
@@ -808,7 +821,31 @@ def build_result(snapshot: dict[str, Any], context: dict[str, Any]) -> dict[str,
         },
     }
 
-def frontend_completion_context(context: dict[str, Any], evidence: Path) -> dict[str, Any]:
+CONTRACT_FAILURE_AUDIT = "20261010T214443Z-0vvgd4n8"
+CONTRACT_FAILURE_CONTROL = "8aa7a61a4ee852e36eba8951a37ec6c6d49f9867"
+CONTRACT_FAILURE_REPORT_SHA = "1be47312f9a9a169d00a56c22b449fe59504d6b6c4b7e515b966584fb40a9bd6"
+CONTRACT_CONTINUATION_MARKER = "frontend-completion-contract-continuation-started.json"
+
+
+def completion_contract_predecessor(context: dict[str, Any], evidence: Path) -> dict[str, Any]:
+    """Permit only the observed contract failure, retaining its original audit."""
+    previous = frontend_completion_context(context, evidence, original_only=True)
+    completion = previous["frontend_completion"]
+    audit = Path(completion["audit"])
+    report_path = _safe_file(audit / "report.json", "previous completion report")
+    report = read_json(report_path, "previous completion report")
+    if (audit.name != CONTRACT_FAILURE_AUDIT
+            or completion["control_source"] != CONTRACT_FAILURE_CONTROL
+            or sha256_file(report_path) != CONTRACT_FAILURE_REPORT_SHA
+            or report.get("failed_attempt") != context["stamp"]
+            or not (_parse_time(report["started_at"], "previous completion start")
+                    <= _parse_time(completion["frontend_activated_at"], "previous activation")
+                    <= _parse_time(report["finished_at"], "previous completion finish"))):
+        raise RecoveryFailure("completion predecessor is not the reviewed contract failure")
+    return previous
+
+
+def frontend_completion_context(context: dict[str, Any], evidence: Path, *, original_only: bool = False) -> dict[str, Any]:
     """Bind paired handoff authority to its real marker and protected candidate."""
     repo = evidence.parent.parent.parent
     files = {
@@ -816,7 +853,25 @@ def frontend_completion_context(context: dict[str, Any], evidence: Path) -> dict
         "external_artifact_import": evidence / "external-artifact-import.txt",
         "external_unit_candidate": evidence / "external-unit-candidate.service",
     }
-    marker = read_json(files["frontend_completion_started"], "frontend completion marker")
+    continuation = evidence / CONTRACT_CONTINUATION_MARKER
+    previous = None
+    if not original_only and (continuation.exists() or continuation.is_symlink()):
+        previous = completion_contract_predecessor(context, evidence)
+        prior_audit = Path(previous["frontend_completion"]["audit"])
+        files.update({
+            "frontend_completion_previous_activation": prior_audit / "frontend-activation.json",
+            "frontend_completion_previous_identity": repo / "runtime" / f"frontend-completion-identity-{prior_audit.name}.json",
+            "frontend_completion_previous_report": prior_audit / "report.json",
+            "frontend_completion_continuation_started": continuation,
+            "frontend_completion_previous_lan_unit": prior_audit / "lan-unit-before.service",
+            "frontend_completion_previous_protected_unit": prior_audit / "protected-unit-before.service",
+        })
+        marker = read_json(continuation, "frontend contract continuation marker")
+        if (marker.get("predecessor_audit") != str(prior_audit)
+                or marker.get("predecessor_report_sha256") != CONTRACT_FAILURE_REPORT_SHA):
+            raise RecoveryFailure("frontend contract continuation predecessor lineage is invalid")
+    else:
+        marker = read_json(files["frontend_completion_started"], "frontend completion marker")
     audit = Path(marker.get("completion_audit", ""))
     if (
         marker.get("schema_version") != 1
@@ -848,6 +903,11 @@ def frontend_completion_context(context: dict[str, Any], evidence: Path) -> dict
     files["frontend_completion_identity"] = manifest
     identity = read_json(manifest, "active frontend identity")
     activated = _parse_time(activation.get("frontend_activated_at"), "frontend activation")
+    if previous:
+        prior_report = read_json(files["frontend_completion_previous_report"], "previous completion report")
+        if (audit == Path(previous["frontend_completion"]["audit"])
+                or activated <= _parse_time(prior_report["finished_at"], "previous completion finish")):
+            raise RecoveryFailure("frontend continuation activation must follow the failed handoff")
     backend_started = _parse_time(context["mutation_started_at"], "backend mutation")
     if (
         activated.utcoffset() is None or activated.utcoffset().total_seconds() != 0
@@ -878,6 +938,8 @@ def frontend_completion_context(context: dict[str, Any], evidence: Path) -> dict
         "backend_mutation_started_at": context["mutation_started_at"],
         "runtime_mutation": "paired_frontends_only", "backend_containers": "unchanged",
     }
+    if previous:
+        bound["frontend_completion"]["predecessor_audit"] = previous["frontend_completion"]["audit"]
     return bound
 
 

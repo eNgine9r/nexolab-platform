@@ -1,5 +1,40 @@
 # NEXOLAB Blockers
 
+## Issue #1335 — valid LAN artifact contract rejected after handoff
+
+Owner execution of accepted #1333 / PR #1334 control 8aa7a61a stopped at the
+full runtime gate after both source/build probes passed. Audit
+runtime/frontend-completions/20261010T214443Z-0vvgd4n8/report.json records the
+Dashboard contract mismatch. The native builder emits external_https_stage=false;
+the expected LAN dictionary omitted this sixth field. A regression using the
+actual builder recipe and collector parser reproduced the same exception.
+
+Read-only host verification confirms both original frontend identities and the
+gateway restored and active at 21:52 UTC. Anonymous REST/device/image are denied
+with 401; login redirects with 302. Acquisition advances 10384 -> 10449 with
+healthy 3/3 workers, MQTT and empty queue. At 21:56:08 UTC the same central/agent
+containers and images remain healthy, SQLite quick_check is ok, high-water is
+10959170, and all 96 original volume identities match. No data-content checksum
+or whole-site source acceptance is claimed.
+
+Focused #1335 validates the complete six-field LAN profile before any frontend
+handoff and again before genuine reconciliation. Wrong/missing/unknown stage or
+any other contract field still rejects. The already used single-use marker,
+failed audit and activation identity remain intact. One explicit
+--continue-contract-failure action is bound to the exact observed predecessor
+report digest, marker, prior activation/identity and exact restored frontend
+units; it writes a separate single-use continuation marker. Both audit lineages
+are validated by publication and source adoption. No automatic retry, full
+installer, backend restart/build, acquisition stop, database restore, package
+authority edit, evidence deletion or controller write.
+
+Targeted contract/completion/adoption/CI routing tests: 144 passed + 79 subtests.
+Additional source-selection/adopter checks: 51 passed + 5 subtests. Required
+exact-head CI/review are pending. Owner-local continuation has not run. #1313/#1323 remain open, #1318
+stays draft, and all historic accepted/deployed baselines remain unchanged.
+The former #1333 source is accepted; its old owner command must not rerun.
+Earlier pending commands and observations below are historical where superseded.
+
 ## Issue #1333 — complete only the latest attempt's frontend pair
 
 Gateway lifecycle fix #1331 / PR #1332 is accepted after six GREEN workflows and
