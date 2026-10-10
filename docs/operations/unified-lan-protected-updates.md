@@ -86,6 +86,18 @@ directories, source/build identities, Docker component identities and mounts,
 local API binding/readiness, advancing workers and every captured existing
 volume are observed again; unknown or drifting state fails closed.
 
+The partial acquisition check uses the live scheduler's persisted target cadence,
+not the priority-class default intervals. It observes up to two periods of the
+fastest target plus 10 seconds, with a minimum of 15 and maximum of 120 seconds.
+For the site's 30/60-second targets this gives a 70-second observation window.
+Legacy health documents without target metadata retain 15 seconds. Present
+metadata must match the configured target count and contain finite positive
+numeric intervals no greater than one day. The deadline is fixed on the first
+healthy response and cannot grow while polling. A sample counter increase is
+still mandatory; health/MQTT/queue/worker degradation, counter reset, malformed
+cadence or no progress rejects continuation. This does not change polling rates
+or grant deployment authority.
+
 The new private `partial-continuation-context.json` records only a validated
 **partial baseline**, never completed deployment/source/package authority. The
 reviewed helper and context are checksum-staged before historical checkout and
