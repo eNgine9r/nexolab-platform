@@ -124,6 +124,7 @@ class Operations:
             if (self.failed / filename).exists() or (self.failed / filename).is_symlink():
                 raise CompletionFailure('latest attempt already completed, restored or completion attempted')
         self.identity_path = REPO / 'runtime' / ('frontend-completion-identity-' + audit.name + '.json')
+        self.candidate_identity_path = self.identity_path.with_name(self.identity_path.stem + '-candidate.json')
         self.node = Path('/home/nexolab/.nvm/versions/node') / ('v' + (REPO / '.nvmrc').read_text().strip()) / 'bin/node'
         self.releases, self.builds, self.old_units, self.new_units = {}, {}, {}, {}
         self.live_high_water = None
@@ -224,13 +225,20 @@ class Operations:
             self.probe(profile, *OLD_IDENTITIES[profile])
         self.gateway.require_gateway_active(self.gateway.origin_host(ORIGIN))
 
-    def prepare_candidates(self):
-        print('FRONTEND_COMPLETION_CURRENT_DATA_AND_LINEAGE_VERIFIED', flush=True)
+    def write_identity(self, deployed_at):
         identity = {'schema_version': 'nexolab-runtime-identity-v1', 'service': 'dashboard',
                     'source_commit': TARGET, 'build_id': self.builds['lan'],
-                    'identity_source': 'raspberry_activation', 'deployed_at': None}
-        self.recovery.atomic_json(self.identity_path, identity)
-        os.chown(self.identity_path, self.owner.pw_uid, self.owner.pw_gid)
+                    'identity_source': 'raspberry_activation', 'deployed_at': deployed_at}
+        # Candidate and active manifests are separate immutable files. The active
+        # unit never observes the candidate's null deployment timestamp.
+        path = self.candidate_identity_path if deployed_at is None else self.identity_path
+        self.recovery.atomic_json(path, identity)
+        os.chown(path, self.owner.pw_uid, self.owner.pw_gid)
+        self.frontend_activated_at = deployed_at
+
+    def prepare_candidates(self):
+        print('FRONTEND_COMPLETION_CURRENT_DATA_AND_LINEAGE_VERIFIED', flush=True)
+        self.write_identity(None)
         for profile, port in (('lan', 3101), ('protected', 3102)):
             self.gateway.require_candidate_port(port)
             unit = 'nexolab-completion-' + profile + '-' + self.audit.name + '.service'
@@ -238,7 +246,7 @@ class Operations:
             env = ['--setenv=NODE_ENV=production', '--setenv=NEXT_TELEMETRY_DISABLED=1',
                    '--setenv=NEXOLAB_SERVER_API_BASE_URL=' + self.context['expected_contract']['api_base_url']]
             if profile == 'lan':
-                env.append('--setenv=NEXOLAB_RUNTIME_IDENTITY_FILE=' + str(self.identity_path))
+                env.append('--setenv=NEXOLAB_RUNTIME_IDENTITY_FILE=' + str(self.candidate_identity_path))
             else:
                 env.append('--setenv=NEXOLAB_EXTERNAL_HTTPS_STAGE=true')
             started = True  # A timeout may happen after systemd accepted the unit.
@@ -272,6 +280,8 @@ class Operations:
         file = self.audit / (profile + ('-unit-candidate.service' if candidate else '-unit-before.service'))
         self.run('install', '-m', '0644', str(file), '/etc/systemd/system/' + UNITS[profile])
         self.run('systemctl', 'daemon-reload')
+        if profile == 'lan' and candidate:
+            self.write_identity(datetime.now(timezone.utc).isoformat())
         self.run('systemctl', 'start', UNITS[profile])
         self.probe(profile, TARGET if candidate else OLD_IDENTITIES[profile][0],
                    self.builds[profile] if candidate else OLD_IDENTITIES[profile][1])
@@ -293,6 +303,10 @@ class Operations:
             if self.run('systemctl', 'show', UNITS[profile], '-p', 'WorkingDirectory', '--value') != str(self.releases[profile]):
                 raise CompletionFailure('active frontend process directory differs from latest candidate')
             self.probe(profile, TARGET, self.builds[profile])
+        identity = self.recovery._partial_http('127.0.0.1', PORTS['lan'], '/api/runtime-identity')
+        if (not self.frontend_activated_at or identity.get('deployed_at') != self.frontend_activated_at
+                or identity.get('identity_source') != 'raspberry_activation'):
+            raise CompletionFailure('active frontend identity does not report the actual handoff time')
         self.gateway.require_gateway_active(self.gateway.origin_host(ORIGIN))
 
     def publish(self):
@@ -378,6 +392,7 @@ def main():
             report['failed_stage'] = 'paired_handoff_and_genuine_reconciliation'
             handoff(operations)
             report['status'] = 'paired_frontends_reconciled'
+            report['frontend_activated_at'] = operations.frontend_activated_at
         else:
             report['status'] = 'frontend_candidates_and_current_data_verified_no_activation'
         launcher.verify_locked_inode(launcher.LOCK, descriptor, lock)

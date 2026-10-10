@@ -109,6 +109,9 @@ Omitting `--execute` performs candidate/data verification without active fronten
 handoff, but creates audit and candidate identity metadata. With `--execute`, a
 single-use marker is written before touching the active pair. Only the two
 frontend units change; the previously active gateway restarts and proves denial.
+Isolated candidates use a separate identity manifest with no deployment time.
+Before production LAN starts, a new immutable manifest records the actual UTC
+handoff time under the service owner; live runtime identity must report that time.
 Any failed handoff restores both exact old identities and verifies the gateway;
 failed recovery is explicitly unverified. Backend, all volumes and live high-water
 are checked again. Genuine forward recovery is recorded only after the actual

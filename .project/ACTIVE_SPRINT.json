@@ -100,7 +100,7 @@
             "required_exact_head_ci": "six_GREEN",
             "review": "clean"
           },
-          "candidate_checks": "164_passed; 21 standalone completion tests; P1 actual acquisition regression fixed with pinned 3 workers; P2 real publication/adopter/tamper/v1 compatibility pass; Python syntax, state v2, format and diff PASS",
+          "candidate_checks": "166_passed; 23 standalone completion tests; P1 actual acquisition regression fixed with pinned 3 workers; P2 real publication/adopter/tamper/v1 compatibility pass; Python syntax, state v2, format and diff PASS",
           "site_completion": "not_executed",
           "source_ci_review": "pending",
           "whole_site_authority": "unchanged_historical_D00",
@@ -111,7 +111,8 @@
             "lan": "all_checksums_match_20261010T205518Z",
             "protected": "all_checksums_match_20261010T205649Z"
           },
-          "authority_contract": "v2_validated_paired_frontends_only; no_DB_controller_writes; immutable_marker_protected_artifact_unit_bound; legacy_v1_readonly_supported"
+          "authority_contract": "v2_validated_paired_frontends_only; no_DB_controller_writes; immutable_marker_protected_artifact_unit_bound; legacy_v1_readonly_supported",
+          "activation_identity": "P2 fixed; real immutable production UTC time before LAN start; live identity equality required; candidate separate null time; regression PASS"
         }
       }
     },

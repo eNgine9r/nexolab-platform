@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
@@ -23,6 +24,45 @@ adopter_spec.loader.exec_module(adopter)
 
 
 class CompletionTests(unittest.TestCase):
+    def test_actual_lan_start_receives_handoff_time_and_owner_manifest(self):
+        with tempfile.TemporaryDirectory() as root:
+            op = completion.Operations.__new__(completion.Operations)
+            op.audit = Path(root)
+            op.identity_path = Path(root) / 'identity.json'
+            op.candidate_identity_path = Path(root) / 'candidate-identity.json'
+            op.builds = {'lan': 'target-build'}
+            op.owner = SimpleNamespace(pw_uid=0, pw_gid=0)
+            op.recovery, op.probe, op.gateway = recovery, Mock(), Mock()
+            with patch.object(completion.os, 'chown') as chown:
+                op.write_identity(None)
+                self.assertIsNone(json.loads(op.candidate_identity_path.read_text())['deployed_at'])
+                self.assertFalse(op.identity_path.exists())
+                observed = []
+                op.run = Mock(side_effect=lambda *args: observed.append(json.loads(op.identity_path.read_text()))
+                              if args == ('systemctl', 'start', completion.UNITS['lan']) else '')
+                before = completion.datetime.now(completion.timezone.utc)
+                op.activate('lan')
+                after = completion.datetime.now(completion.timezone.utc)
+                self.assertEqual(observed[0]['deployed_at'], op.frontend_activated_at)
+                self.assertLessEqual(before, completion.datetime.fromisoformat(op.frontend_activated_at))
+                self.assertLessEqual(completion.datetime.fromisoformat(op.frontend_activated_at), after)
+                self.assertEqual(chown.call_count, 2)
+                chown.assert_called_with(op.identity_path, 0, 0)
+                op.restore('lan')
+                self.assertEqual(chown.call_count, 2)  # Old unit retains its separate original identity.
+
+    def test_target_verification_rejects_missing_live_activation_time(self):
+        snapshot, context = fixture()
+        op = completion.Operations.__new__(completion.Operations)
+        op.context, op.recovery, op.check_data = context, recovery, Mock(return_value=snapshot)
+        op.releases = {'lan': context['release_dir'], 'protected': Path('/protected')}
+        op.builds, op.frontend_activated_at = {'lan': 'build-1', 'protected': 'protected-build'}, '2026-10-10T21:10:00+00:00'
+        op.run = Mock(side_effect=[str(op.releases['lan']), str(op.releases['protected'])])
+        op.probe, op.gateway = Mock(), Mock()
+        with patch.object(recovery, '_partial_http', return_value={'deployed_at': None, 'identity_source': 'raspberry_activation'}):
+            with self.assertRaisesRegex(completion.CompletionFailure, 'actual handoff time'):
+                op.verify_target()
+
     def authority_fixture(self, root):
         repo = Path(root) / 'repo'
         snapshot, context = fixture()
