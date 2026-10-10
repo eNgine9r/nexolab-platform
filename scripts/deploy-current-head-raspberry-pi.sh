@@ -1546,6 +1546,11 @@ DEVICE_AGENT_HEALTH_GATE_HELPER="$AUDIT_DIR/device-agent-deployment-health-gate.
 install -m 0500 "$SCRIPT_DIR/device-agent-deployment-health-gate.py" "$DEVICE_AGENT_HEALTH_GATE_HELPER"
 sha256sum "$DEVICE_AGENT_HEALTH_GATE_HELPER" > "$AUDIT_DIR/device-agent-deployment-health-gate.sha256"
 
+# Keep reviewed gateway lifecycle tooling across historical runtime checkout.
+EXTERNAL_FRONTEND_TOOL="$AUDIT_DIR/nexolab-protected-frontend.py"
+install -m 0500 "$SCRIPT_DIR/nexolab-protected-frontend.py" "$EXTERNAL_FRONTEND_TOOL"
+sha256sum "$EXTERNAL_FRONTEND_TOOL" > "$AUDIT_DIR/protected-frontend-tool.sha256"
+
 DEVICE_AGENT_STARTUP_GATE_HELPER="$AUDIT_DIR/device-agent-startup-gate.py"
 DEVICE_AGENT_STARTUP_OVERLAY="$AUDIT_DIR/compose.device-agent-startup.json"
 install -m 0500 "$SCRIPT_DIR/device-agent-startup-gate.py" "$DEVICE_AGENT_STARTUP_GATE_HELPER"

@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import re
 import socket
+import subprocess
 import time
 from urllib.parse import urlsplit
 
@@ -104,8 +105,8 @@ def render_unit(unit: str, release: str, node: str, api: str) -> str:
     return "\n".join(lines) + "\n"
 
 
-def request(port: int, path: str, host: str, *, websocket: bool = False) -> tuple[int, bytes]:
-    connection = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
+def request(port: int, path: str, host: str, *, websocket: bool = False, timeout: float = 3) -> tuple[int, bytes]:
+    connection = http.client.HTTPConnection("127.0.0.1", port, timeout=timeout)
     try:
         headers = {"Host": host}
         if websocket:
@@ -134,18 +135,38 @@ def probe_frontend(port: int, source: str, build: str, host: str, timeout: float
         time.sleep(0.25)
 
 
-def probe_gateway(host: str) -> None:
-    for path in ("/api/v1/equipment", "/api/v1/telemetry/live", "/api/device-agent/xjp60d",
-                 "/api/v1/equipment/00000000-0000-0000-0000-000000000001/images/00000000-0000-0000-0000-000000000001/content"):
-        if request(18790, path, host, websocket=path == "/api/v1/telemetry/live")[0] != 401:
-            raise ValueError("gateway did not reject an anonymous protected request")
-    if request(18790, "/login", host)[0] != 302:
-        raise ValueError("gateway browser sign-in gate did not return a redirect")
+def probe_gateway(host: str, timeout: float = 15) -> None:
+    deadline = time.monotonic() + timeout
+    paths = ("/api/v1/equipment", "/api/v1/telemetry/live", "/api/device-agent/xjp60d",
+             "/api/v1/equipment/00000000-0000-0000-0000-000000000001/images/00000000-0000-0000-0000-000000000001/content", "/login")
+    while True:
+        try:
+            for path in paths:
+                status = request(18790, path, host, websocket=path == "/api/v1/telemetry/live",
+                                 timeout=max(0.01, min(3, deadline - time.monotonic())))[0]
+                if status != (302 if path == "/login" else 401):
+                    raise ValueError("gateway browser sign-in gate did not return a redirect" if path == "/login"
+                                     else "gateway did not reject an anonymous protected request")
+            return
+        except (OSError, http.client.HTTPException):
+            # Type=simple may return before NGINX binds. Retry only transport
+            # startup failures; an unsafe HTTP result is rejected immediately.
+            if time.monotonic() >= deadline:
+                raise ValueError("existing gateway loopback listener did not become ready") from None
+            time.sleep(min(0.25, max(0, deadline - time.monotonic())))
+
+
+def require_gateway_active(host: str) -> None:
+    result = subprocess.run(["systemctl", "is-active", "--quiet", "nexolab-external-nginx.service"],
+                            check=False, capture_output=True, timeout=5)
+    if result.returncode != 0:
+        raise ValueError("existing protected gateway must be active before a frontend handoff")
+    probe_gateway(host)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", choices=("validate", "render", "snapshot", "probe", "gateway"))
+    parser.add_argument("action", choices=("validate", "render", "snapshot", "probe", "gateway", "gateway-active"))
     parser.add_argument("--unit", type=Path)
     parser.add_argument("--nginx", type=Path)
     parser.add_argument("--origin", required=True)
@@ -187,6 +208,8 @@ def main() -> None:
             raise ValueError("current protected frontend identity is unverified")
         probe_frontend(args.port, identity["source_commit"], identity["build_id"], host)
         args.output.write_text(json.dumps(identity) + "\n")
+    elif args.action == "gateway-active":
+        require_gateway_active(host)
     else:
         probe_gateway(host)
 

@@ -39,12 +39,41 @@ An installed gateway without its matching artifact, a changed API upstream,
 service override, missing memory controller or occupied candidate port fails
 before backend runtime mutation.
 
+The existing NGINX gateway must already be active and prove anonymous REST,
+WebSocket, Device Agent and image denial (401) plus browser sign-in redirection
+(302), both at preflight and after candidate preparation. An inactive gateway
+blocks the update; the updater never enables a previously inactive interface.
+
 Both candidates must prove exact source/build and login readiness. The frontend
 handoff preserves the previous LAN identity and protected unit/identity. Failed
 frontend activation restores both frontends and verifies the protected previous
-identity. This is frontend recovery; backend/database recovery still follows the
-existing controlled-deployment runbook. OAuth, NGINX, Funnel and Google account
-policy are not changed.
+identity. The installed NGINX unit requires the protected frontend, so stopping
+the frontend also stops the gateway. Source and offline-package handoffs start
+that same previously active gateway after exact frontend readiness and verify
+the denial contract again. Rollback must restore the previous frontend AND its
+gateway before reporting success. Gateway transport startup has a fixed
+15-second readiness budget; unexpected HTTP access is rejected immediately.
+This is frontend recovery; backend/database recovery still follows the existing
+controlled-deployment runbook. OAuth, NGINX configuration, Funnel and Google
+account policy are not changed.
+
+### Interrupted owner continuation on 2026-10-10
+
+Attempt `runtime/deployments/20261010T194054Z` with accepted control `53e4812a`
+passed the original partial baseline and both frontend candidates, refreshed
+backups, and activated central/agent services. Protected frontend stop then
+stopped its required gateway; activation failed at the listener on port 18790.
+The old frontend pair was restored, but the earlier rollback omitted the
+gateway. Device acquisition and central readiness remain observed healthy.
+No genuine full deployment/package authority was established. All 96 original
+volume identities (name, driver, mountpoint, creation time) remain unchanged.
+
+The original Oct 9 runtime capture and owner launcher are now historical inputs,
+not an accepted live baseline for this newer mutation. Do not rerun them, restore
+old databases/SQLite, discard evidence or edit source/package authority. First
+restore the existing gateway alongside the already-restored old frontend using
+owner-local privilege and verify denial. Any forward completion requires review
+of the latest attempt and fresh actual component/data evidence.
 
 ## Establishing package authority
 

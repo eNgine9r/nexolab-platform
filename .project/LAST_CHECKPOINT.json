@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-10T19:31:00+00:00",
+  "timestamp": "2026-10-10T20:10:00Z",
   "actor": "ChatGPT",
-  "event": "partial_mount_order_false_drift_reproduced_and_source_fix_verified",
+  "event": "critical_gateway_dependency_handoff_candidate",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -29,9 +29,9 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "active_work": {
-    "issue": 1329,
-    "title": "Deterministic partial-continuation mount comparison and safe rejection reason",
-    "branch": "fix/1329-partial-mount-comparison"
+    "issue": 1331,
+    "title": "Restore existing Google gateway after protected frontend handoff",
+    "branch": "fix/1331-protected-gateway-lifecycle"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -1639,6 +1639,58 @@
       "scope": "software_owner_preserving_handoff_accepted; site_continuation_not_verified",
       "launcher": "deploy-partial-continuation-1327.py",
       "launcher_sha256": "55f9bd3d223e6e3a90b8892832208c2cbba47f29212bb9d293c84aa176506378"
+    },
+    "gateway_dependency_handoff_1331": {
+      "owner_report": "partial-continuation-1327-26oqf7mn/report.json",
+      "owner_control": "53e4812acd727ab2f333f969c848fbe5fb050c50",
+      "owner_attempt": "runtime/deployments/20261010T194054Z",
+      "owner_status": "stopped_after_central_agent_mutation; old_frontend_pair_restored; gateway_inactive",
+      "gateway_dependency": "Requires/After=nexolab-external-frontend.service; no_PartOf_or_BindsTo",
+      "gateway_stop_at": "2026-10-10T19:54:27Z",
+      "gateway_stop_result": "success; dependency_stop_during_frontend_activation",
+      "gateway_previous_active_since": "2026-10-09T07:58:42Z",
+      "actual_readonly_execution": "exec-8aa7aa10e04fac1d9d7fbdb40c41d554",
+      "central_readiness": "HTTP_200_ready_database_MQTT",
+      "agent_health": {
+        "status": "ok",
+        "mqtt_connected": true,
+        "queue_depth": 0,
+        "samples": [
+          506,
+          565
+        ],
+        "observation_seconds": 35,
+        "new_container": "2b1b802e40605dd248ea22ab47b2ab5777e780513c0a2dd6d52581e87909bac3",
+        "new_image": "sha256:3d50e14ceb396ab9e442f26b66703838a86e7b7d6e5b79373ef62f45bee94037"
+      },
+      "frontends": {
+        "lan": "d00a83bf / hA8usmV6ZKwgZUYhmOLHZ",
+        "protected": "4b9dc85a / KVMryq76dj1LhzOW30pgA",
+        "active_accounts": "nexolab:nexolab"
+      },
+      "volume_identity": {
+        "count": 96,
+        "Name": 0,
+        "Driver": 0,
+        "Mountpoint": 0,
+        "CreatedAt": 0,
+        "missing": 0,
+        "execution": "exec-f1a749719f25810e71d594dd030d50cd"
+      },
+      "existing_https_route": "443_and_AllowFunnel_true_observed; no_route_change",
+      "regression_before_fix": "source_activation_failed; source_rollback_false_success_without_gateway; package_activation_connection_refused",
+      "targeted_checks": "104_run_103_pass_1_existing_integration_skip",
+      "syntax": "Python_compile_Bash_syntax_diff_pass",
+      "helper_sha256": "3553919333dab51ae29bd17d0fe5ce460399bfa15136c0d1304cb2d0428e3029",
+      "source_scope": "preflight_active_and_denial; restore_previously_active_gateway_after_exact_frontend; rollback_requires_gateway_denial; staged_control_helper_survives_historical_checkout",
+      "required_exact_head_ci_review": "pending",
+      "agent_runtime_mutation": "none",
+      "automatic_installer_retry": false,
+      "database_restore": "none",
+      "package_authority": "not_modified",
+      "whole_site_authority": "not_advanced",
+      "obsolete_continuation": "original_Oct9_capture_and_1327_launcher_must_not_rerun_after_new_mutation",
+      "next": "owner_restore_existing_gateway_only; verify_denial; accept_source_after_green_CI_review; fresh_latest_attempt_forward_completion_evidence_required"
     }
   },
   "observations": [
@@ -2599,9 +2651,19 @@
         "tree_sha": "b12266a1ba3b7f9f523e983a2325c045613d02f3",
         "ci": "running"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-10T20:10:00Z",
+      "kind": "critical_gateway_handoff_issue_published",
+      "data": {
+        "issue": 1331,
+        "url": "https://github.com/eNgine9r/nexolab-platform/issues/1331",
+        "scope": "source_fix; owner_STOPPED_attempt_and_readonly_Commander_evidence_recorded_in_work_package"
+      }
     }
   ],
-  "next_action": "accept_1329_source_after_green_ci_review_then_one_owner_local_continuation_using_existing_verified_launcher_and_exact_new_control_sha",
+  "next_action": "owner_restore_existing_gateway_only; verify_denial; accept_source_after_green_CI_review; fresh_latest_attempt_forward_completion_evidence_required",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -2610,5 +2672,5 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "none"
+  "runtime_mutation": "owner_authorized_partial_attempt; source_fix_not_deployed"
 }

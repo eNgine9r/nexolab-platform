@@ -557,6 +557,21 @@ class ChangeImpactClassifierTests(unittest.TestCase):
                 self.assertEqual(result["unknown_files"], [])
                 self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_protected_handoff_paths_require_and_trigger_offline_bundle(self) -> None:
+        workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(encoding="utf-8")
+        trigger = workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
+        patterns = [line.strip()[2:].strip('"\'') for line in trigger.splitlines() if line.strip().startswith("- ")]
+        for path in ("scripts/nexolab-protected-frontend.py", "scripts/nexolab-protected-package.py",
+                     "scripts/tests/test_protected_frontend_release.py", "scripts/tests/test_protected_package.py"):
+            with self.subTest(path=path):
+                result = classify([path])
+                self.assertEqual(result["classes"], ["deployment_runtime"])
+                self.assertFalse(result["fail_closed"])
+                self.assertEqual(result["verification"]["required_external_workflows"], ["Offline Bundle"])
+                self.assertTrue(any(fnmatchcase(path, pattern) for pattern in patterns))
+        result = classify(["scripts/nexolab-protected-frontend.py", "scripts/unregistered-new-tool.py"])
+        self.assertTrue(result["fail_closed"])
+
     def test_version_manager_tooling_is_known_deployment_runtime(self) -> None:
         for path in (
             "scripts/nexolab-version-manager.py",
