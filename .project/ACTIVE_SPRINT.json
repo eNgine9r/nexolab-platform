@@ -41,9 +41,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1327,
-      "title": "Preserve service owner in privileged partial continuation launch",
-      "branch": "fix/1327-preserved-service-owner-launch"
+      "issue": 1329,
+      "title": "Deterministic partial-continuation mount comparison and safe rejection reason",
+      "branch": "fix/1329-partial-mount-comparison"
     },
     "next_work_package": {
       "issue": 1323,
@@ -53,10 +53,72 @@
   },
   "work_packages": [
     {
+      "issue": 1329,
+      "title": "Deterministic partial-continuation mount comparison and safe rejection reason",
+      "branch": "fix/1329-partial-mount-comparison",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1327
+      ],
+      "permitted_paths": [
+        "scripts/forward_deployment_recovery.py",
+        "scripts/deploy-current-head-raspberry-pi.sh",
+        "scripts/tests/**",
+        ".project/**"
+      ],
+      "acceptance": [
+        "mount order alone cannot reject unchanged baseline",
+        "identity_access_multiplicity_changes_still_reject",
+        "bounded_sanitized_failure_reason",
+        "routed_exact_head_checks_before_merge"
+      ],
+      "evidence": {
+        "partial_mount_order_1329": {
+          "issue": 1329,
+          "accepted_control_before_fix": "2bda5e6286a4076ae5cf47d2471089d6b3f6b13e",
+          "owner_continuation_report": "partial-continuation-1327-a46y82qc/report.json",
+          "owner_continuation_status": "stopped_before_initial_baseline_acceptance_no_activation",
+          "owner_readonly_validator": "READ_ONLY_BASELINE_PASSED; deployment not run",
+          "lost_failure_reason": "blanket_exception_handler; exact_past_exception_unknown",
+          "actual_device": "nexolab-edge-01",
+          "original_readonly_observation": {
+            "at": "2026-10-10T19:26Z",
+            "central_mqtt_checks": 20,
+            "edge_mqtt_checks": 20,
+            "order_only_false_drift": 6,
+            "other_container_fields_and_complete_mount_identity_access": "unchanged"
+          },
+          "candidate_actual_comparison": {
+            "at": "2026-10-10T19:30Z",
+            "checks": 40,
+            "old_order_sensitive_rejections": 9,
+            "candidate_rejections": 0,
+            "captured_inputs": "unchanged",
+            "scope": "container_comparison_only; not_privileged_full_preflight_or_deployment_authority"
+          },
+          "candidate_module_sha256": "92427508a4002b8f59f8557c2e5fd70bc3eb81f456476dff61d55f8360808482",
+          "comparison_function_sha256": "217b2e6f3eb75e61d7198eba7d1fac1b77d4a28f21c4fe0a632329b72e716dd8",
+          "regressions": "reordered_mounts_failed_before_fix; name_destination_rw_missing_extra_duplicate_changes_reject; safe_literal_failure_details_and_unknown_secret_suppression",
+          "targeted_tests": "111_run_110_pass_1_root_namespace_integration_skip",
+          "syntax": "bash_and_python_passed",
+          "required_exact_head_ci_review": "pending",
+          "runtime_mutation": "none",
+          "automatic_installer_retry": false,
+          "database_restore": "none",
+          "package_authority": "not_modified",
+          "whole_site_baselines": "unchanged",
+          "existing_launcher": "deploy-partial-continuation-1327.py",
+          "existing_launcher_sha256": "55f9bd3d223e6e3a90b8892832208c2cbba47f29212bb9d293c84aa176506378",
+          "next": "accept_1329_source_after_green_ci_review_then_one_owner_local_continuation_using_existing_verified_launcher_and_exact_new_control_sha"
+        }
+      }
+    },
+    {
       "issue": 1327,
       "title": "Preserve service owner in privileged partial continuation launch",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1325
       ],
@@ -73,7 +135,28 @@
         "preserve canonical lock and immutable partial evidence pins",
         "exact-head CI/review and one checked owner-local launcher"
       ],
-      "site_activation": "not_performed"
+      "site_activation": "not_performed",
+      "evidence": {
+        "accepted_source": {
+          "issue": 1327,
+          "pr": 1328,
+          "accepted_main": "2bda5e6286a4076ae5cf47d2471089d6b3f6b13e",
+          "final_head": "33340ab85bd77dd92408312347cc13181f203db8",
+          "exact_head_ci": "six_routed_workflows_green",
+          "runs": [
+            38078157824,
+            38078157948,
+            38078157834,
+            38078157972,
+            38078158065,
+            38078157839
+          ],
+          "review": "completed_no_findings",
+          "scope": "software_owner_preserving_handoff_accepted; site_continuation_not_verified",
+          "launcher": "deploy-partial-continuation-1327.py",
+          "launcher_sha256": "55f9bd3d223e6e3a90b8892832208c2cbba47f29212bb9d293c84aa176506378"
+        }
+      }
     },
     {
       "issue": 1309,
@@ -7162,9 +7245,12 @@
         "host_installation_blocker": "local_sudo_password_required",
         "frontend_artifact_run_37892179879": "failed_missing_app_public_directory",
         "followup_package_workflow_issue": 1315,
-        "isolated_host_candidate_cleanup": "3_passed_without_service_mutation"
+        "isolated_host_candidate_cleanup": "3_passed_without_service_mutation",
+        "current_gate": "source_fix_1329_then_owner_local_continuation; see_LAST_CHECKPOINT.partial_mount_order_1329"
       },
-      "depends_on": [],
+      "depends_on": [
+        1329
+      ],
       "scope": "Gateway-aware source deployment and offline package update/rollback; truthful Settings version readiness",
       "verification": "Local frontend suite, production build, updater/artifact transaction regressions, exact-head required CI; host activation separately gated"
     },
@@ -7201,7 +7287,8 @@
       "branch": "fix/1323-partial-unified-activation",
       "depends_on": [
         1321,
-        1325
+        1325,
+        1329
       ],
       "scope": "Explicit guarded same-target source continuation preserving later live data and original evidence; no fabricated authority",
       "verification": "Targeted recovery/source-selection tests, full exact-head CI/review; actual owner-local continuation and unified package acceptance separately gated",
@@ -7228,7 +7315,8 @@
         "local_tests": "70_forward_recovery_and_real_Git_source_selection_tests_passed;_compile_shell_syntax_diff_checks_passed",
         "site_continuation": "not_executed",
         "native_packages": "corrected_tooling_rebuild_pending",
-        "current_source_dependency": "1325_persisted_acquisition_cadence_fix_pending_exact_head_ci_review"
+        "current_source_dependency": "1325_persisted_acquisition_cadence_fix_pending_exact_head_ci_review",
+        "current_gate": "source_fix_1329_then_owner_local_continuation; see_LAST_CHECKPOINT.partial_mount_order_1329"
       }
     },
     {
@@ -7290,7 +7378,9 @@
         "runtime_mutation": "none",
         "database_restore": "none",
         "package_authority": "not_modified",
-        "latest_candidate_actual_acquisition": "passed_readonly"
+        "latest_candidate_actual_acquisition": "passed_readonly",
+        "accepted_main": "3320d42b1edc3b5a80a3c49a0b8b4e73f1bf056e",
+        "source_ci": "exact_head_two_routed_workflows_green"
       }
     }
   ],

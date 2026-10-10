@@ -392,6 +392,69 @@ class PartialActivationContinuationTests(unittest.TestCase):
             with self.assertRaisesRegex(recovery.RecoveryFailure,'baseline drifted'):recovery.check_partial_live_baseline(self.facts)
         probe.assert_not_called()
 
+    def mount_fixture(self):
+        docs, run, http, calls = self.live_fixture()
+        mounts = [dict(Type='volume', Name=self.volume['Name'], Destination=target, RW=True)
+                  for target in ('/data', '/log')]
+        docs[self.agent_id]['Mounts'] = mounts
+        self.facts['containers'][0]['named_volumes'] = [
+            {'name': mount['Name'], 'target': mount['Destination'], 'rw': mount['RW']}
+            for mount in mounts]
+        return docs, run, http, calls
+
+    def test_reordered_mounts_pass_without_changing_captured_evidence(self):
+        docs, run, http, calls = self.mount_fixture()
+        before = json.dumps(self.facts, sort_keys=True)
+        docs[self.agent_id]['Mounts'].reverse()
+        with patch.object(recovery, '_partial_run', side_effect=run), \
+             patch.object(recovery, '_partial_http', side_effect=http), \
+             patch.object(recovery.platform, 'machine', return_value='aarch64'), \
+             patch.object(recovery.os, 'readlink', side_effect=lambda p: '/lan' if '/123/' in p else '/protected'), \
+             patch.object(recovery.time, 'sleep'):
+            recovery.check_partial_live_baseline(self.facts)
+        self.assertEqual(json.dumps(self.facts, sort_keys=True), before)
+
+    def test_mount_identity_access_and_multiplicity_changes_still_reject(self):
+        for change in ('name', 'target', 'rw', 'missing', 'extra', 'duplicate'):
+            with self.subTest(change=change):
+                docs, run, http, calls = self.mount_fixture()
+                mounts = docs[self.agent_id]['Mounts']
+                if change == 'name': mounts[0]['Name'] = 'replacement-volume'
+                elif change == 'target': mounts[0]['Destination'] = '/replacement'
+                elif change == 'rw': mounts[0]['RW'] = False
+                elif change == 'missing': mounts.pop()
+                elif change == 'extra': mounts.append(dict(mounts[0], Destination='/extra'))
+                else: mounts.append(dict(mounts[0]))
+                mounts.reverse()
+                with patch.object(recovery, '_partial_run', side_effect=run), \
+                     patch.object(recovery, '_partial_http') as probe, \
+                     patch.object(recovery.platform, 'machine', return_value='aarch64'):
+                    with self.assertRaisesRegex(recovery.RecoveryFailure, 'baseline drifted'):
+                        recovery.check_partial_live_baseline(self.facts)
+                probe.assert_not_called()
+
+    def test_safe_failure_reports_known_reason_and_location(self):
+        docs, run, http, calls = self.live_fixture()
+        docs[self.agent_id]['Image'] = 'sha256:' + '9' * 64
+        with patch.object(recovery, '_partial_run', side_effect=run), \
+             patch.object(recovery.platform, 'machine', return_value='aarch64'):
+            try:
+                recovery.check_partial_live_baseline(self.facts)
+            except recovery.RecoveryFailure as error:
+                detail = recovery.partial_failure_details(error)
+        self.assertEqual(detail['reason'], 'partial continuation live container/image/mount baseline drifted')
+        self.assertEqual(detail['error_type'], 'RecoveryFailure')
+        self.assertEqual(detail['failure_location']['function'], 'check_partial_live_baseline')
+        self.assertEqual(detail['failure_location']['file'], 'scripts/forward_deployment_recovery.py')
+        self.assertGreater(detail['failure_location']['line'], 0)
+        self.assertNotIn('SECRET', json.dumps(detail))
+
+    def test_safe_failure_never_prints_unknown_secret_bearing_exception(self):
+        for error in (ValueError('PASSWORD=SECRET'), recovery.RecoveryFailure('HTTP body SECRET')):
+            detail = recovery.partial_failure_details(error)
+            self.assertEqual(detail['reason'], 'unexpected_exception; inspect failure_location')
+            self.assertNotIn('SECRET', json.dumps(detail))
+
     def test_rebound_api_never_probes_remote_host(self):
         docs,run,http,calls=self.live_fixture();docs['2'*64]['HostConfig']['PortBindings']['8082/tcp'][0]['HostIp']='8.8.8.8'
         with patch.object(recovery,'_partial_run',side_effect=run),patch.object(recovery,'_partial_http',side_effect=http) as probe,\
