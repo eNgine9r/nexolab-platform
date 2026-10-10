@@ -205,7 +205,7 @@ class PrivilegedFrontendOwnerTests(unittest.TestCase):
                       'external_frontend_origin': module.ORIGIN}
             final = audit / 'final-state.txt'
             final.write_text(''.join(f'{key}={value}\n' for key, value in values.items()))
-            output = f'[time] Evidence: {audit}\n[time] DEPLOYMENT PASSED\n'
+            output = f'[time] Evidence: {audit}\n[time] DEPLOYMENT PASSED\n[time] Evidence: {audit}\n'
             self.assertEqual(module.verify_success(output, 'a' * 40), audit)
             with self.assertRaises(ValueError):
                 module.verify_success(output.replace('[time] DEPLOYMENT PASSED\n', ''), 'a' * 40)

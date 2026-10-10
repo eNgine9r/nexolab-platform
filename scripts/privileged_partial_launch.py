@@ -110,7 +110,7 @@ def own_new_release(repo: Path, release: Path, owner, target: str, stamp: str) -
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("configure", "release"))
+    parser.add_argument("action", choices=("configure", "release", "verify"))
     parser.add_argument("--repo", type=Path, required=True)
     parser.add_argument("--owner", required=True)
     parser.add_argument("--control")
@@ -127,11 +127,13 @@ def main() -> None:
             stream.write(git_shim(args.repo, owner.pw_name, args.control, args.target))
         path.chmod(0o700)
         print(grp.getgrgid(owner.pw_gid).gr_name)
-    else:
+    elif args.action == "release":
         if os.geteuid() != 0:
             raise ValueError("privileged release handoff required")
         owner = context(args.repo, args.owner)
         own_new_release(args.repo, args.release, owner, args.target, args.stamp)
+    else:
+        context(args.repo, args.owner)
 
 
 if __name__ == "__main__":

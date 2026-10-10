@@ -495,6 +495,12 @@ nexolab_handoff_candidate_owner() {
     --target "$CURRENT_HEAD" --stamp "$STAMP" --release "$1"
 }
 
+nexolab_verify_preserved_service_owner() {
+  [[ -n "$PRESERVED_SERVICE_OWNER" ]] || return 0
+  sha256sum --check --status "$AUDIT_DIR/privileged-service-owner.sha256" || return
+  python3 "$SERVICE_OWNER_HELPER" verify --repo "$REPO" --owner "$DASHBOARD_USER" --target "$CURRENT_HEAD"
+}
+
 log() {
   printf '[%s] %s\n' "$(date --iso-8601=seconds)" "$*" | tee -a "$SUMMARY"
 }
@@ -2194,6 +2200,7 @@ sha256sum --check --status "$AUDIT_DIR/device-agent-startup-gate.sha256" \
 sha256sum --check --status "$AUDIT_DIR/compose.device-agent-startup.sha256" \
   || fail "startup-verified Device Agent override changed before quiesce"
 verify_partial_continuation before-quiesce || fail "partial activation baseline drifted before agent quiesce"
+nexolab_verify_preserved_service_owner || fail "frontend service accounts drifted before quiesce"
 quiesce_edge_device_agent_for_cutover
 capture_edge_sqlite_snapshot
 write_durable_runtime_mutation_marker
@@ -2490,6 +2497,7 @@ docker image inspect "$DEPLOYED_DEVICE_AGENT_IMAGE_ID" >/dev/null 2>&1 \
   || fail "successful deployment Device Agent container does not match the activated local image"
 
 verify_partial_continuation before-success || fail "partial continuation did not preserve all existing volumes"
+nexolab_verify_preserved_service_owner || fail "frontend service accounts changed during partial continuation"
 
 {
   echo "deployed_at=$DASHBOARD_DEPLOYED_AT"

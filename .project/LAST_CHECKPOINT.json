@@ -1576,7 +1576,10 @@
       "database_restore": "none",
       "package_dispatch": "none",
       "source_acceptance": "pending exact-head CI/review",
-      "next": "accept source then stage exact merged launcher for owner-local execution"
+      "next": "accept source then stage exact merged launcher for owner-local execution",
+      "candidate_checks": "111 targeted tests: 110 passed; real chown/read skipped only in scratch UID namespace; syntax/compile/format/state/diff passed",
+      "first_ci": "CI 38076929593 rejected old candidate-start text assertion; contract updated, all existing cleanup requirements retained; final exact-head CI pending",
+      "pull_request": 1328
     }
   },
   "observations": [

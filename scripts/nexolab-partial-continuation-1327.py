@@ -141,13 +141,13 @@ def verify_success(output: str, control: str) -> Path:
     # The deployer is the only authority. A zero exit or health-only probe cannot
     # substitute for its genuine durable final-state publication.
     matches = re.findall(r'^\[[^\n]+\] Evidence: (.+)$', output, re.MULTILINE)
-    if len(matches) != 1 or not re.search(r'^\[[^\n]+\] DEPLOYMENT PASSED$', output, re.MULTILINE):
+    if not matches or len(set(matches)) != 1 or not re.search(r'^\[[^\n]+\] DEPLOYMENT PASSED$', output, re.MULTILINE):
         raise ValueError('genuine_deployment_success_missing')
     audit = Path(matches[0])
     if audit.parent != REPO / 'runtime/deployments' or not re.fullmatch(r'[0-9]{8}T[0-9]{6}Z', audit.name):
         raise ValueError('unexpected_new_deployment_evidence')
     values = {}
-    for row in (audit / 'final-state.txt').read_text().splitlines():
+    for row in (audit / 'final-state.txt').read_text().split('\n\n', 1)[0].splitlines():
         if '=' in row:
             key, value = row.split('=', 1)
             if key in values:
