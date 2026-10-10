@@ -7132,7 +7132,7 @@
         },
         "final_exact_head_ci": "18_completed_success_on_fc4e3bc375618ebae87c9208cfec3b3f63317427",
         "final_verified_head_sha": "fc4e3bc375618ebae87c9208cfec3b3f63317427",
-        "host_installation_blocker": "source_guard_accepted;_owner_local_live_preflight_then_controlled_continuation_corrected_native_packages_and_actual_acceptance_pending",
+        "host_installation_blocker": "owner_git_index_access_repair_then_live_preflight;_source_guard_accepted;_site_continuation_corrected_native_packages_and_actual_acceptance_pending",
         "frontend_artifact_run_37892179879": "failed_missing_app_public_directory",
         "followup_package_workflow_issue": 1315,
         "isolated_host_candidate_cleanup": "3_passed_without_service_mutation",
@@ -8024,10 +8024,75 @@
             "library_version": 0,
             "file_id": "file_00000000c75c824698075e433d59099a"
           },
-          "actual_preflight_execution": "pending_owner_local;_remote_executor_internal_access_gate",
-          "next_action": "Owner runs one pinned read-only preflight without sudo; inspect PARTIAL_PREFLIGHT_REPORT remotely before separately reviewed continuation. No old installer retry or new diagnostic capture.",
+          "actual_preflight_execution": "stopped_2026-10-10_on_owner_git_index_permission;_repair_report_pending",
+          "next_action": "superseded_by_owner_preflight_git_access_1323",
           "package_authority": "unchanged_stale_9a3556_record;_no_fabricated_success",
           "native_package_rebuild": "required_with_corrected_digest_bound_startup_tooling;_two_previous_dispatch_authorizations_already_used"
+        },
+        "owner_preflight_git_access_1323": {
+          "owner_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/partial-preflight-1323-51l_43lf/report.json",
+          "report_sha256": "f333e774f40f1dce9fa37bbb1275926d71fc6fbcb98fcae79a0cef929348d6d3",
+          "report_bytes": 1624,
+          "started_at": "2026-10-10T06:38:06.667331+00:00",
+          "finished_at": "2026-10-10T06:38:17.669018+00:00",
+          "report_read_at": "2026-10-10T06:40:03.598Z",
+          "status": "stopped_unverified",
+          "failed_stage": "reviewed_control_checkout",
+          "private_log_sha256": "0681aceff63dbdfe71eceea5a3f45468c52f1af2fd5f2acfe96accc7bbd78760",
+          "exact_error": "fatal: .git/index: index file open failed: Permission denied",
+          "prepared_artifact_inventories": "both_verified_before_checkout_stop",
+          "immutable_capture_and_recovery": "verified_before_checkout_stop",
+          "control_checkout": "no_control_before_recorded;_stopped_before_HEAD_fetch_or_merge",
+          "runtime_mutation": "none",
+          "database_restore": "none",
+          "package_authority": "not_modified",
+          "root_cause": "privileged_V2_git_status_optional_index_refresh_under_umask_077_can_replace_owner_index_with_private_root_index",
+          "reproduction": "real_temp_Git_repo_clean_status_replaced_index_inode_and_changed_0644_to_0600;_no_optional_locks_preserved_mode_and_inode",
+          "actual_index_uid": "unverified_until_narrow_owner_local_repair_report",
+          "fresh_remote_execution": {
+            "at": "2026-10-10T06:42:31.592Z",
+            "code": "EXECUTION_HANDLER_FAILED",
+            "started": false,
+            "retryable": false
+          },
+          "prepared_artifacts": {
+            "stage": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6",
+            "artifacts": [
+              {
+                "name": "nexolab-unified-runtime-check-1323-v3.py",
+                "bytes": 17188,
+                "sha256": "5f853f408524de3447e3b4ce13dbe5d75e0f3c61ba45278c7cb0543ca7dafe7e",
+                "remote_created": true,
+                "remote_exact_readback": true,
+                "write_at": "2026-10-10T06:54:32.077Z",
+                "read_at": "2026-10-10T06:55:01.608Z",
+                "library_file_id": "libfile_431730fae9008191aa2df91fe0886e59",
+                "library_version": 2,
+                "file_id": "file_000000002fcc81f7823ca29fa0af508c",
+                "local_metadata_applied": true
+              },
+              {
+                "name": "nexolab-repair-git-access-1323.py",
+                "bytes": 9966,
+                "sha256": "383b518ab8756cef5285fd7ff68d6124f01d3ade6bf8cecb6117825b83cfb68a",
+                "remote_created": true,
+                "remote_exact_readback": true,
+                "write_at": "2026-10-10T06:54:34.124Z",
+                "read_at": "2026-10-10T06:55:01.596Z",
+                "library_file_id": "libfile_5139ae1b5d5c81918e8f0bc6bc4708a7",
+                "library_version": 0,
+                "file_id": "file_00000000303081f797b52ff5ba1c9252",
+                "local_metadata_applied": true
+              }
+            ],
+            "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-repair-git-access-1323.py",
+            "scope": "only_diagnosed_git_index_owner_then_exact_existing_preflight_as_nexolab",
+            "verification": "23_tests_PASS;_compile_PASS;_actual_Pi_UID_transition_not_yet_verified;_fixture_UID_transition_mocked_due_local_filesystem",
+            "actual_owner_execution": "pending",
+            "old_reports_scripts_and_preflight": "preserved"
+          },
+          "next_action": "Owner runs one sudo Git-index repair helper; it preserves exact index bytes/mode, refuses drift/locks, repairs only diagnosed ownership, then runs the unchanged pinned preflight as nexolab. Read GIT_ACCESS_REPORT and PARTIAL_PREFLIGHT_REPORT remotely before continuation.",
+          "source_acceptance": "PR_1324_accepted_main_unchanged;_site_continuation_native_packages_and_LAN_HTTPS_acceptance_pending"
         }
       },
       "depends_on": [
@@ -8311,10 +8376,75 @@
             "library_version": 0,
             "file_id": "file_00000000c75c824698075e433d59099a"
           },
-          "actual_preflight_execution": "pending_owner_local;_remote_executor_internal_access_gate",
-          "next_action": "Owner runs one pinned read-only preflight without sudo; inspect PARTIAL_PREFLIGHT_REPORT remotely before separately reviewed continuation. No old installer retry or new diagnostic capture.",
+          "actual_preflight_execution": "stopped_2026-10-10_on_owner_git_index_permission;_repair_report_pending",
+          "next_action": "superseded_by_owner_preflight_git_access_1323",
           "package_authority": "unchanged_stale_9a3556_record;_no_fabricated_success",
           "native_package_rebuild": "required_with_corrected_digest_bound_startup_tooling;_two_previous_dispatch_authorizations_already_used"
+        },
+        "owner_preflight_git_access_1323": {
+          "owner_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/partial-preflight-1323-51l_43lf/report.json",
+          "report_sha256": "f333e774f40f1dce9fa37bbb1275926d71fc6fbcb98fcae79a0cef929348d6d3",
+          "report_bytes": 1624,
+          "started_at": "2026-10-10T06:38:06.667331+00:00",
+          "finished_at": "2026-10-10T06:38:17.669018+00:00",
+          "report_read_at": "2026-10-10T06:40:03.598Z",
+          "status": "stopped_unverified",
+          "failed_stage": "reviewed_control_checkout",
+          "private_log_sha256": "0681aceff63dbdfe71eceea5a3f45468c52f1af2fd5f2acfe96accc7bbd78760",
+          "exact_error": "fatal: .git/index: index file open failed: Permission denied",
+          "prepared_artifact_inventories": "both_verified_before_checkout_stop",
+          "immutable_capture_and_recovery": "verified_before_checkout_stop",
+          "control_checkout": "no_control_before_recorded;_stopped_before_HEAD_fetch_or_merge",
+          "runtime_mutation": "none",
+          "database_restore": "none",
+          "package_authority": "not_modified",
+          "root_cause": "privileged_V2_git_status_optional_index_refresh_under_umask_077_can_replace_owner_index_with_private_root_index",
+          "reproduction": "real_temp_Git_repo_clean_status_replaced_index_inode_and_changed_0644_to_0600;_no_optional_locks_preserved_mode_and_inode",
+          "actual_index_uid": "unverified_until_narrow_owner_local_repair_report",
+          "fresh_remote_execution": {
+            "at": "2026-10-10T06:42:31.592Z",
+            "code": "EXECUTION_HANDLER_FAILED",
+            "started": false,
+            "retryable": false
+          },
+          "prepared_artifacts": {
+            "stage": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6",
+            "artifacts": [
+              {
+                "name": "nexolab-unified-runtime-check-1323-v3.py",
+                "bytes": 17188,
+                "sha256": "5f853f408524de3447e3b4ce13dbe5d75e0f3c61ba45278c7cb0543ca7dafe7e",
+                "remote_created": true,
+                "remote_exact_readback": true,
+                "write_at": "2026-10-10T06:54:32.077Z",
+                "read_at": "2026-10-10T06:55:01.608Z",
+                "library_file_id": "libfile_431730fae9008191aa2df91fe0886e59",
+                "library_version": 2,
+                "file_id": "file_000000002fcc81f7823ca29fa0af508c",
+                "local_metadata_applied": true
+              },
+              {
+                "name": "nexolab-repair-git-access-1323.py",
+                "bytes": 9966,
+                "sha256": "383b518ab8756cef5285fd7ff68d6124f01d3ade6bf8cecb6117825b83cfb68a",
+                "remote_created": true,
+                "remote_exact_readback": true,
+                "write_at": "2026-10-10T06:54:34.124Z",
+                "read_at": "2026-10-10T06:55:01.596Z",
+                "library_file_id": "libfile_5139ae1b5d5c81918e8f0bc6bc4708a7",
+                "library_version": 0,
+                "file_id": "file_00000000303081f797b52ff5ba1c9252",
+                "local_metadata_applied": true
+              }
+            ],
+            "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-repair-git-access-1323.py",
+            "scope": "only_diagnosed_git_index_owner_then_exact_existing_preflight_as_nexolab",
+            "verification": "23_tests_PASS;_compile_PASS;_actual_Pi_UID_transition_not_yet_verified;_fixture_UID_transition_mocked_due_local_filesystem",
+            "actual_owner_execution": "pending",
+            "old_reports_scripts_and_preflight": "preserved"
+          },
+          "next_action": "Owner runs one sudo Git-index repair helper; it preserves exact index bytes/mode, refuses drift/locks, repairs only diagnosed ownership, then runs the unchanged pinned preflight as nexolab. Read GIT_ACCESS_REPORT and PARTIAL_PREFLIGHT_REPORT remotely before continuation.",
+          "source_acceptance": "PR_1324_accepted_main_unchanged;_site_continuation_native_packages_and_LAN_HTTPS_acceptance_pending"
         }
       },
       "scope": "Four canonical project-state files only; preserve accepted runtime baselines",
@@ -8549,7 +8679,7 @@
       "branch": "fix/1323-partial-unified-activation",
       "evidence": {
         "source_dependency_pull_request": 1322,
-        "mandatory_gate": "owner_local_readonly_live_continuation_preflight_due_Commander_internal_failure;_capture_and_source_CI_gates_passed",
+        "mandatory_gate": "owner_local_sudo_narrow_index_access_repair_then_pinned_preflight;_remote_executor_internal_failure",
         "prepared_runtime_capture": {
           "path": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-runtime-check-1323.py",
           "size_bytes": 12542,
@@ -8564,9 +8694,9 @@
           "library_file_id": "libfile_431730fae9008191aa2df91fe0886e59",
           "library_version": 0
         },
-        "next_action": "Owner runs one pinned read-only preflight without sudo; inspect PARTIAL_PREFLIGHT_REPORT remotely before separately reviewed continuation. No old installer retry or new diagnostic capture.",
+        "next_action": "Owner runs one sudo Git-index repair helper; it preserves exact index bytes/mode, refuses drift/locks, repairs only diagnosed ownership, then runs the unchanged pinned preflight as nexolab. Read GIT_ACCESS_REPORT and PARTIAL_PREFLIGHT_REPORT remotely before continuation.",
         "source_dependency_1321": "verified_startup_tooling_head_40e5af2b;_acceptance_in_GitHub_observations",
-        "blocker": "mandatory_execution_access;_actual_preflight_owner_local_pending",
+        "blocker": "diagnosed_owner_git_index_permission;_actual_repair_and_live_preflight_unverified",
         "actual_runtime_capture_1323": {
           "owner_v1_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/runtime-check-1323-6ql6q9dk/report.json",
           "owner_v1_report_sha256": "e7ed1d8a262dce9cc667db1c9c09fc2086abaca98b75df93d07d802b82dc5944",
@@ -8701,10 +8831,75 @@
             "library_version": 0,
             "file_id": "file_00000000c75c824698075e433d59099a"
           },
-          "actual_preflight_execution": "pending_owner_local;_remote_executor_internal_access_gate",
-          "next_action": "Owner runs one pinned read-only preflight without sudo; inspect PARTIAL_PREFLIGHT_REPORT remotely before separately reviewed continuation. No old installer retry or new diagnostic capture.",
+          "actual_preflight_execution": "stopped_2026-10-10_on_owner_git_index_permission;_repair_report_pending",
+          "next_action": "superseded_by_owner_preflight_git_access_1323",
           "package_authority": "unchanged_stale_9a3556_record;_no_fabricated_success",
           "native_package_rebuild": "required_with_corrected_digest_bound_startup_tooling;_two_previous_dispatch_authorizations_already_used"
+        },
+        "owner_preflight_git_access_1323": {
+          "owner_report": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/partial-preflight-1323-51l_43lf/report.json",
+          "report_sha256": "f333e774f40f1dce9fa37bbb1275926d71fc6fbcb98fcae79a0cef929348d6d3",
+          "report_bytes": 1624,
+          "started_at": "2026-10-10T06:38:06.667331+00:00",
+          "finished_at": "2026-10-10T06:38:17.669018+00:00",
+          "report_read_at": "2026-10-10T06:40:03.598Z",
+          "status": "stopped_unverified",
+          "failed_stage": "reviewed_control_checkout",
+          "private_log_sha256": "0681aceff63dbdfe71eceea5a3f45468c52f1af2fd5f2acfe96accc7bbd78760",
+          "exact_error": "fatal: .git/index: index file open failed: Permission denied",
+          "prepared_artifact_inventories": "both_verified_before_checkout_stop",
+          "immutable_capture_and_recovery": "verified_before_checkout_stop",
+          "control_checkout": "no_control_before_recorded;_stopped_before_HEAD_fetch_or_merge",
+          "runtime_mutation": "none",
+          "database_restore": "none",
+          "package_authority": "not_modified",
+          "root_cause": "privileged_V2_git_status_optional_index_refresh_under_umask_077_can_replace_owner_index_with_private_root_index",
+          "reproduction": "real_temp_Git_repo_clean_status_replaced_index_inode_and_changed_0644_to_0600;_no_optional_locks_preserved_mode_and_inode",
+          "actual_index_uid": "unverified_until_narrow_owner_local_repair_report",
+          "fresh_remote_execution": {
+            "at": "2026-10-10T06:42:31.592Z",
+            "code": "EXECUTION_HANDLER_FAILED",
+            "started": false,
+            "retryable": false
+          },
+          "prepared_artifacts": {
+            "stage": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6",
+            "artifacts": [
+              {
+                "name": "nexolab-unified-runtime-check-1323-v3.py",
+                "bytes": 17188,
+                "sha256": "5f853f408524de3447e3b4ce13dbe5d75e0f3c61ba45278c7cb0543ca7dafe7e",
+                "remote_created": true,
+                "remote_exact_readback": true,
+                "write_at": "2026-10-10T06:54:32.077Z",
+                "read_at": "2026-10-10T06:55:01.608Z",
+                "library_file_id": "libfile_431730fae9008191aa2df91fe0886e59",
+                "library_version": 2,
+                "file_id": "file_000000002fcc81f7823ca29fa0af508c",
+                "local_metadata_applied": true
+              },
+              {
+                "name": "nexolab-repair-git-access-1323.py",
+                "bytes": 9966,
+                "sha256": "383b518ab8756cef5285fd7ff68d6124f01d3ade6bf8cecb6117825b83cfb68a",
+                "remote_created": true,
+                "remote_exact_readback": true,
+                "write_at": "2026-10-10T06:54:34.124Z",
+                "read_at": "2026-10-10T06:55:01.596Z",
+                "library_file_id": "libfile_5139ae1b5d5c81918e8f0bc6bc4708a7",
+                "library_version": 0,
+                "file_id": "file_00000000303081f797b52ff5ba1c9252",
+                "local_metadata_applied": true
+              }
+            ],
+            "owner_command": "sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-repair-git-access-1323.py",
+            "scope": "only_diagnosed_git_index_owner_then_exact_existing_preflight_as_nexolab",
+            "verification": "23_tests_PASS;_compile_PASS;_actual_Pi_UID_transition_not_yet_verified;_fixture_UID_transition_mocked_due_local_filesystem",
+            "actual_owner_execution": "pending",
+            "old_reports_scripts_and_preflight": "preserved"
+          },
+          "next_action": "Owner runs one sudo Git-index repair helper; it preserves exact index bytes/mode, refuses drift/locks, repairs only diagnosed ownership, then runs the unchanged pinned preflight as nexolab. Read GIT_ACCESS_REPORT and PARTIAL_PREFLIGHT_REPORT remotely before continuation.",
+          "source_acceptance": "PR_1324_accepted_main_unchanged;_site_continuation_native_packages_and_LAN_HTTPS_acceptance_pending"
         }
       },
       "depends_on": [

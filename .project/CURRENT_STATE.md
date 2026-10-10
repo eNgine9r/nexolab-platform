@@ -1,8 +1,51 @@
 # NEXOLAB Current State
 
-Updated: 2026-10-09
+Updated: 2026-10-10
 
-## Issue #1323 — corrected actual runtime verified; continuation source accepted
+## Issue #1323 — owner preflight stopped on Git index access; narrow repair prepared
+
+Owner report `partial-preflight-1323-51l_43lf/report.json` finished on
+2026-10-10 at 06:38:17 UTC and was independently read at 06:40:03 UTC.
+Its SHA256 is `f333e774f40f1dce9fa37bbb1275926d71fc6fbcb98fcae79a0cef929348d6d3`. Both prepared frontend inventories and immutable
+capture/recovery pins passed. It stopped at reviewed_control_checkout with
+`fatal: .git/index: index file open failed: Permission denied`, before HEAD,
+fetch or merge. No service/container/database/package activation occurred.
+
+The privileged V2 diagnostic used plain git status with umask 077. A real Git
+fixture reproduced its optional index refresh replacing the index inode and
+changing mode 0644 to 0600. Root execution can therefore leave the owner's
+index private to root. Actual Pi index UID is not yet verified. V3 uses
+git --no-optional-locks for every diagnostic Git read; mode and inode remain
+unchanged in the regression. Original V2/report and existing preflight are preserved.
+
+The narrow owner-local helper and safer V3 were created and read back byte for
+byte at 06:55:01 UTC. Repair helper SHA256 is
+`383b518ab8756cef5285fd7ff68d6124f01d3ade6bf8cecb6117825b83cfb68a`;
+V3 SHA256 is `5f853f408524de3447e3b4ce13dbe5d75e0f3c61ba45278c7cb0543ca7dafe7e`.
+The helper checks canonical owner/main/index identity and refuses existing locks
+or drift, saves the exact index and repair plan, changes only diagnosed index
+ownership, then verifies identical bytes, inode and mode. It runs the unchanged
+pinned partial preflight as nexolab, never root. No recursive permission change,
+runtime activation, data restore or package authority write. Python compile and
+23 regression/capture tests passed; fixture UID transition is mocked because
+the executor filesystem refuses chown. Actual host repair remains unverified.
+
+Fresh Commander execution failed internally before start at 06:42:31 UTC.
+One local sudo command is the mandatory access gate:
+
+```bash
+sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-repair-git-access-1323.py
+```
+
+Read GIT_ACCESS_REPORT and PARTIAL_PREFLIGHT_REPORT remotely before preparing the
+reviewed continuation. Do not request another runtime capture. Source PR #1324
+is already accepted; main is unchanged. Corrected native packages and actual
+LAN/existing Google HTTPS install/update/rollback and authentication acceptance
+remain pending. Parent #1313 and #1323 stay OPEN; operator #1318 stays DRAFT and
+unmerged; accepted whole-site baselines remain unchanged. Earlier commands below
+are historical checkpoints, not current owner actions.
+
+## Historical checkpoint before owner preflight — corrected runtime and source accepted
 
 V2 report `runtime-check-1323-4j0c_0ij/report.json` was read in full at
 19:17:48 UTC, SHA256 `45b29478615b520344d5fba2b8748bfd42c7a81ec17d3ad24daedea3fdeba71f`.
