@@ -466,6 +466,25 @@ class PartialActivationContinuationTests(unittest.TestCase):
         with self.assertRaisesRegex(recovery.RecoveryFailure,'counter'):
             self.check_cadenced_live([30],advance_at=30,changed_health=reset)
 
+    def test_cadence_corruption_after_first_response_cannot_validate_later_progress(self):
+        for corruption in ('interval','count','missing_targets','empty_targets'):
+            def corrupt(value,elapsed):
+                if elapsed<20:return
+                scheduler=value['acquisition']['scheduler']
+                if corruption=='interval':scheduler['targets']=[{'interval_seconds':float('nan')}]
+                elif corruption=='count':scheduler['configured_targets']=2
+                elif corruption=='missing_targets':scheduler.pop('targets')
+                else:scheduler['targets']=[]
+            with self.subTest(corruption=corruption),self.assertRaisesRegex(recovery.RecoveryFailure,'cadence'):
+                self.check_cadenced_live([30],advance_at=30,changed_health=corrupt)
+
+    def test_valid_later_cadence_change_cannot_extend_first_deadline(self):
+        def change(value,elapsed):
+            if elapsed>=20:value['acquisition']['scheduler']['targets']=[{'interval_seconds':300}]
+        with self.assertRaisesRegex(recovery.RecoveryFailure,'not advancing'):
+            self.check_cadenced_live([30],advance_at=71,changed_health=change)
+        self.assertEqual(self.cadence_elapsed,70)
+
     def test_site_setting_drift_prevents_success_publication(self):
         context=self.validate()
         recovery.check_partial_input_preservation(self.repo,self.failed,self.recovery_path,context)

@@ -922,10 +922,14 @@ def check_partial_acquisition(facts: dict[str, Any]) -> None:
             raise RecoveryFailure("partial continuation recovered agent is not operationally healthy")
         return value["samples_total"], scheduler
     first, scheduler = health()
+    cadence_required = "targets" in scheduler
     deadline = time.monotonic() + _partial_acquisition_window(scheduler)
     while time.monotonic() < deadline:
         time.sleep(1)
-        observed, _ = health()
+        observed, scheduler = health()
+        if cadence_required and "targets" not in scheduler:
+            raise RecoveryFailure("partial continuation acquisition cadence metadata is invalid")
+        _partial_acquisition_window(scheduler)  # Validate each poll; never extend the deadline.
         if observed < first:
             raise RecoveryFailure("partial continuation recovered acquisition counter reset")
         if time.monotonic() > deadline:

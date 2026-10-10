@@ -25,7 +25,14 @@ This proves only the acquisition guard, not canonical privileged preflight or
 site activation. Module SHA256
 cc5e5824428c0889f02710799b3410267f97608e49f45efd9de0e6d9d98fdaf3.
 
-Recovery/adoption tests (45) and source-selection tests (35) passed. Source CI
+The final per-poll guard also passed read-only at 18:01:18–18:01:19 UTC:
+samples 129726 → 129733, healthy 3/3, MQTT true, queue 0. Final module SHA256
+f8c25b651a1faf01e5ed07fb7bd4b2a5063c6b9d8acf35ce6236a739074229ab.
+
+Recovery/adoption/source-selection tests (82) passed, including four late cadence
+corruption cases that failed before per-poll validation. Sprint registration now
+selects #1325 for review, with #1323 blocked on it and recorded as the next work.
+Source CI
 and review remain pending. Next: accept #1325 source after required GREEN checks,
 then one reviewed pinned canonical preflight/continuation. #1313/#1323 stay OPEN,
 #1318 stays DRAFT/unmerged, and whole-site baselines remain unchanged. Corrected

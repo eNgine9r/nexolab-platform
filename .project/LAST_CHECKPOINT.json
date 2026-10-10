@@ -3,7 +3,7 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-10T17:52:47.664964+00:00",
+  "timestamp": "2026-10-10T18:01:19.620224+00:00",
   "actor": "ChatGPT",
   "event": "partial_acquisition_cadence_root_cause_verified_source_fix_candidate",
   "baselines": {
@@ -29,9 +29,9 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "active_work": {
-    "issue": 1323,
-    "title": "Reconcile partial unified activation after verified agent recovery",
-    "branch": "fix/1323-partial-unified-activation"
+    "issue": 1325,
+    "title": "Respect persisted acquisition cadence in partial recovery preflight",
+    "branch": "fix/1325-partial-acquisition-cadence"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -1520,8 +1520,8 @@
     "partial_acquisition_cadence_1325": {
       "issue": 1325,
       "status": "source_candidate_live_acquisition_guard_passed",
-      "source_module_sha256": "cc5e5824428c0889f02710799b3410267f97608e49f45efd9de0e6d9d98fdaf3",
-      "function_sha256": "1af4c37df371ab0f16e29c14c376172d9a5c8fcd50c78295b1926706414575af",
+      "source_module_sha256": "f8c25b651a1faf01e5ed07fb7bd4b2a5063c6b9d8acf35ce6236a739074229ab",
+      "function_sha256": "1f7e88eca7fc81c3999d6b572ca43d39c5acdb736c016673a33e357803f6a20e",
       "owner_diagnostic_path": "partial-diagnostic-1323-8bva9_45/report.json",
       "owner_diagnostic_status": "baseline_rejected",
       "owner_diagnostic_reason": "partial continuation recovered acquisition is not advancing",
@@ -1542,28 +1542,30 @@
         "configured_targets": 61
       },
       "candidate_live_acquisition_guard": {
-        "execution_id": "exec-0d47ec83e220a4fdb1e61319a1593977",
-        "observed_at": "2026-10-10T17:52:47.664964+00:00",
+        "execution_id": "exec-cae86b69c01819ee320924b4981904f9",
+        "observed_at": "2026-10-10T18:01:19.620224+00:00",
         "result": "passed",
-        "elapsed_seconds": 8.217,
+        "elapsed_seconds": 1.071,
         "sample_counters": [
-          128974,
-          128983
+          129726,
+          129733
         ],
         "window_seconds": 70,
-        "scope": "acquisition_guard_only_not_canonical_deployment_preflight"
+        "scope": "acquisition_guard_only_not_canonical_deployment_preflight",
+        "asserted_sent_function_sha256": "1f7e88eca7fc81c3999d6b572ca43d39c5acdb736c016673a33e357803f6a20e",
+        "report_metadata_note": "The raw observation retained the earlier function_sha256 label; the injected script asserted the correct final function digest before execution. Module digest and actual observations are unchanged."
       },
       "local_checks": [
-        "45 recovery/adoption tests passed",
-        "35 source-selection tests passed",
-        "RED persisted cadence regression before fix"
+        "82 recovery/adoption/source-selection tests passed",
+        "RED initial cadence and per-poll corruption regressions before fixes"
       ],
       "canonical_privileged_preflight": "pending",
       "site_activation": "not_started",
       "whole_site_acceptance": "unfinished",
       "runtime_mutation": "none",
       "database_restore": "none",
-      "package_authority": "not_modified"
+      "package_authority": "not_modified",
+      "latest_candidate_actual_acquisition": "passed_readonly"
     }
   },
   "observations": [
