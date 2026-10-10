@@ -108,6 +108,44 @@ evidence. Normal bounded capacity/backup, both frontend candidates, exact hardwa
 startup and quiesced fresh SQLite snapshot gates still run. They protect current
 live PostgreSQL and later outbox/sequence state without a restore.
 
+### Privileged owner-preserving continuation
+
+Do not promote the root read-only preflight into a full installer. For an explicit
+privileged partial activation, `--preserve-service-owner nexolab` is mandatory.
+It requires both installed frontend units to retain `User=nexolab`, their existing
+primary `Group=nexolab`, no drop-ins and no dynamic identity. Repository and index
+ownership must match. Git uses `runuser` and the real Git binary with optional
+index locks disabled; the private wrapper permits only reviewed source-selection
+writes and required reads. Fresh main must equal the reviewed control commit.
+
+Only this attempt's newly created LAN and HTTPS release trees are reowned. Private
+files keep their modes; existing release directories, configuration, evidence,
+lock and volumes are untouched. External symlinks, hardlinks and special files
+in candidates are rejected. Both candidates run under the preserved account before
+the active services are touched. The ownership helper is checksum-staged before
+historical source checkout so it remains available at the failed target.
+
+For the captured #1323 site, the reviewed single-use launcher is
+`scripts/nexolab-partial-continuation-1327.py`. Stage its exact merged bytes and
+invoke it locally as the owner, supplying the accepted merged control SHA:
+
+```bash
+sudo python3 /absolute/path/to/nexolab-partial-continuation-1327.py \
+  --control-source EXACT_REVIEWED_MERGED_CONTROL_SHA
+```
+
+This remains a template until the exact-head source checks and review pass. The
+launcher binds the existing C296 failed target, D00 prior authority, runtime and
+agent recovery report digests, and both prepared ARM64 artifact inventories/builds.
+It opens the existing canonical mode-0600 lock read-only, preserves its inode and
+passes descriptor 9. It fast-forwards clean main as `nexolab`, checks its own bytes
+against the reviewed Git object, and invokes the full deployer once. A stopped
+attempt has no automatic retry. Logs and a report remain inspectable by the owner;
+success requires the deployer's genuine final state with both exact source/build
+identities. Offline package install/update/rollback remains a later acceptance
+gate. Commander exposes the repository read-only, so the owner-local execution
+is required; do not bypass that mount or ask for the sudo password in chat.
+
 Before success publication the staged gate rechecks original immutable evidence,
 site configuration and **all** pre-existing volume identities, allowing new
 volumes while rejecting deletion/replacement. Only the normal exact runtime and

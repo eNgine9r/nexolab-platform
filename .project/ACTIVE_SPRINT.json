@@ -41,9 +41,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1325,
-      "title": "Respect persisted acquisition cadence in partial recovery preflight",
-      "branch": "fix/1325-partial-acquisition-cadence"
+      "issue": 1327,
+      "title": "Preserve service owner in privileged partial continuation launch",
+      "branch": "fix/1327-preserved-service-owner-launch"
     },
     "next_work_package": {
       "issue": 1323,
@@ -52,6 +52,29 @@
     }
   },
   "work_packages": [
+    {
+      "issue": 1327,
+      "title": "Preserve service owner in privileged partial continuation launch",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [
+        1325
+      ],
+      "branch": "fix/1327-preserved-service-owner-launch",
+      "permitted_paths": [
+        "scripts/**",
+        "scripts/tests/**",
+        "docs/operations/**",
+        ".project/**"
+      ],
+      "acceptance": [
+        "preserve existing frontend accounts and private candidate readability",
+        "Git and index operations remain under repository owner",
+        "preserve canonical lock and immutable partial evidence pins",
+        "exact-head CI/review and one checked owner-local launcher"
+      ],
+      "site_activation": "not_performed"
+    },
     {
       "issue": 1309,
       "title": "Record verified CI cache v3 cross-branch acceptance and #1306 merge",
@@ -7212,7 +7235,7 @@
       "issue": 1325,
       "title": "Respect persisted acquisition cadence in partial recovery preflight",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "fix/1325-partial-acquisition-cadence",
       "depends_on": [
         1321

@@ -52,6 +52,9 @@ Options:
                            Verified agent-only recovery bound by the runtime-check report.
   --expected-control-source SHA
                            Reviewed main/tooling commit; mandatory for partial continuation.
+  --preserve-service-owner USER
+                           Privileged partial handoff only: preserve both installed non-root
+                           frontend accounts and delegate Git to their repository owner.
   --offline-source-selection
                            Check exact cached main authority without fetch; requires source-selection-only,
                            --source-ref and --expected-deployed-source. Never runs full deployment.
@@ -84,8 +87,13 @@ PARTIAL_RUNTIME_CHECK_REPORT=""
 PARTIAL_RUNTIME_CHECK_SHA256=""
 PARTIAL_AGENT_RECOVERY_REPORT=""
 EXPECTED_CONTROL_SOURCE=""
+PRESERVED_SERVICE_OWNER=""
 while (($# > 0)); do
   case "$1" in
+    --preserve-service-owner)
+      PRESERVED_SERVICE_OWNER="${2:?--preserve-service-owner requires a user}"
+      shift 2
+      ;;
     --runtime-mode)
       (($# >= 2)) || {
         echo "ERROR: --runtime-mode requires lan or standalone" >&2
@@ -209,6 +217,18 @@ if [[ -n "$PARTIAL_ACTIVATION_DIR$PARTIAL_RUNTIME_CHECK_REPORT$PARTIAL_RUNTIME_C
     echo "ERROR: partial continuation requires exact failed/source/report pins, LAN mode and no restore/offline option" >&2
     exit 64
   }
+fi
+
+if [[ -n "$PRESERVED_SERVICE_OWNER" ]]; then
+  [[ "$EUID" == 0 && -n "$PARTIAL_ACTIVATION_DIR" && "$SOURCE_SELECTION_CHECK_ONLY" == 0 \
+    && "$ALLOW_LOCAL_FRONTEND_BUILD" == 0 && -n "$FRONTEND_ARTIFACT_INPUT" \
+    && -n "$EXTERNAL_FRONTEND_ARTIFACT_INPUT" ]] || {
+    echo "ERROR: preserve-service-owner requires a privileged artifact-only partial handoff" >&2
+    exit 64
+  }
+elif [[ "$EUID" == 0 && -n "$PARTIAL_ACTIVATION_DIR" && "$SOURCE_SELECTION_CHECK_ONLY" == 0 ]]; then
+  echo "ERROR: privileged partial activation requires --preserve-service-owner" >&2
+  exit 64
 fi
 
 restore_edge_sqlite_snapshot() {
@@ -447,6 +467,33 @@ EDGE_COMPOSE_ARGS=(
 
 mkdir -p "$AUDIT_DIR"
 nexolab_acquire_deployment_lock "$LOCK_FILE" || exit $?
+
+DASHBOARD_USER="$(id -un)"
+DASHBOARD_GROUP="$(id -gn)"
+SERVICE_OWNER_HELPER="$SCRIPT_DIR/privileged_partial_launch.py"
+if [[ -n "$PRESERVED_SERVICE_OWNER" ]]; then
+  DASHBOARD_GROUP="$(python3 "$SERVICE_OWNER_HELPER" configure --repo "$REPO" \
+    --owner "$PRESERVED_SERVICE_OWNER" --control "$EXPECTED_CONTROL_SOURCE" \
+    --target "$REQUESTED_SOURCE_REF" --shim "$AUDIT_DIR/owner-git")" || exit 64
+  DASHBOARD_USER="$PRESERVED_SERVICE_OWNER"
+  export PATH="$AUDIT_DIR/owner-git:$PATH"
+  export GIT_OPTIONAL_LOCKS=0
+fi
+
+nexolab_prepare_release_parent() {
+  if [[ -n "$PRESERVED_SERVICE_OWNER" ]]; then
+    /usr/sbin/runuser --user "$DASHBOARD_USER" -- mkdir -p "$1"
+  else
+    mkdir -p "$1"
+  fi
+}
+
+nexolab_handoff_candidate_owner() {
+  [[ -n "$PRESERVED_SERVICE_OWNER" ]] || return 0
+  sha256sum --check --status "$AUDIT_DIR/privileged-service-owner.sha256" || return
+  python3 "$SERVICE_OWNER_HELPER" release --repo "$REPO" --owner "$DASHBOARD_USER" \
+    --target "$CURRENT_HEAD" --stamp "$STAMP" --release "$1"
+}
 
 log() {
   printf '[%s] %s\n' "$(date --iso-8601=seconds)" "$*" | tee -a "$SUMMARY"
@@ -1351,7 +1398,13 @@ fi
 log "Fetching current main for deployment authority"
 git fetch --prune origin main
 git switch main
-git pull --ff-only origin main
+if [[ -n "$PRESERVED_SERVICE_OWNER" ]]; then
+  [[ "$(git rev-parse origin/main)" == "$EXPECTED_CONTROL_SOURCE" ]] \
+    || fail "fresh main differs from the reviewed owner handoff control source"
+  git merge --ff-only "$EXPECTED_CONTROL_SOURCE"
+else
+  git pull --ff-only origin main
+fi
 CONTROL_HEAD="$(git rev-parse origin/main)"
 [[ "$(git rev-parse HEAD)" == "$CONTROL_HEAD" ]] || fail "local main is not at origin/main after fetch"
 [[ -z "$EXPECTED_CONTROL_SOURCE" || "$CONTROL_HEAD" == "$EXPECTED_CONTROL_SOURCE" ]] \
@@ -1474,6 +1527,11 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
 fi
 
 EDGE_SNAPSHOT_HELPER="$AUDIT_DIR/deploy-edge-sqlite-snapshot.py"
+if [[ -n "$PRESERVED_SERVICE_OWNER" ]]; then
+  install -m 0500 "$SERVICE_OWNER_HELPER" "$AUDIT_DIR/privileged-service-owner.py"
+  SERVICE_OWNER_HELPER="$AUDIT_DIR/privileged-service-owner.py"
+  sha256sum "$SERVICE_OWNER_HELPER" > "$AUDIT_DIR/privileged-service-owner.sha256"
+fi
 install -m 0500 "$SCRIPT_DIR/deploy-edge-sqlite-snapshot.py" "$EDGE_SNAPSHOT_HELPER"
 sha256sum "$EDGE_SNAPSHOT_HELPER" > "$AUDIT_DIR/deploy-edge-sqlite-snapshot.sha256"
 
@@ -1989,7 +2047,7 @@ ACTUAL_NODE_VERSION="$(node --version | sed 's/^v//')"
 [[ "$ACTUAL_NODE_VERSION" == "$EXPECTED_NODE_VERSION" ]] \
   || fail "host Node version $ACTUAL_NODE_VERSION does not match repository baseline $EXPECTED_NODE_VERSION"
 FRONTEND_RELEASE_DIR="$FRONTEND_RELEASES_DIR/${CURRENT_HEAD}-${STAMP}"
-mkdir -p "$FRONTEND_RELEASES_DIR"
+nexolab_prepare_release_parent "$FRONTEND_RELEASES_DIR"
 log "Preparing immutable frontend candidate: $FRONTEND_RELEASE_DIR"
 if ! nexolab_frontend_prepare_release_source "$REPO" "$CURRENT_HEAD" "$FRONTEND_RELEASE_DIR" "$ROOT_ENV"; then
   fail "failed to prepare immutable frontend candidate source"
@@ -2045,6 +2103,8 @@ nexolab_frontend_write_provenance \
   "$NEXOLAB_WEBSOCKET_URL" \
   "$FRONTEND_AUTH_PROVIDER" \
   "$FRONTEND_ORGANIZATION_ID"
+nexolab_handoff_candidate_owner "$FRONTEND_RELEASE_DIR" \
+  || fail "frontend candidate service-owner handoff failed before runtime mutation"
 
 FRONTEND_CANDIDATE_PORT="${NEXOLAB_FRONTEND_CANDIDATE_PORT:-3101}"
 [[ "$FRONTEND_CANDIDATE_PORT" != 3100 && "$FRONTEND_CANDIDATE_PORT" != 3102 ]] \
@@ -2069,7 +2129,11 @@ FRONTEND_CANDIDATE_PARENT_PID="$BASHPID"
   done
   [[ -f "$FRONTEND_CANDIDATE_START_GATE" ]] || exit 75
   cd "$FRONTEND_RELEASE_DIR"
-  exec setsid env \
+  FRONTEND_CANDIDATE_OWNER_COMMAND=()
+  if [[ -n "$PRESERVED_SERVICE_OWNER" ]]; then
+    FRONTEND_CANDIDATE_OWNER_COMMAND=(/usr/sbin/runuser --user "$DASHBOARD_USER" --)
+  fi
+  exec setsid "${FRONTEND_CANDIDATE_OWNER_COMMAND[@]}" env \
     NEXT_PUBLIC_NEXOLAB_DATA_MODE=live \
     NEXT_PUBLIC_NEXOLAB_API_BASE_URL="$NEXOLAB_API_BASE_URL" \
     NEXT_PUBLIC_NEXOLAB_WEBSOCKET_URL="$NEXOLAB_WEBSOCKET_URL" \
@@ -2167,8 +2231,6 @@ docker compose --env-file "$EDGE_ENV" \
   up -d --force-recreate mqtt device-agent
 
 NODE_BIN_DIR="$(dirname "$(command -v node)")"
-DASHBOARD_USER="$(id -un)"
-DASHBOARD_GROUP="$(id -gn)"
 DASHBOARD_UNIT="/etc/systemd/system/nexolab-dashboard.service"
 DASHBOARD_UNIT_BACKUP="$AUDIT_DIR/dashboard-unit-before.service"
 DASHBOARD_UNIT_CANDIDATE="$AUDIT_DIR/dashboard-unit-candidate.service"
@@ -2244,6 +2306,10 @@ payload = {
 Path(output).write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
 PY_RUNTIME_IDENTITY
   chmod 0644 "$temp_file"
+  if [[ -n "$PRESERVED_SERVICE_OWNER" ]]; then
+    chown "$DASHBOARD_USER:$DASHBOARD_GROUP" "$temp_file"
+    chmod 0600 "$temp_file"
+  fi
   mv -f "$temp_file" "$DASHBOARD_RUNTIME_IDENTITY_FILE"
 }
 
