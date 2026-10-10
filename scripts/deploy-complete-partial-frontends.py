@@ -234,6 +234,12 @@ class Operations:
         path = self.candidate_identity_path if deployed_at is None else self.identity_path
         self.recovery.atomic_json(path, identity)
         os.chown(path, self.owner.pw_uid, self.owner.pw_gid)
+        if deployed_at is not None:
+            self.recovery.atomic_json(self.audit / 'frontend-activation.json', {
+                'schema_version': 1, 'kind': 'nexolab-frontend-completion-activation',
+                'failed_attempt': self.context['stamp'], 'target_source': TARGET,
+                'control_source': self.control, 'frontend_activated_at': deployed_at,
+                'identity_manifest': str(path), 'identity_manifest_sha256': self.recovery.sha256_file(path)})
         self.frontend_activated_at = deployed_at
 
     def prepare_candidates(self):
@@ -314,6 +320,8 @@ class Operations:
         expected = {'audit': str(self.audit), 'control_source': self.control,
             'external_frontend_origin': ORIGIN, 'external_frontend_source_commit': TARGET,
             'external_frontend_build_id': self.builds['protected'],
+            'frontend_activated_at': self.frontend_activated_at,
+            'backend_mutation_started_at': self.context['mutation_started_at'],
             'runtime_mutation': 'paired_frontends_only', 'backend_containers': 'unchanged'}
         if context['frontend_completion'] != expected:
             raise CompletionFailure('paired completion publication evidence differs from verified handoff')

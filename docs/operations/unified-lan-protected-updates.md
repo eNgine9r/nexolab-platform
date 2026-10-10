@@ -124,6 +124,11 @@ Paired handoff publishes forward-recovery contract v2 with canonical
 artifact/unit hashes and exact source/build/origin/control lineage. Existing v1
 read-only reconciliation remains valid with `runtime_mutation=none` and cannot
 claim a paired completion through an unchecked extension.
+The actual frontend UTC activation record and production identity digest are
+also evidence-bound. V2 source adoption uses that later handoff time as
+`deployed_at`, preserving the original backend mutation time separately.
+The recovery tool's `--check-only` revalidates published v1/v2 authority and the
+current full runtime without changing any evidence.
 The private completion report grants no offline package authority. Actual execution,
 Google account/session-expiry and native package update/rollback remain separate
 parent acceptance evidence.

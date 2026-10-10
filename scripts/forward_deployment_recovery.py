@@ -446,11 +446,15 @@ def load_published_authority(repo: Path, evidence: Path) -> dict[str, Any]:
         "prior_source": prior,
         "target_source": target,
         "evidence_hashes": expected_hashes,
+        "mutation_started_at": marker["started_at"],
+        "frontend": frontend,
     }
     if document.get("schema_version") == 2:
         context = frontend_completion_context(context, resolved)
     validate_result(document, context)
-    if document.get("runtime_activated_at") != marker["started_at"]:
+    activated_at = (context["frontend_completion"]["frontend_activated_at"]
+                    if document.get("schema_version") == 2 else marker["started_at"])
+    if document.get("runtime_activated_at") != activated_at:
         raise RecoveryFailure("published recovery activation timestamp mismatch")
     if document.get("schema_head") != repository_schema_head(repo, target):
         raise RecoveryFailure("published recovery schema does not match target source")
@@ -838,6 +842,31 @@ def frontend_completion_context(context: dict[str, Any], evidence: Path) -> dict
             or _unit_value(unit, "User") != "nexolab" or _unit_value(unit, "Group") != "nexolab"
             or not re.fullmatch(r"https://[a-z0-9.-]+", origin)):
         raise RecoveryFailure("frontend completion protected candidate contract is invalid")
+    files["frontend_completion_activation"] = audit / "frontend-activation.json"
+    activation = read_json(files["frontend_completion_activation"], "frontend activation record")
+    manifest = repo / "runtime" / f"frontend-completion-identity-{audit.name}.json"
+    files["frontend_completion_identity"] = manifest
+    identity = read_json(manifest, "active frontend identity")
+    activated = _parse_time(activation.get("frontend_activated_at"), "frontend activation")
+    backend_started = _parse_time(context["mutation_started_at"], "backend mutation")
+    if (
+        activated.utcoffset() is None or activated.utcoffset().total_seconds() != 0
+        or backend_started.utcoffset() is None or activated <= backend_started
+        or activation.get("schema_version") != 1
+        or activation.get("kind") != "nexolab-frontend-completion-activation"
+        or activation.get("failed_attempt") != context["stamp"]
+        or activation.get("target_source") != context["target_source"]
+        or activation.get("control_source") != marker["control_source"]
+        or activation.get("identity_manifest") != str(manifest)
+        or activation.get("identity_manifest_sha256") != sha256_file(manifest)
+        or identity.get("schema_version") != "nexolab-runtime-identity-v1"
+        or identity.get("service") != "dashboard"
+        or identity.get("identity_source") != "raspberry_activation"
+        or identity.get("source_commit") != context["target_source"]
+        or identity.get("build_id") != context["frontend"]["build_id"]
+        or identity.get("deployed_at") != activation["frontend_activated_at"]
+    ):
+        raise RecoveryFailure("frontend completion activation identity or timestamp is invalid")
     bound = dict(context)
     bound["evidence_hashes"] = {**context["evidence_hashes"], **{
         key: sha256_file(_safe_file(path, "frontend completion evidence")) for key, path in files.items()}}
@@ -845,6 +874,8 @@ def frontend_completion_context(context: dict[str, Any], evidence: Path) -> dict
         "audit": str(audit), "control_source": marker["control_source"],
         "external_frontend_origin": origin, "external_frontend_source_commit": context["target_source"],
         "external_frontend_build_id": frontend["build_id"],
+        "frontend_activated_at": activation["frontend_activated_at"],
+        "backend_mutation_started_at": context["mutation_started_at"],
         "runtime_mutation": "paired_frontends_only", "backend_containers": "unchanged",
     }
     return bound
@@ -855,6 +886,7 @@ def build_frontend_completion_result(snapshot: dict[str, Any], context: dict[str
     document["schema_version"] = 2
     document["safety"]["runtime_mutation"] = "paired_frontends_only"
     document["frontend_completion"] = dict(context["frontend_completion"])
+    document["runtime_activated_at"] = context["frontend_completion"]["frontend_activated_at"]
     return document
 
 
@@ -892,6 +924,7 @@ def validate_result(document: dict[str, Any], context: dict[str, Any]) -> None:
         raise RecoveryFailure("read-only recovery cannot claim a frontend completion")
     if version == 2 and (not isinstance(context.get("frontend_completion"), dict)
                         or document.get("frontend_completion") != context["frontend_completion"]
+                        or document["runtime_activated_at"] != context["frontend_completion"]["frontend_activated_at"]
                         or document["control_origin_main"] != context["frontend_completion"]["control_source"]):
         raise RecoveryFailure("frontend completion authority is not bound to paired handoff evidence")
 
@@ -1242,8 +1275,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.execute:
             atomic_json(result_path, result)
         elif result_path.exists():
-            existing = read_json(result_path, "existing forward recovery result")
-            validate_result(existing, context)
+            result = load_published_authority(repo, context["evidence"])
         print(f"FORWARD_RECOVERY_{'RECORDED' if args.execute else 'VALIDATED'}")
         print(f"target_source={context['target_source']}")
         print(f"device_agent_image_id={result['device_agent_image_id']}")

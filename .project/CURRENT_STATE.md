@@ -26,7 +26,7 @@ reconciliation after the real target pair and all data checks pass. No full
 installer, backend build/deployment, agent quiesce, old data restore, package
 authority edit or controller write. One durable marker prevents automatic retry.
 
-Targeted checks: 166 passed. Review P1 reproduced the real acquisition-gate
+Targeted checks: 169 passed. Review P1 reproduced the real acquisition-gate
 KeyError and was fixed with the pinned current 3-worker baseline. Review P2 is
 fixed by validated forward-recovery v2 canonical safety paired_frontends_only,
 bound to the real completion marker and protected artifact/unit hashes. Real
@@ -35,6 +35,10 @@ regressions pass; standalone unittest needs no third-party package. The later
 P2 activation-time finding is fixed: an immutable owner-readable production
 identity records real UTC handoff time before LAN starts and live identity must
 report it; candidate identity remains separate with null time. Both regressions
+pass. Follow-up P2 findings are fixed: v2 binds the immutable activation
+record and production identity digest, source adoption uses actual frontend
+handoff time with backend time preserved separately, and --check-only
+revalidates v1/v2 authority without writes. Real CLI/adopter/tamper regressions
 pass. Both retained
 candidate runtime inventories matched on the Pi at 20:55/20:56 UTC. Fresh source
 exact-head CI/review and owner-local execution are pending. #1313/#1323 stay open; operator #1318 stays draft. Original Oct 9

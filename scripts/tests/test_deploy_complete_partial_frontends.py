@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import copy
+from contextlib import redirect_stdout
 import importlib.util
+import io
 import json
 from pathlib import Path
 import sys
@@ -32,6 +34,7 @@ class CompletionTests(unittest.TestCase):
             op.candidate_identity_path = Path(root) / 'candidate-identity.json'
             op.builds = {'lan': 'target-build'}
             op.owner = SimpleNamespace(pw_uid=0, pw_gid=0)
+            op.context, op.control = {'stamp': completion.ATTEMPT}, '0' * 40
             op.recovery, op.probe, op.gateway = recovery, Mock(), Mock()
             with patch.object(completion.os, 'chown') as chown:
                 op.write_identity(None)
@@ -48,6 +51,9 @@ class CompletionTests(unittest.TestCase):
                 self.assertLessEqual(completion.datetime.fromisoformat(op.frontend_activated_at), after)
                 self.assertEqual(chown.call_count, 2)
                 chown.assert_called_with(op.identity_path, 0, 0)
+                activation = json.loads((op.audit / 'frontend-activation.json').read_text())
+                self.assertEqual(activation['frontend_activated_at'], op.frontend_activated_at)
+                self.assertEqual(activation['identity_manifest_sha256'], recovery.sha256_file(op.identity_path))
                 op.restore('lan')
                 self.assertEqual(chown.call_count, 2)  # Old unit retains its separate original identity.
 
@@ -100,6 +106,17 @@ class CompletionTests(unittest.TestCase):
         }
         for name, text in documents.items():
             (evidence / name).write_text(text)
+        frontend_activated_at = completion.datetime.now(completion.timezone.utc).isoformat()
+        manifest = repo / 'runtime' / ('frontend-completion-identity-' + audit.name + '.json')
+        manifest.write_text(json.dumps({
+            'schema_version': 'nexolab-runtime-identity-v1', 'service': 'dashboard',
+            'source_commit': completion.TARGET, 'build_id': 'build-1',
+            'identity_source': 'raspberry_activation', 'deployed_at': frontend_activated_at}))
+        (audit / 'frontend-activation.json').write_text(json.dumps({
+            'schema_version': 1, 'kind': 'nexolab-frontend-completion-activation',
+            'failed_attempt': context['stamp'], 'target_source': completion.TARGET,
+            'control_source': context['origin_main'], 'frontend_activated_at': frontend_activated_at,
+            'identity_manifest': str(manifest), 'identity_manifest_sha256': recovery.sha256_file(manifest)}))
         context['evidence_hashes'] = {key: recovery.sha256_file(evidence / name) for key, name in {
             'runtime_mutation_started': 'runtime-mutation-started', 'edge_sqlite_pre_cutover': 'edge-sqlite-pre-cutover.json',
             'frontend_artifact_import': 'frontend-artifact-import.txt', 'dashboard_unit_candidate': 'dashboard-unit-candidate.service',
@@ -107,6 +124,7 @@ class CompletionTests(unittest.TestCase):
         op = completion.Operations.__new__(completion.Operations)
         op.context, op.snapshot, op.recovery, op.failed = context, snapshot, recovery, evidence
         op.audit, op.control, op.builds = audit, context['origin_main'], {'protected': 'protected-build'}
+        op.frontend_activated_at = frontend_activated_at
         return repo, op
 
     def test_actual_publication_and_adoption_validate_paired_mutation(self):
@@ -122,6 +140,45 @@ class CompletionTests(unittest.TestCase):
                 self.assertEqual((directory, source), (op.failed, completion.TARGET))
                 _, facts = adopter.deployment_evidence(repo, op.failed)
                 self.assertEqual(facts['commit'], completion.TARGET)
+                self.assertEqual(facts['deployed_at'], op.frontend_activated_at)
+                self.assertNotEqual(facts['deployed_at'], op.context['mutation_started_at'])
+
+    def test_check_only_revalidates_published_v2_without_writing(self):
+        with tempfile.TemporaryDirectory() as root:
+            repo, op = self.authority_fixture(root)
+            op.publish()
+            context = {**op.context, 'evidence': op.failed}
+            before = {p: p.read_bytes() for p in repo.rglob('*') if p.is_file()}
+            with patch.object(recovery, 'build_context', return_value=context), \
+                    patch.object(recovery, 'collect_runtime_snapshot', return_value=op.snapshot), \
+                    patch.object(recovery, 'git', return_value=''), \
+                    patch.object(recovery, 'repository_schema_head', return_value=context['schema_head']), \
+                    redirect_stdout(io.StringIO()):
+                code = recovery.main(['--repo', str(repo), '--deployment-evidence', str(op.failed),
+                                      '--expected-prior-source', context['prior_source'],
+                                      '--expected-target-source', completion.TARGET, '--check-only'])
+            self.assertEqual(code, 0)
+            self.assertEqual(before, {p: p.read_bytes() for p in repo.rglob('*') if p.is_file()})
+
+    def test_paired_activation_timestamp_cannot_reuse_backend_time(self):
+        with tempfile.TemporaryDirectory() as root:
+            _, op = self.authority_fixture(root)
+            context = recovery.frontend_completion_context(op.context, op.failed)
+            result = recovery.build_frontend_completion_result(op.snapshot, context)
+            result['runtime_activated_at'] = op.context['mutation_started_at']
+            with self.assertRaises(recovery.RecoveryFailure):
+                recovery.validate_result(result, context)
+
+    def test_changed_activation_manifest_blocks_adoption(self):
+        with tempfile.TemporaryDirectory() as root:
+            repo, op = self.authority_fixture(root)
+            op.publish()
+            path = repo / 'runtime' / ('frontend-completion-identity-' + op.audit.name + '.json')
+            identity = json.loads(path.read_text())
+            identity['deployed_at'] = op.context['mutation_started_at']
+            path.write_text(json.dumps(identity))
+            with self.assertRaises(adopter.AdoptionFailure):
+                adopter.deployment_evidence(repo, op.failed)
 
     def test_paired_authority_rejects_false_safety_and_handoff_claims(self):
         with tempfile.TemporaryDirectory() as root:
