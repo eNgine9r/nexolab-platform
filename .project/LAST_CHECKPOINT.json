@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-10T18:01:19.620224+00:00",
+  "timestamp": "2026-10-10T18:41:12.032946+00:00",
   "actor": "ChatGPT",
-  "event": "partial_acquisition_cadence_root_cause_verified_source_fix_candidate",
+  "event": "owner_preserved_privileged_partial_launch_source_candidate",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -29,9 +29,9 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "active_work": {
-    "issue": 1325,
-    "title": "Respect persisted acquisition cadence in partial recovery preflight",
-    "branch": "fix/1325-partial-acquisition-cadence"
+    "issue": 1327,
+    "title": "Preserve service owner in privileged partial continuation launch",
+    "branch": "fix/1327-preserved-service-owner-launch"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -1566,6 +1566,22 @@
       "database_restore": "none",
       "package_authority": "not_modified",
       "latest_candidate_actual_acquisition": "passed_readonly"
+    },
+    "privileged_service_owner_1327": {
+      "observed_service_accounts": "both nexolab:nexolab at 2026-10-10T18:11:01Z",
+      "accepted_cadence_control": "3320d42b1edc3b5a80a3c49a0b8b4e73f1bf056e",
+      "candidate": "explicit root partial handoff, owner Git, scoped candidate ownership and pinned single-use launcher",
+      "real_chown_read_test": "scratch namespace maps only UID0; integration unverified here",
+      "runtime_mutation": "none",
+      "database_restore": "none",
+      "package_dispatch": "none",
+      "source_acceptance": "pending exact-head CI/review",
+      "next": "accept source then stage exact merged launcher for owner-local execution",
+      "candidate_checks": "111 targeted tests: 110 passed; real chown/read skipped only in scratch UID namespace; syntax/compile/format/state/diff passed",
+      "first_ci": "CI 38076929593 rejected old candidate-start text assertion; contract updated, all existing cleanup requirements retained; final exact-head CI pending",
+      "pull_request": 1328,
+      "final_candidate_routing": "deploy-* entrypoints use existing deployment pattern; protected frontend library explicitly registered as deployment tooling; full Core and classifier-triggered browser/offline gates retained; unknown-neighbor still fails closed",
+      "prior_exact_head": "3d854289f89e3e514a7939481f1f472db9c9a1cf: Core product jobs and Telemetry GREEN, final review clean; Merge Gate rejected unregistered entrypoint paths; rename candidate pending exact-head CI"
     }
   },
   "observations": [

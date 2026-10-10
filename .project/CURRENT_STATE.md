@@ -2,6 +2,28 @@
 
 Updated: 2026-10-10
 
+## Issue #1327 — preserve frontend owner during privileged continuation
+
+The #1325 cadence fix is accepted on main 3320d42b1edc3b5a80a3c49a0b8b4e73f1bf056e.
+Actual read-only observation at 2026-10-10T18:11:01Z confirmed both frontend
+services use nexolab:nexolab. Direct root deployment would replace the LAN
+account with root and leave private candidate files unreadable by nexolab.
+
+This source candidate adds an explicit privileged partial handoff, owner Git,
+checked ownership of only new release trees, and candidates running under the
+preserved frontend account. The bound single-use owner-local launcher retains the
+canonical existing lock and immutable reports/artifacts; only genuine deployer
+final state can establish source success. Regression checks cover service
+identity, scoped ownership, owner Git, existing lock and final-state publication.
+Real non-root chown/read integration is unavailable in this scratch UID namespace;
+actual site continuation is not claimed. Exact-head CI/review is pending.
+
+No site activation, restore, package dispatch, gateway change or controller write
+was performed. #1313/#1323 stay open; operator #1318 stays draft/unmerged. All
+whole-site baselines below remain unchanged. Next: source review/CI, then stage
+one exact merged owner-local launcher; offline packages and actual LAN/HTTPS
+install/update/rollback remain required.
+
 ## Issue #1325 — healthy persisted cadence caused false partial-preflight rejection
 
 Source #1323 / PR #1324 is accepted on reviewed main

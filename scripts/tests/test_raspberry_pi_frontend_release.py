@@ -10,6 +10,9 @@ import subprocess
 import tarfile
 import tempfile
 import unittest
+import importlib.util
+import sys
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -33,6 +36,194 @@ def run_bash(script: str, *, env: dict[str, str] | None = None) -> subprocess.Co
         capture_output=True,
         text=True,
     )
+
+
+class PrivilegedFrontendOwnerTests(unittest.TestCase):
+    def test_deployment_entrypoints_keep_full_quality_and_unknown_paths_fail_closed(self):
+        spec = importlib.util.spec_from_file_location("impact", ROOT / "scripts/classify-ci-impact.py")
+        classifier = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(classifier)
+        paths = ["scripts/deploy-privileged-service-owner.py", "scripts/deploy-partial-continuation-1327.py",
+                 "scripts/lib/protected-frontend-release.sh"]
+        result = classifier.classify(paths)
+        self.assertFalse(result["fail_closed"])
+        self.assertTrue(result["needs_full_quality"])
+        self.assertEqual(result["classes"], ["deployment_runtime"])
+        self.assertTrue(classifier.classify(paths + ["scripts/unregistered-new-tool.py"])["fail_closed"])
+
+    def module(self):
+        spec = importlib.util.spec_from_file_location(
+            "privileged_partial_launch", ROOT / "scripts/deploy-privileged-service-owner.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_root_caller_preserves_both_installed_nonroot_service_accounts(self):
+        module = self.module()
+        import pwd
+        owner = pwd.getpwnam("nobody")
+        import grp
+        group = grp.getgrgid(owner.pw_gid).gr_name
+        def show(unit, field):
+            return {"User": owner.pw_name, "Group": group,
+                    "DynamicUser": "no", "DropInPaths": ""}[field]
+        with patch.object(module, "show", side_effect=show):
+            self.assertEqual(module.service_identity(owner), (owner.pw_name, group))
+            with patch.object(module, "show", return_value="root"):
+                with self.assertRaises(ValueError):
+                    module.service_identity(owner)
+
+    def test_new_private_release_becomes_readable_without_broadening_modes(self):
+        if os.geteuid() != 0 and os.environ.get("GITHUB_ACTIONS") == "true":
+            result = subprocess.run(["sudo", "-n", sys.executable, "-m", "unittest",
+                "scripts.tests.test_raspberry_pi_frontend_release.PrivilegedFrontendOwnerTests."
+                "test_new_private_release_becomes_readable_without_broadening_modes"],
+                cwd=ROOT, capture_output=True, text=True, timeout=60)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertNotIn("skipped=", result.stderr)
+            return
+        if os.geteuid() != 0 or not any(int(row.split()[2]) > 65534 for row in Path("/proc/self/uid_map").read_text().splitlines()):
+            self.skipTest("real ownership test requires root with mapped non-root UIDs")
+        module = self.module()
+        import pwd
+        owner = pwd.getpwnam("nobody")
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            root.chmod(0o755)
+            releases = root / "runtime/frontend-releases"
+            releases.mkdir(parents=True)
+            releases.parent.chmod(0o755)
+            releases.chmod(0o755)
+            candidate = releases / ("a" * 40 + "-20261010T000000Z")
+            candidate.mkdir(mode=0o700)
+            identity = candidate / ".nexolab-runtime-identity.json"
+            identity.write_text("identity")
+            identity.chmod(0o600)
+            outside = root / "old-evidence"
+            outside.write_text("private")
+            outside.chmod(0o600)
+            (candidate / "escape").symlink_to(outside)
+            with self.assertRaises(ValueError):
+                module.own_new_release(root, candidate, owner, "a" * 40, "20261010T000000Z")
+            self.assertEqual(outside.stat().st_uid, 0)
+            (candidate / "escape").unlink()
+            module.own_new_release(root, candidate, owner, "a" * 40, "20261010T000000Z")
+            self.assertEqual(identity.stat().st_mode & 0o777, 0o600)
+            read = subprocess.run(["runuser", "-u", "nobody", "--", "cat", str(identity)],
+                                  capture_output=True, text=True)
+            self.assertEqual(read.returncode, 0, read.stderr)
+            self.assertEqual(read.stdout, "identity")
+            self.assertEqual(outside.stat().st_uid, 0)
+
+    def test_git_shim_uses_owner_and_rejects_unreviewed_writes(self):
+        module = self.module()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            log = root / "calls"
+            runner = root / "runuser"
+            runner.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$CALL_LOG"\n')
+            runner.chmod(0o700)
+            shim = root / "git"
+            shim.write_text(module.git_shim(root, "nobody", "a" * 40, "b" * 40,
+                                            runuser=str(runner)))
+            shim.chmod(0o700)
+            env = {**os.environ, "CALL_LOG": str(log)}
+            for args in (("fetch", "--prune", "origin", "main"),
+                         ("switch", "--detach", "b" * 40),
+                         ("merge", "--ff-only", "a" * 40)):
+                self.assertEqual(subprocess.run([str(shim), *args], env=env).returncode, 0)
+            for args in (("pull", "--ff-only", "origin", "main"),
+                         ("reset", "--hard"), ("switch", "--detach", "c" * 40),
+                         ("-C", "/other", "status")):
+                self.assertNotEqual(subprocess.run([str(shim), *args], env=env).returncode, 0)
+            self.assertIn("--user nobody -- /usr/bin/git --no-optional-locks -C", log.read_text())
+
+    def test_candidate_handoff_changes_only_new_tree_ownership(self):
+        module = self.module()
+        import pwd
+        owner = pwd.getpwnam("nobody")
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            for directory in ("frontend-releases", "external-frontend-releases"):
+                release = repo / "runtime" / directory / ("a" * 40 + "-20261010T000000Z")
+                release.mkdir(parents=True, mode=0o700)
+                private = release / ".env.local"
+                private.write_text("private")
+                private.chmod(0o600)
+                with patch.object(module.os, "chown") as chown, patch.object(module.subprocess, "run") as probe:
+                    module.own_new_release(repo, release, owner, "a" * 40, "20261010T000000Z")
+                    self.assertEqual([call.args[0] for call in chown.call_args_list], [private, release])
+                    self.assertTrue(all(call.kwargs == {"follow_symlinks": False} for call in chown.call_args_list))
+                    self.assertEqual(probe.call_args.args[0][2], "nobody")
+                    self.assertEqual(private.stat().st_mode & 0o777, 0o600)
+                with self.assertRaises(ValueError):
+                    module.own_new_release(repo, release, owner, "b" * 40, "20261010T000000Z")
+
+    def launcher(self):
+        spec = importlib.util.spec_from_file_location(
+            "owner_continuation", ROOT / "scripts/deploy-partial-continuation-1327.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_launcher_keeps_existing_lock_inode_and_refuses_busy_or_replaced_lock(self):
+        module = self.launcher()
+        created, name = tempfile.mkstemp(prefix="nexolab-lock-regression-", dir="/tmp")
+        os.close(created)
+        lock = Path(name)
+        moved = lock.with_name(lock.name + "-preserved")
+        try:
+            fd, before = module.acquire_existing_lock(lock, os.getuid())
+            try:
+                module.verify_locked_inode(lock, fd, before)
+                with self.assertRaises(BlockingIOError):
+                    module.acquire_existing_lock(lock, os.getuid())
+                lock.rename(moved)
+                lock.touch(mode=0o600)
+                with self.assertRaises(ValueError):
+                    module.verify_locked_inode(lock, fd, before)
+                self.assertEqual(moved.stat().st_ino, before['inode'])
+            finally:
+                os.close(fd)
+        finally:
+            lock.unlink(missing_ok=True)
+            moved.unlink(missing_ok=True)
+
+    @unittest.skipUnless(os.geteuid() == 0, "root caller regression")
+    def test_root_full_partial_handoff_without_owner_fails_before_host_actions(self):
+        result = run_bash(f"bash {DEPLOY} --runtime-mode lan "
+                          f"--source-ref {'a' * 40} --expected-deployed-source {'b' * 40} "
+                          f"--expected-control-source {'c' * 40} "
+                          "--continue-partial-activation /missing --runtime-check-report /missing "
+                          f"--runtime-check-sha256 {'d' * 64} --verified-agent-recovery-report /missing")
+        self.assertEqual(result.returncode, 64)
+        self.assertIn("requires --preserve-service-owner", result.stderr)
+
+    def test_launcher_binds_full_deployer_and_requires_genuine_final_state(self):
+        module = self.launcher()
+        command = module.command("a" * 40, Path("/lan"), Path("/protected"))
+        self.assertIn("--preserve-service-owner", command)
+        self.assertNotIn("--source-selection-check-only", command)
+        self.assertIn(module.CAPTURE_SHA, command)
+        with tempfile.TemporaryDirectory() as temp, patch.object(module, "REPO", Path(temp)):
+            audit = Path(temp) / "runtime/deployments/20261010T000000Z"
+            audit.mkdir(parents=True)
+            values = {'commit': module.TARGET, 'control_origin_main': 'a' * 40,
+                      'frontend_build_id': module.ARTIFACTS['lan']['build_id'],
+                      'external_frontend_source_commit': module.TARGET,
+                      'external_frontend_build_id': module.ARTIFACTS['protected']['build_id'],
+                      'external_frontend_origin': module.ORIGIN}
+            final = audit / 'final-state.txt'
+            final.write_text(''.join(f'{key}={value}\n' for key, value in values.items()))
+            output = f'[time] Evidence: {audit}\n[time] DEPLOYMENT PASSED\n[time] Evidence: {audit}\n'
+            self.assertEqual(module.verify_success(output, 'a' * 40), audit)
+            with self.assertRaises(ValueError):
+                module.verify_success(output.replace('[time] DEPLOYMENT PASSED\n', ''), 'a' * 40)
+            final.write_text(final.read_text().replace(module.TARGET, 'b' * 40))
+            with self.assertRaises(ValueError):
+                module.verify_success(output, 'a' * 40)
 
 
 class RaspberryPiFrontendReleaseTests(unittest.TestCase):

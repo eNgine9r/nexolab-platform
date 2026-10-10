@@ -58,7 +58,7 @@ nexolab_external_frontend_prepare() {
     return 70
   fi
   EXTERNAL_FRONTEND_RELEASE_DIR="$REPO/runtime/external-frontend-releases/${CURRENT_HEAD}-${STAMP}"
-  mkdir -p "$REPO/runtime/external-frontend-releases"
+  nexolab_prepare_release_parent "$REPO/runtime/external-frontend-releases" || return
   nexolab_frontend_prepare_release_source "$REPO" "$CURRENT_HEAD" "$EXTERNAL_FRONTEND_RELEASE_DIR" "" || return
   nexolab_frontend_import_artifact "$EXTERNAL_FRONTEND_ARTIFACT_DIR" "$REPO" \
     "$EXTERNAL_FRONTEND_RELEASE_DIR" "$CURRENT_HEAD" live "$EXTERNAL_FRONTEND_ORIGIN" \
@@ -68,9 +68,10 @@ nexolab_external_frontend_prepare() {
     --release "$EXTERNAL_FRONTEND_RELEASE_DIR" --node "$(command -v node)" \
     --api "$NEXOLAB_API_BASE_URL" --output "$AUDIT_DIR/external-unit-candidate.service" \
     --source "$CURRENT_HEAD" --build "$(cat "$EXTERNAL_FRONTEND_RELEASE_DIR/.next/BUILD_ID")" || return
+  nexolab_handoff_candidate_owner "$EXTERNAL_FRONTEND_RELEASE_DIR" || return
   EXTERNAL_FRONTEND_CANDIDATE_UNIT="nexolab-external-candidate-$STAMP.service"
   sudo systemd-run --unit "$EXTERNAL_FRONTEND_CANDIDATE_UNIT" --collect --service-type=exec \
-    --property "User=$(id -un)" --property "Group=$(id -gn)" \
+    --property "User=$DASHBOARD_USER" --property "Group=$DASHBOARD_GROUP" \
     --property "WorkingDirectory=$EXTERNAL_FRONTEND_RELEASE_DIR" \
     --property MemoryMax=768M --property MemorySwapMax=0 --property TasksMax=64 \
     --property NoNewPrivileges=yes --property PrivateTmp=yes \
