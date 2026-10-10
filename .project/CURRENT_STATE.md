@@ -2,168 +2,398 @@
 
 Updated: 2026-10-10
 
-## Issue #1327 — preserve frontend owner during privileged continuation
+## Current checkpoint — owner-preserving launcher accepted and staged; local execution pending
 
-The #1325 cadence fix is accepted on main 3320d42b1edc3b5a80a3c49a0b8b4e73f1bf056e.
-Actual read-only observation at 2026-10-10T18:11:01Z confirmed both frontend
-services use nexolab:nexolab. Direct root deployment would replace the LAN
-account with root and leave private candidate files unreadable by nexolab.
+#1327 / PR #1328 is accepted on source main 2bda5e6286a4076ae5cf47d2471089d6b3f6b13e.
+Final head 33340ab85bd77dd92408312347cc13181f203db8 has all six exact-head workflows
+GREEN, clean final review and zero review threads. The owner-preserving handoff
+keeps both frontend accounts, private release readability, owner Git/index,
+canonical lock identity and all immutable evidence/data/volume gates.
 
-This source candidate adds an explicit privileged partial handoff, owner Git,
-checked ownership of only new release trees, and candidates running under the
-preserved frontend account. The bound single-use owner-local launcher retains the
-canonical existing lock and immutable reports/artifacts; only genuine deployer
-final state can establish source success. Regression checks cover service
-identity, scoped ownership, owner Git, existing lock and final-state publication.
-Real non-root chown/read integration is unavailable in this scratch UID namespace;
-actual site continuation is not claimed. Exact-head CI/review is pending.
+The exact merged launcher is staged and read back at 2026-10-10T19:11:29.083Z:
+`/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/deploy-partial-continuation-1327.py`,
+14494 bytes, SHA256 55f9bd3d223e6e3a90b8892832208c2cbba47f29212bb9d293c84aa176506378.
+One owner-local full continuation command is ready:
 
-No site activation, restore, package dispatch, gateway change or controller write
-was performed. #1313/#1323 stay open; operator #1318 stays draft/unmerged. All
-whole-site baselines below remain unchanged. Next: source review/CI, then stage
-one exact merged owner-local launcher; offline packages and actual LAN/HTTPS
-install/update/rollback remain required.
+```bash
+sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/deploy-partial-continuation-1327.py --control-source 2bda5e6286a4076ae5cf47d2471089d6b3f6b13e
+```
 
-## Issue #1325 — healthy persisted cadence caused false partial-preflight rejection
+Actual execution remains pending because Commander mounts the source read-only
+and cannot acquire owner-local sudo. No installer was run, no runtime/data/authority
+was changed and no native package dispatch was added. The differently named earlier
+candidate launcher was staged only and is superseded; do not run it. This command
+is full source continuation, not another diagnostic. It has no automatic retry,
+requires genuine final state and keeps current.json/package authority unchanged.
 
-Source #1323 / PR #1324 is accepted on reviewed main
-1556d8f135bcaaa192fe2d338bc07b269e702f5e. Actual V2 diagnostic
-`partial-diagnostic-1323-8bva9_45/report.json` finished at 17:40:46 UTC:
-container/image/mount, all-volume, both frontend and central-readiness checks
-passed; only the 15-second acquisition observation rejected continuation.
-Read-only Commander observation at 17:45:13–17:46:13 UTC confirmed samples
-128297 → 128358 → 128385 → 128385, healthy 3/3 workers, MQTT connected, queue 0
-and 61 persisted targets at 30/60-second intervals. Healthy acquisition can have
-a gap longer than that fixed deadline. No runtime/data/authority mutation.
+#1325 / PR #1326 cadence fix remains accepted; the 30/60-second polling false
+rejection is resolved. Parent #1313/#1323 stay OPEN and #1318 DRAFT/unmerged;
+whole-site baselines remain D00 and the previously captured mixed frontend state.
+Actual unified source activation, source adoption and full LAN/existing Google HTTPS
+offline installation/update/rollback remain required. Earlier commands below are historical.
 
-Focused dependency #1325 derives a bounded window from persisted cadence,
-requires actual counter advancement and retains the existing operational guards.
-Legacy health without cadence metadata retains 15 seconds. Invalid metadata,
-counter reset and flat acquisition fail closed; observation is capped at 120
-seconds. A regression reproduced the old rejection before the fix. The exact
-candidate acquisition functions passed a read-only actual-agent observation at
-17:52:39–17:52:47 UTC: samples 128974 → 128983, healthy 3/3, MQTT true, queue 0.
-This proves only the acquisition guard, not canonical privileged preflight or
-site activation. Module SHA256
-cc5e5824428c0889f02710799b3410267f97608e49f45efd9de0e6d9d98fdaf3.
+## Issue #1323 — actual container baseline drift confirmed; exact field comparison prepared
 
-The final per-poll guard also passed read-only at 18:01:18–18:01:19 UTC:
-samples 129726 → 129733, healthy 3/3, MQTT true, queue 0. Final module SHA256
-f8c25b651a1faf01e5ed07fb7bd4b2a5063c6b9d8acf35ce6236a739074229ab.
+Actual diagnostic `partial-diagnostic-1323-5i2gnzjh/report.json` finished at
+2026-10-10T17:28:38.466869+00:00 and was independently read at 17:30:29 UTC.
+SHA256 `67fb3feb10a245939a9fa826c6f17adbf5acc3c3e1829bf2eced9895cb660b47`.
+The accepted validator rejected the live container/image/mount comparison at
+scripts/forward_deployment_recovery.py, check_partial_live_baseline, line 911.
+Exact input hashes, failed-attempt lineage and captured evidence checks passed;
+the canonical lock was preserved. Fresh volume/frontend/API/agent checks follow
+this guard and are not claimed passed. No runtime/data/authority mutation.
 
-Recovery/adoption/source-selection tests (82) passed, including four late cadence
-corruption cases that failed before per-poll validation. Sprint registration now
-selects #1325 for review, with #1323 blocked on it and recorded as the next work.
-Source CI
-and review remain pending. Next: accept #1325 source after required GREEN checks,
-then one reviewed pinned canonical preflight/continuation. #1313/#1323 stay OPEN,
-#1318 stays DRAFT/unmerged, and whole-site baselines remain unchanged. Corrected
-native packages and real LAN/existing Google HTTPS install/update/rollback and
-authentication acceptance are unfinished. Earlier entries below are historical.
+The V1 diagnostic recorded only the reason and code location, so the particular
+container and changed field remain unknown. V2 records the accepted sanitizer's
+result without changing it, then reports exact captured/live field differences,
+missing/new containers and mount-order-only differences. Original capture and
+all accepted guards remain unchanged; this is not a new baseline or authority.
+Nine tests and Python compile passed; missing diff tests failed before the change.
+Staged and read back byte for byte: 10938 bytes, SHA256
+`c60d05db07b723b685f43ca6405bea3a5bf6c805f5629c6800921c11f559aa26`. Actual V2 execution is pending.
 
-## Issue #1323 — actual mixed runtime verified; explicit preserved-data continuation implemented
+Commander contract inspection found an agent caller error: execution.start takes
+only an alias, not commandAlias/args/cwd. Previous such failures do not prove the
+execution engine unavailable. Fixed-alias execution grants no ADMIN/sudo; the
+privileged canonical lock/evidence check still needs owner-local sudo access.
 
-Corrected V2 report `runtime-check-1323-4j0c_0ij/report.json` was independently
-read at 19:17:48 UTC, SHA256
-`45b29478615b520344d5fba2b8748bfd42c7a81ec17d3ad24daedea3fdeba71f`.
-At 19:16:31 UTC, LAN source/build was D00 / hA8usmV6ZKwgZUYhmOLHZ and protected
-HTTPS was 4b9dc85a / KVMryq76dj1LhzOW30pgA. Both active process working directories
-match their identities. Central API at 172.18.48.66:8082, database and MQTT are
-ready; the exact recovered old agent has healthy 3/3 workers, samples 9650→9653
-and queue 0. All 96 existing volume identities were captured. Control checkout
-remains df5485f6; current.json still records September 9a3556. This is a mixed
-partial C296 central activation, not complete source/package authority. Capture
-made no runtime/data/authority changes; its earlier owner-command gate is passed.
+Current owner action:
 
-Source dependency #1321 is accepted on reviewed main 4379409 after six required
-exact-head workflows and resolved review. The #1323 source branch adds explicit
-continuation of only the same latest failed target, requiring reviewed control,
-prior/target/report pins and verified agent-only recovery. The ordinary unresolved
-mutation gate stays closed. A private partial context grants no success; live
-components, profiles, API/advancing workers and volumes are rechecked, then the
-helper/context are checksum-staged before historical checkout and rechecked
-before quiesce. Fresh normal bounded backup/startup/frontend/snapshot gates retain
-later live data. Site setting/secret changes and evidence retention are refused
-in this mode. All original evidence, site configuration and all pre-existing
-volume identities must remain intact before normal successful authority is written.
+```bash
+sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-diagnostic-1323-v2.py
+```
 
-70 targeted recovery/source-selection tests passed, including real temporary Git
-history and explicit/default/multiple-failure resolver paths; compile, Bash syntax
-and diff checks passed. Source required CI/review and site continuation remain
-pending. No new source deployment, database restore, package handoff, obsolete
-installer retry, gateway/serial/controller change or full installation is claimed.
-Next: exact-head source CI/review, then prepare one exact reviewed owner-local
-continuation, followed by corrected native ARM64 packages and actual LAN/HTTPS
-installation/update/rollback/authentication acceptance. Parent #1313 stays open;
-operator #1318 remains draft/unmerged and whole-site baselines are unchanged.
+Read PARTIAL_DIAGNOSTIC_REPORT remotely and identify the exact drift before any
+runtime repair, recapture or activation. Earlier commands below are historical.
+#1313/#1323 remain OPEN; #1318 DRAFT/unmerged; accepted baselines unchanged.
+Complete LAN/existing Google HTTPS installation/update/rollback remains unfinished.
+No new native package dispatch or site configuration change.
 
-## Issue #1321 — verified scoped agent recovery and permanent startup correction
+## Historical checkpoint — privileged preflight prepared before its actual run
 
-Parent #1313 remains OPEN. Owner recovery V2 was independently verified from
-`agent-recovery-1321-6vfd0nw3/report.json` at 2026-10-09T17:29:09.780Z. The exact
-pre-cutover agent image `sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323`
-is restored; MQTT is connected, workers are healthy 3/3, samples advance 148→149,
-queue is 0, all 96 existing named-volume identities and non-agent containers are
-unchanged. No database restore or package-authority edit occurred.
+## Issue #1323 — index repaired and reviewed main reached; privileged live preflight prepared
 
-**Current runtime is a partial activation, not a whole-stack rollback:** the failed
-`runtime/deployments/20261009T155213Z` crossed central C296 activation, Device Agent
-was subsequently recovered alone, and frontend activation was never reached.
-D00 remains the last accepted deployment baseline; older "currently deployed"
-statements below are historical. Recovery does not resolve canonical deployment
-or package authority. PR #1318 remains DRAFT/unmerged. Do not rerun either earlier
-full installer.
+Actual repair report `git-access-1323-nkacextk/report.json` finished at
+2026-10-10 07:29:05 UTC and was independently read at 07:30:04 UTC.
+SHA256 `1f45fa63a505429dabeb97c3cad531760de830cd65ad1ca5bac12935f575d780`. The index changed only from root UID/GID 0 to
+nexolab UID/GID 1000; its 186,168 bytes, mode 0600, device/inode and exact
+SHA256 d23b038fa078c641124caca115ba15d2298cea1bff43283209865f415d348f19
+were preserved. The index access gate is passed on the actual Pi.
 
-The focused `fix/1321-hardware-agent-startup` source change starts from accepted
-main `df5485f6ece4203a74a84f106195fae855d81731`. Hardware Compose now supplies the
-explicit Python interpreter and absolute entry script. Checksum-staged tooling
-and an immutable image override survive historical checkout. An isolated,
-resource-bounded startup probe runs before quiesce or runtime activation. Offline
-installers and hardware update/rollback also preflight before Dashboard shutdown;
-bundle builds probe the real hardware entry script even when CI uses a simulator.
-New packages require digest-bound `hardware-startup-gate` tooling. See
-`docs/operations/device-agent-startup-preflight.md`.
+Delegated owner preflight `partial-preflight-1323-m9vb3_up/report.json`, SHA256
+`76d899c3b8acf758c09901ae486981d3a195b9617133696c7681e7a4cc340e19`, verified all immutable input/artifact pins and
+fast-forwarded main from df5485f6 to reviewed 1556d8f1. Its private log then shows
+Permission denied opening /tmp/nexolab-current-head-launch.lock and Bad file
+descriptor from flock. The resulting 'another operation is running' message
+does not establish a held lock. Lock UID/holder and live baseline are unverified;
+source selection/activation did not start. No runtime/database/package change.
 
-Targeted software checks passed: 78 module tests plus 16 subtests, 24 SQLite
-snapshot/recovery tests, 18 final-health tests, 30 source-selection tests and 30 offline-workflow contracts.
-First candidate e86cc1fa passed Core quality/build/unit tests, Telemetry and Offline
-Bundle including the isolated hardware entry-script probe, disconnected runtime,
-update/rollback and volume preservation. Merge Gate failed because the new
-helper/test were unknown to the classifier and two required browser workflows
-did not register. Only those two concrete paths are now registered as deployment
-tooling; unrelated unknown paths still fail closed and full Core remains required.
-Review additionally found that a later helper-only change could skip Offline Bundle.
-Both the helper and its focused test now independently require Offline Bundle and
-match its pull-request path triggers. A regression failed for both paths before the
-fix and passes afterward. Full Core and unknown-path fail-closed behavior remain.
-Recovery review also found the lost-image rebaseline helper still required the old
-startup pair. It now recognizes only the old and new exact approved pairs, imports
-the observed pair, verifies the imported image and digest-binds that selected
-configuration in immutable authority. Startup drift fails before publication.
-The regression first rejected the new approved pair. Current-Dockerfile health
-and its fixed LD_LIBRARY_PATH now form a separate exact approved configuration;
-legacy configurations remain accepted, arbitrary combinations are rejected.
-The Dockerfile-derived regression failed before correction; 35 recovery tests
-now pass, including mocked Docker export/import for every approved variant with
-real temporary archive/authority files and fail-closed source drift.
-The classifier change itself triggers broader CI. Final exact-head CI and native
-ARM64 package preparation remain pending. This
-workspace has no Docker; three existing candidate-cleanup baseline tests fail
-because its `ps` command returns `fatal library error, lookup self`. Those failures
-were observed before edits and are not passing evidence. Fresh Commander
-read-only execution also failed internally before starting at 17:33:32 UTC;
-file-based evidence access remains available. No additional site cutover or
-hardware/Modbus write was performed by this source work. Next: required CI,
-explicit mixed-runtime authority reconciliation, corrected ARM64 packages and
-actual LAN/HTTPS install/update/rollback acceptance.
+New preflight V2 separates owner Git from privileged lock/evidence reads. It
+reuses only the existing validated canonical lock inode through nonblocking
+exclusive flock and inherited FD 9; no lock removal, permission change or new
+lock namespace. Busy or drift stops. All Git runs as nexolab with optional index
+refresh disabled, exact reviewed fetch/merge pin, permitted target checkout and
+main restore only. The accepted deployer runs solely with source-selection-check-only,
+bounded by timeout. Afterward lock identity, clean reviewed main and index owner
+must still match. Original inputs, scripts and all site evidence remain preserved.
 
-## Issue #1315 — complete protected ARM64 package build preparation
+Python compile and 14 lock/shim regression tests passed, including actual child
+flock on the inherited descriptor and independent-lock rejection. The executor
+does not expose process-specific /proc/PID/fd paths, so the deployer's complete
+Bash descriptor identity check is pending actual Pi execution, not claimed here.
+V2 was staged/read back byte for byte: 12653 bytes, SHA256
+`c1ef0a9be642c4df9e50ad40a60eb307bbf17f1b521d5ae1e39f9b8c7b645b3b`. Actual V2 execution remains unverified.
 
-Parent #1313 source acceptance is GREEN: PR #1312 merged as `e0a79c988d84d528ae724b7c17c51dbdddd16bc3`, then #1314 merged as `8c1a4510887a141c4efb1d2440d066167d52a47d` after 18 successful workflows on `fc4e3bc375618ebae87c9208cfec3b3f63317427`. Unified source tooling, protected offline transactions and truthful Settings readiness are accepted software. The real site remains LAN `d00a83bfc83fb120777c721b5e46fa50ae455c7d` / HTTPS `4b9dc85ab2e7924195d5d2030fb298aaaf78aaf4`; package authority and actual-host acceptance are unchanged and unverified.
+Fresh Commander execution failed internally before start at 07:31:29 UTC.
+The mandatory next owner-local action is:
 
-ARM64 frontend run `37892179879` failed after successful Next compilation because `/app/public` is absent in the runtime image. #1315 adds a bounded Dashboard Dockerfile fix and the missing optional protected artifact build to Offline Bundle. It uses exact selected runtime SHA in a clean detached worktree, rejects malformed origins/disabled protected authentication and retains LAN-only CI defaults. Local workflow contract tests: 30 PASS, including real temporary Git worktree selection and cleanup after failure; workflow/runbook formatting PASS. Required exact-head CI/review and actual ARM64 package builds remain pending. See `docs/operations/unified-lan-protected-updates.md`.
+```bash
+sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-preflight-1323-v2.py
+```
 
-The owner authorized continuation of host activation, but `sudo -n -v` requires a local password. No privilege restriction was bypassed. The three prior process-cleanup tests passed in an isolated source fixture on the Pi without service changes. Actual operator update/rollback, permitted/denied Google accounts and full session expiry remain separate evidence gates. No production service, persistent data, named volume or hardware/Modbus write occurred in this follow-up.
+Read PARTIAL_PREFLIGHT_REPORT remotely before reviewed continuation. Do not
+repeat index repair or diagnostic capture. Source PR #1324 is accepted and main
+is unchanged; corrected native packages and actual LAN/existing Google HTTPS
+install/update/rollback/authentication acceptance remain pending. #1313/#1323
+stay OPEN, #1318 stays DRAFT/unmerged and accepted whole-site baselines unchanged.
+Earlier commands below are historical checkpoints.
+
+## Historical checkpoint before index repair execution — narrow repair prepared
+
+Owner report `partial-preflight-1323-51l_43lf/report.json` finished on
+2026-10-10 at 06:38:17 UTC and was independently read at 06:40:03 UTC.
+Its SHA256 is `f333e774f40f1dce9fa37bbb1275926d71fc6fbcb98fcae79a0cef929348d6d3`. Both prepared frontend inventories and immutable
+capture/recovery pins passed. It stopped at reviewed_control_checkout with
+`fatal: .git/index: index file open failed: Permission denied`, before HEAD,
+fetch or merge. No service/container/database/package activation occurred.
+
+The privileged V2 diagnostic used plain git status with umask 077. A real Git
+fixture reproduced its optional index refresh replacing the index inode and
+changing mode 0644 to 0600. Root execution can therefore leave the owner's
+index private to root. Actual Pi index UID is not yet verified. V3 uses
+git --no-optional-locks for every diagnostic Git read; mode and inode remain
+unchanged in the regression. Original V2/report and existing preflight are preserved.
+
+The narrow owner-local helper and safer V3 were created and read back byte for
+byte at 06:55:01 UTC. Repair helper SHA256 is
+`383b518ab8756cef5285fd7ff68d6124f01d3ade6bf8cecb6117825b83cfb68a`;
+V3 SHA256 is `5f853f408524de3447e3b4ce13dbe5d75e0f3c61ba45278c7cb0543ca7dafe7e`.
+The helper checks canonical owner/main/index identity and refuses existing locks
+or drift, saves the exact index and repair plan, changes only diagnosed index
+ownership, then verifies identical bytes, inode and mode. It runs the unchanged
+pinned partial preflight as nexolab, never root. No recursive permission change,
+runtime activation, data restore or package authority write. Python compile and
+23 regression/capture tests passed; fixture UID transition is mocked because
+the executor filesystem refuses chown. Actual host repair remains unverified.
+
+Fresh Commander execution failed internally before start at 06:42:31 UTC.
+One local sudo command is the mandatory access gate:
+
+```bash
+sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-repair-git-access-1323.py
+```
+
+Read GIT_ACCESS_REPORT and PARTIAL_PREFLIGHT_REPORT remotely before preparing the
+reviewed continuation. Do not request another runtime capture. Source PR #1324
+is already accepted; main is unchanged. Corrected native packages and actual
+LAN/existing Google HTTPS install/update/rollback and authentication acceptance
+remain pending. Parent #1313 and #1323 stay OPEN; operator #1318 stays DRAFT and
+unmerged; accepted whole-site baselines remain unchanged. Earlier commands below
+are historical checkpoints, not current owner actions.
+
+## Historical checkpoint before owner preflight — corrected runtime and source accepted
+
+V2 report `runtime-check-1323-4j0c_0ij/report.json` was read in full at
+19:17:48 UTC, SHA256 `45b29478615b520344d5fba2b8748bfd42c7a81ec17d3ad24daedea3fdeba71f`.
+LAN 3000 is D00 / hA8usmV6ZKwgZUYhmOLHZ; protected 3100 is 4b9dc85a /
+KVMryq76dj1LhzOW30pgA. Both are active with matching process directories.
+Central API on actual 172.18.48.66:8082, PostgreSQL and MQTT are ready. Exact
+recovered old agent is healthy, MQTT connected, workers 3/3, samples 9650→9653,
+queue 0. All 96 existing volume identities are captured. The failed C296 central
+activation remains partial; current.json is the stale September 9a3556 record.
+No runtime/data/authority change occurred. The earlier V2 capture gate is passed;
+all earlier diagnostic/full-installer instructions below are historical.
+
+Focused source PR #1324 passed final exact-head CI 37982198820 (quality/build,
+policy/contracts, unit tests and Merge Gate) and Telemetry 37982198819 on
+20704fba23c9459eaf971543c9dc19b1ac9ab528. Review completed without findings;
+source is accepted. 70 targeted recovery/source-selection tests and compile,
+Bash syntax, State Model v2 and diff checks passed. The explicit preserved-data
+continuation accepts only the same latest failed target with exact reviewed
+control/prior/target/report/recovery pins. Original evidence and site settings
+are preserved, helper/context are checksum-staged before historical checkout,
+live identities are rechecked before quiesce, fresh bounded backup/snapshot gates
+retain post-failure data, and all 96 old volume identities must remain unchanged
+before genuine new deployment success. The default unresolved gate stays closed.
+This source acceptance is not a site deployment or package handoff.
+
+The prepared paired C296 ARM64 frontends remain pinned to LAN build
+Ar6aVrTWJICF6TKFaWxHw and protected build mcG0fHLcpCeVbTX--85gF, preserving
+actual LAN API and existing Google HTTPS origin. New owner-local preflight is
+staged and read back exactly, SHA256 `ac86897d2e413595ceaa864303f735a64daa3a60e81301568015ec540cbd5b89`.
+It checks pinned input/artifact inventories, fast-forwards tracked main only to
+reviewed control, and executes source-selection-check-only. It performs no
+service/container/database/package/controller mutation. Compile and two simulated
+read-only/drift-before-checkout cases passed; actual execution is not claimed.
+Fresh Commander execution still failed internally before start at 19:46:54 UTC.
+One owner-local command is the remaining mandatory access gate:
+
+```bash
+python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-partial-preflight-1323.py
+```
+
+Read its private PARTIAL_PREFLIGHT_REPORT remotely, then prepare/execute only the
+concrete reviewed continuation. Source dependency #1321 is accepted. Corrected
+native ARM64 packages and actual paired LAN/HTTPS install/update/rollback,
+authentication and data preservation are still required. Previous native build
+dispatch permissions have already been used. Parent #1313 and #1323 stay OPEN;
+operator #1318 remains DRAFT/unmerged; accepted whole-site baselines are unchanged.
+
+## Historical checkpoint before corrected V2 execution — runtime capture prepared
+
+Owner report `runtime-check-1323-6ql6q9dk/report.json` finished at 18:49:30 UTC
+and was independently read at 19:00:09 UTC. The recovered exact old Device Agent
+is running and healthy: MQTT connected, 3/3 workers, samples 7262→7277 and queue 0.
+Control main/cached origin remain df5485f6 and tracked files are clean. The
+version-management record still reports source 9a3556b25b25 from 4 September;
+this is stale lineage, not evidence of a validated package or current activation.
+The failed attempt retains its mutation marker and lacks final/restore/forward
+authority. No runtime, data or authority mutation occurred during capture.
+
+V1 has a diagnosed capture defect: it queried LAN/protected on 3100/3102, although
+the active profiles use 3000/3100, and selected source_sha rather than the API's
+source_commit. It also assumed central API loopback instead of inspecting the
+actual Docker host binding. Its HTTP 0 results do not establish service failure;
+its frontend source/build fields do not establish actual per-profile identity.
+V1 snapshot SHA selection also hid the metadata-file checksum. Preserve the
+original report and script; do not use these fields as activation authority.
+
+Corrected V2 derives each active frontend port from whitelisted systemd
+ExecStart, rejects candidate/mismatched ports, selects the canonical source_commit,
+and records process working directory without raw command/environment output.
+Central readiness uses its unique Docker-published socket only on an actual local
+IPv4 interface. All existing named-volume identities are captured; immutable
+snapshot/marker/quiesce/import metadata checksums are separate from data digests.
+New regression failed V1 first; Python compile and **14 tests passed**, including
+an integrated distinct-profile/LAN-bound API fixture and secret exclusion.
+
+V2 is staged and independently read back unchanged at 19:07:14 UTC: 17,015 bytes,
+SHA256 `5a840d24170e9b17565c71258e141e128ab546d22bc8e9e750b72cc50751a143`.
+It only reads metadata/health and writes a private atomic report. Fresh remote
+read-only execution failed internally before start at 19:00:58 UTC, so one
+owner-local capture is required:
+
+```bash
+sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-runtime-check-1323-v2.py
+```
+
+Read its printed UNIFIED_RUNTIME_REPORT remotely before selecting a concrete
+guarded continuation. Source dependency #1321 is accepted; source #1323
+continuation implementation/native package rebuild/site acceptance remain
+pending this corrected actual-host evidence. No obsolete installer, SQLite/DB
+restore, hand-written current.json, gateway configuration or controller write.
+Parent #1313 remains open; operator #1318 stays draft/unmerged and accepted
+whole-site baselines remain unchanged.
+
+## Historical checkpoint before V1 capture — scoped agent recovery VERIFIED; permanent source correction accepted
+
+The V2 report `agent-recovery-1321-6vfd0nw3/report.json` was independently read at
+2026-10-09T17:29:09.780Z. Recovery finished at 17:28:29 UTC with
+`agent_recovery_verified`: exact old image
+`sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323`,
+MQTT connected, healthy 3/3 workers, samples 148→149 and queue 0. All 96 existing
+named-volume identities and non-agent containers remain unchanged. Only Device
+Agent was recreated; no database restore or package-authority edit occurred.
+The report and durable recovery override remain preserved. Prior recovery
+commands below are historical and must not be rerun.
+
+The current stack is still a partial C296 central activation with the old agent
+recovered; frontend activation was never reached. This does not prove whole-stack
+D00 rollback or C296 acceptance. D00 remains the last accepted deployment baseline.
+The unresolved mutation must be reconciled explicitly before a full installer
+retry; do not fabricate current.json, restore newer SQLite data or run either
+earlier full installer.
+
+Permanent startup correction is published in [PR #1322](https://github.com/eNgine9r/nexolab-platform/pull/1322),
+exact head `40e5af2b6b01790d398fd94b101e2d73771b77d0`, tree
+`840d4182a0d2979093d723a5cc8e720ff978f39b`, based on canonical main df5485f6.
+The explicit interpreter/absolute script, immutable image override and staged
+startup gate survive historical checkout. Offline hardware installation and
+update/rollback also preflight before Dashboard shutdown or central activation;
+new packages require digest-bound hardware-startup-gate tooling. Targeted
+checks and all six final-head CI workflows passed, including real image startup,
+disconnected runtime, update/rollback and volume preservation (PR Linux/amd64).
+PR #1322 squash-merged as `4379409bce04db7d81c77ed32c13987ec7612148`; Issue #1321 is closed.
+This source acceptance is not native ARM64 package or actual site acceptance.
+No full installer retry occurred. Fresh Commander read-only execution still
+fails internally before start at 17:33:32 UTC; file-based evidence access works.
+
+First source candidate passed Core/build/unit tests, Telemetry and Offline Bundle
+but aggregate Merge Gate failed because two required browser workflows did not
+register for unknown new helper paths. Their explicit deployment-tooling
+registration and fail-closed regressions now pass 217 local policy/state tests
+(one existing skip); the corrected final head runs all six triggered workflows.
+Review also found that standalone helper changes could skip Offline Bundle.
+Both helper/test paths now independently require and launch it; the regression
+failed before the correction and passes afterward, with 99 related tests GREEN.
+The lost-image recovery helper now also recognizes and reproduces only the
+observed old/new exact startup pair, verifies imported image configuration and
+digest-binds immutable authority. Drift fails before publication. All review
+findings are addressed; 146 affected tests pass, including mocked Docker
+export/import with real temporary archive/authority files for all configurations.
+The current-Dockerfile healthcheck and fixed LD_LIBRARY_PATH are reproduced
+exactly; legacy configurations remain accepted and mixed contracts fail closed. No lost-image rebaseline/export was performed on the actual host.
+All required final-head workflows and Merge Gate are GREEN on `40e5af2b6b01790d398fd94b101e2d73771b77d0`.
+The accepted tooling merge is `4379409bce04db7d81c77ed32c13987ec7612148`; actual host
+control checkout still needs explicit preparation. Native packages require rebuild.
+
+Follow-up [#1323](https://github.com/eNgine9r/nexolab-platform/issues/1323) records
+mixed-runtime authority reconciliation. A bounded owner-local read-only capture
+is prepared and read back unchanged at 18:01:09 UTC:
+`nexolab-unified-runtime-check-1323.py`, 12,542 bytes, SHA256
+`513b735c59b96f370753602e724d43e893e6c65c52daef89d2c7149c9ea55f61`.
+Python compile and six sanitized/read-only capture tests passed. It reads current
+container/image/volume, frontend identity and authority metadata and writes only
+a private report; no actual capture or service mutation is claimed. Owner runs:
+
+```bash
+sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-unified-runtime-check-1323.py
+```
+
+Inspect the printed UNIFIED_RUNTIME_REPORT remotely before deciding the concrete
+continuation. This is the mandatory access/evidence gate because Commander
+execution still fails internally; it does not rerun a full installer.
+
+Parent #1313 remains OPEN and operator PR #1318 remains DRAFT/unmerged. Next:
+fresh owner-local read-only report, explicit mixed-runtime authority reconciliation, rebuilt
+native ARM64 current/rollback packages and actual LAN/HTTPS update/rollback and
+Google authentication journeys.
+
+## Historical stopped V1 and V2 preparation — superseded by verified recovery above
+
+## Issue #1321 — owner recovery stopped before mutation; corrected v2 prepared
+
+Owner ran recovery v1 at 17:12:53 UTC. The remotely read report `agent-recovery-1321-vhiqjqml/report.json` says `recovery_stopped_unverified`, reason `Preserved recovery image identity mismatch`, **runtime mutation none**. The six protected volume identities passed before that gate. No agent recreation occurred. The combined v1 image-ID/OCI-revision check omitted observed metadata, so its report cannot distinguish an ID mismatch from a missing label.
+
+Source inspection and new failing regressions found an error in the operator script: it required OCI Git-revision labels that canonical local Docker build/import does not guarantee. Corrected v2 still requires the exact old image `514b504...`, bound to recovery/snapshot/quiesce source-target evidence. It also pins candidate config/manifest/index digests from the owner's exact C296 build log and rejects unknown image IDs even with a matching label. OCI labels are diagnostic only; whitelist image/container metadata is recorded before gates and the private report is fsynced before agent recreation. No site/startup source change or successful recovery is claimed.
+
+V2 Python compile and **17 tests plus three digest subtests** passed; new regressions failed against v1 first. V2 is staged and read back unchanged at 17:21:35 UTC, SHA256 `05969ab467ff962c561af4ef946a044d45814fc8ef80f97416b2605cd5ae8d65`, 22,492 bytes. The original script/report are preserved. Fresh read-only Commander execution again failed internally at 17:15:50 UTC before starting, without fallback or retry loop. Owner-local execution remains required:
+
+```bash
+sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321-v2.py
+```
+
+Read the new `AGENT_RECOVERY_REPORT` before continuing. Agent recovery, source startup remediation, genuine package authority, LAN/HTTPS update/rollback and Google journeys remain pending. Full installers stay paused; #1313/#1321 remain OPEN and #1318 DRAFT/unmerged. The earlier partial central/edge cutover is not an accepted whole-stack deployment; baselines remain unchanged.
+
+## Historical failed guarded install and v1 recovery preparation — superseded above
+
+The owner ran the reviewed guarded installer. Attempt `runtime/deployments/20261009T155213Z` completed a **927,435,219-byte bounded PostgreSQL dump and archive-list validation**, then crossed the runtime-mutation boundary at 19:04:34 EEST. The central services activated; edge MQTT and Device Agent were recreated. At 19:05:22 Device Agent failed with `exec: "dual_bus_main.py": executable file not found in $PATH`. The hardware overlay supplies a bare script while the current image has a full interpreter CMD and no Python ENTRYPOINT. The consistent pre-cutover SQLite snapshot, exact D00 agent recovery image and private failure evidence are preserved. Backup completion does not establish restore or full-install acceptance.
+
+This is a **partially changed runtime**, not a successful whole-stack D00/C296 deployment. Control-source restoration to df5485f6 is not runtime rollback. Frontend activation, source adoption, guarded worker installation and package authority handoff were not reached. Current live frontend identities and acquisition require fresh evidence. Accepted/deployed _accepted_ baselines remain anchored to D00; do not fabricate current.json or claim new acceptance. Keep #1313 OPEN and #1318 DRAFT/unmerged.
+
+Critical follow-up [#1321](https://github.com/eNgine9r/nexolab-platform/issues/1321) records the startup/pre-mutation verification gap. Commander read-only execution failed internally at 16:30:05 UTC before starting. A narrow owner-local recovery is staged as `nexolab-agent-recovery-1321.py` in the guarded workspace, SHA256 `7257e9c66811c2c29f579e48c24a07d89f896a4cdd9fa3104c453dfd36a149b6`; exact remote readback passed at 16:49:20 UTC. Python compilation and 11 isolated mocked gate tests passed. No recovery execution is claimed.
+
+The recovery gates exact image/source, current failed container, site environment, Compose model, mounts/networks and existing volume identities. It probes the interpreter/script without network/data/device access, then recreates **only Device Agent** with no dependencies/builds/pulls. Success requires exact old image, Docker health, MQTT, three healthy acquisition workers, advancing samples and unchanged other containers/volumes. It does not restore databases or change package authority. Owner password entry stays in the terminal:
+
+```bash
+sudo python3 /home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/nexolab-agent-recovery-1321.py
+```
+
+Inspect the printed `AGENT_RECOVERY_REPORT` remotely before resuming work. **Do not rerun either full installer.** Recovery and the source startup correction must precede a reviewed unified-install retry; Settings LAN/HTTPS update/rollback and Google session journeys remain unverified. Historical notes below do not override this failed-cutover status.
+
+## Historical #1313 preparation and first interrupted backup — superseded above
+
+Actual-host guarded preparation is accepted. The owner ran the staged nonprivileged preparer; its report `prepare-3pf3m7i2/report.json` was read at 15:07 UTC and independently checked against exact reviewed pins. Both full current C296 / target df5485f6 packages and the reused paired C296 frontend inventories passed on Raspberry. Control source is canonical df5485f6, with a fresh clean main/origin-main status at 15:11 UTC. Installer `--check` passed; preparation used no sudo and performed no runtime mutation. A fresh read of the actual staged installer matches SHA256 `c68ddff14fcaa42cdd4f6268bab881cf37ce84494602b29c7d6cd89822d856f0`. Earlier native CI/full local package evidence remains valid. The Python extraction deprecation warning did not stop verification. Next is the previously authorized owner-local guarded installer, with password entry only in the terminal. Full bounded site backup, installed guard, genuine package authority, LAN/HTTPS target update/rollback and Google journeys remain unverified; keep #1313 OPEN and #1318 DRAFT.
+
+The owner ran the prepared installer and reported a host freeze, followed by a physical reboot. Attempt `runtime/deployments/20261009T074623Z` last logged “Creating PostgreSQL pre-upgrade backup” at 10:52:53 EEST. The runtime evidence archive completed (2,539,446,366 bytes); PostgreSQL has only a preserved 1,221,208-byte partial file and no completed dump. No `runtime-mutation-started` marker exists; no new frontend was activated. The exact freeze cause remains unconfirmed: available previous-boot kernel/oomd logs contain no OOM, disk-I/O, voltage or thermal failure. This absence cannot rule out an unflushed failure. Current swap is 2 GiB zram; no disk swap is active.
+
+After reboot at 10:57:55 EEST, both frontend services are active with unchanged LAN `d00a83bf` / build `hA8usmV6ZKwgZUYhmOLHZ` and HTTPS `4b9dc85a` / build `KVMryq76dj1LhzOW30pgA`. API/database/MQTT are ready; Device Agent is ok, connected, queue 0. All six named volumes have unchanged Name/CreatedAt/Mountpoint/Driver versus the pre-attempt snapshot. This is service and volume-identity evidence, not a full data-integrity, restore or hardware-acceptance claim. No recovery restart, deployment, data/volume deletion or hardware/Modbus write was performed.
+
+The owner copied the captured report into the allowed project runtime directory. NEXUS Commander read `/home/nexolab/nexolab-platform/runtime/recovery-authority-20261009T082453Z-51972.json` successfully at 09:29:09 UTC; the report snapshot is from 08:25:01 UTC. It records legacy source `9a3556b25b257396d15db80af591d1cc3684b8f7`, `controlled_source_deployment`, no bundle root, and deployment date 2026-09-04. Requests and operations are both empty. One old catalog entry has a validation marker; its contents were not reverified and it does not establish current package authority. The historical record differs from the real LAN `d00a83bf` and HTTPS `4b9dc85a` identities. No authority record was edited. The report-copy gate is resolved; genuine package authority remains unestablished.
+
+The attempt's capacity report proves a successful 778,213,529-byte streamed dump and cached reuse before the real backup. Read-only diagnostics at 09:39:39 UTC found 2,358,240 KiB available RAM, 120,932,651,008 bytes free disk, zram swap only, PostgreSQL running without a Docker memory cap and no recorded container OOM. The database is 16,170,248,519 bytes; the two largest relations account for almost all storage. The interrupted partial dump is still 1,221,208 bytes. These current observations do not establish the historical freeze cause.
+
+Commander execution failed with `EXECUTION_HANDLER_FAILED`; writes to the attempted runtime and prepared-workspace script paths were refused by write policy. No alternative upload or root-record access was used. Previously authorized fallback performed only bounded metadata/catalog reads and an inert client test, with output kept locally. The test launched `pg_dump --version` under a 512 MiB virtual-memory limit and 600-second CPU limit inside the PostgreSQL container; a two-second timer terminated a separate `sleep` in 2.101 seconds (exit 143). A subsequent process check found neither `sleep` nor `pg_dump`; all three diagnostic processes completed. No database connection/dump occurred in this inert test, and no production resource setting was changed. The read-only diagnostic script was saved as a separate operator artifact; it was not installed on the host.
+
+Installed deployment/version-manager/preflight backup paths remain unguarded. A focused software correction is implemented under Issue #1319 on `fix/1319-bounded-postgresql-backups`, local commit `406b0d950adf9c1b18d2e8a24ccdf01c3b416491` / tree `f6a550d156e2126d1489e02aa12af85587243c71`. Its fifteen changed code/test/runbook/workflow files contain no project checkpoint changes or new host observations. The client policy caps virtual memory, CPU and elapsed time inside PostgreSQL, verifies archive listing before promotion, preserves private partial/diagnostic files on failure, and is included in worker/package assets. Capacity tooling snapshots the canonical policy before historical checkout changes and never trusts inherited executable policy.
+
+Final local source checks passed: 189 tests and 48 subtests; shell parsing, host contract, formatting and diff checks passed. Earlier local state checks passed with one existing skip. A local root namespace UID/GID override was needed for existing ownership tests; production defaults are unchanged. On 2026-10-09 at 10:28:50 UTC the owner explicitly authorized publication of both source correction and separate operator checkpoint to `eNgine9r/nexolab-platform`. This resolves the earlier automatic disclosure review rejection. Terminal Git push lacked credentials; the connected GitHub publication created PR #1320 at `e34035a996a1177954db80063c6a36e50ae519f3` with the exact locally verified tree `c4e47971f3449c59fc2765d317813a4d9328e1fb`. The initial Telemetry and Offline Bundle workflows passed; Merge Gate refused the candidate because three backup paths were unregistered and required browser workflows did not start. The correction registers those exact paths and matching Telemetry/offline triggers while preserving unknown-path fallback. Routing/matrix/workflow regressions passed 96 tests and 77 subtests. Final head `4b187ff44df7fe7418284c42fb0abcc013fc8232` / tree `f6a550d156e2126d1489e02aa12af85587243c71` matches the local tree and now has all six workflows GREEN, including Core/Merge Gate, Offline Bundle, Telemetry and both required browser lanes. Manual Team Lead review found no blocking defect and review threads are empty. PR #1320 was accepted and squash-merged as `df5485f6ece4203a74a84f106195fae855d81731`; #1319 is closed for source scope only. The earlier published source/tree is a historical first candidate. The guard is not installed or proven with a full site backup. Keep #1318 draft and canonical tooling/target pinned to accepted `df5485f6` during new package preparation; do not rerun the old installer.
+
+The replacement preparation pins canonical tooling and new target runtime to accepted `df5485f6ece4203a74a84f106195fae855d81731`; current remains genuine C296. Both replacement native packages are built and verified. Final scripts use their exact archive/manifest/guard hashes. Owner-local preparation freshly validates both packages and the existing paired C296 frontend artifacts, fast-forwards only a clean canonical control checkout using the reviewed Git bundle, and runs installer `--check` without sudo or runtime mutation. Read its new permitted report before the separate guarded installation. Full site backup/restore, genuine package authority, LAN/HTTPS update/rollback and Google account/session acceptance remain unverified. Keep #1318 draft and main/tooling pinned; preserve old packages/partial evidence and never rerun the obsolete installer.
+
+## Issue #1317 — prepared unified installation checkpoint; local privilege required
+
+The captured-report checkpoint is verified and retained locally. Earlier automatic review rejected host metadata and then the stricter code-only source publication for missing explicit destination authorization. The owner has now authorized both publications to `eNgine9r/nexolab-platform`; that gate is resolved. Source PR #1320 is published with a tree identical to the local tested candidate; the four-file operator checkpoint was published at `62f699ec` in existing draft PR #1318 and state-only CI `37918873017` passed including State integrity and Merge Gate. Final source CI is now GREEN and source PR #1320 is merged; the previous remote checkpoint `b79ab779` passed state-only CI `37929286419`. This follow-up records both verified native packages and the staged exact-pinned scripts; owner-local preparation and installer --check are now accepted; local privileged activation remains pending.
+
+PRs #1312, #1314 and #1316 are merged. #1316 source `c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2` / tree `35392897604d8279af5bf9319c7e764473ac0a79` passed Core/Merge Gate `37893099196`, Telemetry `37893099231` and Offline Bundle `37893099295`. Main `a78ee7d564db2ada8d1e7c5efe192ce72fd2f56b` has the same product tree and GREEN push CI `37893906475`; both package source identities are canonical-main history. #1315 fixed the missing runtime `public` directory and added exact-source protected frontend preparation to the standard offline workflow. Local checks: 30 workflow contracts, 28 project-state tests (one existing skip), 10 protected frontend/package tests, formatting, Bash parsing and State Model v2 integrity passed.
+
+ARM64 paired frontend run `37893277127` is GREEN. Both artifacts were transferred to `/home/nexolab/commander-workspaces/unified-update-c296c58f3cb2/artifacts` and checksum/source/platform inventories verified: LAN build `Ar6aVrTWJICF6TKFaWxHw`, HTTPS build `mcG0fHLcpCeVbTX--85gF`. The actual-host control checkout is clean canonical main; source-selection-only validation passed for installed `d00a83bfc83fb120777c721b5e46fa50ae455c7d` → selected `c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2`, including exact Device Agent recovery image. LAN/HTTPS identities are unchanged and API/database/MQTT are ready. At 07:24 UTC the Device Agent reported `degraded`, MQTT connected, queue 0, all 3/3 bus workers healthy and no degraded/cooldown endpoints; the final read after the installer check returned `ok` with the same healthy worker/queue invariants. This is read-only preparation evidence, not formal hardware acceptance. Existing generated bytecode cache was moved to the prepared workspace without deleting it.
+
+Current protected ARM64 package run `37893279867` and target run `37893977461` both completed GREEN, including disconnected startup, local-auth continuity and data/volume-preserving update/rollback proof. Both archives were transferred and extracted on the actual host; reviewed package verification passed for all inventories, platform, source, local auth and protected-origin contracts. Current archive SHA256 `14d8d87698b381736287d60273a3d60716817b8cfecf56309f6c5e3b86b34986`; target `61adf062b9d0112c17c511edabb81a747fae4029edbec547a1c012a4d0c39a27`. Full bundle IDs, manifest hashes and protected build IDs are recorded in #1313 evidence. The current reviewed source and canonical merge target have the same product tree and distinct genuine source IDs. The prepared installer `--check` passed on the actual host at 07:26 UTC: `PREPARED_FILES_VERIFIED`, `ALL_PACKAGES_AND_INSTALLER_CHECK_PASSED`, exit 0; no sudo or runtime activation occurred.
+
+The owner requested continuation. Actual installation still needs local sudo: `sudo -n -v` requires a password. The pinned installer is `/home/nexolab/commander-workspaces/unified-update-c296c58f3cb2/nexolab-unified-update.sh` (SHA256 `097af197dedcfc4b8e80855a71a7d0a03f23b7731da31f954e55f7b8e799fd4a`). It verifies prepared files before sudo, uses the reviewed Node runtime and existing `.env.central` / `.env.edge-central`, rejects queued/active operations or existing package authority, preserves worker settings/backup evidence, and invokes canonical source deployment/adoption, worker installation, staging and the backup/volume/readiness authority transition. It never edits `current.json` to fake package authority. No production service, data, named volume or hardware/Modbus mutation occurred during preparation.
+
+Parent #1313 remains blocked/open until installation and authenticated LAN+HTTPS target update/rollback are proven; Google permitted/denied accounts and full session expiry remain separate evidence gates. Keep #1317 checkpoint PR **draft** until actual-host acceptance. The former A78 prepared target is superseded by accepted backup-tooling merge `df5485f6`; replacement packages are pending and old packages remain preserved. Baselines below remain the real installed `d00a83bf` authority. See `docs/operations/unified-lan-protected-updates.md`.
 
 ## Issue #1309 — verified shared BuildKit cache v3 and cross-branch acceptance (GREEN)
 
