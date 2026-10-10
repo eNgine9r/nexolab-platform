@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
-# Existing Google gateway stays in place. Only its frontend release is replaced.
+# Preserve the existing Google gateway policy and its pre-handoff active state.
 EXTERNAL_FRONTEND_ENABLED=0
 EXTERNAL_FRONTEND_TOUCHED=0
 EXTERNAL_FRONTEND_RELEASE_DIR=""
 EXTERNAL_FRONTEND_CANDIDATE_UNIT=""
+EXTERNAL_FRONTEND_GATEWAY_WAS_ACTIVE=0
+
+nexolab_external_frontend_tool() {
+  if [[ -n "${EXTERNAL_FRONTEND_TOOL:-}" ]]; then
+    sha256sum --check --status "$AUDIT_DIR/protected-frontend-tool.sha256" || return
+  fi
+  python3 "${EXTERNAL_FRONTEND_TOOL:-$SCRIPT_DIR/nexolab-protected-frontend.py}" "$@"
+}
 
 nexolab_external_frontend_preflight() {
   local unit=/etc/systemd/system/nexolab-external-frontend.service
@@ -28,17 +36,30 @@ nexolab_external_frontend_preflight() {
     log "ERROR: current protected frontend must be active before a handoff"
     return 70
   }
-  python3 "$SCRIPT_DIR/nexolab-protected-frontend.py" validate \
+  nexolab_external_frontend_tool validate \
     --unit "$AUDIT_DIR/external-unit-before.service" --nginx /opt/nexolab-external/nginx.conf \
     --origin "$EXTERNAL_FRONTEND_ORIGIN" --organization "$FRONTEND_ORGANIZATION_ID" --api "$NEXOLAB_API_BASE_URL" || return
-  python3 "$SCRIPT_DIR/nexolab-protected-frontend.py" snapshot --origin "$EXTERNAL_FRONTEND_ORIGIN" \
+  nexolab_external_frontend_tool snapshot --origin "$EXTERNAL_FRONTEND_ORIGIN" \
     --output "$AUDIT_DIR/external-identity-before.json" || return
   nexolab_frontend_verify_profile "$EXTERNAL_FRONTEND_ARTIFACT_DIR/frontend-runtime-contract.txt" true || return
   [[ "$(tr -d '[:space:]' < "$EXTERNAL_FRONTEND_ARTIFACT_DIR/frontend-source-sha.txt")" == "$CURRENT_HEAD" ]] || {
     log "ERROR: protected and LAN artifacts must share the selected source commit"
     return 70
   }
+  nexolab_external_frontend_tool gateway-active --origin "$EXTERNAL_FRONTEND_ORIGIN" || return
+  EXTERNAL_FRONTEND_GATEWAY_WAS_ACTIVE=1
   EXTERNAL_FRONTEND_ENABLED=1
+}
+
+nexolab_external_frontend_restore_gateway() {
+  [[ "$EXTERNAL_FRONTEND_GATEWAY_WAS_ACTIVE" == 1 ]] || {
+    log "ERROR: refusing to start a gateway without a successful active preflight"
+    return 70
+  }
+  # Stopping a required frontend also stops its NGINX dependent. Starting
+  # the frontend does not reverse that systemd dependency transaction.
+  sudo timeout -k 5 15 systemctl start nexolab-external-nginx.service || return
+  nexolab_external_frontend_tool gateway --origin "$EXTERNAL_FRONTEND_ORIGIN" || return
 }
 
 nexolab_external_frontend_cleanup_candidate() {
@@ -63,7 +84,7 @@ nexolab_external_frontend_prepare() {
   nexolab_frontend_import_artifact "$EXTERNAL_FRONTEND_ARTIFACT_DIR" "$REPO" \
     "$EXTERNAL_FRONTEND_RELEASE_DIR" "$CURRENT_HEAD" live "$EXTERNAL_FRONTEND_ORIGIN" \
     "$websocket" local "$FRONTEND_ORGANIZATION_ID" "$AUDIT_DIR/external-artifact-import.txt" true || return
-  python3 "$SCRIPT_DIR/nexolab-protected-frontend.py" render \
+  nexolab_external_frontend_tool render \
     --origin "$EXTERNAL_FRONTEND_ORIGIN" --unit "$AUDIT_DIR/external-unit-before.service" \
     --release "$EXTERNAL_FRONTEND_RELEASE_DIR" --node "$(command -v node)" \
     --api "$NEXOLAB_API_BASE_URL" --output "$AUDIT_DIR/external-unit-candidate.service" \
@@ -82,11 +103,12 @@ nexolab_external_frontend_prepare() {
     "$(command -v node)" "$EXTERNAL_FRONTEND_RELEASE_DIR/node_modules/next/dist/bin/next" \
     start --hostname 127.0.0.1 --port "$port" || return
   local probe_rc=0
-  python3 "$SCRIPT_DIR/nexolab-protected-frontend.py" probe --origin "$EXTERNAL_FRONTEND_ORIGIN" \
+  nexolab_external_frontend_tool probe --origin "$EXTERNAL_FRONTEND_ORIGIN" \
     --port "$port" --source "$CURRENT_HEAD" \
     --build "$(cat "$EXTERNAL_FRONTEND_RELEASE_DIR/.next/BUILD_ID")" || probe_rc=$?
   nexolab_external_frontend_cleanup_candidate || return
-  return "$probe_rc"
+  [[ "$probe_rc" == 0 ]] || return "$probe_rc"
+  nexolab_external_frontend_tool gateway-active --origin "$EXTERNAL_FRONTEND_ORIGIN" || return
 }
 
 nexolab_external_frontend_rollback() {
@@ -96,11 +118,12 @@ nexolab_external_frontend_rollback() {
   sudo systemctl daemon-reload || return
   if [[ "$(cat "$AUDIT_DIR/external-active-before.txt")" == active ]]; then
     sudo systemctl start nexolab-external-frontend.service || return
-    python3 "$SCRIPT_DIR/nexolab-protected-frontend.py" probe --origin "$EXTERNAL_FRONTEND_ORIGIN" \
+    nexolab_external_frontend_tool probe --origin "$EXTERNAL_FRONTEND_ORIGIN" \
       --identity "$AUDIT_DIR/external-identity-before.json" || return
+    nexolab_external_frontend_restore_gateway || return
   fi
   EXTERNAL_FRONTEND_TOUCHED=0
-  log "Restored previous protected frontend unit and its original identity file"
+  log "Restored previous protected frontend identity and verified existing gateway denial"
 }
 
 nexolab_external_frontend_activate() {
@@ -110,8 +133,8 @@ nexolab_external_frontend_activate() {
   sudo install -m 0644 "$AUDIT_DIR/external-unit-candidate.service" /etc/systemd/system/nexolab-external-frontend.service || return
   sudo systemctl daemon-reload || return
   sudo systemctl start nexolab-external-frontend.service || return
-  python3 "$SCRIPT_DIR/nexolab-protected-frontend.py" probe --origin "$EXTERNAL_FRONTEND_ORIGIN" \
+  nexolab_external_frontend_tool probe --origin "$EXTERNAL_FRONTEND_ORIGIN" \
     --source "$CURRENT_HEAD" --build "$(cat "$EXTERNAL_FRONTEND_RELEASE_DIR/.next/BUILD_ID")" || return
-  python3 "$SCRIPT_DIR/nexolab-protected-frontend.py" gateway --origin "$EXTERNAL_FRONTEND_ORIGIN" || return
+  nexolab_external_frontend_restore_gateway || return
   log "Protected frontend exact source/build and anonymous gateway denial verified"
 }

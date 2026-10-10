@@ -1,5 +1,40 @@
 # NEXOLAB Current State
 
+## Issue #1331 — gateway dependency stopped HTTPS during frontend handoff
+
+The owner continuation with accepted control 53e4812a passed the original partial
+baseline, startup and both frontend candidates. Attempt
+`runtime/deployments/20261010T194054Z` refreshed backups and mutated central/agent
+services, then stopped at gateway verification. The installed NGINX unit requires
+the protected frontend. Stopping that frontend stopped NGINX successfully at
+19:54:27 UTC; starting only the frontend did not restore its dependent gateway.
+Rollback restored both old frontend identities but omitted the gateway. This is
+a reproduced source/package lifecycle defect, not another baseline rejection.
+
+Read-only actual-host checks: central HTTP 200 ready, agent healthy with MQTT,
+queue 0 and samples 506 -> 565 over 35 seconds; both old frontends active under
+nexolab. All 96 original volume identities (Name, Driver, Mountpoint, CreatedAt)
+match, with no missing volume. Existing HTTPS 443/Funnel remains configured;
+no public route, OAuth policy or secret was changed. Whole-site accepted/deployed
+baselines remain historical D00; no genuine full source/package authority exists.
+
+Focused #1331 restores only the previously active existing gateway after exact
+frontend readiness in source and package activation/rollback, rechecks denial,
+and blocks inactive gateways before mutation. Reviewed control helper is staged
+and hash-checked across historical checkout. Startup transport retries have a
+fixed 15-second budget; unsafe HTTP access rejects immediately. Regression tests
+first reproduced source activation failure, false rollback success and package
+connection refusal. Targeted checks: 104 run, 103 passed, one existing integration
+skip; Bash/Python syntax and diff passed. Required exact-head CI/review pending.
+
+No installer retry, DB/SQLite restore, data/evidence/volume deletion, native
+workflow dispatch or controller write was performed by the agent. The original
+Oct 9 capture and 1327 full launcher are now obsolete live-baseline inputs and
+MUST NOT rerun. Owner-local privilege can first restore only the existing gateway;
+then verify denial. Any forward completion needs fresh evidence of the latest
+attempt and current components/data. #1313/#1323 remain open; #1318 stays draft.
+Earlier pending-handoff records below are historical and superseded.
+
 ## Issue #1329 — Docker mount presentation order caused false baseline drift
 
 The owner continuation at 19:16 UTC stopped before initial baseline acceptance

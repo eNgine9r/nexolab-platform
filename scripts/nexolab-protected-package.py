@@ -116,6 +116,8 @@ class ProtectedPackageFrontend:
         if status != 200 or identity.get("source_commit") != self.expected_current or not identity.get("build_id"):
             raise ValueError("current protected frontend does not match current package/source authority")
         self.original_identity = identity
+        frontend.require_gateway_active(frontend.origin_host(self.metadata["origin"]))
+        self.gateway_was_active = True
         self.release = RELEASES / (manifest["source_commit"] + "-" + evidence.name)
 
     def run(self, args: list[str], **kwargs) -> subprocess.CompletedProcess:
@@ -172,6 +174,13 @@ class ProtectedPackageFrontend:
             frontend.probe_frontend(3102, self.metadata["source_commit"], self.metadata["build_id"], host)
         finally:
             self.cleanup_candidate()
+        frontend.require_gateway_active(host)
+
+    def restore_gateway(self, host: str) -> None:
+        if not self.gateway_was_active:
+            raise ValueError("refusing to start a gateway without a successful active preflight")
+        self.run(["systemctl", "start", "nexolab-external-nginx.service"], timeout=15)
+        frontend.probe_gateway(host)
 
     def activate(self) -> None:
         if not self.enabled:
@@ -183,7 +192,7 @@ class ProtectedPackageFrontend:
         self.run(["systemctl", "start", UNIT.name])
         host = frontend.origin_host(self.metadata["origin"])
         frontend.probe_frontend(3100, self.metadata["source_commit"], self.metadata["build_id"], host)
-        frontend.probe_gateway(host)
+        self.restore_gateway(host)
         (self.evidence / "external-verified.json").write_text(json.dumps(self.metadata))
 
     def rollback(self) -> None:
@@ -194,4 +203,5 @@ class ProtectedPackageFrontend:
         self.run(["systemctl", "daemon-reload"])
         self.run(["systemctl", "start", UNIT.name])
         frontend.probe_frontend(3100, self.original_identity["source_commit"], self.original_identity["build_id"], frontend.origin_host(self.metadata["origin"]))
+        self.restore_gateway(frontend.origin_host(self.metadata["origin"]))
         self.touched = False

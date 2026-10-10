@@ -184,6 +184,10 @@ TELEGRAM_GATEWAY_PATTERNS = (
 )
 
 OFFLINE_BUNDLE_PATTERNS = (
+    "scripts/nexolab-protected-frontend.py",
+    "scripts/nexolab-protected-package.py",
+    "scripts/tests/test_protected_frontend_release.py",
+    "scripts/tests/test_protected_package.py",
     "scripts/device-agent-startup-gate.py",
     "scripts/tests/test_device_agent_startup_gate.py",
     "services/telegram-gateway/**",
@@ -221,6 +225,10 @@ INSPECTION_SECURITY_PATTERNS = (
 
 FRONTEND_RELEASE_TOOLING_PATHS = {
     "scripts/lib/protected-frontend-release.sh",
+    "scripts/nexolab-protected-frontend.py",
+    "scripts/nexolab-protected-package.py",
+    "scripts/tests/test_protected_frontend_release.py",
+    "scripts/tests/test_protected_package.py",
     "scripts/build-frontend-release-artifact.sh",
     "scripts/tests/test_raspberry_pi_frontend_release.py",
 }
