@@ -1059,8 +1059,9 @@ for (
                         raise ValueError("partial continuation context changed")
                 else:
                     forward_recovery.atomic_json(context_path, context)
-            except Exception:
-                print("ERROR: partial continuation immutable/live baseline verification failed", file=sys.stderr)
+            except Exception as error:
+                print("ERROR: partial continuation immutable/live baseline verification failed: "
+                      + json.dumps(forward_recovery.partial_failure_details(error), sort_keys=True), file=sys.stderr)
                 raise SystemExit(2)
             continue
         print(
@@ -1569,6 +1570,7 @@ verify_partial_continuation() {
     "$REQUESTED_SOURCE_REF" "$PARTIAL_RUNTIME_CHECK_REPORT" "$PARTIAL_RUNTIME_CHECK_SHA256" \
     "$PARTIAL_AGENT_RECOVERY_REPORT" "$AUDIT_DIR/partial-continuation-context.json" "$1" <<'PY_PARTIAL_CONTINUATION'
 import importlib.util
+import json
 import sys
 from pathlib import Path
 try:
@@ -1588,8 +1590,12 @@ try:
         module.check_partial_volume_preservation(module.read_json(Path(sys.argv[6]), "partial capture")["facts"])
     else:
         raise ValueError("unknown partial continuation phase")
-except Exception:
-    print("ERROR: staged partial continuation evidence/live preservation gate failed", file=sys.stderr)
+except Exception as error:
+    reporter = getattr(locals().get("module"), "partial_failure_details", None)
+    details = reporter(error) if callable(reporter) else {
+        "error_type": type(error).__name__, "reason": "partial_helper_unavailable"}
+    print("ERROR: staged partial continuation evidence/live preservation gate failed: "
+          + json.dumps(details, sort_keys=True), file=sys.stderr)
     raise SystemExit(2)
 PY_PARTIAL_CONTINUATION
 }

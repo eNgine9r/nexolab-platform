@@ -779,15 +779,17 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
                 self.assertEqual(result.returncode,64)
                 self.assertIn('partial continuation requires exact',result.stderr)
 
-    def partial_resolver(self, *, second_failure=False, explicit=True, wrong_prior=False):
+    def partial_resolver(self, *, second_failure=False, explicit=True, wrong_prior=False, validator_error=None):
         failed=self._set_deployed_evidence(None,'20260830T000000Z',passed=False,mutated=True)
         if second_failure:
             self._set_deployed_evidence(None,'20260831T000000Z',passed=False,mutated=True)
         audit=self.repo/'runtime/deployments/20260901T000000Z';audit.mkdir()
         program=DEPLOY.read_text().split("<<'PY_EVIDENCE'\n",1)[1].split('\nPY_EVIDENCE\n',1)[0]
-        validator=Mock(return_value={'status':'validated_partial_baseline','baseline_scope':'partial_only_not_deployment_authority'})
+        validator=Mock(return_value={'status':'validated_partial_baseline','baseline_scope':'partial_only_not_deployment_authority'},
+                       side_effect=validator_error)
         helper=SimpleNamespace(validate_partial_continuation=validator,
-            atomic_json=lambda p,value:p.write_text(json.dumps(value)),read_json=lambda p,label:json.loads(p.read_text()))
+            atomic_json=lambda p,value:p.write_text(json.dumps(value)),read_json=lambda p,label:json.loads(p.read_text()),
+            partial_failure_details=lambda error:{'error_type':type(error).__name__, 'reason':'sanitized_failure'})
         def spec(name,path):return SimpleNamespace(name=name,loader=SimpleNamespace(exec_module=lambda module:None))
         argv=['resolver',str(self.repo/'runtime/deployments'),str(audit),'forward','compatibility',str(self.repo),
               str(failed) if explicit else '',str(self.repo/'capture.json'),'a'*64,str(self.repo/'recovery.json'),
@@ -815,6 +817,29 @@ class HistoricalMainSourceSelectionTests(unittest.TestCase):
         self.assertEqual(status,2)
         validator.assert_not_called()
         self.assertFalse((audit/'partial-continuation-context.json').exists())
+
+    def test_partial_resolver_reports_sanitized_failure_and_stays_closed(self):
+        status, output, validator, audit, failed = self.partial_resolver(validator_error=ValueError('SECRET'))
+        self.assertEqual(status, 2)
+        self.assertIn('"reason": "sanitized_failure"', output)
+        self.assertNotIn('SECRET', output)
+        self.assertFalse((audit/'partial-continuation-context.json').exists())
+
+    def test_staged_partial_gate_reports_sanitized_failure_and_stays_closed(self):
+        program = DEPLOY.read_text().split("<<'PY_PARTIAL_CONTINUATION'\n", 1)[1].split('\nPY_PARTIAL_CONTINUATION\n', 1)[0]
+        helper = SimpleNamespace(validate_partial_continuation=Mock(side_effect=ValueError('SECRET')),
+            partial_failure_details=lambda error: {'error_type': type(error).__name__, 'reason': 'sanitized_failure'})
+        output = io.StringIO()
+        argv = ['gate', 'helper', str(self.repo), 'failed', self.base, self.target,
+                'capture', 'a'*64, 'recovery', 'context', 'before-quiesce']
+        with patch.object(sys, 'argv', argv), patch.object(sys, 'stderr', output), \
+             patch.object(importlib.util, 'spec_from_file_location', return_value=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda m: None))), \
+             patch.object(importlib.util, 'module_from_spec', return_value=helper):
+            with self.assertRaises(SystemExit) as error:
+                exec(compile(program, 'staged-partial-gate', 'exec'), {})
+        self.assertEqual(error.exception.code, 2)
+        self.assertIn('"reason": "sanitized_failure"', output.getvalue())
+        self.assertNotIn('SECRET', output.getvalue())
 
     def test_partial_resolver_rejects_second_mutation_or_wrong_prior(self):
         for options in ({'second_failure':True},{'wrong_prior':True}):

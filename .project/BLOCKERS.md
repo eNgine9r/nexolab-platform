@@ -1,5 +1,36 @@
 # NEXOLAB Blockers
 
+## Issue #1329 — Docker mount presentation order caused false baseline drift
+
+The owner continuation at 19:16 UTC stopped before initial baseline acceptance
+(report `partial-continuation-1327-a46y82qc/report.json`); its blanket exception
+handler lost the concrete past exception. The same accepted validator later
+passed owner-local read-only sudo. At 19:26 UTC, 20 reads each of central/edge
+MQTT independently reproduced reversed mount order in 3/20 reads per service;
+all other container fields and complete mount identities/access stayed unchanged.
+Do not retrospectively assert the exact lost installer exception.
+
+The candidate compares complete mount bindings independent of presentation order
+without changing captured inputs or collapsing duplicates. Name, destination,
+read/write, missing/extra/duplicate bindings and all other live/data guards stay
+closed. Both initial and staged gate failures now print only accepted literal
+reasons/type/location, excluding raw exceptions, env, Docker and HTTP bodies.
+A read-only actual-Pi comparison at 19:30 UTC made 40 checks: the old comparison
+rejected 9 solely for order; the candidate rejected zero. Scope is container
+comparison only, not full privileged preflight or source/package authority.
+
+Targeted checks: 111 run, 110 passed, one existing root namespace integration
+skip; Bash/Python syntax passed. Required exact-head CI/review is pending. Active
+software dependency is #1329; #1313/#1323 remain open/blocked. Source #1327/#1328
+is accepted at control 2bda5e6286a4076ae5cf47d2471089d6b3f6b13e. Existing staged
+full launcher SHA256 55f9bd3d223e6e3a90b8892832208c2cbba47f29212bb9d293c84aa176506378
+is unchanged. No installer retry, activation, native package dispatch, restore,
+volume/evidence deletion or controller write occurred. All whole-site baselines
+remain unchanged. Next: accept the fix after GREEN checks, then one owner-local
+continuation with the exact new accepted control SHA and existing launcher.
+
+Earlier entries below are historical where superseded by this observation.
+
 Updated: 2026-10-09
 
 ## Issue #1323 — actual mixed runtime verified; explicit preserved-data continuation implemented

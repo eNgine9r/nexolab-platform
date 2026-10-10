@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-10T18:41:12.032946+00:00",
+  "timestamp": "2026-10-10T19:31:00+00:00",
   "actor": "ChatGPT",
-  "event": "owner_preserved_privileged_partial_launch_source_candidate",
+  "event": "partial_mount_order_false_drift_reproduced_and_source_fix_verified",
   "baselines": {
     "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
     "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
@@ -29,9 +29,9 @@
     "object_storage_authority": "runtime/object-storage-migration/authority.json"
   },
   "active_work": {
-    "issue": 1327,
-    "title": "Preserve service owner in privileged partial continuation launch",
-    "branch": "fix/1327-preserved-service-owner-launch"
+    "issue": 1329,
+    "title": "Deterministic partial-continuation mount comparison and safe rejection reason",
+    "branch": "fix/1329-partial-mount-comparison"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -1582,6 +1582,63 @@
       "pull_request": 1328,
       "final_candidate_routing": "deploy-* entrypoints use existing deployment pattern; protected frontend library explicitly registered as deployment tooling; full Core and classifier-triggered browser/offline gates retained; unknown-neighbor still fails closed",
       "prior_exact_head": "3d854289f89e3e514a7939481f1f472db9c9a1cf: Core product jobs and Telemetry GREEN, final review clean; Merge Gate rejected unregistered entrypoint paths; rename candidate pending exact-head CI"
+    },
+    "partial_mount_order_1329": {
+      "issue": 1329,
+      "accepted_control_before_fix": "2bda5e6286a4076ae5cf47d2471089d6b3f6b13e",
+      "owner_continuation_report": "partial-continuation-1327-a46y82qc/report.json",
+      "owner_continuation_status": "stopped_before_initial_baseline_acceptance_no_activation",
+      "owner_readonly_validator": "READ_ONLY_BASELINE_PASSED; deployment not run",
+      "lost_failure_reason": "blanket_exception_handler; exact_past_exception_unknown",
+      "actual_device": "nexolab-edge-01",
+      "original_readonly_observation": {
+        "at": "2026-10-10T19:26Z",
+        "central_mqtt_checks": 20,
+        "edge_mqtt_checks": 20,
+        "order_only_false_drift": 6,
+        "other_container_fields_and_complete_mount_identity_access": "unchanged"
+      },
+      "candidate_actual_comparison": {
+        "at": "2026-10-10T19:30Z",
+        "checks": 40,
+        "old_order_sensitive_rejections": 9,
+        "candidate_rejections": 0,
+        "captured_inputs": "unchanged",
+        "scope": "container_comparison_only; not_privileged_full_preflight_or_deployment_authority"
+      },
+      "candidate_module_sha256": "92427508a4002b8f59f8557c2e5fd70bc3eb81f456476dff61d55f8360808482",
+      "comparison_function_sha256": "217b2e6f3eb75e61d7198eba7d1fac1b77d4a28f21c4fe0a632329b72e716dd8",
+      "regressions": "reordered_mounts_failed_before_fix; name_destination_rw_missing_extra_duplicate_changes_reject; safe_literal_failure_details_and_unknown_secret_suppression",
+      "targeted_tests": "111_run_110_pass_1_root_namespace_integration_skip",
+      "syntax": "bash_and_python_passed",
+      "required_exact_head_ci_review": "pending",
+      "runtime_mutation": "none",
+      "automatic_installer_retry": false,
+      "database_restore": "none",
+      "package_authority": "not_modified",
+      "whole_site_baselines": "unchanged",
+      "existing_launcher": "deploy-partial-continuation-1327.py",
+      "existing_launcher_sha256": "55f9bd3d223e6e3a90b8892832208c2cbba47f29212bb9d293c84aa176506378",
+      "next": "accept_1329_source_after_green_ci_review_then_one_owner_local_continuation_using_existing_verified_launcher_and_exact_new_control_sha"
+    },
+    "owner_preserved_1327_accepted_source": {
+      "issue": 1327,
+      "pr": 1328,
+      "accepted_main": "2bda5e6286a4076ae5cf47d2471089d6b3f6b13e",
+      "final_head": "33340ab85bd77dd92408312347cc13181f203db8",
+      "exact_head_ci": "six_routed_workflows_green",
+      "runs": [
+        38078157824,
+        38078157948,
+        38078157834,
+        38078157972,
+        38078158065,
+        38078157839
+      ],
+      "review": "completed_no_findings",
+      "scope": "software_owner_preserving_handoff_accepted; site_continuation_not_verified",
+      "launcher": "deploy-partial-continuation-1327.py",
+      "launcher_sha256": "55f9bd3d223e6e3a90b8892832208c2cbba47f29212bb9d293c84aa176506378"
     }
   },
   "observations": [
@@ -2544,7 +2601,7 @@
       }
     }
   ],
-  "next_action": "Accept focused #1325 cadence fix after required exact-head CI/review; then run one pinned canonical preflight/continuation. #1313/#1323 remain open and #1318 draft; native packages and actual LAN/HTTPS installation/update/rollback remain unfinished.",
+  "next_action": "accept_1329_source_after_green_ci_review_then_one_owner_local_continuation_using_existing_verified_launcher_and_exact_new_control_sha",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -2552,5 +2609,6 @@
     "volume_deletion": "none",
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
-  }
+  },
+  "runtime_mutation": "none"
 }

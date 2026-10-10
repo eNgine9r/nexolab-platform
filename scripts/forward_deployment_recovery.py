@@ -37,6 +37,30 @@ class RecoveryFailure(RuntimeError):
     pass
 
 
+def partial_failure_details(error: Exception) -> dict[str, Any]:
+    """Expose only literal accepted failure reasons, never exception bodies."""
+    details: dict[str, Any] = {"error_type": type(error).__name__[:64],
+                              "reason": "unexpected_exception; inspect failure_location"}
+    try:
+        tree = ast.parse(Path(__file__).read_bytes())
+        reasons = {node.args[0].value for node in ast.walk(tree)
+                   if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                   and node.func.id == "RecoveryFailure" and node.args
+                   and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str)}
+        if isinstance(error, RecoveryFailure) and len(error.args) == 1 and error.args[0] in reasons:
+            details["reason"] = error.args[0]
+    except (OSError, SyntaxError, TypeError):
+        pass  # Reporting must not replace the original fail-closed result.
+    frame = error.__traceback__
+    while frame:
+        if frame.tb_frame.f_code.co_filename == __file__:
+            details["failure_location"] = {"file": "scripts/forward_deployment_recovery.py",
+                                           "function": frame.tb_frame.f_code.co_name,
+                                           "line": frame.tb_lineno}
+        frame = frame.tb_next
+    return details
+
+
 def run(*command: str, timeout: int = 30) -> str:
     try:
         result = subprocess.run(command, check=False, capture_output=True, text=True, timeout=timeout)
@@ -957,8 +981,8 @@ def check_partial_live_baseline(facts: dict[str, Any]) -> None:
             observed.append(item)
             if item["project"] == "nexolab-central" and item["service"] == "telemetry-service":
                 telemetry.append(documents[0])
-    keys = ("id", "image_id", "project", "service", "running", "name", "user", "working_dir", "named_volumes", "docker_health", "status", "oom_killed")
-    pinned = [{key: item.get(key) for key in keys} for item in expected]
+    pinned = [_partial_container_baseline(item) for item in expected]
+    observed = [_partial_container_baseline(item) for item in observed]
     if sorted(pinned, key=lambda x: x["id"]) != sorted(observed, key=lambda x: x["id"]):
         raise RecoveryFailure("partial continuation live container/image/mount baseline drifted")
     check_partial_volume_preservation(facts)
@@ -998,6 +1022,23 @@ def check_partial_live_baseline(facts: dict[str, Any]) -> None:
     if any(ready.get(key) != "ready" for key in ("status", "database", "mqtt")):
         raise RecoveryFailure("partial continuation central readiness failed")
     check_partial_acquisition(facts)
+
+
+def _partial_container_baseline(item: dict[str, Any]) -> dict[str, Any]:
+    keys = ("id", "image_id", "project", "service", "running", "name", "user", "working_dir",
+            "named_volumes", "docker_health", "status", "oom_killed")
+    result = {key: item.get(key) for key in keys}
+    mounts = result["named_volumes"]
+    if not isinstance(mounts, list) or any(
+        not isinstance(mount, dict) or set(mount) != {"name", "target", "rw"}
+        or not isinstance(mount["name"], str) or not isinstance(mount["target"], str)
+        or type(mount["rw"]) is not bool for mount in mounts
+    ):
+        raise RecoveryFailure("partial continuation named-volume metadata is invalid")
+    # Docker may emit Mounts in a different order on consecutive inspections.
+    # Preserve every binding and duplicate; only presentation order is ignored.
+    result["named_volumes"] = sorted(mounts, key=lambda mount: (mount["name"], mount["target"], mount["rw"]))
+    return result
 
 
 def validate_partial_continuation(repo: Path, evidence: Path, previous: str, target: str,
