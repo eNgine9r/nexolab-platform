@@ -3032,7 +3032,7 @@
       }
     }
   ],
-  "next_action": "Finish exact-head CI and review for #1343; verify the two repaired artifacts with unchanged application images and exact retained storage, then full native installer preflight before one guarded owner current-C296 handoff. Preserve original packages, reports, authority and consumed helpers. Native LAN/HTTPS update/rollback and worker sandbox acceptance remain pending under #1323/#1317.",
+  "next_action": "Finish exact-head CI and review for #1343; verify the two repaired artifacts with unchanged application images and exact retained storage, then full native installer preflight before one guarded owner current-C296 handoff. Preserve original packages, reports, authority and consumed helpers. Native LAN/HTTPS update/rollback and worker sandbox acceptance remain pending under #1323/#1313.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
