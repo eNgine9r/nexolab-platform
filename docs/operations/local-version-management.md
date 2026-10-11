@@ -103,8 +103,18 @@ sudo python3 scripts/nexolab-version-manager.py establish-package-authority \
   --central-env /etc/nexolab/central.env \
   --edge-env /etc/nexolab/edge.env \
   --backup-dir /var/backups/nexolab \
+  --source-repo /home/nexolab/nexolab-platform \
   --local-auth
 ```
+
+The configured site repository contains retained object-storage migration
+authority and Git lineage. Both source-to-package and queued update/rollback
+pass its resolved path to the immutable installer as `NEXOLAB_REPO`; privileged
+`HOME` does not select that authority. `--source-repo` takes precedence over the
+host service's `NEXOLAB_REPOSITORY_PATH` in `/etc/nexolab/version-manager.env`.
+The migration proof and accepted image/volume/lineage checks remain required.
+An installer exit `80` occurs before hardware startup if this storage gate fails.
+Preserve the failed transition and inspect its saved log before another attempt.
 
 The protected frontend candidate runs as the installed unprivileged service user.
 Owner commands may retain `umask 077` for audits and credentials. Its dedicated

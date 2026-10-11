@@ -1,3 +1,35 @@
+<!-- OFFLINE_SITE_CONTEXT_1341_BEGIN -->
+
+## #1341: privileged installer site repository corrected; native continuation pending — 2026-10-11
+
+Owner read-only diagnostic at 18:43:43Z confirms installer exit 80 from the storage
+migration gate. sudo HOME is /root with NEXOLAB_REPO unset; it selects
+/root/nexolab-platform/runtime/object-storage-migration/authority.json. Retained
+site authority under /home/nexolab/nexolab-platform is verified/cutover-complete,
+unchanged, and root Git ancestry to C296 passes. Do not repeat migration.
+
+Failed transition source-to-packaged-20261011T181438Z-f576c63e9c56 is preserved:
+no backup, Dashboard handoff or runtime verification. Protected current is still
+source C296, controlled_source_deployment, ready/known, schema 20260908_0037, with
+no last operation/transition ID. Protected traversal is now 0711 after accepted
+#1339/PR #1340; the consumed #1339 continuation must not be rerun.
+
+Focused #1341 maps the explicit --source-repo or installed
+NEXOLAB_REPOSITORY_PATH to NEXOLAB_REPO for source conversion and queued
+update/rollback. It preserves inherited images/auth paths and all migration
+gates. Regression reproduced real child exit 80 in all three paths before fix.
+122 tests + 25 subtests pass; one independent UID proof remains skipped.
+Exact-head CI/review and one owner-local canonical continuation are next.
+
+Native UI update/rollback remains open in #1323/#1313. Actual worker service has
+ProtectSystem=strict, ProtectHome=read-only and writable paths only for version
+root/backups; protected release/unit and startup-evidence write boundaries must
+be verified separately before native UI acceptance. No broader sandbox change
+is included here. Both ARM64 packages stay immutable; no third build, target
+activation, database restore or controller write. Prior entries are historical.
+
+<!-- OFFLINE_SITE_CONTEXT_1341_END -->
+
 # NEXOLAB Blockers
 
 <!-- PROTECTED_TRAVERSAL_1339_BEGIN -->

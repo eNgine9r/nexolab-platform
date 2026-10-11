@@ -1265,6 +1265,121 @@ def test_direct_installer_local_auth_preflight_fails_before_docker_load(tmp_path
     assert installer_text.index("LOCAL_AUTH_EXPORTS=") < installer_text.index("docker load --input")
 
 
+@pytest.mark.parametrize("action", ["source", "update", "rollback"])
+@pytest.mark.parametrize("proof_present", [True, False])
+def test_offline_child_uses_configured_repository_under_root_home(tmp_path, monkeypatch, action, proof_present):
+    hardware = {
+        "status": "verified", "device_mode": "modbus", "configured_mode": "modbus",
+        "host_serial_device": "/dev/serial/by-id/usb-fixture",
+        "observed_buses": ["/host/dev/serial/by-id/usb-fixture"],
+    }
+    if action == "source":
+        root, target_root, target, _, args, volumes = transition_fixture(tmp_path)
+        verified_manifest = Mock(return_value=target)
+    else:
+        root, _, target_root, current, args = fixture_state(tmp_path, "site-context")
+        target, verified_manifest = manifests(target_root)
+        target["version_management"]["database_schema"]["runtime_compatible_schema_heads"] = ["schema-1"]
+        request_path = root / "requests/site-context.json"
+        request = json.loads(request_path.read_text())
+        request["action"] = action
+        request_path.write_text(json.dumps(request))
+        args.skip_edge = False
+        args.edge_env = tmp_path / "edge.env"
+        args.edge_env.write_text("HARDWARE_DEVICE_MODE=modbus\n")
+        current.update(edge_hardware_required=True, hardware_contract=hardware)
+        (root / "current.json").write_text(json.dumps(current))
+        volumes = []
+    args.source_repo = tmp_path / "approved-site"
+    authority = args.source_repo / "runtime/object-storage-migration/authority.json"
+    authority.parent.mkdir(parents=True)
+    if proof_present:
+        authority.write_text("retained verified migration")
+    capture = tmp_path / "child-context.jsonl"
+    monkeypatch.setenv("HOME", str(tmp_path / "root-home"))
+    monkeypatch.setenv("NEXOLAB_REPO", str(tmp_path / "stale-inherited-site"))
+    monkeypatch.setenv("NEXOLAB_REPOSITORY_PATH", str(tmp_path / "other-service-site"))
+    monkeypatch.setenv("CONTEXT_CAPTURE", str(capture))
+    installer = target_root / "scripts/install-offline-bundle.sh"
+    installer.write_text(
+        "#!/usr/bin/env python3\n"
+        "import json,os,sys\n"
+        "from pathlib import Path\n"
+        "repo=Path(os.environ.get('NEXOLAB_REPO') or (Path.home()/'nexolab-platform'))\n"
+        "authority=repo/'runtime/object-storage-migration/authority.json'\n"
+        "if not authority.is_file(): raise SystemExit(80)\n"
+        "record={'repository':str(repo),'preflight':'--preflight-only' in sys.argv,\n"
+        " 'image':os.environ.get('OFFLINE_DEVICE_AGENT_IMAGE'),\n"
+        " 'private_key':os.environ.get('AUTH_LOCAL_PRIVATE_KEY_HOST_FILE')}\n"
+        "with open(os.environ['CONTEXT_CAPTURE'],'a') as f: f.write(json.dumps(record)+'\\n')\n"
+    )
+    installer.chmod(0o755)
+    protected = Mock(enabled=True, metadata={})
+    real_run = subprocess.run
+
+    def child(command, **kwargs):
+        if command[0] == str(installer):
+            return real_run(command, **kwargs)
+        head = "schema-1" if action == "rollback" else "schema-2"
+        return subprocess.CompletedProcess(command, 0, stdout=f"{head} (head)\n")
+
+    with (
+        patch.object(manager, "verify_staged_bundle", side_effect=verified_manifest),
+        patch.object(manager, "protected_frontend_transaction", return_value=protected),
+        patch.object(manager, "verify_real_hardware_runtime", return_value=hardware),
+        patch.object(manager, "verify_device_agent_progress", return_value={"status": "verified"}),
+        patch.object(manager, "source_dashboard_state", return_value={"active": True, "enabled": True}),
+        patch.object(manager, "source_transition_id", return_value="transition-site-context"),
+        patch.object(manager, "capture_volume_identities", return_value=volumes),
+        patch.object(manager, "run_capacity_preflight", return_value="capacity.txt"),
+        patch.object(manager, "create_postgresql_backup") as backup,
+        patch.object(manager, "stop_source_dashboard") as stop_source,
+        patch.object(manager, "verify_transition_runtime", return_value={"status": "verified"}),
+        patch.object(manager, "wait_http_success"),
+        patch.object(manager, "read_local_json", return_value={"status": "ready", "database": "ready", "mqtt": "ready"}),
+        patch.object(manager.subprocess, "run", side_effect=child),
+    ):
+        def execute():
+            if action == "source":
+                manager.establish_package_authority(args)
+            else:
+                manager.execute_request(args, root / "requests/site-context.json")
+        if not proof_present:
+            with pytest.raises(subprocess.CalledProcessError) as stopped:
+                execute()
+            assert stopped.value.returncode == 80
+            backup.assert_not_called()
+            stop_source.assert_not_called()
+            assert not capture.exists()
+            return
+        execute()
+    records = [json.loads(line) for line in capture.read_text().splitlines()]
+    assert [row["preflight"] for row in records] == [True, False]
+    assert all(row["repository"] == str(args.source_repo.resolve()) for row in records)
+    expected_image = "nexolab-test/device-agent:" + ("transition" if action == "source" else "current")
+    assert all(row["image"] == expected_image for row in records)
+    if action == "source":
+        assert all(row["private_key"] == str(tmp_path / "secrets/local-auth/private.pem") for row in records)
+    assert os.environ["NEXOLAB_REPO"] == str(tmp_path / "stale-inherited-site")
+
+
+@pytest.mark.parametrize("command", ["establish-package-authority", "run-once"])
+def test_privileged_worker_resolves_service_repository_and_explicit_override(tmp_path, monkeypatch, command):
+    site = tmp_path / "service-site"
+    explicit = tmp_path / "explicit-site"
+    monkeypatch.setenv("HOME", str(tmp_path / "root-home"))
+    monkeypatch.setenv("NEXOLAB_REPOSITORY_PATH", str(site))
+    monkeypatch.setenv("NEXOLAB_REPO", str(tmp_path / "stale-site"))
+    argv = [command, "--root", str(tmp_path / "versions"), "--central-env", str(tmp_path / "central.env"),
+            "--backup-dir", str(tmp_path / "backups"), "--skip-edge"]
+    if command == "establish-package-authority":
+        argv += ["--bundle-id", "current"]
+    service_args = manager.parser().parse_args(argv)
+    assert manager.package_subprocess_env(service_args)["NEXOLAB_REPO"] == str(site.resolve())
+    explicit_args = manager.parser().parse_args(argv + ["--source-repo", str(explicit)])
+    assert manager.package_subprocess_env(explicit_args)["NEXOLAB_REPO"] == str(explicit.resolve())
+
+
 def test_hardware_startup_failure_preserves_live_source_before_backup_or_handoff(tmp_path: Path) -> None:
     root, _, target, current, args, volumes = transition_fixture(tmp_path)
     with (

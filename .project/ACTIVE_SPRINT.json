@@ -43,22 +43,125 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1339,
-      "reason": "reproduced private-umask release ancestor prevents unprivileged protected candidate start"
+      "issue": 1341,
+      "reason": "owner report confirms wrong privileged-HOME migration-authority lookup; focused host-context correction"
     },
     "next_work_package": {
       "issue": 1323,
-      "title": "Owner-local canonical current package authority then native update/rollback acceptance",
+      "title": "Owner canonical current authority then verify native update/rollback and worker filesystem boundaries",
       "branch": "fix/1323-partial-unified-activation"
     }
   },
   "work_packages": [
     {
+      "issue": 1341,
+      "title": "Pass configured site repository to privileged offline package installer",
+      "branch": "fix/1341-offline-installer-site-context",
+      "priority": "critical",
+      "lifecycle": "review",
+      "depends_on": [
+        1339
+      ],
+      "scope": "host repository context for immutable offline installer; migration gates and packages unchanged",
+      "permitted_paths": [
+        "scripts/nexolab-version-manager.py",
+        "scripts/tests/test_nexolab_version_manager.py",
+        "docs/operations/local-version-management.md",
+        ".project/**"
+      ],
+      "evidence": {
+        "issue": 1341,
+        "root_cause": "Privileged offline installer inherited HOME=/root without configured NEXOLAB_REPO; retained authority was looked up outside the site repository",
+        "owner_diagnostic": {
+          "path": "arm64-rebuild-20261011/offline-preflight-exit80-diagnostic.json",
+          "sha256": "21e0d586aa2a98cbd1a711946adc3801c5f75134e6de9c4bd5dc1c84d0484384",
+          "kind": "nexolab-offline-preflight-exit80-diagnostic",
+          "captured_at": "2026-10-11T18:43:43.678071+00:00",
+          "status": "captured",
+          "read_only": true,
+          "deployment_run": false,
+          "controller_write": false,
+          "owner_report_sha256": "269dc17d14aa2fa168e4899e64ffa3f00ca7217bb08a57b4cdfda6159a2555d9",
+          "canonical_log_sha256": "30e5db44094f4c95a59cbd12f1dda7f062c6e6179cdee3e9f410d833840e0cea",
+          "saved_failure": [
+            {
+              "kind": "migration_authority_file_invalid"
+            },
+            {
+              "kind": "installer_migration_gate_rejected"
+            }
+          ],
+          "root_invocation_context": {
+            "home": "/root",
+            "nexolab_repo_env": null,
+            "installer_default_authority": "/root/nexolab-platform/runtime/object-storage-migration/authority.json"
+          },
+          "retained_migration_authority": {
+            "kind": "nexolab-object-storage-migration",
+            "status": "verified",
+            "cutover_verified": true,
+            "target_source": "4c4e932759e5d9443b4c29729dc6b8ca9b0a697a",
+            "target_image_id": "sha256:992e9d9bc05f4e616923c8cf0b841a70947d8fad7e19196091a282fe88dc98e4",
+            "target_volume_created_at": "2026-10-02T14:25:51+03:00",
+            "sha256": "5dee8e3f41c135a1c5694405fd79b6853e80028f5b72f926f92bb09d5a9be23f",
+            "unchanged_since_readonly_check": true,
+            "root_git_lineage_to_current": {
+              "returncode": 0,
+              "reason": "ancestor"
+            }
+          },
+          "current": {
+            "bundle_id": "source-main-c296c58f3cb2",
+            "source_commit": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+            "deployment_authority": "controlled_source_deployment",
+            "health": "ready",
+            "runtime_state_known": true,
+            "schema_head": "20260908_0037",
+            "last_operation_id": null,
+            "transition_evidence_id": null
+          },
+          "failed_offline_preflights": [
+            {
+              "id": "source-to-packaged-20261011T181438Z-f576c63e9c56",
+              "status": "failed",
+              "started_at": "2026-10-11T18:14:44Z",
+              "ended_at": "2026-10-11T18:26:46Z",
+              "failure_type": "CalledProcessError",
+              "backup_evidence_id": null,
+              "capacity_evidence_id": "operation-evidence/source-to-packaged-20261011T181438Z-f576c63e9c56/capacity-preflight.txt",
+              "sha256": "44ee97b6d7b77a3468efcdacf72cf3636048fb71e61cceac05c8256cac5011d1",
+              "dashboard_handoff_recorded": false,
+              "runtime_verification_recorded": false
+            }
+          ],
+          "release_ancestor_mode": "0o711"
+        },
+        "worker_sha256": "6da52989b4fa1bb718fa488e181d03eee9fc203f86887c40226d2dd0f1a9ca5e",
+        "fix_status": "implemented_regression_passed_exact_head_CI_review_pending",
+        "local_verification": {
+          "tests_passed": 122,
+          "subtests_passed": 25,
+          "skipped": 1,
+          "pre_fix": "source_update_rollback_real_child_exit80",
+          "post_fix": "configured_site_context_passes_all_three; missing_authority_rejected_before_backup_or_handoff",
+          "cli": "explicit_source_repo_overrides_host_repository_config",
+          "auth": "local_keys_and_inherited_images_preserved; non_local_auth_supported"
+        },
+        "native_followup": {
+          "current_authority": "controlled_source_deployment",
+          "packaged_authority": "not_established",
+          "ui_update_rollback": "not_verified",
+          "owner_execution": "pending_accepted_worker_and_guarded_continuation",
+          "worker_service_sandbox": "actual ReadWritePaths only version root and backups; protected release/unit and site startup evidence write boundaries need separate verification before native UI acceptance"
+        }
+      }
+    },
+    {
       "issue": 1339,
       "title": "Keep protected package releases traversable under a private owner umask",
       "branch": "fix/1339-protected-release-traversal",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1337
       ],
@@ -75,7 +178,7 @@
           "root_cause": "root-private umask creates a non-traversable shared protected release ancestor",
           "failed_transition": "source-to-packaged-20261011T172831Z-40b4acd03724",
           "preflight_hardware_passed": true,
-          "fix_status": "implemented_tests_passed_exact_head_CI_review_pending",
+          "fix_status": "accepted_and_installed; actual release ancestor 0711; later installer exit80 is separate1341",
           "local_verification": {
             "tests_passed": 114,
             "subtests_passed": 25,
@@ -9159,6 +9262,20 @@
         "verified_head": "4990ff218d943d6f3ed2de937113fa85e64af288",
         "checks": "six_GREEN_clean_review",
         "site_acceptance": "failed_contract_gate_recovery_verified"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-11T18:55:17.055290+00:00",
+      "kind": "accepted_predecessor_and_scoped_context_fix",
+      "data": {
+        "issue": 1341,
+        "predecessor_issue": 1339,
+        "predecessor_pr": 1340,
+        "predecessor_reviewed_head": "9a98636cb08172253f31c5df783d3b0249ab614e",
+        "predecessor_merge_sha": "32b17307eb3e8e2265547fbff37b3ba5a73501b8",
+        "predecessor_required_ci": "GREEN; 38161744581 / 38161744540 / 38161744488",
+        "current_fix_required_ci": "pending"
       }
     }
   ],
