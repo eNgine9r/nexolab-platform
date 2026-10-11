@@ -1,5 +1,147 @@
 # NEXOLAB Blockers
 
+<!-- OWNER_HANDOFF_STOP_20261011_BEGIN -->
+## Current-package handoff stopped; exact root cause requires owner log export — 2026-10-11 16:49 UTC
+
+Owner executed the staged command. Its safe report was remotely read: stopped at
+establish_current_package_authority, exit 1, after reviewed host tooling installation
+and successful staging of BOTH verified ARM64 packages. The attempt at
+arm64-rebuild-20261011/owner-current-handoff-wbfvn7rt is preserved. Do not rerun
+activate-verified-current-package.py or remove its attempt marker.
+
+Independent read-only checks confirm unchanged source C296 LAN/protected build
+identities and unchanged central/agent container/image IDs, API/database/MQTT
+ready, real Modbus mode, MQTT connected, queue 0 and healthy 3/3 acquisition workers.
+The generic wrapper report does not disclose the canonical failure. Its private
+log is root-only; Commander cannot read it. Package authority/current protected
+record and whether an internal preflight/prepare action occurred remain unverified
+until the owner diagnostic export. Do not infer zero internal actions from the exit.
+
+A read-only owner diagnostic is staged and exact-byte readback, Python syntax
+and secret-redaction checks passed:
+arm64-rebuild-20261011/read-owner-handoff-failure.py
+SHA256 563813ecaefc099038347ceedaaf36d1bf5d95caf8c988760f5068502839d0e4.
+It reads the one failed canonical log, selected current authority fields and only
+matching transition records; it executes no runtime command and exports a safe
+owner-current-handoff-diagnostic.json for remote inspection. This diagnostic has
+not executed. Root-cause repair and any subsequent site transaction remain blocked
+until actual canonical evidence is available. No retry/third build was dispatched.
+Earlier handoff-ready/not-executed entries are historical; both packages remain valid.
+<!-- OWNER_HANDOFF_STOP_20261011_END -->
+
+<!-- ARM64_REBUILD_20261011_BEGIN -->
+## Two corrected ARM64 packages verified; owner-local handoff ready — 2026-10-11 14:35 UTC
+
+Owner confirmed two sequential builds at 12:52:44Z. Both approved dispatches
+succeeded on exact reviewed tooling 24e21f2bce0ddeff6e8086b130fa79e4af38d3b2:
+current C296 run 38141270407 / artifact 11703791696, target df5485f6 run
+38144308536 / artifact 11704612485. No retry or third workflow was dispatched.
+The old pending-approval and retained-package-ready entries below are historical.
+
+Both artifacts were downloaded and fully verified on nexolab-edge-01. ZIP and
+inner archive hashes, canonical full inventory/checksum/secret/protected metadata
+validation, reviewed helper bytes, hardware overlay, package tooling gates and
+digest-bound startup probes passed. Each package has 67 inventory files, ARM64,
+local auth, the approved LAN/HTTPS origins and schema 20260908_0037. CI disconnected
+startup and container recreation volume/marker/local-session continuity passed
+under QEMU; native cross-version site/UI acceptance is not implied.
+
+Current archive SHA256 05f9c9c7218b9044bc8a59c8564af0afcd5172452036209b495b6d212db4a884,
+manifest 335763d74d9cefb3cf32f2124d1bed4df99e7d37a548d04c06d5490ee8ccb1d8.
+Target archive SHA256 dfbb79eed0b0086c95072f76c298b83fe73e1ddc89e3c24196f1afc0af813310,
+manifest b7fb26958d42ba7d28734e9b744975bbe3d4fba3897a75bbd582e58bb246878b.
+Verified roots/archives/receipts are in guarded-update-1313-df5485f6/arm64-rebuild-20261011.
+Older bundles and all historical failed audits remain preserved.
+
+One owner-local command is staged, exact readback and Python syntax verified:
+arm64-rebuild-20261011/activate-verified-current-package.py --execute.
+SHA256 833e7498dfb496060318edfa4bb0374d74cc4cf09cf1f150077302697fd4c12d.
+It checks the actual protected environment/source/request state, installs reviewed
+canonical host tooling, stages both packages and invokes the real current-C296
+establish-package-authority transaction. It never bootstraps/fabricates authority
+or activates df5485f6. An attempt marker prevents automatic rerun; private logs
+and a safe owner report preserve any canonical failure. This command has not run.
+
+Commander is unprivileged; this native transaction requires owner-local sudo.
+No site runtime activation or image loading occurred during the two builds.
+Source adoption evidence remains C296; package authority, native LAN/HTTPS
+update/rollback and Google session journeys remain unverified/open in #1313/#1323.
+The GitHub plane matches manifest.source_commit to the selected GREEN target;
+tooling 24e21f2b is not a runtime alias for C296/df5485f6. Latest-main automatic
+activation is not proven by these two approved runtime builds. #1318 stays draft.
+<!-- ARM64_REBUILD_20261011_END -->
+
+## Source adoption complete; retained package tooling rejected — 2026-10-10 22:30 UTC
+
+Owner canonical source adoption returned status=recorded for C296, controlled
+source deployment, LOCAL_LAN linux/arm64, schema 20260908_0037 and health ready.
+The Version lineage gate is complete; known_packaged_release remains false.
+The source-only accepted/deployed baseline advances to C296 with the genuine
+20261010T194054Z evidence; former D00 baseline remains preserved in checkpoint
+history and rollback references. This does not grant validated package authority.
+
+Read-only host checks at 22:25:09Z confirm both frontend C296 identities, healthy
+3/3 acquisition workers, MQTT connected, queue 0 and samples 13288. The manager
+request paths and update timer are enabled/active; the oneshot worker is idle.
+Installed protected worker byte versions were not readable to Commander.
+
+The current canonical validate_package_tooling rejects BOTH retained current and
+target bundles: package tooling capability evidence is incomplete. Both bind old
+df5485f6 tooling, omit hardware-startup-gate and its script, retain bare hardware
+command dual_bus_main.py, and lack the corrected gateway lifecycle helper. Their
+manifest digests match the original retained packages. Do not activate them or
+rerun the old installer. The source startup/gateway fixes are already accepted.
+
+Two exact sequential ARM64 package builds are prepared on reviewed tooling
+24e21f2b: current runtime C296 and the originally approved df5485f6 target, same
+LAN/HTTPS origins and local auth. GitHub workflow 325147947 is active and read
+access via gh passed. The plan is staged as arm64-rebuild-plan-after-source-adoption.json.
+Two previous manual builds have been consumed; additional bounded dispatch
+approval remains pending. No dispatch or runtime/package mutation occurred.
+
+Next: authorize the two prepared builds; verify new provenance/startup contracts,
+then install reviewed host tooling and stage packages before the separately
+checked package-authority transition and actual LAN/HTTPS update/rollback.
+#1313/#1323 stay open; #1318 stays draft/unmerged. Google account/session journeys
+remain separate acceptance. No data restore/deletion or controller write.
+
+Earlier adoption-pending commands and package-ready claims below are historical.
+
+## Actual paired source completion — 2026-10-10 22:18 UTC
+
+Owner execution of accepted #1335 / PR #1336 control 24e21f2b succeeded.
+Report runtime/frontend-completions/20261010T221214Z-p5w6jzu0/report.json
+was read at 22:14:31Z: paired_frontends_reconciled, actual frontend activation
+22:13:25.289119Z, finished 22:13:32.621988Z. The completed single-use command
+must not rerun. All older continuation commands below are historical.
+
+Fresh independent reads at 22:15:12Z and 22:17:57Z verify both active frontends
+on C296, LAN build Ar6aVrTWJICF6TKFaWxHw and protected build
+mcG0fHLcpCeVbTX--85gF. Gateway active; anonymous REST, true WebSocket upgrade,
+Device Agent and image routes return 401; login returns 302. Central API,
+database and MQTT ready. Same central/agent containers and images are healthy.
+Samples advance 12408 -> 12668, healthy 3/3 workers, MQTT connected and queue 0.
+Live SQLite quick_check ok, queue 0, high-water 10960842. All 96 original volume
+identities match; this does not claim data-content checksum equality.
+
+The next step is canonical source-lineage adoption for the Version page.
+Private authority/current.json remain protected from unprivileged Commander.
+The host main/origin-main is clean at 24e21f2b; adopter and recovery helper byte
+hashes match accepted main. Run the existing canonical adopter with local sudo
+and GIT_OPTIONAL_LOCKS=0 to prevent root optional index refresh. It verifies the
+latest genuine source authority and live schema/readiness, then records source
+lineage only, retaining known_packaged_release=false and restarting no services.
+
+Source adoption is pending. Historical accepted/deployed baselines are retained
+until canonical protected authority is independently adopted; fresh actual C296
+runtime evidence is recorded separately. Installed updater/package authority,
+actual LAN/HTTPS package update/rollback and Google account/session-expiry
+journeys remain unverified. #1313/#1323 remain open; #1318 stays draft/unmerged.
+No native workflow dispatch, old database restore, data/evidence deletion or
+controller write. #1335 software and actual frontend continuation are complete.
+
+Earlier planning and pending actions below are superseded by this checkpoint.
+
 ## Issue #1335 — valid LAN artifact contract rejected after handoff
 
 Owner execution of accepted #1333 / PR #1334 control 8aa7a61a stopped at the
