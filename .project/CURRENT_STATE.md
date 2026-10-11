@@ -17,15 +17,16 @@ the metric name itself to be a physical path. The original regression reproduced
 the exact stopped error. The correction resolves unique stable bus bindings and
 requires positive successful requests on the expected adapter, preserving legacy
 physical-path evidence and binding comparisons across transition/update/rollback.
+The persisted binding list includes zero-target/spare buses without request rows.
 
-Local verification: 110 tests and 25 subtests passed across worker/runtime,
+Local verification: 112 tests and 25 subtests passed across worker/runtime,
 protected frontend/package, bounded PostgreSQL backup and startup gate tests.
-Read-only candidate code on real Pi health passed at 2026-10-11T17:00:02.955183+00:00:
-all 3 stable bus bindings; 100483 successful requests on expected main adapter.
-Worker source SHA256 682037f75ea48151d48d386420cb78e60af438d71215040e0fe8d18e46307525.
+Read-only candidate code on real Pi health passed at 2026-10-11T17:14:04.826985+00:00:
+all 3 stable bus bindings; 101603 successful requests on expected main adapter.
+Worker source SHA256 aced479ce535a92013a737ecae6b72ab679a65f43359bbf106dbb79382c513b5.
 Evidence: guarded-update-1313-df5485f6/arm64-rebuild-20261011/
 owner-current-handoff-diagnostic.json, rs485-contract-evidence-20261011.json and
-rs485-fixed-candidate-readonly.json. No repaired worker installation/site retry
+rs485-fixed-candidate-readonly-v2.json. No repaired worker installation/site retry
 occurred. Exact-head CI/review and owner-local canonical continuation remain next.
 
 Both authorized replacement packages remain verified/immutable (current C296

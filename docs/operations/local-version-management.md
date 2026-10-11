@@ -161,7 +161,8 @@ worker or successful requests on a different bus cannot establish authority for
 the expected adapter: that adapter must have positive successful request evidence.
 Missing, duplicate, unstable or unavailable bindings fail closed. Older direct
 physical-path request evidence remains supported. New authority records also
-retain the logical-to-physical bindings and compare them after installation and
+retain all configured logical-to-physical bindings, including spare buses without
+request rows, and compare them after installation and
 on subsequent update/rollback, so swapping bus assignments cannot pass merely
 because the set of physical paths stayed the same.
 

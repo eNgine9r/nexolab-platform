@@ -99,6 +99,45 @@
             "matching_transitions": []
           },
           "read_only_candidate": {
+            "captured_at": "2026-10-11T17:14:04.826985+00:00",
+            "kind": "read-only-final-candidate-hardware-verification",
+            "worker_source_sha256": "aced479ce535a92013a737ecae6b72ab679a65f43359bbf106dbb79382c513b5",
+            "hardware": {
+              "status": "verified",
+              "device_mode": "modbus",
+              "configured_mode": "modbus",
+              "host_serial_device": "/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
+              "observed_buses": [
+                "/host/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0",
+                "/host/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
+                "/host/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F246-if00-port0"
+              ],
+              "successful_requests": 128474,
+              "expected_bus_successful_requests": 101603,
+              "bus_bindings": [
+                {
+                  "bus_id": "rs485-embraco",
+                  "serial_device": "/host/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F246-if00-port0"
+                },
+                {
+                  "bus_id": "rs485-main",
+                  "serial_device": "/host/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0"
+                },
+                {
+                  "bus_id": "rs485-sdm120",
+                  "serial_device": "/host/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0"
+                }
+              ]
+            },
+            "site_install_or_cutover": false
+          },
+          "local_tests": "112 passed; 25 subtests",
+          "before_fix_regression": "same stable RS-485 identity error",
+          "package_rebuilds": 0,
+          "site_retry": false,
+          "installed_repaired_worker": false,
+          "automatic_retry": false,
+          "initial_read_only_candidate": {
             "captured_at": "2026-10-11T17:00:02.955183+00:00",
             "kind": "read-only-candidate-hardware-verification",
             "worker_source_sha256": "682037f75ea48151d48d386420cb78e60af438d71215040e0fe8d18e46307525",
@@ -131,12 +170,10 @@
             },
             "site_install_or_cutover": false
           },
-          "local_tests": "110 passed; 25 subtests",
-          "before_fix_regression": "same stable RS-485 identity error",
-          "package_rebuilds": 0,
-          "site_retry": false,
-          "installed_repaired_worker": false,
-          "automatic_retry": false
+          "review_findings_addressed": [
+            "P2 checkpoint active_work mismatch",
+            "P2 retain full configured topology including spare buses"
+          ]
         }
       }
     },

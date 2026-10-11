@@ -961,7 +961,20 @@ def test_legacy_physical_request_bus_can_use_topology_diagnostics(tmp_path: Path
     assert evidence["bus_bindings"][1] == {"bus_id": "rs485-main", "serial_device": "/host/dev/serial/by-id/usb-test"}
 
 
-def test_package_transition_rejects_swapped_logical_binding_with_same_physical_paths(tmp_path: Path) -> None:
+def test_real_hardware_contract_retains_configured_spare_bus_without_requests(tmp_path: Path) -> None:
+    _, _, _, _, args, _ = transition_fixture(tmp_path)
+    payload = multi_bus_health()
+    spare = {"bus_id": "rs485-spare", "serial_device": "/host/dev/serial/by-id/usb-spare", "device_path_present": False}
+    payload["acquisition"]["rs485_buses"].append(spare)
+    with patch.object(manager, "read_local_json", return_value=payload):
+        evidence = manager.verify_real_hardware_runtime(args)
+    assert {"bus_id": "rs485-spare", "serial_device": "/host/dev/serial/by-id/usb-spare"} in evidence["bus_bindings"]
+    assert "/host/dev/serial/by-id/usb-spare" not in evidence["observed_buses"]
+    assert evidence["expected_bus_successful_requests"] == 12
+
+
+@pytest.mark.parametrize("change", ["active_bus_name", "spare_adapter"])
+def test_package_transition_rejects_changed_bindings_with_same_observed_paths(tmp_path: Path, change: str) -> None:
     _, target_root, target, current, args, _ = transition_fixture(tmp_path)
     observed = {
         "device_mode": "modbus",
@@ -969,6 +982,12 @@ def test_package_transition_rejects_swapped_logical_binding_with_same_physical_p
         "bus_bindings": [{"bus_id": "rs485-other", "serial_device": "/host/dev/serial/by-id/usb-test"}],
     }
     baseline = {**observed, "bus_bindings": [{"bus_id": "rs485-main", "serial_device": "/host/dev/serial/by-id/usb-test"}]}
+    if change == "spare_adapter":
+        observed["bus_bindings"] = [
+            {"bus_id": "rs485-main", "serial_device": "/host/dev/serial/by-id/usb-test"},
+            {"bus_id": "rs485-spare", "serial_device": "/host/dev/serial/by-id/usb-new-spare"},
+        ]
+        baseline["bus_bindings"].append({"bus_id": "rs485-spare", "serial_device": "/host/dev/serial/by-id/usb-original-spare"})
     with (
         patch.object(manager, "read_local_json", return_value={"status": "ready", "database": "ready", "mqtt": "ready"}),
         patch.object(manager, "wait_http_success"),

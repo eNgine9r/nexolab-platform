@@ -432,7 +432,6 @@ def verify_real_hardware_runtime(args: argparse.Namespace) -> dict[str, Any]:
             bindings[bus_id] = (serial, item.get("device_path_present") is True)
             serial_devices.add(serial)
     buses: set[str] = set()
-    observed_bindings: dict[str, str] = {}
     successful_requests = 0
     expected_successful_requests = 0
     for item in request_series:
@@ -443,13 +442,11 @@ def verify_real_hardware_runtime(args: argparse.Namespace) -> dict[str, Any]:
             serial, present = bindings[bus]
             if not present:
                 raise VersionManagerFailure("Device Agent RS-485 request bus device is unavailable")
-            observed_bindings[bus] = serial
         elif stable_runtime_serial_path(bus):
             if topology is not None:
                 matching = [(bus_id, present) for bus_id, (serial, present) in bindings.items() if serial == bus]
                 if len(matching) != 1 or not matching[0][1]:
                     raise VersionManagerFailure("Device Agent request bus has no available stable RS-485 binding")
-                observed_bindings[matching[0][0]] = bus
             serial = bus
         else:
             raise VersionManagerFailure("Device Agent request bus has no stable RS-485 binding")
@@ -480,10 +477,10 @@ def verify_real_hardware_runtime(args: argparse.Namespace) -> dict[str, Any]:
         "successful_requests": successful_requests,
         "expected_bus_successful_requests": expected_successful_requests,
     }
-    if observed_bindings:
+    if bindings:
         evidence["bus_bindings"] = [
             {"bus_id": bus_id, "serial_device": serial}
-            for bus_id, serial in sorted(observed_bindings.items())
+            for bus_id, (serial, _) in sorted(bindings.items())
         ]
     return evidence
 
