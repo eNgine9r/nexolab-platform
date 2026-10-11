@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { installOpenSocketEvidence } from "../../../e2e/websocket-open-evidence";
+import { installOpenSocketEvidence } from "./websocket-open-evidence";
 
 class FakeWebSocket extends EventTarget {
   static readonly CONNECTING = 0;
