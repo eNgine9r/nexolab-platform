@@ -106,6 +106,16 @@ sudo python3 scripts/nexolab-version-manager.py establish-package-authority \
   --local-auth
 ```
 
+The protected frontend candidate runs as the installed unprivileged service user.
+Owner commands may retain `umask 077` for audits and credentials. Its dedicated
+`/opt/nexolab-external/releases` ancestor must allow traversal by that user; the
+canonical helper grants execute bits only, without adding listing/write rights,
+and rejects symlinked, foreign-owned or shared-writable release roots. It verifies
+access as the service UID/GID before launching the candidate. A `200/CHDIR` error
+means the candidate never entered its runtime directory; do not relax private
+audit/credential permissions or repeat a consumed owner attempt. Preserve the
+failed transition and inspect its phase before an explicitly scoped continuation.
+
 This is a controlled runtime mutation and requires explicit cutover approval on
 the production Raspberry Pi. The transition fails closed unless the current
 source lineage is verified ready, no update/rollback operation is active, the

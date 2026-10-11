@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-11T17:03:00Z",
+  "timestamp": "2026-10-11T17:42:35.600065+00:00",
   "actor": "ChatGPT",
-  "event": "logical_RS485_verifier_rootcause_fixed_native_readonly_gate_passed",
+  "event": "protected_release_CHDIR_rootcause_reproduced_traversal_fix_prepared",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "mcG0fHLcpCeVbTX--85gF"
   },
   "active_work": {
-    "issue": 1337,
-    "title": "Resolve logical RS-485 bus IDs in package authority hardware verification",
-    "branch": "fix/1337-rs485-hardware-evidence",
+    "issue": 1339,
+    "title": "Keep protected package releases traversable under a private owner umask",
+    "branch": "fix/1339-protected-release-traversal",
     "status": "review"
   },
   "evidence_snapshot": {
@@ -1865,6 +1865,87 @@
         "P2 checkpoint active_work mismatch",
         "P2 retain full configured topology including spare buses"
       ]
+    },
+    "protected_release_traversal_1339": {
+      "issue": 1339,
+      "root_cause": "root-private umask creates a non-traversable shared protected release ancestor",
+      "failed_transition": "source-to-packaged-20261011T172831Z-40b4acd03724",
+      "preflight_hardware_passed": true,
+      "fix_status": "implemented_tests_passed_exact_head_CI_review_pending",
+      "local_verification": {
+        "tests_passed": 114,
+        "subtests_passed": 25,
+        "cross_user_proof": "skipped_single_uid_execution_namespace",
+        "pre_fix_regression": "failed_with_200_CHDIR",
+        "private_umask_after_fix": "passed",
+        "unsafe_roots": "rejected"
+      },
+      "live_read_only": {
+        "captured_at": "2026-10-11T17:34:51.565255+00:00",
+        "canonical_error": "200/CHDIR: Permission denied",
+        "release_root": "/opt/nexolab-external/releases",
+        "release_root_mode": "0700",
+        "release_root_in_commander_user_namespace": "nobody:nogroup",
+        "services": [
+          "LAN active",
+          "protected frontend active",
+          "NGINX active"
+        ],
+        "api": {
+          "status": "ready",
+          "database": "ready",
+          "mqtt": "ready",
+          "queue_size": 0,
+          "websocket_clients": 0,
+          "database_outage_since": null,
+          "last_persisted_at": "2026-10-11T17:34:32.302466+00:00",
+          "ingestion_lag_seconds": 0.233837,
+          "mqtt_error": null,
+          "database_error": null,
+          "last_error": null
+        },
+        "agent": {
+          "status": "ok",
+          "mqtt_connected": true,
+          "queue_size": 0,
+          "samples_total": 113500,
+          "device_mode": "modbus",
+          "scheduler": {
+            "expected_bus_workers": 3,
+            "active_bus_workers": 3,
+            "workers_healthy": true
+          }
+        },
+        "lan": {
+          "schema_version": "nexolab-runtime-identity-v1",
+          "service": "dashboard",
+          "source_commit": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+          "build_id": "Ar6aVrTWJICF6TKFaWxHw",
+          "deployed_at": "2026-10-10T22:13:25.289119+00:00",
+          "identity_source": "raspberry_activation"
+        },
+        "protected": {
+          "schema_version": "nexolab-runtime-identity-v1",
+          "service": "dashboard",
+          "source_commit": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+          "build_id": "mcG0fHLcpCeVbTX--85gF",
+          "deployed_at": null,
+          "identity_source": "offline_image_manifest"
+        },
+        "current": {
+          "status": "owner_only"
+        },
+        "transition": {
+          "status": "owner_only"
+        },
+        "site_retry_executed": false
+      },
+      "original_failed_report": "arm64-rebuild-20261011/owner-current-continuation-1337-report.json",
+      "original_failed_audit": "arm64-rebuild-20261011/owner-current-continuation-1337-0w2ph7m_",
+      "packages_immutable": true,
+      "third_build": false,
+      "host_repair_installed": false,
+      "owner_continuation_executed": false
     }
   },
   "observations": [
@@ -2837,7 +2918,7 @@
       }
     }
   ],
-  "next_action": "Exact-head CI/review for issue1337; install accepted host verifier and prepare one owner-local canonical current package continuation preserving failed attempt and immutable packages",
+  "next_action": "Exact-head CI/review for issue1339; prepare one owner-local continuation bound to failed protected preflight transition and immutable C296 package; do not rerun consumed owner command",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -2846,5 +2927,5 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "owner previous tooling/staging completed; failure before transition creation; assistant repaired candidate verified against live readonly health; no site retry or worker installation"
+  "runtime_mutation": "Owner #1337 continuation installed the accepted RS-485 host worker and reached protected candidate preparation; systemd 200/CHDIR stopped that phase. Live source builds/runtime remain unchanged; exact protected current/transition require owner-local verification. Assistant #1339 helper is staged only, not installed; no new site retry."
 }

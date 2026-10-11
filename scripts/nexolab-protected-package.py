@@ -11,6 +11,7 @@ from pathlib import Path
 import pwd
 import re
 import shutil
+import stat
 import subprocess
 import sys
 from typing import Any
@@ -23,6 +24,25 @@ SPEC.loader.exec_module(frontend)
 UNIT = Path("/etc/systemd/system/nexolab-external-frontend.service")
 NGINX = Path("/opt/nexolab-external/nginx.conf")
 RELEASES = Path("/opt/nexolab-external/releases")
+
+
+def prepare_release_root() -> None:
+    # Owner commands keep umask 077 for credentials and audit evidence. This
+    # separate runtime ancestor must also be traversable by the service user.
+    try:
+        RELEASES.mkdir(mode=0o711, exist_ok=True)
+        descriptor = os.open(RELEASES, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    except OSError as error:
+        raise ValueError("protected release root must be a real dedicated directory") from error
+    try:
+        info = os.fstat(descriptor)
+        mode = stat.S_IMODE(info.st_mode)
+        if info.st_uid != os.geteuid() or mode & 0o022:
+            raise ValueError("protected release root has unsafe ownership or shared write permission")
+        # Grant only traversal; retain existing listing/write/privacy bits.
+        os.fchmod(descriptor, mode | 0o111)
+    finally:
+        os.close(descriptor)
 
 
 def artifact_metadata(bundle: Path, source: str, platform: str) -> dict[str, str] | None:
@@ -137,7 +157,7 @@ class ProtectedPackageFrontend:
         self.evidence.mkdir(parents=True, exist_ok=True)
         (self.evidence / "external-unit-before.service").write_text(self.original)
         (self.evidence / "external-identity-before.json").write_text(json.dumps(self.original_identity))
-        RELEASES.mkdir(parents=True, exist_ok=True, mode=0o755)
+        prepare_release_root()
         self.release.mkdir(mode=0o755)
         artifact = self.bundle / "frontend-external"
         for name in ("package.json", "package-lock.json"):
@@ -160,6 +180,8 @@ class ProtectedPackageFrontend:
         for directory, directories, files in os.walk(self.release):
             for path in [Path(directory)] + [Path(directory) / name for name in directories + files]:
                 os.chown(path, owner.pw_uid, owner.pw_gid, follow_symlinks=False)
+        self.run(["test", "-x", str(self.release)], user=owner.pw_uid,
+                 group=owner.pw_gid, extra_groups=[])
         # The kernel enforces the same cap as the installed frontend during preflight.
         self.candidate = "nexolab-protected-package-" + self.evidence.name + ".service"
         try:
