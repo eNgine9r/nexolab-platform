@@ -247,19 +247,22 @@ def emit_shell_env(images: dict[str, dict[str, Any]]) -> None:
 def verify_site_storage(bundle_root, manifest, images, central_env, source_repository):
     """Read-only gate before importing images or preparing a protected frontend."""
     import os
-    values = {}
-    for raw in central_env.read_text(encoding='utf-8').splitlines():
-        key, separator, value = raw.strip().partition('=')
-        if separator and not key.startswith('#'):
-            values[key.strip()] = value.strip()
-    prefix = values.get('CENTRAL_RESOURCE_PREFIX') or os.environ.get('COMPOSE_PROJECT_NAME') or 'nexolab-central'
-    legacy = subprocess.run(['docker', 'volume', 'inspect', prefix + '-object-storage-data'],
-                            capture_output=True, text=True)
-    if legacy.returncode != 0:
-        # A failed Docker daemon request must not be mistaken for a fresh site.
-        volumes = subprocess.run(['docker', 'volume', 'ls', '--format', '{{.Name}}'],
-                                 capture_output=True, text=True, check=True)
-        require(prefix + '-object-storage-data' not in volumes.stdout.splitlines(), 'Legacy volume inspection failed')
+    # Let Compose resolve dotenv quoting/interpolation and shell precedence. Never
+    # log its full resolved configuration, which may contain site credentials.
+    resolved = subprocess.run(['docker', 'compose', '--env-file', str(central_env),
+                               '-f', str(bundle_root / 'deploy/compose/compose.central.yaml'),
+                               'config', '--format', 'json'], capture_output=True, text=True, check=True)
+    name = json.loads(resolved.stdout).get('volumes', {}).get('central-object-storage-data', {}).get('name')
+    require(isinstance(name, str), 'Cannot resolve the effective Compose storage volume')
+    suffix = next((value for value in ('-object-storage-versitygw-data', '-object-storage-data')
+                   if name.endswith(value)), None)
+    require(suffix is not None, 'Unsupported Compose storage volume contract')
+    prefix = name[:-len(suffix)]
+    require(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', prefix) is not None,
+            'Cannot resolve the effective Compose resource prefix')
+    volumes = subprocess.run(['docker', 'volume', 'ls', '--format', '{{.Name}}'],
+                             capture_output=True, text=True, check=True)
+    if not {prefix + '-object-storage-data', prefix + '-object-storage-versitygw-data'}.intersection(volumes.stdout.splitlines()):
         return
     require(prefix == 'nexolab-central', 'legacy storage with a custom resource prefix requires separately verified migration')
     authority = Path(os.environ.get('OBJECT_STORAGE_MIGRATION_AUTHORITY') or source_repository / 'runtime/object-storage-migration/authority.json')

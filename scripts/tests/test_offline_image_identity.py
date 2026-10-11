@@ -177,3 +177,51 @@ def test_merge_retains_app_bytes_and_accepted_index_without_old_storage(tmp_path
             saved.identity('example/storage:old', 'linux/arm64')
     with pytest.raises(FileExistsError):
         module.merge_archives(original, storage, images, 'example/storage:accepted', 'linux/arm64', output)
+
+
+@pytest.mark.parametrize('volume_suffix', ['-object-storage-data', '-object-storage-versitygw-data'])
+def test_custom_compose_storage_is_rejected_before_import_or_migration(tmp_path, volume_suffix):
+    verifier = load('verify-offline-bundle.py')
+    env = tmp_path / 'central.env'
+    env.write_text('COMPOSE_PROJECT_NAME="site-a"\n')
+    resolved = {'volumes': {'central-object-storage-data': {'name': 'site-a-object-storage-versitygw-data'}}}
+    with patch.object(verifier.subprocess, 'run', side_effect=[
+        subprocess.CompletedProcess([], 0, json.dumps(resolved), ''),
+        subprocess.CompletedProcess([], 0, 'site-a' + volume_suffix + '\n', ''),
+    ]) as run:
+        with pytest.raises(SystemExit, match='custom resource prefix'):
+            verifier.verify_site_storage(tmp_path, {}, {}, env, tmp_path)
+    assert run.call_args_list[0].args[0] == ['docker', 'compose', '--env-file', str(env),
+                                            '-f', str(tmp_path / 'deploy/compose/compose.central.yaml'),
+                                            'config', '--format', 'json']
+    assert run.call_args_list[1].args[0] == ['docker', 'volume', 'ls', '--format', '{{.Name}}']
+    assert run.call_count == 2
+
+
+@pytest.mark.parametrize('name', [None, 'unrecognized-volume', '${PREFIX}-object-storage-data'])
+def test_unresolved_compose_storage_fails_before_volume_lookup(tmp_path, name):
+    verifier = load('verify-offline-bundle.py')
+    config = {'volumes': {'central-object-storage-data': {'name': name}}}
+    with patch.object(verifier.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, json.dumps(config), '')) as run:
+        with pytest.raises(SystemExit):
+            verifier.verify_site_storage(tmp_path, {}, {}, tmp_path / 'env', tmp_path)
+    assert run.call_count == 1
+
+
+def test_failed_compose_resolution_is_not_treated_as_a_fresh_site(tmp_path):
+    verifier = load('verify-offline-bundle.py')
+    with patch.object(verifier.subprocess, 'run', side_effect=subprocess.CalledProcessError(2, ['docker', 'compose'])) as run:
+        with pytest.raises(subprocess.CalledProcessError):
+            verifier.verify_site_storage(tmp_path, {}, {}, tmp_path / 'env', tmp_path)
+    assert run.call_count == 1
+
+
+def test_fresh_resolved_storage_without_retained_volumes_is_allowed(tmp_path):
+    verifier = load('verify-offline-bundle.py')
+    config = {'volumes': {'central-object-storage-data': {'name': 'fresh-object-storage-versitygw-data'}}}
+    with patch.object(verifier.subprocess, 'run', side_effect=[
+        subprocess.CompletedProcess([], 0, json.dumps(config), ''),
+        subprocess.CompletedProcess([], 0, '', ''),
+    ]) as run:
+        verifier.verify_site_storage(tmp_path, {}, {}, tmp_path / 'env', tmp_path)
+    assert run.call_count == 2
