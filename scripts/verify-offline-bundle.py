@@ -33,6 +33,15 @@ SECRET_PATTERNS = (
 )
 
 
+def image_archive_module():
+    spec = importlib.util.spec_from_file_location(
+        "offline_image_archive", Path(__file__).with_name("offline_image_archive.py")
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -139,6 +148,16 @@ def verify_manifest(bundle_root: Path, manifest: dict[str, Any]) -> dict[str, di
         images[logical_id] = image
 
     require(set(images) == REQUIRED_IMAGES, f"Image inventory mismatch: {sorted(images)}")
+    try:
+        identities = image_archive_module().archive_identities(archive_path, list(images.values()), manifest['platform'])
+        for logical_id, image in images.items():
+            identity = identities[logical_id]
+            require(image['image_id'] in identity['runtime_digests'], f"Archive image ID mismatch: {logical_id}")
+            if 'identity' in image:
+                require(image['identity'] == identity, f"Archive image identity mismatch: {logical_id}")
+            image['identity'] = identity
+    except (ValueError, OSError, KeyError, TypeError) as error:
+        raise SystemExit(f"Invalid image archive: {error}") from error
 
     files_payload = manifest.get("files")
     require(isinstance(files_payload, list), "Missing files inventory")
@@ -153,6 +172,7 @@ def verify_manifest(bundle_root: Path, manifest: dict[str, Any]) -> dict[str, di
         require(path.stat().st_size == record.get("size_bytes"), f"Size mismatch: {relative}")
         require(sha256(path) == record.get("sha256"), f"Checksum mismatch: {relative}")
     require(overlay_relative in seen_paths, "Local auth Compose overlay is not in the file inventory")
+    require('scripts/offline_image_archive.py' in seen_paths, "Image archive verifier is not digest-bound")
     verify_backup_policy_inventory(bundle_root, seen_paths)
     if manifest.get("external_frontend") is not None or (bundle_root / "frontend-external").exists():
         for dependency in ("scripts/nexolab-protected-package.py", "scripts/nexolab-protected-frontend.py", "scripts/lib/raspberry-pi-frontend-release.sh"):
@@ -200,12 +220,17 @@ def reject_secret_material(bundle_root: Path) -> None:
 def inspect_loaded_images(images: dict[str, dict[str, Any]]) -> None:
     for logical_id, image in sorted(images.items()):
         result = subprocess.run(
-            ["docker", "image", "inspect", image["reference"], "--format", "{{.Id}}"],
+            ["docker", "image", "inspect", image["reference"]],
             capture_output=True,
             text=True,
         )
         require(result.returncode == 0, f"Image is not loaded: {image['reference']}")
-        require(result.stdout.strip() == image["image_id"], f"Loaded image ID mismatch: {logical_id}")
+        try:
+            inspected = json.loads(result.stdout)
+            require(isinstance(inspected, list) and len(inspected) == 1, "Invalid Docker inspect response")
+            image_archive_module().check_loaded_identity(inspected[0], image['identity'], image['platform'])
+        except (ValueError, KeyError, TypeError) as error:
+            raise SystemExit(f"Loaded image identity mismatch: {logical_id}: {error}") from error
 
 
 def shell_quote(value: str) -> str:
@@ -217,11 +242,49 @@ def emit_shell_env(images: dict[str, dict[str, Any]]) -> None:
         print(f"export {variable}={shell_quote(images[logical_id]['reference'])}")
 
 
+def verify_site_storage(bundle_root, manifest, images, central_env, source_repository):
+    """Read-only gate before importing images or preparing a protected frontend."""
+    import os
+    values = {}
+    for raw in central_env.read_text(encoding='utf-8').splitlines():
+        key, separator, value = raw.strip().partition('=')
+        if separator and not key.startswith('#'):
+            values[key.strip()] = value.strip()
+    prefix = values.get('CENTRAL_RESOURCE_PREFIX') or os.environ.get('COMPOSE_PROJECT_NAME') or 'nexolab-central'
+    legacy = subprocess.run(['docker', 'volume', 'inspect', prefix + '-object-storage-data'],
+                            capture_output=True, text=True)
+    if legacy.returncode != 0:
+        # A failed Docker daemon request must not be mistaken for a fresh site.
+        volumes = subprocess.run(['docker', 'volume', 'ls', '--format', '{{.Name}}'],
+                                 capture_output=True, text=True, check=True)
+        require(prefix + '-object-storage-data' not in volumes.stdout.splitlines(), 'Legacy volume inspection failed')
+        return
+    require(prefix == 'nexolab-central', 'legacy storage with a custom resource prefix requires separately verified migration')
+    authority = Path(os.environ.get('OBJECT_STORAGE_MIGRATION_AUTHORITY') or source_repository / 'runtime/object-storage-migration/authority.json')
+    subprocess.run([sys.executable, str(bundle_root / 'scripts/deploy-object-storage-migration.py'),
+                    '--validate-proof', '--require-cutover', '--manifest', str(authority),
+                    '--expected-target-source', manifest['source_commit'],
+                    '--source-repository', str(source_repository)], check=True)
+    proof = load_json(authority)
+    storage = images['object-storage']
+    require(proof.get('target_image_id') in storage['identity']['runtime_digests'],
+            'offline bundle storage image differs from accepted migration image')
+    accepted = subprocess.run(['docker', 'image', 'inspect', 'nexolab/object-storage:versitygw-v1.8.0'],
+                              capture_output=True, text=True, check=True)
+    inspected = json.loads(accepted.stdout)
+    require(isinstance(inspected, list) and len(inspected) == 1
+            and inspected[0].get('Id') == proof.get('target_image_id'), 'Accepted storage image identity changed')
+    image_archive_module().check_loaded_identity(inspected[0], storage['identity'], manifest['platform'])
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("bundle_root", type=Path)
     parser.add_argument("--check-loaded-images", action="store_true")
     parser.add_argument("--emit-shell-env", action="store_true")
+    parser.add_argument('--site-storage-preflight', action='store_true')
+    parser.add_argument('--central-env', type=Path)
+    parser.add_argument('--source-repository', type=Path)
     args = parser.parse_args()
 
     bundle_root = args.bundle_root.resolve()
@@ -230,6 +293,9 @@ def main() -> int:
     images = verify_manifest(bundle_root, manifest)
     verify_checksum_file(bundle_root)
     reject_secret_material(bundle_root)
+    if args.site_storage_preflight:
+        require(args.central_env is not None and args.source_repository is not None, 'Site storage preflight requires explicit site paths')
+        verify_site_storage(bundle_root, manifest, images, args.central_env, args.source_repository.resolve())
     if args.check_loaded_images:
         inspect_loaded_images(images)
     if args.emit_shell_env:

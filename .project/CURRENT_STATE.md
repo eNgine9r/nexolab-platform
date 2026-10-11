@@ -1,3 +1,37 @@
+<!-- OFFLINE_PACKAGE_STORAGE_1343_BEGIN -->
+
+## #1343: approved offline package repair in progress — 2026-10-11
+
+The consumed #1341-v2 owner attempt passed actual hardware/source/migration guards,
+then stopped before backup or active handoff: package storage differs from the
+retained accepted image. Owner report SHA256
+e89c0b393318e17705619347c491ef83a6a86ca84c255c92ce05f8223daee32e.
+C296 remains controlled source authority, schema 20260908_0037, ready/known.
+
+Owner approval at 19:58:12Z covers two new artifacts using existing application
+bytes and exact accepted storage; no third manual build/dispatch. Original current
+and target packages, all reports, migration authority and volumes remain immutable.
+Accepted storage native OCI index 992e9d9b..., config d1393dff..., platform manifest
+fd34f934..., compressed blob 741dae85..., DiffID 36cb1d11... . The new verifier proves
+these distinct identity types and root filesystem bytes; it does not equate tags.
+
+The installer swallowed child verification failure through eval command substitution.
+A checked assignment now stops on failure. Source/update/rollback workers run a
+read-only storage gate before protected preparation. Reissue tooling copies only
+selected existing image graphs, replaces storage, binds new tooling/provenance,
+regenerates manifests/checksums and never imports or activates images itself.
+Targeted software: 125 passed, one independent-UID skip, 16 subtests passed.
+Native accepted-storage export and offline Trivy ARM64 SBOM generation completed
+with no network; evidence under arm64-rebuild-20261011/reissue-1343-20261011.
+Archive SHA256 8235db2c53c613ea081bb2a471af7e19592a8f5a99817815c23374e82eb9f1d3.
+
+Next: exact-head CI/review, both distinct repaired artifacts, full native preflight,
+then one concrete guarded root handoff. No new owner command is ready. Actual
+packaged current authority, native LAN/HTTPS update/rollback and independently
+observed worker filesystem boundary remain open in #1323/#1313. Prior root-ready
+entries below are historical, consumed and superseded.
+<!-- OFFLINE_PACKAGE_STORAGE_1343_END -->
+
 <!-- OFFLINE_SITE_CONTEXT_1341_BEGIN -->
 
 ## #1341: privileged installer site repository corrected; native continuation pending — 2026-10-11

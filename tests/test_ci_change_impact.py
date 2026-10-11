@@ -15,6 +15,14 @@ classify = MODULE.classify
 
 
 class ChangeImpactClassifierTests(unittest.TestCase):
+    def test_offline_identity_and_reissue_helpers_require_real_offline_gate(self) -> None:
+        for path in ('scripts/generate-offline-bundle-manifest.py', 'scripts/offline_image_archive.py', 'scripts/reissue-offline-bundle.py',
+                     'scripts/tests/test_offline_image_identity.py'):
+            result = classify([path])
+            self.assertFalse(result['fail_closed'])
+            self.assertIn('deployment_runtime', result['classes'])
+            self.assertTrue(result['verification']['offline_bundle'])
+
     def test_state_only_is_lightweight(self) -> None:
         result = classify(
             [

@@ -43,8 +43,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1341,
-      "reason": "owner report confirms wrong privileged-HOME migration-authority lookup; focused host-context correction"
+      "issue": 1343,
+      "reason": "owner-approved distinct package reissue; storage authority, portable OCI identity and fail-closed installer"
     },
     "next_work_package": {
       "issue": 1323,
@@ -54,11 +54,30 @@
   },
   "work_packages": [
     {
+      "issue": 1343,
+      "title": "Repair offline package storage authority and image identity before native handoff",
+      "branch": "fix/1343-offline-package-storage-authority",
+      "priority": "critical",
+      "lifecycle": "review",
+      "depends_on": [
+        1341
+      ],
+      "scope": "Owner approved two distinct reissues using unchanged application bytes and exact retained storage. Fix installer verifier status propagation, archive config/OCI identity chain and early storage preflight; originals and migration authority remain immutable. Code regressions pass; actual reissued artifacts/native authority and update/rollback remain unverified.",
+      "evidence": {
+        "owner_reissue_approval_at": "2026-10-11T19:58:12Z",
+        "targeted_checks": "125 passed; 1 independent-UID skip; 16 subtests passed",
+        "native_storage_export_sha256": "8235db2c53c613ea081bb2a471af7e19592a8f5a99817815c23374e82eb9f1d3",
+        "manual_workflow_dispatches": 0,
+        "packaged_authority": "not_established",
+        "new_owner_command": "not_ready"
+      }
+    },
+    {
       "issue": 1341,
       "title": "Pass configured site repository to privileged offline package installer",
       "branch": "fix/1341-offline-installer-site-context",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1339
       ],
@@ -153,7 +172,8 @@
           "ui_update_rollback": "not_verified",
           "owner_execution": "pending_accepted_worker_and_guarded_continuation",
           "worker_service_sandbox": "actual ReadWritePaths only version root and backups; protected release/unit and site startup evidence write boundaries need separate verification before native UI acceptance"
-        }
+        },
+        "software_fix_accepted": "PR1342 merged, worker6da52989 installed; later immutable package mismatch is1343"
       }
     },
     {

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-11T18:55:17.055290+00:00",
+  "timestamp": "2026-10-11T20:14:00Z",
   "actor": "ChatGPT",
-  "event": "owner_exit80_site_context_rootcause_confirmed_host_worker_fix_prepared",
+  "event": "approved_1343_package_identity_and_storage_reissue_software_prepared",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -3013,6 +3013,17 @@
         "predecessor_pr": 1340,
         "predecessor_merge_sha": "32b17307eb3e8e2265547fbff37b3ba5a73501b8"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-11T20:02:04Z",
+      "kind": "predecessor_acceptance",
+      "data": {
+        "issue": 1341,
+        "pr": 1342,
+        "accepted_head_sha": "c60f1a63399f8d3bf4cf1cad376bc15e503b5d9b",
+        "merge_sha": "3da766856ee99b965c43846a90c20eaa846e5535"
+      }
     }
   ],
   "next_action": "Exact-head CI/review for1341; stage one owner continuation bound to failed installer preflight/current C296 and immutable package; after actual authority, verify native worker sandbox/update/rollback. No retry of consumed helpers.",
@@ -3024,5 +3035,11 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "Owner1339 installed accepted protected traversal helper and reached offline installer preflight; exit80 stopped before backup/handoff. Owner1341 diagnostic is read-only. Assistant1341 host-worker fix is not installed or executed."
+  "runtime_mutation": "Owner1339 installed accepted protected traversal helper and reached offline installer preflight; exit80 stopped before backup/handoff. Owner1341 diagnostic is read-only. Assistant1341 host-worker fix is not installed or executed.",
+  "active_work_package": {
+    "issue": 1343,
+    "branch": "fix/1343-offline-package-storage-authority",
+    "lifecycle": "review",
+    "summary": "Owner approved two distinct reissues using unchanged application bytes and exact retained storage. Fix installer verifier status propagation, archive config/OCI identity chain and early storage preflight; originals and migration authority remain immutable. Code regressions pass; actual reissued artifacts/native authority and update/rollback remain unverified."
+  }
 }

@@ -1,3 +1,17 @@
+<!-- OFFLINE_PACKAGE_STORAGE_1343_BEGIN -->
+
+## #1343 — package repair approved; native acceptance pending
+
+Current and target packages contain newly rebuilt storage images, incompatible
+with unchanged migration authority. Docker config and OCI index/manifest IDs were
+conflated, and installer eval suppressed verifier failures. Approved correction
+reuses app bytes and exact retained image in two new artifacts. Original two build
+dispatches remain consumed. Software checks pass; release CI/review and native
+artifact/preflight evidence remain pending. Do not rerun consumed owner wrappers.
+The worker filesystem sandbox is a separate recorded native update acceptance
+boundary; it is not silently relaxed here.
+<!-- OFFLINE_PACKAGE_STORAGE_1343_END -->
+
 <!-- OFFLINE_SITE_CONTEXT_1341_BEGIN -->
 
 ## #1341: privileged installer site repository corrected; native continuation pending — 2026-10-11
