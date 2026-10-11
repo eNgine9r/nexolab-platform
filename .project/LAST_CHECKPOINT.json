@@ -2927,5 +2927,5 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "owner previous tooling/staging completed; failure before transition creation; assistant repaired candidate verified against live readonly health; no site retry or worker installation"
+  "runtime_mutation": "Owner #1337 continuation installed the accepted RS-485 host worker and reached protected candidate preparation; systemd 200/CHDIR stopped that phase. Live source builds/runtime remain unchanged; exact protected current/transition require owner-local verification. Assistant #1339 helper is staged only, not installed; no new site retry."
 }
