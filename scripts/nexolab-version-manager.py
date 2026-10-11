@@ -531,6 +531,23 @@ def local_auth_subprocess_env(args: argparse.Namespace) -> dict[str, str] | None
     return environment
 
 
+def configured_source_repository() -> Path:
+    return Path(
+        os.environ.get("NEXOLAB_REPOSITORY_PATH") or Path(__file__).resolve().parents[1]
+    )
+
+
+def package_subprocess_env(args: argparse.Namespace) -> dict[str, str]:
+    environment = local_auth_subprocess_env(args)
+    if environment is None:
+        environment = os.environ.copy()
+    # sudo/systemd HOME belongs to root, not the installed site. The immutable
+    # installer uses this repository for migration authority and Git lineage.
+    source_repo = Path(getattr(args, "source_repo", configured_source_repository()))
+    environment["NEXOLAB_REPO"] = str(source_repo.resolve())
+    return environment
+
+
 def source_deployment_identity(current: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
     required = (
         "source_dashboard_origin",
@@ -1042,7 +1059,7 @@ def establish_package_authority(args: argparse.Namespace) -> None:
         target_tooling = validate_package_tooling(target_root, target)
         activate_offline_image_environment(target)
         current_schema = validate_source_transition(current, target, args)
-        compose_env = local_auth_subprocess_env(args)
+        compose_env = package_subprocess_env(args)
         source_hardware = verify_real_hardware_runtime(args)
         dashboard_state = source_dashboard_state(current)
         transition_id = source_transition_id(args.bundle_id)
@@ -1280,7 +1297,7 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
         ):
             raise VersionManagerFailure("current deployment evidence does not match its staged package")
         activate_offline_image_environment(current_manifest)
-        compose_env = local_auth_subprocess_env(args)
+        compose_env = package_subprocess_env(args)
 
         hardware_required = current.get("edge_hardware_required") is True
         hardware_contract = current.get("hardware_contract")
@@ -1476,7 +1493,7 @@ def parser() -> argparse.ArgumentParser:
     transition.add_argument(
         "--source-repo",
         type=Path,
-        default=Path(__file__).resolve().parents[1],
+        default=configured_source_repository(),
         help="Repository containing immutable source deployment evidence",
     )
     transition.add_argument("--skip-edge", action="store_true")
@@ -1488,6 +1505,12 @@ def parser() -> argparse.ArgumentParser:
     worker.add_argument("--central-env", type=Path, required=True)
     worker.add_argument("--edge-env", type=Path)
     worker.add_argument("--backup-dir", type=Path, required=True)
+    worker.add_argument(
+        "--source-repo",
+        type=Path,
+        default=configured_source_repository(),
+        help="Site repository containing retained migration authority",
+    )
     worker.add_argument("--skip-edge", action="store_true")
     worker.add_argument("--local-auth", action="store_true")
     worker.set_defaults(handler=run_once)
