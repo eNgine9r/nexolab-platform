@@ -1,5 +1,41 @@
 # NEXOLAB Blockers
 
+<!-- RS485_AUTHORITY_1337_BEGIN -->
+
+## #1337: logical-bus hardware verification corrected; native cutover pending — 2026-10-11
+
+Owner diagnostic confirms the failed current-package attempt stopped at the real
+hardware preflight before transition creation. Protected current remains source
+C296, controlled_source_deployment, schema 20260908_0037, ready/known, with no
+last operation or transition ID. Host tooling installation and both package
+staging steps succeeded; preserve the original failed marker/logs. Do not rerun
+the consumed activate-verified-current-package.py.
+
+Root cause: request_series.bus contains logical rs485-main/embraco/sdm120 names;
+stable paths are in rs485_buses.serial_device. The worker incorrectly required
+the metric name itself to be a physical path. The original regression reproduced
+the exact stopped error. The correction resolves unique stable bus bindings and
+requires positive successful requests on the expected adapter, preserving legacy
+physical-path evidence and binding comparisons across transition/update/rollback.
+The persisted binding list includes zero-target/spare buses without request rows.
+
+Local verification: 112 tests and 25 subtests passed across worker/runtime,
+protected frontend/package, bounded PostgreSQL backup and startup gate tests.
+Read-only candidate code on real Pi health passed at 2026-10-11T17:14:04.826985+00:00:
+all 3 stable bus bindings; 101603 successful requests on expected main adapter.
+Worker source SHA256 aced479ce535a92013a737ecae6b72ab679a65f43359bbf106dbb79382c513b5.
+Evidence: guarded-update-1313-df5485f6/arm64-rebuild-20261011/
+owner-current-handoff-diagnostic.json, rs485-contract-evidence-20261011.json and
+rs485-fixed-candidate-readonly-v2.json. No repaired worker installation/site retry
+occurred. Exact-head CI/review and owner-local canonical continuation remain next.
+
+Both authorized replacement packages remain verified/immutable (current C296
+run 38141270407; target df5485f6 run 38144308536). No rebuild/third dispatch,
+manifest rewrite, DB/SQLite restore or controller write. Native package authority,
+actual LAN/HTTPS update/rollback and Google journeys remain open in #1313/#1323.
+Historical pre-cutover/current-head entries below are superseded by this evidence.
+<!-- RS485_AUTHORITY_1337_END -->
+
 ## Issue #1335 — valid LAN artifact contract rejected after handoff
 
 Owner execution of accepted #1333 / PR #1334 control 8aa7a61a stopped at the

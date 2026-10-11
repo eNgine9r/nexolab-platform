@@ -411,35 +411,87 @@ def verify_real_hardware_runtime(args: argparse.Namespace) -> dict[str, Any]:
     request_series = acquisition.get("request_series") if isinstance(acquisition, dict) else None
     if not isinstance(request_series, list) or not request_series:
         raise VersionManagerFailure("Device Agent real-hardware request evidence is missing")
+    # Request metrics identify logical buses; topology diagnostics bind those
+    # names to physical adapters. Legacy agents report the physical path directly.
+    bindings: dict[str, tuple[str, bool]] = {}
+    serial_devices: set[str] = set()
+    topology = acquisition.get("rs485_buses")
+    if topology is not None:
+        if not isinstance(topology, list):
+            raise VersionManagerFailure("Device Agent RS-485 topology evidence is invalid")
+        for item in topology:
+            if not isinstance(item, dict):
+                raise VersionManagerFailure("Device Agent RS-485 bus binding is invalid")
+            bus_id, serial = item.get("bus_id"), item.get("serial_device")
+            if (
+                not isinstance(bus_id, str) or not bus_id
+                or not stable_runtime_serial_path(serial)
+                or bus_id in bindings or serial in serial_devices
+            ):
+                raise VersionManagerFailure("Device Agent RS-485 bus binding is ambiguous or unstable")
+            bindings[bus_id] = (serial, item.get("device_path_present") is True)
+            serial_devices.add(serial)
     buses: set[str] = set()
     successful_requests = 0
+    expected_successful_requests = 0
     for item in request_series:
         if not isinstance(item, dict):
-            continue
+            raise VersionManagerFailure("Device Agent real-hardware request evidence is invalid")
         bus = item.get("bus")
-        if isinstance(bus, str) and bus.startswith("/host/dev/serial/by-id/"):
-            buses.add(bus)
+        if isinstance(bus, str) and bus in bindings:
+            serial, present = bindings[bus]
+            if not present:
+                raise VersionManagerFailure("Device Agent RS-485 request bus device is unavailable")
+        elif stable_runtime_serial_path(bus):
+            if topology is not None:
+                matching = [(bus_id, present) for bus_id, (serial, present) in bindings.items() if serial == bus]
+                if len(matching) != 1 or not matching[0][1]:
+                    raise VersionManagerFailure("Device Agent request bus has no available stable RS-485 binding")
+            serial = bus
+        else:
+            raise VersionManagerFailure("Device Agent request bus has no stable RS-485 binding")
+        buses.add(serial)
+        count = 0
         outcome = item.get("outcome")
         requests_total = item.get("requests_total")
-        if outcome == "success" and isinstance(requests_total, int) and not isinstance(requests_total, bool):
-            successful_requests += requests_total
+        if outcome == "success" and isinstance(requests_total, int) and not isinstance(requests_total, bool) and requests_total > 0:
+            count += requests_total
         outcomes = item.get("outcomes")
         if isinstance(outcomes, dict):
             success = outcomes.get("success")
-            if isinstance(success, int) and not isinstance(success, bool):
-                successful_requests += success
+            if isinstance(success, int) and not isinstance(success, bool) and success > 0:
+                count += success
+        successful_requests += count
+        if serial == expected["container_serial_device"]:
+            expected_successful_requests += count
     if expected["container_serial_device"] not in buses:
         raise VersionManagerFailure("Device Agent is not using the expected stable RS-485 identity")
-    if successful_requests <= 0:
-        raise VersionManagerFailure("Device Agent has no successful real-hardware request evidence")
-    return {
+    if expected_successful_requests <= 0:
+        raise VersionManagerFailure("Device Agent has no successful real-hardware request evidence on the expected RS-485 bus")
+    evidence = {
         "status": "verified",
         "device_mode": "modbus",
         "configured_mode": expected["configured_mode"],
         "host_serial_device": expected["host_serial_device"],
         "observed_buses": sorted(buses),
         "successful_requests": successful_requests,
+        "expected_bus_successful_requests": expected_successful_requests,
     }
+    if bindings:
+        evidence["bus_bindings"] = [
+            {"bus_id": bus_id, "serial_device": serial}
+            for bus_id, (serial, _) in sorted(bindings.items())
+        ]
+    return evidence
+
+
+def stable_runtime_serial_path(value: Any) -> bool:
+    prefix = "/host/dev/serial/by-id/"
+    return (
+        isinstance(value, str) and value.startswith(prefix)
+        and value[len(prefix):] not in {"", ".", ".."}
+        and "/" not in value[len(prefix):]
+    )
 
 
 def parse_env_file(path: Path) -> dict[str, str]:
@@ -940,6 +992,8 @@ def verify_transition_runtime(
             raise VersionManagerFailure("Device Agent hardware mode changed during package transition")
         if hardware.get("observed_buses") != source_hardware.get("observed_buses"):
             raise VersionManagerFailure("Device Agent RS-485 topology changed during package transition")
+        if "bus_bindings" in source_hardware and hardware.get("bus_bindings") != source_hardware["bus_bindings"]:
+            raise VersionManagerFailure("Device Agent RS-485 bus bindings changed during package transition")
         observation_seconds = int(
             os.environ.get(
                 "NEXOLAB_POST_UPDATE_OBSERVATION_SECONDS",
@@ -1320,6 +1374,8 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
                         raise VersionManagerFailure(
                             f"Device Agent {label} changed during version operation"
                         )
+                if "bus_bindings" in hardware_contract and observed_hardware.get("bus_bindings") != hardware_contract["bus_bindings"]:
+                    raise VersionManagerFailure("Device Agent RS-485 bus bindings changed during version operation")
                 operation["hardware_verification"] = observed_hardware
             else:
                 operation["hardware_verification"] = {

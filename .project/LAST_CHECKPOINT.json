@@ -3,17 +3,17 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-10T21:58:20.886875+00:00",
+  "timestamp": "2026-10-11T17:03:00Z",
   "actor": "ChatGPT",
-  "event": "complete_lan_contract_failure_reproduced_and_recovery_verified",
+  "event": "logical_RS485_verifier_rootcause_fixed_native_readonly_gate_passed",
   "baselines": {
-    "accepted_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
-    "deployed_product_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
-    "frontend_compatibility_source_sha": "d00a83bfc83fb120777c721b5e46fa50ae455c7d",
-    "frontend_build_id": "hA8usmV6ZKwgZUYhmOLHZ",
-    "frontend_release": "runtime/frontend-releases/d00a83bfc83fb120777c721b5e46fa50ae455c7d-20261008T092219Z",
+    "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+    "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+    "frontend_compatibility_source_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+    "frontend_build_id": "Ar6aVrTWJICF6TKFaWxHw",
+    "frontend_release": "runtime/frontend-releases/c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2-20261010T194054Z",
     "frontend_rollback_release": "runtime/frontend-releases/75d9c75f8d1901d6b639ec711bf3784e22ed0642-20261007T061059Z",
-    "frontend_runtime_evidence": "runtime/deployments/20261008T092219Z",
+    "frontend_runtime_evidence": "runtime/frontend-completions/20261010T221214Z-p5w6jzu0/report.json",
     "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
     "sdm120_candidate_device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
     "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
@@ -23,15 +23,18 @@
     "sdm120_production_adapter": "A10Q34QC",
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
-    "deployed_runtime_evidence": "runtime/deployments/20261008T092219Z",
-    "deployed_device_agent_image_id": "sha256:514b504bad13e8cf4d7776a4e0670fb187d8149aa8ca75d6abc6b814ad2da323",
+    "deployed_runtime_evidence": "runtime/deployments/20261010T194054Z",
+    "deployed_device_agent_image_id": "sha256:3d50e14ceb396ab9e442f26b66703838a86e7b7d6e5b79373ef62f45bee94037",
     "deployed_device_agent_rollback_image_id": "sha256:5344b4bef506d89923afd39413ee1bd7d1bb668ac1d123ed899a6d22fa58b957",
-    "object_storage_authority": "runtime/object-storage-migration/authority.json"
+    "object_storage_authority": "runtime/object-storage-migration/authority.json",
+    "protected_frontend_compatibility_source_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+    "protected_frontend_build_id": "mcG0fHLcpCeVbTX--85gF"
   },
   "active_work": {
-    "issue": 1335,
-    "title": "Validate complete LAN artifact contract before frontend completion handoff",
-    "branch": "fix/1335-complete-lan-runtime-contract"
+    "issue": 1337,
+    "title": "Resolve logical RS-485 bus IDs in package authority hardware verification",
+    "branch": "fix/1337-rs485-hardware-evidence",
+    "status": "review"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -1757,6 +1760,111 @@
       "backend_mutation": "none",
       "controller_write": "none",
       "whole_site_authority": "unchanged_historical_D00"
+    },
+    "rs485_authority_contract_1337": {
+      "issue": 1337,
+      "status": "implemented_native_readonly_verified_CI_review_pending",
+      "root_cause": "logical request bus IDs incorrectly interpreted as physical serial paths",
+      "owner_diagnostic": {
+        "captured_at": "2026-10-11T16:51:35.825759+00:00",
+        "kind": "read-only-owner-handoff-diagnostic",
+        "failed_step": "establish_current_package_authority",
+        "returncode": 1,
+        "canonical_errors": [
+          "Device Agent is not using the expected stable RS-485 identity"
+        ],
+        "traceback_frames": [],
+        "log_sha256": "883819635f5da15937065b37ee4b49ab6323cac6a651ca43bf5ecda4f3eb1e3e",
+        "runtime_commands_executed": false,
+        "automatic_retry": false,
+        "current": {
+          "source_commit": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+          "bundle_id": "source-main-c296c58f3cb2",
+          "deployment_authority": "controlled_source_deployment",
+          "health": "ready",
+          "runtime_state_known": true,
+          "schema_head": "20260908_0037",
+          "last_operation_id": null,
+          "transition_evidence_id": null
+        },
+        "matching_transitions": []
+      },
+      "read_only_candidate": {
+        "captured_at": "2026-10-11T17:14:04.826985+00:00",
+        "kind": "read-only-final-candidate-hardware-verification",
+        "worker_source_sha256": "aced479ce535a92013a737ecae6b72ab679a65f43359bbf106dbb79382c513b5",
+        "hardware": {
+          "status": "verified",
+          "device_mode": "modbus",
+          "configured_mode": "modbus",
+          "host_serial_device": "/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
+          "observed_buses": [
+            "/host/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0",
+            "/host/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
+            "/host/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F246-if00-port0"
+          ],
+          "successful_requests": 128474,
+          "expected_bus_successful_requests": 101603,
+          "bus_bindings": [
+            {
+              "bus_id": "rs485-embraco",
+              "serial_device": "/host/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F246-if00-port0"
+            },
+            {
+              "bus_id": "rs485-main",
+              "serial_device": "/host/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0"
+            },
+            {
+              "bus_id": "rs485-sdm120",
+              "serial_device": "/host/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0"
+            }
+          ]
+        },
+        "site_install_or_cutover": false
+      },
+      "local_tests": "112 passed; 25 subtests",
+      "before_fix_regression": "same stable RS-485 identity error",
+      "package_rebuilds": 0,
+      "site_retry": false,
+      "installed_repaired_worker": false,
+      "automatic_retry": false,
+      "initial_read_only_candidate": {
+        "captured_at": "2026-10-11T17:00:02.955183+00:00",
+        "kind": "read-only-candidate-hardware-verification",
+        "worker_source_sha256": "682037f75ea48151d48d386420cb78e60af438d71215040e0fe8d18e46307525",
+        "hardware": {
+          "status": "verified",
+          "device_mode": "modbus",
+          "configured_mode": "modbus",
+          "host_serial_device": "/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
+          "observed_buses": [
+            "/host/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0",
+            "/host/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0",
+            "/host/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F246-if00-port0"
+          ],
+          "successful_requests": 127060,
+          "expected_bus_successful_requests": 100483,
+          "bus_bindings": [
+            {
+              "bus_id": "rs485-embraco",
+              "serial_device": "/host/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F246-if00-port0"
+            },
+            {
+              "bus_id": "rs485-main",
+              "serial_device": "/host/dev/serial/by-id/usb-Silicon_Labs_CP2104_USB_to_UART_Bridge_Controller_0133F090-if00-port0"
+            },
+            {
+              "bus_id": "rs485-sdm120",
+              "serial_device": "/host/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A10Q34QC-if00-port0"
+            }
+          ]
+        },
+        "site_install_or_cutover": false
+      },
+      "review_findings_addressed": [
+        "P2 checkpoint active_work mismatch",
+        "P2 retain full configured topology including spare buses"
+      ]
     }
   },
   "observations": [
@@ -2729,7 +2837,7 @@
       }
     }
   ],
-  "next_action": "required exact-head CI/review; then stage explicit predecessor-bound owner-local frontend-only continuation",
+  "next_action": "Exact-head CI/review for issue1337; install accepted host verifier and prepare one owner-local canonical current package continuation preserving failed attempt and immutable packages",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -2738,5 +2846,5 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "owner_authorized_partial_attempt; source_fix_not_deployed"
+  "runtime_mutation": "owner previous tooling/staging completed; failure before transition creation; assistant repaired candidate verified against live readonly health; no site retry or worker installation"
 }
