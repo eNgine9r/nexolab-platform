@@ -5,8 +5,12 @@ from the retained migration authority. Such a package cannot replace this site's
 storage. Do not change the authority, retag a rebuilt image as accepted, repeat
 object migration, restore databases or overwrite the original package.
 
-Before preparing a protected frontend, the version worker runs the package's
-read-only site-storage preflight. The direct installer runs the same check before
+Before preparing a protected frontend, the version worker runs the installed,
+reviewed host verifier's read-only site-storage preflight against the package.
+This preserves rollback to immutable older packages whose own verifier predates
+the new preflight flags. Deploy the host verifier and archive module alongside
+the worker; do not rewrite an old package to add those flags.
+The direct installer runs the same check before
 loading images. The existing migration proof still validates source ancestry,
 exact native image identity, active storage and retained volume identities.
 

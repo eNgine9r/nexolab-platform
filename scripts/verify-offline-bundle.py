@@ -148,6 +148,7 @@ def verify_manifest(bundle_root: Path, manifest: dict[str, Any]) -> dict[str, di
         images[logical_id] = image
 
     require(set(images) == REQUIRED_IMAGES, f"Image inventory mismatch: {sorted(images)}")
+    portable_identity_declared = any('identity' in image for image in images.values())
     try:
         identities = image_archive_module().archive_identities(archive_path, list(images.values()), manifest['platform'])
         for logical_id, image in images.items():
@@ -172,7 +173,8 @@ def verify_manifest(bundle_root: Path, manifest: dict[str, Any]) -> dict[str, di
         require(path.stat().st_size == record.get("size_bytes"), f"Size mismatch: {relative}")
         require(sha256(path) == record.get("sha256"), f"Checksum mismatch: {relative}")
     require(overlay_relative in seen_paths, "Local auth Compose overlay is not in the file inventory")
-    require('scripts/offline_image_archive.py' in seen_paths, "Image archive verifier is not digest-bound")
+    if portable_identity_declared:
+        require('scripts/offline_image_archive.py' in seen_paths, "Image archive verifier is not digest-bound")
     verify_backup_policy_inventory(bundle_root, seen_paths)
     if manifest.get("external_frontend") is not None or (bundle_root / "frontend-external").exists():
         for dependency in ("scripts/nexolab-protected-package.py", "scripts/nexolab-protected-frontend.py", "scripts/lib/raspberry-pi-frontend-release.sh"):

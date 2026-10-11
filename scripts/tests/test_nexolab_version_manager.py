@@ -17,6 +17,7 @@ SPEC = importlib.util.spec_from_file_location("nexolab_version_manager", SCRIPT)
 assert SPEC and SPEC.loader
 manager = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(manager)
+PREFLIGHT_SITE_STORAGE = manager.preflight_site_storage
 
 VERIFIER_SCRIPT = Path(__file__).resolve().parents[1] / "verify-offline-bundle.py"
 VERIFIER_SPEC = importlib.util.spec_from_file_location("verify_offline_bundle", VERIFIER_SCRIPT)
@@ -1461,3 +1462,22 @@ def test_package_tooling_rejects_missing_startup_gate_capability_or_file(tmp_pat
     (bundle / "scripts/device-agent-startup-gate.py").unlink()
     with pytest.raises(manager.VersionManagerFailure, match="startup gate is missing"):
         manager.validate_package_tooling(bundle, {"source_commit": source})
+
+
+def test_legacy_package_storage_preflight_uses_current_reviewed_host_verifier(tmp_path):
+    bundle = tmp_path / 'legacy-package'
+    (bundle / 'scripts').mkdir(parents=True)
+    legacy = bundle / 'scripts/verify-offline-bundle.py'
+    legacy.write_text('import argparse\np=argparse.ArgumentParser();p.add_argument("bundle");p.parse_args()\n')
+    env = {'NEXOLAB_REPO': str(tmp_path / 'site')}
+    args = argparse.Namespace(central_env=tmp_path / 'central.env')
+    with patch.object(manager.subprocess, 'run') as run:
+        PREFLIGHT_SITE_STORAGE(bundle, args, env)
+    command = run.call_args.args[0]
+    assert command[1] == str(SCRIPT.with_name('verify-offline-bundle.py'))
+    assert str(legacy) not in command
+    assert '--site-storage-preflight' in command
+    assert run.call_args.kwargs == {'check': True, 'env': env}
+    installer = SCRIPT.with_name('deploy-version-manager-service.sh').read_text()
+    for helper in ('verify-offline-bundle.py', 'offline_image_archive.py'):
+        assert f'/usr/local/lib/nexolab/{helper}' in installer

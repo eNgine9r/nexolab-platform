@@ -877,7 +877,9 @@ def preflight_offline_hardware(
 
 def preflight_site_storage(bundle_root: Path, args: argparse.Namespace, compose_env: dict[str, str]) -> None:
     subprocess.run(
-        [sys.executable, str(bundle_root / 'scripts/verify-offline-bundle.py'), str(bundle_root),
+        # Old immutable packages do not implement this new CLI. The installed,
+        # reviewed host verifier understands both legacy and portable manifests.
+        [sys.executable, str(Path(__file__).with_name('verify-offline-bundle.py')), str(bundle_root),
          '--site-storage-preflight', '--central-env', str(args.central_env.resolve()),
          '--source-repository', compose_env['NEXOLAB_REPO']],
         check=True, env=compose_env,
