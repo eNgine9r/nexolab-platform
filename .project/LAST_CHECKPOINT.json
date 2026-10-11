@@ -31,9 +31,10 @@
     "protected_frontend_build_id": "mcG0fHLcpCeVbTX--85gF"
   },
   "active_work": {
-    "issue": 1335,
-    "title": "Validate complete LAN artifact contract before frontend completion handoff",
-    "branch": "fix/1335-complete-lan-runtime-contract"
+    "issue": 1337,
+    "title": "Resolve logical RS-485 bus IDs in package authority hardware verification",
+    "branch": "fix/1337-rs485-hardware-evidence",
+    "status": "review"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {

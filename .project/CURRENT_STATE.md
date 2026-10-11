@@ -1,6 +1,7 @@
 # NEXOLAB Current State
 
 <!-- RS485_AUTHORITY_1337_BEGIN -->
+
 ## #1337: logical-bus hardware verification corrected; native cutover pending — 2026-10-11
 
 Owner diagnostic confirms the failed current-package attempt stopped at the real
