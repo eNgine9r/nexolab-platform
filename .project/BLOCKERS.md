@@ -1,5 +1,47 @@
 # NEXOLAB Blockers
 
+<!-- ARM64_REBUILD_20261011_BEGIN -->
+## Two corrected ARM64 packages verified; owner-local handoff ready — 2026-10-11 14:35 UTC
+
+Owner confirmed two sequential builds at 12:52:44Z. Both approved dispatches
+succeeded on exact reviewed tooling 24e21f2bce0ddeff6e8086b130fa79e4af38d3b2:
+current C296 run 38141270407 / artifact 11703791696, target df5485f6 run
+38144308536 / artifact 11704612485. No retry or third workflow was dispatched.
+The old pending-approval and retained-package-ready entries below are historical.
+
+Both artifacts were downloaded and fully verified on nexolab-edge-01. ZIP and
+inner archive hashes, canonical full inventory/checksum/secret/protected metadata
+validation, reviewed helper bytes, hardware overlay, package tooling gates and
+digest-bound startup probes passed. Each package has 67 inventory files, ARM64,
+local auth, the approved LAN/HTTPS origins and schema 20260908_0037. CI disconnected
+startup and container recreation volume/marker/local-session continuity passed
+under QEMU; native cross-version site/UI acceptance is not implied.
+
+Current archive SHA256 05f9c9c7218b9044bc8a59c8564af0afcd5172452036209b495b6d212db4a884,
+manifest 335763d74d9cefb3cf32f2124d1bed4df99e7d37a548d04c06d5490ee8ccb1d8.
+Target archive SHA256 dfbb79eed0b0086c95072f76c298b83fe73e1ddc89e3c24196f1afc0af813310,
+manifest b7fb26958d42ba7d28734e9b744975bbe3d4fba3897a75bbd582e58bb246878b.
+Verified roots/archives/receipts are in guarded-update-1313-df5485f6/arm64-rebuild-20261011.
+Older bundles and all historical failed audits remain preserved.
+
+One owner-local command is staged, exact readback and Python syntax verified:
+arm64-rebuild-20261011/activate-verified-current-package.py --execute.
+SHA256 833e7498dfb496060318edfa4bb0374d74cc4cf09cf1f150077302697fd4c12d.
+It checks the actual protected environment/source/request state, installs reviewed
+canonical host tooling, stages both packages and invokes the real current-C296
+establish-package-authority transaction. It never bootstraps/fabricates authority
+or activates df5485f6. An attempt marker prevents automatic rerun; private logs
+and a safe owner report preserve any canonical failure. This command has not run.
+
+Commander is unprivileged; this native transaction requires owner-local sudo.
+No site runtime activation or image loading occurred during the two builds.
+Source adoption evidence remains C296; package authority, native LAN/HTTPS
+update/rollback and Google session journeys remain unverified/open in #1313/#1323.
+The GitHub plane matches manifest.source_commit to the selected GREEN target;
+tooling 24e21f2b is not a runtime alias for C296/df5485f6. Latest-main automatic
+activation is not proven by these two approved runtime builds. #1318 stays draft.
+<!-- ARM64_REBUILD_20261011_END -->
+
 ## Source adoption complete; retained package tooling rejected — 2026-10-10 22:30 UTC
 
 Owner canonical source adoption returned status=recorded for C296, controlled

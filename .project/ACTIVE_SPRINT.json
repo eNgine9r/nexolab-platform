@@ -45,11 +45,11 @@
   "selection": {
     "active_work_package": {
       "issue": 1317,
-      "reason": "material actual-site source completion proof and next owner metadata action"
+      "reason": "material two verified ARM64 package outputs and concrete owner-local current authority handoff"
     },
     "next_work_package": {
       "issue": 1323,
-      "title": "Corrected-tooling ARM64 packages and real update/rollback acceptance",
+      "title": "Owner-local package authority and real LAN/HTTPS update/rollback acceptance",
       "branch": "fix/1323-partial-unified-activation"
     }
   },
@@ -7702,6 +7702,141 @@
           "workflow_access": "read_only_gh_api_passed",
           "automatic_retries": false,
           "site_runtime_mutation": "none; old_packages_not_activated"
+        },
+        "approved_arm64_rebuilds_20261011": {
+          "authorized_at": "2026-10-11T12:52:44Z",
+          "user_authorization": "дозволяю та підтверджую",
+          "dispatch_budget": 2,
+          "automatic_retries": false,
+          "plan_sha256": "34cbea16928ba16bb8ff87b49381073af3472fe7ac0d2141f4b4c712abc564c5",
+          "workflow_id": 325147947,
+          "tooling_commit": "24e21f2bce0ddeff6e8086b130fa79e4af38d3b2",
+          "current": {
+            "status": "verified",
+            "role": "current",
+            "run_id": 38141270407,
+            "run_url": "https://github.com/eNgine9r/nexolab-platform/actions/runs/38141270407",
+            "workflow_head": "24e21f2bce0ddeff6e8086b130fa79e4af38d3b2",
+            "runtime_source": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+            "platform": "linux/arm64",
+            "artifact_id": 11703791696,
+            "artifact_digest": "sha256:46e54048199b1c2f2bc21ea16a9ba042c7b8027e6087c6535e793bed748b35da",
+            "archive_sha256": "05f9c9c7218b9044bc8a59c8564af0afcd5172452036209b495b6d212db4a884",
+            "manifest_sha256": "335763d74d9cefb3cf32f2124d1bed4df99e7d37a548d04c06d5490ee8ccb1d8",
+            "bundle_root": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/arm64-rebuild-20261011/current-38141270407/package/nexolab-offline-recovery-c296c58f3cb2-tooling-24e21f2bce0d-protected-arm64",
+            "archive": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/arm64-rebuild-20261011/current-38141270407/transfer/dist/offline/nexolab-offline-recovery-c296c58f3cb2-tooling-24e21f2bce0d-protected-arm64.tar.gz",
+            "bundle_id": "recovery-c296c58f3cb2-tooling-24e21f2bce0d-protected-arm64-c296c58f3cb2",
+            "external_build_id": "HuFALgo65ij75S2pY6qCm",
+            "schema_head": "20260908_0037",
+            "tooling_gate": {
+              "source_commit": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+              "tooling_commit": "24e21f2bce0ddeff6e8086b130fa79e4af38d3b2",
+              "tooling_capabilities": [
+                "hardware",
+                "hardware-startup-gate",
+                "runtime-mode",
+                "split-runtime-tooling"
+              ]
+            },
+            "startup_probe": {
+              "kind": "nexolab-device-agent-startup-probe",
+              "status": "passed",
+              "image_id": "sha256:abaceb4bdd660d7c420cb832317041f51bb21bba4d4a3864db1c40a5cc14ade7"
+            },
+            "inventory_files": 67,
+            "ci_container_recreation_drill": "volumes and local auth refresh/session/logout continuity verified under QEMU; cross-version site acceptance pending",
+            "verified_at": "2026-10-11T13:41:37.672690+00:00",
+            "site_runtime_mutation": false,
+            "docker_images_loaded_on_site": false,
+            "native_hardware_acceptance": "pending",
+            "automatic_retry": false
+          },
+          "target": {
+            "status": "verified",
+            "role": "target",
+            "run_id": 38144308536,
+            "run_url": "https://github.com/eNgine9r/nexolab-platform/actions/runs/38144308536",
+            "workflow_head": "24e21f2bce0ddeff6e8086b130fa79e4af38d3b2",
+            "runtime_source": "df5485f6ece4203a74a84f106195fae855d81731",
+            "platform": "linux/arm64",
+            "artifact_id": 11704612485,
+            "artifact_digest": "sha256:acd975800909996fa47ce02410155936dc1f23328b087b59df1314486184fba0",
+            "archive_sha256": "dfbb79eed0b0086c95072f76c298b83fe73e1ddc89e3c24196f1afc0af813310",
+            "manifest_sha256": "b7fb26958d42ba7d28734e9b744975bbe3d4fba3897a75bbd582e58bb246878b",
+            "bundle_root": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/arm64-rebuild-20261011/target-38144308536/package/nexolab-offline-recovery-df5485f6ece4-tooling-24e21f2bce0d-protected-arm64",
+            "archive": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/arm64-rebuild-20261011/target-38144308536/transfer/dist/offline/nexolab-offline-recovery-df5485f6ece4-tooling-24e21f2bce0d-protected-arm64.tar.gz",
+            "bundle_id": "recovery-df5485f6ece4-tooling-24e21f2bce0d-protected-arm64-df5485f6ece4",
+            "external_build_id": "My2IdIKRn37zSGg2e_3ct",
+            "schema_head": "20260908_0037",
+            "tooling_gate": {
+              "source_commit": "df5485f6ece4203a74a84f106195fae855d81731",
+              "tooling_commit": "24e21f2bce0ddeff6e8086b130fa79e4af38d3b2",
+              "tooling_capabilities": [
+                "hardware",
+                "hardware-startup-gate",
+                "runtime-mode",
+                "split-runtime-tooling"
+              ]
+            },
+            "startup_probe": {
+              "kind": "nexolab-device-agent-startup-probe",
+              "status": "passed",
+              "image_id": "sha256:a8f626c51f832150ea589634ad505bdaacf0df65caacfd0b9ba4dc8cbd06d14a"
+            },
+            "inventory_files": 67,
+            "ci_container_recreation_drill": "volumes and local auth refresh/session/logout continuity verified under QEMU; cross-version site acceptance pending",
+            "verified_at": "2026-10-11T14:26:40.616683+00:00",
+            "site_runtime_mutation": false,
+            "docker_images_loaded_on_site": false,
+            "native_hardware_acceptance": "pending",
+            "automatic_retry": false
+          },
+          "site_runtime_mutation": "none",
+          "package_authority": "not_established",
+          "owner_source_adoption": "recorded_current_C296",
+          "dispatches_used": 2,
+          "current_report_sha256": "4934195af05d6b7fe320937a6d4ebc975cc7048fdb13c0ec47021956da4551cb",
+          "target_report_sha256": "fcea5e3c5db8c3befedad2d6631ed77b79f780c30040ed0ff7f6395a9bf9789c",
+          "status": "both_approved_packages_verified",
+          "owner_command": {
+            "path": "guarded-update-1313-df5485f6/arm64-rebuild-20261011/activate-verified-current-package.py",
+            "sha256": "833e7498dfb496060318edfa4bb0374d74cc4cf09cf1f150077302697fd4c12d",
+            "receipt_sha256": "b65895117726e20e6d1c40a2f0d6d748f3b1d2b77cc3c02f4c5c39fd8df03584",
+            "syntax": "valid",
+            "exact_staged_readback": true,
+            "executed": false,
+            "steps": "canonical host tooling installation; stage current+target; real C296 current package authority handoff",
+            "target_activation": false,
+            "root_access": "owner_local_sudo_required; Commander unprivileged"
+          },
+          "github_automatic_activation": {
+            "status": "unverified",
+            "matching_contract": "validated catalog manifest.source_commit must equal selected GREEN target commit",
+            "approved_built_runtime_sources": [
+              "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+              "df5485f6ece4203a74a84f106195fae855d81731"
+            ],
+            "tooling_is_not_runtime_alias": true,
+            "third_workflow_dispatched": false
+          },
+          "site_health": {
+            "captured_at": "2026-10-11T14:34:47.939588+00:00",
+            "agent": {
+              "status": "ok",
+              "mqtt_connected": true,
+              "queue_size": 0,
+              "samples_total": 98423,
+              "last_sample_at": "2026-10-11T14:34:32.350029+00:00"
+            },
+            "central_readiness": {
+              "status": "ready",
+              "database": "ready",
+              "mqtt": "ready"
+            },
+            "central_readiness_http": 200,
+            "site_runtime_activation": "not_run",
+            "owner_command_executed": false
+          }
         }
       }
     },
@@ -7877,6 +8012,141 @@
           "workflow_access": "read_only_gh_api_passed",
           "automatic_retries": false,
           "site_runtime_mutation": "none; old_packages_not_activated"
+        },
+        "approved_arm64_rebuilds_20261011": {
+          "authorized_at": "2026-10-11T12:52:44Z",
+          "user_authorization": "дозволяю та підтверджую",
+          "dispatch_budget": 2,
+          "automatic_retries": false,
+          "plan_sha256": "34cbea16928ba16bb8ff87b49381073af3472fe7ac0d2141f4b4c712abc564c5",
+          "workflow_id": 325147947,
+          "tooling_commit": "24e21f2bce0ddeff6e8086b130fa79e4af38d3b2",
+          "current": {
+            "status": "verified",
+            "role": "current",
+            "run_id": 38141270407,
+            "run_url": "https://github.com/eNgine9r/nexolab-platform/actions/runs/38141270407",
+            "workflow_head": "24e21f2bce0ddeff6e8086b130fa79e4af38d3b2",
+            "runtime_source": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+            "platform": "linux/arm64",
+            "artifact_id": 11703791696,
+            "artifact_digest": "sha256:46e54048199b1c2f2bc21ea16a9ba042c7b8027e6087c6535e793bed748b35da",
+            "archive_sha256": "05f9c9c7218b9044bc8a59c8564af0afcd5172452036209b495b6d212db4a884",
+            "manifest_sha256": "335763d74d9cefb3cf32f2124d1bed4df99e7d37a548d04c06d5490ee8ccb1d8",
+            "bundle_root": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/arm64-rebuild-20261011/current-38141270407/package/nexolab-offline-recovery-c296c58f3cb2-tooling-24e21f2bce0d-protected-arm64",
+            "archive": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/arm64-rebuild-20261011/current-38141270407/transfer/dist/offline/nexolab-offline-recovery-c296c58f3cb2-tooling-24e21f2bce0d-protected-arm64.tar.gz",
+            "bundle_id": "recovery-c296c58f3cb2-tooling-24e21f2bce0d-protected-arm64-c296c58f3cb2",
+            "external_build_id": "HuFALgo65ij75S2pY6qCm",
+            "schema_head": "20260908_0037",
+            "tooling_gate": {
+              "source_commit": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+              "tooling_commit": "24e21f2bce0ddeff6e8086b130fa79e4af38d3b2",
+              "tooling_capabilities": [
+                "hardware",
+                "hardware-startup-gate",
+                "runtime-mode",
+                "split-runtime-tooling"
+              ]
+            },
+            "startup_probe": {
+              "kind": "nexolab-device-agent-startup-probe",
+              "status": "passed",
+              "image_id": "sha256:abaceb4bdd660d7c420cb832317041f51bb21bba4d4a3864db1c40a5cc14ade7"
+            },
+            "inventory_files": 67,
+            "ci_container_recreation_drill": "volumes and local auth refresh/session/logout continuity verified under QEMU; cross-version site acceptance pending",
+            "verified_at": "2026-10-11T13:41:37.672690+00:00",
+            "site_runtime_mutation": false,
+            "docker_images_loaded_on_site": false,
+            "native_hardware_acceptance": "pending",
+            "automatic_retry": false
+          },
+          "target": {
+            "status": "verified",
+            "role": "target",
+            "run_id": 38144308536,
+            "run_url": "https://github.com/eNgine9r/nexolab-platform/actions/runs/38144308536",
+            "workflow_head": "24e21f2bce0ddeff6e8086b130fa79e4af38d3b2",
+            "runtime_source": "df5485f6ece4203a74a84f106195fae855d81731",
+            "platform": "linux/arm64",
+            "artifact_id": 11704612485,
+            "artifact_digest": "sha256:acd975800909996fa47ce02410155936dc1f23328b087b59df1314486184fba0",
+            "archive_sha256": "dfbb79eed0b0086c95072f76c298b83fe73e1ddc89e3c24196f1afc0af813310",
+            "manifest_sha256": "b7fb26958d42ba7d28734e9b744975bbe3d4fba3897a75bbd582e58bb246878b",
+            "bundle_root": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/arm64-rebuild-20261011/target-38144308536/package/nexolab-offline-recovery-df5485f6ece4-tooling-24e21f2bce0d-protected-arm64",
+            "archive": "/home/nexolab/commander-workspaces/nexolab-platform/guarded-update-1313-df5485f6/arm64-rebuild-20261011/target-38144308536/transfer/dist/offline/nexolab-offline-recovery-df5485f6ece4-tooling-24e21f2bce0d-protected-arm64.tar.gz",
+            "bundle_id": "recovery-df5485f6ece4-tooling-24e21f2bce0d-protected-arm64-df5485f6ece4",
+            "external_build_id": "My2IdIKRn37zSGg2e_3ct",
+            "schema_head": "20260908_0037",
+            "tooling_gate": {
+              "source_commit": "df5485f6ece4203a74a84f106195fae855d81731",
+              "tooling_commit": "24e21f2bce0ddeff6e8086b130fa79e4af38d3b2",
+              "tooling_capabilities": [
+                "hardware",
+                "hardware-startup-gate",
+                "runtime-mode",
+                "split-runtime-tooling"
+              ]
+            },
+            "startup_probe": {
+              "kind": "nexolab-device-agent-startup-probe",
+              "status": "passed",
+              "image_id": "sha256:a8f626c51f832150ea589634ad505bdaacf0df65caacfd0b9ba4dc8cbd06d14a"
+            },
+            "inventory_files": 67,
+            "ci_container_recreation_drill": "volumes and local auth refresh/session/logout continuity verified under QEMU; cross-version site acceptance pending",
+            "verified_at": "2026-10-11T14:26:40.616683+00:00",
+            "site_runtime_mutation": false,
+            "docker_images_loaded_on_site": false,
+            "native_hardware_acceptance": "pending",
+            "automatic_retry": false
+          },
+          "site_runtime_mutation": "none",
+          "package_authority": "not_established",
+          "owner_source_adoption": "recorded_current_C296",
+          "dispatches_used": 2,
+          "current_report_sha256": "4934195af05d6b7fe320937a6d4ebc975cc7048fdb13c0ec47021956da4551cb",
+          "target_report_sha256": "fcea5e3c5db8c3befedad2d6631ed77b79f780c30040ed0ff7f6395a9bf9789c",
+          "status": "both_approved_packages_verified",
+          "owner_command": {
+            "path": "guarded-update-1313-df5485f6/arm64-rebuild-20261011/activate-verified-current-package.py",
+            "sha256": "833e7498dfb496060318edfa4bb0374d74cc4cf09cf1f150077302697fd4c12d",
+            "receipt_sha256": "b65895117726e20e6d1c40a2f0d6d748f3b1d2b77cc3c02f4c5c39fd8df03584",
+            "syntax": "valid",
+            "exact_staged_readback": true,
+            "executed": false,
+            "steps": "canonical host tooling installation; stage current+target; real C296 current package authority handoff",
+            "target_activation": false,
+            "root_access": "owner_local_sudo_required; Commander unprivileged"
+          },
+          "github_automatic_activation": {
+            "status": "unverified",
+            "matching_contract": "validated catalog manifest.source_commit must equal selected GREEN target commit",
+            "approved_built_runtime_sources": [
+              "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+              "df5485f6ece4203a74a84f106195fae855d81731"
+            ],
+            "tooling_is_not_runtime_alias": true,
+            "third_workflow_dispatched": false
+          },
+          "site_health": {
+            "captured_at": "2026-10-11T14:34:47.939588+00:00",
+            "agent": {
+              "status": "ok",
+              "mqtt_connected": true,
+              "queue_size": 0,
+              "samples_total": 98423,
+              "last_sample_at": "2026-10-11T14:34:32.350029+00:00"
+            },
+            "central_readiness": {
+              "status": "ready",
+              "database": "ready",
+              "mqtt": "ready"
+            },
+            "central_readiness_http": 200,
+            "site_runtime_activation": "not_run",
+            "owner_command_executed": false
+          }
         }
       }
     }
