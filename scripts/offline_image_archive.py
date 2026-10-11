@@ -178,7 +178,9 @@ def check_loaded_identity(inspected, identity, platform):
     require(inspected.get('RootFS', {}).get('Layers') == identity['diff_ids'], 'Loaded image root filesystem mismatch')
     descriptor = inspected.get('Descriptor')
     if descriptor is not None:
-        require(descriptor.get('digest') == inspected.get('Id'), 'Loaded descriptor differs from image ID')
+        require(descriptor.get('digest') in identity['runtime_digests']
+                and descriptor.get('digest') != identity['config_digest'],
+                'Loaded descriptor is not proven by the archive')
 
 
 def merge_archives(original_path, storage_path, images, storage_reference, platform, output):

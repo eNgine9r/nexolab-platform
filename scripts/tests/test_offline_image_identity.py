@@ -112,6 +112,15 @@ def test_archive_proves_config_descriptor_and_layers(tmp_path, oci, index, compr
     for native in identity['runtime_digests']:
         module.check_loaded_identity({'Id': native, 'Os': 'linux', 'Architecture': 'arm64',
                                       'RootFS': {'Layers': [diff]}}, identity, 'linux/arm64')
+    if oci:
+        module.check_loaded_identity({'Id': config, 'Descriptor': {'digest': root},
+                                      'Os': 'linux', 'Architecture': 'arm64',
+                                      'RootFS': {'Layers': [diff]}}, identity, 'linux/arm64')
+        for unproven in (config, 'sha256:' + 'f' * 64):
+            with pytest.raises(ValueError, match='descriptor is not proven'):
+                module.check_loaded_identity({'Id': config, 'Descriptor': {'digest': unproven},
+                                              'Os': 'linux', 'Architecture': 'arm64',
+                                              'RootFS': {'Layers': [diff]}}, identity, 'linux/arm64')
     with pytest.raises(ValueError, match='ID mismatch'):
         module.check_loaded_identity({'Id': 'sha256:' + 'f' * 64, 'Os': 'linux', 'Architecture': 'arm64',
                                       'RootFS': {'Layers': [diff]}}, identity, 'linux/arm64')
