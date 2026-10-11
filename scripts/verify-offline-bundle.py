@@ -262,10 +262,14 @@ def verify_site_storage(bundle_root, manifest, images, central_env, source_repos
             'Cannot resolve the effective Compose resource prefix')
     volumes = subprocess.run(['docker', 'volume', 'ls', '--format', '{{.Name}}'],
                              capture_output=True, text=True, check=True)
-    if not {prefix + '-object-storage-data', prefix + '-object-storage-versitygw-data'}.intersection(volumes.stdout.splitlines()):
+    names = set(volumes.stdout.splitlines())
+    authority = Path(os.environ.get('OBJECT_STORAGE_MIGRATION_AUTHORITY') or source_repository / 'runtime/object-storage-migration/authority.json')
+    # A fresh VersityGW installation has no migration to validate. Existing
+    # migration evidence still requires validation if the legacy volume is gone.
+    migrated_storage = prefix + '-object-storage-versitygw-data' in names and authority.is_file()
+    if prefix + '-object-storage-data' not in names and not migrated_storage:
         return
     require(prefix == 'nexolab-central', 'legacy storage with a custom resource prefix requires separately verified migration')
-    authority = Path(os.environ.get('OBJECT_STORAGE_MIGRATION_AUTHORITY') or source_repository / 'runtime/object-storage-migration/authority.json')
     subprocess.run([sys.executable, str(bundle_root / 'scripts/deploy-object-storage-migration.py'),
                     '--validate-proof', '--require-cutover', '--manifest', str(authority),
                     '--expected-target-source', manifest['source_commit'],

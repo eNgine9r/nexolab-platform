@@ -180,8 +180,12 @@ def test_merge_retains_app_bytes_and_accepted_index_without_old_storage(tmp_path
 
 
 @pytest.mark.parametrize('volume_suffix', ['-object-storage-data', '-object-storage-versitygw-data'])
-def test_custom_compose_storage_is_rejected_before_import_or_migration(tmp_path, volume_suffix):
+def test_custom_compose_storage_is_rejected_before_import_or_migration(tmp_path, monkeypatch, volume_suffix):
     verifier = load('verify-offline-bundle.py')
+    monkeypatch.delenv('OBJECT_STORAGE_MIGRATION_AUTHORITY', raising=False)
+    authority = tmp_path / 'runtime/object-storage-migration/authority.json'
+    authority.parent.mkdir(parents=True)
+    authority.write_text('{}')
     env = tmp_path / 'central.env'
     env.write_text('COMPOSE_PROJECT_NAME="site-a"\n')
     resolved = {'volumes': {'central-object-storage-data': {'name': 'site-a-object-storage-versitygw-data'}}}
@@ -216,12 +220,32 @@ def test_failed_compose_resolution_is_not_treated_as_a_fresh_site(tmp_path):
     assert run.call_count == 1
 
 
-def test_fresh_resolved_storage_without_retained_volumes_is_allowed(tmp_path):
+@pytest.mark.parametrize('existing', ['', 'fresh-object-storage-versitygw-data\n'])
+def test_fresh_versity_storage_without_migration_is_allowed(tmp_path, monkeypatch, existing):
     verifier = load('verify-offline-bundle.py')
+    monkeypatch.delenv('OBJECT_STORAGE_MIGRATION_AUTHORITY', raising=False)
     config = {'volumes': {'central-object-storage-data': {'name': 'fresh-object-storage-versitygw-data'}}}
     with patch.object(verifier.subprocess, 'run', side_effect=[
         subprocess.CompletedProcess([], 0, json.dumps(config), ''),
-        subprocess.CompletedProcess([], 0, '', ''),
+        subprocess.CompletedProcess([], 0, existing, ''),
     ]) as run:
         verifier.verify_site_storage(tmp_path, {}, {}, tmp_path / 'env', tmp_path)
     assert run.call_count == 2
+
+
+def test_retained_migration_evidence_is_checked_without_a_legacy_volume(tmp_path, monkeypatch):
+    verifier = load('verify-offline-bundle.py')
+    monkeypatch.delenv('OBJECT_STORAGE_MIGRATION_AUTHORITY', raising=False)
+    authority = tmp_path / 'runtime/object-storage-migration/authority.json'
+    authority.parent.mkdir(parents=True)
+    authority.write_text('{}')
+    config = {'volumes': {'central-object-storage-data': {'name': 'nexolab-central-object-storage-versitygw-data'}}}
+    with patch.object(verifier.subprocess, 'run', side_effect=[
+        subprocess.CompletedProcess([], 0, json.dumps(config), ''),
+        subprocess.CompletedProcess([], 0, 'nexolab-central-object-storage-versitygw-data\n', ''),
+        subprocess.CalledProcessError(80, ['migration-validator']),
+    ]) as run:
+        with pytest.raises(subprocess.CalledProcessError):
+            verifier.verify_site_storage(tmp_path, {'source_commit': '1' * 40}, {}, tmp_path / 'env', tmp_path)
+    assert run.call_count == 3
+    assert '--require-cutover' in run.call_args.args[0]
