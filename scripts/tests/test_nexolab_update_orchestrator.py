@@ -340,6 +340,29 @@ def test_newer_revision_becomes_eligible_only_with_matching_validated_packages(
     assert result["blocked_reason"] is None
 
 
+@pytest.mark.parametrize('change', [None, 'provenance', 'original_digest', 'platform', 'schema'])
+def test_catalog_prefers_digest_bound_reissue_over_preserved_original(tmp_path, change):
+    root = tmp_path / 'versions'
+    full_current(root, commit='1' * 40)
+    original = write_validated_catalog_entry(root, bundle_id='a-original', release='2.0.0', commit='2' * 40)
+    reissued = write_validated_catalog_entry(root, bundle_id='z-reissued', release='2.0.1', commit='2' * 40,
+        platform='linux/amd64' if change == 'platform' else 'linux/arm64',
+        upgrade_from=('other-schema',) if change == 'schema' else ('schema-1',))
+    provenance = {'reissue': {'original_bundle_id': original.name,
+        'original_manifest_sha256': '0' * 64 if change == 'original_digest' else hashlib.sha256((original / 'manifest.json').read_bytes()).hexdigest()}}
+    evidence = reissued / 'evidence/provenance.json'
+    evidence.parent.mkdir(); evidence.write_text(json.dumps(provenance))
+    manifest_path = reissued / 'manifest.json'
+    manifest = json.loads(manifest_path.read_text())
+    manifest['files'] = [{'path': 'evidence/provenance.json', 'sha256': hashlib.sha256(evidence.read_bytes()).hexdigest(), 'size_bytes': evidence.stat().st_size}]
+    manifest_path.write_text(json.dumps(manifest))
+    marker_path = reissued / '.nexolab-validated.json'
+    marker = json.loads(marker_path.read_text()); marker['manifest_sha256'] = hashlib.sha256(manifest_path.read_bytes()).hexdigest(); marker_path.write_text(json.dumps(marker))
+    if change == 'provenance': evidence.write_text('{}')
+    assert orchestrator.validated_candidate_bundle(root, '2' * 40) == ('z-reissued' if change is None else 'a-original', '')
+    assert original.is_dir() and reissued.is_dir()
+
+
 def test_tampered_target_validation_marker_never_becomes_activation_authority(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

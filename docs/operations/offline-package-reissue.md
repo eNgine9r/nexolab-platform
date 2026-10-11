@@ -35,6 +35,10 @@ protected frontend assets; it performs no builds, Docker imports, tag changes or
 production activation. It preserves the accepted storage OCI index and its
 provenance, removes the replaced storage graph, regenerates digest-bound manifests
 and checksums, and verifies the new package. Existing archives remain immutable.
+The update orchestrator uses the digest-bound original bundle ID and manifest
+checksum in reissue provenance to prefer the compatible reissue when both are in
+the catalog. Install the reviewed host orchestrator alongside the worker; package
+installation does not replace these host maintenance tools automatically.
 
 Archive/file checks are preparation evidence. Stage the distinct packages, prove
 native loaded-image identities and full hardware installer preflight, and only
