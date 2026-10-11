@@ -155,6 +155,16 @@ evidence. The evidence path must stay under the repository deployment-evidence
 root and its exact source commit and runtime mode must match the current lineage;
 otherwise the transition fails closed.
 
+The hardware verifier joins logical `acquisition.request_series[].bus` values
+to `acquisition.rs485_buses[].bus_id` and its stable `serial_device`. A healthy
+worker or successful requests on a different bus cannot establish authority for
+the expected adapter: that adapter must have positive successful request evidence.
+Missing, duplicate, unstable or unavailable bindings fail closed. Older direct
+physical-path request evidence remains supported. New authority records also
+retain the logical-to-physical bindings and compare them after installation and
+on subsequent update/rollback, so swapping bus assignments cannot pass merely
+because the set of physical paths stayed the same.
+
 ## Compatibility metadata
 
 The offline manifest records:

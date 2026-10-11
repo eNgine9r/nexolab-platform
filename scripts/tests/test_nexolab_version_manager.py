@@ -353,11 +353,11 @@ def test_worker_records_verified_success_or_truthful_post_mutation_failure(
 
 
 @pytest.mark.parametrize(
-    ("action", "expected_schema"),
-    [("update", "schema-2"), ("rollback", "schema-1")],
+    ("action", "expected_schema", "binding_drift"),
+    [("update", "schema-2", False), ("rollback", "schema-1", False), ("update", "schema-2", True)],
 )
 def test_packaged_hardware_authority_persists_across_version_operation(
-    tmp_path: Path, action: str, expected_schema: str
+    tmp_path: Path, action: str, expected_schema: str, binding_drift: bool
 ) -> None:
     root, _, target_root, current, args = fixture_state(tmp_path, "operation-hardware")
     request_path = root / "requests" / "operation-hardware.json"
@@ -371,6 +371,7 @@ def test_packaged_hardware_authority_persists_across_version_operation(
         "host_serial_device": "/dev/serial/by-id/usb-test",
         "observed_buses": ["/host/dev/serial/by-id/usb-test"],
         "successful_requests": 42,
+        "bus_bindings": [{"bus_id": "rs485-main", "serial_device": "/host/dev/serial/by-id/usb-test"}],
     }
     current.update(
         deployment_authority=manager.PACKAGED_DEPLOYMENT_AUTHORITY,
@@ -405,18 +406,31 @@ def test_packaged_hardware_authority_persists_across_version_operation(
             )
         return subprocess.CompletedProcess(command, 0, stdout="")
 
+    observed_hardware = json.loads(json.dumps(hardware_contract))
+    if binding_drift:
+        observed_hardware["bus_bindings"][0]["bus_id"] = "rs485-other"
     with (
         patch.object(manager, "verify_staged_bundle", side_effect=verified_manifest),
         patch.object(manager, "run_capacity_preflight", return_value="capacity.txt"),
-        patch.object(manager, "verify_real_hardware_runtime", return_value=hardware_contract),
+        patch.object(manager, "verify_real_hardware_runtime", return_value=observed_hardware),
         patch.object(manager, "verify_device_agent_progress", return_value={"status": "verified"}),
         patch.object(manager.subprocess, "run", side_effect=successful_run),
     ):
-        manager.execute_request(args, request_path)
+        if binding_drift:
+            with pytest.raises(manager.VersionManagerFailure, match="bus bindings changed"):
+                manager.execute_request(args, request_path)
+        else:
+            manager.execute_request(args, request_path)
 
     installer_call = next(command for command in calls if command[0].endswith("install-offline-bundle.sh"))
     assert "--hardware" in installer_call
     deployed = json.loads((root / "current.json").read_text(encoding="utf-8"))
+    if binding_drift:
+        assert deployed["bundle_id"] == current["bundle_id"]
+        assert deployed["runtime_state_known"] is False
+        operation = json.loads((root / "operations" / "operation-hardware.json").read_text())
+        assert operation["status"] == "failed"
+        return
     assert deployed["deployment_authority"] == manager.PACKAGED_DEPLOYMENT_AUTHORITY
     assert deployed["edge_hardware_required"] is True
     assert deployed["hardware_contract"] == hardware_contract
@@ -905,6 +919,100 @@ def test_real_hardware_runtime_requires_stable_bus_and_successful_requests(tmp_p
     assert evidence["device_mode"] == "modbus"
     assert evidence["observed_buses"] == ["/host/dev/serial/by-id/usb-test"]
     assert evidence["successful_requests"] == 12
+
+
+def multi_bus_health() -> dict:
+    return {
+        "status": "ok",
+        "device_mode": "modbus",
+        "acquisition": {
+            "rs485_buses": [
+                {"bus_id": "rs485-main", "serial_device": "/host/dev/serial/by-id/usb-test", "device_path_present": True},
+                {"bus_id": "rs485-embraco", "serial_device": "/host/dev/serial/by-id/usb-second", "device_path_present": True},
+            ],
+            "request_series": [
+                {"bus": "rs485-main", "outcome": "success", "requests_total": 12},
+                {"bus": "rs485-embraco", "outcome": "success", "requests_total": 23},
+            ],
+        },
+    }
+
+
+def test_real_hardware_runtime_resolves_actual_logical_bus_health(tmp_path: Path) -> None:
+    _, _, _, _, args, _ = transition_fixture(tmp_path)
+    with patch.object(manager, "read_local_json", return_value=multi_bus_health()):
+        evidence = manager.verify_real_hardware_runtime(args)
+    assert evidence["observed_buses"] == ["/host/dev/serial/by-id/usb-second", "/host/dev/serial/by-id/usb-test"]
+    assert evidence["successful_requests"] == 35
+    assert evidence["expected_bus_successful_requests"] == 12
+    assert evidence["bus_bindings"] == [
+        {"bus_id": "rs485-embraco", "serial_device": "/host/dev/serial/by-id/usb-second"},
+        {"bus_id": "rs485-main", "serial_device": "/host/dev/serial/by-id/usb-test"},
+    ]
+
+
+def test_legacy_physical_request_bus_can_use_topology_diagnostics(tmp_path: Path) -> None:
+    _, _, _, _, args, _ = transition_fixture(tmp_path)
+    payload = multi_bus_health()
+    payload["acquisition"]["request_series"][0]["bus"] = "/host/dev/serial/by-id/usb-test"
+    with patch.object(manager, "read_local_json", return_value=payload):
+        evidence = manager.verify_real_hardware_runtime(args)
+    assert evidence["expected_bus_successful_requests"] == 12
+    assert evidence["bus_bindings"][1] == {"bus_id": "rs485-main", "serial_device": "/host/dev/serial/by-id/usb-test"}
+
+
+def test_package_transition_rejects_swapped_logical_binding_with_same_physical_paths(tmp_path: Path) -> None:
+    _, target_root, target, current, args, _ = transition_fixture(tmp_path)
+    observed = {
+        "device_mode": "modbus",
+        "observed_buses": ["/host/dev/serial/by-id/usb-test"],
+        "bus_bindings": [{"bus_id": "rs485-other", "serial_device": "/host/dev/serial/by-id/usb-test"}],
+    }
+    baseline = {**observed, "bus_bindings": [{"bus_id": "rs485-main", "serial_device": "/host/dev/serial/by-id/usb-test"}]}
+    with (
+        patch.object(manager, "read_local_json", return_value={"status": "ready", "database": "ready", "mqtt": "ready"}),
+        patch.object(manager, "wait_http_success"),
+        patch.object(manager.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, stdout=current["schema_head"] + " (head)\n")),
+        patch.object(manager, "verify_real_hardware_runtime", return_value=observed),
+        patch.object(manager, "verify_device_agent_progress") as progress,
+    ):
+        with pytest.raises(manager.VersionManagerFailure, match="bus bindings changed"):
+            manager.verify_transition_runtime(target_root, target, current, args, source_hardware=baseline)
+    progress.assert_not_called()
+
+
+@pytest.mark.parametrize("mutation", [
+    "missing_mapping", "unknown_bus", "duplicate_bus", "aliased_device", "unstable_device",
+    "missing_device", "wrong_expected_adapter", "success_only_on_other_bus", "boolean_count", "negative_count",
+])
+def test_real_hardware_runtime_rejects_unbound_or_unproven_expected_bus(tmp_path: Path, mutation: str) -> None:
+    _, _, _, _, args, _ = transition_fixture(tmp_path)
+    payload = multi_bus_health()
+    buses = payload["acquisition"]["rs485_buses"]
+    requests = payload["acquisition"]["request_series"]
+    if mutation == "missing_mapping":
+        del payload["acquisition"]["rs485_buses"]
+    elif mutation == "unknown_bus":
+        requests[0]["bus"] = "rs485-unknown"
+    elif mutation == "duplicate_bus":
+        buses.append(dict(buses[0]))
+    elif mutation == "aliased_device":
+        buses[1]["serial_device"] = buses[0]["serial_device"]
+    elif mutation == "unstable_device":
+        buses[0]["serial_device"] = "/dev/ttyUSB0"
+    elif mutation == "missing_device":
+        buses[0]["device_path_present"] = False
+    elif mutation == "wrong_expected_adapter":
+        buses[0]["serial_device"] = "/host/dev/serial/by-id/usb-wrong"
+    elif mutation == "success_only_on_other_bus":
+        requests[0]["outcome"] = "timeout"
+    elif mutation == "boolean_count":
+        requests[0]["requests_total"] = True
+    elif mutation == "negative_count":
+        requests[0]["requests_total"] = -12
+    with patch.object(manager, "read_local_json", return_value=payload):
+        with pytest.raises(manager.VersionManagerFailure):
+            manager.verify_real_hardware_runtime(args)
 
 
 def test_offline_bundle_contract_carries_hardware_and_runtime_overlays() -> None:
