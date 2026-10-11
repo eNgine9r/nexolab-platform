@@ -7804,10 +7804,11 @@
             "receipt_sha256": "b65895117726e20e6d1c40a2f0d6d748f3b1d2b77cc3c02f4c5c39fd8df03584",
             "syntax": "valid",
             "exact_staged_readback": true,
-            "executed": false,
+            "executed": true,
             "steps": "canonical host tooling installation; stage current+target; real C296 current package authority handoff",
             "target_activation": false,
-            "root_access": "owner_local_sudo_required; Commander unprivileged"
+            "root_access": "owner_local_sudo_required; Commander unprivileged",
+            "result": "stopped_at_establish_current_package_authority"
           },
           "github_automatic_activation": {
             "status": "unverified",
@@ -7836,6 +7837,42 @@
             "central_readiness_http": 200,
             "site_runtime_activation": "not_run",
             "owner_command_executed": false
+          },
+          "owner_handoff_20261011": {
+            "status": "stopped_canonical_step_root_cause_pending_private_log",
+            "phase": "establish_current_package_authority",
+            "returncode": 1,
+            "stopped_at": "2026-10-11T16:39:38.409485+00:00",
+            "completed_steps": [
+              "install_reviewed_host_tooling",
+              "stage_current",
+              "stage_target"
+            ],
+            "owner_report": "guarded-update-1313-df5485f6/arm64-rebuild-20261011/owner-current-handoff-report.json",
+            "private_attempt": "guarded-update-1313-df5485f6/arm64-rebuild-20261011/owner-current-handoff-wbfvn7rt",
+            "diagnostic": {
+              "path": "guarded-update-1313-df5485f6/arm64-rebuild-20261011/read-owner-handoff-failure.py",
+              "sha256": "563813ecaefc099038347ceedaaf36d1bf5d95caf8c988760f5068502839d0e4",
+              "exact_staged_readback": true,
+              "syntax_and_redaction": "passed",
+              "executed": false,
+              "runtime_commands": false
+            },
+            "read_only_host_evidence": {
+              "execution": "exec-091eb03dcee39ee44bae8ee2d8418fee",
+              "health_report": "guarded-update-1313-df5485f6/arm64-rebuild-20261011/handoff-stop-readonly-health-20261011T1649Z.json",
+              "central": "ready_database_MQTT",
+              "agent": "ok_modbus_MQTT_queue0_healthy3_of3",
+              "container_image_ids": "unchanged_from_source_C296",
+              "frontend_build_ids": [
+                "Ar6aVrTWJICF6TKFaWxHw",
+                "mcG0fHLcpCeVbTX--85gF"
+              ]
+            },
+            "canonical_failure_reason": "not_available_to_unprivileged_Commander",
+            "package_authority": "unverified_pending_protected_record_export",
+            "automatic_retry": false,
+            "additional_workflow_dispatch": false
           }
         }
       }
@@ -8114,10 +8151,11 @@
             "receipt_sha256": "b65895117726e20e6d1c40a2f0d6d748f3b1d2b77cc3c02f4c5c39fd8df03584",
             "syntax": "valid",
             "exact_staged_readback": true,
-            "executed": false,
+            "executed": true,
             "steps": "canonical host tooling installation; stage current+target; real C296 current package authority handoff",
             "target_activation": false,
-            "root_access": "owner_local_sudo_required; Commander unprivileged"
+            "root_access": "owner_local_sudo_required; Commander unprivileged",
+            "result": "stopped_at_establish_current_package_authority"
           },
           "github_automatic_activation": {
             "status": "unverified",
@@ -8146,6 +8184,42 @@
             "central_readiness_http": 200,
             "site_runtime_activation": "not_run",
             "owner_command_executed": false
+          },
+          "owner_handoff_20261011": {
+            "status": "stopped_canonical_step_root_cause_pending_private_log",
+            "phase": "establish_current_package_authority",
+            "returncode": 1,
+            "stopped_at": "2026-10-11T16:39:38.409485+00:00",
+            "completed_steps": [
+              "install_reviewed_host_tooling",
+              "stage_current",
+              "stage_target"
+            ],
+            "owner_report": "guarded-update-1313-df5485f6/arm64-rebuild-20261011/owner-current-handoff-report.json",
+            "private_attempt": "guarded-update-1313-df5485f6/arm64-rebuild-20261011/owner-current-handoff-wbfvn7rt",
+            "diagnostic": {
+              "path": "guarded-update-1313-df5485f6/arm64-rebuild-20261011/read-owner-handoff-failure.py",
+              "sha256": "563813ecaefc099038347ceedaaf36d1bf5d95caf8c988760f5068502839d0e4",
+              "exact_staged_readback": true,
+              "syntax_and_redaction": "passed",
+              "executed": false,
+              "runtime_commands": false
+            },
+            "read_only_host_evidence": {
+              "execution": "exec-091eb03dcee39ee44bae8ee2d8418fee",
+              "health_report": "guarded-update-1313-df5485f6/arm64-rebuild-20261011/handoff-stop-readonly-health-20261011T1649Z.json",
+              "central": "ready_database_MQTT",
+              "agent": "ok_modbus_MQTT_queue0_healthy3_of3",
+              "container_image_ids": "unchanged_from_source_C296",
+              "frontend_build_ids": [
+                "Ar6aVrTWJICF6TKFaWxHw",
+                "mcG0fHLcpCeVbTX--85gF"
+              ]
+            },
+            "canonical_failure_reason": "not_available_to_unprivileged_Commander",
+            "package_authority": "unverified_pending_protected_record_export",
+            "automatic_retry": false,
+            "additional_workflow_dispatch": false
           }
         }
       }

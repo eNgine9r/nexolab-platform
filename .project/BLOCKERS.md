@@ -1,5 +1,34 @@
 # NEXOLAB Blockers
 
+<!-- OWNER_HANDOFF_STOP_20261011_BEGIN -->
+## Current-package handoff stopped; exact root cause requires owner log export — 2026-10-11 16:49 UTC
+
+Owner executed the staged command. Its safe report was remotely read: stopped at
+establish_current_package_authority, exit 1, after reviewed host tooling installation
+and successful staging of BOTH verified ARM64 packages. The attempt at
+arm64-rebuild-20261011/owner-current-handoff-wbfvn7rt is preserved. Do not rerun
+activate-verified-current-package.py or remove its attempt marker.
+
+Independent read-only checks confirm unchanged source C296 LAN/protected build
+identities and unchanged central/agent container/image IDs, API/database/MQTT
+ready, real Modbus mode, MQTT connected, queue 0 and healthy 3/3 acquisition workers.
+The generic wrapper report does not disclose the canonical failure. Its private
+log is root-only; Commander cannot read it. Package authority/current protected
+record and whether an internal preflight/prepare action occurred remain unverified
+until the owner diagnostic export. Do not infer zero internal actions from the exit.
+
+A read-only owner diagnostic is staged and exact-byte readback, Python syntax
+and secret-redaction checks passed:
+arm64-rebuild-20261011/read-owner-handoff-failure.py
+SHA256 563813ecaefc099038347ceedaaf36d1bf5d95caf8c988760f5068502839d0e4.
+It reads the one failed canonical log, selected current authority fields and only
+matching transition records; it executes no runtime command and exports a safe
+owner-current-handoff-diagnostic.json for remote inspection. This diagnostic has
+not executed. Root-cause repair and any subsequent site transaction remain blocked
+until actual canonical evidence is available. No retry/third build was dispatched.
+Earlier handoff-ready/not-executed entries are historical; both packages remain valid.
+<!-- OWNER_HANDOFF_STOP_20261011_END -->
+
 <!-- ARM64_REBUILD_20261011_BEGIN -->
 ## Two corrected ARM64 packages verified; owner-local handoff ready — 2026-10-11 14:35 UTC
 
