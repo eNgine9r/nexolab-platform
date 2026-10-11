@@ -1,5 +1,43 @@
 # NEXOLAB Current State
 
+<!-- PROTECTED_TRAVERSAL_1339_BEGIN -->
+
+## #1339: private umask blocks protected package candidate; traversal fix prepared — 2026-10-11
+
+The owner continuation for accepted #1337 passed all hardware/source guards and
+installed the reviewed RS-485 worker. Its canonical transaction then stopped in
+protected_frontend.prepare. The journal for
+nexolab-protected-package-source-to-packaged-20261011T172831Z-40b4acd03724.service
+proves status 200/CHDIR, Permission denied. Normal Commander namei identifies the
+shared /opt/nexolab-external/releases ancestor as mode 0700. The owner wrapper
+uses umask 077; mkdir(mode=0755) was masked to 0700, and only children were chowned
+to the frontend user. Preserve this attempt and the original hardware failure.
+
+Focused #1339 grants only traversal on the dedicated runtime ancestor through a
+no-follow directory descriptor, rejects foreign ownership/shared write/symlinks,
+and tests candidate access as the actual service UID/GID before systemd launch.
+Private audit/credentials and service caps remain unchanged. The pre-fix
+regression failed with CHDIR; 114 tests + 25 subtests pass after correction.
+The separate cross-user filesystem proof is skipped because this execution
+namespace maps only UID 0; no successful native candidate proof is claimed.
+
+Read-only checks at 2026-10-11T17:34:51.565255+00:00 confirm unchanged C296
+LAN build Ar6aVrTWJICF6TKFaWxHw and protected build mcG0fHLcpCeVbTX--85gF;
+LAN/protected/NGINX active; API/database/MQTT ready; real Modbus, queue 0,
+healthy 3/3 workers, samples 113500. Protected current.json and the new failed
+transition are root-only and remain unverified in this remote channel.
+
+RS-485 #1337/PR #1338 merged as 4d206988c6da195a5ac9abaa42994f584c3e4d10,
+with accepted head 11ca473cedcb7af1c558a22506f9c1cf34e69570 and GREEN CI/review.
+The consumed continue-current-authority-1337.py must not be rerun.
+Next: exact-head CI/review for the protected directory fix, then prepare one
+owner-local continuation that inspects the failed transition and proves no prior
+cutover before repair/canonical current authority. Both authorized ARM64 bundles
+remain immutable; no third build/manifest change/DB restore/controller write.
+Native package authority and actual LAN/HTTPS update/rollback remain open in
+#1323/#1313. Prior pending/unexecuted/hardware-failure entries below are historical.
+<!-- PROTECTED_TRAVERSAL_1339_END -->
+
 <!-- RS485_AUTHORITY_1337_BEGIN -->
 
 ## #1337: logical-bus hardware verification corrected; native cutover pending — 2026-10-11

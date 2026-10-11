@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import hashlib
+import errno
 import importlib.util
 import json
 import os
 from pathlib import Path
 import platform
+import stat
 import subprocess
+import sys
 import tarfile
 import tempfile
 from types import SimpleNamespace
@@ -163,6 +166,8 @@ class ProtectedPackageTests(unittest.TestCase):
 
             def runner(args, **kwargs):
                 calls.append(args)
+                if args[0] == "systemd-run" and not (root / "releases").stat().st_mode & stat.S_IXOTH:
+                    raise PermissionError("200/CHDIR: service user cannot traverse private release ancestor")
                 if args[0] == "bash":
                     return real_run(args, **kwargs)
                 if args[0] == "install":
@@ -176,7 +181,11 @@ class ProtectedPackageTests(unittest.TestCase):
                   patch.object(package.frontend, "request", return_value=(200, json.dumps({"source_commit": "b" * 40, "build_id": "old-build"}).encode())),
                   patch.object(package.frontend, "probe_frontend"), patch.object(package.frontend, "probe_gateway") as gateway):
                 transaction = package.ProtectedPackageFrontend(root / "bundle", manifest, {"source_commit": "b" * 40}, root / "evidence/operation-1")
-                transaction.prepare()
+                previous_umask = os.umask(0o077)
+                try:
+                    transaction.prepare()
+                finally:
+                    os.umask(previous_umask)
                 self.assertTrue((transaction.release / "public/logo.svg").exists())
                 self.assertTrue((transaction.release / "node_modules/.bin/next").exists())
                 self.assertEqual(unit.read_text(), original)
@@ -192,6 +201,71 @@ class ProtectedPackageTests(unittest.TestCase):
                 self.assertFalse(transaction.touched)
                 self.assertEqual(unit.read_text(), original)
                 self.assertFalse(any("npm" in args or "funnel" in args for args in calls))
+
+    def test_release_root_allows_traversal_without_listing_or_write_and_keeps_audit_private(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            releases = root / "releases"
+            releases.mkdir(mode=0o700)
+            audit = root / "private-audit"
+            audit.mkdir(mode=0o700)
+            with patch.object(package, "RELEASES", releases):
+                previous_umask = os.umask(0o077)
+                try:
+                    package.prepare_release_root()
+                finally:
+                    os.umask(previous_umask)
+            self.assertEqual(stat.S_IMODE(releases.stat().st_mode), 0o711)
+            self.assertEqual(stat.S_IMODE(audit.stat().st_mode), 0o700)
+
+    def test_release_root_rejects_symlink_foreign_owner_and_shared_write(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            real = root / "real"
+            real.mkdir(mode=0o700)
+            link = root / "link"
+            link.symlink_to(real, target_is_directory=True)
+            with patch.object(package, "RELEASES", link):
+                with self.assertRaisesRegex(ValueError, "release root"):
+                    package.prepare_release_root()
+            real.chmod(0o777)
+            with patch.object(package, "RELEASES", real):
+                with self.assertRaisesRegex(ValueError, "release root"):
+                    package.prepare_release_root()
+                self.assertEqual(stat.S_IMODE(real.stat().st_mode), 0o777)
+                real.chmod(0o700)
+                with patch.object(package.os, "geteuid", return_value=os.geteuid() + 1):
+                    with self.assertRaisesRegex(ValueError, "release root"):
+                        package.prepare_release_root()
+            self.assertEqual(stat.S_IMODE(real.stat().st_mode), 0o700)
+
+    @unittest.skipUnless(os.geteuid() == 0, "cross-user filesystem proof needs root")
+    def test_real_service_user_can_chdir_after_release_root_repair(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            root.chmod(0o755)
+            releases = root / "releases"
+            releases.mkdir(mode=0o700)
+            candidate = releases / "candidate"
+            candidate.mkdir(mode=0o700)
+            try:
+                os.chown(candidate, 65534, 65534)
+            except OSError as error:
+                if error.errno in (errno.EINVAL, errno.EPERM):
+                    self.skipTest("execution namespace cannot map a separate service UID")
+                raise
+            audit = root / "private-audit"
+            audit.mkdir(mode=0o700)
+            command = [sys.executable, "-B", "-c", "import os, sys; os.chdir(sys.argv[1])", str(candidate)]
+            kwargs = {"user": 65534, "group": 65534, "extra_groups": [], "capture_output": True, "text": True}
+            before = subprocess.run(command, **kwargs)
+            self.assertNotEqual(before.returncode, 0)
+            self.assertIn("PermissionError", before.stderr)
+            with patch.object(package, "RELEASES", releases):
+                package.prepare_release_root()
+            self.assertEqual(subprocess.run(command, **kwargs).returncode, 0)
+            self.assertNotEqual(subprocess.run(command[:-1] + [str(audit)], **kwargs).returncode, 0)
+            self.assertEqual(stat.S_IMODE(candidate.stat().st_mode), 0o700)
 
     def test_mixed_current_source_and_protected_frontend_is_blocked(self):
         with tempfile.TemporaryDirectory() as temp:
