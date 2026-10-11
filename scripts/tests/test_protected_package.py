@@ -9,7 +9,6 @@ from pathlib import Path
 import platform
 import stat
 import subprocess
-import sys
 import tarfile
 import tempfile
 from types import SimpleNamespace
@@ -256,7 +255,8 @@ class ProtectedPackageTests(unittest.TestCase):
                 raise
             audit = root / "private-audit"
             audit.mkdir(mode=0o700)
-            command = [sys.executable, "-B", "-c", "import os, sys; os.chdir(sys.argv[1])", str(candidate)]
+            # A root-private pyenv/venv interpreter cannot run as the service UID.
+            command = ["/usr/bin/python3", "-B", "-c", "import os, sys; os.chdir(sys.argv[1])", str(candidate)]
             kwargs = {"user": 65534, "group": 65534, "extra_groups": [], "capture_output": True, "text": True}
             before = subprocess.run(command, **kwargs)
             self.assertNotEqual(before.returncode, 0)
