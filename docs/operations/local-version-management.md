@@ -227,3 +227,28 @@ Never declare compatibility without migration and rollback evidence.
 Actual update/rollback acceptance on the controlled Raspberry Pi remains a
 separate physical Gate. Software-only evidence must not be reported as physical
 acceptance.
+
+### Native worker filesystem boundary
+
+The worker retains `ProtectSystem=strict`, `ProtectHome=read-only`, private temporary
+files and `NoNewPrivileges`. Its writable paths are the version root, backup root,
+the dedicated `/opt/nexolab-external/releases` directory and the existing
+`/etc/systemd/system/nexolab-external-frontend.service` file. The latter two paths
+are optional when the protected interface is absent. The system-unit directory
+and site repository remain read-only.
+
+Hardware startup evidence uses `NEXOLAB_STARTUP_EVIDENCE_ROOT` beneath the version
+root, as supported by the immutable installer. The frontend transaction stops its
+service, preserves the original unit in durable operation evidence and writes the
+existing unit inode without unlinking it. Symlinked, hardlinked, foreign-owned,
+shared-writable or changed units are rejected before writing. Interrupted writes
+attempt to restore the original bytes before failure propagation; the canonical
+transaction still owns frontend/gateway rollback. A crash or power loss during a
+unit write requires recovery from saved transaction evidence; no atomic-rename
+guarantee is claimed for a writable file bind mount.
+
+Installing this reviewed host correction is separate from activating a package.
+Verify the real worker mount namespace can write its exact approved destinations
+and cannot write neighboring system units or the site repository before native
+UI update/rollback acceptance. Direct privileged CLI success alone does not prove
+that the sandboxed worker can perform these operations.

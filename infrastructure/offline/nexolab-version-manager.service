@@ -8,10 +8,11 @@ Type=oneshot
 User=root
 Group=root
 EnvironmentFile=/etc/nexolab/version-manager.env
+Environment=NEXOLAB_STARTUP_EVIDENCE_ROOT=/var/lib/nexolab/version-management/device-agent-startup
 ExecStart=/usr/bin/python3 /usr/local/lib/nexolab/nexolab-version-manager.py run-once --root $NEXOLAB_VERSION_ROOT --central-env $NEXOLAB_CENTRAL_ENV --edge-env $NEXOLAB_EDGE_ENV --backup-dir $NEXOLAB_VERSION_BACKUP_DIR $NEXOLAB_VERSION_MANAGER_FLAGS
 UMask=0027
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=read-only
 ProtectSystem=strict
-ReadWritePaths=/var/lib/nexolab/version-management /var/backups/nexolab
+ReadWritePaths=/var/lib/nexolab/version-management /var/backups/nexolab -/opt/nexolab-external/releases -/etc/systemd/system/nexolab-external-frontend.service

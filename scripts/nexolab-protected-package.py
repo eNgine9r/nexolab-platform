@@ -26,6 +26,47 @@ NGINX = Path("/opt/nexolab-external/nginx.conf")
 RELEASES = Path("/opt/nexolab-external/releases")
 
 
+def write_frontend_unit(source: Path, expected: tuple[str, ...]) -> None:
+    """Update the existing file bind mount without replacing its directory entry.
+
+    The service is stopped and its original unit is saved in transaction evidence
+    before this call. Failed writes restore the opened inode before propagating.
+    """
+    data = source.read_bytes()
+    descriptor = os.open(UNIT, os.O_RDWR | os.O_NOFOLLOW)
+    try:
+        info = os.fstat(descriptor)
+        if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+                or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o644):
+            raise ValueError("protected frontend unit has unsafe ownership or permissions")
+        with os.fdopen(os.dup(descriptor), "rb") as stream:
+            original = stream.read()
+        if original not in tuple(value.encode() for value in expected):
+            raise ValueError("protected frontend unit changed since transaction capture")
+        live = UNIT.stat(follow_symlinks=False)
+        if (live.st_dev, live.st_ino) != (info.st_dev, info.st_ino):
+            raise ValueError("protected frontend unit path changed before write")
+
+        def write_bytes(contents: bytes) -> None:
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            pending = memoryview(contents)
+            while pending:
+                count = os.write(descriptor, pending)
+                if count <= 0:
+                    raise OSError("protected frontend unit write did not advance")
+                pending = pending[count:]
+            os.ftruncate(descriptor, len(contents))
+            os.fsync(descriptor)
+
+        try:
+            write_bytes(data)
+        except OSError:
+            write_bytes(original)
+            raise
+    finally:
+        os.close(descriptor)
+
+
 def prepare_release_root() -> None:
     # Owner commands keep umask 077 for credentials and audit evidence. This
     # separate runtime ancestor must also be traversable by the service user.
@@ -209,7 +250,7 @@ class ProtectedPackageFrontend:
             return
         self.touched = True
         self.run(["systemctl", "stop", UNIT.name])
-        self.run(["install", "-m", "0644", str(self.evidence / "external-unit-candidate.service"), str(UNIT)])
+        write_frontend_unit(self.evidence / "external-unit-candidate.service", (self.original,))
         self.run(["systemctl", "daemon-reload"])
         self.run(["systemctl", "start", UNIT.name])
         host = frontend.origin_host(self.metadata["origin"])
@@ -221,7 +262,8 @@ class ProtectedPackageFrontend:
         if not self.touched:
             return
         self.run(["systemctl", "stop", UNIT.name])
-        self.run(["install", "-m", "0644", str(self.evidence / "external-unit-before.service"), str(UNIT)])
+        write_frontend_unit(self.evidence / "external-unit-before.service",
+                            ((self.evidence / "external-unit-candidate.service").read_text(), self.original))
         self.run(["systemctl", "daemon-reload"])
         self.run(["systemctl", "start", UNIT.name])
         frontend.probe_frontend(3100, self.original_identity["source_commit"], self.original_identity["build_id"], frontend.origin_host(self.metadata["origin"]))

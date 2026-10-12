@@ -279,5 +279,83 @@ class ProtectedPackageTests(unittest.TestCase):
                 self.assertFalse((root / "evidence").exists())
 
 
+class WorkerWriteBoundaryTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.unit = self.root / "frontend.service"
+        self.original = "[Service]\nExecStart=old\n"
+        self.unit.write_text(self.original)
+        self.unit.chmod(0o644)
+        self.candidate = self.root / "candidate"
+        self.candidate.write_text("[Service]\nExecStart=candidate\n")
+        self.addCleanup(patch.stopall)
+        patch.object(package, "UNIT", self.unit).start()
+
+    def test_handoff_preserves_inode_metadata_and_rollback(self):
+        before = self.unit.stat()
+        package.write_frontend_unit(self.candidate, (self.original,))
+        after = self.unit.stat()
+        self.assertEqual(self.unit.read_bytes(), self.candidate.read_bytes())
+        self.assertEqual((after.st_dev, after.st_ino, after.st_uid, after.st_gid,
+                          stat.S_IMODE(after.st_mode)),
+                         (before.st_dev, before.st_ino, before.st_uid, before.st_gid, 0o644))
+        old = self.root / "before"
+        old.write_text(self.original)
+        package.write_frontend_unit(old, (self.candidate.read_text(), self.original))
+        self.assertEqual(self.unit.read_text(), self.original)
+
+    def test_symlink_refused_before_write(self):
+        real = self.root / "real"
+        self.unit.rename(real)
+        self.unit.symlink_to(real)
+        with self.assertRaises(OSError):
+            package.write_frontend_unit(self.candidate, (self.original,))
+        self.assertEqual(real.read_text(), self.original)
+
+    def test_hardlink_refused_before_write(self):
+        os.link(self.unit, self.root / "other")
+        with self.assertRaises(ValueError):
+            package.write_frontend_unit(self.candidate, (self.original,))
+        self.assertEqual(self.unit.read_text(), self.original)
+
+    def test_shared_writable_unit_refused_before_write(self):
+        self.unit.chmod(0o666)
+        with self.assertRaises(ValueError):
+            package.write_frontend_unit(self.candidate, (self.original,))
+        self.assertEqual(self.unit.read_text(), self.original)
+
+    def test_stale_unit_refused_before_write(self):
+        with self.assertRaises(ValueError):
+            package.write_frontend_unit(self.candidate, ("different",))
+        self.assertEqual(self.unit.read_text(), self.original)
+
+    def test_interrupted_write_restores_original_before_propagating(self):
+        real_write = os.write
+        calls = 0
+        def interrupted(descriptor, data):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return real_write(descriptor, data[:5])
+            if calls == 2:
+                raise OSError("injected interrupted write")
+            return real_write(descriptor, data)
+        with patch.object(package.os, "write", side_effect=interrupted), self.assertRaises(OSError):
+            package.write_frontend_unit(self.candidate, (self.original,))
+        self.assertEqual(self.unit.read_text(), self.original)
+
+    def test_worker_keeps_sandbox_and_exact_write_paths(self):
+        text = (Path(__file__).resolve().parents[2] / "infrastructure/offline/nexolab-version-manager.service").read_text()
+        for directive in ("ProtectSystem=strict", "ProtectHome=read-only", "NoNewPrivileges=true", "PrivateTmp=true"):
+            self.assertIn(directive, text)
+        paths = next(line.partition("=")[2].split() for line in text.splitlines() if line.startswith("ReadWritePaths="))
+        self.assertEqual(paths, ["/var/lib/nexolab/version-management", "/var/backups/nexolab",
+                                 "-/opt/nexolab-external/releases",
+                                 "-/etc/systemd/system/nexolab-external-frontend.service"])
+        self.assertIn("Environment=NEXOLAB_STARTUP_EVIDENCE_ROOT=/var/lib/nexolab/version-management/device-agent-startup", text)
+
+
 if __name__ == "__main__":
     unittest.main()
