@@ -18,6 +18,12 @@ on:
       - "scripts/deploy-version-manager-service.sh"
       - "scripts/deploy-capacity-guard.sh"
       - "scripts/build-offline-bundle.sh"
+      - "scripts/offline_image_archive.py"
+      - "scripts/reissue-offline-bundle.py"
+      - "scripts/verify-offline-bundle.py"
+      - "scripts/generate-offline-bundle-manifest.py"
+      - "scripts/install-offline-bundle.sh"
+      - "scripts/tests/test_offline_image_identity.py"
       - "scripts/tests/test_nexolab_update_orchestrator*.py"
       - "scripts/tests/test_nexolab_version_manager*.py"
       - "scripts/tests/test_nexolab_adopt_source_deployment.py"
@@ -54,6 +60,12 @@ on:
       - "scripts/deploy-version-manager-service.sh"
       - "scripts/deploy-capacity-guard.sh"
       - "scripts/build-offline-bundle.sh"
+      - "scripts/offline_image_archive.py"
+      - "scripts/reissue-offline-bundle.py"
+      - "scripts/verify-offline-bundle.py"
+      - "scripts/generate-offline-bundle-manifest.py"
+      - "scripts/install-offline-bundle.sh"
+      - "scripts/tests/test_offline_image_identity.py"
       - "scripts/tests/test_nexolab_update_orchestrator*.py"
       - "scripts/tests/test_nexolab_version_manager*.py"
       - "scripts/tests/test_nexolab_adopt_source_deployment.py"
@@ -135,6 +147,7 @@ jobs:
             scripts/tests/test_nexolab_version_manager.py \
             scripts/tests/test_nexolab_postgresql_backup.py \
             scripts/tests/test_nexolab_version_manager_runtime.py \
+            scripts/tests/test_offline_image_identity.py \
             scripts/tests/test_protected_frontend_release.py \
             scripts/tests/test_protected_package.py \
             scripts/tests/test_raspberry_pi_frontend_release.py

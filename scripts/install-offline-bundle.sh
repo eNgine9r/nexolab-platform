@@ -142,9 +142,12 @@ if manifest.get("platform") != "linux/arm64":
 PYQEMU
 fi
 
-python3 "$VERIFY" "$BUNDLE_ROOT"
+export OBJECT_STORAGE_MIGRATION_AUTHORITY
+python3 "$VERIFY" "$BUNDLE_ROOT" --site-storage-preflight --central-env "$CENTRAL_ENV" \
+  --source-repository "${NEXOLAB_REPO:-$HOME/nexolab-platform}"
 docker load --input "$IMAGE_ARCHIVE"
-eval "$(python3 "$VERIFY" "$BUNDLE_ROOT" --check-loaded-images --emit-shell-env)"
+IMAGE_EXPORTS="$(python3 "$VERIFY" "$BUNDLE_ROOT" --check-loaded-images --emit-shell-env)"
+eval "$IMAGE_EXPORTS"
 export OFFLINE_DASHBOARD_IMAGE OFFLINE_TELEMETRY_IMAGE OFFLINE_DEVICE_AGENT_IMAGE
 export OFFLINE_MQTT_IMAGE OFFLINE_POSTGRES_IMAGE OFFLINE_OBJECT_STORAGE_IMAGE
 

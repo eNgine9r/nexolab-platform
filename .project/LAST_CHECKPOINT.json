@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-11T18:55:17.055290+00:00",
+  "timestamp": "2026-10-11T20:44:00Z",
   "actor": "ChatGPT",
-  "event": "owner_exit80_site_context_rootcause_confirmed_host_worker_fix_prepared",
+  "event": "1343_review_corrections_and_immutable_artifact_preparation",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -31,10 +31,8 @@
     "protected_frontend_build_id": "mcG0fHLcpCeVbTX--85gF"
   },
   "active_work": {
-    "issue": 1341,
-    "title": "Pass configured site repository to privileged offline package installer",
-    "branch": "fix/1341-offline-installer-site-context",
-    "status": "review"
+    "issue": 1343,
+    "reason": "owner-approved distinct package reissue; storage authority, portable OCI identity and fail-closed installer"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -1411,25 +1409,12 @@
       "hardware": "not_touched"
     },
     "active_issue_evidence": {
-      "source_dependency_pull_request": 1312,
-      "dependency_source_sha": "4b9dc85ab2e7924195d5d2030fb298aaaf78aaf4",
-      "local_frontend_tests": "1192_passed_191_files",
-      "local_updater_tests": "102_passed_9_subtests_in_primary_CI_suite",
-      "local_node": "24.19.0_supported_development_runtime",
-      "exact_head_ci": "running_PR_1314",
-      "actual_host_acceptance": "not_performed",
-      "production_runtime_mutation": "none",
-      "modbus_write": "none",
-      "hardware_write": "none",
-      "local_controlled_deploy_checks": "additional_source_selection_capacity_auth_tests_passed",
-      "local_lint": "passed",
-      "local_production_build": "passed",
-      "local_candidate_cleanup": "3_process_group_cases_blocked_by_sandbox_ps_lookup_self_also_fail_on_unchanged_dependency_baseline",
-      "pull_request": 1314,
-      "verified_head_sha": "d18c2b7ea8aba43597dcfcf5bf2c82d5c31f851b",
-      "verified_tree_sha": "b12266a1ba3b7f9f523e983a2325c045613d02f3",
-      "existing_gateway_readonly": "kernel_memory_origin_loopback_and_anonymous_API_WebSocket_upgrade_image_Device_Agent_denial_passed",
-      "existing_https_build": "KVMryq76dj1LhzOW30pgA"
+      "owner_reissue_approval_at": "2026-10-11T19:58:12Z",
+      "targeted_checks": "125 passed; 1 independent-UID skip; 16 subtests passed",
+      "native_storage_export_sha256": "8235db2c53c613ea081bb2a471af7e19592a8f5a99817815c23374e82eb9f1d3",
+      "manual_workflow_dispatches": 0,
+      "packaged_authority": "not_established",
+      "new_owner_command": "not_ready"
     },
     "issue_1315": {
       "local_workflow_contract_tests": "30_passed",
@@ -3013,9 +2998,41 @@
         "predecessor_pr": 1340,
         "predecessor_merge_sha": "32b17307eb3e8e2265547fbff37b3ba5a73501b8"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-11T20:02:04Z",
+      "kind": "predecessor_acceptance",
+      "data": {
+        "issue": 1341,
+        "pr": 1342,
+        "accepted_head_sha": "c60f1a63399f8d3bf4cf1cad376bc15e503b5d9b",
+        "merge_sha": "3da766856ee99b965c43846a90c20eaa846e5535"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-11T20:44:00Z",
+      "kind": "review_corrections_and_artifact_preparation",
+      "data": {
+        "issue": 1343,
+        "pull_request": 1344,
+        "tooling_head": "c53bce034ac5dd16f0f950e7f0b5b481b0157a19",
+        "review_findings_fixed": [
+          "independent_Docker_descriptor_digest",
+          "legacy_rollback_host_verifier"
+        ],
+        "focused_tests": 126,
+        "subtests": 16,
+        "independent_uid_skip": 1,
+        "artifact_release": "pending_full_verification",
+        "native_package_authority": "not_established",
+        "application_image_builds": 0,
+        "manual_dispatches": 0
+      }
     }
   ],
-  "next_action": "Exact-head CI/review for1341; stage one owner continuation bound to failed installer preflight/current C296 and immutable package; after actual authority, verify native worker sandbox/update/rollback. No retry of consumed helpers.",
+  "next_action": "Finish exact-head CI and review for #1343; verify the two repaired artifacts with unchanged application images and exact retained storage, then full native installer preflight before one guarded owner current-C296 handoff. Preserve original packages, reports, authority and consumed helpers. Native LAN/HTTPS update/rollback and worker sandbox acceptance remain pending under #1323/#1313.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

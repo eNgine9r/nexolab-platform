@@ -875,6 +875,17 @@ def preflight_offline_hardware(
     )
 
 
+def preflight_site_storage(bundle_root: Path, args: argparse.Namespace, compose_env: dict[str, str]) -> None:
+    subprocess.run(
+        # Old immutable packages do not implement this new CLI. The installed,
+        # reviewed host verifier understands both legacy and portable manifests.
+        [sys.executable, str(Path(__file__).with_name('verify-offline-bundle.py')), str(bundle_root),
+         '--site-storage-preflight', '--central-env', str(args.central_env.resolve()),
+         '--source-repository', compose_env['NEXOLAB_REPO']],
+        check=True, env=compose_env,
+    )
+
+
 def offline_installer_command(
     bundle_root: Path,
     args: argparse.Namespace,
@@ -1100,6 +1111,7 @@ def establish_package_authority(args: argparse.Namespace) -> None:
                 {"volumes": transition["volume_identities_before"]},
             )
             transition["capacity_evidence_id"] = run_capacity_preflight(root, transition_id)
+            preflight_site_storage(target_root, args, compose_env)
             protected_frontend.prepare()
             atomic_json(transition_path, transition)
 
@@ -1313,6 +1325,7 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
 
         enter_phase(operation_path, operation, "checking_capacity")
         operation["capacity_evidence_id"] = run_capacity_preflight(root, operation_id)
+        preflight_site_storage(target_root, args, compose_env)
         protected_frontend.prepare()
         atomic_json(operation_path, operation)
 

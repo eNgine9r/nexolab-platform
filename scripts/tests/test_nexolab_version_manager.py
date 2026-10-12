@@ -17,12 +17,20 @@ SPEC = importlib.util.spec_from_file_location("nexolab_version_manager", SCRIPT)
 assert SPEC and SPEC.loader
 manager = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(manager)
+PREFLIGHT_SITE_STORAGE = manager.preflight_site_storage
 
 VERIFIER_SCRIPT = Path(__file__).resolve().parents[1] / "verify-offline-bundle.py"
 VERIFIER_SPEC = importlib.util.spec_from_file_location("verify_offline_bundle", VERIFIER_SCRIPT)
 assert VERIFIER_SPEC and VERIFIER_SPEC.loader
 verifier = importlib.util.module_from_spec(VERIFIER_SPEC)
 VERIFIER_SPEC.loader.exec_module(verifier)
+
+
+@pytest.fixture(autouse=True)
+def unrelated_transaction_tests_have_accepted_storage(monkeypatch):
+    # These fixtures deliberately fake the package verifier and exercise other
+    # gates. Storage rejection and ordering are covered explicitly below.
+    monkeypatch.setattr(manager, 'preflight_site_storage', Mock())
 
 
 def offline_images(label: str) -> list[dict[str, str]]:
@@ -1401,6 +1409,45 @@ def test_hardware_startup_failure_preserves_live_source_before_backup_or_handoff
     assert json.loads((root / "current.json").read_text()) == current
 
 
+@pytest.mark.parametrize('action', ['source', 'update', 'rollback'])
+def test_storage_rejection_stops_before_protected_prepare_backup_or_handoff(tmp_path, action):
+    if action == 'source':
+        root, target_root, target, current, args, volumes = transition_fixture(tmp_path)
+        verified = Mock(return_value=target)
+    else:
+        root, _, target_root, current, args = fixture_state(tmp_path, 'storage-rejected')
+        target, verified = manifests(target_root)
+        target['version_management']['database_schema']['runtime_compatible_schema_heads'] = ['schema-1']
+        request = root / 'requests/storage-rejected.json'
+        payload = json.loads(request.read_text())
+        payload['action'] = action
+        request.write_text(json.dumps(payload))
+        volumes = []
+    protected = Mock()
+    with (
+        patch.object(manager, 'verify_staged_bundle', side_effect=verified),
+        patch.object(manager, 'protected_frontend_transaction', return_value=protected),
+        patch.object(manager, 'verify_real_hardware_runtime', return_value={'status': 'verified'}),
+        patch.object(manager, 'source_dashboard_state', return_value={'active': True, 'enabled': True}),
+        patch.object(manager, 'capture_volume_identities', return_value=volumes),
+        patch.object(manager, 'run_capacity_preflight', return_value='capacity.txt'),
+        patch.object(manager, 'preflight_site_storage', side_effect=manager.VersionManagerFailure('storage image rejected')),
+        patch.object(manager, 'create_postgresql_backup') as backup,
+        patch.object(manager, 'stop_source_dashboard') as handoff,
+        patch.object(manager.subprocess, 'run') as run,
+    ):
+        with pytest.raises(manager.VersionManagerFailure, match='storage image rejected'):
+            if action == 'source':
+                manager.establish_package_authority(args)
+            else:
+                manager.execute_request(args, request)
+    protected.prepare.assert_not_called()
+    backup.assert_not_called()
+    handoff.assert_not_called()
+    run.assert_not_called()
+    assert json.loads((root / 'current.json').read_text()) == current
+
+
 def test_package_tooling_rejects_missing_startup_gate_capability_or_file(tmp_path: Path) -> None:
     bundle = tmp_path / "bundle"
     source = "a" * 40
@@ -1415,3 +1462,22 @@ def test_package_tooling_rejects_missing_startup_gate_capability_or_file(tmp_pat
     (bundle / "scripts/device-agent-startup-gate.py").unlink()
     with pytest.raises(manager.VersionManagerFailure, match="startup gate is missing"):
         manager.validate_package_tooling(bundle, {"source_commit": source})
+
+
+def test_legacy_package_storage_preflight_uses_current_reviewed_host_verifier(tmp_path):
+    bundle = tmp_path / 'legacy-package'
+    (bundle / 'scripts').mkdir(parents=True)
+    legacy = bundle / 'scripts/verify-offline-bundle.py'
+    legacy.write_text('import argparse\np=argparse.ArgumentParser();p.add_argument("bundle");p.parse_args()\n')
+    env = {'NEXOLAB_REPO': str(tmp_path / 'site')}
+    args = argparse.Namespace(central_env=tmp_path / 'central.env')
+    with patch.object(manager.subprocess, 'run') as run:
+        PREFLIGHT_SITE_STORAGE(bundle, args, env)
+    command = run.call_args.args[0]
+    assert command[1] == str(SCRIPT.with_name('verify-offline-bundle.py'))
+    assert str(legacy) not in command
+    assert '--site-storage-preflight' in command
+    assert run.call_args.kwargs == {'check': True, 'env': env}
+    installer = SCRIPT.with_name('deploy-version-manager-service.sh').read_text()
+    for helper in ('verify-offline-bundle.py', 'offline_image_archive.py'):
+        assert f'/usr/local/lib/nexolab/{helper}' in installer

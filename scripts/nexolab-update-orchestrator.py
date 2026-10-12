@@ -244,6 +244,38 @@ def _validated_catalog_manifest(bundle_root: Path) -> dict[str, Any] | None:
     return manifest
 
 
+def superseded_catalog_bundles(candidates: list[tuple[Path, dict[str, Any]]]) -> set[str]:
+    """Use digest-bound reissue provenance to retain originals without selecting them."""
+    by_id = {path.name: path for path, _ in candidates}
+    superseded = set()
+    for path, manifest in candidates:
+        records = manifest.get('files', [])
+        if not isinstance(records, list):
+            continue
+        records = [item for item in records if isinstance(item, dict) and item.get('path') == 'evidence/provenance.json']
+        if len(records) != 1:
+            continue
+        provenance_path = path / 'evidence/provenance.json'
+        try:
+            if provenance_path.is_symlink():
+                continue
+            raw = provenance_path.read_bytes()
+            if hashlib.sha256(raw).hexdigest() != records[0].get('sha256'):
+                continue
+            provenance = json.loads(raw)
+            reissue = provenance.get('reissue') if isinstance(provenance, dict) else None
+            if not isinstance(reissue, dict):
+                continue
+            original = by_id.get(reissue.get('original_bundle_id'))
+            if original is None or original == path:
+                continue
+            if hashlib.sha256((original / 'manifest.json').read_bytes()).hexdigest() == reissue.get('original_manifest_sha256'):
+                superseded.add(original.name)
+        except (OSError, ValueError, TypeError):
+            continue
+    return superseded
+
+
 def validated_candidate_bundle(root: Path, target_commit: str) -> tuple[str | None, str]:
     """Return an activation hint only after both current and target packages are validated.
 
@@ -288,6 +320,7 @@ def validated_candidate_bundle(root: Path, target_commit: str) -> tuple[str | No
     catalog_root = root / "catalog"
     if not catalog_root.is_dir():
         return None, "validated_package_required"
+    candidates = []
     for bundle_root in sorted(path for path in catalog_root.iterdir() if path.is_dir()):
         manifest = _validated_catalog_manifest(bundle_root)
         if manifest is None or manifest.get("source_commit") != target_commit:
@@ -302,7 +335,12 @@ def validated_candidate_bundle(root: Path, target_commit: str) -> tuple[str | No
         if not isinstance(upgrade_from, list) or current_schema not in upgrade_from:
             saw_schema_mismatch = True
             continue
-        return bundle_root.name, ""
+        candidates.append((bundle_root, manifest))
+
+    superseded = superseded_catalog_bundles(candidates)
+    for bundle_root, _ in candidates:
+        if bundle_root.name not in superseded:
+            return bundle_root.name, ""
 
     if saw_schema_mismatch:
         return None, "schema_compatibility_unknown"

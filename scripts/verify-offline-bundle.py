@@ -33,6 +33,15 @@ SECRET_PATTERNS = (
 )
 
 
+def image_archive_module():
+    spec = importlib.util.spec_from_file_location(
+        "offline_image_archive", Path(__file__).with_name("offline_image_archive.py")
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -139,6 +148,17 @@ def verify_manifest(bundle_root: Path, manifest: dict[str, Any]) -> dict[str, di
         images[logical_id] = image
 
     require(set(images) == REQUIRED_IMAGES, f"Image inventory mismatch: {sorted(images)}")
+    portable_identity_declared = any('identity' in image for image in images.values())
+    try:
+        identities = image_archive_module().archive_identities(archive_path, list(images.values()), manifest['platform'])
+        for logical_id, image in images.items():
+            identity = identities[logical_id]
+            require(image['image_id'] in identity['runtime_digests'], f"Archive image ID mismatch: {logical_id}")
+            if 'identity' in image:
+                require(image['identity'] == identity, f"Archive image identity mismatch: {logical_id}")
+            image['identity'] = identity
+    except (ValueError, OSError, KeyError, TypeError) as error:
+        raise SystemExit(f"Invalid image archive: {error}") from error
 
     files_payload = manifest.get("files")
     require(isinstance(files_payload, list), "Missing files inventory")
@@ -153,6 +173,8 @@ def verify_manifest(bundle_root: Path, manifest: dict[str, Any]) -> dict[str, di
         require(path.stat().st_size == record.get("size_bytes"), f"Size mismatch: {relative}")
         require(sha256(path) == record.get("sha256"), f"Checksum mismatch: {relative}")
     require(overlay_relative in seen_paths, "Local auth Compose overlay is not in the file inventory")
+    if portable_identity_declared:
+        require('scripts/offline_image_archive.py' in seen_paths, "Image archive verifier is not digest-bound")
     verify_backup_policy_inventory(bundle_root, seen_paths)
     if manifest.get("external_frontend") is not None or (bundle_root / "frontend-external").exists():
         for dependency in ("scripts/nexolab-protected-package.py", "scripts/nexolab-protected-frontend.py", "scripts/lib/raspberry-pi-frontend-release.sh"):
@@ -200,12 +222,17 @@ def reject_secret_material(bundle_root: Path) -> None:
 def inspect_loaded_images(images: dict[str, dict[str, Any]]) -> None:
     for logical_id, image in sorted(images.items()):
         result = subprocess.run(
-            ["docker", "image", "inspect", image["reference"], "--format", "{{.Id}}"],
+            ["docker", "image", "inspect", image["reference"]],
             capture_output=True,
             text=True,
         )
         require(result.returncode == 0, f"Image is not loaded: {image['reference']}")
-        require(result.stdout.strip() == image["image_id"], f"Loaded image ID mismatch: {logical_id}")
+        try:
+            inspected = json.loads(result.stdout)
+            require(isinstance(inspected, list) and len(inspected) == 1, "Invalid Docker inspect response")
+            image_archive_module().check_loaded_identity(inspected[0], image['identity'], image['platform'])
+        except (ValueError, KeyError, TypeError) as error:
+            raise SystemExit(f"Loaded image identity mismatch: {logical_id}: {error}") from error
 
 
 def shell_quote(value: str) -> str:
@@ -217,11 +244,56 @@ def emit_shell_env(images: dict[str, dict[str, Any]]) -> None:
         print(f"export {variable}={shell_quote(images[logical_id]['reference'])}")
 
 
+def verify_site_storage(bundle_root, manifest, images, central_env, source_repository):
+    """Read-only gate before importing images or preparing a protected frontend."""
+    import os
+    # Let Compose resolve dotenv quoting/interpolation and shell precedence. Never
+    # log its full resolved configuration, which may contain site credentials.
+    resolved = subprocess.run(['docker', 'compose', '--env-file', str(central_env),
+                               '-f', str(bundle_root / 'deploy/compose/compose.central.yaml'),
+                               'config', '--format', 'json'], capture_output=True, text=True, check=True)
+    name = json.loads(resolved.stdout).get('volumes', {}).get('central-object-storage-data', {}).get('name')
+    require(isinstance(name, str), 'Cannot resolve the effective Compose storage volume')
+    suffix = next((value for value in ('-object-storage-versitygw-data', '-object-storage-data')
+                   if name.endswith(value)), None)
+    require(suffix is not None, 'Unsupported Compose storage volume contract')
+    prefix = name[:-len(suffix)]
+    require(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', prefix) is not None,
+            'Cannot resolve the effective Compose resource prefix')
+    volumes = subprocess.run(['docker', 'volume', 'ls', '--format', '{{.Name}}'],
+                             capture_output=True, text=True, check=True)
+    names = set(volumes.stdout.splitlines())
+    authority = Path(os.environ.get('OBJECT_STORAGE_MIGRATION_AUTHORITY') or source_repository / 'runtime/object-storage-migration/authority.json')
+    # A fresh VersityGW installation has no migration to validate. Existing
+    # migration evidence still requires validation if the legacy volume is gone.
+    migrated_storage = prefix + '-object-storage-versitygw-data' in names and authority.is_file()
+    if prefix + '-object-storage-data' not in names and not migrated_storage:
+        return
+    require(prefix == 'nexolab-central', 'legacy storage with a custom resource prefix requires separately verified migration')
+    subprocess.run([sys.executable, str(bundle_root / 'scripts/deploy-object-storage-migration.py'),
+                    '--validate-proof', '--require-cutover', '--manifest', str(authority),
+                    '--expected-target-source', manifest['source_commit'],
+                    '--source-repository', str(source_repository)], check=True)
+    proof = load_json(authority)
+    storage = images['object-storage']
+    require(proof.get('target_image_id') in storage['identity']['runtime_digests'],
+            'offline bundle storage image differs from accepted migration image')
+    accepted = subprocess.run(['docker', 'image', 'inspect', 'nexolab/object-storage:versitygw-v1.8.0'],
+                              capture_output=True, text=True, check=True)
+    inspected = json.loads(accepted.stdout)
+    require(isinstance(inspected, list) and len(inspected) == 1
+            and inspected[0].get('Id') == proof.get('target_image_id'), 'Accepted storage image identity changed')
+    image_archive_module().check_loaded_identity(inspected[0], storage['identity'], manifest['platform'])
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("bundle_root", type=Path)
     parser.add_argument("--check-loaded-images", action="store_true")
     parser.add_argument("--emit-shell-env", action="store_true")
+    parser.add_argument('--site-storage-preflight', action='store_true')
+    parser.add_argument('--central-env', type=Path)
+    parser.add_argument('--source-repository', type=Path)
     args = parser.parse_args()
 
     bundle_root = args.bundle_root.resolve()
@@ -230,6 +302,9 @@ def main() -> int:
     images = verify_manifest(bundle_root, manifest)
     verify_checksum_file(bundle_root)
     reject_secret_material(bundle_root)
+    if args.site_storage_preflight:
+        require(args.central_env is not None and args.source_repository is not None, 'Site storage preflight requires explicit site paths')
+        verify_site_storage(bundle_root, manifest, images, args.central_env, args.source_repository.resolve())
     if args.check_loaded_images:
         inspect_loaded_images(images)
     if args.emit_shell_env:

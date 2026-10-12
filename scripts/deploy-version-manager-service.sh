@@ -78,6 +78,8 @@ install -d -o 10001 -g 10001 -m 0750 \
   /var/lib/nexolab/version-management/update-check-rejected
 install -d -o root -g root -m 0755 /var/lib/nexolab/version-management/catalog
 install -m 0755 "$SOURCE_ROOT/scripts/nexolab-version-manager.py" /usr/local/lib/nexolab/nexolab-version-manager.py
+install -m 0755 "$SOURCE_ROOT/scripts/verify-offline-bundle.py" /usr/local/lib/nexolab/verify-offline-bundle.py
+install -m 0755 "$SOURCE_ROOT/scripts/offline_image_archive.py" /usr/local/lib/nexolab/offline_image_archive.py
 install -d -m 0755 /usr/local/lib/nexolab/lib
 install -m 0755 "$SOURCE_ROOT/scripts/nexolab-protected-package.py" /usr/local/lib/nexolab/nexolab-protected-package.py
 install -m 0755 "$SOURCE_ROOT/scripts/nexolab-protected-frontend.py" /usr/local/lib/nexolab/nexolab-protected-frontend.py

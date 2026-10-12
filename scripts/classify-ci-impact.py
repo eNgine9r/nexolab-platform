@@ -205,6 +205,9 @@ OFFLINE_BUNDLE_PATTERNS = (
     "scripts/install-offline-bundle.sh",
     "scripts/offline-bundle-smoke.sh",
     "scripts/verify-offline-bundle.py",
+    "scripts/offline_image_archive.py",
+    "scripts/reissue-offline-bundle.py",
+    "scripts/tests/test_offline_image_identity.py",
     "scripts/verify-offline-volume-preservation.sh",
     "docs/operations/offline-installation.md",
     ".github/workflows/offline-bundle.yml",
@@ -258,6 +261,10 @@ DISASTER_RECOVERY_TOOLING_PATHS = {
 }
 
 OBJECT_STORAGE_RUNTIME_PATHS = {
+    "scripts/generate-offline-bundle-manifest.py",
+    "scripts/offline_image_archive.py",
+    "scripts/reissue-offline-bundle.py",
+    "scripts/tests/test_offline_image_identity.py",
     "scripts/object-storage-s3.py",
     "scripts/offline-bundle-smoke.sh",
     "scripts/run-disaster-recovery-browser.sh",

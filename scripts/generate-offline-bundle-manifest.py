@@ -85,6 +85,14 @@ def main() -> int:
             raise SystemExit(f"Invalid {label}")
 
     expected_arch = args.platform.split("/", maxsplit=1)[1]
+    spec = importlib.util.spec_from_file_location("image_archive", Path(__file__).with_name("offline_image_archive.py"))
+    image_archive = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(image_archive)
+    identities = image_archive.archive_identities(
+        bundle_root / "images/nexolab-images.tar",
+        [{'id': logical_id, 'reference': reference} for logical_id, reference in args.image],
+        args.platform,
+    )
     images: list[dict[str, Any]] = []
     logical_ids: set[str] = set()
     for logical_id, reference in args.image:
@@ -102,6 +110,7 @@ def main() -> int:
         image_id = inspected.get("Id")
         if not isinstance(image_id, str) or not image_id.startswith("sha256:"):
             raise SystemExit(f"Image {reference} has no content-addressed image ID")
+        image_archive.check_loaded_identity(inspected, identities[logical_id], args.platform)
 
         cyclone = bundle_root / "evidence" / f"{logical_id}.cdx.json"
         spdx = bundle_root / "evidence" / f"{logical_id}.spdx.json"
@@ -113,7 +122,8 @@ def main() -> int:
             {
                 "id": logical_id,
                 "reference": reference,
-                "image_id": image_id,
+                "image_id": identities[logical_id]['config_digest'],
+                "identity": identities[logical_id],
                 "repo_digests": sorted(inspected.get("RepoDigests") or []),
                 "platform": f"{operating_system}/{architecture}",
                 "size_bytes": int(inspected.get("Size") or 0),

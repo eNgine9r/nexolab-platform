@@ -5,6 +5,8 @@ import path from "node:path";
 
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 
+import { installOpenSocketEvidence } from "./websocket-open-evidence";
+
 const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
 const sessionCredential = requiredEnvironment("NEXOLAB_DASHBOARD_VIEWER_TOKEN");
 const composeProject = requiredEnvironment("COMPOSE_PROJECT_NAME");
@@ -40,6 +42,7 @@ function requiredEnvironment(name: string): string {
 
 async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
   const context = await browser.newContext();
+  await context.addInitScript(installOpenSocketEvidence);
   await context.addInitScript(
     ({ accessToken, organization }) => {
       if (window.location.protocol === "about:") return;
@@ -263,7 +266,9 @@ test("one equipment renders V/A/W on one synchronized multi-axis canvas", async 
       await assertNoPageOverflow(page);
     }
 
-    await expect.poll(() => runtime.sockets.maximum).toBeLessThanOrEqual(1);
+    await expect.poll(() => page.evaluate(() => window.__nexolabOpenSocketEvidence.active)).toBe(1);
+    const openSockets = await page.evaluate(() => window.__nexolabOpenSocketEvidence);
+    expect(openSockets.maximum).toBeLessThanOrEqual(1);
     expect(runtime.acquisitionMutations).toEqual([]);
     expect(runtime.publicRequests).toEqual([]);
 
@@ -277,7 +282,8 @@ test("one equipment renders V/A/W on one synchronized multi-axis canvas", async 
         {
           equipmentId,
           channels: CHANNELS,
-          websocket: runtime.sockets,
+          websocket: openSockets,
+          websocketCreationAndCloseEvents: runtime.sockets,
           acquisitionMutations: runtime.acquisitionMutations,
           publicRequests: runtime.publicRequests,
         },
