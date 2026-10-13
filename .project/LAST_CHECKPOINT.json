@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-13T22:42:00Z",
+  "timestamp": "2026-10-13T23:11:05.133307Z",
   "actor": "Codex",
-  "event": "energy1369_fixed_image_green_architecture_review_pending",
+  "event": "energy1363_rebased_final_repair_candidate",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "HuFALgo65ij75S2pY6qCm"
   },
   "active_work": {
-    "issue": 1369,
-    "title": "Restore exact container security gates blocking Energy export",
-    "branch": "security/1369-bounded-high-review"
+    "issue": 1363,
+    "title": "Energy full historical CSV/XLSX export",
+    "branch": "feature/1363-energy-history-export"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -2509,6 +2509,15 @@
       "digests_independently_verified": true,
       "architecture_review": "ADR0011 amendment prepared;fresh CI/review pending",
       "native": "bounded ARM64 builder running;no production mutation"
+    },
+    "energy1363_final_repair": {
+      "accepted_security_head": "101da8c9604fc6979934b732168cebb66fc0481e",
+      "security_merge": "0dc472cd5aff7348780cee6f1e2418e2896d5074",
+      "local_export_tests": 25,
+      "local_pg_skip": 1,
+      "bounded_json_projection": "red-green verified",
+      "pi_write_recovery": "new approved isolated folder only",
+      "pi_export_acceptance": "not run"
     }
   },
   "observations": [
@@ -3552,7 +3561,7 @@
       }
     }
   ],
-  "next_action": "Publish coherent ADR/state review repair; required exact-head CI and source review must pass, collect native bounded build result; then merge1369, rebase/publish1363 review repair, validate all CI and continue1364 without runtime cutover.",
+  "next_action": "Publish coherent1363 final export candidate; require all exact-head CI and fresh source review GREEN, then continue1364 actual-Pi isolated data/resource acceptance. C296/package/update gates unchanged.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
