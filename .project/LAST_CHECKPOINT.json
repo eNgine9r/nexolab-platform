@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-13T17:38:58.353164+00:00",
-  "actor": "Codex",
-  "event": "operator_update_ready_reporting_rule_recorded",
+  "timestamp": "2026-10-13T18:09:43.039Z",
+  "actor": "ChatGPT",
+  "event": "energy_expansion_planned_implementation_environment_blocked",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -2419,6 +2419,36 @@
       "blocker": "No matching validated local package for latest-main activation. A source/state PR merge alone does not permit the green update instruction.",
       "current_package_retained": true,
       "automatic_activation": false
+    },
+    "energy_expansion": {
+      "planning_issue": 1365,
+      "work_packages": [
+        1362,
+        1363,
+        1364
+      ],
+      "execution_preflight": {
+        "task_id": "pi~5b661e02-03e3-4e2a-807a-8a18f20ed486",
+        "completed_at": "2026-10-13T18:04:09.828Z",
+        "orchestration_state": "completed",
+        "implementation_status": "blocked_before_code",
+        "runner_checkout_sha": "bfa0c635caa31cf335b6789e3c8fe2fbbb700439",
+        "runner_worktree": "clean_detached",
+        "required_connector_observed_source_available": false,
+        "worktree_and_git_metadata_writable": false,
+        "github_dns_probe": "failed_to_resolve_github.com",
+        "node_version": "20.19.2",
+        "npm_version": "9.2.0",
+        "node_modules_available": false,
+        "required_frontend_node": "22.22.1 <= version < 23 or 24 <= version < 25",
+        "required_frontend_npm": ">=10",
+        "openpyxl_in_runner_interpreter": false,
+        "openpyxl_in_backend_requirements": "3.1.5",
+        "production_changes": "none",
+        "hardware_verification": "not_run"
+      },
+      "software_feature_implementation": "not_started",
+      "release_readiness": "not_ready"
     }
   },
   "observations": [
@@ -3444,9 +3474,25 @@
         "merge_sha": "d9fb4710bfd67d4c3a4b68b3629fcba5dacfd210",
         "issue_state": "closed"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-13T18:09:43.039Z",
+      "kind": "energy_expansion_source_and_work_packages",
+      "data": {
+        "repository": "eNgine9r/nexolab-platform",
+        "main_head_sha": "a827123439eb06158cbbce1ba5b30eb7998b752b",
+        "issues": [
+          1362,
+          1363,
+          1364
+        ],
+        "planning_issue": 1365,
+        "source_inspection": "single-metric energy UI/history; existing canonical five-axis partitioning and backend openpyxl dependency"
+      }
     }
   ],
-  "next_action": "Use the required final line 🟢 Оновлюйся only after a selected matching local package, required CI/review, data protection, rollback and guarded installation gates are all ready. Current latest-main package remains not_ready under1313/1323; no independent ReadyWP. Retain accepted native1353 and lock/manual-check1354 evidence, current C296 and automatic activationOFF;1356Backlog. Do not replay consumed owner commands/native operations.",
+  "next_action": "Restore an authorized writable isolated NEXOLAB worktree from fresh GitHub main with supported Node/npm and local dependencies; recheck root/applicable AGENTS and four state files, then explicitly unblock and begin1362. Continue1363 export and1364 acceptance only after their dependencies. Keep C296/automatic activationOFF and consumed native/owner evidence; latest-main matching validated local package remains missing under1313/1323. Do not issue the green update instruction before package/CI/review/data/rollback/guarded installation readiness.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

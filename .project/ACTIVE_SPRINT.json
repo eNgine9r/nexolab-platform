@@ -8373,6 +8373,65 @@
         "current_latest_main_package_readiness": "not_ready; matching validated local package remains missing",
         "verification_policy": "canonical state integrity and exact-head state-only merge gate"
       }
+    },
+    {
+      "issue": 1362,
+      "title": "Energy multi-parameter persisted history with synchronized axes",
+      "branch": "feature/1362-energy-multi-parameter-history",
+      "priority": "high",
+      "lifecycle": "blocked",
+      "depends_on": [],
+      "scope": "Supported meter/metric pair selection, canonical <=5-axis chart panels, synchronized inspection/zoom, multi-metric history/cache; no backend/acquisition/runtime mutation.",
+      "blocker": "NEXUS runner lacks current source, writable Git/worktree, supported Node/npm and installed test dependencies.",
+      "evidence": {
+        "execution_preflight": {
+          "task_id": "pi~5b661e02-03e3-4e2a-807a-8a18f20ed486",
+          "completed_at": "2026-10-13T18:04:09.828Z",
+          "orchestration_state": "completed",
+          "implementation_status": "blocked_before_code",
+          "runner_checkout_sha": "bfa0c635caa31cf335b6789e3c8fe2fbbb700439",
+          "runner_worktree": "clean_detached",
+          "required_connector_observed_source_available": false,
+          "worktree_and_git_metadata_writable": false,
+          "github_dns_probe": "failed_to_resolve_github.com",
+          "node_version": "20.19.2",
+          "npm_version": "9.2.0",
+          "node_modules_available": false,
+          "required_frontend_node": "22.22.1 <= version < 23 or 24 <= version < 25",
+          "required_frontend_npm": ">=10",
+          "openpyxl_in_runner_interpreter": false,
+          "openpyxl_in_backend_requirements": "3.1.5",
+          "production_changes": "none",
+          "hardware_verification": "not_run"
+        }
+      }
+    },
+    {
+      "issue": 1363,
+      "title": "Energy full-history CSV/XLSX export with resolution and Europe/Kyiv",
+      "branch": "feature/1363-energy-history-export",
+      "priority": "high",
+      "lifecycle": "queued",
+      "depends_on": [
+        1362
+      ],
+      "scope": "Authenticated raw/aggregated PostgreSQL export, meter/metric/range/step options, preview, bounded local execution, CSV/XLSX, quality/counter/DST/retention correctness.",
+      "readiness": "Queued until WP1362 and exact job/bucket/file contract are accepted; execution environment remains unavailable.",
+      "evidence": {}
+    },
+    {
+      "issue": 1364,
+      "title": "Energy export mobile and actual Raspberry Pi isolated performance acceptance",
+      "branch": "test/1364-energy-export-acceptance",
+      "priority": "high",
+      "lifecycle": "queued",
+      "depends_on": [
+        1362,
+        1363
+      ],
+      "scope": "Exact-source browser/API/data reconciliation and isolated actual-Pi resource/concurrent-ingestion acceptance; production cutover requires separate authorization.",
+      "readiness": "Needs feature candidates and isolated validation environment; no software/hardware/runtime acceptance claimed.",
+      "evidence": {}
     }
   ],
   "maintenance_actions": [
@@ -9697,6 +9756,22 @@
         "verified_head_sha": "785bb1e1f5d8a7f66bef456d8a335e4b060e564a",
         "merge_sha": "d9fb4710bfd67d4c3a4b68b3629fcba5dacfd210",
         "issue_state": "closed"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-13T18:09:43.039Z",
+      "kind": "energy_expansion_source_and_work_packages",
+      "data": {
+        "repository": "eNgine9r/nexolab-platform",
+        "main_head_sha": "a827123439eb06158cbbce1ba5b30eb7998b752b",
+        "issues": [
+          1362,
+          1363,
+          1364
+        ],
+        "planning_issue": 1365,
+        "source_inspection": "single-metric energy UI/history; existing canonical five-axis partitioning and backend openpyxl dependency"
       }
     }
   ],
