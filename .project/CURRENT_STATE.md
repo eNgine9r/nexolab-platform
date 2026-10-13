@@ -21,6 +21,7 @@ and process-cleanup checks hit existing UID/proc namespace limits, reproduced
 on unchanged main. API module collection also lacks its JWT test dependency.
 These limits are not GREEN acceptance; exact-head CI and owner-local real
 UID10001 rehearsal, guarded repair and actual manual-check UI remain required.
+CI path registration adds only the known helper/test to version-manager and offline workflow contracts. 113 CI policy/offline tests and 87 subtests passed; classifier-change browser gates remain required.
 Automatic activation remains OFF. No runtime, database, volume or hardware write
 has been performed by this candidate. No independent Ready Work Package exists.
 

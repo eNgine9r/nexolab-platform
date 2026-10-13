@@ -8075,7 +8075,8 @@
         "actual_UI_manual_check": "pending",
         "runtime_mutation": "none",
         "production_build": "passed; Next production build with local dependencies",
-        "review_corrections": "existing-lock repairs require exact-current authority; existing correct lock no-op; UID proof forks without private-interpreter exec"
+        "review_corrections": "existing-lock repairs require exact-current authority; existing correct lock no-op; UID proof forks without private-interpreter exec",
+        "ci_registration_checks": "113 passed; 87 subtests; exact helper paths registered; unknown neighboring tools and full classifier-change gates preserved"
       }
     }
   ],

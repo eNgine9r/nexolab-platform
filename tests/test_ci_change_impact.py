@@ -593,6 +593,22 @@ class ChangeImpactClassifierTests(unittest.TestCase):
                 self.assertEqual(result["unknown_files"], [])
                 self.assertEqual(result["verification"]["required_external_workflows"], [])
 
+    def test_shared_update_lock_paths_require_and_trigger_offline_bundle(self) -> None:
+        workflow = (ROOT / ".github/workflows/offline-bundle.yml").read_text(encoding="utf-8")
+        trigger = workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0]
+        patterns = [line.strip()[2:].strip('"\'') for line in trigger.splitlines() if line.strip().startswith("- ")]
+        for path in ("scripts/prepare-version-update-lock.py", "scripts/tests/test_prepare_version_update_lock.py"):
+            with self.subTest(path=path):
+                result = classify([path])
+                self.assertEqual(result["classes"], ["deployment_runtime"])
+                self.assertFalse(result["fail_closed"])
+                self.assertEqual(result["unknown_files"], [])
+                self.assertEqual(result["verification"]["required_external_workflows"], ["Offline Bundle"])
+                self.assertTrue(any(fnmatchcase(path, pattern) for pattern in patterns))
+        result = classify(["scripts/prepare-version-update-lock.py", "scripts/prepare-other-lock.py"])
+        self.assertTrue(result["fail_closed"])
+        self.assertEqual(result["unknown_files"], ["scripts/prepare-other-lock.py"])
+
     def test_central_auth_deploy_contract_is_known_deployment_runtime(self) -> None:
         result = classify(["scripts/tests/test_central_smoke_auth_contract.py"])
         self.assertEqual(result["classes"], ["deployment_runtime"])
