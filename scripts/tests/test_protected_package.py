@@ -13,6 +13,7 @@ import tarfile
 import tempfile
 from types import SimpleNamespace
 import unittest
+import sys
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -144,6 +145,51 @@ class ProtectedPackageTests(unittest.TestCase):
                 self.assertFalse(transaction.touched)
                 self.assertEqual(calls.count(["systemctl", "start", "nexolab-external-nginx.service"]), 2)
 
+    def test_tampered_candidate_and_restore_evidence_cannot_change_root_unit(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            manifest, unit, nginx = fixture(root)
+            evidence = root / "evidence"
+            evidence.mkdir()
+            original = unit.read_text()
+            malicious = "[Service]\nUser=root\nExecStart=/untrusted\n"
+            with (patch.object(package, "UNIT", unit), patch.object(package, "NGINX", nginx),
+                  patch.object(package, "RELEASES", root / "releases"),
+                  patch.object(package.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, stdout="", stderr="")),
+                  patch.object(package.frontend, "request", return_value=(200, json.dumps({"source_commit": SOURCE, "build_id": "old-build"}).encode())),
+                  patch.object(package.frontend, "probe_frontend"), patch.object(package.frontend, "probe_gateway")):
+                transaction = package.ProtectedPackageFrontend(root / "bundle", manifest, {"source_commit": SOURCE}, evidence)
+                expected = package.frontend.render_unit(original, str(transaction.release), transaction.node, transaction.api)
+                (evidence / "external-unit-candidate.service").write_text(malicious)
+                (evidence / "external-unit-before.service").write_text(malicious)
+                transaction.activate()
+                self.assertEqual(unit.read_text(), expected)
+                transaction.rollback()
+                self.assertEqual(unit.read_text(), original)
+
+    def test_stale_unit_is_rejected_without_stopping_frontend(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            manifest, unit, nginx = fixture(root)
+            evidence = root / "evidence"
+            evidence.mkdir()
+            calls = []
+            def runner(args, **kwargs):
+                calls.append(args)
+                return subprocess.CompletedProcess(args, 0, stdout="", stderr="")
+            with (patch.object(package, "UNIT", unit), patch.object(package, "NGINX", nginx),
+                  patch.object(package, "RELEASES", root / "releases"), patch.object(package.subprocess, "run", side_effect=runner),
+                  patch.object(package.frontend, "request", return_value=(200, json.dumps({"source_commit": SOURCE, "build_id": "old-build"}).encode())),
+                  patch.object(package.frontend, "probe_gateway")):
+                transaction = package.ProtectedPackageFrontend(root / "bundle", manifest, {"source_commit": SOURCE}, evidence)
+                (evidence / "external-unit-candidate.service").write_text(unit.read_text())
+                unit.write_text(unit.read_text()+"# external configuration change\n")
+                calls.clear()
+                with self.assertRaises(ValueError):
+                    transaction.activate()
+                self.assertFalse(transaction.touched)
+                self.assertFalse(any(args[:2] == ["systemctl", "stop"] for args in calls))
+
     def test_metadata_binds_source_profile_and_entire_artifact_inventory(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -200,6 +246,29 @@ class ProtectedPackageTests(unittest.TestCase):
                 self.assertFalse(transaction.touched)
                 self.assertEqual(unit.read_text(), original)
                 self.assertFalse(any("npm" in args or "funnel" in args for args in calls))
+
+    def test_privileged_install_prepares_missing_release_root_before_worker(self):
+        with tempfile.TemporaryDirectory() as temp:
+            parent = Path(temp) / "external"
+            releases = parent / "releases"
+            with patch.object(package, "RELEASES", releases):
+                package.prepare_release_root(create_parent=True)
+            self.assertEqual(stat.S_IMODE(parent.stat().st_mode), 0o711)
+            self.assertEqual(stat.S_IMODE(releases.stat().st_mode), 0o711)
+            script = (ROOT / "scripts/deploy-version-manager-service.sh").read_text()
+            self.assertLess(script.index("prepare_release_root(create_parent=True)"),
+                            script.index('systemctl daemon-reload'))
+
+    def test_privileged_install_refuses_symlinked_release_parent(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            real = root / "real"
+            real.mkdir()
+            parent = root / "external"
+            parent.symlink_to(real, target_is_directory=True)
+            with patch.object(package, "RELEASES", parent / "releases"), self.assertRaises(ValueError):
+                package.prepare_release_root(create_parent=True)
+            self.assertFalse((real / "releases").exists())
 
     def test_release_root_allows_traversal_without_listing_or_write_and_keeps_audit_private(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -278,6 +347,102 @@ class ProtectedPackageTests(unittest.TestCase):
                     package.ProtectedPackageFrontend(root / "bundle", manifest, {"source_commit": SOURCE}, root / "evidence/operation-2")
                 self.assertFalse((root / "evidence").exists())
 
+
+class WorkerWriteBoundaryTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.unit = self.root / "frontend.service"
+        self.original = "[Service]\nExecStart=old\n"
+        self.unit.write_text(self.original)
+        self.unit.chmod(0o644)
+        self.candidate = self.root / "candidate"
+        self.candidate.write_text("[Service]\nExecStart=candidate\n")
+        self.addCleanup(patch.stopall)
+        patch.object(package, "UNIT", self.unit).start()
+
+    def test_handoff_preserves_inode_metadata_and_rollback(self):
+        before = self.unit.stat()
+        package.write_frontend_unit(self.candidate.read_bytes(), (self.original,))
+        after = self.unit.stat()
+        self.assertEqual(self.unit.read_bytes(), self.candidate.read_bytes())
+        self.assertEqual((after.st_dev, after.st_ino, after.st_uid, after.st_gid,
+                          stat.S_IMODE(after.st_mode)),
+                         (before.st_dev, before.st_ino, before.st_uid, before.st_gid, 0o644))
+        old = self.root / "before"
+        old.write_text(self.original)
+        package.write_frontend_unit(old.read_bytes(), (self.candidate.read_text(), self.original))
+        self.assertEqual(self.unit.read_text(), self.original)
+
+    def test_symlink_refused_before_write(self):
+        real = self.root / "real"
+        self.unit.rename(real)
+        self.unit.symlink_to(real)
+        with self.assertRaises(OSError):
+            package.write_frontend_unit(self.candidate.read_bytes(), (self.original,))
+        self.assertEqual(real.read_text(), self.original)
+
+    def test_hardlink_refused_before_write(self):
+        os.link(self.unit, self.root / "other")
+        with self.assertRaises(ValueError):
+            package.write_frontend_unit(self.candidate.read_bytes(), (self.original,))
+        self.assertEqual(self.unit.read_text(), self.original)
+
+    def test_shared_writable_unit_refused_before_write(self):
+        self.unit.chmod(0o666)
+        with self.assertRaises(ValueError):
+            package.write_frontend_unit(self.candidate.read_bytes(), (self.original,))
+        self.assertEqual(self.unit.read_text(), self.original)
+
+    def test_stale_unit_refused_before_write(self):
+        with self.assertRaises(ValueError):
+            package.write_frontend_unit(self.candidate.read_bytes(), ("different",))
+        self.assertEqual(self.unit.read_text(), self.original)
+
+    def test_interrupted_write_restores_original_before_propagating(self):
+        real_write = os.write
+        calls = 0
+        def interrupted(descriptor, data):
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return real_write(descriptor, data[:5])
+            if calls == 2:
+                raise OSError("injected interrupted write")
+            return real_write(descriptor, data)
+        with patch.object(package.os, "write", side_effect=interrupted), self.assertRaises(OSError):
+            package.write_frontend_unit(self.candidate.read_bytes(), (self.original,))
+        self.assertEqual(self.unit.read_text(), self.original)
+
+    def test_startup_overlay_is_outside_container_writable_version_root(self):
+        text = (ROOT / "infrastructure/offline/nexolab-version-manager.service").read_text()
+        prefix = "ExecStart=/usr/bin/env NEXOLAB_STARTUP_EVIDENCE_ROOT="
+        startup = Path(next(line[len(prefix):].split()[0] for line in text.splitlines() if line.startswith(prefix)))
+        self.assertFalse(startup.is_relative_to(Path("/var/lib/nexolab/version-management")))
+        self.assertTrue(startup.is_relative_to(Path("/var/backups/nexolab")))
+
+    def test_worker_keeps_sandbox_and_exact_write_paths(self):
+        text = (Path(__file__).resolve().parents[2] / "infrastructure/offline/nexolab-version-manager.service").read_text()
+        for directive in ("ProtectSystem=strict", "ProtectHome=read-only", "NoNewPrivileges=true", "PrivateTmp=true"):
+            self.assertIn(directive, text)
+        paths = next(line.partition("=")[2].split() for line in text.splitlines() if line.startswith("ReadWritePaths="))
+        self.assertEqual(paths, ["/var/lib/nexolab/version-management", "/var/backups/nexolab",
+                                 "-/opt/nexolab-external/releases",
+                                 "-/etc/systemd/system/nexolab-external-frontend.service"])
+        self.assertIn("ExecStart=/usr/bin/env NEXOLAB_STARTUP_EVIDENCE_ROOT=/var/backups/nexolab/device-agent-startup /usr/bin/python3", text)
+
+
+class StartupEnvironmentPrecedenceTests(unittest.TestCase):
+    def test_explicit_launch_assignment_overrides_old_environment_file_value(self):
+        text = (ROOT / "infrastructure/offline/nexolab-version-manager.service").read_text()
+        prefix = "ExecStart=/usr/bin/env "
+        assignment = next(line[len(prefix):].split()[0] for line in text.splitlines() if line.startswith(prefix))
+        environment = dict(os.environ, NEXOLAB_STARTUP_EVIDENCE_ROOT="/var/lib/nexolab/version-management/unsafe")
+        result = subprocess.run(["/usr/bin/env", assignment, sys.executable, "-c",
+                                 "import os; print(os.environ['NEXOLAB_STARTUP_EVIDENCE_ROOT'])"],
+                                check=True, capture_output=True, text=True, env=environment)
+        self.assertEqual(result.stdout.strip(), "/var/backups/nexolab/device-agent-startup")
 
 if __name__ == "__main__":
     unittest.main()

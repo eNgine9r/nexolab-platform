@@ -14,7 +14,7 @@ import shutil
 import stat
 import subprocess
 import sys
-from typing import Any
+from typing import Any, Callable
 
 sys.dont_write_bytecode = True
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -26,9 +26,67 @@ NGINX = Path("/opt/nexolab-external/nginx.conf")
 RELEASES = Path("/opt/nexolab-external/releases")
 
 
-def prepare_release_root() -> None:
+def write_frontend_unit(data: bytes, expected: tuple[str, ...], before_write: Callable[[], None] | None = None) -> None:
+    """Update the existing file bind mount without replacing its directory entry.
+
+    The service is stopped and its original unit is saved in transaction evidence
+    before this call. Failed writes restore the opened inode before propagating.
+    """
+    if not isinstance(data, bytes):
+        raise TypeError("protected frontend unit bytes must come from trusted memory")
+    descriptor = os.open(UNIT, os.O_RDWR | os.O_NOFOLLOW)
+    try:
+        info = os.fstat(descriptor)
+        if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1
+                or info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) != 0o644):
+            raise ValueError("protected frontend unit has unsafe ownership or permissions")
+        with os.fdopen(os.dup(descriptor), "rb") as stream:
+            original = stream.read()
+        if original not in tuple(value.encode() for value in expected):
+            raise ValueError("protected frontend unit changed since transaction capture")
+        live = UNIT.stat(follow_symlinks=False)
+        if (live.st_dev, live.st_ino) != (info.st_dev, info.st_ino):
+            raise ValueError("protected frontend unit path changed before write")
+
+        def write_bytes(contents: bytes) -> None:
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            pending = memoryview(contents)
+            while pending:
+                count = os.write(descriptor, pending)
+                if count <= 0:
+                    raise OSError("protected frontend unit write did not advance")
+                pending = pending[count:]
+            os.ftruncate(descriptor, len(contents))
+            os.fsync(descriptor)
+
+        if before_write is not None:
+            before_write()
+        try:
+            write_bytes(data)
+        except OSError:
+            write_bytes(original)
+            raise
+    finally:
+        os.close(descriptor)
+
+
+def prepare_release_root(*, create_parent: bool = False) -> None:
     # Owner commands keep umask 077 for credentials and audit evidence. This
     # separate runtime ancestor must also be traversable by the service user.
+    if create_parent:
+        try:
+            RELEASES.parent.mkdir(mode=0o711, exist_ok=True)
+            parent_descriptor = os.open(RELEASES.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        except OSError as error:
+            raise ValueError("protected release parent must be a real dedicated directory") from error
+        try:
+            parent_info = os.fstat(parent_descriptor)
+            parent_mode = stat.S_IMODE(parent_info.st_mode)
+            if parent_info.st_uid != os.geteuid() or parent_mode & 0o022:
+                raise ValueError("protected release parent has unsafe ownership or shared write permission")
+            os.fchmod(parent_descriptor, parent_mode | 0o111)
+        finally:
+            os.close(parent_descriptor)
     try:
         RELEASES.mkdir(mode=0o711, exist_ok=True)
         descriptor = os.open(RELEASES, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
@@ -139,6 +197,7 @@ class ProtectedPackageFrontend:
         frontend.require_gateway_active(frontend.origin_host(self.metadata["origin"]))
         self.gateway_was_active = True
         self.release = RELEASES / (manifest["source_commit"] + "-" + evidence.name)
+        self.candidate_unit = frontend.render_unit(self.original, str(self.release), self.node, self.api)
 
     def run(self, args: list[str], **kwargs) -> subprocess.CompletedProcess:
         return subprocess.run(args, check=True, **kwargs)
@@ -169,8 +228,7 @@ class ProtectedPackageFrontend:
                   str(SCRIPT_DIR / "lib/raspberry-pi-frontend-release.sh"), str(artifact), str(self.bundle), str(self.release),
                   self.metadata["source_commit"], "live", self.metadata["origin"], f"wss://{host}/api/v1/telemetry/live", "local",
                   self.metadata["organization_id"], str(self.evidence / "external-artifact-import.txt"), "true"], env=env)
-        unit = frontend.render_unit(self.original, str(self.release), self.node, self.api)
-        (self.evidence / "external-unit-candidate.service").write_text(unit)
+        (self.evidence / "external-unit-candidate.service").write_text(self.candidate_unit)
         (self.release / ".next/cache").mkdir(exist_ok=True)
         identity = {"schema_version": "nexolab-runtime-identity-v1", "service": "dashboard",
                     "source_commit": self.metadata["source_commit"], "build_id": self.metadata["build_id"],
@@ -207,9 +265,10 @@ class ProtectedPackageFrontend:
     def activate(self) -> None:
         if not self.enabled:
             return
-        self.touched = True
-        self.run(["systemctl", "stop", UNIT.name])
-        self.run(["install", "-m", "0644", str(self.evidence / "external-unit-candidate.service"), str(UNIT)])
+        def stop_frontend() -> None:
+            self.touched = True
+            self.run(["systemctl", "stop", UNIT.name])
+        write_frontend_unit(self.candidate_unit.encode(), (self.original,), stop_frontend)
         self.run(["systemctl", "daemon-reload"])
         self.run(["systemctl", "start", UNIT.name])
         host = frontend.origin_host(self.metadata["origin"])
@@ -220,8 +279,8 @@ class ProtectedPackageFrontend:
     def rollback(self) -> None:
         if not self.touched:
             return
-        self.run(["systemctl", "stop", UNIT.name])
-        self.run(["install", "-m", "0644", str(self.evidence / "external-unit-before.service"), str(UNIT)])
+        write_frontend_unit(self.original.encode(), (self.candidate_unit, self.original),
+                            lambda: self.run(["systemctl", "stop", UNIT.name]))
         self.run(["systemctl", "daemon-reload"])
         self.run(["systemctl", "start", UNIT.name])
         frontend.probe_frontend(3100, self.original_identity["source_commit"], self.original_identity["build_id"], frontend.origin_host(self.metadata["origin"]))

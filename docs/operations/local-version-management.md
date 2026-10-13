@@ -227,3 +227,38 @@ Never declare compatibility without migration and rollback evidence.
 Actual update/rollback acceptance on the controlled Raspberry Pi remains a
 separate physical Gate. Software-only evidence must not be reported as physical
 acceptance.
+
+### Native worker filesystem boundary
+
+The worker retains `ProtectSystem=strict`, `ProtectHome=read-only`, private temporary
+files and `NoNewPrivileges`. Its writable paths are the version root, backup root,
+the dedicated `/opt/nexolab-external/releases` directory and the existing
+`/etc/systemd/system/nexolab-external-frontend.service` file. The latter two paths
+are optional when the protected interface is absent. The system-unit directory
+and site repository remain read-only. The privileged host installer creates and
+validates the dedicated release parent/root before the worker can start, so the
+optional writable path is present even for the first protected package update.
+
+Hardware startup evidence uses `NEXOLAB_STARTUP_EVIDENCE_ROOT` beneath the
+root-controlled backup root at `/var/backups/nexolab/device-agent-startup`, as
+supported by the immutable installer. The container-writable version root must
+not contain this privileged Compose input: an attacker could rename a root-owned
+child from its writable parent and replace the overlay between validation and use.
+The worker command supplies this trusted path through `/usr/bin/env` in
+`ExecStart`; an older `EnvironmentFile` assignment cannot override it. The frontend transaction stops its
+service, preserves the original unit in durable operation evidence and writes the
+existing unit inode without unlinking it. Candidate and original contents stay
+in trusted transaction memory; copied evidence files never authorize unit writes.
+The unit is opened and validated before the frontend is stopped. Symlinked,
+hardlinked, foreign-owned,
+shared-writable or changed units are rejected before writing. Interrupted writes
+attempt to restore the original bytes before failure propagation; the canonical
+transaction still owns frontend/gateway rollback. A crash or power loss during a
+unit write requires recovery from saved transaction evidence; no atomic-rename
+guarantee is claimed for a writable file bind mount.
+
+Installing this reviewed host correction is separate from activating a package.
+Verify the real worker mount namespace can write its exact approved destinations
+and cannot write neighboring system units or the site repository before native
+UI update/rollback acceptance. Direct privileged CLI success alone does not prove
+that the sandboxed worker can perform these operations.

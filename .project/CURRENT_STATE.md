@@ -1,3 +1,32 @@
+## #1349 — native worker correction awaiting owner installation
+
+Current C296 is validated_package ready/known after successful canonical
+transition source-to-packaged-20261012T124434Z-7a49b938a49c. Target DF remains
+catalog-only. Actual LAN/HTTPS UI update and rollback remain unverified.
+
+The reviewed candidate keeps ProtectSystem=strict, ProtectHome=read-only,
+PrivateTmp and NoNewPrivileges. Only the dedicated protected releases directory
+and existing frontend unit file are added to the existing writable version and
+backup roots. Candidate/original unit bytes remain in trusted transaction memory;
+the file descriptor is validated before frontend stop and written without inode
+replacement. Shared audit files do not authorize root unit contents.
+
+Privileged hardware startup overlays belong only beneath the root-controlled
+/var/backups/nexolab/device-agent-startup parent, outside container-writable
+version state. ExecStart supplies this constant through /usr/bin/env so an older
+EnvironmentFile value cannot override it. The privileged host installer prepares
+and validates the dedicated release parent/root before first worker startup.
+
+40 focused tests and9 subtests pass with one independent-UID skip. Review
+findings were reproduced and corrected before host installation; final exact-head
+CI/review must be complete. Guarded owner-local installation will first prove
+allowed/denied writes in the real sandbox, preserve prior host tools/unit and then
+install the correction. No host installation or target activation has occurred.
+Browser-native acceptance additionally requires reconnecting the Opera app.
+
+Historical #1343 preparation and owner evidence follow; these records do not
+change the current packaged authority or the #1349 next action above.
+
 <!-- OFFLINE_PACKAGE_STORAGE_1343_BEGIN -->
 
 ## #1343: approved offline package repair in progress — 2026-10-11
@@ -25,11 +54,102 @@ Native accepted-storage export and offline Trivy ARM64 SBOM generation completed
 with no network; evidence under arm64-rebuild-20261011/reissue-1343-20261011.
 Archive SHA256 8235db2c53c613ea081bb2a471af7e19592a8f5a99817815c23374e82eb9f1d3.
 
-Next: exact-head CI/review, both distinct repaired artifacts, full native preflight,
-then one concrete guarded root handoff. No new owner command is ready. Actual
-packaged current authority, native LAN/HTTPS update/rollback and independently
-observed worker filesystem boundary remain open in #1323/#1313. Prior root-ready
-entries below are historical, consumed and superseded.
+Both final artifacts bind reviewed tooling 20cd3f1d644244ff0f1b7c6766b85350b6541747.
+All six exact-head CI workflows passed, including disconnected install/update/rollback;
+review completed without unresolved findings. Final current manifest SHA256
+5fcc60ce148d1d3984290afbbfa626e8d36e2fdc8e865f78c8003d667672bfed;
+final target c862e0d06e8f4a594b46b70761d29144b4bfc3fa6352fc1749db20d0ba063f3b.
+The final current full native installer preflight PASSED at 22:05:33Z, with 3/3
+healthy acquisition workers advancing, retained storage/volumes and unchanged
+active LAN/protected frontend identities. Final target full preflight PASSED at 22:16:23Z with retained storage/volumes,
+unchanged active LAN/protected identities and 3/3 healthy advancing workers.
+GOMAXPROCS=1 keeps Docker CLI checks inside unchanged Commander limits.
+The storage gate resolves actual Compose volume names, validates retained
+migration proof and preserves fresh VersityGW installation without migration.
+Dashboard development evidence counts OPEN transports and tests true concurrent
+consumers; it does not change the product images.
+
+Actual native reports bind acceptance SHA256
+e2a7a5669351b0479ef81d1c6f59bccabc9274116f0481def59fdfd02c113796.
+The original owner command stopped at preserved_failure_and_acceptance on
+2026-10-12T10:05:38Z; no owner mutation marker exists. Its report SHA256
+45bd5b3a23177fea2b1c1fb65a59f191bc7e3bda715e97403ff893fe4f5bfd2d
+confirms unchanged C296 controlled source authority, ready/known. The wrapper
+compared second-precision UTC-Z transition times as strings against a fractional
+UTC-offset receipt: a same-second end incorrectly sorts after the receipt.
+The exact format regression failed before correction. v2 normalizes aware UTC
+instants, derives its lower bound from actual accepted acquisition observation
+at worker-second precision, rejects ambiguous/malformed/latest unrelated evidence,
+and saves the selected transition timing on failure. The original command/report
+remain unchanged. v2 additionally binds that failed preflight by digest.
+The v2 owner run passed actual failure timing, live hardware/advancing acquisition
+and retained-authority guards, then stopped at verify_retained_storage_current on
+2026-10-12T10:36:58Z before mutation. Report SHA256
+ce250d80957f2ded8674780840971f2804c180e01e625279ba9dfadffbcb016a.
+Its private verifier directory copied the protected package helper without its
+nexolab-protected-frontend.py sibling, so protected metadata verification failed
+on import. The same missing-file regression failed locally before correction.
+v3 copies/hash-binds the complete six-file audit dependency set. Actual current
+and target storage preflights through this private layout passed on Pi at
+10:45:56Z/10:49:54Z. Integrated receipt SHA256
+0bb7c1802e2cc812eec93476cf411fcf5a69b19b878f2ae505accede8deb3a7c.
+34 owner regressions pass, including changed dependency, unaccepted/failed audit
+proof and direct redacted child-error propagation. The new local owner action
+binds/preserves both failed reports and verifies the actual old private missing-
+file log before proceeding. No product/host-tool/artifact changes or new build.
+Current owner command: reissue-1343-20261011/activate-reissued-current-1343-v3.py,
+SHA256 462c23913d9994d940ee3d41d505e058bdaf96687c717cb4eff2abf419614f08.
+The consumed v3 owner action installed the four reviewed host tools and staged
+both distinct packages, then failed during actual current-package activation with
+installer exit 7. Owner report SHA256
+087d9e8a1e8d8a3ec46725aae5b411aa311e101b0bcdf6f306518a23c7c73c71,
+captured 2026-10-12T12:00:33Z. Failed operation ID
+source-to-packaged-20261012T113709Z-47df379f6e8d is now the source current state's
+last_operation_id; it must not be treated as a pre-handoff failure or reset.
+At 12:09:46Z normal-user checks confirm API/database/MQTT ready, queue 0,
+Agent ok, source LAN build Ar6aVrTWJICF6TKFaWxHw and protected build
+mcG0fHLcpCeVbTX--85gF active on C296. Real Modbus and advancing 3/3 healthy
+workers passed at 12:14:15Z. Containers were recreated; do not claim the runtime
+was untouched. Current remains controlled source authority, ready/known; package
+authority and native LAN/HTTPS update/rollback remain unverified.
+The immutable installer derives/exports Dashboard bind from the manifest's LAN
+host when the central env has no explicit bind. Actual central env omits that
+key; the smoke script ignores the export and defaults to loopback. This confirmed
+code/config inconsistency is a suspected actual exit-7 cause; the root-only curl
+error destination and transaction recovery/backup evidence still need inspection.
+Next: owner-local read-handoff-exit7-1343.py (read-only, six tests), SHA256
+d0ff98b642a8f4a00f3a868482c6967801405e13d3a2be29487a5c7b5e18cf8d.
+It publishes only connection and recovery metadata to
+handoff-exit7-1343-diagnostic.json. No new activation/installer retry is prepared.
+All consumed v1/v2/v3 scripts, attempts, backup and transition evidence remain
+preserved. Parent #1323/#1313 native UI and worker filesystem boundary stay open.
+
+Confirmed 2026-10-12T12:40Z: root diagnostic verifies curl7 at 127.0.0.1:3000
+and successful source restore. Installer manifest LAN bind and immutable smoke
+loopback default disagree when DASHBOARD_BIND_ADDRESS is absent. Actual four-
+overlay Compose config and immutable smoke env reader agree at172.18.48.66:3000
+with a private candidate appending only DASHBOARD_BIND_ADDRESS=172.18.48.66.
+Production env remains unchanged. Proof SHA256
+7c04f5d1032b089ad8ebafcebf88f2c39c2705e75b55753ad38da76c8b463166.
+Guarded continuation continue-dashboard-bind-1343.py SHA256
+ba2640433c300ddee68406a35708b7ff75536029a6f9c4cb47a99e33a6a35515
+is staged; 14 endpoint/evidence/recovered-authority regressions and normal Pi
+script/env/evidence checks pass. It preserves actual failed operation and original
+mutation marker, verifies retained data/hardware/installed tooling/catalog, saves
+private env bytes and applies the one-line site bind before canonical current
+authority. No new tools/packages/builds/restage; target remains catalog-only.
+Owner-local root preflight/activation is pending. Packaged authority and native
+LAN/HTTPS update/rollback, including worker filesystem boundary, are unverified.
+
+Canonical current handoff SUCCEEDED at 2026-10-12T13:05:59Z. Read-back owner
+report confirms current C296 validated_package, health ready, runtime_state_known
+true, last_operation_id null and transition_evidence_id
+source-to-packaged-20261012T124434Z-7a49b938a49c (status succeeded). Canonical
+returncode0, no canonical/child/connection errors. PostgreSQL backup recorded.
+The approved explicit site Dashboard bind is applied; old reports/marker and
+failed transition remain preserved. Target remains catalog-only. Do not replay
+consumed owner handoff. Native LAN/HTTPS UI update/rollback and the separately
+recorded worker filesystem sandbox acceptance remain unverified.
 <!-- OFFLINE_PACKAGE_STORAGE_1343_END -->
 
 <!-- OFFLINE_SITE_CONTEXT_1341_BEGIN -->

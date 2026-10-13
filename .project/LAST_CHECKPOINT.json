@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-11T20:44:00Z",
+  "timestamp": "2026-10-13T05:15:00Z",
   "actor": "ChatGPT",
-  "event": "1343_review_corrections_and_immutable_artifact_preparation",
+  "event": "1349_root_runtime_summary_consistent_with_current_packaged_authority",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "mcG0fHLcpCeVbTX--85gF"
   },
   "active_work": {
-    "issue": 1343,
-    "reason": "owner-approved distinct package reissue; storage authority, portable OCI identity and fail-closed installer"
+    "issue": 1349,
+    "reason": "required native worker filesystem correction"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -2017,6 +2017,78 @@
         "owner_execution": "pending_accepted_worker_and_guarded_continuation",
         "worker_service_sandbox": "actual ReadWritePaths only version root and backups; protected release/unit and site startup evidence write boundaries need separate verification before native UI acceptance"
       }
+    },
+    "offline_package_storage_1343": {
+      "issue": 1343,
+      "pull_request": 1344,
+      "tooling_head": "20cd3f1d644244ff0f1b7c6766b85350b6541747",
+      "exact_head_ci": "six_workflows_success",
+      "review": "completed_no_unresolved_findings",
+      "native_full_current_c53": "passed_preserved_prior_tooling_evidence",
+      "final_current_manifest_sha256": "5fcc60ce148d1d3984290afbbfa626e8d36e2fdc8e865f78c8003d667672bfed",
+      "final_target_manifest_sha256": "c862e0d06e8f4a594b46b70761d29144b4bfc3fa6352fc1749db20d0ba063f3b",
+      "final_native_preflight": "both_passed_not_activated",
+      "current_package_authority": "established_validated_package_C296_ready_known",
+      "application_image_builds": 0,
+      "manual_dispatches": 0,
+      "parent_native_acceptance": [
+        1323,
+        1313
+      ],
+      "final_native_current_preflight": "passed_2026-10-11T22:05:33Z",
+      "final_native_target_preflight": "passed_2026-10-11T22:16:23Z",
+      "native_acceptance_sha256": "e2a7a5669351b0479ef81d1c6f59bccabc9274116f0481def59fdfd02c113796",
+      "owner_v1_result": "stopped_before_mutation_preserved_failure_and_acceptance",
+      "owner_v1_report_sha256": "45bd5b3a23177fea2b1c1fb65a59f191bc7e3bda715e97403ff893fe4f5bfd2d",
+      "owner_v2_native_format_and_receipt_check": "passed_historical_v2_then_storage_copy_dependency_failed",
+      "latest_root_transition_timestamps": "succeeded_source_to_packaged_2026-10-12T12:44:37Z_to_2026-10-12T13:05:59Z",
+      "owner_v2_result": "stopped_before_mutation_verify_retained_storage_current",
+      "owner_v2_report_sha256": "ce250d80957f2ded8674780840971f2804c180e01e625279ba9dfadffbcb016a",
+      "integrated_complete_audit_sha256": "0bb7c1802e2cc812eec93476cf411fcf5a69b19b878f2ae505accede8deb3a7c",
+      "integrated_complete_audit_preflight": "both_current_target_passed",
+      "owner_v3_result": "installed_host_tools_staged_both_actual_installer_exit7_source_restored",
+      "owner_v3_report_sha256": "087d9e8a1e8d8a3ec46725aae5b411aa311e101b0bcdf6f306518a23c7c73c71",
+      "confirmed_handoff_connection": "curl7_127.0.0.1_3000",
+      "handoff_diagnostic_sha256": "2c2765239be115a35f48b2f15511a3ecd6869fa007068b8de37c2e270bb2db95",
+      "dashboard_bind_config_proof_sha256": "7c04f5d1032b089ad8ebafcebf88f2c39c2705e75b55753ad38da76c8b463166",
+      "production_env_changed": true,
+      "current_deployment_authority": "validated_package",
+      "current_health": "ready",
+      "current_runtime_state_known": true,
+      "current_transition_evidence_id": "source-to-packaged-20261012T124434Z-7a49b938a49c",
+      "current_transition_ended_at": "2026-10-12T13:05:59Z",
+      "current_transition_status": "succeeded",
+      "owner_dashboard_bind_report": "arm64-rebuild-20261011/reissue-1343-20261011/owner-dashboard-bind-1343-report.json",
+      "current_last_operation_id": null,
+      "target_activation": false,
+      "native_ui_update_rollback": "unverified",
+      "independent_post_package_health": "API_database_MQTT_ready_agent_ok_queue0",
+      "packaged_lan_build_id": "0B4pHaAjFeo31t2yUWXex",
+      "packaged_lan_source_commit_field": null,
+      "packaged_protected_build_id": "HuFALgo65ij75S2pY6qCm",
+      "worker_actual_write_paths": [
+        "/var/lib/nexolab/version-management",
+        "/var/backups/nexolab"
+      ],
+      "worker_protect_home": "read-only",
+      "worker_protect_system": "strict",
+      "worker_filesystem_acceptance": "unresolved",
+      "post_package_live_evidence": "arm64-rebuild-20261011/reissue-1343-20261011/packaged-post-handoff-live-1343.json",
+      "historical_failed_handoff_operation_id": "source-to-packaged-20261012T113709Z-47df379f6e8d",
+      "historical_completed_readonly_diagnostic": "arm64-rebuild-20261011/reissue-1343-20261011/read-handoff-exit7-1343.py",
+      "historical_completed_readonly_diagnostic_sha256": "d0ff98b642a8f4a00f3a868482c6967801405e13d3a2be29487a5c7b5e18cf8d",
+      "completed_current_authority_owner_command": "arm64-rebuild-20261011/reissue-1343-20261011/continue-dashboard-bind-1343.py",
+      "completed_current_authority_owner_command_sha256": "ba2640433c300ddee68406a35708b7ff75536029a6f9c4cb47a99e33a6a35515",
+      "completed_current_authority_owner_guard_tests": "14_passed",
+      "completed_current_authority_owner_execution": "succeeded_canonical_current_package_authority_established",
+      "historical_pre_package_runtime_20261012": "api_database_mqtt_ready_queue_0_lan_and_protected_C296",
+      "historical_pre_package_hardware_observation_20261012": "verified_real_modbus_3_healthy_workers_advanced_10:20:24Z",
+      "historical_after_failed_handoff_independent_runtime": "api_db_mqtt_ready_queue_0_both_source_frontends_C296",
+      "historical_after_failed_handoff_independent_acquisition": "verified_3_healthy_real_modbus_workers_advanced_12:14:15Z",
+      "historical_owner_v3_command": "arm64-rebuild-20261011/reissue-1343-20261011/activate-reissued-current-1343-v3.py",
+      "historical_owner_v3_command_sha256": "462c23913d9994d940ee3d41d505e058bdaf96687c717cb4eff2abf419614f08",
+      "historical_owner_v3_guard_tests": "34_passed_including_missing_audit_dependency_red_green",
+      "historical_owner_v3_execution": "v3_consumed_do_not_replay"
     }
   },
   "observations": [
@@ -3032,7 +3104,7 @@
       }
     }
   ],
-  "next_action": "Finish exact-head CI and review for #1343; verify the two repaired artifacts with unchanged application images and exact retained storage, then full native installer preflight before one guarded owner current-C296 handoff. Preserve original packages, reports, authority and consumed helpers. Native LAN/HTTPS update/rollback and worker sandbox acceptance remain pending under #1323/#1313.",
+  "next_action": "Accept final exact-head CI/review including effective startup override, then guarded owner-local namespace write/denial proof and tooling installation. Current C296 validated_package ready/known, target catalog-only. Native UI update/rollback awaits worker install and Opera reconnection.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -3041,5 +3113,5 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "Owner1339 installed accepted protected traversal helper and reached offline installer preflight; exit80 stopped before backup/handoff. Owner1341 diagnostic is read-only. Assistant1341 host-worker fix is not installed or executed."
+  "runtime_mutation": "Canonical current package handoff succeeded at2026-10-12T13:05:59Z: C296 validated_package ready/known, current_last_operation_id null, transition source-to-packaged-20261012T124434Z-7a49b938a49c succeeded and PostgreSQL backup recorded. The preceding v3 failed handoff/source restoration is historical and preserved. Target remains catalog-only; no target activation, controller write or database restore occurred. Work1349 has changed repository candidates only; host filesystem correction, real namespace proof and native UI update/rollback remain pending."
 }

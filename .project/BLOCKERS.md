@@ -1,3 +1,40 @@
+#1349 environment-precedence correction: ExecStart supplies the trusted
+root-controlled startup path through /usr/bin/env, so existing EnvironmentFile
+values cannot redirect privileged overlays to container-writable state. The
+launch precedence regression failed before correction and now proves the forced
+path against an unsafe inherited value. 40 focused tests and9 subtests pass, one
+independent-UID skip; final exact-head CI/review and owner installation pending.
+
+#1349 privileged-input boundary correction: hardware startup overlays now use
+/var/backups/nexolab/device-agent-startup beneath the root-controlled backup
+parent, never the container-writable version root. Unit bytes remain in trusted
+memory. The placement regression failed with the previous path and now passes;
+39 focused tests plus9 subtests pass, one independent-UID skip. Final exact-head
+CI/review and owner-local installation/namespace proof are pending. No runtime
+activation or host-tooling change occurred.
+
+#1349 fresh-install review correction: the privileged host installer now
+creates/validates the dedicated protected release root before sandboxed worker
+startup, preserving narrow write paths. Missing-parent and symlink-parent tests
+failed before correction. 38 focused tests and9 subtests pass, one independent-UID
+skip; final CI/review still pending. Existing site services and packages unchanged.
+
+#1349 review correction: candidate/original unit bytes remain in trusted
+transaction memory; audit copies never authorize root unit writes. Unit freshness
+and permissions are validated through an opened descriptor before stopping the
+frontend. Both review findings reproduced before correction, and36 focused tests
+plus9 subtests now pass (one independent-UID skip). Actual host tooling/unit and
+runtime remain unchanged; final exact-head CI/review and root namespace proof
+are still required.
+
+## #1349 — sandboxed native worker acceptance still open
+
+Current packaged authority succeeded; worker remains read-only outside version
+root/backups. Dedicated releases, existing protected unit inode and relocatable
+startup evidence require the focused correction. Candidate local checks pass;
+actual worker sandbox write/denial proof and LAN/HTTPS UI update/rollback pending.
+Do not broaden writable home or the system-unit directory or replay owner handoff.
+
 <!-- OFFLINE_PACKAGE_STORAGE_1343_BEGIN -->
 
 ## #1343 — package repair approved; native acceptance pending
@@ -6,10 +43,46 @@ Current and target packages contain newly rebuilt storage images, incompatible
 with unchanged migration authority. Docker config and OCI index/manifest IDs were
 conflated, and installer eval suppressed verifier failures. Approved correction
 reuses app bytes and exact retained image in two new artifacts. Original two build
-dispatches remain consumed. Software checks pass; release CI/review and native
-artifact/preflight evidence remain pending. Do not rerun consumed owner wrappers.
-The worker filesystem sandbox is a separate recorded native update acceptance
-boundary; it is not silently relaxed here.
+dispatches remain consumed. Final 20cd3f1d software checks, all six exact-head
+CI workflows and code review passed; both final artifact graphs verify. Full native
+current/target preflights passed at 22:05:33Z/22:16:23Z. One report-bound guarded
+owner v1/v2 audit defects are corrected. The consumed v3 action installed host
+tooling and staged both repaired packages but actual installer activation returned
+exit 7. C296 source runtime was restored ready/known and independent live hardware
+checks pass; last_operation_id records source-to-packaged-20261012T113709Z-47df379f6e8d.
+Do not replay v3 or reuse pre-handoff guards. The smoke script's loopback Dashboard
+default conflicts with the installer's manifest-derived LAN bind when the env key
+is absent. Root-only error destination/recovery evidence must be captured by the
+staged read-only read-handoff-exit7-1343.py before a repair/continuation is offered.
+Actual package authority and native UI update/rollback remain unverified; worker
+filesystem sandbox is a separate open boundary. All reports/backups are retained.
+
+Confirmed 2026-10-12T12:40Z: root diagnostic verifies curl7 at 127.0.0.1:3000
+and successful source restore. Installer manifest LAN bind and immutable smoke
+loopback default disagree when DASHBOARD_BIND_ADDRESS is absent. Actual four-
+overlay Compose config and immutable smoke env reader agree at172.18.48.66:3000
+with a private candidate appending only DASHBOARD_BIND_ADDRESS=172.18.48.66.
+Production env remains unchanged. Proof SHA256
+7c04f5d1032b089ad8ebafcebf88f2c39c2705e75b55753ad38da76c8b463166.
+Guarded continuation continue-dashboard-bind-1343.py SHA256
+ba2640433c300ddee68406a35708b7ff75536029a6f9c4cb47a99e33a6a35515
+is staged; 14 endpoint/evidence/recovered-authority regressions and normal Pi
+script/env/evidence checks pass. It preserves actual failed operation and original
+mutation marker, verifies retained data/hardware/installed tooling/catalog, saves
+private env bytes and applies the one-line site bind before canonical current
+authority. No new tools/packages/builds/restage; target remains catalog-only.
+Owner-local root preflight/activation is pending. Packaged authority and native
+LAN/HTTPS update/rollback, including worker filesystem boundary, are unverified.
+
+Canonical current handoff SUCCEEDED at 2026-10-12T13:05:59Z. Read-back owner
+report confirms current C296 validated_package, health ready, runtime_state_known
+true, last_operation_id null and transition_evidence_id
+source-to-packaged-20261012T124434Z-7a49b938a49c (status succeeded). Canonical
+returncode0, no canonical/child/connection errors. PostgreSQL backup recorded.
+The approved explicit site Dashboard bind is applied; old reports/marker and
+failed transition remain preserved. Target remains catalog-only. Do not replay
+consumed owner handoff. Native LAN/HTTPS UI update/rollback and the separately
+recorded worker filesystem sandbox acceptance remain unverified.
 <!-- OFFLINE_PACKAGE_STORAGE_1343_END -->
 
 <!-- OFFLINE_SITE_CONTEXT_1341_BEGIN -->

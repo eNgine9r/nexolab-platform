@@ -43,8 +43,8 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1343,
-      "reason": "owner-approved distinct package reissue; storage authority, portable OCI identity and fail-closed installer"
+      "issue": 1349,
+      "reason": "required native worker filesystem dependency after current packaged authority"
     },
     "next_work_package": {
       "issue": 1323,
@@ -62,14 +62,16 @@
       "depends_on": [
         1341
       ],
-      "scope": "Owner approved two distinct reissues using unchanged application bytes and exact retained storage. Fix installer verifier status propagation, archive config/OCI identity chain and early storage preflight; originals and migration authority remain immutable. Code regressions pass; actual reissued artifacts/native authority and update/rollback remain unverified.",
+      "scope": "Owner-approved distinct current/target reissues preserve application bytes and retained storage. Software/artifact validation and current C296 packaged authority succeeded. Native LAN/HTTPS UI update/rollback remains unverified through dependency1349 under1323/1313.",
       "evidence": {
         "owner_reissue_approval_at": "2026-10-11T19:58:12Z",
         "targeted_checks": "125 passed; 1 independent-UID skip; 16 subtests passed",
         "native_storage_export_sha256": "8235db2c53c613ea081bb2a471af7e19592a8f5a99817815c23374e82eb9f1d3",
         "manual_workflow_dispatches": 0,
-        "packaged_authority": "not_established",
-        "new_owner_command": "not_ready"
+        "packaged_authority": "established_2026-10-12T13:05:59Z",
+        "new_owner_command": "consumed_succeeded_do_not_replay",
+        "current_transition": "source-to-packaged-20261012T124434Z-7a49b938a49c",
+        "remaining_native_dependency": 1349
       }
     },
     {
@@ -7983,6 +7985,26 @@
         "latest_candidate_actual_acquisition": "passed_readonly",
         "accepted_main": "3320d42b1edc3b5a80a3c49a0b8b4e73f1bf056e",
         "source_ci": "exact_head_two_routed_workflows_green"
+      }
+    },
+    {
+      "issue": 1349,
+      "title": "Constrain native version worker writes and verify protected update/rollback",
+      "branch": "fix/1349-native-worker-write-boundary",
+      "priority": "critical",
+      "lifecycle": "review",
+      "depends_on": [
+        1343
+      ],
+      "scope": "Required native worker dependency after current C296 packaged authority. Exact protected-release/unit-file writes; trusted in-memory unit content and pre-stop validation; privileged startup overlays under root-controlled backups with forced ExecStart assignment; retain sandbox/data/hardware/auth boundaries.",
+      "evidence": {
+        "targeted_checks": "40 passed; 1 independent-UID skip; 9 subtests passed",
+        "native_namespace_probe": "pending_owner_local",
+        "native_ui_update_rollback": "unverified",
+        "review_corrections": "memory_authentication_pre_stop_freshness_and_fresh_release_root_red_green",
+        "startup_evidence_root": "/var/backups/nexolab/device-agent-startup",
+        "native_ui_access": "opera_connector_reauthentication_required",
+        "startup_launch_precedence": "ExecStart_env_assignment_overrides_unsafe_inherited_value"
       }
     }
   ],
