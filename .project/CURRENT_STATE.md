@@ -1,3 +1,18 @@
+## Operator update signal — required completion-report rule
+
+The product owner requires the final line **🟢 Оновлюйся** when a selected update
+is ready to install. Use it only after its matching local package and device
+platform validation, required source-bound CI/review, data/backup protection,
+available verified rollback and reviewed guarded installation gates are ready.
+Include the selected version/package and installation context in the report.
+A merged code/state PR or GREEN GitHub CI alone does not satisfy this rule.
+
+If any readiness gate is missing, withhold the green instruction and state the
+remaining blocker briefly. The signal does not enable automatic activation or
+change the owner-local Root boundary. Current latest-main package readiness is
+not_ready: the matching validated local package remains missing under1313/1323.
+The accepted C296 runtime and native/lock evidence remain retained.
+
 ## #1353 — owner-authorized native update/rollback acceptance report
 
 Publication authorized by the product owner on2026-10-13. This report records
