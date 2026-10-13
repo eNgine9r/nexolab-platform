@@ -2058,7 +2058,7 @@
       "owner_dashboard_bind_report": "arm64-rebuild-20261011/reissue-1343-20261011/owner-dashboard-bind-1343-report.json",
       "current_last_operation_id": null,
       "target_activation": false,
-      "native_ui_update_rollback": "unverified",
+      "native_ui_update_rollback": "verified_1353; actual LAN update and protected HTTPS rollback succeeded/verified_ready",
       "independent_post_package_health": "API_database_MQTT_ready_agent_ok_queue0",
       "packaged_lan_build_id": "0B4pHaAjFeo31t2yUWXex",
       "packaged_lan_source_commit_field": null,
@@ -2069,7 +2069,7 @@
       ],
       "worker_protect_home": "read-only",
       "worker_protect_system": "strict",
-      "worker_filesystem_acceptance": "unresolved",
+      "worker_filesystem_acceptance": "verified_1349; installed Root namespace proof and both native1353 operations retained strict sandbox boundaries",
       "post_package_live_evidence": "arm64-rebuild-20261011/reissue-1343-20261011/packaged-post-handoff-live-1343.json",
       "historical_failed_handoff_operation_id": "source-to-packaged-20261012T113709Z-47df379f6e8d",
       "historical_completed_readonly_diagnostic": "arm64-rebuild-20261011/reissue-1343-20261011/read-handoff-exit7-1343.py",
@@ -2085,7 +2085,15 @@
       "historical_owner_v3_command": "arm64-rebuild-20261011/reissue-1343-20261011/activate-reissued-current-1343-v3.py",
       "historical_owner_v3_command_sha256": "462c23913d9994d940ee3d41d505e058bdaf96687c717cb4eff2abf419614f08",
       "historical_owner_v3_guard_tests": "34_passed_including_missing_audit_dependency_red_green",
-      "historical_owner_v3_execution": "v3_consumed_do_not_replay"
+      "historical_owner_v3_execution": "v3_consumed_do_not_replay",
+      "historical_pre_native_acceptance_statuses": {
+        "native_ui_update_rollback": "unverified",
+        "worker_filesystem_acceptance": "unresolved",
+        "time_scope": "original pre-roundtrip observations; preserved for historical evidence only"
+      },
+      "record_kind": "historical package preflight/handoff observations with linked later native acceptance",
+      "authoritative_current_runtime_evidence": "native_roundtrip_1353",
+      "native_roundtrip_issue": 1353
     },
     "native_worker_filesystem_1349": {
       "status": "native_worker_filesystem_installed_and_proven",
