@@ -417,8 +417,8 @@ class WorkerWriteBoundaryTests(unittest.TestCase):
 
     def test_startup_overlay_is_outside_container_writable_version_root(self):
         text = (ROOT / "infrastructure/offline/nexolab-version-manager.service").read_text()
-        prefix = "ExecStart=/usr/bin/env NEXOLAB_STARTUP_EVIDENCE_ROOT="
-        startup = Path(next(line[len(prefix):].split()[0] for line in text.splitlines() if line.startswith(prefix)))
+        launch = next(line.partition("=")[2].split() for line in text.splitlines() if line.startswith("ExecStart="))
+        startup = Path(next(argument.partition("=")[2] for argument in launch if argument.startswith("NEXOLAB_STARTUP_EVIDENCE_ROOT=")))
         self.assertFalse(startup.is_relative_to(Path("/var/lib/nexolab/version-management")))
         self.assertTrue(startup.is_relative_to(Path("/var/backups/nexolab")))
 
@@ -430,16 +430,18 @@ class WorkerWriteBoundaryTests(unittest.TestCase):
         self.assertEqual(paths, ["/var/lib/nexolab/version-management", "/var/backups/nexolab",
                                  "-/opt/nexolab-external/releases",
                                  "-/etc/systemd/system/nexolab-external-frontend.service"])
-        self.assertIn("ExecStart=/usr/bin/env NEXOLAB_STARTUP_EVIDENCE_ROOT=/var/backups/nexolab/device-agent-startup /usr/bin/python3", text)
+        launch = next(line.partition("=")[2].split() for line in text.splitlines() if line.startswith("ExecStart="))
+        self.assertEqual(launch[0], "/usr/bin/env")
+        self.assertIn("NEXOLAB_STARTUP_EVIDENCE_ROOT=/var/backups/nexolab/device-agent-startup", launch[:launch.index("/usr/bin/python3")])
 
 
 class StartupEnvironmentPrecedenceTests(unittest.TestCase):
     def test_explicit_launch_assignment_overrides_old_environment_file_value(self):
         text = (ROOT / "infrastructure/offline/nexolab-version-manager.service").read_text()
-        prefix = "ExecStart=/usr/bin/env "
-        assignment = next(line[len(prefix):].split()[0] for line in text.splitlines() if line.startswith(prefix))
+        launch = next(line.partition("=")[2].split() for line in text.splitlines() if line.startswith("ExecStart="))
+        prefix = launch[:launch.index("/usr/bin/python3")]
         environment = dict(os.environ, NEXOLAB_STARTUP_EVIDENCE_ROOT="/var/lib/nexolab/version-management/unsafe")
-        result = subprocess.run(["/usr/bin/env", assignment, sys.executable, "-c",
+        result = subprocess.run([*prefix, sys.executable, "-c",
                                  "import os; print(os.environ['NEXOLAB_STARTUP_EVIDENCE_ROOT'])"],
                                 check=True, capture_output=True, text=True, env=environment)
         self.assertEqual(result.stdout.strip(), "/var/backups/nexolab/device-agent-startup")

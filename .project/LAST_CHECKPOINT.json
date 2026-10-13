@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-13T05:15:00Z",
+  "timestamp": "2026-10-13T07:54:00Z",
   "actor": "ChatGPT",
-  "event": "1349_root_runtime_summary_consistent_with_current_packaged_authority",
+  "event": "1351_canonical_child_git_policy_review_correction",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "mcG0fHLcpCeVbTX--85gF"
   },
   "active_work": {
-    "issue": 1349,
-    "reason": "required native worker filesystem correction"
+    "issue": 1351,
+    "reason": "actual native migration gate after capacity PASS requires Root Git context proof/correction"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -2089,6 +2089,27 @@
       "historical_owner_v3_command_sha256": "462c23913d9994d940ee3d41d505e058bdaf96687c717cb4eff2abf419614f08",
       "historical_owner_v3_guard_tests": "34_passed_including_missing_audit_dependency_red_green",
       "historical_owner_v3_execution": "v3_consumed_do_not_replay"
+    },
+    "native_worker_filesystem_1349": {
+      "status": "native_worker_filesystem_installed_and_proven",
+      "captured_at": "2026-10-13T05:56:53Z",
+      "report_sha256": "78c0b7f5961d8df036dd86847a3fe3be4e5c73c4b9a89ee96268abc95e71c8a4",
+      "namespace_probe_returncode": 0,
+      "healthy_advancing_bus_workers": "3_of_3",
+      "package_activation": false
+    },
+    "native_git_lineage_1351": {
+      "issue": 1351,
+      "operation": "48ecfe60-1b73-43da-a368-052e9029ee64",
+      "capacity": "PASS",
+      "native_failure": "migration authority is not in the approved target lineage",
+      "normal_user_ancestor_returncode": 0,
+      "repository_owner_uid": 1000,
+      "native_worker_uid": "root",
+      "local_checks": "116_passed_1_uid_skip_9_subtests",
+      "real_namespace_proof_and_install": "pending",
+      "native_ui_success": "unverified",
+      "symlink_configuration": "canonical_child_repo_regression_passed"
     }
   },
   "observations": [
@@ -3113,5 +3134,5 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "Canonical current package handoff succeeded at2026-10-12T13:05:59Z: C296 validated_package ready/known, current_last_operation_id null, transition source-to-packaged-20261012T124434Z-7a49b938a49c succeeded and PostgreSQL backup recorded. The preceding v3 failed handoff/source restoration is historical and preserved. Target remains catalog-only; no target activation, controller write or database restore occurred. Work1349 has changed repository candidates only; host filesystem correction, real namespace proof and native UI update/rollback remain pending."
+  "runtime_mutation": "Current C296 canonical validated_package authority succeeded2026-10-12T13:05:59Z, ready/known; target DF remains catalog-only. Owner installed reviewed1349 helper/unit at2026-10-13T05:56:53Z after actual write/denial namespace proof with3/3 healthy advancing workers; no package activation/database restore/controller write. First native LAN Chromium update48ecfe60-1b73-43da-a368-052e9029ee64 failed at retained migration lineage after capacity PASS, before backup/install.1351 changes source candidate only; real matching Root lineage/current/target storage proof, manager/unit installation and successful native LAN/HTTPS update/rollback remain pending. Historical source handoff failures and reports are preserved."
 }

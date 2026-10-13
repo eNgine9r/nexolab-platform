@@ -1,28 +1,33 @@
-## #1349 — native worker correction awaiting owner installation
+## #1351 — native worker Git lineage correction in review
 
-Current C296 is validated_package ready/known after successful canonical
-transition source-to-packaged-20261012T124434Z-7a49b938a49c. Target DF remains
-catalog-only. Actual LAN/HTTPS UI update and rollback remain unverified.
+Current C296 remains validated_package ready/known. The #1349 owner installed
+its reviewed filesystem correction at2026-10-13T05:56:53Z; the matching real
+namespace write/denial proof passed, frontend inode/bytes were preserved and
+three healthy acquisition workers advanced. Public report SHA256
+78c0b7f5961d8df036dd86847a3fe3be4e5c73c4b9a89ee96268abc95e71c8a4.
 
-The reviewed candidate keeps ProtectSystem=strict, ProtectHome=read-only,
-PrivateTmp and NoNewPrivileges. Only the dedicated protected releases directory
-and existing frontend unit file are added to the existing writable version and
-backup roots. Candidate/original unit bytes remain in trusted transaction memory;
-the file descriptor is validated before frontend stop and written without inode
-replacement. Shared audit files do not authorize root unit contents.
+The first real LAN Chromium update request48ecfe60-1b73-43da-a368-052e9029ee64
+started at06:13:44Z and failed before backup/installation. Capacity passed;
+the subsequent retained migration validator rejected Git lineage. Normal-user
+Git proves approved4c4e9327 is an ancestor of DF, and migration authority remains
+verified/cutover-verified with unchanged SHA2565dee8e3f41c135a1c5694405fd79b6853e80028f5b72f926f92bb09d5a9be23f.
+The site repository is owned by UID1000; the native worker is Root without sudo
+context. Local real-Git ownership simulation reproduces rejection128 and the
+scoped exception restores valid ancestry0 while reversed lineage still rejects1.
+Actual Root-context ownership diagnosis will be required by the guarded action.
 
-Privileged hardware startup overlays belong only beneath the root-controlled
-/var/backups/nexolab/device-agent-startup parent, outside container-writable
-version state. ExecStart supplies this constant through /usr/bin/env so an older
-EnvironmentFile value cannot override it. The privileged host installer prepares
-and validates the dedicated release parent/root before first worker startup.
+The #1351 candidate forces process-local safe.directory reset plus the exact
+root-configured site repository through ExecStart, clears inherited Git parameters
+and SUDO_UID, and the manager binds the child exception after resolving symlinked site paths.
+All strict filesystem/startup boundaries remain. It changes
+no package, migration proof or data. 116 focused tests passed,1 independent-UID
+skip,9 subtests. Exact-head CI/review, actual service-namespace lineage/current
+and target storage proof, then owner-local manager/unit installation remain pending.
 
-40 focused tests and9 subtests pass with one independent-UID skip. Review
-findings were reproduced and corrected before host installation; final exact-head
-CI/review must be complete. Guarded owner-local installation will first prove
-allowed/denied writes in the real sandbox, preserve prior host tools/unit and then
-install the correction. No host installation or target activation has occurred.
-Browser-native acceptance additionally requires reconnecting the Opera app.
+The user chose Chromium. Cloud Chromium receives502 while Raspberry reaches
+the existing Google sign-in flow; Opera reconnection is no longer required.
+Successful native LAN update and HTTPS rollback remain unverified. The failed
+request is retained; no automatic retry, cleanup, restore or controller write.
 
 Historical #1343 preparation and owner evidence follow; these records do not
 change the current packaged authority or the #1349 next action above.

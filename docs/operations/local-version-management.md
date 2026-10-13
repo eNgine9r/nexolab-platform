@@ -245,7 +245,22 @@ supported by the immutable installer. The container-writable version root must
 not contain this privileged Compose input: an attacker could rename a root-owned
 child from its writable parent and replace the overlay between validation and use.
 The worker command supplies this trusted path through `/usr/bin/env` in
-`ExecStart`; an older `EnvironmentFile` assignment cannot override it. The frontend transaction stops its
+`ExecStart`; an older `EnvironmentFile` assignment cannot override it.
+
+The same launch pins process-local Git ownership exceptions to the exact
+`NEXOLAB_REPOSITORY_PATH` from the root-controlled host configuration. It clears
+inherited directory exceptions and `GIT_CONFIG_PARAMETERS`, and removes
+`SUDO_UID` so the worker does not depend on an interactive sudo context. No
+wildcard or global Git configuration is written. Immutable package migration
+validators still require the accepted migration revision to be an ancestor of
+the deployment target; missing commits and unrelated lineage remain failures.
+The manager canonicalizes the repository before binding the child-process
+exception, including an existing host configuration that names a symlink.
+An ownership refusal is not evidence of a genuine non-ancestor. Owner installation
+must prove the actual retained migration/current/target checks inside the matching
+service sandbox before another native UI request.
+
+The frontend transaction stops its
 service, preserves the original unit in durable operation evidence and writes the
 existing unit inode without unlinking it. Candidate and original contents stay
 in trusted transaction memory; copied evidence files never authorize unit writes.

@@ -1,39 +1,22 @@
-#1349 environment-precedence correction: ExecStart supplies the trusted
-root-controlled startup path through /usr/bin/env, so existing EnvironmentFile
-values cannot redirect privileged overlays to container-writable state. The
-launch precedence regression failed before correction and now proves the forced
-path against an unsafe inherited value. 40 focused tests and9 subtests pass, one
-independent-UID skip; final exact-head CI/review and owner installation pending.
+## #1351 — actual native migration lineage gate blocked
 
-#1349 privileged-input boundary correction: hardware startup overlays now use
-/var/backups/nexolab/device-agent-startup beneath the root-controlled backup
-parent, never the container-writable version root. Unit bytes remain in trusted
-memory. The placement regression failed with the previous path and now passes;
-39 focused tests plus9 subtests pass, one independent-UID skip. Final exact-head
-CI/review and owner-local installation/namespace proof are pending. No runtime
-activation or host-tooling change occurred.
+#1349 host correction is installed and its real filesystem namespace proof passed
+on2026-10-13. Native LAN request48ecfe60-1b73-43da-a368-052e9029ee64 selected
+the correct repaired DF package, passed capacity, then failed at retained migration
+Git lineage before backup/runtime installation. Normal-user ancestry passes and
+retained migration proof digest is unchanged; Root service ownership context is
+the focused diagnosis. Local Git reproduction and scoped-directory regressions
+pass, including canonical child Git policy for a symlinked host configuration. Real matching Root-context ownership/current/target proof and reviewed
+manager/worker-unit installation are still required before another native UI request.
+Do not change the proof, declare a true non-ancestor without Git diagnostics,
+set wildcard/global Git trust, weaken the sandbox or replay owner handoff.
 
-#1349 fresh-install review correction: the privileged host installer now
-creates/validates the dedicated protected release root before sandboxed worker
-startup, preserving narrow write paths. Missing-parent and symlink-parent tests
-failed before correction. 38 focused tests and9 subtests pass, one independent-UID
-skip; final CI/review still pending. Existing site services and packages unchanged.
+Cloud Chromium access returns502; the user's LAN Chromium reaches the page and
+already submitted the failed native attempt. Continue with that operator surface
+when the host correction is proven. Successful native update/rollback is unverified.
 
-#1349 review correction: candidate/original unit bytes remain in trusted
-transaction memory; audit copies never authorize root unit writes. Unit freshness
-and permissions are validated through an opened descriptor before stopping the
-frontend. Both review findings reproduced before correction, and36 focused tests
-plus9 subtests now pass (one independent-UID skip). Actual host tooling/unit and
-runtime remain unchanged; final exact-head CI/review and root namespace proof
-are still required.
-
-## #1349 — sandboxed native worker acceptance still open
-
-Current packaged authority succeeded; worker remains read-only outside version
-root/backups. Dedicated releases, existing protected unit inode and relocatable
-startup evidence require the focused correction. Candidate local checks pass;
-actual worker sandbox write/denial proof and LAN/HTTPS UI update/rollback pending.
-Do not broaden writable home or the system-unit directory or replay owner handoff.
+Historical package/handoff records below are superseded for current packaged
+authority by the successful2026-10-12 canonical transition; preserve their evidence.
 
 <!-- OFFLINE_PACKAGE_STORAGE_1343_BEGIN -->
 

@@ -8,7 +8,7 @@ Type=oneshot
 User=root
 Group=root
 EnvironmentFile=/etc/nexolab/version-manager.env
-ExecStart=/usr/bin/env NEXOLAB_STARTUP_EVIDENCE_ROOT=/var/backups/nexolab/device-agent-startup /usr/bin/python3 /usr/local/lib/nexolab/nexolab-version-manager.py run-once --root $NEXOLAB_VERSION_ROOT --central-env $NEXOLAB_CENTRAL_ENV --edge-env $NEXOLAB_EDGE_ENV --backup-dir $NEXOLAB_VERSION_BACKUP_DIR $NEXOLAB_VERSION_MANAGER_FLAGS
+ExecStart=/usr/bin/env -u SUDO_UID -u GIT_CONFIG_PARAMETERS NEXOLAB_STARTUP_EVIDENCE_ROOT=/var/backups/nexolab/device-agent-startup GIT_CONFIG_COUNT=2 GIT_CONFIG_KEY_0=safe.directory GIT_CONFIG_VALUE_0= GIT_CONFIG_KEY_1=safe.directory GIT_CONFIG_VALUE_1=${NEXOLAB_REPOSITORY_PATH} /usr/bin/python3 /usr/local/lib/nexolab/nexolab-version-manager.py run-once --root $NEXOLAB_VERSION_ROOT --central-env $NEXOLAB_CENTRAL_ENV --edge-env $NEXOLAB_EDGE_ENV --backup-dir $NEXOLAB_VERSION_BACKUP_DIR $NEXOLAB_VERSION_MANAGER_FLAGS
 UMask=0027
 NoNewPrivileges=true
 PrivateTmp=true
