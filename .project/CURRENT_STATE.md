@@ -1,3 +1,11 @@
+#1349 privileged-input boundary correction: hardware startup overlays now use
+/var/backups/nexolab/device-agent-startup beneath the root-controlled backup
+parent, never the container-writable version root. Unit bytes remain in trusted
+memory. The placement regression failed with the previous path and now passes;
+39 focused tests plus9 subtests pass, one independent-UID skip. Final exact-head
+CI/review and owner-local installation/namespace proof are pending. No runtime
+activation or host-tooling change occurred.
+
 #1349 fresh-install review correction: the privileged host installer now
 creates/validates the dedicated protected release root before sandboxed worker
 startup, preserving narrow write paths. Missing-parent and symlink-parent tests

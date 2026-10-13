@@ -239,8 +239,11 @@ and site repository remain read-only. The privileged host installer creates and
 validates the dedicated release parent/root before the worker can start, so the
 optional writable path is present even for the first protected package update.
 
-Hardware startup evidence uses `NEXOLAB_STARTUP_EVIDENCE_ROOT` beneath the version
-root, as supported by the immutable installer. The frontend transaction stops its
+Hardware startup evidence uses `NEXOLAB_STARTUP_EVIDENCE_ROOT` beneath the
+root-controlled backup root at `/var/backups/nexolab/device-agent-startup`, as
+supported by the immutable installer. The container-writable version root must
+not contain this privileged Compose input: an attacker could rename a root-owned
+child from its writable parent and replace the overlay between validation and use. The frontend transaction stops its
 service, preserves the original unit in durable operation evidence and writes the
 existing unit inode without unlinking it. Candidate and original contents stay
 in trusted transaction memory; copied evidence files never authorize unit writes.

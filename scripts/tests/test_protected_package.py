@@ -414,6 +414,13 @@ class WorkerWriteBoundaryTests(unittest.TestCase):
             package.write_frontend_unit(self.candidate.read_bytes(), (self.original,))
         self.assertEqual(self.unit.read_text(), self.original)
 
+    def test_startup_overlay_is_outside_container_writable_version_root(self):
+        text = (ROOT / "infrastructure/offline/nexolab-version-manager.service").read_text()
+        prefix = "Environment=NEXOLAB_STARTUP_EVIDENCE_ROOT="
+        startup = Path(next(line[len(prefix):] for line in text.splitlines() if line.startswith(prefix)))
+        self.assertFalse(startup.is_relative_to(Path("/var/lib/nexolab/version-management")))
+        self.assertTrue(startup.is_relative_to(Path("/var/backups/nexolab")))
+
     def test_worker_keeps_sandbox_and_exact_write_paths(self):
         text = (Path(__file__).resolve().parents[2] / "infrastructure/offline/nexolab-version-manager.service").read_text()
         for directive in ("ProtectSystem=strict", "ProtectHome=read-only", "NoNewPrivileges=true", "PrivateTmp=true"):
@@ -422,7 +429,7 @@ class WorkerWriteBoundaryTests(unittest.TestCase):
         self.assertEqual(paths, ["/var/lib/nexolab/version-management", "/var/backups/nexolab",
                                  "-/opt/nexolab-external/releases",
                                  "-/etc/systemd/system/nexolab-external-frontend.service"])
-        self.assertIn("Environment=NEXOLAB_STARTUP_EVIDENCE_ROOT=/var/lib/nexolab/version-management/device-agent-startup", text)
+        self.assertIn("Environment=NEXOLAB_STARTUP_EVIDENCE_ROOT=/var/backups/nexolab/device-agent-startup", text)
 
 
 if __name__ == "__main__":
