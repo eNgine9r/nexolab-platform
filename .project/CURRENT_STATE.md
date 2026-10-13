@@ -1,3 +1,20 @@
+## Security1369 — fixed image verified; architecture amendment awaiting final review
+
+Source5ec0de / Supply Chain run38478330972 is GREEN. The rebuilt same-version
+Object Storage image has0 HIGH/CRITICAL; all five manifest/source/SBOM/report
+digests were independently checked. The same48 telemetry HIGH decisions remain
+exactly bounded through2026-10-20. Initial source entry-point error was corrected
+to the upstream release ./cmd/versitygw. Review also requested an ADR0011
+amendment recording same-release source/SDK/module supply and immutable rollback;
+it becomes effective only after reviewed GREEN merge. Final source CI/review
+remain required. Graph1362 is completed; export1363 repair is dependency blocked.
+
+Direct home-shell writing was read-only. Approved allowlisted project-file
+operations recovered a new isolated folder and exact Dockerfile. Native Pi5
+ARM64 compilation is now running in its own builder capped at768MiB/1 CPU;
+export performance1364 is still unverified and depends on accepted source.
+Existing user edits, C296 containers, data/volumes and update gates are preserved.
+
 ## Current checkpoint — security prerequisite1369 blocks Energy merge
 
 Graph1362 is accepted and merged through1367. Export1363 first exact head

@@ -8568,7 +8568,8 @@
           "platform": "Raspberry Pi5 Model B Rev1.1,aarch64,4045MiB RAM,2062MiB available,65GiB SSD free",
           "runtime": "C296 healthy containers retained; source candidate absent from dirty existing checkout, user changes preserved",
           "isolated_write": "Native build preflight execution exec-b0b70d951bf37a370433a69a9ec19efa stopped before code/file/Docker mutation: new /home/nexolab directory creation is read-only",
-          "hardware_acceptance": "not run; require writable isolated validation workspace"
+          "hardware_acceptance": "not run; require writable isolated validation workspace",
+          "execution_recovery": "Approved Commander directory.create/file.write created only a new isolated folder and exact Dockerfile under the allowlisted project; native compiler running with resource caps. No original checkout edit or production change. Export performance itself not yet run."
         }
       }
     },
@@ -8576,7 +8577,7 @@
       "issue": 1369,
       "title": "Restore exact container security gates blocking Energy export",
       "priority": "critical",
-      "lifecycle": "in_progress",
+      "lifecycle": "review",
       "branch": "security/1369-bounded-high-review",
       "evidence": {
         "discovery_source": "cd62d2f8e8cbcc16505ec4e6a7ea6a8eb7fd5c29",
@@ -8587,7 +8588,24 @@
         "object_fixed_high": 4,
         "new_object_exceptions": 0,
         "local_policy_tests": 61,
-        "native_build": "blocked before code:read-only isolated home; no Docker build/service mutation"
+        "native_build": "blocked before code:read-only isolated home; no Docker build/service mutation",
+        "code_head_before_architecture_amendment": "5ec0de4282195352d9e2851ec14d1da22af12c19",
+        "fixed_supply_chain": {
+          "run": 38478330972,
+          "status": "GREEN",
+          "source": "5ec0de4282195352d9e2851ec14d1da22af12c19",
+          "artifact": 11855686404,
+          "archive_sha256": "a916a7fde08633926f3e1b8183c33119e39b015485a30230170eab35dbf3336c",
+          "object_storage_high": 0,
+          "object_storage_critical": 0,
+          "object_storage_report_sha256": "88bc80919fabb38559ae6b51fcbca08e0b0a553dfdc40a95a184f598f1f340c3",
+          "independent_verification": "All source/manifest/SBOM/Trivy hashes match; all other controlled images retained expected findings"
+        },
+        "review_repairs": {
+          "P1_command": "Target original release ./cmd/versitygw; actual fixed SDK/source checksum/build and both cross-target checks pass in CI",
+          "P1_architecture": "ADR0011 amendment makes reviewed same-release rebuild and immutable rollback authority explicit; effective only after GREEN source merge",
+          "native_build": "In progress exec-205cf9cfb495d1a134bc406f458ff9e9 on Pi5/aarch64, bounded 768MiB and1 CPU; exact Dockerfile c084f39ef322900c687efdeb789346dd5c52092de89cf8166b5ec682d1283465"
+        }
       },
       "depends_on": [],
       "scope": "Restore exact shared security gates using fixed VersityGW source rebuild and fresh bounded unchanged telemetry HIGH review; no production activation.",
@@ -8598,9 +8616,10 @@
         "tests/test_container_supply_chain_policy.py",
         "docs/operations/container-supply-chain.md",
         "docs/operations/2026-10-13-container-high-exception-review.md",
-        ".project/**"
+        ".project/**",
+        "docs/adr/0011-local-object-storage-versitygw.md"
       ],
-      "readiness": "Local policy tests61 pass; fresh fixed-Go source rebuild awaits actual CI build/scan and review. Native isolated preflight write was read-only; no host mutation."
+      "readiness": "Fixed-image Supply Chain GREEN at5ec0de; final architecture/state amendment needs fresh exact-head CI/review. Native isolated ARM64 build running; production unchanged."
     }
   ],
   "maintenance_actions": [
