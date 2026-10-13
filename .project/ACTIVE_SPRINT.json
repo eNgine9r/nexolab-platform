@@ -51,11 +51,11 @@
       "title": "Repair offline package storage authority and image identity before native handoff",
       "branch": "fix/1343-offline-package-storage-authority",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1341
       ],
-      "scope": "Owner-approved distinct current/target reissues preserve application bytes and retained storage. Software/artifact validation and current C296 packaged authority succeeded. Native LAN/HTTPS UI update/rollback remains unverified through dependency1349 under1323/1313.",
+      "scope": "Owner-approved distinct current/target package reissues preserve application bytes and retained storage. Software/artifact validation, current C296 packaged authority and actual native LAN C296-to-DF update plus protected HTTPS DF-to-C296 rollback are accepted under1353. Broader latest-main matching-package activation remains open1313/1323.",
       "evidence": {
         "owner_reissue_approval_at": "2026-10-11T19:58:12Z",
         "targeted_checks": "125 passed; 1 independent-UID skip; 16 subtests passed",
