@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-13T07:54:00Z",
-  "actor": "ChatGPT",
-  "event": "1351_canonical_child_git_policy_review_correction",
+  "timestamp": "2026-10-13T13:26:48Z",
+  "actor": "Codex",
+  "event": "shared_update_plane_lock_source_candidate",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -31,8 +31,8 @@
     "protected_frontend_build_id": "mcG0fHLcpCeVbTX--85gF"
   },
   "active_work": {
-    "issue": 1351,
-    "reason": "actual native migration gate after capacity PASS requires Root Git context proof/correction"
+    "issue": 1354,
+    "reason": "preserved-inode lock ownership candidate; owner-local actual acceptance pending"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -2110,6 +2110,21 @@
       "real_namespace_proof_and_install": "pending",
       "native_ui_success": "unverified",
       "symlink_configuration": "canonical_child_repo_regression_passed"
+    },
+    "shared_update_plane_lock_1354": {
+      "local_helper_and_manager_checks": "95 passed; 1 independent UID proof skipped because UID10001 is unmapped",
+      "queue_race_regression": "red-green verified",
+      "interprocess_locking": "two real independent processes; both lock directions verified",
+      "frontend_lint": "passed",
+      "frontend_typecheck": "passed",
+      "frontend_tests": "1195 passed plus lint-staged regressions",
+      "full_local_runtime_contract": "not passed; existing UID/proc namespace failures reproduced on unchanged main",
+      "backend_api_module": "not collected; JWT test dependency unavailable",
+      "exact_head_ci": "pending",
+      "owner_local_UID10001_and_actual_repair": "pending",
+      "actual_UI_manual_check": "pending",
+      "runtime_mutation": "none",
+      "production_build": "passed; Next production build with local dependencies"
     }
   },
   "observations": [
@@ -3125,7 +3140,7 @@
       }
     }
   ],
-  "next_action": "Accept final exact-head CI/review including effective startup override, then guarded owner-local namespace write/denial proof and tooling installation. Current C296 validated_package ready/known, target catalog-only. Native UI update/rollback awaits worker install and Opera reconnection.",
+  "next_action": "Finish exact-head source CI/review; stage a hash-bound owner-local UID10001 rehearsal and exact-current repair. Actual manual check remains unverified. Detailed device acceptance report1353 stays separate pending publication authorization. No independent Ready work.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -3134,5 +3149,5 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "Current C296 canonical validated_package authority succeeded2026-10-12T13:05:59Z, ready/known; target DF remains catalog-only. Owner installed reviewed1349 helper/unit at2026-10-13T05:56:53Z after actual write/denial namespace proof with3/3 healthy advancing workers; no package activation/database restore/controller write. First native LAN Chromium update48ecfe60-1b73-43da-a368-052e9029ee64 failed at retained migration lineage after capacity PASS, before backup/install.1351 changes source candidate only; real matching Root lineage/current/target storage proof, manager/unit installation and successful native LAN/HTTPS update/rollback remain pending. Historical source handoff failures and reports are preserved."
+  "runtime_mutation": "none by1354; previous native acceptance recorded separately and not replayed"
 }

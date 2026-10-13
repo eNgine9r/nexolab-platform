@@ -43,13 +43,13 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1351,
-      "reason": "required native worker Git ownership-context correction after actual LAN migration-gate failure"
+      "issue": 1354,
+      "reason": "critical shared-lock permission repair; detailed device report is outside this source-only review"
     },
     "next_work_package": {
-      "issue": 1349,
-      "title": "Complete native LAN update and protected HTTPS rollback acceptance",
-      "branch": "fix/1349-native-worker-write-boundary"
+      "issue": 1354,
+      "title": "Owner-local UID10001 rehearsal, guarded repair and actual administrator manual check",
+      "branch": "fix/1354-update-plane-lock-ownership"
     }
   },
   "work_packages": [
@@ -7992,7 +7992,7 @@
       "title": "Constrain native version worker writes and verify protected update/rollback",
       "branch": "fix/1349-native-worker-write-boundary",
       "priority": "critical",
-      "lifecycle": "blocked",
+      "lifecycle": "needs_validation",
       "depends_on": [
         1343,
         1351
@@ -8008,10 +8008,10 @@
           "healthy_advancing_bus_workers": "3_of_3",
           "package_activation": false
         },
-        "native_ui_update_rollback": "first_native_LAN_attempt_failed_before_mutation_successful_update_rollback_unverified",
+        "native_ui_update_rollback": "owner_observed_success; detailed acceptance publication pending1353",
         "review_corrections": "memory_authentication_pre_stop_freshness_and_fresh_release_root_red_green",
         "startup_evidence_root": "/var/backups/nexolab/device-agent-startup",
-        "native_ui_access": "owner_chromium_lan_attempt_failed_at_migration_lineage_cloud_https_502",
+        "native_ui_access": "reported LAN update and protected HTTPS rollback succeeded; previous failure retained",
         "startup_launch_precedence": "ExecStart_env_assignment_overrides_unsafe_inherited_value",
         "owner_command": "consumed_installed_do_not_replay"
       }
@@ -8021,7 +8021,7 @@
       "title": "Pin native worker Git trust to the configured site repository",
       "branch": "fix/1351-native-worker-git-lineage",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1343
       ],
@@ -8033,10 +8033,48 @@
         "normal_user_git_ancestor_returncode": 0,
         "migration_authority_sha256": "5dee8e3f41c135a1c5694405fd79b6853e80028f5b72f926f92bb09d5a9be23f",
         "local_real_git_reproduction": "ownership128_scoped_ancestor0_reversed1_missing128_unapproved128",
-        "native_root_context_proof": "pending_owner_local",
-        "source_ci_review": "pending_for_candidate",
-        "runtime_mutation": "none_by_1351",
+        "native_root_context_proof": "owner acceptance recorded separately under1353; private device report not republished",
+        "source_ci_review": "implementation merged through PR1352; current GitHub status queried",
+        "runtime_mutation": "previous owner-local action consumed; do not replay",
         "symlink_review_correction": "manager binds child Git exception to canonical repository including existing logical-path config"
+      }
+    },
+    {
+      "issue": 1353,
+      "title": "Record actual native update and rollback acceptance",
+      "branch": "state/1353-native-update-rollback-evidence",
+      "priority": "critical",
+      "lifecycle": "blocked",
+      "depends_on": [
+        1349,
+        1351
+      ],
+      "scope": "Detailed device acceptance report retained separately; publication requires separate authorization after previous automatic review rejection. No runtime action."
+    },
+    {
+      "issue": 1354,
+      "title": "Repair shared update-plane lock ownership after native package handoff",
+      "branch": "fix/1354-update-plane-lock-ownership",
+      "priority": "critical",
+      "lifecycle": "review",
+      "depends_on": [
+        1353
+      ],
+      "scope": "Preserve the existing shared-lock inode; lock worker/update plane/API queue; guarded exact-current repair and future bootstrap/offline packaging; no application image changes.",
+      "evidence": {
+        "local_helper_and_manager_checks": "95 passed; 1 independent UID proof skipped because UID10001 is unmapped",
+        "queue_race_regression": "red-green verified",
+        "interprocess_locking": "two real independent processes; both lock directions verified",
+        "frontend_lint": "passed",
+        "frontend_typecheck": "passed",
+        "frontend_tests": "1195 passed plus lint-staged regressions",
+        "full_local_runtime_contract": "not passed; existing UID/proc namespace failures reproduced on unchanged main",
+        "backend_api_module": "not collected; JWT test dependency unavailable",
+        "exact_head_ci": "pending",
+        "owner_local_UID10001_and_actual_repair": "pending",
+        "actual_UI_manual_check": "pending",
+        "runtime_mutation": "none",
+        "production_build": "passed; Next production build with local dependencies"
       }
     }
   ],
