@@ -4,6 +4,8 @@ import fcntl
 import importlib.util
 import json
 import os
+import select
+import signal
 from pathlib import Path
 import stat
 import subprocess
@@ -30,6 +32,14 @@ class SharedUpdateLockTests(unittest.TestCase):
     def prepare(self, **kwargs):
         return self.module.prepare(self.root, state_uid=self.uid, state_gid=self.gid, **kwargs)
 
+    def authority(self):
+        current = {"bundle_id": "current-package", "last_operation_id": "actual-rollback",
+                   "deployment_authority": "validated_package", "health": "ready", "runtime_state_known": True}
+        (self.root / "current.json").write_text(json.dumps(current))
+        (self.root / "worker.lock").touch()
+        (self.root / "queue.lock").touch()
+        return {"existing_only": True, "expected_bundle": "current-package", "expected_operation": "actual-rollback"}
+
     def test_bootstrap_creates_API_accessible_lock(self):
         self.prepare()
         lock = self.root / "update-plane.lock"
@@ -43,12 +53,32 @@ class SharedUpdateLockTests(unittest.TestCase):
         lock.write_bytes(b"")
         lock.chmod(0o600)
         before = lock.stat()
-        result = self.prepare(existing_only=True)
+        result = self.prepare(**self.authority())
         after = lock.stat()
         self.assertEqual((before.st_dev, before.st_ino), (after.st_dev, after.st_ino))
         self.assertEqual(result["after"]["mode"], "0640")
         self.prepare(existing_only=True)
         self.assertEqual(after.st_ino, lock.stat().st_ino)
+
+    def test_bootstrap_refuses_existing_lock_repair_without_authority(self):
+        lock = self.root / "update-plane.lock"
+        lock.touch(mode=0o600)
+        before = lock.stat()
+        for kwargs in [{}, {"existing_only": True}]:
+            with self.subTest(kwargs=kwargs), self.assertRaisesRegex(RuntimeError, "explicit repair"):
+                self.prepare(**kwargs)
+            after = lock.stat()
+            self.assertEqual((before.st_ino, before.st_uid, before.st_gid, before.st_mode),
+                             (after.st_ino, after.st_uid, after.st_gid, after.st_mode))
+
+    def test_bootstrap_existing_correct_lock_is_a_read_only_noop(self):
+        self.prepare()
+        lock = self.root / "update-plane.lock"
+        before = lock.stat()
+        with patch.object(self.module.os, "fchown", side_effect=AssertionError("unexpected chown")), patch.object(self.module.os, "fchmod", side_effect=AssertionError("unexpected chmod")):
+            result = self.prepare()
+        self.assertFalse(result["permissions_changed"])
+        self.assertEqual(before, lock.stat())
 
     def test_busy_lock_is_unchanged_and_still_serializes_API(self):
         lock = self.root / "update-plane.lock"
@@ -125,6 +155,21 @@ class SharedUpdateLockTests(unittest.TestCase):
                 self.prepare(existing_only=True)
         self.assertEqual(before, lock.stat())
 
+    def test_busy_queue_or_pending_request_does_not_create_plane_lock(self):
+        queue = self.root / "queue.lock"
+        queue.touch()
+        with queue.open("a+") as stream:
+            fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            with self.assertRaisesRegex(RuntimeError, "active"):
+                self.prepare()
+        self.assertFalse((self.root / "update-plane.lock").exists())
+        requests = self.root / "update-check-requests"
+        requests.mkdir()
+        (requests / "pending.json").write_text("{}")
+        with self.assertRaisesRegex(RuntimeError, "queued"):
+            self.prepare()
+        self.assertFalse((self.root / "update-plane.lock").exists())
+
     def test_request_arriving_before_plane_lock_is_not_missed(self):
         lock = self.root / "update-plane.lock"
         lock.touch(mode=0o600)
@@ -189,19 +234,39 @@ class SharedUpdateLockTests(unittest.TestCase):
         self.root.parent.chmod(0o755)
         lock = self.root / "update-plane.lock"
         lock.touch(mode=0o644)
-        code = "import fcntl; from pathlib import Path; f=Path(__import__('sys').argv[1]).open('a+'); fcntl.flock(f,fcntl.LOCK_EX|fcntl.LOCK_NB)"
-        def demote():
-            os.setgroups([])
-            os.setgid(10001)
-            os.setuid(10001)
+        # Fork the already loaded interpreter: Root may use a private Python
+        # executable that UID10001 cannot traverse or exec.
         def run():
-            return subprocess.run([sys.executable, "-I", "-B", "-c", code, str(lock)], preexec_fn=demote, capture_output=True, text=True, timeout=10)
-        self.assertIn("PermissionError", run().stderr)
-        self.module.prepare(self.root, existing_only=True)
-        self.assertEqual(run().returncode, 0)
+            reader, writer = os.pipe()
+            child = os.fork()
+            if child == 0:
+                os.close(reader)
+                try:
+                    os.setgroups([])
+                    os.setgid(10001)
+                    os.setuid(10001)
+                    with lock.open("a+") as stream:
+                        fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    outcome = "ok"
+                except Exception as error:
+                    outcome = type(error).__name__
+                os.write(writer, outcome.encode())
+                os._exit(0)
+            os.close(writer)
+            try:
+                if not select.select([reader], [], [], 10)[0]:
+                    os.kill(child, signal.SIGKILL)
+                    self.fail("independent UID child timed out")
+                return os.read(reader, 256).decode()
+            finally:
+                os.close(reader)
+                os.waitpid(child, 0)
+        self.assertEqual(run(), "PermissionError")
+        self.module.prepare(self.root, **self.authority())
+        self.assertEqual(run(), "ok")
         with lock.open("a+") as held:
             fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            self.assertIn("BlockingIOError", run().stderr)
+            self.assertEqual(run(), "BlockingIOError")
 
 
 if __name__ == "__main__":

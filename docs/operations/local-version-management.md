@@ -59,7 +59,10 @@ The host bootstrap prepares `update-plane.lock` for the API's UID/GID 10001 with
 mode 0640. This is the shared lock used by administrator policy/check requests
 and privileged discovery/source handoff. Preparing it preserves the existing
 inode and refuses an active lock, queued request, unsafe file or unexpected state
-ownership. A Root-first lock must not be replaced with `install /dev/null`, deleted
+ownership. Bootstrap creates only a missing lock; an existing correctly prepared
+lock is a read-only no-op. An existing lock that needs different permissions is
+refused unless the explicit exact-current repair inputs are provided.
+A Root-first lock must not be replaced with `install /dev/null`, deleted
 or fixed through recursive ownership changes: replacing it splits synchronization.
 
 For a reviewed repair on an existing host, run `prepare-version-update-lock.py`

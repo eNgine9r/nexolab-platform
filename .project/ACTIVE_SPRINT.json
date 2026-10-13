@@ -8062,7 +8062,7 @@
       ],
       "scope": "Preserve the existing shared-lock inode; lock worker/update plane/API queue; guarded exact-current repair and future bootstrap/offline packaging; no application image changes.",
       "evidence": {
-        "local_helper_and_manager_checks": "95 passed; 1 independent UID proof skipped because UID10001 is unmapped",
+        "local_helper_and_manager_checks": "98 passed; 1 independent UID proof skipped because UID10001 is unmapped; 2 subtests",
         "queue_race_regression": "red-green verified",
         "interprocess_locking": "two real independent processes; both lock directions verified",
         "frontend_lint": "passed",
@@ -8074,7 +8074,8 @@
         "owner_local_UID10001_and_actual_repair": "pending",
         "actual_UI_manual_check": "pending",
         "runtime_mutation": "none",
-        "production_build": "passed; Next production build with local dependencies"
+        "production_build": "passed; Next production build with local dependencies",
+        "review_corrections": "existing-lock repairs require exact-current authority; existing correct lock no-op; UID proof forks without private-interpreter exec"
       }
     }
   ],

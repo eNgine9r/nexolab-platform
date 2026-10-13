@@ -7,13 +7,13 @@ pending native commands and failures below are superseded for continuation and
 must not be replayed.
 
 The API manual-check failure is isolated to shared-lock ownership. The candidate
-prepares the same inode for UID/GID 10001 at mode 0640. It refuses busy worker,
+prepares the same inode for UID/GID 10001 at mode 0640. Existing correct locks are read-only no-ops; all existing permission repairs require exact current authority. It refuses busy worker,
 update-plane or native queue locks, queued requests, unsafe files and stale
 current authority. Queues are checked while held locks prevent new requests.
 Future offline bundles include the bootstrap helper; existing images/packages
 are not rebuilt or activated.
 
-Local helper/version-manager checks: 95 passed, one unmapped-UID skip. The
+Local helper/version-manager checks: 98 passed, one unmapped-UID skip. The
 arriving-request regression was proved failing before the locking correction.
 Two real independent processes proved serialization in both directions.
 Frontend lint/typecheck, production build and 1195 tests passed. Broader local orchestrator checks

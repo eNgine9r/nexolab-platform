@@ -82,15 +82,10 @@ def prepare(root: Path, *, state_uid: int = 10001, state_gid: int = 10001,
                     or current.get("health") != "ready" or current.get("runtime_state_known") is not True):
                 raise RuntimeError("current authority changed; no permissions changed")
 
-        flags = os.O_RDWR | (0 if existing_only else os.O_CREAT)
-        descriptor = checked_file(stack, directory, "update-plane.lock", flags, state_uid)
-        before = os.fstat(descriptor)
-        if before.st_size != 0 or before.st_gid not in {0, state_gid} or before.st_mode & 0o022:
-            raise RuntimeError("expected empty lock with approved ownership and permissions")
-        exclusive(descriptor)
-
-        # Discovery holds update-plane before queue.lock. Use that same order;
-        # the API queues native operations under queue.lock independently.
+        # Every lock acquisition is nonblocking. Taking the native queue first
+        # prevents a failed fresh bootstrap from leaving a Root-owned plane
+        # lock behind. A discovery holding the plane makes this attempt abort
+        # and release the queue immediately, so opposite ordering cannot wait.
         try:
             queue_lock = checked_file(stack, directory, "queue.lock", os.O_RDWR, state_uid)
         except FileNotFoundError:
@@ -101,13 +96,39 @@ def prepare(root: Path, *, state_uid: int = 10001, state_gid: int = 10001,
             assert_named_inode(directory, "queue.lock", queue_lock)
         for name in ("requests", "update-check-requests"):
             assert_idle_queue(stack, directory, name, state_uid)
+
+        created = False
+        if existing_only:
+            descriptor = checked_file(stack, directory, "update-plane.lock", os.O_RDWR, state_uid)
+        else:
+            try:
+                descriptor = checked_file(stack, directory, "update-plane.lock",
+                                          os.O_RDWR | os.O_CREAT | os.O_EXCL, state_uid)
+            except FileExistsError:
+                descriptor = checked_file(stack, directory, "update-plane.lock", os.O_RDWR, state_uid)
+            else:
+                created = True
+        before = os.fstat(descriptor)
+        if before.st_size != 0 or before.st_gid not in {0, state_gid} or before.st_mode & 0o022:
+            raise RuntimeError("expected empty lock with approved ownership and permissions")
+        exclusive(descriptor)
+
+        # Recheck after the plane lock: a manual check may have arrived between
+        # the preliminary queue scan and plane acquisition.
+        for name in ("requests", "update-check-requests"):
+            assert_idle_queue(stack, directory, name, state_uid)
         assert_named_inode(directory, "update-plane.lock", descriptor)
-        os.fchown(descriptor, state_uid, state_gid)
-        os.fchmod(descriptor, 0o640)
-        os.fsync(descriptor)
+        correct = (before.st_uid, before.st_gid, stat.S_IMODE(before.st_mode)) == (state_uid, state_gid, 0o640)
+        if not created and not correct and not (existing_only and expected_bundle and expected_operation):
+            raise RuntimeError("existing lock needs explicit repair with exact current authority; no permissions changed")
+        if created or not correct:
+            os.fchown(descriptor, state_uid, state_gid)
+            os.fchmod(descriptor, 0o640)
+            os.fsync(descriptor)
         after = os.fstat(descriptor)
         return {"status": "shared_update_plane_lock_prepared", "before": identity(before),
                 "after": identity(after), "inode_retained": before.st_ino == after.st_ino,
+                "permissions_changed": created or not correct,
                 "package_activation": False, "database_restore": False, "controller_write": False}
 
 
