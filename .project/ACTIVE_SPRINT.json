@@ -62,7 +62,7 @@
       "depends_on": [
         1341
       ],
-      "scope": "Owner approved two distinct reissues using unchanged application bytes and exact retained storage. Fix installer verifier status propagation, archive config/OCI identity chain and early storage preflight; originals and migration authority remain immutable. Code regressions pass; actual reissued artifacts/native authority and update/rollback remain unverified.",
+      "scope": "Owner-approved distinct current/target reissues preserve application bytes and retained storage. Software/artifact validation and current C296 packaged authority succeeded. Native LAN/HTTPS UI update/rollback remains unverified through dependency1349 under1323/1313.",
       "evidence": {
         "owner_reissue_approval_at": "2026-10-11T19:58:12Z",
         "targeted_checks": "125 passed; 1 independent-UID skip; 16 subtests passed",
