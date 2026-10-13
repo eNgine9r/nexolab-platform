@@ -1,49 +1,31 @@
-#1349 environment-precedence correction: ExecStart supplies the trusted
-root-controlled startup path through /usr/bin/env, so existing EnvironmentFile
-values cannot redirect privileged overlays to container-writable state. The
-launch precedence regression failed before correction and now proves the forced
-path against an unsafe inherited value. 40 focused tests and9 subtests pass, one
-independent-UID skip; final exact-head CI/review and owner installation pending.
+## #1349 — native worker correction awaiting owner installation
 
-#1349 privileged-input boundary correction: hardware startup overlays now use
-/var/backups/nexolab/device-agent-startup beneath the root-controlled backup
-parent, never the container-writable version root. Unit bytes remain in trusted
-memory. The placement regression failed with the previous path and now passes;
-39 focused tests plus9 subtests pass, one independent-UID skip. Final exact-head
-CI/review and owner-local installation/namespace proof are pending. No runtime
-activation or host-tooling change occurred.
+Current C296 is validated_package ready/known after successful canonical
+transition source-to-packaged-20261012T124434Z-7a49b938a49c. Target DF remains
+catalog-only. Actual LAN/HTTPS UI update and rollback remain unverified.
 
-#1349 fresh-install review correction: the privileged host installer now
-creates/validates the dedicated protected release root before sandboxed worker
-startup, preserving narrow write paths. Missing-parent and symlink-parent tests
-failed before correction. 38 focused tests and9 subtests pass, one independent-UID
-skip; final CI/review still pending. Existing site services and packages unchanged.
+The reviewed candidate keeps ProtectSystem=strict, ProtectHome=read-only,
+PrivateTmp and NoNewPrivileges. Only the dedicated protected releases directory
+and existing frontend unit file are added to the existing writable version and
+backup roots. Candidate/original unit bytes remain in trusted transaction memory;
+the file descriptor is validated before frontend stop and written without inode
+replacement. Shared audit files do not authorize root unit contents.
 
-#1349 review correction: candidate/original unit bytes remain in trusted
-transaction memory; audit copies never authorize root unit writes. Unit freshness
-and permissions are validated through an opened descriptor before stopping the
-frontend. Both review findings reproduced before correction, and36 focused tests
-plus9 subtests now pass (one independent-UID skip). Actual host tooling/unit and
-runtime remain unchanged; final exact-head CI/review and root namespace proof
-are still required.
+Privileged hardware startup overlays belong only beneath the root-controlled
+/var/backups/nexolab/device-agent-startup parent, outside container-writable
+version state. ExecStart supplies this constant through /usr/bin/env so an older
+EnvironmentFile value cannot override it. The privileged host installer prepares
+and validates the dedicated release parent/root before first worker startup.
 
-## #1349 — native worker filesystem correction in progress
+40 focused tests and9 subtests pass with one independent-UID skip. Review
+findings were reproduced and corrected before host installation; final exact-head
+CI/review must be complete. Guarded owner-local installation will first prove
+allowed/denied writes in the real sandbox, preserve prior host tools/unit and then
+install the correction. No host installation or target activation has occurred.
+Browser-native acceptance additionally requires reconnecting the Opera app.
 
-Current C296 is validated_package ready/known after succeeded transition
-source-to-packaged-20261012T124434Z-7a49b938a49c at13:05:59Z. Parent #1343
-software/artifact/current-authority milestone is passed; native LAN/HTTPS
-update/rollback remains open under #1323/#1313. #1349 is the required focused
-worker filesystem dependency. The user requested completion at13:12:49Z.
-
-The candidate preserves ProtectSystem=strict/ProtectHome=read-only, allows only
-dedicated protected releases and the existing frontend unit file, and redirects
-hardware startup evidence beneath the writable version root. Protected handoff
-and rollback write the checked existing unit inode; GNU install unlinks/replaces
-it and cannot operate through a writable file bind mount with read-only parent.
-Seven new regressions failed before implementation; focused protected/runtime
-checks now pass34 tests and9 subtests, one independent-UID skip. Current runtime,
-installed tools and service sandbox have not changed. Exact-head CI/review and
-owner-local namespace write/denial proof must pass before native UI acceptance.
+Historical #1343 preparation and owner evidence follow; these records do not
+change the current packaged authority or the #1349 next action above.
 
 <!-- OFFLINE_PACKAGE_STORAGE_1343_BEGIN -->
 

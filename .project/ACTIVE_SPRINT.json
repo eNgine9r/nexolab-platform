@@ -7996,7 +7996,7 @@
       "depends_on": [
         1343
       ],
-      "scope": "Required native worker dependency after current C296 packaged authority. Exact protected-release/unit-file writes and startup evidence under version root; retain sandbox/data/hardware/auth boundaries.",
+      "scope": "Required native worker dependency after current C296 packaged authority. Exact protected-release/unit-file writes; trusted in-memory unit content and pre-stop validation; privileged startup overlays under root-controlled backups with forced ExecStart assignment; retain sandbox/data/hardware/auth boundaries.",
       "evidence": {
         "targeted_checks": "40 passed; 1 independent-UID skip; 9 subtests passed",
         "native_namespace_probe": "pending_owner_local",
