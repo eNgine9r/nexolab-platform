@@ -30,11 +30,12 @@ WORKDIR /src
 # module downloader or network dependency enters the finished local runtime.
 RUN set -eux; \
     go get golang.org/x/net@v0.60.0; \
+    go mod download; \
     go mod verify; \
     mkdir /out; \
     GOOS=linux GOARCH="$TARGETARCH" go build -trimpath -buildvcs=false \
       -ldflags="-s -w -X=main.Version=${VERSITYGW_VERSION} -X=main.Build=${VERSITYGW_COMMIT}" \
-      -o /out/versitygw .; \
+      -o /out/versitygw ./cmd/versitygw; \
     go version -m /out/versitygw | grep -F "go${GO_VERSION}"; \
     go version -m /out/versitygw | grep -E 'golang.org/x/net[[:space:]]+v0\.60\.0[[:space:]]'; \
     go version -m /out/versitygw | grep -F "GOARCH=${TARGETARCH}"; \
@@ -42,7 +43,7 @@ RUN set -eux; \
     case "$TARGETARCH" in amd64) other_arch=arm64 ;; arm64) other_arch=amd64 ;; esac; \
     GOOS=linux GOARCH="$other_arch" go build -trimpath -buildvcs=false \
       -ldflags="-s -w -X=main.Version=${VERSITYGW_VERSION} -X=main.Build=${VERSITYGW_COMMIT}" \
-      -o /tmp/versitygw-cross .; \
+      -o /tmp/versitygw-cross ./cmd/versitygw; \
     go version -m /tmp/versitygw-cross | grep -F "GOARCH=${other_arch}"; \
     rm /tmp/versitygw-cross
 

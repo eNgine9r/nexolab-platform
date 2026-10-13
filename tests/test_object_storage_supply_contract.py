@@ -21,6 +21,9 @@ def test_versitygw_source_and_fixed_sdk_are_exact_for_both_architectures() -> No
     assert "CGO_ENABLED=0" in DOCKERFILE
     assert "golang.org/x/net@v0.60.0" in DOCKERFILE
     assert "go mod verify" in DOCKERFILE
+    assert "go mod download" in DOCKERFILE
+    assert "-o /out/versitygw ./cmd/versitygw" in DOCKERFILE
+    assert "-o /tmp/versitygw-cross ./cmd/versitygw" in DOCKERFILE
     assert 'GOOS=linux GOARCH="$TARGETARCH"' in DOCKERFILE
     assert "amd64|arm64)" in DOCKERFILE
     assert "releases/download" not in DOCKERFILE
