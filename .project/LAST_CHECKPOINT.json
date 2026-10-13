@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-13T19:44:03.287Z",
+  "timestamp": "2026-10-13T22:42:00Z",
   "actor": "Codex",
-  "event": "energy1362_green_first_head_review_repair_pending_ci",
+  "event": "energy1369_fixed_image_green_architecture_review_pending",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "HuFALgo65ij75S2pY6qCm"
   },
   "active_work": {
-    "issue": 1362,
-    "title": "Energy multi-parameter persisted history with synchronized axes",
-    "branch": "feature/1362-energy-multi-parameter-history"
+    "issue": 1369,
+    "title": "Restore exact container security gates blocking Energy export",
+    "branch": "security/1369-bounded-high-review"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -2490,6 +2490,25 @@
       "offline_review": "no runtime dependency, CDN/font/cloud or acquisition changes",
       "production_hardware": "not run; C296 retained",
       "solo_removal_regression": "red-green verified; 6 workspace tests passed; parameter changes clear stale visibility without resetting zoom"
+    },
+    "energy1369_security_prerequisite": {
+      "source": "cd62d2f8e8cbcc16505ec4e6a7ea6a8eb7fd5c29",
+      "discovery_run": 38475307833,
+      "same_telemetry_high": 48,
+      "new_object_fixed_high": 4,
+      "new_object_exceptions": 0,
+      "expiry": "2026-10-20",
+      "policy_tests": 61,
+      "native_pi": "Preflight failed creating isolated home directory:read-only; no file/build/service mutation; acceptance unverified",
+      "export_review_repair": "f087d70c locally validated24 tests;pending publication and freshCI"
+    },
+    "energy1369_fixed_image": {
+      "source": "5ec0de4282195352d9e2851ec14d1da22af12c19",
+      "supply_chain_run": 38478330972,
+      "object_high_critical": "0/0",
+      "digests_independently_verified": true,
+      "architecture_review": "ADR0011 amendment prepared;fresh CI/review pending",
+      "native": "bounded ARM64 builder running;no production mutation"
     }
   },
   "observations": [
@@ -3533,7 +3552,7 @@
       }
     }
   ],
-  "next_action": "Publish coherent1362 review repair, require fresh exact-head Core and Authenticated Dashboard GREEN and resolve the addressed thread before merge. Then promote1363 with exact export job/data/file contracts. Keep C296 and all matching-package/data/rollback/guarded-install gates.",
+  "next_action": "Publish coherent ADR/state review repair; required exact-head CI and source review must pass, collect native bounded build result; then merge1369, rebase/publish1363 review repair, validate all CI and continue1364 without runtime cutover.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

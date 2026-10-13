@@ -8,7 +8,9 @@ The controlled images are declared in `security/container-images.json`:
 
 - Device Agent;
 - telemetry-service;
-- Mosquitto Dynamic Security broker.
+- Mosquitto Dynamic Security broker;
+- Telegram Gateway;
+- VersityGW Object Storage.
 
 Pull-request validation is read-only. Only protected `main` and release-tag workflows may publish images or registry attestations.
 
@@ -237,3 +239,20 @@ The following remain dependent on actual central-host and registry policy access
 - registry access review;
 - long-term evidence retention;
 - rollback rehearsal on the central host.
+
+## VersityGW security rebuild
+
+The controlled Object Storage image preserves VersityGW v1.8.0 and its `posix /data`
+contract. Its build uses immutable upstream source commit
+`fd04bc1df2656298577b82667a4195c77f8c7563`, the checksum-verified Go 1.27.2 SDK
+for the builder architecture and `golang.org/x/net` v0.60.0 with Go module
+verification. Toolchain auto-upgrades are disabled; pure-Go cross compilation
+selects only amd64/arm64 and verifies the resulting binary build metadata.
+The final image contains only that binary, with the existing scratch image,
+entrypoint and service configuration. No build downloader, SDK or mandatory
+network dependency enters the finished offline runtime.
+
+The rebuild fixes the current Go/x-net HIGH findings instead of excepting them.
+A source/image acceptance does not install this candidate on an operating site.
+Deployed images and persistent storage remain under the ordinary guarded
+package, backup and rollback process.

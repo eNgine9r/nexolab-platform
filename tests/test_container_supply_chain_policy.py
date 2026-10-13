@@ -3,10 +3,13 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
+
+CURRENT_REVIEW_DATE = date(2026, 10, 13)
+CURRENT_EXPIRY = "2026-10-20"
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "scripts" / "validate-container-supply-chain.py"
@@ -145,12 +148,12 @@ def test_current_cjson_exception_is_exact_and_short_lived() -> None:
     assert len(matches) == 1
     decision = matches[0]
     assert decision["owner"] == "platform-security"
-    assert decision["expires_on"] == "2026-10-12"
+    assert decision["expires_on"] == CURRENT_EXPIRY
     assert "mosquitto_ctrl" in decision["reason"]
     assert "Reviewed 2026-08-17" in decision["reason"]
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 9, 25),
+        CURRENT_REVIEW_DATE,
     )
 
 
@@ -174,7 +177,7 @@ def test_2026_09_22_fresh_review_is_exact_owner_bound_and_seven_day_bounded() ->
         "telemetry-service",
     }
     assert all(entry["owner"] == "platform-security" for entry in reviewed)
-    assert all(entry["expires_on"] == "2026-10-12" for entry in reviewed)
+    assert all(entry["expires_on"] == CURRENT_EXPIRY for entry in reviewed)
     assert all("35704565417" in entry["reason"] for entry in reviewed)
     assert all(
         "2524f9c0c15218cc56a0416ecc76cb46040fab79" in entry["reason"]
@@ -184,7 +187,7 @@ def test_2026_09_22_fresh_review_is_exact_owner_bound_and_seven_day_bounded() ->
     assert all("supersedes the prior expiry wording" in entry["reason"] for entry in reviewed)
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 9, 22),
+        CURRENT_REVIEW_DATE,
     )
 
 
@@ -217,7 +220,7 @@ def test_openssl_quic_exception_is_fully_retired_after_fresh_scan() -> None:
     assert matches == []
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 8, 28),
+        CURRENT_REVIEW_DATE,
     )
 
 
@@ -252,7 +255,7 @@ def test_util_linux_78409_disagreement_is_explicit_and_short_lived() -> None:
         "telemetry-service",
     }
     assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-10-12" for entry in matches)
+    assert all(entry["expires_on"] == CURRENT_EXPIRY for entry in matches)
     assert all("34826380930" in entry["reason"] for entry in matches)
     assert all("02f42ff68c6189bc4c0cf2fcfa4be0503b0667bf" in entry["reason"] for entry in matches)
     assert all("2.41.5-0+deb13u1" in entry["reason"] for entry in matches)
@@ -263,7 +266,7 @@ def test_util_linux_78409_disagreement_is_explicit_and_short_lived() -> None:
     assert all("severity becomes Critical" in entry["reason"] for entry in matches)
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 9, 5),
+        CURRENT_REVIEW_DATE,
     )
 
 
@@ -322,13 +325,13 @@ def test_2026_09_17_fresh_scan_keeps_stale_python_and_sqlite_retired_and_bounds_
     assert current_python == []
     assert all(entry["image_id"] == "telemetry-service" for entry in exceptions)
     assert all(entry["owner"] == "platform-security" for entry in exceptions)
-    assert all(entry["expires_on"] == "2026-10-12" for entry in exceptions)
+    assert all(entry["expires_on"] == CURRENT_EXPIRY for entry in exceptions)
     assert all("35156866062" in entry["reason"] for entry in current_python)
     assert all("no tarfile/archive extraction path" in entry["reason"] for entry in current_python)
     assert all("severity becomes Critical" in entry["reason"] for entry in current_python)
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 9, 17),
+        CURRENT_REVIEW_DATE,
     )
 
 
@@ -353,7 +356,7 @@ def test_2026_09_12_consolidated_review_keeps_telemetry_stale_findings_retired()
     assert all(entry["owner"] == "platform-security" for entry in exceptions)
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 9, 14),
+        CURRENT_REVIEW_DATE,
     )
 
 def test_telemetry_systemd_homed_cve_exceptions_are_exact_and_short_lived() -> None:
@@ -373,7 +376,7 @@ def test_telemetry_systemd_homed_cve_exceptions_are_exact_and_short_lived() -> N
         ("libudev1", "CVE-2026-16742"),
     }
     assert all(entry["owner"] == "platform-security" for entry in matches)
-    assert all(entry["expires_on"] == "2026-10-12" for entry in matches)
+    assert all(entry["expires_on"] == CURRENT_EXPIRY for entry in matches)
     assert all("33683425564" in entry["reason"] for entry in matches)
     assert all("0f9327f40e9a2f4b8527be78f94c925246ab1c8d" in entry["reason"] for entry in matches)
     assert all("systemd-homed" in entry["reason"] for entry in matches)
@@ -382,7 +385,7 @@ def test_telemetry_systemd_homed_cve_exceptions_are_exact_and_short_lived() -> N
     assert all("severity becomes Critical" in entry["reason"] for entry in matches)
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 9, 3),
+        CURRENT_REVIEW_DATE,
     )
 
 
@@ -402,7 +405,7 @@ def test_telemetry_cjson_mergepatch_exception_is_exact_and_unreachable() -> None
     assert len(matches) == 1
     decision = matches[0]
     assert decision["owner"] == "platform-security"
-    assert decision["expires_on"] == "2026-10-12"
+    assert decision["expires_on"] == CURRENT_EXPIRY
     assert "34826380930" in decision["reason"]
     assert "34702355254" in decision["reason"]
     assert "1e1576b9edc5eac5f3be017753c382fc39c19278" in decision["reason"]
@@ -554,7 +557,7 @@ def test_2026_09_25_fresh_review_is_exact_and_seven_day_bounded() -> None:
     assert len(exceptions) == 48
     assert len(keys) == 48
     assert all(entry["owner"] == "platform-security" for entry in exceptions)
-    assert all(entry["expires_on"] == "2026-10-12" for entry in exceptions)
+    assert all(entry["expires_on"] == CURRENT_EXPIRY for entry in exceptions)
     assert all("36123964257" in entry["reason"] for entry in exceptions)
     assert all("a231169f0269a441fac4fc1f05da39097e4adfa3" in entry["reason"] for entry in exceptions)
     assert all("92 HIGH / 0 CRITICAL" in entry["reason"] for entry in exceptions)
@@ -564,7 +567,7 @@ def test_2026_09_25_fresh_review_is_exact_and_seven_day_bounded() -> None:
     assert all("empty Trivy FixedVersion" in entry["reason"] for entry in exceptions)
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 9, 25),
+        CURRENT_REVIEW_DATE,
     )
 
 
@@ -582,7 +585,7 @@ def test_2026_10_05_fresh_review_is_exact_and_seven_day_bounded() -> None:
     assert len(exceptions) == 48
     assert len(keys) == 48
     assert all(entry["owner"] == "platform-security" for entry in exceptions)
-    assert all(entry["expires_on"] == "2026-10-12" for entry in exceptions)
+    assert all(entry["expires_on"] == CURRENT_EXPIRY for entry in exceptions)
     assert all("37294551286" in entry["reason"] for entry in exceptions)
     assert all("56b4d41250dc6390506052356e498eedfe90faba" in entry["reason"] for entry in exceptions)
     assert all("100 HIGH / 0 CRITICAL" in entry["reason"] for entry in exceptions)
@@ -601,7 +604,7 @@ def test_2026_10_05_fresh_review_is_exact_and_seven_day_bounded() -> None:
     assert all("empty Trivy FixedVersion" in entry["reason"] for entry in exceptions)
     MODULE.validate_exceptions(
         root / "security/vulnerability-exceptions.json",
-        date(2026, 10, 5),
+        CURRENT_REVIEW_DATE,
     )
 
 
@@ -615,10 +618,10 @@ def test_2026_10_01_python_tls_decision_is_exact_and_does_not_extend_review() ->
     assert len(new) == 0
     assert len(payload["exceptions"]) == 48
     assert all(entry["owner"] == "platform-security" for entry in new)
-    assert all(entry["expires_on"] == "2026-10-12" for entry in payload["exceptions"])
+    assert all(entry["expires_on"] == CURRENT_EXPIRY for entry in payload["exceptions"])
     assert all("36921474135" in entry["reason"] and "#1236" in entry["reason"] for entry in new)
     assert all("server_hostname" in entry["reason"] and "wrap_socket" in entry["reason"] for entry in new)
-    MODULE.validate_exceptions(root / "security/vulnerability-exceptions.json", date(2026, 10, 1))
+    MODULE.validate_exceptions(root / "security/vulnerability-exceptions.json", CURRENT_REVIEW_DATE)
 
 def test_device_agent_patched_python_runtime_has_no_high_exceptions() -> None:
     """The 2026-10-08 fixed-Python candidate has no inherited HIGH waivers."""
@@ -640,3 +643,19 @@ def test_device_agent_patched_python_runtime_has_no_high_exceptions() -> None:
     assert 'CMD ["/usr/local/bin/python3", "-m", "uvicorn"' in dockerfiles[1]
     assert all(entry["image_id"] == "telemetry-service" for entry in registry["exceptions"])
 
+
+
+def test_current_review_is_exact_seven_days_and_does_not_except_fixed_go_findings() -> None:
+    entries = json.loads((ROOT / "security/vulnerability-exceptions.json").read_text())["exceptions"]
+    keys = sorted((item["image_id"], item["package"], item["vulnerability"]) for item in entries)
+    assert len(keys) == len(set(keys)) == 48
+    assert {item["image_id"] for item in entries} == {"telemetry-service"}
+    assert {item["owner"] for item in entries} == {"platform-security"}
+    assert date.fromisoformat(CURRENT_EXPIRY) - CURRENT_REVIEW_DATE == timedelta(days=7)
+    assert hashlib.sha256(json.dumps(keys, separators=(",", ":")).encode()).hexdigest() == "3a0f6834d30d647b97692b2cf016f1a8ecb2e30af8067a39505a33daa634765e"
+    assert all("run 38475307833" in item["reason"] for item in entries)
+    assert all("cd62d2f8e8cbcc16505ec4e6a7ea6a8eb7fd5c29" in item["reason"] for item in entries)
+    assert all(item["expires_on"] == CURRENT_EXPIRY for item in entries)
+    MODULE.validate_exceptions(ROOT / "security/vulnerability-exceptions.json", CURRENT_REVIEW_DATE)
+    with pytest.raises(ValidationFailure, match="expired"):
+        MODULE.validate_exceptions(ROOT / "security/vulnerability-exceptions.json", date(2026, 10, 21))
