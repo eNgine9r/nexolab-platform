@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 
 import { EnergyWorkspace } from "./energy-workspace";
 import { ENERGY_METERS } from "@/features/energy/energy-telemetry";
@@ -17,6 +17,32 @@ vi.mock("@/components/charts/chart-renderer-host", () => ({
   ),
 }));
 
+const originalShowModal = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, "showModal");
+const originalClose = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, "close");
+beforeEach(() => {
+  Object.defineProperty(HTMLDialogElement.prototype, "showModal", {
+    configurable: true,
+    value(this: HTMLDialogElement) {
+      this.setAttribute("open", "");
+    },
+  });
+  Object.defineProperty(HTMLDialogElement.prototype, "close", {
+    configurable: true,
+    value(this: HTMLDialogElement) {
+      this.removeAttribute("open");
+    },
+  });
+});
+afterEach(() => {
+  for (const [name, descriptor] of [
+    ["showModal", originalShowModal],
+    ["close", originalClose],
+  ] as const) {
+    if (descriptor) Object.defineProperty(HTMLDialogElement.prototype, name, descriptor);
+    else Reflect.deleteProperty(HTMLDialogElement.prototype, name);
+  }
+});
+
 function setup(overrides: Partial<EnergyTelemetryModel> = {}) {
   const telemetry: EnergyTelemetryModel = {
     mode: "live",
@@ -26,6 +52,8 @@ function setup(overrides: Partial<EnergyTelemetryModel> = {}) {
     lastCapturedAt: null,
     ageMs: null,
     cadenceAuthority: null,
+    selectedMetrics: ["electrical.voltage"],
+    setSelectedMetrics: vi.fn(),
     selectedMetric: "electrical.voltage",
     setSelectedMetric: vi.fn(),
     historyRange: "7d",
@@ -79,7 +107,8 @@ describe("EnergyWorkspace comparison selection", () => {
     expect(toggle(second.label)).toBeDisabled();
     expect(toggle(first.label, false)).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText(/1 вибрано/)).toBeVisible();
-    expect(screen.getByRole("combobox", { name: "Показник" })).toHaveValue("electrical.voltage");
+    expect(screen.getByLabelText("Вибрані параметри графіка")).toHaveTextContent("U, V");
+    expect(screen.queryByRole("combobox", { name: "Показник" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "7 діб" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getAllByText("Споживання", { exact: true })).toHaveLength(ENERGY_METERS.length);
     expect(telemetry.setSelectedMetric).not.toHaveBeenCalled();
@@ -106,13 +135,80 @@ it("Only this clears stale Solo and Hide overrides, including a repeat selection
     raw_status: null,
   }));
   setup({ historySamples: samples });
-  await waitFor(() => expect(screen.getAllByRole("button", { name: "Hide" })).toHaveLength(2));
-  fireEvent.click(screen.getAllByRole("button", { name: "Solo" })[0]);
+  await waitFor(() => expect(screen.getAllByRole("button", { name: "Приховати" })).toHaveLength(2));
+  fireEvent.click(screen.getAllByRole("button", { name: "Лише цей" })[0]);
   fireEvent.click(screen.getByRole("button", { name: "Показати лише лічильник SDM120M" }));
   await waitFor(() => expect(screen.getByTestId("visible-energy-series")).toHaveTextContent("SDM120M-1"));
-  expect(screen.getByRole("button", { name: "Hide" })).toHaveAttribute("aria-pressed", "true");
-  fireEvent.click(screen.getByRole("button", { name: "Hide" }));
+  expect(screen.getByRole("button", { name: "Приховати" })).toHaveAttribute("aria-pressed", "true");
+  fireEvent.click(screen.getByRole("button", { name: "Приховати" }));
   expect(screen.getByTestId("visible-energy-series")).toBeEmptyDOMElement();
   fireEvent.click(screen.getByRole("button", { name: "Показати лише лічильник SDM120M" }));
+  await waitFor(() => expect(screen.getByTestId("visible-energy-series")).toHaveTextContent("SDM120M-1"));
+});
+
+it("selects distinct meter/parameter pairs and rejects unsupported SDM temperature", () => {
+  const { telemetry } = setup();
+  fireEvent.click(screen.getByRole("button", { name: "+ Додати параметр" }));
+  const dialog = screen.getByRole("dialog", { name: "Параметри на графіку" });
+  expect(dialog).toBeVisible();
+  expect(screen.getByRole("checkbox", { name: "SDM120M · Температура лічильника" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Очистити вибір" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "W1 · Активна потужність" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "W1 · Струм" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "SDM120M · Напруга" }));
+  fireEvent.click(screen.getByRole("button", { name: "Застосувати" }));
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  expect(telemetry.setSelectedMetrics).toHaveBeenCalledWith([
+    "electrical.power.active",
+    "electrical.current",
+    "electrical.voltage",
+  ]);
+  expect(screen.getByRole("button", { name: "Прибрати W1 · Активна потужність" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Прибрати W1 · Струм" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Прибрати SDM120M · Напруга" })).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Прибрати W1 · Струм" }));
+  expect(telemetry.setSelectedMetrics).toHaveBeenLastCalledWith([
+    "electrical.power.active",
+    "electrical.voltage",
+  ]);
+  expect(telemetry.setHistoryRange).not.toHaveBeenCalled();
+  expect(telemetry.retry).not.toHaveBeenCalled();
+});
+
+it("permits empty selection and cancels draft changes", () => {
+  const { telemetry } = setup();
+  fireEvent.click(screen.getByRole("button", { name: "+ Додати параметр" }));
+  fireEvent.click(screen.getByRole("button", { name: "Очистити вибір" }));
+  fireEvent.click(screen.getByRole("button", { name: "Закрити вибір параметрів" }));
+  expect(telemetry.setSelectedMetrics).not.toHaveBeenCalled();
+  expect(screen.getAllByRole("button", { name: /^Прибрати/ })).toHaveLength(5);
+  fireEvent.click(screen.getByRole("button", { name: "+ Додати параметр" }));
+  fireEvent.click(screen.getByRole("button", { name: "Очистити вибір" }));
+  fireEvent.click(screen.getByRole("button", { name: "Застосувати" }));
+  expect(telemetry.setSelectedMetrics).toHaveBeenCalledWith([]);
+  expect(screen.getByText("Додайте параметри для порівняння.")).toBeVisible();
+  expect(screen.getByRole("button", { name: "12 год" })).toBeVisible();
+});
+
+it("removing the Solo parameter reveals the remaining selected series", async () => {
+  const samples = [ENERGY_METERS[0], ENERGY_METERS.at(-1)!].map((meter) => ({
+    event_id: `solo-removal-${meter.unitId}`,
+    node_id: "edge-01",
+    equipment_id: meter.equipmentId,
+    channel_id: `${meter.unitId}-voltage`,
+    captured_at: new Date().toISOString(),
+    metric: "electrical.voltage",
+    value: 230,
+    unit: "V",
+    quality: "valid" as const,
+    source: "modbus",
+    alarm: null,
+    raw_value: 230,
+    raw_status: null,
+  }));
+  setup({ historySamples: samples });
+  await waitFor(() => expect(screen.getAllByRole("button", { name: "Лише цей" })).toHaveLength(2));
+  fireEvent.click(screen.getAllByRole("button", { name: "Лише цей" })[0]);
+  fireEvent.click(screen.getByRole("button", { name: "Прибрати W1 · Напруга" }));
   await waitFor(() => expect(screen.getByTestId("visible-energy-series")).toHaveTextContent("SDM120M-1"));
 });

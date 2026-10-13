@@ -20,6 +20,7 @@ import {
   resolveEnergyMeter,
   type EnergyMetricId,
 } from "@/features/energy/energy-telemetry";
+import { energySeriesSelectionKey, type EnergySeriesSelection } from "./energy-series-selection";
 import type { EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
@@ -126,30 +127,53 @@ function buildSegments(identity: ChartSeriesIdentity, samples: readonly Telemetr
 export function buildEnergyChartScene({
   samples,
   selectedMetric,
+  selectedMetrics,
+  selectedPairs,
   selectedUnitIds,
   status,
   historyWindow,
 }: {
   samples: readonly TelemetrySample[];
-  selectedMetric: EnergyMetricId;
+  selectedMetric?: EnergyMetricId;
+  selectedMetrics?: readonly EnergyMetricId[];
+  selectedPairs?: readonly EnergySeriesSelection[];
   selectedUnitIds: readonly number[];
   status: EnergyTelemetryModel["status"];
   historyWindow: EnergyTelemetryModel["historyWindow"];
 }): EnergyChartScene {
-  const metric = ENERGY_METRICS.find((item) => item.id === selectedMetric);
-  if (!metric) return { series: [], xDomain: resolvedDomain(samples, historyWindow) };
-
+  const metrics = new Set(selectedMetrics ?? [selectedMetric ?? ENERGY_METRICS[0].id]);
+  const pairs = selectedPairs ? new Set(selectedPairs.map(energySeriesSelectionKey)) : null;
   const selected = new Set(selectedUnitIds);
   const groups = new Map<
     string,
-    { meter: (typeof ENERGY_METERS)[number]; channelId: string; samples: TelemetrySample[] }
+    {
+      meter: (typeof ENERGY_METERS)[number];
+      metric: (typeof ENERGY_METRICS)[number];
+      nodeId: string;
+      channelId: string;
+      samples: TelemetrySample[];
+    }
   >();
   for (const sample of samples) {
-    if (sample.metric !== selectedMetric || !isEnergySample(sample)) continue;
+    if (!metrics.has(sample.metric as EnergyMetricId) || !isEnergySample(sample)) continue;
     const meter = resolveEnergyMeter(sample);
-    if (!meter || !selected.has(meter.unitId)) continue;
-    const key = `${meter.unitId}:${sample.channel_id}`;
-    const group = groups.get(key) ?? { meter, channelId: sample.channel_id, samples: [] };
+    const metric = ENERGY_METRICS.find((item) => item.id === sample.metric);
+    if (!meter || !metric || !selected.has(meter.unitId)) continue;
+    if (pairs && !pairs.has(energySeriesSelectionKey({ unitId: meter.unitId, metric: metric.id }))) continue;
+    const key = JSON.stringify([
+      sample.node_id,
+      meter.equipmentId,
+      sample.channel_id,
+      metric.id,
+      metric.expectedUnit,
+    ]);
+    const group = groups.get(key) ?? {
+      meter,
+      metric,
+      nodeId: sample.node_id,
+      channelId: sample.channel_id,
+      samples: [],
+    };
     group.samples.push(sample);
     groups.set(key, group);
   }
@@ -159,30 +183,35 @@ export function buildEnergyChartScene({
     .sort(
       (left, right) =>
         energyMeterOrder(left.meter.unitId) - energyMeterOrder(right.meter.unitId) ||
+        ENERGY_METRICS.indexOf(left.metric) - ENERGY_METRICS.indexOf(right.metric) ||
+        left.nodeId.localeCompare(right.nodeId) ||
         left.channelId.localeCompare(right.channelId),
     )
     .map((group) => {
       const identity: ChartSeriesIdentity = {
-        nodeId: group.samples[0]?.node_id ?? "edge-01",
+        nodeId: group.nodeId,
         equipmentId: group.meter.equipmentId,
         channelId: group.channelId,
-        metric: selectedMetric,
-        nativeUnit: metric.expectedUnit,
+        metric: group.metric.id,
+        nativeUnit: group.metric.expectedUnit,
       };
       return {
         identity,
-        name: `${group.meter.label} · ${group.meter.equipmentId} · ${group.channelId} · ${metric.label}`,
-        colorToken: METER_COLORS[group.meter.unitId] ?? "#00C6E0",
-        dashStyle: "solid" as const,
+        name: `${group.meter.label} · ${group.metric.label} · ${group.meter.equipmentId} · ${group.channelId}`,
+        colorToken:
+          group.metric.id === "electrical.power.active"
+            ? (METER_COLORS[group.meter.unitId] ?? "#00C6E0")
+            : `hsl(${((ENERGY_METRICS.indexOf(group.metric) * ENERGY_METERS.length + energyMeterOrder(group.meter.unitId)) * 137.508) % 360} 75% 65%)`,
+        dashStyle: (["solid", "dashed", "dotted"] as const)[ENERGY_METRICS.indexOf(group.metric) % 3],
         markerShape: "circle" as const,
         freshness: chartFreshness,
         segments: buildSegments(identity, group.samples),
         visible: true,
         semanticMode:
-          selectedMetric === "electrical.energy.active"
+          group.metric.id === "electrical.energy.active"
             ? ("cumulative_counter" as const)
             : ("instantaneous" as const),
-        displayPrecision: metric.digits,
+        displayPrecision: group.metric.digits,
       } satisfies ChartSeries;
     })
     .filter((item) => item.segments.some((segment) => segment.points.length > 0));

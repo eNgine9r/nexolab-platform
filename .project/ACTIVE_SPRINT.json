@@ -60,7 +60,11 @@
     "protected_frontend_build_id": "HuFALgo65ij75S2pY6qCm"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1362,
+      "title": "Energy multi-parameter persisted history with synchronized axes",
+      "branch": "feature/1362-energy-multi-parameter-history"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -8379,10 +8383,9 @@
       "title": "Energy multi-parameter persisted history with synchronized axes",
       "branch": "feature/1362-energy-multi-parameter-history",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "review",
       "depends_on": [],
       "scope": "Supported meter/metric pair selection, canonical <=5-axis chart panels, synchronized inspection/zoom, multi-metric history/cache; no backend/acquisition/runtime mutation.",
-      "blocker": "NEXUS runner lacks current source, writable Git/worktree, supported Node/npm and installed test dependencies.",
       "evidence": {
         "execution_preflight": {
           "task_id": "pi~5b661e02-03e3-4e2a-807a-8a18f20ed486",
@@ -8403,8 +8406,56 @@
           "openpyxl_in_backend_requirements": "3.1.5",
           "production_changes": "none",
           "hardware_verification": "not_run"
+        },
+        "execution_recovery": {
+          "execution_environment": "primary_isolated_git_worktree",
+          "base_source_sha": "b08c366c9debf6e5aee2359fd7d3dfce16a8eb4c",
+          "node_version": "24.19.0",
+          "npm_version": "11.9.0",
+          "dependency_setup": "npm ci passed; lock unchanged",
+          "baseline_targeted_tests": 148,
+          "ordinary_git_read_available": true,
+          "commander_probe": "Read-only operator shell closed exit128: Node/npm not on sanitized PATH and selected source absent; no host mutation."
+        },
+        "local_candidate_checks": {
+          "targeted_energy_chart_hook_tests": 159,
+          "frontend_tests": 1206,
+          "frontend_test_files": 193,
+          "lint_staged_regressions": "passed",
+          "lint": "passed",
+          "typecheck": "passed",
+          "production_build": "passed; local live/acceptance fixture configuration",
+          "changed_file_formatting": "passed",
+          "git_diff_check": "passed",
+          "browser_ui": {
+            "status": "passed",
+            "engine": "Chromium131.0.6778.0",
+            "viewports": [
+              390,
+              768,
+              1440,
+              1920
+            ],
+            "websocket_count": 1,
+            "javascript_errors": 0,
+            "classification": "isolated production-build UI with mocked API/WebSocket; not persisted API, production or hardware acceptance",
+            "scenarios": [
+              "P/U/I independent axes",
+              "nine-axis partitioning",
+              "shared cursor/zoom/reset",
+              "series removal preserves zoom",
+              "native modal keyboard trap/Escape/focus restoration",
+              "mobile <=3 axes and no page overflow",
+              "unsupported SDM temperature disabled"
+            ]
+          },
+          "required_persisted_browser_api_acceptance": "pending in routed GitHub CI; local Docker absent",
+          "offline_review": "no runtime dependency, CDN/font/cloud or acquisition changes",
+          "production_hardware": "not run; C296 retained",
+          "solo_removal_regression": "red-green verified; 6 workspace tests passed; parameter changes clear stale visibility without resetting zoom"
         }
-      }
+      },
+      "readiness": "Implementation candidate in review using the primary writable worktree; required exact-head CI and persisted browser/API acceptance are pending. Original NEXUS runner remains unavailable."
     },
     {
       "issue": 1363,

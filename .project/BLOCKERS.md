@@ -1,3 +1,18 @@
+## Energy1362 — implementation path recovered; CI acceptance pending
+
+Primary current Git, writable isolated source, Node24/npm11 and local dependencies
+are available. The original NEXUS runner limitation is retained below as historical
+and runner-specific evidence; it no longer blocks this primary graph candidate.
+Commander's read-only probe changed no user files or runtime.
+
+1362 is in review with local checks and isolated fixture UI proof. Required exact-
+head Core/Authenticated Dashboard CI and source review remain pending. Docker is
+absent locally; mocked API/WebSocket UI checks do not substitute for the routed
+persisted PostgreSQL/MQTT acceptance.1363/1364 remain dependency queued.
+
+No production/hardware acceptance or package readiness follows from these checks.
+Current C296, automatic activationOFF and package1313/1323 gates are retained.
+
 ## Energy1362 — mandatory implementation environment unavailable
 
 Read-only NEXUS preflight pi~5b661e02-03e3-4e2a-807a-8a18f20ed486

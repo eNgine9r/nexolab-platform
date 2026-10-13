@@ -1,3 +1,30 @@
+## Energy1362 — local graph candidate verified; exact-head CI pending
+
+The original NEXUS runner blocker remains scoped to that read-only/stale runner.
+The primary environment has ordinary current Git access, supported Node24.19.0/
+npm11.9.0, and a clean isolated feature worktree from b08c366c. npm ci passed
+without a lock change. Existing Commander checkout/user edits were preserved;
+its bounded read-only shell probe closed without host mutation.
+
+1362 implements explicit supported meter/metric pairs, deterministic series,
+separate native Y axes, shared cursor/zoom/reset and legend controls. Panels
+use the canonical five-axis budget, reduced to three below768px. Metric caches
+remain identity/range/cadence scoped; history reads share a snapshot with at most
+two requests in flight. Quality gaps, aborts and partial errors remain explicit.
+No WebSocket, polling, database, Device Agent or dependency contract was added.
+
+Local candidate:148 baseline tests;159 targeted tests;1206 full frontend tests
+in193 files plus lint-staged regressions; lint/typecheck/build, changed formatting
+and diff check passed. Chromium131 production-build UI validation passed at
+390/768/1440/1920px, one socket and zero JavaScript errors. This UI proof uses
+mocked API/WebSocket fixtures; persisted API/hardware/production acceptance is
+not claimed. Real seeded PostgreSQL/MQTT browser acceptance is required in CI.
+
+1362 is in review;1363 and1364 remain queued. Exact-head routed CI and source
+review are pending before merge. Accepted/deployed C296 and existing native/lock
+proofs remain retained. This feature candidate is not an installable package;
+latest-main matching local package readiness remains blocked under1313/1323.
+
 ## Energy monitoring expansion — WPs1362–1364
 
 The product owner supplied the high-priority Energy specification on2026-10-13.

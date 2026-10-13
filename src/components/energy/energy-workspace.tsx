@@ -2,13 +2,12 @@
 
 import { useDisplayTimeZone } from "@/hooks/use-display-time-zone";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
   CheckCircle2,
   Clock3,
-  Database,
   Gauge,
   LoaderCircle,
   RotateCcw,
@@ -18,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { EnergyConsumptionPanel } from "@/components/energy/energy-consumption-panel";
+import { EnergyParameterDialog } from "@/components/energy/energy-parameter-dialog";
 import { EnergyHistoryChart } from "@/components/energy/energy-history-chart";
 import {
   ENERGY_METERS,
@@ -28,9 +28,15 @@ import {
   formatCapturedAt,
   formatEnergyValue,
   resolveEnergyMeter,
-  type EnergyMetricId,
   type EnergySampleState,
 } from "@/features/energy/energy-telemetry";
+import {
+  energySeriesDisplayUnit,
+  energySeriesForMeters,
+  energySeriesSelectionKey,
+  normalizeEnergySeriesSelection,
+  type EnergySeriesSelection,
+} from "@/features/energy/energy-series-selection";
 import type { EnergyConsumptionLoader } from "@/features/energy/use-energy-consumption";
 import type { EnergyHistoryRange, EnergyTelemetryModel } from "@/hooks/use-energy-telemetry";
 import type { TelemetrySample } from "@/lib/telemetry/types";
@@ -38,6 +44,7 @@ import type { TelemetrySample } from "@/lib/telemetry/types";
 const HISTORY_RANGES: Array<{ value: EnergyHistoryRange; label: string }> = [
   { value: "1h", label: "1 год" },
   { value: "6h", label: "6 год" },
+  { value: "12h", label: "12 год" },
   { value: "24h", label: "24 год" },
   { value: "7d", label: "7 діб" },
 ];
@@ -235,63 +242,60 @@ function MeterCard({
 function HistoryPanel({
   telemetry,
   selectedUnitIds,
+  selectedPairs,
   visibilityRevision,
+  onApplyPairs,
 }: {
   telemetry: EnergyTelemetryModel;
   selectedUnitIds: readonly number[];
+  selectedPairs: readonly EnergySeriesSelection[];
   visibilityRevision: number;
+  onApplyPairs: (pairs: EnergySeriesSelection[]) => void;
 }) {
-  const definition = ENERGY_METRICS.find((metric) => metric.id === telemetry.selectedMetric)!;
-  const hasSelectedHistory = telemetry.historySamples.some((sample) => {
-    const meter = resolveEnergyMeter(sample);
-    return (
-      sample.metric === telemetry.selectedMetric &&
-      meter !== null &&
-      selectedUnitIds.includes(meter.unitId) &&
-      sample.quality === "valid" &&
-      sample.value !== null &&
-      Number.isFinite(sample.value)
-    );
-  });
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const visiblePairs = selectedPairs.filter((pair) => selectedUnitIds.includes(pair.unitId));
+  const validPairKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const sample of telemetry.historySamples) {
+      const meter = resolveEnergyMeter(sample);
+      if (meter && sample.quality === "valid" && sample.value !== null && Number.isFinite(sample.value)) {
+        keys.add(`${meter.unitId}:${sample.metric}`);
+      }
+    }
+    return keys;
+  }, [telemetry.historySamples]);
+  const missingPairs = visiblePairs.filter((pair) => !validPairKeys.has(energySeriesSelectionKey(pair)));
+  const hasSelectedHistory = missingPairs.length < visiblePairs.length;
+  const pairLabel = (pair: EnergySeriesSelection) =>
+    `${ENERGY_METERS.find((meter) => meter.unitId === pair.unitId)?.label} · ${ENERGY_METRICS.find((metric) => metric.id === pair.metric)?.label}`;
 
   return (
-    <section className="rounded-2xl border border-white/[0.065] bg-[#091d39]/80 p-4 sm:p-5">
+    <section className="min-w-0 rounded-2xl border border-white/[0.065] bg-[#091d39]/80 p-4 sm:p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <p className="text-[10px] tracking-[0.16em] text-cyan-300 uppercase">PostgreSQL history</p>
+        <div className="min-w-0">
+          <p className="text-[10px] tracking-[0.16em] text-cyan-300 uppercase">Історія вимірювань</p>
           <h2 className="mt-1 text-lg font-semibold text-white">Порівняння лічильників</h2>
           <p className="mt-1 text-[11px] text-slate-500">
-            {definition.label} · {selectedUnitIds.length} вибрано · {telemetry.historySamples.length} записів
+            {selectedUnitIds.length} вибрано · {visiblePairs.length} серій · {telemetry.historySamples.length}{" "}
+            точок для відображення
           </p>
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          <label className="grid gap-1 text-[9px] tracking-[0.12em] text-slate-500 uppercase">
-            Показник
-            <select
-              value={telemetry.selectedMetric}
-              onChange={(event) => telemetry.setSelectedMetric(event.target.value as EnergyMetricId)}
-              className="min-w-56 rounded-xl border border-white/10 bg-[#07182f] px-3 py-2 text-[11px] text-slate-100 outline-none focus:border-cyan-300/40"
-            >
-              {OPERATOR_ENERGY_METRICS.map((metric) => (
-                <option key={metric.id} value={metric.id}>
-                  {metric.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="flex items-end gap-1" aria-label="Період історії">
+        <div className="flex min-w-0 flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setSelectorOpen(true)}
+            className="min-h-10 rounded-xl border border-cyan-300/25 bg-cyan-400/10 px-3 text-xs text-cyan-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
+          >
+            + Додати параметр
+          </button>
+          <div className="flex flex-wrap items-end gap-1" aria-label="Період історії">
             {HISTORY_RANGES.map((range) => (
               <button
                 key={range.value}
                 type="button"
                 onClick={() => telemetry.setHistoryRange(range.value)}
                 aria-pressed={telemetry.historyRange === range.value}
-                className={`rounded-xl border px-3 py-2 text-[10px] transition ${
-                  telemetry.historyRange === range.value
-                    ? "border-blue-400/35 bg-blue-500/15 text-blue-200"
-                    : "border-white/[0.07] text-slate-500 hover:text-slate-200"
-                }`}
+                className={`min-h-10 rounded-xl border px-3 py-2 text-[10px] transition ${telemetry.historyRange === range.value ? "border-blue-400/35 bg-blue-500/15 text-blue-200" : "border-white/[0.07] text-slate-500 hover:text-slate-200"}`}
               >
                 {range.label}
               </button>
@@ -299,49 +303,86 @@ function HistoryPanel({
           </div>
         </div>
       </div>
-
+      <div className="mt-4 flex flex-wrap gap-2" aria-label="Вибрані параметри графіка">
+        {visiblePairs.map((pair) => {
+          const metric = ENERGY_METRICS.find((item) => item.id === pair.metric)!;
+          const meter = ENERGY_METERS.find((item) => item.unitId === pair.unitId)!;
+          return (
+            <button
+              key={energySeriesSelectionKey(pair)}
+              type="button"
+              aria-label={`Прибрати ${pairLabel(pair)}`}
+              onClick={() =>
+                onApplyPairs(
+                  selectedPairs.filter(
+                    (item) => energySeriesSelectionKey(item) !== energySeriesSelectionKey(pair),
+                  ),
+                )
+              }
+              className="min-h-10 max-w-full rounded-xl border border-white/10 px-3 text-xs text-slate-300 focus-visible:outline-2 focus-visible:outline-cyan-300"
+            >
+              {meter.label} · {metric.shortLabel}, {energySeriesDisplayUnit(pair.metric)}{" "}
+              <span aria-hidden="true">×</span>
+            </button>
+          );
+        })}
+      </div>
       {telemetry.historyStatus === "loading" ? (
-        <div className="grid min-h-64 place-items-center text-center">
-          <div>
-            <LoaderCircle className="mx-auto h-6 w-6 animate-spin text-cyan-300" />
-            <p className="mt-3 text-[11px] text-slate-400">Завантаження історії…</p>
-          </div>
-        </div>
-      ) : telemetry.historyStatus === "error" ? (
-        <div className="mt-5 flex min-h-48 flex-col items-center justify-center rounded-2xl border border-amber-300/15 bg-amber-400/[0.035] p-5 text-center">
-          <AlertTriangle className="h-6 w-6 text-amber-300" />
-          <p className="mt-3 text-sm font-medium text-amber-100">Не вдалося завантажити історію</p>
-          <p className="mt-1 max-w-xl text-[11px] text-amber-100/65">
-            {telemetry.historyError?.message ?? "Telemetry history API повернув помилку."}
-          </p>
+        <p role="status" className="mt-4 flex items-center gap-2 text-xs text-slate-400">
+          <LoaderCircle className="h-4 w-4 animate-spin text-cyan-300" />
+          Завантаження історії…
+        </p>
+      ) : null}
+      {telemetry.historyError ? (
+        <div
+          role="alert"
+          className="mt-4 rounded-xl border border-amber-300/20 bg-amber-400/[0.04] p-3 text-xs text-amber-100"
+        >
+          <p>{telemetry.historyError.message}</p>
           <button
             type="button"
             onClick={telemetry.retryHistory}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-amber-300/20 px-3 py-2 text-[10px] text-amber-100"
+            className="mt-3 min-h-10 rounded-xl border border-amber-300/20 px-3 text-xs"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
-            Повторити
+            Повторити завантаження історії
           </button>
         </div>
-      ) : !hasSelectedHistory ? (
-        <div className="mt-5 grid min-h-48 place-items-center rounded-2xl border border-dashed border-white/[0.08] text-center">
-          <div>
-            <Database className="mx-auto h-6 w-6 text-slate-600" />
-            <p className="mt-3 text-[11px] text-slate-400">Історії для вибраного показника ще немає.</p>
-            <p className="mt-1 text-[10px] text-slate-600">
-              Це чесний empty state, а не підміна demo-даними.
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-5">
+      ) : null}
+      {visiblePairs.length === 0 ? (
+        <p className="mt-5 rounded-xl border border-dashed border-white/10 p-5 text-sm text-slate-400">
+          Додайте параметри для порівняння.
+        </p>
+      ) : null}
+      {visiblePairs.length > 0 &&
+      !hasSelectedHistory &&
+      telemetry.historyStatus !== "loading" &&
+      telemetry.historyStatus !== "error" ? (
+        <p className="mt-5 rounded-xl border border-dashed border-white/10 p-5 text-sm text-slate-400">
+          Збереженої історії для вибраних параметрів немає.
+        </p>
+      ) : null}
+      {hasSelectedHistory && missingPairs.length > 0 && telemetry.historyStatus !== "loading" ? (
+        <p className="mt-3 text-xs text-slate-400">
+          Немає валідних вимірювань: {missingPairs.map(pairLabel).join(", ")}.
+        </p>
+      ) : null}
+      {visiblePairs.length > 0 ? (
+        <div className={`mt-5 ${hasSelectedHistory ? "" : "hidden"}`}>
           <EnergyHistoryChart
             telemetry={telemetry}
             selectedUnitIds={selectedUnitIds}
+            selectedPairs={selectedPairs}
             visibilityRevision={visibilityRevision}
           />
         </div>
-      )}
+      ) : null}
+      {selectorOpen ? (
+        <EnergyParameterDialog
+          selected={visiblePairs}
+          onApply={onApplyPairs}
+          onClose={() => setSelectorOpen(false)}
+        />
+      ) : null}
     </section>
   );
 }
@@ -357,9 +398,38 @@ export function EnergyWorkspace({
     ENERGY_METERS.map((meter) => meter.unitId),
   );
 
+  const [selectedPairs, setSelectedPairs] = useState<EnergySeriesSelection[]>(() =>
+    energySeriesForMeters(
+      ENERGY_METERS.map((meter) => meter.unitId),
+      telemetry.selectedMetrics,
+    ),
+  );
+  const applyPairs = (pairs: EnergySeriesSelection[]) => {
+    const next = normalizeEnergySeriesSelection(pairs);
+    setSelectedPairs(next);
+    setVisibilityRevision((current) => current + 1);
+    telemetry.setSelectedMetrics([...new Set(next.map((pair) => pair.metric))]);
+    if (next.length > 0)
+      setSelectedUnitIds((current) =>
+        ENERGY_METERS.filter(
+          (meter) => current.includes(meter.unitId) || next.some((pair) => pair.unitId === meter.unitId),
+        ).map((meter) => meter.unitId),
+      );
+  };
+  const ensureMeterPairs = (unitId: number) =>
+    setSelectedPairs((current) =>
+      current.some((pair) => pair.unitId === unitId)
+        ? current
+        : normalizeEnergySeriesSelection([
+            ...current,
+            ...energySeriesForMeters([unitId], telemetry.selectedMetrics),
+          ]),
+    );
+
   const [visibilityRevision, setVisibilityRevision] = useState(0);
 
   const toggleMeter = (unitId: number) => {
+    if (!selectedUnitIds.includes(unitId)) ensureMeterPairs(unitId);
     setSelectedUnitIds((current) => {
       if (current.includes(unitId)) {
         return current.length === 1 ? current : current.filter((item) => item !== unitId);
@@ -423,6 +493,7 @@ export function EnergyWorkspace({
             consumption={consumption}
             onToggle={() => toggleMeter(meter.unitId)}
             onSelectOnly={() => {
+              ensureMeterPairs(meter.unitId);
               setSelectedUnitIds([meter.unitId]);
               setVisibilityRevision((current) => current + 1);
             }}
@@ -483,6 +554,8 @@ export function EnergyWorkspace({
         telemetry={telemetry}
         selectedUnitIds={selectedUnitIds}
         visibilityRevision={visibilityRevision}
+        selectedPairs={selectedPairs}
+        onApplyPairs={applyPairs}
       />
 
       <section className="grid gap-3 xl:grid-cols-[1fr_360px]">

@@ -495,10 +495,11 @@ export async function loadCompleteEnergyHistory(
   window: EnergyHistoryWindow,
   signal?: AbortSignal,
   cadenceAuthority: EnergyCadenceAuthority | null = null,
+  initialSnapshotAt?: string,
 ): Promise<TelemetrySample[]> {
   const samples = new Map<string, TelemetrySample>();
   let cursorTo = new Date(window.to);
-  let snapshotAt: string | undefined;
+  let snapshotAt = initialSnapshotAt;
 
   for (let page = 0; page < MAX_HISTORY_PAGES; page += 1) {
     const response = await adapter.history(

@@ -47,6 +47,16 @@ async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
   return context;
 }
 
+async function selectEnergyPairs(page: Page, labels: readonly string[]): Promise<void> {
+  await page.getByRole("button", { name: "+ Додати параметр" }).click();
+  const dialog = page.getByRole("dialog", { name: "Параметри на графіку" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Очистити вибір" }).click();
+  for (const label of labels) await dialog.getByRole("checkbox", { name: label, exact: true }).check();
+  await dialog.getByRole("button", { name: "Застосувати", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+}
+
 function publishEnergySample(unitId: number, sample: EnergyMetric): void {
   const sdm120 = unitId === 1;
   const payload = JSON.stringify({
@@ -260,6 +270,13 @@ function seedEnergyEvidence(): void {
     rawValue: 955,
     capturedAt: history(1),
   });
+  for (const metric of [
+    { metric: "electrical.frequency", suffix: "frequency", value: 50, unit: "Hz", rawValue: 5000 },
+    { metric: "electrical.power.reactive", suffix: "reactive-power", value: 40, unit: "var", rawValue: 40 },
+    { metric: "electrical.power.apparent", suffix: "apparent-power", value: 745, unit: "VA", rawValue: 745 },
+    { metric: "temperature.internal", suffix: "internal-temperature", value: 31, unit: "degC", rawValue: 31 },
+  ])
+    publishEnergySample(200, { ...metric, capturedAt: history(1) });
 }
 
 async function readAcquisitionMetrics(): Promise<AcquisitionMetrics> {
@@ -323,12 +340,8 @@ test("renders selectable heterogeneous energy meters from verified cumulative bo
     const chart = page.getByTestId("energy-history-chart");
     const plot = chart.getByRole("application", { name: "Interactive telemetry plot" });
     await expect(plot).toBeVisible();
-    await expect(chart.getByText("W · canonical persisted history", { exact: true })).toBeVisible();
-    await expect(
-      page.getByRole("combobox", { name: "Показник" }).getByRole("option", {
-        name: "Накопичена активна енергія",
-      }),
-    ).toHaveCount(0);
+    await expect(chart.getByText("W · Збережена історія", { exact: true })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Показник" })).toHaveCount(0);
     await expect.poll(() => cumulativeHistoryReads(requests)).toBe(1);
 
     const noHorizontalOverflow = async () =>
@@ -340,7 +353,9 @@ test("renders selectable heterogeneous energy meters from verified cumulative bo
 
     await plot.focus();
     await plot.press("Home");
-    await expect(chart.getByTestId("chart-inspector")).toContainText("W1 · LE01MP-200 · 200-active-power");
+    await expect(chart.getByTestId("chart-inspector")).toContainText(
+      "W1 · Активна потужність · LE01MP-200 · 200-active-power",
+    );
     await expect(chart.getByTestId("chart-inspector")).toContainText("615 W");
     await plot.press("End");
 
@@ -349,14 +364,24 @@ test("renders selectable heterogeneous energy meters from verified cumulative bo
     await expect(range7d).toHaveAttribute("aria-pressed", "true");
     await expect(chart.getByText(/7d ·/)).toBeVisible();
 
-    await page.getByRole("combobox", { name: "Показник" }).selectOption("electrical.voltage");
-    await expect(chart.getByText("V · canonical persisted history", { exact: true })).toBeVisible();
+    await selectEnergyPairs(page, [
+      "W1 · Активна потужність",
+      "W1 · Напруга",
+      "W1 · Струм",
+      "SDM120M · Напруга",
+    ]);
+    await expect(chart.getByText("W / V / A · Збережена історія", { exact: true })).toBeVisible();
+    await expect(chart.getByTestId("chart-accessible-summary")).toContainText("Осей 3");
+    await plot.focus();
+    await plot.press("End");
+    await expect(chart.getByTestId("chart-inspector")).toContainText("230.1 V");
+    await expect(chart.getByTestId("chart-inspector")).toContainText("3.1 A");
     await expect(chart.getByText(/Напруга/).first()).toBeVisible();
 
-    const legend = chart.getByLabel("Chart legend");
-    await legend.getByRole("button", { name: "Hide" }).first().click();
-    await legend.getByRole("button", { name: "Solo" }).first().click();
-    await chart.getByRole("button", { name: "Reset zoom" }).click();
+    const legend = chart.getByLabel("Легенда графіка");
+    await legend.getByRole("button", { name: "Приховати" }).first().click();
+    await legend.getByRole("button", { name: "Лише цей" }).first().click();
+    await chart.getByRole("button", { name: "Скинути масштаб" }).click();
 
     await page.setViewportSize({ width: 1920, height: 1080 });
     await expect(plot).toBeVisible();
@@ -423,23 +448,26 @@ test("energy comparison explains the final meter and supports keyboard-only sele
   try {
     await page.goto("/energy", { waitUntil: "domcontentloaded" });
     await expect(page.getByRole("heading", { name: "Енергомоніторинг" })).toBeVisible();
-    await page.getByRole("combobox", { name: "Показник" }).selectOption("electrical.voltage");
+    await selectEnergyPairs(
+      page,
+      ["W1", "W2", "W3", "W4", "SDM120M"].map((meter) => `${meter} · Напруга`),
+    );
     await page.getByRole("button", { name: "7 діб" }).click();
-    const legend = page.getByTestId("energy-history-chart").getByLabel("Chart legend");
-    await expect(legend.getByRole("button", { name: "Solo" }).first()).toBeVisible();
-    await legend.getByRole("button", { name: "Solo" }).first().click();
+    const legend = page.getByTestId("energy-history-chart").getByLabel("Легенда графіка");
+    await expect(legend.getByRole("button", { name: "Лише цей" }).first()).toBeVisible();
+    await legend.getByRole("button", { name: "Лише цей" }).first().click();
     const before = await readAcquisitionMetrics();
     for (const width of [320, 390, 1280, 1536, 1920]) {
       await page.setViewportSize({ width, height: 900 });
       const only = page.getByRole("button", { name: "Показати лише лічильник SDM120M" });
       await only.focus();
       await page.keyboard.press("Enter");
-      await expect(legend.getByRole("button", { name: "Hide", exact: true })).toHaveCount(1);
-      await expect(legend.getByRole("button", { name: "Show", exact: true })).toHaveCount(0);
-      await legend.getByRole("button", { name: "Hide", exact: true }).click();
-      await expect(legend.getByRole("button", { name: "Show", exact: true })).toHaveCount(1);
+      await expect(legend.getByRole("button", { name: "Приховати", exact: true })).toHaveCount(1);
+      await expect(legend.getByRole("button", { name: "Показати", exact: true })).toHaveCount(0);
+      await legend.getByRole("button", { name: "Приховати", exact: true }).click();
+      await expect(legend.getByRole("button", { name: "Показати", exact: true })).toHaveCount(1);
       await only.click();
-      await expect(legend.getByRole("button", { name: "Hide", exact: true })).toHaveCount(1);
+      await expect(legend.getByRole("button", { name: "Приховати", exact: true })).toHaveCount(1);
       const finalToggle = page.getByRole("button", { name: "Виключити лічильник SDM120M з порівняння" });
       await expect(finalToggle).toBeDisabled();
       await expect(finalToggle).toHaveAccessibleDescription(/Для порівняння потрібен хоча б один лічильник/);
@@ -454,13 +482,118 @@ test("energy comparison explains the final meter and supports keyboard-only sele
           elements.every((element) => element.scrollWidth <= element.clientWidth),
         ),
       ).toBe(true);
-      await expect(page.getByRole("combobox", { name: "Показник" })).toHaveValue("electrical.voltage");
+      await expect(page.getByLabel("Вибрані параметри графіка")).toContainText("U, V");
       await expect(page.getByRole("button", { name: "7 діб" })).toHaveAttribute("aria-pressed", "true");
     }
     expect(acquisitionServiceCounters(await readAcquisitionMetrics())).toEqual(
       acquisitionServiceCounters(before),
     );
     expect(mutations).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
+test("energy nine-axis selection synchronizes panels, preserves zoom and traps modal focus on mobile", async ({
+  browser,
+}) => {
+  const context = await authenticatedContext(browser);
+  const page = await context.newPage();
+  let activeSockets = 0;
+  let maximumSockets = 0;
+  page.on("websocket", (socket) => {
+    activeSockets++;
+    maximumSockets = Math.max(maximumSockets, activeSockets);
+    socket.on("close", () => {
+      activeSockets--;
+    });
+  });
+  try {
+    await page.goto("/energy", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("energy-history-chart")).toBeVisible();
+    await page.getByRole("button", { name: "1 год", exact: true }).click();
+    const labels = [
+      "Активна потужність",
+      "Накопичена активна енергія",
+      "Напруга",
+      "Струм",
+      "Частота",
+      "Реактивна потужність",
+      "Повна потужність",
+      "Коефіцієнт потужності",
+      "Температура лічильника",
+    ].map((metric) => `W1 · ${metric}`);
+    await selectEnergyPairs(page, labels);
+    const chart = page.getByTestId("energy-history-chart");
+    const hosts = chart.getByTestId("chart-renderer-host");
+    await expect(hosts).toHaveCount(2);
+    await expect(chart.getByRole("button", { name: "Приховати", exact: true })).toHaveCount(9);
+    const domains = () =>
+      hosts.evaluateAll((elements) =>
+        elements.map((host) => ({
+          from: Number(host.getAttribute("data-chart-x-domain-from-ms")),
+          to: Number(host.getAttribute("data-chart-x-domain-to-ms")),
+        })),
+      );
+    const original = await domains();
+    expect(original[0]).toEqual(original[1]);
+    await hosts.first().scrollIntoViewIfNeeded();
+    const bounds = await hosts.first().boundingBox();
+    if (!bounds) throw new Error("Energy plot bounds unavailable");
+    await page.mouse.move(bounds.x + bounds.width * 0.6, bounds.y + bounds.height * 0.5);
+    await page.mouse.wheel(0, -600);
+    await expect
+      .poll(async () => (await domains())[0].to - (await domains())[0].from)
+      .toBeLessThan(original[0].to - original[0].from);
+    const zoomed = await domains();
+    expect(zoomed[0]).toEqual(zoomed[1]);
+    await page.getByRole("button", { name: "Прибрати W1 · Частота" }).click();
+    await expect(chart.getByRole("button", { name: "Приховати", exact: true })).toHaveCount(8);
+    expect((await domains())[0]).toEqual(zoomed[0]);
+    await hosts.first().focus();
+    await hosts.first().press("End");
+    const inspectors = chart.getByTestId("chart-inspector");
+    await expect(inspectors).toHaveCount(2);
+    const cursorTimes = await inspectors
+      .locator('[data-testid="chart-inspector-timestamp"]')
+      .allTextContents();
+    expect(cursorTimes).toHaveLength(2);
+    expect(cursorTimes[0]).toEqual(cursorTimes[1]);
+    await chart.getByRole("button", { name: "Скинути масштаб" }).first().click();
+    await expect
+      .poll(async () => (await domains())[0].to - (await domains())[0].from)
+      .toBeGreaterThan(zoomed[0].to - zoomed[0].from);
+    const reset = await domains();
+    expect(reset[0]).toEqual(reset[1]);
+
+    for (const width of [390, 768, 1440, 1920]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.getByRole("button", { name: "+ Додати параметр" }).click();
+      const dialog = page.getByRole("dialog", { name: "Параметри на графіку" });
+      await expect(dialog.getByRole("checkbox", { name: "SDM120M · Температура лічильника" })).toBeDisabled();
+      const first = dialog.getByRole("button", { name: "Закрити вибір параметрів" });
+      const last = dialog.getByRole("button", { name: "Застосувати", exact: true });
+      await first.focus();
+      await page.keyboard.press("Shift+Tab");
+      await expect(last).toBeFocused();
+      await page.keyboard.press("Tab");
+      await expect(first).toBeFocused();
+      await expect
+        .poll(() =>
+          page.evaluate(
+            () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+          ),
+        )
+        .toBe(true);
+      await page.keyboard.press("Escape");
+      await expect(dialog).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "+ Додати параметр" })).toBeFocused();
+      await page.screenshot({
+        path: path.join(evidenceDirectory, `energy-1362-${width}.png`),
+        fullPage: true,
+      });
+    }
+    expect(maximumSockets).toBe(1);
   } finally {
     await context.close();
   }

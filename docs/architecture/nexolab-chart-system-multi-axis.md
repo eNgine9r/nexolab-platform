@@ -77,3 +77,30 @@ Required evidence for the Work Package is:
 5. production browser acceptance with a seeded mixed-unit equipment context, shared cursor, hide/show/solo and narrow/1440/1920 overflow checks;
 6. full CI, Authenticated Dashboard acquisition invariant and disconnected Offline Bundle on the exact PR head;
 7. separate Raspberry Pi operator evidence classification; software verification does not imply physical hardware acceptance.
+
+## Energy comparison workspace — Issue1362 candidate
+
+Energy uses explicit supported meter/metric pairs across equipment within one
+logical chart workspace. Canonical identities retain node/equipment/channel/
+metric/native unit; display names lead with meter and parameter so the legend is
+readable. Energy-scoped legend layout keeps actions below the label without
+changing ChartShell or other chart routes. Counters remain cumulative series.
+
+The existing partition helper limits each desktop/tablet scene to five native
+axis groups; below768px the Energy workspace reduces this to three. All panels
+share the cursor and absolute viewport. Selection changes retain the viewport;
+range changes and Reset restore the rolling requested window. Applying parameter
+changes clears stale Hide/Solo overrides without changing zoom. Hidden/solo keys
+remain canonical, and repeated meter-only selection clears visibility overrides.
+
+History orchestration retains per-metric security/node/range/cadence caches and
+independent live quality-break state. At most two history reads run concurrently;
+all selected metrics share the first accepted ingestion watermark. Missing or
+failed metrics are not cached as successful history or interpolated. Changing
+selection aborts old reads and retains valid same-scope cached series while loading.
+The authenticated WebSocket count and physical acquisition remain unchanged.
+
+This chart data remains reduced presentation history. Full CSV/XLSX source reads
+are a separate1363 export contract and must never reuse reduced chart points.
+Local fixture UI evidence is distinct from required persisted browser/API CI and
+actual Raspberry Pi/operator evidence. No production rollout is implied.
