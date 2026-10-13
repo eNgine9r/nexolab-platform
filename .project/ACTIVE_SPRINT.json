@@ -42,15 +42,8 @@
     "protected_frontend_build_id": "mcG0fHLcpCeVbTX--85gF"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1354,
-      "reason": "critical shared-lock permission repair; detailed device report is outside this source-only review"
-    },
-    "next_work_package": {
-      "issue": 1354,
-      "title": "Owner-local UID10001 rehearsal, guarded repair and actual administrator manual check",
-      "branch": "fix/1354-update-plane-lock-ownership"
-    }
+    "active_work_package": null,
+    "next_work_package": null
   },
   "work_packages": [
     {
@@ -8056,7 +8049,7 @@
       "title": "Repair shared update-plane lock ownership after native package handoff",
       "branch": "fix/1354-update-plane-lock-ownership",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1353
       ],
@@ -8070,13 +8063,66 @@
         "frontend_tests": "1195 passed plus lint-staged regressions",
         "full_local_runtime_contract": "not passed; existing UID/proc namespace failures reproduced on unchanged main",
         "backend_api_module": "not collected; JWT test dependency unavailable",
-        "exact_head_ci": "pending",
-        "owner_local_UID10001_and_actual_repair": "pending",
-        "actual_UI_manual_check": "pending",
-        "runtime_mutation": "none",
+        "exact_head_ci": {
+          "status": "all_6_succeeded",
+          "runs": {
+            "CI": 38409079264,
+            "Offline Bundle": 38409079271,
+            "Telemetry service": 38409079002,
+            "Telegram Gateway": 38409079470,
+            "Authenticated Dashboard Acceptance": 38409080442,
+            "Refrigeration Browser Acceptance": 38409078744
+          },
+          "merge_gate_job": 115345644050
+        },
+        "owner_local_UID10001_and_actual_repair": "passed; all 16 real UID10001 rehearsal tests passed without skips; same-inode guarded repair and API lock access verified",
+        "actual_UI_manual_check": {
+          "status": "completed_without_HTTP500",
+          "role": "administrator",
+          "browser": "Chromium",
+          "result": "newer_GREEN_main_revision_found",
+          "activation_gate": "no_matching_validated_local_package",
+          "current_package_retained": true,
+          "automatic_activation": false
+        },
+        "runtime_mutation": "owner-local shared-lock ownership/mode only; canonical current/history/policy evidence unchanged; no package activation, service restart, database restore, volume deletion or controller write",
         "production_build": "passed; Next production build with local dependencies",
         "review_corrections": "existing-lock repairs require exact-current authority; existing correct lock no-op; UID proof forks without private-interpreter exec",
-        "ci_registration_checks": "113 passed; 87 subtests; exact helper paths registered; unknown neighboring tools and full classifier-change gates preserved"
+        "ci_registration_checks": "113 passed; 87 subtests; exact helper paths registered; unknown neighboring tools and full classifier-change gates preserved",
+        "verified_head_sha": "785bb1e1f5d8a7f66bef456d8a335e4b060e564a",
+        "source_review": {
+          "status": "accepted",
+          "review_at": "2026-10-13T14:01:03Z",
+          "unresolved_threads": 0
+        },
+        "dashboard_retry": {
+          "full_cases_passed": 39,
+          "first_failure_preserved": true,
+          "follow_up_backlog_issue": 1356
+        },
+        "owner_action": {
+          "status": "executed_successfully_do_not_replay",
+          "sha256": "d38651b5ef54c7d9b36ff41aabf983507f5596c10b4ac922b80739dcb02c3dba",
+          "privilege_boundary": "owner_local_Root_only",
+          "recorded_at": "2026-10-13T15:49:21.105076+00:00"
+        },
+        "source_pull_request": 1355
+      }
+    },
+    {
+      "issue": 1357,
+      "title": "Record completed shared-lock repair and manual-check acceptance",
+      "branch": "state/1357-lock-repair-acceptance",
+      "priority": "critical",
+      "lifecycle": "completed",
+      "depends_on": [
+        1354
+      ],
+      "scope": "Material canonical operational acceptance checkpoint only; detailed device report1353 remains separate; no product/runtime source or operational change.",
+      "evidence": {
+        "source_acceptance_issue": 1354,
+        "source_pull_request": 1355,
+        "verification_policy": "canonical state-only integrity and merge gate required before publication acceptance"
       }
     }
   ],
@@ -9390,6 +9436,18 @@
         "predecessor_merge_sha": "32b17307eb3e8e2265547fbff37b3ba5a73501b8",
         "predecessor_required_ci": "GREEN; 38161744581 / 38161744540 / 38161744488",
         "current_fix_required_ci": "pending"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-13T16:02:06.655286+00:00",
+      "kind": "shared_lock_source_merge",
+      "data": {
+        "issue": 1354,
+        "pull_request": 1355,
+        "verified_head_sha": "785bb1e1f5d8a7f66bef456d8a335e4b060e564a",
+        "merge_sha": "d9fb4710bfd67d4c3a4b68b3629fcba5dacfd210",
+        "issue_state": "closed"
       }
     }
   ],

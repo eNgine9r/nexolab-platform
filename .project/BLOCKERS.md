@@ -1,29 +1,16 @@
-## #1354 — shared update-plane lock repair awaiting owner-local acceptance
+## #1354 — lock and manual-check blocker resolved
 
-The reported native update and rollback succeeded. Their detailed device
-acceptance report remains in a separate local checkpoint under #1353; it is not
-republished here. The current packaged baseline remains unchanged. Historical
-pending native commands and failures below are superseded for continuation and
-must not be replayed.
+The guarded owner-local repair and all16 real UID10001 tests passed without skips;
+the shared inode and canonical runtime/history/policy evidence were preserved.
+Actual Chromium administrator manual check completed without HTTP500. It found a
+GREEN remote revision; missing matching validated local package correctly blocks
+activation. Automatic activation remains OFF and current C296 remains retained.
+The repair owner action is consumed and must not be replayed.
 
-The API manual-check failure is isolated to shared-lock ownership. The candidate
-prepares the same inode for UID/GID 10001 at mode 0640. Existing correct locks are read-only no-ops; all existing permission repairs require exact current authority. It refuses busy worker,
-update-plane or native queue locks, queued requests, unsafe files and stale
-current authority. Queues are checked while held locks prevent new requests.
-Future offline bundles include the bootstrap helper; existing images/packages
-are not rebuilt or activated.
-
-Local helper/version-manager checks: 98 passed, one unmapped-UID skip. The
-arriving-request regression was proved failing before the locking correction.
-Two real independent processes proved serialization in both directions.
-Frontend lint/typecheck, production build and 1195 tests passed. Broader local orchestrator checks
-and process-cleanup checks hit existing UID/proc namespace limits, reproduced
-on unchanged main. API module collection also lacks its JWT test dependency.
-These limits are not GREEN acceptance; exact-head CI and owner-local real
-UID10001 rehearsal, guarded repair and actual manual-check UI remain required.
-CI path registration adds only the known helper/test to version-manager and offline workflow contracts. 113 CI policy/offline tests and 87 subtests passed; classifier-change browser gates remain required.
-Automatic activation remains OFF. No runtime, database, volume or hardware write
-has been performed by this candidate. No independent Ready Work Package exists.
+Detailed native report1353 publication still requires separate authorization;
+no detailed device report or browser/session data is included here. Backlog1356
+is not Ready. No independent Ready Work Package exists. Historical blockers below
+remain evidence, not instructions to repeat already completed operations.
 
 ## #1351 — actual native migration lineage gate blocked
 

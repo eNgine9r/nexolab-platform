@@ -1,29 +1,31 @@
-## #1354 — shared update-plane lock repair awaiting owner-local acceptance
+## #1354 — shared-lock repair and actual manual check accepted
 
-The reported native update and rollback succeeded. Their detailed device
-acceptance report remains in a separate local checkpoint under #1353; it is not
-republished here. The current packaged baseline remains unchanged. Historical
-pending native commands and failures below are superseded for continuation and
-must not be replayed.
+The owner executed the reviewed, checksum-bound repair. All 16 real UID10001
+rehearsal tests passed without skips, API lock access passed, and the existing
+shared-lock inode was retained. Canonical current/history/policy evidence stayed
+unchanged. The consumed owner action must not be replayed.
 
-The API manual-check failure is isolated to shared-lock ownership. The candidate
-prepares the same inode for UID/GID 10001 at mode 0640. Existing correct locks are read-only no-ops; all existing permission repairs require exact current authority. It refuses busy worker,
-update-plane or native queue locks, queued requests, unsafe files and stale
-current authority. Queues are checked while held locks prevent new requests.
-Future offline bundles include the bootstrap helper; existing images/packages
-are not rebuilt or activated.
+Actual Chromium administrator manual check completed without HTTP 500. It found
+a newer GREEN main revision and explicitly blocked activation because no matching
+validated local package exists. The current C296 package remains ready/known;
+automatic activation remains OFF. No image rebuild, package activation, service
+restart, database restore, volume deletion or controller write was needed.
 
-Local helper/version-manager checks: 98 passed, one unmapped-UID skip. The
-arriving-request regression was proved failing before the locking correction.
-Two real independent processes proved serialization in both directions.
-Frontend lint/typecheck, production build and 1195 tests passed. Broader local orchestrator checks
-and process-cleanup checks hit existing UID/proc namespace limits, reproduced
-on unchanged main. API module collection also lacks its JWT test dependency.
-These limits are not GREEN acceptance; exact-head CI and owner-local real
-UID10001 rehearsal, guarded repair and actual manual-check UI remain required.
-CI path registration adds only the known helper/test to version-manager and offline workflow contracts. 113 CI policy/offline tests and 87 subtests passed; classifier-change browser gates remain required.
-Automatic activation remains OFF. No runtime, database, volume or hardware write
-has been performed by this candidate. No independent Ready Work Package exists.
+Reviewed source 785bb1e passed all six workflows and Merge Gate115345644050.
+Final Codex review accepted with no unresolved threads. Local helper/manager
+checks passed98 with one unmapped-UID skip; that missing UID proof is now fulfilled
+by the actual owner-host16/16 rehearsal. CI policy/offline checks passed113 plus
+87 subtests; frontend lint/typecheck/build and1195 tests passed. Existing local
+UID/proc/JWT collection limits remain recorded and are not represented as passes.
+The first dashboard retry failure is retained under Backlog1356; full repeat39/39.
+Future bootstrap prepares the shared lock safely and includes the helper offline.
+
+Source PR1355 is merged and issue1354 closed. Material operational acceptance
+checkpoint1357 changes only canonical state and requires its state-integrity gate.
+Detailed native update/rollback evidence remains separate under1353, pending
+publication authorization. Historical pending native commands below are superseded
+and must not be replayed. Broader page1313 is not declared Done by this repair.
+No independent Ready Work Package exists.
 
 ## #1351 — native worker Git lineage correction in review
 
