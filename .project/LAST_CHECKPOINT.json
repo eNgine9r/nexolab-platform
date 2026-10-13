@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-13T05:06:00Z",
+  "timestamp": "2026-10-13T05:15:00Z",
   "actor": "ChatGPT",
-  "event": "1349_checkpoint_current_authority_synchronized_and_old_actions_historical",
+  "event": "1349_root_runtime_summary_consistent_with_current_packaged_authority",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -3113,5 +3113,5 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "v3 installed reviewed 20cd host tooling and staged both repaired catalog packages, created a canonical failed current handoff and recreated containers. Automatic source recovery restored C296 source frontends and ready backend; source current is ready/known with the failed handoff ID. Actual package authority was not committed; target activation, controller write and database restore are not claimed."
+  "runtime_mutation": "Canonical current package handoff succeeded at2026-10-12T13:05:59Z: C296 validated_package ready/known, current_last_operation_id null, transition source-to-packaged-20261012T124434Z-7a49b938a49c succeeded and PostgreSQL backup recorded. The preceding v3 failed handoff/source restoration is historical and preserved. Target remains catalog-only; no target activation, controller write or database restore occurred. Work1349 has changed repository candidates only; host filesystem correction, real namespace proof and native UI update/rollback remain pending."
 }
