@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-13T16:17:57.970738+00:00",
+  "timestamp": "2026-10-13T17:38:58.353164+00:00",
   "actor": "Codex",
-  "event": "owner_authorized_native_roundtrip_acceptance_publication",
+  "event": "operator_update_ready_reporting_rule_recorded",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -2394,6 +2394,31 @@
       },
       "hardware_evidence_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
       "verification_time_scope": "Historical native acceptance observed2026-10-13; publication does not repeat operations or claim a fresh runtime inspection."
+    },
+    "operator_update_readiness_signal_1360": {
+      "issue": 1360,
+      "rule": {
+        "requested_by": "product_owner",
+        "requested_at": "2026-10-13T20:35:56+03:00",
+        "green_final_line": "🟢 Оновлюйся",
+        "placement": "last line of the task completion report when the selected update is ready",
+        "required_before_green": [
+          "validated local package matching the selected revision and target device platform",
+          "required source-bound CI and review accepted",
+          "data preservation and backup protection confirmed",
+          "rollback path verified and available",
+          "reviewed guarded installation procedure ready",
+          "no unresolved installation or release gate"
+        ],
+        "not_ready_reporting": "withhold the green instruction and state the remaining blocker concisely",
+        "source_or_state_merge_alone_is_sufficient": false,
+        "automatic_activation_authorized": false,
+        "owner_local_root_boundary_retained": true
+      },
+      "current_status": "not_ready",
+      "blocker": "No matching validated local package for latest-main activation. A source/state PR merge alone does not permit the green update instruction.",
+      "current_package_retained": true,
+      "automatic_activation": false
     }
   },
   "observations": [
@@ -3421,7 +3446,7 @@
       }
     }
   ],
-  "next_action": "No independent Ready Work Package. Owner authorized detailed native report1353 publication; actual C296-to-DF update and DF-to-C296 rollback accepted, current C296 retained. Shared-lock/manual-check1354 and material checkpoint1357 completed. Do not replay consumed owner commands or native operations. Broader1313/1323 latest-main activation requires a matching validated local package and remains open;1356 remains Backlog.",
+  "next_action": "Use the required final line 🟢 Оновлюйся only after a selected matching local package, required CI/review, data protection, rollback and guarded installation gates are all ready. Current latest-main package remains not_ready under1313/1323; no independent ReadyWP. Retain accepted native1353 and lock/manual-check1354 evidence, current C296 and automatic activationOFF;1356Backlog. Do not replay consumed owner commands/native operations.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

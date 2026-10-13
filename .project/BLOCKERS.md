@@ -1,3 +1,11 @@
+## Operator update signal — current readiness blocker
+
+The reporting rule1360 is recorded. Current latest-main activation remains
+blocked by the missing matching validated local package. Do not append the green
+update instruction until package, CI/review, data protection, rollback and guarded
+installation gates are ready. Completing a source/state task alone does not make
+an update ready. Automatic activation remains OFF; current C296 is retained.
+
 ## #1353 — native acceptance publication blocker removed
 
 The product owner authorized the GitHub report on2026-10-13. Actual native LAN

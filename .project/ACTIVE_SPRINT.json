@@ -15,7 +15,25 @@
     "skip_blocked_tasks": true,
     "stop_on_hard_blocker": true,
     "max_parallel_implementation_tasks": 1,
-    "verification_policy": "proportional_to_changed_product_surface"
+    "verification_policy": "proportional_to_changed_product_surface",
+    "operator_update_readiness_signal": {
+      "requested_by": "product_owner",
+      "requested_at": "2026-10-13T20:35:56+03:00",
+      "green_final_line": "🟢 Оновлюйся",
+      "placement": "last line of the task completion report when the selected update is ready",
+      "required_before_green": [
+        "validated local package matching the selected revision and target device platform",
+        "required source-bound CI and review accepted",
+        "data preservation and backup protection confirmed",
+        "rollback path verified and available",
+        "reviewed guarded installation procedure ready",
+        "no unresolved installation or release gate"
+      ],
+      "not_ready_reporting": "withhold the green instruction and state the remaining blocker concisely",
+      "source_or_state_merge_alone_is_sufficient": false,
+      "automatic_activation_authorized": false,
+      "owner_local_root_boundary_retained": true
+    }
   },
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -8339,6 +8357,21 @@
         "source_acceptance_issue": 1354,
         "source_pull_request": 1355,
         "verification_policy": "canonical state-only integrity and merge gate required before publication acceptance"
+      }
+    },
+    {
+      "issue": 1360,
+      "title": "Record the operator update-ready signal in completion reports",
+      "branch": "state/1360-operator-update-signal",
+      "priority": "normal",
+      "lifecycle": "completed",
+      "depends_on": [],
+      "scope": "Canonical reporting preference only: end a ready controlled-update completion report with the exact green instruction; no package/runtime change.",
+      "evidence": {
+        "owner_requested": true,
+        "ready_signal": "🟢 Оновлюйся",
+        "current_latest_main_package_readiness": "not_ready; matching validated local package remains missing",
+        "verification_policy": "canonical state integrity and exact-head state-only merge gate"
       }
     }
   ],
