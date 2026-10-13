@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-12T13:22:00Z",
+  "timestamp": "2026-10-12T13:36:00Z",
   "actor": "ChatGPT",
-  "event": "1349_scoped_native_worker_write_candidate_targeted_verified",
+  "event": "1349_review_findings_reproduced_and_corrected_before_install",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -3104,7 +3104,7 @@
       }
     }
   ],
-  "next_action": "Exact-head CI/review of the focused1349 candidate, then guarded owner-local installation and actual namespace write/denial proof before native LAN/HTTPS UI update/rollback. Current C296 validated_package remains ready/known; target catalog-only.",
+  "next_action": "Publish one combined correction for review P1 unauthenticated evidence bytes and P2 stop-before-freshness-check. Candidate/original unit bytes stay in trusted memory; checked descriptor acquired before stop. 36 focused tests and9 subtests pass; one independent-UID skip. Exact-head CI/review and owner-local namespace proof remain pending; no host installation or package activation.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

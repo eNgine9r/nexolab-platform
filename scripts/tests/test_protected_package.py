@@ -144,6 +144,51 @@ class ProtectedPackageTests(unittest.TestCase):
                 self.assertFalse(transaction.touched)
                 self.assertEqual(calls.count(["systemctl", "start", "nexolab-external-nginx.service"]), 2)
 
+    def test_tampered_candidate_and_restore_evidence_cannot_change_root_unit(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            manifest, unit, nginx = fixture(root)
+            evidence = root / "evidence"
+            evidence.mkdir()
+            original = unit.read_text()
+            malicious = "[Service]\nUser=root\nExecStart=/untrusted\n"
+            with (patch.object(package, "UNIT", unit), patch.object(package, "NGINX", nginx),
+                  patch.object(package, "RELEASES", root / "releases"),
+                  patch.object(package.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, stdout="", stderr="")),
+                  patch.object(package.frontend, "request", return_value=(200, json.dumps({"source_commit": SOURCE, "build_id": "old-build"}).encode())),
+                  patch.object(package.frontend, "probe_frontend"), patch.object(package.frontend, "probe_gateway")):
+                transaction = package.ProtectedPackageFrontend(root / "bundle", manifest, {"source_commit": SOURCE}, evidence)
+                expected = package.frontend.render_unit(original, str(transaction.release), transaction.node, transaction.api)
+                (evidence / "external-unit-candidate.service").write_text(malicious)
+                (evidence / "external-unit-before.service").write_text(malicious)
+                transaction.activate()
+                self.assertEqual(unit.read_text(), expected)
+                transaction.rollback()
+                self.assertEqual(unit.read_text(), original)
+
+    def test_stale_unit_is_rejected_without_stopping_frontend(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            manifest, unit, nginx = fixture(root)
+            evidence = root / "evidence"
+            evidence.mkdir()
+            calls = []
+            def runner(args, **kwargs):
+                calls.append(args)
+                return subprocess.CompletedProcess(args, 0, stdout="", stderr="")
+            with (patch.object(package, "UNIT", unit), patch.object(package, "NGINX", nginx),
+                  patch.object(package, "RELEASES", root / "releases"), patch.object(package.subprocess, "run", side_effect=runner),
+                  patch.object(package.frontend, "request", return_value=(200, json.dumps({"source_commit": SOURCE, "build_id": "old-build"}).encode())),
+                  patch.object(package.frontend, "probe_gateway")):
+                transaction = package.ProtectedPackageFrontend(root / "bundle", manifest, {"source_commit": SOURCE}, evidence)
+                (evidence / "external-unit-candidate.service").write_text(unit.read_text())
+                unit.write_text(unit.read_text()+"# external configuration change\n")
+                calls.clear()
+                with self.assertRaises(ValueError):
+                    transaction.activate()
+                self.assertFalse(transaction.touched)
+                self.assertFalse(any(args[:2] == ["systemctl", "stop"] for args in calls))
+
     def test_metadata_binds_source_profile_and_entire_artifact_inventory(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -295,7 +340,7 @@ class WorkerWriteBoundaryTests(unittest.TestCase):
 
     def test_handoff_preserves_inode_metadata_and_rollback(self):
         before = self.unit.stat()
-        package.write_frontend_unit(self.candidate, (self.original,))
+        package.write_frontend_unit(self.candidate.read_bytes(), (self.original,))
         after = self.unit.stat()
         self.assertEqual(self.unit.read_bytes(), self.candidate.read_bytes())
         self.assertEqual((after.st_dev, after.st_ino, after.st_uid, after.st_gid,
@@ -303,7 +348,7 @@ class WorkerWriteBoundaryTests(unittest.TestCase):
                          (before.st_dev, before.st_ino, before.st_uid, before.st_gid, 0o644))
         old = self.root / "before"
         old.write_text(self.original)
-        package.write_frontend_unit(old, (self.candidate.read_text(), self.original))
+        package.write_frontend_unit(old.read_bytes(), (self.candidate.read_text(), self.original))
         self.assertEqual(self.unit.read_text(), self.original)
 
     def test_symlink_refused_before_write(self):
@@ -311,24 +356,24 @@ class WorkerWriteBoundaryTests(unittest.TestCase):
         self.unit.rename(real)
         self.unit.symlink_to(real)
         with self.assertRaises(OSError):
-            package.write_frontend_unit(self.candidate, (self.original,))
+            package.write_frontend_unit(self.candidate.read_bytes(), (self.original,))
         self.assertEqual(real.read_text(), self.original)
 
     def test_hardlink_refused_before_write(self):
         os.link(self.unit, self.root / "other")
         with self.assertRaises(ValueError):
-            package.write_frontend_unit(self.candidate, (self.original,))
+            package.write_frontend_unit(self.candidate.read_bytes(), (self.original,))
         self.assertEqual(self.unit.read_text(), self.original)
 
     def test_shared_writable_unit_refused_before_write(self):
         self.unit.chmod(0o666)
         with self.assertRaises(ValueError):
-            package.write_frontend_unit(self.candidate, (self.original,))
+            package.write_frontend_unit(self.candidate.read_bytes(), (self.original,))
         self.assertEqual(self.unit.read_text(), self.original)
 
     def test_stale_unit_refused_before_write(self):
         with self.assertRaises(ValueError):
-            package.write_frontend_unit(self.candidate, ("different",))
+            package.write_frontend_unit(self.candidate.read_bytes(), ("different",))
         self.assertEqual(self.unit.read_text(), self.original)
 
     def test_interrupted_write_restores_original_before_propagating(self):
@@ -343,7 +388,7 @@ class WorkerWriteBoundaryTests(unittest.TestCase):
                 raise OSError("injected interrupted write")
             return real_write(descriptor, data)
         with patch.object(package.os, "write", side_effect=interrupted), self.assertRaises(OSError):
-            package.write_frontend_unit(self.candidate, (self.original,))
+            package.write_frontend_unit(self.candidate.read_bytes(), (self.original,))
         self.assertEqual(self.unit.read_text(), self.original)
 
     def test_worker_keeps_sandbox_and_exact_write_paths(self):

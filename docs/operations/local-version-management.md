@@ -240,7 +240,10 @@ and site repository remain read-only.
 Hardware startup evidence uses `NEXOLAB_STARTUP_EVIDENCE_ROOT` beneath the version
 root, as supported by the immutable installer. The frontend transaction stops its
 service, preserves the original unit in durable operation evidence and writes the
-existing unit inode without unlinking it. Symlinked, hardlinked, foreign-owned,
+existing unit inode without unlinking it. Candidate and original contents stay
+in trusted transaction memory; copied evidence files never authorize unit writes.
+The unit is opened and validated before the frontend is stopped. Symlinked,
+hardlinked, foreign-owned,
 shared-writable or changed units are rejected before writing. Interrupted writes
 attempt to restore the original bytes before failure propagation; the canonical
 transaction still owns frontend/gateway rollback. A crash or power loss during a

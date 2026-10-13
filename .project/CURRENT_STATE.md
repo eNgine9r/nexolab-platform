@@ -1,3 +1,11 @@
+#1349 review correction: candidate/original unit bytes remain in trusted
+transaction memory; audit copies never authorize root unit writes. Unit freshness
+and permissions are validated through an opened descriptor before stopping the
+frontend. Both review findings reproduced before correction, and36 focused tests
+plus9 subtests now pass (one independent-UID skip). Actual host tooling/unit and
+runtime remain unchanged; final exact-head CI/review and root namespace proof
+are still required.
+
 ## #1349 — native worker filesystem correction in progress
 
 Current C296 is validated_package ready/known after succeeded transition

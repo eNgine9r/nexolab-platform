@@ -14,7 +14,7 @@ import shutil
 import stat
 import subprocess
 import sys
-from typing import Any
+from typing import Any, Callable
 
 sys.dont_write_bytecode = True
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -26,13 +26,14 @@ NGINX = Path("/opt/nexolab-external/nginx.conf")
 RELEASES = Path("/opt/nexolab-external/releases")
 
 
-def write_frontend_unit(source: Path, expected: tuple[str, ...]) -> None:
+def write_frontend_unit(data: bytes, expected: tuple[str, ...], before_write: Callable[[], None] | None = None) -> None:
     """Update the existing file bind mount without replacing its directory entry.
 
     The service is stopped and its original unit is saved in transaction evidence
     before this call. Failed writes restore the opened inode before propagating.
     """
-    data = source.read_bytes()
+    if not isinstance(data, bytes):
+        raise TypeError("protected frontend unit bytes must come from trusted memory")
     descriptor = os.open(UNIT, os.O_RDWR | os.O_NOFOLLOW)
     try:
         info = os.fstat(descriptor)
@@ -58,6 +59,8 @@ def write_frontend_unit(source: Path, expected: tuple[str, ...]) -> None:
             os.ftruncate(descriptor, len(contents))
             os.fsync(descriptor)
 
+        if before_write is not None:
+            before_write()
         try:
             write_bytes(data)
         except OSError:
@@ -180,6 +183,7 @@ class ProtectedPackageFrontend:
         frontend.require_gateway_active(frontend.origin_host(self.metadata["origin"]))
         self.gateway_was_active = True
         self.release = RELEASES / (manifest["source_commit"] + "-" + evidence.name)
+        self.candidate_unit = frontend.render_unit(self.original, str(self.release), self.node, self.api)
 
     def run(self, args: list[str], **kwargs) -> subprocess.CompletedProcess:
         return subprocess.run(args, check=True, **kwargs)
@@ -210,8 +214,7 @@ class ProtectedPackageFrontend:
                   str(SCRIPT_DIR / "lib/raspberry-pi-frontend-release.sh"), str(artifact), str(self.bundle), str(self.release),
                   self.metadata["source_commit"], "live", self.metadata["origin"], f"wss://{host}/api/v1/telemetry/live", "local",
                   self.metadata["organization_id"], str(self.evidence / "external-artifact-import.txt"), "true"], env=env)
-        unit = frontend.render_unit(self.original, str(self.release), self.node, self.api)
-        (self.evidence / "external-unit-candidate.service").write_text(unit)
+        (self.evidence / "external-unit-candidate.service").write_text(self.candidate_unit)
         (self.release / ".next/cache").mkdir(exist_ok=True)
         identity = {"schema_version": "nexolab-runtime-identity-v1", "service": "dashboard",
                     "source_commit": self.metadata["source_commit"], "build_id": self.metadata["build_id"],
@@ -248,9 +251,10 @@ class ProtectedPackageFrontend:
     def activate(self) -> None:
         if not self.enabled:
             return
-        self.touched = True
-        self.run(["systemctl", "stop", UNIT.name])
-        write_frontend_unit(self.evidence / "external-unit-candidate.service", (self.original,))
+        def stop_frontend() -> None:
+            self.touched = True
+            self.run(["systemctl", "stop", UNIT.name])
+        write_frontend_unit(self.candidate_unit.encode(), (self.original,), stop_frontend)
         self.run(["systemctl", "daemon-reload"])
         self.run(["systemctl", "start", UNIT.name])
         host = frontend.origin_host(self.metadata["origin"])
@@ -261,9 +265,8 @@ class ProtectedPackageFrontend:
     def rollback(self) -> None:
         if not self.touched:
             return
-        self.run(["systemctl", "stop", UNIT.name])
-        write_frontend_unit(self.evidence / "external-unit-before.service",
-                            ((self.evidence / "external-unit-candidate.service").read_text(), self.original))
+        write_frontend_unit(self.original.encode(), (self.candidate_unit, self.original),
+                            lambda: self.run(["systemctl", "stop", UNIT.name]))
         self.run(["systemctl", "daemon-reload"])
         self.run(["systemctl", "start", UNIT.name])
         frontend.probe_frontend(3100, self.original_identity["source_commit"], self.original_identity["build_id"], frontend.origin_host(self.metadata["origin"]))
