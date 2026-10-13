@@ -7998,10 +7998,10 @@
       ],
       "scope": "Required native worker dependency after current C296 packaged authority. Exact protected-release/unit-file writes and startup evidence under version root; retain sandbox/data/hardware/auth boundaries.",
       "evidence": {
-        "targeted_checks": "36 passed; 1 independent-UID skip; 9 subtests passed",
+        "targeted_checks": "38 passed; 1 independent-UID skip; 9 subtests passed",
         "native_namespace_probe": "pending_owner_local",
         "native_ui_update_rollback": "unverified",
-        "review_corrections": "P1_candidate_evidence_tampering_and_P2_pre_stop_freshness_red_green"
+        "review_corrections": "memory_authentication_pre_stop_freshness_and_fresh_release_root_red_green"
       }
     }
   ],

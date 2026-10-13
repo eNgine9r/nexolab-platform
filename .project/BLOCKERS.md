@@ -1,3 +1,9 @@
+#1349 fresh-install review correction: the privileged host installer now
+creates/validates the dedicated protected release root before sandboxed worker
+startup, preserving narrow write paths. Missing-parent and symlink-parent tests
+failed before correction. 38 focused tests and9 subtests pass, one independent-UID
+skip; final CI/review still pending. Existing site services and packages unchanged.
+
 #1349 review correction: candidate/original unit bytes remain in trusted
 transaction memory; audit copies never authorize root unit writes. Unit freshness
 and permissions are validated through an opened descriptor before stopping the

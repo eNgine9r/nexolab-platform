@@ -70,9 +70,23 @@ def write_frontend_unit(data: bytes, expected: tuple[str, ...], before_write: Ca
         os.close(descriptor)
 
 
-def prepare_release_root() -> None:
+def prepare_release_root(*, create_parent: bool = False) -> None:
     # Owner commands keep umask 077 for credentials and audit evidence. This
     # separate runtime ancestor must also be traversable by the service user.
+    if create_parent:
+        try:
+            RELEASES.parent.mkdir(mode=0o711, exist_ok=True)
+            parent_descriptor = os.open(RELEASES.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        except OSError as error:
+            raise ValueError("protected release parent must be a real dedicated directory") from error
+        try:
+            parent_info = os.fstat(parent_descriptor)
+            parent_mode = stat.S_IMODE(parent_info.st_mode)
+            if parent_info.st_uid != os.geteuid() or parent_mode & 0o022:
+                raise ValueError("protected release parent has unsafe ownership or shared write permission")
+            os.fchmod(parent_descriptor, parent_mode | 0o111)
+        finally:
+            os.close(parent_descriptor)
     try:
         RELEASES.mkdir(mode=0o711, exist_ok=True)
         descriptor = os.open(RELEASES, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)

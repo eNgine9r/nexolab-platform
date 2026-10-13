@@ -246,6 +246,29 @@ class ProtectedPackageTests(unittest.TestCase):
                 self.assertEqual(unit.read_text(), original)
                 self.assertFalse(any("npm" in args or "funnel" in args for args in calls))
 
+    def test_privileged_install_prepares_missing_release_root_before_worker(self):
+        with tempfile.TemporaryDirectory() as temp:
+            parent = Path(temp) / "external"
+            releases = parent / "releases"
+            with patch.object(package, "RELEASES", releases):
+                package.prepare_release_root(create_parent=True)
+            self.assertEqual(stat.S_IMODE(parent.stat().st_mode), 0o711)
+            self.assertEqual(stat.S_IMODE(releases.stat().st_mode), 0o711)
+            script = (ROOT / "scripts/deploy-version-manager-service.sh").read_text()
+            self.assertLess(script.index("prepare_release_root(create_parent=True)"),
+                            script.index('systemctl daemon-reload'))
+
+    def test_privileged_install_refuses_symlinked_release_parent(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            real = root / "real"
+            real.mkdir()
+            parent = root / "external"
+            parent.symlink_to(real, target_is_directory=True)
+            with patch.object(package, "RELEASES", parent / "releases"), self.assertRaises(ValueError):
+                package.prepare_release_root(create_parent=True)
+            self.assertFalse((real / "releases").exists())
+
     def test_release_root_allows_traversal_without_listing_or_write_and_keeps_audit_private(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

@@ -235,7 +235,9 @@ files and `NoNewPrivileges`. Its writable paths are the version root, backup roo
 the dedicated `/opt/nexolab-external/releases` directory and the existing
 `/etc/systemd/system/nexolab-external-frontend.service` file. The latter two paths
 are optional when the protected interface is absent. The system-unit directory
-and site repository remain read-only.
+and site repository remain read-only. The privileged host installer creates and
+validates the dedicated release parent/root before the worker can start, so the
+optional writable path is present even for the first protected package update.
 
 Hardware startup evidence uses `NEXOLAB_STARTUP_EVIDENCE_ROOT` beneath the version
 root, as supported by the immutable installer. The frontend transaction stops its
