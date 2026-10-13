@@ -1,3 +1,22 @@
+## #1353 — native acceptance publication blocker removed
+
+The product owner authorized the GitHub report on2026-10-13. Actual native LAN
+C296→DF update and protected HTTPS DF→C296 rollback are accepted. Independent
+12:31:33Z evidence records6 retained volume identities,3 matching C296 application
+images, ready API/DB/MQTT and3/3 healthy advancing real Modbus workers. Ordinary
+Commander did not read Root-owned backup bytes; durable worker/UI backup references
+are the recorded backup evidence. Publication changes only canonical state.
+
+The shared-lock/manual-check blocker1354 is resolved, with16/16 real UID tests
+and actual Chromium manual-check success. Current C296 and automatic activation
+OFF are retained. Original failed reports and consumed commands remain preserved;
+no native operation, installation or Root action is repeated.
+
+Broader latest-main activation1313/1323 still needs a matching validated local
+package; it is not accepted by this native pair.1356 remains Backlog. No independent
+Ready Work Package exists. No credentials, sessions, dump bytes or raw logs are
+included in the public operational report.
+
 ## #1354 — lock and manual-check blocker resolved
 
 The guarded owner-local repair and all16 real UID10001 tests passed without skips;
@@ -7,8 +26,8 @@ GREEN remote revision; missing matching validated local package correctly blocks
 activation. Automatic activation remains OFF and current C296 remains retained.
 The repair owner action is consumed and must not be replayed.
 
-Detailed native report1353 publication still requires separate authorization;
-no detailed device report or browser/session data is included here. Backlog1356
+The product owner authorized native report1353 publication; the acceptance
+record above contains operational metadata without secrets or session data. Backlog1356
 is not Ready. No independent Ready Work Package exists. Historical blockers below
 remain evidence, not instructions to repeat already completed operations.
 

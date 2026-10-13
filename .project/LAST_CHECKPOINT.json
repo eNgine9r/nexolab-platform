@@ -3,17 +3,17 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-13T16:02:06.655286+00:00",
+  "timestamp": "2026-10-13T16:17:57.970738+00:00",
   "actor": "Codex",
-  "event": "shared_lock_repair_and_actual_manual_check_accepted",
+  "event": "owner_authorized_native_roundtrip_acceptance_publication",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "frontend_compatibility_source_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
-    "frontend_build_id": "Ar6aVrTWJICF6TKFaWxHw",
-    "frontend_release": "runtime/frontend-releases/c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2-20261010T194054Z",
+    "frontend_build_id": "0B4pHaAjFeo31t2yUWXex",
+    "frontend_release": "validated_package:c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "frontend_rollback_release": "runtime/frontend-releases/75d9c75f8d1901d6b639ec711bf3784e22ed0642-20261007T061059Z",
-    "frontend_runtime_evidence": "runtime/frontend-completions/20261010T221214Z-p5w6jzu0/report.json",
+    "frontend_runtime_evidence": "operation-evidence/5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75",
     "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
     "sdm120_candidate_device_agent_image_id": "sha256:4964c1d4a43ec20e1f53962968e26b7a5e802841eead4abf7a7dd5360649dff1",
     "sdm120_candidate_frontend_build_id": "Y_SLpdT2dyZiZ5SGk-QZn",
@@ -23,12 +23,12 @@
     "sdm120_production_adapter": "A10Q34QC",
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
-    "deployed_runtime_evidence": "runtime/deployments/20261010T194054Z",
-    "deployed_device_agent_image_id": "sha256:3d50e14ceb396ab9e442f26b66703838a86e7b7d6e5b79373ef62f45bee94037",
-    "deployed_device_agent_rollback_image_id": "sha256:5344b4bef506d89923afd39413ee1bd7d1bb668ac1d123ed899a6d22fa58b957",
+    "deployed_runtime_evidence": "operation-evidence/5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75",
+    "deployed_device_agent_image_id": "sha256:6fd6ebd5ed6a4d17d208135ac8a8dd32475e446344f095154c558f73cfca6144",
+    "deployed_device_agent_rollback_image_id": "sha256:bcfcbb5320017d3f4a205c748f642002ddb70b7fd466a9ebc34e1c780c10244b",
     "object_storage_authority": "runtime/object-storage-migration/authority.json",
     "protected_frontend_compatibility_source_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
-    "protected_frontend_build_id": "mcG0fHLcpCeVbTX--85gF"
+    "protected_frontend_build_id": "HuFALgo65ij75S2pY6qCm"
   },
   "active_work": null,
   "evidence_snapshot": {
@@ -2058,7 +2058,7 @@
       "owner_dashboard_bind_report": "arm64-rebuild-20261011/reissue-1343-20261011/owner-dashboard-bind-1343-report.json",
       "current_last_operation_id": null,
       "target_activation": false,
-      "native_ui_update_rollback": "unverified",
+      "native_ui_update_rollback": "verified_1353; actual LAN update and protected HTTPS rollback succeeded/verified_ready",
       "independent_post_package_health": "API_database_MQTT_ready_agent_ok_queue0",
       "packaged_lan_build_id": "0B4pHaAjFeo31t2yUWXex",
       "packaged_lan_source_commit_field": null,
@@ -2069,7 +2069,7 @@
       ],
       "worker_protect_home": "read-only",
       "worker_protect_system": "strict",
-      "worker_filesystem_acceptance": "unresolved",
+      "worker_filesystem_acceptance": "verified_1349; installed Root namespace proof and both native1353 operations retained strict sandbox boundaries",
       "post_package_live_evidence": "arm64-rebuild-20261011/reissue-1343-20261011/packaged-post-handoff-live-1343.json",
       "historical_failed_handoff_operation_id": "source-to-packaged-20261012T113709Z-47df379f6e8d",
       "historical_completed_readonly_diagnostic": "arm64-rebuild-20261011/reissue-1343-20261011/read-handoff-exit7-1343.py",
@@ -2085,7 +2085,15 @@
       "historical_owner_v3_command": "arm64-rebuild-20261011/reissue-1343-20261011/activate-reissued-current-1343-v3.py",
       "historical_owner_v3_command_sha256": "462c23913d9994d940ee3d41d505e058bdaf96687c717cb4eff2abf419614f08",
       "historical_owner_v3_guard_tests": "34_passed_including_missing_audit_dependency_red_green",
-      "historical_owner_v3_execution": "v3_consumed_do_not_replay"
+      "historical_owner_v3_execution": "v3_consumed_do_not_replay",
+      "historical_pre_native_acceptance_statuses": {
+        "native_ui_update_rollback": "unverified",
+        "worker_filesystem_acceptance": "unresolved",
+        "time_scope": "original pre-roundtrip observations; preserved for historical evidence only"
+      },
+      "record_kind": "historical package preflight/handoff observations with linked later native acceptance",
+      "authoritative_current_runtime_evidence": "native_roundtrip_1353",
+      "native_roundtrip_issue": 1353
     },
     "native_worker_filesystem_1349": {
       "status": "native_worker_filesystem_installed_and_proven",
@@ -2093,7 +2101,8 @@
       "report_sha256": "78c0b7f5961d8df036dd86847a3fe3be4e5c73c4b9a89ee96268abc95e71c8a4",
       "namespace_probe_returncode": 0,
       "healthy_advancing_bus_workers": "3_of_3",
-      "package_activation": false
+      "package_activation": false,
+      "native_roundtrip": "verified_1353"
     },
     "native_git_lineage_1351": {
       "issue": 1351,
@@ -2104,9 +2113,51 @@
       "repository_owner_uid": 1000,
       "native_worker_uid": "root",
       "local_checks": "116_passed_1_uid_skip_9_subtests",
-      "real_namespace_proof_and_install": "pending",
-      "native_ui_success": "unverified",
-      "symlink_configuration": "canonical_child_repo_regression_passed"
+      "real_namespace_proof_and_install": "passed_owner_v3_2026-10-13T10:58:39Z",
+      "native_ui_success": "update_and_rollback_verified_1353",
+      "symlink_configuration": "canonical_child_repo_regression_passed",
+      "owner_report_sha256": "c09b58125823f09521cdd7faca4824512b188e6bf675778d7626393a55b4d039",
+      "owner_report": {
+        "kind": "native_git_lineage_install",
+        "status": "native_git_lineage_installed_and_proven",
+        "head": "6f3f952804d98cff7ce0cfdfc68c82eafaf1e2b6",
+        "package_activation": false,
+        "database_restore": false,
+        "controller_write": false,
+        "acquisition_progress": {
+          "status": "verified",
+          "expected_bus_workers": 3,
+          "active_bus_workers": 3,
+          "workers_healthy": true,
+          "baseline_last_attempt_at": "2026-10-13T10:45:48.621414+00:00",
+          "advanced_last_attempt_at": "2026-10-13T10:45:51.876953+00:00"
+        },
+        "central_readiness": {
+          "status": "ready",
+          "database": "ready",
+          "mqtt": "ready",
+          "queue_size": 0
+        },
+        "namespace_proof": {
+          "status": "passed",
+          "package_activation": false,
+          "database_restore": false,
+          "controller_write": false,
+          "baseline_git_returncode": 128,
+          "baseline_ownership_refused": true,
+          "scoped_git_returncode": 0,
+          "non_ancestor_rejected": true,
+          "active_storage_gate": null,
+          "current_storage_gate_started_at": "2026-10-13T10:52:24.072545+00:00",
+          "storage_gate_timeout_seconds": 600,
+          "current_storage_gate_duration_seconds": 164.102,
+          "current_storage_gate_returncode": 0,
+          "target_storage_gate_started_at": "2026-10-13T10:55:08.189307+00:00",
+          "target_storage_gate_duration_seconds": 208.328,
+          "target_storage_gate_returncode": 0
+        },
+        "updated_at": "2026-10-13T10:58:39.908647+00:00"
+      }
     },
     "shared_update_plane_lock_1354": {
       "local_helper_and_manager_checks": "98 passed; 1 independent UID proof skipped because UID10001 is unmapped; 2 subtests",
@@ -2161,6 +2212,188 @@
         "recorded_at": "2026-10-13T15:49:21.105076+00:00"
       },
       "source_pull_request": 1355
+    },
+    "native_roundtrip_1353": {
+      "issue": 1353,
+      "status": "native_LAN_update_and_protected_HTTPS_rollback_verified",
+      "captured_at": "2026-10-13T12:43:00Z",
+      "update": {
+        "operation_id": "a198c7f7-3dec-4236-b1a4-22d681ce8eb8",
+        "action": "update",
+        "operator_surface": "owner_Chromium_LOCAL_LAN",
+        "status": "succeeded",
+        "result_code": "verified_ready",
+        "started_at": "2026-10-13T11:11:29Z",
+        "deployed_at": "2026-10-13T11:44:03Z",
+        "source": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+        "target": "df5485f6ece4203a74a84f106195fae855d81731",
+        "tooling": "20cd3f1d644244ff0f1b7c6766b85350b6541747",
+        "storage_oci_index": "992e9d9bc05f4e616923c8cf0b841a70947d8fad7e19196091a282fe88dc98e4",
+        "backup_evidence_id": "a198c7f7-3dec-4236-b1a4-22d681ce8eb8-postgresql.dump",
+        "capacity_evidence_id": "operation-evidence/a198c7f7-3dec-4236-b1a4-22d681ce8eb8/capacity-preflight.txt",
+        "protected_build_id": "My2IdIKRn37zSGg2e_3ct",
+        "protected_source_commit": "df5485f6ece4203a74a84f106195fae855d81731",
+        "schema": "20260908_0037",
+        "platform": "linux/arm64",
+        "health": "ready",
+        "runtime_state_known": true,
+        "acquisition": {
+          "status": "verified",
+          "expected_bus_workers": 3,
+          "active_bus_workers": 3,
+          "workers_healthy": true,
+          "baseline_last_attempt_at": "2026-10-13T11:53:50.584749+00:00",
+          "advanced_last_attempt_at": "2026-10-13T11:54:04.559409+00:00"
+        },
+        "ordinary_user_execution": "exec-27914878ba64841cf06a9da55a424d95",
+        "worker_exit_code": 0,
+        "volumes": [
+          {
+            "created_at": "2026-09-08T12:56:35+03:00",
+            "driver": "local",
+            "mountpoint": "/var/lib/docker/volumes/nexolab-central-mqtt-data/_data",
+            "name": "nexolab-central-mqtt-data",
+            "scope": "local"
+          },
+          {
+            "created_at": "2026-10-02T14:25:51+03:00",
+            "driver": "local",
+            "mountpoint": "/var/lib/docker/volumes/nexolab-central-object-storage-versitygw-data/_data",
+            "name": "nexolab-central-object-storage-versitygw-data",
+            "scope": "local"
+          },
+          {
+            "created_at": "2026-09-08T12:56:35+03:00",
+            "driver": "local",
+            "mountpoint": "/var/lib/docker/volumes/nexolab-central-postgres-data/_data",
+            "name": "nexolab-central-postgres-data",
+            "scope": "local"
+          },
+          {
+            "created_at": "2026-09-08T12:59:12+03:00",
+            "driver": "local",
+            "mountpoint": "/var/lib/docker/volumes/nexolab-central-telemetry-ingestion-data/_data",
+            "name": "nexolab-central-telemetry-ingestion-data",
+            "scope": "local"
+          },
+          {
+            "created_at": "2026-09-08T12:59:12+03:00",
+            "driver": "local",
+            "mountpoint": "/var/lib/docker/volumes/nexolab-edge_edge-data/_data",
+            "name": "nexolab-edge_edge-data",
+            "scope": "local"
+          },
+          {
+            "created_at": "2026-09-08T12:59:12+03:00",
+            "driver": "local",
+            "mountpoint": "/var/lib/docker/volumes/nexolab-edge_mqtt-data/_data",
+            "name": "nexolab-edge_mqtt-data",
+            "scope": "local"
+          }
+        ],
+        "raw_root_files": "unavailable_to_ordinary_Commander_user",
+        "backup_verification": "successful_canonical_operation_and_UI_backup_reference; direct_root_dump_read_not_performed",
+        "live_images": {
+          "device-agent": "sha256:bcfcbb5320017d3f4a205c748f642002ddb70b7fd466a9ebc34e1c780c10244b",
+          "dashboard": "sha256:ea57f30e5e2a46e18c9434f9ea8dde7f6277b0324d6e52875ce93629ae04baa1",
+          "telemetry-service": "sha256:c8b73c6b83bffdb89be013de699d426785fc65028d79153837fd3a7c30396762"
+        },
+        "image_manifest_matching": "all_three_application_roles_passed",
+        "lan_frontend": {
+          "source_commit": null,
+          "build_id": "0B4pHaAjFeo31t2yUWXex",
+          "source_identity": "declared_by_accepted_manifest_and_live_image_identity; endpoint_commit_unavailable"
+        }
+      },
+      "rollback": {
+        "operation_id": "5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75",
+        "action": "rollback",
+        "operator_surface": "Chromium_protected_HTTPS_Google_administrator",
+        "status": "succeeded",
+        "result_code": "verified_ready",
+        "started_at": "2026-10-13T11:56:08Z",
+        "deployed_at": "2026-10-13T12:27:02Z",
+        "source": "df5485f6ece4203a74a84f106195fae855d81731",
+        "target": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+        "backup_evidence_id": "5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75-postgresql.dump",
+        "capacity_evidence_id": "operation-evidence/5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75/capacity-preflight.txt",
+        "protected_build_id": "HuFALgo65ij75S2pY6qCm",
+        "protected_source_commit": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+        "live_images": {
+          "device-agent": "sha256:6fd6ebd5ed6a4d17d208135ac8a8dd32475e446344f095154c558f73cfca6144",
+          "dashboard": "sha256:faabfef5a5e0f46c9aa56b6ab8a15c38e2843e23b81d8dbe24a04b4f5ba6630f",
+          "telemetry-service": "sha256:33075d053e74d25e65bcb34f640ad2ddc2c7bc417026d7d992560c24904bb38f"
+        },
+        "readiness": {
+          "status": "ready",
+          "database": "ready",
+          "mqtt": "ready",
+          "queue_size": 0
+        },
+        "acquisition": {
+          "status": "verified",
+          "expected_bus_workers": 3,
+          "active_bus_workers": 3,
+          "workers_healthy": true,
+          "baseline_last_attempt_at": "2026-10-13T12:31:06.627658+00:00",
+          "advanced_last_attempt_at": "2026-10-13T12:31:33.295288+00:00"
+        },
+        "lan_frontend": {
+          "schema_version": "nexolab-runtime-identity-v1",
+          "service": "dashboard",
+          "source_commit": null,
+          "build_id": "0B4pHaAjFeo31t2yUWXex"
+        },
+        "persistent_volumes_unchanged": true,
+        "persistent_volume_count": 6,
+        "worker": {
+          "Result": "success",
+          "ExecMainStatus": "0",
+          "ReadWritePaths": "/var/lib/nexolab/version-management /var/backups/nexolab -/opt/nexolab-external/releases -/etc/systemd/system/nexolab-external-frontend.service",
+          "PrivateTmp": "yes",
+          "ProtectHome": "read-only",
+          "ProtectSystem": "strict",
+          "NoNewPrivileges": "yes",
+          "ActiveState": "inactive",
+          "SubState": "dead",
+          "DropInPaths": ""
+        },
+        "ordinary_user_execution": "exec-bf37c1d54006502390739c12a2b84cd1",
+        "independent_verification_at": "2026-10-13T12:31:33.714Z",
+        "worker_exit_code": 0,
+        "backup_verification": "successful_canonical_operation_and_UI_backup_reference; direct_root_dump_read_not_performed"
+      },
+      "current_runtime": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+      "automatic_updates_enabled": false,
+      "target_catalog_only_after_rollback": true,
+      "missing_LAN_endpoint_source_commit": true,
+      "broader_latest_main_activation": "unverified_requires_matching_validated_local_package",
+      "controller_write": false,
+      "database_restore": false,
+      "data_or_volume_cleanup": false,
+      "manual_GitHub_check_at_original_capture": {
+        "status": "HTTP_500",
+        "reason": "PermissionError_opening_update-plane.lock",
+        "execution": "exec-a20c89c74c2cd2648215734c7005227a",
+        "dependency": 1354
+      },
+      "manual_GitHub_check_follow_up": {
+        "issue": 1354,
+        "status": "completed_without_HTTP500",
+        "observed_at": "2026-10-13T15:57:06Z",
+        "activation_gate": "no_matching_validated_local_package",
+        "automatic_activation": false,
+        "owner_UID10001_tests": "all_16_passed_no_skips",
+        "source_head": "785bb1e1f5d8a7f66bef456d8a335e4b060e564a",
+        "checkpoint_issue": 1357
+      },
+      "publication": {
+        "authorized_by": "product_owner",
+        "authorized_at": "2026-10-13T19:13:13+03:00",
+        "scope": "GitHub1353 native acceptance report; operational metadata only; no credentials, session data, dump bytes or raw logs"
+      },
+      "hardware_evidence_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+      "verification_time_scope": "Historical native acceptance observed2026-10-13; publication does not repeat operations or claim a fresh runtime inspection."
     }
   },
   "observations": [
@@ -3188,7 +3421,7 @@
       }
     }
   ],
-  "next_action": "No independent Ready Work Package. Source repair1354 accepted and merged throughPR1355; owner action consumed, do not replay. Material state checkpoint1357 is repository-ready subject to its canonical state-only merge gate. Detailed native report1353 publication still requires separate authorization; retry-stimulus1356 remains Backlog. Broader update-page1313 is not declared Done from this scoped repair.",
+  "next_action": "No independent Ready Work Package. Owner authorized detailed native report1353 publication; actual C296-to-DF update and DF-to-C296 rollback accepted, current C296 retained. Shared-lock/manual-check1354 and material checkpoint1357 completed. Do not replay consumed owner commands or native operations. Broader1313/1323 latest-main activation requires a matching validated local package and remains open;1356 remains Backlog.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -3197,5 +3430,5 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "owner-local shared-lock ownership/mode only; canonical current/history/policy evidence unchanged; no package activation, service restart, database restore, volume deletion or controller write"
+  "runtime_mutation": "Publication only. Historical1351 owner install succeeded10:58:39Z; native update succeeded11:44:03Z and rollback12:27:02Z. Independent12:31:33Z verification retained6 volumes, matched3 C296 application images, ready API/DB/MQTT and3/3 advancing real Modbus workers. Later1354 owner lock repair and actual manual check accepted separately. No new deployment, restart, activation, database restore, volume/evidence deletion or controller write during publication."
 }

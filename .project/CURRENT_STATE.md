@@ -1,3 +1,50 @@
+## #1353 — owner-authorized native update/rollback acceptance report
+
+Publication authorized by the product owner on2026-10-13. This report records
+historical device evidence; publication does not repeat the operations or claim
+a fresh runtime inspection. Only the four canonical state files change.
+
+| Native action                               | Operation                            | Result                     | Completed UTC       |
+| ------------------------------------------- | ------------------------------------ | -------------------------- | ------------------- |
+| LAN Chromium C296 → DF update               | a198c7f7-3dec-4236-b1a4-22d681ce8eb8 | succeeded / verified_ready | 2026-10-13 11:44:03 |
+| Protected HTTPS Chromium DF → C296 rollback | 5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75 | succeeded / verified_ready | 2026-10-13 12:27:02 |
+
+Both durable UI histories reference capacity preflight and PostgreSQL backups.
+Acceptance relies on the successful canonical worker and its durable backup
+references; ordinary Commander did not read the private Root dump bytes.
+
+Independent read-only verification at12:31:33Z matched all3 healthy running
+application images to the immutable C296 manifest and retained all6 persistent
+volume identities. API, database and MQTT were ready, queue0, with3/3 healthy real
+Modbus workers advancing12:31:06Z→12:31:33Z. The native worker exited0, retained
+strict filesystem/home/no-new-privilege protections, no drop-ins and the exact4
+approved writable paths. Detailed identities and timestamps are in
+LAST_CHECKPOINT.native_roundtrip_1353 and the corresponding Sprint evidence.
+
+Current C296 remains validated_package ready/known, schema20260908_0037;
+DF is catalog-only after the intended rollback. Protected C296 interface build
+HuFALgo65ij75S2pY6qCm agrees with authority. LAN build0B4pHaAjFeo31t2yUWXex still
+reports source_commit:null: source identity is independently bound by the accepted
+manifest and live images, not fabricated. Baseline frontend/image evidence now
+reflects the accepted native rollback rather than the older source deployment.
+
+Owner1351-v3 scoped lineage/current/target storage proof and reviewed tooling
+installation passed at10:58:39Z. Report SHA256
+c09b58125823f09521cdd7faca4824512b188e6bf675778d7626393a55b4d039.
+Owner1349/1351 actions and native operations are consumed and must not be replayed.
+Original failed reports remain evidence. No dump bytes, credentials, browser
+session data or raw logs are published.
+
+The original manual-check PermissionError was resolved under1354: real UID10001
+16/16 without skips, same lock inode, actual Chromium manual check successful
+at15:57:06Z. A GREEN remote revision was found; activation is correctly blocked
+without a matching validated local package. Automatic activation remains OFF.
+Broader latest-main activation under1313/1323 is not declared accepted.1356 stays
+Backlog and no independent Ready Work Package exists.
+
+Historical records below are preserved and superseded for continuation; pending
+owner commands in them must not be replayed.
+
 ## #1354 — shared-lock repair and actual manual check accepted
 
 The owner executed the reviewed, checksum-bound repair. All 16 real UID10001
@@ -22,8 +69,8 @@ Future bootstrap prepares the shared lock safely and includes the helper offline
 
 Source PR1355 is merged and issue1354 closed. Material operational acceptance
 checkpoint1357 changes only canonical state and requires its state-integrity gate.
-Detailed native update/rollback evidence remains separate under1353, pending
-publication authorization. Historical pending native commands below are superseded
+Detailed native update/rollback evidence is recorded under owner-authorized1353
+above. Historical pending native commands below are superseded
 and must not be replayed. Broader page1313 is not declared Done by this repair.
 No independent Ready Work Package exists.
 
