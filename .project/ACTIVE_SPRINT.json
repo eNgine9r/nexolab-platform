@@ -43,13 +43,13 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1349,
-      "reason": "required native worker filesystem dependency after current packaged authority"
+      "issue": 1351,
+      "reason": "required native worker Git ownership-context correction after actual LAN migration-gate failure"
     },
     "next_work_package": {
-      "issue": 1323,
-      "title": "Owner canonical current authority then verify native update/rollback and worker filesystem boundaries",
-      "branch": "fix/1323-partial-unified-activation"
+      "issue": 1349,
+      "title": "Complete native LAN update and protected HTTPS rollback acceptance",
+      "branch": "fix/1349-native-worker-write-boundary"
     }
   },
   "work_packages": [
@@ -7992,19 +7992,50 @@
       "title": "Constrain native version worker writes and verify protected update/rollback",
       "branch": "fix/1349-native-worker-write-boundary",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "blocked",
       "depends_on": [
-        1343
+        1343,
+        1351
       ],
       "scope": "Required native worker dependency after current C296 packaged authority. Exact protected-release/unit-file writes; trusted in-memory unit content and pre-stop validation; privileged startup overlays under root-controlled backups with forced ExecStart assignment; retain sandbox/data/hardware/auth boundaries.",
       "evidence": {
         "targeted_checks": "40 passed; 1 independent-UID skip; 9 subtests passed",
-        "native_namespace_probe": "pending_owner_local",
-        "native_ui_update_rollback": "unverified",
+        "native_namespace_probe": {
+          "status": "native_worker_filesystem_installed_and_proven",
+          "captured_at": "2026-10-13T05:56:53Z",
+          "report_sha256": "78c0b7f5961d8df036dd86847a3fe3be4e5c73c4b9a89ee96268abc95e71c8a4",
+          "namespace_probe_returncode": 0,
+          "healthy_advancing_bus_workers": "3_of_3",
+          "package_activation": false
+        },
+        "native_ui_update_rollback": "first_native_LAN_attempt_failed_before_mutation_successful_update_rollback_unverified",
         "review_corrections": "memory_authentication_pre_stop_freshness_and_fresh_release_root_red_green",
         "startup_evidence_root": "/var/backups/nexolab/device-agent-startup",
-        "native_ui_access": "opera_connector_reauthentication_required",
-        "startup_launch_precedence": "ExecStart_env_assignment_overrides_unsafe_inherited_value"
+        "native_ui_access": "owner_chromium_lan_attempt_failed_at_migration_lineage_cloud_https_502",
+        "startup_launch_precedence": "ExecStart_env_assignment_overrides_unsafe_inherited_value",
+        "owner_command": "consumed_installed_do_not_replay"
+      }
+    },
+    {
+      "issue": 1351,
+      "title": "Pin native worker Git trust to the configured site repository",
+      "branch": "fix/1351-native-worker-git-lineage",
+      "priority": "critical",
+      "lifecycle": "review",
+      "depends_on": [
+        1343
+      ],
+      "scope": "Required native migration lineage context correction; exact process-local site Git trust with inherited exceptions reset and strict sandbox unchanged. No package rewrite/build, proof/data change or automatic activation. Owner-local real namespace proof precedes reviewed unit installation.",
+      "evidence": {
+        "targeted_checks": "45 passed; 1 independent-UID skip; 9 subtests",
+        "native_failed_operation": "48ecfe60-1b73-43da-a368-052e9029ee64",
+        "capacity": "PASS",
+        "normal_user_git_ancestor_returncode": 0,
+        "migration_authority_sha256": "5dee8e3f41c135a1c5694405fd79b6853e80028f5b72f926f92bb09d5a9be23f",
+        "local_real_git_reproduction": "ownership128_scoped_ancestor0_reversed1_missing128_unapproved128",
+        "native_root_context_proof": "pending_owner_local",
+        "source_ci_review": "pending_for_candidate",
+        "runtime_mutation": "none_by_1351"
       }
     }
   ],
