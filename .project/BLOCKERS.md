@@ -1,3 +1,25 @@
+## Energy1362 — mandatory implementation environment unavailable
+
+Read-only NEXUS preflight pi~5b661e02-03e3-4e2a-807a-8a18f20ed486
+completed2026-10-13T18:04:09.828Z before implementation:
+clean detached bfa0c635 checkout; required connector-observed source absent;
+worktree and Git metadata not writable; github.com DNS probe failed;
+Node20.19.2/npm9.2.0 unsupported; node_modules missing.
+Backend requirements already include openpyxl3.1.5, but the runner Python
+interpreter does not provide it. Do not add another XLSX dependency to compensate
+for missing environment provisioning.
+
+1362 is blocked;1363/1364 are queued behind explicit feature dependencies.
+Restore authorized current-main availability in a writable isolated worktree,
+supported Node22.22.1+/24 and npm10+, and actual local verification dependencies;
+then recheck current state and explicitly unblock1362. No implementation tests
+or production/hardware acceptance ran. Orchestration completed is not PASS.
+GitHub Issues and state-only planning remain available through the connector.
+
+This new engineering blocker does not replace package1313/1323 readiness gates.
+Current C296 and automatic activationOFF remain unchanged; consumed owner/native
+commands must not be replayed. Green update instruction remains withheld.
+
 ## Operator update signal — current readiness blocker
 
 The reporting rule1360 is recorded. Current latest-main activation remains

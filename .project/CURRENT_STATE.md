@@ -1,3 +1,33 @@
+## Energy monitoring expansion — WPs1362–1364
+
+The product owner supplied the high-priority Energy specification on2026-10-13.
+Repository inspection and three focused Issues now define:
+1362 multi-parameter graphs;1363 full PostgreSQL CSV/XLSX export;
+1364 functional/mobile and actual-Pi isolated performance acceptance.
+They remain in PRODUCTION-READINESS-1 with one implementation at a time.
+Canonical <=5-axis panels and existing backend openpyxl are reused.
+Counter readings are not averaged; export preserves quality, retention,
+source resolution and explicit Europe/Kyiv/UTC-offset/DST semantics.
+
+Actual NEXUS read-only preflight completed at18:04:09.828Z, task
+pi~5b661e02-03e3-4e2a-807a-8a18f20ed486. Its orchestration completion
+does not mean feature verification passed. The runner is clean/detached at
+bfa0c635 and lacks the connector-observed source; worktree/Git metadata are
+not writable, github.com DNS failed, Node20.19.2/npm9.2.0 are unsupported,
+and node_modules is absent. openpyxl is declared in backend requirements
+but absent in the runner interpreter. No product code or runtime changed.
+
+1362 is blocked on required execution access/tooling;1363 and1364 are queued
+behind their dependencies. Resume1362 only after fresh-main source, writable
+isolated Git/worktree, supported Node/npm and installed verification dependencies
+are available. No independent Ready implementation can run through this runner.
+State-only planning Issue1365 records this material queue/checkpoint change.
+
+Accepted/deployed C296, native1353 and lock1354 evidence remain retained.
+No package activation, production service restart, database/hardware write or
+data/evidence deletion occurred. Software planning is not update readiness;
+the matching latest-main validated local package remains missing under1313/1323.
+
 ## Operator update signal — required completion-report rule
 
 The product owner requires the final line **🟢 Оновлюйся** when a selected update
