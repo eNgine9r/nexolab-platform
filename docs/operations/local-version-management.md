@@ -55,6 +55,26 @@ standalone deployment. For a normal central+edge runtime keep `--local-auth` and
 the configured edge environment path. The service has a single-operation file
 lock and is triggered locally by the request directory; internet is not used.
 
+The host bootstrap prepares `update-plane.lock` for the API's UID/GID 10001 with
+mode 0640. This is the shared lock used by administrator policy/check requests
+and privileged discovery/source handoff. Preparing it preserves the existing
+inode and refuses an active lock, queued request, unsafe file or unexpected state
+ownership. Bootstrap creates only a missing lock; an existing correctly prepared
+lock is a read-only no-op. An existing lock that needs different permissions is
+refused unless the explicit exact-current repair inputs are provided.
+A Root-first lock must not be replaced with `install /dev/null`, deleted
+or fixed through recursive ownership changes: replacing it splits synchronization.
+
+For a reviewed repair on an existing host, run `prepare-version-update-lock.py`
+with `--repair-existing`, `--expected-current-bundle` and
+`--expected-current-operation` bound to the completed native operation. It locks
+the existing worker and update plane, checks ready packaged current authority,
+and changes only the shared lock's owner/group/mode. It prints before/after inode
+and permission evidence. Run this in the owner-local Root context; ordinary
+Commander must not bypass that boundary. No package activation or database
+restore occurs. Verify the actual manual-check button afterwards; automatic
+policy remains unchanged and online candidates still require validated packages.
+
 ## Stage a release offline
 
 First verify the transferred archive checksum and extract it as documented in

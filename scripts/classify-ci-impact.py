@@ -184,6 +184,8 @@ TELEGRAM_GATEWAY_PATTERNS = (
 )
 
 OFFLINE_BUNDLE_PATTERNS = (
+    "scripts/prepare-version-update-lock.py",
+    "scripts/tests/test_prepare_version_update_lock.py",
     "scripts/deploy-complete-partial-frontends.py",
     "scripts/tests/test_deploy_complete_partial_frontends.py",
     "scripts/nexolab-protected-frontend.py",
@@ -241,6 +243,8 @@ FRONTEND_RELEASE_TOOLING_PATHS = {
 }
 
 VERSION_MANAGER_TOOLING_PATHS = {
+    "scripts/prepare-version-update-lock.py",
+    "scripts/tests/test_prepare_version_update_lock.py",
     "scripts/device-agent-startup-gate.py",
     "scripts/tests/test_device_agent_startup_gate.py",
     "scripts/nexolab-version-manager.py",
