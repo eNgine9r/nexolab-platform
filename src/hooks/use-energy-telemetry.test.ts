@@ -1,3 +1,7 @@
+import {
+  energyHistorySourceEventId,
+  isEnergyHistorySegmentStart,
+} from "@/features/energy/energy-history-segment";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -523,5 +527,91 @@ describe("useEnergyTelemetry startup coverage", () => {
     const to = queryTime(query.to);
     expect(to - from).toBeGreaterThanOrEqual(7 * 24 * 60 * 60 * 1000 - 2_000);
     expect(to - from).toBeLessThanOrEqual(7 * 24 * 60 * 60 * 1000 + 2_000);
+  });
+  it("loads multiple metrics on one authenticated subscription and keeps live quality breaks independent", async () => {
+    const now = Date.now();
+    const voltage = {
+      ...energySample("voltage-history", new Date(now - 60000).toISOString()),
+      metric: "electrical.voltage",
+      unit: "V",
+      channel_id: "200-voltage",
+      value: 230,
+    };
+    const current = {
+      ...voltage,
+      event_id: "current-history",
+      metric: "electrical.current",
+      unit: "A",
+      channel_id: "200-current",
+      value: 2,
+    };
+    adapterState.history.mockImplementation(async (query: TelemetryHistoryQuery) => ({
+      ...emptyHistoryResponse(),
+      items: [energySample("power-history", voltage.captured_at), voltage, current].filter(
+        (sample) => sample.metric === query.metric,
+      ),
+    }));
+    const { result } = renderHook(() => useEnergyTelemetry());
+    await waitFor(() => expect(adapterState.subscribe).toHaveBeenCalledOnce());
+    act(() => adapterState.handlers?.onStateChange?.("connected"));
+    await waitFor(() => expect(result.current.historyStatus).toBe("ready"));
+    act(() =>
+      result.current.setSelectedMetrics([
+        "electrical.power.active",
+        "electrical.voltage",
+        "electrical.current",
+      ]),
+    );
+    await waitFor(() =>
+      expect(new Set(result.current.historySamples.map((sample) => sample.metric)).size).toBe(3),
+    );
+    expect(adapterState.subscribe).toHaveBeenCalledOnce();
+    const later = new Date(now + 1000).toISOString();
+    act(() => {
+      adapterState.handlers?.onSample?.({
+        ...voltage,
+        event_id: "voltage-error",
+        captured_at: new Date(now).toISOString(),
+        quality: "communication_error",
+        value: null,
+      });
+      adapterState.handlers?.onSample?.({
+        ...current,
+        event_id: "current-live",
+        captured_at: later,
+        value: 3,
+      });
+      adapterState.handlers?.onSample?.({
+        ...voltage,
+        event_id: "voltage-recovered",
+        captured_at: later,
+        value: 231,
+      });
+    });
+    await waitFor(() =>
+      expect(
+        result.current.historySamples.some(
+          (sample) => energyHistorySourceEventId(sample.event_id) === "voltage-recovered",
+        ),
+      ).toBe(true),
+    );
+    expect(
+      isEnergyHistorySegmentStart(
+        result.current.historySamples.find(
+          (sample) => energyHistorySourceEventId(sample.event_id) === "voltage-recovered",
+        )!.event_id,
+      ),
+    ).toBe(true);
+    expect(
+      isEnergyHistorySegmentStart(
+        result.current.historySamples.find(
+          (sample) => energyHistorySourceEventId(sample.event_id) === "current-live",
+        )!.event_id,
+      ),
+    ).toBe(false);
+    act(() => result.current.setSelectedMetrics([]));
+    await waitFor(() => expect(result.current.historyStatus).toBe("idle"));
+    expect(result.current.historySamples).toEqual([]);
+    expect(adapterState.subscribe).toHaveBeenCalledOnce();
   });
 });

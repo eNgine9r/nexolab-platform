@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { chartSeriesKey } from "@/features/charts/domain";
+import { buildChartYAxisModel, partitionChartSeriesByAxisBudget } from "@/features/charts/units";
+import { ENERGY_METRICS } from "./energy-telemetry";
 import { markEnergyHistorySegmentStart } from "@/features/energy/energy-history-segment";
 import type { TelemetrySample } from "@/lib/telemetry/types";
 
@@ -31,6 +33,66 @@ function sample(
 }
 
 describe("Energy canonical chart scene", () => {
+  it("keeps P/U/I on independent axes with distinct stable colors and exact pair selection", () => {
+    const samples = ["electrical.power.active", "electrical.voltage", "electrical.current"].map((id) => {
+      const metric = ENERGY_METRICS.find((item) => item.id === id)!;
+      return sample(id, "2026-08-19T00:05:00Z", {
+        metric: id,
+        unit: metric.expectedUnit,
+        channel_id: `200-${id}`,
+      });
+    });
+    const options = {
+      samples,
+      selectedMetrics: ["electrical.power.active", "electrical.voltage", "electrical.current"] as const,
+      selectedUnitIds: [200],
+      status: "live" as const,
+      historyWindow: null,
+    };
+    const scene = buildEnergyChartScene(options);
+    expect(scene.series).toHaveLength(3);
+    expect(new Set(scene.series.map((item) => item.colorToken)).size).toBe(3);
+    expect(
+      buildChartYAxisModel(scene.series)
+        .visibleAxes.map((axis) => axis.nativeUnit)
+        .sort(),
+    ).toEqual(["A", "V", "W"]);
+    const subset = buildEnergyChartScene({
+      ...options,
+      selectedPairs: [{ unitId: 200, metric: "electrical.current" }],
+    });
+    expect(subset.series).toHaveLength(1);
+    expect(subset.series[0].colorToken).toBe(
+      scene.series.find((item) => item.identity.metric === "electrical.current")!.colorToken,
+    );
+  });
+
+  it("partitions nine native quantities without mixing node or counter identity", () => {
+    const samples = ENERGY_METRICS.map((metric) =>
+      sample(metric.id, "2026-08-19T00:05:00Z", {
+        metric: metric.id,
+        unit: metric.expectedUnit,
+        channel_id: `200-${metric.id}`,
+      }),
+    );
+    samples.push({ ...samples[0], node_id: "edge-other", event_id: "other-node" });
+    const scene = buildEnergyChartScene({
+      samples,
+      selectedMetrics: ENERGY_METRICS.map((metric) => metric.id),
+      selectedUnitIds: [200],
+      status: "live",
+      historyWindow: null,
+    });
+    expect(scene.series).toHaveLength(10);
+    const panels = partitionChartSeriesByAxisBudget(scene.series);
+    expect(panels).toHaveLength(2);
+    expect(panels.every((series) => buildChartYAxisModel(series).visibleAxes.length <= 5)).toBe(true);
+    expect(new Set(scene.series.map((item) => chartSeriesKey(item.identity))).size).toBe(10);
+    expect(
+      scene.series.find((item) => item.identity.metric === "electrical.energy.active")?.semanticMode,
+    ).toBe("cumulative_counter");
+  });
+
   it("preserves explicit history gaps as independent canonical segments", () => {
     const first = sample("first", "2026-08-18T23:55:00.000Z");
     const second = markEnergyHistorySegmentStart(
