@@ -1,3 +1,58 @@
+## Current checkpoint — security prerequisite1369 blocks Energy merge
+
+Graph1362 is accepted and merged through1367. Export1363 first exact head
+cd62d2f passed real PostgreSQL backend828 plus2 outage cases and the new
+PostgreSQL/MQTT CSV/XLSX/mobile scenario. Its complete browser suite passed40/41:
+the generated third-node fixture leaked into an existing Nodes read budget.
+Local f087d70c repairs scoped fixture cleanup and review P2 manifest exhaustion;
+24 backend export regressions and typecheck pass. It awaits publication/rebase.
+
+The shared Container Supply Chain gate failed closed on48 expired telemetry
+HIGH decisions and4 fresh object-storage Go/x-net HIGH findings with fixes.
+Critical WP1369 preserves the same48 justified telemetry tuples through2026-10-20
+and rebuilds immutable VersityGW1.8.0 with checksum-verified Go1.27.2/x-net0.60.0.
+No new object exception or severity bypass is allowed. Local policy/contract
+checks61 pass; actual fixed-image build/scan and source review remain pending.
+
+Actual Pi preflight observed Pi5/aarch64/4045MiB RAM and healthy C296 services.
+Creating an isolated home workspace was denied read-only before any file or
+Docker mutation; actual export resource acceptance1364 remains unverified.
+Existing dirty Commander checkout and user edits are preserved. Automatic
+activationOFF, matching package1313/1323 and data/backup/rollback gates remain.
+
+## Energy1363 — export candidate verified locally; real PostgreSQL CI pending
+
+Owner-scoped local spawned jobs freeze original history with commit/time and ID
+watermarks, bounded keyset reads and private SQLite staging. CSV and write-only
+XLSX preserve raw collisions, invalid/missing states, UTC/Kyiv offsets and counter
+anchor semantics. UI offers equipment/parameter/range/step/statistics/format,
+preview counts/estimated size, background progress and streamed authorized download.
+No polling/schema/dependency or production change was made.
+
+171 module and1218 full frontend tests passed;22 export backend tests passed,
+1 PostgreSQL case skipped locally. Broader backend run passed792, skipped28 and
+deselected7;3 migration-schema checks failed against the unprepared in-memory
+SQLite environment, not a migrated database. Required real PostgreSQL CI remains
+pending. Lint/typecheck/build and local browser flow passed at390/768/1440/1920px,
+Denver browser timezone,18 saved samples→7 raw/4 aggregate rows,1 socket,0 JS errors.
+This synthetic SQLite fixture restores legacy telemetry UTC metadata to match
+PostgreSQL JSON; it is not production/physical or real PostgreSQL acceptance.
+The large fixture preserved100005 original events while normal ingestion advanced20.
+
+1363 is in review;1364 depends on its required CI/review acceptance. Deployed C296,
+automatic activationOFF and all matching-package/data/rollback/update gates remain.
+
+## Energy1363 — historical export implementation active
+
+Graph1362 is completed: final head66b9527 passed Core, persisted Authenticated
+Dashboard and Merge Gate; addressed review is resolved. PR1367 merged as9ebcb89e.
+The isolated1363 branch starts at that source. Its Issue now records the exact
+owner-scoped API/process/SQLite freeze/bucket/format contract. No schema, polling
+or existing exporter changes are planned. Fourteen initial source/aggregation/
+writer cases are being validated; these are synthetic local software checks,
+not PostgreSQL/Pi/production acceptance. Remaining1364 depends on completed1363.
+Accepted/deployed C296 and all matching-package/update gates remain unchanged.
+
 ## Energy1362 — GREEN first candidate; review repair awaiting exact-head CI
 
 PR1367 first head5315f8f passed Core and Authenticated Dashboard Acceptance,

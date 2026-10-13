@@ -1,3 +1,43 @@
+## Current checkpoint — security prerequisite1369 blocks Energy merge
+
+Graph1362 is accepted and merged through1367. Export1363 first exact head
+cd62d2f passed real PostgreSQL backend828 plus2 outage cases and the new
+PostgreSQL/MQTT CSV/XLSX/mobile scenario. Its complete browser suite passed40/41:
+the generated third-node fixture leaked into an existing Nodes read budget.
+Local f087d70c repairs scoped fixture cleanup and review P2 manifest exhaustion;
+24 backend export regressions and typecheck pass. It awaits publication/rebase.
+
+The shared Container Supply Chain gate failed closed on48 expired telemetry
+HIGH decisions and4 fresh object-storage Go/x-net HIGH findings with fixes.
+Critical WP1369 preserves the same48 justified telemetry tuples through2026-10-20
+and rebuilds immutable VersityGW1.8.0 with checksum-verified Go1.27.2/x-net0.60.0.
+No new object exception or severity bypass is allowed. Local policy/contract
+checks61 pass; actual fixed-image build/scan and source review remain pending.
+
+Actual Pi preflight observed Pi5/aarch64/4045MiB RAM and healthy C296 services.
+Creating an isolated home workspace was denied read-only before any file or
+Docker mutation; actual export resource acceptance1364 remains unverified.
+Existing dirty Commander checkout and user edits are preserved. Automatic
+activationOFF, matching package1313/1323 and data/backup/rollback gates remain.
+
+## Energy1363 — remaining verification gates
+
+Required PostgreSQL/backend and persisted PostgreSQL/MQTT browser acceptance
+will run through exact-head CI. Local broad pytest saw3 schema assertions fail
+against unprepared in-memory SQLite;792 other checks passed. Targeted export22
+and real local API/browser synthetic flow passed. Actual Pi resources are still
+unverified under1364. Matching package/update gates1313/1323 remain independent.
+
+## Energy continuation — graph dependency resolved; export verification pending
+
+1362 source/CI/review is accepted and merged through1367. Primary isolated
+1363 source and supported Node24/npm11/backend verification dependencies are
+available. The historical NEXUS runner limitation does not block this path.
+Local Docker/PostgreSQL are absent: genuine persisted database/browser evidence
+will require the routed PostgreSQL/acceptance workflow or an isolated test host.
+Actual Raspberry Pi export resources remain unverified under1364. C296 stays
+deployed; package1313/1323 and guarded update gates are retained.
+
 ## Energy1362 — implementation path recovered; CI acceptance pending
 
 Primary current Git, writable isolated source, Node24/npm11 and local dependencies

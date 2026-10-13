@@ -9,12 +9,26 @@ TELEMETRY_WORKFLOW = (ROOT / ".github/workflows/telemetry-service.yml").read_tex
 OFFLINE_AUTH_ACCEPTANCE = (ROOT / "scripts/run-offline-auth-acceptance.sh").read_text(encoding="utf-8")
 
 
-def test_versitygw_release_is_exact_and_checksum_pinned_for_both_architectures() -> None:
+def test_versitygw_source_and_fixed_sdk_are_exact_for_both_architectures() -> None:
     assert "VERSITYGW_VERSION=1.8.0" in DOCKERFILE
-    assert "2ba2c734d10d2c4e651d03182cb4b246656bc735a2f282db7b0b73fba6073467" in DOCKERFILE
-    assert "b34051d33f5a9c457f790896acb7bd7d7e15ad8d92efb70616b924f37e401910" in DOCKERFILE
+    assert "fd04bc1df2656298577b82667a4195c77f8c7563" in DOCKERFILE
+    assert 'test "$(git rev-parse HEAD)" = "$VERSITYGW_COMMIT"' in DOCKERFILE
+    assert "GO_VERSION=1.27.2" in DOCKERFILE
+    assert "ecbadb99091a3f46e31f5f934b068b1864eafa7995211b39eaddf76996045fe5" in DOCKERFILE
+    assert "94f3e30b8e374bc285e7dadc11e0865726b9bc6e85b841ccceaabc0214c6b7c8" in DOCKERFILE
     assert "sha256sum -c -" in DOCKERFILE
+    assert "GOTOOLCHAIN=local" in DOCKERFILE
+    assert "CGO_ENABLED=0" in DOCKERFILE
+    assert "golang.org/x/net@v0.60.0" in DOCKERFILE
+    assert "go mod verify" in DOCKERFILE
+    assert 'GOOS=linux GOARCH="$TARGETARCH"' in DOCKERFILE
+    assert "amd64|arm64)" in DOCKERFILE
+    assert "releases/download" not in DOCKERFILE
     assert "FROM scratch" in DOCKERFILE
+    runtime = DOCKERFILE.split("FROM scratch", 1)[1]
+    assert "RUN " not in runtime
+    assert 'ENTRYPOINT ["/usr/local/bin/versitygw"]' in runtime
+    assert 'CMD ["posix", "/data"]' in runtime
 
 
 def test_central_runtime_uses_local_versitygw_build_not_external_minio_images() -> None:
