@@ -190,6 +190,35 @@ it("permits empty selection and cancels draft changes", () => {
   expect(screen.getByRole("button", { name: "12 год" })).toBeVisible();
 });
 
+it("retains a hidden meter's distinct parameters when applying the dialog", () => {
+  setup();
+  fireEvent.click(screen.getByRole("button", { name: "+ Додати параметр" }));
+  fireEvent.click(screen.getByRole("button", { name: "Очистити вибір" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "W1 · Активна потужність" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "W2 · Струм" }));
+  fireEvent.click(screen.getByRole("button", { name: "Застосувати" }));
+  fireEvent.click(toggle("W1"));
+  fireEvent.click(screen.getByRole("button", { name: "+ Додати параметр" }));
+  expect(screen.getByRole("checkbox", { name: "W1 · Активна потужність" })).toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "W1 · Напруга" })).not.toBeChecked();
+  fireEvent.click(screen.getByRole("checkbox", { name: "W2 · Напруга" }));
+  fireEvent.click(screen.getByRole("button", { name: "Застосувати" }));
+  expect(toggle("W1", false)).toHaveAttribute("aria-pressed", "false");
+  expect(screen.queryByRole("button", { name: "Прибрати W1 · Активна потужність" })).not.toBeInTheDocument();
+  fireEvent.click(toggle("W1", false));
+  expect(screen.getByRole("button", { name: "Прибрати W1 · Активна потужність" })).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Прибрати W1 · Напруга" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Прибрати W2 · Струм" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Прибрати W2 · Напруга" })).toBeVisible();
+  fireEvent.click(toggle("W1"));
+  fireEvent.click(screen.getByRole("button", { name: "+ Додати параметр" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "W1 · Струм" }));
+  fireEvent.click(screen.getByRole("button", { name: "Застосувати" }));
+  expect(toggle("W1")).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByRole("button", { name: "Прибрати W1 · Активна потужність" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Прибрати W1 · Струм" })).toBeVisible();
+});
+
 it("removing the Solo parameter reveals the remaining selected series", async () => {
   const samples = [ENERGY_METERS[0], ENERGY_METERS.at(-1)!].map((meter) => ({
     event_id: `solo-removal-${meter.unitId}`,

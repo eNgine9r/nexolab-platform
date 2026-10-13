@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-13T19:12:38.162Z",
+  "timestamp": "2026-10-13T19:44:03.287Z",
   "actor": "Codex",
-  "event": "energy1362_local_candidate_verified_pending_exact_head_ci",
+  "event": "energy1362_green_first_head_review_repair_pending_ci",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -3533,7 +3533,7 @@
       }
     }
   ],
-  "next_action": "Publish the scoped1362 graph candidate; require exact-head full Core and Authenticated Dashboard persisted browser/API acceptance and source review before merge. After GREEN, promote1363 export and define its precise job/bucket/file contract. Primary writable Node24/npm11 worktree is available; original NEXUS runner remains unusable. Retain C296, automatic activationOFF, original native/owner evidence and all package1313/1323 readiness gates. No green update instruction before matching validated package, data protection, rollback and guarded installation readiness.",
+  "next_action": "Publish coherent1362 review repair, require fresh exact-head Core and Authenticated Dashboard GREEN and resolve the addressed thread before merge. Then promote1363 with exact export job/data/file contracts. Keep C296 and all matching-package/data/rollback/guarded-install gates.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

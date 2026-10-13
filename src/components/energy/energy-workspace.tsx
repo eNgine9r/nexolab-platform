@@ -378,7 +378,7 @@ function HistoryPanel({
       ) : null}
       {selectorOpen ? (
         <EnergyParameterDialog
-          selected={visiblePairs}
+          selected={selectedPairs}
           onApply={onApplyPairs}
           onClose={() => setSelectorOpen(false)}
         />
@@ -406,13 +406,18 @@ export function EnergyWorkspace({
   );
   const applyPairs = (pairs: EnergySeriesSelection[]) => {
     const next = normalizeEnergySeriesSelection(pairs);
+    const previousKeys = new Set(selectedPairs.map(energySeriesSelectionKey));
     setSelectedPairs(next);
     setVisibilityRevision((current) => current + 1);
     telemetry.setSelectedMetrics([...new Set(next.map((pair) => pair.metric))]);
     if (next.length > 0)
       setSelectedUnitIds((current) =>
         ENERGY_METERS.filter(
-          (meter) => current.includes(meter.unitId) || next.some((pair) => pair.unitId === meter.unitId),
+          (meter) =>
+            current.includes(meter.unitId) ||
+            next.some(
+              (pair) => pair.unitId === meter.unitId && !previousKeys.has(energySeriesSelectionKey(pair)),
+            ),
         ).map((meter) => meter.unitId),
       );
   };

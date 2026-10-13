@@ -8453,6 +8453,21 @@
           "offline_review": "no runtime dependency, CDN/font/cloud or acquisition changes",
           "production_hardware": "not run; C296 retained",
           "solo_removal_regression": "red-green verified; 6 workspace tests passed; parameter changes clear stale visibility without resetting zoom"
+        },
+        "first_candidate_exact_head_ci": {
+          "verified_head_sha": "5315f8fff2ca2a287baee264549c856c944dd77f",
+          "core_run": 38456244088,
+          "authenticated_dashboard_run": 38456244021,
+          "merge_gate_job": 115500830240,
+          "conclusion": "success",
+          "persisted_postgresql_mqtt_browser_acceptance": "passed; review repair requires fresh exact-head CI"
+        },
+        "review_repair": {
+          "thread_id": "PRRT_kwDOTe72wM6sB98b",
+          "problem": "Applying parameter dialog discarded hidden meter selections",
+          "change": "Initialize from all retained pairs; preserve hidden meter exclusion unless an explicitly new pair is added",
+          "regression": "red-green reproduced; 7 workspace tests and 160 targeted tests passed",
+          "exact_head_ci": "pending for repaired candidate"
         }
       },
       "readiness": "Implementation candidate in review using the primary writable worktree; required exact-head CI and persisted browser/API acceptance are pending. Original NEXUS runner remains unavailable."

@@ -1,3 +1,13 @@
+## Energy1362 — GREEN first candidate; review repair awaiting exact-head CI
+
+PR1367 first head5315f8f passed Core and Authenticated Dashboard Acceptance,
+including real seeded PostgreSQL/MQTT history and WebSocket invariants. Review
+identified hidden-meter parameter loss when applying the dialog. The scoped
+repair preserves both retained pairs and meter exclusion; explicitly adding a
+new pair can enable that meter. Regression reproduced before the fix;7 workspace
+tests and160 targeted tests passed after it. Fresh exact-head CI is required
+before merging the repaired candidate. C296 and package gates remain unchanged.
+
 ## Energy1362 — local graph candidate verified; exact-head CI pending
 
 The original NEXUS runner blocker remains scoped to that read-only/stale runner.
