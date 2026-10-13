@@ -1,3 +1,10 @@
+#1349 environment-precedence correction: ExecStart supplies the trusted
+root-controlled startup path through /usr/bin/env, so existing EnvironmentFile
+values cannot redirect privileged overlays to container-writable state. The
+launch precedence regression failed before correction and now proves the forced
+path against an unsafe inherited value. 40 focused tests and9 subtests pass, one
+independent-UID skip; final exact-head CI/review and owner installation pending.
+
 #1349 privileged-input boundary correction: hardware startup overlays now use
 /var/backups/nexolab/device-agent-startup beneath the root-controlled backup
 parent, never the container-writable version root. Unit bytes remain in trusted

@@ -13,6 +13,7 @@ import tarfile
 import tempfile
 from types import SimpleNamespace
 import unittest
+import sys
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -416,8 +417,8 @@ class WorkerWriteBoundaryTests(unittest.TestCase):
 
     def test_startup_overlay_is_outside_container_writable_version_root(self):
         text = (ROOT / "infrastructure/offline/nexolab-version-manager.service").read_text()
-        prefix = "Environment=NEXOLAB_STARTUP_EVIDENCE_ROOT="
-        startup = Path(next(line[len(prefix):] for line in text.splitlines() if line.startswith(prefix)))
+        prefix = "ExecStart=/usr/bin/env NEXOLAB_STARTUP_EVIDENCE_ROOT="
+        startup = Path(next(line[len(prefix):].split()[0] for line in text.splitlines() if line.startswith(prefix)))
         self.assertFalse(startup.is_relative_to(Path("/var/lib/nexolab/version-management")))
         self.assertTrue(startup.is_relative_to(Path("/var/backups/nexolab")))
 
@@ -429,8 +430,19 @@ class WorkerWriteBoundaryTests(unittest.TestCase):
         self.assertEqual(paths, ["/var/lib/nexolab/version-management", "/var/backups/nexolab",
                                  "-/opt/nexolab-external/releases",
                                  "-/etc/systemd/system/nexolab-external-frontend.service"])
-        self.assertIn("Environment=NEXOLAB_STARTUP_EVIDENCE_ROOT=/var/backups/nexolab/device-agent-startup", text)
+        self.assertIn("ExecStart=/usr/bin/env NEXOLAB_STARTUP_EVIDENCE_ROOT=/var/backups/nexolab/device-agent-startup /usr/bin/python3", text)
 
+
+class StartupEnvironmentPrecedenceTests(unittest.TestCase):
+    def test_explicit_launch_assignment_overrides_old_environment_file_value(self):
+        text = (ROOT / "infrastructure/offline/nexolab-version-manager.service").read_text()
+        prefix = "ExecStart=/usr/bin/env "
+        assignment = next(line[len(prefix):].split()[0] for line in text.splitlines() if line.startswith(prefix))
+        environment = dict(os.environ, NEXOLAB_STARTUP_EVIDENCE_ROOT="/var/lib/nexolab/version-management/unsafe")
+        result = subprocess.run(["/usr/bin/env", assignment, sys.executable, "-c",
+                                 "import os; print(os.environ['NEXOLAB_STARTUP_EVIDENCE_ROOT'])"],
+                                check=True, capture_output=True, text=True, env=environment)
+        self.assertEqual(result.stdout.strip(), "/var/backups/nexolab/device-agent-startup")
 
 if __name__ == "__main__":
     unittest.main()

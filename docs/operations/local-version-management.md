@@ -243,7 +243,9 @@ Hardware startup evidence uses `NEXOLAB_STARTUP_EVIDENCE_ROOT` beneath the
 root-controlled backup root at `/var/backups/nexolab/device-agent-startup`, as
 supported by the immutable installer. The container-writable version root must
 not contain this privileged Compose input: an attacker could rename a root-owned
-child from its writable parent and replace the overlay between validation and use. The frontend transaction stops its
+child from its writable parent and replace the overlay between validation and use.
+The worker command supplies this trusted path through `/usr/bin/env` in
+`ExecStart`; an older `EnvironmentFile` assignment cannot override it. The frontend transaction stops its
 service, preserves the original unit in durable operation evidence and writes the
 existing unit inode without unlinking it. Candidate and original contents stay
 in trusted transaction memory; copied evidence files never authorize unit writes.

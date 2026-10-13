@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-13T04:25:00Z",
+  "timestamp": "2026-10-13T04:51:00Z",
   "actor": "ChatGPT",
-  "event": "1349_privileged_startup_input_moved_outside_container_writable_root",
+  "event": "1349_trusted_startup_path_forced_in_execstart",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -3104,7 +3104,7 @@
       }
     }
   ],
-  "next_action": "Final exact-head CI/review for root-controlled backup startup evidence; then guarded owner-local namespace write/denial proof and tooling install. Current C296 validated_package stays ready/known; target catalog-only. Native LAN/HTTPS UI update+rollback requires browser access (Opera app reauthentication pending). No host install or package activation performed.",
+  "next_action": "Accept final exact-head CI/review including effective startup override, then guarded owner-local namespace write/denial proof and tooling installation. Current C296 validated_package ready/known, target catalog-only. Native UI update/rollback awaits worker install and Opera reconnection.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
