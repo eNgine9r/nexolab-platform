@@ -6,8 +6,8 @@ the correct repaired DF package, passed capacity, then failed at retained migrat
 Git lineage before backup/runtime installation. Normal-user ancestry passes and
 retained migration proof digest is unchanged; Root service ownership context is
 the focused diagnosis. Local Git reproduction and scoped-directory regressions
-pass. Real matching Root-context ownership/current/target proof and reviewed
-worker-unit installation are still required before another native UI request.
+pass, including canonical child Git policy for a symlinked host configuration. Real matching Root-context ownership/current/target proof and reviewed
+manager/worker-unit installation are still required before another native UI request.
 Do not change the proof, declare a true non-ancestor without Git diagnostics,
 set wildcard/global Git trust, weaken the sandbox or replay owner handoff.
 

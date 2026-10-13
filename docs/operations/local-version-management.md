@@ -254,6 +254,8 @@ inherited directory exceptions and `GIT_CONFIG_PARAMETERS`, and removes
 wildcard or global Git configuration is written. Immutable package migration
 validators still require the accepted migration revision to be an ancestor of
 the deployment target; missing commits and unrelated lineage remain failures.
+The manager canonicalizes the repository before binding the child-process
+exception, including an existing host configuration that names a symlink.
 An ownership refusal is not evidence of a genuine non-ancestor. Owner installation
 must prove the actual retained migration/current/target checks inside the matching
 service sandbox before another native UI request.

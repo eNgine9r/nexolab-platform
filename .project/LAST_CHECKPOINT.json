@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-13T07:28:00Z",
+  "timestamp": "2026-10-13T07:54:00Z",
   "actor": "ChatGPT",
-  "event": "1351_native_git_lineage_candidate_and_installed_1349_proof",
+  "event": "1351_canonical_child_git_policy_review_correction",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -2106,9 +2106,10 @@
       "normal_user_ancestor_returncode": 0,
       "repository_owner_uid": 1000,
       "native_worker_uid": "root",
-      "local_checks": "45_passed_1_uid_skip_9_subtests",
+      "local_checks": "116_passed_1_uid_skip_9_subtests",
       "real_namespace_proof_and_install": "pending",
-      "native_ui_success": "unverified"
+      "native_ui_success": "unverified",
+      "symlink_configuration": "canonical_child_repo_regression_passed"
     }
   },
   "observations": [
@@ -3133,5 +3134,5 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "Current C296 canonical validated_package authority succeeded2026-10-12T13:05:59Z, ready/known; target DF remains catalog-only. Owner installed reviewed1349 helper/unit at2026-10-13T05:56:53Z after actual write/denial namespace proof with3/3 healthy advancing workers; no package activation/database restore/controller write. First native LAN Chromium update48ecfe60-1b73-43da-a368-052e9029ee64 failed at retained migration lineage after capacity PASS, before backup/install.1351 changes source candidate only; real matching Root lineage/current/target storage proof, unit installation and successful native LAN/HTTPS update/rollback remain pending. Historical source handoff failures and reports are preserved."
+  "runtime_mutation": "Current C296 canonical validated_package authority succeeded2026-10-12T13:05:59Z, ready/known; target DF remains catalog-only. Owner installed reviewed1349 helper/unit at2026-10-13T05:56:53Z after actual write/denial namespace proof with3/3 healthy advancing workers; no package activation/database restore/controller write. First native LAN Chromium update48ecfe60-1b73-43da-a368-052e9029ee64 failed at retained migration lineage after capacity PASS, before backup/install.1351 changes source candidate only; real matching Root lineage/current/target storage proof, manager/unit installation and successful native LAN/HTTPS update/rollback remain pending. Historical source handoff failures and reports are preserved."
 }

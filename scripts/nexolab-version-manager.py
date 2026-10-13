@@ -545,6 +545,17 @@ def package_subprocess_env(args: argparse.Namespace) -> dict[str, str]:
     # installer uses this repository for migration authority and Git lineage.
     source_repo = Path(getattr(args, "source_repo", configured_source_repository()))
     environment["NEXOLAB_REPO"] = str(source_repo.resolve())
+    # Historical host configurations may name a symlink. Git checks the physical
+    # worktree, so bind the immutable validator's exception after canonicalizing.
+    environment.pop("SUDO_UID", None)
+    environment.pop("GIT_CONFIG_PARAMETERS", None)
+    environment.update({
+        "GIT_CONFIG_COUNT": "2",
+        "GIT_CONFIG_KEY_0": "safe.directory",
+        "GIT_CONFIG_VALUE_0": "",
+        "GIT_CONFIG_KEY_1": "safe.directory",
+        "GIT_CONFIG_VALUE_1": environment["NEXOLAB_REPO"],
+    })
     return environment
 
 

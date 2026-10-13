@@ -4,6 +4,7 @@ import importlib.util
 import os
 import shlex
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -134,10 +135,7 @@ def git(repository: Path, *arguments: str, environment: dict[str, str]) -> subpr
 
 @pytest.fixture
 def graph(tmp_path: Path):
-    environment = {
-        key: value for key, value in os.environ.items()
-        if not key.startswith(("GIT_", "SUDO_"))
-    }
+    environment = {"PATH": os.environ.get("PATH", os.defpath)}
     global_config = tmp_path / "global.conf"
     global_config.write_text("[safe]\n\tdirectory = *\n")
     environment.update(
@@ -167,8 +165,17 @@ def worker_git(configured_repository: Path, repository: Path, ancestor: str, tar
     # systemd expands ${VAR} after tokenization, retaining spaces in one argument.
     arguments = [argument.replace("${NEXOLAB_REPOSITORY_PATH}", str(configured_repository)) for argument in arguments]
     prefix = arguments[:arguments.index("/usr/bin/python3")]
+    # Exercise the launch followed by the manager's actual child environment.
+    program = """
+import argparse, importlib.util, subprocess, sys
+from pathlib import Path
+spec = importlib.util.spec_from_file_location('worker', sys.argv[1])
+worker = importlib.util.module_from_spec(spec); spec.loader.exec_module(worker)
+environment = worker.package_subprocess_env(argparse.Namespace(local_auth=False, source_repo=Path(sys.argv[2])))
+sys.exit(subprocess.run(['git', '-C', sys.argv[3], 'merge-base', '--is-ancestor', sys.argv[4], sys.argv[5]], env=environment).returncode)
+"""
     return subprocess.run(
-        [*prefix, "git", "-C", str(repository), "merge-base", "--is-ancestor", ancestor, target],
+        [*prefix, sys.executable, "-c", program, str(SCRIPT), str(configured_repository), str(repository), ancestor, target],
         env=environment, capture_output=True, text=True, timeout=10,
     )
 
@@ -179,6 +186,20 @@ def test_worker_accepts_real_ancestor_in_exact_foreign_owned_site(graph):
     baseline = git(repository, "merge-base", "--is-ancestor", ancestor, target, environment=environment)
     assert baseline.returncode == 128 and "dubious ownership" in baseline.stderr
     result = worker_git(repository, repository, ancestor, target, environment)
+    assert result.returncode == 0, result.stderr
+
+
+def test_worker_canonicalizes_existing_symlinked_site_configuration(graph, tmp_path, monkeypatch):
+    repository, ancestor, target, environment = graph
+    logical = tmp_path / "logical site"
+    logical.symlink_to(repository, target_is_directory=True)
+    from argparse import Namespace
+    with monkeypatch.context() as patch:
+        patch.setattr(manager.os, "environ", environment)
+        actual = manager.package_subprocess_env(Namespace(local_auth=False, source_repo=logical))
+    assert actual["NEXOLAB_REPO"] == str(repository.resolve())
+    assert actual["GIT_CONFIG_VALUE_1"] == actual["NEXOLAB_REPO"]
+    result = worker_git(logical, repository, ancestor, target, environment)
     assert result.returncode == 0, result.stderr
 
 

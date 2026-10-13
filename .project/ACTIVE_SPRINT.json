@@ -8025,9 +8025,9 @@
       "depends_on": [
         1343
       ],
-      "scope": "Required native migration lineage context correction; exact process-local site Git trust with inherited exceptions reset and strict sandbox unchanged. No package rewrite/build, proof/data change or automatic activation. Owner-local real namespace proof precedes reviewed unit installation.",
+      "scope": "Required native migration lineage context correction; exact process-local site Git trust with inherited exceptions reset and strict sandbox unchanged. No package rewrite/build, proof/data change or automatic activation. Owner-local real namespace proof precedes reviewed manager/unit installation.",
       "evidence": {
-        "targeted_checks": "45 passed; 1 independent-UID skip; 9 subtests",
+        "targeted_checks": "116 passed; 1 independent-UID skip; 9 subtests",
         "native_failed_operation": "48ecfe60-1b73-43da-a368-052e9029ee64",
         "capacity": "PASS",
         "normal_user_git_ancestor_returncode": 0,
@@ -8035,7 +8035,8 @@
         "local_real_git_reproduction": "ownership128_scoped_ancestor0_reversed1_missing128_unapproved128",
         "native_root_context_proof": "pending_owner_local",
         "source_ci_review": "pending_for_candidate",
-        "runtime_mutation": "none_by_1351"
+        "runtime_mutation": "none_by_1351",
+        "symlink_review_correction": "manager binds child Git exception to canonical repository including existing logical-path config"
       }
     }
   ],

@@ -18,10 +18,11 @@ Actual Root-context ownership diagnosis will be required by the guarded action.
 
 The #1351 candidate forces process-local safe.directory reset plus the exact
 root-configured site repository through ExecStart, clears inherited Git parameters
-and SUDO_UID, and preserves all strict filesystem/startup boundaries. It changes
-no package, migration proof or data. 45 focused tests passed,1 independent-UID
+and SUDO_UID, and the manager binds the child exception after resolving symlinked site paths.
+All strict filesystem/startup boundaries remain. It changes
+no package, migration proof or data. 116 focused tests passed,1 independent-UID
 skip,9 subtests. Exact-head CI/review, actual service-namespace lineage/current
-and target storage proof, then owner-local unit installation remain pending.
+and target storage proof, then owner-local manager/unit installation remain pending.
 
 The user chose Chromium. Cloud Chromium receives502 while Raspberry reaches
 the existing Google sign-in flow; Opera reconnection is no longer required.
