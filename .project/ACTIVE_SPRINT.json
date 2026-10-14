@@ -61,9 +61,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1363,
-      "title": "Energy full historical CSV/XLSX export",
-      "branch": "feature/1363-energy-history-export"
+      "issue": 1364,
+      "title": "Energy historical export native acceptance",
+      "branch": "feature/1364-energy-export-acceptance"
     },
     "next_work_package": null
   },
@@ -8484,7 +8484,7 @@
       "title": "Energy full historical CSV/XLSX export",
       "branch": "feature/1363-energy-history-export",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1362,
         1369
@@ -8549,15 +8549,21 @@
           "publication": "pending accepted security prerequisite",
           "bounded_projection": "Large256KiB delivery-payload regression reproduced before fix and passes: original scalar observations preserved, payload absent from SQL projection.",
           "base": "0dc472cd5aff7348780cee6f1e2418e2896d5074"
+        },
+        "final_merge_20261014": {
+          "pr": 1368,
+          "software_source_review": "all_review_threads_resolved",
+          "exact_head_workflows": "18_completed_success",
+          "source_head": "1a7ac5e08044ba5f972727a52a59a3f20eb98635"
         }
       }
     },
     {
       "issue": 1364,
       "title": "Energy export mobile and actual Raspberry Pi isolated performance acceptance",
-      "branch": "test/1364-energy-export-acceptance",
+      "branch": "feature/1364-energy-export-acceptance",
       "priority": "high",
-      "lifecycle": "queued",
+      "lifecycle": "in_progress",
       "depends_on": [
         1362,
         1363
@@ -8572,6 +8578,25 @@
           "isolated_write": "Native build preflight execution exec-b0b70d951bf37a370433a69a9ec19efa stopped before code/file/Docker mutation: new /home/nexolab directory creation is read-only",
           "hardware_acceptance": "not run; require writable isolated validation workspace",
           "execution_recovery": "Approved Commander directory.create/file.write created only a new isolated folder and exact Dockerfile under the allowlisted project; native compiler running with resource caps. No original checkout edit or production change. Export performance itself not yet run."
+        },
+        "native_isolated_20261014": {
+          "source_sha": "7f7afc3b8839c56bc1b989676fdd35e156d0a9d3",
+          "classification": "native_Raspberry_Pi5_ARM64_isolated_synthetic_source_mount_not_production",
+          "seven_day_original_scalar_events": 147840,
+          "supported_series": 44,
+          "meters": 5,
+          "export_cases_passed": 4,
+          "normal_ingestion_submitted_and_persisted": 2212,
+          "rejected_or_lost_events": 0,
+          "peak_export_rss_bytes": 100139008,
+          "peak_cgroup_memory_bytes": 485818368,
+          "max_job_seconds": 73.75,
+          "xlsx_independent_original_ids_and_values": 147840,
+          "final_hardened_runner_smoke": "4_formats_411_of_411_ingestion_pass",
+          "runner_sha256": "784cb471f3dc962b7157391bba981a99ed764bb98fb8f726eb1ccd5de2085e17",
+          "evidence": "docs/audits/energy-history-export-acceptance-1364.md",
+          "remaining": "native_api_and_persist_latency_baselines_collector_before_during_after_full_browser_offline_release_gates",
+          "production_cutover": "not_authorized"
         }
       }
     },
@@ -9989,6 +10014,18 @@
         ],
         "planning_issue": 1365,
         "source_inspection": "single-metric energy UI/history; existing canonical five-axis partitioning and backend openpyxl dependency"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-14T05:51:58Z",
+      "kind": "energy_export_1363_accepted",
+      "data": {
+        "pull_request": 1368,
+        "merge_commit_sha": "7f7afc3b8839c56bc1b989676fdd35e156d0a9d3",
+        "exact_head_workflows_green": 18,
+        "unresolved_review_threads": 0,
+        "issue": 1363
       }
     }
   ],

@@ -1,3 +1,15 @@
+## Energy1364 — native synthetic resource slice PASS; acceptance incomplete
+
+Native Pi5/ARM64 7d/147840-record export under bounded CPU/memory and
+concurrent synthetic ingestion PASSED; source and independent RAW CSV/XLSX data
+reconciliation captured in docs/audits/energy-history-export-acceptance-1364.md.
+Still required: predeclared measured native persistence/API p95 and maximum lag,
+before/during/after collector counter proof, independent aggregate/counter
+reconciliation and full exact candidate browser/offline acceptance. A source
+merge or synthetic result does not authorize C296→new release activation.
+Release packaging, backup/rollback and guarded update remain gated under
+#1313/#1323. No production writes or Modbus/hardware writes.
+
 ## Energy1363 — final repaired export candidate on accepted security source
 
 Security prerequisite1369 is completed through PR1370/main0dc472cd. Final

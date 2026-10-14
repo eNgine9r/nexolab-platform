@@ -1,3 +1,23 @@
+## Energy1364 — native Pi isolated export load PASS; remaining gates OPEN
+
+Energy1363 merged through PR1368 after18 successful exact-head workflows and
+0 unresolved review threads; main source7f7afc3b. On actual Pi5/aarch64 an
+isolated dedicated PostgreSQL/SSD-backed synthetic test verified seven days,
+5 meters/44 metrics/147840 original scalar records and four CSV/XLSX exports.
+All source IDs and numeric values reconciled in RAW CSV and separately RAW XLSX.
+Concurrent ingestion persisted2212/2212 submitted events, 0 rejected, no OOM
+on final test; peak candidate cgroup485818368 B (limit536870912 B), worker
+RSS100139008 B (limit268435456 B). Final safer runner also passed4/4
+smoke exports with411/411 ingested events. Evidence:
+docs/audits/energy-history-export-acceptance-1364.md.
+
+Native API/persistence latency p95 and maximum lag, full before/during/after
+collector evidence, independent aggregated counter reconciliation, browser
+accessibility and full offline/release gates remain OPEN. No actual hardware
+acceptance or source-matching immutable update package verified. C296 remains
+deployed; automatic activationOFF and #1313/#1323 backup/rollback gates stay
+unchanged. No green operator update signal.
+
 ## Energy1363 — final repaired export candidate on accepted security source
 
 Security prerequisite1369 is completed through PR1370/main0dc472cd. Final

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-13T23:11:05.133307Z",
-  "actor": "Codex",
-  "event": "energy1363_rebased_final_repair_candidate",
+  "timestamp": "2026-10-14T05:51:58Z",
+  "actor": "ChatGPT",
+  "event": "energy1364_native_isolated_large_export_pass_remaining_acceptance_gates",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -31,9 +31,9 @@
     "protected_frontend_build_id": "HuFALgo65ij75S2pY6qCm"
   },
   "active_work": {
-    "issue": 1363,
-    "title": "Energy full historical CSV/XLSX export",
-    "branch": "feature/1363-energy-history-export"
+    "issue": 1364,
+    "title": "Energy historical export native acceptance",
+    "branch": "feature/1364-energy-export-acceptance"
   },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
@@ -2518,6 +2518,21 @@
       "bounded_json_projection": "red-green verified",
       "pi_write_recovery": "new approved isolated folder only",
       "pi_export_acceptance": "not run"
+    },
+    "energy1364_native_isolated_20261014": {
+      "source_sha": "7f7afc3b8839c56bc1b989676fdd35e156d0a9d3",
+      "hardware_platform": "actual_Pi5_aarch64_benchmark_without_controller_access",
+      "synthetic_original_events": 147840,
+      "four_export_results": "PASS",
+      "raw_xlsx_source_exact_event_reconciliation": 147840,
+      "live_synthetic_ingest_submitted_persisted": 2212,
+      "ingest_rejected": 0,
+      "rss_peak_bytes": 100139008,
+      "cgroup_peak_bytes": 485818368,
+      "runner_sha256": "784cb471f3dc962b7157391bba981a99ed764bb98fb8f726eb1ccd5de2085e17",
+      "evidence_path": "docs/audits/energy-history-export-acceptance-1364.md",
+      "deployment": "not_attempted",
+      "hardware_controller_acceptance": "unverified"
     }
   },
   "observations": [
@@ -3559,9 +3574,19 @@
         "planning_issue": 1365,
         "source_inspection": "single-metric energy UI/history; existing canonical five-axis partitioning and backend openpyxl dependency"
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-14T05:51:58Z",
+      "kind": "energy_export_1363_accepted",
+      "data": {
+        "pull_request": 1368,
+        "merge_commit_sha": "7f7afc3b8839c56bc1b989676fdd35e156d0a9d3",
+        "exact_head_workflows_green": 18
+      }
     }
   ],
-  "next_action": "Publish coherent1363 final export candidate; require all exact-head CI and fresh source review GREEN, then continue1364 actual-Pi isolated data/resource acceptance. C296/package/update gates unchanged.",
+  "next_action": "Publish focused #1364 native benchmark/evidence PR, pass CI/review, finish native API/persistence latency and full browser/source checks before closing Issue; preserve deployed C296 and matching-package/rollback/update gates.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
