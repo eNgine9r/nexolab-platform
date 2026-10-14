@@ -188,6 +188,11 @@ jobs:
               -v
           fi
 
+      - name: Test strict failed-package recovery safety
+        if: ${{ contains(fromJSON(needs.classify.outputs.classes), 'deployment_runtime') }}
+        shell: bash
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest scripts.tests.test_reconcile_failed_packaged_update -v
+
       - name: Validate standalone Raspberry Pi runtime contracts
         shell: bash
         run: bash scripts/tests/standalone-offline-runtime-contract.sh

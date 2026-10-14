@@ -243,6 +243,8 @@ FRONTEND_RELEASE_TOOLING_PATHS = {
 }
 
 VERSION_MANAGER_TOOLING_PATHS = {
+    "scripts/reconcile-failed-packaged-update.py",
+    "scripts/tests/test_reconcile_failed_packaged_update.py",
     "scripts/prepare-version-update-lock.py",
     "scripts/tests/test_prepare_version_update_lock.py",
     "scripts/device-agent-startup-gate.py",
