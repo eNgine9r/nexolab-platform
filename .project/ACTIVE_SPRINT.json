@@ -60,11 +60,7 @@
     "protected_frontend_build_id": "HuFALgo65ij75S2pY6qCm"
   },
   "selection": {
-    "active_work_package": {
-      "issue": 1364,
-      "title": "Energy historical export native acceptance",
-      "branch": "feature/1364-energy-export-acceptance"
-    },
+    "active_work_package": null,
     "next_work_package": null
   },
   "work_packages": [
@@ -8563,7 +8559,7 @@
       "title": "Energy export mobile and actual Raspberry Pi isolated performance acceptance",
       "branch": "feature/1364-energy-export-acceptance",
       "priority": "high",
-      "lifecycle": "in_progress",
+      "lifecycle": "completed",
       "depends_on": [
         1362,
         1363
@@ -8689,6 +8685,20 @@
             "formal_or_documented_review",
             "production_matching_package_and_site_rollout_is_separate"
           ]
+        },
+        "final_software_acceptance_20261014": {
+          "source": "merged_PR_1371",
+          "native_arm64": "bounded_isolated_synthetic_PASS",
+          "hosted_browser": "dashboard_41_pass_refrigeration_6_pass",
+          "exact_head_workflows": "5_of_5_green",
+          "review": "engineering_review_comment_recorded; not independent approval",
+          "hardware_site": "unverified",
+          "production_deployed_source": "C296_unchanged",
+          "followup_release_issues": [
+            1313,
+            1323
+          ],
+          "handoff": "read_only_or_separately_authorized_release_only"
         }
       }
     },
@@ -10139,6 +10149,36 @@
         "ci_head_prior": "7b675d744068238ffcdfaf9ed72bb4006549e0dd",
         "hosted_tests": "41 dashboard + 6 refrigeration",
         "fixed_fixture_smoke": "451/451 PASS"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-14T07:30:15.801Z",
+      "kind": "energy_wps_1362_1363_1364_completed",
+      "data": {
+        "issues": [
+          1362,
+          1363,
+          1364
+        ],
+        "pull_requests": [
+          1367,
+          1368,
+          1371
+        ],
+        "merge_commit_sha": "a79d9cb525ddb3d170f95088288b51983dbebcfb",
+        "verified_pr_head_sha": "3d9b4551a26212f4141add04a6abbb7574feef07",
+        "exact_head_workflows": [
+          "CI",
+          "Authenticated Dashboard Acceptance",
+          "Refrigeration Browser Acceptance",
+          "Offline Bundle",
+          "Telegram Gateway"
+        ],
+        "remaining_blocked_issues": [
+          1313,
+          1323
+        ]
       }
     }
   ],

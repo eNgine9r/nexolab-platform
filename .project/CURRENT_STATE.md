@@ -1,3 +1,24 @@
+## Energy acceptance closeout — #1362, #1363, #1364 completed (2026-10-14)
+
+Source of truth: **#1362/#1363/#1364 closed**, PRs **#1367/#1368/#1371 merged**.
+Final Energy acceptance merge: `a79d9cb525ddb3d170f95088288b51983dbebcfb` with verified source `3d9b4551a26212f4141add04a6abbb7574feef07`;
+the exact-head five required GitHub workflows including Merge Gate completed GREEN.
+The scoped reviewer note is engineering evidence, not an independent APPROVED review.
+
+Feature outcome: multi-parameter historical energy comparisons and CSV/XLSX export
+accepted in main; native Raspberry Pi 5 isolated seven-day PostgreSQL benchmark
+(147840 original events/44 channels, 4 CSV/XLSX exports, independent RAW/aggregate
+reconciliation), HTTP API latency/zero-drop checks and 41 hosted dashboard
+Playwright browser tests plus 6 refrigeration browser tests PASS. Final corrected
+fixture passed 4/4 native exports and 451/451 synthetic ingested events.
+
+Software verified; native Pi synthetic validation verified; real controller
+hardware acceptance and **site deployment unverified**. The still-running
+production C296 checkout, services, LAN/Google HTTPS runtime, PostgreSQL,
+Modbus and protected data/volumes were NOT modified. Separate release/package
+authority and actual update/rollback remain blocked under #1313/#1323. No
+`🟢 Оновлюйся` or production activation is warranted by this software merge.
+
 ## Energy1364 — final fixture smoke PASS; latest-head CI pending
 
 Pi5 isolated fixture now uses actual telemetry_latest sample_id; fresh PG

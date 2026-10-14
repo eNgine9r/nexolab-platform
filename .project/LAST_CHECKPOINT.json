@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-14T07:14:02Z",
+  "timestamp": "2026-10-14T07:30:15.801Z",
   "actor": "ChatGPT",
-  "event": "energy1364_fixture_projection_fixed_await_latest_ci",
+  "event": "energy_wps_1362_1363_1364_merged_and_software_acceptance_closed",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -30,11 +30,7 @@
     "protected_frontend_compatibility_source_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "protected_frontend_build_id": "HuFALgo65ij75S2pY6qCm"
   },
-  "active_work": {
-    "issue": 1364,
-    "title": "Energy historical export native acceptance",
-    "branch": "feature/1364-energy-export-acceptance"
-  },
+  "active_work": null,
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -2619,6 +2615,26 @@
         "formal_or_documented_review",
         "production_matching_package_and_site_rollout_is_separate"
       ]
+    },
+    "energy_closeout_20261014": {
+      "issues": [
+        1362,
+        1363,
+        1364
+      ],
+      "pull_requests": [
+        1367,
+        1368,
+        1371
+      ],
+      "native_test": "Pi5_ARM64_isolated_synthetic_Pass",
+      "browser_tests": "41_dashboard_and_6_refrigeration",
+      "five_workflows": "GREEN",
+      "production": "C296_protected_unchanged",
+      "separate_authority": [
+        1313,
+        1323
+      ]
     }
   },
   "observations": [
@@ -3670,9 +3686,21 @@
         "merge_commit_sha": "7f7afc3b8839c56bc1b989676fdd35e156d0a9d3",
         "exact_head_workflows_green": 18
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-14T07:30:15.801Z",
+      "kind": "pr1371_final_merge",
+      "data": {
+        "issue": 1364,
+        "pull_request": 1371,
+        "merge_commit_sha": "a79d9cb525ddb3d170f95088288b51983dbebcfb",
+        "verified_pr_head_sha": "3d9b4551a26212f4141add04a6abbb7574feef07",
+        "exact_head_ci_green": 5
+      }
     }
   ],
-  "next_action": "Publish focused test fixture correction and hosted browser verification evidence to PR1371. Recheck 5 exact-head workflows, review, merge on GREEN only. Hardware/site deploy guarded separately.",
+  "next_action": "Energy WP #1362/#1363/#1364 software scope complete and merged. Next release readiness remains blocked by #1313/#1323 package/site authority; require separate owner approval for protected deployment/root execution. Do not cut over C296 or hardware.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
