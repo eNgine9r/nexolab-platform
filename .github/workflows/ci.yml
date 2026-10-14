@@ -320,6 +320,9 @@ jobs:
           printf 'Verified Node baseline: %s\n' "$actual"
           printf 'npm version: %s\n' "$(npm --version)"
 
+      - name: Verify offline Dashboard runtime identity generator
+        run: python3 -m unittest scripts.tests.test_offline_dashboard_runtime_identity -v
+
       - name: Install dependencies deterministically
         env:
           HUSKY: 0

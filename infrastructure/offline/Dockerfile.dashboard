@@ -32,7 +32,7 @@ RUN mkdir -p public \
 
 ARG NEXOLAB_SOURCE_COMMIT
 RUN test -n "$NEXOLAB_SOURCE_COMMIT" \
-    && NEXOLAB_SOURCE_COMMIT="$NEXOLAB_SOURCE_COMMIT" node -e 'const fs=require("fs");const source=process.env.NEXOLAB_SOURCE_COMMIT||"";if(!/^[0-9a-f]{40}$/.test(source))process.exit(1);const build=fs.readFileSync(".next/BUILD_ID","utf8").trim();fs.writeFileSync(".nexolab-runtime-identity.json",JSON.stringify({schema_version:"nexolab-runtime-identity-v1",service:"dashboard",source_commit:source,build_id:build||null,deployed_at:null,identity_source:"offline_image_manifest"})+"\\n");'
+    && NEXOLAB_SOURCE_COMMIT="$NEXOLAB_SOURCE_COMMIT" node -e 'const fs=require("fs");const source=process.env.NEXOLAB_SOURCE_COMMIT||"";if(!/^[0-9a-f]{40}$/.test(source))process.exit(1);const build=fs.readFileSync(".next/BUILD_ID","utf8").trim();fs.writeFileSync(".nexolab-runtime-identity.json",JSON.stringify({schema_version:"nexolab-runtime-identity-v1",service:"dashboard",source_commit:source,build_id:build||null,deployed_at:null,identity_source:"offline_image_manifest"})+String.fromCharCode(10));'
 
 FROM ${NODE_IMAGE} AS runtime
 ENV NODE_ENV=production \
