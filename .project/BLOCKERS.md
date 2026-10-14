@@ -1,3 +1,21 @@
+## Energy1364 — CI classifier registration prepared, external checks still pending
+
+Previous exact-head Core failed due absent three externally required workflows
+after an unrecognized isolated benchmark path. Narrow classifier registration
+and regression tests pass locally, preserving unknown-file fail-closed and
+requiring the external triplet when classifier is modified. Publish PR1371,
+verify exact-head workflows/review, and keep production activation blocked.
+
+## Energy1364 — HTTP/resource/software PASS; merge and release gates OPEN
+
+Native Pi5 isolated PostgreSQL/HTTP export, 7-day large original history,
+independent RAW CSV/XLSX and aggregate reconciliation, fixed p95/lag limits,
+collector read-only continuity and isolated offline network are documented.
+PR1371 still requires external exact-head workflow matrix and fresh review;
+final browser/mobile behavior acceptance remains open. This does not create
+a matching ARM64 immutable update bundle or satisfy #1313/#1323 guarded
+installation/backup/rollback. No production cutover authorized.
+
 ## Energy1364 — native synthetic resource slice PASS; acceptance incomplete
 
 Native Pi5/ARM64 7d/147840-record export under bounded CPU/memory and

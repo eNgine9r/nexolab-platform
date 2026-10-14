@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-14T05:51:58Z",
+  "timestamp": "2026-10-14T06:45:21Z",
   "actor": "ChatGPT",
-  "event": "energy1364_native_isolated_large_export_pass_remaining_acceptance_gates",
+  "event": "energy1364_native_acceptance_green_ci_classifier_dependency_prepared",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -2533,6 +2533,52 @@
       "evidence_path": "docs/audits/energy-history-export-acceptance-1364.md",
       "deployment": "not_attempted",
       "hardware_controller_acceptance": "unverified"
+    },
+    "energy1364_native_api_and_aggregate_20261014": {
+      "source_sha": "7f7afc3b8839c56bc1b989676fdd35e156d0a9d3",
+      "runner_sha256": "8d7c6289f8b7971b433f4d7fb7a228f91226591f6eb4cacd362dc9903acbfde4",
+      "api_calls": 814,
+      "api_submitted": 1653,
+      "api_persisted": 1653,
+      "api_p95_ms_before_during_after": [
+        5.856,
+        6.426,
+        5.668
+      ],
+      "persistence_p95_ms_before_during_after": [
+        3.003,
+        5.314,
+        2.975
+      ],
+      "persistence_max_lag_ms": 1196.786,
+      "csv_source_stat_checks": 257040,
+      "xlsx_source_stat_checks": 250992,
+      "counter_reset_invalidations_per_format": 5,
+      "collector_physical_requests_before_during_after": [
+        123795,
+        123967,
+        124365
+      ],
+      "collector_samples_before_during_after": [
+        95568,
+        95701,
+        96008
+      ],
+      "collector_queue_depth": [
+        0,
+        0,
+        0
+      ],
+      "internal_network_confirmed": true,
+      "independent_status": "native_isolated_synthetic_PASS",
+      "production_hardware_and_update": "unverified"
+    },
+    "energy1364_ci_classifier_20261014": {
+      "targeted_unittests": 68,
+      "classification": "known_isolated_acceptance_tool",
+      "unknown_tools_fail_closed": true,
+      "external_workflows_required_on_classifier_change": 3,
+      "expected_status": "pending"
     }
   },
   "observations": [
@@ -3586,7 +3632,7 @@
       }
     }
   ],
-  "next_action": "Publish focused #1364 native benchmark/evidence PR, pass CI/review, finish native API/persistence latency and full browser/source checks before closing Issue; preserve deployed C296 and matching-package/rollback/update gates.",
+  "next_action": "Publish PR1371 with exact-path verification-only CI classifier and native API/aggregate evidence; verify three required external workflows and Core on exact head and review; then assess remaining browser/mobile acceptance. C296 and protected volume release gates unchanged.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

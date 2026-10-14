@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+from collections import defaultdict
+from math import isfinite
 import json
 import os
 import threading
@@ -16,6 +18,8 @@ import time
 import uuid
 import zipfile
 import re
+import urllib.request
+import urllib.error
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -205,10 +209,379 @@ def verify_existing_xlsx(database_url: str, root: Path) -> None:
         database.dispose()
 
 
+
+
+def verify_existing_aggregates(database_url: str, root: Path) -> None:
+    """Cross-check 10-minute source aggregates against independent PostgreSQL and XLSX."""
+    from openpyxl import load_workbook
+    from app.energy_export.schemas import normalized_unit
+
+    entries = []
+    for manifest in root.glob("*/manifest.json"):
+        value = json.loads(manifest.read_text(encoding="utf-8"))
+        if (value["status"] == "ready"
+                and value["options"].get("step_seconds") == 600):
+            entries.append((value["options"]["format"], manifest.parent, value))
+    assert len(entries) == 2, f"Expected one 10min CSV and XLSX: {len(entries)}"
+    by_format = {item[0]: item for item in entries}
+    assert set(by_format) == {"csv", "xlsx"}
+    _, csv_dir, csv_info = by_format["csv"]
+    _, xlsx_dir, xlsx_info = by_format["xlsx"]
+    csv_path = csv_dir / "artifact.csv"
+    xlsx_path = xlsx_dir / "artifact.xlsx"
+    opts = csv_info["options"]
+    start = datetime.fromisoformat(opts["from"].replace("Z", "+00:00"))
+    end = datetime.fromisoformat(opts["to"].replace("Z", "+00:00"))
+    snapshot = datetime.fromisoformat(csv_info["preview"]["snapshot_at"].replace("Z", "+00:00"))
+    upper_id = int(csv_info["preview"]["source_id_watermark"])
+    expected = defaultdict(list)
+    database = Database(database_url)
+    try:
+        with Session(database.engine) as session:
+            result = session.execute(select(
+                TelemetrySample.equipment_id, TelemetrySample.metric,
+                TelemetrySample.captured_at, TelemetrySample.value,
+                TelemetrySample.quality, TelemetrySample.unit
+            ).where(
+                TelemetrySample.node_id == NODE,
+                TelemetrySample.id <= upper_id,
+                TelemetrySample.received_at <= snapshot,
+                TelemetrySample.captured_at >= start,
+                TelemetrySample.captured_at < end,
+            ).order_by(TelemetrySample.id))
+            for equipment, metric, captured, value, quality, unit in result:
+                if metric not in METRICS:
+                    continue
+                if metric == "temperature.internal" and equipment == "SDM120M-1":
+                    continue
+                bucket = int((captured - start).total_seconds() // 600)
+                usable = (quality == "valid" and value is not None and isfinite(value)
+                          and normalized_unit(unit) == normalized_unit(METRICS[metric][1])
+                          and (metric != "electrical.energy.active" or value >= 0))
+                expected[equipment, bucket, metric].append((captured, value if usable else None))
+    finally:
+        database.dispose()
+
+    verified_cells = 0
+    verified_buckets = 0
+    counter_resets = 0
+    mapping = {}
+    seen = set()
+    with csv_path.open(encoding="utf-8", newline="") as source:
+        reader = csv.DictReader(source)
+        csv_headers = list(reader.fieldnames or [])
+        for metric, (symbol, unit, _) in METRICS.items():
+            normalized_label = "°C" if unit == "degC" else "PF (ratio)" if unit == "ratio" else unit
+            mapping[metric] = f"{symbol}, {normalized_label}"
+        for row in reader:
+            equipment = row["equipment_id"]
+            bucket = int((datetime.fromisoformat(row["bucket_start_utc"].replace("Z", "+00:00")) - start).total_seconds() // 600)
+            key = (row["bucket_start_utc"], equipment)
+            assert key not in seen, f"duplicate bucket/meter {key}"
+            seen.add(key)
+            verified_buckets += 1
+            for metric, header in mapping.items():
+                if header + " · source count" not in row:
+                    if equipment == "SDM120M-1" and metric == "temperature.internal":
+                        continue
+                    raise AssertionError(f"Missing expected metric {metric}")
+                readings = expected[equipment, bucket, metric]
+                good = [float(value) for _, value in readings if value is not None]
+                bad = len(readings) - len(good)
+                for suffix, expected_count in (
+                        ("source count", len(readings)),
+                        ("valid count", len(good)),
+                        ("invalid count", bad)):
+                    actual = int(row[header + " · " + suffix] or 0)
+                    assert actual == expected_count, (equipment, bucket, metric, suffix, actual, expected_count)
+                    verified_cells += 1
+                if metric == "electrical.energy.active":
+                    if "counter_decrease" in row[header + " · delta status"]:
+                        counter_resets += 1
+                        assert row[header + " · delta kWh"] == "", "Counter decrease must not generate energy delta"
+                    continue
+                for suffix, calc in (("avg", (sum(good) / len(good)) if good else None),
+                                     ("min", min(good) if good else None),
+                                     ("max", max(good) if good else None)):
+                    cell = row[header + " · " + suffix]
+                    if calc is None:
+                        assert cell == "", (equipment, bucket, metric, suffix, cell)
+                    else:
+                        assert cell != "" and abs(float(cell) - calc) < 1e-6, (equipment, bucket, metric, suffix, cell, calc)
+                    verified_cells += 1
+    assert verified_buckets == csv_info["artifact"]["output_rows"]
+    assert counter_resets >= 4, f"Reset not independently detected for expected counters: {counter_resets}"
+
+    # The XLSX job has a DIFFERENT immutable snapshot. Never compare it to the
+    # CSV snapshot; independently recalculate every XLSX source row/metric.
+    expected.clear()
+    xopts = xlsx_info["options"]
+    xstart = datetime.fromisoformat(xopts["from"].replace("Z", "+00:00"))
+    xend = datetime.fromisoformat(xopts["to"].replace("Z", "+00:00"))
+    xsnapshot = datetime.fromisoformat(xlsx_info["preview"]["snapshot_at"].replace("Z", "+00:00"))
+    xupper_id = int(xlsx_info["preview"]["source_id_watermark"])
+    xexpected = defaultdict(list)
+    database = Database(database_url)
+    try:
+        with Session(database.engine) as session:
+            source = session.execute(select(
+                TelemetrySample.equipment_id, TelemetrySample.metric,
+                TelemetrySample.captured_at, TelemetrySample.value,
+                TelemetrySample.quality, TelemetrySample.unit
+            ).where(
+                TelemetrySample.node_id == NODE,
+                TelemetrySample.id <= xupper_id,
+                TelemetrySample.received_at <= xsnapshot,
+                TelemetrySample.captured_at >= xstart,
+                TelemetrySample.captured_at < xend,
+            ).order_by(TelemetrySample.id))
+            for equipment, metric, captured, value, quality, unit in source:
+                if metric not in METRICS:
+                    continue
+                if metric == "temperature.internal" and equipment == "SDM120M-1":
+                    continue
+                bucket = int((captured - xstart).total_seconds() // 600)
+                usable = (quality == "valid" and value is not None and isfinite(value)
+                          and normalized_unit(unit) == normalized_unit(METRICS[metric][1])
+                          and (metric != "electrical.energy.active" or value >= 0))
+                xexpected[equipment, bucket, metric].append(value if usable else None)
+    finally:
+        database.dispose()
+    workbook = load_workbook(xlsx_path, read_only=True, data_only=True)
+    xlsx_rows = 0
+    typed_numeric = 0
+    verified_xlsx_cells = 0
+    xlsx_reset_invalidation = 0
+    seen_xlsx = set()
+    try:
+        for sheet in workbook.worksheets:
+            if not sheet.title.startswith("Data"):
+                continue
+            records = sheet.iter_rows(values_only=True)
+            headings = next(records)
+            idx = {name: i for i, name in enumerate(headings)}
+            assert "bucket_start_utc" in idx and "equipment_id" in idx
+            for record in records:
+                xlsx_rows += 1
+                equipment = record[idx["equipment_id"]]
+                bucket = int((datetime.fromisoformat(record[idx["bucket_start_utc"]].replace("Z", "+00:00")) - xstart).total_seconds() // 600)
+                key = (equipment,bucket)
+                assert key not in seen_xlsx, f"duplicate XLSX meter/bucket {key}"
+                seen_xlsx.add(key)
+                for metric, header in mapping.items():
+                    if metric == "temperature.internal" and equipment == "SDM120M-1":
+                        continue
+                    readings = xexpected[equipment, bucket, metric]
+                    valid = [float(v) for v in readings if v is not None]
+                    for suffix,count in (
+                        ("source count",len(readings)),("valid count",len(valid)),
+                        ("invalid count",len(readings)-len(valid))):
+                        actual = record[idx[header + " · " + suffix]]
+                        assert int(actual or 0) == count, (equipment,bucket,metric,suffix,actual,count)
+                        verified_xlsx_cells += 1
+                    if metric == "electrical.energy.active":
+                        if "counter_decrease" in str(record[idx[header + " · delta status"]]):
+                            xlsx_reset_invalidation += 1
+                            assert record[idx[header + " · delta kWh"]] is None
+                        continue
+                    for suffix, calculated in (("avg",sum(valid)/len(valid) if valid else None),
+                                               ("min",min(valid) if valid else None),
+                                               ("max",max(valid) if valid else None)):
+                        actual = record[idx[header + " · " + suffix]]
+                        if calculated is None:
+                            assert actual is None, (equipment,bucket,metric,suffix,actual)
+                        else:
+                            assert isinstance(actual,(int,float)) and abs(actual-calculated)<1e-6, (
+                                equipment,bucket,metric,suffix,actual,calculated)
+                            typed_numeric += 1
+                        verified_xlsx_cells += 1
+    finally:
+        workbook.close()
+    assert xlsx_rows == xlsx_info["artifact"]["output_rows"]
+    assert typed_numeric > 1000
+    assert xlsx_reset_invalidation >= 4
+    print(json.dumps({"result":"PASS", "kind":"independent_aggregate_postgresql_and_xlsx",
+        "csv_buckets":verified_buckets, "csv_verified_source_counts_and_statistics":verified_cells,
+        "csv_counter_reset_invalidation_buckets":counter_resets,
+        "xlsx_rows":xlsx_rows,"xlsx_verified_source_counts_and_statistics":verified_xlsx_cells,
+        "xlsx_counter_reset_invalidation_buckets":xlsx_reset_invalidation,
+        "typed_numeric_xlsx_cells":typed_numeric,
+        "snapshot_boundaries":"independent_per_artifact",
+        "classification":"native-isolated-synthetic-not-production"},
+        ensure_ascii=False,sort_keys=True),flush=True)
+
+
+def api_benchmark(url: str) -> None:
+    """HTTP export and 10/s normal synthetic ingestion with fixed baseline gates."""
+    endpoint = "http://nexolab-energy-1364-api-synth-v3:8082"
+    database = Database(url)
+    source_label = f"energy-1364-api-{uuid.uuid4().hex[:12]}"
+    state = RuntimeState()
+    ingestor = TelemetryIngestor(database, state, queue_maxsize=500)
+    from datetime import timezone
+    series = make_series()[0]
+    accept = {}
+    elapsed = {}
+    errors = []
+    samples = []
+    records = []
+    stop = threading.Event()
+    phase = {"value": "before"}
+    start = time.monotonic()
+    def percentile(v, q):
+        order = sorted(v)
+        return order[min(len(order)-1, max(0, int(len(order)*q)-1))] if order else float("inf")
+    def request(path, *, method="GET", body=None, timeout=15):
+        payload = None if body is None else json.dumps(body, separators=(",",":")).encode()
+        rq = urllib.request.Request(
+            endpoint+path, data=payload, method=method,
+            headers={"Content-Type": "application/json"} if payload is not None else {})
+        started = time.monotonic()
+        try:
+            with urllib.request.urlopen(rq, timeout=timeout) as response:
+                content = response.read()
+                return response.status, json.loads(content) if content else None, round((time.monotonic()-started)*1000,4)
+        except urllib.error.HTTPError as exc:
+            raise RuntimeError(f"isolated API status={exc.code}, path={path}, body={exc.read()[:500]!r}") from exc
+    def monitor():
+        while not stop.is_set():
+            try:
+                code, data, latency = request("/health/ready", timeout=2)
+                if code!=200 or data.get("status")!="ready":
+                    errors.append(("http_ready",code))
+                samples.append((phase["value"],latency))
+            except Exception as exc:
+                errors.append(("http_error",str(exc)[:90]))
+            stop.wait(.2)
+    def feeder():
+        index=0
+        while not stop.is_set():
+            event = TelemetryEvent(event_id=uuid.uuid4(), **series.model_dump(),
+                captured_at=datetime.now(UTC), value=220.0+index*.0001,
+                quality="valid", source=source_label)
+            when = time.monotonic()
+            good = ingestor.submit_payload(json.dumps(event.normalized_payload()).encode())
+            accept[str(event.event_id)]=(when, phase["value"], good)
+            index += 1
+            stop.wait(.1)
+    ingestor.start()
+    polling=threading.Thread(target=monitor,daemon=True)
+    feeding=threading.Thread(target=feeder,daemon=True)
+    try:
+        status,catalog,latency=request("/api/v1/energy/exports/catalog")
+        if status!=200 or len(catalog["items"])!=44:
+            raise AssertionError(f"Expected 44 catalog series, got {len(catalog['items'])}")
+        polling.start();feeding.start()
+        time.sleep(30) # 30-second live-ingest *before-load* baseline.
+        baseline=[ms for label,ms in samples if label=="before"]
+        if len(baseline)<100:
+            raise AssertionError(f"Insufficient API baseline samples: {len(baseline)}")
+        phase["value"]="during"
+        for format in ("csv","xlsx"):
+            now=datetime.now(UTC)
+            options={"series":[{k:item[k] for k in ("node_id","equipment_id","channel_id","metric","unit")}
+                               for item in catalog["items"]],
+                "from":(now-timedelta(days=7)).isoformat(),
+                "to":now.isoformat(),"step_seconds":0,"format":format}
+            begin=time.monotonic()
+            code,job,_=request("/api/v1/energy/exports/preview",method="POST",body=options)
+            assert code==202
+            jid=job["job_id"]
+            def until_status(expected):
+                deadline=begin+600
+                while time.monotonic()<deadline:
+                    code, data, latency = request(f"/api/v1/energy/exports/{jid}")
+                    assert code==200
+                    if data["status"]==expected: return data
+                    if data["status"] in ("failed","expired","canceled"):
+                        raise AssertionError(f"API {format} error: {data['error']}")
+                    time.sleep(.5)
+                raise TimeoutError(f"API {format} exceeded 600s")
+            preview=until_status("preview_ready")
+            code,_,_=request(f"/api/v1/energy/exports/{jid}/start",method="POST")
+            assert code==202
+            ready=until_status("ready")
+            code,ticket,_=request(f"/api/v1/energy/exports/{jid}/download-ticket",method="POST")
+            assert code==200
+            dl=urllib.request.urlopen(endpoint+ticket["download_path"],timeout=60)
+            count=0
+            while True:
+                chunk=dl.read(65536)
+                if not chunk: break
+                count+=len(chunk)
+            dl.close()
+            assert count==ready["artifact"]["bytes"]
+            records.append({"format":format,"elapsed_seconds":round(time.monotonic()-begin,2),
+                            "source_events":preview["preview"]["source_events"],
+                            "artifact_bytes":count})
+            print("API_JOB_RESULT "+json.dumps(records[-1],sort_keys=True),flush=True)
+        phase["value"]="after"
+        time.sleep(30)
+    finally:
+        stop.set()
+        if feeding.is_alive(): feeding.join(timeout=2)
+        if polling.is_alive(): polling.join(timeout=2)
+        deadline=time.monotonic()+30
+        while time.monotonic()<deadline and state.snapshot()["persisted_total"] < len(accept):
+            time.sleep(.1)
+        saved=state.snapshot()
+        ingestor.stop()
+    with Session(database.engine) as session:
+        persisted = {
+            str(row.event_id): (row.captured_at, row.received_at)
+            for row in session.execute(
+                select(TelemetrySample.event_id, TelemetrySample.captured_at, TelemetrySample.received_at)
+                .where(TelemetrySample.source == source_label)
+            ).all()
+        }
+    database.dispose()
+    phase_lag={"before":[],"during":[],"after":[]}
+    for event_id,(when,kind,good) in accept.items():
+        if not good or event_id not in persisted:
+            errors.append(("not_persisted",event_id))
+            continue
+        captured,received=persisted[event_id]
+        lag_ms=(received-captured).total_seconds()*1000
+        phase_lag[kind].append(lag_ms)
+    api_latency={kind:[ms for phase_name,ms in samples if phase_name==kind]
+                 for kind in ("before","during","after")}
+    baseline_api=percentile(api_latency["before"],.95)
+    baseline_lag=percentile(phase_lag["before"],.95)
+    budgets={"p95_api_ms":max(250,3*baseline_api),
+             "p95_persistence_ms":max(250,3*baseline_lag),
+             "max_persistence_lag_ms":2000}
+    p95={kind:{"api_ms":round(percentile(api_latency[kind],.95),3),
+               "persistence_ms":round(percentile(phase_lag[kind],.95),3)}
+         for kind in ("before","during","after")}
+    max_lag=max((max(v) for v in phase_lag.values() if v),default=float("inf"))
+    if any(p95[kind]["api_ms"]>budgets["p95_api_ms"]
+           or p95[kind]["persistence_ms"]>budgets["p95_persistence_ms"]
+           for kind in ("during","after")):
+        errors.append(("relative_p95_budget_failed",p95))
+    if max_lag>budgets["max_persistence_lag_ms"]:
+        errors.append(("max_lag_failed",max_lag))
+    if saved["persisted_total"]!=len(accept) or len(persisted)!=len(accept):
+        errors.append(("ingest_mismatch",len(accept),saved["persisted_total"],len(persisted)))
+    if len(records)!=2 or any(row["elapsed_seconds"]>600 for row in records):
+        errors.append(("jobs_outside_budget",records))
+    result={"mode":"native_isolated_api","result":"PASS" if not errors else "FAIL",
+            "classification":"synthetic_isolated_actual_http_api_not_production",
+            "source_original_events":147840,"api_catalog_series":44,
+            "export_jobs":records,"submitted":len(accept),
+            "persisted":len(persisted),"ingestor_persisted_total":saved["persisted_total"],
+            "http_request_count":len(samples),
+            "api_latency_persistence_p95_by_phase_ms":p95,
+            "max_persistence_lag_ms":round(max_lag,3),"fixed_budgets":budgets,
+            "errors":errors, "duration_seconds":round(time.monotonic()-start,2)}
+    print(json.dumps(result,sort_keys=True,ensure_ascii=False),flush=True)
+    if errors: raise SystemExit(1)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=("smoke", "full"), default="smoke")
+    parser.add_argument("--mode", choices=("smoke", "full", "api"), default="smoke")
     parser.add_argument("--verify-existing", action="store_true")
+    parser.add_argument("--verify-aggregates", action="store_true")
     parser.add_argument("--root", type=Path, default=Path("/app/data/telemetry-ingestion/energy-1364"))
     args = parser.parse_args()
     url = os.environ.get("DATABASE_URL", "")
@@ -233,7 +606,13 @@ def main() -> None:
     if args.verify_existing:
         verify_existing_xlsx(url, args.root)
         return
+    if args.verify_aggregates:
+        verify_existing_aggregates(url, args.root)
+        return
     args.root.mkdir(parents=True, exist_ok=False)
+    if args.mode == "api":
+        api_benchmark(url)
+        return
     t0 = time.monotonic()
     register_models()
     database = Database(url)

@@ -1,3 +1,34 @@
+## Energy1364 — CI registration repaired locally; exact-head external matrix pending
+
+New isolated benchmark script was previously unknown to fail-closed
+change-impact classifier, making required external workflows unavailable
+under their path filters. Exact-path verification_tooling rule and three
+positive/negative regression tests now pass (68 total classifier tests).
+Unknown scripts remain fail-closed; classifier changes themselves require
+Authenticated Dashboard Acceptance, Offline Bundle and Refrigeration Browser
+Acceptance on the next exact GitHub PR head. No workflow bypass. PR1371
+remains open and unmerged pending source CI/review and mobile/browser proof.
+
+## Energy1364 — native Pi HTTP and aggregate acceptance PASS; CI/review OPEN
+
+Following seven-day Pi5 synthetic load (147840 original events, 4 formats),
+a native isolated HTTP service accepted and persisted1653/1653 additional
+events during authorized test-only export. API p95 before/during/after:
+5.856/6.426/5.668ms; persistence p95:3.003/5.314/2.975ms;
+maximum lag1196.786ms (<2000ms). RAW CSV/XLSX HTTP streaming passes.
+Independent 10min source-derived comparisons verify257040 CSV and250992
+XLSX count/statistic cells, five correctly invalidated cumulative-counter
+resets per format. Collector read-only observations before/during/after:
+123795→123967→124365 physical requests,95568→95701→96008 samples,
+queue0 throughout; pre-existing Modbus timeouts also grew and their cause
+is not established. Test network is internal with no published ports.
+Full evidence: docs/audits/energy-history-export-acceptance-1364.md.
+
+PR1371 needs updated exact-head workflow matrix, fresh review, final
+mobile/browser verification and controlled offline release eligibility.
+Production C296, hardware, persistent site data and update authorization
+remain unchanged.
+
 ## Energy1364 — native Pi isolated export load PASS; remaining gates OPEN
 
 Energy1363 merged through PR1368 after18 successful exact-head workflows and

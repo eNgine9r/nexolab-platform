@@ -1,6 +1,14 @@
 # Energy history export — native Raspberry Pi acceptance evidence (#1364)
 
-**Status:** native isolated synthetic large-export/resource slice PASS; **full WP acceptance OPEN** pending the remaining latency, browser and release gates below.
+**Status:** native isolated synthetic 7-day export, HTTP API, persistence/API p95, independent RAW/aggregate CSV/XLSX, and collector-continuity evidence **PASS**. Remaining gates: required exact-head CI/review, full browser evidence and independent matching-package release readiness. Production acceptance is **NOT** claimed.
+
+## Follow-on native evidence (2026-10-14 UTC)
+
+- Second exact-source candidate **HTTP API** benchmark (internal-only host, read-only source mount): `/health/ready` and 44-metric catalog 200, real `POST preview → status → start → ready → one-use ticket → streamed download` for RAW CSV (41.13 s; 24,579,510 bytes) and RAW XLSX (64.83 s; 6,236,213 bytes). 1,653/1,653 synthetically submitted events persisted, no rejection; 814 status/health HTTP measurements. 30 s pre-load baseline and 30 s post-export acquisition periods.
+- Measured p95 before/during/after (milliseconds): API **5.856 / 6.426 / 5.668**; PostgreSQL persisted-event timestamp lag **3.003 / 5.314 / 2.975**; worst recorded persisted-event lag **1,196.786 ms**. Fixed budget API/persistence p95 ≤max(250 ms, 3×baseline); max lag ≤2,000 ms; all **PASS**. An earlier independent HTTP run also passed 1,608/1,608, API p95 6.35 ms, persistence p95 4.911 ms, maximum lag 964.688 ms.
+- Independent PostgreSQL reconciliation of two different immutable 10-minute snapshots: **5,040 CSV rows; 257,040 validated counts/statistics**; **5,040 XLSX rows; 250,992 validated counts/statistics**, including 117,936 typed numeric Excel cells. All average/min/max/counts independently recomputed by meter, metric and UTC elapsed-time bucket. **Five cumulative energy counter decreases per format** invalidate the respective energy delta; no synthetic power integration or inferred reset. The XLSX snapshot was checked independently rather than incorrectly compared with the earlier CSV snapshot. Result **PASS**.
+- Live production collector **read-only** samples (UTC): 06:32:09 before — physical requests 123,795, saved samples 95,568, queue depth 0; 06:33:47 during export — 123,967 / 95,701 / 0; 06:37:13 after — 124,365 / 96,008 / 0. The collector remained healthy, with 570 additional physical requests and 440 additional samples. Existing bus timeout counter increased 14,109→14,174; **do not attribute these to the synthetic export without independent causal evidence**. No real hardware writes/polling were initiated by the test.
+- Docker network `nexolab-energy-1364-isolated` verified `internal=true`, no published container ports; candidate rootfs read-only, `privileged=false`, 512 MiB/1.25 CPU; PostgreSQL 384 MiB. Offline, local-only execution confirmed for this isolated path, **not** a completed release-bundle offline acceptance.
 
 ## Immutable source and isolation
 
@@ -49,11 +57,11 @@ Smoke on the final class of SSD-backed test setup: 4/4 artifacts, 504 accepted/p
 ## Distinct evidence, omissions and gates
 
 - Real PostgreSQL/MQTT authenticated browser/software CI for graph #1362 and export #1363 was GREEN on merged feature heads. The native Pi benchmark is a separate read-only source-mount/isolated PostgreSQL resource test, **not** production deployment.
-- The benchmark measures `p95_enqueue_ms = 0.246` for 2,212 normal submitted events. **This is not persisted-event p95, API p95 or worst-case persistence lag**; those fixed Issue #1364 budgets still need independent native measurements. Baseline telemetry 30 s before ingestion started, therefore a proper pre-load persistence/API baseline has **not** been established by this run.
+- The first direct benchmark measured only `p95_enqueue_ms = 0.246` for 2,212 events; that alone was **not** a persistence/API latency measurement. This gap was closed by two later isolated native HTTP scenarios, including a separate 30-second before-load live-ingestion baseline, measured persisted-event p95, API p95 and maximum lag; see the follow-on evidence above.
 - Full mobile 390/768/1440/1920, DST, auth-denial and PostgreSQL data semantics were tested previously in scoped frontend/backend/browser CI; actual production Pi browser UI against this candidate has not yet been accepted.
-- Independent exact-cell XLSX checks covered **RAW original identities and values**, not a full independent recomputation of all 10-minute statistics/counter anchors; the latter remain supported by existing suite and need final WP evidence reconciliation.
+- RAW XLSX identity/value reconciliation covered all 147,840 original saved events. Subsequently both 10-minute CSV and XLSX were independently recalculated against **their own** persisted PostgreSQL snapshots for source/valid/invalid counts and average/min/max, with five invalidated reset deltas per format; the more exhaustive separate hardware/site or release verification remains outside this synthetic fixture.
 - Offline bundle matching selected revision/ARM64, protected backup/restore, guarded install and verified rollback are separate #1313/#1323/release gates. Accepted and deployed **C296** remains unchanged. **Do not display `🟢 Оновлюйся` yet.**
 
 ## Next checks
 
-Complete native persisted-event/API p95 and max-lag budgets, before/during/after collector counters, full independent aggregation and required browser paths, smoke-test final hardened runner; publish focused #1364 PR with required CI/review and keep Issue open until all acceptance items actually pass. No automatic production activation.
+The native persisted-event/API p95, maximum-lag budgets, read-only collector sampling, independent CSV/XLSX aggregation and smoke tests now PASS. Publish the strengthened benchmark and evidence to PR #1371, obtain all required exact-head external CI workflows and fresh review, and verify remaining user-facing browser accessibility/keyboard/mobile paths before completion. Preserve all #1313/#1323 immutable package/backup/rollback/release gates. No automatic production activation.
