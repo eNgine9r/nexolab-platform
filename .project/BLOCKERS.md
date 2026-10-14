@@ -1,3 +1,13 @@
+## Protected update remains blocked after Energy software acceptance (2026-10-14)
+
+Energy #1362, #1363 and #1364 are **completed for software/isolated acceptance**
+with merged PRs #1367/#1368/#1371 and exact-head 5/5 CI GREEN. This removes
+their software dependency only. **It does not** clear the blocked #1313/#1323
+matching ARM64 package authority, operator/root approval, protected backup
+and rollback evidence, native LAN+HTTPS production cutover or real hardware
+acceptance. C296 remains the protected deployed runtime. No main checkout
+sync, device writes or service restarts on the site were performed.
+
 ## Energy1364 — last merge gate
 
 Fixed source data seeding for accurate telemetry_latest IDs; 880/879
