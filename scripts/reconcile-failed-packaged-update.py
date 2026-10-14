@@ -30,6 +30,8 @@ ROOT = Path("/var/lib/nexolab/version-management")
 BACKUP_DIR = Path("/var/backups/nexolab")
 AUDIT = Path("/home/nexolab/commander-workspaces/nexolab-platform/release-1381-runtime-identity/owner-recovery-readiness-report-1384.json")
 WORKER = Path("/usr/local/lib/nexolab/nexolab-version-manager.py")
+WORKER_SHA256 = "7b6286738b2c437994f0baefa540313b980384a677082d20b639fa32e0d1d4c0"
+AUDIT_SHA256 = "e7ae52dcfe0216475a6efbf35571948bc33ae5fd83e95ab8214fe6f1f7632686"
 RECOVERY_ID = "reconcile-" + FAILED + "-to-" + NEW[:12]
 CONTAINERS = {
     "dashboard": "nexolab-central-dashboard-1",
@@ -68,6 +70,7 @@ def native_worker():
     guard(WORKER.is_file() and not WORKER.is_symlink(), "INSTALLED_WORKER_MISSING")
     info = WORKER.stat()
     guard(info.st_uid == 0 and not (info.st_mode & 0o022), "INSTALLED_WORKER_NOT_TRUSTED")
+    guard(sha256(WORKER) == WORKER_SHA256, "INSTALLED_WORKER_SHA256_MISMATCH")
     spec = importlib.util.spec_from_file_location("nexolab_recovery_native", WORKER)
     guard(spec is not None and spec.loader is not None, "INSTALLED_WORKER_LOAD_INVALID")
     m = importlib.util.module_from_spec(spec)
@@ -103,8 +106,10 @@ def validate_old_authority(current: dict, op: dict, target: dict) -> None:
           "TARGET_OR_HARDWARE_AUTHORITY_MISMATCH")
 
 def confirm_backup() -> dict:
+    guard(sha256(AUDIT) == AUDIT_SHA256, "OWNER_AUDIT_REPORT_SHA256_CHANGED")
     audit = read_object(AUDIT)
-    guard(audit.get("status") == "READ_ONLY_EVIDENCE_CAPTURED"
+    guard(audit.get("kind") == "nexolab_1384_read_only_recovery_preflight"
+          and audit.get("status") == "READ_ONLY_EVIDENCE_CAPTURED"
           and audit.get("all_read_only_gates_pass") is True
           and audit.get("backup_sha256") == BACKUP_SHA
           and audit.get("archive_list_entries", 0) >= 611,
@@ -145,6 +150,9 @@ def verify_runtime(native, args, current: dict, target: dict) -> tuple[list, dic
 def inspect_exact_site(args, native):
     guard(args.root == ROOT and args.backup_dir == BACKUP_DIR,
           "NONCANONICAL_PROTECTED_PATH")
+    guard(args.central_env == Path("/home/nexolab/nexolab-platform/infrastructure/compose/.env.central")
+          and args.edge_env == Path("/home/nexolab/nexolab-platform/infrastructure/compose/.env.edge-central"),
+          "SITE_ENV_PATH_NOT_EXACT")
     for required in (args.central_env, args.edge_env):
         guard(required.is_file() and not required.is_symlink(), "SITE_ENV_NOT_PRESENT")
     current = read_object(args.root / "current.json")
