@@ -1,3 +1,13 @@
+## Energy1364 — last merge gate
+
+Fixed source data seeding for accurate telemetry_latest IDs; 880/879
+projection and451/451 bounded fresh ARM64 smoke PASS. Prior 5 exact-head
+CI workflows including hosted Energy 390/768/1440/1920 browser paths PASS;
+new exact-head CI must still be GREEN before merge. Independent formal
+review not present as of last check. This is isolated software evidence only:
+matching ARM64 release, protected backup/rollback, and site deployment remain
+blocked by #1313/#1323 and separate owner gate.
+
 ## Energy1364 — CI classifier registration prepared, external checks still pending
 
 Previous exact-head Core failed due absent three externally required workflows

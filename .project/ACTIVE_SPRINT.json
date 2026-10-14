@@ -8595,7 +8595,7 @@
           "final_hardened_runner_smoke": "4_formats_411_of_411_ingestion_pass",
           "runner_sha256": "784cb471f3dc962b7157391bba981a99ed764bb98fb8f726eb1ccd5de2085e17",
           "evidence": "docs/audits/energy-history-export-acceptance-1364.md",
-          "remaining": "browser_exact_head_ci_fresh_review_matching_arm64_offline_release_package",
+          "remaining": "fresh_exact_head_ci_and_review; site_release_separate",
           "production_cutover": "not_authorized"
         },
         "native_http_and_aggregate_20261014": {
@@ -8649,6 +8649,46 @@
             "Refrigeration Browser Acceptance"
           ],
           "exact_head_ci": "pending"
+        },
+        "native_fixed_fixture_and_hosted_browser_20261014": {
+          "fixed_seed_projection_test": {
+            "seeded": 880,
+            "history_max_id": 880,
+            "latest_max_sample_id": 879,
+            "reconcile_gap": 1,
+            "result": "PASS"
+          },
+          "fixed_runner_native_smoke": {
+            "formats": 4,
+            "passed": 4,
+            "submitted": 451,
+            "persisted": 451,
+            "rejected": 0,
+            "oom": false,
+            "peak_cgroup_bytes": 258326528,
+            "peak_export_rss_bytes": 97927168,
+            "result": "PASS"
+          },
+          "fixed_runner_sha256": "31033f06011d5512fc074e3ea87bb2bb3884eb13a178fcd522b97f264556cb28",
+          "hosted_browser_exact_pre_fix_sha": "7b675d744068238ffcdfaf9ed72bb4006549e0dd",
+          "hosted_browser": {
+            "dashboard_playwright_passed": 41,
+            "refrigeration_browser_passed": 6,
+            "energy_export_widths_px": [
+              390,
+              768,
+              1440,
+              1920
+            ],
+            "screenshots": "existing CI artifact",
+            "offline_bundle_ci": "success",
+            "required_workflows": "5/5 GREEN on pre-fix head"
+          },
+          "remaining": [
+            "final_exact_head_CI",
+            "formal_or_documented_review",
+            "production_matching_package_and_site_rollout_is_separate"
+          ]
         }
       }
     },
@@ -10088,6 +10128,17 @@
         "issue": 1364,
         "pull_request": 1371,
         "candidate_source": "7f7afc3b8839c56bc1b989676fdd35e156d0a9d3"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-14T07:14:02Z",
+      "kind": "energy1364_browser_ci_fixture_closeout",
+      "data": {
+        "pull_request": 1371,
+        "ci_head_prior": "7b675d744068238ffcdfaf9ed72bb4006549e0dd",
+        "hosted_tests": "41 dashboard + 6 refrigeration",
+        "fixed_fixture_smoke": "451/451 PASS"
       }
     }
   ],

@@ -1,3 +1,16 @@
+## Energy1364 — final fixture smoke PASS; latest-head CI pending
+
+Pi5 isolated fixture now uses actual telemetry_latest sample_id; fresh PG
+880 history events, latest 879, reconciliation gap1. Fresh bounded ARM64
+smoke4/4 exports,451/451 ingested,0 rejected/OOM. Prior exact-head hosted
+Chrome energy acceptance verified390/768/1440/1920 and41 dashboard tests;
+6 refrigeration browser tests, Offline Bundle and Core workflows PASS.
+Native API/persistence p95 and 7d 147840-sample independent CSV/XLSX
+aggregate reconciliation previously PASS. Final corrected runner has not
+yet passed its own new exact-head external CI. PR1371 open until GREEN
+and review. Protected production C296 unchanged; final matching package/
+backups/rollback/site cutover remain separately gated.
+
 ## Energy1364 — CI registration repaired locally; exact-head external matrix pending
 
 New isolated benchmark script was previously unknown to fail-closed

@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-14T06:45:21Z",
+  "timestamp": "2026-10-14T07:14:02Z",
   "actor": "ChatGPT",
-  "event": "energy1364_native_acceptance_green_ci_classifier_dependency_prepared",
+  "event": "energy1364_fixture_projection_fixed_await_latest_ci",
   "baselines": {
     "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
     "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
@@ -2579,6 +2579,46 @@
       "unknown_tools_fail_closed": true,
       "external_workflows_required_on_classifier_change": 3,
       "expected_status": "pending"
+    },
+    "energy1364_fixed_fixture_and_browser_20261014": {
+      "fixed_seed_projection_test": {
+        "seeded": 880,
+        "history_max_id": 880,
+        "latest_max_sample_id": 879,
+        "reconcile_gap": 1,
+        "result": "PASS"
+      },
+      "fixed_runner_native_smoke": {
+        "formats": 4,
+        "passed": 4,
+        "submitted": 451,
+        "persisted": 451,
+        "rejected": 0,
+        "oom": false,
+        "peak_cgroup_bytes": 258326528,
+        "peak_export_rss_bytes": 97927168,
+        "result": "PASS"
+      },
+      "fixed_runner_sha256": "31033f06011d5512fc074e3ea87bb2bb3884eb13a178fcd522b97f264556cb28",
+      "hosted_browser_exact_pre_fix_sha": "7b675d744068238ffcdfaf9ed72bb4006549e0dd",
+      "hosted_browser": {
+        "dashboard_playwright_passed": 41,
+        "refrigeration_browser_passed": 6,
+        "energy_export_widths_px": [
+          390,
+          768,
+          1440,
+          1920
+        ],
+        "screenshots": "existing CI artifact",
+        "offline_bundle_ci": "success",
+        "required_workflows": "5/5 GREEN on pre-fix head"
+      },
+      "remaining": [
+        "final_exact_head_CI",
+        "formal_or_documented_review",
+        "production_matching_package_and_site_rollout_is_separate"
+      ]
     }
   },
   "observations": [
@@ -3632,7 +3672,7 @@
       }
     }
   ],
-  "next_action": "Publish PR1371 with exact-path verification-only CI classifier and native API/aggregate evidence; verify three required external workflows and Core on exact head and review; then assess remaining browser/mobile acceptance. C296 and protected volume release gates unchanged.",
+  "next_action": "Publish focused test fixture correction and hosted browser verification evidence to PR1371. Recheck 5 exact-head workflows, review, merge on GREEN only. Hardware/site deploy guarded separately.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",

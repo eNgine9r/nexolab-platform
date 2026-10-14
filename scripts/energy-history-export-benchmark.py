@@ -114,7 +114,7 @@ def seed(database: Database, series: list[SeriesSelection], *, ticks: int, base:
         assert final_event is not None
         latest.append({k: final_event[k] for k in ("event_id", "node_id", "captured_at", "metric",
                         "value", "unit", "quality", "source", "equipment_id", "channel_id", "received_at") }
-                      | {"sample_id": 1})
+                      )
     # Same timestamp, a different original event identity must remain present.
     tie = dict(block[-1] if block else {**series[0].model_dump()})
     tie.update({**series[0].model_dump(), "event_id": str(uuid.uuid4()),
@@ -125,6 +125,13 @@ def seed(database: Database, series: list[SeriesSelection], *, ticks: int, base:
     with database.engine.begin() as conn:
         if block:
             conn.execute(insert(TelemetrySample), block)
+        # Synthetic source must have a genuine latest projection so an actual
+        # application startup does not trigger the 10,000-row gap guard.
+        # Never weaken the production reconciliation bound for a test fixture.
+        for row in latest:
+            row["sample_id"] = int(conn.execute(
+                select(TelemetrySample.id).where(TelemetrySample.event_id == row["event_id"])
+            ).scalar_one())
         conn.execute(insert(TelemetryLatest), latest)
     return total
 
