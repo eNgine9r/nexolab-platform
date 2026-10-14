@@ -105,12 +105,13 @@ class GuardedRecoveryTests(unittest.TestCase):
             file.chmod(0o600)
             audit=root/"audit.json"
             audit.write_text(json.dumps({
+                "kind":"nexolab_1384_read_only_recovery_preflight",
                 "status":"READ_ONLY_EVIDENCE_CAPTURED",
                 "all_read_only_gates_pass":True,
                 "archive_list_entries":611,
                 "backup_sha256":recovery.BACKUP_SHA,
             }))
-            with patch.object(recovery,"AUDIT",audit),patch.object(recovery,"BACKUP_DIR",backup_dir),patch.object(recovery,"sha256",return_value=recovery.BACKUP_SHA):
+            with patch.object(recovery,"AUDIT",audit),patch.object(recovery,"BACKUP_DIR",backup_dir),patch.object(recovery,"sha256",side_effect=lambda p: recovery.AUDIT_SHA256 if p==audit else recovery.BACKUP_SHA):
                 self.assertEqual(recovery.confirm_backup()["bytes"],992743918)
                 file.chmod(0o644)
                 with self.assertRaisesRegex(recovery.RecoveryBlocked,"PROTECTED_BACKUP_CHANGED"):
