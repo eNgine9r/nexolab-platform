@@ -173,6 +173,32 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertTrue(verification["offline_bundle"])
         self.assertEqual(verification["required_external_workflows"], ["Offline Bundle"])
 
+    def test_energy_export_isolated_runner_only_gets_full_core_quality(self) -> None:
+        result = classify([
+            "scripts/energy-history-export-benchmark.py",
+            "docs/audits/energy-history-export-acceptance-1364.md",
+            ".project/ACTIVE_SPRINT.json",
+            ".project/BLOCKERS.md",
+            ".project/CURRENT_STATE.md",
+            ".project/LAST_CHECKPOINT.json",
+        ])
+        self.assertEqual(result["classes"], ["backend"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertFalse(result["fail_closed"])
+        self.assertTrue(result["needs_full_quality"])
+        self.assertEqual(result["verification"]["required_external_workflows"], [])
+
+    def test_unregistered_energy_benchmark_still_fails_closed(self) -> None:
+        unknown = "scripts/energy-history-export-benchmark-typo.py"
+        result = classify([unknown])
+        self.assertTrue(result["fail_closed"])
+        self.assertIn(unknown, result["unknown_files"])
+        self.assertEqual(set(result["verification"]["required_external_workflows"]), {
+            "Authenticated Dashboard Acceptance",
+            "Offline Bundle",
+            "Refrigeration Browser Acceptance",
+        })
+
     def test_unregistered_recovery_tooling_remains_fail_closed(self) -> None:
         path = "scripts/run-disaster-recovery-unregistered.sh"
         result = classify([path])

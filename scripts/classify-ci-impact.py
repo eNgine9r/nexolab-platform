@@ -286,6 +286,13 @@ RS485_ACQUISITION_PATTERNS = (
     "tools/rs485_discovery/**",
 )
 
+# Narrow test-only runners with no runtime/package import into production.
+# They still receive the full static-quality/unit lane and must not relax the
+# unknown-path fail-closed gate for any other script.
+SCOPED_ACCEPTANCE_RUNNERS = {
+    "scripts/energy-history-export-benchmark.py",
+}
+
 CI_GOVERNANCE_PATHS = {
     "PROJECT_PROFILE.yaml",
     "AGENTS.md",
@@ -491,6 +498,10 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
 
         if path in DEPENDENCY_TOOLCHAIN_PATHS:
             classes.add("dependency_toolchain")
+            matched = True
+
+        if path in SCOPED_ACCEPTANCE_RUNNERS:
+            classes.add("backend")
             matched = True
 
         if path in BROWSER_ACCEPTANCE_TOOLING_PATHS:
