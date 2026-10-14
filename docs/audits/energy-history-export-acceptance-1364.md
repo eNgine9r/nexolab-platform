@@ -14,26 +14,26 @@
 
 ## Predeclared budgets and observed result
 
-| Constraint | Fixed gate | Observation |
-|---|---:|---:|
-| Candidate cgroup memory | ≤512 MiB | peak 485,818,368 B (463.3 MiB), PASS |
-| Export child RSS | ≤256 MiB | peak 100,139,008 B (95.5 MiB), PASS |
-| PostgreSQL cgroup | 384 MiB | limit retained; no OOM in final run |
-| CPU / PIDs | candidate 1.25 CPU / 256 PIDs; PG 0.5 CPU | limits enforced by Docker |
-| Individual spool | ≤512 MiB | largest recorded 119,312,853 B, PASS |
-| Total spool / reserve | ≤2 GiB / ≥128 MiB free | software guards retained; isolated SSD-backed export passed |
-| Per export | ≤600 seconds | longest 73.75 s, PASS |
-| Normal ingestion advancement | zero failed/rejected/lost after drain | 2,212 accepted, 2,212 persisted, 0 rejected and 0 ingestion failures, PASS |
-| OOM / container restart | zero | final candidate exit 0; oom=false, PASS |
+| Constraint                   |                                Fixed gate |                                                                Observation |
+| ---------------------------- | ----------------------------------------: | -------------------------------------------------------------------------: |
+| Candidate cgroup memory      |                                  ≤512 MiB |                                       peak 485,818,368 B (463.3 MiB), PASS |
+| Export child RSS             |                                  ≤256 MiB |                                        peak 100,139,008 B (95.5 MiB), PASS |
+| PostgreSQL cgroup            |                                   384 MiB |                                        limit retained; no OOM in final run |
+| CPU / PIDs                   | candidate 1.25 CPU / 256 PIDs; PG 0.5 CPU |                                                  limits enforced by Docker |
+| Individual spool             |                                  ≤512 MiB |                                       largest recorded 119,312,853 B, PASS |
+| Total spool / reserve        |                    ≤2 GiB / ≥128 MiB free |                software guards retained; isolated SSD-backed export passed |
+| Per export                   |                              ≤600 seconds |                                                      longest 73.75 s, PASS |
+| Normal ingestion advancement |     zero failed/rejected/lost after drain | 2,212 accepted, 2,212 persisted, 0 rejected and 0 ingestion failures, PASS |
+| OOM / container restart      |                                      zero |                                    final candidate exit 0; oom=false, PASS |
 
 ## Four actual exports: full seven-day workload
 
-| Format | Source events captured at independent snapshot | Output rows | Artifact bytes | Elapsed |
-|---|---:|---:|---:|---:|
-| RAW CSV | 147,893 | 16,854 | 23,570,858 | 44.34 s |
-| RAW XLSX | 148,310 | 17,271 | 6,007,624 | 73.75 s |
-| 10-minute avg/min/max CSV | 149,050 | 5,040 | 8,207,036 | 36.51 s |
-| 10-minute avg/min/max XLSX | 149,400 | 5,040 | 2,137,736 | 37.61 s |
+| Format                     | Source events captured at independent snapshot | Output rows | Artifact bytes | Elapsed |
+| -------------------------- | ---------------------------------------------: | ----------: | -------------: | ------: |
+| RAW CSV                    |                                        147,893 |      16,854 |     23,570,858 | 44.34 s |
+| RAW XLSX                   |                                        148,310 |      17,271 |      6,007,624 | 73.75 s |
+| 10-minute avg/min/max CSV  |                                        149,050 |       5,040 |      8,207,036 | 36.51 s |
+| 10-minute avg/min/max XLSX |                                        149,400 |       5,040 |      2,137,736 | 37.61 s |
 
 Snapshots intentionally differ: 10 synthetic events/s continue entering PostgreSQL throughout the four exports. RAW CSV was independently checked against every original source event identity and its numeric value, not only file row count. Subsequent **independent RAW XLSX read-only reconciliation** against stored PostgreSQL rows verified **147,840/147,840 original event IDs and values**, no duplicates; 17,271 Excel data rows; XLSX ZIP/typed-cell checks passed. The wide-row strategy legitimately produces fewer rows than scalar original events.
 
