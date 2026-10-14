@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import AsyncIterator
 
 from fastapi import FastAPI
@@ -14,6 +15,8 @@ from app.alerts.processor import AlertProcessor
 from app.alerts.repository import AlertRepository
 from app.api import create_api_router
 from app.config import Settings
+from app.energy_export.api import create_energy_export_router
+from app.energy_export.jobs import ExportJobs, ExportPolicy
 from app.ingestion import TelemetryIngestor
 from app.instrumentation.api import create_instrumentation_router
 from app.instrumentation.profile_acceptance import AcquisitionProfileAcceptanceRepository
@@ -96,6 +99,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     database = SessionAwareDatabase(
         resolved.database_url,
         connect_timeout_seconds=resolved.database_connect_timeout_seconds,
+    )
+    energy_exports = ExportJobs(
+        database,
+        Path(resolved.energy_export_root) if resolved.energy_export_root else Path(resolved.ingestion_spool_path).parent / "energy-exports",
+        policy=ExportPolicy(
+            max_pending=resolved.energy_export_max_pending,
+            max_job_bytes=resolved.energy_export_max_job_bytes,
+            max_total_bytes=resolved.energy_export_max_total_bytes,
+            reserve_bytes=resolved.energy_export_reserve_bytes,
+            ttl_seconds=resolved.energy_export_ttl_seconds,
+            retention_days=resolved.telemetry_retention_days,
+        ),
     )
     session_repository = AuditedSessionRepository(database)
     alert_repository = AlertRepository(database)
@@ -209,6 +224,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
         live_hub.start(asyncio.get_running_loop())
         ingestor.start()
+        energy_exports.start()
         if resolved.retention_enabled:
             retention_worker.start()
         if broker_control_worker is not None:
@@ -232,6 +248,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if resolved.retention_enabled:
                 await asyncio.to_thread(retention_worker.stop)
             live_hub.stop()
+            await asyncio.to_thread(energy_exports.stop)
             database.dispose()
 
     app = FastAPI(
@@ -260,6 +277,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.state.settings = resolved
     app.state.database = database
+    app.state.energy_exports = energy_exports
     app.state.session_repository = session_repository
     app.state.alert_repository = alert_repository
     app.state.alert_processor = alert_processor
@@ -342,6 +360,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
     )
     app.include_router(create_session_router(session_repository, security_dependencies))
+    app.include_router(create_energy_export_router(database, energy_exports, security_dependencies))
     app.include_router(
         create_session_configuration_router(
             session_repository,

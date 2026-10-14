@@ -1,9 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import { kyivInput } from "../src/features/energy/energy-export-time";
 
 const organizationId = requiredEnvironment("NEXOLAB_DASHBOARD_ORGANIZATION_ID");
 const viewerToken = requiredEnvironment("NEXOLAB_DASHBOARD_VIEWER_TOKEN");
@@ -28,14 +29,19 @@ type AcquisitionMetrics = {
 type EnergyMetric = {
   metric: string;
   suffix: string;
-  value: number;
+  value: number | null;
   unit: string;
   rawValue: number;
   capturedAt?: string;
+  nodeId?: string;
+  quality?: "valid" | "sensor_error";
 };
 
-async function authenticatedContext(browser: Browser): Promise<BrowserContext> {
-  const context = await browser.newContext();
+async function authenticatedContext(
+  browser: Browser,
+  options: Parameters<Browser["newContext"]>[0] = {},
+): Promise<BrowserContext> {
+  const context = await browser.newContext(options);
   await context.addInitScript(
     ({ accessToken, organization }) => {
       if (window.location.protocol === "about:") return;
@@ -61,12 +67,12 @@ function publishEnergySample(unitId: number, sample: EnergyMetric): void {
   const sdm120 = unitId === 1;
   const payload = JSON.stringify({
     event_id: randomUUID(),
-    node_id: "edge-01",
+    node_id: sample.nodeId ?? "edge-01",
     captured_at: sample.capturedAt ?? new Date().toISOString(),
     metric: sample.metric,
     value: sample.value,
     unit: sample.unit,
-    quality: "valid",
+    quality: sample.quality ?? "valid",
     source: sdm120 ? "eastron-sdm120m" : "f-and-f-le-01mp",
     equipment_id: sdm120 ? "SDM120M-1" : `LE01MP-${unitId}`,
     channel_id: `${unitId}-${sample.suffix}`,
@@ -99,6 +105,253 @@ function publishEnergySample(unitId: number, sample: EnergyMetric): void {
     { stdio: "pipe" },
   );
 }
+
+function exportFixtureCommand(service: string, command: string[], input?: string | Buffer): Buffer {
+  if (!composeProject.startsWith("nexolab-dashboard-acceptance-"))
+    throw new Error("Energy export fixtures require the isolated dashboard acceptance namespace");
+  return execFileSync(
+    "docker",
+    [
+      "compose",
+      "--project-name",
+      composeProject,
+      "--file",
+      baseCompose,
+      "--file",
+      acceptanceCompose,
+      "exec",
+      "-T",
+      service,
+      ...command,
+    ],
+    { input, stdio: "pipe" },
+  );
+}
+
+function seedExportFixture(): { node: string; from: string; to: string } {
+  const node = `energy-export-${randomUUID().slice(0, 8)}`;
+  exportFixtureCommand(
+    "postgres",
+    [
+      "psql",
+      "--username",
+      process.env.POSTGRES_USER ?? "nexolab",
+      "--dbname",
+      process.env.POSTGRES_DB ?? "nexolab",
+      "--set",
+      "ON_ERROR_STOP=1",
+      "--set",
+      `organization_id=${organizationId}`,
+      "--set",
+      `node_id=${node}`,
+      "--set",
+      `record_id=${randomUUID()}`,
+    ],
+    `INSERT INTO central_nodes (id,organization_id,node_id,display_name,state,created_by) VALUES (:'record_id',:'organization_id',:'node_id','Isolated synthetic Energy export fixture','active','energy-export-acceptance');`,
+  );
+  const base = Math.floor(Date.now() / 1000) * 1000 - 63_000;
+  for (const unitId of [200, 1]) {
+    for (const [metric, suffix, unit, values] of [
+      ["electrical.power.active", "export-power", "W", unitId === 200 ? [111, 222, 333] : [10, 20, 30]],
+      ["electrical.voltage", "export-voltage", "V", [220, 230, 240]],
+      ["electrical.current", "export-current", "A", [1, 2, 3]],
+    ] as const)
+      for (let index = 0; index < 3; index++) {
+        if (unitId === 1 && metric === "electrical.current" && index === 1) continue;
+        const invalid = unitId === 200 && metric === "electrical.voltage" && index === 1;
+        publishEnergySample(unitId, {
+          nodeId: node,
+          metric,
+          suffix,
+          unit,
+          value: invalid ? null : values[index],
+          rawValue: values[index],
+          quality: invalid ? "sensor_error" : "valid",
+          capturedAt: new Date(base + index * 30_000).toISOString(),
+        });
+      }
+  }
+  publishEnergySample(200, {
+    nodeId: node,
+    metric: "electrical.power.active",
+    suffix: "export-power",
+    unit: "W",
+    value: 112,
+    rawValue: 112,
+    capturedAt: new Date(base).toISOString(),
+  });
+  return { node, from: new Date(base - 1000).toISOString(), to: new Date(base + 61_000).toISOString() };
+}
+
+function exportWallInput(value: string): string {
+  return kyivInput(value).replace(/:00$/, "");
+}
+
+test("energy export preserves original PostgreSQL observations, XLSX aggregation and acquisition on mobile", async ({
+  browser,
+}) => {
+  test.setTimeout(180_000);
+  mkdirSync(evidenceDirectory, { recursive: true });
+  const fixture = seedExportFixture();
+  const before = await readAcquisitionMetrics();
+  const context = await authenticatedContext(browser, {
+    timezoneId: "America/Denver",
+    acceptDownloads: true,
+  });
+  const page = await context.newPage();
+  let sockets = 0;
+  const errors: string[] = [];
+  page.on("websocket", () => {
+    sockets += 1;
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  try {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto("/energy", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { name: "Енергомоніторинг", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Експорт даних", exact: true }).first().click();
+    const dialog = page.getByRole("dialog", { name: "Експорт історичних даних" });
+    await expect(
+      dialog.getByRole("checkbox", {
+        name: `Експорт W1 · Напруга · ${fixture.node} · 200-export-voltage`,
+        exact: true,
+      }),
+    ).toBeVisible({ timeout: 15_000 });
+    await dialog.getByRole("button", { name: "Очистити вибір", exact: true }).click();
+    for (const [label, unitId] of [
+      ["W1", 200],
+      ["SDM120M", 1],
+    ] as const)
+      for (const [parameter, suffix] of [
+        ["Активна потужність", "power"],
+        ["Напруга", "voltage"],
+        ["Струм", "current"],
+      ]) {
+        await dialog
+          .getByRole("checkbox", {
+            name: `Експорт ${label} · ${parameter} · ${fixture.node} · ${unitId}-export-${suffix}`,
+            exact: true,
+          })
+          .check();
+      }
+    await dialog.getByRole("button", { name: "Власний період", exact: true }).click();
+    await dialog.getByLabel("Початок · Europe/Kyiv", { exact: true }).fill(exportWallInput(fixture.from));
+    await dialog.getByLabel("Завершення · Europe/Kyiv", { exact: true }).fill(exportWallInput(fixture.to));
+    await dialog.getByLabel("Формат", { exact: true }).selectOption("csv");
+    await dialog.getByRole("button", { name: "Попередній перегляд", exact: true }).click();
+    await expect(dialog.getByRole("button", { name: "Сформувати CSV", exact: true })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(dialog.getByLabel("Стан експорту").locator("dd").nth(0)).toHaveText("18");
+    await expect(dialog.getByLabel("Стан експорту").locator("dd").nth(1)).toHaveText("7");
+    expect(
+      await dialog
+        .getByRole("option", { name: /10 секунд/ })
+        .evaluate((option) => (option as HTMLOptionElement).disabled),
+    ).toBe(true);
+    await dialog.getByRole("button", { name: "Сформувати CSV", exact: true }).click();
+    await dialog.getByRole("button", { name: "Закрити експорт", exact: true }).click();
+    await expect(page.getByRole("button", { name: /Експорт даних.*файл готовий/ })).toBeVisible({
+      timeout: 30_000,
+    });
+    await page.getByRole("button", { name: /Експорт даних.*файл готовий/ }).click();
+    const rawDownload = page.waitForEvent("download");
+    await dialog.getByRole("button", { name: "Завантажити CSV", exact: true }).click();
+    const rawPath = path.join(evidenceDirectory, "energy-export-original.csv");
+    await (await rawDownload).saveAs(rawPath);
+    exportFixtureCommand(
+      "telemetry-service",
+      [
+        "python",
+        "-c",
+        `import csv,io,sys; rows=list(csv.DictReader(io.StringIO(sys.stdin.buffer.read().decode('utf-8')))); assert len(rows)==7; assert sorted(float(row['P, W']) for row in rows if row['equipment_id']=='LE01MP-200' and row['P, W'])==[111,112,222,333]; assert any(row['U, V · quality']=='sensor_error' and row['U, V']=='' for row in rows); assert all('+' in row['Дата і час · Europe/Kyiv'] and row['timestamp_utc'].endswith('Z') for row in rows)`,
+      ],
+      readFileSync(rawPath),
+    );
+    await dialog.getByRole("button", { name: "Новий експорт", exact: true }).click();
+    await dialog.getByLabel("Формат", { exact: true }).selectOption("xlsx");
+    await dialog.getByRole("button", { name: "Попередній перегляд", exact: true }).click();
+    await expect(dialog.getByRole("button", { name: "Сформувати XLSX", exact: true })).toBeVisible({
+      timeout: 30_000,
+    });
+    await dialog.getByLabel("Крок даних у файлі", { exact: true }).selectOption("60");
+    await expect(dialog.getByRole("button", { name: "Сформувати XLSX", exact: true })).toHaveCount(0);
+    await dialog.getByLabel("Мінімум", { exact: true }).check();
+    await dialog.getByLabel("Максимум", { exact: true }).check();
+    await dialog.getByRole("button", { name: "Попередній перегляд", exact: true }).click();
+    await expect(dialog.getByRole("button", { name: "Сформувати XLSX", exact: true })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(dialog.getByLabel("Стан експорту").locator("dd").nth(1)).toHaveText("4");
+    for (const width of [390, 768, 1440, 1920]) {
+      await page.setViewportSize({ width, height: 1000 });
+      const first = dialog.getByRole("button", { name: "Закрити експорт", exact: true });
+      const last = dialog.getByRole("button", { name: "Сформувати XLSX", exact: true });
+      await first.focus();
+      await page.keyboard.press("Shift+Tab");
+      await expect(last).toBeFocused();
+      await page.keyboard.press("Tab");
+      await expect(first).toBeFocused();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        ),
+      ).toBe(true);
+      expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+      await dialog.screenshot({ path: path.join(evidenceDirectory, `energy-export-${width}.png`) });
+    }
+    await dialog.getByRole("button", { name: "Сформувати XLSX", exact: true }).click();
+    await expect(dialog.getByRole("button", { name: "Завантажити XLSX", exact: true })).toBeVisible({
+      timeout: 30_000,
+    });
+    const xlsxDownload = page.waitForEvent("download");
+    await dialog.getByRole("button", { name: "Завантажити XLSX", exact: true }).click();
+    const xlsxPath = path.join(evidenceDirectory, "energy-export-aggregate.xlsx");
+    await (await xlsxDownload).saveAs(xlsxPath);
+    exportFixtureCommand(
+      "telemetry-service",
+      [
+        "python",
+        "-c",
+        `from openpyxl import load_workbook; import io,sys; workbook=load_workbook(io.BytesIO(sys.stdin.buffer.read()),read_only=True,data_only=True); rows=list(workbook['Data_1'].values); assert len(rows)==5; headers=rows[0]; assert 'bucket_start_utc' in headers; data=[row for row in rows[1:] if row[7]=='LE01MP-200']; avg=headers.index('P, W · avg'); low=headers.index('P, W · min'); high=headers.index('P, W · max'); assert abs(data[0][avg]-445/3)<1e-9 and data[1][avg]==333; assert data[0][low]==111 and data[0][high]==222; metadata=dict(list(workbook['Metadata'].values)[1:]); assert metadata['source_events']==18 and metadata['output_rows']==4 and metadata['timezone']=='Europe/Kyiv'; workbook.close()`,
+      ],
+      readFileSync(xlsxPath),
+    );
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Експорт даних.*файл готовий/ })).toBeFocused();
+    const after = await readAcquisitionMetrics();
+    expect(after.acquisition.normal.physical_requests_total).toBeGreaterThan(
+      before.acquisition.normal.physical_requests_total,
+    );
+    expect(acquisitionServiceCounters(after)).toEqual(acquisitionServiceCounters(before));
+    expect(sockets).toBe(1);
+    expect(errors).toEqual([]);
+  } finally {
+    await context.close();
+    exportFixtureCommand(
+      "postgres",
+      [
+        "psql",
+        "--username",
+        process.env.POSTGRES_USER ?? "nexolab",
+        "--dbname",
+        process.env.POSTGRES_DB ?? "nexolab",
+        "--set",
+        "ON_ERROR_STOP=1",
+        "--set",
+        `node_id=${fixture.node}`,
+        "--set",
+        `organization_id=${organizationId}`,
+      ],
+      `BEGIN;
+DELETE FROM telemetry_latest WHERE node_id=:'node_id';
+DELETE FROM telemetry_samples WHERE node_id=:'node_id';
+DELETE FROM central_nodes WHERE node_id=:'node_id' AND organization_id=:'organization_id' AND created_by='energy-export-acceptance';
+COMMIT;`,
+    );
+  }
+});
 
 function observeTelemetryRequests(page: Page): Array<{ url: string; authorized: boolean }> {
   const requests: Array<{ url: string; authorized: boolean }> = [];

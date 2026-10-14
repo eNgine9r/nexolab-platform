@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock3,
+  Download,
   Gauge,
   LoaderCircle,
   RotateCcw,
@@ -18,6 +19,8 @@ import {
 
 import { EnergyConsumptionPanel } from "@/components/energy/energy-consumption-panel";
 import { EnergyParameterDialog } from "@/components/energy/energy-parameter-dialog";
+import { EnergyExportDialog } from "@/components/energy/energy-export-dialog";
+import type { EnergyExportController } from "@/features/energy/use-energy-export";
 import { EnergyHistoryChart } from "@/components/energy/energy-history-chart";
 import {
   ENERGY_METERS,
@@ -245,12 +248,14 @@ function HistoryPanel({
   selectedPairs,
   visibilityRevision,
   onApplyPairs,
+  onExport,
 }: {
   telemetry: EnergyTelemetryModel;
   selectedUnitIds: readonly number[];
   selectedPairs: readonly EnergySeriesSelection[];
   visibilityRevision: number;
   onApplyPairs: (pairs: EnergySeriesSelection[]) => void;
+  onExport?: () => void;
 }) {
   const [selectorOpen, setSelectorOpen] = useState(false);
   const visiblePairs = selectedPairs.filter((pair) => selectedUnitIds.includes(pair.unitId));
@@ -281,6 +286,16 @@ function HistoryPanel({
           </p>
         </div>
         <div className="flex min-w-0 flex-wrap gap-2">
+          {onExport ? (
+            <button
+              type="button"
+              onClick={onExport}
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-400/10 px-3 text-xs text-cyan-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
+            >
+              <Download className="h-4 w-4" />
+              Експорт даних
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => setSelectorOpen(true)}
@@ -390,10 +405,20 @@ function HistoryPanel({
 export function EnergyWorkspace({
   telemetry,
   consumption,
+  exporter,
 }: {
   telemetry: EnergyTelemetryModel;
   consumption: EnergyConsumptionLoader;
+  exporter?: EnergyExportController;
 }) {
+  const [exportOpen, setExportOpen] = useState(false);
+  const openExport = exporter
+    ? () => {
+        setExportOpen(true);
+        void exporter.refreshCatalog();
+        if (exporter.job) void exporter.refreshJob();
+      }
+    : undefined;
   const [selectedUnitIds, setSelectedUnitIds] = useState<number[]>(
     ENERGY_METERS.map((meter) => meter.unitId),
   );
@@ -467,6 +492,21 @@ export function EnergyWorkspace({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {openExport ? (
+            <button
+              type="button"
+              onClick={openExport}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-blue-400/30 bg-blue-500 px-4 py-2 text-xs font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
+            >
+              <Download className="h-4 w-4" />
+              Експорт даних
+              {exporter?.job && ["queued", "running"].includes(exporter.job.status) ? (
+                <span className="text-blue-100">· готується</span>
+              ) : exporter?.job?.status === "ready" ? (
+                <span className="text-blue-100">· файл готовий</span>
+              ) : null}
+            </button>
+          ) : null}
           <span className="inline-flex items-center gap-2 rounded-xl border border-white/[0.07] px-3 py-2 text-[10px] text-slate-400">
             <Clock3 className="h-3.5 w-3.5" />
             {ageCopy(telemetry.ageMs)}
@@ -561,6 +601,7 @@ export function EnergyWorkspace({
         visibilityRevision={visibilityRevision}
         selectedPairs={selectedPairs}
         onApplyPairs={applyPairs}
+        onExport={openExport}
       />
 
       <section className="grid gap-3 xl:grid-cols-[1fr_360px]">
@@ -656,6 +697,13 @@ export function EnergyWorkspace({
         <Zap className="h-3.5 w-3.5" />
         Read-only monitoring · no Modbus write path · local runtime first
       </footer>
+      {exportOpen && exporter ? (
+        <EnergyExportDialog
+          model={exporter}
+          defaults={selectedPairs.filter((pair) => selectedUnitIds.includes(pair.unitId))}
+          onClose={() => setExportOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

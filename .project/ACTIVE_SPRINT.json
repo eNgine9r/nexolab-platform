@@ -61,9 +61,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1369,
-      "title": "Restore exact container security gates blocking Energy export",
-      "branch": "security/1369-bounded-high-review"
+      "issue": 1363,
+      "title": "Energy full historical CSV/XLSX export",
+      "branch": "feature/1363-energy-history-export"
     },
     "next_work_package": null
   },
@@ -8484,13 +8484,13 @@
       "title": "Energy full historical CSV/XLSX export",
       "branch": "feature/1363-energy-history-export",
       "priority": "high",
-      "lifecycle": "blocked",
+      "lifecycle": "review",
       "depends_on": [
         1362,
         1369
       ],
       "scope": "Authenticated raw/aggregated PostgreSQL export, meter/metric/range/step options, preview, bounded local execution, CSV/XLSX, quality/counter/DST/retention correctness.",
-      "readiness": "Blocked on shared security prerequisite1369; local review repair f087d70c is validated but unpublished. First head cd62d2f passed real PostgreSQL backend and new export browser scenario; whole matrix is not GREEN.",
+      "readiness": "Final rebased repair candidate validated locally; publication and required exact-head CI/review pending; dependency1369 accepted. Original JSON delivery payload deferred; scalar measurements preserved.",
       "evidence": {
         "local_candidate_checks": {
           "frontend_module_tests": 171,
@@ -8542,11 +8542,13 @@
         },
         "review_repair": {
           "local_commit": "f087d70c140be7e4ca69fb0d500409886f85b9cf",
-          "checks": "24 export backend passed;1 PostgreSQL skipped locally;typecheck passed",
+          "checks": "25 backend export tests pass;1 PostgreSQL skipped locally;typecheck/state integrity pass",
           "thread": "PRRT_kwDOTe72wM6sFPGH",
           "fix": "Bounded cap reclamation only for inactive canceled/failed/expired own manifests; protected prepared/active artifacts; red-green admission regressions",
           "browser_fixture_fix": "Delete only generated synthetic node and samples under mandatory isolated Compose namespace; original budget unchanged",
-          "publication": "pending accepted security prerequisite"
+          "publication": "pending accepted security prerequisite",
+          "bounded_projection": "Large256KiB delivery-payload regression reproduced before fix and passes: original scalar observations preserved, payload absent from SQL projection.",
+          "base": "0dc472cd5aff7348780cee6f1e2418e2896d5074"
         }
       }
     },
@@ -8577,7 +8579,7 @@
       "issue": 1369,
       "title": "Restore exact container security gates blocking Energy export",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "branch": "security/1369-bounded-high-review",
       "evidence": {
         "discovery_source": "cd62d2f8e8cbcc16505ec4e6a7ea6a8eb7fd5c29",
@@ -8605,7 +8607,34 @@
           "P1_command": "Target original release ./cmd/versitygw; actual fixed SDK/source checksum/build and both cross-target checks pass in CI",
           "P1_architecture": "ADR0011 amendment makes reviewed same-release rebuild and immutable rollback authority explicit; effective only after GREEN source merge",
           "native_build": "In progress exec-205cf9cfb495d1a134bc406f458ff9e9 on Pi5/aarch64, bounded 768MiB and1 CPU; exact Dockerfile c084f39ef322900c687efdeb789346dd5c52092de89cf8166b5ec682d1283465"
-        }
+        },
+        "verified_head_sha": "101da8c9604fc6979934b732168cebb66fc0481e",
+        "pull_request": 1370,
+        "checks": {
+          "core": "GREEN run38480130581 MergeGate115581385545",
+          "external": "all triggered exact-head workflows GREEN;38 successful checks;3 intentional skips",
+          "review": "fresh101da8c completed;0 unresolved threads",
+          "native": "Pi5 ARM64 exact Dockerfile/version/crossbuild exit0;no production activation"
+        },
+        "native_build_result": {
+          "execution": "exec-205cf9cfb495d1a134bc406f458ff9e9",
+          "completed_at": "2026-10-13T22:47:32Z",
+          "exit_code": 0,
+          "truncated": false,
+          "dockerfile_sha256": "c084f39ef322900c687efdeb789346dd5c52092de89cf8166b5ec682d1283465",
+          "image_id": "sha256:175f51534091367da4169884d1f6721e67a5dfd08a6ccaa9bd1605fa36e9811d",
+          "platform": "actual Pi5,aarch64",
+          "budget": "768MiB and1 CPU, own stopped builder",
+          "checks": "ARM SDK/source/module verification,native binary version1.8.0,opposite target crosscompile pass",
+          "runtime_activation": false
+        },
+        "observations": [
+          {
+            "kind": "accepted_merge",
+            "sha": "0dc472cd5aff7348780cee6f1e2418e2896d5074",
+            "observed_at": "2026-10-13T23:02:32Z"
+          }
+        ]
       },
       "depends_on": [],
       "scope": "Restore exact shared security gates using fixed VersityGW source rebuild and fresh bounded unchanged telemetry HIGH review; no production activation.",
@@ -8619,7 +8648,7 @@
         ".project/**",
         "docs/adr/0011-local-object-storage-versitygw.md"
       ],
-      "readiness": "Fixed-image Supply Chain GREEN at5ec0de; final architecture/state amendment needs fresh exact-head CI/review. Native isolated ARM64 build running; production unchanged."
+      "readiness": "Completed and merged as0dc472cd after final101da8c38 GREEN checks/MergeGate/fresh clean review; isolated actual-Pi ARM64 build/version and cross-target pass; no production activation."
     }
   ],
   "maintenance_actions": [

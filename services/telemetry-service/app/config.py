@@ -19,6 +19,13 @@ class Settings(BaseSettings):
     version_management_root: str = "data/version-management"
     version_management_catalog_limit: int = Field(default=20, ge=1, le=100)
 
+    energy_export_root: str | None = None
+    energy_export_max_pending: int = Field(default=4, ge=1, le=8)
+    energy_export_max_job_bytes: int = Field(default=512 * 1024 * 1024, ge=1024 * 1024)
+    energy_export_max_total_bytes: int = Field(default=2 * 1024 * 1024 * 1024, ge=1024 * 1024)
+    energy_export_reserve_bytes: int = Field(default=128 * 1024 * 1024, ge=1024 * 1024)
+    energy_export_ttl_seconds: int = Field(default=3600, ge=60, le=86400)
+
     database_url: str = (
         "postgresql+psycopg://nexolab:nexolab@postgres:5432/nexolab"
     )

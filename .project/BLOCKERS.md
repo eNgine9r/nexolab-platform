@@ -1,3 +1,26 @@
+## Energy1363 — final repaired export candidate on accepted security source
+
+Security prerequisite1369 is completed through PR1370/main0dc472cd. Final
+101da8c passed all triggered checks (38 successful,3 intentional skips),
+MergeGate115581385545 and fresh clean review. Its unchanged gateway version
+passed actual Pi5/aarch64 SDK/source/module verification, native binary/version
+and cross-target compile under768MiB/1 CPU; execution ended22:47:32Z, exit0.
+The own builder was stopped; no production image activation occurred.
+
+1363 is active again on that main source. The coherent candidate includes
+terminal-manifest reclamation, protected active/prepared artifacts, generated
+fixture-node cleanup under isolated Compose guard, and scalar-only historical
+projection excluding large delivery JSON. Its final local backend suite has
+25 passing export checks plus1 real-PostgreSQL case skipped locally; typecheck
+and state integrity pass. Frontend171 module/1218 full checks remain anchored
+to unchanged frontend code. Fresh exact-head PostgreSQL/MQTT/browser/Core/
+offline/source review is required before merge.1364 remains source-dependent.
+
+Approved allowlisted file operations recovered an isolated Pi folder while
+preserving all pre-existing checkout edits. Actual Energy export load/lag/RSS
+acceptance is still unverified. C296, automatic activationOFF, data/volumes,
+matching package1313/1323 and backup/rollback/update gates remain unchanged.
+
 ## Security1369 — fixed image verified; architecture amendment awaiting final review
 
 Source5ec0de / Supply Chain run38478330972 is GREEN. The rebuilt same-version
