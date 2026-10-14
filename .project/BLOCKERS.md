@@ -1,3 +1,9 @@
+## 2026-10-14 verified release outcome and next guarded work — #1376 / #1377
+
+The prior Energy release blocker below describes the **pre-cutover** position. It is superseded **for the specific C296→29cff protected Energy release** by owner-driven Version Manager operation `af45b2f1-043e-47e6-8375-7a7982b06879`, status `succeeded/verified_ready`, PostgreSQL backup receipt, accepted hardware/read-only Modbus evidence, retained C296 rollback package and Product Owner acceptance of live CSV/XLSX downloads. The deployed source is `29cff166e5abfe4d5ef8f871a2a49a3114be40fa`. No product data or Docker volumes were deleted.
+
+A **new outstanding release gate** remains for the code fix merged under #1377/PR #1378 (`85931190702b747a458bf293d72e68d7fb067ecf`): the LAN Dashboard identity file is malformed in the still-deployed 29cff image; the fixed image is NOT deployed. Build a new immutable matching ARM64 bundle, preserve the accepted site object-storage image, verify LAN+Google HTTPS and offline behavior, validate exact protected current authority and backup/rollback, and request explicit owner permission for any further site cutover. There is no automatic update signal. Issues #1313 and #1323 remain open, their independent unresolved scope must be assessed before any subsequent protected update.
+
 ## Protected update remains blocked after Energy software acceptance (2026-10-14)
 
 Energy #1362, #1363 and #1364 are **completed for software/isolated acceptance**

@@ -3,15 +3,15 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-14T07:30:15.801Z",
+  "timestamp": "2026-10-14T13:37:17Z",
   "actor": "ChatGPT",
-  "event": "energy_wps_1362_1363_1364_merged_and_software_acceptance_closed",
+  "event": "issue_1377_merged_and_energy_1376_deployment_state_reconciled",
   "baselines": {
-    "accepted_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
-    "deployed_product_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
-    "frontend_compatibility_source_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
-    "frontend_build_id": "0B4pHaAjFeo31t2yUWXex",
-    "frontend_release": "validated_package:c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+    "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
+    "deployed_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
+    "frontend_compatibility_source_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
+    "frontend_build_id": "zkjro8zBIxIPXErg7sqY0",
+    "frontend_release": "validated_package:29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "frontend_rollback_release": "runtime/frontend-releases/75d9c75f8d1901d6b639ec711bf3784e22ed0642-20261007T061059Z",
     "frontend_runtime_evidence": "operation-evidence/5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75",
     "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
@@ -24,10 +24,10 @@
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
     "deployed_runtime_evidence": "operation-evidence/5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75",
-    "deployed_device_agent_image_id": "sha256:6fd6ebd5ed6a4d17d208135ac8a8dd32475e446344f095154c558f73cfca6144",
+    "deployed_device_agent_image_id": "sha256:4f954fc493c31d865a8107926bade05091325c302c5eea2d946a4ccac4f53310",
     "deployed_device_agent_rollback_image_id": "sha256:bcfcbb5320017d3f4a205c748f642002ddb70b7fd466a9ebc34e1c780c10244b",
     "object_storage_authority": "runtime/object-storage-migration/authority.json",
-    "protected_frontend_compatibility_source_sha": "c296c58f3cb2b221b88a8d4e9d6a4cf67e5e33e2",
+    "protected_frontend_compatibility_source_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "protected_frontend_build_id": "HuFALgo65ij75S2pY6qCm"
   },
   "active_work": null,
@@ -2635,6 +2635,33 @@
         1313,
         1323
       ]
+    },
+    "energy_site_1376_identity_fix_1377": {
+      "site_release_issue": 1376,
+      "site_deployed_source": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
+      "site_operation_id": "af45b2f1-043e-47e6-8375-7a7982b06879",
+      "site_result_code": "verified_ready",
+      "protected_bundle": "recovery-29cff166e5ab-tooling-29cff166e5ab-protected-storage-992e9d9bc05f-29cff166e5ab",
+      "rollback_previous_bundle_retained": "recovery-c296c58f3cb2-storage-992e9d9bc05f-tooling-20cd3f1d6442-protected-arm64-c296c58f3cb2",
+      "database_backup_recorded": "af45b2f1-043e-47e6-8375-7a7982b06879-postgresql.dump",
+      "hardware_evidence": "three physical serial buses; 74 successful read-only Modbus requests; 3 healthy workers",
+      "operator_csv_download": true,
+      "operator_xlsx_download": true,
+      "independent_operator_export_file_reconciliation": false,
+      "identity_issue": 1377,
+      "identity_pull_request": 1378,
+      "identity_code_merged_main": "85931190702b747a458bf293d72e68d7fb067ecf",
+      "identity_fix_deployed": false,
+      "identity_ci_exact_head": "43d56ed9505295353f2275f4dd4233f5509c4152",
+      "identity_ci_workflows": {
+        "CI": "success",
+        "Offline Bundle": "success"
+      },
+      "issues_still_open": [
+        1313,
+        1323
+      ],
+      "state_only_runtime_mutation": false
     }
   },
   "observations": [
@@ -3698,9 +3725,41 @@
         "verified_pr_head_sha": "3d9b4551a26212f4141add04a6abbb7574feef07",
         "exact_head_ci_green": 5
       }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-14T13:37:17Z",
+      "kind": "energy_1376_deployed_and_identity_1377_merged",
+      "data": {
+        "site_release_issue": 1376,
+        "site_deployed_source": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
+        "site_operation_id": "af45b2f1-043e-47e6-8375-7a7982b06879",
+        "site_result_code": "verified_ready",
+        "protected_bundle": "recovery-29cff166e5ab-tooling-29cff166e5ab-protected-storage-992e9d9bc05f-29cff166e5ab",
+        "rollback_previous_bundle_retained": "recovery-c296c58f3cb2-storage-992e9d9bc05f-tooling-20cd3f1d6442-protected-arm64-c296c58f3cb2",
+        "database_backup_recorded": "af45b2f1-043e-47e6-8375-7a7982b06879-postgresql.dump",
+        "hardware_evidence": "three physical serial buses; 74 successful read-only Modbus requests; 3 healthy workers",
+        "operator_csv_download": true,
+        "operator_xlsx_download": true,
+        "independent_operator_export_file_reconciliation": false,
+        "identity_issue": 1377,
+        "identity_pull_request": 1378,
+        "identity_code_merged_main": "85931190702b747a458bf293d72e68d7fb067ecf",
+        "identity_fix_deployed": false,
+        "identity_ci_exact_head": "43d56ed9505295353f2275f4dd4233f5509c4152",
+        "identity_ci_workflows": {
+          "CI": "success",
+          "Offline Bundle": "success"
+        },
+        "issues_still_open": [
+          1313,
+          1323
+        ],
+        "state_only_runtime_mutation": false
+      }
     }
   ],
-  "next_action": "Energy WP #1362/#1363/#1364 software scope complete and merged. Next release readiness remains blocked by #1313/#1323 package/site authority; require separate owner approval for protected deployment/root execution. Do not cut over C296 or hardware.",
+  "next_action": "Release #1376 operator CSV/XLSX verified and installed at 29cff. Issue #1377 code merged to 8593119 but LAN Dashboard identity fix is not yet deployed. Keep #1313/#1323 open for independent scoping; prepare a separately gated ARM64 release with retained object-storage, exact authority, backup and rollback before owner cutover.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -3709,5 +3768,5 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "Development source and isolated local fixture UI validation only; no production/edge service restart, package activation, database mutation, hardware write or data/evidence deletion."
+  "runtime_mutation": "This state-only work changed no site service, installed package, database or hardware. Historical owner-authorized protected cutover #1376 completed before this documentation update via canonical Version Manager; C296 retained for rollback."
 }
