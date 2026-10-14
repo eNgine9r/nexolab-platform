@@ -1481,3 +1481,113 @@ def test_legacy_package_storage_preflight_uses_current_reviewed_host_verifier(tm
     installer = SCRIPT.with_name('deploy-version-manager-service.sh').read_text()
     for helper in ('verify-offline-bundle.py', 'offline_image_archive.py'):
         assert f'/usr/local/lib/nexolab/{helper}' in installer
+
+
+def _real_hardware_three_bus_fixture() -> dict[str, object]:
+    bindings = [
+        {"bus_id": bus, "serial_device": f"/host/dev/serial/by-id/{bus}"}
+        for bus in ("rs485-embraco", "rs485-main", "rs485-sdm120")
+    ]
+    return {
+        "status": "verified",
+        "device_mode": "modbus",
+        "configured_mode": "modbus",
+        "host_serial_device": "/dev/serial/by-id/rs485-main",
+        "observed_buses": sorted(b["serial_device"] for b in bindings),
+        "bus_bindings": bindings,
+    }
+
+
+def test_post_update_hardware_waits_for_slow_third_bus_but_requires_full_topology(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    expected = _real_hardware_three_bus_fixture()
+    missing = {**expected, "observed_buses": expected["observed_buses"][:2]}
+    now = [0.0]
+    monkeypatch.setattr(manager.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(manager.time, "sleep", lambda seconds: now.__setitem__(0, now[0] + seconds))
+    with patch.object(manager, "verify_real_hardware_runtime", side_effect=[missing, expected]) as read:
+        observed = manager.verify_post_update_hardware_with_observation(
+            argparse.Namespace(), expected, max_wait_seconds=120, poll_seconds=5
+        )
+    assert observed == expected
+    assert now == [5.0]
+    assert read.call_count == 2
+
+
+@pytest.mark.parametrize("change", ["bus_binding", "unexpected_bus", "device_mode", "host_serial"])
+def test_post_update_hardware_rejects_actual_identity_or_topology_drift_immediately(
+    monkeypatch: pytest.MonkeyPatch, change: str
+) -> None:
+    expected = _real_hardware_three_bus_fixture()
+    observed = json.loads(json.dumps(expected))
+    if change == "bus_binding":
+        observed["bus_bindings"][1]["serial_device"] = "/host/dev/serial/by-id/other-adapter"
+    elif change == "unexpected_bus":
+        observed["observed_buses"].append("/host/dev/serial/by-id/other-adapter")
+    elif change == "device_mode":
+        observed["device_mode"] = "simulator"
+    else:
+        observed["host_serial_device"] = "/dev/serial/by-id/other-adapter"
+    with (
+        patch.object(manager, "verify_real_hardware_runtime", return_value=observed),
+        patch.object(manager.time, "sleep") as sleeping,
+    ):
+        with pytest.raises(manager.VersionManagerFailure, match="changed during version operation"):
+            manager.verify_post_update_hardware_with_observation(
+                argparse.Namespace(), expected, max_wait_seconds=120
+            )
+    sleeping.assert_not_called()
+
+
+def test_post_update_hardware_never_accepts_missing_bus_even_after_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    expected = _real_hardware_three_bus_fixture()
+    missing = {**expected, "observed_buses": expected["observed_buses"][:2]}
+    now = [0.0]
+    monkeypatch.setattr(manager.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(manager.time, "sleep", lambda seconds: now.__setitem__(0, now[0] + seconds))
+    with patch.object(manager, "verify_real_hardware_runtime", return_value=missing):
+        with pytest.raises(manager.VersionManagerFailure, match="topology not verified within 12s"):
+            manager.verify_post_update_hardware_with_observation(
+                argparse.Namespace(), expected, max_wait_seconds=12, poll_seconds=5
+            )
+    assert now == [12.0]
+
+
+def test_post_update_hardware_waits_only_for_known_cold_start_missing_request(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    expected = _real_hardware_three_bus_fixture()
+    now = [0.0]
+    monkeypatch.setattr(manager.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(manager.time, "sleep", lambda seconds: now.__setitem__(0, now[0] + seconds))
+    with patch.object(
+        manager, "verify_real_hardware_runtime",
+        side_effect=[
+            manager.VersionManagerFailure("Device Agent real-hardware request evidence is missing"),
+            expected,
+        ],
+    ):
+        result = manager.verify_post_update_hardware_with_observation(
+            argparse.Namespace(), expected, max_wait_seconds=120, poll_seconds=5
+        )
+    assert result == expected
+    assert now == [5.0]
+
+
+def test_post_update_hardware_rejects_ambiguous_binding_without_retry() -> None:
+    expected = _real_hardware_three_bus_fixture()
+    with (
+        patch.object(
+            manager, "verify_real_hardware_runtime",
+            side_effect=manager.VersionManagerFailure(
+                "Device Agent RS-485 bus binding is ambiguous or unstable"
+            ),
+        ),
+        patch.object(manager.time, "sleep") as sleeping,
+    ):
+        with pytest.raises(manager.VersionManagerFailure, match="ambiguous or unstable"):
+            manager.verify_post_update_hardware_with_observation(argparse.Namespace(), expected)
+    sleeping.assert_not_called()

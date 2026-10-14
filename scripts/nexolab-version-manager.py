@@ -485,6 +485,77 @@ def verify_real_hardware_runtime(args: argparse.Namespace) -> dict[str, Any]:
     return evidence
 
 
+
+def verify_post_update_hardware_with_observation(
+    args: argparse.Namespace,
+    hardware_contract: dict[str, Any],
+    *,
+    max_wait_seconds: float = 120,
+    poll_seconds: float = 5,
+) -> dict[str, Any]:
+    """Wait for cold-start bus request evidence without accepting topology drift.
+
+    USB bindings and hardware identity must match immediately once reported.
+    Only missing request-series proof of an expected bus is retried, for a
+    bounded interval. A disconnected adapter or genuinely changed mapping
+    cannot pass.
+    """
+    if max_wait_seconds <= 0 or poll_seconds <= 0:
+        raise VersionManagerFailure("hardware observation bounds must be positive")
+    expected_buses = hardware_contract.get("observed_buses")
+    if not isinstance(expected_buses, list) or not expected_buses:
+        raise VersionManagerFailure("source real-hardware bus baseline is missing")
+    deadline = time.monotonic() + max_wait_seconds
+    retryable = {
+        "Device Agent real-hardware request evidence is missing",
+        "Device Agent is not using the expected stable RS-485 identity",
+        "Device Agent has no successful real-hardware request evidence on the expected RS-485 bus",
+    }
+    last_reason = "waiting for real RS-485 observations"
+    while True:
+        try:
+            observed = verify_real_hardware_runtime(args)
+        except VersionManagerFailure as error:
+            if str(error) not in retryable:
+                raise
+            last_reason = str(error)
+        else:
+            for key, label in (
+                ("device_mode", "hardware mode"),
+                ("configured_mode", "configured hardware mode"),
+                ("host_serial_device", "stable RS-485 identity"),
+            ):
+                if observed.get(key) != hardware_contract.get(key):
+                    raise VersionManagerFailure(
+                        f"Device Agent {label} changed during version operation"
+                    )
+            if (
+                "bus_bindings" in hardware_contract
+                and observed.get("bus_bindings") != hardware_contract["bus_bindings"]
+            ):
+                raise VersionManagerFailure(
+                    "Device Agent RS-485 bus bindings changed during version operation"
+                )
+            observed_buses = observed.get("observed_buses")
+            if observed_buses == expected_buses:
+                return observed
+            if (
+                not isinstance(observed_buses, list)
+                or not set(observed_buses).issubset(set(expected_buses))
+            ):
+                raise VersionManagerFailure(
+                    "Device Agent RS-485 topology changed during version operation"
+                )
+            last_reason = "expected RS-485 bus requests have not all been observed"
+
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise VersionManagerFailure(
+                f"Device Agent RS-485 topology not verified within {max_wait_seconds:g}s: {last_reason}"
+            )
+        time.sleep(min(poll_seconds, remaining))
+
+
 def stable_runtime_serial_path(value: Any) -> bool:
     prefix = "/host/dev/serial/by-id/"
     return (
@@ -1403,21 +1474,10 @@ def execute_request(args: argparse.Namespace, request_path: Path) -> None:
             }
         else:
             if hardware_required:
-                observed_hardware = verify_real_hardware_runtime(args)
                 assert isinstance(hardware_contract, dict)
-                for key, label in (
-                    ("device_mode", "hardware mode"),
-                    ("configured_mode", "configured hardware mode"),
-                    ("host_serial_device", "stable RS-485 identity"),
-                    ("observed_buses", "RS-485 topology"),
-                ):
-                    if observed_hardware.get(key) != hardware_contract.get(key):
-                        raise VersionManagerFailure(
-                            f"Device Agent {label} changed during version operation"
-                        )
-                if "bus_bindings" in hardware_contract and observed_hardware.get("bus_bindings") != hardware_contract["bus_bindings"]:
-                    raise VersionManagerFailure("Device Agent RS-485 bus bindings changed during version operation")
-                operation["hardware_verification"] = observed_hardware
+                operation["hardware_verification"] = verify_post_update_hardware_with_observation(
+                    args, hardware_contract
+                )
             else:
                 operation["hardware_verification"] = {
                     "status": "not_required",
