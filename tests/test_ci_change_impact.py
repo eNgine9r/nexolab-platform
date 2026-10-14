@@ -62,6 +62,47 @@ class ChangeImpactClassifierTests(unittest.TestCase):
         self.assertTrue(result["needs_full_quality"])
         self.assertFalse(result["fail_closed"])
 
+    def test_pi_energy_export_benchmark_is_explicit_verification_only_tool(self) -> None:
+        result = classify([
+            "scripts/energy-history-export-benchmark.py",
+            "docs/audits/energy-history-export-acceptance-1364.md",
+            ".project/CURRENT_STATE.md",
+            ".project/ACTIVE_SPRINT.json",
+            ".project/BLOCKERS.md",
+            ".project/LAST_CHECKPOINT.json",
+        ])
+        self.assertEqual(result["classes"], ["verification_tooling"])
+        self.assertEqual(result["unknown_files"], [])
+        self.assertFalse(result["fail_closed"])
+        self.assertTrue(result["needs_full_quality"])
+        self.assertFalse(result["state_only"])
+        self.assertEqual(result["verification"]["required_external_workflows"], [])
+
+    def test_energy_benchmark_registration_does_not_waive_unknown_script_gates(self) -> None:
+        result = classify([
+            "scripts/energy-history-export-benchmark.py",
+            "scripts/some-future-unknown-benchmark.py",
+        ])
+        self.assertTrue(result["fail_closed"])
+        self.assertIn("scripts/some-future-unknown-benchmark.py", result["unknown_files"])
+        self.assertEqual(
+            set(result["verification"]["required_external_workflows"]),
+            {"Authenticated Dashboard Acceptance", "Offline Bundle", "Refrigeration Browser Acceptance"},
+        )
+
+    def test_classifier_amendment_itself_requires_three_external_checks(self) -> None:
+        result = classify([
+            "scripts/classify-ci-impact.py",
+            "tests/test_ci_change_impact.py",
+            "scripts/energy-history-export-benchmark.py",
+        ])
+        self.assertFalse(result["fail_closed"])
+        self.assertTrue(result["needs_full_quality"])
+        self.assertEqual(
+            set(result["verification"]["required_external_workflows"]),
+            {"Authenticated Dashboard Acceptance", "Offline Bundle", "Refrigeration Browser Acceptance"},
+        )
+
     def test_repository_recovery_tooling_is_known_deployment_runtime(self) -> None:
         result = classify(["scripts/rebaseline-device-agent-recovery.py"])
         self.assertEqual(result["classes"], ["deployment_runtime"])

@@ -61,9 +61,9 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1363,
-      "title": "Energy full historical CSV/XLSX export",
-      "branch": "feature/1363-energy-history-export"
+      "issue": 1364,
+      "title": "Energy historical export native acceptance",
+      "branch": "feature/1364-energy-export-acceptance"
     },
     "next_work_package": null
   },
@@ -8484,7 +8484,7 @@
       "title": "Energy full historical CSV/XLSX export",
       "branch": "feature/1363-energy-history-export",
       "priority": "high",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [
         1362,
         1369
@@ -8549,15 +8549,21 @@
           "publication": "pending accepted security prerequisite",
           "bounded_projection": "Large256KiB delivery-payload regression reproduced before fix and passes: original scalar observations preserved, payload absent from SQL projection.",
           "base": "0dc472cd5aff7348780cee6f1e2418e2896d5074"
+        },
+        "final_merge_20261014": {
+          "pr": 1368,
+          "software_source_review": "all_review_threads_resolved",
+          "exact_head_workflows": "18_completed_success",
+          "source_head": "1a7ac5e08044ba5f972727a52a59a3f20eb98635"
         }
       }
     },
     {
       "issue": 1364,
       "title": "Energy export mobile and actual Raspberry Pi isolated performance acceptance",
-      "branch": "test/1364-energy-export-acceptance",
+      "branch": "feature/1364-energy-export-acceptance",
       "priority": "high",
-      "lifecycle": "queued",
+      "lifecycle": "in_progress",
       "depends_on": [
         1362,
         1363
@@ -8572,6 +8578,117 @@
           "isolated_write": "Native build preflight execution exec-b0b70d951bf37a370433a69a9ec19efa stopped before code/file/Docker mutation: new /home/nexolab directory creation is read-only",
           "hardware_acceptance": "not run; require writable isolated validation workspace",
           "execution_recovery": "Approved Commander directory.create/file.write created only a new isolated folder and exact Dockerfile under the allowlisted project; native compiler running with resource caps. No original checkout edit or production change. Export performance itself not yet run."
+        },
+        "native_isolated_20261014": {
+          "source_sha": "7f7afc3b8839c56bc1b989676fdd35e156d0a9d3",
+          "classification": "native_Raspberry_Pi5_ARM64_isolated_synthetic_source_mount_not_production",
+          "seven_day_original_scalar_events": 147840,
+          "supported_series": 44,
+          "meters": 5,
+          "export_cases_passed": 4,
+          "normal_ingestion_submitted_and_persisted": 2212,
+          "rejected_or_lost_events": 0,
+          "peak_export_rss_bytes": 100139008,
+          "peak_cgroup_memory_bytes": 485818368,
+          "max_job_seconds": 73.75,
+          "xlsx_independent_original_ids_and_values": 147840,
+          "final_hardened_runner_smoke": "4_formats_411_of_411_ingestion_pass",
+          "runner_sha256": "784cb471f3dc962b7157391bba981a99ed764bb98fb8f726eb1ccd5de2085e17",
+          "evidence": "docs/audits/energy-history-export-acceptance-1364.md",
+          "remaining": "fresh_exact_head_ci_and_review; site_release_separate",
+          "production_cutover": "not_authorized"
+        },
+        "native_http_and_aggregate_20261014": {
+          "source_sha": "7f7afc3b8839c56bc1b989676fdd35e156d0a9d3",
+          "runner_sha256": "8d7c6289f8b7971b433f4d7fb7a228f91226591f6eb4cacd362dc9903acbfde4",
+          "api_calls": 814,
+          "api_submitted": 1653,
+          "api_persisted": 1653,
+          "api_p95_ms_before_during_after": [
+            5.856,
+            6.426,
+            5.668
+          ],
+          "persistence_p95_ms_before_during_after": [
+            3.003,
+            5.314,
+            2.975
+          ],
+          "persistence_max_lag_ms": 1196.786,
+          "csv_source_stat_checks": 257040,
+          "xlsx_source_stat_checks": 250992,
+          "counter_reset_invalidations_per_format": 5,
+          "collector_physical_requests_before_during_after": [
+            123795,
+            123967,
+            124365
+          ],
+          "collector_samples_before_during_after": [
+            95568,
+            95701,
+            96008
+          ],
+          "collector_queue_depth": [
+            0,
+            0,
+            0
+          ],
+          "internal_network_confirmed": true,
+          "independent_status": "native_isolated_synthetic_PASS",
+          "production_hardware_and_update": "unverified"
+        },
+        "ci_registration_20261014": {
+          "isolated_tool_exact_path": "scripts/energy-history-export-benchmark.py",
+          "classifier": "scripts/classify-ci-impact.py",
+          "regressions": "tests/test_ci_change_impact.py",
+          "targeted_tests": "68 passed",
+          "unknown_scripts": "remain_fail_closed",
+          "required_workflows_on_classifier_change": [
+            "Authenticated Dashboard Acceptance",
+            "Offline Bundle",
+            "Refrigeration Browser Acceptance"
+          ],
+          "exact_head_ci": "pending"
+        },
+        "native_fixed_fixture_and_hosted_browser_20261014": {
+          "fixed_seed_projection_test": {
+            "seeded": 880,
+            "history_max_id": 880,
+            "latest_max_sample_id": 879,
+            "reconcile_gap": 1,
+            "result": "PASS"
+          },
+          "fixed_runner_native_smoke": {
+            "formats": 4,
+            "passed": 4,
+            "submitted": 451,
+            "persisted": 451,
+            "rejected": 0,
+            "oom": false,
+            "peak_cgroup_bytes": 258326528,
+            "peak_export_rss_bytes": 97927168,
+            "result": "PASS"
+          },
+          "fixed_runner_sha256": "31033f06011d5512fc074e3ea87bb2bb3884eb13a178fcd522b97f264556cb28",
+          "hosted_browser_exact_pre_fix_sha": "7b675d744068238ffcdfaf9ed72bb4006549e0dd",
+          "hosted_browser": {
+            "dashboard_playwright_passed": 41,
+            "refrigeration_browser_passed": 6,
+            "energy_export_widths_px": [
+              390,
+              768,
+              1440,
+              1920
+            ],
+            "screenshots": "existing CI artifact",
+            "offline_bundle_ci": "success",
+            "required_workflows": "5/5 GREEN on pre-fix head"
+          },
+          "remaining": [
+            "final_exact_head_CI",
+            "formal_or_documented_review",
+            "production_matching_package_and_site_rollout_is_separate"
+          ]
         }
       }
     },
@@ -9989,6 +10106,39 @@
         ],
         "planning_issue": 1365,
         "source_inspection": "single-metric energy UI/history; existing canonical five-axis partitioning and backend openpyxl dependency"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-14T05:51:58Z",
+      "kind": "energy_export_1363_accepted",
+      "data": {
+        "pull_request": 1368,
+        "merge_commit_sha": "7f7afc3b8839c56bc1b989676fdd35e156d0a9d3",
+        "exact_head_workflows_green": 18,
+        "unresolved_review_threads": 0,
+        "issue": 1363
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-14T06:40:30Z",
+      "kind": "energy1364_native_api_and_aggregate_evidence",
+      "data": {
+        "issue": 1364,
+        "pull_request": 1371,
+        "candidate_source": "7f7afc3b8839c56bc1b989676fdd35e156d0a9d3"
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-14T07:14:02Z",
+      "kind": "energy1364_browser_ci_fixture_closeout",
+      "data": {
+        "pull_request": 1371,
+        "ci_head_prior": "7b675d744068238ffcdfaf9ed72bb4006549e0dd",
+        "hosted_tests": "41 dashboard + 6 refrigeration",
+        "fixed_fixture_smoke": "451/451 PASS"
       }
     }
   ],

@@ -1,3 +1,43 @@
+## Energy1364 — last merge gate
+
+Fixed source data seeding for accurate telemetry_latest IDs; 880/879
+projection and451/451 bounded fresh ARM64 smoke PASS. Prior 5 exact-head
+CI workflows including hosted Energy 390/768/1440/1920 browser paths PASS;
+new exact-head CI must still be GREEN before merge. Independent formal
+review not present as of last check. This is isolated software evidence only:
+matching ARM64 release, protected backup/rollback, and site deployment remain
+blocked by #1313/#1323 and separate owner gate.
+
+## Energy1364 — CI classifier registration prepared, external checks still pending
+
+Previous exact-head Core failed due absent three externally required workflows
+after an unrecognized isolated benchmark path. Narrow classifier registration
+and regression tests pass locally, preserving unknown-file fail-closed and
+requiring the external triplet when classifier is modified. Publish PR1371,
+verify exact-head workflows/review, and keep production activation blocked.
+
+## Energy1364 — HTTP/resource/software PASS; merge and release gates OPEN
+
+Native Pi5 isolated PostgreSQL/HTTP export, 7-day large original history,
+independent RAW CSV/XLSX and aggregate reconciliation, fixed p95/lag limits,
+collector read-only continuity and isolated offline network are documented.
+PR1371 still requires external exact-head workflow matrix and fresh review;
+final browser/mobile behavior acceptance remains open. This does not create
+a matching ARM64 immutable update bundle or satisfy #1313/#1323 guarded
+installation/backup/rollback. No production cutover authorized.
+
+## Energy1364 — native synthetic resource slice PASS; acceptance incomplete
+
+Native Pi5/ARM64 7d/147840-record export under bounded CPU/memory and
+concurrent synthetic ingestion PASSED; source and independent RAW CSV/XLSX data
+reconciliation captured in docs/audits/energy-history-export-acceptance-1364.md.
+Still required: predeclared measured native persistence/API p95 and maximum lag,
+before/during/after collector counter proof, independent aggregate/counter
+reconciliation and full exact candidate browser/offline acceptance. A source
+merge or synthetic result does not authorize C296→new release activation.
+Release packaging, backup/rollback and guarded update remain gated under
+#1313/#1323. No production writes or Modbus/hardware writes.
+
 ## Energy1363 — final repaired export candidate on accepted security source
 
 Security prerequisite1369 is completed through PR1370/main0dc472cd. Final

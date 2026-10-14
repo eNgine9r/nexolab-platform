@@ -286,6 +286,12 @@ RS485_ACQUISITION_PATTERNS = (
     "tools/rs485_discovery/**",
 )
 
+ISOLATED_ACCEPTANCE_TOOL_PATHS = {
+    # Dedicated synthetic-only Pi acceptance harness, never a deployment or
+    # production runtime entrypoint. Keep every other new script fail-closed.
+    "scripts/energy-history-export-benchmark.py",
+}
+
 CI_GOVERNANCE_PATHS = {
     "PROJECT_PROFILE.yaml",
     "AGENTS.md",
@@ -480,6 +486,10 @@ def classify(paths: Iterable[str]) -> dict[str, object]:
 
     for path in normalized:
         matched = False
+
+        if path in ISOLATED_ACCEPTANCE_TOOL_PATHS:
+            classes.add("verification_tooling")
+            matched = True
 
         if (
             path in CI_GOVERNANCE_PATHS
