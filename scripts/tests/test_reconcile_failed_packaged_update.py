@@ -91,8 +91,9 @@ class GuardedRecoveryTests(unittest.TestCase):
             if argv[1] == "exec":
                 self.assertEqual(argv[2], recovery.CONTAINERS["telemetry-service"])
                 self.assertEqual(argv[3:5], ["python3", "-c"])
-                self.assertIn("http://minio:9000/health", argv[5])
-                self.assertIn("response.status != 200", argv[5])
+                self.assertIn("HTTPConnection('minio', 9000, timeout=5)", argv[5])
+                self.assertIn("connection.request('GET', '/health')", argv[5])
+                self.assertIn("getresponse().status != 200", argv[5])
                 self.assertIn("timeout=5", argv[5])
                 self.assertEqual(kwargs.get("timeout"), 12)
                 return "READY"

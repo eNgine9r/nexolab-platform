@@ -144,10 +144,14 @@ def verify_runtime_container_health() -> None:
             # Probe only local Docker DNS; never pass credentials or print HTTP
             # response bodies. HTTP errors and timeouts fail closed.
             probe = (
-                "from urllib.request import urlopen\n"
-                "with urlopen('http://minio:9000/health', timeout=5) as response:\n"
-                "    if response.status != 200: raise SystemExit(1)\n"
-                "print('READY')\n"
+                "from http.client import HTTPConnection\n"
+                "connection = HTTPConnection('minio', 9000, timeout=5)\n"
+                "try:\n"
+                "    connection.request('GET', '/health')\n"
+                "    if connection.getresponse().status != 200: raise SystemExit(1)\n"
+                "    print('READY')\n"
+                "finally:\n"
+                "    connection.close()\n"
             )
             guard(
                 read_command([
