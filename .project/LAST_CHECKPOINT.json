@@ -3,15 +3,15 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-15T11:44:39Z",
+  "timestamp": "2026-10-15T16:56:28Z",
   "actor": "ChatGPT",
-  "event": "issue_1388_recovery_versitygw_health_fix_in_review",
+  "event": "1390_post_recovery_durable_state_in_review",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
-    "deployed_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
-    "frontend_compatibility_source_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
+    "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+    "frontend_compatibility_source_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
     "frontend_build_id": "zkjro8zBIxIPXErg7sqY0",
-    "frontend_release": "validated_package:29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
+    "frontend_release": "validated_package:ffdefc4550d71e211724de1154ffe9057f905c9c",
     "frontend_rollback_release": "runtime/frontend-releases/75d9c75f8d1901d6b639ec711bf3784e22ed0642-20261007T061059Z",
     "frontend_runtime_evidence": "operation-evidence/5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75",
     "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
@@ -23,18 +23,18 @@
     "sdm120_production_adapter": "A10Q34QC",
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
-    "deployed_runtime_evidence": "operation-evidence/5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75",
-    "deployed_device_agent_image_id": "sha256:4f954fc493c31d865a8107926bade05091325c302c5eea2d946a4ccac4f53310",
+    "deployed_runtime_evidence": "operation-evidence/reconcile-51dc3ae6-8e34-453c-b6ff-7ecac98b924c-to-ffdefc4550d7",
+    "deployed_device_agent_image_id": "sha256:b96be6cb7ca8a9c71eb94976fe787b35b7a9d5cd2b426c6966a868ca5cc3d15e",
     "deployed_device_agent_rollback_image_id": "sha256:bcfcbb5320017d3f4a205c748f642002ddb70b7fd466a9ebc34e1c780c10244b",
     "object_storage_authority": "runtime/object-storage-migration/authority.json",
-    "protected_frontend_compatibility_source_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
-    "protected_frontend_build_id": "HuFALgo65ij75S2pY6qCm"
+    "protected_frontend_compatibility_source_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+    "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "active_work": {
-    "issue": 1388,
-    "branch": "fix/1388-recovery-versitygw-health",
+    "issue": 1390,
+    "branch": "docs/1390-recovered-ffdefc-acceptance",
     "status": "review",
-    "checks": "13_of_13_targeted_unittests_pass",
+    "scope": "four_state_files_only",
     "production_mutation": false
   },
   "evidence_snapshot": {
@@ -3765,7 +3765,7 @@
       }
     }
   ],
-  "next_action": "Complete exact PR-head CI/review of #1388, merge only GREEN, then owner checksum-pinned READ_ONLY recovery preflight; never execute production reconciliation without separate approval.",
+  "next_action": "Verify #1390 exact-head CI and merge only after GREEN. Then obtain user acceptance of live ffdefc Energy CSV/XLSX and source-row reconciliation; close #1381/#1384 only on all actual acceptance evidence. Do not run Update/Rollback or hardware writes.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -3774,15 +3774,32 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "This state-only work changed no site service, installed package, database or hardware. Historical owner-authorized protected cutover #1376 completed before this documentation update via canonical Version Manager; C296 retained for rollback.",
+  "runtime_mutation": "#1390 state-only work makes NO site change. Historical root-only owner-approved recovery #1384 already completed and was independently verified with privileged 8/8 authority PASS, actual live ffdefc LAN/HTTPS and three real RS-485 read-only buses.",
   "recovery_1388": {
     "incident": 1381,
     "recovery": 1384,
     "issue": 1388,
     "cause": "VersityGW has no Docker .State.Health; native Compose VGW_HEALTH=/health responds HTTP 200",
     "software_verified": true,
-    "hardware_reverified_by_owner": false,
-    "site_authority_known": false,
-    "production_mutation": false
+    "hardware_reverified_by_owner": true,
+    "site_authority_known": true,
+    "production_mutation": false,
+    "github_pull_request": 1389,
+    "github_ci": "GREEN",
+    "software_merged": true,
+    "owner_root_recovery": "succeeded"
+  },
+  "recovery_1384": {
+    "operation_id": "reconcile-51dc3ae6-8e34-453c-b6ff-7ecac98b924c-to-ffdefc4550d7",
+    "status": "succeeded",
+    "owner_final_authority_check": "8/8_PASS",
+    "installed_source": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+    "failed_original_preserved": true,
+    "rollback_29cff_retained": true,
+    "backup_retained": true,
+    "hardware": "3_RS485_buses_live_Modbus_read_only",
+    "owner_energy_page": "opens_after_authenticated_login",
+    "new_ffdefc_energy_csv_xlsx": "UNVERIFIED",
+    "google_oauth_signed_in": "UNVERIFIED"
   }
 }
