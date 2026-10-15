@@ -37,10 +37,10 @@
   },
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
-    "deployed_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
-    "frontend_compatibility_source_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
+    "deployed_product_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+    "frontend_compatibility_source_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
     "frontend_build_id": "zkjro8zBIxIPXErg7sqY0",
-    "frontend_release": "validated_package:29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
+    "frontend_release": "validated_package:ffdefc4550d71e211724de1154ffe9057f905c9c",
     "frontend_rollback_release": "runtime/frontend-releases/75d9c75f8d1901d6b639ec711bf3784e22ed0642-20261007T061059Z",
     "frontend_runtime_evidence": "operation-evidence/5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75",
     "sdm120_candidate_compatibility_source_sha": "7db6c8c34c7c94874afe2a3301a2209585795744",
@@ -52,17 +52,17 @@
     "sdm120_production_adapter": "A10Q34QC",
     "sdm120_production_unit_id": 1,
     "sdm120_production_evidence": "runtime/evidence/issue-1117-sdm120-cutover-20260922T134803Z",
-    "deployed_runtime_evidence": "operation-evidence/5e84ed4c-ac57-4efd-9dd0-8e8d0ab07a75",
-    "deployed_device_agent_image_id": "sha256:4f954fc493c31d865a8107926bade05091325c302c5eea2d946a4ccac4f53310",
+    "deployed_runtime_evidence": "operation-evidence/reconcile-51dc3ae6-8e34-453c-b6ff-7ecac98b924c-to-ffdefc4550d7",
+    "deployed_device_agent_image_id": "sha256:b96be6cb7ca8a9c71eb94976fe787b35b7a9d5cd2b426c6966a868ca5cc3d15e",
     "deployed_device_agent_rollback_image_id": "sha256:bcfcbb5320017d3f4a205c748f642002ddb70b7fd466a9ebc34e1c780c10244b",
     "object_storage_authority": "runtime/object-storage-migration/authority.json",
-    "protected_frontend_compatibility_source_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
-    "protected_frontend_build_id": "HuFALgo65ij75S2pY6qCm"
+    "protected_frontend_compatibility_source_sha": "ffdefc4550d71e211724de1154ffe9057f905c9c",
+    "protected_frontend_build_id": "nZ5Q2psU4ylJo7i1ix1N_"
   },
   "selection": {
     "active_work_package": {
-      "issue": 1388,
-      "branch": "fix/1388-recovery-versitygw-health"
+      "issue": 1390,
+      "branch": "docs/1390-recovered-ffdefc-acceptance"
     },
     "next_work_package": null
   },
@@ -8785,7 +8785,7 @@
       "title": "Verify VersityGW readiness without nonexistent Docker HEALTHCHECK during read-only recovery preflight",
       "branch": "fix/1388-recovery-versitygw-health",
       "priority": "critical",
-      "lifecycle": "review",
+      "lifecycle": "completed",
       "depends_on": [],
       "scope": "Exact #1384 read-only recovery helper and focused tests only; keep five Docker checks, require running and local GET /health for VersityGW; no site writes.",
       "evidence": {
@@ -8793,8 +8793,33 @@
         "observed_bug": "docker inspect .State.Health.Status fails for VersityGW absent Docker Health",
         "read_only_http": "Docker-internal GET /health returned HTTP 200",
         "targeted_checks": "13/13 focused unittest PASS",
-        "github_exact_head_ci": "pending",
-        "production_cutover": "not_authorized"
+        "github_exact_head_ci": "success",
+        "production_cutover": "owner_approved_separate_recovery_issue_1384",
+        "pull_request": 1389,
+        "ci": "exact_head_success_and_merge_gate_green",
+        "main_merge": "4b7fee17ff9ad615bfe0472842c531d742125d2c",
+        "root_read_only_preflight": "PASS_then_owner_approved_execute_succeeded"
+      }
+    },
+    {
+      "issue": 1390,
+      "title": "Record recovered ffdefc production authority and Energy page operator acceptance",
+      "branch": "docs/1390-recovered-ffdefc-acceptance",
+      "priority": "high",
+      "lifecycle": "review",
+      "depends_on": [
+        1388
+      ],
+      "scope": "Reconcile four durable state files only; no production mutation, code changes, or unverified CSV/XLSX acceptance",
+      "evidence": {
+        "source_issue": "https://github.com/eNgine9r/nexolab-platform/issues/1390",
+        "owner_final_authority": "8_of_8_PASS",
+        "recovery_operation": "reconcile-51dc3ae6-8e34-453c-b6ff-7ecac98b924c-to-ffdefc4550d7",
+        "live_runtime": "ffdefc_LAN_HTTPS_three_RS485_buses_PostgreSQL_healthy",
+        "chromium_login": "desktop_mobile_PASS_auth_gate",
+        "owner_energy_page": "opens_after_login",
+        "energy_csv_xlsx_on_ffdefc": "awaiting_operator_confirmation",
+        "ci": "pending"
       }
     }
   ],

@@ -1,3 +1,9 @@
+## 2026-10-15 — Recovery resolved; live Energy export acceptance still pending (#1381 / #1384 / #1390)
+
+**Supersedes the older P0 recovery blocker below:** owner-run forward reconciliation to installed ffdefc finished `succeeded`; privileged read-only `FINAL_AUTHORITY_CHECK=PASS` 8/8 confirms `health=ready`, `runtime_state_known=true`, retained original failed operation, previous 29cff package and PostgreSQL dump. Independent container, schema, LAN/HTTPS, real three-bus RS-485 read-only telemetry and Chromium authentication-gate checks PASS. Owner confirms the authenticated Energy Monitoring page opens. **Do not describe runtime authority as unknown.**
+
+Remaining acceptance (not recovery failure): live CSV **and** XLSX exports on deployed ffdefc and any source-row verification. No owner confirmation for these two new-version downloads yet. Keep #1381/#1384 OPEN pending required acceptance; their historical recovery failure is resolved. Unrelated #1313/#1323 require independent reconciliation rather than automatic closure. No production deployment/update/rollback authorization inferred from this read-only state PR. No Modbus/hardware writes.
+
 ## 2026-10-15 P0 protected recovery block — #1381 / #1384 / #1388
 
 The installed package authority is **unknown**, not the prior documented ready 29cff state. Six observed runtime images match ffdefc, but the original protected Version Manager authority remains `verification_failed / runtime_state_known=false`. The owner read-only recovery preflight reached image validation then failed because VersityGW has no Docker HEALTHCHECK while the helper required one. #1388 implements a fail-closed local GET `/health` (HTTP 200) and running check for only that compatibility service; five other Docker healthchecks remain mandatory. Local 13/13 tests PASS, exact-head CI/PR review pending. No production mutation.
