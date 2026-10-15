@@ -60,7 +60,10 @@
     "protected_frontend_build_id": "HuFALgo65ij75S2pY6qCm"
   },
   "selection": {
-    "active_work_package": null,
+    "active_work_package": {
+      "issue": 1388,
+      "branch": "fix/1388-recovery-versitygw-health"
+    },
     "next_work_package": null
   },
   "work_packages": [
@@ -8776,6 +8779,23 @@
         "docs/adr/0011-local-object-storage-versitygw.md"
       ],
       "readiness": "Completed and merged as0dc472cd after final101da8c38 GREEN checks/MergeGate/fresh clean review; isolated actual-Pi ARM64 build/version and cross-target pass; no production activation."
+    },
+    {
+      "issue": 1388,
+      "title": "Verify VersityGW readiness without nonexistent Docker HEALTHCHECK during read-only recovery preflight",
+      "branch": "fix/1388-recovery-versitygw-health",
+      "priority": "critical",
+      "lifecycle": "review",
+      "depends_on": [],
+      "scope": "Exact #1384 read-only recovery helper and focused tests only; keep five Docker checks, require running and local GET /health for VersityGW; no site writes.",
+      "evidence": {
+        "issue": "https://github.com/eNgine9r/nexolab-platform/issues/1388",
+        "observed_bug": "docker inspect .State.Health.Status fails for VersityGW absent Docker Health",
+        "read_only_http": "Docker-internal GET /health returned HTTP 200",
+        "targeted_checks": "13/13 focused unittest PASS",
+        "github_exact_head_ci": "pending",
+        "production_cutover": "not_authorized"
+      }
     }
   ],
   "maintenance_actions": [
@@ -10211,6 +10231,20 @@
           1323
         ],
         "state_only_runtime_mutation": false
+      }
+    },
+    {
+      "source": "github",
+      "observed_at": "2026-10-15T11:40:12Z",
+      "kind": "issue_1388_versitygw_recovery_health_contract",
+      "data": {
+        "issue": 1388,
+        "incident": 1381,
+        "recovery": 1384,
+        "github_url": "https://github.com/eNgine9r/nexolab-platform/issues/1388",
+        "root_cause": "#1381 authority remains verification_failed/unknown despite 6 ffdefc runtime images. #1388 corrects false Docker Health inspection of running VersityGW; still awaits GREEN CI and owner read-only preflight; production unchanged.",
+        "production_mutation": false,
+        "root_read_only_preflight_required": true
       }
     }
   ],

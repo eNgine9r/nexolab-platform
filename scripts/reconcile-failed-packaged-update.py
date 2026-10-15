@@ -131,6 +131,42 @@ def compare_images(manifest: dict) -> None:
         actual = read_command(["docker", "inspect", "--format", "{{.Image}}", name])
         guard(actual in expected[ident], "IMAGE_IDENTITY_CHANGED_" + ident)
 
+def verify_runtime_container_health() -> None:
+    # Five services have Docker HEALTHCHECK; the "minio" Compose compatibility
+    # name runs VersityGW, which exposes a GET /health endpoint instead.
+    for ident, name in CONTAINERS.items():
+        if ident == "object-storage":
+            guard(
+                read_command(["docker", "inspect", "--format", "{{.State.Running}}", name])
+                == "true",
+                "OBJECT_STORAGE_NOT_RUNNING",
+            )
+            # Probe only local Docker DNS; never pass credentials or print HTTP
+            # response bodies. HTTP errors and timeouts fail closed.
+            probe = (
+                "from http.client import HTTPConnection\n"
+                "connection = HTTPConnection('minio', 9000, timeout=5)\n"
+                "try:\n"
+                "    connection.request('GET', '/health')\n"
+                "    if connection.getresponse().status != 200: raise SystemExit(1)\n"
+                "    print('READY')\n"
+                "finally:\n"
+                "    connection.close()\n"
+            )
+            guard(
+                read_command([
+                    "docker", "exec", CONTAINERS["telemetry-service"],
+                    "python3", "-c", probe,
+                ], timeout=12) == "READY",
+                "OBJECT_STORAGE_NOT_READY",
+            )
+        else:
+            health = read_command(
+                ["docker", "inspect", "--format", "{{.State.Health.Status}}", name]
+            )
+            guard(health == "healthy", "CONTAINER_NOT_HEALTHY_" + ident)
+
+
 def verify_runtime(native, args, current: dict, target: dict) -> tuple[list, dict]:
     compare_images(target)
     revision = read_command(["docker", "exec", CONTAINERS["telemetry-service"],
@@ -141,10 +177,7 @@ def verify_runtime(native, args, current: dict, target: dict) -> tuple[list, dic
     for key in ("device_mode", "configured_mode", "host_serial_device",
                 "observed_buses", "bus_bindings"):
         guard(observed.get(key) == baseline.get(key), "HARDWARE_CHANGED_" + key)
-    for name in CONTAINERS.values():
-        health = read_command(["docker", "inspect", "--format",
-                               "{{.State.Health.Status}}", name])
-        guard(health == "healthy", "CONTAINER_NOT_HEALTHY")
+    verify_runtime_container_health()
     return native.capture_volume_identities(skip_edge=False), observed
 
 def inspect_exact_site(args, native):

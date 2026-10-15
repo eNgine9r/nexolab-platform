@@ -3,9 +3,9 @@
   "project": "NEXOLAB",
   "profile": "LOCAL_LAN",
   "sprint": "PRODUCTION-READINESS-1",
-  "timestamp": "2026-10-14T13:37:17Z",
+  "timestamp": "2026-10-15T11:44:39Z",
   "actor": "ChatGPT",
-  "event": "issue_1377_merged_and_energy_1376_deployment_state_reconciled",
+  "event": "issue_1388_recovery_versitygw_health_fix_in_review",
   "baselines": {
     "accepted_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "deployed_product_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
@@ -30,7 +30,13 @@
     "protected_frontend_compatibility_source_sha": "29cff166e5abfe4d5ef8f871a2a49a3114be40fa",
     "protected_frontend_build_id": "HuFALgo65ij75S2pY6qCm"
   },
-  "active_work": null,
+  "active_work": {
+    "issue": 1388,
+    "branch": "fix/1388-recovery-versitygw-health",
+    "status": "review",
+    "checks": "13_of_13_targeted_unittests_pass",
+    "production_mutation": false
+  },
   "evidence_snapshot": {
     "issue_1184_react_19_3_candidate": {
       "issue": 1184,
@@ -3759,7 +3765,7 @@
       }
     }
   ],
-  "next_action": "Release #1376 operator CSV/XLSX verified and installed at 29cff. Issue #1377 code merged to 8593119 but LAN Dashboard identity fix is not yet deployed. Keep #1313/#1323 open for independent scoping; prepare a separately gated ARM64 release with retained object-storage, exact authority, backup and rollback before owner cutover.",
+  "next_action": "Complete exact PR-head CI/review of #1388, merge only GREEN, then owner checksum-pinned READ_ONLY recovery preflight; never execute production reconciliation without separate approval.",
   "safety": {
     "modbus_write": "none",
     "hardware_write": "none",
@@ -3768,5 +3774,15 @@
     "production_cutover_authorized": false,
     "mandatory_public_runtime_dependency": "none"
   },
-  "runtime_mutation": "This state-only work changed no site service, installed package, database or hardware. Historical owner-authorized protected cutover #1376 completed before this documentation update via canonical Version Manager; C296 retained for rollback."
+  "runtime_mutation": "This state-only work changed no site service, installed package, database or hardware. Historical owner-authorized protected cutover #1376 completed before this documentation update via canonical Version Manager; C296 retained for rollback.",
+  "recovery_1388": {
+    "incident": 1381,
+    "recovery": 1384,
+    "issue": 1388,
+    "cause": "VersityGW has no Docker .State.Health; native Compose VGW_HEALTH=/health responds HTTP 200",
+    "software_verified": true,
+    "hardware_reverified_by_owner": false,
+    "site_authority_known": false,
+    "production_mutation": false
+  }
 }
