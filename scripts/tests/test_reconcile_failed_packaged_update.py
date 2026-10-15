@@ -213,3 +213,75 @@ class GuardedRecoveryTests(unittest.TestCase):
 
 if __name__=="__main__":
     unittest.main()
+
+class RealNativeHardwareContractTests(unittest.TestCase):
+    """Exercise the real native worker contract, not a MagicMock."""
+
+    @staticmethod
+    def native_module():
+        native_path = SCRIPT.with_name("nexolab-version-manager.py")
+        spec = importlib.util.spec_from_file_location("nexolab_real_worker_contract", native_path)
+        assert spec and spec.loader
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_native_hardware_contract_has_mandatory_edge_and_no_skip_flag(self):
+        native = self.native_module()
+        with tempfile.TemporaryDirectory() as d:
+            edge = Path(d) / "edge.env"
+            edge.write_text(
+                "RS485_HOST_DEVICE=/dev/serial/by-id/usb-test-main\n"
+                "HARDWARE_DEVICE_MODE=xjp60d\n"
+            )
+            args = recovery.parser().parse_args([
+                "--central-env", str(Path(d) / "central.env"),
+                "--edge-env", str(edge),
+            ])
+            self.assertIs(args.skip_edge, False)
+            self.assertEqual(args.approve, "")
+            self.assertFalse(args.execute)
+            with patch.object(native, "parse_env_file", return_value={
+                "RS485_HOST_DEVICE": "/dev/serial/by-id/usb-test-main",
+                "HARDWARE_DEVICE_MODE": "xjp60d",
+            }):
+                contract = native.expected_real_hardware_contract(args)
+                self.assertEqual(contract["container_serial_device"], "/host/dev/serial/by-id/usb-test-main")
+                args.skip_edge = True
+                with self.assertRaisesRegex(native.VersionManagerFailure, "requires the real edge runtime"):
+                    native.expected_real_hardware_contract(args)
+
+    def test_recovery_runtime_probes_real_modbus_hardware_worker(self):
+        native = self.native_module()
+        args = recovery.parser().parse_args([
+            "--central-env", "/fixtures/central.env",
+            "--edge-env", "/fixtures/edge.env",
+        ])
+        serial = "/host/dev/serial/by-id/usb-test-main"
+        health = {
+            "status": "ok", "device_mode": "modbus",
+            "acquisition": {
+                "rs485_buses": [{"bus_id": "rs485-main", "serial_device": serial,
+                                 "device_path_present": True}],
+                "request_series": [{"bus": "rs485-main", "outcome": "success",
+                                    "requests_total": 3}],
+            },
+        }
+        with (
+            patch.object(native, "parse_env_file", return_value={
+                "RS485_HOST_DEVICE": "/dev/serial/by-id/usb-test-main",
+                "HARDWARE_DEVICE_MODE": "xjp60d",
+            }),
+            patch.object(native, "read_local_json", return_value=health),
+            patch.object(native, "capture_volume_identities", return_value=[{"name":"expected-volume"}]),
+            patch.object(recovery, "compare_images"),
+            patch.object(recovery, "read_command", side_effect=lambda argv, **kw:
+                         recovery.SCHEMA + " (head)" if "alembic" in argv else "healthy"),
+        ):
+            expected_hardware = native.verify_real_hardware_runtime(args)
+            old = current()
+            old["hardware_contract"] = expected_hardware
+            volumes, observed = recovery.verify_runtime(native, args, old, target())
+        self.assertEqual(observed, expected_hardware)
+        self.assertEqual(volumes, [{"name": "expected-volume"}])
+        self.assertGreater(observed["successful_requests"], 0)
