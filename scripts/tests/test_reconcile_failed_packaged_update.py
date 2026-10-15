@@ -81,6 +81,61 @@ class GuardedRecoveryTests(unittest.TestCase):
             with self.assertRaisesRegex(recovery.RecoveryBlocked,"IMAGE_IDENTITY_CHANGED"):
                 recovery.compare_images(m)
 
+    def test_versitygw_health_contract_never_requires_docker_healthcheck(self):
+        calls = []
+        def check(argv, **kwargs):
+            calls.append(argv)
+            if argv[1] == "inspect" and argv[-1] == recovery.CONTAINERS["object-storage"]:
+                self.assertIn("State.Running", argv[-2])
+                return "true"
+            if argv[1] == "exec":
+                self.assertEqual(argv[2], recovery.CONTAINERS["telemetry-service"])
+                self.assertEqual(argv[3:5], ["python3", "-c"])
+                self.assertIn("http://minio:9000/health", argv[5])
+                self.assertIn("response.status != 200", argv[5])
+                self.assertIn("timeout=5", argv[5])
+                self.assertEqual(kwargs.get("timeout"), 12)
+                return "READY"
+            return "healthy"
+        with patch.object(recovery, "read_command", side_effect=check):
+            recovery.verify_runtime_container_health()
+        self.assertEqual(len(calls), 7)  # five Docker checks + running + VersityGW GET
+        health = [argv for argv in calls if "State.Health.Status" in str(argv)]
+        self.assertEqual(len(health), 5)
+        self.assertNotIn(recovery.CONTAINERS["object-storage"], [argv[-1] for argv in health])
+
+    def test_versitygw_fails_closed_if_stopped_unready_or_probe_failed(self):
+        for state, expected in [
+            ("stopped", "OBJECT_STORAGE_NOT_RUNNING"),
+            ("unexpected_response", "OBJECT_STORAGE_NOT_READY"),
+            ("http_404_or_500", "READ_ONLY_CHECK_FAILED"),
+            ("timeout", "READ_ONLY_CHECK_FAILED"),
+        ]:
+            with self.subTest(state=state):
+                def check(argv, **kwargs):
+                    if argv[-1] == recovery.CONTAINERS["object-storage"]:
+                        return "false" if state == "stopped" else "true"
+                    if argv[1] == "exec":
+                        if state in ("http_404_or_500", "timeout"):
+                            raise recovery.RecoveryBlocked("READ_ONLY_CHECK_FAILED")
+                        return "NOT_READY"
+                    return "healthy"
+                with patch.object(recovery, "read_command", side_effect=check):
+                    with self.assertRaisesRegex(recovery.RecoveryBlocked, expected):
+                        recovery.verify_runtime_container_health()
+
+    def test_other_containers_still_require_healthy(self):
+        for bad in ("starting", "unhealthy"):
+            with self.subTest(status=bad):
+                def check(argv, **kwargs):
+                    return bad if argv[-1] == recovery.CONTAINERS["dashboard"] else "healthy"
+                with patch.object(recovery, "read_command", side_effect=check):
+                    with self.assertRaisesRegex(recovery.RecoveryBlocked, "CONTAINER_NOT_HEALTHY_dashboard"):
+                        recovery.verify_runtime_container_health()
+        with patch.object(recovery, "read_command", side_effect=recovery.RecoveryBlocked("READ_ONLY_CHECK_FAILED")):
+            with self.assertRaisesRegex(recovery.RecoveryBlocked, "READ_ONLY_CHECK_FAILED"):
+                recovery.verify_runtime_container_health()
+
     def test_invalid_hardware_or_schema_blocks_even_when_images_match(self):
         native=MagicMock()
         native.verify_real_hardware_runtime.return_value={
@@ -276,7 +331,9 @@ class RealNativeHardwareContractTests(unittest.TestCase):
             patch.object(native, "capture_volume_identities", return_value=[{"name":"expected-volume"}]),
             patch.object(recovery, "compare_images"),
             patch.object(recovery, "read_command", side_effect=lambda argv, **kw:
-                         recovery.SCHEMA + " (head)" if "alembic" in argv else "healthy"),
+                         recovery.SCHEMA + " (head)" if "alembic" in argv else
+                         "true" if argv[-1] == recovery.CONTAINERS["object-storage"] else
+                         "READY" if argv[1] == "exec" else "healthy"),
         ):
             expected_hardware = native.verify_real_hardware_runtime(args)
             old = current()

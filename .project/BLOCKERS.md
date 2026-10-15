@@ -1,3 +1,9 @@
+## 2026-10-15 P0 protected recovery block — #1381 / #1384 / #1388
+
+The installed package authority is **unknown**, not the prior documented ready 29cff state. Six observed runtime images match ffdefc, but the original protected Version Manager authority remains `verification_failed / runtime_state_known=false`. The owner read-only recovery preflight reached image validation then failed because VersityGW has no Docker HEALTHCHECK while the helper required one. #1388 implements a fail-closed local GET `/health` (HTTP 200) and running check for only that compatibility service; five other Docker healthchecks remain mandatory. Local 13/13 tests PASS, exact-head CI/PR review pending. No production mutation.
+
+Remaining hard gate: after reviewed GREEN merge, operator must rerun an exact-SHA256 pinned **read-only** root preflight; inspect backup, real three-bus RS-485 and HTTPS/volume evidence. Any subsequent production reconciliation with `--execute`, Update or Rollback needs **separate** explicit Product Owner approval. No automatic release or `🟢 Оновлюйся`.
+
 ## 2026-10-14 verified release outcome and next guarded work — #1376 / #1377
 
 The prior Energy release blocker below describes the **pre-cutover** position. It is superseded **for the specific C296→29cff protected Energy release** by owner-driven Version Manager operation `af45b2f1-043e-47e6-8375-7a7982b06879`, status `succeeded/verified_ready`, PostgreSQL backup receipt, accepted hardware/read-only Modbus evidence, retained C296 rollback package and Product Owner acceptance of live CSV/XLSX downloads. The deployed source is `29cff166e5abfe4d5ef8f871a2a49a3114be40fa`. No product data or Docker volumes were deleted.
