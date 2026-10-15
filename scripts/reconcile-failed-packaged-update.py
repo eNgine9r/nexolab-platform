@@ -322,6 +322,8 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--backup-dir", type=Path, default=BACKUP_DIR)
     p.add_argument("--central-env", type=Path, required=True)
     p.add_argument("--edge-env", type=Path, required=True)
+    # Native hardware verifier requires this; keep the edge check mandatory.
+    p.set_defaults(skip_edge=False)
     p.add_argument("--execute", action="store_true")
     p.add_argument("--approve", default="")
     return p
