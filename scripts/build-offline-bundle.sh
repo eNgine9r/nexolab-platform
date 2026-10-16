@@ -299,6 +299,7 @@ cp scripts/lib/raspberry-pi-frontend-release.sh "$STAGING/scripts/lib/"
 cp scripts/lib/postgresql-backup-client.sh "$STAGING/scripts/lib/"
 cp scripts/nexolab-protected-frontend.py "$STAGING/scripts/"
 cp scripts/nexolab-protected-package.py "$STAGING/scripts/"
+cp infrastructure/offline/verify-packaged-dashboard-port.py "$STAGING/scripts/"
 if [[ -n "$EXTERNAL_FRONTEND_ARTIFACT" ]]; then
   [[ -d "$EXTERNAL_FRONTEND_ARTIFACT" && "$AUTH_PROVIDER" == local ]] || {
     echo "ERROR: protected frontend artifact requires an existing directory and local authentication" >&2

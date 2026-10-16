@@ -1,3 +1,14 @@
+## 2026-10-16 — #1393 source Dashboard boot guard pending exact-head CI
+
+The earlier ffdefc Dashboard outage (running, internal health green,
+Docker network/host 3000 lost after reboot) has already been recovered
+via separate Product Owner-approved protected action. This source-only
+guard detects and blocks such false acceptance in future offline packages;
+it does not configure a boot supervisor or enact Docker mutations.
+Physical LAN/Docker CIDR conflict #1409, detached S3 #1400, and durable
+acknowledgement #1397 remain separate blockers. Avoid production reboot
+until tested migration and rollback authority.
+
 ## 2026-10-16 — #1400 object-storage private network recovery still blocked
 
 Actual packaged VersityGW `minio` is running with preserved named volume,

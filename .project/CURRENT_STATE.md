@@ -1,3 +1,19 @@
+## 2026-10-16 — #1393 packaged Dashboard network/host-port source guard
+
+After the October 16 reboot the installed ffdefc Dashboard was running
+and internally healthy but had **no effective Docker network or published
+port 3000**. Earlier checksum-pinned, owner-authorized dashboard-only
+recreation restored real LAN HTTP 200 without replacing PostgreSQL,
+MQTT, Telemetry API, object storage or Device Agent.
+The legacy host `nexolab-dashboard.service` remains intentionally
+disabled; do not enable it.
+
+This #1393 source-only WP adds a read-only active Docker network/port,
+Compose ownership and immutable offline package smoke gate. It cannot
+restart Dashboard or deploy to the live Pi. All tests and exact-head CI
+must pass before merging. The independent object storage network remains
+detached (#1400); route conflict #1409 and app ACK #1397 still outstanding.
+
 ## 2026-10-16 — #1400: Private packaged object-storage drift detection
 
 Owner-approved ffdefc incident recovery restored Dashboard (Chromium LAN 200)

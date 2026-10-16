@@ -61,10 +61,13 @@
   },
   "selection": {
     "active_work_package": {
-      "issue": 1400,
-      "branch": "fix/1400-offline-object-storage-network-gate"
+      "issue": 1393,
+      "branch": "fix/1393-packaged-dashboard-boot-network"
     },
-    "next_work_package": null
+    "next_work_package": {
+      "issue": 1394,
+      "branch": "docs/1394-durable-delivery-discovery"
+    }
   },
   "work_packages": [
     {
@@ -8858,6 +8861,33 @@
         "linked_recurrence_issue": "https://github.com/eNgine9r/nexolab-platform/issues/1399",
         "standalone_contract": "PASS_10_new_tests",
         "ci_policy_tests": "225_tests_1_expected_skip"
+      }
+    },
+    {
+      "issue": 1393,
+      "title": "Recover packaged Dashboard network/port after reboot",
+      "branch": "fix/1393-packaged-dashboard-boot-network",
+      "priority": "critical",
+      "lifecycle": "in_progress",
+      "depends_on": [],
+      "scope": "Read-only packaged Dashboard network/port gate in offline smoke; no production mutation.",
+      "evidence": {
+        "native_readonly": "running_dashboard_zero_networks_and_ports",
+        "software_tests": "71_total_1_expected_skip",
+        "site_activation": "not_performed",
+        "ci": "pending"
+      }
+    },
+    {
+      "issue": 1394,
+      "title": "Prove durable telemetry while central API is offline",
+      "branch": "docs/1394-durable-delivery-discovery",
+      "priority": "critical",
+      "lifecycle": "ready",
+      "depends_on": [],
+      "scope": "Isolated delivery/persistence discovery and proof; no live collector or broker changes.",
+      "evidence": {
+        "verification": "not_started"
       }
     }
   ],
